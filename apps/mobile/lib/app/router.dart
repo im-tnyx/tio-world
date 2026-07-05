@@ -89,10 +89,6 @@ class MainShell extends StatelessWidget {
         title: const Text('Tio'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => context.push('/settings'),
-          ),
-          IconButton(
             icon: const CircleAvatar(
               radius: 12,
               child: Icon(Icons.person, size: 16),
@@ -113,11 +109,6 @@ class MainShell extends StatelessWidget {
             label: 'Dashboard',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.fitness_center_outlined),
-            activeIcon: Icon(Icons.fitness_center),
-            label: 'Workout',
-          ),
-          BottomNavigationBarItem(
             icon: Icon(Icons.restaurant_outlined),
             activeIcon: Icon(Icons.restaurant),
             label: 'Nutrition',
@@ -126,6 +117,11 @@ class MainShell extends StatelessWidget {
             icon: Icon(Icons.smart_toy_outlined),
             activeIcon: Icon(Icons.smart_toy),
             label: 'Coach',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.fitness_center_outlined),
+            activeIcon: Icon(Icons.fitness_center),
+            label: 'Workout',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.bar_chart_outlined),
