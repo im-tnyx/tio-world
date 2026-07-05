@@ -1,0 +1,51 @@
+# CODEOWNERS for tio-world
+#
+# Repository owners have not been assigned yet.
+# Add real GitHub users or teams before enabling required CODEOWNERS review.
+#
+# Suggested future ownership shape:
+#
+# Global fallback
+# *                                   @im-tnyx/tio-maintainers
+#
+# Product docs and repo policy
+# /README.md                          @im-tnyx/tio-maintainers
+# /CONTRIBUTING.md                    @im-tnyx/tio-maintainers
+# /CODE_OF_CONDUCT.md                 @im-tnyx/tio-maintainers
+# /.github/                           @im-tnyx/tio-maintainers
+# /docs/                              @im-tnyx/tio-architecture
+#
+# Flutter mobile app
+# /apps/mobile/                       @im-tnyx/mobile
+# /apps/mobile/lib/features/auth/      @im-tnyx/auth
+# /apps/mobile/lib/features/workout/   @im-tnyx/workout
+# /apps/mobile/lib/features/nutrition/ @im-tnyx/nutrition
+# /apps/mobile/lib/features/coaching/  @im-tnyx/coaching
+# /apps/mobile/lib/features/progress/  @im-tnyx/progress
+# /apps/mobile/lib/features/profile/   @im-tnyx/profile
+#
+# Shared Dart packages
+# /packages/core_models/              @im-tnyx/platform
+# /packages/api_client/               @im-tnyx/platform
+# /packages/design_system/            @im-tnyx/design-system
+# /packages/workout_engine/           @im-tnyx/workout
+# /packages/nutrition_engine/         @im-tnyx/nutrition
+# /packages/sync_core/                @im-tnyx/platform
+#
+# Native watch apps
+# /apps/wear-os/                      @im-tnyx/wear
+# /apps/watchos/                      @im-tnyx/watchos
+#
+# Backend and AI
+# /backend/api/                       @im-tnyx/backend
+# /backend/ai-coach/                  @im-tnyx/ai-coach
+# /backend/jobs/                      @im-tnyx/backend
+# /backend/db/                        @im-tnyx/backend
+#
+# Tooling and CI
+# /tools/                             @im-tnyx/platform
+# /melos.yaml                         @im-tnyx/platform
+# /pubspec.yaml                       @im-tnyx/platform
+# /package.json                       @im-tnyx/platform
+# /pnpm-workspace.yaml                @im-tnyx/platform
+# /turbo.json                         @im-tnyx/platform

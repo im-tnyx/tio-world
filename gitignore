@@ -1,0 +1,285 @@
+# -----------------------------------------------------------------------------
+# tio-world .gitignore
+# Flutter mobile + native Wear OS + watchOS + backend monorepo
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# OS files
+# -----------------------------------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.Spotlight-V100/
+.Trashes/
+ehthumbs.db
+
+# -----------------------------------------------------------------------------
+# Editor / IDE
+# -----------------------------------------------------------------------------
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+
+# -----------------------------------------------------------------------------
+# Environment / secrets
+# -----------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.env
+*.local
+*.secret
+*.secrets
+secrets/
+private/
+credentials/
+
+# Firebase / Google / Apple / signing secrets
+GoogleService-Info.plist
+google-services.json
+firebase_options.dart
+*.p8
+*.p12
+*.pem
+*.cer
+*.certSigningRequest
+*.mobileprovision
+*.provisionprofile
+*.keystore
+*.jks
+key.properties
+upload-keystore.jks
+release-key.jks
+
+# Supabase / service keys
+supabase/.branches/
+supabase/.temp/
+**/service-role*.json
+**/*service_role*.json
+**/*private-key*.json
+
+# -----------------------------------------------------------------------------
+# Flutter / Dart
+# -----------------------------------------------------------------------------
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+coverage/
+.melos_tool/
+
+# Generated Dart files
+*.g.dart
+*.freezed.dart
+*.gr.dart
+*.config.dart
+*.mocks.dart
+*.gen.dart
+
+# Keep generated files only if project decides to commit codegen.
+# If generated source is committed intentionally, remove the patterns above.
+
+# Flutter build outputs
+**/build/
+**/.dart_tool/
+**/.packages
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+
+# -----------------------------------------------------------------------------
+# Android / Gradle / Wear OS
+# -----------------------------------------------------------------------------
+.gradle/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+outputs/
+*.apk
+*.apks
+*.aab
+*.aar
+*.dex
+*.class
+
+# Android Studio generated
+app/release/
+android/app/release/
+apps/mobile/android/app/release/
+apps/wear-os/release/
+
+# Kotlin / Java build outputs
+out/
+target/
+*.jar
+*.war
+*.ear
+
+# -----------------------------------------------------------------------------
+# iOS / Xcode / watchOS
+# -----------------------------------------------------------------------------
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/ephemeral/
+ios/Flutter/App.framework
+ios/Runner/GeneratedPluginRegistrant.*
+
+apps/mobile/ios/Pods/
+apps/mobile/ios/.symlinks/
+apps/mobile/ios/Flutter/Flutter.framework
+apps/mobile/ios/Flutter/Flutter.podspec
+apps/mobile/ios/Flutter/Generated.xcconfig
+apps/mobile/ios/Flutter/ephemeral/
+apps/mobile/ios/Flutter/App.framework
+apps/mobile/ios/Runner/GeneratedPluginRegistrant.*
+
+Pods/
+DerivedData/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+*.xcworkspace/xcshareddata/swiftpm/Package.resolved
+
+# Xcode archives / exports
+*.xcarchive
+*.ipa
+*.dSYM.zip
+*.dSYM
+ExportOptions.plist
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# CocoaPods
+Podfile.lock
+
+# Keep Podfile.lock if you want deterministic iOS builds.
+# For apps, committing Podfile.lock is usually acceptable.
+# Remove Podfile.lock from this ignore list if your team wants it committed.
+
+# -----------------------------------------------------------------------------
+# Node / backend / tooling
+# -----------------------------------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.turbo/
+.next/
+dist/
+.tmp/
+tmp/
+temp/
+.cache/
+
+# Backend build outputs
+backend/**/dist/
+backend/**/build/
+backend/**/.cache/
+backend/**/coverage/
+backend/**/.env
+backend/**/.env.*
+
+# -----------------------------------------------------------------------------
+# Logs
+# -----------------------------------------------------------------------------
+*.log
+logs/
+log/
+
+# -----------------------------------------------------------------------------
+# Test / coverage reports
+# -----------------------------------------------------------------------------
+coverage/
+test-results/
+test-reports/
+reports/
+htmlcov/
+.junit/
+
+# -----------------------------------------------------------------------------
+# Database / local dev data
+# -----------------------------------------------------------------------------
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+.local-db/
+.local-data/
+
+# -----------------------------------------------------------------------------
+# Generated docs / temporary exports
+# -----------------------------------------------------------------------------
+docs/generated/
+site/
+public/build/
+*.pdf
+*.docx
+*.pptx
+
+# -----------------------------------------------------------------------------
+# AI / local assistant scratch files
+# -----------------------------------------------------------------------------
+.ai/tmp/
+.ai/cache/
+.ai/local/
+*.prompt.local.md
+*.scratch.md
+
+# -----------------------------------------------------------------------------
+# App artifacts and store uploads
+# -----------------------------------------------------------------------------
+artifacts/
+release/
+releases/
+store-upload/
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+
+# -----------------------------------------------------------------------------
+# Misc binaries / archives
+# -----------------------------------------------------------------------------
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# -----------------------------------------------------------------------------
+# Allow important repository files
+# -----------------------------------------------------------------------------
+!README.md
+!CONTRIBUTING.md
+!CODE_OF_CONDUCT.md
+!LICENSE
+!.env.example
+!.gitignore
