@@ -1,0 +1,7 @@
+{
+    "avdmanager.executable": "g:\\dev\\cmdline-tools\\bin\\sdkmanager.bat",
+    "java.jdt.ls.java.home": "G:\\dev\\jdk-17",
+    "java.import.gradle.java.home": "G:\\dev\\jdk-17",
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.jdt.ls.vmargs": "-XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx4G -Xms100m -Xlog:disable"
+}
