@@ -151,15 +151,18 @@ Settings -> gear/menu entry
 ## Recommended Flutter Stack
 
 ```text
-Riverpod
-go_router
-dio
-freezed
-json_serializable
-melos
+State: Riverpod
+Navigation: go_router with typed routes
+Data: offline-first repository pattern
+Local persistence: Drift, Isar, or similar after the first real data slice is chosen
+Code generation: freezed + json_serializable
+HTTP/API: dio when remote APIs are introduced
+Workspace: melos
 ```
 
 Use feature-owned routes and navigation registration. Keep app-level routing composition in `apps/app`, and keep feature internals inside the owning feature package.
+
+Local persistence should stay behind repository implementations so the database choice can evolve before production hardening.
 
 ## Watch Rules
 
@@ -191,9 +194,3 @@ The Wear OS folder is:
 ```text
 apps/wear
 ```
-
-Keep these names consistent across docs, Melos config, CI, scripts, and future app config.
-
-## More Detail
-
-Read [`FLUTTER_MODULAR_STRUCTURE.md`](FLUTTER_MODULAR_STRUCTURE.md) for the full apps-based Flutter workspace structure and package naming rules.
