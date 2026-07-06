@@ -29,7 +29,7 @@ cd tio-world
 Check Flutter environment:
 
 ```bash
-flutter doctor
+flutter doctor --verbose
 ```
 
 Install Melos if needed:
@@ -58,10 +58,13 @@ Run commands from that folder when working only on the phone app:
 ```bash
 cd apps/app
 flutter pub get
+flutter pub outdated
 flutter analyze
 flutter test
 flutter run
 ```
+
+A healthy dependency check can still show older transitive packages when they are pinned by Flutter SDK or test package constraints. Focus on direct and dev dependencies first.
 
 ## Flutter Feature Packages
 
@@ -172,6 +175,8 @@ For Flutter mobile app changes:
 
 ```bash
 cd apps/app
+flutter pub get
+flutter pub outdated
 flutter analyze
 flutter test
 ```
@@ -209,17 +214,28 @@ git diff --check
 
 PowerShell is fine. If a command is not recognized, check PATH first.
 
-For ADB:
-
-```powershell
-& "G:\dev\android-sdk\platform-tools\adb.exe" version
-```
-
-If `adb` should be globally available, add this folder to Windows PATH:
+Recommended PATH entries:
 
 ```text
-G:\dev\android-sdk\platform-tools
+<flutter-sdk>\bin
+<android-sdk>\platform-tools
 ```
+
+If `flutter doctor` says Flutter or Dart is not on PATH, add the Flutter SDK `bin` folder to the user PATH and restart the terminal or IDE.
+
+If Android command-line tools are missing, install Android Studio command-line tools from Android Studio SDK Manager:
+
+```text
+Android Studio > Settings > Languages & Frameworks > Android SDK > SDK Tools > Android SDK Command-line Tools
+```
+
+Then accept Android licenses:
+
+```bash
+flutter doctor --android-licenses
+```
+
+Visual Studio is only required for Windows desktop builds. It is not required for Android, web, or basic Flutter package validation.
 
 ## Public Repo Safety
 
