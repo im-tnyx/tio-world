@@ -1,8 +1,10 @@
 class TioRadius {
-  const TioRadius._();
+  const TioRadius(this.small, this.medium, this.large, this.extraLarge);
 
-  static const small = 8.0;
-  static const medium = 12.0;
-  static const large = 16.0;
-  static const extraLarge = 24.0;
+  final double small;
+  final double medium;
+  final double large;
+  final double extraLarge;
+
+  static const standard = TioRadius(8, 12, 16, 24);
 }
