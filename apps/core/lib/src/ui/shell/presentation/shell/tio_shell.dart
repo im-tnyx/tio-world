@@ -15,7 +15,13 @@ class TioShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: TioShellTopBar(onAction: onAction),
+      appBar: state.selectedTab == ShellTab.home
+          ? TioShellTopBar(
+              planTier: state.planTier,
+              scrollOpacity: state.appBarOpacity,
+              onAction: onAction,
+            )
+          : null,
       body: child,
       bottomNavigationBar: state.isBottomNavVisible
           ? TioShellBottomNav(
