@@ -1,4 +1,1 @@
-package com.tnyx.tio;
-
-public class MainActivity extends io.flutter.embedding.android.FlutterActivity {
-}
+// Intentionally empty. The app uses the Kotlin MainActivity.
