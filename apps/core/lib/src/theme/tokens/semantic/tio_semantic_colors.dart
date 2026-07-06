@@ -1,5 +1,5 @@
 import '../foundation/tio_palette.dart';
-import '../../tio_colors.dart';
+import 'tio_colors.dart';
 
 class TioSemanticColors {
   const TioSemanticColors._();
