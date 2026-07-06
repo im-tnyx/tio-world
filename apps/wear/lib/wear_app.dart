@@ -8,13 +8,14 @@ class TioWearApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TioTheme(
-      child: MaterialApp(
-        title: 'Tio Wear',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData.dark(useMaterial3: true),
-        home: const WearHomeScreen(),
-      ),
+    return MaterialApp(
+      title: 'Tio Wear',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData.dark(useMaterial3: true),
+      home: const WearHomeScreen(),
+      builder: (context, child) {
+        return TioTheme(child: child ?? const SizedBox.shrink());
+      },
     );
   }
 }
