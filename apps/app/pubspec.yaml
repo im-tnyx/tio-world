@@ -12,6 +12,18 @@ dependencies:
   go_router: ^17.3.0
   tio_core:
     path: ../core
+  tio_feature_workout:
+    path: ../features/workout
+  tio_feature_nutrition:
+    path: ../features/nutrition
+  tio_feature_coaching:
+    path: ../features/coaching
+  tio_feature_progress:
+    path: ../features/progress
+  tio_feature_profile:
+    path: ../features/profile
+  tio_feature_settings:
+    path: ../features/settings
 
 dev_dependencies:
   flutter_test:
