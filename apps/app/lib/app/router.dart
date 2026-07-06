@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:tio_feature_coaching/coaching.dart';
+import 'package:tio_feature_nutrition/nutrition.dart';
+import 'package:tio_feature_profile/profile.dart';
+import 'package:tio_feature_progress/progress.dart';
+import 'package:tio_feature_settings/settings.dart';
+import 'package:tio_feature_workout/workout.dart';
 
 import '../shared/widgets/placeholder_page.dart';
 
@@ -13,14 +19,14 @@ final goRouter = GoRouter(
       builder: (context, state, navigationShell) => MainShell(navigationShell: navigationShell),
       branches: [
         StatefulShellBranch(routes: [GoRoute(path: '/', builder: (context, state) => const PlaceholderPage(title: 'Dashboard', description: 'Your daily health and fitness overview.'))]),
-        StatefulShellBranch(routes: [GoRoute(path: '/workout', builder: (context, state) => const PlaceholderPage(title: 'Workout', description: 'Track your exercises and follow workout plans.'))]),
-        StatefulShellBranch(routes: [GoRoute(path: '/nutrition', builder: (context, state) => const PlaceholderPage(title: 'Nutrition', description: 'Log your meals and monitor your macros.'))]),
-        StatefulShellBranch(routes: [GoRoute(path: '/coach', builder: (context, state) => const PlaceholderPage(title: 'AI Coach', description: 'Get personalized guidance and answers to your questions.'))]),
-        StatefulShellBranch(routes: [GoRoute(path: '/progress', builder: (context, state) => const PlaceholderPage(title: 'Progress', description: 'Visualize your journey and achievements.'))]),
+        StatefulShellBranch(routes: [GoRoute(path: WorkoutRoutes.path, builder: (context, state) => const PlaceholderPage(title: WorkoutRoutes.title, description: WorkoutRoutes.description))]),
+        StatefulShellBranch(routes: [GoRoute(path: NutritionRoutes.path, builder: (context, state) => const PlaceholderPage(title: NutritionRoutes.title, description: NutritionRoutes.description))]),
+        StatefulShellBranch(routes: [GoRoute(path: CoachingRoutes.path, builder: (context, state) => const PlaceholderPage(title: CoachingRoutes.title, description: CoachingRoutes.description))]),
+        StatefulShellBranch(routes: [GoRoute(path: ProgressRoutes.path, builder: (context, state) => const PlaceholderPage(title: ProgressRoutes.title, description: ProgressRoutes.description))]),
       ],
     ),
-    GoRoute(path: '/profile', parentNavigatorKey: rootNavigatorKey, builder: (context, state) => const PlaceholderPage(title: 'Profile', description: 'Manage your personal information and health data.')),
-    GoRoute(path: '/settings', parentNavigatorKey: rootNavigatorKey, builder: (context, state) => const PlaceholderPage(title: 'Settings', description: 'Configure your app preferences and notifications.')),
+    GoRoute(path: ProfileRoutes.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => const PlaceholderPage(title: ProfileRoutes.title, description: ProfileRoutes.description)),
+    GoRoute(path: SettingsRoutes.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => const PlaceholderPage(title: SettingsRoutes.title, description: SettingsRoutes.description)),
   ],
 );
 
@@ -37,7 +43,7 @@ class MainShell extends StatelessWidget {
         actions: [
           IconButton(
             icon: const CircleAvatar(radius: 12, child: Icon(Icons.person, size: 16)),
-            onPressed: () => context.push('/profile'),
+            onPressed: () => context.push(ProfileRoutes.path),
           ),
           const SizedBox(width: 8),
         ],
@@ -48,10 +54,10 @@ class MainShell extends StatelessWidget {
         onTap: (index) => navigationShell.goBranch(index),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), activeIcon: Icon(Icons.dashboard), label: 'Dashboard'),
-          BottomNavigationBarItem(icon: Icon(Icons.fitness_center_outlined), activeIcon: Icon(Icons.fitness_center), label: 'Workout'),
-          BottomNavigationBarItem(icon: Icon(Icons.restaurant_outlined), activeIcon: Icon(Icons.restaurant), label: 'Nutrition'),
+          BottomNavigationBarItem(icon: Icon(Icons.fitness_center_outlined), activeIcon: Icon(Icons.fitness_center), label: WorkoutRoutes.title),
+          BottomNavigationBarItem(icon: Icon(Icons.restaurant_outlined), activeIcon: Icon(Icons.restaurant), label: NutritionRoutes.title),
           BottomNavigationBarItem(icon: Icon(Icons.smart_toy_outlined), activeIcon: Icon(Icons.smart_toy), label: 'Coach'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined), activeIcon: Icon(Icons.bar_chart), label: 'Progress'),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined), activeIcon: Icon(Icons.bar_chart), label: ProgressRoutes.title),
         ],
       ),
     );
