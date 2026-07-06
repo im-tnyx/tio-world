@@ -24,7 +24,7 @@ git clone https://github.com/im-tnyx/tio-world.git
 cd tio-world
 ```
 
-## Flutter Setup
+## Flutter Workspace Setup
 
 Check Flutter environment:
 
@@ -32,35 +32,99 @@ Check Flutter environment:
 flutter doctor
 ```
 
-From repo root:
-
-```bash
-flutter pub get
-```
-
-If Melos is configured:
+Install Melos if needed:
 
 ```bash
 dart pub global activate melos
+```
+
+From repo root after `pubspec.yaml` and `melos.yaml` are configured:
+
+```bash
+flutter pub get
 melos bootstrap
 ```
 
-## Mobile App
+## Flutter Mobile App
 
-The Flutter mobile app lives in:
+The Flutter phone app shell lives in:
 
 ```text
-apps/mobile
+apps/app
 ```
 
-Run commands from that folder when working only on the app:
+Run commands from that folder when working only on the phone app:
 
 ```bash
-cd apps/mobile
+cd apps/app
 flutter pub get
 flutter analyze
 flutter test
 flutter run
+```
+
+## Flutter Feature Packages
+
+Feature packages live in:
+
+```text
+apps/features/<feature>
+```
+
+Examples:
+
+```text
+apps/features/workout
+apps/features/nutrition
+apps/features/onboarding
+apps/features/auth
+apps/features/profile
+apps/features/settings
+apps/features/progress
+apps/features/coaching
+```
+
+For a focused feature check:
+
+```bash
+cd apps/features/workout
+dart analyze
+dart test
+```
+
+With Melos from repo root:
+
+```bash
+melos analyze
+melos test
+```
+
+## Shared And Core Packages
+
+Shared contracts and pure Dart logic live in:
+
+```text
+apps/shared
+```
+
+Flutter design system, reusable UI, route contracts, and shell components live in:
+
+```text
+apps/core
+```
+
+Validation:
+
+```bash
+cd apps/shared
+dart analyze
+dart test
+```
+
+```bash
+cd apps/core
+flutter analyze
+flutter test
 ```
 
 ## Wear OS App
@@ -85,7 +149,7 @@ Tiles and complications when needed
 
 ## Backend
 
-Backend workspace will live under:
+Backend workspace lives under:
 
 ```text
 backend
@@ -100,14 +164,24 @@ pnpm test
 pnpm dev
 ```
 
+Backend should own server-only secrets, AI orchestration, analytics jobs, database migrations, and protected integrations.
+
 ## Common Validation
 
-For Flutter mobile changes:
+For Flutter mobile app changes:
 
 ```bash
-cd apps/mobile
+cd apps/app
 flutter analyze
 flutter test
+```
+
+For Flutter package changes:
+
+```bash
+cd apps/features/<feature>
+dart analyze
+dart test
 ```
 
 For monorepo changes after Melos is configured:
