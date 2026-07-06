@@ -3,6 +3,12 @@ import 'route_contract.dart';
 class FeatureRoutes {
   const FeatureRoutes._();
 
+  static const home = TioRouteContract(
+    path: '/',
+    title: 'Home',
+    description: 'Your daily health and fitness overview.',
+  );
+
   static const nutrition = TioRouteContract(
     path: '/nutrition',
     title: 'Nutrition',
@@ -28,10 +34,4 @@ class FeatureRoutes {
   );
 
   static const mainTabs = [home, nutrition, ai, workout, progress];
-
-  static const home = TioRouteContract(
-    path: '/',
-    title: 'Home',
-    description: 'Your daily health and fitness overview.',
-  );
 }
