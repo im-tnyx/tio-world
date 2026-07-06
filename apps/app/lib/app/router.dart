@@ -1,24 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
-import 'package:tio_feature_auth/auth.dart';
-import 'package:tio_feature_coaching/coaching.dart';
-import 'package:tio_feature_nutrition/nutrition.dart';
-import 'package:tio_feature_onboarding/onboarding.dart';
-import 'package:tio_feature_profile/profile.dart';
-import 'package:tio_feature_progress/progress.dart';
-import 'package:tio_feature_settings/settings.dart';
-import 'package:tio_feature_workout/workout.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
-TioShellPlaceholder _page(String title, String description) {
-  return TioShellPlaceholder(title: title, description: description);
+TioShellPlaceholder _page(TioRouteContract route) {
+  return TioShellPlaceholder(title: route.title, description: route.description);
 }
 
-bool _isBottomNavVisible(GoRouterState state) {
-  final location = state.uri.path;
-  return !location.contains('editor') && !location.contains('modal');
+ChromePolicy _chromePolicyForPath(String location) {
+  final appRoutes = [
+    AppRoutes.auth,
+    AppRoutes.onboarding,
+    AppRoutes.profile,
+    AppRoutes.settings,
+  ];
+
+  for (final route in appRoutes) {
+    if (route.path == location) return route.chromePolicy;
+  }
+
+  if (location.contains('editor')) return ChromePolicy.noBottomBar;
+  if (location.contains('modal')) return ChromePolicy.bottomSheet;
+
+  return ChromePolicy.mainChrome;
 }
 
 void _handleShellAction(BuildContext context, StatefulNavigationShell navigationShell, ShellAction action) {
@@ -28,36 +33,38 @@ void _handleShellAction(BuildContext context, StatefulNavigationShell navigation
   }
 
   if (action is ShellProfileClicked) {
-    context.push(ProfileRoutes.path);
+    context.push(AppRoutes.profile.path);
   }
 }
 
 final goRouter = GoRouter(
-  initialLocation: '/',
+  initialLocation: FeatureRoutes.home.path,
   navigatorKey: rootNavigatorKey,
   routes: [
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
+        final chromePolicy = _chromePolicyForPath(state.uri.path);
+
         return TioShell(
           state: ShellUiState(
             selectedTab: ShellTab.fromIndex(navigationShell.currentIndex),
-            isBottomNavVisible: _isBottomNavVisible(state),
+            isBottomNavVisible: chromePolicy.showsBottomNav,
           ),
           onAction: (action) => _handleShellAction(context, navigationShell, action),
           child: navigationShell,
         );
       },
       branches: [
-        StatefulShellBranch(routes: [GoRoute(path: '/', builder: (context, state) => _page('Home', 'Your daily health and fitness overview.'))]),
-        StatefulShellBranch(routes: [GoRoute(path: NutritionRoutes.path, builder: (context, state) => _page(NutritionRoutes.title, NutritionRoutes.description))]),
-        StatefulShellBranch(routes: [GoRoute(path: CoachingRoutes.path, builder: (context, state) => _page(CoachingRoutes.title, CoachingRoutes.description))]),
-        StatefulShellBranch(routes: [GoRoute(path: WorkoutRoutes.path, builder: (context, state) => _page(WorkoutRoutes.title, WorkoutRoutes.description))]),
-        StatefulShellBranch(routes: [GoRoute(path: ProgressRoutes.path, builder: (context, state) => _page(ProgressRoutes.title, ProgressRoutes.description))]),
+        StatefulShellBranch(routes: [GoRoute(path: FeatureRoutes.home.path, builder: (context, state) => _page(FeatureRoutes.home))]),
+        StatefulShellBranch(routes: [GoRoute(path: FeatureRoutes.nutrition.path, builder: (context, state) => _page(FeatureRoutes.nutrition))]),
+        StatefulShellBranch(routes: [GoRoute(path: FeatureRoutes.ai.path, builder: (context, state) => _page(FeatureRoutes.ai))]),
+        StatefulShellBranch(routes: [GoRoute(path: FeatureRoutes.workout.path, builder: (context, state) => _page(FeatureRoutes.workout))]),
+        StatefulShellBranch(routes: [GoRoute(path: FeatureRoutes.progress.path, builder: (context, state) => _page(FeatureRoutes.progress))]),
       ],
     ),
-    GoRoute(path: AuthRoutes.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => _page(AuthRoutes.title, AuthRoutes.description)),
-    GoRoute(path: OnboardingRoutes.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => _page(OnboardingRoutes.title, OnboardingRoutes.description)),
-    GoRoute(path: ProfileRoutes.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => _page(ProfileRoutes.title, ProfileRoutes.description)),
-    GoRoute(path: SettingsRoutes.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => _page(SettingsRoutes.title, SettingsRoutes.description)),
+    GoRoute(path: AppRoutes.auth.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => _page(AppRoutes.auth)),
+    GoRoute(path: AppRoutes.onboarding.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => _page(AppRoutes.onboarding)),
+    GoRoute(path: AppRoutes.profile.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => _page(AppRoutes.profile)),
+    GoRoute(path: AppRoutes.settings.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => _page(AppRoutes.settings)),
   ],
 );
