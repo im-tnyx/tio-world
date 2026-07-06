@@ -1,0 +1,7 @@
+name: tio_world
+
+packages:
+  - apps/app
+  - apps/shared
+  - apps/core
+  - apps/features/**
