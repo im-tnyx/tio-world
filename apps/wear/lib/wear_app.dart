@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 
-import 'home/wear_home_screen.dart';
+import 'src/home/presentation/wear_home_screen.dart';
 
 class TioWearApp extends StatelessWidget {
   const TioWearApp({super.key});
