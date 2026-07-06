@@ -44,3 +44,6 @@ flutter_launcher_icons:
 
 flutter:
   uses-material-design: true
+  assets:
+    - ../assets/brand/dark_logo.jpg
+    - ../assets/nav_icon/
