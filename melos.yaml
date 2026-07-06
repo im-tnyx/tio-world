@@ -2,6 +2,7 @@ name: tio_world
 
 packages:
   - apps/app
+  - apps/wear
   - apps/shared
   - apps/core
   - apps/features/**
