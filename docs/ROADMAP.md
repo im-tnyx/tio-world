@@ -21,34 +21,35 @@ Goal: make the public repo clean, understandable, and safe.
 
 Goal: create the modular Flutter workspace that mirrors the native `:app`, `:shared`, `:core`, and `:features:*` structure.
 
-- [ ] Create root `pubspec.yaml`
-- [ ] Create root `melos.yaml`
-- [ ] Create `apps/app` Flutter phone app shell
-- [ ] Create `apps/shared` pure Dart package
-- [ ] Create `apps/core` Flutter package for design system, shell, and route contracts
-- [ ] Create initial feature packages only when needed:
-  - [ ] `apps/features/auth`
-  - [ ] `apps/features/onboarding`
-  - [ ] `apps/features/workout`
-  - [ ] `apps/features/nutrition`
-  - [ ] `apps/features/profile`
-  - [ ] `apps/features/settings`
-  - [ ] `apps/features/progress`
-  - [ ] `apps/features/coaching`
-- [ ] Add analyzer and test setup
+- [x] Create root `pubspec.yaml`
+- [x] Create root `melos.yaml`
+- [x] Create `apps/app` Flutter phone app shell
+- [x] Create `apps/shared` pure Dart package
+- [x] Create `apps/core` Flutter package for design system, shell, and route contracts
+- [x] Create initial feature packages:
+  - [x] `apps/features/auth`
+  - [x] `apps/features/onboarding`
+  - [x] `apps/features/workout`
+  - [x] `apps/features/nutrition`
+  - [x] `apps/features/profile`
+  - [x] `apps/features/settings`
+  - [x] `apps/features/progress`
+  - [x] `apps/features/coaching`
+- [ ] Add analyzer and test setup per package
 - [ ] Add Melos validation commands
 
 ## Phase 2: Flutter Mobile App Shell
 
 Goal: create the first usable Android+iOS phone shell.
 
-- [ ] Add app bootstrap
-- [ ] Add routing with `go_router`
-- [ ] Add state management with Riverpod
-- [ ] Add base theme and design tokens in `apps/core`
-- [ ] Add app shell and primary tabs
-- [ ] Add placeholder feature routes through feature package contracts
-- [ ] Keep `apps/app` thin and free of feature business logic
+- [x] Add app bootstrap
+- [x] Add routing with `go_router`
+- [x] Add state management with Riverpod
+- [x] Add base theme and design tokens in `apps/core`
+- [x] Add app shell and primary tabs
+- [x] Add placeholder feature routes through feature package contracts
+- [x] Keep `apps/app` thin and free of feature business logic
+- [ ] Move from basic route constants to typed `go_router` routes when screens mature
 
 Primary tabs:
 
@@ -89,7 +90,23 @@ apps/features/progress
 apps/features/coaching
 ```
 
-## Phase 4: Wear OS MVP
+## Phase 4: Data, Offline, And Sync
+
+Goal: move real app data behind repositories and make core flows offline-first.
+
+- [ ] Define repository contracts for workout, nutrition, profile, progress, and coaching
+- [ ] Add Riverpod repository providers in owning feature packages
+- [ ] Add `freezed` + `json_serializable` models/DTOs where generated value types are needed
+- [ ] Choose local persistence for the first real data slice: Drift, Isar, or similar
+- [ ] Implement local data source behind repository interfaces
+- [ ] Add pending sync queue for workout events
+- [ ] Add last successful sync metadata
+- [ ] Add remote API data source only behind repositories
+- [ ] Add conflict handling rules for idempotent events
+
+Do not let database rows, remote DTOs, or backend table shapes leak into widgets.
+
+## Phase 5: Wear OS MVP
 
 Goal: native watch companion for workout flow.
 
@@ -104,14 +121,14 @@ Goal: native watch companion for workout flow.
 
 Watch app should stay native. Do not force Flutter UI onto Wear OS production fitness flows.
 
-## Phase 5: Backend And Persistence
+## Phase 6: Backend And Persistence
 
-Goal: move real data behind repositories and backend APIs.
+Goal: move synced data behind backend APIs.
 
 - [ ] Define API contracts
 - [ ] Add backend workspace
 - [ ] Add database schema incrementally
-- [ ] Add repository implementations
+- [ ] Add repository implementations backed by remote APIs
 - [ ] Add auth-aware data access
 - [ ] Add seed/demo data
 - [ ] Add test path for critical flows
@@ -125,7 +142,7 @@ backend/jobs
 backend/db
 ```
 
-## Phase 6: AI Coach
+## Phase 7: AI Coach
 
 Goal: add useful coaching without bloating mobile/watch clients.
 
@@ -136,7 +153,7 @@ Goal: add useful coaching without bloating mobile/watch clients.
 - [ ] Add mobile coach UI in `apps/features/coaching`
 - [ ] Keep watch coaching limited to short insights only
 
-## Phase 7: Apple Watch
+## Phase 8: Apple Watch
 
 Goal: add watchOS only after Wear OS and mobile MVP are stable.
 
