@@ -9,12 +9,13 @@ class TioApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return TioTheme(
-      child: MaterialApp.router(
-        title: 'Tio',
-        routerConfig: goRouter,
-        debugShowCheckedModeBanner: false,
-      ),
+    return MaterialApp.router(
+      title: 'Tio',
+      routerConfig: goRouter,
+      debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        return TioTheme(child: child ?? const SizedBox.shrink());
+      },
     );
   }
 }
