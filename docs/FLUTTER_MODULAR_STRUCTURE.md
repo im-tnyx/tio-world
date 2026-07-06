@@ -43,32 +43,20 @@ tio-world/
 │  │  └─ pubspec.yaml
 │  │
 │  ├─ wear/                        # Native Wear OS app
-│  │  ├─ src/main/
-│  │  │  ├─ AndroidManifest.xml
-│  │  │  └─ kotlin/com/tnyx/wear/
-│  │  └─ build.gradle.kts
-│  │
 │  ├─ shared/                      # Pure Dart shared models/contracts
-│  │  ├─ lib/
-│  │  │  ├─ shared.dart
-│  │  │  └─ src/
-│  │  │     ├─ entities/
-│  │  │     ├─ models/
-│  │  │     ├─ repositories/
-│  │  │     ├─ usecases/
-│  │  │     ├─ result/
-│  │  │     ├─ error/
-│  │  │     └─ utils/
-│  │  ├─ test/
-│  │  └─ pubspec.yaml
-│  │
-│  ├─ core/                        # Flutter design system, shell, routing contracts
+│  ├─ core/                        # Flutter design system, UI shell, routing contracts
 │  │  ├─ lib/
 │  │  │  ├─ core.dart
 │  │  │  └─ src/
 │  │  │     ├─ theme/
-│  │  │     ├─ shell/
-│  │  │     ├─ widgets/
+│  │  │     ├─ ui/
+│  │  │     │  ├─ components/
+│  │  │     │  └─ shell/
+│  │  │     │     └─ presentation/
+│  │  │     │        ├─ action/
+│  │  │     │        ├─ shell/
+│  │  │     │        ├─ state/
+│  │  │     │        └─ widgets/
 │  │  │     ├─ routing/
 │  │  │     ├─ constants/
 │  │  │     └─ extensions/
@@ -84,13 +72,7 @@ tio-world/
 │     ├─ settings/
 │     ├─ progress/
 │     └─ coaching/
-│
 ├─ backend/
-│  ├─ api/
-│  ├─ ai-coach/
-│  ├─ jobs/
-│  └─ db/
-│
 ├─ docs/
 ├─ tools/
 ├─ melos.yaml
@@ -116,14 +98,39 @@ apps/core + apps/shared
 
 Rules:
 
-- `apps/app` wires routes, dependency injection/providers, shell, and platform bootstrap.
-- `apps/app` should not own workout, nutrition, onboarding, progress, profile, settings, or coaching business logic.
+- `apps/app` wires routes, dependency injection/providers, and platform bootstrap.
+- `apps/app` should not own shell chrome, reusable widgets, or feature screens.
 - `apps/app/lib` should stay thin: `main.dart` plus app-level bootstrap/routing only.
+- App-level chrome belongs in `apps/core/lib/src/ui/shell/presentation`.
 - Feature packages can depend on `apps/core` and `apps/shared`.
 - `apps/core` must not import feature packages.
 - `apps/shared` must stay pure Dart and must not import Flutter UI.
 - Feature presentation layers must not import another feature's presentation layer.
 - Cross-feature reads should go through stable contracts, repositories, or use cases.
+
+## Core UI Shell Pattern
+
+The Flutter shell mirrors Tio-hub's core shell structure.
+
+```text
+apps/core/lib/src/ui/shell/presentation/
+├─ action/
+│  ├─ action.dart
+│  └─ shell_action.dart
+├─ shell/
+│  ├─ container.dart
+│  └─ tio_shell.dart
+├─ state/
+│  ├─ state.dart
+│  └─ shell_state.dart
+└─ widgets/
+   ├─ widgets.dart
+   ├─ tio_shell_bottom_nav.dart
+   ├─ tio_shell_placeholder.dart
+   └─ tio_shell_top_bar.dart
+```
+
+`TioShell` owns app-level chrome: top bar, bottom navigation, selected shell tab state, and content placement. Feature-specific navigation remains in feature packages or app route composition.
 
 ## Feature Package Pattern
 
@@ -154,53 +161,6 @@ apps/features/<feature>/
 └─ pubspec.yaml
 ```
 
-## Workout Example
-
-```text
-apps/features/workout/
-├─ lib/
-│  ├─ workout.dart
-│  └─ src/
-│     ├─ domain/
-│     │  ├─ entities/
-│     │  │  ├─ workout.dart
-│     │  │  ├─ workout_session.dart
-│     │  │  ├─ workout_set.dart
-│     │  │  ├─ set_type.dart
-│     │  │  ├─ exercise.dart
-│     │  │  └─ routine.dart
-│     │  ├─ repositories/
-│     │  │  └─ workout_repository.dart
-│     │  └─ usecases/
-│     │     ├─ start_workout.dart
-│     │     ├─ complete_set.dart
-│     │     ├─ finish_workout.dart
-│     │     └─ calculate_volume.dart
-│     ├─ data/
-│     │  ├─ datasources/
-│     │  ├─ dto/
-│     │  ├─ mappers/
-│     │  └─ repositories/
-│     └─ presentation/
-│        ├─ routes/
-│        ├─ navigation/
-│        ├─ controllers/
-│        ├─ state/
-│        ├─ pages/
-│        │  ├─ workout_home_page.dart
-│        │  ├─ routine_list_page.dart
-│        │  ├─ routine_detail_page.dart
-│        │  ├─ active_workout_page.dart
-│        │  ├─ exercise_picker_page.dart
-│        │  ├─ set_input_page.dart
-│        │  ├─ rest_timer_page.dart
-│        │  ├─ workout_summary_page.dart
-│        │  └─ workout_history_page.dart
-│        └─ widgets/
-├─ test/
-└─ pubspec.yaml
-```
-
 ## App Shell Responsibilities
 
 `apps/app` should stay small.
@@ -209,10 +169,8 @@ Allowed in `apps/app`:
 
 - `main.dart`
 - bootstrap
-- app-level providers
 - route composition
-- root navigation
-- environment loading
+- provider wiring
 - platform entry configuration
 
 Not allowed in `apps/app`:
@@ -225,16 +183,17 @@ Not allowed in `apps/app`:
 - AI coaching orchestration
 - direct database table shape dependencies
 - feature-owned screens or reusable widgets
+- app chrome widgets such as top bar or bottom nav
 
 ## Main Tabs
 
-Primary mobile tabs:
+Primary mobile tabs follow the Tio-hub shell order:
 
 ```text
-Dashboard
-Workout
+Home
 Nutrition
-Coach
+AI
+Workout
 Progress
 ```
 
