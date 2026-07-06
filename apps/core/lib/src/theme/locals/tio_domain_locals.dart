@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 import '../tokens/domain/tio_domain_colors.dart';
 
 class TioDomainLocals {
