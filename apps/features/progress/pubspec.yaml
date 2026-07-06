@@ -3,3 +3,13 @@ publish_to: none
 
 environment:
   sdk: ">=3.6.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^3.3.2
+  go_router: ^17.3.0
+  tio_core:
+    path: ../../core
+  tio_shared:
+    path: ../../shared
