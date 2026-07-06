@@ -1,10 +1,12 @@
 class TioSpacing {
-  const TioSpacing._();
+  const TioSpacing(this.xs, this.sm, this.md, this.lg, this.xl, this.xxl);
 
-  static const xs = 4.0;
-  static const sm = 8.0;
-  static const md = 12.0;
-  static const lg = 16.0;
-  static const xl = 24.0;
-  static const xxl = 32.0;
+  final double xs;
+  final double sm;
+  final double md;
+  final double lg;
+  final double xl;
+  final double xxl;
+
+  static const standard = TioSpacing(4, 8, 12, 16, 24, 32);
 }
