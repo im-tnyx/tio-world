@@ -21,35 +21,27 @@ class WearHomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
-        child: Padding(
+        child: ListView.separated(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Tio',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: GridView.builder(
-                  itemCount: tiles.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    childAspectRatio: 1.05,
-                  ),
-                  itemBuilder: (context, index) {
-                    return WearActionTile(
-                      tile: tiles[index],
-                      onSelected: (action) => _showComingSoon(context, tiles[index].title),
-                    );
-                  },
+          itemCount: tiles.length + 1,
+          separatorBuilder: (context, index) => const SizedBox(height: 8),
+          itemBuilder: (context, index) {
+            if (index == 0) {
+              return Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 2),
+                child: Text(
+                  'Tio',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
-              ),
-            ],
-          ),
+              );
+            }
+
+            final tile = tiles[index - 1];
+            return WearActionTile(
+              tile: tile,
+              onSelected: (action) => _showComingSoon(context, tile.title),
+            );
+          },
         ),
       ),
     );
