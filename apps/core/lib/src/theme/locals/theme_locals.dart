@@ -1,1 +1,9 @@
+export 'tio_color_locals.dart';
+export 'tio_component_locals.dart';
+export 'tio_domain_locals.dart';
+export 'tio_motion_locals.dart';
+export 'tio_radius_locals.dart';
+export 'tio_shadows_locals.dart';
+export 'tio_spacing_locals.dart';
 export 'tio_theme_context.dart';
+export 'tio_typography_locals.dart';
