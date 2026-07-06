@@ -6,3 +6,28 @@ packages:
   - apps/shared
   - apps/core
   - apps/features/**
+
+scripts:
+  bootstrap:
+    run: melos bootstrap
+    description: Bootstrap all Flutter and Dart packages in the workspace.
+
+  pub-get:
+    run: melos exec -- "flutter pub get"
+    description: Run flutter pub get in every Flutter package.
+
+  analyze:
+    run: melos exec -- "flutter analyze"
+    description: Analyze all Flutter packages.
+
+  analyze:dart:
+    run: melos exec --scope="tio_shared" -- "dart analyze"
+    description: Analyze pure Dart shared package.
+
+  app:run:
+    run: cd apps/app && flutter run
+    description: Run the phone app.
+
+  wear:run:
+    run: cd apps/wear && flutter run
+    description: Run the Wear OS app.
