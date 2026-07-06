@@ -4,7 +4,8 @@
     <application
         android:allowBackup="false"
         android:label="Tio Wear"
-        android:name="${applicationName}"
+        android:icon="@mipmap/launcher_icon"
+        android:roundIcon="@mipmap/launcher_icon"
         android:theme="@style/LaunchTheme">
         <activity
             android:name=".MainActivity"
