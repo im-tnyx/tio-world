@@ -1,1 +1,6 @@
-// Intentionally empty. The app uses the Kotlin MainActivity.
+package com.tnyx.tio;
+
+import io.flutter.embedding.android.FlutterActivity;
+
+public class MainActivity extends FlutterActivity {
+}
