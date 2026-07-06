@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'tio_theme_config.dart';
+import 'tokens/effects/tio_motion.dart';
 import 'tokens/effects/tio_shadows.dart';
+import 'tokens/foundation/tio_radius.dart';
+import 'tokens/foundation/tio_spacing.dart';
 import 'tokens/semantic/tio_colors.dart';
 import 'tokens/typography/tio_typography.dart';
 
@@ -14,6 +17,22 @@ class TioTheme extends StatelessWidget {
 
   final TioThemeConfig config;
   final Widget child;
+
+  static TioColors colors(BuildContext context) {
+    return Theme.of(context).extension<TioColors>() ?? TioColors.light;
+  }
+
+  static TioShadows shadows(BuildContext context) {
+    return Theme.of(context).extension<TioShadows>() ?? TioShadows.standard;
+  }
+
+  static TextTheme typography(BuildContext context) {
+    return Theme.of(context).textTheme;
+  }
+
+  static const spacing = TioThemeSpacingTokens();
+  static const radius = TioThemeRadiusTokens();
+  static const motion = TioThemeMotionTokens();
 
   @override
   Widget build(BuildContext context) {
@@ -65,4 +84,30 @@ class TioTheme extends StatelessWidget {
     if (config.mode == TioThemeMode.oled) return TioColors.oled;
     return systemBrightness == Brightness.dark ? TioColors.dark : TioColors.light;
   }
+}
+
+class TioThemeSpacingTokens {
+  const TioThemeSpacingTokens();
+
+  double get small => TioSpacing.small;
+  double get medium => TioSpacing.medium;
+  double get large => TioSpacing.large;
+  double get extraLarge => TioSpacing.extraLarge;
+}
+
+class TioThemeRadiusTokens {
+  const TioThemeRadiusTokens();
+
+  double get small => TioRadius.small;
+  double get medium => TioRadius.medium;
+  double get large => TioRadius.large;
+  double get extraLarge => TioRadius.extraLarge;
+}
+
+class TioThemeMotionTokens {
+  const TioThemeMotionTokens();
+
+  int get fastMs => TioMotion.fastMs;
+  int get normalMs => TioMotion.normalMs;
+  int get slowMs => TioMotion.slowMs;
 }
