@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'tio_colors.dart';
-import 'tio_shadows.dart';
 import 'tio_theme_config.dart';
-import 'tio_typography.dart';
+import 'tokens/effects/tio_shadows.dart';
+import 'tokens/semantic/tio_colors.dart';
+import 'tokens/typography/tio_typography.dart';
 
 class TioTheme extends StatelessWidget {
   const TioTheme({
