@@ -33,10 +33,10 @@ tio-world/
 │  ├─ app/                         # Flutter Android + iOS phone app shell
 │  │  ├─ lib/
 │  │  │  ├─ main.dart
-│  │  │  ├─ app.dart
-│  │  │  ├─ bootstrap.dart
-│  │  │  ├─ router.dart
-│  │  │  └─ providers.dart
+│  │  │  └─ app/
+│  │  │     ├─ app.dart
+│  │  │     ├─ bootstrap.dart
+│  │  │     └─ router.dart
 │  │  ├─ android/
 │  │  ├─ ios/
 │  │  ├─ test/
@@ -67,9 +67,8 @@ tio-world/
 │  │  │  ├─ core.dart
 │  │  │  └─ src/
 │  │  │     ├─ theme/
-│  │  │     ├─ tokens/
-│  │  │     ├─ widgets/
 │  │  │     ├─ shell/
+│  │  │     ├─ widgets/
 │  │  │     ├─ routing/
 │  │  │     ├─ constants/
 │  │  │     └─ extensions/
@@ -119,6 +118,7 @@ Rules:
 
 - `apps/app` wires routes, dependency injection/providers, shell, and platform bootstrap.
 - `apps/app` should not own workout, nutrition, onboarding, progress, profile, settings, or coaching business logic.
+- `apps/app/lib` should stay thin: `main.dart` plus app-level bootstrap/routing only.
 - Feature packages can depend on `apps/core` and `apps/shared`.
 - `apps/core` must not import feature packages.
 - `apps/shared` must stay pure Dart and must not import Flutter UI.
@@ -224,6 +224,7 @@ Not allowed in `apps/app`:
 - progress analytics
 - AI coaching orchestration
 - direct database table shape dependencies
+- feature-owned screens or reusable widgets
 
 ## Main Tabs
 
@@ -257,54 +258,3 @@ packages:
   - apps/core
   - apps/features/**
 ```
-
-Root `pubspec.yaml` should be workspace-only:
-
-```yaml
-name: tio_world_workspace
-publish_to: none
-
-environment:
-  sdk: ">=3.6.0 <4.0.0"
-
-dev_dependencies:
-  melos: ^6.3.0
-```
-
-## Package Naming
-
-Use stable package names:
-
-| Path | Package name |
-| :--- | :--- |
-| `apps/app` | `tio_app` |
-| `apps/core` | `tio_core` |
-| `apps/shared` | `tio_shared` |
-| `apps/features/workout` | `tio_feature_workout` |
-| `apps/features/nutrition` | `tio_feature_nutrition` |
-| `apps/features/onboarding` | `tio_feature_onboarding` |
-| `apps/features/auth` | `tio_feature_auth` |
-| `apps/features/profile` | `tio_feature_profile` |
-| `apps/features/settings` | `tio_feature_settings` |
-| `apps/features/progress` | `tio_feature_progress` |
-| `apps/features/coaching` | `tio_feature_coaching` |
-
-## Watch Rule
-
-`apps/wear` remains a native Wear OS app.
-
-Do not force Flutter UI into the watch app for production fitness flows. Share API contracts, event payloads, and lightweight models where useful, but keep watch UI native for performance, sensors, battery, tiles, complications, and background behavior.
-
-## Backend Rule
-
-Backend stays at root level:
-
-```text
-backend/
-├─ api/
-├─ ai-coach/
-├─ jobs/
-└─ db/
-```
-
-Server-only secrets, AI orchestration, analytics jobs, database migrations, and protected integrations belong in backend code, not in Flutter or watch clients.
