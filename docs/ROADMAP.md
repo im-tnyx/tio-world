@@ -15,19 +15,40 @@ Goal: make the public repo clean, understandable, and safe.
 - [x] AGENTS.md
 - [x] `.gitignore`
 - [x] Initial docs folder
+- [x] Flutter modular structure docs
 
-## Phase 1: Flutter Mobile Foundation
+## Phase 1: Flutter Workspace Foundation
 
-Goal: create the phone app shell.
+Goal: create the modular Flutter workspace that mirrors the native `:app`, `:shared`, `:core`, and `:features:*` structure.
 
-- [ ] Create `apps/mobile` Flutter app
+- [ ] Create root `pubspec.yaml`
+- [ ] Create root `melos.yaml`
+- [ ] Create `apps/app` Flutter phone app shell
+- [ ] Create `apps/shared` pure Dart package
+- [ ] Create `apps/core` Flutter package for design system, shell, and route contracts
+- [ ] Create initial feature packages only when needed:
+  - [ ] `apps/features/auth`
+  - [ ] `apps/features/onboarding`
+  - [ ] `apps/features/workout`
+  - [ ] `apps/features/nutrition`
+  - [ ] `apps/features/profile`
+  - [ ] `apps/features/settings`
+  - [ ] `apps/features/progress`
+  - [ ] `apps/features/coaching`
+- [ ] Add analyzer and test setup
+- [ ] Add Melos validation commands
+
+## Phase 2: Flutter Mobile App Shell
+
+Goal: create the first usable Android+iOS phone shell.
+
 - [ ] Add app bootstrap
 - [ ] Add routing with `go_router`
 - [ ] Add state management with Riverpod
-- [ ] Add base theme and design tokens
+- [ ] Add base theme and design tokens in `apps/core`
 - [ ] Add app shell and primary tabs
-- [ ] Add placeholder feature routes
-- [ ] Add analyzer and test setup
+- [ ] Add placeholder feature routes through feature package contracts
+- [ ] Keep `apps/app` thin and free of feature business logic
 
 Primary tabs:
 
@@ -41,7 +62,9 @@ Progress
 
 Profile should launch from avatar or account entry, not as a main bottom tab.
 
-## Phase 2: Core Product MVP
+Settings should launch from gear/menu entry, not as a main bottom tab.
+
+## Phase 3: Core Product MVP
 
 Goal: first usable health and fitness app flow.
 
@@ -53,7 +76,20 @@ Goal: first usable health and fitness app flow.
 - [ ] Progress overview MVP
 - [ ] Coach placeholder with clear backend boundary
 
-## Phase 3: Wear OS MVP
+Feature implementation should happen inside owning packages:
+
+```text
+apps/features/auth
+apps/features/onboarding
+apps/features/workout
+apps/features/nutrition
+apps/features/profile
+apps/features/settings
+apps/features/progress
+apps/features/coaching
+```
+
+## Phase 4: Wear OS MVP
 
 Goal: native watch companion for workout flow.
 
@@ -66,7 +102,9 @@ Goal: native watch companion for workout flow.
 - [ ] Add phone/backend sync placeholder
 - [ ] Test on emulator and physical watch
 
-## Phase 4: Backend And Persistence
+Watch app should stay native. Do not force Flutter UI onto Wear OS production fitness flows.
+
+## Phase 5: Backend And Persistence
 
 Goal: move real data behind repositories and backend APIs.
 
@@ -78,7 +116,16 @@ Goal: move real data behind repositories and backend APIs.
 - [ ] Add seed/demo data
 - [ ] Add test path for critical flows
 
-## Phase 5: AI Coach
+Backend folders:
+
+```text
+backend/api
+backend/ai-coach
+backend/jobs
+backend/db
+```
+
+## Phase 6: AI Coach
 
 Goal: add useful coaching without bloating mobile/watch clients.
 
@@ -86,10 +133,10 @@ Goal: add useful coaching without bloating mobile/watch clients.
 - [ ] Define coaching response model
 - [ ] Add backend AI coach runtime
 - [ ] Add safety and confidence boundaries
-- [ ] Add mobile coach UI
+- [ ] Add mobile coach UI in `apps/features/coaching`
 - [ ] Keep watch coaching limited to short insights only
 
-## Phase 6: Apple Watch
+## Phase 7: Apple Watch
 
 Goal: add watchOS only after Wear OS and mobile MVP are stable.
 
