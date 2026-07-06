@@ -5,11 +5,12 @@
 ## Type Of Change
 
 - [ ] Documentation
-- [ ] Flutter mobile app
-- [ ] Wear OS native app
-- [ ] watchOS native app
+- [ ] Flutter phone app shell (`apps/app`)
+- [ ] Flutter shared/core package (`apps/shared` or `apps/core`)
+- [ ] Flutter feature package (`apps/features/*`)
+- [ ] Wear OS native app (`apps/wear`)
+- [ ] watchOS native app (`apps/watchos`)
 - [ ] Backend / AI
-- [ ] Shared Dart package
 - [ ] Architecture
 - [ ] Navigation / routing
 - [ ] Data / sync / persistence
@@ -24,12 +25,11 @@
 - [ ] Mobile/watch/backend progress doc updated if implementation status changed.
 - [ ] No documentation change needed.
 
-## Safety / Truth Boundary
+## Public Repo Safety
 
-- [ ] No secrets, service-role keys, keystores, private keys, signing files, or local `.env` values are included.
+- [ ] No local environment values or signing files are included.
 - [ ] No generated/cache/build artifacts are included.
 - [ ] No APK, AAB, IPA, archive, or local release artifact is included.
-- [ ] No live database migration, RLS, RPC, or schema change is implied unless it is actually included.
 - [ ] Demo data is temporary scaffolding or clearly replaced by repository/API-backed data.
 - [ ] Feature ownership follows the canonical docs.
 
@@ -37,6 +37,9 @@
 
 - [ ] Requirements implemented.
 - [ ] Module ownership respected.
+- [ ] `apps/app` remains a thin app shell where applicable.
+- [ ] `apps/core` does not import feature packages.
+- [ ] `apps/shared` remains pure Dart and does not import Flutter UI.
 - [ ] Flutter screens/widgets remain presentation-only where applicable.
 - [ ] Controller/notifier/use case/repository boundaries respected.
 - [ ] Routing remains typed or centralized through the approved router.
@@ -59,8 +62,10 @@ Examples:
 ```bash
 melos analyze
 melos test
-cd apps/mobile && flutter test
-cd apps/mobile && flutter analyze
+cd apps/app && flutter test
+cd apps/app && flutter analyze
+cd apps/features/workout && dart test
+cd apps/features/nutrition && dart analyze
 pnpm test
 ```
 
