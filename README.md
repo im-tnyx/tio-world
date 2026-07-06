@@ -155,12 +155,13 @@ Settings -> gear/menu entry
 ## Recommended Flutter Stack
 
 ```text
-Riverpod
-go_router
-dio
-freezed
-json_serializable
-melos
+State: Riverpod
+Navigation: go_router with typed routes
+Data: offline-first repository pattern
+Local persistence: Drift, Isar, or similar after the first real data slice is chosen
+Code generation: freezed + json_serializable
+HTTP/API: dio when remote APIs are introduced
+Workspace: melos
 ```
 
 ## Getting Started
@@ -198,28 +199,6 @@ melos test
 
 Start here:
 
-| Document | Purpose |
-| :--- | :--- |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Repository shape, architecture principles, app boundaries, and dependency direction. |
-| [`docs/FLUTTER_MODULAR_STRUCTURE.md`](docs/FLUTTER_MODULAR_STRUCTURE.md) | Detailed Flutter apps-based modular structure. |
-| [`docs/MODULE_OWNERSHIP.md`](docs/MODULE_OWNERSHIP.md) | Ownership rules for app shell, core, shared, feature packages, watch, and backend. |
-| [`docs/DEVELOPMENT_SETUP.md`](docs/DEVELOPMENT_SETUP.md) | Local setup, required tools, bootstrap commands, and validation flow. |
-| [`docs/WATCH_STRATEGY.md`](docs/WATCH_STRATEGY.md) | Wear OS and Apple Watch strategy. |
-| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Practical MVP and phased product roadmap. |
-
-## Security
-
-This is a public repository. Never commit:
-
-- `.env` files
-- service-role keys or admin keys
-- signing files or private certificates
-- production logs
-- real health records
-- local database dumps
-- APK, AAB, IPA, or archive artifacts
-- screenshots containing personal information
-
-## Roadmap Rule
-
-Each phase should produce a working, testable slice before the next phase grows.
+```text
+docs/README.md
+```
