@@ -16,6 +16,11 @@ TioShellPlaceholder _page(String title, String description) {
   return TioShellPlaceholder(title: title, description: description);
 }
 
+bool _isBottomNavVisible(GoRouterState state) {
+  final location = state.uri.path;
+  return !location.contains('editor') && !location.contains('modal');
+}
+
 void _handleShellAction(BuildContext context, StatefulNavigationShell navigationShell, ShellAction action) {
   if (action is ShellTabSelected) {
     navigationShell.goBranch(action.tab.index);
@@ -34,7 +39,10 @@ final goRouter = GoRouter(
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
         return TioShell(
-          state: ShellUiState(selectedTab: ShellTab.fromIndex(navigationShell.currentIndex)),
+          state: ShellUiState(
+            selectedTab: ShellTab.fromIndex(navigationShell.currentIndex),
+            isBottomNavVisible: _isBottomNavVisible(state),
+          ),
           onAction: (action) => _handleShellAction(context, navigationShell, action),
           child: navigationShell,
         );
