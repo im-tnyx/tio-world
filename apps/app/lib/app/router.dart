@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
+import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_coaching/coaching.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
+import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_feature_progress/progress.dart';
 import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_feature_workout/workout.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+
+TioPlaceholderPage _page(String title, String description) {
+  return TioPlaceholderPage(title: title, description: description);
+}
 
 final goRouter = GoRouter(
   initialLocation: '/',
@@ -17,15 +23,17 @@ final goRouter = GoRouter(
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) => MainShell(navigationShell: navigationShell),
       branches: [
-        StatefulShellBranch(routes: [GoRoute(path: '/', builder: (context, state) => const TioPlaceholderPage(title: 'Dashboard', description: 'Your daily health and fitness overview.'))]),
-        StatefulShellBranch(routes: [GoRoute(path: WorkoutRoutes.path, builder: (context, state) => const TioPlaceholderPage(title: WorkoutRoutes.title, description: WorkoutRoutes.description))]),
-        StatefulShellBranch(routes: [GoRoute(path: NutritionRoutes.path, builder: (context, state) => const TioPlaceholderPage(title: NutritionRoutes.title, description: NutritionRoutes.description))]),
-        StatefulShellBranch(routes: [GoRoute(path: CoachingRoutes.path, builder: (context, state) => const TioPlaceholderPage(title: CoachingRoutes.title, description: CoachingRoutes.description))]),
-        StatefulShellBranch(routes: [GoRoute(path: ProgressRoutes.path, builder: (context, state) => const TioPlaceholderPage(title: ProgressRoutes.title, description: ProgressRoutes.description))]),
+        StatefulShellBranch(routes: [GoRoute(path: '/', builder: (context, state) => _page('Dashboard', 'Your daily health and fitness overview.'))]),
+        StatefulShellBranch(routes: [GoRoute(path: WorkoutRoutes.path, builder: (context, state) => _page(WorkoutRoutes.title, WorkoutRoutes.description))]),
+        StatefulShellBranch(routes: [GoRoute(path: NutritionRoutes.path, builder: (context, state) => _page(NutritionRoutes.title, NutritionRoutes.description))]),
+        StatefulShellBranch(routes: [GoRoute(path: CoachingRoutes.path, builder: (context, state) => _page(CoachingRoutes.title, CoachingRoutes.description))]),
+        StatefulShellBranch(routes: [GoRoute(path: ProgressRoutes.path, builder: (context, state) => _page(ProgressRoutes.title, ProgressRoutes.description))]),
       ],
     ),
-    GoRoute(path: ProfileRoutes.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => const TioPlaceholderPage(title: ProfileRoutes.title, description: ProfileRoutes.description)),
-    GoRoute(path: SettingsRoutes.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => const TioPlaceholderPage(title: SettingsRoutes.title, description: SettingsRoutes.description)),
+    GoRoute(path: AuthRoutes.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => _page(AuthRoutes.title, AuthRoutes.description)),
+    GoRoute(path: OnboardingRoutes.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => _page(OnboardingRoutes.title, OnboardingRoutes.description)),
+    GoRoute(path: ProfileRoutes.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => _page(ProfileRoutes.title, ProfileRoutes.description)),
+    GoRoute(path: SettingsRoutes.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => _page(SettingsRoutes.title, SettingsRoutes.description)),
   ],
 );
 
