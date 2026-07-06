@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../domain/wear_home_tile.dart';
+import '../model/wear_home_tile.dart';
 
 class WearActionTile extends StatelessWidget {
   const WearActionTile({
