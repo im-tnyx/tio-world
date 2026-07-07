@@ -6,8 +6,8 @@ The target shape is modular, practical, and easy to grow without leaking busines
 
 ## Core Rules
 
-- Mobile app UI lives in `apps/mobile` using Flutter.
-- Wear OS UI lives in `apps/wear-os` using Kotlin + Compose for Wear OS.
+- Mobile app UI lives in `apps/app` using Flutter.
+- Wear OS companion app lives in `apps/wear` using Flutter.
 - Apple Watch UI lives in `apps/watchos` using Swift + SwiftUI.
 - Shared mobile logic lives in `packages/*` only when it is reused or clearly reusable.
 - Backend, AI, migrations, and privileged operations live under `backend/*`.

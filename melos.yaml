@@ -12,17 +12,21 @@ scripts:
     run: melos bootstrap
     description: Bootstrap all Flutter and Dart packages in the workspace.
 
-  pub-get:
+  get:
     run: melos exec -- "flutter pub get"
-    description: Run flutter pub get in every Flutter package.
+    description: Run 'flutter pub get' in all packages.
 
   analyze:
     run: melos exec -- "flutter analyze"
-    description: Analyze all Flutter packages.
+    description: Run 'flutter analyze' in all packages.
 
   analyze:dart:
     run: melos exec --scope="tio_shared" -- "dart analyze"
     description: Analyze pure Dart shared package.
+
+  test:
+    run: melos exec --dir-exists="test" -- "flutter test"
+    description: Run 'flutter test' in all packages that have a test directory.
 
   app:run:
     run: cd apps/app && flutter run

@@ -52,7 +52,7 @@ Some folders may be created later. Do not create empty future modules unless a r
 | :--- | :--- | :--- |
 | Android phone | Flutter | Shared mobile UI. |
 | iPhone | Flutter | Shared mobile UI. |
-| Wear OS | Kotlin + Compose for Wear OS | Native watch performance, Health Services, tiles, complications, and Data Layer APIs. |
+| Wear OS | Flutter | Flutter-based Wear OS app sharing design tokens and shared use cases. |
 | Apple Watch | Swift + SwiftUI | Native watchOS experience when introduced. |
 | Backend | Server-side workspace | API, sync, coaching, database, jobs, and protected integrations. |
 

@@ -22,10 +22,9 @@ Read these files before making architecture, module, data, or workflow decisions
 
 The preferred platform strategy is:
 
-- Flutter for Android phone and iPhone mobile UI.
-- Native Kotlin + Compose for Wear OS.
+- Flutter for Android phone, iPhone, and Wear OS UI.
 - Native Swift + SwiftUI for Apple Watch.
-- Shared Dart packages for mobile app logic where practical.
+- Shared Dart packages for mobile and watch app logic where practical.
 - Backend and AI work behind server-side boundaries.
 
 ## Canonical References

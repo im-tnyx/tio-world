@@ -37,4 +37,18 @@ class AppRoutes {
     description: 'Configure your app preferences and notifications.',
     chromePolicy: ChromePolicy.fullScreen,
   );
+
+  static const login = TioRouteContract(
+    path: '/login',
+    title: 'Login',
+    description: 'Sign in to your account and manage session access.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
+  static const splash = TioRouteContract(
+    path: '/splash',
+    title: 'Splash',
+    description: 'Initializing session and data access...',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
 }

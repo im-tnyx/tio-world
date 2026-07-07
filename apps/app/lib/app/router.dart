@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
+import 'package:tio_feature_auth/auth.dart';
+import 'package:tio_feature_splash/splash.dart';
+import 'package:tio_feature_welcome/welcome.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -10,10 +13,12 @@ TioShellPlaceholder _page(TioRouteContract route) {
 
 ChromePolicy _chromePolicyForPath(String location) {
   final appRoutes = [
+    AppRoutes.splash,
     AppRoutes.auth,
     AppRoutes.onboarding,
     AppRoutes.profile,
     AppRoutes.settings,
+    AppRoutes.login,
   ];
 
   for (final route in appRoutes) {
@@ -38,7 +43,7 @@ void _handleShellAction(BuildContext context, StatefulNavigationShell navigation
 }
 
 final goRouter = GoRouter(
-  initialLocation: FeatureRoutes.home.path,
+  initialLocation: AppRoutes.splash.path,
   navigatorKey: rootNavigatorKey,
   routes: [
     StatefulShellRoute.indexedStack(
@@ -62,7 +67,9 @@ final goRouter = GoRouter(
         StatefulShellBranch(routes: [GoRoute(path: FeatureRoutes.progress.path, builder: (context, state) => _page(FeatureRoutes.progress))]),
       ],
     ),
-    GoRoute(path: AppRoutes.auth.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => _page(AppRoutes.auth)),
+    GoRoute(path: AppRoutes.splash.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => const SplashScreen()),
+    GoRoute(path: AppRoutes.auth.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => const WelcomeScreen()),
+    GoRoute(path: AppRoutes.login.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => const LoginPage()),
     GoRoute(path: AppRoutes.onboarding.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => _page(AppRoutes.onboarding)),
     GoRoute(path: AppRoutes.profile.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => _page(AppRoutes.profile)),
     GoRoute(path: AppRoutes.settings.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => _page(AppRoutes.settings)),

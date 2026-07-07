@@ -36,10 +36,9 @@ Do not introduce competing libraries without a clear reason.
 
 ## Watch Boundaries
 
-- Do not force Wear OS UI into Flutter if the goal is fast, light, battery-friendly watch UX.
-- Wear OS app should stay native Kotlin + Compose for Wear OS.
+- Wear OS is built in Flutter (`apps/wear`) to share design system tokens, logic, and state.
 - Apple Watch app should stay native Swift + SwiftUI.
-- Watch apps may share product concepts, but their UI should be platform-native.
+- Watch apps focus on fast, battery-aware, glanceable actions.
 
 ## Data Rules
 

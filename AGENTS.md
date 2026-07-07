@@ -17,10 +17,10 @@ These instructions apply to AI coding agents working in this repository.
 
 The intended platform strategy is:
 
-- `apps/mobile`: Flutter Android + iOS phone app.
-- `apps/wear-os`: Native Kotlin + Compose for Wear OS companion app.
+- `apps/app`: Flutter Android + iOS phone app.
+- `apps/wear`: Flutter Wear OS companion app.
 - `apps/watchos`: Native Swift + SwiftUI Apple Watch app.
-- `packages/*`: Shared Dart packages for mobile-side reusable logic.
+- `apps/shared`, `apps/core`: Shared Dart packages and core UI modules.
 - `backend/*`: API, AI coach, jobs, database, and server-side integrations.
 - `.github/*`: Contribution, issue, PR, push, and workflow guidance.
 - `.ai/*`: Concise AI orientation files.
@@ -45,15 +45,11 @@ Runtime source/config wins for actual behavior. Product docs and ADRs win for in
 
 ## Repo Ownership
 
-- `apps/mobile` owns the Flutter mobile app shell, routing, composition root, and mobile UI entry point.
-- `apps/mobile/lib/features/*` owns feature-level mobile UI, state, controllers, and presentation workflows.
-- `packages/core_models` owns shared Dart entities/value objects used across mobile features.
-- `packages/api_client` owns API client code, DTOs, request/response models, and network mapping.
-- `packages/workout_engine` owns workout calculations, set/rep rules, rest timer logic, and workout-specific domain helpers.
-- `packages/nutrition_engine` owns nutrition calculations, macro rules, calorie helpers, hydration logic, and food/meal domain helpers.
-- `packages/sync_core` owns mobile-side sync queue contracts and sync coordination helpers.
-- `packages/design_system` owns reusable Flutter theme tokens, widgets, spacing, typography, colors, and UI primitives.
-- `apps/wear-os` owns Wear OS native UI, watch-specific navigation, Health Services integration, tiles, complications, and phone bridge.
+- `apps/app` owns the Flutter mobile app shell, routing, composition root, and mobile UI entry point.
+- `apps/features/*` owns feature-level mobile UI, state, controllers, and presentation workflows.
+- `apps/shared` owns shared Dart entities/value objects, API DTOs, workout/nutrition calculations, sync contracts, and core domain logic.
+- `apps/core` owns reusable design system tokens, widgets, theme primitives, and routing contracts.
+- `apps/wear` owns Wear OS Flutter UI, watch-specific navigation, and phone bridge sync integration.
 - `apps/watchos` owns Apple Watch native UI, HealthKit integration, complications, and WatchConnectivity.
 - `backend/api` owns HTTP/API routes, auth-aware server endpoints, and client-safe contracts.
 - `backend/ai-coach` owns server-side coaching orchestration, model prompts, guardrails, and AI response shaping.
@@ -77,19 +73,18 @@ Runtime source/config wins for actual behavior. Product docs and ADRs win for in
 
 ## Flutter Mobile Rules
 
-- Use feature-first structure under `apps/mobile/lib/features/*`.
+- Use standalone feature packages under `apps/features/*`.
 - Prefer `Riverpod` for state management unless the repository documents a different standard.
 - Prefer `go_router` for app routing unless the repository documents a different standard.
 - Prefer immutable state and explicit action/event flows.
 - Keep `build()` methods readable and free of heavy business logic.
-- Use `packages/design_system` for shared tokens and reusable widgets.
+- Use `apps/core` for shared tokens and reusable widgets.
 - Do not hardcode repeated colors, spacing, typography, radii, or shadows in production UI.
 - Use generated model code only when configured by the repo, and do not commit generated outputs unless the repo explicitly tracks them.
 
 ## Watch Rules
 
-- Do not force Flutter UI onto watches for production-critical fitness workflows.
-- Wear OS UI belongs in `apps/wear-os` using Kotlin + Compose for Wear OS.
+- Wear OS UI belongs in `apps/wear` using Flutter.
 - Apple Watch UI belongs in `apps/watchos` using Swift + SwiftUI.
 - Watch apps should stay lightweight, fast, and battery-aware.
 - Watch features should focus on quick actions: start/pause workout, set input, rest timer, heart rate, steps, calories, offline active workout, and quick sync.
@@ -141,10 +136,10 @@ melos analyze
 melos test
 ```
 
-If working only inside `apps/mobile`, use:
+If working only inside `apps/app`, use:
 
 ```bash
-cd apps/mobile
+cd apps/app
 flutter pub get
 flutter analyze
 flutter test

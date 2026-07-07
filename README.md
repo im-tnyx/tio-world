@@ -4,7 +4,7 @@
 
 This repository follows one practical rule: **move fast on product, keep boundaries clean.**
 
-The phone app uses Flutter. Watch apps stay native for performance, sensors, battery, tiles, complications, and platform integrations. Backend, AI, persistence, and protected operations stay server-side.
+The phone app and the Wear OS watch app use Flutter. Apple Watch app stays native for platform integrations. Backend, AI, persistence, and protected operations stay server-side.
 
 ## Project Overview
 
@@ -23,11 +23,11 @@ Tio is designed as a premium health and wellness platform that helps users manag
 | :--- | :--- | :--- |
 | Android phone | Flutter | Shared mobile UI, fast iteration, single Dart codebase. |
 | iPhone | Flutter | Same mobile UI and feature flow as Android. |
-| Wear OS | Kotlin + Compose for Wear OS | Fast, lightweight, battery-friendly, direct Health Services and Data Layer integration. |
+| Wear OS | Flutter | Shared Flutter UI, design tokens, and logic from the phone app. |
 | Apple Watch | Swift + SwiftUI | Native watchOS integration, HealthKit, complications, and WatchConnectivity. |
 | Backend/API | Server-side workspace | AI, analytics, persistence, sync, protected operations, and heavy processing. |
 
-> **Watch rule:** Do not force Flutter onto watch apps for core fitness workflows. Watch UI should remain native. Share contracts, API payloads, sync events, and backend behavior, not watch UI code.
+> **Watch strategy:** Wear OS is built as a Flutter package (`apps/wear`) sharing design tokens, shared logic, and routing schemas. Apple Watch remains native (SwiftUI) for close platform integration.
 
 ## Current Target Repository Shape
 
@@ -37,7 +37,7 @@ Tio is designed as a premium health and wellness platform that helps users manag
 tio-world/
 ├─ apps/
 │  ├─ app/                         # Flutter Android + iOS phone app shell
-│  ├─ wear/                        # Native Wear OS companion app
+│  ├─ wear/                        # Flutter Wear OS companion app
 │  ├─ shared/                      # Pure Dart shared models/contracts/use cases
 │  ├─ core/                        # Flutter design system, shell, route contracts
 │  └─ features/

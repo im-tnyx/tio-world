@@ -78,14 +78,10 @@ Install the tools needed for the parts you are working on.
 - Node.js LTS if backend or repo scripts are used
 - pnpm if backend/workspace scripts are used
 
-#### Native watch apps
+#### Smartwatch apps
 
 For Wear OS:
-
-- Android Studio
-- JDK 21
-- Android SDK and Wear OS emulator/device
-- Kotlin + Compose for Wear OS support
+- Standard Flutter toolchain setup (Wear OS is a Flutter package under `apps/wear`)
 
 For Apple Watch:
 
@@ -157,17 +153,23 @@ melos test
 
 ### Wear OS app
 
-Open the native project in Android Studio and run the Wear OS configuration:
+Wear OS is a standalone Flutter application located at:
 
 ```text
 apps/wear
 ```
 
+To run the Wear OS app:
+```bash
+cd apps/wear
+flutter run
+```
+
 Recommended watch direction:
 
 ```text
-Wear OS UI: Kotlin + Compose for Wear OS
-Watch logic/API contracts: keep lightweight and shared where practical
+Wear OS UI: Flutter (tio_wear)
+Watch logic/API contracts: shared where practical via tio_shared & tio_core
 Heavy AI/analytics: backend
 ```
 
@@ -378,13 +380,13 @@ It must not import feature packages.
 
 ### Watch apps
 
-Do not force Flutter UI onto watch apps for production fitness flows.
+Wear OS is built using Flutter (`apps/wear`) to share state, routing, and design system components. Apple Watch remains native (SwiftUI) for close iOS integration.
 
 Recommended approach:
 
 ```text
 Phone app: Flutter
-Wear OS app: Kotlin + Compose for Wear OS
+Wear OS app: Flutter
 Apple Watch app: Swift + SwiftUI
 Shared data contracts: API + lightweight models
 Heavy AI/analytics: backend

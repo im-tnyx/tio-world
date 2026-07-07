@@ -12,11 +12,11 @@ Use the existing TNYX / tio-world design direction and keep UI platform-appropri
 - Keep pages readable, stable, responsive, and accessible.
 - Text must fit inside its container on mobile viewports.
 
-## Native Watch UI Rules
+## Watch UI Rules
 
 Wear OS:
 
-- Use Kotlin + Compose for Wear OS.
+- Use Flutter.
 - Prefer watch-optimized components.
 - Keep flows short and glanceable.
 - Avoid heavy charts, large images, and long forms.

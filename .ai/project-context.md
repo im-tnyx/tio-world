@@ -9,7 +9,7 @@ The current target repository direction is a **Flutter-first monorepo** with nat
 Expected root structure:
 
 - `apps/mobile`: Flutter mobile app for Android phone and iPhone.
-- `apps/wear-os`: Native Wear OS companion app using Kotlin + Compose for Wear OS.
+- `apps/wear`: Wear OS companion app using Flutter.
 - `apps/watchos`: Native Apple Watch app using Swift + SwiftUI.
 - `packages/core_models`: Shared Dart domain models.
 - `packages/api_client`: API client and DTO mapping for Flutter/mobile layers.
@@ -41,14 +41,14 @@ Core product areas are:
 
 ## Watch Strategy
 
-Watch apps are product-critical, but they should not be forced through Flutter UI.
+Watch apps are product-critical. Wear OS uses Flutter (apps/wear), while Apple Watch uses Swift/SwiftUI.
 
 Use:
 
-- Wear OS: Kotlin + Compose for Wear OS.
+- Wear OS: Flutter.
 - Apple Watch: Swift + SwiftUI.
 - Mobile app: Flutter.
-- Shared business rules: Dart packages for mobile, backend contracts where useful, and platform-native watch logic where needed.
+- Shared business rules: Dart packages for mobile/watch, backend contracts where useful.
 
 ## Current Status
 

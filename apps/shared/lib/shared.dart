@@ -1,1 +1,1 @@
-library tio_shared;
+// Shared package entrypoint

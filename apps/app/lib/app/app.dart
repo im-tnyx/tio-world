@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
 
@@ -14,7 +15,25 @@ class TioApp extends ConsumerWidget {
       routerConfig: goRouter,
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
-        return TioTheme(child: child ?? const SizedBox.shrink());
+        final theme = Theme.of(context);
+        return TioTheme(
+          child: AnnotatedRegion<SystemUiOverlayStyle>(
+            value: SystemUiOverlayStyle(
+              systemNavigationBarColor: Colors.transparent,
+              systemNavigationBarDividerColor: Colors.transparent,
+              systemNavigationBarIconBrightness: theme.brightness == Brightness.light
+                  ? Brightness.dark
+                  : Brightness.light,
+              systemNavigationBarContrastEnforced: false,
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: theme.brightness == Brightness.light
+                  ? Brightness.dark
+                  : Brightness.light,
+              statusBarBrightness: theme.brightness,
+            ),
+            child: child ?? const SizedBox.shrink(),
+          ),
+        );
       },
     );
   }

@@ -166,17 +166,18 @@ melos test
 Focused mobile app checks:
 
 ```bash
-cd apps/mobile
+cd apps/app
 flutter pub get
 flutter analyze
 flutter test
 ```
 
-Android / Wear OS native checks:
+Wear OS checks:
 
 ```bash
-cd apps/wear-os
-./gradlew assembleDebug
+cd apps/wear
+flutter pub get
+flutter analyze
 ```
 
 Windows PowerShell:

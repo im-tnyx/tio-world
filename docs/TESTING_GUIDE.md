@@ -17,7 +17,7 @@ Prefer:
 For mobile changes:
 
 ```bash
-cd apps/mobile
+cd apps/app
 flutter analyze
 flutter test
 ```

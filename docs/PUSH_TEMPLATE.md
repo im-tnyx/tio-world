@@ -69,13 +69,13 @@ Confirm:
 
 For **tio-world** code changes:
 
-- [ ] Flutter mobile code stays inside `apps/mobile` or shared Dart packages.
+- [ ] Flutter mobile code stays inside `apps/app` or shared Dart packages.
 - [ ] Shared reusable Dart logic belongs in `packages/*`.
 - [ ] Feature logic stays in the owning feature or package.
 - [ ] UI widgets stay presentation-focused.
 - [ ] Controllers/notifiers call use cases or repositories, not raw backend clients directly.
 - [ ] API/database/backend assumptions do not leak into UI.
-- [ ] Wear OS native code stays in `apps/wear-os`.
+- [ ] Wear OS code stays in `apps/wear`.
 - [ ] watchOS native code stays in `apps/watchos`.
 - [ ] Watch apps remain fast, lightweight, and focused on quick workflows.
 - [ ] Backend and AI work stays in `backend/*`.
@@ -105,24 +105,18 @@ melos test
 Flutter mobile focused:
 
 ```bash
-cd apps/mobile
+cd apps/app
 flutter pub get
 flutter analyze
 flutter test
 ```
 
-Wear OS native:
+Wear OS:
 
 ```bash
-cd apps/wear-os
-./gradlew assembleDebug
-```
-
-Windows PowerShell:
-
-```powershell
-cd apps\wear-os
-.\gradlew.bat assembleDebug
+cd apps/wear
+flutter pub get
+flutter analyze
 ```
 
 Backend:

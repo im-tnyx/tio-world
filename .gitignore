@@ -120,8 +120,8 @@ outputs/
 # Android Studio generated
 app/release/
 android/app/release/
-apps/mobile/android/app/release/
-apps/wear-os/release/
+apps/app/android/app/release/
+apps/wear/android/app/release/
 
 # Kotlin / Java build outputs
 out/
@@ -142,14 +142,14 @@ ios/Flutter/ephemeral/
 ios/Flutter/App.framework
 ios/Runner/GeneratedPluginRegistrant.*
 
-apps/mobile/ios/Pods/
-apps/mobile/ios/.symlinks/
-apps/mobile/ios/Flutter/Flutter.framework
-apps/mobile/ios/Flutter/Flutter.podspec
-apps/mobile/ios/Flutter/Generated.xcconfig
-apps/mobile/ios/Flutter/ephemeral/
-apps/mobile/ios/Flutter/App.framework
-apps/mobile/ios/Runner/GeneratedPluginRegistrant.*
+apps/app/ios/Pods/
+apps/app/ios/.symlinks/
+apps/app/ios/Flutter/Flutter.framework
+apps/app/ios/Flutter/Flutter.podspec
+apps/app/ios/Flutter/Generated.xcconfig
+apps/app/ios/Flutter/ephemeral/
+apps/app/ios/Flutter/App.framework
+apps/app/ios/Runner/GeneratedPluginRegistrant.*
 
 Pods/
 DerivedData/

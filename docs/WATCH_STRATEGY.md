@@ -4,14 +4,14 @@
 
 ## Decision
 
-Use native watch apps:
+Use Flutter for Wear OS and Swift/SwiftUI for Apple Watch:
 
 | Watch platform | Stack |
 | :--- | :--- |
-| Wear OS | Kotlin + Compose for Wear OS |
+| Wear OS | Flutter |
 | Apple Watch | Swift + SwiftUI when introduced |
 
-The phone app can be Flutter. Watch apps should stay native for performance, battery, sensors, platform integrations, tiles, complications, and background behavior.
+The Wear OS app is built with Flutter (`apps/wear`) to share design systems and logic, while the Apple Watch app stays native (SwiftUI) for iOS-specific health/sensor integrations.
 
 ## Current Folder
 
