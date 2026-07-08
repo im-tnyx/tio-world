@@ -9,6 +9,7 @@ dependencies:
     sdk: flutter
   flutter_riverpod: ^2.6.1
   go_router: ^14.6.2
+  flutter_svg: ^2.2.0
   tio_core:
     path: ../../core
   tio_shared:
@@ -21,3 +22,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/landing_screen.png
+    - assets/dumbell-blue.png
+    - assets/ic_chat.svg

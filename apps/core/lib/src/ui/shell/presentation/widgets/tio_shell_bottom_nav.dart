@@ -12,18 +12,26 @@ class TioShellBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.tioColors;
+
     return BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
+      backgroundColor: colors.surface,
+      selectedItemColor: colors.primary,
+      unselectedItemColor: colors.textMuted,
       currentIndex: selectedTab.index,
       onTap: (index) => onTabSelected(ShellTab.fromIndex(index)),
+      showSelectedLabels: true,
+      showUnselectedLabels: true,
       items: const [
         BottomNavigationBarItem(
-          icon: ImageIcon(AssetImage('../assets/nav_icon/home_outline.png')),
-          activeIcon: ImageIcon(AssetImage('../assets/nav_icon/home_fill.png')),
+          icon: ImageIcon(AssetImage('assets/nav_icon/home_outline.png', package: 'tio_core')),
+          activeIcon: ImageIcon(AssetImage('assets/nav_icon/home_fill.png', package: 'tio_core')),
           label: 'Home',
         ),
         BottomNavigationBarItem(
-          icon: ImageIcon(AssetImage('../assets/nav_icon/apple_outline.png')),
-          activeIcon: ImageIcon(AssetImage('../assets/nav_icon/apple_fill.png')),
+          icon: ImageIcon(AssetImage('assets/nav_icon/apple_outline.png', package: 'tio_core')),
+          activeIcon: ImageIcon(AssetImage('assets/nav_icon/apple_fill.png', package: 'tio_core')),
           label: 'Nutrition',
         ),
         BottomNavigationBarItem(
@@ -32,13 +40,13 @@ class TioShellBottomNav extends StatelessWidget {
           label: 'AI',
         ),
         BottomNavigationBarItem(
-          icon: ImageIcon(AssetImage('../assets/nav_icon/muscle_outline.png')),
-          activeIcon: ImageIcon(AssetImage('../assets/nav_icon/muscle_fill.png')),
+          icon: ImageIcon(AssetImage('assets/nav_icon/muscle_outline.png', package: 'tio_core')),
+          activeIcon: ImageIcon(AssetImage('assets/nav_icon/muscle_fill.png', package: 'tio_core')),
           label: 'Workout',
         ),
         BottomNavigationBarItem(
-          icon: ImageIcon(AssetImage('../assets/nav_icon/trophy_outline.png')),
-          activeIcon: ImageIcon(AssetImage('../assets/nav_icon/trophy_fill.png')),
+          icon: ImageIcon(AssetImage('assets/nav_icon/trophy_outline.png', package: 'tio_core')),
+          activeIcon: ImageIcon(AssetImage('assets/nav_icon/trophy_fill.png', package: 'tio_core')),
           label: 'Progress',
         ),
       ],

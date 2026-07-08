@@ -68,7 +68,7 @@ final goRouter = GoRouter(
       ],
     ),
     GoRoute(path: AppRoutes.splash.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => const SplashScreen()),
-    GoRoute(path: AppRoutes.auth.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => const WelcomeScreen()),
+    GoRoute(path: AppRoutes.auth.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => const WelcomeRoute()),
     GoRoute(path: AppRoutes.login.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => const LoginPage()),
     GoRoute(path: AppRoutes.onboarding.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => _page(AppRoutes.onboarding)),
     GoRoute(path: AppRoutes.profile.path, parentNavigatorKey: rootNavigatorKey, builder: (context, state) => _page(AppRoutes.profile)),

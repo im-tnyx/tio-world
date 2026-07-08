@@ -44,11 +44,7 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: false
-  image_path: "../assets/brand/dark_logo.jpg"
+  image_path: "../core/assets/brand/dark_logo.jpg"
 
 flutter:
   uses-material-design: true
-  assets:
-    - ../assets/brand/dark_logo.jpg
-    - ../assets/nav_icon/
-    - ../assets/image/landing_screen.png

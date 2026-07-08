@@ -4,15 +4,13 @@ class WelcomeFeatureTile extends StatelessWidget {
   const WelcomeFeatureTile({
     required this.title,
     required this.description,
-    required this.icon,
-    required this.color,
+    required this.iconWidget,
     super.key,
   });
 
   final String title;
   final String description;
-  final IconData icon;
-  final Color color;
+  final Widget iconWidget;
 
   @override
   Widget build(BuildContext context) {
@@ -20,26 +18,32 @@ class WelcomeFeatureTile extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Icon(
-          icon,
-          size: 28,
-          color: const Color(0xFFD4AF37), // Premium Gold color
+        SizedBox(
+          width: 32,
+          height: 32,
+          child: Center(child: iconWidget),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Text(
           title,
+          textAlign: TextAlign.center,
           style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.0,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.8,
             color: Colors.white,
           ),
         ),
-        const SizedBox(height: 4),
-        Container(
-          width: 24,
-          height: 2,
-          color: const Color(0xFFD4AF37),
+        const SizedBox(height: 6),
+        Text(
+          description,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 9.5,
+            fontWeight: FontWeight.normal,
+            color: Colors.white60,
+            height: 1.3,
+          ),
         ),
       ],
     );

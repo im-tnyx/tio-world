@@ -12,3 +12,10 @@ dependencies:
 
 dev_dependencies:
   flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/brand/
+    - assets/nav_icon/
+    - assets/image/

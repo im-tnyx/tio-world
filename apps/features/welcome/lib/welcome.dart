@@ -1,1 +1,1 @@
-export 'src/presentation/screen/welcome_screen.dart';
+export 'src/presentation/route/welcome_route.dart';

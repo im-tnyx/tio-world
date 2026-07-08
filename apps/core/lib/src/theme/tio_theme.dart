@@ -6,6 +6,7 @@ import 'tokens/effects/tio_shadows.dart';
 import 'tokens/foundation/tio_radius.dart';
 import 'tokens/foundation/tio_spacing.dart';
 import 'tokens/semantic/tio_colors.dart';
+import 'tokens/components/tio_button_tokens.dart';
 import 'tokens/typography/tio_typography.dart';
 
 class TioTheme extends StatelessWidget {
@@ -67,6 +68,22 @@ class TioTheme extends StatelessWidget {
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide(color: colors.primary),
+          ),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            minimumSize: const Size.fromHeight(TioButtonTokens.height),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(TioButtonTokens.radius),
+            ),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size.fromHeight(TioButtonTokens.height),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(TioButtonTokens.radius),
+            ),
           ),
         ),
         extensions: <ThemeExtension<dynamic>>[
