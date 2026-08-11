@@ -10,9 +10,11 @@ class TioApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(goRouterProvider);
+
     return MaterialApp.router(
       title: 'Tio',
-      routerConfig: goRouter,
+      routerConfig: router,
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
         final theme = Theme.of(context);
@@ -21,9 +23,10 @@ class TioApp extends ConsumerWidget {
             value: SystemUiOverlayStyle(
               systemNavigationBarColor: Colors.transparent,
               systemNavigationBarDividerColor: Colors.transparent,
-              systemNavigationBarIconBrightness: theme.brightness == Brightness.light
-                  ? Brightness.dark
-                  : Brightness.light,
+              systemNavigationBarIconBrightness:
+                  theme.brightness == Brightness.light
+                      ? Brightness.dark
+                      : Brightness.light,
               systemNavigationBarContrastEnforced: false,
               statusBarColor: Colors.transparent,
               statusBarIconBrightness: theme.brightness == Brightness.light
