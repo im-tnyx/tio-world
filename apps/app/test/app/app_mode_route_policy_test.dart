@@ -5,6 +5,20 @@ import 'package:tio_shared/shared.dart';
 
 void main() {
   group('guidedShellTabs', () {
+    test('keeps branch index and route identity in one canonical registry', () {
+      expect(shellBranchRegistry.map((branch) => branch.tab).toSet(),
+          ShellTab.values.toSet());
+      expect(shellBranchRegistry.map((branch) => branch.route.path).toSet(),
+          hasLength(shellBranchRegistry.length));
+
+      for (var index = 0; index < shellBranchRegistry.length; index++) {
+        final branch = shellBranchRegistry[index];
+        expect(branch.tab.branchIndex, index);
+        expect(ShellTab.fromBranchIndex(index), branch.tab);
+        expect(branch.tab.route, same(branch.route));
+      }
+    });
+
     test('maps modes to visible tabs without using visible indexes', () {
       expect(
         guidedShellTabs(AppMode.workout),

@@ -52,10 +52,10 @@ Give each user one selected phone mode: `workout`, `nutrition`, or `hybrid`. The
 ## Implementation Evidence
 
 - [x] `apps/shared` owns `AppMode`, `AppDestination`, guided destination mappings, and the pure-Dart `AppModePreference` boundary.
-- [x] `apps/app` wires `SharedPreferencesAsync`, loads the stored mode before router composition, and owns one `AppModeController` through Riverpod.
+- [x] `apps/app` wires `SharedPreferencesAsync`, renders Splash before starting the stored-mode read, refreshes routing after load, and owns one `AppModeController` through Riverpod.
 - [x] Onboarding's first real screen selects and persists the mode; missing or invalid local data returns there.
 - [x] Settings reads and changes the same mode from a Home app-bar entry.
-- [x] Visible shell tabs and route eligibility are derived from stable destination identity. Static registered branch indexes are not treated as visible-tab indexes.
+- [x] Visible shell tabs and route eligibility are derived from stable destination identity. `shellBranchRegistry` owns branch order, route identity, and index mapping; visible-tab positions are not treated as registered branch indexes.
 - [x] Unavailable mode routes and deferred Coach routes reconcile to Home.
 - [x] Focused controller, route-policy, and bottom-navigation tests cover all three modes and persistence failure behavior.
 - [ ] Build the later common-profile, Workout, Nutrition, review, and finish onboarding steps and condition them by mode.

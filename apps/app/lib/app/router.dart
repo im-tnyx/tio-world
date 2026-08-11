@@ -92,43 +92,16 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             child: navigationShell,
           );
         },
-        branches: [
-          StatefulShellBranch(
+        branches: shellBranchRegistry.map((branch) {
+          return StatefulShellBranch(
             routes: [
               GoRoute(
-                  path: FeatureRoutes.home.path,
-                  builder: (context, state) => _page(FeatureRoutes.home)),
+                path: branch.route.path,
+                builder: (context, state) => _page(branch.route),
+              ),
             ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                  path: FeatureRoutes.nutrition.path,
-                  builder: (context, state) => _page(FeatureRoutes.nutrition)),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                  path: FeatureRoutes.ai.path,
-                  builder: (context, state) => _page(FeatureRoutes.ai)),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                  path: FeatureRoutes.workout.path,
-                  builder: (context, state) => _page(FeatureRoutes.workout)),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                  path: FeatureRoutes.progress.path,
-                  builder: (context, state) => _page(FeatureRoutes.progress)),
-            ],
-          ),
-        ],
+          );
+        }).toList(growable: false),
       ),
       GoRoute(
         path: AppRoutes.splash.path,

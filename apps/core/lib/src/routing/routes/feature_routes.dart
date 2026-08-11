@@ -32,6 +32,4 @@ class FeatureRoutes {
     title: 'Progress',
     description: 'Visualize your journey and achievements.',
   );
-
-  static const mainTabs = [home, nutrition, ai, workout, progress];
 }

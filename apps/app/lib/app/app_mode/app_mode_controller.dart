@@ -10,6 +10,8 @@ class AppModeController extends ChangeNotifier {
   bool _isLoaded = false;
   bool _isSaving = false;
   Object? _lastError;
+  Future<void> _selectionQueue = Future<void>.value();
+  int _pendingSelections = 0;
 
   AppMode? get selectedMode => _selectedMode;
   bool get isLoaded => _isLoaded;
@@ -32,21 +34,34 @@ class AppModeController extends ChangeNotifier {
   }
 
   Future<void> select(AppMode mode) async {
-    if (_isSaving) return;
+    _pendingSelections++;
+    if (!_isSaving) {
+      _isSaving = true;
+      _lastError = null;
+      notifyListeners();
+    }
 
-    _isSaving = true;
+    final operation = _selectionQueue.then<void>(
+      (_) => _persistSelection(mode),
+      onError: (Object _, StackTrace __) => _persistSelection(mode),
+    );
+    _selectionQueue = operation;
+
+    return operation.whenComplete(() {
+      _pendingSelections--;
+      _isSaving = _pendingSelections > 0;
+      notifyListeners();
+    });
+  }
+
+  Future<void> _persistSelection(AppMode mode) async {
     _lastError = null;
-    notifyListeners();
-
     try {
       await _preference.write(mode);
       _selectedMode = mode;
     } catch (error) {
       _lastError = error;
       rethrow;
-    } finally {
-      _isSaving = false;
-      notifyListeners();
     }
   }
 

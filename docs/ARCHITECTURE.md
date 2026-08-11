@@ -147,9 +147,9 @@ The enum, guided destination mapping, and preference boundary live in `apps/shar
 
 Onboarding now begins with App Mode selection, and Settings changes the same selection later. The common-profile, Workout, Nutrition, review, and finish steps remain planned and must be shown conditionally for the chosen mode when implemented. App Mode remains a product-scope contract; it is not replaced by future tab personalization.
 
-The first App Mode slice persists the confirmed selection on the device. The pure-Dart preference contract belongs in `apps/shared`, while a `SharedPreferencesAsync` adapter is wired at the `apps/app` composition boundary and loaded before router composition. Missing or invalid values return to mode selection. Account-backed sync is deferred until an approved Supabase profile contract exists; this slice does not add a Supabase schema, bucket, backend endpoint, or cross-device merge behavior.
+The first App Mode slice persists the confirmed selection on the device. The pure-Dart preference contract belongs in `apps/shared`, while a `SharedPreferencesAsync` adapter is wired at the `apps/app` composition boundary. Flutter renders the initial Splash frame first, then `AppModeBootstrap` loads the stored value and refreshes the router through the shared controller. Missing or invalid values return to mode selection. Account-backed sync is deferred until an approved Supabase profile contract exists; this slice does not add a Supabase schema, bucket, backend endpoint, or cross-device merge behavior.
 
-The app shell uses `go_router` `StatefulShellRoute.indexedStack`. It keeps stable registered branches for route/state preservation, while the visible guided layout and route eligibility are derived from the active mode:
+The app shell uses `go_router` `StatefulShellRoute.indexedStack`. `shellBranchRegistry` is the single source for each registered branch's stable tab identity, route contract, path, and index; router registration and route eligibility derive from it. The visible guided layout remains derived from the active mode:
 
 | App mode | Guided default tabs |
 | :--- | :--- |

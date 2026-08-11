@@ -1,5 +1,8 @@
 import 'package:tio_shared/shared.dart';
 
+import '../../../../routing/routes/feature_routes.dart';
+import '../../../../routing/routes/route_contract.dart';
+
 enum ShellTab {
   home,
   nutrition,
@@ -23,24 +26,15 @@ enum ShellTab {
   }
 
   int get branchIndex {
-    return switch (this) {
-      ShellTab.home => 0,
-      ShellTab.nutrition => 1,
-      ShellTab.ai => 2,
-      ShellTab.workout => 3,
-      ShellTab.progress => 4,
-    };
+    return shellBranchRegistry.indexWhere((branch) => branch.tab == this);
   }
 
   static ShellTab fromBranchIndex(int index) {
-    return switch (index) {
-      1 => ShellTab.nutrition,
-      2 => ShellTab.ai,
-      3 => ShellTab.workout,
-      4 => ShellTab.progress,
-      _ => ShellTab.home,
-    };
+    if (index < 0 || index >= shellBranchRegistry.length) return ShellTab.home;
+    return shellBranchRegistry[index].tab;
   }
+
+  TioRouteContract get route => shellBranchRegistry[branchIndex].route;
 
   static ShellTab fromDestination(AppDestination destination) {
     return switch (destination) {
@@ -51,6 +45,22 @@ enum ShellTab {
     };
   }
 }
+
+class ShellBranchDefinition {
+  const ShellBranchDefinition({required this.tab, required this.route});
+
+  final ShellTab tab;
+  final TioRouteContract route;
+}
+
+const shellBranchRegistry = <ShellBranchDefinition>[
+  ShellBranchDefinition(tab: ShellTab.home, route: FeatureRoutes.home),
+  ShellBranchDefinition(
+      tab: ShellTab.nutrition, route: FeatureRoutes.nutrition),
+  ShellBranchDefinition(tab: ShellTab.ai, route: FeatureRoutes.ai),
+  ShellBranchDefinition(tab: ShellTab.workout, route: FeatureRoutes.workout),
+  ShellBranchDefinition(tab: ShellTab.progress, route: FeatureRoutes.progress),
+];
 
 enum ShellPlanTier { free, plus, premium }
 
