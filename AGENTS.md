@@ -21,7 +21,8 @@ The intended platform strategy is:
 - `apps/wear`: Flutter Wear OS companion app.
 - `apps/watchos`: Native Swift + SwiftUI Apple Watch app.
 - `apps/shared`, `apps/core`: Shared Dart packages and core UI modules.
-- `backend/*`: API, AI coach, jobs, database, and server-side integrations.
+- future `supabase/*`: Auth, Postgres/RLS, Storage, migrations, and approved server functions.
+- future `backend/*`: protected AI coach, advanced integrations, and long-running jobs after the Supabase-first foundation needs an upgrade.
 - `.github/*`: Contribution, issue, PR, push, and workflow guidance.
 - `.ai/*`: Concise AI orientation files.
 - `docs/*`: Canonical product and architecture documentation.
@@ -32,14 +33,16 @@ Before code changes, inspect the actual repository and read the relevant source-
 
 1. `README.md`
 2. `docs/README.md`
-3. `docs/engineering-guidelines.md`
-4. `docs/definition-of-done.md`
-5. `docs/architecture.md`
-6. `docs/adr/README.md`
-7. `.ai/README.md`
-8. `.ai/workflow.md`
-9. `.github/PUSH_TEMPLATE.md`
-10. `.github/PULL_REQUEST_TEMPLATE.md`
+3. `docs/ARCHITECTURE.md`
+4. `docs/MODULE_OWNERSHIP.md`
+5. `docs/DEVELOPMENT_SETUP.md`
+6. `docs/ROADMAP.md`
+7. `docs/SUPABASE_STRATEGY.md` when Auth, data, Storage, backend, or Gemini behavior is in scope
+8. `.ai/README.md`
+9. `.ai/workflow.md`
+10. `.ai/FEATURE_DEVELOPMENT.md` for feature work
+11. `docs/PUSH_TEMPLATE.md`
+12. `.github/PULL_REQUEST_TEMPLATE.md`
 
 Runtime source/config wins for actual behavior. Product docs and ADRs win for intended architecture and product rules. If docs and runtime disagree, call out the stale doc clearly instead of silently guessing.
 
@@ -51,10 +54,10 @@ Runtime source/config wins for actual behavior. Product docs and ADRs win for in
 - `apps/core` owns reusable design system tokens, widgets, theme primitives, and routing contracts.
 - `apps/wear` owns Wear OS Flutter UI, watch-specific navigation, and phone bridge sync integration.
 - `apps/watchos` owns Apple Watch native UI, HealthKit integration, complications, and WatchConnectivity.
-- `backend/api` owns HTTP/API routes, auth-aware server endpoints, and client-safe contracts.
-- `backend/ai-coach` owns server-side coaching orchestration, model prompts, guardrails, and AI response shaping.
-- `backend/jobs` owns background workers, notifications, sync jobs, and scheduled tasks.
-- `backend/db` owns schema, migrations, seed data, and database policies.
+- future `supabase/` owns Supabase Auth, Postgres migrations, RLS policies, Storage boundaries, and approved Supabase functions.
+- future `backend/api` owns protected service endpoints and integrations when Supabase functions are no longer sufficient.
+- future `backend/ai-coach` owns server-side coaching orchestration, Gemini/provider adapters, prompts, guardrails, and AI response shaping.
+- future `backend/jobs` owns long-running background workers, notifications, sync jobs, and scheduled tasks.
 - `docs` owns canonical product and architecture docs.
 - `.github` owns contribution, issue, PR, push, CI, and post-merge workflow docs.
 - `.ai` owns concise AI orientation files.
@@ -96,14 +99,14 @@ Runtime source/config wins for actual behavior. Product docs and ADRs win for in
 - Do not log secrets, tokens, private health data, real user data, or production credentials.
 - Do not expose service-role keys, admin keys, private keys, keystores, signing files, or production secrets in client apps.
 - Client apps may use only client-safe keys and APIs.
-- Server-only operations must stay in `backend/*`.
+- Privileged operations must stay in approved Supabase server functions or future `backend/*`; never put them in client apps.
 - Database tables should be introduced incrementally when a real feature slice needs them.
 - Every client-accessible table needs RLS or equivalent access control.
 - Hardcoded sample data is temporary UI scaffolding, not source of truth.
 
 ## Backend And AI Rules
 
-- AI coaching logic should be server-side unless docs explicitly say otherwise.
+- AI coaching logic and Gemini/provider credentials should be server-side unless docs explicitly say otherwise.
 - Do not put model prompts, provider secrets, or admin credentials in client apps.
 - Keep API contracts clear and versionable.
 - Validate user-owned data access on the server.
@@ -114,10 +117,10 @@ Runtime source/config wins for actual behavior. Product docs and ADRs win for in
 
 Before commit, push, or PR creation:
 
-1. Read `.github/PUSH_TEMPLATE.md`.
+1. Read `docs/PUSH_TEMPLATE.md`.
 2. Confirm repository state with `git status --short --branch`.
 3. Keep unrelated local changes out of the commit.
-4. Run the applicable validation commands from `.github/PUSH_TEMPLATE.md`.
+4. Run the applicable validation commands from `docs/PUSH_TEMPLATE.md`.
 5. List validations actually run in the PR.
 
 For Pull Requests, follow `.github/PULL_REQUEST_TEMPLATE.md`.
@@ -145,13 +148,7 @@ flutter analyze
 flutter test
 ```
 
-For backend changes, use the documented package manager commands, commonly:
-
-```bash
-pnpm install
-pnpm lint
-pnpm test
-```
+For Supabase changes, use the feature task's documented migration/RLS/security checks. For a future protected backend, use the selected runtime's documented commands; do not assume a backend toolchain before its first service slice is approved.
 
 For docs-only changes, at minimum run:
 

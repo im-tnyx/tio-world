@@ -13,7 +13,7 @@ Native Gradle-style module names map to Flutter/Melos package folders like this:
 | Native-style module | Flutter workspace path | Responsibility |
 | :--- | :--- | :--- |
 | `:app` | `apps/app` | Flutter Android + iOS phone app shell, bootstrap, routing composition, provider wiring. |
-| `:wear` | `apps/wear` | Native Wear OS companion app. |
+| `:wear` | `apps/wear` | Flutter Wear OS companion app. |
 | `:shared` | `apps/shared` | Pure Dart models, entities, repository contracts, use cases, results, errors, and shared utilities. |
 | `:core` | `apps/core` | Flutter design system, tokens, reusable UI, shell components, route contracts, app constants, extensions. |
 | `:features:workout` | `apps/features/workout` | Workout feature package and all workout screens/flows. |
@@ -24,6 +24,7 @@ Native Gradle-style module names map to Flutter/Melos package folders like this:
 | `:features:settings` | `apps/features/settings` | App settings and account controls package. |
 | `:features:progress` | `apps/features/progress` | Progress, measurements, photos, streaks, and analytics package. |
 | `:features:coaching` | `apps/features/coaching` | Coach UI package and backend-facing coaching contracts. |
+| `:features:recovery` | future `apps/features/recovery` | Recovery feature only after an approved data source, privacy boundary, and first vertical slice. |
 
 ## Repository Shape
 
@@ -42,7 +43,7 @@ tio-world/
 │  │  ├─ test/
 │  │  └─ pubspec.yaml
 │  │
-│  ├─ wear/                        # Native Wear OS app
+│  ├─ wear/                        # Flutter Wear OS app
 │  ├─ shared/                      # Pure Dart shared models/contracts
 │  ├─ core/                        # Flutter design system, UI shell, routing contracts
 │  │  ├─ lib/
@@ -72,17 +73,20 @@ tio-world/
 │     ├─ settings/
 │     ├─ progress/
 │     └─ coaching/
-├─ backend/
 ├─ docs/
-├─ tools/
+├─ .github/
+├─ .ai/
 ├─ melos.yaml
 ├─ pubspec.yaml
-├─ package.json
-├─ pnpm-workspace.yaml
-├─ .env.example
 ├─ .gitignore
 └─ README.md
 ```
+
+Supabase is the planned first Auth/data/Storage foundation, but no root `supabase/` workspace is present in the current checkout. Create it only with its first approved vertical slice; it owns migrations and RLS rather than a `backend/db` module.
+
+The separate `backend/` workspace is a future protected-service upgrade for Gemini/AI orchestration, advanced integrations, and long-running work. Create it only with its first approved server-side vertical slice; do not add placeholder runtime/tooling files before then.
+
+Recovery is also planned but absent from the current checkout. Create `apps/features/recovery` only after its first approved vertical slice; do not add an empty feature package for future work.
 
 ## Dependency Direction
 
@@ -130,7 +134,7 @@ apps/core/lib/src/ui/shell/presentation/
    └─ tio_shell_top_bar.dart
 ```
 
-`TioShell` owns app-level chrome: top bar, bottom navigation, selected shell tab state, and content placement. Feature-specific navigation remains in feature packages or app route composition.
+`TioShell` owns app-level chrome: top bar, bottom navigation, selected shell tab state, and content placement. The future `TioAvatar` belongs in `apps/core` as the shared shell, list, card, and Profile avatar component, with semantic size and shape options. Feature-specific navigation remains in feature packages or app route composition.
 
 ## Feature Package Pattern
 
@@ -185,17 +189,19 @@ Not allowed in `apps/app`:
 - feature-owned screens or reusable widgets
 - app chrome widgets such as top bar or bottom nav
 
-## Main Tabs
+## App Mode Tabs
 
-Primary mobile tabs follow the Tio-hub shell order:
+The implemented architecture places the single `AppMode` enum, guided destination mapping, and preference contract in `apps/shared`. `go_router` keeps stable registered `StatefulShellRoute` branches, while the visible tabs and route eligibility are derived from the active mode:
 
-```text
-Home
-Nutrition
-AI
-Workout
-Progress
-```
+| App mode | Guided default tabs |
+| :--- | :--- |
+| `workout` | Home, Workout, Progress |
+| `nutrition` | Home, Nutrition, Progress |
+| `hybrid` | Home, Workout, Nutrition, Progress |
+
+Workout Library remains a Workout route, and Meal Plan remains a future Nutrition route after diary MVP. Neither is a guided default tab. Onboarding's implemented first step selects the mode and Settings changes it later. Mode-conditional profile/feature onboarding steps remain planned. Coach becomes eligible in Phase 7.
+
+A final-stage custom navigation layer may promote implemented feature routes as shortcuts while keeping Home fixed, three to six eligible selections, stable route ownership, and one canonical feature workflow. See [ADR-0005](adr/0005-adaptive-navigation-and-action-entry.md).
 
 Profile and Settings are launch surfaces, not primary bottom tabs.
 

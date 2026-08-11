@@ -12,8 +12,8 @@ Install these first:
 - Android Studio
 - Android SDK Platform Tools
 - Xcode for iOS/watchOS work on macOS
-- Node.js LTS for backend and tooling
-- pnpm
+- Supabase CLI when the first approved Auth/data/Storage slice begins
+- A future backend runtime/toolchain only when the protected-backend upgrade is approved
 - Melos for Flutter/Dart monorepo management
 - GitHub CLI optional but recommended
 
@@ -130,44 +130,45 @@ flutter analyze
 flutter test
 ```
 
-## Wear OS App
+## Flutter Wear OS App
 
-The native Wear OS app lives in:
+The Flutter Wear OS companion app lives in:
 
 ```text
 apps/wear
 ```
 
-Use Android Studio for Wear OS development. Open the relevant Android project once the Wear app is generated.
+Use Android Studio for Wear OS development and run Flutter validation from this package.
 
-Expected direction:
+Current direction:
 
 ```text
-Kotlin
-Compose for Wear OS
-Health Services API
-Data Layer / phone sync
-Tiles and complications when needed
+Flutter
+Riverpod
+go_router
+watch-first UI
+shared contracts and lightweight design primitives where useful
 ```
 
-## Backend
+## Supabase And Future Backend
 
-Backend workspace lives under:
+Supabase is the planned Auth, data, RLS, and private Storage foundation. No Supabase workspace, project configuration, or credential is present in this checkout.
+
+When the first approved slice requires it, the root Supabase workspace will be:
+
+```text
+supabase
+```
+
+The separate protected backend is a later upgrade. It will be used for Gemini/provider orchestration, advanced integrations, and long-running jobs—not initial Auth or database migrations.
+
+The planned backend workspace will live under:
 
 ```text
 backend
 ```
 
-When introduced, prefer:
-
-```bash
-pnpm install
-pnpm lint
-pnpm test
-pnpm dev
-```
-
-Backend should own server-only secrets, AI orchestration, analytics jobs, database migrations, and protected integrations.
+Select its toolchain and validation commands only when its first approved service slice is defined. Backend should own server-only Gemini/provider secrets, AI orchestration, analytics jobs, and protected integrations; Supabase owns the initial Auth/data/migration boundary.
 
 ## Common Validation
 
@@ -197,12 +198,7 @@ melos analyze
 melos test
 ```
 
-For backend changes after backend is introduced:
-
-```bash
-pnpm lint
-pnpm test
-```
+For protected backend changes after that workspace is introduced, run its documented validation commands. For Supabase changes, run the project-specific migration/RLS/security validation defined by the approved feature task.
 
 For docs-only changes:
 

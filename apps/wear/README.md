@@ -1,8 +1,14 @@
 # Tio Wear OS
 
-Flutter Wear OS companion app.
+## Architecture Status
+
+This is the active Flutter Wear OS companion package. Retain it for Phase 5 and extend it with watch-first Flutter flows; do not replace it with a native Kotlin module.
+
+## Current Scope
 
 This package owns the watch-first UI. Phone screens from `apps/app` should not be reused directly on Wear OS. Shared contracts and models should come from `apps/shared`, while reusable design tokens and lightweight UI primitives can come from `apps/core`.
+
+The future product scope has two compact lanes: Workout controls and Nutrition quick actions. Nutrition stays limited to food or meal add, water add, today's summary, and later the next planned meal status; full food search, diary management, and Meal Plan editing stay on phone.
 
 ## Current scope
 
@@ -42,7 +48,7 @@ apps/wear/
 └─ analysis_options.yaml
 ```
 
-## Future layers
+## Future Flutter Layers
 
 When live watch features are added, keep them layered:
 
@@ -51,6 +57,13 @@ apps/wear/lib/src/live_workout/
 ├─ domain/          # workout session, BPM, calories, elapsed time contracts
 ├─ data/            # local storage, phone sync adapters, sensor adapters
 └─ presentation/    # watch screens, controls, live workout UI
+```
+
+```text
+apps/wear/lib/src/nutrition/
+├─ domain/          # food, water, and summary quick-action contracts
+├─ data/            # pending action storage and phone sync adapters
+└─ presentation/    # short food, water, summary, and next-meal views
 ```
 
 Planned future areas:
@@ -62,9 +75,11 @@ Planned future areas:
 - phone-watch sync
 - nutrition quick actions
 - hydration quick actions
+- today's nutrition summary
+- next planned meal status after mobile Meal Plan is available
 - settings and device permissions
 
-## Build
+## Validation
 
 ```powershell
 cd G:\Tio-World\apps\wear

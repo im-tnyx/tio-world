@@ -35,7 +35,7 @@ Include important states such as loading, empty, error, offline, sync pending, a
 
 - [ ] Auth
 - [ ] Onboarding
-- [ ] Dashboard / Home
+- [ ] Home
 - [ ] Workout
 - [ ] Nutrition
 - [ ] Coach
@@ -55,7 +55,7 @@ Include important states such as loading, empty, error, offline, sync pending, a
 
 - [ ] Flutter mobile app: Android
 - [ ] Flutter mobile app: iOS
-- [ ] Native Wear OS app
+- [ ] Flutter Wear OS app
 - [ ] Native watchOS app
 - [ ] Backend / API
 - [ ] AI coach
@@ -70,9 +70,9 @@ If unsure, explain the options considered.
 
 Suggested ownership model:
 
-- Flutter mobile UI belongs in `apps/mobile` or a feature package.
-- Reusable Dart logic belongs in `packages/*`.
-- Wear OS UI belongs in `apps/wear-os`.
+- Flutter phone UI belongs in `apps/app` or an owning `apps/features/*` package.
+- Reusable Dart logic belongs in `apps/shared`; reusable Flutter UI belongs in `apps/core`.
+- Wear OS UI belongs in `apps/wear`.
 - Apple Watch UI belongs in `apps/watchos`.
 - Backend behavior belongs in `backend/*`.
 - Shared API contracts belong in the documented contract/package layer.

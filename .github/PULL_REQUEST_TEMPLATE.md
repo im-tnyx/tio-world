@@ -2,13 +2,23 @@
 
 -
 
+## Feature Development Evidence
+
+Use this section for user-facing features, cross-package changes, navigation, persistence, platform behavior, and design-system work. Mark `Not applicable` for a focused docs-only or maintenance PR.
+
+- Task brief: `.ai/tasks/<task>.md` or Not applicable
+- Discovery and codebase evidence:
+- Clarifications and decisions:
+- Chosen architecture and rejected alternative:
+- Quality-review outcome:
+
 ## Type Of Change
 
 - [ ] Documentation
 - [ ] Flutter phone app shell (`apps/app`)
 - [ ] Flutter shared/core package (`apps/shared` or `apps/core`)
 - [ ] Flutter feature package (`apps/features/*`)
-- [ ] Wear OS native app (`apps/wear`)
+- [ ] Flutter Wear OS app (`apps/wear`)
 - [ ] watchOS native app (`apps/watchos`)
 - [ ] Backend / AI
 - [ ] Architecture
@@ -43,7 +53,7 @@
 - [ ] Flutter screens/widgets remain presentation-only where applicable.
 - [ ] Controller/notifier/use case/repository boundaries respected.
 - [ ] Routing remains typed or centralized through the approved router.
-- [ ] Native watch apps stay lightweight and do not duplicate heavy phone/backend behavior.
+- [ ] Flutter Wear OS and native watchOS apps stay lightweight and do not duplicate heavy phone/backend behavior.
 - [ ] Loading, empty, and error states considered where applicable.
 - [ ] Unit/widget/integration tests pass or are consciously scoped out.
 - [ ] Analyze/build checks pass or the reason is documented.

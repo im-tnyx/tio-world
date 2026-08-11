@@ -47,7 +47,7 @@ What happened instead?
 
 - [ ] Auth
 - [ ] Onboarding
-- [ ] Dashboard / Home
+- [ ] Home
 - [ ] Workout
 - [ ] Nutrition
 - [ ] Coach

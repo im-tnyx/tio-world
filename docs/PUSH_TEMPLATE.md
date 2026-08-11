@@ -34,7 +34,7 @@ Commit message: docs(repo): align flutter monorepo docs
 PR title: docs(repo): align flutter monorepo docs
 PR summary:
 - Updated root documentation for Flutter mobile architecture.
-- Kept Wear OS and watchOS native strategy explicit.
+- Kept Flutter Wear OS and native watchOS strategy explicit.
 - Added package and backend ownership guidance.
 Validation:
 - docs-only, no build required
@@ -69,8 +69,8 @@ Confirm:
 
 For **tio-world** code changes:
 
-- [ ] Flutter mobile code stays inside `apps/app` or shared Dart packages.
-- [ ] Shared reusable Dart logic belongs in `packages/*`.
+- [ ] Flutter mobile code stays inside `apps/app`, `apps/shared`, `apps/core`, or an owning `apps/features/*` package.
+- [ ] Shared reusable Dart logic belongs in `apps/shared`.
 - [ ] Feature logic stays in the owning feature or package.
 - [ ] UI widgets stay presentation-focused.
 - [ ] Controllers/notifiers call use cases or repositories, not raw backend clients directly.
@@ -78,7 +78,7 @@ For **tio-world** code changes:
 - [ ] Wear OS code stays in `apps/wear`.
 - [ ] watchOS native code stays in `apps/watchos`.
 - [ ] Watch apps remain fast, lightweight, and focused on quick workflows.
-- [ ] Backend and AI work stays in `backend/*`.
+- [ ] Supabase Auth/data/Storage work stays in its approved `supabase/` boundary; Gemini, privileged AI, and advanced server work stay in approved protected functions or future `backend/*`.
 
 If any item does not apply, mention why in the PR notes.
 
@@ -119,12 +119,10 @@ flutter pub get
 flutter analyze
 ```
 
-Backend:
+Supabase or protected backend:
 
-```bash
-pnpm install
-pnpm lint
-pnpm test
+```text
+Run the feature task's documented migration/RLS/security checks or the selected backend runtime checks.
 ```
 
 If validation cannot run, document the exact reason.

@@ -10,7 +10,7 @@ Prefer:
 2. Controller/notifier tests for state transitions.
 3. Widget tests for important UI behavior.
 4. Integration tests for critical flows.
-5. Manual device checks for watch flows.
+5. Manual device checks for Flutter Wear OS and native watchOS flows.
 
 ## Flutter Mobile
 
@@ -33,7 +33,7 @@ flutter test integration_test
 For package changes:
 
 ```bash
-cd packages/<package-name>
+cd apps/shared
 dart analyze
 dart test
 ```
@@ -47,13 +47,15 @@ melos test
 
 ## Wear OS
 
-For `apps/wear`, validate with Android Studio and the appropriate Gradle tasks once the Wear project exists.
+For the Flutter `apps/wear` package, validate with Flutter and Android Studio.
 
 Expected checks:
 
 ```bash
-./gradlew :wear:assembleDebug
-./gradlew :wear:testDebugUnitTest
+cd apps/wear
+flutter pub get
+flutter analyze
+flutter test
 ```
 
 Manual checks should include:
@@ -66,14 +68,9 @@ Manual checks should include:
 - screen readability on round display
 - battery/background behavior where relevant
 
-## Backend
+## Supabase And Protected Backend
 
-For backend changes once introduced:
-
-```bash
-pnpm lint
-pnpm test
-```
+For Supabase changes, run the approved feature's migration/RLS/security checks. For the future protected backend, run the selected runtime's lint and unit/integration checks once that workspace exists.
 
 ## Docs Only
 
@@ -94,8 +91,9 @@ git diff --check
 | Nutrition engine | calculation unit tests |
 | API client | mapping and error handling tests |
 | Sync | queue and retry behavior tests |
-| Wear OS | compile + manual watch/emulator check |
-| Backend | lint + unit/integration tests |
+| Wear OS | `flutter analyze`, `flutter test`, and manual watch/emulator check |
+| Supabase | migration/RLS/security checks defined by the approved feature task |
+| Protected backend | selected runtime lint + unit/integration tests |
 
 ## Definition Of Done
 

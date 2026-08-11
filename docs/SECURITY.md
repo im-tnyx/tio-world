@@ -65,6 +65,12 @@ Rules:
 - keep screenshots clean before sharing in issues or PRs
 - avoid putting real user data in test fixtures
 
+## Supabase Storage
+
+The planned `profile`, `nutrition`, `workout`, and `progress` buckets are private user-media boundaries, not general file dumps or structured-data stores. Each bucket must have owner-specific Storage RLS policies, authenticated user-ID object paths, constrained content type/size, and explicit deletion/retention behavior before it is created.
+
+Do not expose health/fitness media through public buckets or public URLs by default. Supabase secret/service-role credentials remain server-only and are never used to bypass user access from a client.
+
 ## Authentication
 
 Auth flows should avoid leaking implementation details into UI.

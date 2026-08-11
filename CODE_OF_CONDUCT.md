@@ -58,7 +58,7 @@ For architecture-sensitive discussions, start with the relevant project docs:
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - [docs/WATCH_STRATEGY.md](docs/WATCH_STRATEGY.md)
-- [docs/API.md](docs/API.md)
+- [docs/DATA_AND_SYNC.md](docs/DATA_AND_SYNC.md)
 - [docs/SECURITY.md](docs/SECURITY.md)
 
 Review comments should help the code get better, not make the contributor feel small.
