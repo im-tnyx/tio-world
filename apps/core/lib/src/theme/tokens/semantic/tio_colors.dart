@@ -110,10 +110,82 @@ class TioColors extends ThemeExtension<TioColors> {
         primary: primary,
         onPrimary: onPrimary,
         surface: surface,
+      ).copyWith(
+        onSurface: textPrimary,
+        outline: surfaceVariant,
+        surfaceContainer: surfaceRaised,
       );
 
+  TioColors get highContrast {
+    if (isDark) {
+      return copyWith(
+        primary: const Color(0xFFFFFFFF),
+        onPrimary: const Color(0xFF000000),
+        background: const Color(0xFF000000),
+        surface: const Color(0xFF050505),
+        surfaceRaised: const Color(0xFF111111),
+        surfaceVariant: const Color(0xFFD1D5DB),
+        textPrimary: const Color(0xFFFFFFFF),
+        textSecondary: const Color(0xFFF9FAFB),
+        textMuted: const Color(0xFFD1D5DB),
+      );
+    }
+
+    return copyWith(
+      primary: const Color(0xFF000000),
+      onPrimary: const Color(0xFFFFFFFF),
+      background: const Color(0xFFFFFFFF),
+      surface: const Color(0xFFFFFFFF),
+      surfaceRaised: const Color(0xFFF9FAFB),
+      surfaceVariant: const Color(0xFF374151),
+      textPrimary: const Color(0xFF000000),
+      textSecondary: const Color(0xFF111827),
+      textMuted: const Color(0xFF374151),
+    );
+  }
+
   @override
-  TioColors copyWith() => this;
+  TioColors copyWith({
+    bool? isDark,
+    Color? primary,
+    Color? onPrimary,
+    Color? background,
+    Color? surface,
+    Color? surfaceRaised,
+    Color? surfaceVariant,
+    Color? textPrimary,
+    Color? textSecondary,
+    Color? textMuted,
+    Color? success,
+    Color? warning,
+    Color? danger,
+    Color? info,
+    Color? workout,
+    Color? nutrition,
+    Color? progress,
+    Color? coach,
+  }) {
+    return TioColors(
+      isDark: isDark ?? this.isDark,
+      primary: primary ?? this.primary,
+      onPrimary: onPrimary ?? this.onPrimary,
+      background: background ?? this.background,
+      surface: surface ?? this.surface,
+      surfaceRaised: surfaceRaised ?? this.surfaceRaised,
+      surfaceVariant: surfaceVariant ?? this.surfaceVariant,
+      textPrimary: textPrimary ?? this.textPrimary,
+      textSecondary: textSecondary ?? this.textSecondary,
+      textMuted: textMuted ?? this.textMuted,
+      success: success ?? this.success,
+      warning: warning ?? this.warning,
+      danger: danger ?? this.danger,
+      info: info ?? this.info,
+      workout: workout ?? this.workout,
+      nutrition: nutrition ?? this.nutrition,
+      progress: progress ?? this.progress,
+      coach: coach ?? this.coach,
+    );
+  }
 
   @override
   TioColors lerp(ThemeExtension<TioColors>? other, double t) => this;

@@ -8,6 +8,7 @@
 ## Current Runtime Behavior
 
 - Shows the Tio landing image, backdrop, product message, feature tiles, Get Started, Sign In, Skip for now, language, and legal text.
+- The image controls stay image-safe, while the feature summary uses a theme-aware semantic surface so light and dark modes preserve readable contrast.
 - **Get Started** pushes `/onboarding`.
 - **Sign In** pushes `/login`.
 - **Skip for now** navigates to `/`.
@@ -28,7 +29,7 @@ Welcome explains the product and gives a safe entry choice. It must not decide A
 
 - Image loading failures need a branded fallback that preserves readable text and actions.
 - Buttons must retain visible focus and touch feedback despite the dark, image-led visual treatment.
-- The existing animated content must honor reduced-motion preferences when the shared design-system behavior is implemented.
+- The entrance animation consumes the shared motion scheme and becomes zero-duration when reduced motion is enabled.
 - Legal copy must not imply a policy URL or consent behavior that does not exist.
 
 ## Acceptance Criteria

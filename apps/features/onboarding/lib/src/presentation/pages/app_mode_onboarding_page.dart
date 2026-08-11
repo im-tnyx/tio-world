@@ -95,16 +95,13 @@ class _AppModeOnboardingPageState extends State<AppModeOnboardingPage> {
             ],
             const SizedBox(height: 24),
             TioButton.primary(
-              label: _isSaving ? 'Saving…' : 'Continue',
+              label: 'Continue',
+              loading: _isSaving,
+              loadingLabel: 'Saving',
               expand: true,
               enabled: _selectedMode != null && !_isSaving,
               onPressed: _continue,
-              trailing: _isSaving
-                  ? const SizedBox.square(
-                      dimension: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.arrow_forward),
+              trailing: const Icon(Icons.arrow_forward),
             ),
           ],
         ),

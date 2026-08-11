@@ -70,7 +70,7 @@ Create missing paths only when a real implementation slice needs them.
 
 - `apps/app` is a thin shell. It wires routes, providers, app startup, and platform entry configuration.
 - `apps/app` must not own workout, nutrition, onboarding, progress, profile, settings, or coaching business logic.
-- `apps/core` owns reusable Flutter UI, theme tokens, shell components, public route contracts, and the future reusable `TioAvatar` component.
+- `apps/core` owns reusable Flutter UI, theme tokens, shell components, public route contracts, and the implemented reusable `TioAvatar` component.
 - `apps/core` must not import feature packages.
 - `apps/shared` must stay pure Dart and must not import Flutter UI, platform code, or feature presentation code.
 - `apps/shared` owns the single `AppMode` enum (`workout`, `nutrition`, `hybrid`), guided destination mapping, and pure-Dart mode preference boundary so every Flutter feature package reads the same contracts.

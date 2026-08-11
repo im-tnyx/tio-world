@@ -134,7 +134,7 @@ apps/core/lib/src/ui/shell/presentation/
    └─ tio_shell_top_bar.dart
 ```
 
-`TioShell` owns app-level chrome: top bar, bottom navigation, selected shell tab state, and content placement. The future `TioAvatar` belongs in `apps/core` as the shared shell, list, card, and Profile avatar component, with semantic size and shape options. Feature-specific navigation remains in feature packages or app route composition.
+`TioShell` owns app-level chrome: top bar, bottom navigation, selected shell tab state, and content placement. The implemented `TioAvatar` belongs in `apps/core` as the shared shell, list, card, and Profile avatar component, with semantic size, shape, image, fallback, and semantics options. Feature-specific navigation remains in feature packages or app route composition.
 
 ## Feature Package Pattern
 

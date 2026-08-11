@@ -17,7 +17,7 @@ Runtime source remains the truth for live behavior. A **Target** section is a pl
 | :--- | :--- | :--- | :--- |
 | App shell and route composition | `apps/app` | [Home](home.md), [Coach](coach.md) | Keep composition thin; do not place feature logic here. |
 | Shared mode and cross-feature contracts | `apps/shared` | [Onboarding](onboarding.md), [Settings](settings.md) | Own `AppMode` and future pure-Dart destination/layout contracts without Flutter UI. |
-| Shared UI and chrome | `apps/core` | [Home](home.md), [Profile](profile.md) | Own dynamic shell UI, generic action slots, persistent-activity chrome, Material 3 Expressive tokens, and `TioAvatar`. |
+| Shared UI and chrome | `apps/core` | [Home](home.md), [Profile](profile.md) | Own dynamic shell UI, generic action slots, persistent-activity chrome, Material 3 Expressive tokens, `TioAvatar`, and `TioButton`. |
 | Onboarding | `apps/features/onboarding` | [Onboarding](onboarding.md) | First screen chooses App Mode; later steps depend on it. |
 | Workout | `apps/features/workout` | [Workout](workout.md) | Own routines, Programs, logging, workout settings, muscle heatmap, radar map, and training calendar. |
 | Nutrition | `apps/features/nutrition` | [Nutrition](nutrition.md) | Own diary, water, nutrition targets, and later Meal Plan. |

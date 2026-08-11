@@ -18,8 +18,8 @@ class WelcomeTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final headerStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
-      color: Theme.of(context).colorScheme.onSurface,
-    );
+          color: Colors.white,
+        );
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,

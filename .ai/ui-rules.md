@@ -71,7 +71,7 @@ Settings opens from the gear/settings entry.
 
 ## Reusable Avatar
 
-Use one future `TioAvatar` component from `apps/core` across shell, lists, cards, and Profile. Use semantic sizes—`compact`, `small`, `medium`, and `large`—rather than local pixel values. The component is circular by default and supports a rounded profile treatment where the owning screen requires it.
+Use the shared `TioAvatar` component from `apps/core` across shell, lists, cards, and Profile. Select semantic sizes—`compact`, `small`, `medium`, and `large`—rather than local pixel values. The component is circular by default and supports rounded Profile treatment, optional images, centralized fallback behavior, and caller-supplied semantics.
 
 ## Production Screen Checklist
 

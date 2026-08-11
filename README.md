@@ -161,7 +161,11 @@ Settings -> gear/menu entry
 
 ## Reusable Profile Avatar
 
-`apps/core` will own one reusable `TioAvatar` component for the mobile shell, lists, cards, and Profile. It will expose four semantic sizes—`compact`, `small`, `medium`, and `large`—so each screen chooses an intentional scale instead of hardcoding dimensions. The component will also expose a standard shape option: circular by default, with a rounded profile treatment when the owning screen requires it.
+`apps/core` owns one reusable `TioAvatar` component for the mobile shell, lists, cards, and Profile. It exposes four semantic sizes—`compact`, `small`, `medium`, and `large`—so each screen chooses an intentional scale instead of hardcoding dimensions. It is circular by default, supports a rounded Profile treatment, accepts an optional image, and falls back safely to initials or an icon.
+
+## Reusable Actions
+
+`apps/core` owns `TioButton` primary, secondary, and ghost variants. Shared tokens define finite sizing, spacing, pressed/focus/hover/disabled states, outlines, and loading presentation. Loading prevents duplicate actions, exposes progress semantics, and uses a static treatment when reduced motion is active; feature screens provide business intent without rebuilding these states.
 
 ## Recommended Flutter Stack
 

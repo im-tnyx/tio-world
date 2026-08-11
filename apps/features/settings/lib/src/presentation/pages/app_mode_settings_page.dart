@@ -100,7 +100,9 @@ class _AppModeSettingsPageState extends State<AppModeSettingsPage> {
             ],
             const SizedBox(height: 24),
             TioButton.primary(
-              label: _isSaving ? 'Saving…' : 'Save App Mode',
+              label: 'Save App Mode',
+              loading: _isSaving,
+              loadingLabel: 'Saving',
               expand: true,
               enabled: !_isSaving && _selectedMode != widget.currentMode,
               onPressed: _save,

@@ -22,6 +22,8 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -74,7 +76,7 @@ class WelcomeScreen extends StatelessWidget {
                     Expanded(
                       child: TweenAnimationBuilder<double>(
                         tween: Tween(begin: 0.0, end: 1.0),
-                        duration: const Duration(milliseconds: 1000),
+                        duration: context.tioMotion.slow,
                         curve: const Interval(0.4, 1.0,
                             curve: Curves.easeOutCubic),
                         builder: (context, value, child) {
@@ -134,59 +136,83 @@ class WelcomeScreen extends StatelessWidget {
                             const Spacer(flex: 3),
 
                             // Feature Grid Row matching the horizontal columns design
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                for (int i = 0;
-                                    i < state.featureLines.length;
-                                    i++) ...[
-                                  if (i > 0)
-                                    Container(
-                                      width: 1,
-                                      height: 64,
-                                      color: Colors.white12,
-                                      margin: const EdgeInsets.symmetric(
-                                          horizontal: 4),
-                                    ),
-                                  Expanded(
-                                    child: WelcomeFeatureTile(
-                                      title: state.featureLines[i],
-                                      description: i == 0
-                                          ? 'Smart workout\nplans for you'
-                                          : i == 1
-                                              ? 'Personalized diet\n& meal tracking'
-                                              : 'Smart suggestions\n& real support',
-                                      iconWidget: i == 0
-                                          ? Image.asset(
-                                              'assets/dumbell-blue.png',
-                                              package: 'tio_feature_welcome',
-                                              width: 32,
-                                              height: 28,
-                                              color: Colors.white,
-                                              colorBlendMode: BlendMode.srcIn,
-                                            )
-                                          : i == 1
-                                              ? const Icon(
-                                                  Icons.restaurant,
-                                                  size: 28,
-                                                  color: Colors.white,
-                                                )
-                                              : SvgPicture.asset(
-                                                  'assets/ic_chat.svg',
+                            DecoratedBox(
+                              key: const ValueKey('welcome-feature-panel'),
+                              decoration: BoxDecoration(
+                                color: colorScheme.surface.withValues(
+                                  alpha: 0.94,
+                                ),
+                                border: Border.all(
+                                  color: colorScheme.outlineVariant,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  WelcomeDimens.radiusXL,
+                                ),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: WelcomeDimens.spaceXS,
+                                  vertical: WelcomeDimens.spaceS,
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    for (int i = 0;
+                                        i < state.featureLines.length;
+                                        i++) ...[
+                                      if (i > 0)
+                                        Container(
+                                          width: 1,
+                                          height: 64,
+                                          color: colorScheme.outlineVariant,
+                                          margin: const EdgeInsets.symmetric(
+                                            horizontal: WelcomeDimens.spaceXXS,
+                                          ),
+                                        ),
+                                      Expanded(
+                                        child: WelcomeFeatureTile(
+                                          title: state.featureLines[i],
+                                          description: i == 0
+                                              ? 'Smart workout\nplans for you'
+                                              : i == 1
+                                                  ? 'Personalized diet\n& meal tracking'
+                                                  : 'Smart suggestions\n& real support',
+                                          iconWidget: i == 0
+                                              ? Image.asset(
+                                                  'assets/dumbell-blue.png',
                                                   package:
                                                       'tio_feature_welcome',
                                                   width: 32,
                                                   height: 28,
-                                                  colorFilter:
-                                                      const ColorFilter.mode(
-                                                    Colors.white,
-                                                    BlendMode.srcIn,
-                                                  ),
-                                                ),
-                                    ),
-                                  ),
-                                ],
-                              ],
+                                                  color: colorScheme.primary,
+                                                  colorBlendMode:
+                                                      BlendMode.srcIn,
+                                                )
+                                              : i == 1
+                                                  ? Icon(
+                                                      Icons.restaurant,
+                                                      size: 28,
+                                                      color:
+                                                          colorScheme.primary,
+                                                    )
+                                                  : SvgPicture.asset(
+                                                      'assets/ic_chat.svg',
+                                                      package:
+                                                          'tio_feature_welcome',
+                                                      width: 32,
+                                                      height: 28,
+                                                      colorFilter:
+                                                          ColorFilter.mode(
+                                                        colorScheme.primary,
+                                                        BlendMode.srcIn,
+                                                      ),
+                                                    ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
                             ),
 
                             const SizedBox(height: 36),

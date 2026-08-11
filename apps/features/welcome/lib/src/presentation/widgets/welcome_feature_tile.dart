@@ -14,6 +14,8 @@ class WelcomeFeatureTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -27,21 +29,21 @@ class WelcomeFeatureTile extends StatelessWidget {
         Text(
           title,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 10.5,
             fontWeight: FontWeight.w800,
             letterSpacing: 0.8,
-            color: Colors.white,
+            color: colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           description,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 9.5,
             fontWeight: FontWeight.normal,
-            color: Colors.white60,
+            color: colorScheme.onSurfaceVariant,
             height: 1.3,
           ),
         ),

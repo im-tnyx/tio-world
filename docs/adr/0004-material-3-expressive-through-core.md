@@ -20,12 +20,12 @@ Tio needs a consistent premium mobile experience without allowing each feature t
 
 - The visual system can evolve centrally while feature code stays focused on product behavior.
 - Accessibility and interaction quality are evaluated as component behavior, not left to individual screens.
-- Reusable components such as the target `TioAvatar` receive one semantic API across shell, cards, lists, and Profile.
+- Reusable components such as the implemented `TioAvatar` and `TioButton` receive one semantic API instead of screen-local visual and interaction rules.
 
 ### Constraints
 
 - Baseline Material 3 being enabled does not mean the Expressive migration is complete.
-- The current theme disables splash and highlight feedback, so visible-touch-feedback requirements remain an implementation and validation item before a component is called complete.
+- The first implementation slice restores Material touch feedback, applies high-contrast/reduced-motion theme behavior, and migrates guided navigation, avatar, button, and Welcome contrast contracts. Pixel 9 light/dark and compact-width checks pass; OLED, keyboard/focus, and screen-reader checks remain required before the task is complete.
 - No feature package should hardcode repeated design values or declare a private visual system.
 
 ## Related

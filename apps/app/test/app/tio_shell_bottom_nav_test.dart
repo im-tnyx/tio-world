@@ -30,6 +30,8 @@ void main() {
     expect(find.text('Progress'), findsOneWidget);
     expect(find.text('Nutrition'), findsNothing);
     expect(find.text('Tio'), findsNothing);
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byType(BottomNavigationBar), findsNothing);
 
     await tester.tap(find.text('Workout'));
     expect(selected, ShellTab.workout);

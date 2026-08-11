@@ -15,10 +15,13 @@ This file is a concise handoff for the next agent. It is not a replacement for r
 
 - The phone app is Flutter in `apps/app` and uses `go_router` with `StatefulShellRoute.indexedStack`.
 - `apps/shared` exposes the pure-Dart `AppMode` (`workout`, `nutrition`, `hybrid`), `AppDestination`, guided destination mapping, and mode-preference contract.
-- The app loads the confirmed mode from device-local `SharedPreferencesAsync` storage before rendering the router. Missing or invalid data routes to mode selection.
+- Flutter renders the initial Splash frame before `AppModeBootstrap` loads the confirmed mode from device-local `SharedPreferencesAsync` storage and refreshes routing. Missing or invalid data routes to mode selection.
 - The shell keeps stable registered branches but derives the visible guided tabs from App Mode: Home/Workout/Progress, Home/Nutrition/Progress, or Home/Workout/Nutrition/Progress. Coach remains unavailable before Phase 7.
 - Onboarding implements the first App Mode selection screen. Settings reads and changes the same stored selection from the Home gear entry. Later profile, Workout, Nutrition, review, and completion onboarding steps are not implemented.
-- The shell top bar still uses an inline `CircleAvatar`; a shared `TioAvatar` component does not exist yet.
+- The shell profile entry uses the shared `apps/core` `TioAvatar`, which provides four semantic sizes, circle/rounded shapes, optional image input, safe fallback, and caller-controlled semantics.
+- Shared `TioButton` primary, secondary, and ghost variants now use core tokens for dimensions, spacing, state layers, outlines, disabled behavior, and loading presentation. Loading blocks duplicate actions, exposes live semantics, and becomes static under reduced motion.
+- Pixel 9 emulator validation found and fixed Welcome contrast drift: image controls remain white, feature summaries use a semantic surface, and the entrance animation consumes reduced-motion tokens. Light and dark phone captures plus a compact-width widget check pass.
+- The first Material 3 Expressive slice restores Material touch feedback, applies high-contrast and reduced-motion theme behavior, and uses token-driven `NavigationBar`, `TioAvatar`, and `TioButton` contracts. Manual device and accessibility checks remain open.
 - `apps/wear` is an active Flutter Wear OS package. Its home screen presents Workout and Nutrition quick-action tiles, but selecting a tile currently shows a `coming soon` message.
 
 ## Documented Targets, Not Runtime Behavior
@@ -27,8 +30,7 @@ This file is a concise handoff for the next agent. It is not a replacement for r
 - Workout is Routine/Program-first: an active session starts from a selected Routine or Program session, not a standalone Quick Start. Exercise Search is a nested Routine/Program editor screen planned around a validated versioned local JSON catalog. Workout Library remains a Workout route and may become a future promoted shortcut after implementation. Meal Plan remains a deferred Nutrition route with the same future promotion boundary.
 - Workout start/resume and Nutrition meal logging remain single feature-owned workflows even when Home, a root tab, or a promoted shortcut launches them. Active Workout must remain resumable independently from the selected layout.
 - Recovery is a future independent feature, not a primary tab. Its initial outcome, data source, privacy/sync boundary, and non-medical scope are undecided; do not create a package or health integration yet.
-- `apps/core` will own the reusable `TioAvatar` with semantic sizes `compact`, `small`, `medium`, and `large`; it defaults to circular and can use a rounded Profile treatment.
-- Material 3 Expressive is the phone design direction. `apps/core` will implement it through owned tokens and reusable components; it is not a separate stable Flutter API assumption.
+- Material 3 Expressive remains the phone design direction through `apps/core`; later shared components and screen migrations build on the implemented theme/navigation/avatar/button foundation rather than a separate Flutter API assumption.
 - Wear OS remains Flutter. Its future scope is lightweight workout controls and nutrition quick actions; full food search, diary editing, and Meal Plan editing remain on phone.
 - Apple Watch remains a future native Swift + SwiftUI app.
 - Supabase is the documented future Auth, Postgres/RLS, and private Storage foundation. No Supabase workspace, project, client, bucket, migration, or credential exists yet. A protected Gemini/backend layer is a later upgrade.

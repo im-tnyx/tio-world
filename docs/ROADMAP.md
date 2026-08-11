@@ -74,8 +74,8 @@ Goal: create the first usable Android+iOS phone shell.
 - [x] Add the shared App Mode contract and device-local preference boundary
 - [x] Add the mode-first onboarding selection and Settings mode editor
 - [x] Derive visible guided tabs and route eligibility from App Mode
-- [ ] Define the Material 3 Expressive token and component migration plan in `apps/core`, including touch feedback, high contrast, reduced motion, dark mode, and phone-versus-Wear boundaries
-- [ ] Extract reusable `TioAvatar` in `apps/core` with compact, small, medium, and large sizes plus a screen-selected shape
+- [x] Define the Material 3 Expressive token and component migration plan in `apps/core`, including touch feedback, high contrast, reduced motion, dark mode, and phone-versus-Wear boundaries; first theme/navigation/avatar/button slice implemented, with manual device validation still open
+- [x] Extract reusable `TioAvatar` in `apps/core` with compact, small, medium, and large sizes plus a screen-selected shape
 - [ ] Move from basic route constants to typed `go_router` routes when screens mature
 
 Guided tabs are mode-dependent as defined in [App Mode System](#app-mode-system). The five registered branches are internal route identity, not a fixed five-item bottom bar.
