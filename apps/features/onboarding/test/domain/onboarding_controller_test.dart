@@ -81,6 +81,31 @@ void main() {
     expect(controller.state.canContinue, isTrue);
   });
 
+  test('progress excludes mode and reaches the final hybrid step', () async {
+    final controller = OnboardingController(
+      entryPath: OnboardingEntryPath.firstRun,
+    );
+
+    expect(controller.state.progressStepCount, 0);
+    expect(controller.state.progressStepNumber, 0);
+    expect(controller.state.progressValue, 0);
+
+    controller.selectMode(AppMode.hybrid);
+    expect(controller.state.progressStepCount, 7);
+    expect(controller.state.progressStepNumber, 0);
+    expect(controller.state.progressValue, 0);
+
+    await controller.next(onFinish: _completeImmediately);
+    expect(controller.state.progressStepNumber, 1);
+    expect(controller.state.progressValue, closeTo(1 / 7, 0.0001));
+
+    while (controller.state.stepId != OnboardingStepId.review) {
+      await controller.next(onFinish: _completeImmediately);
+    }
+    expect(controller.state.progressStepNumber, 7);
+    expect(controller.state.progressValue, 1);
+  });
+
   test('duplicate finish calls are locked and failures keep draft retryable',
       () async {
     final controller = OnboardingController(

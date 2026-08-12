@@ -27,7 +27,8 @@ class OnboardingState {
   OnboardingStepDefinition get currentStep => flowPlan.definitionFor(stepId);
   int get currentIndex => flowPlan.indexOf(stepId);
   bool get isBusy => isInitializing || isSaving || isCompleting;
-  bool get canGoBack => currentIndex > 0 && !isBusy;
+  bool get hasPreviousStep => currentIndex > 0;
+  bool get canGoBack => hasPreviousStep && !isBusy;
   bool get canContinue =>
       !isBusy &&
       validationErrors.isEmpty &&
@@ -39,14 +40,22 @@ class OnboardingState {
     return 'Continue';
   }
 
+  int get progressStepCount =>
+      flowPlan.steps.where((step) => step.id != OnboardingStepId.mode).length;
+
+  int get progressStepNumber => flowPlan.steps
+      .take(currentIndex + 1)
+      .where((step) => step.id != OnboardingStepId.mode)
+      .length;
+
   double get progressValue {
-    if (draft.selectedMode == null) return 0;
-    return (currentIndex + 1) / flowPlan.steps.length;
+    if (progressStepNumber == 0 || progressStepCount == 0) return 0;
+    return progressStepNumber / progressStepCount;
   }
 
   String get progressSemantics {
-    if (draft.selectedMode == null) return currentStep.progressTitle;
-    return 'Step ${currentIndex + 1} of ${flowPlan.steps.length}, '
+    if (progressStepNumber == 0) return currentStep.progressTitle;
+    return 'Step $progressStepNumber of $progressStepCount, '
         '${currentStep.progressTitle}';
   }
 

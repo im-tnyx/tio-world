@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/domain.dart';
 import '../controllers/controllers.dart';
 import '../widgets/widgets.dart';
 
@@ -24,14 +25,19 @@ class OnboardingFlowPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.watch(onboardingControllerProvider(seed));
     final state = controller.state;
-    final shouldHandleInternalBack = state.canGoBack;
     final shouldHandleRouteExit = onExitRequested != null;
+    final visibleBack = state.hasPreviousStep
+        ? controller.previous
+        : onExitRequested == null
+            ? null
+            : () => unawaited(onExitRequested!());
 
     return PopScope(
-      canPop: !shouldHandleInternalBack && !shouldHandleRouteExit,
+      canPop: !state.isBusy && !state.hasPreviousStep && !shouldHandleRouteExit,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        if (controller.state.canGoBack) {
+        if (controller.state.isBusy) return;
+        if (controller.state.hasPreviousStep) {
           controller.previous();
           return;
         }
@@ -44,12 +50,11 @@ class OnboardingFlowPage extends ConsumerWidget {
           bottom: false,
           child: Column(
             children: [
-              OnboardingTopBar(
-                state: state,
-                onExitRequested: onExitRequested == null
-                    ? null
-                    : () => unawaited(onExitRequested!()),
-              ),
+              if (state.stepId != OnboardingStepId.mode)
+                OnboardingTopBar(
+                  state: state,
+                  onBack: visibleBack,
+                ),
               Expanded(
                 child: OnboardingContentHost(
                   state: state,
@@ -62,7 +67,6 @@ class OnboardingFlowPage extends ConsumerWidget {
         ),
         bottomNavigationBar: OnboardingBottomBar(
           state: state,
-          onBack: controller.previous,
           onContinue: () => controller.next(onFinish: onFinishRequested),
         ),
       ),

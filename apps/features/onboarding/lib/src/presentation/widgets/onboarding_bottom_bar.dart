@@ -9,13 +9,11 @@ import '../state/state.dart';
 class OnboardingBottomBar extends StatelessWidget {
   const OnboardingBottomBar({
     required this.state,
-    required this.onBack,
     required this.onContinue,
     super.key,
   });
 
   final OnboardingState state;
-  final VoidCallback onBack;
   final Future<void> Function() onContinue;
 
   @override
@@ -41,30 +39,16 @@ class OnboardingBottomBar extends StatelessWidget {
               ),
               const SizedBox(height: TioSpacing.medium),
             ],
-            Row(
-              children: [
-                if (state.canGoBack) ...[
-                  TioButton.ghost(
-                    label: 'Back',
-                    onPressed: onBack,
-                    leading: const Icon(Icons.arrow_back),
-                  ),
-                  const SizedBox(width: TioSpacing.medium),
-                ],
-                Expanded(
-                  child: TioButton.primary(
-                    label: state.primaryActionLabel,
-                    loading: state.isCompleting || state.isSaving,
-                    loadingLabel: state.isCompleting ? 'Finishing' : 'Saving',
-                    expand: true,
-                    enabled: state.canContinue,
-                    onPressed: () => unawaited(onContinue()),
-                    trailing: state.stepId == OnboardingStepId.review
-                        ? const Icon(Icons.check)
-                        : const Icon(Icons.arrow_forward),
-                  ),
-                ),
-              ],
+            TioButton.primary(
+              label: state.primaryActionLabel,
+              loading: state.isCompleting || state.isSaving,
+              loadingLabel: state.isCompleting ? 'Finishing' : 'Saving',
+              expand: true,
+              enabled: state.canContinue,
+              onPressed: () => unawaited(onContinue()),
+              trailing: state.stepId == OnboardingStepId.review
+                  ? const Icon(Icons.check)
+                  : const Icon(Icons.arrow_forward),
             ),
           ],
         ),

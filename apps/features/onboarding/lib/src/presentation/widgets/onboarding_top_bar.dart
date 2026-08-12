@@ -8,11 +8,11 @@ class OnboardingTopBar extends StatelessWidget {
   const OnboardingTopBar({
     required this.state,
     super.key,
-    this.onExitRequested,
+    this.onBack,
   });
 
   final OnboardingState state;
-  final VoidCallback? onExitRequested;
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -29,18 +29,18 @@ class OnboardingTopBar extends StatelessWidget {
           children: [
             Row(
               children: [
+                if (onBack != null)
+                  IconButton(
+                    tooltip: 'Back',
+                    onPressed: state.isBusy ? null : onBack,
+                    icon: const Icon(Icons.arrow_back),
+                  ),
                 Expanded(
                   child: Text(
                     'Set up Tio',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
-                if (onExitRequested != null)
-                  IconButton(
-                    tooltip: 'Exit setup',
-                    onPressed: state.isBusy ? null : onExitRequested,
-                    icon: const Icon(Icons.close),
-                  ),
               ],
             ),
             const SizedBox(height: TioSpacing.medium),
