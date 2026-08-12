@@ -11,7 +11,7 @@ Use Flutter for Wear OS and Swift/SwiftUI for Apple Watch:
 | Wear OS | Flutter |
 | Apple Watch | Swift + SwiftUI when introduced |
 
-The Wear OS app is built with Flutter (`apps/wear`) to share design systems and logic, while the Apple Watch app stays native (SwiftUI) for iOS-specific health/sensor integrations.
+`apps/wear` is an existing Flutter package and remains the Wear OS companion. It owns watch-first UI and may reuse lightweight design primitives and shared contracts from `apps/core` and `apps/shared`; it must not reuse phone screens directly. Apple Watch stays native (SwiftUI) for its platform-specific health and sensor integrations.
 
 ## Current Folder
 
@@ -25,7 +25,9 @@ Do not rename this folder without updating docs, scripts, CI, and future app con
 
 ## Watch Product Scope
 
-Watch should focus on fast actions:
+Watch should focus on two fast-action lanes.
+
+Workout:
 
 - start workout
 - pause, resume, and finish workout
@@ -33,17 +35,25 @@ Watch should focus on fast actions:
 - reps, weight, and RPE quick input
 - rest timer
 - heart rate display
-- steps and calories summary
 - offline active workout snapshot
-- quick sync with phone/backend
+
+Nutrition:
+
+- add food or meal quick action
+- add water
+- today's calories and macro summary
+- next planned meal status after Meal Plan exists on phone
+
+Both lanes may show steps, calories, and quick sync state with phone/backend.
 
 ## Avoid On Watch
 
 Avoid putting these on watch unless a strong product reason exists:
 
-- full dashboard
+- full phone home surface
 - long onboarding
 - full food database search
+- full nutrition diary or Meal Plan editing
 - complex analytics
 - large charts
 - long AI coaching conversations
@@ -52,27 +62,21 @@ Avoid putting these on watch unless a strong product reason exists:
 
 ## Wear OS Architecture
 
-Expected Wear OS structure when generated:
+Current Flutter Wear OS structure:
 
 ```text
 apps/wear/
-├─ src/main/
-│  ├─ AndroidManifest.xml
-│  ├─ kotlin/com/tnyx/wear/
-│  │  ├─ MainActivity.kt
-│  │  ├─ app/
-│  │  ├─ navigation/
-│  │  ├─ screens/
-│  │  │  ├─ workout/
-│  │  │  ├─ health/
-│  │  │  └─ sync/
-│  │  ├─ components/
-│  │  ├─ healthservices/
-│  │  ├─ phonebridge/
-│  │  ├─ tiles/
-│  │  └─ complications/
-│  └─ res/
-└─ build.gradle.kts
+├─ lib/
+│  ├─ main.dart
+│  ├─ wear_app.dart
+│  └─ src/
+│     ├─ home/
+│     ├─ live_workout/
+│     ├─ nutrition/
+│     └─ sync/
+├─ android/
+├─ test/
+└─ pubspec.yaml
 ```
 
 ## Phone And Watch Sync
@@ -81,7 +85,7 @@ Start simple:
 
 1. Watch records current active workout snapshot.
 2. Phone receives and reconciles workout events.
-3. Backend becomes source of truth once auth and persistence are ready.
+3. Supabase becomes the Auth/data source of truth once the approved first slice is ready; a protected backend is a later upgrade.
 4. Sync conflicts are resolved using clear timestamps and event IDs.
 
 ## Data Rules
@@ -92,6 +96,7 @@ Watch should store only the minimum needed for offline continuity:
 - current exercise
 - recent set events
 - rest timer state
+- pending nutrition quick actions
 - last successful sync timestamp
 
 Do not keep full long-term history on watch unless required.

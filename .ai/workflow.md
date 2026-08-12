@@ -15,6 +15,20 @@ Use docs to freeze ownership before building large feature areas.
 9. Update ADRs when durable architecture decisions change.
 10. Update changelog/progress docs when module boundaries, data flow, navigation policy, or engineering practice changes.
 
+## Feature Development Workflow
+
+Use this seven-phase workflow for every user-facing feature, cross-package change, navigation change, persistence change, or design-system change. Small documentation-only corrections may use the lightweight workflow instead.
+
+1. **Discovery**: write the desired user outcome, scope, non-goals, and success criteria in a task brief.
+2. **Codebase exploration**: inspect the relevant runtime source, tests, configuration, ownership docs, and existing patterns. Record only verified evidence.
+3. **Clarification**: resolve decisions that affect data ownership, persistence, privacy, platform behavior, compatibility, or product scope before coding.
+4. **Architecture design**: state the owner packages, data flow, routes, state boundaries, alternatives considered, and chosen approach.
+5. **Implementation**: make small vertical-slice changes that preserve the approved ownership and out-of-scope boundaries.
+6. **Quality review**: run the smallest meaningful analysis/tests, review accessibility and failure states, and inspect the diff for boundary or security regressions.
+7. **Final handoff**: record the changed files, behavior, validation evidence, known limitations, and final status.
+
+Start from [tasks/TEMPLATE.md](tasks/TEMPLATE.md). Keep the feature brief current while work is active; move it to the archive only after it is validated or superseded.
+
 ## Source Of Truth Order
 
 When code and docs conflict:
@@ -55,18 +69,13 @@ melos test
 Single Flutter app:
 
 ```bash
-cd apps/mobile
+cd apps/app
 flutter pub get
 flutter analyze
 flutter test
 ```
 
-Backend:
-
-```bash
-pnpm lint
-pnpm test
-```
+Supabase: run the approved feature's migration/RLS/security checks. Future protected backend: run the selected runtime's documented checks after that workspace exists.
 
 Docs-only:
 

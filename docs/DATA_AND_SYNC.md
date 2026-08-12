@@ -9,7 +9,7 @@ This document defines the direction for data ownership, repositories, offline be
 - UI should not call remote APIs directly.
 - Feature controllers call repositories or use cases.
 - Repositories hide local and remote data sources.
-- Backend becomes the durable source of truth for signed-in user data.
+- Supabase is the planned durable Auth/data source of truth for signed-in user data; a protected backend is a later upgrade for server-only orchestration.
 - Watch apps keep only minimal local state needed for fast offline workflows.
 
 ## Repository Pattern
@@ -101,15 +101,20 @@ Guidelines:
 
 | Data | Owner |
 | :--- | :--- |
-| User identity | Auth/Profile |
+| User identity | Supabase Auth + Profile |
 | Onboarding answers | Onboarding/Profile repository |
 | Workout sessions | Workout |
 | Exercises and routines | Workout |
 | Nutrition diary | Nutrition |
 | Foods and meals | Nutrition |
 | Weight and measurements | Progress |
-| Coaching insights | Coaching + backend AI coach |
+| Profile avatar and approved profile media | Profile + private `profile` Storage bucket when introduced |
+| Optional meal or food images | Nutrition + private `nutrition` Storage bucket when introduced |
+| Approved user workout attachments | Workout + private `workout` Storage bucket when a concrete feature needs it |
+| Progress photos | Progress + private `progress` Storage bucket when introduced |
+| Coaching insights | Coaching + future protected Gemini/server runtime |
 | Watch active workout snapshot | Watch app + Workout sync |
+| Watch nutrition quick actions | Watch app + Nutrition sync |
 
 ## Offline Direction
 
@@ -123,6 +128,7 @@ Minimum offline support:
 - pending sync queue
 - last successful sync timestamp
 - cached nutrition entries
+- pending watch nutrition quick actions
 - cached progress entries
 
 ## Sync Event Shape
@@ -152,16 +158,28 @@ Start simple:
 
 Do not implement complex sync until real product flows demand it.
 
-## Backend Direction
+## Supabase Storage Direction
 
-Backend will eventually own:
+Use Supabase Storage only for approved user-owned files. Profile, Nutrition, Workout, and Progress records remain structured feature data behind repositories and database/RLS boundaries. The planned private buckets are `profile`, `nutrition`, `workout`, and `progress`; create each only with its first real file slice and owner-specific access policy.
 
-- user data APIs
-- coaching orchestration
-- health integration processing
-- scheduled jobs
-- database migrations
-- seed data
+Exercise Search content remains a versioned bundled Workout JSON catalog in its first slice, not a Storage bucket. See [Supabase-first platform strategy](SUPABASE_STRATEGY.md#storage-boundary-and-module-buckets).
+
+## Supabase And Future Backend Direction
+
+Supabase will own the first user-data/Auth foundation:
+
+- Supabase Auth and session identity
+- Postgres user data with explicit RLS
+- private module Storage buckets for approved media
+- migrations, RLS policies, seed data, and approved functions in the future `supabase/` workspace
+
+The future protected backend is reserved for:
+
+- Gemini/provider orchestration and AI response safety
+- advanced third-party integrations and protected processing
+- long-running or scheduled jobs that need a dedicated service boundary
+
+See [Supabase-first platform strategy](SUPABASE_STRATEGY.md).
 
 ## Public Repo Safety
 

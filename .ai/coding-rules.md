@@ -30,13 +30,13 @@ Do not introduce competing libraries without a clear reason.
 ## Domain Boundaries
 
 - Domain entities should not depend on Flutter widgets or platform UI APIs.
-- Shared Dart packages belong in `packages/*` only when multiple features or app layers need them.
+- Shared Dart models, entities, repository contracts, and use cases belong in `apps/shared` when multiple Flutter features or app layers need them.
 - Do not duplicate business rules across feature modules.
 - Do not invent backend APIs, Supabase tables, RPCs, or sync contracts without a feature slice that needs them.
 
 ## Watch Boundaries
 
-- Wear OS is built in Flutter (`apps/wear`) to share design system tokens, logic, and state.
+- Wear OS is built in Flutter in `apps/wear`; keep its UI watch-first and reuse shared contracts or lightweight design primitives only where useful.
 - Apple Watch app should stay native Swift + SwiftUI.
 - Watch apps focus on fast, battery-aware, glanceable actions.
 
@@ -65,13 +65,7 @@ melos analyze
 melos test
 ```
 
-For backend changes, run the relevant package checks, for example:
-
-```bash
-pnpm install
-pnpm lint
-pnpm test
-```
+For Supabase changes, run the approved feature's migration/RLS/security checks. For a future protected backend, use the selected runtime's documented checks; do not assume a toolchain before the workspace exists.
 
 For docs-only changes, at minimum run:
 

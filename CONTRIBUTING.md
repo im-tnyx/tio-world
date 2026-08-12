@@ -14,7 +14,7 @@ This guide explains how to set up the workspace, choose the right module, create
 tio-world/
 ├─ apps/
 │  ├─ app/          # Flutter Android + iOS phone app shell
-│  ├─ wear/         # Native Wear OS app
+│  ├─ wear/         # Flutter Wear OS companion app
 │  ├─ shared/       # Pure Dart shared models/contracts/use cases
 │  ├─ core/         # Flutter design system, shell, route contracts
 │  └─ features/     # Feature packages
@@ -26,17 +26,11 @@ tio-world/
 │     ├─ settings/
 │     ├─ progress/
 │     └─ coaching/
-├─ backend/
-│  ├─ api/
-│  ├─ ai-coach/
-│  ├─ jobs/
-│  └─ db/
 ├─ docs/
-├─ tools/
+├─ .github/
+├─ .ai/
 ├─ melos.yaml
 ├─ pubspec.yaml
-├─ package.json
-├─ pnpm-workspace.yaml
 └─ README.md
 ```
 
@@ -46,7 +40,7 @@ Create missing paths only when a real implementation slice needs them.
 
 - `auth`
 - `onboarding`
-- `dashboard`
+- `home`
 - `workout`
 - `nutrition`
 - `coaching`
@@ -231,13 +225,23 @@ Recommended docs:
 | Module ownership | `docs/MODULE_OWNERSHIP.md` |
 | Mobile app | `apps/app/README.md` when introduced |
 | Watch strategy | `docs/WATCH_STRATEGY.md` |
-| API/backend | `docs/API.md` |
+| API/backend | Create backend documentation only when the `backend/` workspace is introduced. |
 | Security | `docs/SECURITY.md` |
 | Testing | `docs/TESTING_GUIDE.md` |
-| Release | `docs/RELEASE.md` |
-| ADRs | `docs/adr/README.md` |
+| Release and PRs | `docs/PUSH_TEMPLATE.md` |
+| ADRs | Add an ADR index when the first durable architecture decision needs one. |
 
 Rule simple hai: architecture behavior badalta hai to docs bhi update honge.
+
+## Feature Development Workflow
+
+For user-facing features, routing, persistence, shared contracts, platform behavior, and design-system work, follow the repository's seven-phase workflow:
+
+```text
+Discovery -> Exploration -> Clarification -> Design -> Implementation -> Review -> Handoff
+```
+
+Start with [.ai/tasks/TEMPLATE.md](.ai/tasks/TEMPLATE.md), record the feature's evidence and decisions there, then include the final validation and review outcome in the pull request. The detailed workflow is in [.ai/FEATURE_DEVELOPMENT.md](.ai/FEATURE_DEVELOPMENT.md).
 
 ## Branching Guidelines
 

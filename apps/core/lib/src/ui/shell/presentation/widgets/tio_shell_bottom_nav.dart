@@ -1,56 +1,74 @@
 import 'package:flutter/material.dart';
 
 import '../../../../theme/locals/tio_theme_context.dart';
-import '../../../../theme/tokens/semantic/tio_colors.dart';
 import '../state/shell_state.dart';
 
 class TioShellBottomNav extends StatelessWidget {
-  const TioShellBottomNav({required this.selectedTab, required this.onTabSelected, super.key});
+  const TioShellBottomNav({
+    required this.selectedTab,
+    required this.visibleTabs,
+    required this.onTabSelected,
+    super.key,
+  });
 
   final ShellTab selectedTab;
+  final List<ShellTab> visibleTabs;
   final ValueChanged<ShellTab> onTabSelected;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
+    final selectedIndex = visibleTabs.indexOf(selectedTab);
 
     return BottomNavigationBar(
       type: BottomNavigationBarType.fixed,
       backgroundColor: colors.surface,
       selectedItemColor: colors.primary,
       unselectedItemColor: colors.textMuted,
-      currentIndex: selectedTab.index,
-      onTap: (index) => onTabSelected(ShellTab.fromIndex(index)),
+      currentIndex: selectedIndex < 0 ? 0 : selectedIndex,
+      onTap: (index) => onTabSelected(visibleTabs[index]),
       showSelectedLabels: true,
       showUnselectedLabels: true,
-      items: const [
-        BottomNavigationBarItem(
-          icon: ImageIcon(AssetImage('assets/nav_icon/home_outline.png', package: 'tio_core')),
-          activeIcon: ImageIcon(AssetImage('assets/nav_icon/home_fill.png', package: 'tio_core')),
+      items: visibleTabs.map(_itemForTab).toList(growable: false),
+    );
+  }
+
+  BottomNavigationBarItem _itemForTab(ShellTab tab) {
+    return switch (tab) {
+      ShellTab.home => const BottomNavigationBarItem(
+          icon: ImageIcon(AssetImage('assets/nav_icon/home_outline.png',
+              package: 'tio_core')),
+          activeIcon: ImageIcon(
+              AssetImage('assets/nav_icon/home_fill.png', package: 'tio_core')),
           label: 'Home',
         ),
-        BottomNavigationBarItem(
-          icon: ImageIcon(AssetImage('assets/nav_icon/apple_outline.png', package: 'tio_core')),
-          activeIcon: ImageIcon(AssetImage('assets/nav_icon/apple_fill.png', package: 'tio_core')),
+      ShellTab.nutrition => const BottomNavigationBarItem(
+          icon: ImageIcon(AssetImage('assets/nav_icon/apple_outline.png',
+              package: 'tio_core')),
+          activeIcon: ImageIcon(AssetImage('assets/nav_icon/apple_fill.png',
+              package: 'tio_core')),
           label: 'Nutrition',
         ),
-        BottomNavigationBarItem(
+      ShellTab.ai => const BottomNavigationBarItem(
           icon: _AiTabIcon(isActive: false),
           activeIcon: _AiTabIcon(isActive: true),
-          label: 'AI',
+          label: 'Tio',
         ),
-        BottomNavigationBarItem(
-          icon: ImageIcon(AssetImage('assets/nav_icon/muscle_outline.png', package: 'tio_core')),
-          activeIcon: ImageIcon(AssetImage('assets/nav_icon/muscle_fill.png', package: 'tio_core')),
+      ShellTab.workout => const BottomNavigationBarItem(
+          icon: ImageIcon(AssetImage('assets/nav_icon/muscle_outline.png',
+              package: 'tio_core')),
+          activeIcon: ImageIcon(AssetImage('assets/nav_icon/muscle_fill.png',
+              package: 'tio_core')),
           label: 'Workout',
         ),
-        BottomNavigationBarItem(
-          icon: ImageIcon(AssetImage('assets/nav_icon/trophy_outline.png', package: 'tio_core')),
-          activeIcon: ImageIcon(AssetImage('assets/nav_icon/trophy_fill.png', package: 'tio_core')),
+      ShellTab.progress => const BottomNavigationBarItem(
+          icon: ImageIcon(AssetImage('assets/nav_icon/trophy_outline.png',
+              package: 'tio_core')),
+          activeIcon: ImageIcon(AssetImage('assets/nav_icon/trophy_fill.png',
+              package: 'tio_core')),
           label: 'Progress',
         ),
-      ],
-    );
+    };
   }
 }
 
@@ -71,7 +89,7 @@ class _AiTabIcon extends StatelessWidget {
           color: colors.coach,
           boxShadow: [
             BoxShadow(
-              color: colors.coach.withOpacity(0.3),
+              color: colors.coach.withValues(alpha: 0.3),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
@@ -89,7 +107,7 @@ class _AiTabIcon extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: colors.textMuted.withOpacity(0.4),
+            color: colors.textMuted.withValues(alpha: 0.4),
             width: 1.5,
           ),
         ),

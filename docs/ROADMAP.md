@@ -2,6 +2,28 @@
 
 This roadmap is practical and intentionally staged. Do not build future areas before the current slice needs them.
 
+## App Mode System
+
+App Mode is the first-class product contract for selecting the phone experience:
+
+```dart
+enum AppMode { workout, nutrition, hybrid }
+```
+
+The implemented `AppMode` enum, guided destination mapping, and preference boundary belong in `apps/shared` so every Flutter feature package can read pure-Dart contracts without violating module ownership. Onboarding starts with mode selection and Settings changes the same selection. Later profile, Workout, Nutrition, review, and finish onboarding steps remain planned and must be conditional on mode.
+
+The first slice persists the confirmed mode device-locally through the shared preference boundary and defers Supabase account sync until an approved profile contract exists. Missing or invalid local data returns to mode selection.
+
+The phone shell keeps stable registered `go_router` `StatefulShellRoute` branches and derives the visible guided layout and route eligibility from the active mode:
+
+| App mode | Guided default tabs |
+| :--- | :--- |
+| `workout` | Home, Workout, Progress |
+| `nutrition` | Home, Nutrition, Progress |
+| `hybrid` | Home, Workout, Nutrition, Progress |
+
+Workout Library remains a Workout route, and Meal Plan remains deferred until after the first nutrition MVP. Neither is a guided default tab. A later custom-navigation phase may promote an implemented feature route as a shortcut without changing ownership. Coach becomes eligible only when Phase 7 begins.
+
 ## Phase 0: Repository Foundation
 
 Goal: make the public repo clean, understandable, and safe.
@@ -46,20 +68,17 @@ Goal: create the first usable Android+iOS phone shell.
 - [x] Add routing with `go_router`
 - [x] Add state management with Riverpod
 - [x] Add base theme and design tokens in `apps/core`
-- [x] Add app shell and primary tabs
+- [x] Add app shell and base navigation
 - [x] Add placeholder feature routes through feature package contracts
 - [x] Keep `apps/app` thin and free of feature business logic
+- [x] Add the shared App Mode contract and device-local preference boundary
+- [x] Add the mode-first onboarding selection and Settings mode editor
+- [x] Derive visible guided tabs and route eligibility from App Mode
+- [ ] Define the Material 3 Expressive token and component migration plan in `apps/core`, including touch feedback, high contrast, reduced motion, dark mode, and phone-versus-Wear boundaries
+- [ ] Extract reusable `TioAvatar` in `apps/core` with compact, small, medium, and large sizes plus a screen-selected shape
 - [ ] Move from basic route constants to typed `go_router` routes when screens mature
 
-Primary tabs:
-
-```text
-Dashboard
-Workout
-Nutrition
-Coach
-Progress
-```
+Guided tabs are mode-dependent as defined in [App Mode System](#app-mode-system). The five registered branches are internal route identity, not a fixed five-item bottom bar.
 
 Profile should launch from avatar or account entry, not as a main bottom tab.
 
@@ -69,12 +88,16 @@ Settings should launch from gear/menu entry, not as a main bottom tab.
 
 Goal: first usable health and fitness app flow.
 
-- [ ] Auth placeholder or real auth provider decision
-- [ ] Onboarding basics
+- [ ] Confirm Supabase Auth sign-in methods and the first authenticated vertical slice
+- [ ] Onboarding basics, beginning with App Mode selection and mode-conditional steps
 - [ ] User profile basics
 - [ ] Workout logging MVP
+- [ ] Routine Library and Program browse/select flow in `apps/features/workout`; start an active workout only from the selected Routine or Program session
+- [ ] Add nested Exercise Search backed first by a validated, versioned local JSON catalog in `apps/features/workout`
+- [ ] Add Workout history views backed by recorded data: muscle heatmap, accessible training radar map, and training calendar
 - [ ] Nutrition diary MVP
 - [ ] Progress overview MVP
+- [ ] Decide Recovery's first user outcome, data source, privacy/sync boundary, and non-medical scope before creating `apps/features/recovery`
 - [ ] Coach placeholder with clear backend boundary
 
 Feature implementation should happen inside owning packages:
@@ -90,47 +113,54 @@ apps/features/progress
 apps/features/coaching
 ```
 
-## Phase 4: Data, Offline, And Sync
+## Phase 4: Supabase Data, Storage, Offline, And Sync
 
 Goal: move real app data behind repositories and make core flows offline-first.
 
+- [ ] Create the minimum root `supabase/` workspace only for the approved first slice
 - [ ] Define repository contracts for workout, nutrition, profile, progress, and coaching
+- [ ] Add minimal Supabase Auth/Postgres/RLS contracts for the approved slice; do not create a full schema upfront
+- [ ] Define private module Storage bucket policy before creating `profile`, `nutrition`, `workout`, or `progress` buckets
 - [ ] Add Riverpod repository providers in owning feature packages
 - [ ] Add `freezed` + `json_serializable` models/DTOs where generated value types are needed
 - [ ] Choose local persistence for the first real data slice: Drift, Isar, or similar
 - [ ] Implement local data source behind repository interfaces
 - [ ] Add pending sync queue for workout events
+- [ ] Add Meal Plan after the nutrition diary MVP: create, schedule, and reuse plans in `apps/features/nutrition` for nutrition and hybrid modes
 - [ ] Add last successful sync metadata
-- [ ] Add remote API data source only behind repositories
+- [ ] Add Supabase remote data source only behind repositories
 - [ ] Add conflict handling rules for idempotent events
+
+Recovery contracts, health permissions, wearable data, or sync are intentionally excluded until the Phase 3 Recovery decision is approved. Gemini, service-role operations, and custom backend code are also excluded from this phase.
 
 Do not let database rows, remote DTOs, or backend table shapes leak into widgets.
 
 ## Phase 5: Wear OS MVP
 
-Goal: native watch companion for workout flow.
+Goal: extend the existing Flutter Wear OS companion with workout controls and nutrition quick actions.
 
-- [ ] Generate `apps/wear` native Wear OS app
+- [x] Retain the existing `apps/wear` Flutter package
 - [ ] Add workout start screen
 - [ ] Add active workout screen
 - [ ] Add set input screen
 - [ ] Add rest timer screen
 - [ ] Add basic heart rate display if available
+- [ ] Add nutrition quick actions: food or meal add, water add, and today's nutrition summary
+- [ ] Show next planned meal status only after Meal Plan is available on phone; do not add full Meal Plan editing to watch
 - [ ] Add phone/backend sync placeholder
 - [ ] Test on emulator and physical watch
 
-Watch app should stay native. Do not force Flutter UI onto Wear OS production fitness flows.
+Keep Wear OS Flutter UI watch-first, lightweight, and independent from phone screens. Reuse shared contracts and lightweight design primitives where useful; do not copy phone screens onto the watch.
 
-## Phase 6: Backend And Persistence
+## Phase 6: Protected Backend Upgrade
 
-Goal: move synced data behind backend APIs.
+Goal: add a separate protected backend only when Supabase functions and repository boundaries no longer cover the approved product need.
 
-- [ ] Define API contracts
+- [ ] Define upgrade criteria and API contracts
 - [ ] Add backend workspace
-- [ ] Add database schema incrementally
-- [ ] Add repository implementations backed by remote APIs
-- [ ] Add auth-aware data access
-- [ ] Add seed/demo data
+- [ ] Add authenticated/authorized integration boundary using Supabase identity
+- [ ] Add Gemini/provider adapter only for an approved AI use case
+- [ ] Add repository implementations backed by protected APIs only where needed
 - [ ] Add test path for critical flows
 
 Backend folders:
@@ -139,8 +169,9 @@ Backend folders:
 backend/api
 backend/ai-coach
 backend/jobs
-backend/db
 ```
+
+Supabase remains the owner of Auth, Postgres migrations/RLS, private Storage, and user-data persistence. Do not create `backend/db` for Supabase schema work.
 
 ## Phase 7: AI Coach
 
@@ -151,6 +182,7 @@ Goal: add useful coaching without bloating mobile/watch clients.
 - [ ] Add backend AI coach runtime
 - [ ] Add safety and confidence boundaries
 - [ ] Add mobile coach UI in `apps/features/coaching`
+- [ ] Add Coach as a tab in every App Mode
 - [ ] Keep watch coaching limited to short insights only
 
 ## Phase 8: Apple Watch
@@ -162,6 +194,25 @@ Goal: add watchOS only after Wear OS and mobile MVP are stable.
 - [ ] Add workout quick actions
 - [ ] Add HealthKit integration plan
 - [ ] Add phone sync via WatchConnectivity
+
+## Phase 9: Adaptive Navigation And Action Entry
+
+Goal: let users personalize three to six eligible destinations after the core screens and workflows are stable, without duplicating feature logic or losing access to active work.
+
+- [ ] Define stable destination identity independent from numeric tab indexes.
+- [ ] Keep Home required and first; validate the three-to-six selected-destination range.
+- [ ] Add mode, feature-availability, and release-stage eligibility rules.
+- [ ] Add the Settings Navigation & Tabs editor with reorder, preview, confirmation, and reset-to-mode-default behavior.
+- [ ] Compose Home sections from App Mode, navigation layout, feature availability, and prepared feature data.
+- [ ] Support root destinations separately from promoted feature shortcuts such as Routine Library and Meal Plan.
+- [ ] Define adaptive action placement for start/resume workout, log meal, log planned meal, add water, and other approved feature commands.
+- [ ] Keep an active workout resumable through a persistent entry when its normal destination is hidden or reordered.
+- [ ] Reconcile a mode or layout change to a valid destination, normally Home, without deleting feature data or active-session state.
+- [ ] Validate compact-phone handling for six selections, deep links, back stacks, accessibility, and representative mode/layout combinations.
+
+This phase changes navigation presentation and entry placement. It must not move domain logic into the shell or make tab order control stored health/fitness behavior.
+
+See the [adaptive navigation and action-entry task](../.ai/tasks/adaptive-navigation-and-actions.md).
 
 ## Not Now
 

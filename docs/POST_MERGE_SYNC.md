@@ -189,13 +189,7 @@ cd apps\wear-os
 
 iOS / watchOS checks are usually run from Xcode or CI. If command-line validation is available for the workspace, record the exact command used.
 
-Backend checks:
-
-```bash
-pnpm install
-pnpm lint
-pnpm test
-```
+Supabase changes require the approved feature's migration/RLS/security checks. A future protected backend uses the selected runtime's documented checks after that workspace exists.
 
 Docs-only changes do not need app builds unless bundled with code.
 

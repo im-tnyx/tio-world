@@ -27,3 +27,7 @@ class ShellStreakClicked extends ShellAction {
 class ShellProfileClicked extends ShellAction {
   const ShellProfileClicked();
 }
+
+class ShellSettingsClicked extends ShellAction {
+  const ShellSettingsClicked();
+}

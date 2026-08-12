@@ -10,15 +10,15 @@ Before opening a pull request, read:
 
 - [../README.md](../README.md)
 - [../docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md)
-- [../docs/ENGINEERING_GUIDELINES.md](../docs/ENGINEERING_GUIDELINES.md)
-- [../docs/DEFINITION_OF_DONE.md](../docs/DEFINITION_OF_DONE.md)
+- [../docs/MODULE_OWNERSHIP.md](../docs/MODULE_OWNERSHIP.md)
 - [../docs/WATCH_STRATEGY.md](../docs/WATCH_STRATEGY.md)
+- [../docs/ROADMAP.md](../docs/ROADMAP.md)
 
 For day-to-day work, follow these defaults:
 
-- Flutter mobile app work belongs in `apps/mobile`.
-- Shared Dart logic belongs in `packages/*`.
-- Wear OS app work belongs in `apps/wear-os`.
+- Flutter phone app work belongs in `apps/app`.
+- Shared Dart logic belongs in `apps/shared`; reusable Flutter UI belongs in `apps/core`.
+- Flutter Wear OS app work belongs in `apps/wear`.
 - Apple Watch app work belongs in `apps/watchos`.
 - Backend and AI work belongs in `backend/*`.
 - Keep changes small, scoped, and validated.

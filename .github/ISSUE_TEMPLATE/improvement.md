@@ -34,7 +34,7 @@ Which areas are affected?
 - [ ] Backend/API
 - [ ] AI coach
 - [ ] Database/migrations
-- [ ] Packages/shared logic
+- [ ] Shared Dart logic (`apps/shared`)
 - [ ] Design system
 - [ ] CI/tooling
 - [ ] Documentation
@@ -44,7 +44,7 @@ Which areas are affected?
 
 - [ ] Auth
 - [ ] Onboarding
-- [ ] Dashboard / Home
+- [ ] Home
 - [ ] Workout
 - [ ] Nutrition
 - [ ] Coach
