@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 
@@ -162,6 +163,27 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(tester.getSize(find.byType(TextButton)).width.isFinite, isTrue);
+  });
+
+  testWidgets('keyboard focus and Enter activate the button', (tester) async {
+    var presses = 0;
+
+    await tester.pumpWidget(
+      _ButtonTestApp(
+        child: TioButton.primary(
+          label: 'Continue',
+          onPressed: () => presses++,
+        ),
+      ),
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    expect(FocusManager.instance.primaryFocus, isNotNull);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    expect(presses, 1);
   });
 }
 

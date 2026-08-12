@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_welcome/welcome.dart';
@@ -54,5 +55,42 @@ void main() {
       find.byType(TweenAnimationBuilder<double>),
     );
     expect(animation.duration, Duration.zero);
+  });
+
+  testWidgets(
+      'placeholder language and legal copy are not announced as actions',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    try {
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => TioTheme(
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: const WelcomeRoute(),
+        ),
+      );
+      await tester.pump(const Duration(seconds: 1));
+
+      final languageNode = tester.getSemantics(find.text('EN'));
+      expect(languageNode.flagsCollection.isButton, isFalse);
+      expect(
+        languageNode.getSemanticsData().hasAction(SemanticsAction.tap),
+        isFalse,
+      );
+
+      final legalCopy = find.textContaining(
+        'By continuing',
+        findRichText: true,
+      );
+      final legalNode = tester.getSemantics(legalCopy);
+      expect(legalNode.flagsCollection.isButton, isFalse);
+      expect(
+        legalNode.getSemanticsData().hasAction(SemanticsAction.tap),
+        isFalse,
+      );
+    } finally {
+      semantics.dispose();
+    }
   });
 }

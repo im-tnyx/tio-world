@@ -10,24 +10,12 @@ class WelcomeViewModel extends ChangeNotifier {
 
   void onAction(WelcomeAction action) {
     switch (action) {
-      case WelcomeLanguageChanged(localeCode: final code):
-        _handleLanguageChange(code);
       case WelcomeGetStartedClicked():
         break;
       case WelcomeSignInClicked():
         break;
       case WelcomeSkipForNowClicked():
         break;
-      case WelcomeTermsTapped():
-      case WelcomePrivacyTapped():
-        break;
     }
-  }
-
-  void _handleLanguageChange(String code) {
-    _uiState = _uiState.copyWith(
-      localeCode: code,
-    );
-    notifyListeners();
   }
 }

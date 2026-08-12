@@ -69,9 +69,6 @@ class WelcomeScreen extends StatelessWidget {
                       localeCode: state.localeCode,
                       skipText: state.skipText,
                       onSkip: () => onAction(const WelcomeSkipForNowClicked()),
-                      onLanguageTap: () {
-                        // Language selector noop/placeholder
-                      },
                     ),
                     Expanded(
                       child: TweenAnimationBuilder<double>(
@@ -241,10 +238,7 @@ class WelcomeScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 24),
 
-                            WelcomeDisclaimer(
-                              state: state,
-                              onAction: onAction,
-                            ),
+                            WelcomeDisclaimer(state: state),
                           ],
                         ),
                       ),

@@ -103,13 +103,14 @@ void main() {
 
   testWidgets('shell profile entry uses the compact shared avatar',
       (tester) async {
+    ShellAction? action;
     await tester.pumpWidget(
       _AvatarTestApp(
         child: Scaffold(
           appBar: TioShellTopBar(
             planTier: ShellPlanTier.plus,
             scrollOpacity: 0,
-            onAction: (_) {},
+            onAction: (value) => action = value,
           ),
         ),
       ),
@@ -117,10 +118,15 @@ void main() {
 
     expect(find.byType(CircleAvatar), findsNothing);
     expect(find.byType(TioAvatar), findsOneWidget);
+    expect(find.byTooltip('Settings'), findsNothing);
+    expect(find.byTooltip('Profile'), findsOneWidget);
     expect(
       tester.getSize(find.byType(TioAvatar)),
       Size.square(TioAvatarSize.compact.dimension),
     );
+
+    await tester.tap(find.byType(TioAvatar));
+    expect(action, isA<ShellProfileClicked>());
   });
 }
 

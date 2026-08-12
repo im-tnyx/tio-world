@@ -141,7 +141,7 @@ class _ModeChoiceCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(context.radiusLarge),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+          duration: context.tioMotion.fast,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: colors.surface,
