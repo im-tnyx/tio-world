@@ -13,7 +13,7 @@ Give the user a short, useful daily overview and one clear next action. Home sum
 
 Common content:
 
-- App bar with product identity, profile entry using the reusable `TioAvatar`, and an explicit Settings/menu entry where required.
+- App bar with product identity and one profile/account entry using the reusable `TioAvatar`; do not add a separate Settings icon here.
 - Date-aware greeting and a concise daily summary.
 - One primary next action, such as continuing an active selected session, choosing a Routine/Program, or adding the next meal.
 - Small, actionable preview cards that navigate to their owning feature. Cards must not duplicate full diary, workout, or analytics screens.
@@ -52,7 +52,7 @@ Sections are reusable feature-summary components backed by prepared contracts. H
 - Meal, water, or nutrition-summary actions open the same owning Nutrition workflows used by Nutrition/Meal Diary.
 - When Nutrition is not directly selected but Hybrid mode allows it, Home may expose a prominent Log Meal or Add Water entry. A planned-meal action passes plan context to the canonical Nutrition log flow.
 - Progress cards open Progress.
-- Avatar opens Profile; menu/gear opens Settings.
+- Avatar opens Profile; Profile owns the Settings launch entry.
 - The guided primary navigation follows `AppMode`; future custom navigation keeps Home first and selected while other eligible destinations change.
 
 ## Data And State Boundaries

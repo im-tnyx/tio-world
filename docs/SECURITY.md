@@ -64,6 +64,11 @@ Rules:
 - avoid logging personal health details
 - keep screenshots clean before sharing in issues or PRs
 - avoid putting real user data in test fixtures
+- do not persist onboarding body/health answers as plain JSON in
+  `SharedPreferences`; approve Auth ordering, encrypted local storage, retention,
+  deletion, and account-switch behavior before cross-restart draft storage
+- keep onboarding analytics limited to step/status metadata and never include
+  entered values, body metrics, free text, email, or tokens
 
 ## Supabase Storage
 

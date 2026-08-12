@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_onboarding/onboarding.dart';
+import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_feature_splash/splash.dart';
 import 'package:tio_feature_welcome/welcome.dart';
@@ -37,7 +38,7 @@ ChromePolicy _chromePolicyForPath(String location) {
   return ChromePolicy.mainChrome;
 }
 
-void _handleShellAction(BuildContext context,
+void _handleShellAction(GoRouter router,
     StatefulNavigationShell navigationShell, ShellAction action) {
   if (action is ShellTabSelected) {
     navigationShell.goBranch(action.tab.branchIndex);
@@ -45,18 +46,15 @@ void _handleShellAction(BuildContext context,
   }
 
   if (action is ShellProfileClicked) {
-    context.push(AppRoutes.profile.path);
+    router.push(AppRoutes.profile.path);
     return;
-  }
-
-  if (action is ShellSettingsClicked) {
-    context.push(AppRoutes.settings.path);
   }
 }
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   final appModeController = ref.read(appModeControllerProvider);
-  final router = GoRouter(
+  late final GoRouter router;
+  router = GoRouter(
     initialLocation: AppRoutes.splash.path,
     navigatorKey: rootNavigatorKey,
     refreshListenable: appModeController,
@@ -85,7 +83,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   isBottomNavVisible: chromePolicy.showsBottomNav,
                 ),
                 onAction: (action) =>
-                    _handleShellAction(context, navigationShell, action),
+                    _handleShellAction(router, navigationShell, action),
                 child: child!,
               );
             },
@@ -132,7 +130,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.profile.path,
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => _page(AppRoutes.profile),
+        builder: (context, state) => ProfilePage(
+          onSettingsPressed: () => context.push(AppRoutes.settings.path),
+        ),
       ),
       GoRoute(
         path: AppRoutes.settings.path,

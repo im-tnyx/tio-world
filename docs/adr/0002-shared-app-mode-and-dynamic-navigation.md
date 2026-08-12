@@ -49,5 +49,6 @@ The original Flutter shell exposed all five registered `StatefulShellRoute` bran
 - [Roadmap](../ROADMAP.md)
 - [App Mode foundation task](../../.ai/tasks/app-mode-foundation.md)
 - [Onboarding screen specification](../screens/onboarding.md)
+- [ADR-0006: Single-Route Onboarding Parent Flow](0006-single-route-onboarding-parent-flow.md)
 - [Settings screen specification](../screens/settings.md)
 - [ADR-0005: Adaptive Navigation And Action Entry](0005-adaptive-navigation-and-action-entry.md)

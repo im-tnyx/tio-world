@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../components/avatars/tio_avatar.dart';
 import '../action/shell_action.dart';
 import '../state/shell_state.dart';
 
@@ -34,14 +35,8 @@ class TioShellTopBar extends StatelessWidget implements PreferredSizeWidget {
             child: const Text('Plus'),
           ),
         IconButton(
-          tooltip: 'Settings',
-          icon: const Icon(Icons.settings_outlined),
-          onPressed: () => onAction(const ShellSettingsClicked()),
-        ),
-        IconButton(
           tooltip: 'Profile',
-          icon: const CircleAvatar(
-              radius: 12, child: Icon(Icons.person, size: 16)),
+          icon: const TioAvatar(size: TioAvatarSize.compact),
           onPressed: () => onAction(const ShellProfileClicked()),
         ),
         const SizedBox(width: 8),

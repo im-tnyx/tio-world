@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../theme/locals/tio_theme_context.dart';
+import '../../../../theme/tokens/components/tio_navigation_tokens.dart';
 import '../state/shell_state.dart';
 
 class TioShellBottomNav extends StatelessWidget {
@@ -20,51 +21,51 @@ class TioShellBottomNav extends StatelessWidget {
     final colors = context.tioColors;
     final selectedIndex = visibleTabs.indexOf(selectedTab);
 
-    return BottomNavigationBar(
-      type: BottomNavigationBarType.fixed,
+    return NavigationBar(
+      height: TioNavigationTokens.bottomBarHeight,
       backgroundColor: colors.surface,
-      selectedItemColor: colors.primary,
-      unselectedItemColor: colors.textMuted,
-      currentIndex: selectedIndex < 0 ? 0 : selectedIndex,
-      onTap: (index) => onTabSelected(visibleTabs[index]),
-      showSelectedLabels: true,
-      showUnselectedLabels: true,
-      items: visibleTabs.map(_itemForTab).toList(growable: false),
+      indicatorColor: colors.primary.withValues(
+        alpha: TioNavigationTokens.indicatorOpacity,
+      ),
+      selectedIndex: selectedIndex < 0 ? 0 : selectedIndex,
+      onDestinationSelected: (index) => onTabSelected(visibleTabs[index]),
+      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      destinations: visibleTabs.map(_destinationForTab).toList(growable: false),
     );
   }
 
-  BottomNavigationBarItem _itemForTab(ShellTab tab) {
+  NavigationDestination _destinationForTab(ShellTab tab) {
     return switch (tab) {
-      ShellTab.home => const BottomNavigationBarItem(
+      ShellTab.home => const NavigationDestination(
           icon: ImageIcon(AssetImage('assets/nav_icon/home_outline.png',
               package: 'tio_core')),
-          activeIcon: ImageIcon(
+          selectedIcon: ImageIcon(
               AssetImage('assets/nav_icon/home_fill.png', package: 'tio_core')),
           label: 'Home',
         ),
-      ShellTab.nutrition => const BottomNavigationBarItem(
+      ShellTab.nutrition => const NavigationDestination(
           icon: ImageIcon(AssetImage('assets/nav_icon/apple_outline.png',
               package: 'tio_core')),
-          activeIcon: ImageIcon(AssetImage('assets/nav_icon/apple_fill.png',
+          selectedIcon: ImageIcon(AssetImage('assets/nav_icon/apple_fill.png',
               package: 'tio_core')),
           label: 'Nutrition',
         ),
-      ShellTab.ai => const BottomNavigationBarItem(
+      ShellTab.ai => const NavigationDestination(
           icon: _AiTabIcon(isActive: false),
-          activeIcon: _AiTabIcon(isActive: true),
+          selectedIcon: _AiTabIcon(isActive: true),
           label: 'Tio',
         ),
-      ShellTab.workout => const BottomNavigationBarItem(
+      ShellTab.workout => const NavigationDestination(
           icon: ImageIcon(AssetImage('assets/nav_icon/muscle_outline.png',
               package: 'tio_core')),
-          activeIcon: ImageIcon(AssetImage('assets/nav_icon/muscle_fill.png',
+          selectedIcon: ImageIcon(AssetImage('assets/nav_icon/muscle_fill.png',
               package: 'tio_core')),
           label: 'Workout',
         ),
-      ShellTab.progress => const BottomNavigationBarItem(
+      ShellTab.progress => const NavigationDestination(
           icon: ImageIcon(AssetImage('assets/nav_icon/trophy_outline.png',
               package: 'tio_core')),
-          activeIcon: ImageIcon(AssetImage('assets/nav_icon/trophy_fill.png',
+          selectedIcon: ImageIcon(AssetImage('assets/nav_icon/trophy_fill.png',
               package: 'tio_core')),
           label: 'Progress',
         ),

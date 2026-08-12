@@ -18,8 +18,8 @@ The following facts are verified in the current Flutter source:
 
 - `apps/core` enables baseline Material 3 and exposes theme, color, typography, spacing, radius, shadow, motion, and button-token foundations.
 - The phone shell keeps five stable registered route branches, but its visible guided bottom navigation is derived from App Mode and contains three or four items.
-- The theme currently disables splash and highlight feedback. Visible touch feedback is therefore not yet validated and must be restored or provided by verified component states during the shared-component migration.
-- App Mode navigation is implemented. `TioAvatar`, high-contrast support, and reduced-motion behavior remain documented targets, not verified implementations.
+- Material touch feedback is enabled globally; shared components must preserve visible pressed, hover, and focus state behavior.
+- App Mode navigation uses token-driven Material 3 `NavigationBar`. High-contrast semantic colors, reduced-motion theme behavior, reusable `TioAvatar`, shared `TioButton` states, and Welcome semantic contrast are implemented. Pixel 9 light/dark and compact-width checks pass; OLED, keyboard/focus, and screen-reader validation remains open.
 
 ## Ownership
 
@@ -51,13 +51,38 @@ When a needed token does not exist, add or evolve it in `apps/core` as part of a
 
 Every reusable interactive component must define and validate its default, pressed, focused, disabled, selected, loading, and error-relevant state where applicable. The component owner must preserve a visible touch response and a logical keyboard/focus order.
 
+`TioButton` owns the shared primary, secondary, and ghost action treatments. Its token contract defines finite minimum sizing, content spacing, state-layer opacity, outline strength, disabled presentation, and loading-indicator dimensions. Loading disables the underlying action, announces progress through semantics, and uses a static indicator when reduced motion is active. Feature screens supply the label and business action; they do not rebuild loading or interaction-state behavior locally.
+
 ### Color And Contrast
 
-Use semantic foreground/background pairs, not color values chosen ad hoc by a screen. Validate light and dark themes before calling a shared component complete. High-contrast behavior remains a required validation item until it is implemented and verified.
+Use semantic foreground/background pairs, not color values chosen ad hoc by a screen. `TioThemeConfig.highContrast` and system high-contrast preference select stronger semantic foreground, outline, and surface pairs. Every migrated component still requires light, dark, OLED, and high-contrast verification before completion.
 
 ### Motion
 
-Motion should clarify state change, not decorate every surface. Shared transitions must respect a reduced-motion preference when that support is introduced. Feature packages do not create independent motion timing scales.
+Motion should clarify state change, not decorate every surface. `TioThemeConfig.reducedMotion` and the system animation preference expose zero-duration `TioMotionScheme` values, disable route transitions, and propagate `MediaQuery.disableAnimations`. Feature packages consume the shared scheme and do not create independent motion timing scales.
+
+## Onboarding Flow Chrome
+
+The target phone onboarding experience uses one full-screen parent route. The
+parent keeps an onboarding-owned top progress region and bottom action region
+fixed while only the scrollable child content changes.
+
+- `OnboardingTopBar` owns route exit and an accessible mode-derived progress
+  indicator.
+- `OnboardingContentHost` renders one child keyed by stable step identity; it is
+  the only scrolling region.
+- `OnboardingBottomBar` owns Back plus the fixed `Continue`, `Review`, or `Finish`
+  primary action.
+- Child steps use parent actions and must not add a second competing primary CTA.
+- Keyboard resize keeps the active input and bottom action reachable.
+- Child replacement is controller-driven, cannot be freely swiped past validation,
+  and consumes the shared reduced-motion scheme.
+- Progress announces both position and step title and never uses color as its only
+  state signal.
+
+This is a target contract, not current runtime completion. See
+[Onboarding Flow Architecture](ONBOARDING_ARCHITECTURE.md) and the
+[Onboarding screen specification](screens/onboarding.md).
 
 ## Shell And Navigation
 
@@ -79,7 +104,7 @@ The implemented guided bottom navigation is derived from `AppMode`:
 | `nutrition` | Home, Nutrition, Progress |
 | `hybrid` | Home, Workout, Nutrition, Progress |
 
-Profile and Settings are entry surfaces in the guided layout. Workout Library is a Workout route, and Meal Plan is a later Nutrition route. Coach becomes eligible only in Phase 7.
+Profile is the account entry surface in the guided Home chrome. Settings opens from Profile or an approved feature-owned entry; it does not receive a separate Home top-bar icon. Workout Library is a Workout route, and Meal Plan is a later Nutrition route. Coach becomes eligible only in Phase 7.
 
 ### Future Navigation Personalization
 
@@ -127,7 +152,7 @@ Feature commands remain canonical even when their entry point moves:
 
 ## Reusable Avatar
 
-`apps/core` will own one `TioAvatar` component with semantic sizes `compact`, `small`, `medium`, and `large`. It is circular by default and may use a rounded Profile treatment when the owning screen selects it. Screens do not create their own avatar dimensions, clipping, fallback behavior, or image-loading rules.
+`apps/core` owns one `TioAvatar` component with semantic sizes `compact`, `small`, `medium`, and `large`. It is circular by default and supports a rounded Profile treatment, optional `ImageProvider`, initials/icon fallback, failed-image fallback, and caller-supplied semantics. Screens do not create their own avatar dimensions, clipping, fallback behavior, or image-loading rules.
 
 ## Screen Quality Baseline
 

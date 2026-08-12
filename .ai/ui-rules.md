@@ -67,11 +67,26 @@ Do not add Profile to the main bottom navigation.
 
 Profile opens from avatar/account entry.
 
-Settings opens from the gear/settings entry.
+Settings opens from the Profile launcher. Do not place a separate Settings icon in the Home top bar.
+
+## Onboarding Parent Flow
+
+- Keep `/onboarding` as one full-screen parent route.
+- Keep top progress and bottom actions fixed; only the middle child content changes
+  and scrolls.
+- Use one primary action from the parent. Child steps must not add a competing
+  Continue or Finish button.
+- Derive progress and child eligibility from stable step IDs and draft App Mode,
+  not route paths or raw indexes.
+- Keep the primary action reachable above the keyboard and safe-area inset.
+- Use shared motion tokens, reduced motion, semantic progress labels, field-error
+  association, and non-color-only state.
+- Draft mode is not confirmed mode or completion. Do not route Home from the first
+  mode choice in the full flow.
 
 ## Reusable Avatar
 
-Use one future `TioAvatar` component from `apps/core` across shell, lists, cards, and Profile. Use semantic sizes—`compact`, `small`, `medium`, and `large`—rather than local pixel values. The component is circular by default and supports a rounded profile treatment where the owning screen requires it.
+Use the shared `TioAvatar` component from `apps/core` across shell, lists, cards, and Profile. Select semantic sizes—`compact`, `small`, `medium`, and `large`—rather than local pixel values. The component is circular by default and supports rounded Profile treatment, optional images, centralized fallback behavior, and caller-supplied semantics.
 
 ## Production Screen Checklist
 

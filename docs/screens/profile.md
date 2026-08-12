@@ -3,7 +3,7 @@
 **Surface:** Phone full-screen account and fitness context
 **Current route:** `/profile`
 **Primary owner:** `apps/features/profile`
-**Status:** Current route is a shared placeholder. The sections below are the target contract.
+**Status:** A minimal Profile launcher is implemented with the shared avatar and Settings entry. Profile details remain planned.
 
 ## Purpose
 
@@ -16,6 +16,7 @@ Give the user a single place to review and update personal and fitness context, 
 - Personal and fitness profile details required by approved feature flows.
 - Clear entry points to module-owned Nutrition Targets and Workout Settings.
 - Links to Progress history or account controls only through their public navigation contracts.
+- Settings launch entry; Home does not duplicate this action in its top bar.
 
 When avatar upload is approved, its file belongs in the private Supabase `profile` bucket through a Profile-owned repository. Profile fields remain structured data, not Storage files.
 
@@ -38,6 +39,7 @@ When avatar upload is approved, its file belongs in the private Supabase `profil
 - Profile is reachable from the app chrome, not a primary tab.
 - Updating a profile value never silently replaces explicit Nutrition or Workout overrides.
 - Avatar behavior is consistent with the reusable `apps/core` component contract.
+- Settings remains reachable through Profile without adding a separate Home top-bar action.
 - Cross-feature links preserve module ownership.
 
 ## Related

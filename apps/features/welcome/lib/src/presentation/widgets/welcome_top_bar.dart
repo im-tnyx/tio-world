@@ -6,40 +6,30 @@ class WelcomeTopBar extends StatelessWidget {
     required this.localeCode,
     required this.skipText,
     required this.onSkip,
-    required this.onLanguageTap,
     super.key,
   });
 
   final String localeCode;
   final String skipText;
   final VoidCallback onSkip;
-  final VoidCallback onLanguageTap;
 
   @override
   Widget build(BuildContext context) {
     final headerStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
-      color: Theme.of(context).colorScheme.onSurface,
-    );
+          color: Colors.white,
+        );
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // Language - Optimized ripple effect
-        Material(
-          color: WelcomeColors.transparent,
-          child: InkWell(
-            onTap: onLanguageTap,
-            borderRadius: BorderRadius.circular(WelcomeDimens.radiusL),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: WelcomeDimens.spaceXS,
-                vertical: WelcomeDimens.spaceXXS,
-              ),
-              child: Text(
-                localeCode.toUpperCase(),
-                style: headerStyle,
-              ),
-            ),
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: WelcomeDimens.spaceXS,
+            vertical: WelcomeDimens.spaceXXS,
+          ),
+          child: Text(
+            localeCode.toUpperCase(),
+            style: headerStyle,
           ),
         ),
 

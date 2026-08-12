@@ -67,29 +67,31 @@ class _AppModeSettingsPageState extends State<AppModeSettingsPage> {
                   ?.copyWith(color: colors.textSecondary),
             ),
             const SizedBox(height: 24),
-            SegmentedButton<AppMode>(
-              direction: Axis.vertical,
-              expandedInsets: EdgeInsets.zero,
-              segments: const [
-                ButtonSegment(
-                    value: AppMode.workout,
-                    label: Text('Workout'),
-                    icon: Icon(Icons.fitness_center)),
-                ButtonSegment(
-                    value: AppMode.nutrition,
-                    label: Text('Nutrition'),
-                    icon: Icon(Icons.restaurant)),
-                ButtonSegment(
-                    value: AppMode.hybrid,
-                    label: Text('Hybrid'),
-                    icon: Icon(Icons.all_inclusive)),
-              ],
-              selected: {_selectedMode},
-              onSelectionChanged: _isSaving
-                  ? null
-                  : (selection) =>
-                      setState(() => _selectedMode = selection.single),
-              showSelectedIcon: true,
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<AppMode>(
+                direction: Axis.vertical,
+                segments: const [
+                  ButtonSegment(
+                      value: AppMode.workout,
+                      label: Text('Workout'),
+                      icon: Icon(Icons.fitness_center)),
+                  ButtonSegment(
+                      value: AppMode.nutrition,
+                      label: Text('Nutrition'),
+                      icon: Icon(Icons.restaurant)),
+                  ButtonSegment(
+                      value: AppMode.hybrid,
+                      label: Text('Hybrid'),
+                      icon: Icon(Icons.all_inclusive)),
+                ],
+                selected: {_selectedMode},
+                onSelectionChanged: _isSaving
+                    ? null
+                    : (selection) =>
+                        setState(() => _selectedMode = selection.single),
+                showSelectedIcon: true,
+              ),
             ),
             const SizedBox(height: 24),
             _TabsPreview(mode: _selectedMode),
@@ -100,7 +102,9 @@ class _AppModeSettingsPageState extends State<AppModeSettingsPage> {
             ],
             const SizedBox(height: 24),
             TioButton.primary(
-              label: _isSaving ? 'Saving…' : 'Save App Mode',
+              label: 'Save App Mode',
+              loading: _isSaving,
+              loadingLabel: 'Saving',
               expand: true,
               enabled: !_isSaving && _selectedMode != widget.currentMode,
               onPressed: _save,

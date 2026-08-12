@@ -61,11 +61,17 @@ The implemented architecture places the single `AppMode` enum, guided destinatio
 
 Workout Library remains a Workout route, and Meal Plan remains a future Nutrition route after diary MVP. Neither is a guided default tab. Onboarding's first mode-selection screen and Settings mode editor are implemented; later conditional onboarding steps remain planned. Coach becomes eligible only when Phase 7 begins.
 
+The planned full onboarding uses one `/onboarding` parent screen. Top progress and
+bottom actions stay fixed while one mode-derived child changes. Stable step IDs and
+one Riverpod controller own the internal flow. Draft mode, confirmed App Mode, and
+completion status remain separate; see
+[Onboarding Flow Architecture](../docs/ONBOARDING_ARCHITECTURE.md).
+
 A final-stage custom navigation layer keeps Home first, supports three to six eligible destinations, and may promote implemented feature routes such as Routine Library or Meal Plan as shortcuts. Home sections and feature action entries adapt through shared layout/composition contracts while business logic remains feature-owned.
 
 Profile should open from avatar/account entry.
 
-Settings should open from the gear/settings entry.
+Settings should open from the Profile launcher; Home chrome should not expose a separate Settings icon.
 
 ## Future Modules
 

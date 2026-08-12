@@ -65,6 +65,23 @@ sync_queue
 sync_metadata
 ```
 
+### Onboarding Draft Boundary
+
+The planned full onboarding separates an unfinished `OnboardingDraft`, confirmed
+`AppMode`, and `OnboardingStatus`. The parent shell and pure flow plan do not
+require a new database, but cross-restart storage of profile or health answers does.
+
+- Do not store sensitive body, health, nutrition, or workout answers as plain JSON
+  in `SharedPreferences`.
+- Approve Auth ordering, encrypted local storage, schema versioning, retention,
+  account switching, and deletion before persistent drafts are implemented.
+- Supabase Storage is not a structured draft store. Any future remote draft belongs
+  in RLS-protected Postgres behind `OnboardingRepository` after schema approval.
+- Completion must be idempotent and must not mark onboarding complete after only a
+  subset of required owner writes succeeds.
+
+See [Onboarding Flow Architecture](ONBOARDING_ARCHITECTURE.md).
+
 ## State Management
 
 Use Riverpod for app and feature state.

@@ -150,18 +150,27 @@ Tio keeps three `AppMode` values. Each mode supplies a guided default layout for
 
 Onboarding starts with App Mode selection, and Settings can change it later. A final-stage Navigation & Tabs upgrade will let the user keep Home fixed and manually choose three to six eligible destinations. Mode, feature availability, and release stage constrain the destination catalog.
 
+The planned full onboarding keeps one `/onboarding` parent screen: top progress
+and bottom actions remain fixed while a mode-derived child step changes. Draft
+mode, confirmed App Mode, and onboarding completion are separate so the first
+choice cannot open Home prematurely. See the
+[Onboarding flow architecture](docs/ONBOARDING_ARCHITECTURE.md).
+
 Workout Library and Meal Plan remain owned routes inside Workout and Nutrition. After their features exist, the custom layout may promote them as shortcuts without moving their business logic or duplicating screens. Coach becomes eligible only in Phase 7; You and future Social remain gated by their own approved product slices.
 
-Profile and Settings remain launch surfaces in the guided layout. A future You destination may group personal and account flows without changing their owners.
+Profile remains the account launch surface in the guided Home chrome. Settings opens from Profile or an approved feature-owned entry, not from a separate Home top-bar icon. A future You destination may group personal and account flows without changing their owners.
 
 ```text
-Profile  -> avatar/account entry
-Settings -> gear/menu entry
+Home -> Profile avatar/account entry -> Profile -> Settings
 ```
 
 ## Reusable Profile Avatar
 
-`apps/core` will own one reusable `TioAvatar` component for the mobile shell, lists, cards, and Profile. It will expose four semantic sizes—`compact`, `small`, `medium`, and `large`—so each screen chooses an intentional scale instead of hardcoding dimensions. The component will also expose a standard shape option: circular by default, with a rounded profile treatment when the owning screen requires it.
+`apps/core` owns one reusable `TioAvatar` component for the mobile shell, lists, cards, and Profile. It exposes four semantic sizes—`compact`, `small`, `medium`, and `large`—so each screen chooses an intentional scale instead of hardcoding dimensions. It is circular by default, supports a rounded Profile treatment, accepts an optional image, and falls back safely to initials or an icon.
+
+## Reusable Actions
+
+`apps/core` owns `TioButton` primary, secondary, and ghost variants. Shared tokens define finite sizing, spacing, pressed/focus/hover/disabled states, outlines, and loading presentation. Loading prevents duplicate actions, exposes progress semantics, and uses a static treatment when reduced motion is active; feature screens provide business intent without rebuilding these states.
 
 ## Recommended Flutter Stack
 
@@ -213,6 +222,7 @@ Start here:
 
 - [Documentation index](docs/README.md)
 - [AI context and active tasks](.ai/README.md)
+- [Onboarding flow architecture](docs/ONBOARDING_ARCHITECTURE.md)
 
 For the phone and Wear OS screen-by-screen product plan, read:
 

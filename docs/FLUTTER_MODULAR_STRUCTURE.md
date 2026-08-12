@@ -134,7 +134,7 @@ apps/core/lib/src/ui/shell/presentation/
    └─ tio_shell_top_bar.dart
 ```
 
-`TioShell` owns app-level chrome: top bar, bottom navigation, selected shell tab state, and content placement. The future `TioAvatar` belongs in `apps/core` as the shared shell, list, card, and Profile avatar component, with semantic size and shape options. Feature-specific navigation remains in feature packages or app route composition.
+`TioShell` owns app-level chrome: top bar, bottom navigation, selected shell tab state, and content placement. The implemented `TioAvatar` belongs in `apps/core` as the shared shell, list, card, and Profile avatar component, with semantic size, shape, image, fallback, and semantics options. Feature-specific navigation remains in feature packages or app route composition.
 
 ## Feature Package Pattern
 
@@ -199,15 +199,14 @@ The implemented architecture places the single `AppMode` enum, guided destinatio
 | `nutrition` | Home, Nutrition, Progress |
 | `hybrid` | Home, Workout, Nutrition, Progress |
 
-Workout Library remains a Workout route, and Meal Plan remains a future Nutrition route after diary MVP. Neither is a guided default tab. Onboarding's implemented first step selects the mode and Settings changes it later. Mode-conditional profile/feature onboarding steps remain planned. Coach becomes eligible in Phase 7.
+Workout Library remains a Workout route, and Meal Plan remains a future Nutrition route after diary MVP. Neither is a guided default tab. Onboarding's implemented first step selects the mode and Settings changes it later. The planned full flow keeps one parent route with fixed progress/actions and mode-derived child content; see [Onboarding Flow Architecture](ONBOARDING_ARCHITECTURE.md). Coach becomes eligible in Phase 7.
 
 A final-stage custom navigation layer may promote implemented feature routes as shortcuts while keeping Home fixed, three to six eligible selections, stable route ownership, and one canonical feature workflow. See [ADR-0005](adr/0005-adaptive-navigation-and-action-entry.md).
 
 Profile and Settings are launch surfaces, not primary bottom tabs.
 
 ```text
-Profile  -> avatar/account entry
-Settings -> gear/menu entry
+Home -> Profile avatar/account entry -> Profile -> Settings
 ```
 
 ## Melos Workspace

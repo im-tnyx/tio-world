@@ -39,14 +39,6 @@ class _WelcomeRouteState extends State<WelcomeRoute> {
       case WelcomeSkipForNowClicked():
         context.go(AppRoutes.home.path);
         break;
-      case WelcomeLanguageChanged():
-        break;
-      case WelcomeTermsTapped():
-        // Terms of service tap handler
-        break;
-      case WelcomePrivacyTapped():
-        // Privacy policy tap handler
-        break;
     }
   }
 
