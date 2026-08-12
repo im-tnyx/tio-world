@@ -3,7 +3,7 @@
 **Surface:** Phone full-screen setup flow
 **Current route:** `/onboarding`
 **Primary owner:** `apps/features/onboarding`
-**Status:** App Mode selection is implemented. The fixed parent shell and later mode-conditional child steps remain planned.
+**Status:** App Mode selection is active. The fixed parent-shell infrastructure and flow planner are implemented and tested but not routed; later mode-conditional child steps remain planned.
 
 ## Purpose
 

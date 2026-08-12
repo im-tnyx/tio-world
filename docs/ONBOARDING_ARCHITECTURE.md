@@ -2,10 +2,12 @@
 
 ## Status
 
-**Target architecture; not implemented.** The current runtime implements only the
-first App Mode selection page and persists the confirmed mode device-locally. The
-parent flow shell, conditional child steps, full draft, resume behavior, and
-completion coordinator described here remain planned.
+**Foundation implemented; runtime migration pending.** The onboarding package now
+contains the pure mode-derived flow planner, draft/status contracts,
+Riverpod-compatible controller, fixed parent shell, and focused tests. The active
+route still renders the standalone App Mode page and immediately publishes the
+confirmed mode; conditional owner steps, persisted resume, and completion remain
+planned.
 
 ## Outcome
 
@@ -32,7 +34,7 @@ active field and primary action remain reachable.
 
 ## Current Runtime Boundary
 
-Verified source behavior on 2026-08-11:
+Verified source behavior on 2026-08-12:
 
 - `AppModeOnboardingPage` is a standalone `StatefulWidget`.
 - It owns selection, saving, and error state locally.
@@ -40,10 +42,15 @@ Verified source behavior on 2026-08-11:
   Home.
 - Router guards currently treat a non-null stored `AppMode` as enough to leave
   onboarding.
-- `apps/features/onboarding/src/domain` and `src/data` contain no production
-  contracts yet.
-- No onboarding-specific widget, controller, flow-planner, resume, or completion
-  tests exist yet.
+- `apps/features/onboarding/lib/src/domain` owns stable step IDs, versioned draft
+  and status models, exact mode plans, and safe current-step reconciliation.
+- `OnboardingController` and `OnboardingFlowPage` provide the tested fixed progress,
+  changing scrollable content, fixed actions, system-Back, duplicate-finish lock,
+  compact-width, large-text, semantics, and reduced-motion foundation.
+- The parent shell is not registered in `apps/app/lib/app/router.dart` yet, so it
+  does not change current user-visible routing.
+- No approved owner-field step, secure resume repository, or completion coordinator
+  exists yet.
 - Supabase and a structured local database are not implemented.
 
 Runtime source remains the truth until the planned slices below are delivered.
@@ -400,10 +407,11 @@ The implementation must define and test:
 
 ## Delivery Slices
 
-1. **Pure flow foundation:** step IDs, flow plan, mode matrix, state, planner, and
-   exhaustive unit tests.
-2. **Parent shell:** fixed top progress, child host, fixed bottom actions,
-   keyboard/system-back behavior, and widget/accessibility tests.
+1. **Pure flow foundation — implemented:** step IDs, flow plan, mode matrix, state,
+   planner, and exhaustive unit tests.
+2. **Parent shell — implemented foundation:** fixed top progress, child host, fixed
+   bottom actions, system-back behavior, and widget/accessibility tests. Field-backed
+   keyboard validation starts with the first approved input step.
 3. **Mode integration:** migrate the current mode card UI into `AppModeStep`, keep
    mode as draft state, and evolve router gating without adding sensitive fields.
 4. **Common Profile slice:** add only approved fields and Profile-owned validation

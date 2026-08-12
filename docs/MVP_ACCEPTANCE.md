@@ -26,7 +26,7 @@ The foundation below is partially implemented. Checked items describe verified r
 
 - [x] `AppMode` is a single pure-Dart contract in `apps/shared` with `workout`, `nutrition`, and `hybrid`.
 - [x] Onboarding begins with App Mode selection.
-- [ ] Later onboarding steps are conditioned by mode; the full parent flow is documented but not implemented.
+- [ ] Later onboarding steps are conditioned by mode; the flow planner and parent-shell foundation are implemented, but mode-step routing and owner steps are not.
 - [x] Settings reads and changes the same mode through the approved preference boundary.
 - [ ] The confirmed mode survives a verified app restart; missing or invalid local data returns to mode selection safely. Device restart verification remains pending.
 - [x] `StatefulShellRoute` derives the guided layout from mode and safely handles a mode change while a destination is selected.

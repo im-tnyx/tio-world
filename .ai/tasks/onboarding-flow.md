@@ -1,6 +1,6 @@
-# Mode-Conditional Onboarding Flow
+﻿# Mode-Conditional Onboarding Flow
 
-**Status:** Ready
+**Status:** In progress — Slices 1–2 implemented; Slice 3 mode migration is next
 **Primary owners:** `apps/features/onboarding`, with stable contracts from Profile, Workout, Nutrition, `apps/shared`, and app-level provider/route composition
 **Affected platforms:** Flutter phone app
 
@@ -164,18 +164,19 @@ Finish
 
 ### Slice 1: Pure Flow Foundation
 
-- [ ] Add `OnboardingStepId`, `OnboardingStepDefinition`, `OnboardingStatus`,
+- [x] Add `OnboardingStepId`, `OnboardingStepDefinition`, `OnboardingStatus`,
   `OnboardingEntryPath`, `OnboardingDraft`, and `OnboardingFlowPlan` as pure contracts.
-- [ ] Add `BuildOnboardingFlowUseCase` with exact mode matrices.
-- [ ] Add exhaustive unit tests for every mode and current-step reconciliation.
+- [x] Add `BuildOnboardingFlowUseCase` with exact mode matrices.
+- [x] Add exhaustive unit tests for every mode and current-step reconciliation.
 
 ### Slice 2: Parent Shell
 
-- [ ] Add `OnboardingState` and Riverpod `OnboardingController`.
-- [ ] Add `OnboardingFlowPage`, fixed top progress, child host, and fixed bottom bar.
-- [ ] Keep child transitions non-swipeable and token/reduced-motion driven.
-- [ ] Cover keyboard, system Back, duplicate taps, compact width, large text, and
-  semantics with widget tests.
+- [x] Add `OnboardingState` and Riverpod `OnboardingController`.
+- [x] Add `OnboardingFlowPage`, fixed top progress, child host, and fixed bottom bar.
+- [x] Keep child transitions non-swipeable and token/reduced-motion driven.
+- [x] Cover system Back, duplicate taps, compact width, large text, and semantics
+  with widget tests.
+- [ ] Add field-backed keyboard coverage when the first approved input step lands.
 
 ### Slice 3: Mode Migration
 
@@ -226,10 +227,10 @@ Finish
 
 ```text
 repository: git diff --check -> PASS
-documentation: 26-file relative Markdown-link scan -> PASS
-documentation: onboarding fenced-block balance check -> PASS
-documentation: targeted stale Settings/onboarding wording scan -> PASS
-Flutter analysis/tests -> NOT RUN; this slice changes planning documentation only
+onboarding package: flutter analyze --no-pub -> PASS
+onboarding package: flutter test --no-pub -> PASS (19 tests)
+phone app: flutter analyze --no-pub -> PASS
+phone app: flutter test --no-pub -> PASS (45 tests)
 ```
 
 ### Review Findings And Resolution
@@ -246,26 +247,29 @@ Flutter analysis/tests -> NOT RUN; this slice changes planning documentation onl
 
 ### Changed Files
 
-- Added `docs/ONBOARDING_ARCHITECTURE.md`.
-- Added `docs/adr/0006-single-route-onboarding-parent-flow.md`.
-- Added `.ai/tasks/onboarding-flow.md`.
-- Updated canonical architecture, ownership, roadmap, UI, data, security, testing,
-  screen, decision, implementation-status, and documentation-index references.
-- No Dart, Kotlin, database, Supabase, or backend source was changed by this
-  planning slice.
+- Added pure onboarding models and `BuildOnboardingFlowUseCase` under
+  `apps/features/onboarding/lib/src/domain`.
+- Added `OnboardingState`, the Riverpod-compatible `OnboardingController`, and
+  fixed parent-shell widgets under `apps/features/onboarding/lib/src/presentation`.
+- Added focused domain/controller/widget tests under
+  `apps/features/onboarding/test`.
+- Updated implementation-status and onboarding documentation to preserve the
+  runtime truth boundary.
 
 ### Actual Behavior
 
-Current runtime still provides only the App Mode selection page and immediate Home
-navigation after confirmation.
+The reusable flow and parent-shell foundation is implemented and tested. The active
+`/onboarding` route still provides the standalone App Mode selection page and
+immediate Home navigation after confirmation.
 
 ### Known Limitations
 
 - Exact Profile fields, consent, Auth ordering, secure local storage, legacy
   migration, and cross-owner completion transaction remain decision-gated.
-- No parent shell, conditional steps, full draft, or resume implementation exists yet.
+- The parent shell is not routed yet. Mode-step migration, conditional owner steps,
+  persisted draft/resume, and safe completion remain pending.
 
 ### Final Status
 
-`REVIEW` — implementation-ready shell/flow plan; sensitive persistence and field
-contracts remain gated before their respective slices.
+`PARTIAL` — flow and parent-shell foundation implemented and validated; runtime
+mode migration and later sensitive slices remain gated.
