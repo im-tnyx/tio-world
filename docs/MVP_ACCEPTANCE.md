@@ -22,13 +22,16 @@ Before a slice is called complete:
 
 **Approved start boundary:** Persist the confirmed mode device-locally for the first slice. Defer account sync until an approved Supabase profile contract exists.
 
-- [ ] `AppMode` is a single pure-Dart contract in `apps/shared` with `workout`, `nutrition`, and `hybrid`.
-- [ ] Onboarding begins with mode selection and later steps are conditioned by mode.
-- [ ] Settings reads and changes the same mode through the approved preference boundary.
-- [ ] The confirmed mode survives an app restart; missing or invalid local data returns to mode selection safely.
-- [ ] `StatefulShellRoute` derives the guided layout from mode and safely handles a mode change while a destination is selected.
-- [ ] Workout Library and Meal Plan are not added to the guided default tabs; later custom promotion remains outside the MVP. Coach remains deferred to Phase 7.
-- [ ] Contract, state mapping, and navigation selection have focused automated coverage.
+The foundation below is partially implemented. Checked items describe verified runtime behavior; unchecked items remain pending and must not be treated as full onboarding or release completion.
+
+- [x] `AppMode` is a single pure-Dart contract in `apps/shared` with `workout`, `nutrition`, and `hybrid`.
+- [x] Onboarding begins with App Mode selection.
+- [ ] Later onboarding steps are conditioned by mode; the full parent flow is documented but not implemented.
+- [x] Settings reads and changes the same mode through the approved preference boundary.
+- [ ] The confirmed mode survives a verified app restart; missing or invalid local data returns to mode selection safely. Device restart verification remains pending.
+- [x] `StatefulShellRoute` derives the guided layout from mode and safely handles a mode change while a destination is selected.
+- [x] Workout Library and Meal Plan are not added to the guided default tabs; later custom promotion remains outside the MVP. Coach remains deferred to Phase 7.
+- [x] Contract, state mapping, and navigation selection have focused automated coverage.
 
 ## 2. First Supabase-Backed Slice
 
