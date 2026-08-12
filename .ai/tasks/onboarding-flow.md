@@ -1,4 +1,4 @@
-﻿# Mode-Conditional Onboarding Flow
+# Mode-Conditional Onboarding Flow
 
 **Status:** In progress — Slices 1–2 implemented; Slice 3 mode migration is next
 **Primary owners:** `apps/features/onboarding`, with stable contracts from Profile, Workout, Nutrition, `apps/shared`, and app-level provider/route composition
@@ -228,7 +228,7 @@ Finish
 ```text
 repository: git diff --check -> PASS
 onboarding package: flutter analyze --no-pub -> PASS
-onboarding package: flutter test --no-pub -> PASS (19 tests)
+onboarding package: flutter test --no-pub -> PASS (20 tests)
 phone app: flutter analyze --no-pub -> PASS
 phone app: flutter test --no-pub -> PASS (45 tests)
 ```

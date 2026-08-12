@@ -30,11 +30,14 @@ class OnboardingBottomBar extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (state.retryableError != null) ...[
-              Text(
-                'Could not finish setup. Please try again.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  'Could not finish setup. Please try again.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                ),
               ),
               const SizedBox(height: TioSpacing.medium),
             ],

@@ -128,12 +128,49 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Continue'), findsOneWidget);
     expect(find.byType(OnboardingBottomBar), findsOneWidget);
+
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Back'), findsOneWidget);
+    expect(find.text('Continue'), findsOneWidget);
+  });
+
+  testWidgets('completion failure is announced as a live region',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    try {
+      await _pumpFlow(
+        tester,
+        onFinishRequested: () => Future<void>.error(StateError('failed')),
+      );
+
+      for (var step = 0;
+          step < 8 && find.text('Finish').evaluate().isEmpty;
+          step++) {
+        await tester.tap(find.byType(FilledButton));
+        await tester.pumpAndSettle();
+      }
+
+      expect(find.text('Finish'), findsOneWidget);
+      await tester.tap(find.text('Finish'));
+      await tester.pumpAndSettle();
+
+      final node = tester.getSemantics(
+        find.text('Could not finish setup. Please try again.'),
+      );
+      expect(node.flagsCollection.isLiveRegion, isTrue);
+    } finally {
+      semantics.dispose();
+    }
   });
 }
 
 Future<void> _pumpFlow(
   WidgetTester tester, {
   Future<void> Function()? onExitRequested,
+  Future<void> Function()? onFinishRequested,
   TioThemeConfig config = const TioThemeConfig(),
   TextScaler textScaler = TextScaler.noScaling,
 }) async {
@@ -153,7 +190,7 @@ Future<void> _pumpFlow(
             draft: OnboardingDraft(selectedMode: AppMode.workout),
           ),
           onExitRequested: onExitRequested,
-          onFinishRequested: () async {},
+          onFinishRequested: onFinishRequested ?? () async {},
           stepBuilder: (context, state, controller) {
             return Text('Child ${state.stepId.name}');
           },
