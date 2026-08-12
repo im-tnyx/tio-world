@@ -13,7 +13,12 @@ Give the user a short, useful daily overview and one clear next action. Home sum
 
 Common content:
 
-- App bar with product identity and one profile/account entry using the reusable `TioAvatar`; do not add a separate Settings icon here.
+- Plain, full-width app bar with uppercase `TIO` at the standard left inset and no outer
+  card, border, pill, or container shape. Only the true-centered plan pill
+  (`Get Pro`, `Plus`, or `Pro`) and the reusable
+  `TioAvatarSize.small` Profile entry. Do not derive Back or add Settings here.
+- Keep the plan pill at the shared `TioNavigationTokens` width and height; do
+  not resize it by plan label. Center its text vertically and horizontally.
 - Date-aware greeting and a concise daily summary.
 - One primary next action, such as continuing an active selected session, choosing a Routine/Program, or adding the next meal.
 - Small, actionable preview cards that navigate to their owning feature. Cards must not duplicate full diary, workout, or analytics screens.
@@ -53,6 +58,8 @@ Sections are reusable feature-summary components backed by prepared contracts. H
 - When Nutrition is not directly selected but Hybrid mode allows it, Home may expose a prominent Log Meal or Add Water entry. A planned-meal action passes plan context to the canonical Nutrition log flow.
 - Progress cards open Progress.
 - Avatar opens Profile; Profile owns the Settings launch entry.
+- The plan pill remains display-only until a real Billing/Entitlement route
+  exists. Home does not duplicate Workout or Meal Log streak status.
 - The guided primary navigation follows `AppMode`; future custom navigation keeps Home first and selected while other eligible destinations change.
 
 ## Data And State Boundaries
@@ -71,6 +78,8 @@ Sections are reusable feature-summary components backed by prepared contracts. H
 - Home still offers a meaningful first action with no workout, nutrition, or progress history.
 - A card launches its owning feature without importing feature presentation code into the shell.
 - Profile, Settings, dark mode, high contrast, reduced motion, and screen-reader traversal are verified when implemented.
+- Home chrome keeps the documented left/center/right order on compact widths,
+  never displays Back/Settings, and keeps the plan pill separate from Profile.
 
 ## Related
 

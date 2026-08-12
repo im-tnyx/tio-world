@@ -4,10 +4,10 @@
 
 **Foundation implemented; runtime migration pending.** The onboarding package now
 contains the pure mode-derived flow planner, draft/status contracts,
-Riverpod-compatible controller, fixed parent shell, and focused tests. The active
-route still renders the standalone App Mode page and immediately publishes the
-confirmed mode; conditional owner steps, persisted resume, and completion remain
-planned.
+Riverpod-compatible controller, fixed parent shell, reusable first-child
+`AppModeStep`, and focused tests. The active route still renders the standalone
+compatibility page and immediately publishes the confirmed mode; router/completion
+migration, conditional owner steps, persisted resume, and completion remain planned.
 
 ## Outcome
 
@@ -19,12 +19,12 @@ determines the ordered step plan.
 /onboarding
 └─ OnboardingFlowPage
    ├─ OnboardingTopBar
-   │  ├─ exit/save affordance when allowed
+   │  ├─ hidden on the unnumbered App Mode chooser
+   │  ├─ Back after the chooser
    │  └─ OnboardingProgressIndicator
    ├─ Expanded OnboardingContentHost
    │  └─ one child step keyed by OnboardingStepId
    └─ OnboardingBottomBar
-      ├─ Back, when a previous step exists
       └─ Continue / Review / Finish primary action
 ```
 
@@ -36,8 +36,10 @@ active field and primary action remain reachable.
 
 Verified source behavior on 2026-08-12:
 
-- `AppModeOnboardingPage` is a standalone `StatefulWidget`.
-- It owns selection, saving, and error state locally.
+- `AppModeOnboardingPage` is a standalone compatibility `StatefulWidget` that
+  consumes the same reusable `AppModeStep` intended for the parent flow.
+- The page owns selection, saving, and error state locally; `AppModeStep` owns only
+  intro/mode-card presentation and emits selection.
 - Confirming a mode writes through `AppModeController` and immediately opens
   Home.
 - Router guards currently treat a non-null stored `AppMode` as enough to leave
@@ -47,6 +49,8 @@ Verified source behavior on 2026-08-12:
 - `OnboardingController` and `OnboardingFlowPage` provide the tested fixed progress,
   changing scrollable content, fixed actions, system-Back, duplicate-finish lock,
   compact-width, large-text, semantics, and reduced-motion foundation.
+- Parent-shell widget coverage verifies `AppModeStep` updates `OnboardingDraft`,
+  recalculates the eligible mode path, and does not publish confirmed App Mode.
 - The parent shell is not registered in `apps/app/lib/app/router.dart` yet, so it
   does not change current user-visible routing.
 - No approved owner-field step, secure resume repository, or completion coordinator
@@ -62,6 +66,18 @@ Runtime source remains the truth until the planned slices below are delivered.
 `go_router` opens one `/onboarding` route. Individual onboarding steps are not
 independent app routes. `OnboardingController` selects the current child by stable
 `OnboardingStepId`.
+
+### App Mode Intro Is The First Child
+
+`AppModeStep` combines the short onboarding introduction and the three App Mode
+cards in one first child. There is no separate intro route or numbered progress
+step. Its top bar and progress are hidden. Selection updates only
+`OnboardingDraft`; the resulting Workout, Nutrition, or Hybrid plan determines the
+later children and progress total.
+
+System Back remains active on this top-bar-free chooser. It invokes the approved
+route-exit path; once persisted draft fields exist, that path must enforce the same
+safe-exit confirmation policy as later steps.
 
 This keeps progress, keyboard handling, back behavior, loading lockout, draft
 saves, and completion behavior in one place. Child widgets render fields and emit
@@ -263,8 +279,10 @@ real reducer, replay, or analytics pipeline needs typed action objects.
 
 ### Progress Rules
 
-- Before mode selection, announce `Choose mode` without inventing a final total.
-- After mode selection, derive current and total from `OnboardingFlowPlan`.
+- Exclude `OnboardingStepId.mode` from both progress position and total; the chooser
+  renders without top chrome.
+- After mode selection, derive current and total from the remaining eligible steps
+  in `OnboardingFlowPlan`.
 - Announce both position and title, for example `Step 3 of 6, Workout setup`.
 - Rebuilding the plan must preserve the current stable step when it remains
   eligible; otherwise move to the nearest previous valid step.
@@ -272,12 +290,13 @@ real reducer, replay, or analytics pipeline needs typed action objects.
   `context.tioMotion`; reduced motion uses zero-duration state changes.
 - Progress must not rely on color alone.
 
-### Bottom Action Rules
+### Navigation And Bottom Action Rules
 
 - Primary action labels are step-aware: `Continue`, `Review`, or `Finish`.
-- Back is hidden or disabled when no previous internal step exists.
-- First-step route exit is a separate explicit action and must not masquerade as
-  internal Back.
+- Visible Back belongs in `OnboardingTopBar`, never beside the bottom primary
+  action. It moves to the previous internal step when one exists.
+- On the first step, Back may invoke the approved route-exit flow; it is hidden
+  when neither an internal previous step nor a safe exit callback exists.
 - Invalid steps keep the primary action disabled and expose field-level guidance.
 - Saving/completing disables duplicate taps and announces its loading state.
 - On compact screens and with the keyboard open, actions remain reachable without
@@ -409,11 +428,13 @@ The implementation must define and test:
 
 1. **Pure flow foundation — implemented:** step IDs, flow plan, mode matrix, state,
    planner, and exhaustive unit tests.
-2. **Parent shell — implemented foundation:** fixed top progress, child host, fixed
-   bottom actions, system-back behavior, and widget/accessibility tests. Field-backed
-   keyboard validation starts with the first approved input step.
-3. **Mode integration:** migrate the current mode card UI into `AppModeStep`, keep
-   mode as draft state, and evolve router gating without adding sensitive fields.
+2. **Parent shell — implemented foundation:** top chrome hidden for the mode
+   chooser, fixed Back/progress for later children, changing child host, fixed
+   bottom primary action, system-back behavior, and widget/accessibility tests.
+   Field-backed keyboard validation starts with the first approved input step.
+3. **Mode integration — partial:** reusable intro/cards now live in `AppModeStep`
+   and parent-shell tests verify draft/path behavior. Active-route and explicit
+   completion gating migration remain pending and add no sensitive fields.
 4. **Common Profile slice:** add only approved fields and Profile-owned validation
    contracts.
 5. **Workout and Nutrition branches:** add each independently behind owner

@@ -148,9 +148,11 @@ The enum, guided destination mapping, and preference boundary live in `apps/shar
 Onboarding now begins with App Mode selection, and Settings changes the same selection later. The common-profile, Workout, Nutrition, review, and finish steps remain planned and must be shown conditionally for the chosen mode when implemented. App Mode remains a product-scope contract; it is not replaced by future tab personalization.
 
 The target full onboarding flow keeps one `/onboarding` route and one parent
-`OnboardingFlowPage`. Its top progress and bottom actions remain fixed while a
-mode-derived `OnboardingFlowPlan` changes only the child content. Stable step IDs,
-not route paths or raw indexes, own internal progress and resume identity. The
+`OnboardingFlowPage`. Its unnumbered App Mode chooser hides top chrome and is
+excluded from progress. Later children keep fixed Back/progress and a fixed bottom
+primary action while a mode-derived `OnboardingFlowPlan` changes only the child
+content. Stable step IDs, not route paths or raw indexes, own internal progress and
+resume identity. The
 unfinished draft mode, confirmed product mode, and onboarding-completion status
 are separate so choosing mode on step one cannot redirect to Home prematurely.
 See [Onboarding Flow Architecture](ONBOARDING_ARCHITECTURE.md) and
@@ -165,6 +167,11 @@ The app shell uses `go_router` `StatefulShellRoute.indexedStack`. `shellBranchRe
 | `workout` | Home, Workout, Progress |
 | `nutrition` | Home, Nutrition, Progress |
 | `hybrid` | Home, Workout, Nutrition, Progress |
+
+Bottom navigation renders only on the exact selected root destination paths.
+Child, editor, drill-down, account, and full-screen routes hide it. Root tabs do
+not derive a Back button from navigator history; each child/sub-screen owns an
+explicit top Back action that returns through its route stack.
 
 After the core product screens are stable, a separate Navigation & Tabs setting may let the user choose three to six eligible destinations. Home remains required and first. Eligibility is the intersection of App Mode, implemented feature availability, and release-stage policy. The exact compact-phone presentation for six selections requires responsive and accessibility validation; an overflow/More treatment may represent part of the selected layout without changing the saved preference.
 
@@ -183,7 +190,7 @@ Feature actions have one canonical command/workflow and may appear through multi
 Profile is the account launch surface in Home chrome, while Settings opens from Profile or an approved feature-owned entry. Neither is a primary bottom tab, and Home does not expose a separate Settings icon.
 
 ```text
-Home -> Profile avatar/account entry -> Profile -> Settings
+Home -> Profile avatar/account entry -> Profile -> Profile photo / Settings
 ```
 
 The implemented App Mode foundation delivers guided defaults only. Future personalization and adaptive action placement are tracked separately in [ADR-0005](adr/0005-adaptive-navigation-and-action-entry.md) and the [adaptive navigation task](../.ai/tasks/adaptive-navigation-and-actions.md).
@@ -208,7 +215,20 @@ Durable platform, navigation, data-boundary, and design-system choices are recor
 
 ## Reusable Profile Avatar
 
-`apps/core` owns one reusable `TioAvatar` component for shell, list, card, and Profile use. Its API provides four semantic sizes—`compact`, `small`, `medium`, and `large`—and a standard shape option: circular by default with a rounded Profile treatment where the owning screen requires it. It accepts an optional `ImageProvider`, uses initials or an icon fallback on missing/failed images, and exposes caller-supplied image semantics. Screens select its contracts instead of defining avatar dimensions, clipping, or fallback behavior locally.
+`apps/core` owns one reusable `TioAvatar` component for shell, list, card,
+Profile, and photo-fallback use. Its API provides five semantic
+sizes—`compact`, `small`, `medium`, `large`, and `extraLarge`—and a standard
+shape option: circular by default with a rounded Profile treatment where the
+owning screen requires it. It accepts an optional `ImageProvider`, uses initials
+or an icon fallback on missing/failed images, and exposes caller-supplied image
+semantics. Screens select its contracts instead of defining avatar dimensions,
+clipping, or fallback behavior locally.
+
+`TioAvatarFrame` is presentation-only: Free maps to no decorative frame, Plus to
+the theme-semantic circular gradient ring, and Pro to the theme-semantic hexagon
+crop/frame. Billing/Entitlement owns the tier; screens map its prepared value into
+the component. `TioAvatarSize.extraLarge` ignores frames because the full-screen
+photo surface owns that presentation.
 
 `apps/core` also owns the reusable `TioButton` primary, secondary, and ghost action variants. The component and theme share finite token-driven dimensions, spacing, state layers, outlines, disabled behavior, loading lockout, progress semantics, and reduced-motion fallback. Feature packages provide action intent and state; they do not recreate common button loading or interaction behavior.
 

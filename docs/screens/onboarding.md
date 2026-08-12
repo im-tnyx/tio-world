@@ -3,7 +3,7 @@
 **Surface:** Phone full-screen setup flow
 **Current route:** `/onboarding`
 **Primary owner:** `apps/features/onboarding`
-**Status:** App Mode selection is active. The fixed parent-shell infrastructure and flow planner are implemented and tested but not routed; later mode-conditional child steps remain planned.
+**Status:** App Mode selection is active through a reusable first-child section. The fixed parent-shell infrastructure and flow planner are implemented and tested but not routed; later mode-conditional child steps remain planned.
 
 ## Purpose
 
@@ -11,19 +11,39 @@ Collect only the minimum context required to give a user the correct product exp
 
 ## Current Implemented Boundary
 
-- The route presents all three modes, their guided tab preview, validation, saving state, and persistence errors.
+- The route presents the reusable `AppModeStep` intro and all three mode cards, plus validation, saving state, and persistence errors.
 - A confirmed selection is saved through the shared preference boundary and opens Home with the matching guided navigation.
 - The page previews which setup branch comes next, but it does not yet collect profile, Workout, or Nutrition inputs and does not represent completed onboarding.
 - The current route does not yet distinguish a draft mode choice from completed onboarding.
 
+## App Mode Intro Section
+
+The first parent-flow child is one combined intro and selection section, not a
+separate intro screen:
+
+1. Explain that App Mode shapes onboarding and guided navigation and remains
+   changeable later in Settings.
+2. Present `workout`, `nutrition`, and `hybrid` as accessible selectable cards.
+3. Preview the next setup focus after selection.
+4. Keep Continue disabled until a mode is selected.
+5. Update only `OnboardingDraft`; derive the later child path and progress total
+   from that draft.
+
+The existing standalone route reuses this section during the compatibility period.
+It will stop confirming the mode immediately only when explicit completion gating
+and the approved legacy migration are wired.
+
 ## Target Parent Layout
 
-The target flow keeps one full-screen parent at `/onboarding`. Top progress and
-bottom actions remain visible while only the middle child content changes.
+The target flow keeps one full-screen parent at `/onboarding`. The App Mode chooser
+uses no top bar and is excluded from progress. After it, top Back/progress and the
+bottom primary action remain visible while only the middle child content changes.
+System Back remains available on the chooser and follows the approved safe-exit
+path.
 
 ```text
 ┌──────────────────────────────────────┐
-│ Exit                         Step 2/6 │
+│ Back                         Step 2/6 │
 │ ━━━━━━━━━━━━━ progress ━━━━━━━━━━━━ │
 ├──────────────────────────────────────┤
 │                                      │
@@ -31,7 +51,7 @@ bottom actions remain visible while only the middle child content changes.
 │      scrolls when needed             │
 │                                      │
 ├──────────────────────────────────────┤
-│ Back                     Continue    │
+│                           Continue    │
 └──────────────────────────────────────┘
 ```
 
@@ -85,7 +105,8 @@ The exact personal-data fields, consent wording, and persistence method require 
 ## Acceptance Criteria
 
 - App Mode is visibly the first user decision.
-- Top progress and bottom actions remain fixed while only child content changes.
+- The App Mode chooser remains unnumbered with no top chrome; later Back/progress
+  and the bottom primary action remain fixed while only child content changes.
 - `workout`, `nutrition`, and `hybrid` show only the relevant later steps.
 - Hybrid reuses common Profile input and does not duplicate it.
 - Back, resume, retry, keyboard, and system Back behavior cannot silently discard entered data.

@@ -75,7 +75,8 @@ Goal: create the first usable Android+iOS phone shell.
 - [x] Add the mode-first onboarding selection and Settings mode editor
 - [x] Derive visible guided tabs and route eligibility from App Mode
 - [x] Define the Material 3 Expressive token and component migration plan in `apps/core`, including touch feedback, high contrast, reduced motion, dark mode, and phone-versus-Wear boundaries; first theme/navigation/avatar/button slice implemented, with manual device validation still open
-- [x] Extract reusable `TioAvatar` in `apps/core` with compact, small, medium, and large sizes plus a screen-selected shape
+- [x] Extract reusable `TioAvatar` in `apps/core` with compact, small, medium,
+  large, and extra-large sizes plus a screen-selected shape
 - [ ] Move from basic route constants to typed `go_router` routes when screens mature
 
 Guided tabs are mode-dependent as defined in [App Mode System](#app-mode-system). The five registered branches are internal route identity, not a fixed five-item bottom bar.
@@ -92,9 +93,10 @@ Goal: first usable health and fitness app flow.
 - [ ] Confirm Supabase Auth sign-in methods and the first authenticated vertical slice
 - [ ] Complete the single-route, mode-conditional onboarding flow on top of the
   implemented App Mode selection:
-  - [ ] Add stable step identity and pure Workout/Nutrition/Hybrid flow plans
-  - [ ] Add one parent screen with fixed top progress, changing child content, and
-    fixed bottom actions
+  - [x] Add stable step identity and pure Workout/Nutrition/Hybrid flow plans
+  - [ ] Route one parent screen with a top-bar-free unnumbered App Mode chooser,
+    fixed Back/progress on later children, changing child content, and a fixed
+    bottom primary action
   - [ ] Separate draft mode, confirmed App Mode, and onboarding-completion status
   - [ ] Add approved Profile, Workout, Nutrition, Targets, and Review child steps
   - [ ] Add validated save/resume and idempotent completion after privacy and

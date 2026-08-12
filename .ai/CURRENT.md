@@ -17,9 +17,22 @@ This file is a concise handoff for the next agent. It is not a replacement for r
 - `apps/shared` exposes the pure-Dart `AppMode` (`workout`, `nutrition`, `hybrid`), `AppDestination`, guided destination mapping, and mode-preference contract.
 - Flutter renders the initial Splash frame before `AppModeBootstrap` loads the confirmed mode from device-local `SharedPreferencesAsync` storage and refreshes routing. Missing or invalid data routes to mode selection.
 - The shell keeps stable registered branches but derives the visible guided tabs from App Mode: Home/Workout/Progress, Home/Nutrition/Progress, or Home/Workout/Nutrition/Progress. Coach remains unavailable before Phase 7.
-- Onboarding implements the first App Mode selection screen. Settings reads and changes the same stored selection and opens from the Profile launcher; Home chrome keeps only the Profile avatar account entry. Later profile details, Workout, Nutrition, review, and completion onboarding steps are not implemented.
-- The onboarding package now contains the tested pure mode-derived flow plan, draft/status contracts, Riverpod-compatible controller, and fixed parent-shell UI primitives. They are not wired to `/onboarding` yet; the active route still uses the standalone App Mode page.
-- The shell profile entry uses the shared `apps/core` `TioAvatar`, which provides four semantic sizes, circle/rounded shapes, optional image input, safe fallback, and caller-controlled semantics.
+- Home chrome renders uppercase `TIO` at the left inset, a true-centered
+  display-only plan pill, and the shared 36dp Profile avatar. Back, Settings, and
+  streak are absent. Workout and Nutrition roots own icon-only Workout streak and
+  Meal Log streak status until their feature data supplies real positive counts.
+- Onboarding implements the first App Mode selection screen. Its intro and mode cards now live in reusable `AppModeStep`, which the current standalone page consumes. Settings reads and changes the same stored selection and opens from the Profile launcher; Home chrome keeps only the Profile avatar account entry. Later profile details, Workout, Nutrition, review, and completion onboarding steps are not implemented.
+- The onboarding package now contains the tested pure mode-derived flow plan, draft/status contracts, Riverpod-compatible controller, fixed parent-shell UI primitives, and first-child `AppModeStep`. Parent-shell tests verify that a draft mode changes the eligible path without publishing the confirmed mode. The parent shell is not wired to `/onboarding` yet; the active route still uses the standalone compatibility page.
+- The shell uses a 36dp shared avatar and Profile uses 80dp. Tapping the Profile
+  avatar opens `/profile/avatar`, whose 1:1 preview uses the 160dp `extraLarge`
+  fallback when no image exists. Edit, delete, and download remain disabled until
+  Profile media handlers and private Storage are implemented.
+- `TioAvatarFrame` supports no frame for Free, a theme-semantic circular gradient
+  ring for Plus, and a theme-semantic hexagon crop/frame for Pro. The full-screen
+  `extraLarge` fallback always suppresses plan framing. Current runtime entitlement
+  remains Free until a Billing/Entitlement owner is implemented.
+- The centered plan pill is display-only while no subscription route or billing
+  owner exists; it must not behave like a dead CTA.
 - Shared `TioButton` primary, secondary, and ghost variants now use core tokens for dimensions, spacing, state layers, outlines, disabled behavior, and loading presentation. Loading blocks duplicate actions, exposes live semantics, and becomes static under reduced motion.
 - Pixel 9 emulator validation found and fixed Welcome contrast drift: image controls remain white, feature summaries use a semantic surface, and the entrance animation consumes reduced-motion tokens. Light and dark phone captures plus a compact-width widget check pass.
 - The first Material 3 Expressive slice restores Material touch feedback, applies high-contrast and reduced-motion theme behavior, and uses token-driven `NavigationBar`, `TioAvatar`, and `TioButton` contracts. Manual device and accessibility checks remain open.
@@ -27,8 +40,9 @@ This file is a concise handoff for the next agent. It is not a replacement for r
 
 ## Documented Targets, Not Runtime Behavior
 
-- Full onboarding will use one `/onboarding` parent screen with fixed top progress,
-  one changing scrollable child, and fixed bottom actions. A pure mode-derived flow
+- Full onboarding will use one `/onboarding` parent screen. The unnumbered App Mode
+  chooser hides top chrome; later children use fixed Back/progress, one changing
+  scrollable child, and a fixed bottom primary action. A pure mode-derived flow
   plan uses stable step IDs. Draft mode, confirmed App Mode, and onboarding
   completion remain separate so the first choice cannot open Home prematurely.
 - A final-stage custom navigation upgrade will keep Home first and allow three to six eligible destinations. Home/feature sections and action entry prominence may adapt; destination identity must not rely on raw numeric tab indexes.

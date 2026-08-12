@@ -1,6 +1,6 @@
 # Mode-Conditional Onboarding Flow
 
-**Status:** In progress — Slices 1–2 implemented; Slice 3 mode migration is next
+**Status:** In progress — Slices 1–2 and AppModeStep extraction implemented; Slice 3 routing migration is next
 **Primary owners:** `apps/features/onboarding`, with stable contracts from Profile, Workout, Nutrition, `apps/shared`, and app-level provider/route composition
 **Affected platforms:** Flutter phone app
 
@@ -16,7 +16,9 @@ complete both branches without duplicate profile questions.
 ### Success Criteria
 
 - `/onboarding` renders one parent `OnboardingFlowPage`.
-- Top progress and bottom actions remain fixed while the child step changes.
+- The App Mode chooser has no top chrome and is excluded from progress. On later
+  steps, top Back/progress and the bottom primary action remain fixed while the
+  child changes.
 - `workout`, `nutrition`, and `hybrid` produce the documented ordered plans.
 - The first App Mode choice remains draft state until final completion.
 - Next, Back, system Back, retry, save/exit, and duplicate-tap behavior are explicit.
@@ -110,8 +112,10 @@ Use one pure `BuildOnboardingFlowUseCase`, one Riverpod
 go_router /onboarding
   -> OnboardingFlowPage
      -> fixed OnboardingTopBar + progress
+        -> Back (previous internal step or approved route exit)
      -> OnboardingContentHost(current StepId)
      -> fixed OnboardingBottomBar
+        -> primary Continue / Review / Finish action
         -> OnboardingController
            -> use cases
               -> OnboardingRepository
@@ -172,7 +176,9 @@ Finish
 ### Slice 2: Parent Shell
 
 - [x] Add `OnboardingState` and Riverpod `OnboardingController`.
-- [x] Add `OnboardingFlowPage`, fixed top progress, child host, and fixed bottom bar.
+- [x] Add `OnboardingFlowPage`, hide top chrome for the unnumbered mode chooser,
+  keep Back/progress fixed for later children, and keep the bottom primary action
+  fixed.
 - [x] Keep child transitions non-swipeable and token/reduced-motion driven.
 - [x] Cover system Back, duplicate taps, compact width, large text, and semantics
   with widget tests.
@@ -180,8 +186,14 @@ Finish
 
 ### Slice 3: Mode Migration
 
-- [ ] Move current mode cards into `AppModeStep` without visual regression.
-- [ ] Keep the selected mode in `OnboardingDraft`; do not publish it on first-step Continue.
+- [x] Move current mode cards and intro copy into reusable `AppModeStep`; preserve
+  selection, confirmation, error, semantics, and reduced-motion behavior while the
+  active standalone compatibility page consumes the same section.
+- [ ] Run manual light/dark device visual comparison before active-route migration.
+- [x] Verify parent-shell integration keeps the selected mode in `OnboardingDraft`,
+  derives the eligible path, and does not publish it on first-step Continue.
+- [ ] Register the parent flow on `/onboarding` only when every routed step has a
+  usable child or an explicitly approved incremental rollout state.
 - [ ] Evolve router/bootstrap gating to read explicit `OnboardingStatus`.
 - [ ] Implement and test the approved legacy mode-only migration.
 
@@ -228,9 +240,9 @@ Finish
 ```text
 repository: git diff --check -> PASS
 onboarding package: flutter analyze --no-pub -> PASS
-onboarding package: flutter test --no-pub -> PASS (20 tests)
+onboarding package: flutter test --no-pub -> PASS (28 tests)
 phone app: flutter analyze --no-pub -> PASS
-phone app: flutter test --no-pub -> PASS (45 tests)
+phone app: flutter test --no-pub -> PASS (61 tests)
 ```
 
 ### Review Findings And Resolution
@@ -251,6 +263,8 @@ phone app: flutter test --no-pub -> PASS (45 tests)
   `apps/features/onboarding/lib/src/domain`.
 - Added `OnboardingState`, the Riverpod-compatible `OnboardingController`, and
   fixed parent-shell widgets under `apps/features/onboarding/lib/src/presentation`.
+- Added reusable `AppModeStep`; both the standalone compatibility page and
+  parent-shell tests consume the same intro and mode-card section.
 - Added focused domain/controller/widget tests under
   `apps/features/onboarding/test`.
 - Updated implementation-status and onboarding documentation to preserve the
@@ -258,16 +272,16 @@ phone app: flutter test --no-pub -> PASS (45 tests)
 
 ### Actual Behavior
 
-The reusable flow and parent-shell foundation is implemented and tested. The active
-`/onboarding` route still provides the standalone App Mode selection page and
-immediate Home navigation after confirmation.
+The reusable flow, parent-shell foundation, and first-child App Mode section are
+implemented and tested. The active `/onboarding` route still provides the standalone
+compatibility page and immediate Home navigation after confirmation.
 
 ### Known Limitations
 
 - Exact Profile fields, consent, Auth ordering, secure local storage, legacy
   migration, and cross-owner completion transaction remain decision-gated.
-- The parent shell is not routed yet. Mode-step migration, conditional owner steps,
-  persisted draft/resume, and safe completion remain pending.
+- The parent shell is not routed yet. Router/completion migration, conditional owner
+  steps, persisted draft/resume, and safe completion remain pending.
 
 ### Final Status
 

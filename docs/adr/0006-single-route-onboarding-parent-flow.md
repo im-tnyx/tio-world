@@ -18,8 +18,9 @@ the active product mode would also end the route before later steps can render.
 ## Decision
 
 - Keep `/onboarding` as one full-screen `go_router` route.
-- Add one onboarding-owned parent page with a fixed top progress region, one
-  changing child-content region, and a fixed bottom action region.
+- Add one onboarding-owned parent page with one changing child-content region and
+  a fixed bottom primary-action region. Hide top chrome on the unnumbered App Mode
+  chooser; after it, keep Back/progress fixed.
 - Derive an ordered `OnboardingFlowPlan` from the draft `AppMode` and approved
   feature availability.
 - Identify steps by stable `OnboardingStepId`, not route path or list index.
@@ -41,7 +42,8 @@ the active product mode would also end the route before later steps can render.
 
 ### Positive
 
-- Top progress and bottom actions behave consistently across every mode.
+- The App Mode chooser stays visually clean, while later steps keep consistent
+  top Back/progress and a fixed bottom primary action.
 - A mode switch can rebuild the eligible step list without rewriting route history.
 - Back, validation, retry, loading lockout, and exit confirmation have one owner.
 - Hybrid reuses the Workout and Nutrition child steps instead of duplicating a

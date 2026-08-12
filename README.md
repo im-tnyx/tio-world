@@ -161,12 +161,19 @@ Workout Library and Meal Plan remain owned routes inside Workout and Nutrition. 
 Profile remains the account launch surface in the guided Home chrome. Settings opens from Profile or an approved feature-owned entry, not from a separate Home top-bar icon. A future You destination may group personal and account flows without changing their owners.
 
 ```text
-Home -> Profile avatar/account entry -> Profile -> Settings
+Home -> Profile avatar/account entry -> Profile -> Profile photo / Settings
 ```
 
 ## Reusable Profile Avatar
 
-`apps/core` owns one reusable `TioAvatar` component for the mobile shell, lists, cards, and Profile. It exposes four semantic sizes—`compact`, `small`, `medium`, and `large`—so each screen chooses an intentional scale instead of hardcoding dimensions. It is circular by default, supports a rounded Profile treatment, accepts an optional image, and falls back safely to initials or an icon.
+`apps/core` owns one reusable `TioAvatar` component for the mobile shell, lists,
+cards, Profile, and profile-photo fallback. It exposes five semantic
+sizes—`compact`, `small`, `medium`, `large`, and `extraLarge`—so each screen
+chooses an intentional scale instead of hardcoding dimensions. It is circular by
+default, supports a rounded Profile treatment, accepts an optional image, and
+falls back safely to initials or an icon. Free avatars have no plan frame, Plus
+may use the semantic gradient ring, and Pro may use the semantic hexagon frame;
+`extraLarge` remains frame-free for the full-screen photo surface.
 
 ## Reusable Actions
 
