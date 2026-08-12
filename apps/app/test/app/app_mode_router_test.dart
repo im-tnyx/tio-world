@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_app/app/app.dart';
@@ -40,6 +41,50 @@ void main() {
         FeatureRoutes.home.path);
     expect(find.text('Nutrition'), findsNothing);
     expect(find.text('Home'), findsWidgets);
+  });
+
+  testWidgets('Settings opens through Profile instead of the Home top bar',
+      (tester) async {
+    final preference = _MemoryAppModePreference(AppMode.hybrid);
+    final controller = AppModeController(preference);
+    await controller.load();
+    final container = ProviderContainer(
+      overrides: [
+        appModeControllerProvider.overrideWith((ref) => controller),
+      ],
+    );
+    addTearDown(container.dispose);
+    final router = container.read(goRouterProvider);
+    router.go(FeatureRoutes.home.path);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const TioApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Settings'), findsNothing);
+    expect(find.byTooltip('Profile'), findsOneWidget);
+
+    tester
+        .widget<TioShell>(find.byType(TioShell))
+        .onAction(const ShellProfileClicked());
+    await tester.pumpAndSettle();
+
+    expect(
+        find.byKey(const ValueKey('profile-settings-entry')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('profile-settings-entry')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('App Mode'), findsWidgets);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(
+        find.byKey(const ValueKey('profile-settings-entry')), findsOneWidget);
   });
 }
 

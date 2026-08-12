@@ -35,11 +35,6 @@ class TioShellTopBar extends StatelessWidget implements PreferredSizeWidget {
             child: const Text('Plus'),
           ),
         IconButton(
-          tooltip: 'Settings',
-          icon: const Icon(Icons.settings_outlined),
-          onPressed: () => onAction(const ShellSettingsClicked()),
-        ),
-        IconButton(
           tooltip: 'Profile',
           icon: const TioAvatar(size: TioAvatarSize.compact),
           onPressed: () => onAction(const ShellProfileClicked()),
