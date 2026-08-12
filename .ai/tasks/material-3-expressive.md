@@ -50,17 +50,19 @@ Establish Material 3 Expressive as a consistent, accessible phone design system 
 - [x] Fix Welcome image-control and feature-panel contrast, and move its entrance animation to the shared reduced-motion scheme.
 - [x] Add focused automated tests for touch feedback, high contrast, reduced motion, navigation rendering/selection, avatar behavior, and button integration.
 - [x] Verify Welcome and shared action rendering on a Pixel 9 emulator in light and dark mode, plus compact-width widget coverage.
-- [ ] Complete remaining manual phone checks for OLED, keyboard/focus, and screen-reader behavior.
+- [x] Add OLED semantic-color, keyboard activation, guided-navigation semantics, and non-interactive-placeholder regression coverage.
+- [x] Verify TalkBack service activation plus structural labels, roles, and the Home → Profile → Settings route on the updated Pixel 9 build.
+- [ ] Complete spoken-output TalkBack traversal on a physical Android device before this task moves to `Validated`.
 - [ ] Migrate the next approved shared component; feature-screen restyling remains out of scope until shared foundations are stable.
 
 ## Validation Evidence
 
 - `apps/app`: `flutter analyze` passes.
-- `apps/app`: full `flutter test` passes (41 tests).
+- `apps/app`: full `flutter test` passes (45 tests).
 - Focused theme/navigation/avatar/button/router/Welcome widget tests pass.
 - Pixel 9 Android emulator (API 37): light and dark Welcome rendering pass after semantic contrast correction; a 393x852 widget viewport passes without layout exceptions.
 - Android debug APK builds with the repository Gradle configuration when a compatible JDK 17 is supplied for the build process. No shared Flutter JDK configuration was changed.
-- OLED, keyboard/focus, and screen-reader checks remain before this task moves to `Validated`.
+- OLED and keyboard/focus contracts pass automated coverage. Pixel 9 TalkBack structural inspection confirms meaningful labels and roles across Home → Profile → Settings; spoken-output traversal on physical hardware remains before this task moves to `Validated`.
 
 ## Canonical Links
 
