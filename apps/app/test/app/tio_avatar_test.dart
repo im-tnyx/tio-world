@@ -5,6 +5,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 
 void main() {
+  test('keeps Home and Profile avatar dimensions explicit', () {
+    expect(TioAvatarSize.small.dimension, 36);
+    expect(TioAvatarSize.large.dimension, 80);
+    expect(TioAvatarSize.extraLarge.dimension, 160);
+  });
+
   for (final size in TioAvatarSize.values) {
     testWidgets('${size.name} uses its semantic dimensions', (tester) async {
       const avatarKey = Key('avatar');
@@ -55,6 +61,47 @@ void main() {
     );
   });
 
+  testWidgets('uses plan frames except on the full-screen fallback size',
+      (tester) async {
+    const freeKey = ValueKey('free-avatar');
+    const extraLargeKey = ValueKey('extra-large-avatar');
+
+    await tester.pumpWidget(
+      const _AvatarTestApp(
+        child: Row(
+          children: [
+            TioAvatar(key: freeKey),
+            TioAvatar(frame: TioAvatarFrame.plusRing),
+            TioAvatar(frame: TioAvatarFrame.proHexagon),
+            TioAvatar(
+              key: extraLargeKey,
+              size: TioAvatarSize.extraLarge,
+              frame: TioAvatarFrame.proHexagon,
+            ),
+          ],
+        ),
+      ),
+    );
+
+    expect(find.byKey(const ValueKey('tio-avatar-plus-ring')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('tio-avatar-pro-hexagon')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(freeKey),
+        matching: find.byKey(const ValueKey('tio-avatar-plus-ring')),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(extraLargeKey),
+        matching: find.byKey(const ValueKey('tio-avatar-pro-hexagon')),
+      ),
+      findsNothing,
+    );
+  });
+
   testWidgets('shows initials instead of the fallback icon', (tester) async {
     await tester.pumpWidget(
       const _AvatarTestApp(
@@ -101,7 +148,7 @@ void main() {
     }
   });
 
-  testWidgets('shell profile entry uses the compact shared avatar',
+  testWidgets('shell profile entry uses the small shared avatar',
       (tester) async {
     ShellAction? action;
     await tester.pumpWidget(
@@ -122,7 +169,7 @@ void main() {
     expect(find.byTooltip('Profile'), findsOneWidget);
     expect(
       tester.getSize(find.byType(TioAvatar)),
-      Size.square(TioAvatarSize.compact.dimension),
+      Size.square(TioAvatarSize.small.dimension),
     );
 
     await tester.tap(find.byType(TioAvatar));

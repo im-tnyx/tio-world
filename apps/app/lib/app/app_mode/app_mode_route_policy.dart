@@ -16,6 +16,7 @@ String? appModeRedirect(
     FeatureRoutes.ai.path,
     FeatureRoutes.progress.path,
     AppRoutes.profile.path,
+    AppRoutes.profileAvatar.path,
     AppRoutes.settings.path,
   };
 

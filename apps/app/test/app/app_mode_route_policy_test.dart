@@ -51,6 +51,13 @@ void main() {
         AppRoutes.onboarding.path,
       );
       expect(
+        appModeRedirect(
+          path: AppRoutes.profileAvatar.path,
+          selectedMode: null,
+        ),
+        AppRoutes.onboarding.path,
+      );
+      expect(
         appModeRedirect(path: AppRoutes.auth.path, selectedMode: null),
         isNull,
       );

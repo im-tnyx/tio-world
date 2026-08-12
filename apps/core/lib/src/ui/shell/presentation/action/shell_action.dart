@@ -16,14 +16,6 @@ class ShellScrollChanged extends ShellAction {
   final double offset;
 }
 
-class ShellPremiumClicked extends ShellAction {
-  const ShellPremiumClicked();
-}
-
-class ShellStreakClicked extends ShellAction {
-  const ShellStreakClicked();
-}
-
 class ShellProfileClicked extends ShellAction {
   const ShellProfileClicked();
 }

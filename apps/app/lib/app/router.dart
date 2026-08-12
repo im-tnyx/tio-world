@@ -18,12 +18,13 @@ TioShellPlaceholder _page(TioRouteContract route) {
       title: route.title, description: route.description);
 }
 
-ChromePolicy _chromePolicyForPath(String location) {
+ChromePolicy shellChromePolicyForPath(String location) {
   final appRoutes = [
     AppRoutes.splash,
     AppRoutes.auth,
     AppRoutes.onboarding,
     AppRoutes.profile,
+    AppRoutes.profileAvatar,
     AppRoutes.settings,
     AppRoutes.login,
   ];
@@ -32,10 +33,11 @@ ChromePolicy _chromePolicyForPath(String location) {
     if (route.path == location) return route.chromePolicy;
   }
 
-  if (location.contains('editor')) return ChromePolicy.noBottomBar;
-  if (location.contains('modal')) return ChromePolicy.bottomSheet;
+  final isMainTabRoot =
+      shellBranchRegistry.any((branch) => branch.route.path == location);
+  if (isMainTabRoot) return ChromePolicy.mainChrome;
 
-  return ChromePolicy.mainChrome;
+  return ChromePolicy.noBottomBar;
 }
 
 void _handleShellAction(GoRouter router,
@@ -65,7 +67,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
-          final chromePolicy = _chromePolicyForPath(state.uri.path);
+          final chromePolicy = shellChromePolicyForPath(state.uri.path);
 
           return Consumer(
             builder: (context, ref, child) {
@@ -81,6 +83,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                       ShellTab.fromBranchIndex(navigationShell.currentIndex),
                   visibleTabs: visibleTabs,
                   isBottomNavVisible: chromePolicy.showsBottomNav,
+                  isRootTopBarVisible: chromePolicy.showsRootTopBar,
                 ),
                 onAction: (action) =>
                     _handleShellAction(router, navigationShell, action),
@@ -131,7 +134,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.profile.path,
         parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => ProfilePage(
+          onAvatarPressed: () => context.push(AppRoutes.profileAvatar.path),
           onSettingsPressed: () => context.push(AppRoutes.settings.path),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.profileAvatar.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => AvatarPreviewPage(
+          onBackPressed: context.pop,
         ),
       ),
       GoRoute(

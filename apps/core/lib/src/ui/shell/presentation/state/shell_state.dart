@@ -62,20 +62,37 @@ const shellBranchRegistry = <ShellBranchDefinition>[
   ShellBranchDefinition(tab: ShellTab.progress, route: FeatureRoutes.progress),
 ];
 
-enum ShellPlanTier { free, plus, premium }
+enum ShellPlanTier {
+  free,
+  plus,
+  premium;
+
+  String get label => switch (this) {
+        ShellPlanTier.free => 'Get Pro',
+        ShellPlanTier.plus => 'Plus',
+        ShellPlanTier.premium => 'Pro',
+      };
+}
 
 class ShellUiState {
   const ShellUiState({
     required this.visibleTabs,
     this.selectedTab = ShellTab.home,
     this.isBottomNavVisible = true,
+    this.isRootTopBarVisible = true,
     this.appBarOpacity = 0,
     this.planTier = ShellPlanTier.free,
-  });
+    this.workoutStreakDays,
+    this.mealLogStreakDays,
+  })  : assert(workoutStreakDays == null || workoutStreakDays >= 0),
+        assert(mealLogStreakDays == null || mealLogStreakDays >= 0);
 
   final ShellTab selectedTab;
   final List<ShellTab> visibleTabs;
   final bool isBottomNavVisible;
+  final bool isRootTopBarVisible;
   final double appBarOpacity;
   final ShellPlanTier planTier;
+  final int? workoutStreakDays;
+  final int? mealLogStreakDays;
 }

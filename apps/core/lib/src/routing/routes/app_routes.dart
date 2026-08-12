@@ -31,6 +31,13 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  static const profileAvatar = TioRouteContract(
+    path: '/profile/avatar',
+    title: 'Profile photo',
+    description: 'View and manage your profile photo.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
   static const settings = TioRouteContract(
     path: '/settings',
     title: 'Settings',
