@@ -1,6 +1,6 @@
 # Current State
 
-Last verified from runtime source and canonical documentation: 2026-08-11.
+Last verified from runtime source and canonical documentation: 2026-08-12.
 
 This file is a concise handoff for the next agent. It is not a replacement for runtime source, root documentation, or feature ownership rules.
 
@@ -18,6 +18,7 @@ This file is a concise handoff for the next agent. It is not a replacement for r
 - Flutter renders the initial Splash frame before `AppModeBootstrap` loads the confirmed mode from device-local `SharedPreferencesAsync` storage and refreshes routing. Missing or invalid data routes to mode selection.
 - The shell keeps stable registered branches but derives the visible guided tabs from App Mode: Home/Workout/Progress, Home/Nutrition/Progress, or Home/Workout/Nutrition/Progress. Coach remains unavailable before Phase 7.
 - Onboarding implements the first App Mode selection screen. Settings reads and changes the same stored selection and opens from the Profile launcher; Home chrome keeps only the Profile avatar account entry. Later profile details, Workout, Nutrition, review, and completion onboarding steps are not implemented.
+- The onboarding package now contains the tested pure mode-derived flow plan, draft/status contracts, Riverpod-compatible controller, and fixed parent-shell UI primitives. They are not wired to `/onboarding` yet; the active route still uses the standalone App Mode page.
 - The shell profile entry uses the shared `apps/core` `TioAvatar`, which provides four semantic sizes, circle/rounded shapes, optional image input, safe fallback, and caller-controlled semantics.
 - Shared `TioButton` primary, secondary, and ghost variants now use core tokens for dimensions, spacing, state layers, outlines, disabled behavior, and loading presentation. Loading blocks duplicate actions, exposes live semantics, and becomes static under reduced motion.
 - Pixel 9 emulator validation found and fixed Welcome contrast drift: image controls remain white, feature summaries use a semantic surface, and the entrance animation consumes reduced-motion tokens. Light and dark phone captures plus a compact-width widget check pass.
@@ -50,7 +51,7 @@ The App Mode foundation is implemented and covered by focused controller, route-
 
 See [tasks/app-mode-foundation.md](tasks/app-mode-foundation.md) for the implemented
 mode foundation and [tasks/onboarding-flow.md](tasks/onboarding-flow.md) for the
-implementation-ready parent-shell and conditional-flow plan.
+implemented flow/shell foundation and remaining mode-migration plan.
 
 Custom navigation, adaptive Home composition, and action-entry placement are a later task. See [tasks/adaptive-navigation-and-actions.md](tasks/adaptive-navigation-and-actions.md).
 
