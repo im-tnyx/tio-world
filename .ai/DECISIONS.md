@@ -19,6 +19,7 @@ This log records durable product and architecture choices. It is a concise orien
 | D-013 | Target, not implemented | Module media uses private Supabase Storage buckets. | `profile`, `nutrition`, `workout`, and `progress` hold only approved user media. Structured data remains in Postgres; each bucket needs owner-specific policies and a concrete file slice before provisioning. |
 | D-014 | Target, not implemented | Future adaptive navigation keeps three App Modes, Home fixed first, and three to six eligible selections. | Guided defaults ship first. Later custom layouts may promote implemented owner routes such as Routine Library or Meal Plan, adapt Home/feature section prominence, and move action entry points without duplicating feature workflows. Active Workout remains resumable independent from tab order. |
 | D-015 | Active | Persist the confirmed App Mode device-locally for the first slice. | `apps/shared` owns the pure-Dart preference contract and `apps/app` wires a `SharedPreferencesAsync` adapter. Missing/invalid data returns to mode selection. Supabase account sync is deferred until an approved profile contract exists. |
+| D-016 | Target, not implemented | Full onboarding uses one `/onboarding` parent with fixed top progress, one changing child, and fixed bottom actions. | Stable mode-derived step IDs and one Riverpod controller own internal flow. Draft mode, confirmed App Mode, and completion status stay separate. Sensitive draft persistence and cross-owner finalization remain implementation-gated. |
 
 ## Maintenance Rules
 

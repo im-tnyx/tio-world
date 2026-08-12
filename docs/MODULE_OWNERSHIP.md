@@ -70,6 +70,8 @@ Create missing paths only when a real implementation slice needs them.
 
 - `apps/app` is a thin shell. It wires routes, providers, app startup, and platform entry configuration.
 - `apps/app` must not own workout, nutrition, onboarding, progress, profile, settings, or coaching business logic.
+- `apps/app` composes the single `/onboarding` route and injects providers; it does
+  not own onboarding step transitions, draft state, validation, or completion.
 - `apps/core` owns reusable Flutter UI, theme tokens, shell components, public route contracts, and the implemented reusable `TioAvatar` component.
 - `apps/core` must not import feature packages.
 - `apps/shared` must stay pure Dart and must not import Flutter UI, platform code, or feature presentation code.
@@ -78,6 +80,10 @@ Create missing paths only when a real implementation slice needs them.
 - `apps/core` may own generic navigation, action-slot, and persistent-activity UI components, but it must not decide whether a workout can start or a meal can be logged.
 - `apps/app` composes registered destinations, prepared Home sections, and feature-owned action descriptors. It must not implement Workout, Nutrition, Progress, Coach, or Social rules.
 - Feature packages own their own `domain`, `data`, and `presentation` layers.
+- Onboarding owns one parent flow, stable step identity, mode-derived step order,
+  draft progress, and onboarding UI. Its top progress and bottom actions remain
+  fixed while child content changes. Profile, Workout, and Nutrition retain their
+  calculations, normalization, validation, and durable feature data.
 - Profile is an account and fitness hub, not the owner of workout, nutrition, coaching, or progress logic.
 - Workout owns workout plans, exercises, sets, reps, rest timers, routines, history, and workout settings.
 - Workout is Routine/Program-first: an active session starts from a selected Routine or Program session, not a standalone Quick Start. Workout also owns its local exercise catalog, muscle heatmap, training radar map, and workout calendar when recorded history is available.

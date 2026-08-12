@@ -11,7 +11,7 @@ Manage app-level preferences and route the user to module-owned configuration. S
 
 ## Current Implemented Boundary
 
-- Home's app bar exposes a Settings action.
+- Profile exposes the Settings action; Home's app bar keeps only the Profile avatar account entry.
 - Settings displays the current App Mode, previews the guided tabs for each choice, persists a confirmed change through the same controller used by Onboarding, and returns to a valid Home route.
 - Navigation & Tabs personalization, confirmation-copy refinement, module settings links, account controls, and other preferences are not implemented.
 
@@ -53,7 +53,7 @@ Navigation preference changes where sections/actions appear. It does not change 
 
 ## Acceptance Criteria
 
-- Settings is not a bottom tab and is reachable from clear app chrome or in-feature entry points.
+- Settings is not a bottom tab and is reachable from Profile or approved in-feature entry points.
 - Changing App Mode uses exactly the same state contract as Onboarding.
 - The user understands which tabs will be added or removed before confirmation.
 - Future custom layout accepts only three to six eligible selections, keeps Home first, previews the result, and offers reset-to-default.

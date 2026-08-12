@@ -17,7 +17,7 @@ This file is a concise handoff for the next agent. It is not a replacement for r
 - `apps/shared` exposes the pure-Dart `AppMode` (`workout`, `nutrition`, `hybrid`), `AppDestination`, guided destination mapping, and mode-preference contract.
 - Flutter renders the initial Splash frame before `AppModeBootstrap` loads the confirmed mode from device-local `SharedPreferencesAsync` storage and refreshes routing. Missing or invalid data routes to mode selection.
 - The shell keeps stable registered branches but derives the visible guided tabs from App Mode: Home/Workout/Progress, Home/Nutrition/Progress, or Home/Workout/Nutrition/Progress. Coach remains unavailable before Phase 7.
-- Onboarding implements the first App Mode selection screen. Settings reads and changes the same stored selection from the Home gear entry. Later profile, Workout, Nutrition, review, and completion onboarding steps are not implemented.
+- Onboarding implements the first App Mode selection screen. Settings reads and changes the same stored selection and opens from the Profile launcher; Home chrome keeps only the Profile avatar account entry. Later profile details, Workout, Nutrition, review, and completion onboarding steps are not implemented.
 - The shell profile entry uses the shared `apps/core` `TioAvatar`, which provides four semantic sizes, circle/rounded shapes, optional image input, safe fallback, and caller-controlled semantics.
 - Shared `TioButton` primary, secondary, and ghost variants now use core tokens for dimensions, spacing, state layers, outlines, disabled behavior, and loading presentation. Loading blocks duplicate actions, exposes live semantics, and becomes static under reduced motion.
 - Pixel 9 emulator validation found and fixed Welcome contrast drift: image controls remain white, feature summaries use a semantic surface, and the entrance animation consumes reduced-motion tokens. Light and dark phone captures plus a compact-width widget check pass.
@@ -26,6 +26,10 @@ This file is a concise handoff for the next agent. It is not a replacement for r
 
 ## Documented Targets, Not Runtime Behavior
 
+- Full onboarding will use one `/onboarding` parent screen with fixed top progress,
+  one changing scrollable child, and fixed bottom actions. A pure mode-derived flow
+  plan uses stable step IDs. Draft mode, confirmed App Mode, and onboarding
+  completion remain separate so the first choice cannot open Home prematurely.
 - A final-stage custom navigation upgrade will keep Home first and allow three to six eligible destinations. Home/feature sections and action entry prominence may adapt; destination identity must not rely on raw numeric tab indexes.
 - Workout is Routine/Program-first: an active session starts from a selected Routine or Program session, not a standalone Quick Start. Exercise Search is a nested Routine/Program editor screen planned around a validated versioned local JSON catalog. Workout Library remains a Workout route and may become a future promoted shortcut after implementation. Meal Plan remains a deferred Nutrition route with the same future promotion boundary.
 - Workout start/resume and Nutrition meal logging remain single feature-owned workflows even when Home, a root tab, or a promoted shortcut launches them. Active Workout must remain resumable independently from the selected layout.
@@ -44,7 +48,9 @@ The App Mode foundation is implemented and covered by focused controller, route-
 - Defer account sync until an approved Supabase profile contract exists. Do not add a Supabase schema/bucket, backend endpoint, or cross-device merge behavior in this slice.
 - Complete the mode-conditional later onboarding steps in a separate profile/Workout/Nutrition setup slice; do not treat the current selection page as completed onboarding.
 
-See [tasks/app-mode-foundation.md](tasks/app-mode-foundation.md) for the scoped plan.
+See [tasks/app-mode-foundation.md](tasks/app-mode-foundation.md) for the implemented
+mode foundation and [tasks/onboarding-flow.md](tasks/onboarding-flow.md) for the
+implementation-ready parent-shell and conditional-flow plan.
 
 Custom navigation, adaptive Home composition, and action-entry placement are a later task. See [tasks/adaptive-navigation-and-actions.md](tasks/adaptive-navigation-and-actions.md).
 

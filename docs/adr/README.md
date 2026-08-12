@@ -21,6 +21,7 @@ They do not describe runtime completion. Runtime source remains the behavior tru
 | [0003](0003-supabase-first-data-boundary.md) | Accepted | Supabase is the initial Auth/data/Storage foundation; protected backend work is a later upgrade. |
 | [0004](0004-material-3-expressive-through-core.md) | Accepted | Material 3 Expressive is delivered through `apps/core` tokens and components. |
 | [0005](0005-adaptive-navigation-and-action-entry.md) | Accepted | A future custom layout adapts Home sections and feature action entry points without moving domain ownership. |
+| [0006](0006-single-route-onboarding-parent-flow.md) | Accepted | One onboarding route owns fixed progress/actions and mode-derived child steps. |
 
 ## When To Add An ADR
 

@@ -2,6 +2,16 @@
 
 Use root docs and feature-local docs as the canonical ownership reference.
 
+## Onboarding
+
+Onboarding owns one `/onboarding` parent flow, stable step identity, mode-derived
+step order, draft progress, fixed progress/actions, and child-step composition.
+
+Onboarding may collect approved Profile, Workout, and Nutrition setup values through
+stable contracts. It must not own those features' calculations, normalization,
+repositories, or post-onboarding settings screens. Draft mode, confirmed App Mode,
+and onboarding completion remain separate contracts.
+
 ## Profile
 
 Profile is not the owner of every account-related business domain.

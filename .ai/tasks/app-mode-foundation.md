@@ -54,11 +54,13 @@ Give each user one selected phone mode: `workout`, `nutrition`, or `hybrid`. The
 - [x] `apps/shared` owns `AppMode`, `AppDestination`, guided destination mappings, and the pure-Dart `AppModePreference` boundary.
 - [x] `apps/app` wires `SharedPreferencesAsync`, renders Splash before starting the stored-mode read, refreshes routing after load, and owns one `AppModeController` through Riverpod.
 - [x] Onboarding's first real screen selects and persists the mode; missing or invalid local data returns there.
-- [x] Settings reads and changes the same mode from a Home app-bar entry.
+- [x] Settings reads and changes the same mode from the Profile launcher; Home chrome keeps only the Profile avatar entry.
 - [x] Visible shell tabs and route eligibility are derived from stable destination identity. `shellBranchRegistry` owns branch order, route identity, and index mapping; visible-tab positions are not treated as registered branch indexes.
 - [x] Unavailable mode routes and deferred Coach routes reconcile to Home.
 - [x] Focused controller, route-policy, and bottom-navigation tests cover all three modes and persistence failure behavior.
-- [ ] Build the later common-profile, Workout, Nutrition, review, and finish onboarding steps and condition them by mode.
+- [ ] Build the later single-route parent shell plus common-profile, Workout,
+  Nutrition, Targets, Review, and finish steps tracked in
+  [onboarding-flow.md](onboarding-flow.md).
 - [ ] Manually verify persistence across a real device/emulator process restart.
 
 ## Validation Run
@@ -83,6 +85,8 @@ repository: git diff --check -> PASS
 ## Canonical Links
 
 - [Architecture](../../docs/ARCHITECTURE.md)
+- [Onboarding flow architecture](../../docs/ONBOARDING_ARCHITECTURE.md)
+- [Mode-conditional onboarding task](onboarding-flow.md)
 - [Roadmap](../../docs/ROADMAP.md)
 - [Module ownership](../../docs/MODULE_OWNERSHIP.md)
 - [Current state](../CURRENT.md)

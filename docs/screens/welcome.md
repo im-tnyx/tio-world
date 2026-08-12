@@ -12,7 +12,7 @@
 - **Get Started** pushes `/onboarding`.
 - **Sign In** pushes `/login`.
 - **Skip for now** navigates to `/`.
-- Language selection and Terms/Privacy taps do not yet perform an action.
+- Language and legal copy remain visible placeholders but are intentionally non-interactive until approved destinations exist.
 
 ## Target Responsibility
 
@@ -23,7 +23,7 @@ Welcome explains the product and gives a safe entry choice. It must not decide A
 - Get Started opens the mode-first Onboarding flow.
 - Sign In opens Login.
 - Skip must be retained only if the product supports an explicit guest path. Before real feature persistence is added, define what guest data is available, local-only, or blocked.
-- Language and legal links must open approved, accessible destinations before they are represented as live actions.
+- Language and legal copy remain non-interactive until approved, accessible destinations exist; when implemented, their actions must be restored with explicit semantics and tests.
 
 ## States And Quality
 

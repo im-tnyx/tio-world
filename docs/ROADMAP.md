@@ -82,14 +82,23 @@ Guided tabs are mode-dependent as defined in [App Mode System](#app-mode-system)
 
 Profile should launch from avatar or account entry, not as a main bottom tab.
 
-Settings should launch from gear/menu entry, not as a main bottom tab.
+Settings should launch from Profile or an approved feature-owned entry, not from
+a separate Home top-bar icon or a main bottom tab.
 
 ## Phase 3: Core Product MVP
 
 Goal: first usable health and fitness app flow.
 
 - [ ] Confirm Supabase Auth sign-in methods and the first authenticated vertical slice
-- [ ] Onboarding basics, beginning with App Mode selection and mode-conditional steps
+- [ ] Complete the single-route, mode-conditional onboarding flow on top of the
+  implemented App Mode selection:
+  - [ ] Add stable step identity and pure Workout/Nutrition/Hybrid flow plans
+  - [ ] Add one parent screen with fixed top progress, changing child content, and
+    fixed bottom actions
+  - [ ] Separate draft mode, confirmed App Mode, and onboarding-completion status
+  - [ ] Add approved Profile, Workout, Nutrition, Targets, and Review child steps
+  - [ ] Add validated save/resume and idempotent completion after privacy and
+    persistence decisions are approved
 - [ ] User profile basics
 - [ ] Workout logging MVP
 - [ ] Routine Library and Program browse/select flow in `apps/features/workout`; start an active workout only from the selected Routine or Program session
@@ -112,6 +121,10 @@ apps/features/settings
 apps/features/progress
 apps/features/coaching
 ```
+
+See [Onboarding Flow Architecture](ONBOARDING_ARCHITECTURE.md) and the
+[mode-conditional onboarding task](../.ai/tasks/onboarding-flow.md) before starting
+that slice.
 
 ## Phase 4: Supabase Data, Storage, Offline, And Sync
 

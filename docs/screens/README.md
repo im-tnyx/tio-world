@@ -7,7 +7,7 @@ Runtime source remains the truth for live behavior. A **Target** section is a pl
 ## Current Runtime Snapshot
 
 - The phone starts at `/splash`, then routes to `/auth` after two seconds.
-- Welcome and Login have real Flutter UI. Onboarding implements App Mode selection, and Settings implements App Mode editing. Home, Nutrition, Coach, Workout, Progress, and Profile still use placeholder content.
+- Welcome and Login have real Flutter UI. Onboarding implements App Mode selection, Settings implements App Mode editing, and Profile provides the avatar/Settings launcher boundary. Home, Nutrition, Coach, Workout, Progress, and Profile details still use placeholder content.
 - The phone shell keeps five stable registered branches, while the visible guided bottom navigation is App Mode-driven. Coach is registered but unavailable before Phase 7.
 - The Wear OS app has a static seven-item action list. Every tile currently shows a `coming soon` message.
 
@@ -44,11 +44,11 @@ The `go_router` `StatefulShellRoute` shell derives its visible guided layout and
 | `nutrition` | Home, Nutrition, Progress |
 | `hybrid` | Home, Workout, Nutrition, Progress |
 
-Coach becomes eligible in Phase 7. Profile and Settings remain launched from app chrome or an in-feature action in the guided layout.
+Coach becomes eligible in Phase 7. Profile launches from the Home avatar; Settings launches from Profile or an approved in-feature action.
 
 A later Navigation & Tabs upgrade supports three to six eligible selections with Home fixed first. Root destinations remain distinct from promoted shortcuts: Workout Library and Meal Plan keep their canonical feature routes and may become custom shortcut destinations only after the owning feature exists. The selected layout may change Home/feature section prominence and action entry placement, but it never moves or duplicates feature business logic.
 
-The first implementation uses the approved device-local App Mode preference and defers account sync until a Supabase profile contract exists. Later mode-conditional onboarding steps and manual restart verification remain open. See [App Mode foundation](../../.ai/tasks/app-mode-foundation.md).
+The first implementation uses the approved device-local App Mode preference and defers account sync until a Supabase profile contract exists. The target full flow uses one `/onboarding` parent with fixed top progress, changing child content, and fixed bottom actions. It separates draft mode from confirmed mode and completion status. Later mode-conditional steps and manual restart verification remain open. See [Onboarding Flow Architecture](../ONBOARDING_ARCHITECTURE.md), the [onboarding task](../../.ai/tasks/onboarding-flow.md), and the [App Mode foundation](../../.ai/tasks/app-mode-foundation.md).
 
 ## Profile-Derived Configuration
 
@@ -62,7 +62,7 @@ Profile inputs may inform module defaults, but ownership remains explicit:
 
 ## Reading And Implementation Order
 
-1. Complete the mode-conditional profile, Workout, Nutrition, review, and finish onboarding steps on top of the implemented App Mode foundation.
+1. Build the single-route onboarding parent shell and pure mode-derived flow plan, then add the mode-conditional Profile, Workout, Nutrition, Targets, Review, and finish slices on top of the implemented App Mode foundation.
 2. Introduce the smallest profile-context slice required by that onboarding flow and the first Workout or Nutrition vertical slice.
 3. Deliver Workout, Nutrition, and Home summaries as independent vertical slices behind their owners.
 4. Add Progress once at least one tracked data source exists.
@@ -95,7 +95,7 @@ For every source implementation, create a scoped task from [.ai/tasks/TEMPLATE.m
 | Phone | [Recovery](recovery.md) | Future module and screen. |
 | Phone | [Coach](coach.md) | Route placeholder; primary tab deferred to Phase 7. |
 | Phone | [Onboarding](onboarding.md) | App Mode selection implemented; later conditional steps planned. |
-| Phone | [Profile](profile.md) | Route placeholder; target specification. |
+| Phone | [Profile](profile.md) | Minimal avatar/Settings launcher implemented; profile details remain planned. |
 | Phone | [Settings](settings.md) | App Mode editor implemented; remaining preferences planned. |
 | Wear OS | [Wear Home](wear-home.md) | Static action list; actions are placeholders. |
 

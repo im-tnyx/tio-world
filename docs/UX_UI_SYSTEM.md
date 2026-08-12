@@ -61,6 +61,29 @@ Use semantic foreground/background pairs, not color values chosen ad hoc by a sc
 
 Motion should clarify state change, not decorate every surface. `TioThemeConfig.reducedMotion` and the system animation preference expose zero-duration `TioMotionScheme` values, disable route transitions, and propagate `MediaQuery.disableAnimations`. Feature packages consume the shared scheme and do not create independent motion timing scales.
 
+## Onboarding Flow Chrome
+
+The target phone onboarding experience uses one full-screen parent route. The
+parent keeps an onboarding-owned top progress region and bottom action region
+fixed while only the scrollable child content changes.
+
+- `OnboardingTopBar` owns route exit and an accessible mode-derived progress
+  indicator.
+- `OnboardingContentHost` renders one child keyed by stable step identity; it is
+  the only scrolling region.
+- `OnboardingBottomBar` owns Back plus the fixed `Continue`, `Review`, or `Finish`
+  primary action.
+- Child steps use parent actions and must not add a second competing primary CTA.
+- Keyboard resize keeps the active input and bottom action reachable.
+- Child replacement is controller-driven, cannot be freely swiped past validation,
+  and consumes the shared reduced-motion scheme.
+- Progress announces both position and step title and never uses color as its only
+  state signal.
+
+This is a target contract, not current runtime completion. See
+[Onboarding Flow Architecture](ONBOARDING_ARCHITECTURE.md) and the
+[Onboarding screen specification](screens/onboarding.md).
+
 ## Shell And Navigation
 
 Every phone destination declares one shell/chrome policy:
@@ -81,7 +104,7 @@ The implemented guided bottom navigation is derived from `AppMode`:
 | `nutrition` | Home, Nutrition, Progress |
 | `hybrid` | Home, Workout, Nutrition, Progress |
 
-Profile and Settings are entry surfaces in the guided layout. Workout Library is a Workout route, and Meal Plan is a later Nutrition route. Coach becomes eligible only in Phase 7.
+Profile is the account entry surface in the guided Home chrome. Settings opens from Profile or an approved feature-owned entry; it does not receive a separate Home top-bar icon. Workout Library is a Workout route, and Meal Plan is a later Nutrition route. Coach becomes eligible only in Phase 7.
 
 ### Future Navigation Personalization
 

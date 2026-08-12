@@ -87,6 +87,7 @@ git diff --check
 | README/docs | `git diff --check` |
 | Flutter UI | `flutter analyze`, widget/manual check |
 | Flutter state | controller/notifier unit tests |
+| Onboarding flow | mode-plan unit tests, controller transitions, fixed-shell widget tests, router completion gate, restart/resume integration, and accessibility traversal |
 | Workout engine | calculation unit tests |
 | Nutrition engine | calculation unit tests |
 | API client | mapping and error handling tests |

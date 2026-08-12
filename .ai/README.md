@@ -44,6 +44,7 @@ Use these documents as the source of truth when available:
 - [Pull Request Template](../.github/PULL_REQUEST_TEMPLATE.md)
 - [Post-Merge Sync Guide](../docs/POST_MERGE_SYNC.md)
 - [Push Template](../docs/PUSH_TEMPLATE.md)
+- [Onboarding Flow Architecture](../docs/ONBOARDING_ARCHITECTURE.md)
 - [Supabase-First Platform Strategy](../docs/SUPABASE_STRATEGY.md)
 
 ## Priority Rule

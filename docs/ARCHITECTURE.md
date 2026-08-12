@@ -147,6 +147,15 @@ The enum, guided destination mapping, and preference boundary live in `apps/shar
 
 Onboarding now begins with App Mode selection, and Settings changes the same selection later. The common-profile, Workout, Nutrition, review, and finish steps remain planned and must be shown conditionally for the chosen mode when implemented. App Mode remains a product-scope contract; it is not replaced by future tab personalization.
 
+The target full onboarding flow keeps one `/onboarding` route and one parent
+`OnboardingFlowPage`. Its top progress and bottom actions remain fixed while a
+mode-derived `OnboardingFlowPlan` changes only the child content. Stable step IDs,
+not route paths or raw indexes, own internal progress and resume identity. The
+unfinished draft mode, confirmed product mode, and onboarding-completion status
+are separate so choosing mode on step one cannot redirect to Home prematurely.
+See [Onboarding Flow Architecture](ONBOARDING_ARCHITECTURE.md) and
+[ADR-0006](adr/0006-single-route-onboarding-parent-flow.md).
+
 The first App Mode slice persists the confirmed selection on the device. The pure-Dart preference contract belongs in `apps/shared`, while a `SharedPreferencesAsync` adapter is wired at the `apps/app` composition boundary. Flutter renders the initial Splash frame first, then `AppModeBootstrap` loads the stored value and refreshes the router through the shared controller. Missing or invalid values return to mode selection. Account-backed sync is deferred until an approved Supabase profile contract exists; this slice does not add a Supabase schema, bucket, backend endpoint, or cross-device merge behavior.
 
 The app shell uses `go_router` `StatefulShellRoute.indexedStack`. `shellBranchRegistry` is the single source for each registered branch's stable tab identity, route contract, path, and index; router registration and route eligibility derive from it. The visible guided layout remains derived from the active mode:
@@ -171,11 +180,10 @@ AppMode + NavigationLayout + FeatureAvailability + UserDataState
 
 Feature actions have one canonical command/workflow and may appear through multiple entry points. For example, Workout owns start/resume behavior and Nutrition owns meal logging; Home or a promoted shortcut only launches those owned actions with approved context. An active workout must remain resumable even when the Workout destination is not directly visible.
 
-Profile and Settings are launch surfaces, not primary bottom tabs.
+Profile is the account launch surface in Home chrome, while Settings opens from Profile or an approved feature-owned entry. Neither is a primary bottom tab, and Home does not expose a separate Settings icon.
 
 ```text
-Profile  -> avatar/account entry
-Settings -> gear/menu entry
+Home -> Profile avatar/account entry -> Profile -> Settings
 ```
 
 The implemented App Mode foundation delivers guided defaults only. Future personalization and adaptive action placement are tracked separately in [ADR-0005](adr/0005-adaptive-navigation-and-action-entry.md) and the [adaptive navigation task](../.ai/tasks/adaptive-navigation-and-actions.md).
