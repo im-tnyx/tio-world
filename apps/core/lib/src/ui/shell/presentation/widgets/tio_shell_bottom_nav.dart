@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../theme/locals/tio_theme_context.dart';
 import '../../../../theme/tokens/components/tio_navigation_tokens.dart';
@@ -37,17 +38,15 @@ class TioShellBottomNav extends StatelessWidget {
   NavigationDestination _destinationForTab(ShellTab tab) {
     return switch (tab) {
       ShellTab.home => const NavigationDestination(
-          icon: ImageIcon(AssetImage('assets/nav_icon/home_outline.png',
-              package: 'tio_core')),
-          selectedIcon: ImageIcon(
-              AssetImage('assets/nav_icon/home_fill.png', package: 'tio_core')),
+          icon: _SvgNavIcon('assets/nav_icon/ic_nav_home_outlined.svg'),
+          selectedIcon: _SvgNavIcon('assets/nav_icon/ic_nav_home_filled.svg'),
           label: 'Home',
         ),
       ShellTab.nutrition => const NavigationDestination(
-          icon: ImageIcon(AssetImage('assets/nav_icon/apple_outline.png',
-              package: 'tio_core')),
-          selectedIcon: ImageIcon(AssetImage('assets/nav_icon/apple_fill.png',
-              package: 'tio_core')),
+          icon:
+              _SvgNavIcon('assets/nav_icon/ic_nav_nutrition_outlined.svg'),
+          selectedIcon:
+              _SvgNavIcon('assets/nav_icon/ic_nav_nutrition_filled.svg'),
           label: 'Nutrition',
         ),
       ShellTab.ai => const NavigationDestination(
@@ -56,20 +55,41 @@ class TioShellBottomNav extends StatelessWidget {
           label: 'Tio',
         ),
       ShellTab.workout => const NavigationDestination(
-          icon: ImageIcon(AssetImage('assets/nav_icon/muscle_outline.png',
-              package: 'tio_core')),
-          selectedIcon: ImageIcon(AssetImage('assets/nav_icon/muscle_fill.png',
-              package: 'tio_core')),
+          icon: _SvgNavIcon('assets/nav_icon/ic_nav_workout_outlined.svg'),
+          selectedIcon:
+              _SvgNavIcon('assets/nav_icon/ic_nav_workout_filled.svg'),
           label: 'Workout',
         ),
       ShellTab.progress => const NavigationDestination(
-          icon: ImageIcon(AssetImage('assets/nav_icon/trophy_outline.png',
-              package: 'tio_core')),
-          selectedIcon: ImageIcon(AssetImage('assets/nav_icon/trophy_fill.png',
-              package: 'tio_core')),
+          icon: _SvgNavIcon('assets/nav_icon/ic_nav_progress_outlined.svg'),
+          selectedIcon:
+              _SvgNavIcon('assets/nav_icon/ic_nav_progress_filled.svg'),
           label: 'Progress',
         ),
     };
+  }
+}
+
+class _SvgNavIcon extends StatelessWidget {
+  const _SvgNavIcon(this.assetName);
+
+  final String assetName;
+
+  @override
+  Widget build(BuildContext context) {
+    final iconTheme = IconTheme.of(context);
+    final iconColor = iconTheme.color;
+    final iconSize = iconTheme.size ?? TioNavigationTokens.iconSize;
+
+    return SvgPicture.asset(
+      assetName,
+      package: 'tio_core',
+      width: iconSize,
+      height: iconSize,
+      colorFilter: iconColor == null
+          ? null
+          : ColorFilter.mode(iconColor, BlendMode.srcIn),
+    );
   }
 }
 
