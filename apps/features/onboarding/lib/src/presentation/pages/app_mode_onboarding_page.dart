@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
-import '../widgets/app_mode_step.dart';
+import '../screens/app_mode/app_mode_screen.dart';
 
 class AppModeOnboardingPage extends StatefulWidget {
   const AppModeOnboardingPage({
@@ -56,7 +56,7 @@ class _AppModeOnboardingPageState extends State<AppModeOnboardingPage> {
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
-            AppModeStep(
+            AppModeScreen(
               selectedMode: _selectedMode,
               enabled: !_isSaving,
               onModeSelected: (mode) => setState(() => _selectedMode = mode),

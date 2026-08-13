@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_auth/auth.dart';
+import 'package:tio_feature_home/home.dart';
 import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_feature_settings/settings.dart';
@@ -10,12 +11,21 @@ import 'package:tio_feature_splash/splash.dart';
 import 'package:tio_feature_welcome/welcome.dart';
 
 import 'app_mode/app_mode.dart';
+import 'app_theme.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
 TioShellPlaceholder _page(TioRouteContract route) {
   return TioShellPlaceholder(
       title: route.title, description: route.description);
+}
+
+Widget _shellBranchPage(ShellBranchDefinition branch) {
+  if (branch.tab == ShellTab.home) {
+    return const HomePage();
+  }
+
+  return _page(branch.route);
 }
 
 ChromePolicy shellChromePolicyForPath(String location) {
@@ -26,6 +36,9 @@ ChromePolicy shellChromePolicyForPath(String location) {
     AppRoutes.profile,
     AppRoutes.profileAvatar,
     AppRoutes.settings,
+    AppRoutes.appSettings,
+    AppRoutes.appModeSettings,
+    AppRoutes.themeSettings,
     AppRoutes.login,
   ];
 
@@ -55,6 +68,7 @@ void _handleShellAction(GoRouter router,
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   final appModeController = ref.read(appModeControllerProvider);
+  final appThemeController = ref.read(appThemeControllerProvider);
   late final GoRouter router;
   router = GoRouter(
     initialLocation: AppRoutes.splash.path,
@@ -98,7 +112,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: branch.route.path,
-                builder: (context, state) => _page(branch.route),
+                builder: (context, state) => _shellBranchPage(branch),
               ),
             ],
           );
@@ -122,9 +136,23 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.onboarding.path,
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => AppModeOnboardingPage(
-          initialMode: appModeController.selectedMode,
-          onModeConfirmed: (mode) async {
+        builder: (context, state) => OnboardingFlowPage(
+          seed: OnboardingControllerSeed(
+            entryPath: OnboardingEntryPath.firstRun,
+          ),
+          onExitRequested: () async {
+            if (context.canPop()) {
+              context.pop();
+              return;
+            }
+            context.go(AppRoutes.auth.path);
+          },
+          onFinishRequested: (draft) async {
+            final mode = draft.selectedMode;
+            if (mode == null) {
+              throw StateError('App Mode is required before finishing setup.');
+            }
+
             await appModeController.select(mode);
             if (context.mounted) context.go(FeatureRoutes.home.path);
           },
@@ -148,6 +176,29 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.settings.path,
         parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => SettingsPage(
+          onAppSettingsPressed: () => context.push(AppRoutes.appSettings.path),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.appSettings.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) {
+          final currentMode = appModeController.selectedMode;
+          if (currentMode == null) return const SizedBox.shrink();
+
+          return AppSettingsPage(
+            currentMode: currentMode,
+            currentThemeMode: appThemeController.selectedMode,
+            onAppModePressed: () =>
+                context.push(AppRoutes.appModeSettings.path),
+            onThemePressed: () => context.push(AppRoutes.themeSettings.path),
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.appModeSettings.path,
+        parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) {
           final currentMode = appModeController.selectedMode;
           if (currentMode == null) return const SizedBox.shrink();
@@ -160,6 +211,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             },
           );
         },
+      ),
+      GoRoute(
+        path: AppRoutes.themeSettings.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => ThemeSettingsPage(
+          currentMode: appThemeController.selectedMode,
+          onThemeChanged: (mode) async {
+            await appThemeController.select(mode);
+            if (context.mounted) context.pop();
+          },
+        ),
       ),
     ],
   );

@@ -84,15 +84,15 @@ real positive count.
 ## Onboarding Parent Flow
 
 - Keep `/onboarding` as one full-screen parent route.
-- Hide top chrome and progress on the unnumbered App Mode chooser. Keep system
-  Back/safe exit active there.
+- Show only Back in the fixed-height top chrome on the unnumbered App Mode
+  chooser. Hide progress and keep system Back/safe exit active there.
 - On later children, keep top Back/progress and the bottom primary action fixed;
   only the middle child content changes and scrolls.
 - Use one primary action from the parent. Child steps must not add a competing
   Continue or Finish button.
-- Exclude App Mode from progress position/total. Derive later progress and child
-  eligibility from stable step IDs and draft App Mode, not route paths or raw
-  indexes.
+- Exclude App Mode from progress position/total. Count every later user-facing
+  child, including all nine Profile screens, and derive eligibility from stable
+  step IDs and draft App Mode, not route paths or raw indexes.
 - Keep the primary action reachable above the keyboard and safe-area inset.
 - Use shared motion tokens, reduced motion, semantic progress labels, field-error
   association, and non-color-only state.

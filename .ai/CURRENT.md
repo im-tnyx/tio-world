@@ -1,6 +1,6 @@
 # Current State
 
-Last verified from runtime source and canonical documentation: 2026-08-12.
+Last verified from runtime source and canonical documentation: 2026-08-13.
 
 This file is a concise handoff for the next agent. It is not a replacement for runtime source, root documentation, or feature ownership rules.
 
@@ -21,8 +21,27 @@ This file is a concise handoff for the next agent. It is not a replacement for r
   display-only plan pill, and the shared 36dp Profile avatar. Back, Settings, and
   streak are absent. Workout and Nutrition roots own icon-only Workout streak and
   Meal Log streak status until their feature data supplies real positive counts.
-- Onboarding implements the first App Mode selection screen. Its intro and mode cards now live in reusable `AppModeStep`, which the current standalone page consumes. Settings reads and changes the same stored selection and opens from the Profile launcher; Home chrome keeps only the Profile avatar account entry. Later profile details, Workout, Nutrition, review, and completion onboarding steps are not implemented.
-- The onboarding package now contains the tested pure mode-derived flow plan, draft/status contracts, Riverpod-compatible controller, fixed parent-shell UI primitives, and first-child `AppModeStep`. Parent-shell tests verify that a draft mode changes the eligible path without publishing the confirmed mode. The parent shell is not wired to `/onboarding` yet; the active route still uses the standalone compatibility page.
+- Onboarding routes one parent flow whose first child is
+  `OnboardingSectionRenderer -> AppModeSection -> AppModeScreen`, followed by
+  `ProfileSection -> ProfileStepRenderer` for nine typed Profile child screens,
+  then a real Hybrid-only `WorkoutIntroSection -> WorkoutIntroScreen` gate.
+  Choosing `setupNow` keeps Workout Preferences in the path; choosing `later`
+  skips directly to Nutrition Intro. Its intro and mode cards update only
+  `OnboardingDraft` until the temporary Finish boundary publishes the confirmed
+  selection. Settings reads and changes the same stored selection and opens from
+  the Profile launcher; Home chrome keeps only the Profile avatar account entry.
+  Profile answers and the workout-intro choice remain only in the in-memory
+  onboarding draft. Later Workout Preferences, Nutrition, Targets, Review,
+  persistence, and completion onboarding steps still use compatibility previews
+  or remain unimplemented.
+- The onboarding package now contains typed section/step metadata, the pure
+  mode-derived flow plan, draft/status contracts, Riverpod-compatible controller,
+  fixed parent-shell UI primitives, section renderer, and the Hybrid-only
+  WorkoutIntro branch gate. Focused tests cover the mappings, three mode plans,
+  draft-only App Mode behavior, typed Profile order/validation/navigation/screens,
+  real WorkoutIntro branching/progress, and app-router integration; onboarding
+  and phone-app analyze/test checks pass. Later owner-backed Workout Preferences,
+  Nutrition Preferences, secure resume, and completion remain pending.
 - The shell uses a 36dp shared avatar and Profile uses 80dp. Tapping the Profile
   avatar opens `/profile/avatar`, whose 1:1 preview uses the 160dp `extraLarge`
   fallback when no image exists. Edit, delete, and download remain disabled until
@@ -40,8 +59,8 @@ This file is a concise handoff for the next agent. It is not a replacement for r
 
 ## Documented Targets, Not Runtime Behavior
 
-- Full onboarding will use one `/onboarding` parent screen. The unnumbered App Mode
-  chooser hides top chrome; later children use fixed Back/progress, one changing
+- The routed `/onboarding` parent screen keeps the unnumbered App Mode chooser
+  free of top chrome; later children use fixed Back/progress, one changing
   scrollable child, and a fixed bottom primary action. A pure mode-derived flow
   plan uses stable step IDs. Draft mode, confirmed App Mode, and onboarding
   completion remain separate so the first choice cannot open Home prematurely.

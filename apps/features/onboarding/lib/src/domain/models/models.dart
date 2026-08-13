@@ -1,6 +1,11 @@
 export 'onboarding_draft.dart';
 export 'onboarding_entry_path.dart';
 export 'onboarding_flow_plan.dart';
+export 'onboarding_section_id.dart';
 export 'onboarding_status.dart';
 export 'onboarding_step_definition.dart';
 export 'onboarding_step_id.dart';
+export 'profile_flow_plan.dart';
+export 'profile_onboarding_draft.dart';
+export 'profile_step_id.dart';
+export 'workout_intro_choice.dart';

@@ -14,21 +14,16 @@ class OnboardingProgressIndicator extends StatelessWidget {
       label: state.progressSemantics,
       readOnly: true,
       child: ExcludeSemantics(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              state.currentStep.progressTitle,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: TioSpacing.small),
-            LinearProgressIndicator(
-              value: state.progressValue,
-              minHeight: 6,
-              borderRadius: BorderRadius.circular(context.radiusSmall),
-              backgroundColor: context.tioColors.surfaceVariant,
-            ),
-          ],
+        child: TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 0, end: state.progressValue),
+          duration: context.tioMotion.progress,
+          curve: Curves.linearToEaseOut,
+          builder: (context, progress, _) => LinearProgressIndicator(
+            value: progress,
+            minHeight: 4,
+            borderRadius: BorderRadius.circular(context.radiusSmall),
+            backgroundColor: context.tioColors.surfaceVariant,
+          ),
         ),
       ),
     );

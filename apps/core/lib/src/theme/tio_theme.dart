@@ -91,11 +91,11 @@ class TioTheme extends StatelessWidget {
           fillColor: colors.surface,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: colors.surfaceVariant),
+            borderSide: BorderSide(color: colors.outlineStrong),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: colors.surfaceVariant),
+            borderSide: BorderSide(color: colors.outlineStrong),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
@@ -264,4 +264,7 @@ class TioThemeMotionTokens {
   int get fastMs => TioMotion.fastMs;
   int get normalMs => TioMotion.normalMs;
   int get slowMs => TioMotion.slowMs;
+  int get fadeThroughEnterMs => TioMotion.fadeThroughEnterMs;
+  int get fadeThroughExitMs => TioMotion.fadeThroughExitMs;
+  int get progressMs => TioMotion.progressMs;
 }

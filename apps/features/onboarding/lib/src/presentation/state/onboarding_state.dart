@@ -25,6 +25,7 @@ class OnboardingState {
   final Object? retryableError;
 
   OnboardingStepDefinition get currentStep => flowPlan.definitionFor(stepId);
+  OnboardingSectionId get currentSection => currentStep.section;
   int get currentIndex => flowPlan.indexOf(stepId);
   bool get isBusy => isInitializing || isSaving || isCompleting;
   bool get hasPreviousStep => currentIndex > 0;
@@ -32,7 +33,11 @@ class OnboardingState {
   bool get canContinue =>
       !isBusy &&
       validationErrors.isEmpty &&
-      (stepId != OnboardingStepId.mode || draft.selectedMode != null);
+      switch (stepId) {
+        OnboardingStepId.mode => draft.selectedMode != null,
+        OnboardingStepId.workoutIntro => draft.workoutIntroChoice != null,
+        _ => true,
+      };
 
   String get primaryActionLabel {
     if (stepId == OnboardingStepId.review) return 'Finish';
@@ -40,13 +45,30 @@ class OnboardingState {
     return 'Continue';
   }
 
-  int get progressStepCount =>
-      flowPlan.steps.where((step) => step.id != OnboardingStepId.mode).length;
+  int get progressStepCount => flowPlan.steps.fold<int>(
+        0,
+        (total, step) => total + _progressWeight(step.id),
+      );
 
-  int get progressStepNumber => flowPlan.steps
-      .take(currentIndex + 1)
-      .where((step) => step.id != OnboardingStepId.mode)
-      .length;
+  int get progressStepNumber {
+    var position = 0;
+
+    for (final step in flowPlan.steps.take(currentIndex + 1)) {
+      if (step.id == OnboardingStepId.mode) continue;
+      if (step.id == OnboardingStepId.profileBasics) {
+        position += stepId == OnboardingStepId.profileBasics
+            ? const ProfileFlowPlan().indexOf(
+                  draft.profile.currentStepId,
+                ) +
+                1
+            : ProfileFlowPlan.orderedSteps.length;
+        continue;
+      }
+      position++;
+    }
+
+    return position;
+  }
 
   double get progressValue {
     if (progressStepNumber == 0 || progressStepCount == 0) return 0;
@@ -57,6 +79,14 @@ class OnboardingState {
     if (progressStepNumber == 0) return currentStep.progressTitle;
     return 'Step $progressStepNumber of $progressStepCount, '
         '${currentStep.progressTitle}';
+  }
+
+  static int _progressWeight(OnboardingStepId stepId) {
+    return switch (stepId) {
+      OnboardingStepId.mode => 0,
+      OnboardingStepId.profileBasics => ProfileFlowPlan.orderedSteps.length,
+      _ => 1,
+    };
   }
 
   OnboardingState copyWith({

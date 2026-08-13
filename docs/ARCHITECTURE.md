@@ -10,6 +10,7 @@ Move fast on product, but keep boundaries clean.
 - `apps/wear` owns the Flutter Wear OS companion app.
 - `apps/shared` owns pure Dart shared models, entities, repository contracts, use cases, results, errors, and utilities.
 - `apps/core` owns Flutter design system, route contracts, shell components, reusable UI, tokens, constants, and extensions.
+- `apps/features/home` owns the Home screen presentation slice and future Home-specific workflows.
 - `apps/features/*` owns feature packages such as workout, nutrition, onboarding, auth, profile, settings, progress, coaching, and future recovery.
 - future `supabase/*` will own Supabase Auth, Postgres/RLS, Storage, migrations, seed data, and approved server functions for the first data slices.
 - future `backend/*` will own Gemini/AI coach orchestration, advanced integrations, and long-running server work when the Supabase-first foundation needs an upgrade.
@@ -68,6 +69,7 @@ The Flutter workspace mirrors the native modular structure used in `Tio-hub`.
 | `:wear` | `apps/wear` | Flutter Wear OS companion app. |
 | `:shared` | `apps/shared` | Pure Dart models, repository contracts, use cases, results, errors, and shared utilities. |
 | `:core` | `apps/core` | Design system, tokens, shared widgets, shell, route contracts, constants, extensions. |
+| `:features:home` | `apps/features/home` | Home overview, prepared sections, and future Home-owned workflows. |
 | `:features:workout` | `apps/features/workout` | Workout feature package and all workout screens/flows. |
 | `:features:nutrition` | `apps/features/nutrition` | Nutrition feature package and all nutrition screens/flows. |
 | `:features:onboarding` | `apps/features/onboarding` | Onboarding feature package and all onboarding screens/flows. |
@@ -147,16 +149,16 @@ The enum, guided destination mapping, and preference boundary live in `apps/shar
 
 Onboarding now begins with App Mode selection, and Settings changes the same selection later. The common-profile, Workout, Nutrition, review, and finish steps remain planned and must be shown conditionally for the chosen mode when implemented. App Mode remains a product-scope contract; it is not replaced by future tab personalization.
 
-The target full onboarding flow keeps one `/onboarding` route and one parent
-`OnboardingFlowPage`. Its unnumbered App Mode chooser hides top chrome and is
-excluded from progress. Later children keep fixed Back/progress and a fixed bottom
+The routed onboarding flow keeps one `/onboarding` route and one parent
+`OnboardingFlowPage`. Its unnumbered App Mode chooser keeps Back-only chrome while
+hiding and remaining excluded from progress. Later children keep fixed
+Back/progress and a fixed bottom
 primary action while a mode-derived `OnboardingFlowPlan` changes only the child
 content. Stable step IDs, not route paths or raw indexes, own internal progress and
-resume identity. The
-unfinished draft mode, confirmed product mode, and onboarding-completion status
-are separate so choosing mode on step one cannot redirect to Home prematurely.
-See [Onboarding Flow Architecture](ONBOARDING_ARCHITECTURE.md) and
-[ADR-0006](adr/0006-single-route-onboarding-parent-flow.md).
+resume identity. The unfinished draft mode, confirmed product mode, and
+onboarding-completion status are separate so choosing mode on step one cannot
+redirect to Home prematurely. See [Onboarding Flow Architecture](ONBOARDING_ARCHITECTURE.md)
+and [ADR-0006](adr/0006-single-route-onboarding-parent-flow.md).
 
 The first App Mode slice persists the confirmed selection on the device. The pure-Dart preference contract belongs in `apps/shared`, while a `SharedPreferencesAsync` adapter is wired at the `apps/app` composition boundary. Flutter renders the initial Splash frame first, then `AppModeBootstrap` loads the stored value and refreshes the router through the shared controller. Missing or invalid values return to mode selection. Account-backed sync is deferred until an approved Supabase profile contract exists; this slice does not add a Supabase schema, bucket, backend endpoint, or cross-device merge behavior.
 
@@ -187,7 +189,7 @@ AppMode + NavigationLayout + FeatureAvailability + UserDataState
 
 Feature actions have one canonical command/workflow and may appear through multiple entry points. For example, Workout owns start/resume behavior and Nutrition owns meal logging; Home or a promoted shortcut only launches those owned actions with approved context. An active workout must remain resumable even when the Workout destination is not directly visible.
 
-Profile is the account launch surface in Home chrome, while Settings opens from Profile or an approved feature-owned entry. Neither is a primary bottom tab, and Home does not expose a separate Settings icon.
+Profile is the account launch surface in Home chrome, while Settings opens from Profile or an approved feature-owned entry. Neither is a primary bottom tab, and Home does not expose a separate Settings icon. The Home route is owned by `apps/features/home`; `apps/app` remains limited to shell composition and route registration.
 
 ```text
 Home -> Profile avatar/account entry -> Profile -> Profile photo / Settings

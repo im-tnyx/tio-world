@@ -36,6 +36,8 @@ Tio is designed as a premium health and wellness platform that helps users manag
 
 The planned `supabase/` workspace owns Auth, migrations, RLS, Storage policies, and seed data for approved slices. A separate `backend/` is reserved for a future protected-service upgrade; it is not the first database/authentication layer.
 
+The current feature packages include `home`, `auth`, `onboarding`, `workout`, `nutrition`, `profile`, `settings`, `progress`, and `coaching`.
+
 ```text
 tio-world/
 ├─ apps/
@@ -72,6 +74,7 @@ tio-world/
 | `:wear` | `apps/wear` |
 | `:shared` | `apps/shared` |
 | `:core` | `apps/core` |
+| `:features:home` | `apps/features/home` |
 | `:features:workout` | `apps/features/workout` |
 | `:features:nutrition` | `apps/features/nutrition` |
 | `:features:onboarding` | `apps/features/onboarding` |
@@ -87,6 +90,7 @@ tio-world/
 - `apps/core` owns reusable Flutter UI, design tokens, shell components, and public route contracts.
 - `apps/shared` stays pure Dart. It owns models, entities, repository contracts, use cases, result/error types, and shared utilities.
 - `apps/features/*` packages own their own `domain`, `data`, and `presentation` layers.
+- `apps/features/home` owns the Home screen presentation slice; `apps/app` only composes it into the shell.
 - Backend table/API shapes must not leak directly into widgets.
 - Feature presentation layers must not import another feature's presentation layer.
 - Watch apps own their own UI and platform integrations.
@@ -140,7 +144,7 @@ Rules:
 
 ## Main Mobile Tabs
 
-Tio keeps three `AppMode` values. Each mode supplies a guided default layout for the first implementation:
+Tio keeps three `AppMode` values. The visible guided tabs are derived from the active mode, so the layout is mode-dependent rather than fixed:
 
 | App mode | Guided default tabs |
 | :--- | :--- |

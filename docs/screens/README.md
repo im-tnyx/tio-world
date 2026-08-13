@@ -7,10 +7,10 @@ Runtime source remains the truth for live behavior. A **Target** section is a pl
 ## Current Runtime Snapshot
 
 - The phone starts at `/splash`, then routes to `/auth` after two seconds.
-- Welcome and Login have real Flutter UI. Onboarding implements App Mode
-  selection, Settings implements App Mode editing, and Profile provides the
-  avatar/photo-preview/Settings launcher boundary. Home, Nutrition, Coach,
-  Workout, Progress, and Profile details still use placeholder content.
+- Welcome and Login have real Flutter UI. Onboarding routes one parent flow with
+  App Mode as the first child, Settings implements App Mode editing, and Profile
+  provides the avatar/photo-preview/Settings launcher boundary. Home, Nutrition,
+  Coach, Workout, Progress, and Profile details still use placeholder content.
 - The phone shell keeps five stable registered branches, while the visible guided bottom navigation is App Mode-driven. Coach is registered but unavailable before Phase 7.
 - The Wear OS app has a static seven-item action list. Every tile currently shows a `coming soon` message.
 
@@ -21,7 +21,7 @@ Runtime source remains the truth for live behavior. A **Target** section is a pl
 | App shell and route composition | `apps/app` | [Home](home.md), [Coach](coach.md) | Keep composition thin; do not place feature logic here. |
 | Shared mode and cross-feature contracts | `apps/shared` | [Onboarding](onboarding.md), [Settings](settings.md) | Own `AppMode` and future pure-Dart destination/layout contracts without Flutter UI. |
 | Shared UI and chrome | `apps/core` | [Home](home.md), [Profile](profile.md) | Own dynamic shell UI, generic action slots, persistent-activity chrome, Material 3 Expressive tokens, `TioAvatar`, and `TioButton`. |
-| Onboarding | `apps/features/onboarding` | [Onboarding](onboarding.md) | First screen chooses App Mode; later steps depend on it. |
+| Onboarding | `apps/features/onboarding` | [Onboarding](onboarding.md) | First route child chooses App Mode; later steps depend on it. |
 | Workout | `apps/features/workout` | [Workout](workout.md) | Own routines, Programs, logging, workout settings, muscle heatmap, radar map, and training calendar. |
 | Nutrition | `apps/features/nutrition` | [Nutrition](nutrition.md) | Own diary, water, nutrition targets, and later Meal Plan. |
 | Progress | `apps/features/progress` | [Progress](progress.md) | Own trends, measurements, photos, streaks, and achievements. |
@@ -52,9 +52,10 @@ Coach becomes eligible in Phase 7. Profile launches from the Home avatar; Settin
 A later Navigation & Tabs upgrade supports three to six eligible selections with Home fixed first. Root destinations remain distinct from promoted shortcuts: Workout Library and Meal Plan keep their canonical feature routes and may become custom shortcut destinations only after the owning feature exists. The selected layout may change Home/feature section prominence and action entry placement, but it never moves or duplicates feature business logic.
 
 The first implementation uses the approved device-local App Mode preference and
-defers account sync until a Supabase profile contract exists. The target full flow
-uses one `/onboarding` parent: the unnumbered App Mode chooser hides top chrome;
-later children keep fixed Back/progress and a fixed bottom primary action while
+defers account sync until a Supabase profile contract exists. The routed flow
+uses one `/onboarding` parent: the unnumbered App Mode chooser shows Back-only
+chrome and hides progress; later children keep fixed Back/progress and a fixed
+bottom primary action while
 only child content changes. Draft mode, confirmed mode, and completion status stay
 separate. Later mode-conditional steps and manual restart verification remain open.
 See [Onboarding Flow Architecture](../ONBOARDING_ARCHITECTURE.md), the
@@ -73,7 +74,7 @@ Profile inputs may inform module defaults, but ownership remains explicit:
 
 ## Reading And Implementation Order
 
-1. Build the single-route onboarding parent shell and pure mode-derived flow plan, then add the mode-conditional Profile, Workout, Nutrition, Targets, Review, and finish slices on top of the implemented App Mode foundation.
+1. Expand the routed onboarding parent shell with the mode-conditional Profile, Workout, Nutrition, Targets, Review, and finish slices on top of the implemented App Mode foundation.
 2. Introduce the smallest profile-context slice required by that onboarding flow and the first Workout or Nutrition vertical slice.
 3. Deliver Workout, Nutrition, and Home summaries as independent vertical slices behind their owners.
 4. Add Progress once at least one tracked data source exists.
@@ -105,7 +106,7 @@ For every source implementation, create a scoped task from [.ai/tasks/TEMPLATE.m
 | Phone | [Progress](progress.md) | Route placeholder; target specification. |
 | Phone | [Recovery](recovery.md) | Future module and screen. |
 | Phone | [Coach](coach.md) | Route placeholder; primary tab deferred to Phase 7. |
-| Phone | [Onboarding](onboarding.md) | App Mode selection implemented; later conditional steps planned. |
+| Phone | [Onboarding](onboarding.md) | Routed parent flow with App Mode first child; later conditional steps planned. |
 | Phone | [Profile](profile.md) | Avatar/photo-preview/Settings launcher implemented; profile details remain planned. |
 | Phone | [Profile Photo](profile-avatar.md) | 1:1 preview route and safe disabled media actions implemented; Storage operations planned. |
 | Phone | [Settings](settings.md) | App Mode editor implemented; remaining preferences planned. |

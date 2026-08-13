@@ -5,10 +5,13 @@
 
 ## Context
 
-The current `/onboarding` route renders one App Mode selection page and opens Home
-as soon as that mode is persisted. The target product needs common profile setup,
-Workout-only steps, Nutrition-only steps, Hybrid composition, target review,
-draft resume, and final completion.
+When this decision was made, `/onboarding` rendered one App Mode selection page
+and opened Home as soon as that mode was persisted. The current routed foundation
+now keeps App Mode in `OnboardingDraft` until its temporary Finish boundary, but
+it does not yet persist `OnboardingStatus.completed` or collect owner-backed
+profile, Workout, or Nutrition data. The target product needs common profile
+setup, mode-conditional sections, target review, draft resume, and final
+completion.
 
 Implementing every step as a separate route would duplicate progress and action
 chrome, complicate conditional branch removal, and make system Back behavior part
@@ -63,6 +66,17 @@ the active product mode would also end the route before later steps can render.
 - Sensitive answers must not be persisted in plain `SharedPreferences` or logged.
 - A completion failure must keep the user in onboarding and must not publish a
   false completed state.
+
+## Implementation Status
+
+The accepted architecture is partially implemented: `/onboarding` mounts
+`OnboardingFlowPage`, and the first child updates only draft App Mode. The current
+content host still dispatches compatibility previews directly by
+`OnboardingStepId`; a dedicated section renderer, section widgets, individual
+owner-backed screens, secure draft resume, and explicit completion-status gating
+remain pending. This ADR describes the durable decision, while
+`docs/ONBOARDING_ARCHITECTURE.md` records the detailed current-runtime versus
+target boundary.
 
 ## Alternatives Rejected
 

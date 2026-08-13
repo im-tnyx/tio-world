@@ -26,10 +26,20 @@ class TioScreenHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: textTheme.headlineSmall?.copyWith(color: colors.textPrimary)),
+              Text(
+                title,
+                style: textTheme.headlineMedium?.copyWith(
+                  color: colors.textPrimary,
+                ),
+              ),
               if (subtitle != null) ...[
                 SizedBox(height: TioTheme.spacing.small),
-                Text(subtitle!, style: textTheme.bodyMedium?.copyWith(color: colors.textSecondary)),
+                Text(
+                  subtitle!,
+                  style: textTheme.bodyLarge?.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
               ],
             ],
           ),

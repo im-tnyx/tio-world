@@ -10,15 +10,15 @@ import '../widgets/widgets.dart';
 class OnboardingFlowPage extends ConsumerWidget {
   const OnboardingFlowPage({
     required this.seed,
-    required this.stepBuilder,
     required this.onFinishRequested,
     super.key,
     this.onExitRequested,
+    this.stepBuilder,
   });
 
   final OnboardingControllerSeed seed;
-  final OnboardingStepBuilder stepBuilder;
-  final Future<void> Function() onFinishRequested;
+  final OnboardingStepBuilder? stepBuilder;
+  final Future<void> Function(OnboardingDraft draft) onFinishRequested;
   final Future<void> Function()? onExitRequested;
 
   @override
@@ -50,11 +50,11 @@ class OnboardingFlowPage extends ConsumerWidget {
           bottom: false,
           child: Column(
             children: [
-              if (state.stepId != OnboardingStepId.mode)
-                OnboardingTopBar(
-                  state: state,
-                  onBack: visibleBack,
-                ),
+              OnboardingTopBar(
+                state: state,
+                onBack: visibleBack,
+                showProgress: state.stepId != OnboardingStepId.mode,
+              ),
               Expanded(
                 child: OnboardingContentHost(
                   state: state,

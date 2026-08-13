@@ -18,6 +18,9 @@ String? appModeRedirect(
     AppRoutes.profile.path,
     AppRoutes.profileAvatar.path,
     AppRoutes.settings.path,
+    AppRoutes.appSettings.path,
+    AppRoutes.appModeSettings.path,
+    AppRoutes.themeSettings.path,
   };
 
   if (selectedMode == null) {

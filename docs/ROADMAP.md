@@ -10,7 +10,7 @@ App Mode is the first-class product contract for selecting the phone experience:
 enum AppMode { workout, nutrition, hybrid }
 ```
 
-The implemented `AppMode` enum, guided destination mapping, and preference boundary belong in `apps/shared` so every Flutter feature package can read pure-Dart contracts without violating module ownership. Onboarding starts with mode selection and Settings changes the same selection. Later profile, Workout, Nutrition, review, and finish onboarding steps remain planned and must be conditional on mode.
+The implemented `AppMode` enum, guided destination mapping, and preference boundary belong in `apps/shared` so every Flutter feature package can read pure-Dart contracts without violating module ownership. Onboarding starts with mode selection and Settings changes the same selection. The common Profile section now exists as an in-memory typed onboarding slice; Workout, Nutrition, review, persistence, and finish remain planned and conditional on mode.
 
 The first slice persists the confirmed mode device-locally through the shared preference boundary and defers Supabase account sync until an approved profile contract exists. Missing or invalid local data returns to mode selection.
 
@@ -94,9 +94,11 @@ Goal: first usable health and fitness app flow.
 - [ ] Complete the single-route, mode-conditional onboarding flow on top of the
   implemented App Mode selection:
   - [x] Add stable step identity and pure Workout/Nutrition/Hybrid flow plans
-  - [ ] Route one parent screen with a top-bar-free unnumbered App Mode chooser,
+  - [x] Route one parent screen with a top-bar-free unnumbered App Mode chooser,
     fixed Back/progress on later children, changing child content, and a fixed
     bottom primary action
+  - [x] Add the typed in-memory common Profile section with nine child screens,
+    centralized validation, internal Back/Continue, and mode-derived exit
   - [ ] Separate draft mode, confirmed App Mode, and onboarding-completion status
   - [ ] Add approved Profile, Workout, Nutrition, Targets, and Review child steps
   - [ ] Add validated save/resume and idempotent completion after privacy and

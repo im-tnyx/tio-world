@@ -7,7 +7,8 @@ import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
-  testWidgets('compatibility page reuses AppModeStep and confirms on Continue',
+  testWidgets(
+      'compatibility page reuses AppModeScreen and confirms on Continue',
       (tester) async {
     AppMode? confirmedMode;
     await _pumpPage(
@@ -15,7 +16,7 @@ void main() {
       onModeConfirmed: (mode) async => confirmedMode = mode,
     );
 
-    expect(find.byType(AppModeStep), findsOneWidget);
+    expect(find.byType(AppModeScreen), findsOneWidget);
     expect(find.byType(AppBar), findsNothing);
     expect(find.byType(BackButton), findsNothing);
 
@@ -139,7 +140,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Open mode chooser'), findsOneWidget);
-    expect(find.byType(AppModeStep), findsNothing);
+    expect(find.byType(AppModeScreen), findsNothing);
   });
 }
 

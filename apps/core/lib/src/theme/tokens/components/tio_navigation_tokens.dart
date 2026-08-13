@@ -5,6 +5,6 @@ class TioNavigationTokens {
   static const itemRadius = 16.0;
   static const indicatorOpacity = 0.14;
   static const elevation = 0.0;
-  static const planPillWidth = 92.0;
+  static const planPillWidth = 125.0;
   static const planPillHeight = 32.0;
 }

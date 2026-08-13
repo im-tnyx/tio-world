@@ -53,14 +53,15 @@ Give each user one selected phone mode: `workout`, `nutrition`, or `hybrid`. The
 
 - [x] `apps/shared` owns `AppMode`, `AppDestination`, guided destination mappings, and the pure-Dart `AppModePreference` boundary.
 - [x] `apps/app` wires `SharedPreferencesAsync`, renders Splash before starting the stored-mode read, refreshes routing after load, and owns one `AppModeController` through Riverpod.
-- [x] Onboarding's first real screen selects and persists the mode; missing or invalid local data returns there.
+- [x] Onboarding's first routed child selects draft mode; the temporary Finish
+  boundary persists the confirmed selection. Missing or invalid local data returns
+  to onboarding.
 - [x] Settings reads and changes the same mode from the Profile launcher; Home chrome keeps only the Profile avatar entry.
 - [x] Visible shell tabs and route eligibility are derived from stable destination identity. `shellBranchRegistry` owns branch order, route identity, and index mapping; visible-tab positions are not treated as registered branch indexes.
 - [x] Unavailable mode routes and deferred Coach routes reconcile to Home.
 - [x] Focused controller, route-policy, and bottom-navigation tests cover all three modes and persistence failure behavior.
-- [ ] Build the later single-route parent shell plus common-profile, Workout,
-  Nutrition, Targets, Review, and finish steps tracked in
-  [onboarding-flow.md](onboarding-flow.md).
+  - [ ] Build the later common-profile, Workout, Nutrition, Targets, Review, and
+    finish steps tracked in [onboarding-flow.md](onboarding-flow.md).
 - [ ] Manually verify persistence across a real device/emulator process restart.
 
 ## Validation Run
@@ -75,7 +76,8 @@ repository: git diff --check -> PASS
 ## Known Limitations
 
 - Home, Workout, Nutrition, and Progress still use placeholder content; this slice changes reachability, not feature implementation.
-- The current onboarding route completes only App Mode selection. It previews the next relevant setup but does not yet collect profile or feature configuration.
+- The routed onboarding flow now keeps App Mode selection as the first child and
+  defers profile or feature configuration to later onboarding slices.
 - Account sync, Supabase schema, backend behavior, and watch synchronization remain out of scope.
 
 ## Final Status

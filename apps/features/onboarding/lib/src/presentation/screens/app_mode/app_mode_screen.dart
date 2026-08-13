@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
-class AppModeStep extends StatelessWidget {
-  const AppModeStep({
+class AppModeScreen extends StatelessWidget {
+  const AppModeScreen({
     required this.selectedMode,
     required this.onModeSelected,
     super.key,
@@ -21,19 +21,11 @@ class AppModeStep extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'How will you use Tio?',
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-        const SizedBox(height: TioSpacing.small),
-        Text(
-          'Choose the experience you want to start with. This shapes your '
-          'setup steps and guided navigation, and you can change it later '
-          'in Settings.',
-          style: Theme.of(context)
-              .textTheme
-              .bodyLarge
-              ?.copyWith(color: colors.textSecondary),
+        const TioScreenHeader(
+          title: 'How will you use Tio?',
+          subtitle: 'Choose the experience you want to start with. This '
+              'shapes your setup steps and guided navigation, and you can '
+              'change it later in Settings.',
         ),
         const SizedBox(height: TioSpacing.extraLarge),
         for (final mode in AppMode.values) ...[
@@ -44,17 +36,29 @@ class AppModeStep extends StatelessWidget {
           ),
           const SizedBox(height: TioSpacing.medium),
         ],
-        if (selectedMode case final mode?) ...[
-          const SizedBox(height: TioSpacing.small),
-          Text(
-            _nextSetupText(mode),
-            key: const ValueKey('app-mode-next-setup'),
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: colors.textSecondary),
-          ),
-        ],
+        const SizedBox(height: TioSpacing.small),
+        Stack(
+          children: [
+            for (final mode in AppMode.values)
+              ExcludeSemantics(
+                excluding: selectedMode != mode,
+                child: AnimatedOpacity(
+                  key: selectedMode == mode
+                      ? const ValueKey('app-mode-next-setup')
+                      : null,
+                  opacity: selectedMode == mode ? 1 : 0,
+                  duration: context.tioMotion.fast,
+                  child: Text(
+                    _nextSetupText(mode),
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: colors.textSecondary),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ],
     );
   }
@@ -90,8 +94,8 @@ class _ModeChoiceCard extends StatelessWidget {
             color: colors.surface,
             borderRadius: BorderRadius.circular(context.radiusLarge),
             border: Border.all(
-              color: selected ? colors.primary : colors.surfaceVariant,
-              width: selected ? 2 : 1,
+              color: selected ? colors.primary : colors.outlineStrong,
+              width: 2,
             ),
           ),
           child: Row(
@@ -122,7 +126,7 @@ class _ModeChoiceCard extends StatelessWidget {
               ),
               Icon(
                 selected ? Icons.check_circle : Icons.radio_button_unchecked,
-                color: selected ? colors.primary : colors.textMuted,
+                color: selected ? colors.primary : colors.outlineStrong,
               ),
             ],
           ),

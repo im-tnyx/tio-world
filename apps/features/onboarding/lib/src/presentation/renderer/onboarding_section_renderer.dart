@@ -1,0 +1,47 @@
+import 'package:flutter/material.dart';
+
+import '../../domain/domain.dart';
+import '../controllers/controllers.dart';
+import '../sections/app_mode_section.dart';
+import '../sections/onboarding_compatibility_section.dart';
+import '../sections/profile_section.dart';
+import '../sections/workout_intro_section.dart';
+import '../state/state.dart';
+
+class OnboardingSectionRenderer extends StatelessWidget {
+  const OnboardingSectionRenderer({
+    required this.state,
+    required this.controller,
+    super.key,
+  });
+
+  final OnboardingState state;
+  final OnboardingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (state.currentSection) {
+      OnboardingSectionId.appMode => AppModeSection(
+          state: state,
+          controller: controller,
+        ),
+      OnboardingSectionId.profile => ProfileSection(
+          state: state,
+          controller: controller,
+        ),
+      OnboardingSectionId.workoutIntro => WorkoutIntroSection(
+          state: state,
+          controller: controller,
+        ),
+      OnboardingSectionId.workout ||
+      OnboardingSectionId.nutritionIntro ||
+      OnboardingSectionId.nutrition ||
+      OnboardingSectionId.targets ||
+      OnboardingSectionId.review =>
+        OnboardingCompatibilitySection(
+          state: state,
+          section: state.currentSection,
+        ),
+    };
+  }
+}

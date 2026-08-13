@@ -29,16 +29,22 @@ class TioCard extends StatelessWidget {
       _ => colors.surface,
     };
 
-    final border = variant == TioCardVariant.outlined || variant == TioCardVariant.glass
-        ? Border.all(color: colors.textPrimary.withValues(alpha: 0.16))
-        : null;
+    final border = switch (variant) {
+      TioCardVariant.outlined => Border.all(color: colors.outlineStrong),
+      TioCardVariant.glass => Border.all(
+          color: colors.textPrimary.withValues(alpha: 0.16),
+        ),
+      _ => null,
+    };
 
     final content = Container(
       decoration: BoxDecoration(
         color: background,
         borderRadius: radius,
         border: border,
-        boxShadow: variant == TioCardVariant.elevated ? TioTheme.shadows(context).soft : null,
+        boxShadow: variant == TioCardVariant.elevated
+            ? TioTheme.shadows(context).soft
+            : null,
       ),
       padding: padding ?? EdgeInsets.all(TioTheme.spacing.large),
       child: child,

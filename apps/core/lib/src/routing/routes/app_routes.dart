@@ -45,6 +45,27 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  static const appSettings = TioRouteContract(
+    path: '/settings/app',
+    title: 'App Settings',
+    description: 'Manage app mode and theme preferences.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
+  static const appModeSettings = TioRouteContract(
+    path: '/settings/app-mode',
+    title: 'App Mode',
+    description: 'Choose your guided app experience.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
+  static const themeSettings = TioRouteContract(
+    path: '/settings/theme',
+    title: 'Theme',
+    description: 'Choose your app appearance.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
   static const login = TioRouteContract(
     path: '/login',
     title: 'Login',

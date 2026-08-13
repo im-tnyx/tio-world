@@ -17,6 +17,8 @@ dependencies:
     path: ../shared
   tio_feature_auth:
     path: ../features/auth
+  tio_feature_home:
+    path: ../features/home
   tio_feature_splash:
     path: ../features/splash
   tio_feature_welcome:

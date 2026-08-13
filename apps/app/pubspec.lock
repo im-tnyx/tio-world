@@ -474,6 +474,13 @@ packages:
       relative: true
     source: path
     version: "0.0.0"
+  tio_feature_home:
+    dependency: "direct main"
+    description:
+      path: "../features/home"
+      relative: true
+    source: path
+    version: "0.0.0"
   tio_feature_nutrition:
     dependency: "direct main"
     description:

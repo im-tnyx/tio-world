@@ -67,32 +67,16 @@ class _AppModeSettingsPageState extends State<AppModeSettingsPage> {
                   ?.copyWith(color: colors.textSecondary),
             ),
             const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: SegmentedButton<AppMode>(
-                direction: Axis.vertical,
-                segments: const [
-                  ButtonSegment(
-                      value: AppMode.workout,
-                      label: Text('Workout'),
-                      icon: Icon(Icons.fitness_center)),
-                  ButtonSegment(
-                      value: AppMode.nutrition,
-                      label: Text('Nutrition'),
-                      icon: Icon(Icons.restaurant)),
-                  ButtonSegment(
-                      value: AppMode.hybrid,
-                      label: Text('Hybrid'),
-                      icon: Icon(Icons.all_inclusive)),
-                ],
-                selected: {_selectedMode},
-                onSelectionChanged: _isSaving
-                    ? null
-                    : (selection) =>
-                        setState(() => _selectedMode = selection.single),
-                showSelectedIcon: true,
+            for (final mode in AppMode.values) ...[
+              _ModeOptionCard(
+                mode: mode,
+                selected: _selectedMode == mode,
+                enabled: !_isSaving,
+                onTap: () => setState(() => _selectedMode = mode),
               ),
-            ),
+              if (mode != AppMode.values.last)
+                const SizedBox(height: TioSpacing.medium),
+            ],
             const SizedBox(height: 24),
             _TabsPreview(mode: _selectedMode),
             if (_errorText case final errorText?) ...[
@@ -110,6 +94,71 @@ class _AppModeSettingsPageState extends State<AppModeSettingsPage> {
               onPressed: _save,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ModeOptionCard extends StatelessWidget {
+  const _ModeOptionCard({
+    required this.mode,
+    required this.selected,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final AppMode mode;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+
+    return Opacity(
+      opacity: enabled ? 1 : 0.64,
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: '${_appModeLabel(mode)}. ${_appModeDescription(mode)}',
+        child: TioCard(
+          key: ValueKey('app-mode-settings-${mode.storageValue}'),
+          variant: selected ? TioCardVariant.elevated : TioCardVariant.outlined,
+          onTap: enabled ? onTap : null,
+          child: Row(
+            children: [
+              Icon(
+                _appModeIcon(mode),
+                color: selected ? colors.primary : colors.textSecondary,
+              ),
+              const SizedBox(width: TioSpacing.large),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _appModeLabel(mode),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: TioSpacing.small),
+                    Text(
+                      _appModeDescription(mode),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: colors.textSecondary,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: TioSpacing.medium),
+              Icon(
+                selected ? Icons.check_circle : Icons.radio_button_unchecked,
+                color: selected ? colors.primary : colors.outlineStrong,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -154,4 +203,29 @@ class _TabsPreview extends StatelessWidget {
       ),
     );
   }
+}
+
+String _appModeLabel(AppMode mode) {
+  return switch (mode) {
+    AppMode.workout => 'Workout',
+    AppMode.nutrition => 'Nutrition',
+    AppMode.hybrid => 'Hybrid',
+  };
+}
+
+String _appModeDescription(AppMode mode) {
+  return switch (mode) {
+    AppMode.workout => 'Training, routines, workout history, and progress.',
+    AppMode.nutrition => 'Meals, water, nutrition targets, and progress.',
+    AppMode.hybrid =>
+      'Workout and nutrition together in one guided experience.',
+  };
+}
+
+IconData _appModeIcon(AppMode mode) {
+  return switch (mode) {
+    AppMode.workout => Icons.fitness_center,
+    AppMode.nutrition => Icons.restaurant,
+    AppMode.hybrid => Icons.all_inclusive,
+  };
 }

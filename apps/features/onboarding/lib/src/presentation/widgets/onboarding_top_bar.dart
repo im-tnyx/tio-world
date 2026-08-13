@@ -9,10 +9,12 @@ class OnboardingTopBar extends StatelessWidget {
     required this.state,
     super.key,
     this.onBack,
+    this.showProgress = true,
   });
 
   final OnboardingState state;
   final VoidCallback? onBack;
+  final bool showProgress;
 
   @override
   Widget build(BuildContext context) {
@@ -20,32 +22,27 @@ class OnboardingTopBar extends StatelessWidget {
       color: context.tioColors.background,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
+          TioSpacing.small,
+          TioSpacing.small,
           TioSpacing.extraLarge,
-          TioSpacing.medium,
-          TioSpacing.extraLarge,
-          TioSpacing.large,
+          TioSpacing.small,
         ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                if (onBack != null)
-                  IconButton(
-                    tooltip: 'Back',
-                    onPressed: state.isBusy ? null : onBack,
-                    icon: const Icon(Icons.arrow_back),
-                  ),
-                Expanded(
-                  child: Text(
-                    'Set up Tio',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
+        child: SizedBox(
+          height: 48,
+          child: Row(
+            children: [
+              if (onBack != null)
+                IconButton(
+                  tooltip: 'Back',
+                  onPressed: state.isBusy ? null : onBack,
+                  icon: const Icon(Icons.arrow_back),
                 ),
-              ],
-            ),
-            const SizedBox(height: TioSpacing.medium),
-            OnboardingProgressIndicator(state: state),
-          ],
+              if (showProgress)
+                Expanded(
+                  child: OnboardingProgressIndicator(state: state),
+                ),
+            ],
+          ),
         ),
       ),
     );

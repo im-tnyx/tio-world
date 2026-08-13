@@ -30,6 +30,8 @@ This folder is the source of truth for product architecture, module ownership, s
 
 The current checkout contains the Flutter workspace. Supabase is the planned Auth/data/Storage foundation, but no `supabase/` workspace exists yet. The separate `backend/` directory is a later protected-service upgrade and must be introduced only with its first approved server-side vertical slice.
 
+The current feature packages include `home`, `auth`, `onboarding`, `workout`, `nutrition`, `profile`, `settings`, `progress`, and `coaching`.
+
 ```text
 tio-world/
 ├─ apps/

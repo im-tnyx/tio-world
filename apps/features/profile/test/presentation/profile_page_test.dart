@@ -8,11 +8,12 @@ import 'package:tio_feature_profile/profile.dart';
 void main() {
   testWidgets('Profile uses an actionable 80dp avatar', (tester) async {
     var avatarTaps = 0;
+    var settingsTaps = 0;
     await tester.pumpWidget(
       _ProfileTestApp(
         child: ProfilePage(
           onAvatarPressed: () => avatarTaps++,
-          onSettingsPressed: () {},
+          onSettingsPressed: () => settingsTaps++,
           avatarFrame: TioAvatarFrame.plusRing,
         ),
       ),
@@ -26,6 +27,11 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('profile-avatar-entry')));
     expect(avatarTaps, 1);
+
+    expect(
+        find.byKey(const ValueKey('profile-settings-action')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('profile-settings-action')));
+    expect(settingsTaps, 1);
   });
 
   testWidgets('photo route is square with safe disabled actions when empty',

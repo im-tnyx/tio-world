@@ -15,10 +15,18 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(
+        title: const Text('Profile'),
+        actions: [
+          IconButton(
+            key: const ValueKey('profile-settings-action'),
+            tooltip: 'Settings',
+            onPressed: onSettingsPressed,
+            icon: const Icon(Icons.settings_outlined),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(24),
@@ -41,22 +49,6 @@ class ProfilePage extends StatelessWidget {
                     ),
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 32),
-            Semantics(
-              header: true,
-              child: Text('Account', style: textTheme.titleMedium),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              child: ListTile(
-                key: const ValueKey('profile-settings-entry'),
-                leading: const Icon(Icons.settings_outlined),
-                title: const Text('Settings'),
-                subtitle: const Text('App mode and preferences'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: onSettingsPressed,
               ),
             ),
           ],
