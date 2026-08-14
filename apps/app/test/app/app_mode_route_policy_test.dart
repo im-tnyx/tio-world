@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_app/app/app_mode/app_mode.dart';
 import 'package:tio_core/core.dart';
+import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
@@ -41,66 +42,119 @@ void main() {
   });
 
   group('appModeRedirect', () {
-    test('requires onboarding before mode-owned routes', () {
+    test('requires onboarding before mode-owned routes when not started', () {
       expect(
-        appModeRedirect(path: FeatureRoutes.home.path, selectedMode: null),
+        appModeRedirect(
+          path: FeatureRoutes.home.path,
+          selectedMode: null,
+          onboardingStatus: OnboardingStatus.notStarted,
+        ),
         AppRoutes.onboarding.path,
       );
       expect(
-        appModeRedirect(path: AppRoutes.settings.path, selectedMode: null),
+        appModeRedirect(
+          path: AppRoutes.settings.path,
+          selectedMode: null,
+          onboardingStatus: OnboardingStatus.notStarted,
+        ),
         AppRoutes.onboarding.path,
       );
       expect(
-        appModeRedirect(path: AppRoutes.appSettings.path, selectedMode: null),
+        appModeRedirect(
+          path: AppRoutes.appSettings.path,
+          selectedMode: null,
+          onboardingStatus: OnboardingStatus.notStarted,
+        ),
         AppRoutes.onboarding.path,
       );
       expect(
         appModeRedirect(
           path: AppRoutes.appModeSettings.path,
           selectedMode: null,
+          onboardingStatus: OnboardingStatus.notStarted,
         ),
         AppRoutes.onboarding.path,
       );
       expect(
-        appModeRedirect(path: AppRoutes.themeSettings.path, selectedMode: null),
+        appModeRedirect(
+          path: AppRoutes.themeSettings.path,
+          selectedMode: null,
+          onboardingStatus: OnboardingStatus.notStarted,
+        ),
         AppRoutes.onboarding.path,
       );
       expect(
         appModeRedirect(
           path: AppRoutes.profileAvatar.path,
           selectedMode: null,
+          onboardingStatus: OnboardingStatus.notStarted,
         ),
         AppRoutes.onboarding.path,
       );
       expect(
-        appModeRedirect(path: AppRoutes.auth.path, selectedMode: null),
+        appModeRedirect(
+          path: AppRoutes.auth.path,
+          selectedMode: null,
+          onboardingStatus: OnboardingStatus.notStarted,
+        ),
         isNull,
       );
     });
 
-    test('keeps only workout guided routes in workout mode', () {
+    test('requires onboarding while in progress even if no confirmed mode exists',
+        () {
       expect(
         appModeRedirect(
-            path: FeatureRoutes.workout.path, selectedMode: AppMode.workout),
+          path: FeatureRoutes.home.path,
+          selectedMode: null,
+          onboardingStatus: OnboardingStatus.inProgress,
+        ),
+        AppRoutes.onboarding.path,
+      );
+      expect(
+        appModeRedirect(
+          path: AppRoutes.onboarding.path,
+          selectedMode: null,
+          onboardingStatus: OnboardingStatus.inProgress,
+        ),
+        isNull,
+      );
+    });
+
+    test('keeps only workout guided routes after explicit completion', () {
+      expect(
+        appModeRedirect(
+          path: FeatureRoutes.workout.path,
+          selectedMode: AppMode.workout,
+          onboardingStatus: OnboardingStatus.completed,
+        ),
         isNull,
       );
       expect(
         appModeRedirect(
-            path: FeatureRoutes.nutrition.path, selectedMode: AppMode.workout),
+          path: FeatureRoutes.nutrition.path,
+          selectedMode: AppMode.workout,
+          onboardingStatus: OnboardingStatus.completed,
+        ),
         FeatureRoutes.home.path,
       );
     });
 
-    test('keeps only nutrition guided routes in nutrition mode', () {
+    test('keeps only nutrition guided routes after explicit completion', () {
       expect(
         appModeRedirect(
-            path: FeatureRoutes.nutrition.path,
-            selectedMode: AppMode.nutrition),
+          path: FeatureRoutes.nutrition.path,
+          selectedMode: AppMode.nutrition,
+          onboardingStatus: OnboardingStatus.completed,
+        ),
         isNull,
       );
       expect(
         appModeRedirect(
-            path: FeatureRoutes.workout.path, selectedMode: AppMode.nutrition),
+          path: FeatureRoutes.workout.path,
+          selectedMode: AppMode.nutrition,
+          onboardingStatus: OnboardingStatus.completed,
+        ),
         FeatureRoutes.home.path,
       );
     });
@@ -108,26 +162,57 @@ void main() {
     test('allows both feature routes in hybrid mode and defers Coach', () {
       expect(
         appModeRedirect(
-            path: FeatureRoutes.workout.path, selectedMode: AppMode.hybrid),
+          path: FeatureRoutes.workout.path,
+          selectedMode: AppMode.hybrid,
+          onboardingStatus: OnboardingStatus.completed,
+        ),
         isNull,
       );
       expect(
         appModeRedirect(
-            path: FeatureRoutes.nutrition.path, selectedMode: AppMode.hybrid),
+          path: FeatureRoutes.nutrition.path,
+          selectedMode: AppMode.hybrid,
+          onboardingStatus: OnboardingStatus.completed,
+        ),
         isNull,
       );
       expect(
         appModeRedirect(
-            path: FeatureRoutes.ai.path, selectedMode: AppMode.hybrid),
+          path: FeatureRoutes.ai.path,
+          selectedMode: AppMode.hybrid,
+          onboardingStatus: OnboardingStatus.completed,
+        ),
         FeatureRoutes.home.path,
       );
     });
 
-    test('leaves onboarding after a mode exists', () {
+    test('leaves onboarding only after explicit completion', () {
       expect(
         appModeRedirect(
-            path: AppRoutes.onboarding.path, selectedMode: AppMode.hybrid),
+          path: AppRoutes.onboarding.path,
+          selectedMode: AppMode.hybrid,
+          onboardingStatus: OnboardingStatus.completed,
+        ),
         FeatureRoutes.home.path,
+      );
+      expect(
+        appModeRedirect(
+          path: AppRoutes.onboarding.path,
+          selectedMode: AppMode.hybrid,
+          onboardingStatus: OnboardingStatus.inProgress,
+        ),
+        isNull,
+      );
+    });
+
+    test('completed without confirmed mode fails safe to onboarding', () {
+      expect(
+        appModeRedirect(
+          path: FeatureRoutes.home.path,
+          selectedMode: null,
+          onboardingStatus: OnboardingStatus.completed,
+        ),
+        AppRoutes.onboarding.path,
       );
     });
   });

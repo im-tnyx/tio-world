@@ -4,10 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_app/app/app.dart';
 import 'package:tio_app/app/app_mode/app_mode.dart';
+import 'package:tio_app/app/onboarding/onboarding.dart';
 import 'package:tio_app/app/app_theme.dart';
 import 'package:tio_app/app/router.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_home/home.dart';
+import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_shared/shared.dart';
 
@@ -78,10 +80,23 @@ void main() {
     final preference = _MemoryAppModePreference(AppMode.hybrid);
     final controller = AppModeController(preference);
     await controller.load();
+    final onboardingRepository = _MemoryOnboardingStatusRepository(
+      status: OnboardingStatus.completed,
+      hasStoredContractVersion: true,
+    );
+    final onboardingStatusController = OnboardingStatusController(
+      repository: onboardingRepository,
+      appModeController: controller,
+    );
+    await onboardingStatusController.load();
     final themeController = await _createThemeController();
     final container = ProviderContainer(
       overrides: [
         appModeControllerProvider.overrideWith((ref) => controller),
+        onboardingStatusControllerProvider
+            .overrideWith((ref) => onboardingStatusController),
+        onboardingStatusRepositoryProvider
+            .overrideWith((ref) => onboardingRepository),
         appThemeControllerProvider.overrideWith((ref) => themeController),
       ],
     );
@@ -109,15 +124,29 @@ void main() {
     expect(find.byType(HomePage), findsOneWidget);
   });
 
-  testWidgets('first-run mode confirmation opens Home with hybrid tabs',
+  testWidgets(
+      'first-run review stays in onboarding while compatibility steps block completion',
       (tester) async {
     final preference = _MemoryAppModePreference(null);
     final controller = AppModeController(preference);
     await controller.load();
+    final onboardingRepository = _MemoryOnboardingStatusRepository(
+      status: null,
+      hasStoredContractVersion: false,
+    );
+    final onboardingStatusController = OnboardingStatusController(
+      repository: onboardingRepository,
+      appModeController: controller,
+    );
+    await onboardingStatusController.load();
     final themeController = await _createThemeController();
     final container = ProviderContainer(
       overrides: [
         appModeControllerProvider.overrideWith((ref) => controller),
+        onboardingStatusControllerProvider
+            .overrideWith((ref) => onboardingStatusController),
+        onboardingStatusRepositoryProvider
+            .overrideWith((ref) => onboardingRepository),
         appThemeControllerProvider.overrideWith((ref) => themeController),
       ],
     );
@@ -164,16 +193,20 @@ void main() {
     }
 
     expect(find.text('Finish'), findsOneWidget);
+    expect(
+      find.textContaining('Finish stays disabled until durable owner persistence'),
+      findsOneWidget,
+    );
+    expect(find.text('Pending'), findsNothing);
+
     await tester.tap(find.text('Finish'));
     await tester.pumpAndSettle();
 
-    expect(controller.selectedMode, AppMode.hybrid);
+    expect(controller.selectedMode, isNull);
+    expect(onboardingRepository.status, OnboardingStatus.inProgress);
+    expect(onboardingStatusController.status, OnboardingStatus.notStarted);
     expect(router.routeInformationProvider.value.uri.path,
-        FeatureRoutes.home.path);
-    expect(find.byType(HomePage), findsOneWidget);
-    for (final label in const ['Home', 'Workout', 'Nutrition', 'Progress']) {
-      expect(find.text(label), findsWidgets);
-    }
+        AppRoutes.onboarding.path);
   });
 
   testWidgets('Settings opens through Profile instead of the Home top bar',
@@ -181,10 +214,23 @@ void main() {
     final preference = _MemoryAppModePreference(AppMode.hybrid);
     final controller = AppModeController(preference);
     await controller.load();
+    final onboardingRepository = _MemoryOnboardingStatusRepository(
+      status: OnboardingStatus.completed,
+      hasStoredContractVersion: true,
+    );
+    final onboardingStatusController = OnboardingStatusController(
+      repository: onboardingRepository,
+      appModeController: controller,
+    );
+    await onboardingStatusController.load();
     final themeController = await _createThemeController();
     final container = ProviderContainer(
       overrides: [
         appModeControllerProvider.overrideWith((ref) => controller),
+        onboardingStatusControllerProvider
+            .overrideWith((ref) => onboardingStatusController),
+        onboardingStatusRepositoryProvider
+            .overrideWith((ref) => onboardingRepository),
         appThemeControllerProvider.overrideWith((ref) => themeController),
       ],
     );
@@ -246,10 +292,23 @@ void main() {
     final preference = _MemoryAppModePreference(AppMode.hybrid);
     final controller = AppModeController(preference);
     await controller.load();
+    final onboardingRepository = _MemoryOnboardingStatusRepository(
+      status: OnboardingStatus.completed,
+      hasStoredContractVersion: true,
+    );
+    final onboardingStatusController = OnboardingStatusController(
+      repository: onboardingRepository,
+      appModeController: controller,
+    );
+    await onboardingStatusController.load();
     final themeController = await _createThemeController();
     final container = ProviderContainer(
       overrides: [
         appModeControllerProvider.overrideWith((ref) => controller),
+        onboardingStatusControllerProvider
+            .overrideWith((ref) => onboardingStatusController),
+        onboardingStatusRepositoryProvider
+            .overrideWith((ref) => onboardingRepository),
         appThemeControllerProvider.overrideWith((ref) => themeController),
       ],
     );
@@ -301,10 +360,23 @@ Future<SystemUiOverlayStyle> _pumpSystemUiOverlay(
   final preference = _MemoryAppModePreference(AppMode.hybrid);
   final controller = AppModeController(preference);
   await controller.load();
+  final onboardingRepository = _MemoryOnboardingStatusRepository(
+    status: OnboardingStatus.completed,
+    hasStoredContractVersion: true,
+  );
+  final onboardingStatusController = OnboardingStatusController(
+    repository: onboardingRepository,
+    appModeController: controller,
+  );
+  await onboardingStatusController.load();
   final themeController = await _createThemeController();
   final container = ProviderContainer(
     overrides: [
       appModeControllerProvider.overrideWith((ref) => controller),
+      onboardingStatusControllerProvider
+          .overrideWith((ref) => onboardingStatusController),
+      onboardingStatusRepositoryProvider
+          .overrideWith((ref) => onboardingRepository),
       appThemeControllerProvider.overrideWith((ref) => themeController),
     ],
   );
@@ -406,4 +478,39 @@ class _MemoryAppThemePreference implements AppThemePreference {
 
   @override
   Future<void> write(TioThemeMode mode) async => this.mode = mode;
+}
+
+class _MemoryOnboardingStatusRepository implements OnboardingStatusRepository {
+  _MemoryOnboardingStatusRepository({
+    required this.status,
+    required this.hasStoredContractVersion,
+  });
+
+  OnboardingStatus? status;
+  bool hasStoredContractVersion;
+
+  @override
+  Future<void> clear() async {
+    status = null;
+    hasStoredContractVersion = false;
+  }
+
+  @override
+  Future<void> ensureInitialized() async {
+    hasStoredContractVersion = true;
+  }
+
+  @override
+  Future<OnboardingStatusSnapshot> read() async {
+    return OnboardingStatusSnapshot(
+      status: status,
+      hasStoredContractVersion: hasStoredContractVersion,
+    );
+  }
+
+  @override
+  Future<void> write(OnboardingStatus status) async {
+    await ensureInitialized();
+    this.status = status;
+  }
 }

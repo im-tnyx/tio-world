@@ -1,4 +1,5 @@
 import 'package:tio_core/core.dart';
+import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_shared/shared.dart';
 
 List<ShellTab> guidedShellTabs(AppMode mode) {
@@ -8,7 +9,9 @@ List<ShellTab> guidedShellTabs(AppMode mode) {
 }
 
 String? appModeRedirect(
-    {required String path, required AppMode? selectedMode}) {
+    {required String path,
+    required AppMode? selectedMode,
+    required OnboardingStatus onboardingStatus}) {
   final modeRequiredPaths = <String>{
     FeatureRoutes.home.path,
     FeatureRoutes.workout.path,
@@ -23,7 +26,10 @@ String? appModeRedirect(
     AppRoutes.themeSettings.path,
   };
 
-  if (selectedMode == null) {
+  final onboardingComplete =
+      onboardingStatus == OnboardingStatus.completed && selectedMode != null;
+
+  if (!onboardingComplete) {
     return modeRequiredPaths.contains(path) ? AppRoutes.onboarding.path : null;
   }
 

@@ -9,9 +9,13 @@ import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_feature_splash/splash.dart';
 import 'package:tio_feature_welcome/welcome.dart';
+import 'package:tio_shared/shared.dart';
 
 import 'app_mode/app_mode.dart';
 import 'app_theme.dart';
+import 'network_providers.dart';
+import 'onboarding/onboarding.dart';
+
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -40,6 +44,9 @@ ChromePolicy shellChromePolicyForPath(String location) {
     AppRoutes.appModeSettings,
     AppRoutes.themeSettings,
     AppRoutes.login,
+    AppRoutes.emailLogin,
+    AppRoutes.emailSignup,
+    AppRoutes.forgotPassword,
   ];
 
   for (final route in appRoutes) {
@@ -68,16 +75,44 @@ void _handleShellAction(GoRouter router,
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   final appModeController = ref.read(appModeControllerProvider);
+  final onboardingStatusController =
+      ref.read(onboardingStatusControllerProvider);
   final appThemeController = ref.read(appThemeControllerProvider);
+  final onboardingStatusRepository =
+      ref.read(onboardingStatusRepositoryProvider);
+  final profileRepository = ref.read(profileSetupRepositoryProvider);
+  final workoutRepository = ref.read(workoutPreferencesRepositoryProvider);
+  final targetsRepository = ref.read(targetsSetupRepositoryProvider);
+  final onboardingDraftRepository =
+      ref.read(appOnboardingDraftRepositoryProvider);
+
+  final authProductState = ref.watch(authProductStateProvider);
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  final isSupabaseReady =
+      supabaseClient != null && supabaseClient.auth.currentUser != null;
+  final isDurablePersistenceReady =
+      isSupabaseReady || authProductState.isReadyForProtectedBackendCalls;
+  final hasDurableStorage =
+      supabaseClient != null || authProductState.capability.isAvailable;
+
   late final GoRouter router;
   router = GoRouter(
     initialLocation: AppRoutes.splash.path,
     navigatorKey: rootNavigatorKey,
-    refreshListenable: appModeController,
-    redirect: (context, state) => appModeRedirect(
-      path: state.uri.path,
-      selectedMode: appModeController.selectedMode,
-    ),
+    refreshListenable:
+        Listenable.merge([appModeController, onboardingStatusController]),
+    redirect: (context, state) {
+      if (state.uri.path == AppRoutes.onboarding.path &&
+          authProductState.capability.isAvailable &&
+          !authProductState.isFirebaseAuthenticated) {
+        return AppRoutes.login.path;
+      }
+      return appModeRedirect(
+        path: state.uri.path,
+        selectedMode: appModeController.selectedMode,
+        onboardingStatus: onboardingStatusController.status,
+      );
+    },
     routes: [
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
@@ -131,14 +166,69 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.login.path,
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => const LoginPage(),
+        builder: (context, state) => Consumer(
+          builder: (context, ref, _) {
+            final supabaseSignInUseCase =
+                ref.watch(signInWithGoogleUseCaseProvider);
+            final googleAuthUseCase = ref.watch(googleAuthUseCaseProvider);
+            return LoginPage(
+              signInWithGoogleUseCase: supabaseSignInUseCase,
+              googleAuthUseCase: googleAuthUseCase,
+              onAuthSuccess: (result) {
+                ref.read(backendUserStateProvider.notifier).state =
+                    result.backendUserState;
+              },
+            );
+          },
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.emailLogin.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => Consumer(
+          builder: (context, ref, _) {
+            final signInWithEmailUseCase =
+                ref.watch(signInWithEmailUseCaseProvider);
+            return EmailLoginPage(
+              signInWithEmailUseCase: signInWithEmailUseCase,
+              onSignInSuccess: (_) {},
+            );
+          },
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.emailSignup.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => Consumer(
+          builder: (context, ref, _) {
+            final signUpWithEmailUseCase =
+                ref.watch(signUpWithEmailUseCaseProvider);
+            return EmailSignupPage(
+              signUpWithEmailUseCase: signUpWithEmailUseCase,
+              onSignUpSuccess: (_) {},
+            );
+          },
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.forgotPassword.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => Consumer(
+          builder: (context, ref, _) {
+            final resetUseCase =
+                ref.watch(sendPasswordResetEmailUseCaseProvider);
+            return ForgotPasswordPage(
+              sendPasswordResetEmailUseCase: resetUseCase,
+            );
+          },
+        ),
       ),
       GoRoute(
         path: AppRoutes.onboarding.path,
         parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => OnboardingFlowPage(
           seed: OnboardingControllerSeed(
-            entryPath: OnboardingEntryPath.firstRun,
+            entryPath: onboardingStatusController.entryPath,
           ),
           onExitRequested: () async {
             if (context.canPop()) {
@@ -147,13 +237,39 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             }
             context.go(AppRoutes.auth.path);
           },
+          onAuthRequired: () async {
+            if (authProductState.isFirebaseAuthenticated || isSupabaseReady) return true;
+            if (authProductState.isAuthUnavailable && supabaseClient == null) return true;
+            final result = await context.push<bool>(AppRoutes.login.path);
+            return result ?? false;
+          },
           onFinishRequested: (draft) async {
-            final mode = draft.selectedMode;
-            if (mode == null) {
-              throw StateError('App Mode is required before finishing setup.');
-            }
+            final completeOnboarding = CompleteOnboardingUseCase(
+              confirmedModePreference:
+                  _AppModeControllerPreferenceAdapter(appModeController),
+              statusRepository: onboardingStatusRepository,
+              draftRepository: onboardingDraftRepository,
+              persistOwnerDataUseCase: PersistOnboardingOwnerDataUseCase(
+                profileRepository: profileRepository,
+                workoutRepository: workoutRepository,
+                targetsRepository: targetsRepository,
+              ),
+              validator: OnboardingCompletionValidator(
+                hasDurableOwnerPersistence: hasDurableStorage,
+                backendUserReady: isDurablePersistenceReady,
+              ),
+            );
+            final flowPlan = const BuildOnboardingFlowUseCase()(
+              entryPath: onboardingStatusController.entryPath,
+              mode: draft.selectedMode,
+              workoutIntroChoice: draft.workoutIntroChoice,
+            );
 
-            await appModeController.select(mode);
+            await completeOnboarding(
+              draft: draft,
+              flowPlan: flowPlan,
+            );
+            onboardingStatusController.markCompleted();
             if (context.mounted) context.go(FeatureRoutes.home.path);
           },
         ),
@@ -161,9 +277,16 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.profile.path,
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => ProfilePage(
-          onAvatarPressed: () => context.push(AppRoutes.profileAvatar.path),
-          onSettingsPressed: () => context.push(AppRoutes.settings.path),
+        builder: (context, state) => Consumer(
+          builder: (context, ref, _) {
+            final profileAsync = ref.watch(profileDataProvider);
+            return ProfilePage(
+              profileData: profileAsync.valueOrNull,
+              isLoading: profileAsync.isLoading,
+              onAvatarPressed: () => context.push(AppRoutes.profileAvatar.path),
+              onSettingsPressed: () => context.push(AppRoutes.settings.path),
+            );
+          },
         ),
       ),
       GoRoute(
@@ -192,7 +315,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             currentThemeMode: appThemeController.selectedMode,
             onAppModePressed: () =>
                 context.push(AppRoutes.appModeSettings.path),
-            onThemePressed: () => context.push(AppRoutes.themeSettings.path),
+            onThemePressed: () => showThemeSelectionBottomSheet(
+              context: context,
+              currentMode: appThemeController.selectedMode,
+              onThemeSelected: (mode) => appThemeController.select(mode),
+            ),
           );
         },
       ),
@@ -229,3 +356,18 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   ref.onDispose(router.dispose);
   return router;
 });
+
+class _AppModeControllerPreferenceAdapter implements AppModePreference {
+  _AppModeControllerPreferenceAdapter(this._controller);
+
+  final AppModeController _controller;
+
+  @override
+  Future<void> clear() => _controller.clear();
+
+  @override
+  Future<AppMode?> read() async => _controller.selectedMode;
+
+  @override
+  Future<void> write(AppMode mode) => _controller.select(mode);
+}

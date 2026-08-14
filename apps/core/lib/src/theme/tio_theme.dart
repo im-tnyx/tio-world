@@ -166,6 +166,7 @@ class TioTheme extends StatelessWidget {
           indicatorColor: colors.primary.withValues(
             alpha: TioNavigationTokens.indicatorOpacity,
           ),
+          labelPadding: const EdgeInsets.only(top: 2),
           indicatorShape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(
               TioNavigationTokens.itemRadius,
