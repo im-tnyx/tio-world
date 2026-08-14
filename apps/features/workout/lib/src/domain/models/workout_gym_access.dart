@@ -1,0 +1,4 @@
+enum WorkoutGymAccess {
+  gym,
+  home,
+}
