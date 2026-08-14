@@ -26,18 +26,21 @@ CREATE TABLE IF NOT EXISTS public.users (
 
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "users_select_own" ON public.users;
 CREATE POLICY "users_select_own"
     ON public.users
     FOR SELECT
     TO authenticated
     USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "users_insert_own" ON public.users;
 CREATE POLICY "users_insert_own"
     ON public.users
     FOR INSERT
     TO authenticated
     WITH CHECK (auth.uid() = id);
 
+DROP POLICY IF EXISTS "users_update_own" ON public.users;
 CREATE POLICY "users_update_own"
     ON public.users
     FOR UPDATE
@@ -66,18 +69,21 @@ CREATE TABLE IF NOT EXISTS public.user_workout_preferences (
 
 ALTER TABLE public.user_workout_preferences ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "user_workout_preferences_select_own" ON public.user_workout_preferences;
 CREATE POLICY "user_workout_preferences_select_own"
     ON public.user_workout_preferences
     FOR SELECT
     TO authenticated
     USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "user_workout_preferences_insert_own" ON public.user_workout_preferences;
 CREATE POLICY "user_workout_preferences_insert_own"
     ON public.user_workout_preferences
     FOR INSERT
     TO authenticated
     WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "user_workout_preferences_update_own" ON public.user_workout_preferences;
 CREATE POLICY "user_workout_preferences_update_own"
     ON public.user_workout_preferences
     FOR UPDATE
@@ -108,18 +114,21 @@ CREATE TABLE IF NOT EXISTS public.user_targets (
 
 ALTER TABLE public.user_targets ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "user_targets_select_own" ON public.user_targets;
 CREATE POLICY "user_targets_select_own"
     ON public.user_targets
     FOR SELECT
     TO authenticated
     USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "user_targets_insert_own" ON public.user_targets;
 CREATE POLICY "user_targets_insert_own"
     ON public.user_targets
     FOR INSERT
     TO authenticated
     WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "user_targets_update_own" ON public.user_targets;
 CREATE POLICY "user_targets_update_own"
     ON public.user_targets
     FOR UPDATE

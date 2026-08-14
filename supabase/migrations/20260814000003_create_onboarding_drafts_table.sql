@@ -13,18 +13,21 @@ CREATE TABLE IF NOT EXISTS public.onboarding_drafts (
 
 ALTER TABLE public.onboarding_drafts ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "onboarding_drafts_select_own" ON public.onboarding_drafts;
 CREATE POLICY "onboarding_drafts_select_own"
     ON public.onboarding_drafts
     FOR SELECT
     TO authenticated
     USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "onboarding_drafts_insert_own" ON public.onboarding_drafts;
 CREATE POLICY "onboarding_drafts_insert_own"
     ON public.onboarding_drafts
     FOR INSERT
     TO authenticated
     WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "onboarding_drafts_update_own" ON public.onboarding_drafts;
 CREATE POLICY "onboarding_drafts_update_own"
     ON public.onboarding_drafts
     FOR UPDATE
@@ -32,6 +35,7 @@ CREATE POLICY "onboarding_drafts_update_own"
     USING (auth.uid() = user_id)
     WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "onboarding_drafts_delete_own" ON public.onboarding_drafts;
 CREATE POLICY "onboarding_drafts_delete_own"
     ON public.onboarding_drafts
     FOR DELETE
