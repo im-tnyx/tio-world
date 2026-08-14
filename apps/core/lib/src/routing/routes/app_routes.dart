@@ -73,6 +73,27 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  static const emailLogin = TioRouteContract(
+    path: '/login/email',
+    title: 'Sign In',
+    description: 'Sign in with your email and password.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
+  static const emailSignup = TioRouteContract(
+    path: '/login/email-signup',
+    title: 'Create Account',
+    description: 'Register a new account with email and password.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
+  static const forgotPassword = TioRouteContract(
+    path: '/login/forgot-password',
+    title: 'Reset Password',
+    description: 'Send a password reset email.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
   static const splash = TioRouteContract(
     path: '/splash',
     title: 'Splash',
