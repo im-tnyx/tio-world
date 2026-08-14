@@ -33,52 +33,18 @@ class OnboardingCompatibilitySection extends StatelessWidget {
       OnboardingStepId.workoutIntro => throw StateError(
           'The workout intro step must render through WorkoutIntroSection.',
         ),
-      OnboardingStepId.workoutPreferences =>
-        const CompatibilityOnboardingScreen(
-          title: 'Training preferences',
-          description:
-              'Workout-owned defaults such as experience, schedule, and '
-              'equipment will replace this preview.',
-          highlights: [
-            'Validation remains planned with the real settings inputs.',
-            'No workout calculations are finalized in onboarding yet.',
-            'Continue advances through the selected App Mode path only.',
-          ],
+      OnboardingStepId.workoutPreferences => throw StateError(
+          'The workout preferences step must render through WorkoutSection.',
         ),
-      OnboardingStepId.nutritionIntro => const CompatibilityOnboardingScreen(
-          title: 'Nutrition setup',
-          description:
-              'Nutrition onboarding will introduce target and meal-context '
-              'setup here once the owning feature contracts are approved.',
-          highlights: [
-            'Meal Plan remains a later nutrition slice.',
-            'This preview keeps the route and progress behavior realistic.',
-            'No nutrition data is persisted from this compatibility step.',
-          ],
+      OnboardingStepId.nutritionIntro => throw StateError(
+          'The nutrition intro step must render through NutritionIntroSection.',
         ),
       OnboardingStepId.nutritionPreferences =>
-        const CompatibilityOnboardingScreen(
-          title: 'Nutrition preferences',
-          description:
-              'Nutrition-owned preferences and targets will replace this '
-              'preview after their validated fields are approved.',
-          highlights: [
-            'Targets stay module-owned and are not calculated here yet.',
-            'Hybrid mode still keeps the combined step order intact.',
-            'Continue remains fixed at the bottom of the parent shell.',
-          ],
+        throw StateError(
+          'The nutrition preferences step must render through NutritionSection.',
         ),
-      OnboardingStepId.targets => const CompatibilityOnboardingScreen(
-          title: 'Your targets',
-          description:
-              'Prepared recommendations and explicit overrides will land here '
-              'in a later slice. The current route preview keeps the full '
-              'parent flow visible without inventing target logic.',
-          highlights: [
-            'No auto-calculated target formulas are claimed yet.',
-            'Cross-feature review remains a planned step owner boundary.',
-            'The next action label changes to Review on this step.',
-          ],
+      OnboardingStepId.targets => throw StateError(
+          'The targets step must render through TargetsSection.',
         ),
       OnboardingStepId.review =>
         CompatibilityReviewScreen(mode: state.draft.selectedMode),

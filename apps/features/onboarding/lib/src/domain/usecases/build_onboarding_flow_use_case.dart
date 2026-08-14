@@ -52,7 +52,6 @@ List<OnboardingStepDefinition> _stepsByMode(
         _mode,
         _profileBasics,
         _nutritionIntro,
-        _nutritionPreferences,
         _targets,
         _review,
       ],
@@ -62,7 +61,6 @@ List<OnboardingStepDefinition> _stepsByMode(
             _profileBasics,
             _workoutIntro,
             _nutritionIntro,
-            _nutritionPreferences,
             _targets,
             _review,
           ]
@@ -72,7 +70,6 @@ List<OnboardingStepDefinition> _stepsByMode(
             _workoutIntro,
             _workoutPreferences,
             _nutritionIntro,
-            _nutritionPreferences,
             _targets,
             _review,
           ],
@@ -108,12 +105,6 @@ const _nutritionIntro = OnboardingStepDefinition(
   section: OnboardingSectionId.nutritionIntro,
   owner: OnboardingStepOwner.nutrition,
   progressTitle: 'Nutrition setup',
-);
-const _nutritionPreferences = OnboardingStepDefinition(
-  id: OnboardingStepId.nutritionPreferences,
-  section: OnboardingSectionId.nutrition,
-  owner: OnboardingStepOwner.nutrition,
-  progressTitle: 'Nutrition preferences',
 );
 const _targets = OnboardingStepDefinition(
   id: OnboardingStepId.targets,

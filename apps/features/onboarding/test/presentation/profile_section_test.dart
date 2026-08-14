@@ -186,7 +186,7 @@ void main() {
       harness.controller.state.stepId,
       OnboardingStepId.workoutPreferences,
     );
-    expect(find.text('Training preferences'), findsWidgets);
+    expect(find.text('Where will you mostly work out?'), findsOneWidget);
   });
 
   testWidgets('profile subprogress has deterministic accessible semantics',

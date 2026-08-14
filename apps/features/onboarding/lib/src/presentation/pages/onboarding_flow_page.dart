@@ -13,6 +13,7 @@ class OnboardingFlowPage extends ConsumerWidget {
     required this.onFinishRequested,
     super.key,
     this.onExitRequested,
+    this.onAuthRequired,
     this.stepBuilder,
   });
 
@@ -20,6 +21,7 @@ class OnboardingFlowPage extends ConsumerWidget {
   final OnboardingStepBuilder? stepBuilder;
   final Future<void> Function(OnboardingDraft draft) onFinishRequested;
   final Future<void> Function()? onExitRequested;
+  final Future<bool> Function()? onAuthRequired;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -67,7 +69,10 @@ class OnboardingFlowPage extends ConsumerWidget {
         ),
         bottomNavigationBar: OnboardingBottomBar(
           state: state,
-          onContinue: () => controller.next(onFinish: onFinishRequested),
+          onContinue: () => controller.next(
+            onFinish: onFinishRequested,
+            onAuthRequired: onAuthRequired,
+          ),
         ),
       ),
     );

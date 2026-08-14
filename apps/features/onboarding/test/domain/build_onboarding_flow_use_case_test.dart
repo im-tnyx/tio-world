@@ -42,7 +42,6 @@ void main() {
         OnboardingStepId.mode,
         OnboardingStepId.profileBasics,
         OnboardingStepId.nutritionIntro,
-        OnboardingStepId.nutritionPreferences,
         OnboardingStepId.targets,
         OnboardingStepId.review,
       ],
@@ -63,7 +62,6 @@ void main() {
         OnboardingStepId.workoutIntro,
         OnboardingStepId.workoutPreferences,
         OnboardingStepId.nutritionIntro,
-        OnboardingStepId.nutritionPreferences,
         OnboardingStepId.targets,
         OnboardingStepId.review,
       ],
@@ -84,7 +82,6 @@ void main() {
         OnboardingStepId.profileBasics,
         OnboardingStepId.workoutIntro,
         OnboardingStepId.nutritionIntro,
-        OnboardingStepId.nutritionPreferences,
         OnboardingStepId.targets,
         OnboardingStepId.review,
       ],
@@ -107,7 +104,6 @@ void main() {
         OnboardingStepId.workoutIntro: OnboardingSectionId.workoutIntro,
         OnboardingStepId.workoutPreferences: OnboardingSectionId.workout,
         OnboardingStepId.nutritionIntro: OnboardingSectionId.nutritionIntro,
-        OnboardingStepId.nutritionPreferences: OnboardingSectionId.nutrition,
         OnboardingStepId.targets: OnboardingSectionId.targets,
         OnboardingStepId.review: OnboardingSectionId.review,
       },
@@ -172,7 +168,7 @@ void main() {
 
     expect(
       buildFlow.reconcileCurrentStep(
-        currentStepId: OnboardingStepId.nutritionPreferences,
+        currentStepId: OnboardingStepId.nutritionIntro,
         previousPlan: hybridPlan,
         nextPlan: workoutPlan,
       ),

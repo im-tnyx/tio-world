@@ -83,7 +83,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.bySemanticsLabel('Step 1 of 12, About you'),
+        find.bySemanticsLabel('Step 1 of 24, About you'),
         findsOneWidget,
       );
     } finally {
@@ -120,7 +120,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Child profileBasics'), findsOneWidget);
       expect(
-        find.bySemanticsLabel('Step 9 of 13, About you'),
+        find.bySemanticsLabel('Step 9 of 17, About you'),
         findsOneWidget,
       );
 
@@ -185,7 +185,7 @@ void main() {
     final progress = tester.widget<OnboardingProgressIndicator>(
       find.byType(OnboardingProgressIndicator),
     );
-    expect(progress.state.progressSemantics, 'Step 1 of 13, About you');
+    expect(progress.state.progressSemantics, 'Step 1 of 17, About you');
   });
 
   testWidgets('App Mode selection does not change content height',
@@ -264,9 +264,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(WorkoutIntroSection), findsNothing);
-    expect(find.text('Nutrition setup'), findsOneWidget);
+    expect(find.byType(NutritionIntroSection), findsOneWidget);
+    expect(find.byType(NutritionIntroScreen), findsOneWidget);
+    expect(find.text('Set up your nutrition flow'), findsOneWidget);
     expect(
-      find.bySemanticsLabel('Step 11 of 14, Nutrition setup'),
+      find.bySemanticsLabel('Step 11 of 18, Nutrition setup'),
       findsOneWidget,
     );
 
@@ -281,6 +283,39 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets(
+      'default renderer uses real nutrition intro then targets section',
+      (tester) async {
+    await _pumpFlow(
+      tester,
+      draft: OnboardingDraft(
+        selectedMode: AppMode.nutrition,
+        currentStepId: OnboardingStepId.nutritionIntro,
+        profile: _validProfile(),
+      ),
+      useDefaultRenderer: true,
+    );
+
+    expect(find.byType(OnboardingSectionRenderer), findsOneWidget);
+    expect(find.byType(NutritionIntroSection), findsOneWidget);
+    expect(find.byType(NutritionIntroScreen), findsOneWidget);
+    expect(find.text('Set up your nutrition flow'), findsOneWidget);
+
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NutritionIntroSection), findsNothing);
+    expect(find.byType(TargetsSection), findsOneWidget);
+    expect(find.byType(BridgeScreen), findsOneWidget);
+    expect(find.text('Building your targets'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NutritionIntroSection), findsOneWidget);
+    expect(find.byType(NutritionIntroScreen), findsOneWidget);
   });
 
   testWidgets('system back uses the same internal previous transition',
@@ -317,16 +352,22 @@ void main() {
       onFinishRequested: (_) => completion.future,
       draft: OnboardingDraft(
         selectedMode: AppMode.workout,
+        currentStepId: OnboardingStepId.review,
         profile: _validProfile(),
+        workout: _validWorkout(),
+        completedStepIds: const {
+          OnboardingStepId.mode,
+          OnboardingStepId.profileBasics,
+          OnboardingStepId.workoutPreferences,
+          OnboardingStepId.targets,
+        },
+      ),
+      controllerFactory: (seed) => OnboardingController(
+        entryPath: seed.entryPath,
+        initialDraft: seed.draft,
+        completionValidator: const _AlwaysEligibleValidator(),
       ),
     );
-
-    for (var step = 0;
-        step < 8 && find.text('Finish').evaluate().isEmpty;
-        step++) {
-      await tester.tap(find.byType(FilledButton));
-      await tester.pumpAndSettle();
-    }
 
     await tester.tap(find.text('Finish'));
     await tester.pump();
@@ -504,18 +545,18 @@ void main() {
         .value!;
 
     await tester.pumpAndSettle();
-    expect(progressValue(), 9 / 12);
+    expect(progressValue(), 9 / 24);
 
     await tester.tap(find.text('Continue'));
     await tester.pump();
-    expect(progressValue(), 9 / 12);
+    expect(progressValue(), 9 / 24);
 
     await tester.pump(const Duration(milliseconds: 125));
-    expect(progressValue(), greaterThan(9 / 12));
-    expect(progressValue(), lessThan(10 / 12));
+    expect(progressValue(), greaterThan(9 / 24));
+    expect(progressValue(), lessThan(10 / 24));
 
     await tester.pumpAndSettle();
-    expect(progressValue(), 10 / 12);
+    expect(progressValue(), 10 / 24);
   });
 
   testWidgets('completion failure is announced as a live region',
@@ -527,16 +568,22 @@ void main() {
         onFinishRequested: (_) => Future<void>.error(StateError('failed')),
         draft: OnboardingDraft(
           selectedMode: AppMode.workout,
+          currentStepId: OnboardingStepId.review,
           profile: _validProfile(),
+          workout: _validWorkout(),
+          completedStepIds: const {
+            OnboardingStepId.mode,
+            OnboardingStepId.profileBasics,
+            OnboardingStepId.workoutPreferences,
+            OnboardingStepId.targets,
+          },
+        ),
+        controllerFactory: (seed) => OnboardingController(
+          entryPath: seed.entryPath,
+          initialDraft: seed.draft,
+          completionValidator: const _AlwaysEligibleValidator(),
         ),
       );
-
-      for (var step = 0;
-          step < 8 && find.text('Finish').evaluate().isEmpty;
-          step++) {
-        await tester.tap(find.byType(FilledButton));
-        await tester.pumpAndSettle();
-      }
 
       expect(find.text('Finish'), findsOneWidget);
       await tester.tap(find.text('Finish'));
@@ -557,13 +604,23 @@ Future<void> _pumpFlow(
   Future<void> Function()? onExitRequested,
   Future<void> Function(OnboardingDraft draft)? onFinishRequested,
   OnboardingDraft? draft,
+  OnboardingController Function(OnboardingControllerSeed seed)?
+      controllerFactory,
   OnboardingStepBuilder? stepBuilder,
   bool useDefaultRenderer = false,
   TioThemeConfig config = const TioThemeConfig(),
   TextScaler textScaler = TextScaler.noScaling,
 }) async {
+  final overrides = <Override>[
+    if (controllerFactory != null)
+      onboardingControllerProvider.overrideWith(
+        (ref, seed) => controllerFactory(seed),
+      ),
+  ];
+
   await tester.pumpWidget(
     ProviderScope(
+      overrides: overrides,
       child: MaterialApp(
         builder: (context, child) => MediaQuery(
           data: MediaQuery.of(context).copyWith(textScaler: textScaler),
@@ -586,6 +643,18 @@ Future<void> _pumpFlow(
     ),
   );
   await tester.pump();
+}
+
+class _AlwaysEligibleValidator extends OnboardingCompletionValidator {
+  const _AlwaysEligibleValidator();
+
+  @override
+  OnboardingCompletionEligibility evaluate({
+    required OnboardingDraft draft,
+    required OnboardingFlowPlan flowPlan,
+  }) {
+    return OnboardingCompletionEligibility.eligible;
+  }
 }
 
 Widget _buildModeAwareStep(
@@ -623,5 +692,17 @@ ProfileOnboardingDraft _validProfile() {
     targetWeightKg: 70,
     activityLevel: ProfileActivityLevel.active,
     healthConditions: const {ProfileHealthCondition.none},
+  );
+}
+
+WorkoutOnboardingDraft _validWorkout() {
+  return const WorkoutOnboardingDraft(
+    currentStepId: WorkoutStepId.gymAccess,
+    gymAccess: WorkoutGymAccess.gym,
+    experienceLevel: WorkoutExperienceLevel.beginner,
+    focusAreas: {WorkoutFocusArea.legs},
+    trainingDays: {WorkoutTrainingDay.monday, WorkoutTrainingDay.wednesday},
+    workoutDuration: WorkoutDuration.sixtyMinutes,
+    workoutSplit: WorkoutSplit.auto,
   );
 }

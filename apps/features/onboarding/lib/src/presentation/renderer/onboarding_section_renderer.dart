@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../domain/domain.dart';
 import '../controllers/controllers.dart';
+import '../sections/nutrition_intro_section.dart';
+import '../sections/nutrition_section.dart';
 import '../sections/app_mode_section.dart';
-import '../sections/onboarding_compatibility_section.dart';
 import '../sections/profile_section.dart';
+import '../sections/review_section.dart';
+import '../sections/targets_section.dart';
+import '../sections/workout_section.dart';
 import '../sections/workout_intro_section.dart';
 import '../state/state.dart';
 
@@ -33,15 +37,23 @@ class OnboardingSectionRenderer extends StatelessWidget {
           state: state,
           controller: controller,
         ),
-      OnboardingSectionId.workout ||
-      OnboardingSectionId.nutritionIntro ||
-      OnboardingSectionId.nutrition ||
-      OnboardingSectionId.targets ||
-      OnboardingSectionId.review =>
-        OnboardingCompatibilitySection(
+      OnboardingSectionId.workout => WorkoutSection(
           state: state,
-          section: state.currentSection,
+          controller: controller,
         ),
+      OnboardingSectionId.nutritionIntro => NutritionIntroSection(
+          state: state,
+          controller: controller,
+        ),
+      OnboardingSectionId.nutrition => NutritionSection(
+          state: state,
+          controller: controller,
+        ),
+      OnboardingSectionId.targets => TargetsSection(
+          state: state,
+          controller: controller,
+        ),
+      OnboardingSectionId.review => ReviewSection(state: state),
     };
   }
 }

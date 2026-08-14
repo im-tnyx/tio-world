@@ -33,6 +33,8 @@ class ProfileOnboardingDraft {
     this.activityLevel,
     Set<ProfileHealthCondition> healthConditions = const {},
     this.otherHealthCondition = '',
+    this.mobile = '',
+    this.isMobileVerified = false,
   })  : goals = Set.unmodifiable(goals),
         healthConditions = Set.unmodifiable(healthConditions);
 
@@ -47,6 +49,8 @@ class ProfileOnboardingDraft {
   final ProfileActivityLevel? activityLevel;
   final Set<ProfileHealthCondition> healthConditions;
   final String otherHealthCondition;
+  final String mobile;
+  final bool isMobileVerified;
 
   ProfileOnboardingDraft copyWith({
     ProfileStepId? currentStepId,
@@ -63,6 +67,8 @@ class ProfileOnboardingDraft {
     ProfileActivityLevel? activityLevel,
     Set<ProfileHealthCondition>? healthConditions,
     String? otherHealthCondition,
+    String? mobile,
+    bool? isMobileVerified,
   }) {
     return ProfileOnboardingDraft(
       currentStepId: currentStepId ?? this.currentStepId,
@@ -78,6 +84,8 @@ class ProfileOnboardingDraft {
       activityLevel: activityLevel ?? this.activityLevel,
       healthConditions: healthConditions ?? this.healthConditions,
       otherHealthCondition: otherHealthCondition ?? this.otherHealthCondition,
+      mobile: mobile ?? this.mobile,
+      isMobileVerified: isMobileVerified ?? this.isMobileVerified,
     );
   }
 
@@ -95,7 +103,9 @@ class ProfileOnboardingDraft {
             targetWeightKg == other.targetWeightKg &&
             activityLevel == other.activityLevel &&
             _sameSet(healthConditions, other.healthConditions) &&
-            otherHealthCondition == other.otherHealthCondition;
+            otherHealthCondition == other.otherHealthCondition &&
+            mobile == other.mobile &&
+            isMobileVerified == other.isMobileVerified;
   }
 
   @override
@@ -111,6 +121,8 @@ class ProfileOnboardingDraft {
         activityLevel,
         Object.hashAllUnordered(healthConditions),
         otherHealthCondition,
+        mobile,
+        isMobileVerified,
       );
 }
 
