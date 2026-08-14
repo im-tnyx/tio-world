@@ -65,20 +65,33 @@ sync_queue
 sync_metadata
 ```
 
-### Onboarding Draft Boundary
+### Onboarding Persistence Lifecycles
 
-The planned full onboarding separates an unfinished `OnboardingDraft`, confirmed
-`AppMode`, and `OnboardingStatus`. The parent shell and pure flow plan do not
-require a new database, but cross-restart storage of profile or health answers does.
+Tio-World establishes three distinct persistence lifecycles:
 
-- Do not store sensitive body, health, nutrition, or workout answers as plain JSON
-  in `SharedPreferences`.
-- Approve Auth ordering, encrypted local storage, schema versioning, retention,
-  account switching, and deletion before persistent drafts are implemented.
-- Supabase Storage is not a structured draft store. Any future remote draft belongs
-  in RLS-protected Postgres behind `OnboardingRepository` after schema approval.
-- Completion must be idempotent and must not mark onboarding complete after only a
-  subset of required owner writes succeeds.
+1. **Unfinished Onboarding Draft (`public.onboarding_drafts`)**:
+   - Temporary, mutable, versioned JSONB snapshot owned by onboarding.
+   - Protected by Row Level Security (`auth.uid() = user_id`).
+   - Autosaved and hydrated across app restarts.
+   - Cleared on successful completion.
+   - NEVER persisted to SharedPreferences or plaintext storage.
+
+2. **Canonical Owner Data (`public.users`, `public.user_workout_preferences`, `public.user_targets`)**:
+   - Feature-owned, validated, completion-ready relational data written atomically during onboarding finish.
+   - Dedicated typed tables with separate RLS policies.
+
+3. **Local Non-Sensitive Metadata**:
+   - `OnboardingStatus` and confirmed `AppMode` in SharedPreferences.
+
+### Future-Safe Persisted User Data Rule
+
+Future models and coding agents MUST NOT delete or discard persisted user fields merely because a newer app version does not currently use or render them. Unknown, inactive, preserved, or future-facing data is not automatically obsolete.
+
+Destructive data migration requires:
+1. explicit schema audit,
+2. compatibility impact analysis,
+3. explicit retention/deletion decision,
+4. explicit user approval when the change intentionally discards retained product/user data.
 
 See [Onboarding Flow Architecture](ONBOARDING_ARCHITECTURE.md).
 

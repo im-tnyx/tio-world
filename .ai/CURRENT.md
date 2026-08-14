@@ -1,6 +1,6 @@
 # Current State
 
-Last verified from runtime source and canonical documentation: 2026-08-13.
+Last verified from runtime source and canonical documentation: 2026-08-14.
 
 This file is a concise handoff for the next agent. It is not a replacement for runtime source, root documentation, or feature ownership rules.
 
@@ -24,24 +24,30 @@ This file is a concise handoff for the next agent. It is not a replacement for r
 - Onboarding routes one parent flow whose first child is
   `OnboardingSectionRenderer -> AppModeSection -> AppModeScreen`, followed by
   `ProfileSection -> ProfileStepRenderer` for nine typed Profile child screens,
-  then a real Hybrid-only `WorkoutIntroSection -> WorkoutIntroScreen` gate.
-  Choosing `setupNow` keeps Workout Preferences in the path; choosing `later`
-  skips directly to Nutrition Intro. Its intro and mode cards update only
-  `OnboardingDraft` until the temporary Finish boundary publishes the confirmed
-  selection. Settings reads and changes the same stored selection and opens from
-  the Profile launcher; Home chrome keeps only the Profile avatar account entry.
-  Profile answers and the workout-intro choice remain only in the in-memory
-  onboarding draft. Later Workout Preferences, Nutrition, Targets, Review,
-  persistence, and completion onboarding steps still use compatibility previews
-  or remain unimplemented.
-- The onboarding package now contains typed section/step metadata, the pure
-  mode-derived flow plan, draft/status contracts, Riverpod-compatible controller,
-  fixed parent-shell UI primitives, section renderer, and the Hybrid-only
-  WorkoutIntro branch gate. Focused tests cover the mappings, three mode plans,
-  draft-only App Mode behavior, typed Profile order/validation/navigation/screens,
-  real WorkoutIntro branching/progress, and app-router integration; onboarding
-  and phone-app analyze/test checks pass. Later owner-backed Workout Preferences,
-  Nutrition Preferences, secure resume, and completion remain pending.
+  then a real Hybrid-only `WorkoutIntroSection -> WorkoutIntroScreen` gate,
+  `WorkoutSection -> WorkoutStepRenderer` for Workout Preferences,
+  `NutritionIntroSection -> NutritionIntroScreen` for the Nutrition intro,
+  `TargetsSection -> TargetStepRenderer` for the complete Targets section (real Bridge,
+  StepTarget, SleepTarget, WaterTarget, GoalPace, and NutritionTarget screens),
+  and finally `ReviewSection -> ReviewScreen`. Choosing `setupNow` keeps Workout Preferences
+  in the path; choosing `later` skips directly to Nutrition Intro.
+  Workout Preferences now has a fully real typed W1/W2/W3 child flow.
+  Targets collects typed Daily Steps, Sleep Schedule, Water Target, Goal Pace, and
+  authoritative NutritionTarget recommendations (Mifflin-St Jeor BMR, activity-factored TDEE,
+  goal-pace adjusted calories, protein, carbs, fat, fiber) into `TargetsOnboardingDraft` with pure
+  `SleepScheduleHelper`, `WaterUnitConverter`, `GoalPaceResolver`, `GoalPaceTargetDateCalculator`,
+  and canonical `CalculateNutritionTargetRecommendationUseCase` backed by `apps/features/nutrition/domain`.
+  Durable Owner Persistence architecture is fully implemented with canonical owner repositories:
+  `ProfileSetupRepository` (`apps/features/profile`), `WorkoutPreferencesRepository` (`apps/features/workout`),
+  and `TargetsSetupRepository` (`apps/features/nutrition`), orchestrated atomically via `PersistOnboardingOwnerDataUseCase`
+  in `CompleteOnboardingUseCase`. Mode-aware persistence guarantees inactive workout selections are never stored.
+  Real remote repository adapters (`RemoteProfileSetupRepository`, `RemoteWorkoutPreferencesRepository`, `RemoteTargetsSetupRepository`),
+  DTO mappers (`ProfileSetupDtoMapper`, `WorkoutPreferencesDtoMapper`, `TargetsSetupDtoMapper`), server finalizer (`RemoteOnboardingFinalizer` for `POST /api/v1/onboarding/finalize`),
+  Google authentication chain (`GoogleAuthUseCase`, `GoogleSignInProvider`, `FirebaseAuthSessionRepository`, `FirebaseAuthTokenProvider`), Device identity contract (`DeviceIdentity`, `DeviceIdentityProvider`, `FlutterDeviceIdentityProvider`),
+  and Backend user sync (`BackendUserSyncRepository`, `RemoteBackendUserSyncRepository`, `BackendUserSyncRemoteDataSource` for `POST /api/v1/auth/google-sync`) are fully implemented and tested.
+  Because client runtime currently lacks live Firebase client options/credentials, `authTokenProvider` defaults to `UnavailableAuthTokenProvider`,
+  `authCapabilityProvider` defaults to `AuthCapabilityUnavailable`, `authProductState.isReadyForProtectedBackendCalls` remains `false`, and onboarding completion remains safely `BLOCKED` until live Firebase client auth is wired.
+  All 164 onboarding tests, 11 nutrition tests, 8 profile tests, 5 workout tests, 23 auth tests, 11 shared network/device tests, and 90 phone-app tests pass (312 total tests across all 7 packages).
 - The shell uses a 36dp shared avatar and Profile uses 80dp. Tapping the Profile
   avatar opens `/profile/avatar`, whose 1:1 preview uses the 160dp `extraLarge`
   fallback when no image exists. Edit, delete, and download remain disabled until
@@ -71,20 +77,34 @@ This file is a concise handoff for the next agent. It is not a replacement for r
 - Material 3 Expressive remains the phone design direction through `apps/core`; later shared components and screen migrations build on the implemented theme/navigation/avatar/button foundation rather than a separate Flutter API assumption.
 - Wear OS remains Flutter. Its future scope is lightweight workout controls and nutrition quick actions; full food search, diary editing, and Meal Plan editing remain on phone.
 - Apple Watch remains a future native Swift + SwiftUI app.
-- Supabase is the documented future Auth, Postgres/RLS, and private Storage foundation. No Supabase workspace, project, client, bucket, migration, or credential exists yet. A protected Gemini/backend layer is a later upgrade.
+- Supabase is the active production persistence, Auth, and Storage platform. Workspace `supabase/` contains initial migrations for `users`, `user_workout_preferences`, `user_targets`, `onboarding_drafts`, and `avatars` bucket with strict RLS (`auth.uid() = user_id`). Concrete adapters `SupabaseProfileSetupRepository`, `SupabaseWorkoutPreferencesRepository`, `SupabaseTargetsSetupRepository`, `SupabaseOnboardingDraftRepository`, `SupabaseAuthSignInRepository`, and `SupabaseAuthSessionRepository` are implemented and wired in app composition.
+- Future HTTP/backend adapters (`Remote*Repository`, `ApiClient`, `DioApiClient`, `GoogleAuthUseCase`, etc.) remain 100% preserved for a future protected backend upgrade.
+- Three persistence lifecycles are strictly maintained: (1) Unfinished onboarding draft in `public.onboarding_drafts` (RLS-protected, versioned, temporary), (2) Canonical owner data in `public.users`, `public.user_workout_preferences`, `public.user_targets`, and (3) Non-sensitive metadata (`OnboardingStatus`, `AppMode`) in `SharedPreferences`.
 
 ## Active Implementation Boundary
 
-The App Mode foundation is implemented and covered by focused controller, route-policy, and shell-widget tests. Its current boundary is:
+The App Mode foundation, Supabase Auth architecture, owner data persistence, and secure draft persistence/resume are implemented and covered by focused controller, route-policy, persistence, mapper, router, and shell-widget tests. Their current boundary is:
 
 - Persist the confirmed selection device-locally through a pure-Dart preference contract and an app-composed `SharedPreferencesAsync` adapter.
+- Persist non-sensitive onboarding bootstrap metadata only: explicit `OnboardingStatus` plus schema/version metadata.
+- Unfinished draft state is stored exclusively in `public.onboarding_drafts` behind `OnboardingDraftRepository` with monotonic revision autosave and hydration race protection. Never stored in plaintext local files or SharedPreferences.
+- Keep draft App Mode, confirmed App Mode, and onboarding completion as separate concepts.
+- Onboarding completion writes canonical owner entities, publishes completed status, and cleans up obsolete draft records.
+- Stale draft cleanup failure does not undo or compromise successful completion.
 - Return to mode selection when local data is missing or invalid; reconcile unavailable guided routes to Home.
+- Keep onboarding on Review when required compatibility owner sections remain
+  active, and never route Home on failed completion.
 - Defer account sync until an approved Supabase profile contract exists. Do not add a Supabase schema/bucket, backend endpoint, or cross-device merge behavior in this slice.
-- Complete the mode-conditional later onboarding steps in a separate profile/Workout/Nutrition setup slice; do not treat the current selection page as completed onboarding.
+- Treat Android onboarding as non-authoritative for Nutrition because it has no
+  dedicated Nutrition onboarding section. Real Nutrition fields must come from
+  local owner-backed contracts, and none were found yet in the current source.
+- Complete the later Nutrition Preferences/Targets owner-backed onboarding
+  steps in a separate slice; do not treat the current Review boundary as
+  product-complete onboarding while compatibility owner steps remain.
 
 See [tasks/app-mode-foundation.md](tasks/app-mode-foundation.md) for the implemented
 mode foundation and [tasks/onboarding-flow.md](tasks/onboarding-flow.md) for the
-implemented flow/shell foundation and remaining mode-migration plan.
+implemented flow/completion foundation and remaining owner-backed work.
 
 Custom navigation, adaptive Home composition, and action-entry placement are a later task. See [tasks/adaptive-navigation-and-actions.md](tasks/adaptive-navigation-and-actions.md).
 

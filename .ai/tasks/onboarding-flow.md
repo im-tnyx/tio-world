@@ -1,6 +1,6 @@
 # Mode-Conditional Onboarding Flow
 
-**Status:** In progress — typed sections, App Mode, and the in-memory common Profile section are implemented and validated; later owner branches, persistence, completion gating, and legacy migration remain
+**Status:** PARTIAL (UI & Architecture Ready; Durable Completion Blocked) — App Mode, common Profile section, Workout Intro gate, Workout Preferences (W1/W2/W3), Nutrition Intro, Targets (Bridge, Step Target, Sleep Target, Water Target, Goal Pace, Nutrition Target Recommendation), Review, and Atomic Owner Persistence architecture (`ProfileSetupRepository`, `WorkoutPreferencesRepository`, `TargetsSetupRepository`) with confirmed App Mode & completion transactions are fully implemented and verified. Durable production completion is safely BLOCKED pending client auth & HTTP network infrastructure.
 **Primary owners:** `apps/features/onboarding`, with stable contracts from Profile, Workout, Nutrition, `apps/shared`, and app-level provider/route composition
 **Affected platforms:** Flutter phone app
 
@@ -13,17 +13,12 @@ Section -> individual screen`; sections may dispatch their own step screens.
 
 Current Flutter source routes `/onboarding` to `OnboardingFlowPage`.
 `OnboardingContentHost` now defaults to `OnboardingSectionRenderer`, which derives
-the current typed section from step metadata and dispatches a section widget. The
-first runtime path is `AppModeSection -> AppModeScreen`; the next path is
-`ProfileSection -> ProfileStepRenderer -> individual Profile screen`. Later
-unimplemented owner steps use an explicitly labeled compatibility section/screen. The optional generic
-builder remains only as a focused test seam. See `docs/ONBOARDING_ARCHITECTURE.md`
+the current typed section from step metadata and dispatches a section widget.
+The runtime path now supports `AppModeSection`, `ProfileSection`,
+`WorkoutIntroSection`, `WorkoutSection`, `NutritionIntroSection`,
+`NutritionSection`, `TargetsSection` (all 6 Targets children including real GoalPaceScreen and authoritative NutritionTargetScreen),
+and `ReviewSection`. See `docs/ONBOARDING_ARCHITECTURE.md`
 for the durable architecture and status boundary.
-
-## 1. Discovery
-
-### User Outcome
-
 A new user completes one calm, resumable setup flow. Progress remains visible at
 the top, the primary action remains reachable at the bottom, and only the child
 content changes. Workout and Nutrition users see only relevant steps; Hybrid users
@@ -239,8 +234,11 @@ Finish
 ### Slice 5: Conditional Feature Branches
 
 - [x] Add the real Hybrid-only Workout Intro gate and branch-aware progress/path behavior.
-- [ ] Add Workout preferences using Workout-owned settings contracts.
-- [ ] Add Nutrition intro/preferences using Nutrition-owned target contracts.
+- [x] Add Workout preferences using Workout-owned settings contracts.
+- [~] Add Nutrition Intro and the typed Nutrition section boundary. Keep
+  Nutrition preference fields blocked until owner-backed local contracts exist;
+  Android onboarding is not authoritative here because it has no dedicated
+  Nutrition onboarding section.
 - [ ] Verify Hybrid composes both branches without duplicate profile data.
 - [ ] Preserve irrelevant branch draft values when mode changes, but never require
   them for completion.
@@ -312,6 +310,88 @@ phone app: flutter test --no-pub -> PASS (61 tests)
 
 ## 7. Final Handoff
 
+### 2026-08-14 completion-boundary update
+
+- `OnboardingStatus` now persists through an explicit repository boundary with
+  stable string serialization and corrupt-value fail-safe parsing.
+- The app bootstraps a dedicated onboarding-status controller before routing and
+  no longer treats confirmed App Mode alone as completion truth.
+- Existing confirmed-mode installs with missing completion status now migrate
+  once through `legacyModeOnly` to explicit `completed`.
+- `ReviewSection -> ReviewScreen` is now real and summarizes only real captured
+  data.
+- `CompleteOnboardingUseCase` validates completion eligibility, writes confirmed
+  App Mode, then writes `OnboardingStatus.completed`.
+- Finish remains blocked while required Nutrition Preferences/Targets owner
+  sections are still compatibility previews, so overall onboarding product
+  status remains `PARTIAL`.
+- Secure sensitive draft persistence and resume are still pending.
+
+### 2026-08-14 Nutrition N1 update
+
+- Audited local Nutrition ownership before implementation:
+  `apps/features/nutrition`, `apps/features/onboarding`, `apps/shared`, and
+  `apps/core`.
+- Verified that the Android onboarding reference does not contain a dedicated
+  Nutrition onboarding section, so Nutrition onboarding in Tio-World cannot be
+  filled by parity assumptions.
+- Added the real `NutritionIntroSection -> NutritionIntroScreen` path.
+- Added `NutritionOnboardingDraft` as an in-memory typed foundation and wired it
+  into `OnboardingDraft`.
+- Added `NutritionSection -> NutritionStepRenderer` as the typed
+  `nutritionPreferences` boundary.
+- Kept Nutrition preference UI explicitly compatibility-blocked because no
+  canonical owner-backed preference fields were found in the current local
+  source.
+- Kept Targets separate; no calories, macros, water, or pace logic moved into
+  Nutrition preferences.
+- Kept sensitive Nutrition answers non-persistent in this slice.
+
+### 2026-08-14 WorkoutPreferences W1 update
+
+- `WorkoutSection -> WorkoutStepRenderer` now owns the global
+  `OnboardingStepId.workoutPreferences` step through section-local
+  `WorkoutStepId` children.
+- `BuildWorkoutFlowPlanUseCase` now drives the dynamic child order:
+  Gym/unset access -> 8 steps, Home -> 9 steps with Equipment inserted.
+- Real W1 screens are implemented for Gym Access, Equipment, Experience Level,
+  and Focus Areas.
+- Focus Areas now centralizes Android-reference `full_body` semantics in domain
+  logic.
+- Back/Next remain controller-owned; changing gym access reconciles the child
+  plan safely and preserves Equipment draft answers in memory.
+- `TrainingDays`, `WorkoutDuration`, `WorkoutSplit`, `HealthConcerns`, and
+  `SpecialEvent` were still pending at the end of the W1 slice, so Workout
+  Preferences was not yet product-complete there.
+
+### 2026-08-14 WorkoutPreferences W2 update
+
+- Added source-grounded typed contracts for `WorkoutTrainingDay`,
+  `WorkoutDuration`, and `WorkoutSplit` using the Android-reference IDs:
+  `monday` through `sunday`, `auto`/`30_min`/`60_min`/`90_min`/`120_min`, and
+  `auto`/`full_body`/`upper_lower`/`ppl`/`body_part`.
+- `WorkoutOnboardingDraft` now stores typed W2 state, and
+  `OnboardingController` now owns typed update APIs for Training Days, Workout
+  Duration, and Workout Split.
+- `WorkoutSection -> WorkoutStepRenderer` now renders real W2 screens for
+  Training Days, Workout Duration, and Workout Split while keeping
+  `HealthConcerns` and `SpecialEvent` as the only pending W3 children.
+- `WorkoutStepValidator` now enforces all required W2 answers and exposes
+  `hasRequiredSelections` so required Workout readiness is explicit without
+  claiming optional W3 completeness.
+- Workout child order is unchanged:
+  Gym Access -> Equipment? -> Experience Level -> Focus Areas -> Training Days
+  -> Workout Duration -> Workout Split -> Health Concerns -> Special Event.
+
+### 2026-08-14 validation
+
+```text
+onboarding package: flutter analyze --no-pub -> PASS
+onboarding package: flutter test --no-pub -> PASS (94 tests)
+phone app: flutter analyze --no-pub -> PASS
+phone app: flutter test --no-pub -> PASS (87 tests)
+```
+
 ### Changed Files
 
 - Added pure onboarding models and `BuildOnboardingFlowUseCase` under
@@ -323,6 +403,10 @@ phone app: flutter test --no-pub -> PASS (61 tests)
   and an honest compatibility section/screen for pending owner slices.
 - Added `ProfileSection`, `ProfileStepRenderer`, a grouped typed Profile draft,
   centralized validation, and nine production Profile child screens.
+- Added `WorkoutSection`, `WorkoutStepRenderer`, a grouped typed Workout draft,
+  dynamic Workout child planning, centralized W1/W2 validation with explicit
+  required-readiness checks, real W1/W2 Workout screens, and internal
+  continuation toward the later W3 children.
 - Added focused domain/controller/widget tests under
   `apps/features/onboarding/test`.
 - Updated implementation-status and onboarding documentation to preserve the
@@ -332,21 +416,41 @@ phone app: flutter test --no-pub -> PASS (61 tests)
 
 The reusable flow, parent-shell foundation, typed section dispatch, first-child
 App Mode section/screen, nine-screen in-memory common Profile section, and the
-real Hybrid-only Workout Intro gate are implemented in source. The active
-`/onboarding` route defers confirmed mode publication until Finish. Choosing
-`later` at Workout Intro skips Workout Preferences and continues to Nutrition
-Intro while preserving correct Back/progress behavior. Focused package and
-phone-app checks pass.
+real Hybrid-only Workout Intro gate are implemented in source. Workout
+Preferences now has a fully real typed W1/W2/W3 child flow for Gym Access,
+conditional Equipment, Experience Level, Focus Areas, Training Days, Workout
+Duration, Workout Split, optional Health Concerns, and optional Special Event.
+The active `/onboarding` route defers confirmed mode publication until Finish.
+Choosing `later` at Workout Intro skips Workout Preferences and continues to
+Nutrition Intro while preserving correct Back/progress behavior. Focused
+package and phone-app checks pass.
 
 ### Known Limitations
 
 - Durable Profile ownership/consent, Auth ordering, secure local storage, legacy
   migration, and cross-owner completion transaction remain decision-gated.
-- Workout Preferences, Nutrition, Targets, and Review still use compatibility previews;
-  persisted draft/resume, explicit completion status, and safe cross-owner
-  completion remain pending.
+- Workout Preferences is fully real. Nutrition Intro is real, but Nutrition
+  Preferences and Targets remain compatibility-blocked owner slices.
+- Persisted sensitive draft/resume and safe cross-owner completion remain pending.
 
 ### Final Status
 
-`PARTIAL` — typed App Mode and in-memory Profile runtime slices are implemented
-and validated; later owner-backed, persistence, and completion slices remain pending.
+`PARTIAL` — App Mode, Profile, Workout Intro, Workout Preferences, and Review
+are implemented and validated; later Nutrition, Targets, persistence, and
+completion slices remain pending.
+
+### 2026-08-14 WorkoutPreferences W3 update
+
+- Added real `HealthConcernsScreen` and `SpecialEventScreen` under
+  `WorkoutSection -> WorkoutStepRenderer`.
+- `WorkoutOnboardingDraft` now carries in-memory `healthConcerns` and
+  `specialEvent` string fields.
+- `OnboardingController` now owns typed update APIs for both optional W3 text
+  fields.
+- `WorkoutStepValidator` keeps both W3 steps optional and leaves
+  `hasRequiredSelections` unchanged.
+- `OnboardingCompletionValidator` no longer treats Workout Preferences as a
+  compatibility blocker. For workout mode, `Targets` is now the remaining
+  required blocker; hybrid still blocks on Nutrition plus Targets.
+- Review keeps privacy-safe behavior by not exposing raw workout health text.
+- `WorkoutCompatibilityScreen` was removed because Workout no longer uses it.

@@ -280,6 +280,54 @@ Avoid putting heavy phone home surfaces, long forms, full AI chat, large analyti
 
 The Flutter phone app folder is:
 
+`apps/core` also owns the reusable `TioButton` primary, secondary, and ghost action variants. The component and theme share finite token-driven dimensions, spacing, state layers, outlines, disabled behavior, loading lockout, progress semantics, and reduced-motion fallback. Feature packages provide action intent and state; they do not recreate common button loading or interaction behavior.
+
+## Material 3 Expressive Direction
+
+The phone design system adopts Material 3 Expressive as its product direction. `apps/core` owns the implementation through semantic color, typography, shape, spacing, motion, and accessibility tokens plus reusable components. Flutter's baseline Material 3 is already enabled; do not assume a separate Flutter Material 3 Expressive API is stable or available.
+
+Apply the direction incrementally: migrate shared phone components only when their interaction, accessibility, and dark-mode states are verified. Guided navigation, avatar, and button foundations are implemented; remaining components and feature screens still move in focused slices. Preserve visible touch feedback, honor reduced-motion and high-contrast preferences, and avoid hardcoded expressive values in feature packages. Wear OS remains watch-first and compact; it may share tokens where useful but must not inherit phone-sized layouts or motion.
+
+## Recommended Flutter Stack
+
+```text
+State: Riverpod
+Navigation: go_router with typed routes
+Data: offline-first repository pattern
+Local persistence: Drift, Isar, or similar after the first real data slice is chosen
+Code generation: freezed + json_serializable
+HTTP/API: dio when remote APIs are introduced
+Workspace: melos
+```
+
+Use feature-owned routes and navigation registration. Keep app-level routing composition in `apps/app`, and keep feature internals inside the owning feature package.
+
+Local persistence should stay behind repository implementations so the database choice can evolve before production hardening.
+
+## Watch Rules
+
+Watch apps should stay small and fast.
+
+Good watch responsibilities:
+
+- workout start, pause, resume, finish
+- active set input
+- rest timer
+- heart rate display
+- steps and calories summary
+- offline active workout snapshot
+- food and water quick add
+- today's nutrition summary
+- next planned meal status after Meal Plan is available on phone
+- quick sync
+- tiles and complications where useful
+
+Avoid putting heavy phone home surfaces, long forms, full AI chat, large analytics flows, or image-heavy UI on watches.
+
+## Naming Rules
+
+The Flutter phone app folder is:
+
 ```text
 apps/app
 ```
@@ -289,3 +337,38 @@ The Wear OS folder is:
 ```text
 apps/wear
 ```
+
+## Future-Safe Backend Preservation Rule
+
+Tio-World currently uses **Supabase as the active production data boundary**, but the repository has already-established **future custom-backend infrastructure**.
+
+The following code is intentional architecture and MUST NOT be deleted, merged away, replaced, or classified as dead/unused code merely because it is not active in the current Supabase production composition:
+
+* `ApiClient`
+* `DioApiClient`
+* `AuthTokenProvider`
+* `RemoteProfileSetupRepository`
+* `ProfileSetupDtoMapper`
+* `RemoteWorkoutPreferencesRepository`
+* `WorkoutPreferencesDtoMapper`
+* `RemoteTargetsSetupRepository`
+* `TargetsSetupDtoMapper`
+* `RemoteOnboardingFinalizer`
+* `BackendUserSyncRepository`
+* `RemoteBackendUserSyncRepository`
+* `GoogleAuthUseCase` (Firebase + custom backend path)
+* backend transport DTOs and mappers
+
+### Current vs Future Adapter Rule
+
+Current production path:
+```text
+Flutter → existing repository contracts → Supabase adapters → Supabase Auth + Postgres/RLS
+```
+
+Future backend path:
+```text
+Flutter → SAME repository contracts → Remote*/HTTP adapters → custom Tio backend
+```
+
+A model, coding agent, cleanup task, dead-code audit, refactor, or architecture migration MUST NOT delete inactive Remote*/HTTP/backend infrastructure solely because Supabase is the current production adapter. Inactive != obsolete. Removal requires an explicit architecture audit, retirement decision, and explicit user approval.
