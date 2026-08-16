@@ -83,7 +83,7 @@ This is behavior/architecture work, not UI redesign.
 - `LoginPage` directly queries `public.users.is_onboarded` and navigates after auth.
 - `AuthLandingPage` duplicates the same DB lookup/navigation and owns the legal footer that must remain.
 - `router.dart` also navigates through `onSignInSuccess`, creating competing navigation ownership.
-- Splash callback directly queries `public.users.is_onboarded`.
+- Splash callback previously directly queried `public.users.is_onboarded`; Slice C removed that ownership.
 - Auth domain already has `AuthSessionState`; do not create a duplicate auth-session hierarchy.
 - Current production auth session adapter is Supabase-backed.
 - Google sign-in attempts profile metadata upsert before onboarding, so raw row existence must not be the returning-user criterion.
@@ -91,242 +91,43 @@ This is behavior/architecture work, not UI redesign.
 - `SupabaseProfileSetupRepository.saveProfileSetup()` previously published `is_onboarded: true` during Profile owner persistence; Slice B removed that early completion publication.
 - `CompleteOnboardingUseCase` now owns durable backend completion publication after owner persistence and confirmed AppMode write, before local completion cache publication.
 
-### Tests Already Relevant
-
-- `apps/app/test/app/app_mode_route_policy_test.dart`
-- `apps/app/test/app/onboarding_status_controller_test.dart`
-- auth presentation tests
-- onboarding completion/use-case tests
-
 ### Local Verification Completed
 
-The local worktree was reported synchronized and on:
-
-```text
-codex/onboarding-mode-migration
-```
-
-Flutter/Dart toolchain:
-
-```text
-Flutter 3.44.6
-Dart 3.12.2
-SDK: G:\dev\flutter-sdk\bin\flutter.bat
-Repo: G:\projects\Tio-World
-```
+The local worktree was reported clean, synchronized, and on `codex/onboarding-mode-migration` using Flutter 3.44.6 / Dart 3.12.2.
 
 ## 3. Clarification
 
-### Decisions Required or Made
+### Frozen Decisions
 
-| Decision | Status | Rationale | Owner |
-|---|---|---|---|
-| Authentication state source | Made | Reuse existing `AuthSessionState` | Auth |
-| Durable onboarding truth | Made | `public.users.is_onboarded` is returning-user completion authority | Onboarding |
-| Missing backend user row | Made | Requires onboarding; not completed and not an error | App/Onboarding |
-| Backend lookup error | Made | Bootstrap failure/Splash retry; never classify as new user | App |
-| AppMode semantics | Made | Shell/personalization preference, not completion proof | App |
-| Missing local AppMode for completed user | Made | Allow Home; do not restart onboarding | App |
-| Durable AppMode recovery | Deferred | No current user-associated durable source exists; do not invent one in #7 | App |
-| Product navigation owner | Made | Router consumes one app bootstrap state | App |
-| Returning completed user | Made | Home, never Congratulations | App |
-| Congratulations ownership | Made | Fresh successful onboarding completion only | Onboarding/App |
-| Client-side app-user provisioning | Rejected | #5 owns DB provisioning trigger; #7 handles missing row safely | Supabase/App |
-| Legal footer ownership | Made | Preserve AuthLanding placement; Welcome remains without footer | Auth/Welcome |
+- Reuse existing `AuthSessionState`.
+- `public.users.is_onboarded` is durable returning-user completion authority.
+- Missing backend user row requires onboarding; backend lookup error is failure, never new-user classification.
+- AppMode is shell/personalization state, not onboarding completion proof.
+- Router is the single product-destination owner.
+- Returning completed users go Home, never Congratulations.
+- Congratulations is only for a fresh successful onboarding completion.
+- DB-owned auth-user provisioning remains issue #5.
+- AuthLanding keeps `TioTermsDisclaimer`; Welcome remains without it.
 
 ## 4. Architecture Design
 
-### Chosen Approach
-
-Reuse existing auth-session contracts, use the onboarding-owned remote completion repository, and compose both in one app-level bootstrap controller.
-
-#### Auth identity
-
 ```text
 AuthSessionRepository
-→ AuthSessionState
-```
-
-`LoginPage` and `AuthLandingPage` authenticate and emit success/failure only. They do not read `public.users` and do not choose Home/Onboarding/Congratulations.
-
-#### Durable onboarding completion contract
-
-Implemented under `apps/features/onboarding`:
-
-```text
-RemoteOnboardingCompletionState
-- uninitialized
-- incomplete
-- completed
-
+        +
 OnboardingCompletionRepository
-- readForUser(userId)
-- markCompleted(userId)
-```
-
-Supabase implementation owns only the `public.users.is_onboarded` read/write boundary.
-
-A missing row is `uninitialized` and routes to onboarding. The repository does not provision users.
-
-#### App bootstrap state
-
-Add under `apps/app/lib/app/session/`:
-
-```text
-loading
-unauthenticated
-requiresOnboarding
-ready
-failure
-```
-
-`AppSessionBootstrapController` composes:
-
-```text
-AuthSessionRepository
-+ OnboardingCompletionRepository
-+ local OnboardingStatusController/Repository for cache reconciliation
-→ AppSessionBootstrapState
-```
-
-Rules:
-
-- auth unresolved → loading;
-- unauthenticated → unauthenticated;
-- authenticated + remote uninitialized/incomplete → requiresOnboarding;
-- authenticated + remote completed → ready;
-- remote timeout/error → failure;
-- stale in-flight result from an older user/session cannot overwrite a newer auth state.
-
-Remote completion is authoritative for routing. Local SharedPreferences onboarding state becomes cache/flow state only.
-
-#### Local onboarding reconciliation
-
-`OnboardingStatusController` no longer downgrades completion because AppMode is missing.
-
-When remote state resolves:
-
-- remote completed → reconcile local status to completed;
-- remote uninitialized/incomplete → ensure stale local completed state cannot bypass onboarding;
-- local `inProgress` may remain useful only for the currently authenticated onboarding flow.
-
-No route decision may depend on AppMode to determine completion.
-
-#### Router precedence
-
-```text
-1. AppSessionBootstrapState
-2. AppMode shell policy after bootstrap == ready
-```
-
-Behavior:
-
-```text
-loading/failure
-→ Splash
-
-unauthenticated
-→ existing public auth/welcome routes
-
-requiresOnboarding
-→ Onboarding
-
-ready
-→ Home for Splash/Auth/Login/Onboarding entry routes
-→ then enforce mode-specific shell restrictions
-```
-
-`Congratulations` is not a generic ready destination.
-
-#### AppMode policy
-
-Completion semantics are based on `OnboardingStatus.completed`, independent of `selectedMode`.
-
-If completed but `selectedMode == null`:
-
-- Home remains accessible;
-- mode-specific shell destinations fall back to Home;
-- profile/settings must not force full onboarding;
-- no completion mutation occurs.
-
-Durable cross-device AppMode recovery is intentionally deferred because no current backend source exists.
-
-#### Splash ownership
-
-Preserve Splash visual tree exactly. Remove Splash-owned product navigation/query logic and let router redirects react to bootstrap state.
-
-#### Completion publication order
-
-Implemented durable boundary:
-
-```text
-1. validate final onboarding draft
-2. persist all required owner data
-3. run any configured non-completion finalization
-4. persist confirmed local AppMode
-5. mark backend onboarding completed (`is_onboarded = true`)
-6. update local onboarding completed cache
-7. clear obsolete draft best-effort
-8. caller navigates to Congratulations
-```
-
-If backend completion publication fails, local completion is not published. If local cache write fails after backend completion, next bootstrap can recover from backend truth.
-
-### Ownership and Data Flow
-
-```text
-LoginPage / AuthLandingPage
-        |
-        | authentication only
-        v
-AuthSessionRepository ───────────────┐
-                                     v
-                         AppSessionBootstrapController
-                                     ^
-                                     |
-OnboardingCompletionRepository ──────┘
-        |
-        v
-public.users.is_onboarded
-
+        +
+local onboarding cache reconciliation
+        ↓
 AppSessionBootstrapController
-        |
-        v
-GoRouter redirect
-        |
-        +--> Auth / Welcome
-        +--> Onboarding
-        +--> Home
-
-Fresh onboarding finish
-        |
-        v
-CompleteOnboardingUseCase
-        |
-        +--> Profile owner persistence
-        +--> Workout owner persistence when active
-        +--> Targets/Nutrition owner persistence
-        +--> confirmed AppMode
-        +--> backend completion publication
-        +--> local completed cache
-        v
-Congratulations
+        ↓
+loading / unauthenticated / requiresOnboarding / ready / failure
+        ↓
+GoRouter bootstrap-first redirect
+        ↓
+AppMode shell policy only after ready
 ```
 
-### Alternative Rejected
-
-- DB queries in auth widgets: duplicated data/routing authority.
-- Row existence as returning-user proof: incompatible with provisioning/profile-enrichment flows.
-- AppMode as completion proof: local preference can be absent/stale.
-- Another auth-session state hierarchy: existing `AuthSessionState` already owns identity lifecycle.
-- Client provisioning in #7: conflicts with #5 DB-owned direction.
-- Backend lookup failure → onboarding: transient failure would misclassify returning users.
-
-### Failure and Accessibility States
-
-- Backend readiness failure stays on the existing Splash surface rather than presenting false onboarding.
-- Existing auth error UI remains sign-in failure surface.
-- No auth/splash/onboarding visual hierarchy, focus order, semantics, legal text, labels, sizes, spacing, or assets change.
+Fresh onboarding completion publishes owner data, confirmed AppMode, durable backend completion, local completion cache, then marks bootstrap ready and presents Congratulations.
 
 ## 5. Implementation Plan
 
@@ -349,18 +150,24 @@ Congratulations
 
 ### Slice C — App bootstrap/routing
 
-- [ ] add `AppSessionBootstrapController`
-- [ ] reconcile local onboarding status without AppMode coupling
-- [ ] wire controller into router `refreshListenable`
-- [ ] make router redirect bootstrap-first
-- [ ] remove Splash direct DB query/navigation ownership
+- [x] add `AppSessionBootstrapController`
+- [x] reconcile local onboarding status without AppMode coupling
+- [x] stale async auth-user result cannot overwrite newer session state
+- [x] wire controller into router `refreshListenable`
+- [x] make router redirect bootstrap-first
+- [x] remove Splash direct DB query/navigation ownership
+- [x] make no-checker Splash passive while preserving rendered UI
+- [x] publish bootstrap ready after fresh successful onboarding completion
+- [x] focused app/Splash tests and analyzers pass locally
 
 ### Slice D — Auth presentation cleanup
 
 - [ ] remove direct Supabase import/query/navigation from `LoginPage`
 - [ ] remove direct Supabase import/query/navigation from `AuthLandingPage`
+- [ ] remove router-owned `LoginPage.onSignInSuccess` destination navigation
 - [ ] preserve AuthLanding `TioTermsDisclaimer`
 - [ ] keep Login/AuthLanding visual output unchanged
+- [ ] run focused auth tests/analyze + app analyze
 
 ### Slice E — Regression matrix
 
@@ -368,11 +175,11 @@ Congratulations
 - [ ] existing completed email user → Home
 - [ ] incomplete/uninitialized authenticated user → Onboarding
 - [ ] `inProgress` current-user flow resumes Onboarding
-- [ ] completed cold start → Home
+- [x] completed cold start bootstrap policy → Home
 - [ ] logout → same completed account → Home after sign-in
 - [x] missing local AppMode does not restart onboarding
-- [ ] backend lookup error stays failure/Splash, not onboarding
-- [ ] stale user bootstrap result cannot win after auth state changes
+- [x] backend lookup error stays failure/Splash, not onboarding
+- [x] stale user bootstrap result cannot win after auth state changes
 - [x] completion owner failure does not publish backend/local completed state
 - [ ] returning login never routes to Congratulations
 
@@ -399,52 +206,38 @@ Slice B regression — apps/app
 - app_mode_route_policy_test.dart: 9 passed
 - onboarding_status_controller_test.dart: 6 passed
 - flutter analyze: No issues found
+
+Slice C — apps/app
+- app_session_bootstrap_controller_test.dart: 6 passed
+- app_session_route_policy_test.dart: 4 passed
+- app_mode_route_policy_test.dart: 9 passed
+- onboarding_status_controller_test.dart: 6 passed
+- flutter analyze: No issues found
+
+Slice C — apps/features/splash
+- splash_screen_test.dart: 5 passed
+- flutter analyze: No issues found
+
+Final local worktree after Slice C validation: clean and synchronized.
 ```
 
 ### Review Findings and Resolution
 
-- Slice A changed behavior only; no UI files were touched.
-- Slice B introduced the durable completion boundary and removed premature profile-owned completion publication.
-- Router Slice B diff only injected the completion repository into the existing completion coordinator.
-- Missing AppMode no longer mutates/downgrades stored completed onboarding.
-- Read-only live Supabase inspection used only to verify schema assumptions; no DB writes were made.
-- Profile/account persistence defects are tracked separately in issue #8 / `.ai/tasks/profile-account-data-persistence.md`.
-- Login per-action loading and unavailable Truecaller behavior are tracked separately in issue #9 / `.ai/tasks/auth-action-loading-and-truecaller-fallback.md`.
+- Slice C router diff was audited and contained only bootstrap ownership changes.
+- Splash rendered tree/style remains unchanged; only no-checker navigation ownership became passive.
+- Login per-action loading and unavailable Truecaller behavior remain separately tracked in issue #9.
 
 ## 7. Final Handoff
 
-### Changed Files So Far
-
-```text
-.ai/tasks/auth-session-bootstrap-routing.md
-apps/app/lib/app/app_mode/app_mode_route_policy.dart
-apps/app/lib/app/onboarding/onboarding_status_controller.dart
-apps/app/lib/app/onboarding/onboarding_completion_providers.dart
-apps/app/lib/app/onboarding/onboarding.dart
-apps/app/lib/app/router.dart
-apps/app/test/app/app_mode_route_policy_test.dart
-apps/app/test/app/onboarding_status_controller_test.dart
-apps/features/onboarding/lib/src/domain/models/remote_onboarding_completion_state.dart
-apps/features/onboarding/lib/src/domain/models/models.dart
-apps/features/onboarding/lib/src/domain/repositories/onboarding_completion_repository.dart
-apps/features/onboarding/lib/src/domain/repositories/repositories.dart
-apps/features/onboarding/lib/src/data/repositories/supabase_onboarding_completion_repository.dart
-apps/features/onboarding/lib/src/data/data.dart
-apps/features/onboarding/lib/src/domain/usecases/complete_onboarding_use_case.dart
-apps/features/onboarding/test/domain/complete_onboarding_remote_completion_test.dart
-apps/features/onboarding/test/data/supabase_onboarding_completion_repository_test.dart
-apps/features/profile/lib/src/data/repositories/supabase_profile_setup_repository.dart
-```
-
 ### Actual Behavior
 
-Slices A and B are implemented and locally validated. App bootstrap/router ownership remains in progress.
+Slices A, B, and C are implemented and locally validated. Auth presentation still contains duplicate post-auth DB/navigation logic and is the current active Slice D.
 
 ### Known Limitations
 
 - Durable cross-device AppMode persistence is not available today and is not invented in this task.
 - DB-owned auth-user provisioning remains issue #5.
-- Login loading/Truecaller interaction remains issue #9 and is intentionally not fixed inside Slice C.
+- Login loading/Truecaller interaction remains issue #9 and is intentionally not fixed inside Slice D except where navigation ownership must be removed.
 
 ### Final Status
 
