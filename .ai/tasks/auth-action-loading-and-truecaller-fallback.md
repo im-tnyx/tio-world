@@ -1,46 +1,42 @@
 # Auth Action Loading and Truecaller Fallback
 
-**Status:** In progress
+**Status:** In progress — awaiting local validation
 **Primary owner:** `apps/features/auth`
 **Affected platforms:** Flutter phone app
 **Tracking:** GitHub issue #9
 
-## 1. Discovery
+## 1. User Outcome
 
-### User Outcome
+Login auth actions now have independent visual loading ownership, and unavailable Truecaller is non-destructive.
 
-Login auth actions behave independently and unavailable Truecaller never simulates a successful auth/navigation event.
+```text
+Email tap
+→ only Login spinner
+→ Google + Truecaller disabled, no spinner
 
-### Success Criteria
+Google tap
+→ only Google spinner
+→ Login + Truecaller disabled, no spinner
 
-- Only the tapped/in-flight auth action renders loading.
-- Other auth actions are conflict-gated during a request without showing another action's spinner.
-- Truecaller is intentionally non-functional for now; tapping it keeps the user on Login and shows `Truecaller sign-in is not available yet.`
-- Truecaller unavailable never calls success navigation, `pop(true)`, `go('/')`, or starts fake auth/network work.
-- Rapid repeated taps do not start duplicate auth requests.
-- Failure/cancel returns the initiating action to idle.
-- Existing Login geometry, spacing, colors, typography, assets, and button layout remain unchanged.
+Truecaller tap
+→ no spinner
+→ no auth/network
+→ no navigation
+→ show: “Truecaller sign-in is not available yet.”
+```
 
-### Non-Goals
+## 2. Guardrails
 
-- Truecaller SDK/provider integration.
-- auth/session/bootstrap routing (completed under #7).
-- Login/AuthLanding redesign or consolidation.
-- legal-copy changes.
-- global `TioSocialButton` redesign.
+- No Truecaller SDK/provider integration in this slice.
+- No fake Truecaller request/success.
+- #7 remains routing/bootstrap owner.
+- No AuthLanding/legal-copy changes.
+- No shared `TioSocialButton` redesign.
+- Login geometry, spacing, typography, colors, assets, and button layout remain unchanged.
 
-## 2. Verified Evidence
+## 3. Implementation
 
-After #7 cleanup, `LoginPage` is destination-neutral but still has one `_isLoading` boolean:
-
-- Email and Google both mutate `_isLoading`.
-- Login, Google, and Truecaller all render `loading: _isLoading`.
-- back/forgot/signup interactions use the same busy guard.
-- unavailable Truecaller still performs `pop(true)` or `go('/')`.
-
-Core `TioSocialButton` already exposes independent `enabled` and `loading` inputs, so this can be fixed locally without changing the shared component.
-
-## 3. Frozen Decisions
+`LoginPage` now uses explicit action identity:
 
 ```text
 idle
@@ -48,43 +44,78 @@ emailLoading
 googleLoading
 ```
 
-No `truecallerLoading` exists until a real Truecaller integration exists.
+There is no `truecallerLoading` state.
 
-```text
-Email tap
-→ only Login spinner
-→ Google/Truecaller disabled, no spinner
+Implemented behavior:
 
-Google tap
-→ only Google spinner
-→ Login/Truecaller disabled, no spinner
+- [x] replace global `_isLoading` with `_activeAction`
+- [x] Email owns only Login button loading
+- [x] Google owns only Google button loading
+- [x] conflicting auth actions are disabled without spinner duplication
+- [x] busy guard prevents duplicate overlapping auth submissions
+- [x] cancellation/failure returns initiating action to idle through `finally`
+- [x] Truecaller placeholder navigation removed
+- [x] Truecaller uses existing Login feedback surface with informational copy
+- [x] back/forgot/signup continue to respect shared busy gating
+- [x] shared button component untouched
 
-Truecaller tap
-→ no spinner
-→ no auth/network
-→ no navigation
-→ existing Login feedback surface shows:
-  “Truecaller sign-in is not available yet.”
-```
+## 4. Tests Added
 
-## 4. Implementation Plan
+`apps/features/auth/test/presentation/login_page_test.dart` now covers:
 
-- [x] #7 Login destination cleanup completed and locally validated
-- [ ] replace global visual loading bool with action identity
-- [ ] gate conflicting actions without spinner duplication
-- [ ] replace Truecaller navigation placeholder with informational feedback only
-- [ ] add Email loading ownership widget test
-- [ ] add Google loading ownership widget test
-- [ ] add conflict-gating/no-spinner widget assertions
-- [ ] add Truecaller no-navigation + feedback test
-- [ ] add cancellation/idle regression coverage
-- [ ] run focused Login tests and auth analyzer
-- [ ] confirm no visual composition/layout code changed
+- [x] Email request: only Login loading
+- [x] Google/Truecaller conflict-gated during Email without spinners
+- [x] Google request: only Google loading
+- [x] Login/Truecaller conflict-gated during Google without spinners
+- [x] Email cancellation returns actions to idle
+- [x] Google cancellation returns actions to idle
+- [x] unavailable Truecaller stays on Login
+- [x] unavailable Truecaller emits no success callback
+- [x] unavailable Truecaller shows `Truecaller sign-in is not available yet.`
+- [x] existing Login render/success/error tests retained
 
 ## 5. Quality Review
 
-Implementation must remain local to `LoginPage` + focused tests unless evidence requires otherwise.
+Production diff audit confirms changes are limited to action state/interaction bindings and Truecaller feedback. No spacing/token/layout/asset values changed.
 
-## 6. Final Handoff
+## 6. Validation Required
 
-Pending implementation and local validation.
+Run locally with the pinned Flutter SDK:
+
+```powershell
+Set-Location "G:\projects\Tio-World"
+git status --short --branch
+git pull --ff-only
+
+Set-Location "G:\projects\Tio-World\apps\features\auth"
+& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/presentation/login_page_test.dart"
+& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/presentation/auth_landing_page_test.dart"
+& "G:\dev\flutter-sdk\bin\flutter.bat" analyze
+
+Set-Location "G:\projects\Tio-World\apps\app"
+& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/app/session/app_session_bootstrap_controller_test.dart"
+& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/app/session/app_session_route_policy_test.dart"
+& "G:\dev\flutter-sdk\bin\flutter.bat" analyze
+
+Set-Location "G:\projects\Tio-World"
+git status --short --branch
+```
+
+## 7. Final Handoff
+
+### Changed runtime file
+
+```text
+apps/features/auth/lib/src/presentation/login/pages/login_page.dart
+```
+
+### Changed test/task files
+
+```text
+apps/features/auth/test/presentation/login_page_test.dart
+.ai/tasks/auth-action-loading-and-truecaller-fallback.md
+```
+
+### Final Status
+
+`IMPLEMENTED — LOCAL VALIDATION PENDING`
