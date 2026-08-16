@@ -21,12 +21,7 @@ class TioShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final effectiveVisibleTabs =
         state.visibleTabs.length == 1 && state.visibleTabs.single == ShellTab.home
-            ? const [
-                ShellTab.home,
-                ShellTab.workout,
-                ShellTab.nutrition,
-                ShellTab.progress,
-              ]
+            ? missingModeCompatibilityShellTabs
             : state.visibleTabs;
     final canRenderBottomNav =
         state.isBottomNavVisible && effectiveVisibleTabs.length >= 2;
