@@ -28,6 +28,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
   int _resolutionGeneration = 0;
   bool _started = false;
   bool _disposed = false;
+  String? _activeAuthenticatedUserId;
 
   AppSessionBootstrapState get state => _state;
 
@@ -55,7 +56,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
     final authState = await _authSessionRepository.currentSessionState;
     if (_disposed) return;
     _debug('refresh auth state: ${authState.runtimeType}');
-    await _resolve(authState, emitLoading: emitLoading);
+    await _resolve(authState, emitLoading: emitLoading, force: true);
   }
 
   /// Accepts the already-verified result of a successful onboarding completion.
@@ -69,6 +70,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
     if (userId.isEmpty) {
       throw ArgumentError.value(userId, 'userId', 'must not be empty');
     }
+    _activeAuthenticatedUserId = userId;
     _resolutionGeneration++;
     _debug('mark ready after onboarding completion');
     _setState(AppSessionBootstrapReady(userId: userId));
@@ -77,8 +79,20 @@ class AppSessionBootstrapController extends ChangeNotifier {
   Future<void> _resolve(
     AuthSessionState authState, {
     bool emitLoading = true,
+    bool force = false,
   }) async {
     if (_disposed) return;
+
+    if (!force &&
+        authState is AuthSessionAuthenticated &&
+        _activeAuthenticatedUserId == authState.session.userId &&
+        (_state is AppSessionBootstrapLoading ||
+            _state is AppSessionBootstrapReady ||
+            _state is AppSessionBootstrapRequiresOnboarding)) {
+      _debug('duplicate authenticated event ignored for active user');
+      return;
+    }
+
     final generation = ++_resolutionGeneration;
     _debug('resolve generation=$generation state=${authState.runtimeType}');
 
@@ -87,9 +101,11 @@ class AppSessionBootstrapController extends ChangeNotifier {
         _setState(const AppSessionBootstrapLoading());
         break;
       case AuthSessionUnauthenticated():
+        _activeAuthenticatedUserId = null;
         _setState(const AppSessionBootstrapUnauthenticated());
         break;
       case AuthSessionAuthenticated(:final session):
+        _activeAuthenticatedUserId = session.userId;
         if (emitLoading) {
           _setState(const AppSessionBootstrapLoading());
         }
