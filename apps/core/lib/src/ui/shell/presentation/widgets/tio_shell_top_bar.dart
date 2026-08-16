@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../theme/tokens/components/tio_navigation_tokens.dart';
 import '../../../../theme/tokens/foundation/tio_spacing.dart';
@@ -11,12 +12,16 @@ class TioShellTopBar extends StatelessWidget implements PreferredSizeWidget {
     required this.planTier,
     required this.scrollOpacity,
     required this.onAction,
+    this.userName,
+    this.avatarUrl,
     super.key,
   });
 
   final ShellPlanTier planTier;
   final double scrollOpacity;
   final ValueChanged<ShellAction> onAction;
+  final String? userName;
+  final String? avatarUrl;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -62,15 +67,51 @@ class TioShellTopBar extends StatelessWidget implements PreferredSizeWidget {
                   padding: const EdgeInsets.symmetric(
                     horizontal: TioSpacing.small,
                   ),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      planTier.label,
-                      maxLines: 1,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: colorScheme.onPrimaryContainer,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Dynamic Icon based on Plan
+                      switch (planTier) {
+                        ShellPlanTier.free => SvgPicture.asset(
+                            'assets/svg_icon/ic_pro_outline.svg',
+                            package: 'tio_core',
+                            width: 16,
+                            height: 16,
+                            colorFilter: ColorFilter.mode(
+                              colorScheme.onPrimaryContainer,
+                              BlendMode.srcIn,
+                            ),
                           ),
-                    ),
+                        ShellPlanTier.plus => const Icon(
+                            Icons.star_rounded,
+                            size: 16,
+                            color: Color(0xFFF59E0B),
+                          ),
+                        ShellPlanTier.premium => SvgPicture.asset(
+                            'assets/svg_icon/ic_pro_fill.svg',
+                            package: 'tio_core',
+                            width: 16,
+                            height: 16,
+                            colorFilter: const ColorFilter.mode(
+                              Color(0xFF5EEAD4),
+                              BlendMode.srcIn,
+                            ),
+                          ),
+                      },
+                      const SizedBox(width: 6),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          planTier.label,
+                          maxLines: 1,
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                color: colorScheme.onPrimaryContainer,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16,
+                              ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -84,7 +125,10 @@ class TioShellTopBar extends StatelessWidget implements PreferredSizeWidget {
         IconButton(
           tooltip: 'Profile',
           icon: TioAvatar(
+            key: ValueKey('top-bar-avatar-$avatarUrl-$userName'),
             size: TioAvatarSize.small,
+            displayName: userName,
+            imageUrl: avatarUrl,
             frame: switch (planTier) {
               ShellPlanTier.free => TioAvatarFrame.none,
               ShellPlanTier.plus => TioAvatarFrame.plusRing,

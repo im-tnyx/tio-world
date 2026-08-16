@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:tio_shared/shared.dart';
 
 import '../../../../theme/locals/tio_theme_context.dart';
 import '../../../../theme/tokens/components/tio_navigation_tokens.dart';
@@ -67,6 +68,52 @@ class TioShellBottomNav extends StatelessWidget {
           label: 'Progress',
         ),
     };
+  }
+}
+
+/// Renders the exact SVG navigation icon for an AppDestination
+class TioDestinationNavIcon extends StatelessWidget {
+  const TioDestinationNavIcon({
+    required this.destination,
+    this.isSelected = false,
+    this.size = 22,
+    this.color,
+    super.key,
+  });
+
+  final AppDestination destination;
+  final bool isSelected;
+  final double size;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    final effectiveColor =
+        color ?? (isSelected ? colors.primary : colors.textSecondary);
+
+    final assetPath = switch (destination) {
+      AppDestination.home => isSelected
+          ? 'assets/nav_icon/ic_nav_home_filled.svg'
+          : 'assets/nav_icon/ic_nav_home_outlined.svg',
+      AppDestination.workout => isSelected
+          ? 'assets/nav_icon/ic_nav_workout_filled.svg'
+          : 'assets/nav_icon/ic_nav_workout_outlined.svg',
+      AppDestination.nutrition => isSelected
+          ? 'assets/nav_icon/ic_nav_nutrition_filled.svg'
+          : 'assets/nav_icon/ic_nav_nutrition_outlined.svg',
+      AppDestination.progress => isSelected
+          ? 'assets/nav_icon/ic_nav_progress_filled.svg'
+          : 'assets/nav_icon/ic_nav_progress_outlined.svg',
+    };
+
+    return SvgPicture.asset(
+      assetPath,
+      package: 'tio_core',
+      width: size,
+      height: size,
+      colorFilter: ColorFilter.mode(effectiveColor, BlendMode.srcIn),
+    );
   }
 }
 

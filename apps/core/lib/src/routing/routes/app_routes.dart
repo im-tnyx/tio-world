@@ -59,6 +59,20 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  static const profileSettings = TioRouteContract(
+    path: '/settings/profile',
+    title: 'Profile Settings',
+    description: 'Manage your name, username, demographics and biometrics.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
+  static const accountSettings = TioRouteContract(
+    path: '/settings/account',
+    title: 'Account Settings',
+    description: 'Manage email, mobile number, security and account lifecycle.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
   static const themeSettings = TioRouteContract(
     path: '/settings/theme',
     title: 'Theme',
@@ -98,6 +112,13 @@ class AppRoutes {
     path: '/splash',
     title: 'Splash',
     description: 'Initializing session and data access...',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
+  static const congratulations = TioRouteContract(
+    path: '/congratulations',
+    title: 'Congratulations',
+    description: 'Welcome to Tio onboarding celebration.',
     chromePolicy: ChromePolicy.fullScreen,
   );
 }

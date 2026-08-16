@@ -26,6 +26,8 @@ class TioShell extends StatelessWidget {
                   planTier: state.planTier,
                   scrollOpacity: state.appBarOpacity,
                   onAction: onAction,
+                  userName: state.userName,
+                  avatarUrl: state.avatarUrl,
                 ),
               ShellTab.workout => TioShellStatusTopBar(
                   title: ShellTab.workout.label,

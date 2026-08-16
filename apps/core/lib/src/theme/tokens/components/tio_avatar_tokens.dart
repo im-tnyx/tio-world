@@ -4,7 +4,7 @@ class TioAvatarTokens {
   static const compactSize = 24.0;
   static const smallSize = 36.0;
   static const mediumSize = 48.0;
-  static const largeSize = 80.0;
+  static const largeSize = 100.0;
   static const extraLargeSize = 160.0;
   static const roundedRadiusFactor = 0.28;
   static const plusRingWidth = 3.0;

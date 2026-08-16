@@ -5,4 +5,5 @@ class TioRadius {
   static const medium = 12.0;
   static const large = 16.0;
   static const extraLarge = 24.0;
+  static const full = 999.0;
 }

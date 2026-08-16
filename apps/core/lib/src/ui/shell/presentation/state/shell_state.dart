@@ -84,6 +84,8 @@ class ShellUiState {
     this.planTier = ShellPlanTier.free,
     this.workoutStreakDays,
     this.mealLogStreakDays,
+    this.userName,
+    this.avatarUrl,
   })  : assert(workoutStreakDays == null || workoutStreakDays >= 0),
         assert(mealLogStreakDays == null || mealLogStreakDays >= 0);
 
@@ -95,4 +97,6 @@ class ShellUiState {
   final ShellPlanTier planTier;
   final int? workoutStreakDays;
   final int? mealLogStreakDays;
+  final String? userName;
+  final String? avatarUrl;
 }
