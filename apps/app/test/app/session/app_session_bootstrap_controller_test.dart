@@ -131,6 +131,45 @@ void main() {
     expect(fixture.controller.state, const AppSessionBootstrapLoading());
   });
 
+  test('duplicate authenticated event for active user does not restart bootstrap',
+      () async {
+    final pendingLookup = Completer<RemoteOnboardingCompletionState>();
+    var readCount = 0;
+    final authRepository = _FakeAuthSessionRepository(
+      initialState: _authenticated('user-a'),
+    );
+    final fixture = await _Fixture.create(
+      authRepository: authRepository,
+      completionResolver: () {
+        readCount++;
+        return pendingLookup.future;
+      },
+    );
+
+    fixture.controller.start();
+    await _flush();
+    expect(readCount, 1);
+
+    authRepository.emit(_authenticated('user-a'));
+    await _flush();
+    expect(readCount, 1);
+
+    pendingLookup.complete(RemoteOnboardingCompletionState.completed);
+    await _flush();
+    expect(
+      fixture.controller.state,
+      const AppSessionBootstrapReady(userId: 'user-a'),
+    );
+
+    authRepository.emit(_authenticated('user-a'));
+    await _flush();
+    expect(readCount, 1);
+    expect(
+      fixture.controller.state,
+      const AppSessionBootstrapReady(userId: 'user-a'),
+    );
+  });
+
   test('stale user lookup cannot overwrite a newer authenticated user',
       () async {
     final oldUserResult = Completer<RemoteOnboardingCompletionState>();
