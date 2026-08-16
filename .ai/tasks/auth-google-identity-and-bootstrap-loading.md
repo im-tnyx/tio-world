@@ -1,6 +1,6 @@
 # Google Identity Ownership & Bootstrap Loading
 
-**Status:** In progress — lifecycle crash locally validated; Google critical-path timeout diagnostics implemented
+**Status:** In progress — Google auth succeeds; client bootstrap/Splash handoff is active P0
 **Primary owner:** `apps/features/auth` + `apps/app` + `apps/features/onboarding` + `apps/features/splash`
 **Affected platforms:** Flutter phone app + Supabase/Firebase auth boundary
 **Tracking:** GitHub issue #10
@@ -8,244 +8,191 @@
 
 ## 1. User-reported incident
 
-A Google-created account can remain stuck in loading during sign-in. Reopening the app can still show loading. The corresponding `public.users.firebase_uid` is not populated.
-
-Real-device logs exposed an additional concrete lifecycle failure:
-
-```text
-Unhandled Exception: A AppSessionBootstrapController was used after being disposed.
-AppSessionBootstrapController._setState
-AppSessionBootstrapController._resolve
-```
-
-That failure reproduced around app background/hot-restart lifecycle while an asynchronous bootstrap resolution was still in flight. The lifecycle patch is now locally validated and the latest device run no longer shows that exception, but the Google button still remains loading. The remaining spinner is therefore inside the Google authentication critical path itself.
+A Google-created account can remain stuck in loading during sign-in. Later fixes removed the login-button infinite wait and a disposed-controller crash, but real-device testing now reaches Splash and remains on its spinner instead of routing Home.
 
 ## 2. Verified evidence
 
 ### Production identity path
 
-- `AuthLandingPage` prefers `SignInWithGoogleUseCase` when provided.
-- The configured app path provides `SupabaseAuthSignInRepository`.
-- Supabase Google sign-in establishes a Supabase GoTrue session with `auth.users.id` as the app session ID.
-- The dormant `GoogleAuthUseCase` is the path that signs into Firebase and obtains `firebaseUser.uid`, but it is shadowed by the configured Supabase path.
+- Current production Continue with Google is Supabase-first.
+- `SupabaseAuthSignInRepository.signInWithGoogle()` establishes Supabase GoTrue auth.
+- Firebase packages exist but Firebase is not initialized/configured as the active production auth capability.
+- `firebase_uid` therefore remains non-canonical/unreliable and must not gate login.
 
-### Firebase capability
+### Live Supabase read-only evidence
 
-- Firebase packages are present.
-- `main.dart` does not initialize Firebase.
-- Android app Gradle does not apply Google Services.
-- no generated `DefaultFirebaseOptions` implementation was found.
-- `authCapabilityProvider` is explicitly unavailable pending Firebase client configuration.
+Latest device attempt was checked read-only after the reported Splash hang:
 
-### Live Supabase read-only audit
+- latest Google `auth.users.last_sign_in_at` updated at the time of the device test;
+- the latest authenticated Google identity has a matching `public.users` row;
+- that row has `is_onboarded = true`;
+- therefore the backend/account state for this attempt is valid for returning-user Home routing;
+- a second older Google auth identity still exists without a `public.users` row and remains a separate reconciliation concern.
 
-- 2 Google identities exist in Supabase auth.
-- only 1 has a matching `public.users` row.
-- 0 `public.users` rows have a non-empty `firebase_uid`.
-- no personal names/emails were inspected or recorded.
+No production DB mutation was performed.
 
-### Loading hazards
+### Real-device lifecycle evidence
 
-- after Supabase auth succeeds, Google/email flows previously awaited device sync;
-- Google sign-in also previously awaited optional `public.users` profile enrichment;
-- these secondary operations are not required to establish the authenticated session;
-- `SupabaseOnboardingCompletionRepository.readCurrent()` is bounded by the app bootstrap controller timeout;
-- bootstrap `failure` stays on Splash but is visually distinguishable and retryable instead of being an endless normal spinner;
-- late bootstrap results after controller disposal are now ignored;
-- after those fixes, real-device testing still shows the Google action spinner remaining active;
-- `SupabaseAuthSignInRepository.signInWithGoogle()` still had three unbounded awaited stages: native account selection, Google credential read, and Supabase ID-token exchange.
+An earlier device log showed:
 
-## 3. Frozen decisions
+```text
+Unhandled Exception: A AppSessionBootstrapController was used after being disposed.
+```
+
+The lifecycle guard fix is locally validated and subsequent device runs no longer show this exception.
+
+### Current real-device evidence
+
+The latest device log shows Android Google `SignInHubActivity` opens and returns to `MainActivity`. The app then reaches Splash but does not leave the spinner.
+
+Combined with the live Supabase state above, the active failure is now client-side bootstrap/router propagation, not Google credential rejection and not missing onboarding completion data.
+
+## 3. Frozen product decisions
 
 - Do not delete/rewrite existing auth users during this task.
-- Do not backfill `firebase_uid` until production identity ownership is explicitly chosen.
-- Do not treat readiness lookup failure as a new user.
-- Normal AuthLanding/Login/Splash visuals remain unchanged except explicit error/recovery feedback.
-- #8 profile/account persistence is paused while this P0 incident is active.
+- Do not backfill `firebase_uid` until canonical auth ownership is explicitly chosen.
+- Do not treat backend/network lookup failure as a new user.
+- Preserve normal Login/AuthLanding/Splash visuals except explicit recovery/error states.
+- #8 profile/account persistence stays paused while this P0 is active.
 
 ### Login account-admission rule
 
-Login is **sign-in-only**. It must not silently create a new Tio account.
-
-For a Google identity that does not belong to an existing Tio account:
+Login is **sign-in-only** and must not silently create a new Tio account.
 
 ```text
 Google Login
-→ verify identity/account eligibility without creating a new application account
-→ no account found
-→ remain on Login
-→ no onboarding/navigation success
-→ show existing Login/Auth feedback surface:
-   “No Tio account found for this Google account. Create a Tio account first to continue.”
+→ existing Tio account check
+→ account exists: continue login
+→ no account: remain on Login
+             show “No Tio account found for this Google account.
+                   Create a Tio account first to continue.”
+             do not create auth/application owner state
 ```
 
-Guardrails:
+Account creation belongs only to explicit signup/onboarding creation intent.
 
-- no implicit `auth.users` creation from a login-only intent;
-- no implicit `public.users` provisioning from a login-only intent;
-- account creation must occur only through an explicit signup/onboarding account-creation flow;
-- do not expose an unauthenticated account-enumeration endpoint without appropriate server-side validation/rate limiting;
-- current Supabase Dart `signInWithIdToken()` does not expose a per-call `shouldCreateUser: false` switch, so this cannot be solved safely by a UI-only change;
-- disabling Supabase “Allow new users to sign up” globally would also affect explicit signup flows, so use it only if the final product deliberately disables all client signup.
+## 4. Implemented slices
 
-## 4. Architecture split
+### Slice A — secondary post-auth work removed from critical path
 
-### Slice A — Login must not wait on secondary sync
+Locally validated:
 
-Implemented and locally validated:
+- device sync non-blocking;
+- Google profile enrichment non-blocking;
+- auth repo tests passed;
+- AuthLanding/Login regressions passed;
+- auth analyzer clean.
 
-- [x] make device sync best-effort/non-blocking after Supabase auth success
-- [x] make Google profile enrichment best-effort/non-blocking after auth success
-- [x] retain logging for secondary sync failures
-- [x] apply non-blocking device sync consistently to Google/email/OTP/signup auth success paths
-- [x] add regression proving a pending device sync cannot hold successful sign-in open
-- [x] `supabase_auth_sign_in_repository_test.dart`: 5 passed
-- [x] `auth_landing_page_test.dart`: 1 passed
-- [x] `login_page_test.dart`: 9 passed
-- [x] auth `flutter analyze`: No issues found
+### Slice B — bootstrap timeout + recoverable Splash failure
 
-### Slice B — Bootstrap must be bounded and recoverable
+Locally validated:
 
-Implemented and locally validated:
+- completion lookup bounded to 8 seconds;
+- lookup error/timeout becomes `AppSessionBootstrapFailure`;
+- failure-only Splash feedback + Retry;
+- bootstrap/controller/route-policy/Splash tests green;
+- analyzers clean.
 
-- [x] add configurable bounded timeout to remote completion lookup; production default 8 seconds
-- [x] timeout/error resolves `AppSessionBootstrapFailure`
-- [x] add controller regression for pending lookup -> timeout failure
-- [x] add controller regression proving explicit refresh can recover failure -> ready
-- [x] keep normal Splash loading UI unchanged
-- [x] add failure-only Splash message + Retry action
-- [x] wire Retry to `AppSessionBootstrapController.refresh()`
-- [x] add Splash widget coverage for failure feedback + Retry callback
-- [x] app bootstrap controller tests: 8 passed
-- [x] app route policy regression: 4 passed
-- [x] app `flutter analyze`: No issues found
-- [x] Splash tests: 7 passed
-- [x] Splash `flutter analyze`: No issues found
-- [x] final reported worktree clean and synchronized
+### Slice B2 — controller disposal safety
 
-### Slice B2 — Bootstrap lifecycle/disposal safety
+Locally validated:
 
-Implemented and locally validated:
+- late async results cannot notify a disposed controller;
+- in-flight generation invalidated on dispose;
+- focused controller suite reached 9 passing tests;
+- app analyzer clean;
+- disposed-controller device exception no longer appears.
 
-- [x] add explicit disposed-state guard to `AppSessionBootstrapController`
-- [x] invalidate in-flight resolution generation during `dispose()`
-- [x] ignore late stream errors/results after disposal
-- [x] prevent `refresh()`, `start()`, completion publication, and `_setState()` from acting after disposal
-- [x] add regression: pending authenticated completion lookup -> dispose controller -> lookup completes -> no exception/no late mutation
-- [x] `app_session_bootstrap_controller_test.dart`: 9 passed
-- [x] `app_session_route_policy_test.dart`: 4 passed
-- [x] app `flutter analyze`: No issues found
-- [x] final reported worktree clean and synchronized
-- [x] latest device run does not show the previous disposed-controller exception
+### Slice B3 — bounded Google auth critical path
 
-### Slice B3 — Bound and trace the Google critical path
+Locally validated:
 
-Implemented, awaiting local validation:
+- native account selection bounded;
+- Google credential read bounded;
+- Supabase ID-token exchange bounded;
+- stage-specific controlled failures added;
+- `supabase_auth_sign_in_repository_test.dart`: 9 passed;
+- `auth_landing_page_test.dart`: 2 passed;
+- auth analyzer: No issues found;
+- worktree clean.
 
-- [x] bound native Google account selection; production timeout 30 seconds
-- [x] bound Google credential/token read; production timeout 15 seconds
-- [x] bound Supabase Google ID-token exchange/OAuth fallback; production timeout 15 seconds
-- [x] return controlled `SignInFailure` with stage-specific error codes instead of infinite loading
-- [x] emit non-PII debug diagnostics for each Google auth stage start/completion/timeout/failure
-- [x] add regression for account-selection timeout
-- [x] add regression for credential-read timeout
-- [x] add regression for Supabase token-exchange timeout
-- [x] add regression for successful Google completion through all critical stages
-- [ ] `supabase_auth_sign_in_repository_test.dart` passes locally (expected 9 total)
-- [ ] auth `flutter analyze` passes locally
-- [ ] real-device console identifies the last completed Google auth stage
-- [ ] real-device Google spinner either succeeds or returns a controlled error; never stays indefinite
+The latest device run proves Google native selection returns and Supabase records a successful sign-in, so the remaining blocker has moved past Google auth itself.
 
-Expected diagnostics:
+## 5. Active Slice B4 — prevent bootstrap reset loops after successful login
+
+Implemented on branch, local validation pending:
+
+- [x] add debug-only `[SessionBootstrap]` stage/state diagnostics;
+- [x] track the active authenticated Supabase user id;
+- [x] ignore duplicate authenticated events for the same active user while bootstrap is Loading/Ready/RequiresOnboarding;
+- [x] explicit `refresh()` still force-resolves for Retry/manual recovery;
+- [x] prevent `signedIn` / `tokenRefreshed` style duplicate events from repeatedly pushing Ready back to Loading;
+- [x] add regression proving duplicate same-user auth events do not restart completion lookup or downgrade Ready;
+- [x] expose Supabase `SignInSuccess` callback from `AuthLandingPage` for a later explicit router handoff if still needed;
+- [ ] `app_session_bootstrap_controller_test.dart` passes locally (expected 10 total);
+- [ ] app analyzer passes locally;
+- [ ] auth landing regression remains green;
+- [ ] real-device Splash reaches Home for the latest completed Google account.
+
+Expected debug sequence for this existing completed account:
 
 ```text
-[GoogleAuth] account selection started
-[GoogleAuth] account selected
-[GoogleAuth] credential read started
-[GoogleAuth] credential read completed
-[GoogleAuth] Supabase ID-token exchange started
-[GoogleAuth] Supabase ID-token exchange completed
-[GoogleAuth] sign-in completed successfully
+[SessionBootstrap] auth event: AuthSessionAuthenticated
+[SessionBootstrap] completion lookup started ...
+[SessionBootstrap] completion lookup result: RemoteOnboardingCompletionState.completed
+[SessionBootstrap] state: AppSessionBootstrapLoading -> AppSessionBootstrapReady
 ```
 
-If a stage stalls, the corresponding timeout log/error identifies it without exposing email/name/token values.
-
-### Slice C — Production auth source of truth + login-only admission
-
-Before implementation, define one production source of truth:
+Duplicate same-user events should log:
 
 ```text
-A) Supabase-first
-   auth.users.id = canonical identity
-   firebase_uid = optional/legacy
-
-B) Firebase-first/hybrid
-   Firebase UID/token = primary identity proof
-   explicit mapping into Supabase session/RLS ownership
+[SessionBootstrap] duplicate authenticated event ignored for active user
 ```
 
-Do not partially enable both.
+and must not restart Splash loading.
 
-Whichever source is chosen must support two different intents explicitly:
+## 6. If B4 still reproduces
+
+Next narrow follow-up, without redesign:
+
+1. Wire `AuthLandingPage.onSignInSuccess` and existing `LoginPage.onSignInSuccess` to an explicit `AppSessionBootstrapController.refresh()` in the app router.
+2. Make the `/splash` builder directly listen to `AppSessionBootstrapController` so a same-location Failure state cannot remain visually stuck on an old spinner frame.
+3. Add router-level regression for `SignInSuccess -> completed remote -> Home`.
+
+Do this only if B4 diagnostics show the controller is not reaching Ready or the router fails to react to Ready.
+
+## 7. Production auth source of truth / later account admission
+
+Current schema and RLS strongly favor:
 
 ```text
-LOGIN intent
-→ existing Tio account only
-→ unknown identity returns No Tio account feedback
-→ must not create account
-
-SIGNUP intent
-→ explicit account creation flow only
-→ creates/provisions canonical auth + application owner state
+Supabase-first
+→ auth.users.id = canonical identity
+→ firebase_uid = optional/legacy
 ```
 
-Current schema/RLS strongly favors Supabase-first because public owner rows reference `auth.users(id)` and client RLS is based on `auth.uid()`. Firebase-first/hybrid therefore requires an explicit bridge/session strategy rather than simply writing `firebase_uid`.
+Firebase-first/hybrid requires an explicit Firebase-to-Supabase session/RLS bridge and must not be partially enabled.
 
-### Slice D — Existing-account reconciliation
+After login reliability is closed:
 
-Only after Slice C is chosen:
+- implement the login-only existing-account admission contract;
+- reconcile the older Google identity that lacks `public.users` safely;
+- keep DB-owned auth-user provisioning under issue #5;
+- resume issue #8 persistence work.
 
-- reconcile the extra Supabase Google identity / missing public row safely;
-- add DB-owned auth.users -> public.users provisioning under issue #5;
-- backfill Firebase mapping only if Firebase-first/hybrid is selected;
-- ensure reconciliation does not mistakenly convert a login-only unknown identity into a newly created account.
-
-## 5. Validation evidence
-
-### Slice A local evidence
-
-```text
-apps/features/auth
-supabase_auth_sign_in_repository_test.dart: 5 passed
-auth_landing_page_test.dart: 1 passed
-login_page_test.dart: 9 passed
-flutter analyze: No issues found
-```
-
-### Slice B / B2 local evidence
-
-```text
-apps/app
-app_session_bootstrap_controller_test.dart: 9 passed
-app_session_route_policy_test.dart: 4 passed
-flutter analyze: No issues found
-
-apps/features/splash
-splash_screen_test.dart: 7 passed
-flutter analyze: No issues found
-
-final git status: clean and synchronized
-```
-
-## 6. Next validation gate
+## 8. Next local validation gate
 
 ```powershell
 Set-Location "G:\projects\Tio-World"
 git status --short --branch
 git pull --ff-only
 
+Set-Location "G:\projects\Tio-World\apps\app"
+& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/app/session/app_session_bootstrap_controller_test.dart"
+& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/app/session/app_session_route_policy_test.dart"
+& "G:\dev\flutter-sdk\bin\flutter.bat" analyze
+
 Set-Location "G:\projects\Tio-World\apps\features\auth"
-& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/data/supabase_auth_sign_in_repository_test.dart"
 & "G:\dev\flutter-sdk\bin\flutter.bat" test "test/presentation/auth_landing_page_test.dart"
 & "G:\dev\flutter-sdk\bin\flutter.bat" analyze
 
@@ -256,14 +203,10 @@ git status --short --branch
 Expected:
 
 ```text
-supabase_auth_sign_in_repository_test.dart: 9 passed
-auth_landing_page_test.dart: 1 passed
-auth flutter analyze: No issues found
+app_session_bootstrap_controller_test.dart: 10 passed
+app_session_route_policy_test.dart: 4 passed
+app analyze: No issues found
+auth_landing_page_test.dart: 2 passed
+auth analyze: No issues found
 worktree: clean
 ```
-
-After this gate, run the real-device Google flow with the console attached and capture the `[GoogleAuth]` lines. Do not proceed to account-admission/identity migration until the hanging critical stage is identified or Google login completes successfully.
-
-## 7. Current status
-
-Slices A, B, and B2 are locally green. Real-device testing proves the spinner still exists but no longer shows the previous bootstrap disposal crash. Slice B3 now makes the Google critical path bounded and observable. Login-only account admission is frozen as a required product rule for Slice C. `firebase_uid` reconciliation remains deferred until the canonical auth source of truth is selected.
