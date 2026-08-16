@@ -5,9 +5,7 @@ import 'package:tio_core/core.dart';
 import 'package:tio_feature_auth/auth.dart';
 
 void main() {
-  testWidgets('Google success stays on AuthLanding and preserves legal disclaimer',
-      (tester) async {
-    final repository = _FakeAuthSignInRepository();
+  Widget buildApp(_FakeAuthSignInRepository repository) {
     final router = GoRouter(
       initialLocation: '/login',
       routes: [
@@ -38,13 +36,22 @@ void main() {
     );
     addTearDown(router.dispose);
 
-    await tester.pumpWidget(
-      MaterialApp.router(
-        routerConfig: router,
-        builder: (context, child) =>
-            TioTheme(child: child ?? const SizedBox.shrink()),
+    return MaterialApp.router(
+      routerConfig: router,
+      builder: (context, child) =>
+          TioTheme(child: child ?? const SizedBox.shrink()),
+    );
+  }
+
+  testWidgets('Google success stays on AuthLanding and preserves legal disclaimer',
+      (tester) async {
+    final repository = _FakeAuthSignInRepository(
+      googleResult: const SignInSuccess(
+        AuthSession(userId: 'returning-user'),
       ),
     );
+
+    await tester.pumpWidget(buildApp(repository));
 
     expect(find.byType(AuthLandingPage), findsOneWidget);
     expect(find.byType(TioTermsDisclaimer), findsOneWidget);
@@ -59,15 +66,46 @@ void main() {
     expect(find.text('Congratulations'), findsNothing);
     expect(find.text('Home'), findsNothing);
   });
+
+  testWidgets('Google failure clears loading and shows feedback on AuthLanding',
+      (tester) async {
+    const failureMessage =
+        'Tio could not finish Google sign-in in time. Please try again.';
+    final repository = _FakeAuthSignInRepository(
+      googleResult: const SignInFailure(
+        failureMessage,
+        code: 'google_supabase_exchange_timeout',
+      ),
+    );
+
+    await tester.pumpWidget(buildApp(repository));
+
+    await tester.tap(find.text('Continue with Google'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(repository.googleCalls, 1);
+    expect(find.text(failureMessage), findsOneWidget);
+
+    final googleButton = tester.widget<TioSocialButton>(
+      find.byType(TioSocialButton).at(1),
+    );
+    expect(googleButton.loading, isFalse);
+    expect(find.byType(AuthLandingPage), findsOneWidget);
+    expect(find.byType(TioTermsDisclaimer), findsOneWidget);
+  });
 }
 
 class _FakeAuthSignInRepository implements AuthSignInRepository {
+  _FakeAuthSignInRepository({required this.googleResult});
+
+  final SignInResult googleResult;
   int googleCalls = 0;
 
   @override
   Future<SignInResult> signInWithGoogle() async {
     googleCalls++;
-    return const SignInSuccess(AuthSession(userId: 'returning-user'));
+    return googleResult;
   }
 
   @override
