@@ -1,6 +1,6 @@
 # Google Identity Ownership & Bootstrap Loading
 
-**Status:** In progress — Google auth/backend state verified; router ownership/handoff fix implemented, local validation pending
+**Status:** In progress — exact bootstrap provider self-disposal root cause fixed; local/device validation pending
 **Primary owner:** `apps/features/auth` + `apps/app` + `apps/features/onboarding` + `apps/features/splash`
 **Affected platforms:** Flutter phone app + Supabase/Firebase auth boundary
 **Tracking:** GitHub issue #10
@@ -8,7 +8,7 @@
 
 ## 1. User-reported incident
 
-A Google-created account can remain stuck in loading during sign-in. Later fixes removed the login-button infinite wait and a disposed-controller crash, but real-device testing still reaches Splash and remains on its spinner instead of routing Home.
+A Google-created account can remain stuck in loading during sign-in. Reliability fixes removed the login-button infinite wait and an earlier disposed-controller exception, but real-device testing still reached Splash and remained on its spinner instead of routing Home.
 
 ## 2. Verified evidence
 
@@ -21,31 +21,40 @@ A Google-created account can remain stuck in loading during sign-in. Later fixes
 
 ### Live Supabase read-only evidence
 
-Latest device attempt was checked read-only after the reported Splash hang:
+The affected device attempt was checked read-only:
 
-- latest Google `auth.users.last_sign_in_at` updated at the time of the device test;
-- the latest authenticated Google identity has a matching `public.users` row;
+- the latest Google `auth.users.last_sign_in_at` updated at the device-test time;
+- that authenticated Google identity has a matching `public.users` row;
 - that row has `is_onboarded = true`;
-- therefore the backend/account state for this attempt is valid for returning-user Home routing;
+- backend/account state is valid for returning-user Home routing;
 - a second older Google auth identity still exists without a `public.users` row and remains a separate reconciliation concern.
 
 No production DB mutation was performed.
 
-### Real-device lifecycle evidence
+### Decisive latest device evidence
 
-An earlier device log showed:
+After Slice B5, the fresh app run logged:
 
 ```text
-Unhandled Exception: A AppSessionBootstrapController was used after being disposed.
+[SessionBootstrap] start
+[SessionBootstrap] auth event: AuthSessionAuthenticated
+[SessionBootstrap] resolve generation=1 state=AuthSessionAuthenticated
+[SessionBootstrap] completion lookup started generation=1
+[SessionBootstrap] auth event: AuthSessionAuthenticated
+[SessionBootstrap] duplicate authenticated event ignored for active user
+[SessionBootstrap] completion lookup result: RemoteOnboardingCompletionState.completed
+[SessionBootstrap] dispose
+[SessionBootstrap] reconcile result ignored as stale generation=1
 ```
 
-The lifecycle guard fix is locally validated and subsequent device runs no longer show this exception.
+This is decisive:
 
-### Current real-device evidence
+- Google/Supabase authentication is already restored successfully;
+- durable completion lookup succeeds and returns `completed`;
+- the bootstrap controller is disposed **during its own `reconcileRemote()` path** before it can publish Ready;
+- Splash therefore stays Loading even though backend state is correct.
 
-The latest device log shows Android Google `SignInHubActivity` opens and returns to `MainActivity`. Supabase records the sign-in, and the canonical owner row is completed. The app nevertheless remains on Splash.
-
-Therefore the active P0 is client-side bootstrap/router ownership and handoff, not Google credential rejection and not missing onboarding completion data.
+The active root cause is provider ownership, not Google credentials, Supabase auth, onboarding completion data, or router redirect policy.
 
 ## 3. Frozen product decisions
 
@@ -101,7 +110,7 @@ Locally validated:
 - in-flight generation invalidated on dispose;
 - focused controller suite reached 9 passing tests;
 - app analyzer clean;
-- disposed-controller device exception no longer appears.
+- previous used-after-dispose exception no longer appears.
 
 ### Slice B3 — bounded Google auth critical path
 
@@ -113,107 +122,102 @@ Locally validated:
 - stage-specific controlled failures added;
 - `supabase_auth_sign_in_repository_test.dart`: 9 passed;
 - `auth_landing_page_test.dart`: 2 passed;
-- auth analyzer: No issues found;
-- worktree clean.
-
-The device run proves Google native selection returns and Supabase records a successful sign-in, so the blocker has moved past Google auth itself.
+- auth analyzer: No issues found.
 
 ### Slice B4 — coalesce duplicate same-user auth events
 
 Locally validated:
 
-- [x] add debug-only `[SessionBootstrap]` stage/state diagnostics;
-- [x] track active authenticated Supabase user id;
-- [x] ignore duplicate authenticated events for the same active user while bootstrap is Loading/Ready/RequiresOnboarding;
-- [x] explicit `refresh()` force-resolves for Retry/manual recovery;
-- [x] prevent signed-in/token-refresh style duplicate events from restarting completion lookup or downgrading Ready;
-- [x] regression proves duplicate same-user events do not restart bootstrap;
-- [x] expose Supabase `SignInSuccess` callback from `AuthLandingPage`;
-- [x] `app_session_bootstrap_controller_test.dart`: 10 passed;
-- [x] `app_session_route_policy_test.dart`: 4 passed;
-- [x] app analyzer: No issues found;
-- [x] `auth_landing_page_test.dart`: 2 passed;
-- [x] auth analyzer: No issues found;
-- [x] final reported worktree clean and synchronized.
+- active authenticated user tracked;
+- duplicate same-user auth events do not restart bootstrap;
+- explicit refresh still force-resolves;
+- `app_session_bootstrap_controller_test.dart`: 10 passed;
+- `app_session_route_policy_test.dart`: 4 passed;
+- app analyzer clean;
+- AuthLanding regression 2 passed;
+- auth analyzer clean.
 
-Despite B4 being green, the real device still remains on Splash, so the issue is now router ownership/handoff rather than controller duplicate-event churn.
+### Slice B5 — stable GoRouter ownership + deterministic login handoff
 
-## 5. Active Slice B5 — stable GoRouter ownership + deterministic post-login bootstrap handoff
+Implemented:
 
-### Root cause found
+- top-level auth-product `watch` removed from `goRouterProvider`;
+- existing GoRouter remains the routing owner across auth transitions;
+- Supabase `SignInSuccess` explicitly triggers bootstrap refresh;
+- Splash listens directly to bootstrap state for failure/retry rendering;
+- large router diff audited with no unrelated route/UI drift.
 
-`goRouterProvider` was directly watching `authProductStateProvider`:
+Local validation attempt exposed a **test-only compile error** in the new provider-stability regression because `TioThemeMode` was not imported. Existing controller/route/auth tests remained green.
 
-```text
-Google/Supabase auth event
-→ authSessionStateProvider changes
-→ authProductStateProvider changes
-→ goRouterProvider invalidates/rebuilds
-→ old GoRouter is disposed
-→ new GoRouter starts at initialLocation /splash
+The subsequent device run then exposed the deeper provider self-disposal root cause below.
+
+## 5. Active Slice B6 — stable bootstrap provider ownership during reconciliation
+
+### Exact root cause
+
+`appSessionBootstrapControllerProvider` constructed the controller with watched dependencies:
+
+```dart
+authSessionRepository: ref.watch(authSessionRepositoryProvider),
+onboardingCompletionRepository: ref.watch(onboardingCompletionRepositoryProvider),
+onboardingStatusController: ref.watch(onboardingStatusControllerProvider),
 ```
 
-This violates router ownership: an authentication state transition should refresh redirects through the existing router/bootstrap listenables, not recreate the router object itself.
+During a successful completed-user resolution:
+
+```text
+completion lookup → completed
+→ await OnboardingStatusController.reconcileRemote(completed)
+→ reconcileRemote updates local status / notifyListeners()
+→ watched onboardingStatusControllerProvider invalidates bootstrap provider
+→ current AppSessionBootstrapController is disposed
+→ in-flight generation becomes stale
+→ Ready is never published
+→ Splash remains Loading
+```
+
+A bootstrap controller that owns the auth-session subscription must not be reconstructed from notifications emitted by a collaborator it mutates during reconciliation.
 
 ### Implemented on branch
 
-- [x] remove top-level `ref.watch(authProductStateProvider)` from `goRouterProvider`;
-- [x] use stable `ref.read(supabaseClientProvider)` for the client object;
-- [x] resolve dynamic auth readiness inside onboarding callbacks with `ref.read(authProductStateProvider)` at invocation time;
-- [x] preserve dynamic `SupabaseClient.auth.currentUser` checks instead of freezing auth readiness at router construction;
-- [x] wire `AuthLandingPage.onSignInSuccess` to explicit `AppSessionBootstrapController.refresh()`;
-- [x] wire `LoginPage.onSignInSuccess` to explicit bootstrap refresh for email/social login consistency;
-- [x] make `/splash` directly listen to `AppSessionBootstrapController` so Failure/Retry state cannot remain visually stale while staying on the same route;
-- [x] add focused `router_provider_stability_test.dart`: invalidating auth product state must not replace the `GoRouter` instance;
-- [x] audit large `router.dart` commit diff: only intended auth/session hunks changed; no unrelated route/UI drift.
+- [x] change bootstrap constructor dependencies from `ref.watch(...)` to stable `ref.read(...)` ownership;
+- [x] keep auth-session changes owned by the controller's existing `sessionState` subscription;
+- [x] prevent `OnboardingStatusController.notifyListeners()` from disposing/recreating bootstrap mid-resolution;
+- [x] fix provider-stability test compile error by importing `tio_core/core.dart` for `TioThemeMode`;
+- [x] extend provider-stability regression to assert both:
+  - auth product invalidation does not replace the GoRouter instance;
+  - onboarding-status notification does not replace the AppSessionBootstrapController instance;
+- [x] production provider diff audited and isolated to ownership semantics.
 
-### Expected runtime for the currently verified account
+### Expected runtime after B6
 
 ```text
-Continue with Google
-→ Supabase SignInSuccess
-→ explicit bootstrap refresh
-→ current auth user read
-→ public.users.is_onboarded == true
-→ AppSessionBootstrapReady
-→ existing GoRouter redirect
-→ Home
+[SessionBootstrap] completion lookup result: RemoteOnboardingCompletionState.completed
+→ reconcileRemote completes
+→ controller remains alive
+→ [SessionBootstrap] state: AppSessionBootstrapLoading -> AppSessionBootstrapReady
+→ stable GoRouter redirects /splash -> Home
 ```
 
-There must be no new router construction/reset to `/splash` during the auth transition.
+The following sequence must **not** occur anymore:
 
-### Local validation pending
+```text
+completion lookup result: completed
+[SessionBootstrap] dispose
+reconcile result ignored as stale
+```
+
+### Local/device validation pending
 
 - [ ] `router_provider_stability_test.dart`: 1 passed;
 - [ ] `app_session_bootstrap_controller_test.dart`: 10 passed;
 - [ ] `app_session_route_policy_test.dart`: 4 passed;
 - [ ] app analyzer: No issues found;
-- [ ] auth landing regression: 2 passed;
-- [ ] real-device existing completed Google account reaches Home;
-- [ ] cold reopen reaches Home without permanent Splash.
+- [ ] fresh device launch reaches Home for the verified completed Google account;
+- [ ] console shows `Loading -> Ready` before any controller dispose;
+- [ ] cold reopen also reaches Home without permanent Splash.
 
-## 6. Expected diagnostics after B5
-
-For the verified completed account:
-
-```text
-[GoogleAuth] sign-in completed successfully
-[SessionBootstrap] refresh requested
-[SessionBootstrap] refresh auth state: AuthSessionAuthenticated
-[SessionBootstrap] completion lookup started ...
-[SessionBootstrap] completion lookup result: RemoteOnboardingCompletionState.completed
-[SessionBootstrap] state: AppSessionBootstrapLoading -> AppSessionBootstrapReady
-```
-
-Duplicate same-user auth events may additionally log:
-
-```text
-[SessionBootstrap] duplicate authenticated event ignored for active user
-```
-
-They must not restart Splash loading.
-
-## 7. Production auth source of truth / later account admission
+## 6. Production auth source of truth / later account admission
 
 Current schema and RLS strongly favor:
 
@@ -232,7 +236,7 @@ After login reliability is closed:
 - keep DB-owned auth-user provisioning under issue #5;
 - resume issue #8 persistence work.
 
-## 8. Next local validation gate
+## 7. Next local validation gate
 
 ```powershell
 Set-Location "G:\projects\Tio-World"
@@ -243,10 +247,6 @@ Set-Location "G:\projects\Tio-World\apps\app"
 & "G:\dev\flutter-sdk\bin\flutter.bat" test "test/app/router_provider_stability_test.dart"
 & "G:\dev\flutter-sdk\bin\flutter.bat" test "test/app/session/app_session_bootstrap_controller_test.dart"
 & "G:\dev\flutter-sdk\bin\flutter.bat" test "test/app/session/app_session_route_policy_test.dart"
-& "G:\dev\flutter-sdk\bin\flutter.bat" analyze
-
-Set-Location "G:\projects\Tio-World\apps\features\auth"
-& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/presentation/auth_landing_page_test.dart"
 & "G:\dev\flutter-sdk\bin\flutter.bat" analyze
 
 Set-Location "G:\projects\Tio-World"
@@ -260,7 +260,14 @@ router_provider_stability_test.dart: 1 passed
 app_session_bootstrap_controller_test.dart: 10 passed
 app_session_route_policy_test.dart: 4 passed
 app analyze: No issues found
-auth_landing_page_test.dart: 2 passed
-auth analyze: No issues found
 worktree: clean
 ```
+
+Then terminate any old `flutter run` process and perform a fresh device run. For the already verified completed account, expected console tail is:
+
+```text
+[SessionBootstrap] completion lookup result: RemoteOnboardingCompletionState.completed
+[SessionBootstrap] state: AppSessionBootstrapLoading -> AppSessionBootstrapReady
+```
+
+followed by Home.
