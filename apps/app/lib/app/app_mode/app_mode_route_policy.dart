@@ -26,8 +26,7 @@ String? appModeRedirect(
     AppRoutes.themeSettings.path,
   };
 
-  final onboardingComplete =
-      onboardingStatus == OnboardingStatus.completed && selectedMode != null;
+  final onboardingComplete = onboardingStatus == OnboardingStatus.completed;
 
   if (!onboardingComplete) {
     return modeRequiredPaths.contains(path) ? AppRoutes.onboarding.path : null;
@@ -35,10 +34,18 @@ String? appModeRedirect(
 
   if (path == AppRoutes.onboarding.path) return FeatureRoutes.home.path;
 
-  final allowedPaths =
-      guidedShellTabs(selectedMode).map((tab) => tab.route.path).toSet();
   final isShellPath =
       shellBranchRegistry.any((branch) => branch.route.path == path);
+
+  if (selectedMode == null) {
+    if (isShellPath && path != FeatureRoutes.home.path) {
+      return FeatureRoutes.home.path;
+    }
+    return null;
+  }
+
+  final allowedPaths =
+      guidedShellTabs(selectedMode).map((tab) => tab.route.path).toSet();
   if (isShellPath && !allowedPaths.contains(path)) {
     return FeatureRoutes.home.path;
   }
