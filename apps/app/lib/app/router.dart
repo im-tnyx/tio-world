@@ -188,7 +188,18 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.splash.path,
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => const SplashScreen(),
+        builder: (context, state) {
+          final bootstrapState = appSessionBootstrapController.state;
+          final isFailure = bootstrapState is AppSessionBootstrapFailure;
+          return SplashScreen(
+            failureMessage: isFailure
+                ? "Couldn't finish signing you in. Check your connection and try again."
+                : null,
+            onRetry: isFailure
+                ? () => appSessionBootstrapController.refresh()
+                : null,
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.auth.path,
