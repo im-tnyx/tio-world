@@ -1,5 +1,4 @@
 import 'package:tio_core/core.dart';
-import 'package:tio_shared/shared.dart';
 
 import 'app_session_bootstrap_state.dart';
 
