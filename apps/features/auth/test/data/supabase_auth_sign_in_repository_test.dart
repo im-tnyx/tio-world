@@ -64,7 +64,7 @@ void main() {
       final fakeGoTrue = FakeGoTrueClient(idTokenFuture: pendingExchange.future);
       final account = FakeGoogleSignInAccount(
         authenticationFuture: Future.value(
-          const FakeGoogleSignInAuthentication(
+          FakeGoogleSignInAuthentication(
             idToken: 'google-id-token',
             accessToken: 'google-access-token',
           ),
@@ -107,7 +107,7 @@ void main() {
       );
       final account = FakeGoogleSignInAccount(
         authenticationFuture: Future.value(
-          const FakeGoogleSignInAuthentication(
+          FakeGoogleSignInAuthentication(
             idToken: 'google-id-token',
             accessToken: 'google-access-token',
           ),
@@ -323,7 +323,7 @@ class FakeGoogleSignInAccount extends Fake implements GoogleSignInAccount {
 
 class FakeGoogleSignInAuthentication extends Fake
     implements GoogleSignInAuthentication {
-  const FakeGoogleSignInAuthentication({
+  FakeGoogleSignInAuthentication({
     required this.idToken,
     this.accessToken,
   });
