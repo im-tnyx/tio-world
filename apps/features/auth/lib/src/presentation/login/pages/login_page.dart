@@ -38,12 +38,18 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
+enum _LoginAuthAction { email, google }
+
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
-  bool _isLoading = false;
+  _LoginAuthAction? _activeAction;
   String? _errorMessage;
+
+  bool get _isBusy => _activeAction != null;
+  bool get _isEmailLoading => _activeAction == _LoginAuthAction.email;
+  bool get _isGoogleLoading => _activeAction == _LoginAuthAction.google;
 
   @override
   void initState() {
@@ -77,15 +83,15 @@ class _LoginPageState extends State<LoginPage> {
   bool get _isFormValid => _isEmailValid && _isPasswordValid;
 
   Future<void> _handleEmailSignIn() async {
-    if (!_isFormValid || _isLoading) return;
+    if (!_isFormValid || _isBusy) return;
 
     setState(() {
-      _isLoading = true;
+      _activeAction = _LoginAuthAction.email;
       _errorMessage = null;
     });
 
     if (widget.signInWithEmailUseCase == null) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _activeAction = null);
       return;
     }
 
@@ -108,15 +114,17 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       if (mounted) setState(() => _errorMessage = e.toString());
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted && _activeAction == _LoginAuthAction.email) {
+        setState(() => _activeAction = null);
+      }
     }
   }
 
   Future<void> _handleGoogleSignIn() async {
-    if (_isLoading) return;
+    if (_isBusy) return;
 
     setState(() {
-      _isLoading = true;
+      _activeAction = _LoginAuthAction.google;
       _errorMessage = null;
     });
 
@@ -152,17 +160,17 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       if (mounted) setState(() => _errorMessage = 'Google sign in error: $e');
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted && _activeAction == _LoginAuthAction.google) {
+        setState(() => _activeAction = null);
+      }
     }
   }
 
   void _handleTruecallerSignIn() {
-    if (_isLoading) return;
-    if (context.canPop()) {
-      context.pop(true);
-    } else {
-      context.go('/');
-    }
+    if (_isBusy) return;
+    setState(() {
+      _errorMessage = 'Truecaller sign-in is not available yet.';
+    });
   }
 
   @override
@@ -203,7 +211,7 @@ class _LoginPageState extends State<LoginPage> {
                             size: 24,
                           ),
                           onPressed: () {
-                            if (!_isLoading) {
+                            if (!_isBusy) {
                               if (context.canPop()) {
                                 context.pop();
                               } else {
@@ -318,7 +326,7 @@ class _LoginPageState extends State<LoginPage> {
                         GestureDetector(
                           key: const ValueKey('login-forgot-password-link'),
                           onTap: () {
-                            if (!_isLoading) {
+                            if (!_isBusy) {
                               context.push('/login/forgot-password');
                             }
                           },
@@ -337,8 +345,8 @@ class _LoginPageState extends State<LoginPage> {
                           key: const ValueKey('login-submit-button'),
                           label: 'Login',
                           expand: true,
-                          loading: _isLoading,
-                          enabled: _isFormValid,
+                          loading: _isEmailLoading,
+                          enabled: _isFormValid && !_isGoogleLoading,
                           onPressed: _handleEmailSignIn,
                         ),
 
@@ -379,7 +387,8 @@ class _LoginPageState extends State<LoginPage> {
                         // Continue with Google Button
                         TioSocialButton.google(
                           key: const ValueKey('login-google-button'),
-                          loading: _isLoading,
+                          loading: _isGoogleLoading,
+                          enabled: !_isEmailLoading,
                           onPressed: _handleGoogleSignIn,
                         ),
 
@@ -388,7 +397,8 @@ class _LoginPageState extends State<LoginPage> {
                         // Continue with Truecaller Button
                         TioSocialButton.truecaller(
                           key: const ValueKey('login-truecaller-button'),
-                          loading: _isLoading,
+                          loading: false,
+                          enabled: !_isBusy,
                           onPressed: _handleTruecallerSignIn,
                         ),
 
@@ -414,7 +424,7 @@ class _LoginPageState extends State<LoginPage> {
                       TextButton(
                         key: const ValueKey('login-signup-link'),
                         onPressed: () {
-                          if (!_isLoading) {
+                          if (!_isBusy) {
                             context.pushReplacement(AppRoutes.emailSignup.path);
                           }
                         },
