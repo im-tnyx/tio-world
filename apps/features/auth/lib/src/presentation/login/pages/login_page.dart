@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_core/core.dart';
 
 import '../../../domain/domain.dart';
@@ -77,42 +76,6 @@ class _LoginPageState extends State<LoginPage> {
 
   bool get _isFormValid => _isEmailValid && _isPasswordValid;
 
-  Future<void> _navigateOnAuthSuccess([String? userId]) async {
-    final effectiveUserId = userId ?? Supabase.instance.client.auth.currentUser?.id;
-    if (effectiveUserId != null && effectiveUserId.isNotEmpty) {
-      try {
-        final client = Supabase.instance.client;
-        final row = await client
-            .from('users')
-            .select('is_onboarded, name')
-            .eq('id', effectiveUserId)
-            .maybeSingle();
-
-        if (row != null && row['is_onboarded'] == true) {
-          if (!mounted) return;
-          final name = row['name'] as String? ?? '';
-          context.go(
-            AppRoutes.congratulations.path,
-            extra: {
-              'userName': name,
-              'isWelcomeBack': true,
-            },
-          );
-          return;
-        }
-      } catch (_) {
-        // Non-blocking fallback
-      }
-    }
-
-    if (!mounted) return;
-    if (context.canPop()) {
-      context.pop(true);
-    } else {
-      context.go(AppRoutes.onboarding.path);
-    }
-  }
-
   Future<void> _handleEmailSignIn() async {
     if (!_isFormValid || _isLoading) return;
 
@@ -122,7 +85,7 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     if (widget.signInWithEmailUseCase == null) {
-      await _navigateOnAuthSuccess();
+      if (mounted) setState(() => _isLoading = false);
       return;
     }
 
@@ -137,7 +100,6 @@ class _LoginPageState extends State<LoginPage> {
       switch (result) {
         case SignInSuccess():
           widget.onSignInSuccess?.call(result);
-          await _navigateOnAuthSuccess(result.session.userId);
         case SignInCancelled():
           break;
         case SignInFailure(:final message):
@@ -166,7 +128,6 @@ class _LoginPageState extends State<LoginPage> {
         switch (result) {
           case SignInSuccess():
             widget.onSignInSuccess?.call(result);
-            await _navigateOnAuthSuccess(result.session.userId);
           case SignInCancelled():
             break;
           case SignInFailure(:final message):
@@ -182,16 +143,12 @@ class _LoginPageState extends State<LoginPage> {
         switch (result) {
           case GoogleAuthComplete():
             widget.onAuthSuccess?.call(result);
-            await _navigateOnAuthSuccess(result.session.userId);
           case GoogleAuthCancelled():
             break;
           case GoogleAuthFailed(:final message):
             setState(() => _errorMessage = message);
         }
-        return;
       }
-
-      await _navigateOnAuthSuccess();
     } catch (e) {
       if (mounted) setState(() => _errorMessage = 'Google sign in error: $e');
     } finally {
