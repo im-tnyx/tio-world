@@ -35,4 +35,28 @@ void main() {
     await tester.tap(find.text('Workout'));
     expect(selected, ShellTab.workout);
   });
+
+  testWidgets('single visible Home tab keeps shell body without bottom nav',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) =>
+            TioTheme(child: child ?? const SizedBox.shrink()),
+        home: TioShell(
+          state: const ShellUiState(
+            selectedTab: ShellTab.home,
+            visibleTabs: [ShellTab.home],
+            isBottomNavVisible: true,
+            isRootTopBarVisible: false,
+          ),
+          onAction: (_) {},
+          child: const Text('Home body'),
+        ),
+      ),
+    );
+
+    expect(find.text('Home body'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 }
