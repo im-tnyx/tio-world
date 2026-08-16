@@ -15,20 +15,21 @@ Login auth actions behave independently and unavailable Truecaller never simulat
 
 - Only the tapped/in-flight auth action renders loading.
 - Other auth actions may be disabled during a request but do not show another action's spinner.
-- Truecaller unavailable/unconfigured keeps the user on Login.
-- Truecaller unavailable never calls success navigation, `pop(true)`, or `go('/')`.
+- Truecaller is intentionally non-functional for now; tapping it keeps the user on Login and shows a short informational message.
+- Truecaller unavailable never calls success navigation, `pop(true)`, `go('/')`, or starts a fake auth flow.
 - Existing Login visual geometry/layout remains unchanged outside action-state behavior.
 
 ### Scope
 
 - `LoginPage` per-action loading/interaction state.
-- unavailable Truecaller fallback and feedback.
+- unavailable Truecaller informational feedback.
 - focused Login widget tests.
 - coordination with issue #7 where both touch `LoginPage`.
 
 ### Non-Goals
 
 - Truecaller SDK/provider integration.
+- Truecaller auth/network attempt of any kind in this slice.
 - auth/session/bootstrap routing owned by #7.
 - Login/EmailLogin consolidation.
 - AuthLanding redesign or legal-copy changes.
@@ -52,8 +53,9 @@ Login auth actions behave independently and unavailable Truecaller never simulat
 |---|---|---|---|
 | Loading ownership | Made | Scope to initiating auth action | Auth |
 | Other actions during request | Made | Disable/conflict-gate without showing spinner | Auth |
-| Unavailable Truecaller | Made | Stay on Login and surface non-destructive feedback | Auth |
-| Truecaller integration | Deferred | Provider is not linked/configured yet | Product/Auth |
+| Unavailable Truecaller | Made | Stay on Login and show informational feedback only | Auth |
+| Truecaller integration | Deferred | Provider is not linked/configured yet; work will happen later | Product/Auth |
+| Truecaller unavailable copy | Made | Use a concise neutral message such as `Truecaller sign-in is not available yet.` | Product/Auth |
 | AuthLanding legal disclaimer | Made | Preserve exactly where currently rendered | Auth |
 
 ## 4. Architecture Design
@@ -66,37 +68,46 @@ Use explicit action identity/state instead of one visual loading boolean.
 idle
 emailLoading
 googleLoading
-truecallerLoading (only when real integration exists)
 ```
 
-The initiating action owns its spinner. A shared `isBusy` derivation may gate conflicting taps without making all buttons appear loading.
+Do not introduce `truecallerLoading` while there is no real Truecaller integration. The initiating Email/Google action owns its spinner. A shared `isBusy` derivation may gate conflicting taps without making all buttons appear loading.
 
-Unavailable Truecaller should use the existing Login feedback/error surface and return without navigation.
+Unavailable Truecaller uses the existing Login feedback/error surface as informational feedback and returns immediately without navigation or auth work.
 
 ### Ownership and Data Flow
 
 ```text
 Login button tap
-→ action-specific state
-→ auth use case (when available)
+→ email-specific loading state
+→ email auth use case
 → success/failure/cancel
 → reset action state
 
-Truecaller unavailable
-→ feedback state
+Google button tap
+→ google-specific loading state
+→ Google auth use case
+→ success/failure/cancel
+→ reset action state
+
+Truecaller tap (current phase)
+→ show `Truecaller sign-in is not available yet.`
 → remain on Login
+→ no auth call
+→ no loading spinner
+→ no navigation
 ```
 
 ### Alternative Rejected
 
 - one `_isLoading` for all actions: incorrect visual ownership.
 - `pop(true)` / `go('/')` as Truecaller placeholder: falsely signals success.
-- fake Truecaller success until SDK is integrated: unsafe product behavior.
+- fake Truecaller success/auth request until SDK is integrated: unsafe product behavior.
+- Truecaller spinner without a real request: misleading interaction feedback.
 
 ### Failure and Accessibility States
 
 - Keep existing focus order, labels, sizes, colors, spacing, assets, and layout.
-- Feedback must be readable and recoverable without navigation.
+- Informational feedback must be readable and recoverable without navigation.
 - Rapid repeated taps must not start duplicate auth requests.
 
 ## 5. Implementation Plan
@@ -105,9 +116,10 @@ Truecaller unavailable
 - [ ] Add tests proving Email loading affects only Login button.
 - [ ] Add tests proving Google loading affects only Google button.
 - [ ] Add tests proving other actions are gated without spinner duplication.
-- [ ] Add test proving unavailable Truecaller stays on Login and emits no success navigation.
+- [ ] Add test proving unavailable Truecaller stays on Login and emits no success navigation/auth call.
+- [ ] Add test proving unavailable Truecaller shows the informational message and no spinner.
 - [ ] Add unavailable Truecaller feedback using existing Login feedback surface.
-- [ ] Replace global visual loading state with action-scoped state.
+- [ ] Replace global visual loading state with action-scoped Email/Google state.
 - [ ] Run auth package tests/analyze and visual regression check.
 
 ## 6. Quality Review
@@ -121,7 +133,8 @@ Not run yet. Task is queued behind active issue #7 work.
 ### Review Findings and Resolution
 
 - Root causes verified from current `codex/onboarding-mode-migration` source.
-- No production source changed while creating this task.
+- Product decision clarified: Truecaller remains intentionally non-functional for now and only shows an informational message on tap.
+- No production source changed while updating this task.
 
 ## 7. Final Handoff
 
