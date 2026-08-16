@@ -1,163 +1,139 @@
 # Profile & Account Data Persistence
 
-**Status:** Ready
+**Status:** In progress — Slice A repository boundary awaiting local validation
 **Primary owner:** `apps/features/profile` + `apps/features/settings` + `apps/features/onboarding` + `apps/app`
 **Affected platforms:** Flutter phone app + Supabase
 **Tracking:** GitHub issue #8
+**Source branch:** `codex/onboarding-mode-migration`
 
-## 1. Discovery
+## 1. User Outcome
 
-### User Outcome
+Data entered during onboarding or edited later from Profile/Account Settings must persist to the canonical Supabase owner records without silently losing fields owned by other screens.
 
-User data entered during onboarding or edited later from Profile/Account Settings must reliably persist to Supabase and reload correctly.
+### Frozen visual guardrail
 
-### Success Criteria
+This is persistence/integrity work. Preserve current rendered Profile Settings and Account Settings layout, spacing, typography, colors, controls, assets, and interaction geometry unless a separate visual task is approved.
 
-- Onboarding persists required profile, workout, nutrition/targets, and mobile data.
-- Account Settings loads current mobile and Save actually persists supported account fields.
-- Profile Settings updates height/weight/name/etc. without losing mobile verification or fields outside that screen's ownership.
-- Failed writes do not show a false success state.
-- Onboarding drafts round-trip across app restarts without silent version-loss.
-- Current phone UI remains visually unchanged.
+## 2. Verified findings
 
-### Scope
+- `AccountSettingsPage` already accepts `phoneNumber` and `onSave({username, phoneNumber})`.
+- `router.dart` does not currently pass persisted mobile or wire a real Account Settings save.
+- The page currently shows `Account settings saved!` and pops after an absent/no-op `onSave`, creating false-success behavior.
+- `ProfileSettingsPage` reconstructs `ProfileSetupData` and currently risks dropping `mobile` / `isMobileVerified`.
+- `ProfileOnboardingDraft` and profile mappers already carry mobile fields.
+- Draft schema remains mismatched (`currentSchemaVersion == 3`, snapshot mapper support previously verified as `1`).
+- Canonical live tables remain `users`, `user_nutrition_profiles`, `user_workout_profiles`, and `onboarding_drafts`.
 
-- Account Settings mobile/username read-write wiring.
-- Profile Settings safe partial-update semantics.
-- Onboarding profile/mobile end-to-end persistence validation.
-- Onboarding draft schema-version compatibility.
-- Canonical Supabase owner-table write/read consistency.
-- Focused persistence tests and live-schema verification.
+### Live read-only verification for Slice A
 
-### Non-Goals
-
-- Auth/bootstrap routing from issue #7.
-- UI redesign or token migration.
-- Broad schema redesign unrelated to proven persistence gaps.
-- Legacy table resurrection when canonical tables are healthy.
-
-## 2. Codebase Exploration
-
-### Verified Evidence
-
-- `AccountSettingsPage` exposes `phoneNumber` and `onSave({username, phoneNumber})`.
-- `apps/app/lib/app/router.dart` currently does not pass `phoneNumber` or wire `onSave` for Account Settings.
-- `ProfileSettingsPage` save path reconstructs `ProfileSetupData` but currently omits `mobile` and `isMobileVerified` preservation.
-- `ProfileOnboardingDraft`, draft JSON serialization, and `ProfileSetupMapper` all carry `mobile` and `isMobileVerified`.
-- `OnboardingDraft.currentSchemaVersion == 3`, while `OnboardingDraftSnapshotDtoMapper.supportedSchemaVersion == 1`; repository load currently converts mapper failures to `null`.
-- Live read-only Supabase inspection confirms canonical tables `users`, `user_nutrition_profiles`, `user_workout_profiles`, and `onboarding_drafts` exist.
-- Live aggregate inspection found the current `users` row has mobile missing while height/current weight/target weight are populated. No personal values were inspected or recorded.
-
-### Existing Pattern to Follow
-
-- Data ownership stays in feature repositories.
-- App shell wires feature pages to repositories/providers but should not duplicate persistence logic.
-- Prefer explicit field-specific update methods or safe merge semantics for partial settings screens.
-- Supabase tables remain RLS-protected and user-owned.
-
-### Tests or Validation Already Present
-
-Inspect/update tests around:
-
-- profile repository persistence;
-- settings page callbacks;
-- onboarding profile mapper;
-- onboarding draft DTO round-trip;
-- owner repository writes.
-
-## 3. Clarification
-
-### Decisions Required or Made
-
-| Decision | Status | Rationale | Owner |
-|---|---|---|---|
-| Keep issue separate from #7 | Made | Data persistence is independently testable and should not expand auth-routing scope | App |
-| Account Settings Save must persist | Made | Current UI can report success without a write | Settings/Profile |
-| Partial settings updates preserve unrelated fields | Made | Screens should not accidentally erase data they do not own | Profile |
-| Canonical tables are primary | Made | Live project uses current canonical owner tables | Profile/Nutrition/Workout |
-| No visual redesign | Made | This is a data-integrity task | All |
-| Schema changes only after live verification | Made | Do not edit applied migrations in place | Supabase |
-
-## 4. Architecture Design
-
-### Chosen Approach
-
-Use repository-owned field updates/merge semantics rather than rebuilding and overwriting whole user records from partial settings screens.
-
-### Ownership and Data Flow
+`public.users` currently exposes the Account Settings columns required by this slice:
 
 ```text
-Onboarding UI
-→ Onboarding draft/controller
-→ Profile/Workout/Targets mappers
-→ owner repositories
-→ Supabase canonical tables
-
-Profile Settings
-→ profile update command
-→ ProfileSetupRepository
-→ public.users
-
-Account Settings
-→ account update command
-→ profile/account repository boundary
-→ public.users
+id uuid NOT NULL
+username text NULL
+mobile varchar NULL
+mobile_verified_at timestamptz NULL
+updated_at timestamptz NOT NULL
 ```
 
-Account and Profile Settings must load the latest persisted values before editing and preserve fields outside the active form.
-
-### Alternative Rejected
-
-- Keep optional `onSave` unwired and rely on local UI: false-success behavior.
-- Reconstruct a full profile with defaults from a partial screen: risks data loss.
-- Catch-and-ignore persistence failures: hides corruption and makes debugging impossible.
-- Reintroduce anonymous sign-in as a write fallback: changes account identity unexpectedly.
-
-### Failure and Accessibility States
-
-- Save failure stays on the current screen and exposes the existing error/snackbar pattern rather than popping as success.
-- Saving state remains accessible and prevents duplicate writes.
-- No spacing, typography, colors, control sizes, field order, or layout changes.
-
-## 5. Implementation Plan
-
-- [ ] Add tests that prove Account Settings currently does not persist mobile and define expected fixed behavior.
-- [ ] Wire persisted `phoneNumber` and real `onSave` into Account Settings.
-- [ ] Introduce safe profile/account update API(s) so settings screens update only owned fields.
-- [ ] Preserve `mobile`/`isMobileVerified` and other non-owned profile fields during Profile Settings edits.
-- [ ] Add onboarding mobile end-to-end persistence regression test.
-- [ ] Reconcile onboarding draft schema version and add v3 round-trip/load tests.
-- [ ] Verify canonical Profile/Workout/Nutrition writes against the live schema without exposing personal data.
-- [ ] Remove/limit legacy fallback behavior only where tests prove it masks canonical failures.
-- [ ] Run focused Flutter tests/analyze and Supabase security/RLS checks if SQL changes are required.
-
-## 6. Quality Review
-
-### Validation Run
+RLS policies verified read-only:
 
 ```text
-Not run yet. Task is queued behind active issue #7 work.
+users_select_own  SELECT  TO authenticated  USING auth.uid() = id
+users_update_own  UPDATE  TO authenticated  USING auth.uid() = id
+                                      WITH CHECK auth.uid() = id
 ```
 
-### Review Findings and Resolution
+No SQL write or migration is required for Slice A.
 
-- UI visual baseline must remain unchanged.
-- No production DB write or migration has been performed during discovery.
+## 3. Architecture decisions
 
-## 7. Final Handoff
+- Account Settings gets a field-specific profile-account repository boundary rather than reusing full `saveProfileSetup()`.
+- Account writes require an existing authenticated identity. No anonymous-auth fallback.
+- Account update owns only `username`, `mobile`, `updated_at`, and mobile verification invalidation when the mobile value changes.
+- Changing the mobile number clears `mobile_verified_at`; changing only username preserves existing mobile verification.
+- Missing current `public.users` row is a controlled failure, not an implicit insert/provisioning action.
+- DB-owned auth-user provisioning remains issue #5.
 
-### Changed Files
+## 4. Slice A — Account repository boundary
 
-Task brief only at creation time.
+Implemented:
 
-### Actual Behavior
+- [x] add `ProfileAccountRepository`
+- [x] add `SupabaseProfileAccountRepository`
+- [x] require authenticated current user
+- [x] read current mobile before patching
+- [x] update only Account Settings-owned columns
+- [x] clear `mobile_verified_at` only when mobile changes
+- [x] require the update to return the current row
+- [x] export repository contract + Supabase implementation
+- [x] add regression guard that unauthenticated writes fail without anonymous sign-in
+- [ ] local focused test passes
+- [ ] profile analyzer passes
 
-Not implemented yet.
+### Slice A changed files
 
-### Known Limitations
+```text
+apps/features/profile/lib/src/domain/repositories/profile_account_repository.dart
+apps/features/profile/lib/src/domain/repositories/repositories.dart
+apps/features/profile/lib/src/data/repositories/supabase_profile_account_repository.dart
+apps/features/profile/lib/src/data/data.dart
+apps/features/profile/test/data/supabase_profile_account_repository_test.dart
+.ai/tasks/profile-account-data-persistence.md
+```
 
-Exact onboarding controller event path for mobile and any required repository API split must be reverified when this task becomes active.
+## 5. Next slices after Slice A is green
 
-### Final Status
+### Slice B — Account Settings wiring
 
-`REVIEW`
+- load persisted `profileData.mobile` and verification state into Account Settings
+- wire real `onSave` through `ProfileAccountRepository`
+- surface failed writes without success Snackbar/pop
+- invalidate/reload profile data after success
+- add widget/router regression coverage
+
+### Slice C — Profile Settings safe merge
+
+- preserve `mobile`, `isMobileVerified`, and other non-owned fields
+- prefer safe partial-update/merge semantics
+- add field-loss regression tests
+
+### Slice D — Onboarding mobile persistence
+
+- prove mobile draft/controller → mapper → profile owner repository end to end
+- confirm persisted mobile/verification semantics
+
+### Slice E — Draft compatibility
+
+- reconcile schema version 3 serialization/loading
+- prevent recoverable draft progress from becoming silent `null`
+
+### Slice F — Canonical owner consistency
+
+- verify Profile/Workout/Nutrition canonical writes
+- remove/limit legacy fallbacks only where tests prove they mask canonical failures
+
+## 6. Local validation required for Slice A
+
+```powershell
+Set-Location "G:\projects\Tio-World"
+git status --short --branch
+git pull --ff-only
+
+Set-Location "G:\projects\Tio-World\apps\features\profile"
+& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/data/supabase_profile_account_repository_test.dart"
+& "G:\dev\flutter-sdk\bin\flutter.bat" analyze
+
+Set-Location "G:\projects\Tio-World"
+git status --short --branch
+```
+
+## 7. Current handoff
+
+### Actual behavior
+
+The field-specific Account Settings persistence boundary exists, but router/UI wiring is intentionally not started until Slice A validates locally.
+
+### Final status
+
+`PARTIAL — SLICE A LOCAL VALIDATION PENDING`
