@@ -39,7 +39,7 @@ void main() {
         ],
       );
       expect(
-        missingModeCompatibilityTabs,
+        missingModeCompatibilityShellTabs,
         const [
           ShellTab.home,
           ShellTab.workout,
@@ -216,7 +216,7 @@ void main() {
 
     test('completed without confirmed mode keeps compatibility tabs accessible',
         () {
-      for (final tab in missingModeCompatibilityTabs) {
+      for (final tab in missingModeCompatibilityShellTabs) {
         expect(
           appModeRedirect(
             path: tab.route.path,
