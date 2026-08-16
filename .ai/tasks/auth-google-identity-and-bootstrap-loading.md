@@ -1,6 +1,6 @@
 # Google Identity Ownership & Bootstrap Loading
 
-**Status:** In progress — Slice A locally validated; Slice B implemented, local validation pending
+**Status:** In progress — Slice A and Slice B locally validated; real-device gate active
 **Primary owner:** `apps/features/auth` + `apps/app` + `apps/features/onboarding` + `apps/features/splash`
 **Affected platforms:** Flutter phone app + Supabase/Firebase auth boundary
 **Tracking:** GitHub issue #10
@@ -77,7 +77,7 @@ apps/features/auth/test/data/supabase_auth_sign_in_repository_test.dart
 
 ### Slice B — Bootstrap must be bounded and recoverable
 
-Implemented, awaiting local validation:
+Implemented and locally validated:
 
 - [x] add configurable bounded timeout to remote completion lookup; production default 8 seconds
 - [x] timeout/error resolves `AppSessionBootstrapFailure`
@@ -88,11 +88,12 @@ Implemented, awaiting local validation:
 - [x] wire Retry to `AppSessionBootstrapController.refresh()`
 - [x] add Splash widget coverage for failure feedback + Retry callback
 - [x] audit large `router.dart` replacement; commit diff contains only intended Splash-route hunk
-- [ ] app bootstrap controller tests pass locally
-- [ ] app route policy regression passes locally
-- [ ] app analyzer passes locally
-- [ ] Splash tests pass locally
-- [ ] Splash analyzer passes locally
+- [x] app bootstrap controller tests: 8 passed
+- [x] app route policy regression: 4 passed
+- [x] app `flutter analyze`: No issues found
+- [x] Splash tests: 7 passed
+- [x] Splash `flutter analyze`: No issues found
+- [x] final reported worktree clean and synchronized after restoring unrelated generated `apps/features/settings/pubspec.lock`
 - [ ] real-device persisted-session cold reopen no longer remains on permanent spinner
 
 Slice B changed files:
@@ -145,7 +146,7 @@ Only after Slice C is chosen:
 - add DB-owned auth.users -> public.users provisioning under issue #5;
 - backfill Firebase mapping only if Firebase-first/hybrid is selected.
 
-## 5. Validation gates
+## 5. Validation evidence
 
 ### Slice A local evidence
 
@@ -157,32 +158,45 @@ login_page_test.dart: 9 passed
 flutter analyze: No issues found
 ```
 
-The reported local worktree contained an unrelated/generated-looking modification at `apps/features/settings/pubspec.lock`; it must be inspected before the next pull rather than blindly discarded.
+### Slice B local evidence
 
-### Slice B local gate
+```text
+apps/app
+app_session_bootstrap_controller_test.dart: 8 passed
+app_session_route_policy_test.dart: 4 passed
+flutter analyze: No issues found
 
-```powershell
-Set-Location "G:\projects\Tio-World"
-git diff -- "apps/features/settings/pubspec.lock"
+apps/features/splash
+splash_screen_test.dart: 7 passed
+flutter analyze: No issues found
 
-# After deciding whether that local lockfile change is intentional, make the
-# worktree safe for pull, then:
-git status --short --branch
-git pull --ff-only
-
-Set-Location "G:\projects\Tio-World\apps\app"
-& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/app/session/app_session_bootstrap_controller_test.dart"
-& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/app/session/app_session_route_policy_test.dart"
-& "G:\dev\flutter-sdk\bin\flutter.bat" analyze
-
-Set-Location "G:\projects\Tio-World\apps\features\splash"
-& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/presentation/screen/splash_screen_test.dart"
-& "G:\dev\flutter-sdk\bin\flutter.bat" analyze
-
-Set-Location "G:\projects\Tio-World"
-git status --short --branch
+final git status: clean and synchronized
 ```
 
-## 6. Current status
+The earlier `apps/features/settings/pubspec.lock` modification was inspected and consisted of dependency-resolution/SDK lockfile churn. It was restored before pulling Slice B; a subsequent stash correctly reported `No local changes to save`.
 
-Slice A is locally green and removes secondary synchronization from the login critical path. Slice B is implemented and owns the persisted-session/bootstrap infinite-loader recovery. Identity ownership and `firebase_uid` reconciliation remain intentionally deferred to Slice C/D after reliability is validated.
+## 6. Real-device gate
+
+Run the updated phone build and verify:
+
+```text
+1. Launch app.
+2. Continue with Google.
+3. Observe destination.
+4. Remove app from recents/background.
+5. Cold-open app.
+```
+
+Expected:
+
+- no infinite login spinner;
+- no permanent passive Splash spinner;
+- completed existing account -> Home;
+- incomplete/missing canonical owner state -> Onboarding;
+- readiness lookup/network failure -> visible retryable Splash failure state.
+
+If the existing completed Google account is sent to Onboarding, do not complete onboarding again. Treat that as evidence of the already-audited Supabase identity/public-row drift and proceed to Slice C/D reconciliation.
+
+## 7. Current status
+
+Slices A and B are locally green. The P0 reliability code is ready for real-device verification. Identity ownership and `firebase_uid` reconciliation remain intentionally deferred to Slice C/D until the actual Google-login/cold-start result is observed.
