@@ -19,8 +19,17 @@ class TioShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveVisibleTabs =
+        state.visibleTabs.length == 1 && state.visibleTabs.single == ShellTab.home
+            ? const [
+                ShellTab.home,
+                ShellTab.workout,
+                ShellTab.nutrition,
+                ShellTab.progress,
+              ]
+            : state.visibleTabs;
     final canRenderBottomNav =
-        state.isBottomNavVisible && state.visibleTabs.length >= 2;
+        state.isBottomNavVisible && effectiveVisibleTabs.length >= 2;
 
     return Scaffold(
       appBar: state.isRootTopBarVisible
@@ -53,7 +62,7 @@ class TioShell extends StatelessWidget {
       bottomNavigationBar: canRenderBottomNav
           ? TioShellBottomNav(
               selectedTab: state.selectedTab,
-              visibleTabs: state.visibleTabs,
+              visibleTabs: effectiveVisibleTabs,
               onTabSelected: (tab) => onAction(ShellTabSelected(tab)),
             )
           : null,
