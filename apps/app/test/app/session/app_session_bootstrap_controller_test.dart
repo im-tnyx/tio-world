@@ -113,6 +113,24 @@ void main() {
     );
   });
 
+  test('late authenticated lookup is ignored after controller disposal', () async {
+    final pendingLookup = Completer<RemoteOnboardingCompletionState>();
+    final fixture = await _Fixture.create(
+      authState: _authenticated('user-a'),
+      completionLookupTimeout: const Duration(seconds: 30),
+      completionResolver: () => pendingLookup.future,
+    );
+
+    final refreshFuture = fixture.controller.refresh();
+    await _flush();
+
+    fixture.controller.dispose();
+    pendingLookup.complete(RemoteOnboardingCompletionState.completed);
+
+    await expectLater(refreshFuture, completes);
+    expect(fixture.controller.state, const AppSessionBootstrapLoading());
+  });
+
   test('stale user lookup cannot overwrite a newer authenticated user',
       () async {
     final oldUserResult = Completer<RemoteOnboardingCompletionState>();
