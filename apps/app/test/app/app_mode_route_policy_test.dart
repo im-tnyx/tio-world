@@ -38,6 +38,15 @@ void main() {
           ShellTab.progress
         ],
       );
+      expect(
+        missingModeCompatibilityTabs,
+        const [
+          ShellTab.home,
+          ShellTab.workout,
+          ShellTab.nutrition,
+          ShellTab.progress,
+        ],
+      );
     });
   });
 
@@ -205,15 +214,19 @@ void main() {
       );
     });
 
-    test('completed without confirmed mode keeps Home accessible', () {
-      expect(
-        appModeRedirect(
-          path: FeatureRoutes.home.path,
-          selectedMode: null,
-          onboardingStatus: OnboardingStatus.completed,
-        ),
-        isNull,
-      );
+    test('completed without confirmed mode keeps compatibility tabs accessible',
+        () {
+      for (final tab in missingModeCompatibilityTabs) {
+        expect(
+          appModeRedirect(
+            path: tab.route.path,
+            selectedMode: null,
+            onboardingStatus: OnboardingStatus.completed,
+          ),
+          isNull,
+        );
+      }
+
       expect(
         appModeRedirect(
           path: AppRoutes.settings.path,
@@ -224,7 +237,7 @@ void main() {
       );
       expect(
         appModeRedirect(
-          path: FeatureRoutes.workout.path,
+          path: FeatureRoutes.ai.path,
           selectedMode: null,
           onboardingStatus: OnboardingStatus.completed,
         ),
