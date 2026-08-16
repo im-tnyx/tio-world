@@ -35,8 +35,17 @@ class GoogleSignInFailed extends GoogleSignInResult {
 
 /// Wraps [GoogleSignIn] SDK, isolating it from application logic.
 class GoogleSignInProvider {
-  GoogleSignInProvider({GoogleSignIn? signIn})
-      : _signIn = signIn ?? GoogleSignIn();
+  GoogleSignInProvider({GoogleSignIn? signIn, String? serverClientId})
+      : _signIn = signIn ??
+            GoogleSignIn(
+              scopes: const ['email', 'profile'],
+              serverClientId: serverClientId ??
+                  const String.fromEnvironment(
+                    'GOOGLE_WEB_CLIENT_ID',
+                    defaultValue:
+                        '218403286180-2047ibc6i5r6tb2kftoq4lu6220kl8d9.apps.googleusercontent.com',
+                  ),
+            );
 
   final GoogleSignIn _signIn;
 

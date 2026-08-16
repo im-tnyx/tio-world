@@ -7,5 +7,6 @@ export 'datasources/backend_user_sync_remote_data_source.dart';
 export 'repositories/remote_backend_user_sync_repository.dart';
 export 'repositories/supabase_auth_session_repository.dart';
 export 'repositories/supabase_auth_sign_in_repository.dart';
+export 'repositories/supabase_user_device_repository.dart';
 export 'device/flutter_device_identity_provider.dart';
 export 'google_sign_in_provider.dart';

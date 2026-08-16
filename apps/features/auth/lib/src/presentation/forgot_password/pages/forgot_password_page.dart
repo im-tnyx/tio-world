@@ -84,8 +84,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded,
-              color: colors.textPrimary, size: 20),
+          icon: Icon(Icons.arrow_back,
+              color: colors.textPrimary, size: 24),
           onPressed: () => context.pop(),
           tooltip: 'Back',
         ),
@@ -94,7 +94,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         child: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.symmetric(horizontal: TioSpacing.large),
             child: _emailSent
                 ? _SuccessState(
                     email: _emailController.text.trim(),
@@ -252,7 +252,7 @@ class _ErrorBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: colors.danger.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(TioRadius.large),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

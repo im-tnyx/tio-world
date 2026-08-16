@@ -1,9 +1,11 @@
+import 'dart:developer' as developer;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/models/auth_session.dart';
 import '../../domain/models/sign_in_result.dart';
 import '../../domain/repositories/auth_sign_in_repository.dart';
+import '../../domain/repositories/user_device_repository.dart';
 
 /// Supabase-backed implementation of [AuthSignInRepository].
 ///
@@ -14,9 +16,12 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
     required SupabaseClient client,
     GoogleSignIn? googleSignIn,
     String? serverClientId,
+    UserDeviceRepository? userDeviceRepository,
   })  : _client = client,
+        _userDeviceRepository = userDeviceRepository,
         _googleSignIn = googleSignIn ??
             GoogleSignIn(
+              scopes: const ['email', 'profile'],
               serverClientId: serverClientId ??
                   const String.fromEnvironment(
                     'GOOGLE_WEB_CLIENT_ID',
@@ -27,6 +32,7 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
 
   final SupabaseClient _client;
   final GoogleSignIn _googleSignIn;
+  final UserDeviceRepository? _userDeviceRepository;
 
   @override
   Future<SignInResult> signInWithGoogle() async {
@@ -51,6 +57,7 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
         }
         final user = _client.auth.currentUser;
         if (user != null) {
+          await _userDeviceRepository?.syncCurrentDevice();
           return SignInSuccess(_mapUser(user));
         }
         return const SignInCancelled();
@@ -67,7 +74,33 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
         return const SignInFailure('Failed to obtain authenticated Supabase user.');
       }
 
-      return SignInSuccess(_mapUser(user));
+      await _userDeviceRepository?.syncCurrentDevice();
+      final session = _mapUser(user);
+
+      // Auto-populate Google Profile details (Image, Name, Email) into public.users
+      try {
+        final nowIso = DateTime.now().toUtc().toIso8601String();
+        await _client.from('users').upsert(
+          {
+            'id': user.id,
+            if (session.displayName != null && session.displayName!.isNotEmpty)
+              'name': session.displayName,
+            if (session.email != null && session.email!.isNotEmpty)
+              'email': session.email,
+            if (session.photoUrl != null && session.photoUrl!.isNotEmpty) ...{
+              'avatar_url': session.photoUrl,
+              'profile_image': session.photoUrl,
+            },
+            'last_active_at': nowIso,
+            'updated_at': nowIso,
+          },
+          onConflict: 'id',
+        );
+      } catch (e) {
+        developer.log('Failed to auto-sync Google user profile: $e');
+      }
+
+      return SignInSuccess(session);
     } on AuthException catch (e) {
       return SignInFailure(e.message, code: e.statusCode);
     } catch (e) {
@@ -95,6 +128,7 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
       if (user == null) {
         return const SignInFailure('Sign in failed: user not returned.');
       }
+      await _userDeviceRepository?.syncCurrentDevice();
       return SignInSuccess(_mapUser(user));
     } on AuthException catch (e) {
       return SignInFailure(e.message, code: e.statusCode);
@@ -121,8 +155,42 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
       if (user == null) {
         return const SignInFailure('Sign up failed: user not returned.');
       }
+      // If user already exists, Supabase returns user with empty identities list
+      if (response.user != null &&
+          response.user!.identities != null &&
+          response.user!.identities!.isEmpty) {
+        return const SignInFailure(
+          'This email is already registered. Please log in to continue.',
+          code: 'user_already_exists',
+        );
+      }
+      await _userDeviceRepository?.syncCurrentDevice();
+      try {
+        final nowIso = DateTime.now().toUtc().toIso8601String();
+        await _client.from('users').upsert(
+          {
+            'id': user.id,
+            if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
+            if (name != null && name.trim().isNotEmpty) 'username': name.trim().toLowerCase(),
+            'email': email.trim().toLowerCase(),
+            'last_active_at': nowIso,
+            'updated_at': nowIso,
+          },
+          onConflict: 'id',
+        );
+      } catch (e) {
+        developer.log('Failed to save username to public.users: $e');
+      }
       return SignInSuccess(_mapUser(user));
     } on AuthException catch (e) {
+      if (e.message.toLowerCase().contains('already registered') ||
+          e.message.toLowerCase().contains('already in use') ||
+          e.message.toLowerCase().contains('user already exists')) {
+        return const SignInFailure(
+          'This email is already registered. Please log in to continue.',
+          code: 'user_already_exists',
+        );
+      }
       return SignInFailure(e.message, code: e.statusCode);
     } catch (e) {
       return SignInFailure(e.toString());
@@ -159,6 +227,7 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
       if (user == null) {
         return const SignInFailure('OTP verification failed.');
       }
+      await _userDeviceRepository?.syncCurrentDevice();
       return SignInSuccess(_mapUser(user));
     } on AuthException catch (e) {
       return SignInFailure(e.message, code: e.statusCode);
