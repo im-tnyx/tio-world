@@ -6,7 +6,11 @@ import 'package:tio_core/core.dart';
 import 'package:tio_feature_splash/splash.dart';
 
 void main() {
-  Widget buildTestApp({Future<String> Function()? onCheckInitialDestination}) {
+  Widget buildTestApp({
+    Future<String> Function()? onCheckInitialDestination,
+    String? failureMessage,
+    Future<void> Function()? onRetry,
+  }) {
     final router = GoRouter(
       initialLocation: '/splash',
       routes: [
@@ -14,6 +18,8 @@ void main() {
           path: '/splash',
           builder: (context, state) => SplashScreen(
             onCheckInitialDestination: onCheckInitialDestination,
+            failureMessage: failureMessage,
+            onRetry: onRetry,
           ),
         ),
         GoRoute(
@@ -99,6 +105,41 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.text('Auth Route'), findsOneWidget);
+    });
+
+    testWidgets('failure mode replaces permanent spinner with recoverable feedback', (tester) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          failureMessage: "Couldn't finish signing you in. Check your connection and try again.",
+          onRetry: () async {},
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        find.text("Couldn't finish signing you in. Check your connection and try again."),
+        findsOneWidget,
+      );
+      expect(find.text('Retry'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+    });
+
+    testWidgets('Retry invokes the recovery callback', (tester) async {
+      var retryCount = 0;
+      await tester.pumpWidget(
+        buildTestApp(
+          failureMessage: "Couldn't finish signing you in. Check your connection and try again.",
+          onRetry: () async {
+            retryCount++;
+          },
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('Retry'));
+      await tester.pump();
+
+      expect(retryCount, 1);
     });
   });
 }
