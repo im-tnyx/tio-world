@@ -30,12 +30,7 @@ class OnboardingStatusController extends ChangeNotifier {
       final snapshot = await _repository.read();
       final confirmedMode = _appModeController.selectedMode;
 
-      if (snapshot.status == OnboardingStatus.completed &&
-          confirmedMode == null) {
-        await _repository.write(OnboardingStatus.notStarted);
-        _status = OnboardingStatus.notStarted;
-        _entryPath = OnboardingEntryPath.firstRun;
-      } else if (snapshot.status != null) {
+      if (snapshot.status != null) {
         _status = snapshot.status!;
         _entryPath = _status == OnboardingStatus.completed &&
                 confirmedMode != null &&
@@ -43,6 +38,8 @@ class OnboardingStatusController extends ChangeNotifier {
             ? OnboardingEntryPath.legacyModeOnly
             : OnboardingEntryPath.firstRun;
       } else if (!snapshot.hasStoredContractVersion && confirmedMode != null) {
+        // Compatibility bridge for pre-status installs only. AppMode is not used
+        // to downgrade or invalidate an explicitly persisted completion state.
         await _repository.write(OnboardingStatus.completed);
         _status = OnboardingStatus.completed;
         _entryPath = OnboardingEntryPath.legacyModeOnly;
