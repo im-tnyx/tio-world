@@ -26,14 +26,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _startInitFlow() async {
-    String destination = AppRoutes.auth.path;
-    if (widget.onCheckInitialDestination != null) {
-      try {
-        destination = await widget.onCheckInitialDestination!()
-            .timeout(const Duration(seconds: 4), onTimeout: () => AppRoutes.auth.path);
-      } catch (_) {
-        destination = AppRoutes.auth.path;
-      }
+    final destinationResolver = widget.onCheckInitialDestination;
+    if (destinationResolver == null) {
+      // Passive mode: app-level router/bootstrap state owns product navigation.
+      return;
+    }
+
+    String destination;
+    try {
+      destination = await destinationResolver()
+          .timeout(const Duration(seconds: 4), onTimeout: () => AppRoutes.auth.path);
+    } catch (_) {
+      destination = AppRoutes.auth.path;
     }
 
     if (mounted) {
