@@ -27,15 +27,17 @@ class AppSessionBootstrapController extends ChangeNotifier {
   StreamSubscription<AuthSessionState>? _authSubscription;
   int _resolutionGeneration = 0;
   bool _started = false;
+  bool _disposed = false;
 
   AppSessionBootstrapState get state => _state;
 
   void start() {
-    if (_started) return;
+    if (_disposed || _started) return;
     _started = true;
     _authSubscription = _authSessionRepository.sessionState.listen(
       (authState) => unawaited(_resolve(authState)),
       onError: (Object error, StackTrace _) {
+        if (_disposed) return;
         _resolutionGeneration++;
         _setState(AppSessionBootstrapFailure(error));
       },
@@ -43,7 +45,9 @@ class AppSessionBootstrapController extends ChangeNotifier {
   }
 
   Future<void> refresh({bool emitLoading = true}) async {
+    if (_disposed) return;
     final authState = await _authSessionRepository.currentSessionState;
+    if (_disposed) return;
     await _resolve(authState, emitLoading: emitLoading);
   }
 
@@ -54,6 +58,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
   /// bootstrap state locally avoids a redundant backend read and lets the fresh
   /// completion flow show Congratulations before entering Home.
   void markReadyAfterOnboardingCompletion(String userId) {
+    if (_disposed) return;
     if (userId.isEmpty) {
       throw ArgumentError.value(userId, 'userId', 'must not be empty');
     }
@@ -65,6 +70,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
     AuthSessionState authState, {
     bool emitLoading = true,
   }) async {
+    if (_disposed) return;
     final generation = ++_resolutionGeneration;
 
     switch (authState) {
@@ -92,10 +98,10 @@ class AppSessionBootstrapController extends ChangeNotifier {
           final remoteState = await completionRepository
               .readCurrent()
               .timeout(_completionLookupTimeout);
-          if (generation != _resolutionGeneration) return;
+          if (_disposed || generation != _resolutionGeneration) return;
 
           await _onboardingStatusController.reconcileRemote(remoteState);
-          if (generation != _resolutionGeneration) return;
+          if (_disposed || generation != _resolutionGeneration) return;
 
           switch (remoteState) {
             case RemoteOnboardingCompletionState.completed:
@@ -109,7 +115,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
               break;
           }
         } catch (error) {
-          if (generation != _resolutionGeneration) return;
+          if (_disposed || generation != _resolutionGeneration) return;
           _setState(AppSessionBootstrapFailure(error));
         }
         break;
@@ -117,13 +123,16 @@ class AppSessionBootstrapController extends ChangeNotifier {
   }
 
   void _setState(AppSessionBootstrapState next) {
-    if (_state == next) return;
+    if (_disposed || _state == next) return;
     _state = next;
     notifyListeners();
   }
 
   @override
   void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    _resolutionGeneration++;
     _authSubscription?.cancel();
     super.dispose();
   }
