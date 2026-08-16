@@ -12,13 +12,16 @@ class AppSessionBootstrapController extends ChangeNotifier {
     required AuthSessionRepository authSessionRepository,
     required OnboardingCompletionRepository? onboardingCompletionRepository,
     required OnboardingStatusController onboardingStatusController,
+    Duration completionLookupTimeout = const Duration(seconds: 8),
   })  : _authSessionRepository = authSessionRepository,
         _onboardingCompletionRepository = onboardingCompletionRepository,
-        _onboardingStatusController = onboardingStatusController;
+        _onboardingStatusController = onboardingStatusController,
+        _completionLookupTimeout = completionLookupTimeout;
 
   final AuthSessionRepository _authSessionRepository;
   final OnboardingCompletionRepository? _onboardingCompletionRepository;
   final OnboardingStatusController _onboardingStatusController;
+  final Duration _completionLookupTimeout;
 
   AppSessionBootstrapState _state = const AppSessionBootstrapLoading();
   StreamSubscription<AuthSessionState>? _authSubscription;
@@ -86,7 +89,9 @@ class AppSessionBootstrapController extends ChangeNotifier {
         }
 
         try {
-          final remoteState = await completionRepository.readCurrent();
+          final remoteState = await completionRepository
+              .readCurrent()
+              .timeout(_completionLookupTimeout);
           if (generation != _resolutionGeneration) return;
 
           await _onboardingStatusController.reconcileRemote(remoteState);
