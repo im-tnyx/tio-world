@@ -24,6 +24,7 @@ export 'onboarding_step_id.dart';
 export 'profile_flow_plan.dart';
 export 'profile_onboarding_draft.dart';
 export 'profile_step_id.dart';
+export 'remote_onboarding_completion_state.dart';
 export 'target_step_id.dart';
 export 'targets_flow_plan.dart';
 export 'targets_onboarding_draft.dart';
