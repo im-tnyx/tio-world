@@ -100,6 +100,57 @@ hybrid
 
 Future tabs can be appended using stable IDs without changing the column shape.
 
+### Future configurable navigation contract
+
+Bottom navigation is expected to become user-configurable with **3 to 6 active tabs**.
+
+Current production-ready stable IDs:
+
+```text
+home
+workout
+nutrition
+progress
+```
+
+Candidate/reserved future tab IDs from existing product surfaces that are not yet production-ready as bottom tabs:
+
+```text
+meal_plan_library
+social
+tio_ai
+```
+
+These IDs are reservations only. A feature must not appear in effective navigation merely because its ID is known.
+
+Separate concepts:
+
+```text
+allowed tab ID
+→ recognized by the app/domain registry
+
+enabled tab capability
+→ feature/route is production-ready and may be rendered
+
+active_tabs
+→ user preference among currently enabled/eligible tabs
+```
+
+Validation invariant for future customization:
+
+```text
+3 <= active_tabs.length <= 6
+home is required
+IDs are unique
+order is preserved
+all IDs exist in the canonical registry
+all rendered IDs are currently enabled/eligible
+```
+
+If a previously saved tab later becomes unavailable, do not corrupt or blindly overwrite the stored preference. Build effective navigation from the intersection of stored preferences and the currently enabled registry, then apply a safe product fallback if fewer than the required minimum remain.
+
+Until Meal Plan Library, Social, Tio AI, or other future surfaces have explicit route/product readiness, they must not be automatically written into `active_tabs` or shown in bottom navigation.
+
 ### Ownership / source-of-truth rule
 
 Do not treat `app_mode` and `active_tabs` as two competing authorities.
@@ -143,7 +194,9 @@ Before migration implementation:
 - [ ] reject unknown/duplicate tab IDs at application/domain boundary
 - [ ] preserve array order because it represents navigation order
 - [ ] Home must remain present in every effective configuration
-- [ ] AI/Coach remains excluded until its route/product contract is explicitly enabled
+- [ ] enforce configurable navigation size of 3–6 tabs when custom-tab editing ships
+- [ ] distinguish registered IDs from currently enabled/production-ready tabs
+- [ ] Meal Plan Library, Social, and Tio AI remain unavailable as bottom tabs until explicitly enabled
 
 ### Persistence changes
 
@@ -157,6 +210,7 @@ Before migration implementation:
 - [ ] define legacy-null reconciliation without silently choosing Hybrid
 - [ ] add repository/domain tests for read/write/validation
 - [ ] add cross-device/fresh-install restoration regression
+- [ ] add future custom-tab tests for min/max count, ordering, uniqueness, readiness filtering, and unavailable saved tabs
 - [ ] run Supabase advisors/security review before production migration
 
 ### Schema guardrail
