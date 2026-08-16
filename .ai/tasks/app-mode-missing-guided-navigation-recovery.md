@@ -1,6 +1,6 @@
 # Missing AppMode Guided Navigation Recovery
 
-**Status:** In progress — compatibility navigation implemented, local/device validation pending
+**Status:** In progress — compatibility navigation implemented; durable Supabase mode/tab contract added to plan
 **Tracking:** GitHub issue #11
 **Source branch:** `codex/onboarding-mode-migration`
 
@@ -25,8 +25,8 @@ The single-destination safety remains necessary because Flutter Material `Naviga
 - Remote `public.users.is_onboarded` is durable onboarding completion authority.
 - `AppModeController` currently reads/writes `SharedPreferencesAppModePreference` only.
 - `CompleteOnboardingUseCase` persists owner data, then writes selected AppMode through the local preference adapter.
-- Live Supabase schema inspection confirms there is currently no `app_mode`/mode column in `public.users`.
-- Therefore fresh installs, cleared app data, or migrated completed accounts can restore completion without restoring AppMode.
+- Live Supabase schema inspection confirms there is currently no `app_mode` or active-tab column in `public.users`.
+- Therefore fresh installs, cleared app data, migrated completed accounts, or cross-device sessions can restore completion without restoring AppMode/tab configuration.
 
 ## Slice A — immediate compatibility navigation
 
@@ -64,18 +64,106 @@ Implemented:
 - [ ] shell bottom-nav regression green locally
 - [ ] device validation: bottom nav visible and tabs navigable
 
-## Slice B — durable AppMode persistence/restoration
+## Slice B — durable Supabase AppMode + active tabs
 
-Separate follow-up after Slice A is green:
+### Product intent
 
-- design authenticated Supabase storage for AppMode
-- add reviewed migration (do not mutate production blindly)
-- persist confirmed mode remotely on onboarding completion and Settings changes
-- restore remote mode before routing Home on returning/fresh-install sessions
-- keep local preference as cache/fast-path, not durable authority
-- define legacy null migration/recovery policy explicitly
+Persist enough account-level preference data in Supabase to answer both:
 
-## Validation gate
+1. Which Tio service experience is the user primarily using?
+2. Which bottom-navigation tabs are active for this user right now?
+
+This supports returning sessions, fresh installs, cross-device restore, future personalized navigation, and later custom-tab configuration.
+
+### Proposed `public.users` columns
+
+```sql
+app_mode   text null
+active_tabs text[] null
+```
+
+`app_mode` semantic values:
+
+```text
+workout
+nutrition
+hybrid
+```
+
+`active_tabs` stores ordered stable tab IDs, for example:
+
+```text
+['home', 'workout', 'progress']
+['home', 'nutrition', 'progress']
+['home', 'workout', 'nutrition', 'progress']
+```
+
+Future tabs can be appended using stable IDs without changing the column shape.
+
+### Ownership / source-of-truth rule
+
+Do not treat `app_mode` and `active_tabs` as two competing authorities.
+
+```text
+app_mode
+→ high-level service/product intent
+→ drives default guided destinations
+
+active_tabs
+→ effective ordered navigation configuration
+→ initially derived from app_mode
+→ later may represent explicit user customization
+```
+
+Initial invariant:
+
+```text
+new onboarding completion or App Mode change
+→ write app_mode
+→ derive canonical tabs from AppMode.guidedDestinations
+→ write active_tabs in the same persistence operation
+```
+
+Read/restore precedence:
+
+```text
+authenticated user
+→ read remote app_mode + active_tabs
+→ if active_tabs valid/non-empty: restore effective tabs
+→ if app_mode valid but active_tabs missing: derive tabs from app_mode and repair/backfill later
+→ if both missing on completed legacy user: use Slice A compatibility navigation; do not invent a mode
+```
+
+### Validation / data integrity
+
+Before migration implementation:
+
+- [ ] define CHECK constraint or equivalent validation for supported `app_mode` values
+- [ ] define canonical stable IDs for every allowed `active_tabs` entry
+- [ ] reject unknown/duplicate tab IDs at application/domain boundary
+- [ ] preserve array order because it represents navigation order
+- [ ] Home must remain present in every effective configuration
+- [ ] AI/Coach remains excluded until its route/product contract is explicitly enabled
+
+### Persistence changes
+
+- [ ] create reviewed migration adding `public.users.app_mode`
+- [ ] create reviewed migration adding `public.users.active_tabs`
+- [ ] preserve existing `public.users` RLS ownership (`auth.uid() = id`)
+- [ ] persist both fields on onboarding completion
+- [ ] persist both fields when App Mode changes in Settings
+- [ ] restore both fields during authenticated bootstrap before Home routing/navigation configuration
+- [ ] keep `SharedPreferencesAppModePreference` only as local cache/fast-path
+- [ ] define legacy-null reconciliation without silently choosing Hybrid
+- [ ] add repository/domain tests for read/write/validation
+- [ ] add cross-device/fresh-install restoration regression
+- [ ] run Supabase advisors/security review before production migration
+
+### Schema guardrail
+
+No production schema mutation from this planning step. Migration must be reviewed, versioned in the repository, validated, and only then applied deliberately.
+
+## Validation gate for Slice A
 
 ```powershell
 Set-Location "G:\projects\Tio-World"
