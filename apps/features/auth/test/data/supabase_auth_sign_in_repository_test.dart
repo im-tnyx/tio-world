@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -57,6 +59,45 @@ void main() {
       expect(result.session.displayName, equals('Email User'));
     });
 
+    test('successful sign-in does not wait for secondary device sync', () async {
+      final fakeUser = User(
+        id: 'usr-email-2',
+        appMetadata: const {},
+        userMetadata: const {},
+        aud: 'authenticated',
+        createdAt: DateTime.now().toIso8601String(),
+        email: 'user2@test.com',
+      );
+      final fakeGoTrue = FakeGoTrueClient(
+        currentUser: fakeUser,
+        authResponseToReturn: AuthResponse(
+          session: Session(
+            accessToken: 'token',
+            tokenType: 'bearer',
+            user: fakeUser,
+          ),
+          user: fakeUser,
+        ),
+      );
+      final deviceRepository = PendingUserDeviceRepository();
+      final repo = SupabaseAuthSignInRepository(
+        client: FakeSupabaseClient(goTrueClient: fakeGoTrue),
+        userDeviceRepository: deviceRepository,
+      );
+
+      final result = await repo
+          .signInWithEmailPassword(
+            email: 'user2@test.com',
+            password: 'password123',
+          )
+          .timeout(const Duration(milliseconds: 200));
+
+      expect(result, isA<SignInSuccess>());
+      expect(deviceRepository.syncCalls, 1);
+
+      deviceRepository.complete();
+    });
+
     test('signInWithEmailPassword returns SignInFailure on AuthException', () async {
       final fakeGoTrue = FakeGoTrueClient(
         exceptionToThrow: const AuthException('Invalid login credentials', statusCode: '400'),
@@ -75,6 +116,23 @@ void main() {
       expect(failure.code, equals('400'));
     });
   });
+}
+
+class PendingUserDeviceRepository implements UserDeviceRepository {
+  final Completer<void> _completer = Completer<void>();
+  int syncCalls = 0;
+
+  @override
+  Future<void> syncCurrentDevice() {
+    syncCalls++;
+    return _completer.future;
+  }
+
+  void complete() {
+    if (!_completer.isCompleted) {
+      _completer.complete();
+    }
+  }
 }
 
 class FakeSupabaseClient extends Fake implements SupabaseClient {
