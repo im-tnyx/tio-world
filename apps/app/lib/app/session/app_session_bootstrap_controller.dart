@@ -44,6 +44,20 @@ class AppSessionBootstrapController extends ChangeNotifier {
     await _resolve(authState, emitLoading: emitLoading);
   }
 
+  /// Accepts the already-verified result of a successful onboarding completion.
+  ///
+  /// The completion use case has already persisted owner data and published the
+  /// durable backend completion marker before this is called. Advancing the
+  /// bootstrap state locally avoids a redundant backend read and lets the fresh
+  /// completion flow show Congratulations before entering Home.
+  void markReadyAfterOnboardingCompletion(String userId) {
+    if (userId.isEmpty) {
+      throw ArgumentError.value(userId, 'userId', 'must not be empty');
+    }
+    _resolutionGeneration++;
+    _setState(AppSessionBootstrapReady(userId: userId));
+  }
+
   Future<void> _resolve(
     AuthSessionState authState, {
     bool emitLoading = true,
