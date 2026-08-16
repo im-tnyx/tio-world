@@ -60,11 +60,7 @@ class ProfileStepValidator {
         ),
       ProfileStepId.activity =>
         draft.activityLevel == null ? 'Choose an activity level.' : null,
-      ProfileStepId.healthConditions =>
-        draft.healthConditions.contains(ProfileHealthCondition.other) &&
-                draft.otherHealthCondition.trim().isEmpty
-            ? 'Describe the other health condition.'
-            : null,
+      ProfileStepId.healthConditions => null,
     };
   }
 

@@ -9,8 +9,8 @@ class WelcomeUiState {
     this.featureLines = const ['AI WORKOUT', 'MEAL PLAN', 'AI COACH'],
     this.ctaText = 'Get Started',
     this.signInText = 'Sign In',
-    this.termsPrefix = 'By continuing, you agree to our ',
-    this.termsText = 'Terms & Conditions',
+    this.termsPrefix = 'By continuing, you agree to our',
+    this.termsText = 'Terms of Service',
     this.andText = ' and ',
     this.privacyText = 'Privacy Policy',
   });

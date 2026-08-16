@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_feature_nutrition/nutrition.dart' as nutrition_owner;
 import 'package:tio_feature_onboarding/onboarding.dart';
@@ -563,12 +565,30 @@ void main() {
 
 class _FailingProfileSetupRepo implements profile_owner.ProfileSetupRepository {
   @override
+  Stream<profile_owner.ProfileSetupData?> watchProfileSetup() async* {
+    yield null;
+  }
+
+  @override
   Future<void> saveProfileSetup(profile_owner.ProfileSetupData data) async {
     throw StateError('Disk write error');
   }
 
   @override
   Future<profile_owner.ProfileSetupData?> getProfileSetup() async => null;
+
+  @override
+  Future<String> uploadAvatarImage({
+    required String fileName,
+    required List<int> bytes,
+  }) async =>
+      '';
+
+  @override
+  Future<void> deleteAvatarImage() async {}
+
+  @override
+  Future<void> updateAvatarFrame(String frame) async {}
 }
 
 class _FakeOnboardingStatusRepository implements OnboardingStatusRepository {

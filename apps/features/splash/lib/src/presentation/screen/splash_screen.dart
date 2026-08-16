@@ -5,7 +5,12 @@ import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
-  const SplashScreen({super.key});
+  const SplashScreen({
+    super.key,
+    this.onCheckInitialDestination,
+  });
+
+  final Future<String> Function()? onCheckInitialDestination;
 
   @override
   ConsumerState<SplashScreen> createState() => _SplashScreenState();
@@ -18,13 +23,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     _startInitFlow();
   }
 
-  void _startInitFlow() {
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        // Redirection to the Welcome / Auth screen
-        context.go(AppRoutes.auth.path);
-      }
-    });
+  Future<void> _startInitFlow() async {
+    if (widget.onCheckInitialDestination != null) {
+      try {
+        final destination = await widget.onCheckInitialDestination!();
+        if (mounted) {
+          context.go(destination);
+          return;
+        }
+      } catch (_) {}
+    }
+
+    if (mounted) {
+      context.go(AppRoutes.auth.path);
+    }
   }
 
   @override

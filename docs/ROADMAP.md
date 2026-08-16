@@ -57,8 +57,10 @@ Goal: create the modular Flutter workspace that mirrors the native `:app`, `:sha
   - [x] `apps/features/settings`
   - [x] `apps/features/progress`
   - [x] `apps/features/coaching`
-- [ ] Add analyzer and test setup per package
-- [ ] Add Melos validation commands
+  - [x] `apps/features/splash`
+  - [x] `apps/features/welcome`
+- [x] Add analyzer and test setup per package
+- [x] Add Melos validation commands
 
 ## Phase 2: Flutter Mobile App Shell
 
@@ -74,9 +76,9 @@ Goal: create the first usable Android+iOS phone shell.
 - [x] Add the shared App Mode contract and device-local preference boundary
 - [x] Add the mode-first onboarding selection and Settings mode editor
 - [x] Derive visible guided tabs and route eligibility from App Mode
-- [x] Define the Material 3 Expressive token and component migration plan in `apps/core`, including touch feedback, high contrast, reduced motion, dark mode, and phone-versus-Wear boundaries; first theme/navigation/avatar/button slice implemented, with manual device validation still open
-- [x] Extract reusable `TioAvatar` in `apps/core` with compact, small, medium,
-  large, and extra-large sizes plus a screen-selected shape
+- [x] Define the Material 3 Expressive token and component migration plan in `apps/core`, including touch feedback, high contrast, reduced motion, dark mode, and phone-versus-Wear boundaries; theme/navigation/avatar/social buttons implemented with soft haptic feedback
+- [x] Extract reusable `TioAvatar` in `apps/core` with compact, small, medium, large, and extra-large sizes plus a screen-selected shape
+- [x] Extract reusable `TioSocialButton` in `apps/core` (Google, Truecaller, Email, Phone)
 - [ ] Move from basic route constants to typed `go_router` routes when screens mature
 
 Guided tabs are mode-dependent as defined in [App Mode System](#app-mode-system). The five registered branches are internal route identity, not a fixed five-item bottom bar.
@@ -90,21 +92,16 @@ a separate Home top-bar icon or a main bottom tab.
 
 Goal: first usable health and fitness app flow.
 
-- [ ] Confirm Supabase Auth sign-in methods and the first authenticated vertical slice
-- [ ] Complete the single-route, mode-conditional onboarding flow on top of the
-  implemented App Mode selection:
+- [x] Confirm Supabase Auth sign-in methods and the first authenticated vertical slice
+- [x] Complete the single-route, mode-conditional onboarding flow on top of the implemented App Mode selection:
   - [x] Add stable step identity and pure Workout/Nutrition/Hybrid flow plans
-  - [x] Route one parent screen with a top-bar-free unnumbered App Mode chooser,
-    fixed Back/progress on later children, changing child content, and a fixed
-    bottom primary action
-  - [x] Add the typed in-memory common Profile section with nine child screens,
-    centralized validation, internal Back/Continue, and mode-derived exit
-  - [ ] Separate draft mode, confirmed App Mode, and onboarding-completion status
-  - [ ] Add approved Profile, Workout, Nutrition, Targets, and Review child steps
-  - [ ] Add validated save/resume and idempotent completion after privacy and
-    persistence decisions are approved
-- [ ] User profile basics
-- [ ] Workout logging MVP
+  - [x] Route one parent screen with a top-bar-free unnumbered App Mode chooser, fixed Back/progress on later children, changing child content, and a unified bottom bar hosting drum wheels dynamically
+  - [x] Add the typed in-memory common Profile section with nine child screens (Name, Gender, Goals, DOB with Today default & Underage popup guard, Height with 5'6"/170.0cm dual toggle, Weight with live BMI, Activity, Health), centralized validation, internal Back/Continue, and mode-derived exit
+  - [x] Separate draft mode, confirmed App Mode, and onboarding-completion status
+  - [x] Add approved Profile, Workout, Nutrition, Targets, and Review child steps
+  - [x] Add mid-flow Auth checkpoint (`AuthLandingPage` "Let's get you in") with 1-Tap Google Sign-In and dedicated Email Sign Up (`EmailSignupPage` "Create Account")
+  - [x] Add validated save/resume and idempotent completion persisting canonical owner data (`height_cm`, `current_weight_kg`, `date_of_birth: DATE`) to Supabase Postgres
+- [x] User profile basics & Account deletion RPC (`delete_user_account`)
 - [ ] Routine Library and Program browse/select flow in `apps/features/workout`; start an active workout only from the selected Routine or Program session
 - [ ] Add nested Exercise Search backed first by a validated, versioned local JSON catalog in `apps/features/workout`
 - [ ] Add Workout history views backed by recorded data: muscle heatmap, accessible training radar map, and training calendar
@@ -134,10 +131,10 @@ that slice.
 
 Goal: move real app data behind repositories and make core flows offline-first.
 
-- [ ] Create the minimum root `supabase/` workspace only for the approved first slice
+- [x] Create the root `supabase/` migrations for user accounts, profile biometrics, and onboarding drafts
+- [x] Add canonical Supabase Auth/Postgres/RLS contracts (`height_cm`, `current_weight_kg`, `target_weight_kg`, `date_of_birth: DATE`)
+- [x] Define private module Storage bucket policy (`avatars`) with owner-scoped RLS
 - [ ] Define repository contracts for workout, nutrition, profile, progress, and coaching
-- [ ] Add minimal Supabase Auth/Postgres/RLS contracts for the approved slice; do not create a full schema upfront
-- [ ] Define private module Storage bucket policy before creating `profile`, `nutrition`, `workout`, or `progress` buckets
 - [ ] Add Riverpod repository providers in owning feature packages
 - [ ] Add `freezed` + `json_serializable` models/DTOs where generated value types are needed
 - [ ] Choose local persistence for the first real data slice: Drift, Isar, or similar
@@ -178,72 +175,20 @@ Goal: add a separate protected backend only when Supabase functions and reposito
 - [ ] Add authenticated/authorized integration boundary using Supabase identity
 - [ ] Add Gemini/provider adapter only for an approved AI use case
 - [ ] Add repository implementations backed by protected APIs only where needed
-- [ ] Add test path for critical flows
+- [ ] Keep phone app pointed at repositories rather than raw backend endpoints
+- [ ] Keep private keys and privileged database mutations out of client apps
 
-Backend folders:
+## Phase 7: AI Coach Foundation
 
-```text
-backend/api
-backend/ai-coach
-backend/jobs
-```
+Goal: introduce server-side Gemini coaching after data and workout flows are stable.
 
-Supabase remains the owner of Auth, Postgres migrations/RLS, private Storage, and user-data persistence. Do not create `backend/db` for Supabase schema work.
+- [ ] Add protected backend service in `backend/ai-coach`
+- [ ] Keep prompt templates, Gemini credentials, and tool definitions server-side
+- [ ] Add client contract in `apps/features/coaching`
+- [ ] Stream coaching responses into Flutter UI
+- [ ] Add workout recommendation use case
+- [ ] Add nutrition adjustment use case
+- [ ] Add safety and guardrail validations before returning recommendations
+- [ ] Add prompt regression tests against standard persona scenarios
 
-## Phase 7: AI Coach
-
-Goal: add useful coaching without bloating mobile/watch clients.
-
-- [ ] Define coaching input model
-- [ ] Define coaching response model
-- [ ] Add backend AI coach runtime
-- [ ] Add safety and confidence boundaries
-- [ ] Add mobile coach UI in `apps/features/coaching`
-- [ ] Add Coach as a tab in every App Mode
-- [ ] Keep watch coaching limited to short insights only
-
-## Phase 8: Apple Watch
-
-Goal: add watchOS only after Wear OS and mobile MVP are stable.
-
-- [ ] Create `apps/watchos`
-- [ ] Add SwiftUI watch app shell
-- [ ] Add workout quick actions
-- [ ] Add HealthKit integration plan
-- [ ] Add phone sync via WatchConnectivity
-
-## Phase 9: Adaptive Navigation And Action Entry
-
-Goal: let users personalize three to six eligible destinations after the core screens and workflows are stable, without duplicating feature logic or losing access to active work.
-
-- [ ] Define stable destination identity independent from numeric tab indexes.
-- [ ] Keep Home required and first; validate the three-to-six selected-destination range.
-- [ ] Add mode, feature-availability, and release-stage eligibility rules.
-- [ ] Add the Settings Navigation & Tabs editor with reorder, preview, confirmation, and reset-to-mode-default behavior.
-- [ ] Compose Home sections from App Mode, navigation layout, feature availability, and prepared feature data.
-- [ ] Support root destinations separately from promoted feature shortcuts such as Routine Library and Meal Plan.
-- [ ] Define adaptive action placement for start/resume workout, log meal, log planned meal, add water, and other approved feature commands.
-- [ ] Keep an active workout resumable through a persistent entry when its normal destination is hidden or reordered.
-- [ ] Reconcile a mode or layout change to a valid destination, normally Home, without deleting feature data or active-session state.
-- [ ] Validate compact-phone handling for six selections, deep links, back stacks, accessibility, and representative mode/layout combinations.
-
-This phase changes navigation presentation and entry placement. It must not move domain logic into the shell or make tab order control stored health/fitness behavior.
-
-See the [adaptive navigation and action-entry task](../.ai/tasks/adaptive-navigation-and-actions.md).
-
-## Not Now
-
-Do not build these until core slices are working:
-
-- community
-- challenges
-- rewards
-- full social feed
-- complex analytics
-- full AI chat on watch
-- advanced subscription system
-- multiple wearable vendor integrations
-
-## Roadmap Rule
-
-Each phase should produce a working, testable slice before the next phase grows.
+Coach is an additive intelligence layer over user-recorded and user-planned data. It is not an alternative storage path, offline fallback, or authentication provider.

@@ -32,10 +32,14 @@ class OnboardingContentHost extends StatelessWidget {
     final child = stepBuilder?.call(context, state, controller) ??
         OnboardingSectionRenderer(state: state, controller: controller);
 
+    final String stepKey = state.stepId == OnboardingStepId.profileBasics
+        ? '${state.stepId.name}-${state.draft.profile.currentStepId.name}'
+        : state.stepId.name;
+
     return FocusTraversalGroup(
       child: AnimatedSwitcher(
-        duration: context.tioMotion.fadeThroughEnter,
-        reverseDuration: context.tioMotion.fadeThroughExit,
+        duration: const Duration(milliseconds: TioMotion.fadeThroughEnterMs),
+        reverseDuration: const Duration(milliseconds: TioMotion.fadeThroughExitMs),
         transitionBuilder: _buildReferenceTransition,
         layoutBuilder: (currentChild, previousChildren) => Stack(
           alignment: Alignment.topLeft,
@@ -45,16 +49,12 @@ class OnboardingContentHost extends StatelessWidget {
           ],
         ),
         child: SingleChildScrollView(
-          key: ValueKey(
-            state.stepId == OnboardingStepId.profileBasics
-                ? '${state.stepId.name}-${state.draft.profile.currentStepId.name}'
-                : state.stepId.name,
-          ),
+          key: ValueKey(stepKey),
           padding: const EdgeInsets.fromLTRB(
-            TioSpacing.extraLarge,
             TioSpacing.large,
-            TioSpacing.extraLarge,
-            TioSpacing.extraLarge,
+            TioSpacing.large,
+            TioSpacing.large,
+            TioSpacing.large,
           ),
           child: child,
         ),
@@ -73,28 +73,29 @@ class OnboardingContentHost extends StatelessWidget {
           parent: enterAnimation,
           curve: const Interval(
             _enterDelayFraction,
-            1,
-            curve: Curves.fastOutSlowIn,
+            1.0,
+            curve: Curves.easeOutCubic,
           ),
         );
-
         return FadeTransition(
           opacity: delayedEnter,
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 0.92, end: 1).animate(delayedEnter),
-            child: child,
-          ),
+          child: child,
         );
       },
-      reverseBuilder: (context, exitAnimation, child) => FadeTransition(
-        opacity: Tween<double>(begin: 1, end: 0).animate(
-          CurvedAnimation(
-            parent: exitAnimation,
-            curve: Curves.fastOutSlowIn,
+      reverseBuilder: (context, exitAnimation, child) {
+        final fastExit = CurvedAnimation(
+          parent: exitAnimation,
+          curve: const Interval(
+            0.0,
+            _enterDelayFraction,
+            curve: Curves.easeInCubic,
           ),
-        ),
-        child: child,
-      ),
+        );
+        return FadeTransition(
+          opacity: Tween<double>(begin: 1.0, end: 0.0).animate(fastExit),
+          child: child,
+        );
+      },
       child: child,
     );
   }

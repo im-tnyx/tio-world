@@ -214,6 +214,18 @@ final authProductStateProvider = Provider<AuthProductState>((ref) {
   );
 });
 
+/// Provider for user device repository to sync device identity with Supabase.
+final userDeviceRepositoryProvider = Provider<UserDeviceRepository>((ref) {
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  if (supabaseClient != null) {
+    return SupabaseUserDeviceRepository(
+      client: supabaseClient,
+      deviceIdentityProvider: ref.watch(deviceIdentityProviderProvider),
+    );
+  }
+  return const NoOpUserDeviceRepository();
+});
+
 /// Provider for auth sign-in repository.
 /// Uses Supabase in current production path.
 final authSignInRepositoryProvider = Provider<AuthSignInRepository?>((ref) {
@@ -222,6 +234,7 @@ final authSignInRepositoryProvider = Provider<AuthSignInRepository?>((ref) {
     return SupabaseAuthSignInRepository(
       client: supabaseClient,
       googleSignIn: ref.watch(googleSignInProviderProvider).signInClient,
+      userDeviceRepository: ref.watch(userDeviceRepositoryProvider),
     );
   }
   return null;
@@ -265,10 +278,10 @@ final sendPasswordResetEmailUseCaseProvider =
   return null;
 });
 
-/// Provider for fetching the current user's profile setup data.
-final profileDataProvider = FutureProvider<ProfileSetupData?>((ref) async {
+/// Provider for watching real-time updates to the current user's profile setup data.
+final profileDataProvider = StreamProvider<ProfileSetupData?>((ref) {
   final repository = ref.watch(profileSetupRepositoryProvider);
-  return repository.getProfileSetup();
+  return repository.watchProfileSetup();
 });
 
 

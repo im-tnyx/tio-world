@@ -11,6 +11,7 @@ class ProfileScreenScaffold extends StatelessWidget {
     required this.child,
     super.key,
     this.errorText,
+    this.showHeader = true,
   });
 
   final ProfileStepId stepId;
@@ -18,6 +19,7 @@ class ProfileScreenScaffold extends StatelessWidget {
   final String description;
   final Widget child;
   final String? errorText;
+  final bool showHeader;
 
   @override
   Widget build(BuildContext context) {
@@ -28,18 +30,28 @@ class ProfileScreenScaffold extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Semantics(
-          label: 'Profile step $stepNumber of $stepCount, $title',
-          value: '$stepNumber of $stepCount',
-          header: true,
-          container: true,
-          explicitChildNodes: true,
-          child: TioScreenHeader(
-            title: title,
-            subtitle: description,
+        if (showHeader) ...[
+          Semantics(
+            label: 'Profile step $stepNumber of $stepCount, $title',
+            value: '$stepNumber of $stepCount',
+            header: true,
+            container: true,
+            explicitChildNodes: true,
+            child: TioScreenHeader(
+              title: title,
+              subtitle: description,
+            ),
           ),
-        ),
-        const SizedBox(height: TioSpacing.extraLarge),
+          const SizedBox(height: TioSpacing.large),
+        ] else ...[
+          Semantics(
+            label: 'Profile step $stepNumber of $stepCount, $title',
+            value: '$stepNumber of $stepCount',
+            header: true,
+            container: true,
+            child: const SizedBox.shrink(),
+          ),
+        ],
         child,
         if (errorText case final message?) ...[
           const SizedBox(height: TioSpacing.medium),
@@ -63,10 +75,11 @@ class ProfileChoiceCard extends StatelessWidget {
   const ProfileChoiceCard({
     required this.id,
     required this.title,
+    this.description,
     required this.selected,
     required this.onTap,
+    this.leading,
     super.key,
-    this.description,
   });
 
   final String id;
@@ -74,44 +87,82 @@ class ProfileChoiceCard extends StatelessWidget {
   final String? description;
   final bool selected;
   final VoidCallback onTap;
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
+    final colors = TioTheme.colors(context);
+
     return Semantics(
       button: true,
       selected: selected,
       label: description == null ? title : '$title. $description',
-      child: TioCard(
-        key: ValueKey('profile-choice-$id'),
-        variant: selected ? TioCardVariant.elevated : TioCardVariant.outlined,
-        onTap: onTap,
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: Theme.of(context).textTheme.titleMedium),
-                  if (description case final details?) ...[
-                    const SizedBox(height: TioSpacing.small),
-                    Text(
-                      details,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: context.tioColors.textSecondary,
-                          ),
-                    ),
-                  ],
-                ],
+      child: Material(
+        color: selected
+            ? colors.primary.withValues(alpha: TioCardTokens.selectedContainerAlpha)
+            : colors.surface,
+        borderRadius: BorderRadius.circular(TioCardTokens.radius),
+        child: InkWell(
+          key: ValueKey(id),
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(TioCardTokens.radius),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.all(TioSpacing.large),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(TioCardTokens.radius),
+              border: Border.all(
+                color: selected
+                    ? colors.primary
+                    : colors.outlineStrong.withValues(alpha: 0.35),
+                width: selected
+                    ? TioCardTokens.selectedBorderWidth
+                    : TioCardTokens.unselectedBorderWidth,
               ),
             ),
-            const SizedBox(width: TioSpacing.medium),
-            Icon(
-              selected ? Icons.check_circle : Icons.radio_button_unchecked,
-              color: selected
-                  ? context.tioColors.primary
-                  : context.tioColors.outlineStrong,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (leading != null) ...[
+                  leading!,
+                  const SizedBox(width: TioSpacing.medium),
+                ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: selected ? colors.primary : colors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                      if (description case final desc?) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          desc,
+                          style: TextStyle(
+                            color: colors.textSecondary,
+                            fontSize: 13,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: TioSpacing.medium),
+                Icon(
+                  selected
+                      ? Icons.check_circle_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                  color: selected ? colors.primary : colors.outlineStrong,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -120,7 +171,5 @@ class ProfileChoiceCard extends StatelessWidget {
 
 String profileNumberValue(double? value) {
   if (value == null) return '';
-  return value == value.roundToDouble()
-      ? value.toInt().toString()
-      : value.toStringAsFixed(1);
+  return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1);
 }

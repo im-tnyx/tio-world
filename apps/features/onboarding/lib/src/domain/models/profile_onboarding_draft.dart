@@ -28,7 +28,9 @@ class ProfileOnboardingDraft {
     Set<ProfileGoal> goals = const {},
     this.dateOfBirth,
     this.heightCm,
+    this.heightUnit = 'cm',
     this.currentWeightKg,
+    this.weightUnit = 'kg',
     this.targetWeightKg,
     this.activityLevel,
     Set<ProfileHealthCondition> healthConditions = const {},
@@ -44,7 +46,9 @@ class ProfileOnboardingDraft {
   final Set<ProfileGoal> goals;
   final DateTime? dateOfBirth;
   final double? heightCm;
+  final String heightUnit;
   final double? currentWeightKg;
+  final String weightUnit;
   final double? targetWeightKg;
   final ProfileActivityLevel? activityLevel;
   final Set<ProfileHealthCondition> healthConditions;
@@ -59,8 +63,10 @@ class ProfileOnboardingDraft {
     Set<ProfileGoal>? goals,
     DateTime? dateOfBirth,
     double? heightCm,
+    String? heightUnit,
     bool clearHeightCm = false,
     double? currentWeightKg,
+    String? weightUnit,
     bool clearCurrentWeightKg = false,
     double? targetWeightKg,
     bool clearTargetWeightKg = false,
@@ -77,8 +83,10 @@ class ProfileOnboardingDraft {
       goals: goals ?? this.goals,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       heightCm: clearHeightCm ? null : heightCm ?? this.heightCm,
+      heightUnit: heightUnit ?? this.heightUnit,
       currentWeightKg:
           clearCurrentWeightKg ? null : currentWeightKg ?? this.currentWeightKg,
+      weightUnit: weightUnit ?? this.weightUnit,
       targetWeightKg:
           clearTargetWeightKg ? null : targetWeightKg ?? this.targetWeightKg,
       activityLevel: activityLevel ?? this.activityLevel,
@@ -99,7 +107,9 @@ class ProfileOnboardingDraft {
             _sameSet(goals, other.goals) &&
             dateOfBirth == other.dateOfBirth &&
             heightCm == other.heightCm &&
+            heightUnit == other.heightUnit &&
             currentWeightKg == other.currentWeightKg &&
+            weightUnit == other.weightUnit &&
             targetWeightKg == other.targetWeightKg &&
             activityLevel == other.activityLevel &&
             _sameSet(healthConditions, other.healthConditions) &&

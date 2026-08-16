@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:tio_feature_auth/auth.dart';
+import 'package:tio_feature_onboarding/onboarding.dart';
 
 import 'app/app.dart';
 import 'app/app_mode/app_mode.dart';
@@ -7,7 +10,6 @@ import 'app/network_providers.dart';
 import 'app/onboarding/onboarding.dart';
 import 'app/app_theme.dart';
 import 'app/bootstrap.dart';
-import 'package:tio_feature_onboarding/onboarding.dart';
 
 Future<void> main() async {
   const supabaseUrl = String.fromEnvironment(
@@ -25,6 +27,15 @@ Future<void> main() async {
         // ignore: deprecated_member_use
         anonKey: supabaseAnonKey,
       );
+      if (Supabase.instance.client.auth.currentUser != null) {
+        // Sync device in background upon session restore on launch
+        unawaited(
+          SupabaseUserDeviceRepository(
+            client: Supabase.instance.client,
+            deviceIdentityProvider: FlutterDeviceIdentityProvider(),
+          ).syncCurrentDevice(),
+        );
+      }
     } catch (_) {
       // Safe fallback if headless test environment
     }

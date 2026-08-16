@@ -261,10 +261,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Settings'), findsOneWidget);
-    expect(
+    await tester.scrollUntilVisible(
       find.byKey(const ValueKey('settings-app-settings-entry')),
-      findsOneWidget,
+      200.0,
+      scrollable: find.byType(Scrollable).first,
     );
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('settings-app-settings-entry')));
     await tester.pumpAndSettle();
@@ -420,18 +422,21 @@ Future<void> _completeProfileInputs(WidgetTester tester) async {
   await tester.tap(find.text('Continue'));
   await tester.pumpAndSettle();
 
-  await tester.tap(find.text('Choose date of birth'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('OK'));
-  await tester.pumpAndSettle();
+  // Date of birth (in-screen wheel picker defaults to 15/04/2003)
   await tester.tap(find.text('Continue'));
   await tester.pumpAndSettle();
 
-  for (final value in const ['171', '70', '70']) {
-    await tester.enterText(find.byType(TextFormField), value);
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-  }
+  // Height (wheel picker defaults to 170cm)
+  await tester.tap(find.text('Continue'));
+  await tester.pumpAndSettle();
+
+  // Current weight (wheel picker defaults to 70.0kg)
+  await tester.tap(find.text('Continue'));
+  await tester.pumpAndSettle();
+
+  // Target weight (wheel picker defaults to 68.0kg)
+  await tester.tap(find.text('Continue'));
+  await tester.pumpAndSettle();
 
   await _tapVisibleKey(tester, 'profile-choice-activity-active');
   await tester.tap(find.text('Continue'));

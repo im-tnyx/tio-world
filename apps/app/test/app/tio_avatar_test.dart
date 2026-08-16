@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
@@ -105,7 +103,7 @@ void main() {
   testWidgets('shows initials instead of the fallback icon', (tester) async {
     await tester.pumpWidget(
       const _AvatarTestApp(
-        child: TioAvatar(initials: 'st'),
+        child: TioAvatar(displayName: 'st'),
       ),
     );
 
@@ -116,9 +114,9 @@ void main() {
   testWidgets('returns to the fallback when image decoding fails',
       (tester) async {
     await tester.pumpWidget(
-      _AvatarTestApp(
+      const _AvatarTestApp(
         child: TioAvatar(
-          image: MemoryImage(Uint8List.fromList(const [0, 1, 2])),
+          imageUrl: 'https://example.com/broken.jpg',
         ),
       ),
     );

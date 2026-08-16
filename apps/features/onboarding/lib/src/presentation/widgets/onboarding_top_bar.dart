@@ -23,9 +23,9 @@ class OnboardingTopBar extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
           TioSpacing.small,
-          TioSpacing.small,
-          TioSpacing.extraLarge,
-          TioSpacing.small,
+          0,
+          TioSpacing.large,
+          0,
         ),
         child: SizedBox(
           height: 48,
@@ -37,6 +37,7 @@ class OnboardingTopBar extends StatelessWidget {
                   onPressed: state.isBusy ? null : onBack,
                   icon: const Icon(Icons.arrow_back),
                 ),
+              const SizedBox(width: TioSpacing.small),
               if (showProgress)
                 Expanded(
                   child: OnboardingProgressIndicator(state: state),

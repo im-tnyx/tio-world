@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tio_core/core.dart';
 import '../theme/welcome_tokens.dart';
 import '../state/welcome_ui_state.dart';
 import '../action/welcome_action.dart';
 import '../widgets/welcome_backdrop.dart';
-import '../widgets/welcome_disclaimer.dart';
 import '../widgets/welcome_feature_tile.dart';
 import '../widgets/welcome_top_bar.dart';
 
@@ -225,20 +223,37 @@ class WelcomeScreen extends StatelessWidget {
                                   onPressed: () => onAction(
                                       const WelcomeGetStartedClicked()),
                                 ),
-                                const SizedBox(height: 12),
-                                TioButton.secondary(
-                                  label: state.signInText,
-                                  expand: true,
-                                  trailing:
-                                      const Icon(Icons.arrow_forward, size: 20),
-                                  onPressed: () =>
-                                      onAction(const WelcomeSignInClicked()),
+                                const SizedBox(height: TioSpacing.extraLarge),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Text(
+                                      'Already have an account? ',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.white70,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      key: const ValueKey('welcome-signin-button'),
+                                      onTap: () => onAction(
+                                          const WelcomeSignInClicked()),
+                                      child: const Text(
+                                        'Log In',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w700,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
+                                const SizedBox(height: TioSpacing.large),
                               ],
                             ),
-                            const SizedBox(height: 24),
-
-                            WelcomeDisclaimer(state: state),
                           ],
                         ),
                       ),

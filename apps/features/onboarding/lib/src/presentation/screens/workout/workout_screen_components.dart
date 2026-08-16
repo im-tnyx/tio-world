@@ -8,16 +8,16 @@ class WorkoutScreenScaffold extends StatelessWidget {
     required this.stepId,
     required this.flowPlan,
     required this.title,
-    required this.description,
     required this.child,
     super.key,
+    this.description,
     this.errorText,
   });
 
   final WorkoutStepId stepId;
   final WorkoutFlowPlan flowPlan;
   final String title;
-  final String description;
+  final String? description;
   final Widget child;
   final String? errorText;
 
@@ -40,7 +40,7 @@ class WorkoutScreenScaffold extends StatelessWidget {
             subtitle: description,
           ),
         ),
-        const SizedBox(height: TioSpacing.extraLarge),
+        const SizedBox(height: TioSpacing.large),
         child,
         if (errorText case final message?) ...[
           const SizedBox(height: TioSpacing.medium),
@@ -84,61 +84,91 @@ class WorkoutChoiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.tioColors;
+
     return Semantics(
       button: true,
       selected: selected,
       label: description == null ? title : '$title. $description',
-      child: TioCard(
-        key: ValueKey('workout-choice-$id'),
-        variant: selected ? TioCardVariant.elevated : TioCardVariant.outlined,
-        onTap: onTap,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (icon != null) ...[
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Icon(
-                  icon,
-                  color: selected
-                      ? context.tioColors.primary
-                      : context.tioColors.textSecondary,
-                ),
+      child: Material(
+        color: selected
+            ? colors.primary.withValues(alpha: TioCardTokens.selectedContainerAlpha)
+            : colors.surface,
+        borderRadius: BorderRadius.circular(TioCardTokens.radius),
+        child: InkWell(
+          key: ValueKey('workout-choice-$id'),
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(TioCardTokens.radius),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.all(TioSpacing.large),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(TioCardTokens.radius),
+              border: Border.all(
+                color: selected
+                    ? colors.primary
+                    : colors.outlineStrong.withValues(alpha: 0.35),
+                width: selected
+                    ? TioCardTokens.selectedBorderWidth
+                    : TioCardTokens.unselectedBorderWidth,
               ),
-              const SizedBox(width: TioSpacing.medium),
-            ],
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: Theme.of(context).textTheme.titleMedium),
-                  if (description case final details?) ...[
-                    const SizedBox(height: TioSpacing.small),
-                    Text(
-                      details,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: context.tioColors.textSecondary,
-                          ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (icon != null) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Icon(
+                      icon,
+                      color: selected
+                          ? colors.primary
+                          : colors.textSecondary,
                     ),
-                  ],
+                  ),
+                  const SizedBox(width: TioSpacing.medium),
                 ],
-              ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: selected ? colors.primary : colors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                      if (description case final details?) ...[
+                        const SizedBox(height: TioSpacing.small),
+                        Text(
+                          details,
+                          style: TextStyle(
+                            color: colors.textSecondary,
+                            fontSize: 13,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: TioSpacing.medium),
+                Icon(
+                  switch (selectionStyle) {
+                    WorkoutSelectionStyle.single => selected
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    WorkoutSelectionStyle.multi => selected
+                        ? Icons.check_box
+                        : Icons.check_box_outline_blank,
+                  },
+                  color: selected ? colors.primary : colors.outlineStrong,
+                ),
+              ],
             ),
-            const SizedBox(width: TioSpacing.medium),
-            Icon(
-              switch (selectionStyle) {
-                WorkoutSelectionStyle.single => selected
-                    ? Icons.check_circle
-                    : Icons.radio_button_unchecked,
-                WorkoutSelectionStyle.multi => selected
-                    ? Icons.check_box
-                    : Icons.check_box_outline_blank,
-              },
-              color: selected
-                  ? context.tioColors.primary
-                  : context.tioColors.outlineStrong,
-            ),
-          ],
+          ),
         ),
       ),
     );

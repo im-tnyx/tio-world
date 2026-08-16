@@ -43,7 +43,31 @@ class SupabaseWorkoutPreferencesRepository
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     };
 
-    await _client.from('user_workout_preferences').upsert(payload);
+    final canonicalPayload = {
+      'user_id': userId,
+      'experience_level': data.experienceLevel.name,
+      'special_event_goal': data.specialEvent,
+      'workout_location': data.gymAccess.name,
+      'available_equipment': data.equipment.map((e) => e.name).toList(),
+      'workout_duration_mins': data.workoutDuration.minutes,
+      'training_days': data.trainingDays.map((d) => d.name).toList(),
+      'split_program': data.workoutSplit.name,
+      'focus_areas': data.focusAreas.map((f) => f.name).toList(),
+      'health_concerns': data.healthConcerns != null && data.healthConcerns!.trim().isNotEmpty
+          ? [data.healthConcerns!.trim()]
+          : <String>[],
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    };
+
+    try {
+      await _client.from('user_workout_profiles').upsert(canonicalPayload);
+      return;
+    } catch (_) {
+      // Compatibility fallback if canonical table is pending migration in legacy environments
+      try {
+        await _client.from('user_workout_preferences').upsert(payload);
+      } catch (_) {}
+    }
   }
 
   @override
@@ -53,7 +77,16 @@ class SupabaseWorkoutPreferencesRepository
       return null;
     }
 
-    final row = await _client
+    Map<String, dynamic>? row;
+    try {
+      row = await _client
+          .from('user_workout_profiles')
+          .select()
+          .eq('user_id', userId)
+          .maybeSingle();
+    } catch (_) {}
+
+    row ??= await _client
         .from('user_workout_preferences')
         .select()
         .eq('user_id', userId)

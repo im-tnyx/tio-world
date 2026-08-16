@@ -8,6 +8,7 @@ export 'renderer/profile_step_renderer.dart';
 export 'renderer/target_step_renderer.dart';
 export 'renderer/workout_step_renderer.dart';
 export 'screens/app_mode/app_mode_screen.dart';
+export 'screens/congratulations_screen.dart';
 export 'screens/nutrition/nutrition_intro_screen.dart';
 export 'screens/targets/bridge_screen.dart';
 export 'screens/targets/goal_pace_screen.dart';

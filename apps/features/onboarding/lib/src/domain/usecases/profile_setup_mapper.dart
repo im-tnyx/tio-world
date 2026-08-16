@@ -79,6 +79,9 @@ class ProfileSetupMapper {
           profile_owner.ProfileActivityLevel.dynamic,
       },
       healthConditions: draft.healthConditions
+          .where((cond) =>
+              cond != ProfileHealthCondition.other ||
+              draft.otherHealthCondition.trim().isNotEmpty)
           .map((cond) => switch (cond) {
                 ProfileHealthCondition.none =>
                   profile_owner.ProfileHealthCondition.none,

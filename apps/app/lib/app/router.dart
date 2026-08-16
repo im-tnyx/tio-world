@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_home/home.dart';
-import 'package:tio_feature_onboarding/onboarding.dart';
+import 'package:tio_feature_onboarding/onboarding.dart'
+    hide ProfileGender, ProfileActivityLevel;
 import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_feature_splash/splash.dart';
@@ -40,6 +43,8 @@ ChromePolicy shellChromePolicyForPath(String location) {
     AppRoutes.profile,
     AppRoutes.profileAvatar,
     AppRoutes.settings,
+    AppRoutes.profileSettings,
+    AppRoutes.accountSettings,
     AppRoutes.appSettings,
     AppRoutes.appModeSettings,
     AppRoutes.themeSettings,
@@ -102,11 +107,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     refreshListenable:
         Listenable.merge([appModeController, onboardingStatusController]),
     redirect: (context, state) {
-      if (state.uri.path == AppRoutes.onboarding.path &&
-          authProductState.capability.isAvailable &&
-          !authProductState.isFirebaseAuthenticated) {
-        return AppRoutes.login.path;
-      }
       return appModeRedirect(
         path: state.uri.path,
         selectedMode: appModeController.selectedMode,
@@ -126,13 +126,26 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   ? const [ShellTab.home]
                   : guidedShellTabs(selectedMode);
 
+              final profileAsync = ref.watch(profileDataProvider);
+              final profileData = profileAsync.valueOrNull;
+
+              final planTier = switch (profileData?.plan.toLowerCase()) {
+                'plus' => ShellPlanTier.plus,
+                'pro' || 'premium' => ShellPlanTier.premium,
+                _ => ShellPlanTier.free,
+              };
+
               return TioShell(
+                key: ValueKey('shell-${profileData?.avatarUrl}'),
                 state: ShellUiState(
                   selectedTab:
                       ShellTab.fromBranchIndex(navigationShell.currentIndex),
                   visibleTabs: visibleTabs,
                   isBottomNavVisible: chromePolicy.showsBottomNav,
                   isRootTopBarVisible: chromePolicy.showsRootTopBar,
+                  userName: profileData?.name ?? profileData?.username,
+                  avatarUrl: profileData?.avatarUrl,
+                  planTier: planTier,
                 ),
                 onAction: (action) =>
                     _handleShellAction(router, navigationShell, action),
@@ -156,7 +169,28 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.splash.path,
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => const SplashScreen(),
+        builder: (context, state) => SplashScreen(
+          onCheckInitialDestination: () async {
+            try {
+              final client = Supabase.instance.client;
+              final user = client.auth.currentUser;
+              if (user != null) {
+                final row = await client
+                    .from('users')
+                    .select('is_onboarded')
+                    .eq('id', user.id)
+                    .maybeSingle();
+
+                final isOnboarded =
+                    row != null && (row['is_onboarded'] as bool? ?? false);
+                return isOnboarded
+                    ? FeatureRoutes.home.path
+                    : AppRoutes.onboarding.path;
+              }
+            } catch (_) {}
+            return AppRoutes.auth.path;
+          },
+        ),
       ),
       GoRoute(
         path: AppRoutes.auth.path,
@@ -171,7 +205,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             final supabaseSignInUseCase =
                 ref.watch(signInWithGoogleUseCaseProvider);
             final googleAuthUseCase = ref.watch(googleAuthUseCaseProvider);
-            return LoginPage(
+            return AuthLandingPage(
               signInWithGoogleUseCase: supabaseSignInUseCase,
               googleAuthUseCase: googleAuthUseCase,
               onAuthSuccess: (result) {
@@ -189,9 +223,24 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           builder: (context, ref, _) {
             final signInWithEmailUseCase =
                 ref.watch(signInWithEmailUseCaseProvider);
-            return EmailLoginPage(
+            final supabaseSignInUseCase =
+                ref.watch(signInWithGoogleUseCaseProvider);
+            final googleAuthUseCase = ref.watch(googleAuthUseCaseProvider);
+            return LoginPage(
               signInWithEmailUseCase: signInWithEmailUseCase,
-              onSignInSuccess: (_) {},
+              signInWithGoogleUseCase: supabaseSignInUseCase,
+              googleAuthUseCase: googleAuthUseCase,
+              onSignInSuccess: (_) {
+                if (context.canPop()) {
+                  context.pop(true);
+                } else {
+                  context.go(AppRoutes.home.path);
+                }
+              },
+              onAuthSuccess: (result) {
+                ref.read(backendUserStateProvider.notifier).state =
+                    result.backendUserState;
+              },
             );
           },
         ),
@@ -205,7 +254,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 ref.watch(signUpWithEmailUseCaseProvider);
             return EmailSignupPage(
               signUpWithEmailUseCase: signUpWithEmailUseCase,
-              onSignUpSuccess: (_) {},
+              onSignUpSuccess: (_) {
+                if (context.canPop()) {
+                  context.pop(true);
+                }
+              },
             );
           },
         ),
@@ -270,9 +323,31 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               flowPlan: flowPlan,
             );
             onboardingStatusController.markCompleted();
-            if (context.mounted) context.go(FeatureRoutes.home.path);
+            if (context.mounted) {
+              context.go(
+                AppRoutes.congratulations.path,
+                extra: {
+                  'userName': draft.profile.name,
+                  'isWelcomeBack': false,
+                },
+              );
+            }
           },
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.congratulations.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final userName = extra?['userName'] as String?;
+          final isWelcomeBack = extra?['isWelcomeBack'] as bool? ?? false;
+          return CongratulationsScreen(
+            userName: userName,
+            isWelcomeBack: isWelcomeBack,
+            onContinue: () => context.go(FeatureRoutes.home.path),
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.profile.path,
@@ -280,11 +355,44 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => Consumer(
           builder: (context, ref, _) {
             final profileAsync = ref.watch(profileDataProvider);
+            final profileData = profileAsync.valueOrNull;
+
+            final avatarFrame = switch (profileData?.plan.toLowerCase()) {
+              'plus' => TioAvatarFrame.plusRing,
+              'pro' || 'premium' => TioAvatarFrame.proHexagon,
+              _ => TioAvatarFrame.none,
+            };
+
             return ProfilePage(
-              profileData: profileAsync.valueOrNull,
+              profileData: profileData,
               isLoading: profileAsync.isLoading,
+              avatarFrame: avatarFrame,
               onAvatarPressed: () => context.push(AppRoutes.profileAvatar.path),
+              onEditPressed: () => context.push(AppRoutes.profileSettings.path),
               onSettingsPressed: () => context.push(AppRoutes.settings.path),
+              onPickImage: (source) async {
+                final imageSource = source == TioImageSource.gallery
+                    ? ImageSource.gallery
+                    : ImageSource.camera;
+                final picker = ImagePicker();
+                final picked = await picker.pickImage(
+                  source: imageSource,
+                  imageQuality: 85,
+                  maxWidth: 1024,
+                  maxHeight: 1024,
+                );
+                if (picked == null) return;
+                final bytes = await picked.readAsBytes();
+                await ref.read(profileSetupRepositoryProvider).uploadAvatarImage(
+                      fileName: picked.name,
+                      bytes: bytes,
+                    );
+                ref.invalidate(profileDataProvider);
+              },
+              onDeleteImage: () async {
+                await ref.read(profileSetupRepositoryProvider).deleteAvatarImage();
+                ref.invalidate(profileDataProvider);
+              },
             );
           },
         ),
@@ -292,16 +400,162 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.profileAvatar.path,
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => AvatarPreviewPage(
-          onBackPressed: context.pop,
+        builder: (context, state) => Consumer(
+          builder: (context, ref, _) {
+            final profileAsync = ref.watch(profileDataProvider);
+            final profileData = profileAsync.valueOrNull;
+            return AvatarPreviewPage(
+              onBackPressed: context.pop,
+              avatarUrl: profileData?.avatarUrl,
+              initials: profileData?.name.isNotEmpty == true
+                  ? profileData!.name
+                  : (profileData?.username ?? ''),
+              onPickImage: (source) async {
+                final imageSource = source == TioImageSource.gallery
+                    ? ImageSource.gallery
+                    : ImageSource.camera;
+                final picker = ImagePicker();
+                final picked = await picker.pickImage(
+                  source: imageSource,
+                  imageQuality: 85,
+                  maxWidth: 1024,
+                  maxHeight: 1024,
+                );
+                if (picked == null) return;
+                final bytes = await picked.readAsBytes();
+                await ref.read(profileSetupRepositoryProvider).uploadAvatarImage(
+                      fileName: picked.name,
+                      bytes: bytes,
+                    );
+                ref.invalidate(profileDataProvider);
+              },
+              onDeletePressed: () async {
+                await ref.read(profileSetupRepositoryProvider).deleteAvatarImage();
+                ref.invalidate(profileDataProvider);
+                if (context.mounted) context.pop();
+              },
+            );
+          },
         ),
       ),
       GoRoute(
         path: AppRoutes.settings.path,
         parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => SettingsPage(
+          onProfileSettingsPressed: () =>
+              context.push(AppRoutes.profileSettings.path),
+          onAccountSettingsPressed: () =>
+              context.push(AppRoutes.accountSettings.path),
           onAppSettingsPressed: () => context.push(AppRoutes.appSettings.path),
+          onLogoutPressed: () async {
+            await ref.read(authSessionRepositoryProvider).signOut();
+            if (context.mounted) context.go(AppRoutes.auth.path);
+          },
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.profileSettings.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) {
+          final profileAsync = ref.watch(profileDataProvider);
+          final profileData = profileAsync.valueOrNull;
+
+          final avatarFrame = switch (profileData?.plan.toLowerCase()) {
+            'plus' => TioAvatarFrame.plusRing,
+            'pro' || 'premium' => TioAvatarFrame.proHexagon,
+            _ => TioAvatarFrame.none,
+          };
+
+          return ProfileSettingsPage(
+            name: profileData?.name ?? '',
+            username: profileData?.username ?? '',
+            gender: profileData?.gender.name ?? 'Male',
+            dateOfBirth: profileData?.dateOfBirth,
+            heightCm: profileData?.heightCm ?? 170.0,
+            currentWeightKg: profileData?.currentWeightKg ?? 70.0,
+            avatarUrl: profileData?.avatarUrl,
+            avatarFrame: avatarFrame,
+            plan: profileData?.plan ?? 'free',
+            onAvatarPressed: () => context.push(AppRoutes.profileAvatar.path),
+            onPickImage: (source) async {
+              final imageSource = source == TioImageSource.gallery
+                  ? ImageSource.gallery
+                  : ImageSource.camera;
+              final picker = ImagePicker();
+              final picked = await picker.pickImage(
+                source: imageSource,
+                imageQuality: 85,
+                maxWidth: 1024,
+                maxHeight: 1024,
+              );
+              if (picked == null) return;
+              final bytes = await picked.readAsBytes();
+              await ref.read(profileSetupRepositoryProvider).uploadAvatarImage(
+                    fileName: picked.name,
+                    bytes: bytes,
+                  );
+              ref.invalidate(profileDataProvider);
+            },
+            onDeleteImage: () async {
+              await ref.read(profileSetupRepositoryProvider).deleteAvatarImage();
+              ref.invalidate(profileDataProvider);
+            },
+            onSave: ({
+              required name,
+              required username,
+              required gender,
+              required dateOfBirth,
+              required heightCm,
+              required currentWeightKg,
+            }) async {
+              final parsedGender = ProfileGender.values.firstWhere(
+                (g) => g.name.toLowerCase() == gender.toLowerCase(),
+                orElse: () => ProfileGender.male,
+              );
+              final updated = ProfileSetupData(
+                name: name,
+                username: username.isNotEmpty ? username : null,
+                gender: parsedGender,
+                goals: profileData?.goals ?? const {},
+                dateOfBirth: dateOfBirth,
+                heightCm: heightCm,
+                currentWeightKg: currentWeightKg,
+                targetWeightKg: profileData?.targetWeightKg ?? currentWeightKg,
+                activityLevel:
+                    profileData?.activityLevel ?? ProfileActivityLevel.active,
+                healthConditions: profileData?.healthConditions ?? const {},
+                otherHealthCondition: profileData?.otherHealthCondition,
+                avatarUrl: profileData?.avatarUrl,
+                avatarFrame: profileData?.avatarFrame ?? 'none',
+                plan: profileData?.plan ?? 'free',
+              );
+              await ref.read(profileSetupRepositoryProvider).saveProfileSetup(updated);
+              ref.invalidate(profileDataProvider);
+            },
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.accountSettings.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) {
+          final supabase = ref.watch(supabaseClientProvider);
+          final userEmail = supabase?.auth.currentUser?.email;
+          final profileAsync = ref.watch(profileDataProvider);
+          final profileData = profileAsync.valueOrNull;
+
+          return AccountSettingsPage(
+            username: profileData?.username,
+            email: userEmail,
+            onDeleteAccountConfirmed: () async {
+              try {
+                await supabase?.rpc<void>('delete_user_account');
+              } catch (_) {}
+              await ref.read(authSessionRepositoryProvider).signOut();
+              if (context.mounted) context.go(AppRoutes.auth.path);
+            },
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.appSettings.path,

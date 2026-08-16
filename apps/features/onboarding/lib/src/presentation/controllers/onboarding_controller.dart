@@ -328,6 +328,13 @@ class OnboardingController extends ChangeNotifier {
     );
   }
 
+  void updateProfileHeightUnit(String unit) {
+    _markInProgress();
+    _updateProfile(
+      state.draft.profile.copyWith(heightUnit: unit),
+    );
+  }
+
   void updateProfileCurrentWeight(double? value) {
     _markInProgress();
     _updateProfile(
@@ -335,6 +342,13 @@ class OnboardingController extends ChangeNotifier {
         currentWeightKg: value,
         clearCurrentWeightKg: value == null,
       ),
+    );
+  }
+
+  void updateProfileWeightUnit(String unit) {
+    _markInProgress();
+    _updateProfile(
+      state.draft.profile.copyWith(weightUnit: unit),
     );
   }
 
@@ -620,7 +634,7 @@ class OnboardingController extends ChangeNotifier {
         return;
       }
 
-      // Mid-flow auth gate right after profile completion
+      // Profile completed -> Trigger Sign Up authentication checkpoint
       if (onAuthRequired != null) {
         final authenticated = await onAuthRequired();
         if (!authenticated) return;
