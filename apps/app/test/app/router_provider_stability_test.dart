@@ -5,11 +5,14 @@ import 'package:tio_app/app/app_theme.dart';
 import 'package:tio_app/app/network_providers.dart';
 import 'package:tio_app/app/onboarding/onboarding.dart';
 import 'package:tio_app/app/router.dart';
+import 'package:tio_app/app/session/session.dart';
+import 'package:tio_core/core.dart';
 import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
-  test('goRouterProvider stays stable when auth product state invalidates', () async {
+  test('router and bootstrap controller stay stable across auth/status updates',
+      () async {
     final appModeController =
         AppModeController(_MemoryAppModePreference(AppMode.hybrid));
     await appModeController.load();
@@ -41,13 +44,24 @@ void main() {
     addTearDown(container.dispose);
 
     final routerBefore = container.read(goRouterProvider);
+    final bootstrapBefore =
+        container.read(appSessionBootstrapControllerProvider);
 
     container.invalidate(authProductStateProvider);
     await Future<void>.delayed(Duration.zero);
 
-    final routerAfter = container.read(goRouterProvider);
+    final routerAfterAuthInvalidation = container.read(goRouterProvider);
+    expect(identical(routerBefore, routerAfterAuthInvalidation), isTrue);
 
-    expect(identical(routerBefore, routerAfter), isTrue);
+    onboardingStatusController.markCompleted();
+    await Future<void>.delayed(Duration.zero);
+
+    final bootstrapAfterStatusNotification =
+        container.read(appSessionBootstrapControllerProvider);
+    expect(
+      identical(bootstrapBefore, bootstrapAfterStatusNotification),
+      isTrue,
+    );
   });
 }
 
