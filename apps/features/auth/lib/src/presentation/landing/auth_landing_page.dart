@@ -19,6 +19,7 @@ class AuthLandingPage extends StatefulWidget {
     this.signInWithGoogleUseCase,
     this.googleAuthUseCase,
     this.onAuthSuccess,
+    this.onSignInSuccess,
     this.onTruecallerClick,
     this.onEmailClick,
     super.key,
@@ -27,6 +28,7 @@ class AuthLandingPage extends StatefulWidget {
   final SignInWithGoogleUseCase? signInWithGoogleUseCase;
   final GoogleAuthUseCase? googleAuthUseCase;
   final ValueChanged<GoogleAuthComplete>? onAuthSuccess;
+  final ValueChanged<SignInSuccess>? onSignInSuccess;
   final VoidCallback? onTruecallerClick;
   final VoidCallback? onEmailClick;
 
@@ -51,6 +53,7 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
         final result = await widget.signInWithGoogleUseCase!();
         if (!mounted) return;
         if (result is SignInSuccess) {
+          widget.onSignInSuccess?.call(result);
           return;
         } else if (result is SignInFailure) {
           setState(() {
