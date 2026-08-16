@@ -11,6 +11,7 @@ class CompleteOnboardingUseCase {
     required OnboardingStatusRepository statusRepository,
     PersistOnboardingOwnerDataUseCase? persistOwnerDataUseCase,
     OnboardingRemoteFinalizer? finalizer,
+    OnboardingCompletionRepository? completionRepository,
     OnboardingDraftRepository? draftRepository,
     OnboardingCompletionValidator validator =
         const OnboardingCompletionValidator(),
@@ -18,6 +19,7 @@ class CompleteOnboardingUseCase {
         _statusRepository = statusRepository,
         _persistOwnerDataUseCase = persistOwnerDataUseCase,
         _finalizer = finalizer,
+        _completionRepository = completionRepository,
         _draftRepository = draftRepository,
         _validator = validator;
 
@@ -25,6 +27,7 @@ class CompleteOnboardingUseCase {
   final OnboardingStatusRepository _statusRepository;
   final PersistOnboardingOwnerDataUseCase? _persistOwnerDataUseCase;
   final OnboardingRemoteFinalizer? _finalizer;
+  final OnboardingCompletionRepository? _completionRepository;
   final OnboardingDraftRepository? _draftRepository;
   final OnboardingCompletionValidator _validator;
 
@@ -49,12 +52,18 @@ class CompleteOnboardingUseCase {
     final persistedMode = await _confirmedModePreference.read();
     if (persistedSnapshot.status == OnboardingStatus.completed &&
         persistedMode != null) {
-      return;
+      if (_completionRepository == null) {
+        return;
+      }
+      final remoteState = await _completionRepository.readCurrent();
+      if (remoteState == RemoteOnboardingCompletionState.completed) {
+        return;
+      }
     }
 
     await _statusRepository.ensureInitialized();
 
-    // 1. Persist owner data first (atomic multi-owner transaction)
+    // 1. Persist owner data before publishing any completion signal.
     if (_persistOwnerDataUseCase != null) {
       await _persistOwnerDataUseCase(
         draft: draft,
@@ -62,23 +71,28 @@ class CompleteOnboardingUseCase {
       );
     }
 
-    // 2. Execute server finalization before local completion publication
+    // 2. Execute optional server-side non-local finalization.
     if (_finalizer != null) {
       await _finalizer.finalize();
     }
 
-    // 3. Publish confirmed AppMode
+    // 3. Persist confirmed AppMode. AppMode is not itself completion authority.
     await _confirmedModePreference.write(selectedMode);
 
-    // 4. Mark Onboarding completed
+    // 4. Publish durable backend completion before the local completion cache.
+    if (_completionRepository != null) {
+      await _completionRepository.markCurrentCompleted();
+    }
+
+    // 5. Update the local onboarding completion cache only after backend success.
     await _statusRepository.write(OnboardingStatus.completed);
 
-    // 5. Best-effort clear obsolete unfinished draft (completion is already authoritative)
+    // 6. Best-effort clear obsolete unfinished draft.
     if (_draftRepository != null) {
       try {
         await _draftRepository.clearDraft();
       } catch (_) {
-        // Safe best-effort: failure to clear draft does not invalidate completed status.
+        // Safe best-effort: failure to clear draft does not invalidate completion.
       }
     }
   }
