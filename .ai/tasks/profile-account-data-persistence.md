@@ -1,6 +1,6 @@
 # Profile & Account Data Persistence
 
-**Status:** In progress — Slice A repository boundary awaiting local validation
+**Status:** In progress — Slice B Account Settings wiring awaiting local validation
 **Primary owner:** `apps/features/profile` + `apps/features/settings` + `apps/features/onboarding` + `apps/app`
 **Affected platforms:** Flutter phone app + Supabase
 **Tracking:** GitHub issue #8
@@ -16,17 +16,16 @@ This is persistence/integrity work. Preserve current rendered Profile Settings a
 
 ## 2. Verified findings
 
-- `AccountSettingsPage` already accepts `phoneNumber` and `onSave({username, phoneNumber})`.
-- `router.dart` does not currently pass persisted mobile or wire a real Account Settings save.
-- The page currently shows `Account settings saved!` and pops after an absent/no-op `onSave`, creating false-success behavior.
-- `ProfileSettingsPage` reconstructs `ProfileSetupData` and currently risks dropping `mobile` / `isMobileVerified`.
+- `AccountSettingsPage` accepts `phoneNumber` and `onSave({username, phoneNumber})`.
+- The old router omitted persisted mobile and did not wire a real Account Settings save.
+- `ProfileSettingsPage` reconstructs `ProfileSetupData` and still risks dropping `mobile` / `isMobileVerified`.
 - `ProfileOnboardingDraft` and profile mappers already carry mobile fields.
 - Draft schema remains mismatched (`currentSchemaVersion == 3`, snapshot mapper support previously verified as `1`).
 - Canonical live tables remain `users`, `user_nutrition_profiles`, `user_workout_profiles`, and `onboarding_drafts`.
 
-### Live read-only verification for Slice A
+### Live read-only verification
 
-`public.users` currently exposes the Account Settings columns required by this slice:
+`public.users` exposes the Account Settings columns required by this work:
 
 ```text
 id uuid NOT NULL
@@ -44,20 +43,20 @@ users_update_own  UPDATE  TO authenticated  USING auth.uid() = id
                                       WITH CHECK auth.uid() = id
 ```
 
-No SQL write or migration is required for Slice A.
+No SQL write or migration is required for Account Settings persistence.
 
 ## 3. Architecture decisions
 
-- Account Settings gets a field-specific profile-account repository boundary rather than reusing full `saveProfileSetup()`.
+- Account Settings uses a field-specific profile-account repository instead of full `saveProfileSetup()`.
 - Account writes require an existing authenticated identity. No anonymous-auth fallback.
-- Account update owns only `username`, `mobile`, `updated_at`, and mobile verification invalidation when the mobile value changes.
-- Changing the mobile number clears `mobile_verified_at`; changing only username preserves existing mobile verification.
-- Missing current `public.users` row is a controlled failure, not an implicit insert/provisioning action.
+- Account update owns only `username`, `mobile`, `updated_at`, and mobile verification invalidation when mobile changes.
+- Changing mobile clears `mobile_verified_at`; changing username only preserves mobile verification.
+- Missing current `public.users` row is a controlled failure, not implicit insert/provisioning.
 - DB-owned auth-user provisioning remains issue #5.
 
 ## 4. Slice A — Account repository boundary
 
-Implemented:
+Implemented and locally validated:
 
 - [x] add `ProfileAccountRepository`
 - [x] add `SupabaseProfileAccountRepository`
@@ -67,30 +66,40 @@ Implemented:
 - [x] clear `mobile_verified_at` only when mobile changes
 - [x] require the update to return the current row
 - [x] export repository contract + Supabase implementation
-- [x] add regression guard that unauthenticated writes fail without anonymous sign-in
-- [ ] local focused test passes
-- [ ] profile analyzer passes
+- [x] unauthenticated writes fail without anonymous sign-in
+- [x] `supabase_profile_account_repository_test.dart`: 1 passed
+- [x] profile `flutter analyze`: No issues found
+- [x] final reported worktree clean and synchronized
 
-### Slice A changed files
+## 5. Slice B — Account Settings wiring
+
+Implemented, awaiting local validation:
+
+- [x] add app provider for `ProfileAccountRepository`
+- [x] pass persisted `profileData.mobile` into Account Settings
+- [x] pass persisted `profileData.isMobileVerified`
+- [x] wire `onSave` to `ProfileAccountRepository.updateAccountSettings()`
+- [x] invalidate `profileDataProvider` after successful save
+- [x] move Account Settings route watch calls into a `Consumer` boundary
+- [x] add widget coverage for persisted phone preload + Save callback values + success pop
+- [ ] settings focused test passes
+- [ ] settings analyzer passes
+- [ ] app analyzer passes
+
+### Slice B changed files
 
 ```text
-apps/features/profile/lib/src/domain/repositories/profile_account_repository.dart
-apps/features/profile/lib/src/domain/repositories/repositories.dart
-apps/features/profile/lib/src/data/repositories/supabase_profile_account_repository.dart
-apps/features/profile/lib/src/data/data.dart
-apps/features/profile/test/data/supabase_profile_account_repository_test.dart
+apps/app/lib/app/network_providers.dart
+apps/app/lib/app/router.dart
+apps/features/settings/test/presentation/account_settings_page_test.dart
 .ai/tasks/profile-account-data-persistence.md
 ```
 
-## 5. Next slices after Slice A is green
+### Slice B follow-up after wiring validation
 
-### Slice B — Account Settings wiring
+Repository exceptions already prevent the existing success Snackbar/pop because the page awaits `onSave` before success handling. A focused follow-up will add explicit user-facing failure feedback instead of allowing the async error to surface only through the error boundary.
 
-- load persisted `profileData.mobile` and verification state into Account Settings
-- wire real `onSave` through `ProfileAccountRepository`
-- surface failed writes without success Snackbar/pop
-- invalidate/reload profile data after success
-- add widget/router regression coverage
+## 6. Remaining slices
 
 ### Slice C — Profile Settings safe merge
 
@@ -113,27 +122,35 @@ apps/features/profile/test/data/supabase_profile_account_repository_test.dart
 - verify Profile/Workout/Nutrition canonical writes
 - remove/limit legacy fallbacks only where tests prove they mask canonical failures
 
-## 6. Local validation required for Slice A
+## 7. Current handoff
+
+### Slice A local evidence
+
+```text
+apps/features/profile
+supabase_profile_account_repository_test.dart: 1 passed
+flutter analyze: No issues found
+final git status: clean
+```
+
+### Slice B validation gate
 
 ```powershell
 Set-Location "G:\projects\Tio-World"
 git status --short --branch
 git pull --ff-only
 
-Set-Location "G:\projects\Tio-World\apps\features\profile"
-& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/data/supabase_profile_account_repository_test.dart"
+Set-Location "G:\projects\Tio-World\apps\features\settings"
+& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/presentation/account_settings_page_test.dart"
+& "G:\dev\flutter-sdk\bin\flutter.bat" analyze
+
+Set-Location "G:\projects\Tio-World\apps\app"
 & "G:\dev\flutter-sdk\bin\flutter.bat" analyze
 
 Set-Location "G:\projects\Tio-World"
 git status --short --branch
 ```
 
-## 7. Current handoff
-
-### Actual behavior
-
-The field-specific Account Settings persistence boundary exists, but router/UI wiring is intentionally not started until Slice A validates locally.
-
 ### Final status
 
-`PARTIAL — SLICE A LOCAL VALIDATION PENDING`
+`PARTIAL — SLICE B LOCAL VALIDATION PENDING`
