@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
@@ -12,11 +14,34 @@ void main() {
     );
   }
 
+  TioButton submitButton(WidgetTester tester) =>
+      tester.widget<TioButton>(find.byKey(const ValueKey('login-submit-button')));
+
+  TioSocialButton googleButton(WidgetTester tester) => tester.widget<TioSocialButton>(
+        find.byKey(const ValueKey('login-google-button')),
+      );
+
+  TioSocialButton truecallerButton(WidgetTester tester) => tester.widget<TioSocialButton>(
+        find.byKey(const ValueKey('login-truecaller-button')),
+      );
+
+  Future<void> enterValidCredentials(WidgetTester tester) async {
+    await tester.enterText(
+      find.byKey(const ValueKey('login-email-input')),
+      'test@tnyx.fit',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('login-password-input')),
+      'Password123!',
+    );
+    await tester.pump();
+  }
+
   group('LoginPage', () {
     testWidgets('renders all core UI elements matching tnyxhub design', (tester) async {
       await tester.pumpWidget(createTestWidget(const LoginPage()));
 
-      expect(find.text('Login'), findsNWidgets(2)); // Title and Login Button
+      expect(find.text('Login'), findsNWidgets(2));
       expect(find.byKey(const ValueKey('login-back-button')), findsOneWidget);
       expect(find.byKey(const ValueKey('login-email-input')), findsOneWidget);
       expect(find.byKey(const ValueKey('login-password-input')), findsOneWidget);
@@ -55,21 +80,25 @@ void main() {
     testWidgets('login submit button is disabled when fields are empty or invalid', (tester) async {
       await tester.pumpWidget(createTestWidget(const LoginPage()));
 
-      final submitBtn = tester.widget<TioButton>(find.byKey(const ValueKey('login-submit-button')));
-      expect(submitBtn.enabled, isFalse);
+      expect(submitButton(tester).enabled, isFalse);
 
-      await tester.enterText(find.byKey(const ValueKey('login-email-input')), 'invalid-email');
-      await tester.enterText(find.byKey(const ValueKey('login-password-input')), 'secret');
+      await tester.enterText(
+        find.byKey(const ValueKey('login-email-input')),
+        'invalid-email',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('login-password-input')),
+        'secret',
+      );
       await tester.pump();
+      expect(submitButton(tester).enabled, isFalse);
 
-      final submitBtnInvalid = tester.widget<TioButton>(find.byKey(const ValueKey('login-submit-button')));
-      expect(submitBtnInvalid.enabled, isFalse);
-
-      await tester.enterText(find.byKey(const ValueKey('login-email-input')), 'user@example.com');
+      await tester.enterText(
+        find.byKey(const ValueKey('login-email-input')),
+        'user@example.com',
+      );
       await tester.pump();
-
-      final submitBtnValid = tester.widget<TioButton>(find.byKey(const ValueKey('login-submit-button')));
-      expect(submitBtnValid.enabled, isTrue);
+      expect(submitButton(tester).enabled, isTrue);
     });
 
     testWidgets('email success emits callback and keeps LoginPage destination-neutral', (tester) async {
@@ -81,7 +110,9 @@ void main() {
         onSignInWithEmail: (email, pass) async {
           emailSubmitted = email;
           passwordSubmitted = pass;
-          return const SignInSuccess(AuthSession(userId: 'usr-1', email: 'user@example.com'));
+          return const SignInSuccess(
+            AuthSession(userId: 'usr-1', email: 'user@example.com'),
+          );
         },
       );
 
@@ -94,10 +125,7 @@ void main() {
         ),
       );
 
-      await tester.enterText(find.byKey(const ValueKey('login-email-input')), 'test@tnyx.fit');
-      await tester.enterText(find.byKey(const ValueKey('login-password-input')), 'Password123!');
-      await tester.pump();
-
+      await enterValidCredentials(tester);
       await tester.tap(find.byKey(const ValueKey('login-submit-button')));
       await tester.pump();
 
@@ -130,6 +158,89 @@ void main() {
       expect(find.byType(LoginPage), findsOneWidget);
     });
 
+    testWidgets('email request shows only Login loading and conflict-gates social actions', (tester) async {
+      final pending = Completer<SignInResult>();
+      final mockRepo = FakeAuthSignInRepository(
+        onSignInWithEmail: (_, __) => pending.future,
+      );
+
+      await tester.pumpWidget(
+        createTestWidget(
+          LoginPage(
+            signInWithEmailUseCase: SignInWithEmailUseCase(signInRepository: mockRepo),
+          ),
+        ),
+      );
+      await enterValidCredentials(tester);
+
+      await tester.tap(find.byKey(const ValueKey('login-submit-button')));
+      await tester.pump();
+
+      expect(submitButton(tester).loading, isTrue);
+      expect(googleButton(tester).loading, isFalse);
+      expect(googleButton(tester).enabled, isFalse);
+      expect(truecallerButton(tester).loading, isFalse);
+      expect(truecallerButton(tester).enabled, isFalse);
+
+      pending.complete(const SignInCancelled());
+      await tester.pump();
+
+      expect(submitButton(tester).loading, isFalse);
+      expect(googleButton(tester).enabled, isTrue);
+      expect(truecallerButton(tester).enabled, isTrue);
+      expect(find.byType(LoginPage), findsOneWidget);
+    });
+
+    testWidgets('Google request shows only Google loading and conflict-gates other actions', (tester) async {
+      final pending = Completer<SignInResult>();
+      final mockRepo = FakeAuthSignInRepository(
+        onSignInWithGoogle: () => pending.future,
+      );
+
+      await tester.pumpWidget(
+        createTestWidget(
+          LoginPage(
+            signInWithGoogleUseCase: SignInWithGoogleUseCase(signInRepository: mockRepo),
+          ),
+        ),
+      );
+      await enterValidCredentials(tester);
+
+      await tester.tap(find.byKey(const ValueKey('login-google-button')));
+      await tester.pump();
+
+      expect(googleButton(tester).loading, isTrue);
+      expect(submitButton(tester).loading, isFalse);
+      expect(submitButton(tester).enabled, isFalse);
+      expect(truecallerButton(tester).loading, isFalse);
+      expect(truecallerButton(tester).enabled, isFalse);
+
+      pending.complete(const SignInCancelled());
+      await tester.pump();
+
+      expect(googleButton(tester).loading, isFalse);
+      expect(submitButton(tester).enabled, isTrue);
+      expect(truecallerButton(tester).enabled, isTrue);
+      expect(find.byType(LoginPage), findsOneWidget);
+    });
+
+    testWidgets('unavailable Truecaller stays on Login and shows informational feedback', (tester) async {
+      var successCount = 0;
+      await tester.pumpWidget(
+        createTestWidget(
+          LoginPage(onSignInSuccess: (_) => successCount++),
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('login-truecaller-button')));
+      await tester.pump();
+
+      expect(find.byType(LoginPage), findsOneWidget);
+      expect(successCount, 0);
+      expect(find.text('Truecaller sign-in is not available yet.'), findsOneWidget);
+      expect(truecallerButton(tester).loading, isFalse);
+    });
+
     testWidgets('displays error banner when sign in fails', (tester) async {
       final mockRepo = FakeAuthSignInRepository(
         onSignInWithEmail: (email, pass) async {
@@ -145,8 +256,14 @@ void main() {
         ),
       );
 
-      await tester.enterText(find.byKey(const ValueKey('login-email-input')), 'test@tnyx.fit');
-      await tester.enterText(find.byKey(const ValueKey('login-password-input')), 'WrongPass');
+      await tester.enterText(
+        find.byKey(const ValueKey('login-email-input')),
+        'test@tnyx.fit',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('login-password-input')),
+        'WrongPass',
+      );
       await tester.pump();
 
       await tester.tap(find.byKey(const ValueKey('login-submit-button')));
@@ -174,7 +291,9 @@ class FakeAuthSignInRepository implements AuthSignInRepository {
     if (onSignInWithEmail != null) {
       return onSignInWithEmail!(email, password);
     }
-    return const SignInSuccess(AuthSession(userId: 'usr-1', email: 'user@example.com'));
+    return const SignInSuccess(
+      AuthSession(userId: 'usr-1', email: 'user@example.com'),
+    );
   }
 
   @override
@@ -182,7 +301,9 @@ class FakeAuthSignInRepository implements AuthSignInRepository {
     if (onSignInWithGoogle != null) {
       return onSignInWithGoogle!();
     }
-    return const SignInSuccess(AuthSession(userId: 'usr-1', email: 'user@example.com'));
+    return const SignInSuccess(
+      AuthSession(userId: 'usr-1', email: 'user@example.com'),
+    );
   }
 
   @override
