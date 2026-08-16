@@ -73,6 +73,7 @@ This is behavior/architecture work, not UI redesign.
 - `LoginPage` / `EmailLoginPage` consolidation;
 - DB provisioning trigger implementation from issue #5;
 - profile/account persistence defects tracked separately in issue #8;
+- per-action loading/Truecaller unavailable behavior tracked separately in issue #9;
 - broad Firebase legacy cleanup unrelated to this slice.
 
 ## 2. Codebase Exploration
@@ -87,8 +88,8 @@ This is behavior/architecture work, not UI redesign.
 - Current production auth session adapter is Supabase-backed.
 - Google sign-in attempts profile metadata upsert before onboarding, so raw row existence must not be the returning-user criterion.
 - Live `public.users` has several NOT NULL profile fields; a first-time metadata-only upsert may fail until full onboarding data exists.
-- `SupabaseProfileSetupRepository.saveProfileSetup()` currently writes `is_onboarded: true` during Profile owner persistence, before Workout/Targets persistence necessarily succeeds.
-- `CompleteOnboardingUseCase` is the existing completion coordinator and should own final completion publication sequencing.
+- `SupabaseProfileSetupRepository.saveProfileSetup()` previously published `is_onboarded: true` during Profile owner persistence; Slice B removed that early completion publication.
+- `CompleteOnboardingUseCase` now owns durable backend completion publication after owner persistence and confirmed AppMode write, before local completion cache publication.
 
 ### Tests Already Relevant
 
@@ -99,26 +100,20 @@ This is behavior/architecture work, not UI redesign.
 
 ### Local Verification Completed
 
-The local worktree was reported clean, synchronized, and on:
+The local worktree was reported synchronized and on:
 
 ```text
 codex/onboarding-mode-migration
 ```
 
-The first AppMode/completion decoupling slice was validated locally with Flutter 3.44.6 / Dart 3.12.2:
+Flutter/Dart toolchain:
 
 ```text
-flutter test test/app/app_mode_route_policy_test.dart
-→ 9 tests passed
-
-flutter test test/app/onboarding_status_controller_test.dart
-→ 6 tests passed
-
-flutter analyze
-→ No issues found
+Flutter 3.44.6
+Dart 3.12.2
+SDK: G:\dev\flutter-sdk\bin\flutter.bat
+Repo: G:\projects\Tio-World
 ```
-
-The commands were run with the configured SDK at `G:\dev\flutter-sdk\bin\flutter.bat` from `G:\projects\Tio-World\apps\app`.
 
 ## 3. Clarification
 
@@ -143,7 +138,7 @@ The commands were run with the configured SDK at `G:\dev\flutter-sdk\bin\flutter
 
 ### Chosen Approach
 
-Reuse existing auth-session contracts, add one onboarding-owned remote completion repository, and compose both in one app-level bootstrap controller.
+Reuse existing auth-session contracts, use the onboarding-owned remote completion repository, and compose both in one app-level bootstrap controller.
 
 #### Auth identity
 
@@ -156,7 +151,7 @@ AuthSessionRepository
 
 #### Durable onboarding completion contract
 
-Add under `apps/features/onboarding`:
+Implemented under `apps/features/onboarding`:
 
 ```text
 RemoteOnboardingCompletionState
@@ -245,7 +240,7 @@ ready
 
 #### AppMode policy
 
-Completion semantics are now based on `OnboardingStatus.completed`, independent of `selectedMode`.
+Completion semantics are based on `OnboardingStatus.completed`, independent of `selectedMode`.
 
 If completed but `selectedMode == null`:
 
@@ -262,9 +257,7 @@ Preserve Splash visual tree exactly. Remove Splash-owned product navigation/quer
 
 #### Completion publication order
 
-Remove `is_onboarded: true` from `SupabaseProfileSetupRepository.saveProfileSetup()`.
-
-Required completion sequence:
+Implemented durable boundary:
 
 ```text
 1. validate final onboarding draft
@@ -277,7 +270,7 @@ Required completion sequence:
 8. caller navigates to Congratulations
 ```
 
-If backend completion publication fails, local completion must not be published. If local cache write fails after backend completion, next bootstrap recovers from backend truth.
+If backend completion publication fails, local completion is not published. If local cache write fails after backend completion, next bootstrap can recover from backend truth.
 
 ### Ownership and Data Flow
 
@@ -347,10 +340,12 @@ Congratulations
 
 ### Slice B — Domain/data boundary
 
-- [ ] add `OnboardingCompletionRepository` + remote completion state
-- [ ] add Supabase implementation with focused tests
-- [ ] remove early `is_onboarded` publication from Profile owner save
-- [ ] inject backend completion publication into `CompleteOnboardingUseCase`
+- [x] add `OnboardingCompletionRepository` + remote completion state
+- [x] add Supabase implementation with focused tests
+- [x] remove early `is_onboarded` publication from Profile owner save
+- [x] inject backend completion publication into `CompleteOnboardingUseCase`
+- [x] onboarding focused tests pass
+- [x] onboarding/profile/app analyzers pass
 
 ### Slice C — App bootstrap/routing
 
@@ -378,7 +373,7 @@ Congratulations
 - [x] missing local AppMode does not restart onboarding
 - [ ] backend lookup error stays failure/Splash, not onboarding
 - [ ] stale user bootstrap result cannot win after auth state changes
-- [ ] completion owner failure does not publish backend/local completed state
+- [x] completion owner failure does not publish backend/local completed state
 - [ ] returning login never routes to Congratulations
 
 ## 6. Quality Review
@@ -386,7 +381,21 @@ Congratulations
 ### Validation Run
 
 ```text
-Slice A validated locally:
+Slice A — apps/app
+- app_mode_route_policy_test.dart: 9 passed
+- onboarding_status_controller_test.dart: 6 passed
+- flutter analyze: No issues found
+
+Slice B — apps/features/onboarding
+- complete_onboarding_remote_completion_test.dart: 2 passed
+- supabase_onboarding_completion_repository_test.dart: 3 passed
+- complete_onboarding_use_case_test.dart: 13 passed
+- flutter analyze: No issues found
+
+Slice B — apps/features/profile
+- flutter analyze: No issues found
+
+Slice B regression — apps/app
 - app_mode_route_policy_test.dart: 9 passed
 - onboarding_status_controller_test.dart: 6 passed
 - flutter analyze: No issues found
@@ -395,9 +404,12 @@ Slice A validated locally:
 ### Review Findings and Resolution
 
 - Slice A changed behavior only; no UI files were touched.
+- Slice B introduced the durable completion boundary and removed premature profile-owned completion publication.
+- Router Slice B diff only injected the completion repository into the existing completion coordinator.
 - Missing AppMode no longer mutates/downgrades stored completed onboarding.
 - Read-only live Supabase inspection used only to verify schema assumptions; no DB writes were made.
-- Profile/account persistence defects discovered during this work are tracked separately in issue #8 / `.ai/tasks/profile-account-data-persistence.md`.
+- Profile/account persistence defects are tracked separately in issue #8 / `.ai/tasks/profile-account-data-persistence.md`.
+- Login per-action loading and unavailable Truecaller behavior are tracked separately in issue #9 / `.ai/tasks/auth-action-loading-and-truecaller-fallback.md`.
 
 ## 7. Final Handoff
 
@@ -407,19 +419,32 @@ Slice A validated locally:
 .ai/tasks/auth-session-bootstrap-routing.md
 apps/app/lib/app/app_mode/app_mode_route_policy.dart
 apps/app/lib/app/onboarding/onboarding_status_controller.dart
+apps/app/lib/app/onboarding/onboarding_completion_providers.dart
+apps/app/lib/app/onboarding/onboarding.dart
+apps/app/lib/app/router.dart
 apps/app/test/app/app_mode_route_policy_test.dart
 apps/app/test/app/onboarding_status_controller_test.dart
+apps/features/onboarding/lib/src/domain/models/remote_onboarding_completion_state.dart
+apps/features/onboarding/lib/src/domain/models/models.dart
+apps/features/onboarding/lib/src/domain/repositories/onboarding_completion_repository.dart
+apps/features/onboarding/lib/src/domain/repositories/repositories.dart
+apps/features/onboarding/lib/src/data/repositories/supabase_onboarding_completion_repository.dart
+apps/features/onboarding/lib/src/data/data.dart
+apps/features/onboarding/lib/src/domain/usecases/complete_onboarding_use_case.dart
+apps/features/onboarding/test/domain/complete_onboarding_remote_completion_test.dart
+apps/features/onboarding/test/data/supabase_onboarding_completion_repository_test.dart
+apps/features/profile/lib/src/data/repositories/supabase_profile_setup_repository.dart
 ```
 
 ### Actual Behavior
 
-Slice A is live on the working branch and validated. Remaining remote-bootstrap/routing work is still in progress.
+Slices A and B are implemented and locally validated. App bootstrap/router ownership remains in progress.
 
 ### Known Limitations
 
 - Durable cross-device AppMode persistence is not available today and is not invented in this task.
 - DB-owned auth-user provisioning remains issue #5.
-- Remote completion repository/bootstrap controller are not implemented yet.
+- Login loading/Truecaller interaction remains issue #9 and is intentionally not fixed inside Slice C.
 
 ### Final Status
 
