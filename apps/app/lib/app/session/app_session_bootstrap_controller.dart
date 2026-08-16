@@ -10,14 +10,14 @@ import 'app_session_bootstrap_state.dart';
 class AppSessionBootstrapController extends ChangeNotifier {
   AppSessionBootstrapController({
     required AuthSessionRepository authSessionRepository,
-    required OnboardingCompletionRepository onboardingCompletionRepository,
+    required OnboardingCompletionRepository? onboardingCompletionRepository,
     required OnboardingStatusController onboardingStatusController,
   })  : _authSessionRepository = authSessionRepository,
         _onboardingCompletionRepository = onboardingCompletionRepository,
         _onboardingStatusController = onboardingStatusController;
 
   final AuthSessionRepository _authSessionRepository;
-  final OnboardingCompletionRepository _onboardingCompletionRepository;
+  final OnboardingCompletionRepository? _onboardingCompletionRepository;
   final OnboardingStatusController _onboardingStatusController;
 
   AppSessionBootstrapState _state = const AppSessionBootstrapLoading();
@@ -39,24 +39,40 @@ class AppSessionBootstrapController extends ChangeNotifier {
     );
   }
 
-  Future<void> refresh() async {
+  Future<void> refresh({bool emitLoading = true}) async {
     final authState = await _authSessionRepository.currentSessionState;
-    await _resolve(authState);
+    await _resolve(authState, emitLoading: emitLoading);
   }
 
-  Future<void> _resolve(AuthSessionState authState) async {
+  Future<void> _resolve(
+    AuthSessionState authState, {
+    bool emitLoading = true,
+  }) async {
     final generation = ++_resolutionGeneration;
 
     switch (authState) {
       case AuthSessionUnknown():
         _setState(const AppSessionBootstrapLoading());
+        break;
       case AuthSessionUnauthenticated():
         _setState(const AppSessionBootstrapUnauthenticated());
+        break;
       case AuthSessionAuthenticated(:final session):
-        _setState(const AppSessionBootstrapLoading());
+        if (emitLoading) {
+          _setState(const AppSessionBootstrapLoading());
+        }
+        final completionRepository = _onboardingCompletionRepository;
+        if (completionRepository == null) {
+          _setState(
+            AppSessionBootstrapFailure(
+              StateError('Durable onboarding completion repository unavailable.'),
+            ),
+          );
+          break;
+        }
+
         try {
-          final remoteState = await _onboardingCompletionRepository
-              .readForUser(session.userId);
+          final remoteState = await completionRepository.readCurrent();
           if (generation != _resolutionGeneration) return;
 
           await _onboardingStatusController.reconcileRemote(remoteState);
@@ -65,16 +81,19 @@ class AppSessionBootstrapController extends ChangeNotifier {
           switch (remoteState) {
             case RemoteOnboardingCompletionState.completed:
               _setState(AppSessionBootstrapReady(userId: session.userId));
+              break;
             case RemoteOnboardingCompletionState.uninitialized:
             case RemoteOnboardingCompletionState.incomplete:
               _setState(
                 AppSessionBootstrapRequiresOnboarding(userId: session.userId),
               );
+              break;
           }
         } catch (error) {
           if (generation != _resolutionGeneration) return;
           _setState(AppSessionBootstrapFailure(error));
         }
+        break;
     }
   }
 
