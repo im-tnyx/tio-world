@@ -100,11 +100,11 @@ hybrid
 
 Future tabs can be appended using stable IDs without changing the column shape.
 
-### Future configurable navigation contract
+### Future custom navigation
 
-Bottom navigation is expected to become user-configurable with **3 to 6 active tabs**.
+Bottom navigation is expected to support **3 to 6 active tabs**.
 
-Current production-ready stable IDs:
+Current production-ready IDs:
 
 ```text
 home
@@ -113,43 +113,44 @@ nutrition
 progress
 ```
 
-Candidate/reserved future tab IDs from existing product surfaces that are not yet production-ready as bottom tabs:
+Candidate/reserved future IDs from existing but not-yet-production-ready surfaces:
 
 ```text
-meal_plan_library
+meal_plan
+library
 social
 tio_ai
 ```
 
-These IDs are reservations only. A feature must not appear in effective navigation merely because its ID is known.
+`meal_plan` and `library` are separate destinations. `meal_plan` is the stable domain ID for the meal-plan / diet-plan experience; its visible UI label can be `Meal Plan` or `Diet Plan` without changing stored data. `library` is a distinct browsing/library destination.
 
-Separate concepts:
+These are only stable ID reservations. They must not render or be written into `active_tabs` until their feature/route contracts are explicitly enabled.
 
-```text
-allowed tab ID
-→ recognized by the app/domain registry
-
-enabled tab capability
-→ feature/route is production-ready and may be rendered
-
-active_tabs
-→ user preference among currently enabled/eligible tabs
-```
-
-Validation invariant for future customization:
+Future validation contract:
 
 ```text
 3 <= active_tabs.length <= 6
-home is required
-IDs are unique
-order is preserved
-all IDs exist in the canonical registry
-all rendered IDs are currently enabled/eligible
+home required
+IDs unique
+order preserved
+all IDs registered
+rendered IDs must also be currently enabled/eligible
 ```
 
-If a previously saved tab later becomes unavailable, do not corrupt or blindly overwrite the stored preference. Build effective navigation from the intersection of stored preferences and the currently enabled registry, then apply a safe product fallback if fewer than the required minimum remain.
+Keep three concepts separate:
 
-Until Meal Plan Library, Social, Tio AI, or other future surfaces have explicit route/product readiness, they must not be automatically written into `active_tabs` or shown in bottom navigation.
+```text
+registered tab ID
+→ app recognizes the identity
+
+enabled capability
+→ feature is production-ready and eligible to render
+
+active_tabs
+→ user's saved ordered preference among enabled/eligible tabs
+```
+
+If a saved tab later becomes temporarily unavailable, do not blindly delete the remote preference. Filter effective runtime navigation through the enabled registry and apply a safe fallback if needed.
 
 ### Ownership / source-of-truth rule
 
@@ -194,9 +195,7 @@ Before migration implementation:
 - [ ] reject unknown/duplicate tab IDs at application/domain boundary
 - [ ] preserve array order because it represents navigation order
 - [ ] Home must remain present in every effective configuration
-- [ ] enforce configurable navigation size of 3–6 tabs when custom-tab editing ships
-- [ ] distinguish registered IDs from currently enabled/production-ready tabs
-- [ ] Meal Plan Library, Social, and Tio AI remain unavailable as bottom tabs until explicitly enabled
+- [ ] AI/Coach remains excluded until its route/product contract is explicitly enabled
 
 ### Persistence changes
 
@@ -210,7 +209,7 @@ Before migration implementation:
 - [ ] define legacy-null reconciliation without silently choosing Hybrid
 - [ ] add repository/domain tests for read/write/validation
 - [ ] add cross-device/fresh-install restoration regression
-- [ ] add future custom-tab tests for min/max count, ordering, uniqueness, readiness filtering, and unavailable saved tabs
+- [ ] add future custom-tab regression coverage for 3–6 active tabs and readiness filtering
 - [ ] run Supabase advisors/security review before production migration
 
 ### Schema guardrail
