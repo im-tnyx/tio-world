@@ -130,7 +130,7 @@ Future validation contract:
 
 ```text
 3 <= active_tabs.length <= 6
-home required
+home required and pinned first
 IDs unique
 order preserved
 all IDs registered
@@ -151,6 +151,90 @@ active_tabs
 ```
 
 If a saved tab later becomes temporarily unavailable, do not blindly delete the remote preference. Filter effective runtime navigation through the enabled registry and apply a safe fallback if needed.
+
+### Bottom Navigation editor UX reference
+
+The supplied Android/Compose screenshot and Kotlin files are **reference only**. Do not port/copy their implementation into Flutter. Use the interaction model as input, then implement with existing Tio Flutter architecture/design-system components.
+
+Useful reference behaviors to preserve conceptually:
+
+- preview of the current ordered tabs
+- Workout / Nutrition / Hybrid presets plus Custom state
+- 3–6 active tab limit
+- Home pinned first and not removable/reorderable
+- tap add/remove controls
+- long-press drag reorder
+- separate saved vs draft state
+- Save disabled until there are valid unsaved changes
+- Reset action
+- back/discard confirmation for unsaved changes
+- loading/saving/error states
+
+Improvements required over the reference:
+
+1. **Use the actual production nav component for Preview**
+   - preview must render the same Flutter navigation component used by `TioShell`
+   - do not maintain a second mock icon/label implementation that can visually drift
+
+2. **Capability-aware available tabs**
+   - the reference exposes the whole catalog as supported tabs
+   - Tio must distinguish `registered`, `enabled`, and `active`
+   - Meal Plan, Library, Social, Tio AI, or any future surface must not become selectable until its feature/route contract is production-ready
+   - optional future UX: show unavailable registered features under a separate `Coming soon`/disabled area without allowing them into `active_tabs`
+
+3. **Order-sensitive Custom detection**
+   - `active_tabs` is an ordered contract
+   - a preset matches only when both tab identities **and order** match the canonical preset
+   - reordering a preset must resolve to `Custom`
+   - do not compare only sets
+
+4. **Durable account-level save**
+   - save `app_mode` and ordered `active_tabs` together through the authenticated Supabase preference repository
+   - local SharedPreferences is cache/fast-path, not the durable authority
+   - do not save only tabs locally
+
+5. **Preset vs customization semantics**
+   - applying Workout/Nutrition/Hybrid writes the canonical preset order
+   - manually adding/removing/reordering transitions UI mode to Custom without erasing the semantic `app_mode` unless product policy explicitly changes it
+   - final persistence model must define whether Custom retains the last semantic service mode or uses a separate customization marker; do not overload `app_mode` with arbitrary tab state
+
+6. **Reset semantics must be explicit**
+   - avoid a global reset that unexpectedly jumps every user to Hybrid
+   - preferred behavior: `Reset to <current semantic mode> defaults`
+   - if semantic mode is unavailable, use a clearly labelled safe default/recovery action rather than silently changing service intent
+
+7. **Accessibility and non-drag fallback**
+   - every reorder operation must also be possible without drag gestures
+   - provide Move left/right accessibility actions or equivalent controls
+   - drag is enhancement, not the only interaction path
+
+8. **Save failure safety**
+   - remote failure keeps the editor open
+   - saved state is not advanced on failure
+   - show existing Tio feedback/error surface
+   - retry must be safe/idempotent
+
+Target Flutter editor structure:
+
+```text
+Bottom Navigation
+
+[ Live Preview — actual Tio bottom nav ]
+
+Navigation mode
+[ Workout ] [ Nutrition ] [ Hybrid ] [ Custom when applicable ]
+
+Active tabs  4/6
+[ ordered/reorderable active tab cards ]
+
+Available now
+[ enabled registered tabs not currently active ]
+
+Coming soon (optional, non-selectable)
+[ registered but disabled capabilities ]
+
+[ Reset to mode defaults ]     [ Save changes ]
+```
 
 ### Ownership / source-of-truth rule
 
@@ -194,8 +278,10 @@ Before migration implementation:
 - [ ] define canonical stable IDs for every allowed `active_tabs` entry
 - [ ] reject unknown/duplicate tab IDs at application/domain boundary
 - [ ] preserve array order because it represents navigation order
-- [ ] Home must remain present in every effective configuration
+- [ ] Home must remain present and first in every effective configuration
 - [ ] AI/Coach remains excluded until its route/product contract is explicitly enabled
+- [ ] preset matching is order-sensitive
+- [ ] active tab count remains within 3–6 once customization ships
 
 ### Persistence changes
 
@@ -210,6 +296,7 @@ Before migration implementation:
 - [ ] add repository/domain tests for read/write/validation
 - [ ] add cross-device/fresh-install restoration regression
 - [ ] add future custom-tab regression coverage for 3–6 active tabs and readiness filtering
+- [ ] add editor regressions for order-sensitive Custom state, reset semantics, unsaved-discard, and remote save failure
 - [ ] run Supabase advisors/security review before production migration
 
 ### Schema guardrail
