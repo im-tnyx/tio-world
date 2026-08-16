@@ -205,14 +205,30 @@ void main() {
       );
     });
 
-    test('completed without confirmed mode fails safe to onboarding', () {
+    test('completed without confirmed mode keeps Home accessible', () {
       expect(
         appModeRedirect(
           path: FeatureRoutes.home.path,
           selectedMode: null,
           onboardingStatus: OnboardingStatus.completed,
         ),
-        AppRoutes.onboarding.path,
+        isNull,
+      );
+      expect(
+        appModeRedirect(
+          path: AppRoutes.settings.path,
+          selectedMode: null,
+          onboardingStatus: OnboardingStatus.completed,
+        ),
+        isNull,
+      );
+      expect(
+        appModeRedirect(
+          path: FeatureRoutes.workout.path,
+          selectedMode: null,
+          onboardingStatus: OnboardingStatus.completed,
+        ),
+        FeatureRoutes.home.path,
       );
     });
   });
