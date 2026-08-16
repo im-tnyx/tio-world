@@ -72,6 +72,7 @@ class OnboardingStatusController extends ChangeNotifier {
           _status = OnboardingStatus.completed;
           _entryPath = OnboardingEntryPath.firstRun;
         }
+        break;
       case RemoteOnboardingCompletionState.uninitialized:
       case RemoteOnboardingCompletionState.incomplete:
         if (_status == OnboardingStatus.completed) {
@@ -79,6 +80,7 @@ class OnboardingStatusController extends ChangeNotifier {
           _status = OnboardingStatus.notStarted;
           _entryPath = OnboardingEntryPath.firstRun;
         }
+        break;
     }
 
     _lastError = null;
