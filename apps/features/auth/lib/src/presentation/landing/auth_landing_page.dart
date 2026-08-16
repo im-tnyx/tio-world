@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_core/core.dart';
 
 import '../../domain/domain.dart';
@@ -39,42 +38,6 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
   bool _isLoading = false;
   String? _errorMessage;
 
-  Future<void> _navigateOnAuthSuccess([String? userId]) async {
-    final effectiveUserId = userId ?? Supabase.instance.client.auth.currentUser?.id;
-    if (effectiveUserId != null && effectiveUserId.isNotEmpty) {
-      try {
-        final client = Supabase.instance.client;
-        final row = await client
-            .from('users')
-            .select('is_onboarded, name')
-            .eq('id', effectiveUserId)
-            .maybeSingle();
-
-        if (row != null && row['is_onboarded'] == true) {
-          if (!mounted) return;
-          final name = row['name'] as String? ?? '';
-          context.go(
-            AppRoutes.congratulations.path,
-            extra: {
-              'userName': name,
-              'isWelcomeBack': true,
-            },
-          );
-          return;
-        }
-      } catch (_) {
-        // Non-blocking fallback
-      }
-    }
-
-    if (!mounted) return;
-    if (context.canPop()) {
-      context.pop(true);
-    } else {
-      context.go(AppRoutes.onboarding.path);
-    }
-  }
-
   Future<void> _handleGoogleSignIn() async {
     if (_isLoading) return;
 
@@ -83,17 +46,11 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
       _errorMessage = null;
     });
 
-    if (widget.signInWithGoogleUseCase == null && widget.googleAuthUseCase == null) {
-      await _navigateOnAuthSuccess();
-      return;
-    }
-
     try {
       if (widget.signInWithGoogleUseCase != null) {
         final result = await widget.signInWithGoogleUseCase!();
         if (!mounted) return;
         if (result is SignInSuccess) {
-          await _navigateOnAuthSuccess(result.session.userId);
           return;
         } else if (result is SignInFailure) {
           setState(() {
@@ -105,7 +62,6 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
         if (!mounted) return;
         if (result is GoogleAuthComplete) {
           widget.onAuthSuccess?.call(result);
-          await _navigateOnAuthSuccess(result.session.userId);
           return;
         } else if (result is GoogleAuthFailed) {
           setState(() {
@@ -132,14 +88,7 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
     if (widget.onEmailClick != null) {
       widget.onEmailClick!();
     } else {
-      final result = await context.push<bool>(AppRoutes.emailSignup.path);
-      if (result == true && mounted) {
-        if (context.canPop()) {
-          context.pop(true);
-        } else {
-          context.go(AppRoutes.onboarding.path);
-        }
-      }
+      await context.push<bool>(AppRoutes.emailSignup.path);
     }
   }
 
