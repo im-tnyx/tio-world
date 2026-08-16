@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_app/app/session/session.dart';
 import 'package:tio_core/core.dart';
-import 'package:tio_shared/shared.dart';
 
 void main() {
   group('appSessionBootstrapRedirect', () {
