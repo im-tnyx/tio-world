@@ -26,7 +26,7 @@ void main() {
       () async {
     final fixture = await _Fixture.create(
       authState: _authenticated('user-a'),
-      completionResolver: (_) async =>
+      completionResolver: () async =>
           RemoteOnboardingCompletionState.completed,
     );
 
@@ -47,7 +47,7 @@ void main() {
     final fixture = await _Fixture.create(
       authState: _authenticated('user-a'),
       initialLocalStatus: OnboardingStatus.completed,
-      completionResolver: (_) async =>
+      completionResolver: () async =>
           RemoteOnboardingCompletionState.incomplete,
     );
 
@@ -66,7 +66,7 @@ void main() {
   test('remote lookup error resolves failure instead of onboarding', () async {
     final fixture = await _Fixture.create(
       authState: _authenticated('user-a'),
-      completionResolver: (_) async => throw StateError('lookup failed'),
+      completionResolver: () async => throw StateError('lookup failed'),
     );
 
     await fixture.controller.refresh();
@@ -77,13 +77,15 @@ void main() {
   test('stale user lookup cannot overwrite a newer authenticated user',
       () async {
     final oldUserResult = Completer<RemoteOnboardingCompletionState>();
+    var readCount = 0;
     final authRepository = _FakeAuthSessionRepository(
       initialState: _authenticated('user-a'),
     );
     final fixture = await _Fixture.create(
       authRepository: authRepository,
-      completionResolver: (userId) {
-        if (userId == 'user-a') return oldUserResult.future;
+      completionResolver: () {
+        readCount++;
+        if (readCount == 1) return oldUserResult.future;
         return Future.value(RemoteOnboardingCompletionState.incomplete);
       },
     );
@@ -131,8 +133,7 @@ class _Fixture {
     AuthSessionState? authState,
     _FakeAuthSessionRepository? authRepository,
     OnboardingStatus? initialLocalStatus,
-    Future<RemoteOnboardingCompletionState> Function(String userId)?
-        completionResolver,
+    Future<RemoteOnboardingCompletionState> Function()? completionResolver,
   }) async {
     final modeController = AppModeController(_FakeAppModePreference());
     await modeController.load();
@@ -151,7 +152,7 @@ class _Fixture {
         );
     final completionRepository = _FakeOnboardingCompletionRepository(
       resolver: completionResolver ??
-          (_) async => RemoteOnboardingCompletionState.uninitialized,
+          () async => RemoteOnboardingCompletionState.uninitialized,
     );
 
     return _Fixture(
@@ -197,16 +198,13 @@ class _FakeOnboardingCompletionRepository
     implements OnboardingCompletionRepository {
   _FakeOnboardingCompletionRepository({required this.resolver});
 
-  final Future<RemoteOnboardingCompletionState> Function(String userId)
-      resolver;
+  final Future<RemoteOnboardingCompletionState> Function() resolver;
 
   @override
-  Future<RemoteOnboardingCompletionState> readForUser(String userId) {
-    return resolver(userId);
-  }
+  Future<RemoteOnboardingCompletionState> readCurrent() => resolver();
 
   @override
-  Future<void> markCompleted(String userId) async {}
+  Future<void> markCurrentCompleted() async {}
 }
 
 class _FakeAppModePreference implements AppModePreference {
