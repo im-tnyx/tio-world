@@ -36,8 +36,9 @@ void main() {
     expect(selected, ShellTab.workout);
   });
 
-  testWidgets('single visible Home tab keeps shell body without bottom nav',
+  testWidgets('single Home tab expands to missing-mode compatibility navigation',
       (tester) async {
+    ShellTab? selected;
     await tester.pumpWidget(
       MaterialApp(
         builder: (context, child) =>
@@ -49,13 +50,47 @@ void main() {
             isBottomNavVisible: true,
             isRootTopBarVisible: false,
           ),
-          onAction: (_) {},
+          onAction: (action) {
+            if (action is ShellTabSelected) selected = action.tab;
+          },
           child: const Text('Home body'),
         ),
       ),
     );
 
     expect(find.text('Home body'), findsOneWidget);
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Workout'), findsOneWidget);
+    expect(find.text('Nutrition'), findsOneWidget);
+    expect(find.text('Progress'), findsOneWidget);
+    expect(find.text('Tio'), findsNothing);
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.text('Nutrition'));
+    expect(selected, ShellTab.nutrition);
+  });
+
+  testWidgets('arbitrary single destination still hides Material NavigationBar',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) =>
+            TioTheme(child: child ?? const SizedBox.shrink()),
+        home: TioShell(
+          state: const ShellUiState(
+            selectedTab: ShellTab.workout,
+            visibleTabs: [ShellTab.workout],
+            isBottomNavVisible: true,
+            isRootTopBarVisible: false,
+          ),
+          onAction: (_) {},
+          child: const Text('Workout body'),
+        ),
+      ),
+    );
+
+    expect(find.text('Workout body'), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
     expect(tester.takeException(), isNull);
   });
