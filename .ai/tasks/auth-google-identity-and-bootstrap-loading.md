@@ -1,6 +1,6 @@
 # Google Identity Ownership & Bootstrap Loading
 
-**Status:** In progress — lifecycle crash fix implemented, local validation pending
+**Status:** In progress — lifecycle crash locally validated; Google critical-path timeout diagnostics implemented
 **Primary owner:** `apps/features/auth` + `apps/app` + `apps/features/onboarding` + `apps/features/splash`
 **Affected platforms:** Flutter phone app + Supabase/Firebase auth boundary
 **Tracking:** GitHub issue #10
@@ -10,7 +10,7 @@
 
 A Google-created account can remain stuck in loading during sign-in. Reopening the app can still show loading. The corresponding `public.users.firebase_uid` is not populated.
 
-Real-device logs later exposed an additional concrete lifecycle failure:
+Real-device logs exposed an additional concrete lifecycle failure:
 
 ```text
 Unhandled Exception: A AppSessionBootstrapController was used after being disposed.
@@ -18,7 +18,7 @@ AppSessionBootstrapController._setState
 AppSessionBootstrapController._resolve
 ```
 
-The failure reproduced around app background/hot-restart lifecycle while an asynchronous bootstrap resolution was still in flight.
+That failure reproduced around app background/hot-restart lifecycle while an asynchronous bootstrap resolution was still in flight. The lifecycle patch is now locally validated and the latest device run no longer shows that exception, but the Google button still remains loading. The remaining spinner is therefore inside the Google authentication critical path itself.
 
 ## 2. Verified evidence
 
@@ -49,9 +49,11 @@ The failure reproduced around app background/hot-restart lifecycle while an asyn
 - after Supabase auth succeeds, Google/email flows previously awaited device sync;
 - Google sign-in also previously awaited optional `public.users` profile enrichment;
 - these secondary operations are not required to establish the authenticated session;
-- `SupabaseOnboardingCompletionRepository.readCurrent()` is now bounded by the app bootstrap controller timeout;
+- `SupabaseOnboardingCompletionRepository.readCurrent()` is bounded by the app bootstrap controller timeout;
 - bootstrap `failure` stays on Splash but is visually distinguishable and retryable instead of being an endless normal spinner;
-- a late bootstrap future could still complete after `AppSessionBootstrapController.dispose()` and call `notifyListeners()`, producing the real-device disposed-controller exception.
+- late bootstrap results after controller disposal are now ignored;
+- after those fixes, real-device testing still shows the Google action spinner remaining active;
+- `SupabaseAuthSignInRepository.signInWithGoogle()` still had three unbounded awaited stages: native account selection, Google credential read, and Supabase ID-token exchange.
 
 ## 3. Frozen decisions
 
@@ -123,24 +125,50 @@ Implemented and locally validated:
 
 ### Slice B2 — Bootstrap lifecycle/disposal safety
 
-Implemented after real-device log evidence, awaiting local validation:
+Implemented and locally validated:
 
 - [x] add explicit disposed-state guard to `AppSessionBootstrapController`
 - [x] invalidate in-flight resolution generation during `dispose()`
 - [x] ignore late stream errors/results after disposal
 - [x] prevent `refresh()`, `start()`, completion publication, and `_setState()` from acting after disposal
 - [x] add regression: pending authenticated completion lookup -> dispose controller -> lookup completes -> no exception/no late mutation
-- [ ] focused bootstrap controller test passes locally (expected 9 total)
-- [ ] app analyzer passes locally
-- [ ] real-device Google/background/cold-open flow no longer emits “used after being disposed”
+- [x] `app_session_bootstrap_controller_test.dart`: 9 passed
+- [x] `app_session_route_policy_test.dart`: 4 passed
+- [x] app `flutter analyze`: No issues found
+- [x] final reported worktree clean and synchronized
+- [x] latest device run does not show the previous disposed-controller exception
 
-Changed files:
+### Slice B3 — Bound and trace the Google critical path
+
+Implemented, awaiting local validation:
+
+- [x] bound native Google account selection; production timeout 30 seconds
+- [x] bound Google credential/token read; production timeout 15 seconds
+- [x] bound Supabase Google ID-token exchange/OAuth fallback; production timeout 15 seconds
+- [x] return controlled `SignInFailure` with stage-specific error codes instead of infinite loading
+- [x] emit non-PII debug diagnostics for each Google auth stage start/completion/timeout/failure
+- [x] add regression for account-selection timeout
+- [x] add regression for credential-read timeout
+- [x] add regression for Supabase token-exchange timeout
+- [x] add regression for successful Google completion through all critical stages
+- [ ] `supabase_auth_sign_in_repository_test.dart` passes locally (expected 9 total)
+- [ ] auth `flutter analyze` passes locally
+- [ ] real-device console identifies the last completed Google auth stage
+- [ ] real-device Google spinner either succeeds or returns a controlled error; never stays indefinite
+
+Expected diagnostics:
 
 ```text
-apps/app/lib/app/session/app_session_bootstrap_controller.dart
-apps/app/test/app/session/app_session_bootstrap_controller_test.dart
-.ai/tasks/auth-google-identity-and-bootstrap-loading.md
+[GoogleAuth] account selection started
+[GoogleAuth] account selected
+[GoogleAuth] credential read started
+[GoogleAuth] credential read completed
+[GoogleAuth] Supabase ID-token exchange started
+[GoogleAuth] Supabase ID-token exchange completed
+[GoogleAuth] sign-in completed successfully
 ```
+
+If a stage stalls, the corresponding timeout log/error identifies it without exposing email/name/token values.
 
 ### Slice C — Production auth source of truth + login-only admission
 
@@ -194,11 +222,11 @@ login_page_test.dart: 9 passed
 flutter analyze: No issues found
 ```
 
-### Slice B local evidence
+### Slice B / B2 local evidence
 
 ```text
 apps/app
-app_session_bootstrap_controller_test.dart: 8 passed
+app_session_bootstrap_controller_test.dart: 9 passed
 app_session_route_policy_test.dart: 4 passed
 flutter analyze: No issues found
 
@@ -216,9 +244,9 @@ Set-Location "G:\projects\Tio-World"
 git status --short --branch
 git pull --ff-only
 
-Set-Location "G:\projects\Tio-World\apps\app"
-& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/app/session/app_session_bootstrap_controller_test.dart"
-& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/app/session/app_session_route_policy_test.dart"
+Set-Location "G:\projects\Tio-World\apps\features\auth"
+& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/data/supabase_auth_sign_in_repository_test.dart"
+& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/presentation/auth_landing_page_test.dart"
 & "G:\dev\flutter-sdk\bin\flutter.bat" analyze
 
 Set-Location "G:\projects\Tio-World"
@@ -228,14 +256,14 @@ git status --short --branch
 Expected:
 
 ```text
-app_session_bootstrap_controller_test.dart: 9 passed
-app_session_route_policy_test.dart: 4 passed
-app flutter analyze: No issues found
+supabase_auth_sign_in_repository_test.dart: 9 passed
+auth_landing_page_test.dart: 1 passed
+auth flutter analyze: No issues found
 worktree: clean
 ```
 
-After this gate, rerun the real-device Google flow and keep the console attached. The disposed-controller exception must be absent before proceeding to identity/account-admission work.
+After this gate, run the real-device Google flow with the console attached and capture the `[GoogleAuth]` lines. Do not proceed to account-admission/identity migration until the hanging critical stage is identified or Google login completes successfully.
 
 ## 7. Current status
 
-Slices A and B are locally green. Real-device evidence identified an additional lifecycle race and Slice B2 now fixes it. Login-only account admission is frozen as a required product rule for Slice C. `firebase_uid` reconciliation remains deferred until the canonical auth source of truth is selected.
+Slices A, B, and B2 are locally green. Real-device testing proves the spinner still exists but no longer shows the previous bootstrap disposal crash. Slice B3 now makes the Google critical path bounded and observable. Login-only account admission is frozen as a required product rule for Slice C. `firebase_uid` reconciliation remains deferred until the canonical auth source of truth is selected.
