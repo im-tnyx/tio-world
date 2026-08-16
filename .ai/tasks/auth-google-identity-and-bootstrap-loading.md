@@ -1,6 +1,6 @@
 # Google Identity Ownership & Bootstrap Loading
 
-**Status:** In progress — Slice A and Slice B locally validated; real-device gate active
+**Status:** In progress — lifecycle crash fix implemented, local validation pending
 **Primary owner:** `apps/features/auth` + `apps/app` + `apps/features/onboarding` + `apps/features/splash`
 **Affected platforms:** Flutter phone app + Supabase/Firebase auth boundary
 **Tracking:** GitHub issue #10
@@ -9,6 +9,16 @@
 ## 1. User-reported incident
 
 A Google-created account can remain stuck in loading during sign-in. Reopening the app can still show loading. The corresponding `public.users.firebase_uid` is not populated.
+
+Real-device logs later exposed an additional concrete lifecycle failure:
+
+```text
+Unhandled Exception: A AppSessionBootstrapController was used after being disposed.
+AppSessionBootstrapController._setState
+AppSessionBootstrapController._resolve
+```
+
+The failure reproduced around app background/hot-restart lifecycle while an asynchronous bootstrap resolution was still in flight.
 
 ## 2. Verified evidence
 
@@ -40,16 +50,41 @@ A Google-created account can remain stuck in loading during sign-in. Reopening t
 - Google sign-in also previously awaited optional `public.users` profile enrichment;
 - these secondary operations are not required to establish the authenticated session;
 - `SupabaseOnboardingCompletionRepository.readCurrent()` is now bounded by the app bootstrap controller timeout;
-- bootstrap `failure` stays on Splash but is now visually distinguishable and retryable instead of being an endless normal spinner.
+- bootstrap `failure` stays on Splash but is visually distinguishable and retryable instead of being an endless normal spinner;
+- a late bootstrap future could still complete after `AppSessionBootstrapController.dispose()` and call `notifyListeners()`, producing the real-device disposed-controller exception.
 
 ## 3. Frozen decisions
 
 - Do not delete/rewrite existing auth users during this task.
 - Do not backfill `firebase_uid` until production identity ownership is explicitly chosen.
 - Do not treat readiness lookup failure as a new user.
-- Normal AuthLanding/Login/Splash visuals remain unchanged.
-- Failure-only recovery UI is allowed to prevent an endless loader.
+- Normal AuthLanding/Login/Splash visuals remain unchanged except explicit error/recovery feedback.
 - #8 profile/account persistence is paused while this P0 incident is active.
+
+### Login account-admission rule
+
+Login is **sign-in-only**. It must not silently create a new Tio account.
+
+For a Google identity that does not belong to an existing Tio account:
+
+```text
+Google Login
+→ verify identity/account eligibility without creating a new application account
+→ no account found
+→ remain on Login
+→ no onboarding/navigation success
+→ show existing Login/Auth feedback surface:
+   “No Tio account found for this Google account. Create a Tio account first to continue.”
+```
+
+Guardrails:
+
+- no implicit `auth.users` creation from a login-only intent;
+- no implicit `public.users` provisioning from a login-only intent;
+- account creation must occur only through an explicit signup/onboarding account-creation flow;
+- do not expose an unauthenticated account-enumeration endpoint without appropriate server-side validation/rate limiting;
+- current Supabase Dart `signInWithIdToken()` does not expose a per-call `shouldCreateUser: false` switch, so this cannot be solved safely by a UI-only change;
+- disabling Supabase “Allow new users to sign up” globally would also affect explicit signup flows, so use it only if the final product deliberately disables all client signup.
 
 ## 4. Architecture split
 
@@ -67,14 +102,6 @@ Implemented and locally validated:
 - [x] `login_page_test.dart`: 9 passed
 - [x] auth `flutter analyze`: No issues found
 
-Changed files:
-
-```text
-apps/features/auth/lib/src/data/repositories/supabase_auth_sign_in_repository.dart
-apps/features/auth/test/data/supabase_auth_sign_in_repository_test.dart
-.ai/tasks/auth-google-identity-and-bootstrap-loading.md
-```
-
 ### Slice B — Bootstrap must be bounded and recoverable
 
 Implemented and locally validated:
@@ -87,42 +114,37 @@ Implemented and locally validated:
 - [x] add failure-only Splash message + Retry action
 - [x] wire Retry to `AppSessionBootstrapController.refresh()`
 - [x] add Splash widget coverage for failure feedback + Retry callback
-- [x] audit large `router.dart` replacement; commit diff contains only intended Splash-route hunk
 - [x] app bootstrap controller tests: 8 passed
 - [x] app route policy regression: 4 passed
 - [x] app `flutter analyze`: No issues found
 - [x] Splash tests: 7 passed
 - [x] Splash `flutter analyze`: No issues found
-- [x] final reported worktree clean and synchronized after restoring unrelated generated `apps/features/settings/pubspec.lock`
-- [ ] real-device persisted-session cold reopen no longer remains on permanent spinner
+- [x] final reported worktree clean and synchronized
 
-Slice B changed files:
+### Slice B2 — Bootstrap lifecycle/disposal safety
+
+Implemented after real-device log evidence, awaiting local validation:
+
+- [x] add explicit disposed-state guard to `AppSessionBootstrapController`
+- [x] invalidate in-flight resolution generation during `dispose()`
+- [x] ignore late stream errors/results after disposal
+- [x] prevent `refresh()`, `start()`, completion publication, and `_setState()` from acting after disposal
+- [x] add regression: pending authenticated completion lookup -> dispose controller -> lookup completes -> no exception/no late mutation
+- [ ] focused bootstrap controller test passes locally (expected 9 total)
+- [ ] app analyzer passes locally
+- [ ] real-device Google/background/cold-open flow no longer emits “used after being disposed”
+
+Changed files:
 
 ```text
 apps/app/lib/app/session/app_session_bootstrap_controller.dart
-apps/app/lib/app/router.dart
 apps/app/test/app/session/app_session_bootstrap_controller_test.dart
-apps/features/splash/lib/src/presentation/screen/splash_screen.dart
-apps/features/splash/test/presentation/screen/splash_screen_test.dart
 .ai/tasks/auth-google-identity-and-bootstrap-loading.md
 ```
 
-Expected runtime:
+### Slice C — Production auth source of truth + login-only admission
 
-```text
-persisted/authenticated session
-→ bootstrap completion read
-→ <= 8 seconds
-   completed   → Home
-   incomplete  → Onboarding
-   lookup fail → Splash recovery state
-                 “Couldn't finish signing you in. Check your connection and try again.”
-                 Retry → bootstrap refresh
-```
-
-### Slice C — Production auth source of truth
-
-Decision required before implementation:
+Before implementation, define one production source of truth:
 
 ```text
 A) Supabase-first
@@ -136,6 +158,19 @@ B) Firebase-first/hybrid
 
 Do not partially enable both.
 
+Whichever source is chosen must support two different intents explicitly:
+
+```text
+LOGIN intent
+→ existing Tio account only
+→ unknown identity returns No Tio account feedback
+→ must not create account
+
+SIGNUP intent
+→ explicit account creation flow only
+→ creates/provisions canonical auth + application owner state
+```
+
 Current schema/RLS strongly favors Supabase-first because public owner rows reference `auth.users(id)` and client RLS is based on `auth.uid()`. Firebase-first/hybrid therefore requires an explicit bridge/session strategy rather than simply writing `firebase_uid`.
 
 ### Slice D — Existing-account reconciliation
@@ -144,7 +179,8 @@ Only after Slice C is chosen:
 
 - reconcile the extra Supabase Google identity / missing public row safely;
 - add DB-owned auth.users -> public.users provisioning under issue #5;
-- backfill Firebase mapping only if Firebase-first/hybrid is selected.
+- backfill Firebase mapping only if Firebase-first/hybrid is selected;
+- ensure reconciliation does not mistakenly convert a login-only unknown identity into a newly created account.
 
 ## 5. Validation evidence
 
@@ -173,30 +209,33 @@ flutter analyze: No issues found
 final git status: clean and synchronized
 ```
 
-The earlier `apps/features/settings/pubspec.lock` modification was inspected and consisted of dependency-resolution/SDK lockfile churn. It was restored before pulling Slice B; a subsequent stash correctly reported `No local changes to save`.
+## 6. Next validation gate
 
-## 6. Real-device gate
+```powershell
+Set-Location "G:\projects\Tio-World"
+git status --short --branch
+git pull --ff-only
 
-Run the updated phone build and verify:
+Set-Location "G:\projects\Tio-World\apps\app"
+& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/app/session/app_session_bootstrap_controller_test.dart"
+& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/app/session/app_session_route_policy_test.dart"
+& "G:\dev\flutter-sdk\bin\flutter.bat" analyze
 
-```text
-1. Launch app.
-2. Continue with Google.
-3. Observe destination.
-4. Remove app from recents/background.
-5. Cold-open app.
+Set-Location "G:\projects\Tio-World"
+git status --short --branch
 ```
 
 Expected:
 
-- no infinite login spinner;
-- no permanent passive Splash spinner;
-- completed existing account -> Home;
-- incomplete/missing canonical owner state -> Onboarding;
-- readiness lookup/network failure -> visible retryable Splash failure state.
+```text
+app_session_bootstrap_controller_test.dart: 9 passed
+app_session_route_policy_test.dart: 4 passed
+app flutter analyze: No issues found
+worktree: clean
+```
 
-If the existing completed Google account is sent to Onboarding, do not complete onboarding again. Treat that as evidence of the already-audited Supabase identity/public-row drift and proceed to Slice C/D reconciliation.
+After this gate, rerun the real-device Google flow and keep the console attached. The disposed-controller exception must be absent before proceeding to identity/account-admission work.
 
 ## 7. Current status
 
-Slices A and B are locally green. The P0 reliability code is ready for real-device verification. Identity ownership and `firebase_uid` reconciliation remain intentionally deferred to Slice C/D until the actual Google-login/cold-start result is observed.
+Slices A and B are locally green. Real-device evidence identified an additional lifecycle race and Slice B2 now fixes it. Login-only account admission is frozen as a required product rule for Slice C. `firebase_uid` reconciliation remains deferred until the canonical auth source of truth is selected.
