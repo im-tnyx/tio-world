@@ -1,6 +1,6 @@
 # Profile & Account Data Persistence
 
-**Status:** In progress — Slice B Account Settings wiring awaiting local validation
+**Status:** Paused — Slice B implementation is ready but local validation is deferred behind P0 auth issue #10
 **Primary owner:** `apps/features/profile` + `apps/features/settings` + `apps/features/onboarding` + `apps/app`
 **Affected platforms:** Flutter phone app + Supabase
 **Tracking:** GitHub issue #8
@@ -73,7 +73,7 @@ Implemented and locally validated:
 
 ## 5. Slice B — Account Settings wiring
 
-Implemented, awaiting local validation:
+Implemented, validation deferred until P0 auth issue #10 is stabilized:
 
 - [x] add app provider for `ProfileAccountRepository`
 - [x] pass persisted `profileData.mobile` into Account Settings
@@ -133,24 +133,10 @@ flutter analyze: No issues found
 final git status: clean
 ```
 
-### Slice B validation gate
+### Why this task is paused
 
-```powershell
-Set-Location "G:\projects\Tio-World"
-git status --short --branch
-git pull --ff-only
-
-Set-Location "G:\projects\Tio-World\apps\features\settings"
-& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/presentation/account_settings_page_test.dart"
-& "G:\dev\flutter-sdk\bin\flutter.bat" analyze
-
-Set-Location "G:\projects\Tio-World\apps\app"
-& "G:\dev\flutter-sdk\bin\flutter.bat" analyze
-
-Set-Location "G:\projects\Tio-World"
-git status --short --branch
-```
+A real-device Google login/bootstrap incident is now tracked as issue #10. Because Account/Profile persistence depends on a stable authenticated identity/session, no further #8 implementation or validation should proceed until the P0 auth loading path is stabilized.
 
 ### Final status
 
-`PARTIAL — SLICE B LOCAL VALIDATION PENDING`
+`PAUSED — WAITING ON #10`
