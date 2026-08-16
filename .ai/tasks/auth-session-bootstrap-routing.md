@@ -83,8 +83,6 @@ This is behavior/architecture work, not UI redesign.
 - `AuthLandingPage` duplicates the same DB lookup/navigation and owns the legal footer that must remain.
 - `router.dart` also navigates through `onSignInSuccess`, creating competing navigation ownership.
 - Splash callback directly queries `public.users.is_onboarded`.
-- `appModeRoutePolicy` currently defines completion as `OnboardingStatus.completed && selectedMode != null`.
-- `OnboardingStatusController` currently downgrades completed status when AppMode is missing and can infer completion from legacy AppMode alone.
 - Auth domain already has `AuthSessionState`; do not create a duplicate auth-session hierarchy.
 - Current production auth session adapter is Supabase-backed.
 - Google sign-in attempts profile metadata upsert before onboarding, so raw row existence must not be the returning-user criterion.
@@ -99,8 +97,6 @@ This is behavior/architecture work, not UI redesign.
 - auth presentation tests
 - onboarding completion/use-case tests
 
-Current tests that expect `completed + selectedMode == null → onboarding/notStarted` must be deliberately revised.
-
 ### Local Verification Completed
 
 The local worktree was reported clean, synchronized, and on:
@@ -108,6 +104,21 @@ The local worktree was reported clean, synchronized, and on:
 ```text
 codex/onboarding-mode-migration
 ```
+
+The first AppMode/completion decoupling slice was validated locally with Flutter 3.44.6 / Dart 3.12.2:
+
+```text
+flutter test test/app/app_mode_route_policy_test.dart
+→ 9 tests passed
+
+flutter test test/app/onboarding_status_controller_test.dart
+→ 6 tests passed
+
+flutter analyze
+→ No issues found
+```
+
+The commands were run with the configured SDK at `G:\dev\flutter-sdk\bin\flutter.bat` from `G:\projects\Tio-World\apps\app`.
 
 ## 3. Clarification
 
@@ -196,7 +207,7 @@ Remote completion is authoritative for routing. Local SharedPreferences onboardi
 
 #### Local onboarding reconciliation
 
-`OnboardingStatusController` must stop deriving completion from AppMode and stop downgrading completion because AppMode is missing.
+`OnboardingStatusController` no longer downgrades completion because AppMode is missing.
 
 When remote state resolves:
 
@@ -234,17 +245,7 @@ ready
 
 #### AppMode policy
 
-Change completion semantics from:
-
-```text
-completed && selectedMode != null
-```
-
-to:
-
-```text
-completed
-```
+Completion semantics are now based on `OnboardingStatus.completed`, independent of `selectedMode`.
 
 If completed but `selectedMode == null`:
 
@@ -336,19 +337,13 @@ Congratulations
 
 ## 5. Implementation Plan
 
-### Slice A — Tests first
+### Slice A — AppMode/completion decoupling
 
-- [ ] existing completed Google user → Home
-- [ ] existing completed email user → Home
-- [ ] incomplete/uninitialized authenticated user → Onboarding
-- [ ] `inProgress` current-user flow resumes Onboarding
-- [ ] completed cold start → Home
-- [ ] logout → same completed account → Home after sign-in
-- [ ] missing local AppMode does not restart onboarding
-- [ ] backend lookup error stays failure/Splash, not onboarding
-- [ ] stale user bootstrap result cannot win after auth state changes
-- [ ] completion owner failure does not publish backend/local completed state
-- [ ] returning login never routes to Congratulations
+- [x] completed onboarding remains completed when local AppMode is missing
+- [x] completed + missing AppMode keeps Home accessible
+- [x] mode-specific shell destinations fall back to Home when mode is missing
+- [x] focused tests pass
+- [x] app analyzer passes
 
 ### Slice B — Domain/data boundary
 
@@ -372,46 +367,60 @@ Congratulations
 - [ ] preserve AuthLanding `TioTermsDisclaimer`
 - [ ] keep Login/AuthLanding visual output unchanged
 
-### Slice E — Quality review
+### Slice E — Regression matrix
 
-- [ ] targeted tests pass
-- [ ] relevant analyzer passes
-- [ ] auth/splash rendering tests remain green
-- [ ] no unintended visual changes
-- [ ] no issue #8 persistence work accidentally bundled
-- [ ] no unrelated local changes staged
+- [ ] existing completed Google user → Home
+- [ ] existing completed email user → Home
+- [ ] incomplete/uninitialized authenticated user → Onboarding
+- [ ] `inProgress` current-user flow resumes Onboarding
+- [ ] completed cold start → Home
+- [ ] logout → same completed account → Home after sign-in
+- [x] missing local AppMode does not restart onboarding
+- [ ] backend lookup error stays failure/Splash, not onboarding
+- [ ] stale user bootstrap result cannot win after auth state changes
+- [ ] completion owner failure does not publish backend/local completed state
+- [ ] returning login never routes to Congratulations
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Not run yet. Architecture is frozen; production implementation has not started.
+Slice A validated locally:
+- app_mode_route_policy_test.dart: 9 passed
+- onboarding_status_controller_test.dart: 6 passed
+- flutter analyze: No issues found
 ```
 
 ### Review Findings and Resolution
 
-- Local branch/worktree verification completed before design freeze.
+- Slice A changed behavior only; no UI files were touched.
+- Missing AppMode no longer mutates/downgrades stored completed onboarding.
 - Read-only live Supabase inspection used only to verify schema assumptions; no DB writes were made.
 - Profile/account persistence defects discovered during this work are tracked separately in issue #8 / `.ai/tasks/profile-account-data-persistence.md`.
 
 ## 7. Final Handoff
 
-### Changed Files
+### Changed Files So Far
 
 ```text
 .ai/tasks/auth-session-bootstrap-routing.md
+apps/app/lib/app/app_mode/app_mode_route_policy.dart
+apps/app/lib/app/onboarding/onboarding_status_controller.dart
+apps/app/test/app/app_mode_route_policy_test.dart
+apps/app/test/app/onboarding_status_controller_test.dart
 ```
 
 ### Actual Behavior
 
-No runtime behavior changed yet.
+Slice A is live on the working branch and validated. Remaining remote-bootstrap/routing work is still in progress.
 
 ### Known Limitations
 
 - Durable cross-device AppMode persistence is not available today and is not invented in this task.
 - DB-owned auth-user provisioning remains issue #5.
+- Remote completion repository/bootstrap controller are not implemented yet.
 
 ### Final Status
 
-`REVIEW`
+`PARTIAL`
