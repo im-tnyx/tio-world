@@ -557,24 +557,42 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.accountSettings.path,
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) {
-          final supabase = ref.watch(supabaseClientProvider);
-          final userEmail = supabase?.auth.currentUser?.email;
-          final profileAsync = ref.watch(profileDataProvider);
-          final profileData = profileAsync.valueOrNull;
+        builder: (context, state) => Consumer(
+          builder: (context, ref, _) {
+            final supabase = ref.watch(supabaseClientProvider);
+            final userEmail = supabase?.auth.currentUser?.email;
+            final profileAsync = ref.watch(profileDataProvider);
+            final profileData = profileAsync.valueOrNull;
 
-          return AccountSettingsPage(
-            username: profileData?.username,
-            email: userEmail,
-            onDeleteAccountConfirmed: () async {
-              try {
-                await supabase?.rpc<void>('delete_user_account');
-              } catch (_) {}
-              await ref.read(authSessionRepositoryProvider).signOut();
-              if (context.mounted) context.go(AppRoutes.auth.path);
-            },
-          );
-        },
+            return AccountSettingsPage(
+              username: profileData?.username,
+              email: userEmail,
+              phoneNumber: profileData?.mobile,
+              isPhoneVerified: profileData?.isMobileVerified ?? false,
+              onSave: ({required username, required phoneNumber}) async {
+                final accountRepository =
+                    ref.read(profileAccountRepositoryProvider);
+                if (accountRepository == null) {
+                  throw StateError(
+                    'Account settings persistence is unavailable.',
+                  );
+                }
+                await accountRepository.updateAccountSettings(
+                  username: username,
+                  mobile: phoneNumber,
+                );
+                ref.invalidate(profileDataProvider);
+              },
+              onDeleteAccountConfirmed: () async {
+                try {
+                  await supabase?.rpc<void>('delete_user_account');
+                } catch (_) {}
+                await ref.read(authSessionRepositoryProvider).signOut();
+                if (context.mounted) context.go(AppRoutes.auth.path);
+              },
+            );
+          },
+        ),
       ),
       GoRoute(
         path: AppRoutes.appSettings.path,
