@@ -1,9 +1,10 @@
 # Auth Action Loading and Truecaller Fallback
 
-**Status:** In progress — awaiting local validation
+**Status:** Complete
 **Primary owner:** `apps/features/auth`
 **Affected platforms:** Flutter phone app
 **Tracking:** GitHub issue #9
+**Source branch:** `codex/onboarding-mode-migration`
 
 ## 1. User Outcome
 
@@ -20,19 +21,20 @@ Google tap
 
 Truecaller tap
 → no spinner
-→ no auth/network
+→ no auth/network request
 → no navigation
+→ stay on Login
 → show: “Truecaller sign-in is not available yet.”
 ```
 
-## 2. Guardrails
+## 2. Guardrails Preserved
 
 - No Truecaller SDK/provider integration in this slice.
-- No fake Truecaller request/success.
+- No fake Truecaller request or success result.
 - #7 remains routing/bootstrap owner.
-- No AuthLanding/legal-copy changes.
-- No shared `TioSocialButton` redesign.
-- Login geometry, spacing, typography, colors, assets, and button layout remain unchanged.
+- AuthLanding/legal-copy behavior unchanged.
+- Shared `TioSocialButton` component unchanged.
+- Login geometry, spacing, typography, colors, assets, and button layout unchanged.
 
 ## 3. Implementation
 
@@ -52,16 +54,16 @@ Implemented behavior:
 - [x] Email owns only Login button loading
 - [x] Google owns only Google button loading
 - [x] conflicting auth actions are disabled without spinner duplication
-- [x] busy guard prevents duplicate overlapping auth submissions
+- [x] busy guard prevents duplicate overlapping submissions
 - [x] cancellation/failure returns initiating action to idle through `finally`
 - [x] Truecaller placeholder navigation removed
-- [x] Truecaller uses existing Login feedback surface with informational copy
+- [x] Truecaller uses existing Login feedback surface
 - [x] back/forgot/signup continue to respect shared busy gating
 - [x] shared button component untouched
 
-## 4. Tests Added
+## 4. Regression Coverage
 
-`apps/features/auth/test/presentation/login_page_test.dart` now covers:
+`apps/features/auth/test/presentation/login_page_test.dart` covers:
 
 - [x] Email request: only Login loading
 - [x] Google/Truecaller conflict-gated during Email without spinners
@@ -76,30 +78,29 @@ Implemented behavior:
 
 ## 5. Quality Review
 
-Production diff audit confirms changes are limited to action state/interaction bindings and Truecaller feedback. No spacing/token/layout/asset values changed.
+Production diff audit confirmed changes are limited to action-state/interaction bindings and Truecaller feedback. No spacing/token/layout/asset values changed.
 
-## 6. Validation Required
+Shared `TioSocialButton` already exposed sufficient `enabled` and `loading` APIs, so no core component change was required.
 
-Run locally with the pinned Flutter SDK:
+## 6. Local Validation Evidence
 
-```powershell
-Set-Location "G:\projects\Tio-World"
-git status --short --branch
-git pull --ff-only
+```text
+apps/features/auth
+login_page_test.dart: 9 passed
+auth_landing_page_test.dart: 1 passed
+flutter analyze: No issues found
 
-Set-Location "G:\projects\Tio-World\apps\features\auth"
-& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/presentation/login_page_test.dart"
-& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/presentation/auth_landing_page_test.dart"
-& "G:\dev\flutter-sdk\bin\flutter.bat" analyze
+apps/app regression
+app_session_bootstrap_controller_test.dart: 6 passed
+app_session_route_policy_test.dart: 4 passed
+flutter analyze: No issues found
 
-Set-Location "G:\projects\Tio-World\apps\app"
-& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/app/session/app_session_bootstrap_controller_test.dart"
-& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/app/session/app_session_route_policy_test.dart"
-& "G:\dev\flutter-sdk\bin\flutter.bat" analyze
-
-Set-Location "G:\projects\Tio-World"
-git status --short --branch
+Final reported worktree:
+codex/onboarding-mode-migration synchronized with origin
+working tree clean
 ```
+
+The auth test runner emitted existing non-failing package/SVG notices (`uses-material-design` mismatch and SVG `<style/>` notice); all tests passed and analyzers were clean.
 
 ## 7. Final Handoff
 
@@ -116,6 +117,17 @@ apps/features/auth/test/presentation/login_page_test.dart
 .ai/tasks/auth-action-loading-and-truecaller-fallback.md
 ```
 
+### Actual Behavior
+
+- Email Login shows only its own spinner.
+- Google Login shows only its own spinner.
+- Other conflicting actions are temporarily non-interactive without inheriting another action's loading state.
+- Truecaller remains intentionally unavailable, stays on Login, and shows a clear informational message.
+
+### Deferred
+
+Real Truecaller SDK/provider integration is intentionally deferred to a future dedicated task.
+
 ### Final Status
 
-`IMPLEMENTED — LOCAL VALIDATION PENDING`
+`COMPLETE`
