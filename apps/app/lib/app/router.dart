@@ -228,13 +228,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               signInWithEmailUseCase: signInWithEmailUseCase,
               signInWithGoogleUseCase: supabaseSignInUseCase,
               googleAuthUseCase: googleAuthUseCase,
-              onSignInSuccess: (_) {
-                if (context.canPop()) {
-                  context.pop(true);
-                } else {
-                  context.go(AppRoutes.home.path);
-                }
-              },
               onAuthSuccess: (result) {
                 ref.read(backendUserStateProvider.notifier).state =
                     result.backendUserState;
