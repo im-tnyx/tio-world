@@ -46,6 +46,13 @@ enum ShellTab {
   }
 }
 
+const missingModeCompatibilityShellTabs = <ShellTab>[
+  ShellTab.home,
+  ShellTab.workout,
+  ShellTab.nutrition,
+  ShellTab.progress,
+];
+
 class ShellBranchDefinition {
   const ShellBranchDefinition({required this.tab, required this.route});
 
