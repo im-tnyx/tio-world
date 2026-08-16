@@ -74,6 +74,45 @@ void main() {
     expect(fixture.controller.state, isA<AppSessionBootstrapFailure>());
   });
 
+  test('remote lookup timeout resolves failure instead of hanging', () async {
+    final pendingLookup = Completer<RemoteOnboardingCompletionState>();
+    final fixture = await _Fixture.create(
+      authState: _authenticated('user-a'),
+      completionLookupTimeout: const Duration(milliseconds: 10),
+      completionResolver: () => pendingLookup.future,
+    );
+
+    await fixture.controller.refresh();
+
+    final state = fixture.controller.state;
+    expect(state, isA<AppSessionBootstrapFailure>());
+    expect((state as AppSessionBootstrapFailure).error, isA<TimeoutException>());
+  });
+
+  test('refresh can recover from a bootstrap failure', () async {
+    var readCount = 0;
+    final fixture = await _Fixture.create(
+      authState: _authenticated('user-a'),
+      completionResolver: () async {
+        readCount++;
+        if (readCount == 1) {
+          throw StateError('temporary lookup failure');
+        }
+        return RemoteOnboardingCompletionState.completed;
+      },
+    );
+
+    await fixture.controller.refresh();
+    expect(fixture.controller.state, isA<AppSessionBootstrapFailure>());
+
+    await fixture.controller.refresh();
+
+    expect(
+      fixture.controller.state,
+      const AppSessionBootstrapReady(userId: 'user-a'),
+    );
+  });
+
   test('stale user lookup cannot overwrite a newer authenticated user',
       () async {
     final oldUserResult = Completer<RemoteOnboardingCompletionState>();
@@ -161,6 +200,7 @@ class _Fixture {
     _FakeAuthSessionRepository? authRepository,
     OnboardingStatus? initialLocalStatus,
     Future<RemoteOnboardingCompletionState> Function()? completionResolver,
+    Duration completionLookupTimeout = const Duration(seconds: 8),
   }) async {
     final modeController = AppModeController(_FakeAppModePreference());
     await modeController.load();
@@ -188,6 +228,7 @@ class _Fixture {
         authSessionRepository: sessionRepository,
         onboardingCompletionRepository: completionRepository,
         onboardingStatusController: statusController,
+        completionLookupTimeout: completionLookupTimeout,
       ),
     );
   }
