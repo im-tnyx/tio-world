@@ -37,17 +37,16 @@ class WelcomeScreen extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             // 1. Existing Background Image (Instant rendering at the bottom layer aligned from the top)
-            Align(
-              alignment: const Alignment(0, -1.0),
-              child: FractionallySizedBox(
-                widthFactor: 1.2,
-                heightFactor: 0.82,
-                child: Image.asset(
-                  'assets/landing_screen.png',
-                  package: 'tio_feature_welcome',
-                  fit: BoxFit.fill,
-                  alignment: Alignment.topCenter,
-                ),
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: MediaQuery.sizeOf(context).height * 0.82,
+              child: Image.asset(
+                'assets/landing_screen.png',
+                package: 'tio_feature_welcome',
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
               ),
             ),
 
@@ -210,7 +209,7 @@ class WelcomeScreen extends StatelessWidget {
                               ),
                             ),
 
-                            const SizedBox(height: 36),
+                            const SizedBox(height: TioSpacing.extraLarge),
 
                             Column(
                               mainAxisSize: MainAxisSize.min,
@@ -251,7 +250,7 @@ class WelcomeScreen extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: TioSpacing.large),
+                                const SizedBox(height: TioSpacing.small),
                               ],
                             ),
                           ],

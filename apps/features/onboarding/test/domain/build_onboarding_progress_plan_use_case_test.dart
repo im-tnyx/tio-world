@@ -8,7 +8,7 @@ void main() {
   const buildWorkoutPlan = BuildWorkoutFlowPlanUseCase();
 
   group('BuildOnboardingProgressPlanUseCase', () {
-    test('workout mode with gym access derives 24 total screens', () {
+    test('workout mode with gym access derives 25 total screens', () {
       final flowPlan = buildFlowPlan(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
@@ -19,8 +19,8 @@ void main() {
         workoutFlowPlan: workoutPlan,
       );
 
-      // 9 (Profile) + 8 (Workout) + 6 (Targets) + 1 (Review) = 24
-      expect(progressPlan.totalSteps, 24);
+      // 10 (Profile) + 8 (Workout) + 6 (Targets) + 1 (Review) = 25
+      expect(progressPlan.totalSteps, 25);
       expect(progressPlan.items.first, isA<ProfileProgressItem>());
       expect(progressPlan.items.last, isA<ReviewProgressItem>());
       expect(
@@ -29,7 +29,7 @@ void main() {
       );
     });
 
-    test('workout mode with home gym access derives 25 total screens (includes equipment)', () {
+    test('workout mode with home gym access derives 26 total screens (includes equipment)', () {
       final flowPlan = buildFlowPlan(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
@@ -40,8 +40,8 @@ void main() {
         workoutFlowPlan: workoutPlan,
       );
 
-      // 9 (Profile) + 9 (Workout) + 6 (Targets) + 1 (Review) = 25
-      expect(progressPlan.totalSteps, 25);
+      // 10 (Profile) + 9 (Workout) + 6 (Targets) + 1 (Review) = 26
+      expect(progressPlan.totalSteps, 26);
       expect(
         progressPlan.items.whereType<WorkoutProgressItem>().map((e) => e.stepId),
         contains(WorkoutStepId.equipment),
@@ -59,10 +59,10 @@ void main() {
         workoutFlowPlan: workoutPlan,
       );
 
-      // 9 (Profile) + 1 (NutritionIntro) + 6 (Targets) + 1 (Review) = 17
+      // 10 (Profile) + 6 (Targets) + 1 (Review) = 17
       expect(progressPlan.totalSteps, 17);
       expect(progressPlan.items.whereType<WorkoutProgressItem>(), isEmpty);
-      expect(progressPlan.items.whereType<NutritionIntroProgressItem>(), hasLength(1));
+      expect(progressPlan.items.whereType<NutritionIntroProgressItem>(), isEmpty);
     });
 
     test('hybrid mode with setupNow derives 26 (gym) / 27 (home) screens', () {
@@ -83,9 +83,9 @@ void main() {
         workoutFlowPlan: homeWorkoutPlan,
       );
 
-      // 9 (Profile) + 1 (WorkoutIntro) + 8 (Workout) + 1 (NutritionIntro) + 6 (Targets) + 1 (Review) = 26
+      // 10 (Profile) + 1 (WorkoutIntro) + 8 (Workout) + 6 (Targets) + 1 (Review) = 26
       expect(gymProgressPlan.totalSteps, 26);
-      // 9 (Profile) + 1 (WorkoutIntro) + 9 (Workout) + 1 (NutritionIntro) + 6 (Targets) + 1 (Review) = 27
+      // 10 (Profile) + 1 (WorkoutIntro) + 9 (Workout) + 6 (Targets) + 1 (Review) = 27
       expect(homeProgressPlan.totalSteps, 27);
     });
 
@@ -101,11 +101,10 @@ void main() {
         workoutFlowPlan: workoutPlan,
       );
 
-      // 9 (Profile) + 1 (WorkoutIntro) + 1 (NutritionIntro) + 6 (Targets) + 1 (Review) = 18
+      // 10 (Profile) + 1 (WorkoutIntro) + 6 (Targets) + 1 (Review) = 18
       expect(progressPlan.totalSteps, 18);
       expect(progressPlan.items.whereType<WorkoutProgressItem>(), isEmpty);
       expect(progressPlan.items.whereType<WorkoutIntroProgressItem>(), hasLength(1));
-      expect(progressPlan.items.whereType<NutritionIntroProgressItem>(), hasLength(1));
     });
 
     test('every Profile child screen strictly increases progress monotonically', () {
@@ -146,7 +145,7 @@ void main() {
       );
 
       double previousProgress = progressPlan.progressFor(
-        stepId: OnboardingStepId.profileBasics,
+        stepId: OnboardingStepId.mobile,
         profileStepId: ProfileStepId.healthConditions,
         workoutStepId: WorkoutStepId.gymAccess,
         targetStepId: TargetStepId.bridge,
@@ -288,19 +287,19 @@ void main() {
         flowPlan: flowPlan,
         workoutFlowPlan: buildWorkoutPlan(gymAccess: WorkoutGymAccess.gym),
       );
-      expect(gymPlan.totalSteps, 24);
+      expect(gymPlan.totalSteps, 25);
 
       final homePlan = buildProgressPlan(
         flowPlan: flowPlan,
         workoutFlowPlan: buildWorkoutPlan(gymAccess: WorkoutGymAccess.home),
       );
-      expect(homePlan.totalSteps, 25);
+      expect(homePlan.totalSteps, 26);
 
       final backToGymPlan = buildProgressPlan(
         flowPlan: flowPlan,
         workoutFlowPlan: buildWorkoutPlan(gymAccess: WorkoutGymAccess.gym),
       );
-      expect(backToGymPlan.totalSteps, 24);
+      expect(backToGymPlan.totalSteps, 25);
     });
   });
 }

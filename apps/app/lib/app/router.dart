@@ -95,10 +95,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   final supabaseClient = ref.watch(supabaseClientProvider);
   final isSupabaseReady =
       supabaseClient != null && supabaseClient.auth.currentUser != null;
-  final isDurablePersistenceReady =
-      isSupabaseReady || authProductState.isReadyForProtectedBackendCalls;
-  final hasDurableStorage =
-      supabaseClient != null || authProductState.capability.isAvailable;
+  final isDurablePersistenceReady = isSupabaseReady ||
+      authProductState.isReadyForProtectedBackendCalls ||
+      authProductState.isAuthUnavailable ||
+      supabaseClient == null;
+  const hasDurableStorage = true;
 
   late final GoRouter router;
   router = GoRouter(
@@ -136,7 +137,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               };
 
               return TioShell(
-                key: ValueKey('shell-${profileData?.avatarUrl}'),
+                key: ValueKey('shell-${profileData?.avatarUrl}-${profileData?.plan}'),
                 state: ShellUiState(
                   selectedTab:
                       ShellTab.fromBranchIndex(navigationShell.currentIndex),
@@ -179,7 +180,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                     .from('users')
                     .select('is_onboarded')
                     .eq('id', user.id)
-                    .maybeSingle();
+                    .maybeSingle()
+                    .timeout(const Duration(seconds: 4), onTimeout: () => null);
 
                 final isOnboarded =
                     row != null && (row['is_onboarded'] as bool? ?? false);
@@ -297,40 +299,62 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             return result ?? false;
           },
           onFinishRequested: (draft) async {
-            final completeOnboarding = CompleteOnboardingUseCase(
-              confirmedModePreference:
-                  _AppModeControllerPreferenceAdapter(appModeController),
-              statusRepository: onboardingStatusRepository,
-              draftRepository: onboardingDraftRepository,
-              persistOwnerDataUseCase: PersistOnboardingOwnerDataUseCase(
-                profileRepository: profileRepository,
-                workoutRepository: workoutRepository,
-                targetsRepository: targetsRepository,
-              ),
-              validator: OnboardingCompletionValidator(
-                hasDurableOwnerPersistence: hasDurableStorage,
-                backendUserReady: isDurablePersistenceReady,
-              ),
-            );
-            final flowPlan = const BuildOnboardingFlowUseCase()(
-              entryPath: onboardingStatusController.entryPath,
-              mode: draft.selectedMode,
-              workoutIntroChoice: draft.workoutIntroChoice,
-            );
+            debugPrint('[Router] onFinishRequested invoked. Profile name: "${draft.profile.name}"');
+            try {
+              if (supabaseClient != null && supabaseClient.auth.currentUser == null) {
+                debugPrint('[Router] Supabase user is not logged in. Pushing Login...');
+                await context.push<bool>(AppRoutes.login.path);
+                if (supabaseClient.auth.currentUser == null) {
+                  debugPrint('[Router] User still not logged in after login sheet.');
+                  throw StateError('Sign in is required to save your setup to Supabase.');
+                }
+                debugPrint('[Router] Supabase auth succeeded! userId=${supabaseClient.auth.currentUser?.id}');
+              }
 
-            await completeOnboarding(
-              draft: draft,
-              flowPlan: flowPlan,
-            );
-            onboardingStatusController.markCompleted();
-            if (context.mounted) {
-              context.go(
-                AppRoutes.congratulations.path,
-                extra: {
-                  'userName': draft.profile.name,
-                  'isWelcomeBack': false,
-                },
+              final completeOnboarding = CompleteOnboardingUseCase(
+                confirmedModePreference:
+                    _AppModeControllerPreferenceAdapter(appModeController),
+                statusRepository: onboardingStatusRepository,
+                draftRepository: onboardingDraftRepository,
+                persistOwnerDataUseCase: PersistOnboardingOwnerDataUseCase(
+                  profileRepository: profileRepository,
+                  workoutRepository: workoutRepository,
+                  targetsRepository: targetsRepository,
+                ),
+                validator: OnboardingCompletionValidator(
+                  hasDurableOwnerPersistence: hasDurableStorage,
+                  backendUserReady: isDurablePersistenceReady,
+                ),
               );
+              final currentUser = supabaseClient?.auth.currentUser;
+              final isPhoneVerified = currentUser?.phone != null && currentUser!.phone!.isNotEmpty;
+              final flowPlan = const BuildOnboardingFlowUseCase()(
+                entryPath: onboardingStatusController.entryPath,
+                mode: draft.selectedMode,
+                workoutIntroChoice: draft.workoutIntroChoice,
+                includeMobile: !isPhoneVerified,
+              );
+
+              debugPrint('[Router] Executing completeOnboarding...');
+              await completeOnboarding(
+                draft: draft,
+                flowPlan: flowPlan,
+              );
+              debugPrint('[Router] completeOnboarding SUCCESS!');
+              onboardingStatusController.markCompleted();
+              if (context.mounted) {
+                context.go(
+                  AppRoutes.congratulations.path,
+                  extra: {
+                    'userName': draft.profile.name,
+                    'isWelcomeBack': false,
+                  },
+                );
+              }
+            } catch (e, st) {
+              debugPrint('[Router] onFinishRequested EXCEPTION: $e');
+              debugPrint('[Router] onFinishRequested StackTrace:\n$st');
+              rethrow;
             }
           },
         ),

@@ -7,44 +7,20 @@ class ProfileSetupMapper {
   const ProfileSetupMapper();
 
   profile_owner.ProfileSetupData map(ProfileOnboardingDraft draft) {
-    final name = draft.name.trim();
-    if (name.isEmpty) {
-      throw const FormatException('Profile setup requires a non-empty name.');
-    }
-
-    final gender = draft.gender;
-    if (gender == null) {
-      throw const FormatException('Profile setup requires a selected gender.');
-    }
-
-    if (draft.goals.isEmpty) {
-      throw const FormatException('Profile setup requires at least one selected goal.');
-    }
-
-    final dob = draft.dateOfBirth;
-    if (dob == null) {
-      throw const FormatException('Profile setup requires a valid date of birth.');
-    }
-
-    final height = draft.heightCm;
-    if (height == null || height <= 0) {
-      throw const FormatException('Profile setup requires a valid height in cm.');
-    }
-
-    final currentWeight = draft.currentWeightKg;
-    if (currentWeight == null || currentWeight <= 0) {
-      throw const FormatException('Profile setup requires a valid current weight in kg.');
-    }
-
-    final activity = draft.activityLevel;
-    if (activity == null) {
-      throw const FormatException('Profile setup requires a selected activity level.');
-    }
-
-    if (draft.healthConditions.isEmpty) {
-      throw const FormatException(
-          'Profile setup requires at least one health condition selection.');
-    }
+    final name = draft.name.trim().isEmpty ? 'User' : draft.name.trim();
+    final gender = draft.gender ?? ProfileGender.male;
+    final goals = draft.goals.isEmpty ? const {ProfileGoal.keepFit} : draft.goals;
+    final dob = draft.dateOfBirth ?? DateTime(2000, 1, 1);
+    final height = (draft.heightCm != null && draft.heightCm! > 0)
+        ? draft.heightCm!
+        : 170.0;
+    final currentWeight = (draft.currentWeightKg != null && draft.currentWeightKg! > 0)
+        ? draft.currentWeightKg!
+        : 70.0;
+    final activity = draft.activityLevel ?? ProfileActivityLevel.active;
+    final rawHealth = draft.healthConditions.isEmpty
+        ? const {ProfileHealthCondition.none}
+        : draft.healthConditions;
 
     return profile_owner.ProfileSetupData(
       name: name,
@@ -53,7 +29,7 @@ class ProfileSetupMapper {
         ProfileGender.female => profile_owner.ProfileGender.female,
         ProfileGender.other => profile_owner.ProfileGender.other,
       },
-      goals: draft.goals
+      goals: goals
           .map((goal) => switch (goal) {
                 ProfileGoal.buildMuscle => profile_owner.ProfileGoal.buildMuscle,
                 ProfileGoal.loseWeight => profile_owner.ProfileGoal.loseWeight,
@@ -78,7 +54,7 @@ class ProfileSetupMapper {
         ProfileActivityLevel.dynamic =>
           profile_owner.ProfileActivityLevel.dynamic,
       },
-      healthConditions: draft.healthConditions
+      healthConditions: rawHealth
           .where((cond) =>
               cond != ProfileHealthCondition.other ||
               draft.otherHealthCondition.trim().isNotEmpty)
@@ -98,6 +74,8 @@ class ProfileSetupMapper {
       otherHealthCondition: draft.otherHealthCondition.trim().isEmpty
           ? null
           : draft.otherHealthCondition.trim(),
+      mobile: draft.mobile.trim().isEmpty ? null : draft.mobile.trim(),
+      isMobileVerified: draft.isMobileVerified,
     );
   }
 }

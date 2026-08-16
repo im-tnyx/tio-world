@@ -16,21 +16,9 @@ class TargetsSetupMapper {
     required TargetsOnboardingDraft targetsDraft,
     required ProfileOnboardingDraft profileDraft,
   }) {
-    if (targetsDraft.dailySteps < 2000 || targetsDraft.dailySteps > 18000) {
-      throw const FormatException(
-          'Daily step target out of valid bounds (2000..18000).');
-    }
-
-    if (targetsDraft.sleepTargetMinutes < 240 ||
-        targetsDraft.sleepTargetMinutes > 720) {
-      throw const FormatException(
-          'Sleep duration target out of valid bounds (240..720 min).');
-    }
-
-    if (targetsDraft.waterMl < 1000 || targetsDraft.waterMl > 8000) {
-      throw const FormatException(
-          'Daily hydration target out of valid bounds (1000..8000 ml).');
-    }
+    final dailySteps = targetsDraft.dailySteps.clamp(1000, 50000);
+    final sleepTargetMinutes = targetsDraft.sleepTargetMinutes.clamp(180, 840);
+    final waterMl = targetsDraft.waterMl.clamp(500, 15000);
 
     final recommendationResult = calculator(
       profile: profileDraft,
@@ -43,11 +31,11 @@ class TargetsSetupMapper {
             : null;
 
     return nutrition_owner.TargetsSetupData(
-      dailySteps: targetsDraft.dailySteps,
-      sleepTargetMinutes: targetsDraft.sleepTargetMinutes,
+      dailySteps: dailySteps,
+      sleepTargetMinutes: sleepTargetMinutes,
       sleepTimeMinutes: targetsDraft.sleepTimeMinutes,
       wakeTimeMinutes: targetsDraft.wakeTimeMinutes,
-      waterMl: targetsDraft.waterMl,
+      waterMl: waterMl,
       goalPaceKgPerWeek: targetsDraft.goalPaceKgPerWeek,
       recommendation: recommendation,
     );

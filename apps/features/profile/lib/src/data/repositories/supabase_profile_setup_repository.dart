@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -21,24 +22,33 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
 
   @override
   Future<void> saveProfileSetup(ProfileSetupData data) async {
-    final userId = _client.auth.currentUser?.id;
+    var userId = _client.auth.currentUser?.id;
     if (userId == null || userId.isEmpty) {
-      throw StateError('Cannot persist profile setup: user is not authenticated.');
+      try {
+        final res = await _client.auth.signInAnonymously();
+        userId = res.user?.id ?? _client.auth.currentUser?.id;
+      } catch (_) {}
+    }
+    if (userId == null || userId.isEmpty) {
+      throw StateError('Please sign in or create an account to save your profile.');
     }
 
     final currentUser = _client.auth.currentUser;
     final email = currentUser?.email;
     final phone = currentUser?.phone;
+    final effectiveMobile = (data.mobile != null && data.mobile!.trim().isNotEmpty)
+        ? data.mobile!.trim()
+        : (phone != null && phone.isNotEmpty ? phone : null);
     final dobIso = data.dateOfBirth.toIso8601String().split('T').first;
     final nowIso = DateTime.now().toUtc().toIso8601String();
-    final payload = {
+    final payload = <String, dynamic>{
       'id': userId,
       'name': data.name,
       'username': data.username,
       if (email != null && email.isNotEmpty) 'email': email,
-      if (phone != null && phone.isNotEmpty) 'mobile': phone,
+      if (effectiveMobile != null) 'mobile': effectiveMobile,
+      if (data.isMobileVerified) 'mobile_verified_at': nowIso,
       'avatar_url': data.avatarUrl,
-      'avatar_frame': data.avatarFrame,
       'profile_image': data.avatarUrl,
       'plan': data.plan,
       'gender': data.gender.name,
@@ -62,18 +72,24 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
     try {
       await _client.from('users').upsert(payload);
     } on PostgrestException catch (e) {
-      if (e.code == '42703') {
-        payload.remove('plan');
-        payload.remove('dob');
-        payload.remove('profile_image');
-        payload.remove('is_onboarded');
-        payload.remove('email');
-        payload.remove('mobile');
-        payload.remove('primary_goal');
-        payload.remove('timezone');
-        payload.remove('is_active');
-        payload.remove('last_active_at');
-        await _client.from('users').upsert(payload);
+      if (e.code == '42703' || e.code == 'PGRST204') {
+        final corePayload = <String, dynamic>{
+          'id': userId,
+          'name': data.name,
+          'username': data.username,
+          'gender': data.gender.name,
+          'goals': data.goals.map((g) => g.name).toList(),
+          'date_of_birth': dobIso,
+          'height_cm': data.heightCm,
+          'current_weight_kg': data.currentWeightKg,
+          'target_weight_kg': data.targetWeightKg,
+          'activity_level': data.activityLevel.name,
+          'health_conditions': data.healthConditions.map((c) => c.name).toList(),
+          'other_health_condition': data.otherHealthCondition,
+          'is_onboarded': true,
+          'updated_at': nowIso,
+        };
+        await _client.from('users').upsert(corePayload);
       } else {
         rethrow;
       }
@@ -99,19 +115,96 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
 
   @override
   Stream<ProfileSetupData?> watchProfileSetup() {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null || userId.isEmpty) {
-      return Stream.value(null);
+    late final StreamController<ProfileSetupData?> controller;
+    StreamSubscription<AuthState>? authSubscription;
+    StreamSubscription<List<Map<String, dynamic>>>? realtimeSubscription;
+    RealtimeChannel? postgresChannel;
+
+    void subscribeToUserStream(String userId) {
+      realtimeSubscription?.cancel();
+      postgresChannel?.unsubscribe();
+
+      // 1. Initial snapshot fetch
+      getProfileSetup().then((data) {
+        if (!controller.isClosed) controller.add(data);
+      }).catchError((_) {});
+
+      // 2. Supabase SDK stream
+      realtimeSubscription = _client
+          .from('users')
+          .stream(primaryKey: ['id'])
+          .eq('id', userId)
+          .listen(
+        (rows) {
+          if (controller.isClosed) return;
+          if (rows.isEmpty) {
+            controller.add(null);
+          } else {
+            controller.add(_mapRowToProfile(rows.first));
+          }
+        },
+        onError: (err) {
+          // Fallback to getProfileSetup on stream error
+          getProfileSetup().then((data) {
+            if (!controller.isClosed) controller.add(data);
+          }).catchError((_) {});
+        },
+      );
+
+      // 3. Direct Postgres changes channel as secondary realtime listener
+      postgresChannel = _client.channel('public:users:$userId')
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'users',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id',
+            value: userId,
+          ),
+          callback: (payload) {
+            final newRecord = payload.newRecord;
+            if (newRecord.isNotEmpty && !controller.isClosed) {
+              controller.add(_mapRowToProfile(newRecord));
+            } else {
+              getProfileSetup().then((data) {
+                if (!controller.isClosed) controller.add(data);
+              }).catchError((_) {});
+            }
+          },
+        )
+        ..subscribe();
     }
 
-    return _client
-        .from('users')
-        .stream(primaryKey: ['id'])
-        .eq('id', userId)
-        .map((rows) {
-          if (rows.isEmpty) return null;
-          return _mapRowToProfile(rows.first);
+    controller = StreamController<ProfileSetupData?>.broadcast(
+      onListen: () {
+        final currentUserId = _client.auth.currentUser?.id;
+        if (currentUserId != null && currentUserId.isNotEmpty) {
+          subscribeToUserStream(currentUserId);
+        } else {
+          controller.add(null);
+        }
+
+        authSubscription = _client.auth.onAuthStateChange.listen((data) {
+          final newUserId = data.session?.user.id ?? _client.auth.currentUser?.id;
+          if (newUserId != null && newUserId.isNotEmpty) {
+            subscribeToUserStream(newUserId);
+          } else {
+            realtimeSubscription?.cancel();
+            postgresChannel?.unsubscribe();
+            if (!controller.isClosed) controller.add(null);
+          }
         });
+      },
+      onCancel: () {
+        authSubscription?.cancel();
+        realtimeSubscription?.cancel();
+        postgresChannel?.unsubscribe();
+        controller.close();
+      },
+    );
+
+    return controller.stream;
   }
 
   ProfileSetupData _mapRowToProfile(Map<String, dynamic> row) {
@@ -152,12 +245,16 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
         .toSet();
 
     final plan = row['plan'] as String? ?? 'free';
-    final avatarFrame = row['avatar_frame'] as String? ?? 'none';
+    final avatarFrame = switch (plan.toLowerCase()) {
+      'plus' => 'plusRing',
+      'pro' || 'premium' => 'proHexagon',
+      _ => 'none',
+    };
 
     return ProfileSetupData(
       name: row['name'] as String? ?? '',
       username: row['username'] as String?,
-      avatarUrl: row['avatar_url'] as String?,
+      avatarUrl: row['avatar_url'] as String? ?? row['profile_image'] as String?,
       avatarFrame: avatarFrame,
       plan: plan,
       gender: gender,
@@ -171,6 +268,9 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
           ? {ProfileHealthCondition.none}
           : healthConditions,
       otherHealthCondition: row['other_health_condition'] as String?,
+      mobile: row['mobile'] as String?,
+      isMobileVerified:
+          row['mobile_verified_at'] != null || row['is_mobile_verified'] == true,
     );
   }
 
@@ -223,12 +323,6 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
 
   @override
   Future<void> updateAvatarFrame(String frame) async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null || userId.isEmpty) return;
-
-    await _client.from('users').update({
-      'avatar_frame': frame,
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    }).eq('id', userId);
+    // avatar_frame is dynamically plan-based, no direct column mutation needed.
   }
 }

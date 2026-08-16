@@ -94,6 +94,7 @@ class OnboardingBottomBar extends StatelessWidget {
               )
             else if (profileStep == ProfileStepId.currentWeight)
               OnboardingWeightWheel(
+                key: const ValueKey('current-weight-wheel'),
                 valueKg: draft.currentWeightKg,
                 unit: draft.weightUnit,
                 onChanged: controller!.updateProfileCurrentWeight,
@@ -101,6 +102,7 @@ class OnboardingBottomBar extends StatelessWidget {
               )
             else if (profileStep == ProfileStepId.targetWeight)
               OnboardingWeightWheel(
+                key: const ValueKey('target-weight-wheel'),
                 valueKg: draft.targetWeightKg,
                 unit: draft.weightUnit,
                 onChanged: controller!.updateProfileTargetWeight,
@@ -129,7 +131,7 @@ class OnboardingBottomBar extends StatelessWidget {
                     Semantics(
                       liveRegion: true,
                       child: Text(
-                        'Could not finish setup. Please try again.',
+                        _errorMessage(state.retryableError!),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: colors.danger,
                             ),
@@ -160,10 +162,11 @@ class OnboardingBottomBar extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          stops: const [0.0, 0.35, 1.0],
+          stops: const [0.0, 0.25, 0.70, 1.0],
           colors: [
             colors.background.withValues(alpha: 0.0),
-            colors.background.withValues(alpha: 0.65),
+            colors.background.withValues(alpha: 0.50),
+            colors.background.withValues(alpha: 0.95),
             colors.background.withValues(alpha: 1.0),
           ],
         ),
@@ -174,7 +177,7 @@ class OnboardingBottomBar extends StatelessWidget {
           left: TioSpacing.large,
           right: TioSpacing.large,
           bottom: TioSpacing.large + MediaQuery.viewInsetsOf(context).bottom,
-          top: TioSpacing.small,
+          top: TioSpacing.extraLarge,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -215,7 +218,7 @@ class OnboardingBottomBar extends StatelessWidget {
               Semantics(
                 liveRegion: true,
                 child: Text(
-                  'Could not finish setup. Please try again.',
+                  _errorMessage(state.retryableError!),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: colors.danger,
                       ),
@@ -239,4 +242,11 @@ class OnboardingBottomBar extends StatelessWidget {
       ),
     );
   }
+}
+
+String _errorMessage(Object error) {
+  if (error is StateError) return error.message;
+  final raw = error.toString().replaceFirst('Exception: ', '').trim();
+  if (raw.isNotEmpty && !raw.startsWith('Instance of')) return raw;
+  return 'Could not finish setup. Please try again.';
 }

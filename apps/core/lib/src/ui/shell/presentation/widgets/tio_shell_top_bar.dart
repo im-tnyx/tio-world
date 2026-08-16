@@ -63,56 +63,53 @@ class TioShellTopBar extends StatelessWidget implements PreferredSizeWidget {
                   color: colorScheme.primaryContainer,
                   shape: const StadiumBorder(),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: TioSpacing.small,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Dynamic Icon based on Plan
-                      switch (planTier) {
-                        ShellPlanTier.free => SvgPicture.asset(
-                            'assets/svg_icon/ic_pro_outline.svg',
-                            package: 'tio_core',
-                            width: 16,
-                            height: 16,
-                            colorFilter: ColorFilter.mode(
-                              colorScheme.onPrimaryContainer,
-                              BlendMode.srcIn,
-                            ),
-                          ),
-                        ShellPlanTier.plus => const Icon(
-                            Icons.star_rounded,
-                            size: 16,
-                            color: Color(0xFFF59E0B),
-                          ),
-                        ShellPlanTier.premium => SvgPicture.asset(
-                            'assets/svg_icon/ic_pro_fill.svg',
-                            package: 'tio_core',
-                            width: 16,
-                            height: 16,
-                            colorFilter: const ColorFilter.mode(
-                              Color(0xFF5EEAD4),
-                              BlendMode.srcIn,
-                            ),
-                          ),
-                      },
-                      const SizedBox(width: 6),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          planTier.label,
-                          maxLines: 1,
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                color: colorScheme.onPrimaryContainer,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 16,
-                              ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (planTier == ShellPlanTier.plus)
+                      const Icon(
+                        Icons.star_rounded,
+                        size: 14,
+                        color: Color(0xFFF59E0B),
+                      )
+                    else if (planTier == ShellPlanTier.premium)
+                      SvgPicture.asset(
+                        'assets/svg_icon/ic_pro_fill.svg',
+                        package: 'tio_core',
+                        width: 14,
+                        height: 14,
+                        colorFilter: ColorFilter.mode(
+                          colorScheme.onPrimaryContainer,
+                          BlendMode.srcIn,
+                        ),
+                      )
+                    else
+                      SvgPicture.asset(
+                        'assets/svg_icon/ic_pro_outline.svg',
+                        package: 'tio_core',
+                        width: 14,
+                        height: 14,
+                        colorFilter: ColorFilter.mode(
+                          colorScheme.onPrimaryContainer,
+                          BlendMode.srcIn,
                         ),
                       ),
-                    ],
-                  ),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        planTier.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style:
+                            Theme.of(context).textTheme.labelMedium?.copyWith(
+                                  color: colorScheme.onPrimaryContainer,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -125,7 +122,7 @@ class TioShellTopBar extends StatelessWidget implements PreferredSizeWidget {
         IconButton(
           tooltip: 'Profile',
           icon: TioAvatar(
-            key: ValueKey('top-bar-avatar-$avatarUrl-$userName'),
+            key: ValueKey('top-bar-avatar-$avatarUrl-$userName-$planTier'),
             size: TioAvatarSize.small,
             displayName: userName,
             imageUrl: avatarUrl,

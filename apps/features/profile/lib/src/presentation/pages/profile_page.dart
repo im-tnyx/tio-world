@@ -209,6 +209,7 @@ class ProfilePage extends StatelessWidget {
                           // Main Avatar Click
                           Center(
                             child: InkWell(
+                              key: const ValueKey('profile-avatar-entry'),
                               customBorder: const CircleBorder(),
                               onTap: () {
                                 if (hasValidPhoto) {

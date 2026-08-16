@@ -4,7 +4,7 @@ import 'package:tio_core/core.dart';
 import '../../../domain/domain.dart';
 import 'workout_screen_components.dart';
 
-class SpecialEventScreen extends StatelessWidget {
+class SpecialEventScreen extends StatefulWidget {
   const SpecialEventScreen({
     required this.value,
     required this.flowPlan,
@@ -19,32 +19,109 @@ class SpecialEventScreen extends StatelessWidget {
   final String? errorText;
 
   @override
+  State<SpecialEventScreen> createState() => _SpecialEventScreenState();
+}
+
+class _SpecialEventScreenState extends State<SpecialEventScreen> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+  }
+
+  @override
+  void didUpdateWidget(covariant SpecialEventScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value && _controller.text != widget.value) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final colors = TioTheme.colors(context);
+    final textTheme = Theme.of(context).textTheme;
+
     return WorkoutScreenScaffold(
       stepId: WorkoutStepId.specialEvent,
-      flowPlan: flowPlan,
+      flowPlan: widget.flowPlan,
       title: 'Are you training for a special event?',
       description:
-          'Optional: add an event or milestone if you want Tio to understand the context of your training goal.',
-      errorText: errorText,
+          "Tell us about any competition, race, or event you're preparing for",
+      errorText: widget.errorText,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TioInput(
+          Container(
             key: const ValueKey('workout-special-event-input'),
-            value: value,
-            onChanged: onChanged,
-            label: 'Special event',
-            hint: 'Event or milestone',
-            helperText: 'Optional',
-            textInputAction: TextInputAction.done,
+            child: TextFormField(
+              controller: _controller,
+              onChanged: widget.onChanged,
+              maxLines: 4,
+              minLines: 3,
+              textAlignVertical: TextAlignVertical.top,
+              textCapitalization: TextCapitalization.sentences,
+              keyboardType: TextInputType.multiline,
+              style: textTheme.bodyLarge?.copyWith(
+                fontSize: 15,
+                color: colors.textPrimary,
+                height: 1.4,
+              ),
+              decoration: InputDecoration(
+                hintText:
+                    'e.g., Hyrox, Marathon, Triathlon, Spartan Race, Ironman...',
+                hintStyle: textTheme.bodyLarge?.copyWith(
+                  fontSize: 14,
+                  color: colors.textSecondary.withValues(alpha: 0.5),
+                  height: 1.4,
+                ),
+                contentPadding: const EdgeInsets.all(TioSpacing.large),
+                filled: true,
+                fillColor: colors.surface,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(TioRadius.large),
+                  borderSide: BorderSide(
+                    color: colors.outlineStrong.withValues(
+                      alpha: TioCardTokens.unselectedOutlineAlpha,
+                    ),
+                    width: TioCardTokens.unselectedBorderWidth,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(TioRadius.large),
+                  borderSide: BorderSide(
+                    color: colors.outlineStrong.withValues(
+                      alpha: TioCardTokens.unselectedOutlineAlpha,
+                    ),
+                    width: TioCardTokens.unselectedBorderWidth,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(TioRadius.large),
+                  borderSide: BorderSide(
+                    color: colors.primary,
+                    width: TioCardTokens.selectedBorderWidth,
+                  ),
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: TioSpacing.medium),
           Text(
-            'Leave this blank if you are not preparing for anything specific.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: context.tioColors.textSecondary,
-                ),
+            "Leave blank if you're not training for a specific event",
+            style: textTheme.bodyMedium?.copyWith(
+              fontSize: 13,
+              fontStyle: FontStyle.italic,
+              color: colors.textSecondary.withValues(alpha: 0.7),
+            ),
           ),
         ],
       ),

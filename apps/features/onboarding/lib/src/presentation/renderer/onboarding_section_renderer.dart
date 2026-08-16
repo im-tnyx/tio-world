@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../../domain/domain.dart';
 import '../controllers/controllers.dart';
+import '../sections/app_mode_section.dart';
+import '../sections/mobile_section.dart';
 import '../sections/nutrition_intro_section.dart';
 import '../sections/nutrition_section.dart';
-import '../sections/app_mode_section.dart';
 import '../sections/profile_section.dart';
 import '../sections/review_section.dart';
 import '../sections/targets_section.dart';
-import '../sections/workout_section.dart';
 import '../sections/workout_intro_section.dart';
+import '../sections/workout_section.dart';
 import '../state/state.dart';
 
 class OnboardingSectionRenderer extends StatelessWidget {
@@ -30,6 +31,10 @@ class OnboardingSectionRenderer extends StatelessWidget {
           controller: controller,
         ),
       OnboardingSectionId.profile => ProfileSection(
+          state: state,
+          controller: controller,
+        ),
+      OnboardingSectionId.mobile => MobileSection(
           state: state,
           controller: controller,
         ),

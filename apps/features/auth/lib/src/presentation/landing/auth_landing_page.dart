@@ -293,7 +293,7 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
 
                         const SizedBox(height: 16),
 
-                        // Reusable Legal terms & privacy policy disclaimer
+                        // Legal terms & privacy policy disclaimer
                         const TioTermsDisclaimer(),
                       ],
                     ),

@@ -132,7 +132,7 @@ void main() {
         primaryGoal: ProfileGoal.loseWeight,
         mode: GoalPaceMode.loss,
       );
-      expect(title, equals('Target Fat Loss Pace'));
+      expect(title, equals('How fast do you want to \nlose weight?'));
     });
 
     test('returns meaningful title for build muscle goal', () {
@@ -140,7 +140,7 @@ void main() {
         primaryGoal: ProfileGoal.buildMuscle,
         mode: GoalPaceMode.gain,
       );
-      expect(title, equals('Muscle Gain Pace'));
+      expect(title, equals('How fast do you want to \nbuild muscle?'));
     });
 
     test('returns maintenance title for maintenance mode', () {
@@ -148,7 +148,7 @@ void main() {
         primaryGoal: ProfileGoal.keepFit,
         mode: GoalPaceMode.maintenance,
       );
-      expect(title, equals('Energy Balance & Maintenance'));
+      expect(title, equals('How do you want to \nmaintain your weight?'));
     });
   });
 }

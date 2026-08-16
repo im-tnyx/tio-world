@@ -17,7 +17,7 @@ void main() {
     expect(controller.state.draft.status, isNot(OnboardingStatus.completed));
     expect(controller.state.stepId, OnboardingStepId.mode);
     expect(controller.state.currentSection, OnboardingSectionId.appMode);
-    expect(controller.state.flowPlan.steps, hasLength(7));
+    expect(controller.state.flowPlan.steps, hasLength(6));
   });
 
   test('each mode selection rebuilds the matching typed plan', () {
@@ -32,7 +32,6 @@ void main() {
       AppMode.nutrition: const [
         OnboardingStepId.mode,
         OnboardingStepId.profileBasics,
-        OnboardingStepId.nutritionIntro,
         OnboardingStepId.targets,
         OnboardingStepId.review,
       ],
@@ -41,7 +40,6 @@ void main() {
         OnboardingStepId.profileBasics,
         OnboardingStepId.workoutIntro,
         OnboardingStepId.workoutPreferences,
-        OnboardingStepId.nutritionIntro,
         OnboardingStepId.targets,
         OnboardingStepId.review,
       ],
@@ -83,27 +81,25 @@ void main() {
       entryPath: OnboardingEntryPath.firstRun,
       initialDraft: OnboardingDraft(
         selectedMode: AppMode.hybrid,
-        currentStepId: OnboardingStepId.nutritionIntro,
+        currentStepId: OnboardingStepId.workoutIntro,
         workoutIntroChoice: WorkoutIntroChoice.setupNow,
         profile: _validProfile(),
         workout: _validWorkout(),
         completedStepIds: const {
           OnboardingStepId.mode,
           OnboardingStepId.profileBasics,
-          OnboardingStepId.workoutIntro,
-          OnboardingStepId.workoutPreferences,
         },
       ),
     );
 
-    expect(controller.state.stepId, OnboardingStepId.nutritionIntro);
+    expect(controller.state.stepId, OnboardingStepId.workoutIntro);
 
     controller.selectMode(AppMode.workout);
 
-    expect(controller.state.stepId, OnboardingStepId.workoutPreferences);
+    expect(controller.state.stepId, OnboardingStepId.profileBasics);
     expect(
       controller.state.completedStepIds,
-      isNot(contains(OnboardingStepId.nutritionIntro)),
+      isNot(contains(OnboardingStepId.workoutIntro)),
     );
   });
 
@@ -156,7 +152,7 @@ void main() {
     expect(controller.state.progressStepCount, 18);
 
     await controller.next(onFinish: _completeImmediately);
-    expect(controller.state.stepId, OnboardingStepId.nutritionIntro);
+    expect(controller.state.stepId, OnboardingStepId.targets);
 
     controller.previous();
     expect(controller.state.stepId, OnboardingStepId.workoutIntro);
@@ -171,24 +167,6 @@ void main() {
 
     await controller.next(onFinish: _completeImmediately);
     expect(controller.state.stepId, OnboardingStepId.workoutPreferences);
-  });
-
-  test('nutrition intro advances to targets and Back restores it', () async {
-    final controller = OnboardingController(
-      entryPath: OnboardingEntryPath.firstRun,
-      initialDraft: OnboardingDraft(
-        selectedMode: AppMode.nutrition,
-        currentStepId: OnboardingStepId.nutritionIntro,
-        profile: _validProfile(),
-      ),
-    );
-
-    await controller.next(onFinish: _completeImmediately);
-    expect(controller.state.stepId, OnboardingStepId.targets);
-    expect(controller.state.draft.targets.currentStepId, TargetStepId.bridge);
-
-    controller.previous();
-    expect(controller.state.stepId, OnboardingStepId.nutritionIntro);
   });
 
   test('mode change away from hybrid clears workout intro choice', () {
@@ -286,7 +264,7 @@ void main() {
     for (final entry in {
       AppMode.workout: OnboardingStepId.workoutPreferences,
       AppMode.hybrid: OnboardingStepId.workoutIntro,
-      AppMode.nutrition: OnboardingStepId.nutritionIntro,
+      AppMode.nutrition: OnboardingStepId.targets,
     }.entries) {
       final controller = OnboardingController(
         entryPath: OnboardingEntryPath.firstRun,
@@ -329,14 +307,14 @@ void main() {
 
     controller.selectMode(AppMode.hybrid);
     controller.selectWorkoutIntroChoice(WorkoutIntroChoice.setupNow);
-    expect(controller.state.progressStepCount, 26);
+    expect(controller.state.progressStepCount, 25);
     expect(controller.state.progressStepNumber, 0); // on AppMode
     expect(controller.state.progressValue, 0.0);
 
     await controller.next(onFinish: _completeImmediately);
     // Profile name
     expect(controller.state.progressStepNumber, 1);
-    expect(controller.state.progressValue, closeTo(1 / 26, 0.0001));
+    expect(controller.state.progressValue, closeTo(1 / 25, 0.0001));
 
     final reviewController = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
@@ -348,7 +326,7 @@ void main() {
         workout: _validWorkout(),
       ),
     );
-    expect(reviewController.state.progressStepNumber, 26);
+    expect(reviewController.state.progressStepNumber, 25);
     expect(reviewController.state.progressValue, 1.0);
   });
 

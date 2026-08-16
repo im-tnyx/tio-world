@@ -59,7 +59,7 @@ class PersistOnboardingOwnerDataUseCase {
     } catch (e, st) {
       throw OwnerPersistenceException(
         owner: OwnerPersistenceTarget.profile,
-        message: 'Failed to persist profile setup data.',
+        message: 'Failed to persist profile setup data: $e',
         cause: e,
         stackTrace: st,
       );
@@ -86,7 +86,7 @@ class PersistOnboardingOwnerDataUseCase {
       } catch (e, st) {
         throw OwnerPersistenceException(
           owner: OwnerPersistenceTarget.workout,
-          message: 'Failed to persist workout preferences data.',
+          message: 'Failed to persist workout preferences data: $e',
           cause: e,
           stackTrace: st,
         );
@@ -114,7 +114,7 @@ class PersistOnboardingOwnerDataUseCase {
     } catch (e, st) {
       throw OwnerPersistenceException(
         owner: OwnerPersistenceTarget.targets,
-        message: 'Failed to persist targets setup data.',
+        message: 'Failed to persist targets setup data: $e',
         cause: e,
         stackTrace: st,
       );

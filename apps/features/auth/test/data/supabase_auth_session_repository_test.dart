@@ -52,6 +52,33 @@ void main() {
       expect(authSession.photoUrl, 'https://example.com/avatar.png');
     });
 
+    test('sessionState stream emits initial unauthenticated state immediately', () async {
+      final repository = SupabaseAuthSessionRepository(
+        client: FakeSupabaseClient(currentUser: null),
+      );
+
+      final state = await repository.sessionState.first;
+      expect(state, isA<AuthSessionUnauthenticated>());
+    });
+
+    test('sessionState stream emits initial authenticated state immediately', () async {
+      final fakeUser = User(
+        id: 'usr-999',
+        appMetadata: const {},
+        userMetadata: const {'full_name': 'John Doe'},
+        aud: 'authenticated',
+        createdAt: DateTime.now().toIso8601String(),
+      );
+
+      final repository = SupabaseAuthSessionRepository(
+        client: FakeSupabaseClient(currentUser: fakeUser),
+      );
+
+      final state = await repository.sessionState.first;
+      expect(state, isA<AuthSessionAuthenticated>());
+      expect((state as AuthSessionAuthenticated).session.userId, 'usr-999');
+    });
+
     test('signOut calls client.auth.signOut', () async {
       final fakeGoTrue = FakeGoTrueClient();
       final fakeClient = FakeSupabaseClient(goTrueClient: fakeGoTrue);

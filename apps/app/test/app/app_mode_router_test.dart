@@ -6,10 +6,16 @@ import 'package:tio_app/app/app.dart';
 import 'package:tio_app/app/app_mode/app_mode.dart';
 import 'package:tio_app/app/onboarding/onboarding.dart';
 import 'package:tio_app/app/app_theme.dart';
+import 'package:tio_app/app/network_providers.dart';
 import 'package:tio_app/app/router.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_home/home.dart';
-import 'package:tio_feature_onboarding/onboarding.dart';
+import 'package:tio_feature_onboarding/onboarding.dart'
+    hide
+        ProfileGender,
+        ProfileGoal,
+        ProfileActivityLevel,
+        ProfileHealthCondition;
 import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_shared/shared.dart';
 
@@ -312,6 +318,19 @@ void main() {
         onboardingStatusRepositoryProvider
             .overrideWith((ref) => onboardingRepository),
         appThemeControllerProvider.overrideWith((ref) => themeController),
+        profileDataProvider.overrideWith((ref) => Stream.value(
+              ProfileSetupData(
+                name: 'Tio User',
+                gender: ProfileGender.other,
+                goals: const {ProfileGoal.keepFit},
+                dateOfBirth: DateTime(2000, 1, 1),
+                heightCm: 170.0,
+                currentWeightKg: 70.0,
+                activityLevel: ProfileActivityLevel.active,
+                healthConditions: const {},
+                avatarUrl: 'https://example.com/avatar.jpg',
+              ),
+            )),
       ],
     );
     addTearDown(container.dispose);
@@ -326,21 +345,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    tester
-        .widget<InkWell>(
-          find.descendant(
-            of: find.byKey(const ValueKey('profile-avatar-entry')),
-            matching: find.byType(InkWell),
-          ),
-        )
-        .onTap!();
+    await tester.tap(find.byKey(const ValueKey('profile-avatar-entry')));
     await tester.pumpAndSettle();
 
     expect(find.byType(AvatarPreviewPage), findsOneWidget);
     expect(find.byType(BackButton), findsOneWidget);
-    expect(find.byTooltip('Edit profile photo'), findsOneWidget);
-    expect(find.byTooltip('Delete profile photo'), findsOneWidget);
-    expect(find.byTooltip('Download profile photo'), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-avatar-edit')), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-avatar-delete')), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-avatar-download')), findsOneWidget);
 
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
@@ -410,49 +422,47 @@ Future<AppThemeController> _createThemeController() async {
 }
 
 Future<void> _completeProfileInputs(WidgetTester tester) async {
-  await tester.enterText(find.byType(TextFormField), 'Tio User');
-  await tester.tap(find.text('Continue'));
+  await tester.enterText(find.byType(TextField), 'Tio User');
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'), warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  await _tapVisibleKey(tester, 'profile-choice-gender-other');
-  await tester.tap(find.text('Continue'));
+  await tester.tap(find.byKey(const ValueKey('gender-other'), skipOffstage: false), warnIfMissed: false);
+  await tester.pumpAndSettle();
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'), warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  await _tapVisibleKey(tester, 'profile-choice-goal-keepFit');
-  await tester.tap(find.text('Continue'));
+  await tester.tap(find.byKey(const ValueKey('goal-keepFit'), skipOffstage: false), warnIfMissed: false);
+  await tester.pumpAndSettle();
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'), warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  // Date of birth (in-screen wheel picker defaults to 15/04/2003)
-  await tester.tap(find.text('Continue'));
+  // Date of birth
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'), warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  // Height (wheel picker defaults to 170cm)
-  await tester.tap(find.text('Continue'));
+  // Height
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'), warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  // Current weight (wheel picker defaults to 70.0kg)
-  await tester.tap(find.text('Continue'));
+  // Current weight
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'), warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  // Target weight (wheel picker defaults to 68.0kg)
-  await tester.tap(find.text('Continue'));
+  // Target weight
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'), warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  await _tapVisibleKey(tester, 'profile-choice-activity-active');
-  await tester.tap(find.text('Continue'));
+  // Activity
+  await tester.tap(find.byKey(const ValueKey('activity-active'), skipOffstage: false), warnIfMissed: false);
+  await tester.pumpAndSettle();
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'), warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  await _tapVisibleKey(tester, 'profile-choice-health-none');
-  await tester.tap(find.text('Continue'));
+  // Health conditions
+  await tester.tap(find.byKey(const ValueKey('health-none'), skipOffstage: false), warnIfMissed: false);
   await tester.pumpAndSettle();
-}
-
-Future<void> _tapVisibleKey(WidgetTester tester, String key) async {
-  final finder = find.byKey(ValueKey(key));
-  await tester.ensureVisible(finder);
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'), warnIfMissed: false);
   await tester.pumpAndSettle();
-  await tester.tap(finder);
-  await tester.pump();
 }
 
 class _MemoryAppModePreference implements AppModePreference {

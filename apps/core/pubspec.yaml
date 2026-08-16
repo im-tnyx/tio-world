@@ -24,4 +24,7 @@ flutter:
     - assets/nav_icon/
     - assets/image/
     - assets/image/equipments/
+    - assets/image/specific_focus_area/
+    - assets/image/specific_focus_area/male/
+    - assets/image/specific_focus_area/female/
     - assets/svg_icon/

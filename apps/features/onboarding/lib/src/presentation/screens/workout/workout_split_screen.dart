@@ -25,7 +25,7 @@ class WorkoutSplitScreen extends StatelessWidget {
       flowPlan: flowPlan,
       title: 'What workout split fits you?',
       description:
-          'Choose the structure you prefer. This captures your preference only; program generation stays in the Workout domain.',
+          'Choose how you want to divide your training sessions across the week for optimal recovery.',
       errorText: errorText,
       child: Column(
         children: [
@@ -57,10 +57,13 @@ String _label(WorkoutSplit split) => switch (split) {
 
 String _description(WorkoutSplit split) => switch (split) {
       WorkoutSplit.auto =>
-        'Let Tio choose a split from your goals, schedule, and experience.',
-      WorkoutSplit.fullBody => 'Train the whole body across each main session.',
+        'Let Tio recommend the optimal routine tailored to your goals and weekly schedule.',
+      WorkoutSplit.fullBody =>
+        'Target all major muscle groups in each session with built-in recovery days.',
       WorkoutSplit.upperLower =>
-        'Alternate upper-body and lower-body focused sessions.',
-      WorkoutSplit.ppl => 'Separate push, pull, and legs across the week.',
-      WorkoutSplit.bodyPart => 'Use more isolated muscle-group training days.',
+        'Alternate between upper-body and lower-body workouts for balanced volume.',
+      WorkoutSplit.ppl =>
+        'Separate pushing movements, pulling exercises, and leg training across the week.',
+      WorkoutSplit.bodyPart =>
+        'Focus on specific individual muscle groups on dedicated training days.',
     };

@@ -100,7 +100,15 @@ class _OtherConditionCardState extends State<_OtherConditionCard> {
     }
     if (widget.isSelected && !oldWidget.isSelected) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _focusNode.requestFocus();
+        if (mounted) {
+          _focusNode.requestFocus();
+          Scrollable.ensureVisible(
+            context,
+            alignment: 0.85,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+          );
+        }
       });
     } else if (!widget.isSelected && oldWidget.isSelected) {
       _focusNode.unfocus();
@@ -176,6 +184,7 @@ class _OtherConditionCardState extends State<_OtherConditionCard> {
                   minLines: 1,
                   maxLines: 2,
                   textInputAction: TextInputAction.done,
+                  scrollPadding: const EdgeInsets.only(bottom: 110),
                   cursorColor: colors.primary,
                   style: TextStyle(
                     fontSize: 14,

@@ -9,13 +9,18 @@ class BuildOnboardingFlowUseCase {
     required OnboardingEntryPath entryPath,
     AppMode? mode,
     WorkoutIntroChoice? workoutIntroChoice,
+    bool includeMobile = true,
   }) {
     return OnboardingFlowPlan(
       entryPath: entryPath,
       mode: mode,
       steps: mode == null
           ? const [_mode]
-          : _stepsByMode(mode, workoutIntroChoice: workoutIntroChoice),
+          : _stepsByMode(
+              mode,
+              workoutIntroChoice: workoutIntroChoice,
+              includeMobile: includeMobile,
+            ),
     );
   }
 
@@ -39,37 +44,40 @@ class BuildOnboardingFlowUseCase {
 List<OnboardingStepDefinition> _stepsByMode(
   AppMode mode, {
   WorkoutIntroChoice? workoutIntroChoice,
+  bool includeMobile = true,
 }) {
+  final profileAndMobile = <OnboardingStepDefinition>[
+    _profileBasics,
+    if (includeMobile) _mobile,
+  ];
+
   return switch (mode) {
-    AppMode.workout => const [
+    AppMode.workout => [
         _mode,
-        _profileBasics,
+        ...profileAndMobile,
         _workoutPreferences,
         _targets,
         _review,
       ],
-    AppMode.nutrition => const [
+    AppMode.nutrition => [
         _mode,
-        _profileBasics,
-        _nutritionIntro,
+        ...profileAndMobile,
         _targets,
         _review,
       ],
     AppMode.hybrid => workoutIntroChoice == WorkoutIntroChoice.later
-        ? const [
+        ? [
             _mode,
-            _profileBasics,
+            ...profileAndMobile,
             _workoutIntro,
-            _nutritionIntro,
             _targets,
             _review,
           ]
-        : const [
+        : [
             _mode,
-            _profileBasics,
+            ...profileAndMobile,
             _workoutIntro,
             _workoutPreferences,
-            _nutritionIntro,
             _targets,
             _review,
           ],
@@ -88,6 +96,12 @@ const _profileBasics = OnboardingStepDefinition(
   owner: OnboardingStepOwner.profile,
   progressTitle: 'About you',
 );
+const _mobile = OnboardingStepDefinition(
+  id: OnboardingStepId.mobile,
+  section: OnboardingSectionId.mobile,
+  owner: OnboardingStepOwner.profile,
+  progressTitle: 'Mobile verification',
+);
 const _workoutIntro = OnboardingStepDefinition(
   id: OnboardingStepId.workoutIntro,
   section: OnboardingSectionId.workoutIntro,
@@ -99,12 +113,6 @@ const _workoutPreferences = OnboardingStepDefinition(
   section: OnboardingSectionId.workout,
   owner: OnboardingStepOwner.workout,
   progressTitle: 'Training preferences',
-);
-const _nutritionIntro = OnboardingStepDefinition(
-  id: OnboardingStepId.nutritionIntro,
-  section: OnboardingSectionId.nutritionIntro,
-  owner: OnboardingStepOwner.nutrition,
-  progressTitle: 'Nutrition setup',
 );
 const _targets = OnboardingStepDefinition(
   id: OnboardingStepId.targets,

@@ -218,8 +218,10 @@ class _LoginPageState extends State<LoginPage> {
     final inputFocusedBorderColor = colors.textPrimary;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: colors.background,
       body: SafeArea(
+        maintainBottomViewPadding: true,
         child: Stack(
           children: [
             Column(
@@ -372,7 +374,7 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                         ),
-
+                        const SizedBox(height: 24),
                         // Login Action Button (Reusable TioButton Component)
                         TioButton.primary(
                           key: const ValueKey('login-submit-button'),
@@ -441,7 +443,7 @@ class _LoginPageState extends State<LoginPage> {
 
                 // Footer: Don't have an account? Sign Up
                 Padding(
-                  padding: const EdgeInsets.only(bottom: TioSpacing.large, top: TioSpacing.small),
+                  padding: const EdgeInsets.only(bottom: 0, top: TioSpacing.small),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

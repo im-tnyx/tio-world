@@ -30,6 +30,9 @@ class OnboardingCompatibilitySection extends StatelessWidget {
       OnboardingStepId.profileBasics => throw StateError(
           'The profile step must render through ProfileSection.',
         ),
+      OnboardingStepId.mobile => throw StateError(
+          'The mobile step must render through MobileSection.',
+        ),
       OnboardingStepId.workoutIntro => throw StateError(
           'The workout intro step must render through WorkoutIntroSection.',
         ),

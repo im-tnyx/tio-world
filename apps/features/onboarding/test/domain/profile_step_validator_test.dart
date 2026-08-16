@@ -87,7 +87,7 @@ void main() {
     );
   });
 
-  test('health is optional but Other requires a description', () {
+  test('health conditions step is optional and non-blocking', () {
     expect(
       validator.validate(ProfileOnboardingDraft(
         currentStepId: ProfileStepId.healthConditions,
@@ -99,7 +99,7 @@ void main() {
         currentStepId: ProfileStepId.healthConditions,
         healthConditions: const {ProfileHealthCondition.other},
       )),
-      contains(ProfileStepId.healthConditions),
+      isEmpty,
     );
     expect(
       validator.validate(ProfileOnboardingDraft(

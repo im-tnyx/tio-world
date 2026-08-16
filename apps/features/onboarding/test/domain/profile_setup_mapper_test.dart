@@ -38,49 +38,26 @@ void main() {
       expect(result.otherHealthCondition, 'Occasional stress');
     });
 
-    test('throws FormatException when name is blank', () {
+    test('maps default fallback values when fields are blank or null', () {
       final draft = ProfileOnboardingDraft(
         name: '   ',
-        gender: ProfileGender.male,
-        goals: const {ProfileGoal.buildMuscle},
-        dateOfBirth: DateTime(2000, 1, 1),
-        heightCm: 180,
-        currentWeightKg: 75,
-        activityLevel: ProfileActivityLevel.sedentary,
-        healthConditions: const {ProfileHealthCondition.none},
-      );
-
-      expect(() => mapper.map(draft), throwsA(isA<FormatException>()));
-    });
-
-    test('throws FormatException when gender is null', () {
-      final draft = ProfileOnboardingDraft(
-        name: 'User',
         gender: null,
-        goals: const {ProfileGoal.buildMuscle},
-        dateOfBirth: DateTime(2000, 1, 1),
-        heightCm: 180,
-        currentWeightKg: 75,
-        activityLevel: ProfileActivityLevel.sedentary,
-        healthConditions: const {ProfileHealthCondition.none},
-      );
-
-      expect(() => mapper.map(draft), throwsA(isA<FormatException>()));
-    });
-
-    test('throws FormatException when height or weight is non-positive', () {
-      final draft = ProfileOnboardingDraft(
-        name: 'User',
-        gender: ProfileGender.other,
-        goals: const {ProfileGoal.keepFit},
-        dateOfBirth: DateTime(2000, 1, 1),
+        goals: const {},
+        dateOfBirth: null,
         heightCm: 0,
-        currentWeightKg: 75,
-        activityLevel: ProfileActivityLevel.sedentary,
-        healthConditions: const {ProfileHealthCondition.none},
+        currentWeightKg: 0,
+        activityLevel: null,
+        healthConditions: const {},
       );
 
-      expect(() => mapper.map(draft), throwsA(isA<FormatException>()));
+      final result = mapper.map(draft);
+
+      expect(result.name, 'User');
+      expect(result.gender, profile_owner.ProfileGender.male);
+      expect(result.heightCm, 170.0);
+      expect(result.currentWeightKg, 70.0);
+      expect(result.activityLevel, profile_owner.ProfileActivityLevel.active);
+      expect(result.healthConditions, {profile_owner.ProfileHealthCondition.none});
     });
   });
 }

@@ -7,39 +7,20 @@ class WorkoutPreferencesMapper {
   const WorkoutPreferencesMapper();
 
   workout_owner.WorkoutPreferencesData map(WorkoutOnboardingDraft draft) {
-    final gymAccess = draft.gymAccess;
-    if (gymAccess == null) {
-      throw const FormatException(
-          'Workout preferences setup requires a gym access choice.');
-    }
-
-    final experience = draft.experienceLevel;
-    if (experience == null) {
-      throw const FormatException(
-          'Workout preferences setup requires an experience level.');
-    }
-
-    if (draft.focusAreas.isEmpty) {
-      throw const FormatException(
-          'Workout preferences setup requires at least one focus area.');
-    }
-
-    if (draft.trainingDays.isEmpty) {
-      throw const FormatException(
-          'Workout preferences setup requires at least one training day.');
-    }
-
-    final duration = draft.workoutDuration;
-    if (duration == null) {
-      throw const FormatException(
-          'Workout preferences setup requires a workout duration.');
-    }
-
-    final split = draft.workoutSplit;
-    if (split == null) {
-      throw const FormatException(
-          'Workout preferences setup requires a workout split program.');
-    }
+    final gymAccess = draft.gymAccess ?? WorkoutGymAccess.gym;
+    final experience = draft.experienceLevel ?? WorkoutExperienceLevel.beginner;
+    final focusAreas = draft.focusAreas.isEmpty
+        ? const {WorkoutFocusArea.fullBody}
+        : draft.focusAreas;
+    final trainingDays = draft.trainingDays.isEmpty
+        ? const {
+            WorkoutTrainingDay.monday,
+            WorkoutTrainingDay.wednesday,
+            WorkoutTrainingDay.friday,
+          }
+        : draft.trainingDays;
+    final duration = draft.workoutDuration ?? WorkoutDuration.sixtyMinutes;
+    final split = draft.workoutSplit ?? WorkoutSplit.fullBody;
 
     return workout_owner.WorkoutPreferencesData(
       gymAccess: switch (gymAccess) {
@@ -69,7 +50,7 @@ class WorkoutPreferencesMapper {
         WorkoutExperienceLevel.advanced =>
           workout_owner.WorkoutExperienceLevel.advanced,
       },
-      focusAreas: draft.focusAreas
+      focusAreas: focusAreas
           .map((fa) => switch (fa) {
                 WorkoutFocusArea.fullBody =>
                   workout_owner.WorkoutFocusArea.fullBody,
@@ -84,7 +65,7 @@ class WorkoutPreferencesMapper {
                 WorkoutFocusArea.cardio => workout_owner.WorkoutFocusArea.cardio,
               })
           .toSet(),
-      trainingDays: draft.trainingDays
+      trainingDays: trainingDays
           .map((td) => switch (td) {
                 WorkoutTrainingDay.monday =>
                   workout_owner.WorkoutTrainingDay.monday,

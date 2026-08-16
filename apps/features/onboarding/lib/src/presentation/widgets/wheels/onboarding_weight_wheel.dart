@@ -53,12 +53,6 @@ class _OnboardingWeightWheelState extends State<OnboardingWeightWheel> {
     _unitController = FixedExtentScrollController(
       initialItem: _selectedUnitIndex,
     );
-
-    if (widget.valueKg == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) widget.onChanged(_selectedKg);
-      });
-    }
   }
 
   @override

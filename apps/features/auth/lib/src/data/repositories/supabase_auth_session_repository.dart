@@ -17,15 +17,21 @@ class SupabaseAuthSessionRepository implements AuthSessionRepository {
   final SupabaseClient _client;
 
   @override
-  Stream<AuthSessionState> get sessionState {
-    return _client.auth.onAuthStateChange.map((data) {
+  Stream<AuthSessionState> get sessionState async* {
+    final initialUser = _client.auth.currentUser;
+    if (initialUser != null) {
+      yield AuthSessionAuthenticated(_mapUser(initialUser));
+    } else {
+      yield const AuthSessionUnauthenticated();
+    }
+    yield* _client.auth.onAuthStateChange.map((data) {
       final session = data.session;
       final user = session?.user ?? _client.auth.currentUser;
       if (user != null) {
         return AuthSessionAuthenticated(_mapUser(user));
       }
       return const AuthSessionUnauthenticated();
-    }).asBroadcastStream();
+    });
   }
 
   @override

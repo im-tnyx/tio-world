@@ -20,6 +20,8 @@ class ProfileSetupData {
     required this.activityLevel,
     required this.healthConditions,
     this.otherHealthCondition,
+    this.mobile,
+    this.isMobileVerified = false,
   });
 
   final String name;
@@ -36,6 +38,8 @@ class ProfileSetupData {
   final ProfileActivityLevel activityLevel;
   final Set<ProfileHealthCondition> healthConditions;
   final String? otherHealthCondition;
+  final String? mobile;
+  final bool isMobileVerified;
 
   @override
   bool operator ==(Object other) {
@@ -57,7 +61,9 @@ class ProfileSetupData {
             activityLevel == other.activityLevel &&
             healthConditions.length == other.healthConditions.length &&
             healthConditions.containsAll(other.healthConditions) &&
-            otherHealthCondition == other.otherHealthCondition;
+            otherHealthCondition == other.otherHealthCondition &&
+            mobile == other.mobile &&
+            isMobileVerified == other.isMobileVerified;
   }
 
   @override
@@ -75,11 +81,12 @@ class ProfileSetupData {
         activityLevel,
         Object.hashAll(healthConditions),
         otherHealthCondition,
+        mobile,
+        isMobileVerified,
       );
 
   @override
   String toString() {
-    // Redact sensitive details in default string representation
-    return 'ProfileSetupData(name: $name, username: $username, gender: $gender, goals: $goals)';
+    return 'ProfileSetupData(name: $name, username: $username, gender: $gender, mobile: $mobile, verified: $isMobileVerified)';
   }
 }

@@ -58,24 +58,9 @@ class GoalPaceResolver {
     required GoalPaceMode mode,
   }) {
     return switch (mode) {
-      GoalPaceMode.loss => switch (primaryGoal) {
-          ProfileGoal.buildMuscle => 'Fat Loss with Muscle Retention',
-          ProfileGoal.loseWeight => 'Target Fat Loss Pace',
-          ProfileGoal.keepFit => 'Leaner Target Pace',
-          _ => 'Target Weight Loss Pace',
-        },
-      GoalPaceMode.gain => switch (primaryGoal) {
-          ProfileGoal.buildMuscle => 'Muscle Gain Pace',
-          ProfileGoal.loseWeight => 'Healthy Weight Gain Pace',
-          ProfileGoal.keepFit => 'Strength & Growth Pace',
-          _ => 'Target Weight Gain Pace',
-        },
-      GoalPaceMode.maintenance => switch (primaryGoal) {
-          ProfileGoal.buildMuscle => 'Body Recomposition & Maintenance',
-          ProfileGoal.loseWeight => 'Habit & Weight Maintenance',
-          ProfileGoal.keepFit => 'Energy Balance & Maintenance',
-          _ => 'Weight Maintenance',
-        },
+      GoalPaceMode.loss => 'How fast do you want to \nlose weight?',
+      GoalPaceMode.gain => 'How fast do you want to \nbuild muscle?',
+      GoalPaceMode.maintenance => 'How do you want to \nmaintain your weight?',
     };
   }
 

@@ -23,6 +23,10 @@ class BuildOnboardingProgressPlanUseCase {
           }
           break;
 
+        case OnboardingStepId.mobile:
+          items.add(const MobileProgressItem());
+          break;
+
         case OnboardingStepId.workoutIntro:
           items.add(const WorkoutIntroProgressItem());
           break;

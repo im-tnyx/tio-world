@@ -50,30 +50,23 @@ void main() {
       expect(result.specialEvent, 'Wedding in December');
     });
 
-    test('throws FormatException when gym access is null', () {
-      const draft = WorkoutOnboardingDraft(
-        gymAccess: null,
-        experienceLevel: WorkoutExperienceLevel.beginner,
-        focusAreas: {WorkoutFocusArea.fullBody},
-        trainingDays: {WorkoutTrainingDay.monday},
-        workoutDuration: WorkoutDuration.thirtyMinutes,
-        workoutSplit: WorkoutSplit.fullBody,
-      );
+    test('maps safe fallback defaults when fields are null or empty', () {
+      const draft = WorkoutOnboardingDraft();
 
-      expect(() => mapper.map(draft), throwsA(isA<FormatException>()));
-    });
+      final result = mapper.map(draft);
 
-    test('throws FormatException when focusAreas or trainingDays are empty', () {
-      const draft = WorkoutOnboardingDraft(
-        gymAccess: WorkoutGymAccess.gym,
-        experienceLevel: WorkoutExperienceLevel.beginner,
-        focusAreas: {},
-        trainingDays: {WorkoutTrainingDay.monday},
-        workoutDuration: WorkoutDuration.thirtyMinutes,
-        workoutSplit: WorkoutSplit.fullBody,
-      );
-
-      expect(() => mapper.map(draft), throwsA(isA<FormatException>()));
+      expect(result.gymAccess, workout_owner.WorkoutGymAccess.gym);
+      expect(result.experienceLevel, workout_owner.WorkoutExperienceLevel.beginner);
+      expect(result.focusAreas, {workout_owner.WorkoutFocusArea.fullBody});
+      expect(result.trainingDays, {
+        workout_owner.WorkoutTrainingDay.monday,
+        workout_owner.WorkoutTrainingDay.wednesday,
+        workout_owner.WorkoutTrainingDay.friday,
+      });
+      expect(result.workoutDuration, workout_owner.WorkoutDuration.sixtyMinutes);
+      expect(result.workoutSplit, workout_owner.WorkoutSplit.fullBody);
+      expect(result.healthConcerns, isNull);
+      expect(result.specialEvent, isNull);
     });
   });
 }

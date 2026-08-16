@@ -104,9 +104,7 @@ class _ModeChoiceCard extends StatelessWidget {
                 color: selected
                     ? colors.primary
                     : colors.outlineStrong.withValues(alpha: 0.35),
-                width: selected
-                    ? TioCardTokens.selectedBorderWidth
-                    : TioCardTokens.unselectedBorderWidth,
+                width: 1.0,
               ),
             ),
             child: Row(

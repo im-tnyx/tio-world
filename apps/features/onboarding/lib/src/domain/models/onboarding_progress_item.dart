@@ -28,6 +28,21 @@ class ProfileProgressItem extends OnboardingProgressItem {
   int get hashCode => stepId.hashCode;
 }
 
+class MobileProgressItem extends OnboardingProgressItem {
+  const MobileProgressItem();
+
+  @override
+  String get title => 'Mobile verification';
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MobileProgressItem && runtimeType == other.runtimeType;
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+}
+
 class WorkoutIntroProgressItem extends OnboardingProgressItem {
   const WorkoutIntroProgressItem();
 

@@ -6,7 +6,8 @@ import '../../domain/repositories/targets_setup_repository.dart';
 
 /// Supabase-backed implementation of [TargetsSetupRepository].
 ///
-/// Directly manages RLS-protected user daily targets and nutritional setup records in Postgres.
+/// Directly manages canonical RLS-protected user daily targets and nutritional setup
+/// records in Postgres (`public.user_nutrition_profiles`).
 class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
   const SupabaseTargetsSetupRepository({
     required SupabaseClient client,
@@ -16,40 +17,25 @@ class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
 
   @override
   Future<void> saveTargetsSetup(TargetsSetupData data) async {
-    final userId = _client.auth.currentUser?.id;
+    var userId = _client.auth.currentUser?.id;
+    if (userId == null || userId.isEmpty) {
+      try {
+        final res = await _client.auth.signInAnonymously();
+        userId = res.user?.id ?? _client.auth.currentUser?.id;
+      } catch (_) {}
+    }
     if (userId == null || userId.isEmpty) {
       throw StateError(
-          'Cannot persist targets setup: user is not authenticated.');
+          'Please sign in or create an account to save your targets.');
     }
 
-    final payload = {
-      'user_id': userId,
-      'daily_steps': data.dailySteps,
-      'sleep_target_minutes': data.sleepTargetMinutes,
-      'sleep_time_minutes': data.sleepTimeMinutes,
-      'wake_time_minutes': data.wakeTimeMinutes,
-      'water_ml': data.waterMl,
-      'goal_pace_kg_per_week': data.goalPaceKgPerWeek,
-      'target_calories': data.recommendation?.caloriesKcal,
-      'target_protein_grams': data.recommendation?.proteinGrams,
-      'target_carbs_grams': data.recommendation?.carbsGrams,
-      'target_fat_grams': data.recommendation?.fatGrams,
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    };
-
-    final hrsBed = (data.sleepTimeMinutes ~/ 60) % 24;
-    final minsBed = data.sleepTimeMinutes % 60;
-    final bedTimeStr =
-        '${hrsBed.toString().padLeft(2, '0')}:${minsBed.toString().padLeft(2, '0')}:00';
-
-    final hrsWake = (data.wakeTimeMinutes ~/ 60) % 24;
-    final minsWake = data.wakeTimeMinutes % 60;
-    final wakeTimeStr =
-        '${hrsWake.toString().padLeft(2, '0')}:${minsWake.toString().padLeft(2, '0')}:00';
+    final bedTimeStr = formatMinutesToTime(data.sleepTimeMinutes);
+    final wakeTimeStr = formatMinutesToTime(data.wakeTimeMinutes);
 
     final canonicalNutritionPayload = {
       'user_id': userId,
       'steps_target': data.dailySteps,
+      'sleep_target_minutes': data.sleepTargetMinutes,
       'water_target_ml': data.waterMl,
       'weekly_weight_change_kg': data.goalPaceKgPerWeek,
       'bed_time': bedTimeStr,
@@ -65,7 +51,8 @@ class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
           'fat': data.recommendation!.fatGrams,
         if (data.recommendation?.fiberGrams != null)
           'fiber': data.recommendation!.fiberGrams,
-        if (data.recommendation?.bmr != null) 'bmr': data.recommendation!.bmr,
+        if (data.recommendation?.bmr != null)
+          'bmr': data.recommendation!.bmr,
         if (data.recommendation?.tdee != null)
           'tdee': data.recommendation!.tdee,
       },
@@ -76,12 +63,26 @@ class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
       await _client
           .from('user_nutrition_profiles')
           .upsert(canonicalNutritionPayload);
-      return;
-    } catch (_) {
-      // Compatibility fallback if canonical table is pending migration in legacy environments
-      try {
-        await _client.from('user_targets').upsert(payload);
-      } catch (_) {}
+    } on PostgrestException catch (e) {
+      if (e.code == '42P01' || e.code == 'PGRST204' || e.code == '42703') {
+        final legacyPayload = {
+          'user_id': userId,
+          'daily_steps': data.dailySteps,
+          'sleep_target_minutes': data.sleepTargetMinutes,
+          'sleep_time_minutes': data.sleepTimeMinutes,
+          'wake_time_minutes': data.wakeTimeMinutes,
+          'water_ml': data.waterMl,
+          'goal_pace_kg_per_week': data.goalPaceKgPerWeek,
+          'target_calories': data.recommendation?.caloriesKcal,
+          'target_protein_grams': data.recommendation?.proteinGrams,
+          'target_carbs_grams': data.recommendation?.carbsGrams,
+          'target_fat_grams': data.recommendation?.fatGrams,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        };
+        await _client.from('user_targets').upsert(legacyPayload);
+      } else {
+        rethrow;
+      }
     }
   }
 
@@ -92,109 +93,128 @@ class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
       return null;
     }
 
-    Map<String, dynamic>? canonicalRow;
-    try {
-      canonicalRow = await _client
-          .from('user_nutrition_profiles')
-          .select()
-          .eq('user_id', userId)
-          .maybeSingle();
-    } catch (_) {}
+    final canonicalRow = await _client
+        .from('user_nutrition_profiles')
+        .select()
+        .eq('user_id', userId)
+        .maybeSingle();
 
-    if (canonicalRow != null) {
-      final steps = (canonicalRow['steps_target'] as num?)?.toInt() ?? 8000;
-      final water = (canonicalRow['water_target_ml'] as num?)?.toInt() ?? 2500;
-      final weeklyPace =
-          (canonicalRow['weekly_weight_change_kg'] as num?)?.toDouble() ?? 0.5;
+    if (canonicalRow == null) return null;
 
-      final bedStr = canonicalRow['bed_time'] as String? ?? '23:00:00';
-      final bedParts = bedStr.split(':');
-      final bedHours = int.tryParse(bedParts.first) ?? 23;
-      final bedMins = bedParts.length > 1 ? (int.tryParse(bedParts[1]) ?? 0) : 0;
-      final sleepTimeMinutes = (bedHours * 60) + bedMins;
-
-      final wakeStr = canonicalRow['wake_up_time'] as String? ?? '07:00:00';
-      final wakeParts = wakeStr.split(':');
-      final wakeHours = int.tryParse(wakeParts.first) ?? 7;
-      final wakeMins = wakeParts.length > 1 ? (int.tryParse(wakeParts[1]) ?? 0) : 0;
-      final wakeTimeMinutes = (wakeHours * 60) + wakeMins;
-
-      final diff = (wakeTimeMinutes - sleepTimeMinutes) % 1440;
-      final sleepTargetMinutes = diff > 0 ? diff : 480;
-
-      final macros = (canonicalRow['macro_targets'] as Map<String, dynamic>?) ?? {};
-      NutritionTargetRecommendation? recommendation;
-      if (macros.isNotEmpty && macros.containsKey('calories')) {
-        recommendation = NutritionTargetRecommendation(
-          caloriesKcal: (macros['calories'] as num?)?.toInt() ?? 2000,
-          proteinGrams: (macros['protein'] as num?)?.toInt() ?? 120,
-          carbsGrams: (macros['carbs'] as num?)?.toInt() ?? 200,
-          fatGrams: (macros['fat'] as num?)?.toInt() ?? 60,
-          fiberGrams: (macros['fiber'] as num?)?.toInt() ?? 30,
-          bmr: (macros['bmr'] as num?)?.toInt() ?? 1600,
-          tdee: (macros['tdee'] as num?)?.toInt() ?? 2200,
-        );
-      }
-
-      return TargetsSetupData(
-        dailySteps: steps,
-        sleepTargetMinutes: sleepTargetMinutes,
-        sleepTimeMinutes: sleepTimeMinutes,
-        wakeTimeMinutes: wakeTimeMinutes,
-        waterMl: water,
-        goalPaceKgPerWeek: weeklyPace,
-        recommendation: recommendation,
-      );
+    final rawSteps = canonicalRow['steps_target'];
+    if (rawSteps is! num) {
+      throw const FormatException(
+          'Missing or invalid required field: steps_target');
     }
+    final steps = rawSteps.toInt();
 
-    Map<String, dynamic>? row;
-    try {
-      row = await _client
-          .from('user_targets')
-          .select()
-          .eq('user_id', userId)
-          .maybeSingle();
-    } catch (_) {}
+    final rawSleepTarget = canonicalRow['sleep_target_minutes'];
+    if (rawSleepTarget is! num) {
+      throw const FormatException(
+          'Missing or invalid required field: sleep_target_minutes');
+    }
+    final sleepTargetMinutes = rawSleepTarget.toInt();
 
-    if (row == null) return null;
+    final rawBed = canonicalRow['bed_time'];
+    if (rawBed is! String || rawBed.trim().isEmpty) {
+      throw const FormatException(
+          'Missing or invalid required field: bed_time');
+    }
+    final sleepTimeMinutes = parseTimeToMinutes(rawBed);
 
-    final dailySteps = (row['daily_steps'] as num?)?.toInt() ?? 8000;
-    final sleepTargetMinutes =
-        (row['sleep_target_minutes'] as num?)?.toInt() ?? 480;
-    final sleepTimeMinutes =
-        (row['sleep_time_minutes'] as num?)?.toInt() ?? 1380;
-    final wakeTimeMinutes =
-        (row['wake_time_minutes'] as num?)?.toInt() ?? 420;
-    final waterMl = (row['water_ml'] as num?)?.toInt() ?? 2500;
-    final goalPace =
-        (row['goal_pace_kg_per_week'] as num?)?.toDouble() ?? 0.5;
+    final rawWake = canonicalRow['wake_up_time'];
+    if (rawWake is! String || rawWake.trim().isEmpty) {
+      throw const FormatException(
+          'Missing or invalid required field: wake_up_time');
+    }
+    final wakeTimeMinutes = parseTimeToMinutes(rawWake);
 
-    final calories = (row['target_calories'] as num?)?.toInt();
-    final protein = (row['target_protein_grams'] as num?)?.toInt();
-    final carbs = (row['target_carbs_grams'] as num?)?.toInt();
-    final fat = (row['target_fat_grams'] as num?)?.toInt();
+    final rawWater = canonicalRow['water_target_ml'];
+    if (rawWater is! num) {
+      throw const FormatException(
+          'Missing or invalid required field: water_target_ml');
+    }
+    final waterMl = rawWater.toInt();
 
-    NutritionTargetRecommendation? recommendation;
-    if (calories != null && protein != null && carbs != null && fat != null) {
-      recommendation = NutritionTargetRecommendation(
-        caloriesKcal: calories,
-        proteinGrams: protein,
-        carbsGrams: carbs,
-        fatGrams: fat,
-        fiberGrams: 30,
-        bmr: 1600,
-        tdee: 2200,
-      );
+    final rawPace = canonicalRow['weekly_weight_change_kg'];
+    if (rawPace is! num) {
+      throw const FormatException(
+          'Missing or invalid required field: weekly_weight_change_kg');
+    }
+    final weeklyPace = rawPace.toDouble();
+
+    final rawMacros = canonicalRow['macro_targets'];
+    final NutritionTargetRecommendation? recommendation;
+    if (rawMacros is Map<String, dynamic> && rawMacros.isNotEmpty) {
+      final calories = rawMacros['calories'];
+      final protein = rawMacros['protein'];
+      final carbs = rawMacros['carbs'];
+      final fat = rawMacros['fat'];
+      final fiber = rawMacros['fiber'];
+      final bmr = rawMacros['bmr'];
+      final tdee = rawMacros['tdee'];
+
+      if (calories is num &&
+          protein is num &&
+          carbs is num &&
+          fat is num &&
+          fiber is num &&
+          bmr is num &&
+          tdee is num) {
+        recommendation = NutritionTargetRecommendation(
+          caloriesKcal: calories.toInt(),
+          proteinGrams: protein.toInt(),
+          carbsGrams: carbs.toInt(),
+          fatGrams: fat.toInt(),
+          fiberGrams: fiber.toInt(),
+          bmr: bmr.toInt(),
+          tdee: tdee.toInt(),
+        );
+      } else {
+        throw const FormatException(
+            'Malformed macro_targets payload in database');
+      }
+    } else {
+      recommendation = null;
     }
 
     return TargetsSetupData(
-      dailySteps: dailySteps,
+      dailySteps: steps,
       sleepTargetMinutes: sleepTargetMinutes,
       sleepTimeMinutes: sleepTimeMinutes,
       wakeTimeMinutes: wakeTimeMinutes,
       waterMl: waterMl,
-      goalPaceKgPerWeek: goalPace,
+      goalPaceKgPerWeek: weeklyPace,
       recommendation: recommendation,
     );
+  }
+
+  /// Converts minutes from midnight into standard SQL TIME format `HH:mm:ss`.
+  static String formatMinutesToTime(int minutesFromMidnight) {
+    final normalized = minutesFromMidnight % 1440;
+    final nonNegative = normalized < 0 ? normalized + 1440 : normalized;
+    final hrs = nonNegative ~/ 60;
+    final mins = nonNegative % 60;
+    return '${hrs.toString().padLeft(2, '0')}:${mins.toString().padLeft(2, '0')}:00';
+  }
+
+  /// Parses a standard SQL TIME string (e.g. `23:00:00`, `07:30`) into minutes from midnight.
+  static int parseTimeToMinutes(String timeStr) {
+    final trimmed = timeStr.trim();
+    final parts = trimmed.split(':');
+    if (parts.length < 2) {
+      throw FormatException('Invalid SQL TIME format: $timeStr');
+    }
+    final hours = int.tryParse(parts[0]);
+    final minutes = int.tryParse(parts[1]);
+    if (hours == null ||
+        minutes == null ||
+        hours < 0 ||
+        hours > 23 ||
+        minutes < 0 ||
+        minutes > 59) {
+      throw FormatException('Invalid SQL TIME component values: $timeStr');
+    }
+    return (hours * 60) + minutes;
   }
 }

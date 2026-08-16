@@ -295,20 +295,32 @@ class OnboardingFlowPage extends ConsumerWidget {
                 showProgress: state.stepId != OnboardingStepId.mode,
               ),
               Expanded(
-                child: OnboardingContentHost(
-                  state: state,
-                  controller: controller,
-                  stepBuilder: stepBuilder,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: OnboardingContentHost(
+                        state: state,
+                        controller: controller,
+                        stepBuilder: stepBuilder,
+                      ),
+                    ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: OnboardingBottomBar(
+                        state: state,
+                        controller: controller,
+                        infoAction: infoAction,
+                        onContinue: () =>
+                            _handleContinue(context, state, controller),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-        ),
-        bottomNavigationBar: OnboardingBottomBar(
-          state: state,
-          controller: controller,
-          infoAction: infoAction,
-          onContinue: () => _handleContinue(context, state, controller),
         ),
       ),
     );

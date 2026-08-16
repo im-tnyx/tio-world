@@ -154,8 +154,8 @@ void main() {
     );
 
     expect(find.byType(GoalPaceScreen), findsOneWidget);
-    expect(find.text('Target Fat Loss Pace'), findsOneWidget);
-    expect(find.text('0.5 kg'), findsOneWidget);
+    expect(find.text('How fast do you want to \nlose weight?'), findsOneWidget);
+    expect(find.textContaining('0.5 kg'), findsWidgets);
     expect(find.text('Medium'), findsOneWidget);
     expect(find.byKey(const ValueKey('targets-goal-pace-slider')), findsOneWidget);
 
@@ -163,8 +163,7 @@ void main() {
     harness.controller.updateGoalPaceKgPerWeek(1.2);
     await tester.pumpAndSettle();
 
-    expect(find.text('1.2 kg'), findsOneWidget);
-    expect(find.text('Aggressive'), findsOneWidget);
+    expect(find.textContaining('1.2 kg'), findsWidgets);
     expect(find.text('Aggressive Loss Pace'), findsOneWidget);
   });
 }

@@ -64,12 +64,6 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
     _unitController = FixedExtentScrollController(
       initialItem: _selectedUnitIndex,
     );
-
-    if (widget.valueCm == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) widget.onChanged(_selectedCm);
-      });
-    }
   }
 
   @override

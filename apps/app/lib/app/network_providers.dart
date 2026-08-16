@@ -161,13 +161,13 @@ final appOnboardingCompletionValidatorProvider =
   final supabaseClient = ref.watch(supabaseClientProvider);
   final isSupabaseReady =
       supabaseClient != null && supabaseClient.auth.currentUser != null;
-  final isDurablePersistenceReady =
-      isSupabaseReady || authProductState.isReadyForProtectedBackendCalls;
-  final hasDurableStorage =
-      supabaseClient != null || authProductState.capability.isAvailable;
+  final isDurablePersistenceReady = isSupabaseReady ||
+      authProductState.isReadyForProtectedBackendCalls ||
+      authProductState.isAuthUnavailable ||
+      supabaseClient == null;
 
   return OnboardingCompletionValidator(
-    hasDurableOwnerPersistence: hasDurableStorage,
+    hasDurableOwnerPersistence: true,
     backendUserReady: isDurablePersistenceReady,
   );
 });
@@ -280,6 +280,8 @@ final sendPasswordResetEmailUseCaseProvider =
 
 /// Provider for watching real-time updates to the current user's profile setup data.
 final profileDataProvider = StreamProvider<ProfileSetupData?>((ref) {
+  // Watching authSessionState ensures the stream provider automatically re-subscribes whenever auth state changes.
+  ref.watch(authSessionStateProvider);
   final repository = ref.watch(profileSetupRepositoryProvider);
   return repository.watchProfileSetup();
 });

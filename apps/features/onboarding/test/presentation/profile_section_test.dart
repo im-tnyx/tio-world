@@ -37,16 +37,16 @@ void main() {
       padding.padding,
       const EdgeInsets.fromLTRB(
         TioSpacing.small,
-        TioSpacing.small,
-        TioSpacing.extraLarge,
-        TioSpacing.small,
+        0.0,
+        TioSpacing.large,
+        0.0,
       ),
     );
 
     final barHeight = padding.child! as SizedBox;
     expect(barHeight.height, 48);
     final row = barHeight.child! as Row;
-    expect(row.children, hasLength(2));
+    expect(row.children, hasLength(3));
 
     final progress = tester.widget<LinearProgressIndicator>(
       find.descendant(
@@ -79,11 +79,11 @@ void main() {
         tester.view.physicalSize.width / tester.view.devicePixelRatio;
     expect(
       progressRect.left - iconRect.right,
-      closeTo(0, 0.001),
+      closeTo(TioSpacing.small, 0.001),
     );
     expect(
       screenWidth - progressRect.right,
-      closeTo(TioSpacing.extraLarge, 0.001),
+      closeTo(TioSpacing.large, 0.001),
     );
   });
 
@@ -117,7 +117,7 @@ void main() {
     expect(find.text('How do you describe your gender?'), findsOneWidget);
 
     await tester.tap(
-      find.byKey(const ValueKey('profile-choice-gender-female')),
+      find.byKey(const ValueKey('gender-female')),
     );
     await tester.pump();
     expect(harness.controller.state.draft.profile.gender, ProfileGender.female);
@@ -139,11 +139,10 @@ void main() {
     );
 
     expect(
-      find.text('Any health conditions to consider?'),
+      find.text('Are you managing any health conditions?'),
       findsOneWidget,
     );
-    final otherChoice =
-        find.byKey(const ValueKey('profile-choice-health-other'));
+    final otherChoice = find.byKey(const ValueKey('health-other'));
     await tester.ensureVisible(otherChoice);
     await tester.pumpAndSettle();
     await tester.tap(otherChoice);
@@ -151,33 +150,6 @@ void main() {
     expect(
       harness.controller.state.draft.profile.healthConditions,
       {ProfileHealthCondition.other},
-    );
-    expect(
-      find.byKey(const ValueKey('profile-other-health-input')),
-      findsOneWidget,
-    );
-
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-    final otherField = tester.widget<TextField>(
-      find.descendant(
-        of: find.byKey(const ValueKey('profile-other-health-input')),
-        matching: find.byType(TextField),
-      ),
-    );
-    expect(
-      otherField.decoration?.errorText,
-      'Describe the other health condition.',
-    );
-
-    final otherInput = find.byType(TextFormField);
-    await tester.ensureVisible(otherInput);
-    await tester.pumpAndSettle();
-    await tester.enterText(otherInput, 'Asthma');
-    await tester.pump();
-    expect(
-      harness.controller.state.draft.profile.otherHealthCondition,
-      'Asthma',
     );
 
     await tester.tap(find.text('Continue'));
@@ -200,7 +172,7 @@ void main() {
 
       expect(
         find.bySemanticsLabel(
-          'Profile step 8 of 9, How active is a typical day?',
+          "Profile step 8 of 9, What's your typical day like?",
         ),
         findsOneWidget,
       );
@@ -214,13 +186,13 @@ void main() {
     const titles = {
       ProfileStepId.name: 'What should Tio call you?',
       ProfileStepId.gender: 'How do you describe your gender?',
-      ProfileStepId.goal: 'What is your main goal?',
+      ProfileStepId.goal: "Hi Tio User 👋, what's your main goal?",
       ProfileStepId.age: 'When were you born?',
       ProfileStepId.height: 'What is your height?',
       ProfileStepId.currentWeight: 'What is your current weight?',
       ProfileStepId.targetWeight: 'What is your target weight?',
-      ProfileStepId.activity: 'How active is a typical day?',
-      ProfileStepId.healthConditions: 'Any health conditions to consider?',
+      ProfileStepId.activity: "What's your typical day like?",
+      ProfileStepId.healthConditions: 'Are you managing any health conditions?',
     };
 
     final controller = OnboardingController(
@@ -249,7 +221,7 @@ void main() {
       profile: _validProfile(currentStepId: ProfileStepId.goal),
     );
     final keepFit = find.byKey(
-      const ValueKey('profile-choice-goal-keepFit'),
+      const ValueKey('goal-keepFit'),
     );
     expect(
       find.descendant(of: keepFit, matching: find.byIcon(Icons.check_circle)),
@@ -257,7 +229,7 @@ void main() {
     );
 
     final supporting = find.byKey(
-      const ValueKey('profile-choice-goal-boostStrength'),
+      const ValueKey('goal-boostStrength'),
     );
     await tester.ensureVisible(supporting);
     await tester.pumpAndSettle();

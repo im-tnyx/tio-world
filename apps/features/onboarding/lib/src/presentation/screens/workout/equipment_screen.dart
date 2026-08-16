@@ -78,12 +78,14 @@ class _EquipmentScreenState extends State<EquipmentScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = TioTheme.colors(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textTheme = Theme.of(context).textTheme;
 
     return WorkoutScreenScaffold(
       stepId: WorkoutStepId.equipment,
       flowPlan: widget.flowPlan,
-      title: 'What equipment do you have access to?',
+      title: 'What equipment do you have at home?',
+      description:
+          'Select all the equipment you can use for your home workouts.',
       errorText: widget.errorText,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,13 +93,14 @@ class _EquipmentScreenState extends State<EquipmentScreen> {
           // 2-Column Equipment Grid
           GridView.builder(
             shrinkWrap: true,
+            padding: EdgeInsets.zero,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _equipmentData.length,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.22,
+              crossAxisSpacing: TioSpacing.small,
+              mainAxisSpacing: TioSpacing.small,
+              childAspectRatio: 1.42,
             ),
             itemBuilder: (context, index) {
               final item = _equipmentData[index];
@@ -111,22 +114,20 @@ class _EquipmentScreenState extends State<EquipmentScreen> {
                     HapticFeedback.selectionClick();
                     widget.onToggled(item.equipment);
                   },
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(TioCardTokens.radius),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
                     curve: Curves.easeInOut,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    padding: const EdgeInsets.all(TioSpacing.small),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? (isDark
-                              ? colors.primary.withValues(alpha: TioCardTokens.selectedContainerAlpha + 0.05)
-                              : colors.primary.withValues(alpha: TioCardTokens.selectedContainerAlpha))
-                          : (isDark ? const Color(0xFF141416) : colors.surface),
+                          ? colors.primary.withValues(alpha: TioCardTokens.selectedContainerAlpha)
+                          : colors.surface,
                       borderRadius: BorderRadius.circular(TioCardTokens.radius),
                       border: Border.all(
                         color: isSelected
                             ? colors.primary
-                            : colors.outlineStrong.withValues(alpha: isDark ? TioCardTokens.unselectedOutlineAlpha : 0.25),
+                            : colors.outlineStrong.withValues(alpha: TioCardTokens.unselectedOutlineAlpha),
                         width: isSelected
                             ? TioCardTokens.selectedBorderWidth
                             : TioCardTokens.unselectedBorderWidth,
@@ -143,19 +144,19 @@ class _EquipmentScreenState extends State<EquipmentScreen> {
                               fit: BoxFit.contain,
                               errorBuilder: (_, __, ___) => Icon(
                                 Icons.fitness_center,
-                                size: 36,
-                                color: isSelected ? colors.primary : colors.textMuted,
+                                size: 28,
+                                color: isSelected ? colors.primary : colors.textSecondary,
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 2),
                         Text(
                           item.title,
                           textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                          style: textTheme.labelLarge?.copyWith(
+                            fontSize: 13,
+                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                             color: isSelected ? colors.primary : colors.textPrimary,
                           ),
                         ),
@@ -167,19 +168,18 @@ class _EquipmentScreenState extends State<EquipmentScreen> {
             },
           ),
 
-          const SizedBox(height: 28),
+          const SizedBox(height: TioSpacing.medium),
 
           // Additional Info Section
           Text(
             'ADDITIONAL INFO',
-            style: TextStyle(
-              fontSize: 12,
+            style: textTheme.labelSmall?.copyWith(
               fontWeight: FontWeight.w700,
               letterSpacing: 0.8,
               color: colors.textSecondary,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: TioSpacing.small),
 
           TextField(
             controller: _additionalInfoController,
@@ -187,37 +187,46 @@ class _EquipmentScreenState extends State<EquipmentScreen> {
             maxLines: 4,
             minLines: 3,
             textCapitalization: TextCapitalization.sentences,
-            style: TextStyle(color: colors.textPrimary, fontSize: 14),
+            style: textTheme.bodyMedium?.copyWith(
+              color: colors.textPrimary,
+            ),
             decoration: InputDecoration(
               hintText: 'e.g., rowing machine, kettlebells, cable machine, any specialized equipment...',
-              hintStyle: TextStyle(
-                color: colors.textMuted.withValues(alpha: 0.7),
-                fontSize: 13,
+              hintStyle: textTheme.bodyMedium?.copyWith(
+                color: colors.textSecondary.withValues(alpha: 0.6),
                 height: 1.4,
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: TioSpacing.large,
+                vertical: TioSpacing.medium,
+              ),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(TioRadius.large),
                 borderSide: BorderSide(
-                  color: colors.outlineStrong.withValues(alpha: isDark ? 0.35 : 0.25),
+                  color: colors.outlineStrong.withValues(alpha: TioCardTokens.unselectedOutlineAlpha),
+                  width: TioCardTokens.unselectedBorderWidth,
                 ),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(TioRadius.large),
                 borderSide: BorderSide(
-                  color: colors.outlineStrong.withValues(alpha: isDark ? 0.35 : 0.25),
+                  color: colors.outlineStrong.withValues(alpha: TioCardTokens.unselectedOutlineAlpha),
+                  width: TioCardTokens.unselectedBorderWidth,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: colors.primary, width: 1.8),
+                borderRadius: BorderRadius.circular(TioRadius.large),
+                borderSide: BorderSide(
+                  color: colors.primary,
+                  width: TioCardTokens.selectedBorderWidth,
+                ),
               ),
               filled: true,
-              fillColor: isDark ? const Color(0xFF141416) : colors.surface,
+              fillColor: colors.surface,
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: TioSpacing.medium),
         ],
       ),
     );

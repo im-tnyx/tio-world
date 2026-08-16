@@ -11,21 +11,24 @@ class OnboardingControllerSeed {
   OnboardingControllerSeed({
     required this.entryPath,
     OnboardingDraft? draft,
+    this.includeMobile = false,
   }) : draft = draft ?? OnboardingDraft();
 
   final OnboardingEntryPath entryPath;
   final OnboardingDraft draft;
+  final bool includeMobile;
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         other is OnboardingControllerSeed &&
             entryPath == other.entryPath &&
-            draft == other.draft;
+            draft == other.draft &&
+            includeMobile == other.includeMobile;
   }
 
   @override
-  int get hashCode => Object.hash(entryPath, draft);
+  int get hashCode => Object.hash(entryPath, draft, includeMobile);
 }
 
 final onboardingStatusRepositoryProvider =
@@ -46,6 +49,7 @@ final onboardingControllerProvider = ChangeNotifierProvider.autoDispose
   final controller = OnboardingController(
     entryPath: seed.entryPath,
     initialDraft: seed.draft,
+    includeMobile: seed.includeMobile,
     statusRepository: ref.watch(onboardingStatusRepositoryProvider),
     draftRepository: ref.watch(onboardingDraftRepositoryProvider),
     completionValidator: ref.watch(onboardingCompletionValidatorProvider),
@@ -58,6 +62,7 @@ class OnboardingController extends ChangeNotifier {
   OnboardingController({
     required OnboardingEntryPath entryPath,
     OnboardingDraft? initialDraft,
+    this.includeMobile = false,
     BuildOnboardingFlowUseCase planner = const BuildOnboardingFlowUseCase(),
     BuildWorkoutFlowPlanUseCase workoutPlanner =
         const BuildWorkoutFlowPlanUseCase(),
@@ -82,6 +87,7 @@ class OnboardingController extends ChangeNotifier {
   }
 
   final OnboardingEntryPath _entryPath;
+  final bool includeMobile;
   final BuildOnboardingFlowUseCase _planner;
   final BuildWorkoutFlowPlanUseCase _workoutPlanner;
   final ProfileStepValidator _profileValidator;
@@ -166,6 +172,7 @@ class OnboardingController extends ChangeNotifier {
       entryPath: _entryPath,
       mode: draft.selectedMode,
       workoutIntroChoice: draft.workoutIntroChoice,
+      includeMobile: includeMobile,
     );
     final workoutFlowPlan = _workoutPlanner(
       gymAccess: draft.workout.gymAccess,
@@ -215,6 +222,7 @@ class OnboardingController extends ChangeNotifier {
       entryPath: _entryPath,
       mode: mode,
       workoutIntroChoice: nextWorkoutIntroChoice,
+      includeMobile: includeMobile,
     );
     final nextWorkoutFlowPlan = _workoutPlanner(
       gymAccess: state.draft.workout.gymAccess,
@@ -255,6 +263,7 @@ class OnboardingController extends ChangeNotifier {
       entryPath: _entryPath,
       mode: state.draft.selectedMode,
       workoutIntroChoice: choice,
+      includeMobile: includeMobile,
     );
     final nextWorkoutFlowPlan = _workoutPlanner(
       gymAccess: state.draft.workout.gymAccess,
@@ -508,6 +517,13 @@ class OnboardingController extends ChangeNotifier {
     _markInProgress();
     _updateProfile(
       state.draft.profile.copyWith(mobile: value),
+    );
+  }
+
+  void updateProfileMobileVerified(bool isVerified) {
+    _markInProgress();
+    _updateProfile(
+      state.draft.profile.copyWith(isMobileVerified: isVerified),
     );
   }
 
@@ -838,7 +854,9 @@ class OnboardingController extends ChangeNotifier {
 
     try {
       await onFinish(state.draft);
-    } catch (error) {
+    } catch (error, stackTrace) {
+      debugPrint('[OnboardingController] _finish error: $error');
+      debugPrint('[OnboardingController] stackTrace: $stackTrace');
       _state = _copyState(retryableError: error);
     } finally {
       _state = _copyState(isCompleting: false);

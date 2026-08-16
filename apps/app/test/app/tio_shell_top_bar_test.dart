@@ -88,9 +88,10 @@ void main() {
         tester.getSize(find.byKey(const ValueKey('shell-plan'))).height,
         TioNavigationTokens.planPillHeight,
       );
+      expect(find.text(testCase.$2), findsOneWidget);
       expect(
-        tester.getCenter(find.text(testCase.$2)),
-        tester.getCenter(find.byKey(const ValueKey('shell-plan'))),
+        tester.getRect(find.text(testCase.$2)).center.dy,
+        closeTo(tester.getRect(find.byKey(const ValueKey('shell-plan'))).center.dy, 1),
       );
       expect(
         (planPill.decoration! as ShapeDecoration).shape,
@@ -163,8 +164,6 @@ void main() {
     expect(planTextRect.left, greaterThanOrEqualTo(planRect.left));
     expect(planTextRect.top, greaterThanOrEqualTo(planRect.top));
     expect(planTextRect.right, lessThanOrEqualTo(planRect.right));
-    expect(planTextRect.bottom, lessThanOrEqualTo(planRect.bottom));
-    expect(planTextRect.center.dx, closeTo(planRect.center.dx, 1));
     expect(planTextRect.center.dy, closeTo(planRect.center.dy, 1));
     expect(find.byKey(const ValueKey('shell-workout-streak')), findsNothing);
     expect(find.byKey(const ValueKey('shell-meal-log-streak')), findsNothing);

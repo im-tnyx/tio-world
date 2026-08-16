@@ -57,8 +57,7 @@ void main() {
     expect(animation.duration, Duration.zero);
   });
 
-  testWidgets(
-      'placeholder language and legal copy are not announced as actions',
+  testWidgets('placeholder language is not announced as actions and legal copy is omitted',
       (tester) async {
     final semantics = tester.ensureSemantics();
     try {
@@ -79,15 +78,9 @@ void main() {
         isFalse,
       );
 
-      final legalCopy = find.textContaining(
-        'By continuing',
-        findRichText: true,
-      );
-      final legalNode = tester.getSemantics(legalCopy);
-      expect(legalNode.flagsCollection.isButton, isFalse);
       expect(
-        legalNode.getSemanticsData().hasAction(SemanticsAction.tap),
-        isFalse,
+        find.textContaining('By continuing', findRichText: true),
+        findsNothing,
       );
     } finally {
       semantics.dispose();

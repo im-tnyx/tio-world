@@ -120,13 +120,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Child profileBasics'), findsOneWidget);
       expect(
-        find.bySemanticsLabel('Step 9 of 17, About you'),
+        find.bySemanticsLabel('Step 9 of 16, About you'),
         findsOneWidget,
       );
 
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
-      expect(find.text('Child nutritionIntro'), findsOneWidget);
+      expect(find.text('Child targets'), findsOneWidget);
       expect(find.text('Child workoutIntro'), findsNothing);
     } finally {
       semantics.dispose();
@@ -185,7 +185,7 @@ void main() {
     final progress = tester.widget<OnboardingProgressIndicator>(
       find.byType(OnboardingProgressIndicator),
     );
-    expect(progress.state.progressSemantics, 'Step 1 of 17, About you');
+    expect(progress.state.progressSemantics, 'Step 1 of 16, About you');
   });
 
   testWidgets('App Mode selection does not change content height',
@@ -220,18 +220,17 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
-
-    expect(
-      tester.getTopLeft(find.text('What should Tio call you?')).dy,
-      appModeTitleTop,
-    );
+    final profileTitleTop =
+        tester.getTopLeft(find.text('What should Tio call you?')).dy;
     final profileTitleStyle =
         tester.widget<Text>(find.text('What should Tio call you?')).style;
+
+    expect(profileTitleTop, appModeTitleTop);
     expect(profileTitleStyle?.fontSize, appModeTitleStyle?.fontSize);
     expect(profileTitleStyle?.fontWeight, appModeTitleStyle?.fontWeight);
   });
 
-  testWidgets('real workout intro screen skips to nutrition when deferred',
+  testWidgets('real workout intro screen skips to targets when deferred',
       (tester) async {
     await _pumpFlow(
       tester,
@@ -264,13 +263,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(WorkoutIntroSection), findsNothing);
-    expect(find.byType(NutritionIntroSection), findsOneWidget);
-    expect(find.byType(NutritionIntroScreen), findsOneWidget);
-    expect(find.text('Set up your nutrition flow'), findsOneWidget);
-    expect(
-      find.bySemanticsLabel('Step 11 of 18, Nutrition setup'),
-      findsOneWidget,
-    );
+    expect(find.byType(TargetsSection), findsOneWidget);
+    expect(find.byType(BridgeScreen), findsOneWidget);
+    expect(find.text('Building your targets'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
@@ -286,36 +281,22 @@ void main() {
   });
 
   testWidgets(
-      'default renderer uses real nutrition intro then targets section',
+      'default renderer uses targets section for nutrition mode',
       (tester) async {
     await _pumpFlow(
       tester,
       draft: OnboardingDraft(
         selectedMode: AppMode.nutrition,
-        currentStepId: OnboardingStepId.nutritionIntro,
+        currentStepId: OnboardingStepId.targets,
         profile: _validProfile(),
       ),
       useDefaultRenderer: true,
     );
 
     expect(find.byType(OnboardingSectionRenderer), findsOneWidget);
-    expect(find.byType(NutritionIntroSection), findsOneWidget);
-    expect(find.byType(NutritionIntroScreen), findsOneWidget);
-    expect(find.text('Set up your nutrition flow'), findsOneWidget);
-
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-
-    expect(find.byType(NutritionIntroSection), findsNothing);
     expect(find.byType(TargetsSection), findsOneWidget);
     expect(find.byType(BridgeScreen), findsOneWidget);
     expect(find.text('Building your targets'), findsOneWidget);
-
-    await tester.tap(find.byTooltip('Back'));
-    await tester.pumpAndSettle();
-
-    expect(find.byType(NutritionIntroSection), findsOneWidget);
-    expect(find.byType(NutritionIntroScreen), findsOneWidget);
   });
 
   testWidgets('system back uses the same internal previous transition',
@@ -565,7 +546,9 @@ void main() {
     try {
       await _pumpFlow(
         tester,
-        onFinishRequested: (_) => Future<void>.error(StateError('failed')),
+        onFinishRequested: (_) => Future<void>.error(
+          Exception('Could not finish setup. Please try again.'),
+        ),
         draft: OnboardingDraft(
           selectedMode: AppMode.workout,
           currentStepId: OnboardingStepId.review,

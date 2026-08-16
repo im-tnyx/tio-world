@@ -36,27 +36,33 @@ class OnboardingContentHost extends StatelessWidget {
         ? '${state.stepId.name}-${state.draft.profile.currentStepId.name}'
         : state.stepId.name;
 
+    final motion = context.tioMotion;
+
     return FocusTraversalGroup(
       child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: TioMotion.fadeThroughEnterMs),
-        reverseDuration: const Duration(milliseconds: TioMotion.fadeThroughExitMs),
+        duration: motion.fadeThroughEnter,
+        reverseDuration: motion.fadeThroughExit,
         transitionBuilder: _buildReferenceTransition,
         layoutBuilder: (currentChild, previousChildren) => Stack(
-          alignment: Alignment.topLeft,
+          fit: StackFit.expand,
           children: [
             ...previousChildren,
             if (currentChild != null) currentChild,
           ],
         ),
-        child: SingleChildScrollView(
+        child: SizedBox.expand(
           key: ValueKey(stepKey),
-          padding: const EdgeInsets.fromLTRB(
-            TioSpacing.large,
-            TioSpacing.large,
-            TioSpacing.large,
-            TioSpacing.large,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: const EdgeInsets.fromLTRB(
+              TioSpacing.large,
+              TioSpacing.large,
+              TioSpacing.large,
+              100.0,
+            ),
+            child: child,
           ),
-          child: child,
         ),
       ),
     );

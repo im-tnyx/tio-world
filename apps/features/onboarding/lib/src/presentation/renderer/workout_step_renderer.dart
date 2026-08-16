@@ -51,6 +51,7 @@ class WorkoutStepRenderer extends StatelessWidget {
           selectedAreas: draft.focusAreas,
           flowPlan: state.workoutFlowPlan,
           onToggled: controller.toggleFocusArea,
+          gender: state.draft.profile.gender,
           errorText: errorText,
         ),
       WorkoutStepId.trainingDays => TrainingDaysScreen(

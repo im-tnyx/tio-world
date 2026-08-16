@@ -20,22 +20,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _startInitFlow();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startInitFlow();
+    });
   }
 
   Future<void> _startInitFlow() async {
+    String destination = AppRoutes.auth.path;
     if (widget.onCheckInitialDestination != null) {
       try {
-        final destination = await widget.onCheckInitialDestination!();
-        if (mounted) {
-          context.go(destination);
-          return;
-        }
-      } catch (_) {}
+        destination = await widget.onCheckInitialDestination!()
+            .timeout(const Duration(seconds: 4), onTimeout: () => AppRoutes.auth.path);
+      } catch (_) {
+        destination = AppRoutes.auth.path;
+      }
     }
 
     if (mounted) {
-      context.go(AppRoutes.auth.path);
+      context.go(destination);
     }
   }
 

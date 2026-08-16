@@ -38,20 +38,21 @@ void main() {
       expect(result.recommendation?.caloriesKcal, greaterThan(0));
     });
 
-    test('throws FormatException when steps or water are out of bounds', () {
+    test('safely clamps steps and water to bounds', () {
       const targetsDraft = TargetsOnboardingDraft(
-        dailySteps: 1000, // min is 2000
+        dailySteps: 500, // below 1000
+        waterMl: 20000, // above 15000
       );
 
       final profileDraft = ProfileOnboardingDraft();
 
-      expect(
-        () => mapper.map(
-          targetsDraft: targetsDraft,
-          profileDraft: profileDraft,
-        ),
-        throwsA(isA<FormatException>()),
+      final result = mapper.map(
+        targetsDraft: targetsDraft,
+        profileDraft: profileDraft,
       );
+
+      expect(result.dailySteps, 1000);
+      expect(result.waterMl, 15000);
     });
   });
 }
