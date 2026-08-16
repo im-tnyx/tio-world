@@ -24,4 +24,21 @@ class RemoteProfileSetupRepository implements ProfileSetupRepository {
     // The onboarding draft endpoint is write-only in current product contracts.
     return null;
   }
+
+  @override
+  Stream<ProfileSetupData?> watchProfileSetup() => Stream.value(null);
+
+  @override
+  Future<String> uploadAvatarImage({
+    required String fileName,
+    required List<int> bytes,
+  }) async {
+    return '';
+  }
+
+  @override
+  Future<void> deleteAvatarImage() async {}
+
+  @override
+  Future<void> updateAvatarFrame(String frame) async {}
 }

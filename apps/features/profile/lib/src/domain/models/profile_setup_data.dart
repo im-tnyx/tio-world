@@ -9,6 +9,7 @@ class ProfileSetupData {
     required this.name,
     this.username,
     this.avatarUrl,
+    this.avatarFrame = 'none',
     this.plan = 'free',
     required this.gender,
     required this.goals,
@@ -24,6 +25,7 @@ class ProfileSetupData {
   final String name;
   final String? username;
   final String? avatarUrl;
+  final String avatarFrame;
   final String plan;
   final ProfileGender gender;
   final Set<ProfileGoal> goals;
@@ -43,6 +45,7 @@ class ProfileSetupData {
             name == other.name &&
             username == other.username &&
             avatarUrl == other.avatarUrl &&
+            avatarFrame == other.avatarFrame &&
             plan == other.plan &&
             gender == other.gender &&
             goals.length == other.goals.length &&

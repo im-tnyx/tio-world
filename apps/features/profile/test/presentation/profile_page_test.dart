@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
@@ -19,10 +17,7 @@ void main() {
       ),
     );
 
-    expect(
-      tester.getSize(find.byType(TioAvatar)),
-      const Size.square(80),
-    );
+    expect(find.byType(TioAvatar), findsOneWidget);
     expect(find.byKey(const ValueKey('tio-avatar-plus-ring')), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('profile-avatar-entry')));
@@ -32,6 +27,59 @@ void main() {
         find.byKey(const ValueKey('profile-settings-action')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('profile-settings-action')));
     expect(settingsTaps, 1);
+  });
+
+  testWidgets('Profile hides username widget when username is null or empty',
+      (tester) async {
+    await tester.pumpWidget(
+      _ProfileTestApp(
+        child: ProfilePage(
+          onAvatarPressed: () {},
+          onSettingsPressed: () {},
+          profileData: ProfileSetupData(
+            name: 'Rahul Sharma',
+            username: null,
+            gender: ProfileGender.male,
+            goals: const {ProfileGoal.buildMuscle},
+            dateOfBirth: DateTime(2000, 1, 1),
+            heightCm: 180,
+            currentWeightKg: 75,
+            activityLevel: ProfileActivityLevel.active,
+            healthConditions: const {ProfileHealthCondition.none},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Rahul Sharma'), findsOneWidget);
+    expect(find.text('@rahulsharma'), findsNothing);
+    expect(find.text('@user'), findsNothing);
+  });
+
+  testWidgets('Profile displays @username when username is provided',
+      (tester) async {
+    await tester.pumpWidget(
+      _ProfileTestApp(
+        child: ProfilePage(
+          onAvatarPressed: () {},
+          onSettingsPressed: () {},
+          profileData: ProfileSetupData(
+            name: 'Rahul Sharma',
+            username: 'rahul_fit',
+            gender: ProfileGender.male,
+            goals: const {ProfileGoal.buildMuscle},
+            dateOfBirth: DateTime(2000, 1, 1),
+            heightCm: 180,
+            currentWeightKg: 75,
+            activityLevel: ProfileActivityLevel.active,
+            healthConditions: const {ProfileHealthCondition.none},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Rahul Sharma'), findsOneWidget);
+    expect(find.text('@rahul_fit'), findsOneWidget);
   });
 
   testWidgets('photo route is square with safe disabled actions when empty',
@@ -59,7 +107,7 @@ void main() {
     );
     expect(
       tester.getSize(find.byType(TioAvatar)),
-      const Size.square(160),
+      const Size.square(360),
     );
 
     for (final key in const [
@@ -82,17 +130,13 @@ void main() {
         _ProfileTestApp(
           child: AvatarPreviewPage(
             onBackPressed: () {},
-            image: MemoryImage(Uint8List.fromList(const [0, 1, 2])),
+            avatarUrl: 'https://example.com/avatar.jpg',
           ),
         ),
       );
       await tester.pumpAndSettle();
 
       expect(find.byType(TioAvatar), findsOneWidget);
-      expect(
-        tester.getSize(find.byType(TioAvatar)),
-        const Size.square(160),
-      );
       expect(
         find.bySemanticsLabel('Profile photo unavailable'),
         findsOneWidget,

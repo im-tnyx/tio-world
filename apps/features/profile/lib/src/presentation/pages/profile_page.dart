@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
 
 import '../../domain/models/models.dart';
 
-/// The primary user profile page showing avatar, demographics, plan, and biometric metrics.
+/// The primary user profile page matching the clean, cardless design.
 class ProfilePage extends StatelessWidget {
   const ProfilePage({
     required this.onSettingsPressed,
     required this.onAvatarPressed,
+    this.onBackPressed,
+    this.onEditPressed,
+    this.onPickImage,
+    this.onDeleteImage,
     this.profileData,
     this.isLoading = false,
     this.avatarFrame = TioAvatarFrame.none,
@@ -17,10 +22,41 @@ class ProfilePage extends StatelessWidget {
 
   final VoidCallback onSettingsPressed;
   final VoidCallback onAvatarPressed;
+  final VoidCallback? onBackPressed;
+  final VoidCallback? onEditPressed;
+  final Future<void> Function(TioImageSource source)? onPickImage;
+  final Future<void> Function()? onDeleteImage;
   final ProfileSetupData? profileData;
   final bool isLoading;
   final TioAvatarFrame avatarFrame;
   final String? planName;
+
+  Future<void> _triggerAvatarActionSheet(
+    BuildContext context, {
+    required bool hasPhoto,
+  }) async {
+    final action = await showTioAvatarActionBottomSheet(
+      context: context,
+      hasPhoto: hasPhoto,
+    );
+
+    if (action == null || !context.mounted) return;
+
+    switch (action) {
+      case TioAvatarAction.gallery:
+        await onPickImage?.call(TioImageSource.gallery);
+        break;
+      case TioAvatarAction.camera:
+        await onPickImage?.call(TioImageSource.camera);
+        break;
+      case TioAvatarAction.delete:
+        final confirmed = await showTioRemoveImageConfirmationBottomSheet(context);
+        if (confirmed == true) {
+          await onDeleteImage?.call();
+        }
+        break;
+    }
+  }
 
   int _calculateAge(DateTime dob) {
     final now = DateTime.now();
@@ -29,6 +65,16 @@ class ProfilePage extends StatelessWidget {
       age--;
     }
     return age;
+  }
+
+  double? _calculateBmi({
+    required double weightKg,
+    required double heightCm,
+  }) {
+    if (weightKg <= 0 || heightCm <= 0) return null;
+    final heightM = heightCm / 100.0;
+    final bmi = weightKg / (heightM * heightM);
+    return double.parse(bmi.toStringAsFixed(1));
   }
 
   int _calculateBmr({
@@ -54,65 +100,93 @@ class ProfilePage extends StatelessWidget {
     };
   }
 
-  String _activityLabel(ProfileActivityLevel activity) {
-    return switch (activity) {
-      ProfileActivityLevel.sedentary => 'Sedentary',
-      ProfileActivityLevel.light => 'Light',
-      ProfileActivityLevel.active => 'Active',
-      ProfileActivityLevel.veryActive => 'Very active',
-      ProfileActivityLevel.dynamic => 'Dynamic',
-    };
-  }
-
-  String _goalLabel(ProfileGoal goal) {
-    return switch (goal) {
-      ProfileGoal.buildMuscle => 'Build muscle',
-      ProfileGoal.loseWeight => 'Lose weight',
-      ProfileGoal.keepFit => 'Keep fit',
-      ProfileGoal.boostStrength => 'Boost strength',
-      ProfileGoal.manageStress => 'Manage stress',
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
     final colors = TioTheme.colors(context);
-    final theme = Theme.of(context);
 
     final data = profileData;
-    final name = data?.name.isNotEmpty == true ? data!.name : 'User';
-    final username = data?.username?.isNotEmpty == true
-        ? '@${data!.username}'
-        : '@${name.toLowerCase().replaceAll(' ', '')}';
+    final name = data?.name.trim().isNotEmpty == true ? data!.name.trim() : '';
+    final rawUsername = data?.username?.trim();
+    final hasUsername = rawUsername != null && rawUsername.isNotEmpty;
+    final username = hasUsername
+        ? (rawUsername.startsWith('@') ? rawUsername : '@$rawUsername')
+        : null;
 
-    final age = data != null ? _calculateAge(data.dateOfBirth) : 23;
-    final genderStr = data != null ? _genderLabel(data.gender) : 'Male';
-    final heightCm = data?.heightCm ?? 175.0;
-    final weightKg = data?.currentWeightKg ?? 70.0;
-    final targetWeightKg = data?.targetWeightKg;
-    final bmr = data != null
+    final age = data != null ? _calculateAge(data.dateOfBirth) : null;
+    final genderStr = data != null ? _genderLabel(data.gender) : null;
+    final heightCm = (data != null && data.heightCm > 0) ? data.heightCm : null;
+    final weightKg = (data != null && data.currentWeightKg > 0) ? data.currentWeightKg : null;
+    final bmi = (weightKg != null && heightCm != null)
+        ? _calculateBmi(weightKg: weightKg, heightCm: heightCm)
+        : null;
+    final bmr = (data != null && weightKg != null && heightCm != null && age != null)
         ? _calculateBmr(
             weightKg: weightKg,
             heightCm: heightCm,
             age: age,
             gender: data.gender,
           )
-        : _calculateBmr(
-            weightKg: 70,
-            heightCm: 175,
-            age: 23,
-            gender: ProfileGender.male,
-          );
+        : null;
+
+    final demoParts = <String>[];
+    if (age != null) demoParts.add('$age year old');
+    if (genderStr != null) demoParts.add(genderStr.toLowerCase());
+    final demographics = demoParts.join(' • ');
+
+    final rawPlan = data?.plan.trim().isNotEmpty == true
+        ? data!.plan.trim()
+        : planName?.trim();
+    final normalizedPlan = (rawPlan ?? 'free').toLowerCase();
+    final isPro = normalizedPlan == 'pro' || normalizedPlan == 'premium';
+    final isPlus = normalizedPlan == 'plus';
+    final displayPlan = rawPlan != null && rawPlan.isNotEmpty
+        ? rawPlan.toUpperCase()
+        : null;
+
+    final avatarUrl = data?.avatarUrl?.trim();
+    final hasValidPhoto = avatarUrl != null &&
+                         avatarUrl.isNotEmpty &&
+                         avatarUrl.startsWith('http');
 
     return Scaffold(
+      backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text('Profile'),
+        backgroundColor: colors.background,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: BackButton(
+          key: const ValueKey('profile-back-button'),
+          onPressed: onBackPressed,
+          color: colors.textPrimary,
+        ),
+        title: username != null
+            ? Text(
+                username,
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                ),
+              )
+            : const SizedBox.shrink(),
         actions: [
+          IconButton(
+            key: const ValueKey('profile-edit-action'),
+            tooltip: 'Edit Profile',
+            onPressed: () {
+              if (onEditPressed != null) {
+                onEditPressed!();
+              } else {
+                context.push(AppRoutes.profileSettings.path);
+              }
+            },
+            icon: Icon(Icons.edit_outlined, color: colors.textPrimary),
+          ),
           IconButton(
             key: const ValueKey('profile-settings-action'),
             tooltip: 'Settings',
             onPressed: onSettingsPressed,
-            icon: const Icon(Icons.settings_outlined),
+            icon: Icon(Icons.settings_outlined, color: colors.textPrimary),
           ),
         ],
       ),
@@ -120,232 +194,206 @@ class ProfilePage extends StatelessWidget {
         child: isLoading
             ? const Center(child: CircularProgressIndicator())
             : ListView(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 children: [
-                  // Avatar with Frame
+                  const SizedBox(height: 12),
+
+                  // Avatar with dynamic frame and edit/add badges
                   Center(
-                    child: Tooltip(
-                      message: 'Open profile photo',
-                      child: Semantics(
-                        key: const ValueKey('profile-avatar-entry'),
-                        button: true,
-                        label: 'Open profile photo',
-                        child: ExcludeSemantics(
-                          child: InkWell(
-                            customBorder: const CircleBorder(),
-                            onTap: onAvatarPressed,
-                            child: TioAvatar(
-                              size: TioAvatarSize.large,
-                              frame: avatarFrame,
+                    child: SizedBox(
+                      width: TioAvatarSize.large.dimension ,
+                      height: TioAvatarSize.large.dimension ,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          // Main Avatar Click
+                          Center(
+                            child: InkWell(
+                              customBorder: const CircleBorder(),
+                              onTap: () {
+                                if (hasValidPhoto) {
+                                  onAvatarPressed();
+                                } else {
+                                  _triggerAvatarActionSheet(
+                                    context,
+                                    hasPhoto: false,
+                                  );
+                                }
+                              },
+                              child: TioAvatar(
+                                size: TioAvatarSize.large,
+                                frame: avatarFrame,
+                                displayName: name.isNotEmpty ? name : (username ?? ''),
+                                imageUrl: avatarUrl,
+                              ),
                             ),
                           ),
-                        ),
+
+                          // Bottom-Right Badge Click: ALWAYS opens Bottom Sheet
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => _triggerAvatarActionSheet(
+                                context,
+                                hasPhoto: hasValidPhoto,
+                              ),
+                              child: Container(
+                                width: 26,
+                                height: 26,
+                                decoration: BoxDecoration(
+                                  color: isPro
+                                      ? const Color(0xFF0F172A)
+                                      : isPlus
+                                          ? const Color(0xFF1E1B4B)
+                                          : const Color(0xFF0F172A),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: colors.background,
+                                    width: 2.5,
+                                  ),
+                                ),
+                                alignment: Alignment.center,
+                                child: isPro
+                                    ? SvgPicture.asset(
+                                        'assets/svg_icon/ic_pro_outline.svg',
+                                        package: 'tio_core',
+                                        width: 16,
+                                        height: 16,
+                                        colorFilter: const ColorFilter.mode(
+                                          Color(0xFF5EEAD4), // Teal Pro brand accent
+                                          BlendMode.srcIn,
+                                        ),
+                                      )
+                                    : isPlus
+                                        ? const Icon(
+                                            Icons.star_rounded,
+                                            size: 16,
+                                            color: Color(0xFFF59E0B), // Golden Plus Star
+                                          )
+                                        : const Icon(
+                                            Icons.edit,
+                                            size: 14,
+                                            color: Colors.white,
+                                          ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
 
                   const SizedBox(height: 16),
 
-                  // Name
-                  Center(
-                    child: Text(
-                      name,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: colors.textPrimary,
+                  // Dynamic Name (from Supabase)
+                  if (name.isNotEmpty)
+                    Center(
+                      child: Text(
+                        name,
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: colors.textPrimary,
+                        ),
                       ),
                     ),
-                  ),
 
-                  const SizedBox(height: 4),
-
-                  // Username
-                  Center(
-                    child: Text(
-                      username,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: colors.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // Demographics & Plan Pills Row
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      // Age & Gender Pill
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: colors.surfaceVariant.withAlpha(120),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: colors.outlineStrong.withAlpha(40),
-                          ),
+                  // Dynamic Demographics (only shown when available)
+                  if (demographics.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Center(
+                      child: Text(
+                        demographics,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: colors.textSecondary,
                         ),
-                        child: Text(
-                          '$age years old • $genderStr',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: colors.textSecondary,
-                          ),
-                        ),
-                      ),
-
-                      // Plan Pill (from Supabase profileData or prop)
-                      Builder(
-                        builder: (context) {
-                          final rawPlan = profileData?.plan ?? planName ?? 'free';
-                          final planTrimmed = rawPlan.trim();
-                          final displayPlan = planTrimmed.isNotEmpty
-                              ? planTrimmed[0].toUpperCase() + planTrimmed.substring(1).toLowerCase()
-                              : 'Free';
-
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: colors.primary.withAlpha(20),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: colors.primary.withAlpha(80),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.stars_rounded,
-                                  size: 15,
-                                  color: colors.primary,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  displayPlan,
-                                  style: theme.textTheme.labelMedium?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    color: colors.primary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  // Biometrics Overview Title
-                  Text(
-                    'Biometrics & Targets',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: colors.textPrimary,
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Metrics 2x2 Grid Cards
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _MetricCard(
-                          key: const ValueKey('profile-weight-metric'),
-                          icon: Icons.monitor_weight_outlined,
-                          label: 'Weight',
-                          value: '${weightKg.toStringAsFixed(weightKg % 1 == 0 ? 0 : 1)} kg',
-                          subtitle: targetWeightKg != null
-                              ? 'Target: ${targetWeightKg.toStringAsFixed(targetWeightKg % 1 == 0 ? 0 : 1)} kg'
-                              : null,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _MetricCard(
-                          key: const ValueKey('profile-height-metric'),
-                          icon: Icons.height_rounded,
-                          label: 'Height',
-                          value: '${heightCm.toStringAsFixed(heightCm % 1 == 0 ? 0 : 1)} cm',
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _MetricCard(
-                          key: const ValueKey('profile-bmr-metric'),
-                          icon: Icons.local_fire_department_outlined,
-                          label: 'BMR Baseline',
-                          value: '$bmr kcal',
-                          subtitle: 'Energy at rest',
-                        ),
-                      ),
-                      if (targetWeightKg != null) ...[
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _MetricCard(
-                            key: const ValueKey('profile-target-metric'),
-                            icon: Icons.flag_outlined,
-                            label: 'Target Weight',
-                            value: '${targetWeightKg.toStringAsFixed(targetWeightKg % 1 == 0 ? 0 : 1)} kg',
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-
-                  if (data != null && data.goals.isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    Text(
-                      'Goals & Activity',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: colors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: colors.surfaceRaised,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: colors.outlineStrong.withAlpha(30),
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          _DetailRow(
-                            icon: Icons.track_changes_rounded,
-                            title: 'Primary Goals',
-                            value: data.goals.map(_goalLabel).join(', '),
-                          ),
-                          Divider(
-                            height: 24,
-                            color: colors.outlineStrong.withAlpha(30),
-                          ),
-                          _DetailRow(
-                            icon: Icons.directions_run_rounded,
-                            title: 'Activity Level',
-                            value: _activityLabel(data.activityLevel),
-                          ),
-                        ],
                       ),
                     ),
                   ],
+
+                  // Dynamic Plan Pill (e.g. ★ PLUS / ★ PRO)
+                  if (displayPlan != null) ...[
+                    const SizedBox(height: 12),
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: colors.surfaceVariant.withAlpha(140),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.star_rounded,
+                              size: 14,
+                              color: Color(0xFFD97706),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              displayPlan,
+                              style: const TextStyle(
+                                color: Color(0xFFD97706),
+                                fontWeight: FontWeight.w800,
+                                fontSize: 11,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 20),
+
+                  // Subtle horizontal divider
+                  Divider(
+                    height: 24,
+                    thickness: 1,
+                    color: colors.outlineStrong.withAlpha(20),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Clean 4-Column Metrics (WITHOUT CARDS - 100% Dynamic)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _MetricColumn(
+                        key: const ValueKey('profile-weight-metric'),
+                        icon: Icons.crop_square_rounded,
+                        label: 'WEIGHT',
+                        value: weightKg != null
+                            ? '${weightKg.toStringAsFixed(weightKg % 1 == 0 ? 0 : 1)} kg'
+                            : '--',
+                      ),
+                      _MetricColumn(
+                        key: const ValueKey('profile-height-metric'),
+                        icon: Icons.straighten_rounded,
+                        label: 'HEIGHT',
+                        value: heightCm != null
+                            ? '${heightCm.toStringAsFixed(heightCm % 1 == 0 ? 0 : 1)} cm'
+                            : '--',
+                      ),
+                      _MetricColumn(
+                        key: const ValueKey('profile-bmi-metric'),
+                        icon: Icons.speed_rounded,
+                        label: 'BMI',
+                        value: bmi != null ? '$bmi' : '--',
+                      ),
+                      _MetricColumn(
+                        key: const ValueKey('profile-bmr-metric'),
+                        icon: Icons.local_fire_department_rounded,
+                        label: 'BMR',
+                        value: bmr != null ? '$bmr' : '--',
+                      ),
+                    ],
+                  ),
                 ],
               ),
       ),
@@ -353,124 +401,49 @@ class ProfilePage extends StatelessWidget {
   }
 }
 
-class _MetricCard extends StatelessWidget {
-  const _MetricCard({
+/// Clean Minimalist Metric Column without card borders
+class _MetricColumn extends StatelessWidget {
+  const _MetricColumn({
     required this.icon,
     required this.label,
     required this.value,
-    this.subtitle,
     super.key,
   });
 
   final IconData icon;
   final String label;
   final String value;
-  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
     final colors = TioTheme.colors(context);
-    final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colors.surfaceRaised,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colors.outlineStrong.withAlpha(35),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: colors.primary.withAlpha(16),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  icon,
-                  size: 18,
-                  color: colors.primary,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  label,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: colors.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: colors.textPrimary,
-            ),
-          ),
-          if (subtitle != null) ...[
-            const SizedBox(height: 2),
-            Text(
-              subtitle!,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: colors.textSecondary,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.icon,
-    required this.title,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String title;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
-    final theme = Theme.of(context);
-
-    return Row(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 20, color: colors.textSecondary),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: colors.textSecondary,
-              ),
-            ),
-            Text(
-              value,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: colors.textPrimary,
-              ),
-            ),
-          ],
+        Icon(
+          icon,
+          size: 22,
+          color: colors.textPrimary,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: TextStyle(
+            color: colors.textMuted,
+            fontWeight: FontWeight.w600,
+            fontSize: 11,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontWeight: FontWeight.w800,
+            fontSize: 16,
+          ),
         ),
       ],
     );
