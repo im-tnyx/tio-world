@@ -1,6 +1,6 @@
 # Google Identity Ownership & Bootstrap Loading
 
-**Status:** In progress — P0 reliability slice active
+**Status:** In progress — Slice A implemented, local validation pending
 **Primary owner:** `apps/features/auth` + `apps/app` + `apps/features/onboarding`
 **Affected platforms:** Flutter phone app + Supabase/Firebase auth boundary
 **Tracking:** GitHub issue #10
@@ -36,11 +36,11 @@ A Google-created account can remain stuck in loading during sign-in. Reopening t
 
 ### Loading hazards
 
-- after Supabase auth succeeds, Google/email flows await device sync;
-- Google sign-in also awaits optional `public.users` profile enrichment;
+- after Supabase auth succeeds, Google/email flows awaited device sync;
+- Google sign-in also awaited optional `public.users` profile enrichment;
 - these secondary operations are not required to establish the authenticated session;
-- `SupabaseOnboardingCompletionRepository.readCurrent()` has no timeout;
-- bootstrap `failure` and `loading` both route to passive Splash, whose normal UI is only a spinner.
+- `SupabaseOnboardingCompletionRepository.readCurrent()` still has no timeout;
+- bootstrap `failure` and `loading` still both route to passive Splash, whose normal UI is only a spinner.
 
 ## 3. Frozen decisions
 
@@ -55,10 +55,23 @@ A Google-created account can remain stuck in loading during sign-in. Reopening t
 
 ### Slice A — Login must not wait on secondary sync
 
-- [ ] make device sync best-effort/non-blocking after Supabase auth success
-- [ ] make Google profile enrichment best-effort/non-blocking after auth success
-- [ ] retain logging for secondary sync failures
-- [ ] add focused auth regression coverage
+Implemented, awaiting local validation:
+
+- [x] make device sync best-effort/non-blocking after Supabase auth success
+- [x] make Google profile enrichment best-effort/non-blocking after auth success
+- [x] retain logging for secondary sync failures
+- [x] apply non-blocking device sync consistently to Google/email/OTP/signup auth success paths
+- [x] add regression proving a pending device sync cannot hold successful sign-in open
+- [ ] focused auth test passes locally
+- [ ] auth analyzer passes locally
+
+Changed files:
+
+```text
+apps/features/auth/lib/src/data/repositories/supabase_auth_sign_in_repository.dart
+apps/features/auth/test/data/supabase_auth_sign_in_repository_test.dart
+.ai/tasks/auth-google-identity-and-bootstrap-loading.md
+```
 
 ### Slice B — Bootstrap must be bounded and recoverable
 
@@ -83,6 +96,8 @@ B) Firebase-first/hybrid
 
 Do not partially enable both.
 
+Current schema/RLS strongly favors Supabase-first because public owner rows reference `auth.users(id)` and client RLS is based on `auth.uid()`. Firebase-first/hybrid therefore requires an explicit bridge/session strategy rather than simply writing `firebase_uid`.
+
 ### Slice D — Existing-account reconciliation
 
 Only after Slice C is chosen:
@@ -93,15 +108,23 @@ Only after Slice C is chosen:
 
 ## 5. Validation gates
 
-For every implementation slice:
+### Slice A local gate
 
-```text
-focused auth/app tests
-flutter analyze for touched packages
-cold-start persisted-session regression
-worktree clean
+```powershell
+Set-Location "G:\projects\Tio-World"
+git status --short --branch
+git pull --ff-only
+
+Set-Location "G:\projects\Tio-World\apps\features\auth"
+& "G:\dev\flutter-sdk\bin\flutter.bat" test "test/data/supabase_auth_sign_in_repository_test.dart"
+& "G:\dev\flutter-sdk\bin\flutter.bat" analyze
+
+Set-Location "G:\projects\Tio-World"
+git status --short --branch
 ```
+
+Do not treat Slice A alone as proof that cold-start loading is fixed. The persisted-session/Splash symptom belongs to Slice B.
 
 ## 6. Current status
 
-Investigation complete. Slice A is the first safe implementation because it does not require choosing Firebase vs Supabase ownership and directly removes unnecessary blockers from successful authentication.
+Investigation complete. Slice A removes secondary synchronization from the login critical path. Slice B is queued immediately after local validation and owns the persisted-session/bootstrap infinite-loader recovery.
