@@ -109,6 +109,17 @@ final profileSetupRepositoryProvider = Provider<ProfileSetupRepository>((ref) {
   );
 });
 
+/// Provider for field-specific Account Settings persistence.
+/// The current HTTP profile API does not expose this partial-update contract.
+final profileAccountRepositoryProvider =
+    Provider<ProfileAccountRepository?>((ref) {
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  if (supabaseClient != null) {
+    return SupabaseProfileAccountRepository(client: supabaseClient);
+  }
+  return null;
+});
+
 /// Provider for the [WorkoutPreferencesRepository].
 /// Uses Supabase when configured, otherwise falls back to remote HTTP adapter.
 final workoutPreferencesRepositoryProvider =
