@@ -50,7 +50,8 @@ void main() {
       expect(repository.writeCalls, 1);
     });
 
-    test('invalid completed state without confirmed mode fails safe', () async {
+    test('completed state remains completed when confirmed mode is missing',
+        () async {
       final repository = _FakeOnboardingStatusRepository(
         status: OnboardingStatus.completed,
         hasStoredContractVersion: true,
@@ -64,10 +65,10 @@ void main() {
 
       await controller.load();
 
-      expect(controller.status, OnboardingStatus.notStarted);
+      expect(controller.status, OnboardingStatus.completed);
       expect(controller.entryPath, OnboardingEntryPath.firstRun);
-      expect(repository.status, OnboardingStatus.notStarted);
-      expect(repository.writeCalls, 1);
+      expect(repository.status, OnboardingStatus.completed);
+      expect(repository.writeCalls, 0);
     });
 
     test('existing inProgress state preserves onboarding gate', () async {
