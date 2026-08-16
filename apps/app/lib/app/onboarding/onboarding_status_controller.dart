@@ -58,6 +58,33 @@ class OnboardingStatusController extends ChangeNotifier {
     }
   }
 
+  Future<void> reconcileRemote(
+    RemoteOnboardingCompletionState remoteState,
+  ) async {
+    if (!_isLoaded) {
+      await load();
+    }
+
+    switch (remoteState) {
+      case RemoteOnboardingCompletionState.completed:
+        if (_status != OnboardingStatus.completed) {
+          await _repository.write(OnboardingStatus.completed);
+          _status = OnboardingStatus.completed;
+          _entryPath = OnboardingEntryPath.firstRun;
+        }
+      case RemoteOnboardingCompletionState.uninitialized:
+      case RemoteOnboardingCompletionState.incomplete:
+        if (_status == OnboardingStatus.completed) {
+          await _repository.write(OnboardingStatus.notStarted);
+          _status = OnboardingStatus.notStarted;
+          _entryPath = OnboardingEntryPath.firstRun;
+        }
+    }
+
+    _lastError = null;
+    notifyListeners();
+  }
+
   void markCompleted() {
     _status = OnboardingStatus.completed;
     _entryPath = OnboardingEntryPath.firstRun;
