@@ -1,6 +1,6 @@
 # Auth Action Loading and Truecaller Fallback
 
-**Status:** Ready
+**Status:** In progress
 **Primary owner:** `apps/features/auth`
 **Affected platforms:** Flutter phone app
 **Tracking:** GitHub issue #9
@@ -14,55 +14,33 @@ Login auth actions behave independently and unavailable Truecaller never simulat
 ### Success Criteria
 
 - Only the tapped/in-flight auth action renders loading.
-- Other auth actions may be disabled during a request but do not show another action's spinner.
-- Truecaller is intentionally non-functional for now; tapping it keeps the user on Login and shows a short informational message.
-- Truecaller unavailable never calls success navigation, `pop(true)`, `go('/')`, or starts a fake auth flow.
-- Existing Login visual geometry/layout remains unchanged outside action-state behavior.
-
-### Scope
-
-- `LoginPage` per-action loading/interaction state.
-- unavailable Truecaller informational feedback.
-- focused Login widget tests.
-- coordination with issue #7 where both touch `LoginPage`.
+- Other auth actions are conflict-gated during a request without showing another action's spinner.
+- Truecaller is intentionally non-functional for now; tapping it keeps the user on Login and shows `Truecaller sign-in is not available yet.`
+- Truecaller unavailable never calls success navigation, `pop(true)`, `go('/')`, or starts fake auth/network work.
+- Rapid repeated taps do not start duplicate auth requests.
+- Failure/cancel returns the initiating action to idle.
+- Existing Login geometry, spacing, colors, typography, assets, and button layout remain unchanged.
 
 ### Non-Goals
 
 - Truecaller SDK/provider integration.
-- Truecaller auth/network attempt of any kind in this slice.
-- auth/session/bootstrap routing owned by #7.
-- Login/EmailLogin consolidation.
-- AuthLanding redesign or legal-copy changes.
-- global `TioSocialButton` redesign without evidence of a shared component defect.
+- auth/session/bootstrap routing (completed under #7).
+- Login/AuthLanding redesign or consolidation.
+- legal-copy changes.
+- global `TioSocialButton` redesign.
 
-## 2. Codebase Exploration
+## 2. Verified Evidence
 
-### Verified Evidence
+After #7 cleanup, `LoginPage` is destination-neutral but still has one `_isLoading` boolean:
 
-- `LoginPage` has one `_isLoading` boolean.
-- Email and Google handlers both set `_isLoading = true`.
-- Login, Google, and Truecaller buttons all receive `loading: _isLoading`.
-- `LoginPage._handleTruecallerSignIn()` pops success when possible or routes to `/` otherwise despite no Truecaller integration check.
-- `AuthLandingPage` is different: its missing Truecaller callback is currently a no-op and its `TioTermsDisclaimer` is intentional live UI.
+- Email and Google both mutate `_isLoading`.
+- Login, Google, and Truecaller all render `loading: _isLoading`.
+- back/forgot/signup interactions use the same busy guard.
+- unavailable Truecaller still performs `pop(true)` or `go('/')`.
 
-## 3. Clarification
+Core `TioSocialButton` already exposes independent `enabled` and `loading` inputs, so this can be fixed locally without changing the shared component.
 
-### Decisions Required or Made
-
-| Decision | Status | Rationale | Owner |
-|---|---|---|---|
-| Loading ownership | Made | Scope to initiating auth action | Auth |
-| Other actions during request | Made | Disable/conflict-gate without showing spinner | Auth |
-| Unavailable Truecaller | Made | Stay on Login and show informational feedback only | Auth |
-| Truecaller integration | Deferred | Provider is not linked/configured yet; work will happen later | Product/Auth |
-| Truecaller unavailable copy | Made | Use a concise neutral message such as `Truecaller sign-in is not available yet.` | Product/Auth |
-| AuthLanding legal disclaimer | Made | Preserve exactly where currently rendered | Auth |
-
-## 4. Architecture Design
-
-### Chosen Approach
-
-Use explicit action identity/state instead of one visual loading boolean.
+## 3. Frozen Decisions
 
 ```text
 idle
@@ -70,88 +48,43 @@ emailLoading
 googleLoading
 ```
 
-Do not introduce `truecallerLoading` while there is no real Truecaller integration. The initiating Email/Google action owns its spinner. A shared `isBusy` derivation may gate conflicting taps without making all buttons appear loading.
-
-Unavailable Truecaller uses the existing Login feedback/error surface as informational feedback and returns immediately without navigation or auth work.
-
-### Ownership and Data Flow
+No `truecallerLoading` exists until a real Truecaller integration exists.
 
 ```text
-Login button tap
-→ email-specific loading state
-→ email auth use case
-→ success/failure/cancel
-→ reset action state
+Email tap
+→ only Login spinner
+→ Google/Truecaller disabled, no spinner
 
-Google button tap
-→ google-specific loading state
-→ Google auth use case
-→ success/failure/cancel
-→ reset action state
+Google tap
+→ only Google spinner
+→ Login/Truecaller disabled, no spinner
 
-Truecaller tap (current phase)
-→ show `Truecaller sign-in is not available yet.`
-→ remain on Login
-→ no auth call
-→ no loading spinner
+Truecaller tap
+→ no spinner
+→ no auth/network
 → no navigation
+→ existing Login feedback surface shows:
+  “Truecaller sign-in is not available yet.”
 ```
 
-### Alternative Rejected
+## 4. Implementation Plan
 
-- one `_isLoading` for all actions: incorrect visual ownership.
-- `pop(true)` / `go('/')` as Truecaller placeholder: falsely signals success.
-- fake Truecaller success/auth request until SDK is integrated: unsafe product behavior.
-- Truecaller spinner without a real request: misleading interaction feedback.
+- [x] #7 Login destination cleanup completed and locally validated
+- [ ] replace global visual loading bool with action identity
+- [ ] gate conflicting actions without spinner duplication
+- [ ] replace Truecaller navigation placeholder with informational feedback only
+- [ ] add Email loading ownership widget test
+- [ ] add Google loading ownership widget test
+- [ ] add conflict-gating/no-spinner widget assertions
+- [ ] add Truecaller no-navigation + feedback test
+- [ ] add cancellation/idle regression coverage
+- [ ] run focused Login tests and auth analyzer
+- [ ] confirm no visual composition/layout code changed
 
-### Failure and Accessibility States
+## 5. Quality Review
 
-- Keep existing focus order, labels, sizes, colors, spacing, assets, and layout.
-- Informational feedback must be readable and recoverable without navigation.
-- Rapid repeated taps must not start duplicate auth requests.
+Implementation must remain local to `LoginPage` + focused tests unless evidence requires otherwise.
 
-## 5. Implementation Plan
+## 6. Final Handoff
 
-- [ ] Rebase/sync after issue #7 LoginPage cleanup to avoid conflicting edits.
-- [ ] Add tests proving Email loading affects only Login button.
-- [ ] Add tests proving Google loading affects only Google button.
-- [ ] Add tests proving other actions are gated without spinner duplication.
-- [ ] Add test proving unavailable Truecaller stays on Login and emits no success navigation/auth call.
-- [ ] Add test proving unavailable Truecaller shows the informational message and no spinner.
-- [ ] Add unavailable Truecaller feedback using existing Login feedback surface.
-- [ ] Replace global visual loading state with action-scoped Email/Google state.
-- [ ] Run auth package tests/analyze and visual regression check.
-
-## 6. Quality Review
-
-### Validation Run
-
-```text
-Not run yet. Task is queued behind active issue #7 work.
-```
-
-### Review Findings and Resolution
-
-- Root causes verified from current `codex/onboarding-mode-migration` source.
-- Product decision clarified: Truecaller remains intentionally non-functional for now and only shows an informational message on tap.
-- No production source changed while updating this task.
-
-## 7. Final Handoff
-
-### Changed Files
-
-```text
-.ai/tasks/auth-action-loading-and-truecaller-fallback.md
-```
-
-### Actual Behavior
-
-No runtime behavior changed yet.
-
-### Known Limitations
-
-Truecaller provider/SDK remains unconfigured and is intentionally not implemented by this task.
-
-### Final Status
-
-`REVIEW`
+Pending implementation and local validation.
