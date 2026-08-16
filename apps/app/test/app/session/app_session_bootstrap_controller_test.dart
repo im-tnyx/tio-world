@@ -109,6 +109,33 @@ void main() {
       const AppSessionBootstrapRequiresOnboarding(userId: 'user-b'),
     );
   });
+
+  test('successful onboarding completion can publish ready without another read',
+      () async {
+    var readCount = 0;
+    final fixture = await _Fixture.create(
+      authState: _authenticated('user-a'),
+      completionResolver: () async {
+        readCount++;
+        return RemoteOnboardingCompletionState.incomplete;
+      },
+    );
+
+    await fixture.controller.refresh();
+    expect(readCount, 1);
+    expect(
+      fixture.controller.state,
+      const AppSessionBootstrapRequiresOnboarding(userId: 'user-a'),
+    );
+
+    fixture.controller.markReadyAfterOnboardingCompletion('user-a');
+
+    expect(readCount, 1);
+    expect(
+      fixture.controller.state,
+      const AppSessionBootstrapReady(userId: 'user-a'),
+    );
+  });
 }
 
 AuthSessionAuthenticated _authenticated(String userId) {
