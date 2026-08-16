@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_home/home.dart';
@@ -18,7 +17,7 @@ import 'app_mode/app_mode.dart';
 import 'app_theme.dart';
 import 'network_providers.dart';
 import 'onboarding/onboarding.dart';
-
+import 'session/session.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -82,6 +81,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   final appModeController = ref.read(appModeControllerProvider);
   final onboardingStatusController =
       ref.read(onboardingStatusControllerProvider);
+  final appSessionBootstrapController =
+      ref.read(appSessionBootstrapControllerProvider);
   final appThemeController = ref.read(appThemeControllerProvider);
   final onboardingStatusRepository =
       ref.read(onboardingStatusRepositoryProvider);
@@ -107,9 +108,24 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   router = GoRouter(
     initialLocation: AppRoutes.splash.path,
     navigatorKey: rootNavigatorKey,
-    refreshListenable:
-        Listenable.merge([appModeController, onboardingStatusController]),
+    refreshListenable: Listenable.merge([
+      appSessionBootstrapController,
+      appModeController,
+      onboardingStatusController,
+    ]),
     redirect: (context, state) {
+      final bootstrapRedirect = appSessionBootstrapRedirect(
+        path: state.uri.path,
+        state: appSessionBootstrapController.state,
+      );
+      if (bootstrapRedirect != null) {
+        return bootstrapRedirect;
+      }
+
+      if (appSessionBootstrapController.state is! AppSessionBootstrapReady) {
+        return null;
+      }
+
       return appModeRedirect(
         path: state.uri.path,
         selectedMode: appModeController.selectedMode,
@@ -172,29 +188,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.splash.path,
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => SplashScreen(
-          onCheckInitialDestination: () async {
-            try {
-              final client = Supabase.instance.client;
-              final user = client.auth.currentUser;
-              if (user != null) {
-                final row = await client
-                    .from('users')
-                    .select('is_onboarded')
-                    .eq('id', user.id)
-                    .maybeSingle()
-                    .timeout(const Duration(seconds: 4), onTimeout: () => null);
-
-                final isOnboarded =
-                    row != null && (row['is_onboarded'] as bool? ?? false);
-                return isOnboarded
-                    ? FeatureRoutes.home.path
-                    : AppRoutes.onboarding.path;
-              }
-            } catch (_) {}
-            return AppRoutes.auth.path;
-          },
-        ),
+        builder: (context, state) => const SplashScreen(),
       ),
       GoRoute(
         path: AppRoutes.auth.path,
@@ -353,6 +347,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                     'isWelcomeBack': false,
                   },
                 );
+                final completedUserId = supabaseClient?.auth.currentUser?.id;
+                if (completedUserId != null && completedUserId.isNotEmpty) {
+                  appSessionBootstrapController
+                      .markReadyAfterOnboardingCompletion(completedUserId);
+                }
               }
             } catch (e, st) {
               debugPrint('[Router] onFinishRequested EXCEPTION: $e');
