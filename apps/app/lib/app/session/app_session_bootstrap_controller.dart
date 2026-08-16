@@ -34,11 +34,16 @@ class AppSessionBootstrapController extends ChangeNotifier {
   void start() {
     if (_disposed || _started) return;
     _started = true;
+    _debug('start');
     _authSubscription = _authSessionRepository.sessionState.listen(
-      (authState) => unawaited(_resolve(authState)),
+      (authState) {
+        _debug('auth event: ${authState.runtimeType}');
+        unawaited(_resolve(authState));
+      },
       onError: (Object error, StackTrace _) {
         if (_disposed) return;
         _resolutionGeneration++;
+        _debug('auth stream error: ${error.runtimeType}');
         _setState(AppSessionBootstrapFailure(error));
       },
     );
@@ -46,8 +51,10 @@ class AppSessionBootstrapController extends ChangeNotifier {
 
   Future<void> refresh({bool emitLoading = true}) async {
     if (_disposed) return;
+    _debug('refresh requested');
     final authState = await _authSessionRepository.currentSessionState;
     if (_disposed) return;
+    _debug('refresh auth state: ${authState.runtimeType}');
     await _resolve(authState, emitLoading: emitLoading);
   }
 
@@ -63,6 +70,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
       throw ArgumentError.value(userId, 'userId', 'must not be empty');
     }
     _resolutionGeneration++;
+    _debug('mark ready after onboarding completion');
     _setState(AppSessionBootstrapReady(userId: userId));
   }
 
@@ -72,6 +80,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
   }) async {
     if (_disposed) return;
     final generation = ++_resolutionGeneration;
+    _debug('resolve generation=$generation state=${authState.runtimeType}');
 
     switch (authState) {
       case AuthSessionUnknown():
@@ -95,13 +104,21 @@ class AppSessionBootstrapController extends ChangeNotifier {
         }
 
         try {
+          _debug('completion lookup started generation=$generation');
           final remoteState = await completionRepository
               .readCurrent()
               .timeout(_completionLookupTimeout);
-          if (_disposed || generation != _resolutionGeneration) return;
+          if (_disposed || generation != _resolutionGeneration) {
+            _debug('completion result ignored as stale generation=$generation');
+            return;
+          }
+          _debug('completion lookup result: $remoteState');
 
           await _onboardingStatusController.reconcileRemote(remoteState);
-          if (_disposed || generation != _resolutionGeneration) return;
+          if (_disposed || generation != _resolutionGeneration) {
+            _debug('reconcile result ignored as stale generation=$generation');
+            return;
+          }
 
           switch (remoteState) {
             case RemoteOnboardingCompletionState.completed:
@@ -116,6 +133,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
           }
         } catch (error) {
           if (_disposed || generation != _resolutionGeneration) return;
+          _debug('completion lookup failed: ${error.runtimeType}');
           _setState(AppSessionBootstrapFailure(error));
         }
         break;
@@ -124,13 +142,22 @@ class AppSessionBootstrapController extends ChangeNotifier {
 
   void _setState(AppSessionBootstrapState next) {
     if (_disposed || _state == next) return;
+    _debug('state: ${_state.runtimeType} -> ${next.runtimeType}');
     _state = next;
     notifyListeners();
+  }
+
+  void _debug(String message) {
+    assert(() {
+      debugPrint('[SessionBootstrap] $message');
+      return true;
+    }());
   }
 
   @override
   void dispose() {
     if (_disposed) return;
+    _debug('dispose');
     _disposed = true;
     _resolutionGeneration++;
     _authSubscription?.cancel();
