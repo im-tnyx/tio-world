@@ -25,6 +25,106 @@ void main() {
       expect(result, isA<SignInCancelled>());
     });
 
+    test('Google account selection timeout returns controlled failure', () async {
+      final pendingSelection = Completer<GoogleSignInAccount?>();
+      final repo = SupabaseAuthSignInRepository(
+        client: FakeSupabaseClient(),
+        googleSignIn: FakeGoogleSignIn(signInFuture: pendingSelection.future),
+        googleAccountSelectionTimeout: const Duration(milliseconds: 10),
+      );
+
+      final result = await repo.signInWithGoogle();
+
+      expect(result, isA<SignInFailure>());
+      expect(
+        (result as SignInFailure).code,
+        'google_account_selection_timeout',
+      );
+    });
+
+    test('Google credential timeout returns controlled failure', () async {
+      final pendingCredentials = Completer<GoogleSignInAuthentication>();
+      final account = FakeGoogleSignInAccount(
+        authenticationFuture: pendingCredentials.future,
+      );
+      final repo = SupabaseAuthSignInRepository(
+        client: FakeSupabaseClient(),
+        googleSignIn: FakeGoogleSignIn(accountToReturn: account),
+        googleCredentialTimeout: const Duration(milliseconds: 10),
+      );
+
+      final result = await repo.signInWithGoogle();
+
+      expect(result, isA<SignInFailure>());
+      expect((result as SignInFailure).code, 'google_credential_timeout');
+    });
+
+    test('Supabase Google exchange timeout returns controlled failure', () async {
+      final pendingExchange = Completer<AuthResponse>();
+      final fakeGoTrue = FakeGoTrueClient(idTokenFuture: pendingExchange.future);
+      final account = FakeGoogleSignInAccount(
+        authenticationFuture: Future.value(
+          const FakeGoogleSignInAuthentication(
+            idToken: 'google-id-token',
+            accessToken: 'google-access-token',
+          ),
+        ),
+      );
+      final repo = SupabaseAuthSignInRepository(
+        client: FakeSupabaseClient(goTrueClient: fakeGoTrue),
+        googleSignIn: FakeGoogleSignIn(accountToReturn: account),
+        googleSupabaseExchangeTimeout: const Duration(milliseconds: 10),
+      );
+
+      final result = await repo.signInWithGoogle();
+
+      expect(result, isA<SignInFailure>());
+      expect(
+        (result as SignInFailure).code,
+        'google_supabase_exchange_timeout',
+      );
+    });
+
+    test('Google sign-in succeeds when every critical stage completes', () async {
+      final fakeUser = User(
+        id: 'usr-google-1',
+        appMetadata: const {},
+        userMetadata: const {'full_name': 'Google User'},
+        aud: 'authenticated',
+        createdAt: DateTime.now().toIso8601String(),
+        email: 'google@test.com',
+      );
+      final fakeGoTrue = FakeGoTrueClient(
+        currentUser: fakeUser,
+        authResponseToReturn: AuthResponse(
+          session: Session(
+            accessToken: 'token',
+            tokenType: 'bearer',
+            user: fakeUser,
+          ),
+          user: fakeUser,
+        ),
+      );
+      final account = FakeGoogleSignInAccount(
+        authenticationFuture: Future.value(
+          const FakeGoogleSignInAuthentication(
+            idToken: 'google-id-token',
+            accessToken: 'google-access-token',
+          ),
+        ),
+      );
+      final repo = SupabaseAuthSignInRepository(
+        client: FakeSupabaseClient(goTrueClient: fakeGoTrue),
+        googleSignIn: FakeGoogleSignIn(accountToReturn: account),
+      );
+
+      final result = await repo.signInWithGoogle();
+
+      expect(result, isA<SignInSuccess>());
+      expect((result as SignInSuccess).session.userId, 'usr-google-1');
+      expect(result.session.email, 'google@test.com');
+    });
+
     test('signInWithEmailPassword returns SignInSuccess on valid credentials', () async {
       final fakeUser = User(
         id: 'usr-email-1',
@@ -151,12 +251,14 @@ class FakeGoTrueClient extends Fake implements GoTrueClient {
     this.currentUser,
     this.authResponseToReturn,
     this.exceptionToThrow,
+    this.idTokenFuture,
   });
 
   @override
   final User? currentUser;
   final AuthResponse? authResponseToReturn;
   final Object? exceptionToThrow;
+  final Future<AuthResponse>? idTokenFuture;
 
   @override
   Future<AuthResponse> signInWithPassword({
@@ -186,6 +288,8 @@ class FakeGoTrueClient extends Fake implements GoTrueClient {
     if (exceptionToThrow != null) {
       throw exceptionToThrow!;
     }
+    final pending = idTokenFuture;
+    if (pending != null) return pending;
     return authResponseToReturn ??
         AuthResponse(
           session: null,
@@ -195,10 +299,41 @@ class FakeGoTrueClient extends Fake implements GoTrueClient {
 }
 
 class FakeGoogleSignIn extends Fake implements GoogleSignIn {
-  FakeGoogleSignIn({this.accountToReturn});
+  FakeGoogleSignIn({this.accountToReturn, this.signInFuture});
 
   final GoogleSignInAccount? accountToReturn;
+  final Future<GoogleSignInAccount?>? signInFuture;
 
   @override
-  Future<GoogleSignInAccount?> signIn() async => accountToReturn;
+  Future<GoogleSignInAccount?> signIn() async {
+    final pending = signInFuture;
+    if (pending != null) return pending;
+    return accountToReturn;
+  }
+}
+
+class FakeGoogleSignInAccount extends Fake implements GoogleSignInAccount {
+  FakeGoogleSignInAccount({required this.authenticationFuture});
+
+  final Future<GoogleSignInAuthentication> authenticationFuture;
+
+  @override
+  Future<GoogleSignInAuthentication> get authentication => authenticationFuture;
+}
+
+class FakeGoogleSignInAuthentication extends Fake
+    implements GoogleSignInAuthentication {
+  const FakeGoogleSignInAuthentication({
+    required this.idToken,
+    this.accessToken,
+  });
+
+  @override
+  final String? idToken;
+
+  @override
+  final String? accessToken;
+
+  @override
+  String? get serverAuthCode => null;
 }
