@@ -1,0 +1,58 @@
+name: Flutter CI
+
+on:
+  push:
+    branches:
+      - main
+      - codex/onboarding-mode-migration
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flutter-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Analyze and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Flutter stable
+        shell: bash
+        run: |
+          git clone https://github.com/flutter/flutter.git --depth 1 --branch stable "$HOME/flutter"
+          echo "$HOME/flutter/bin" >> "$GITHUB_PATH"
+
+      - name: Toolchain info
+        run: flutter --version
+
+      - name: Install Melos
+        shell: bash
+        run: |
+          dart pub global activate melos 8.2.2
+          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+
+      - name: Bootstrap workspace
+        run: melos bootstrap
+
+      - name: Analyze Flutter packages
+        run: melos exec --flutter --fail-fast -- "flutter analyze"
+
+      - name: Analyze Dart packages
+        run: melos exec --no-flutter --fail-fast -- "dart analyze ."
+
+      - name: Test Flutter packages
+        run: melos exec --flutter --dir-exists=test --fail-fast -- "flutter test"
+
+      - name: Test Dart packages
+        run: melos exec --no-flutter --dir-exists=test --fail-fast -- "dart test"
