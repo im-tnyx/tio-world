@@ -8,13 +8,6 @@ List<ShellTab> guidedShellTabs(AppMode mode) {
       .toList(growable: false);
 }
 
-const missingModeCompatibilityTabs = <ShellTab>[
-  ShellTab.home,
-  ShellTab.workout,
-  ShellTab.nutrition,
-  ShellTab.progress,
-];
-
 String? appModeRedirect(
     {required String path,
     required AppMode? selectedMode,
@@ -45,8 +38,9 @@ String? appModeRedirect(
       shellBranchRegistry.any((branch) => branch.route.path == path);
 
   if (selectedMode == null) {
-    final compatibilityPaths =
-        missingModeCompatibilityTabs.map((tab) => tab.route.path).toSet();
+    final compatibilityPaths = missingModeCompatibilityShellTabs
+        .map((tab) => tab.route.path)
+        .toSet();
     if (isShellPath && !compatibilityPaths.contains(path)) {
       return FeatureRoutes.home.path;
     }
