@@ -42,12 +42,15 @@ void main() {
   }
 
   group('SplashScreen Destination Resolution', () {
-    testWidgets('navigates to /auth when no destination checker is provided', (tester) async {
+    testWidgets('stays on Splash when no destination checker is provided', (tester) async {
       await tester.pumpWidget(buildTestApp());
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Auth Route'), findsOneWidget);
+      expect(find.byType(SplashScreen), findsOneWidget);
+      expect(find.text('Auth Route'), findsNothing);
+      expect(find.text('Onboarding Route'), findsNothing);
+      expect(find.text('Home Route'), findsNothing);
     });
 
     testWidgets('navigates to /auth when unauthenticated session is detected', (tester) async {
