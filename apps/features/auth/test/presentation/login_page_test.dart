@@ -40,7 +40,6 @@ void main() {
       );
       expect(passwordField.obscureText, isTrue);
 
-      // Tap visibility toggle icon
       await tester.tap(find.byIcon(Icons.visibility_off_outlined));
       await tester.pump();
 
@@ -59,7 +58,6 @@ void main() {
       final submitBtn = tester.widget<TioButton>(find.byKey(const ValueKey('login-submit-button')));
       expect(submitBtn.enabled, isFalse);
 
-      // Enter invalid email
       await tester.enterText(find.byKey(const ValueKey('login-email-input')), 'invalid-email');
       await tester.enterText(find.byKey(const ValueKey('login-password-input')), 'secret');
       await tester.pump();
@@ -67,7 +65,6 @@ void main() {
       final submitBtnInvalid = tester.widget<TioButton>(find.byKey(const ValueKey('login-submit-button')));
       expect(submitBtnInvalid.enabled, isFalse);
 
-      // Enter valid email
       await tester.enterText(find.byKey(const ValueKey('login-email-input')), 'user@example.com');
       await tester.pump();
 
@@ -75,9 +72,10 @@ void main() {
       expect(submitBtnValid.enabled, isTrue);
     });
 
-    testWidgets('calls signInWithEmailUseCase when login button is tapped with valid credentials', (tester) async {
+    testWidgets('email success emits callback and keeps LoginPage destination-neutral', (tester) async {
       var emailSubmitted = '';
       var passwordSubmitted = '';
+      SignInSuccess? success;
 
       final mockRepo = FakeAuthSignInRepository(
         onSignInWithEmail: (email, pass) async {
@@ -91,6 +89,7 @@ void main() {
         createTestWidget(
           LoginPage(
             signInWithEmailUseCase: SignInWithEmailUseCase(signInRepository: mockRepo),
+            onSignInSuccess: (result) => success = result,
           ),
         ),
       );
@@ -104,6 +103,31 @@ void main() {
 
       expect(emailSubmitted, 'test@tnyx.fit');
       expect(passwordSubmitted, 'Password123!');
+      expect(success?.session.userId, 'usr-1');
+      expect(find.byType(LoginPage), findsOneWidget);
+    });
+
+    testWidgets('google success emits callback and keeps LoginPage destination-neutral', (tester) async {
+      SignInSuccess? success;
+      final mockRepo = FakeAuthSignInRepository(
+        onSignInWithGoogle: () async =>
+            const SignInSuccess(AuthSession(userId: 'google-user')),
+      );
+
+      await tester.pumpWidget(
+        createTestWidget(
+          LoginPage(
+            signInWithGoogleUseCase: SignInWithGoogleUseCase(signInRepository: mockRepo),
+            onSignInSuccess: (result) => success = result,
+          ),
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('login-google-button')));
+      await tester.pump();
+
+      expect(success?.session.userId, 'google-user');
+      expect(find.byType(LoginPage), findsOneWidget);
     });
 
     testWidgets('displays error banner when sign in fails', (tester) async {
