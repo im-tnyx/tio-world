@@ -5,9 +5,23 @@ on:
     branches:
       - main
       - codex/onboarding-mode-migration
+    paths:
+      - 'apps/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'melos.yaml'
+      - 'analysis_options.yaml'
+      - '.github/workflows/flutter-ci.yml'
   pull_request:
     branches:
       - main
+    paths:
+      - 'apps/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'melos.yaml'
+      - 'analysis_options.yaml'
+      - '.github/workflows/flutter-ci.yml'
   workflow_dispatch:
 
 permissions:
