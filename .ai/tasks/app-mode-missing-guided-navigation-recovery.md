@@ -78,7 +78,7 @@ This supports returning sessions, fresh installs, cross-device restore, future p
 ### Proposed `public.users` columns
 
 ```sql
-app_mode   text null
+app_mode    text null
 active_tabs text[] null
 ```
 
