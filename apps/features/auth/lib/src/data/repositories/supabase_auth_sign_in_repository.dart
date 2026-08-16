@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:developer' as developer;
+
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -57,7 +59,7 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
         }
         final user = _client.auth.currentUser;
         if (user != null) {
-          await _userDeviceRepository?.syncCurrentDevice();
+          _startDeviceSync();
           return SignInSuccess(_mapUser(user));
         }
         return const SignInCancelled();
@@ -74,31 +76,13 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
         return const SignInFailure('Failed to obtain authenticated Supabase user.');
       }
 
-      await _userDeviceRepository?.syncCurrentDevice();
       final session = _mapUser(user);
 
-      // Auto-populate Google Profile details (Image, Name, Email) into public.users
-      try {
-        final nowIso = DateTime.now().toUtc().toIso8601String();
-        await _client.from('users').upsert(
-          {
-            'id': user.id,
-            if (session.displayName != null && session.displayName!.isNotEmpty)
-              'name': session.displayName,
-            if (session.email != null && session.email!.isNotEmpty)
-              'email': session.email,
-            if (session.photoUrl != null && session.photoUrl!.isNotEmpty) ...{
-              'avatar_url': session.photoUrl,
-              'profile_image': session.photoUrl,
-            },
-            'last_active_at': nowIso,
-            'updated_at': nowIso,
-          },
-          onConflict: 'id',
-        );
-      } catch (e) {
-        developer.log('Failed to auto-sync Google user profile: $e');
-      }
+      // The authenticated Supabase session is the critical-path success signal.
+      // Device/profile synchronization is secondary and must not keep the login
+      // action loading if the network or a downstream table is slow/unavailable.
+      _startDeviceSync();
+      _startGoogleProfileSync(user: user, session: session);
 
       return SignInSuccess(session);
     } on AuthException catch (e) {
@@ -128,7 +112,7 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
       if (user == null) {
         return const SignInFailure('Sign in failed: user not returned.');
       }
-      await _userDeviceRepository?.syncCurrentDevice();
+      _startDeviceSync();
       return SignInSuccess(_mapUser(user));
     } on AuthException catch (e) {
       return SignInFailure(e.message, code: e.statusCode);
@@ -164,7 +148,7 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
           code: 'user_already_exists',
         );
       }
-      await _userDeviceRepository?.syncCurrentDevice();
+      _startDeviceSync();
       try {
         final nowIso = DateTime.now().toUtc().toIso8601String();
         await _client.from('users').upsert(
@@ -227,12 +211,65 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
       if (user == null) {
         return const SignInFailure('OTP verification failed.');
       }
-      await _userDeviceRepository?.syncCurrentDevice();
+      _startDeviceSync();
       return SignInSuccess(_mapUser(user));
     } on AuthException catch (e) {
       return SignInFailure(e.message, code: e.statusCode);
     } catch (e) {
       return SignInFailure(e.toString());
+    }
+  }
+
+  void _startDeviceSync() {
+    final repository = _userDeviceRepository;
+    if (repository == null) return;
+
+    unawaited(
+      repository.syncCurrentDevice().catchError((Object error, StackTrace stackTrace) {
+        developer.log(
+          'Failed to sync authenticated user device',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }),
+    );
+  }
+
+  void _startGoogleProfileSync({
+    required User user,
+    required AuthSession session,
+  }) {
+    unawaited(_syncGoogleProfile(user: user, session: session));
+  }
+
+  Future<void> _syncGoogleProfile({
+    required User user,
+    required AuthSession session,
+  }) async {
+    try {
+      final nowIso = DateTime.now().toUtc().toIso8601String();
+      await _client.from('users').upsert(
+        {
+          'id': user.id,
+          if (session.displayName != null && session.displayName!.isNotEmpty)
+            'name': session.displayName,
+          if (session.email != null && session.email!.isNotEmpty)
+            'email': session.email,
+          if (session.photoUrl != null && session.photoUrl!.isNotEmpty) ...{
+            'avatar_url': session.photoUrl,
+            'profile_image': session.photoUrl,
+          },
+          'last_active_at': nowIso,
+          'updated_at': nowIso,
+        },
+        onConflict: 'id',
+      );
+    } catch (e, stackTrace) {
+      developer.log(
+        'Failed to auto-sync Google user profile',
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
   }
 
