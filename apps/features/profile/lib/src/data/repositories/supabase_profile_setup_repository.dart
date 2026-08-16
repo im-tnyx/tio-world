@@ -63,7 +63,6 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
       'health_conditions': data.healthConditions.map((c) => c.name).toList(),
       'other_health_condition': data.otherHealthCondition,
       'timezone': DateTime.now().timeZoneName,
-      'is_onboarded': true,
       'is_active': true,
       'last_active_at': nowIso,
       'updated_at': nowIso,
@@ -86,7 +85,6 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
           'activity_level': data.activityLevel.name,
           'health_conditions': data.healthConditions.map((c) => c.name).toList(),
           'other_health_condition': data.otherHealthCondition,
-          'is_onboarded': true,
           'updated_at': nowIso,
         };
         await _client.from('users').upsert(corePayload);
