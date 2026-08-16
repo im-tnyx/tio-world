@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -93,15 +95,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ref.read(appOnboardingDraftRepositoryProvider);
   final onboardingCompletionRepository =
       ref.read(onboardingCompletionRepositoryProvider);
-
-  final authProductState = ref.watch(authProductStateProvider);
-  final supabaseClient = ref.watch(supabaseClientProvider);
-  final isSupabaseReady =
-      supabaseClient != null && supabaseClient.auth.currentUser != null;
-  final isDurablePersistenceReady = isSupabaseReady ||
-      authProductState.isReadyForProtectedBackendCalls ||
-      authProductState.isAuthUnavailable ||
-      supabaseClient == null;
+  final supabaseClient = ref.read(supabaseClientProvider);
   const hasDurableStorage = true;
 
   late final GoRouter router;
@@ -189,15 +183,20 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.splash.path,
         parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) {
-          final bootstrapState = appSessionBootstrapController.state;
-          final isFailure = bootstrapState is AppSessionBootstrapFailure;
-          return SplashScreen(
-            failureMessage: isFailure
-                ? "Couldn't finish signing you in. Check your connection and try again."
-                : null,
-            onRetry: isFailure
-                ? () => appSessionBootstrapController.refresh()
-                : null,
+          return ListenableBuilder(
+            listenable: appSessionBootstrapController,
+            builder: (context, _) {
+              final bootstrapState = appSessionBootstrapController.state;
+              final isFailure = bootstrapState is AppSessionBootstrapFailure;
+              return SplashScreen(
+                failureMessage: isFailure
+                    ? "Couldn't finish signing you in. Check your connection and try again."
+                    : null,
+                onRetry: isFailure
+                    ? () => appSessionBootstrapController.refresh()
+                    : null,
+              );
+            },
           );
         },
       ),
@@ -217,6 +216,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             return AuthLandingPage(
               signInWithGoogleUseCase: supabaseSignInUseCase,
               googleAuthUseCase: googleAuthUseCase,
+              onSignInSuccess: (_) {
+                unawaited(appSessionBootstrapController.refresh());
+              },
               onAuthSuccess: (result) {
                 ref.read(backendUserStateProvider.notifier).state =
                     result.backendUserState;
@@ -239,6 +241,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               signInWithEmailUseCase: signInWithEmailUseCase,
               signInWithGoogleUseCase: supabaseSignInUseCase,
               googleAuthUseCase: googleAuthUseCase,
+              onSignInSuccess: (_) {
+                unawaited(appSessionBootstrapController.refresh());
+              },
               onAuthSuccess: (result) {
                 ref.read(backendUserStateProvider.notifier).state =
                     result.backendUserState;
@@ -293,8 +298,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             context.go(AppRoutes.auth.path);
           },
           onAuthRequired: () async {
-            if (authProductState.isFirebaseAuthenticated || isSupabaseReady) return true;
-            if (authProductState.isAuthUnavailable && supabaseClient == null) return true;
+            final authProductState = ref.read(authProductStateProvider);
+            final isSupabaseReady =
+                supabaseClient != null && supabaseClient.auth.currentUser != null;
+            if (authProductState.isFirebaseAuthenticated || isSupabaseReady) {
+              return true;
+            }
+            if (authProductState.isAuthUnavailable && supabaseClient == null) {
+              return true;
+            }
             final result = await context.push<bool>(AppRoutes.login.path);
             return result ?? false;
           },
@@ -310,6 +322,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 }
                 debugPrint('[Router] Supabase auth succeeded! userId=${supabaseClient.auth.currentUser?.id}');
               }
+
+              final authProductState = ref.read(authProductStateProvider);
+              final isSupabaseReady =
+                  supabaseClient != null && supabaseClient.auth.currentUser != null;
+              final isDurablePersistenceReady = isSupabaseReady ||
+                  authProductState.isReadyForProtectedBackendCalls ||
+                  authProductState.isAuthUnavailable ||
+                  supabaseClient == null;
 
               final completeOnboarding = CompleteOnboardingUseCase(
                 confirmedModePreference:
