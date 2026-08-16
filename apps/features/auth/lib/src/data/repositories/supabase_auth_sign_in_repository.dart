@@ -19,8 +19,14 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
     GoogleSignIn? googleSignIn,
     String? serverClientId,
     UserDeviceRepository? userDeviceRepository,
+    Duration googleAccountSelectionTimeout = const Duration(seconds: 30),
+    Duration googleCredentialTimeout = const Duration(seconds: 15),
+    Duration googleSupabaseExchangeTimeout = const Duration(seconds: 15),
   })  : _client = client,
         _userDeviceRepository = userDeviceRepository,
+        _googleAccountSelectionTimeout = googleAccountSelectionTimeout,
+        _googleCredentialTimeout = googleCredentialTimeout,
+        _googleSupabaseExchangeTimeout = googleSupabaseExchangeTimeout,
         _googleSignIn = googleSignIn ??
             GoogleSignIn(
               scopes: const ['email', 'profile'],
@@ -35,41 +41,113 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
   final SupabaseClient _client;
   final GoogleSignIn _googleSignIn;
   final UserDeviceRepository? _userDeviceRepository;
+  final Duration _googleAccountSelectionTimeout;
+  final Duration _googleCredentialTimeout;
+  final Duration _googleSupabaseExchangeTimeout;
 
   @override
   Future<SignInResult> signInWithGoogle() async {
     try {
-      final googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        return const SignInCancelled();
+      developer.log('[GoogleAuth] account selection started');
+      GoogleSignInAccount? googleUser;
+      try {
+        googleUser = await _googleSignIn
+            .signIn()
+            .timeout(_googleAccountSelectionTimeout);
+      } on TimeoutException catch (error, stackTrace) {
+        developer.log(
+          '[GoogleAuth] account selection timed out',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        return const SignInFailure(
+          'Google sign-in took too long before account selection completed. Please try again.',
+          code: 'google_account_selection_timeout',
+        );
       }
 
-      final googleAuth = await googleUser.authentication;
+      if (googleUser == null) {
+        developer.log('[GoogleAuth] account selection cancelled');
+        return const SignInCancelled();
+      }
+      developer.log('[GoogleAuth] account selected');
+
+      developer.log('[GoogleAuth] credential read started');
+      GoogleSignInAuthentication googleAuth;
+      try {
+        googleAuth = await googleUser.authentication
+            .timeout(_googleCredentialTimeout);
+      } on TimeoutException catch (error, stackTrace) {
+        developer.log(
+          '[GoogleAuth] credential read timed out',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        return const SignInFailure(
+          'Google sign-in took too long while reading credentials. Please try again.',
+          code: 'google_credential_timeout',
+        );
+      }
+      developer.log('[GoogleAuth] credential read completed');
+
       final idToken = googleAuth.idToken;
       final accessToken = googleAuth.accessToken;
 
       if (idToken == null || idToken.isEmpty) {
-        // Fallback to Supabase OAuth browser flow if native ID token is unavailable
-        final success = await _client.auth.signInWithOAuth(
-          OAuthProvider.google,
-          redirectTo: 'tio://login-callback',
-        );
+        developer.log('[GoogleAuth] native ID token unavailable; OAuth fallback started');
+        bool success;
+        try {
+          success = await _client.auth
+              .signInWithOAuth(
+                OAuthProvider.google,
+                redirectTo: 'tio://login-callback',
+              )
+              .timeout(_googleSupabaseExchangeTimeout);
+        } on TimeoutException catch (error, stackTrace) {
+          developer.log(
+            '[GoogleAuth] OAuth fallback timed out',
+            error: error,
+            stackTrace: stackTrace,
+          );
+          return const SignInFailure(
+            'Tio could not finish Google sign-in in time. Please try again.',
+            code: 'google_supabase_exchange_timeout',
+          );
+        }
         if (!success) {
           return const SignInCancelled();
         }
         final user = _client.auth.currentUser;
         if (user != null) {
+          developer.log('[GoogleAuth] OAuth fallback session established');
           _startDeviceSync();
           return SignInSuccess(_mapUser(user));
         }
         return const SignInCancelled();
       }
 
-      final response = await _client.auth.signInWithIdToken(
-        provider: OAuthProvider.google,
-        idToken: idToken,
-        accessToken: accessToken,
-      );
+      developer.log('[GoogleAuth] Supabase ID-token exchange started');
+      AuthResponse response;
+      try {
+        response = await _client.auth
+            .signInWithIdToken(
+              provider: OAuthProvider.google,
+              idToken: idToken,
+              accessToken: accessToken,
+            )
+            .timeout(_googleSupabaseExchangeTimeout);
+      } on TimeoutException catch (error, stackTrace) {
+        developer.log(
+          '[GoogleAuth] Supabase ID-token exchange timed out',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        return const SignInFailure(
+          'Tio could not finish Google sign-in in time. Please try again.',
+          code: 'google_supabase_exchange_timeout',
+        );
+      }
+      developer.log('[GoogleAuth] Supabase ID-token exchange completed');
 
       final user = response.user ?? _client.auth.currentUser;
       if (user == null) {
@@ -84,10 +162,17 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
       _startDeviceSync();
       _startGoogleProfileSync(user: user, session: session);
 
+      developer.log('[GoogleAuth] sign-in completed successfully');
       return SignInSuccess(session);
     } on AuthException catch (e) {
+      developer.log('[GoogleAuth] Supabase auth failure', error: e);
       return SignInFailure(e.message, code: e.statusCode);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      developer.log(
+        '[GoogleAuth] unexpected sign-in failure',
+        error: e,
+        stackTrace: stackTrace,
+      );
       final errorStr = e.toString();
       if (errorStr.contains('canceled') ||
           errorStr.contains('cancelled') ||
