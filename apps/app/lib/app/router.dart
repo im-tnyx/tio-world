@@ -210,10 +210,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => Consumer(
           builder: (context, ref, _) {
+            final signInWithEmailUseCase =
+                ref.watch(signInWithEmailUseCaseProvider);
             final supabaseSignInUseCase =
                 ref.watch(signInWithGoogleUseCaseProvider);
             final googleAuthUseCase = ref.watch(googleAuthUseCaseProvider);
-            return AuthLandingPage(
+            return LoginPage(
+              signInWithEmailUseCase: signInWithEmailUseCase,
               signInWithGoogleUseCase: supabaseSignInUseCase,
               googleAuthUseCase: googleAuthUseCase,
               onSignInSuccess: (_) {
@@ -222,6 +225,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               onAuthSuccess: (result) {
                 ref.read(backendUserStateProvider.notifier).state =
                     result.backendUserState;
+                unawaited(appSessionBootstrapController.refresh());
               },
             );
           },
@@ -247,6 +251,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               onAuthSuccess: (result) {
                 ref.read(backendUserStateProvider.notifier).state =
                     result.backendUserState;
+                unawaited(appSessionBootstrapController.refresh());
               },
             );
           },
@@ -259,12 +264,20 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           builder: (context, ref, _) {
             final signUpWithEmailUseCase =
                 ref.watch(signUpWithEmailUseCaseProvider);
+            final supabaseSignInUseCase =
+                ref.watch(signInWithGoogleUseCaseProvider);
+            final googleAuthUseCase = ref.watch(googleAuthUseCaseProvider);
             return EmailSignupPage(
               signUpWithEmailUseCase: signUpWithEmailUseCase,
+              signInWithGoogleUseCase: supabaseSignInUseCase,
+              googleAuthUseCase: googleAuthUseCase,
               onSignUpSuccess: (_) {
-                if (context.canPop()) {
-                  context.pop(true);
-                }
+                unawaited(appSessionBootstrapController.refresh());
+              },
+              onAuthSuccess: (result) {
+                ref.read(backendUserStateProvider.notifier).state =
+                    result.backendUserState;
+                unawaited(appSessionBootstrapController.refresh());
               },
             );
           },
@@ -307,17 +320,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             if (authProductState.isAuthUnavailable && supabaseClient == null) {
               return true;
             }
-            final result = await context.push<bool>(AppRoutes.login.path);
+            final result = await context.push<bool>(AppRoutes.emailSignup.path);
             return result ?? false;
           },
           onFinishRequested: (draft) async {
             debugPrint('[Router] onFinishRequested invoked. Profile name: "${draft.profile.name}"');
             try {
               if (supabaseClient != null && supabaseClient.auth.currentUser == null) {
-                debugPrint('[Router] Supabase user is not logged in. Pushing Login...');
-                await context.push<bool>(AppRoutes.login.path);
+                debugPrint('[Router] Supabase user is not logged in. Pushing Signup...');
+                await context.push<bool>(AppRoutes.emailSignup.path);
                 if (supabaseClient.auth.currentUser == null) {
-                  debugPrint('[Router] User still not logged in after login sheet.');
+                  debugPrint('[Router] User still not logged in after signup sheet.');
                   throw StateError('Sign in is required to save your setup to Supabase.');
                 }
                 debugPrint('[Router] Supabase auth succeeded! userId=${supabaseClient.auth.currentUser?.id}');
