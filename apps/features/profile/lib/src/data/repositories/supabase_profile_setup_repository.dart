@@ -39,19 +39,20 @@ class SupabaseProfileSetupRepository
 
     final currentUser = _client.auth.currentUser;
     final email = currentUser?.email;
-    final phone = currentUser?.phone;
-    final effectiveMobile =
-        (data.mobile != null && data.mobile!.trim().isNotEmpty)
-            ? data.mobile!.trim()
-            : (phone != null && phone.isNotEmpty ? phone : null);
     final currentProfile = await _client
         .from('users')
         .select('mobile')
         .eq('id', userId)
         .maybeSingle();
     final previousMobile = (currentProfile?['mobile'] as String?)?.trim() ?? '';
-    final normalizedMobile = effectiveMobile?.trim() ?? '';
-    final mobileChanged = previousMobile != normalizedMobile;
+
+    // Mobile is account-owned. A null value means this profile save does not
+    // own Mobile and must preserve the durable Account Setup value. An explicit
+    // empty string clears it; a changed explicit value invalidates verification.
+    final ownsMobile = data.mobile != null;
+    final requestedMobile = data.mobile?.trim() ?? '';
+    final mobileChanged = ownsMobile && previousMobile != requestedMobile;
+
     final dobIso = data.dateOfBirth.toIso8601String().split('T').first;
     final nowIso = DateTime.now().toUtc().toIso8601String();
     final payload = <String, dynamic>{
@@ -59,7 +60,7 @@ class SupabaseProfileSetupRepository
       'name': data.name,
       'username': data.username,
       if (email != null && email.isNotEmpty) 'email': email,
-      'mobile': effectiveMobile,
+      if (ownsMobile) 'mobile': requestedMobile.isEmpty ? null : requestedMobile,
       if (mobileChanged) 'mobile_verified_at': null,
       ...buildCanonicalAvatarWrite(avatarUrl: data.avatarUrl),
       'plan': data.plan,
