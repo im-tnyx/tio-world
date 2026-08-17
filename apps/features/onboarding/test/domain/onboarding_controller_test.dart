@@ -131,6 +131,7 @@ void main() {
       () async {
     final controller = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
+      includeMobile: true,
       initialDraft: OnboardingDraft(
         selectedMode: AppMode.hybrid,
         currentStepId: OnboardingStepId.workoutIntro,
