@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tio_core/core.dart';
 import 'package:tio_feature_nutrition/nutrition.dart' as nutrition_owner;
 import 'package:tio_feature_onboarding/src/domain/domain.dart';
 import 'package:tio_feature_profile/profile.dart' as profile_owner;
@@ -154,6 +155,13 @@ class _FailingProfileSetupRepository implements profile_owner.ProfileSetupReposi
 
   @override
   Future<void> saveProfileSetup(profile_owner.ProfileSetupData data) async {
+    throw StateError('Profile database write failed');
+  }
+
+  @override
+  Future<void> updateMeasurementUnitPreferences(
+    MeasurementUnitPreferences preferences,
+  ) async {
     throw StateError('Profile database write failed');
   }
 
