@@ -8,11 +8,13 @@ class OnboardingTopBar extends StatelessWidget {
   const OnboardingTopBar({
     required this.state,
     super.key,
-    this.onExitRequested,
+    this.onBack,
+    this.showProgress = true,
   });
 
   final OnboardingState state;
-  final VoidCallback? onExitRequested;
+  final VoidCallback? onBack;
+  final bool showProgress;
 
   @override
   Widget build(BuildContext context) {
@@ -20,32 +22,28 @@ class OnboardingTopBar extends StatelessWidget {
       color: context.tioColors.background,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
-          TioSpacing.extraLarge,
-          TioSpacing.medium,
-          TioSpacing.extraLarge,
+          TioSpacing.small,
+          0,
           TioSpacing.large,
+          0,
         ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Set up Tio',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
+        child: SizedBox(
+          height: 48,
+          child: Row(
+            children: [
+              if (onBack != null)
+                IconButton(
+                  tooltip: 'Back',
+                  onPressed: state.isBusy ? null : onBack,
+                  icon: const Icon(Icons.arrow_back),
                 ),
-                if (onExitRequested != null)
-                  IconButton(
-                    tooltip: 'Exit setup',
-                    onPressed: state.isBusy ? null : onExitRequested,
-                    icon: const Icon(Icons.close),
-                  ),
-              ],
-            ),
-            const SizedBox(height: TioSpacing.medium),
-            OnboardingProgressIndicator(state: state),
-          ],
+              const SizedBox(width: TioSpacing.small),
+              if (showProgress)
+                Expanded(
+                  child: OnboardingProgressIndicator(state: state),
+                ),
+            ],
+          ),
         ),
       ),
     );

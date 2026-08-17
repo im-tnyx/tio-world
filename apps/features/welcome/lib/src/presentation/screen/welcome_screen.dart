@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tio_core/core.dart';
 import '../theme/welcome_tokens.dart';
 import '../state/welcome_ui_state.dart';
 import '../action/welcome_action.dart';
 import '../widgets/welcome_backdrop.dart';
-import '../widgets/welcome_disclaimer.dart';
 import '../widgets/welcome_feature_tile.dart';
 import '../widgets/welcome_top_bar.dart';
 
@@ -38,29 +36,24 @@ class WelcomeScreen extends StatelessWidget {
         body: Stack(
           fit: StackFit.expand,
           children: [
-            // 1. Existing Background Image (Instant rendering at the bottom layer aligned from the top)
-            Align(
-              alignment: const Alignment(0, -1.0),
-              child: FractionallySizedBox(
-                widthFactor: 1.2,
-                heightFactor: 0.82,
-                child: Image.asset(
-                  'assets/landing_screen.png',
-                  package: 'tio_feature_welcome',
-                  fit: BoxFit.fill,
-                  alignment: Alignment.topCenter,
-                ),
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: MediaQuery.sizeOf(context).height * 0.82,
+              child: Image.asset(
+                'assets/landing_screen.png',
+                package: 'tio_feature_welcome',
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
               ),
             ),
-
-            // 2. Backdrop (Loaded instantly with the image)
             const WelcomeBackdrop(),
-
-            // 3. Main Content Container (SafeArea renders top bar instantly, content animations are inside)
             SafeArea(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: WelcomeDimens.paddingScreen),
+                  horizontal: WelcomeDimens.paddingScreen,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -74,8 +67,11 @@ class WelcomeScreen extends StatelessWidget {
                       child: TweenAnimationBuilder<double>(
                         tween: Tween(begin: 0.0, end: 1.0),
                         duration: context.tioMotion.slow,
-                        curve: const Interval(0.4, 1.0,
-                            curve: Curves.easeOutCubic),
+                        curve: const Interval(
+                          0.4,
+                          1.0,
+                          curve: Curves.easeOutCubic,
+                        ),
                         builder: (context, value, child) {
                           return Opacity(
                             opacity: value,
@@ -89,8 +85,6 @@ class WelcomeScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Spacer(flex: 1),
-
-                            // Existing Title Text with Gold Accents
                             RichText(
                               text: const TextSpan(
                                 style: TextStyle(
@@ -105,16 +99,12 @@ class WelcomeScreen extends StatelessWidget {
                                   TextSpan(text: 'EAT.\n'),
                                   TextSpan(
                                     text: 'EVOLVE.',
-                                    style: TextStyle(
-                                      color: Colors.white, // Gold
-                                    ),
+                                    style: TextStyle(color: Colors.white),
                                   ),
                                 ],
                               ),
                             ),
                             const SizedBox(height: WelcomeDimens.spaceS),
-
-                            // Existing Subtitle/Tagline separator and lines
                             Container(
                               width: 60,
                               height: 2,
@@ -129,16 +119,11 @@ class WelcomeScreen extends StatelessWidget {
                                 height: 1.4,
                               ),
                             ),
-
                             const Spacer(flex: 3),
-
-                            // Feature Grid Row matching the horizontal columns design
                             DecoratedBox(
                               key: const ValueKey('welcome-feature-panel'),
                               decoration: BoxDecoration(
-                                color: colorScheme.surface.withValues(
-                                  alpha: 0.94,
-                                ),
+                                color: colorScheme.surface.withValues(alpha: 0.94),
                                 border: Border.all(
                                   color: colorScheme.outlineVariant,
                                 ),
@@ -177,25 +162,21 @@ class WelcomeScreen extends StatelessWidget {
                                           iconWidget: i == 0
                                               ? Image.asset(
                                                   'assets/dumbell-blue.png',
-                                                  package:
-                                                      'tio_feature_welcome',
+                                                  package: 'tio_feature_welcome',
                                                   width: 32,
                                                   height: 28,
                                                   color: colorScheme.primary,
-                                                  colorBlendMode:
-                                                      BlendMode.srcIn,
+                                                  colorBlendMode: BlendMode.srcIn,
                                                 )
                                               : i == 1
                                                   ? Icon(
                                                       Icons.restaurant,
                                                       size: 28,
-                                                      color:
-                                                          colorScheme.primary,
+                                                      color: colorScheme.primary,
                                                     )
                                                   : SvgPicture.asset(
                                                       'assets/ic_chat.svg',
-                                                      package:
-                                                          'tio_feature_welcome',
+                                                      package: 'tio_feature_welcome',
                                                       width: 32,
                                                       height: 28,
                                                       colorFilter:
@@ -211,34 +192,58 @@ class WelcomeScreen extends StatelessWidget {
                                 ),
                               ),
                             ),
-
-                            const SizedBox(height: 36),
-
+                            const SizedBox(height: TioSpacing.extraLarge),
                             Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                TioButton.primary(
-                                  label: state.ctaText,
-                                  expand: true,
-                                  trailing:
-                                      const Icon(Icons.arrow_forward, size: 20),
-                                  onPressed: () => onAction(
-                                      const WelcomeGetStartedClicked()),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: TioButton.primary(
+                                    label: state.ctaText,
+                                    trailing: const Icon(
+                                      Icons.arrow_forward,
+                                      size: 20,
+                                    ),
+                                    onPressed: () => onAction(
+                                      const WelcomeGetStartedClicked(),
+                                    ),
+                                  ),
                                 ),
-                                const SizedBox(height: 12),
-                                TioButton.secondary(
-                                  label: state.signInText,
-                                  expand: true,
-                                  trailing:
-                                      const Icon(Icons.arrow_forward, size: 20),
-                                  onPressed: () =>
-                                      onAction(const WelcomeSignInClicked()),
+                                const SizedBox(height: TioSpacing.extraLarge),
+                                Wrap(
+                                  alignment: WrapAlignment.center,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    const Text(
+                                      'Already have an account? ',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.white70,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      key: const ValueKey(
+                                        'welcome-signin-button',
+                                      ),
+                                      onTap: () => onAction(
+                                        const WelcomeSignInClicked(),
+                                      ),
+                                      child: const Text(
+                                        'Log In',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w700,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
+                                const SizedBox(height: TioSpacing.small),
                               ],
                             ),
-                            const SizedBox(height: 24),
-
-                            WelcomeDisclaimer(state: state),
                           ],
                         ),
                       ),

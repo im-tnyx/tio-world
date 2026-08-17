@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../theme/welcome_tokens.dart';
 
 class WelcomeTopBar extends StatelessWidget {
@@ -20,23 +21,28 @@ class WelcomeTopBar extends StatelessWidget {
         );
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: WelcomeDimens.spaceXS,
-            vertical: WelcomeDimens.spaceXXS,
-          ),
-          child: Text(
-            localeCode.toUpperCase(),
-            style: headerStyle,
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: WelcomeDimens.spaceXS,
+                vertical: WelcomeDimens.spaceXXS,
+              ),
+              child: Text(
+                localeCode.toUpperCase(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: headerStyle,
+              ),
+            ),
           ),
         ),
-
-        // Skip Button - Now matching the same ripple effect and padding as EN
         Material(
           color: WelcomeColors.transparent,
           child: InkWell(
+            key: const ValueKey('welcome-skip-action'),
             onTap: onSkip,
             borderRadius: BorderRadius.circular(WelcomeDimens.radiusL),
             child: Padding(
@@ -46,6 +52,8 @@ class WelcomeTopBar extends StatelessWidget {
               ),
               child: Text(
                 skipText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: headerStyle,
               ),
             ),

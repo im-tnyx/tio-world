@@ -5,7 +5,7 @@ import '../action/welcome_action.dart';
 class WelcomeViewModel extends ChangeNotifier {
   WelcomeViewModel() : _uiState = const WelcomeUiState();
 
-  WelcomeUiState _uiState;
+  final WelcomeUiState _uiState;
   WelcomeUiState get uiState => _uiState;
 
   void onAction(WelcomeAction action) {

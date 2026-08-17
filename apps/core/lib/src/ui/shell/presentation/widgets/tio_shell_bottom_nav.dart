@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:tio_shared/shared.dart';
 
 import '../../../../theme/locals/tio_theme_context.dart';
 import '../../../../theme/tokens/components/tio_navigation_tokens.dart';
@@ -37,17 +39,15 @@ class TioShellBottomNav extends StatelessWidget {
   NavigationDestination _destinationForTab(ShellTab tab) {
     return switch (tab) {
       ShellTab.home => const NavigationDestination(
-          icon: ImageIcon(AssetImage('assets/nav_icon/home_outline.png',
-              package: 'tio_core')),
-          selectedIcon: ImageIcon(
-              AssetImage('assets/nav_icon/home_fill.png', package: 'tio_core')),
+          icon: _SvgNavIcon('assets/nav_icon/ic_nav_home_outlined.svg'),
+          selectedIcon: _SvgNavIcon('assets/nav_icon/ic_nav_home_filled.svg'),
           label: 'Home',
         ),
       ShellTab.nutrition => const NavigationDestination(
-          icon: ImageIcon(AssetImage('assets/nav_icon/apple_outline.png',
-              package: 'tio_core')),
-          selectedIcon: ImageIcon(AssetImage('assets/nav_icon/apple_fill.png',
-              package: 'tio_core')),
+          icon:
+              _SvgNavIcon('assets/nav_icon/ic_nav_nutrition_outlined.svg'),
+          selectedIcon:
+              _SvgNavIcon('assets/nav_icon/ic_nav_nutrition_filled.svg'),
           label: 'Nutrition',
         ),
       ShellTab.ai => const NavigationDestination(
@@ -56,20 +56,87 @@ class TioShellBottomNav extends StatelessWidget {
           label: 'Tio',
         ),
       ShellTab.workout => const NavigationDestination(
-          icon: ImageIcon(AssetImage('assets/nav_icon/muscle_outline.png',
-              package: 'tio_core')),
-          selectedIcon: ImageIcon(AssetImage('assets/nav_icon/muscle_fill.png',
-              package: 'tio_core')),
+          icon: _SvgNavIcon('assets/nav_icon/ic_nav_workout_outlined.svg'),
+          selectedIcon:
+              _SvgNavIcon('assets/nav_icon/ic_nav_workout_filled.svg'),
           label: 'Workout',
         ),
       ShellTab.progress => const NavigationDestination(
-          icon: ImageIcon(AssetImage('assets/nav_icon/trophy_outline.png',
-              package: 'tio_core')),
-          selectedIcon: ImageIcon(AssetImage('assets/nav_icon/trophy_fill.png',
-              package: 'tio_core')),
+          icon: _SvgNavIcon('assets/nav_icon/ic_nav_progress_outlined.svg'),
+          selectedIcon:
+              _SvgNavIcon('assets/nav_icon/ic_nav_progress_filled.svg'),
           label: 'Progress',
         ),
     };
+  }
+}
+
+/// Renders the exact SVG navigation icon for an AppDestination
+class TioDestinationNavIcon extends StatelessWidget {
+  const TioDestinationNavIcon({
+    required this.destination,
+    this.isSelected = false,
+    this.size = 22,
+    this.color,
+    super.key,
+  });
+
+  final AppDestination destination;
+  final bool isSelected;
+  final double size;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    final effectiveColor =
+        color ?? (isSelected ? colors.primary : colors.textSecondary);
+
+    final assetPath = switch (destination) {
+      AppDestination.home => isSelected
+          ? 'assets/nav_icon/ic_nav_home_filled.svg'
+          : 'assets/nav_icon/ic_nav_home_outlined.svg',
+      AppDestination.workout => isSelected
+          ? 'assets/nav_icon/ic_nav_workout_filled.svg'
+          : 'assets/nav_icon/ic_nav_workout_outlined.svg',
+      AppDestination.nutrition => isSelected
+          ? 'assets/nav_icon/ic_nav_nutrition_filled.svg'
+          : 'assets/nav_icon/ic_nav_nutrition_outlined.svg',
+      AppDestination.progress => isSelected
+          ? 'assets/nav_icon/ic_nav_progress_filled.svg'
+          : 'assets/nav_icon/ic_nav_progress_outlined.svg',
+    };
+
+    return SvgPicture.asset(
+      assetPath,
+      package: 'tio_core',
+      width: size,
+      height: size,
+      colorFilter: ColorFilter.mode(effectiveColor, BlendMode.srcIn),
+    );
+  }
+}
+
+class _SvgNavIcon extends StatelessWidget {
+  const _SvgNavIcon(this.assetName);
+
+  final String assetName;
+
+  @override
+  Widget build(BuildContext context) {
+    final iconTheme = IconTheme.of(context);
+    final iconColor = iconTheme.color;
+    final iconSize = iconTheme.size ?? TioNavigationTokens.iconSize;
+
+    return SvgPicture.asset(
+      assetName,
+      package: 'tio_core',
+      width: iconSize,
+      height: iconSize,
+      colorFilter: iconColor == null
+          ? null
+          : ColorFilter.mode(iconColor, BlendMode.srcIn),
+    );
   }
 }
 

@@ -37,7 +37,7 @@ class _WelcomeRouteState extends State<WelcomeRoute> {
         context.push(AppRoutes.login.path);
         break;
       case WelcomeSkipForNowClicked():
-        context.go(AppRoutes.home.path);
+        context.push(AppRoutes.login.path);
         break;
     }
   }

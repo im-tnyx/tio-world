@@ -104,6 +104,11 @@ The implemented guided bottom navigation is derived from `AppMode`:
 | `nutrition` | Home, Nutrition, Progress |
 | `hybrid` | Home, Workout, Nutrition, Progress |
 
+The `NavigationBar` appears only on an exact main-tab root. A selected root never
+shows a derived Back button. Child, editor, drill-down, account, and full-screen
+routes hide bottom navigation and expose an explicit top Back action when a
+previous route exists.
+
 Profile is the account entry surface in the guided Home chrome. Settings opens from Profile or an approved feature-owned entry; it does not receive a separate Home top-bar icon. Workout Library is a Workout route, and Meal Plan is a later Nutrition route. Coach becomes eligible only in Phase 7.
 
 ### Future Navigation Personalization
@@ -152,7 +157,26 @@ Feature commands remain canonical even when their entry point moves:
 
 ## Reusable Avatar
 
-`apps/core` owns one `TioAvatar` component with semantic sizes `compact`, `small`, `medium`, and `large`. It is circular by default and supports a rounded Profile treatment, optional `ImageProvider`, initials/icon fallback, failed-image fallback, and caller-supplied semantics. Screens do not create their own avatar dimensions, clipping, fallback behavior, or image-loading rules.
+`apps/core` owns one `TioAvatar` component with semantic sizes `compact`,
+`small`, `medium`, `large`, and `extraLarge`. Home uses `small` (36dp), Profile
+uses `large` (80dp), and the empty photo-preview state uses `extraLarge` (160dp).
+It is circular by default and supports a rounded Profile treatment, optional
+`ImageProvider`, initials/icon fallback, failed-image fallback, and
+caller-supplied semantics. Screens do not create their own avatar dimensions,
+clipping, fallback behavior, or image-loading rules.
+
+Screen code selects only a reusable `TioAvatarSize` semantic value; pixel
+dimensions remain defined in one component/token layer and are never hardcoded in
+screens.
+
+Plan frames use theme semantic colors: Free is unframed, Plus has a circular
+`info`-to-`progress` ring, and Pro uses a hexagon `primary`-to-`progress` frame.
+The frame remains a caller-supplied presentation value; the avatar does not infer
+entitlement. `extraLarge` is always unframed on the Profile photo screen.
+
+The centered Home plan pill displays `Get Pro`, `Plus`, or `Pro`. It remains
+non-interactive until the Billing/Entitlement slice provides a real destination
+and protected purchase/management flow.
 
 ## Screen Quality Baseline
 

@@ -25,6 +25,14 @@ void main() {
     final topBarText = tester.widget<Text>(find.text('EN'));
     expect(topBarText.style?.color, Colors.white);
 
+    final skipRect = tester.getRect(
+      find.byKey(const ValueKey('welcome-skip-action')),
+    );
+    final localeRect = tester.getRect(find.text('EN'));
+    expect(skipRect.center.dx, greaterThan(393 / 2));
+    expect(skipRect.center.dx, greaterThan(localeRect.center.dx));
+    expect(skipRect.right, greaterThan(350));
+
     final featureTitle = tester.widget<Text>(find.text('AI WORKOUT'));
     final featureContext = tester.element(find.text('AI WORKOUT'));
     expect(
@@ -58,7 +66,7 @@ void main() {
   });
 
   testWidgets(
-      'placeholder language and legal copy are not announced as actions',
+      'placeholder language is not announced as actions and legal copy is omitted',
       (tester) async {
     final semantics = tester.ensureSemantics();
     try {
@@ -79,15 +87,9 @@ void main() {
         isFalse,
       );
 
-      final legalCopy = find.textContaining(
-        'By continuing',
-        findRichText: true,
-      );
-      final legalNode = tester.getSemantics(legalCopy);
-      expect(legalNode.flagsCollection.isButton, isFalse);
       expect(
-        legalNode.getSemanticsData().hasAction(SemanticsAction.tap),
-        isFalse,
+        find.textContaining('By continuing', findRichText: true),
+        findsNothing,
       );
     } finally {
       semantics.dispose();

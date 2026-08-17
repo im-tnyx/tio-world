@@ -11,6 +11,10 @@ Help the user track meals and water against clear daily targets without turning 
 
 ## Target Content
 
+The root app bar shows a non-interactive Meal Log streak status on the right. It
+shows only the icon until real diary history provides a positive count; it never
+fabricates a number or routes to Progress.
+
 1. **Today’s target summary** — calories, macros, and any explicitly chosen nutrition goal, with an understandable remaining/consumed presentation. It opens [Nutrition Targets](nutrition-targets.md).
 2. **Meal diary** — grouped meal entries with add, edit, remove, and detail actions after the diary MVP is implemented. See [Meal Diary](meal-diary.md).
 3. **Quick actions** — add food, add a meal, and add water. Use phone flows for full search and editing.

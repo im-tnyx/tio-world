@@ -1,0 +1,86 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:tio_app/app/network_providers.dart';
+import 'package:tio_feature_auth/auth.dart';
+import 'package:tio_feature_nutrition/nutrition.dart';
+import 'package:tio_feature_onboarding/onboarding.dart';
+import 'package:tio_feature_profile/profile.dart';
+import 'package:tio_feature_workout/workout.dart';
+import 'package:tio_shared/shared.dart';
+
+void main() {
+  group('Network & Auth Providers', () {
+    test('providers instantiate with safe unavailable defaults in container', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final config = container.read(apiConfigProvider);
+      expect(config.baseUrl, isNotEmpty);
+
+      final capability = container.read(authCapabilityProvider);
+      expect(capability.isAvailable, isFalse);
+      expect(capability, isA<AuthCapabilityUnavailable>());
+
+      final sessionRepo = container.read(authSessionRepositoryProvider);
+      expect(sessionRepo, isA<InMemoryAuthSessionRepository>());
+
+      final tokenProvider = container.read(authTokenProvider);
+      expect(tokenProvider, isA<UnavailableAuthTokenProvider>());
+
+      final authClient = container.read(authenticatedApiClientProvider);
+      expect(authClient, isA<ApiClient>());
+
+      final publicClient = container.read(publicApiClientProvider);
+      expect(publicClient, isA<ApiClient>());
+
+      final profileRepo = container.read(profileSetupRepositoryProvider);
+      expect(profileRepo, isA<ProfileSetupRepository>());
+
+      final workoutRepo = container.read(workoutPreferencesRepositoryProvider);
+      expect(workoutRepo, isA<WorkoutPreferencesRepository>());
+
+      final targetsRepo = container.read(targetsSetupRepositoryProvider);
+      expect(targetsRepo, isA<TargetsSetupRepository>());
+
+      final finalizer = container.read(onboardingRemoteFinalizerProvider);
+      expect(finalizer, isA<OnboardingRemoteFinalizer>());
+    });
+
+    test('overriding authCapabilityProvider to available selects FirebaseAuth adapters', () {
+      final container = ProviderContainer(
+        overrides: [
+          authCapabilityProvider.overrideWithValue(const AuthCapabilityAvailable()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final sessionRepo = container.read(authSessionRepositoryProvider);
+      expect(sessionRepo, isA<FirebaseAuthSessionRepository>());
+
+      final tokenProvider = container.read(authTokenProvider);
+      expect(tokenProvider, isA<FirebaseAuthTokenProvider>());
+    });
+
+    test('overriding authTokenProvider supplies custom provider to authenticated client', () async {
+      final customTokenProvider = _CustomTokenProvider('mock-token-xyz');
+      final container = ProviderContainer(
+        overrides: [
+          authTokenProvider.overrideWithValue(customTokenProvider),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final tokenProvider = container.read(authTokenProvider);
+      expect(await tokenProvider.getIdToken(), 'mock-token-xyz');
+    });
+  });
+}
+
+class _CustomTokenProvider implements AuthTokenProvider {
+  _CustomTokenProvider(this.token);
+
+  final String token;
+
+  @override
+  Future<String?> getIdToken({bool forceRefresh = false}) async => token;
+}

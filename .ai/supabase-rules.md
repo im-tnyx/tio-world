@@ -1,65 +1,51 @@
-# Supabase Rules
+# Supabase Architecture & Rules
 
-Use [the Supabase-first platform strategy](../docs/SUPABASE_STRATEGY.md) and root docs as the canonical source for Supabase setup. Supabase is the planned Auth, data, and private-media foundation; no project configuration or live integration is present yet.
+## Active Production Foundation (Supabase-First)
 
-## Incremental Setup
+Tio-World uses Supabase as its active data, authentication, and storage platform.
 
-Do not create the full database upfront.
+- **Auth:** Supabase Auth (`GoTrue`) with direct token management and stream observation.
+- **Database:** Supabase PostgreSQL with strict Row Level Security (RLS) on all user-owned tables (`users`, `user_workout_preferences`, `user_targets`).
+- **Storage:** Private/public module buckets (`avatars`) with path ownership policies (`auth.uid() = foldername`).
 
-Create tables only when a feature slice needs them.
+## Future-Safe Backend Preservation Rule
 
-Recommended flow:
+Tio-World currently uses **Supabase as the active production data boundary**, but the repository has already-established **future custom-backend infrastructure**.
 
-1. Build the UI slice.
-2. Identify the real data shape.
-3. Define the repository contract.
-4. Create the minimum Supabase table or RPC.
-5. Add RLS.
-6. Add demo seed data.
-7. Connect repository.
-8. Test the feature end to end.
+The following code is intentional architecture and MUST NOT be deleted, merged away, replaced, or classified as dead/unused code merely because it is not active in the current Supabase production composition:
 
-## Security
+* `ApiClient`
+* `DioApiClient`
+* `AuthTokenProvider`
+* `RemoteProfileSetupRepository`
+* `ProfileSetupDtoMapper`
+* `RemoteWorkoutPreferencesRepository`
+* `WorkoutPreferencesDtoMapper`
+* `RemoteTargetsSetupRepository`
+* `TargetsSetupDtoMapper`
+* `RemoteOnboardingFinalizer`
+* `BackendUserSyncRepository`
+* `RemoteBackendUserSyncRepository`
+* `GoogleAuthUseCase` (Firebase + custom backend path)
+* backend transport DTOs and mappers
 
-- Never expose service-role keys to Flutter, web, admin, Wear OS, or watchOS clients.
-- Every client-accessible table needs RLS.
-- Atomic writes should use hardened RPCs when needed.
-- Backend/admin-only operations must stay server-side.
-- Production secrets belong in backend deployment configuration, not committed docs or app code.
+### Current vs Future Adapter Rule
 
-## Hardcoded Data
+Current production path:
+```text
+Flutter → existing repository contracts → Supabase adapters → Supabase Auth + Postgres/RLS
+```
 
-Hardcoded data is allowed only as temporary UI scaffolding.
+Future backend path:
+```text
+Flutter → SAME repository contracts → Remote*/HTTP adapters → custom Tio backend
+```
 
-When a feature becomes testable, move source-of-truth data behind:
+A model, coding agent, cleanup task, dead-code audit, refactor, or architecture migration MUST NOT delete inactive Remote*/HTTP/backend infrastructure solely because Supabase is the current production adapter.
 
-- repository
-- Supabase table or RPC
-- demo seed data
-- clear test path
+Inactive != obsolete.
 
-## Storage Buckets
-
-The planned private buckets are `profile`, `nutrition`, `workout`, and `progress`. They contain approved user-owned media only; structured data stays in Postgres behind feature repositories and RLS.
-
-- Create a bucket only with its first concrete user-file slice.
-- Use an authenticated user-ID object path and owner-specific Storage RLS policies.
-- Define MIME type, size, overwrite, deletion, retention, offline upload, and authorised retrieval behavior before implementation.
-- Keep the Workout Exercise Search JSON catalog bundled/versioned in the Workout feature; it is not Storage content.
-
-## Flutter Client Boundary
-
-Flutter clients may use publishable/anon keys only when the architecture requires it.
-
-Client code must not contain:
-
-- service-role keys
-- private keys
-- privileged admin operations
-- raw assumptions about database security
-
-## Future Protected Backend
-
-Supabase owns the planned first Auth, Postgres/RLS, Storage, migration, and seed boundary. A separate backend is a later upgrade for Gemini/provider orchestration, advanced integrations, and long-running work.
-
-Protected backend changes must not silently change mobile or watch feature ownership.
+Removal requires:
+1. architecture audit,
+2. explicit retirement decision,
+3. explicit user approval.

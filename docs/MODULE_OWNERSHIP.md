@@ -12,6 +12,7 @@ This document defines where code should live in `tio-world`.
 | `apps/wear` | Flutter Wear OS companion app. |
 | `apps/shared` | Pure Dart models, entities, repository contracts, use cases, result/error types, and shared utilities. |
 | `apps/core` | Flutter design system, app shell UI, route contracts, reusable widgets, theme tokens, constants, and extensions. |
+| `apps/features/home` | Home overview, prepared section composition, and future Home-owned workflows. |
 | `apps/features/auth` | Auth feature package and session entry flows. |
 | `apps/features/onboarding` | Onboarding feature package and all onboarding screens/flows. |
 | `apps/features/workout` | Workout feature package and all workout screens/flows. |
@@ -39,6 +40,7 @@ Create missing paths only when a real implementation slice needs them.
 | `:wear` | `apps/wear` |
 | `:shared` | `apps/shared` |
 | `:core` | `apps/core` |
+| `:features:home` | `apps/features/home` |
 | `:features:workout` | `apps/features/workout` |
 | `:features:nutrition` | `apps/features/nutrition` |
 | `:features:onboarding` | `apps/features/onboarding` |
@@ -54,7 +56,7 @@ Create missing paths only when a real implementation slice needs them.
 | :--- | :--- |
 | Auth | `apps/features/auth` |
 | Onboarding | `apps/features/onboarding` |
-| Home | `apps/app` for shell composition; a dedicated home feature package can be introduced when it needs real ownership. |
+| Home | `apps/features/home` for Home presentation; `apps/app` for shell composition and route registration. |
 | Workout | `apps/features/workout`, including the Workout Library route and workout screens/flows. |
 | Nutrition | `apps/features/nutrition`, including the future Meal Plan route after nutrition diary MVP. |
 | Supabase Auth/data/Storage | future `supabase/` with feature repositories and client-safe contracts |
@@ -70,6 +72,7 @@ Create missing paths only when a real implementation slice needs them.
 
 - `apps/app` is a thin shell. It wires routes, providers, app startup, and platform entry configuration.
 - `apps/app` must not own workout, nutrition, onboarding, progress, profile, settings, or coaching business logic.
+- `apps/app` must not own Home presentation or Home-specific feature logic beyond shell composition.
 - `apps/app` composes the single `/onboarding` route and injects providers; it does
   not own onboarding step transitions, draft state, validation, or completion.
 - `apps/core` owns reusable Flutter UI, theme tokens, shell components, public route contracts, and the implemented reusable `TioAvatar` component.

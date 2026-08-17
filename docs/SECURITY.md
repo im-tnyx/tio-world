@@ -65,10 +65,12 @@ Rules:
 - keep screenshots clean before sharing in issues or PRs
 - avoid putting real user data in test fixtures
 - do not persist onboarding body/health answers as plain JSON in
-  `SharedPreferences`; approve Auth ordering, encrypted local storage, retention,
-  deletion, and account-switch behavior before cross-restart draft storage
+  `SharedPreferences`; unfinished drafts are stored exclusively in RLS-protected
+  PostgreSQL (`public.onboarding_drafts`) using authenticated user identity (`auth.uid() = user_id`)
 - keep onboarding analytics limited to step/status metadata and never include
   entered values, body metrics, free text, email, or tokens
+- cleared automatically upon successful onboarding finish; stale draft clean-up
+  failure does not compromise or rollback completed status
 
 ## Supabase Storage
 
@@ -76,7 +78,7 @@ The planned `profile`, `nutrition`, `workout`, and `progress` buckets are privat
 
 Do not expose health/fitness media through public buckets or public URLs by default. Supabase secret/service-role credentials remain server-only and are never used to bypass user access from a client.
 
-## Authentication
+## Authentication & Token Security
 
 Auth flows should avoid leaking implementation details into UI.
 
@@ -87,10 +89,21 @@ UI
   ↓
 Auth controller
   ↓
-Auth repository
+AuthSessionRepository
   ↓
-Backend or auth provider
+AuthTokenProvider / Identity Provider
+  ↓
+AuthenticatedApiClient (with AuthInterceptor & Bearer Token)
+  ↓
+Backend (Firebase Admin verifies token -> resolves firebase_uid)
 ```
+
+Rules:
+- Never persist raw ID tokens manually in `SharedPreferences`, SQLite plaintext, or custom unencrypted storage.
+- Never log `Authorization` headers, Firebase ID tokens, or Bearer credentials. `AuthInterceptor` sanitizes/redacts all Authorization headers to `Bearer [REDACTED]` in logs.
+- Sensitive request bodies (DOB, current weight, health conditions, workout concerns, nutrition targets) must never be printed to stdout or debug logs.
+- 401 response forces a single token refresh attempt; if the refreshed token is also rejected with 401, the client fails fast with a typed `UnauthenticatedException` without infinite loops.
+- 403 Forbidden responses never trigger token refresh loops.
 
 ## Watch Security
 

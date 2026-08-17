@@ -9,6 +9,7 @@ class TioColors extends ThemeExtension<TioColors> {
     required this.surface,
     required this.surfaceRaised,
     required this.surfaceVariant,
+    required this.outlineStrong,
     required this.textPrimary,
     required this.textSecondary,
     required this.textMuted,
@@ -29,6 +30,7 @@ class TioColors extends ThemeExtension<TioColors> {
   final Color surface;
   final Color surfaceRaised;
   final Color surfaceVariant;
+  final Color outlineStrong;
   final Color textPrimary;
   final Color textSecondary;
   final Color textMuted;
@@ -49,6 +51,7 @@ class TioColors extends ThemeExtension<TioColors> {
     surface: Color(0xFFFFFFFF),
     surfaceRaised: Color(0xFFFFFFFF),
     surfaceVariant: Color(0xFFE5E7EB),
+    outlineStrong: Color(0xFF6B7280),
     textPrimary: Color(0xFF111827),
     textSecondary: Color(0xFF4B5563),
     textMuted: Color(0xFF9CA3AF),
@@ -70,6 +73,7 @@ class TioColors extends ThemeExtension<TioColors> {
     surface: Color(0xFF111827),
     surfaceRaised: Color(0xFF1F2937),
     surfaceVariant: Color(0xFF374151),
+    outlineStrong: Color(0xFF9CA3AF),
     textPrimary: Color(0xFFF9FAFB),
     textSecondary: Color(0xFFD1D5DB),
     textMuted: Color(0xFF9CA3AF),
@@ -91,6 +95,7 @@ class TioColors extends ThemeExtension<TioColors> {
     surface: Color(0xFF050505),
     surfaceRaised: Color(0xFF101010),
     surfaceVariant: Color(0xFF1F1F1F),
+    outlineStrong: Color(0xFF9CA3AF),
     textPrimary: Color(0xFFFFFFFF),
     textSecondary: Color(0xFFE5E7EB),
     textMuted: Color(0xFF9CA3AF),
@@ -112,7 +117,7 @@ class TioColors extends ThemeExtension<TioColors> {
         surface: surface,
       ).copyWith(
         onSurface: textPrimary,
-        outline: surfaceVariant,
+        outline: outlineStrong,
         surfaceContainer: surfaceRaised,
       );
 
@@ -125,6 +130,7 @@ class TioColors extends ThemeExtension<TioColors> {
         surface: const Color(0xFF050505),
         surfaceRaised: const Color(0xFF111111),
         surfaceVariant: const Color(0xFFD1D5DB),
+        outlineStrong: const Color(0xFFFFFFFF),
         textPrimary: const Color(0xFFFFFFFF),
         textSecondary: const Color(0xFFF9FAFB),
         textMuted: const Color(0xFFD1D5DB),
@@ -138,6 +144,7 @@ class TioColors extends ThemeExtension<TioColors> {
       surface: const Color(0xFFFFFFFF),
       surfaceRaised: const Color(0xFFF9FAFB),
       surfaceVariant: const Color(0xFF374151),
+      outlineStrong: const Color(0xFF000000),
       textPrimary: const Color(0xFF000000),
       textSecondary: const Color(0xFF111827),
       textMuted: const Color(0xFF374151),
@@ -153,6 +160,7 @@ class TioColors extends ThemeExtension<TioColors> {
     Color? surface,
     Color? surfaceRaised,
     Color? surfaceVariant,
+    Color? outlineStrong,
     Color? textPrimary,
     Color? textSecondary,
     Color? textMuted,
@@ -173,6 +181,7 @@ class TioColors extends ThemeExtension<TioColors> {
       surface: surface ?? this.surface,
       surfaceRaised: surfaceRaised ?? this.surfaceRaised,
       surfaceVariant: surfaceVariant ?? this.surfaceVariant,
+      outlineStrong: outlineStrong ?? this.outlineStrong,
       textPrimary: textPrimary ?? this.textPrimary,
       textSecondary: textSecondary ?? this.textSecondary,
       textMuted: textMuted ?? this.textMuted,

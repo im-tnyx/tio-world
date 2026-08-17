@@ -11,6 +11,10 @@ Let the user choose a Routine or structured Program, run the selected session, r
 
 ## Target Content
 
+The root app bar shows a non-interactive Workout streak status on the right. It
+shows only the icon until real Workout history provides a positive count; it
+never fabricates a number or routes to Progress.
+
 1. **Current plan** — selected Routine or Program, its next scheduled session, session status, and a clear rest-day state. Do not offer a standalone Quick Start workout.
 2. **Routine Library** — browse, search, filter, select, and later create or save single-session routines. It is a Workout-owned route and may become a future promoted shortcut after implementation; it is not a guided default tab. See [Routine Library](routine-library.md).
 3. **Programs** — choose and follow structured multi-week training programs. A Program defines the sequence of scheduled routine sessions; an active workout starts only from its selected Routine or Program session. See [Programs](programs.md).

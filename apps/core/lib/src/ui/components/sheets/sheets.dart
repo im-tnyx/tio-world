@@ -1,1 +1,6 @@
+export 'tio_avatar_action_bottom_sheet.dart';
+export 'tio_dob_picker_bottom_sheet.dart';
+export 'tio_height_picker_bottom_sheet.dart';
+export 'tio_remove_image_bottom_sheet.dart';
 export 'tio_sheet.dart';
+export 'tio_weight_picker_bottom_sheet.dart';

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/welcome_tokens.dart';
+import 'package:tio_core/core.dart';
 import '../state/welcome_ui_state.dart';
 
 class WelcomeDisclaimer extends StatelessWidget {
@@ -12,37 +12,13 @@ class WelcomeDisclaimer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    final baseStyle = theme.textTheme.bodySmall?.copyWith(
-      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-    );
-
-    final emphasisStyle = theme.textTheme.bodySmall?.copyWith(
-      color: WelcomeColors.getAdaptivePrimary(context),
-      fontWeight: FontWeight.bold,
-    );
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: WelcomeDimens.spaceSM),
-      child: Text.rich(
-        TextSpan(
-          style: baseStyle,
-          children: [
-            TextSpan(text: state.termsPrefix),
-            TextSpan(
-              text: state.termsText,
-              style: emphasisStyle,
-            ),
-            TextSpan(text: state.andText),
-            TextSpan(
-              text: state.privacyText,
-              style: emphasisStyle,
-            ),
-          ],
-        ),
-        textAlign: TextAlign.center,
-      ),
+    return TioTermsDisclaimer(
+      prefixText: state.termsPrefix,
+      termsText: state.termsText,
+      andText: state.andText,
+      privacyText: state.privacyText,
+      textColor: Colors.white.withValues(alpha: 0.7),
+      linkColor: Colors.white,
     );
   }
 }

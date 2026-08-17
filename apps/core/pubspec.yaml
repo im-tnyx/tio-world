@@ -7,10 +7,14 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_svg: ^2.3.0
+  image_picker: ^1.1.2
   tio_shared:
     path: ../shared
 
 dev_dependencies:
+  flutter_test:
+    sdk: flutter
   flutter_lints: ^6.0.0
 
 flutter:
@@ -19,3 +23,8 @@ flutter:
     - assets/brand/
     - assets/nav_icon/
     - assets/image/
+    - assets/image/equipments/
+    - assets/image/specific_focus_area/
+    - assets/image/specific_focus_area/male/
+    - assets/image/specific_focus_area/female/
+    - assets/svg_icon/

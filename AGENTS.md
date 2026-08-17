@@ -46,6 +46,33 @@ Before code changes, inspect the actual repository and read the relevant source-
 
 Runtime source/config wins for actual behavior. Product docs and ADRs win for intended architecture and product rules. If docs and runtime disagree, call out the stale doc clearly instead of silently guessing.
 
+## Task Execution Protocol
+
+For any user-facing feature, cross-package change, navigation change, persistence change, auth/session change, or design-system change:
+
+- Before source changes, create or update one focused task brief under `.ai/tasks/` using `.ai/tasks/TEMPLATE.md`.
+- Follow `.ai/workflow.md` in order: Discovery → Codebase Exploration → Clarification → Architecture Design → Implementation → Quality Review → Final Handoff.
+- Keep only one implementation slice active at a time. Do not implement a large GitHub issue or epic as one broad change.
+- GitHub Issues are backlog/tracking. `.ai/tasks` files are compact execution context and must not become transcript dumps.
+- Each task brief must record verified evidence, exact in-scope/out-of-scope boundaries, non-goals, decisions, validation, and handoff status.
+- Inspect `git status --short --branch` before implementation and preserve unrelated dirty/untracked work.
+- Do not claim completion in a task file until the relevant validation actually ran.
+- When a task is validated or superseded, follow `.ai/tasks/README.md` for handoff/archive behavior.
+
+## Mobile Visual Safety
+
+Architecture, backend, auth, routing, persistence, and token cleanup do **not** imply permission to redesign the phone UI.
+
+- Preserve current rendered mobile geometry, spacing, typography, colors, component sizes, assets, and layout unless the active task explicitly approves a visual change.
+- Token/refactor migrations must preserve the current computed runtime value by default.
+- Do not replace a current value such as `7` with a nearby shared token such as `8` merely to remove a literal or satisfy a scale.
+- Numeric similarity is not enough to justify a rendered-value change. Keep a value local/component-owned or introduce the correct semantic/component role only when ownership/reuse evidence supports it.
+- Do not mechanically normalize raw UI literals to the nearest global token.
+- If a rendered component is touched, record the baseline and validate the same state/viewport after the change. Prefer focused widget/golden/screenshot checks where practical, plus relevant light/dark and compact-width coverage.
+- Treat an unexplained visual diff as a regression for non-visual tasks.
+- Functional routing changes may change which screen is reached, but should not incidentally change how that screen looks.
+- The presence of orphan/dead UI code is not permission to restore it to runtime. Verify current product intent and runtime usage before reconnecting removed UI.
+
 ## Repo Ownership
 
 - `apps/app` owns the Flutter mobile app shell, routing, composition root, and mobile UI entry point.

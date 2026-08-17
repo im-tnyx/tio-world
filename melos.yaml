@@ -8,10 +8,6 @@ packages:
   - apps/features/**
 
 scripts:
-  bootstrap:
-    run: melos bootstrap
-    description: Bootstrap all Flutter and Dart packages in the workspace.
-
   get:
     run: melos exec -- "flutter pub get"
     description: Run 'flutter pub get' in all packages.

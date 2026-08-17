@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class WelcomeDimens {
   WelcomeDimens._();
-  static const double paddingScreen = 24.0;
+  static const double paddingScreen = 16.0;
   static const double spaceXS = 8.0;
   static const double spaceXXS = 4.0;
   static const double spaceS = 12.0;

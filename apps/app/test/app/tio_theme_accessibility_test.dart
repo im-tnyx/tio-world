@@ -50,7 +50,7 @@ void main() {
     expect(colors.textMuted, const Color(0xFF374151));
     expect(
         Theme.of(tester.element(find.text('Theme probe'))).colorScheme.outline,
-        colors.surfaceVariant);
+        colors.outlineStrong);
   });
 
   testWidgets('high contrast changes dark semantic surfaces', (tester) async {
@@ -107,7 +107,23 @@ void main() {
     expect(motion.fast, Duration.zero);
     expect(motion.normal, Duration.zero);
     expect(motion.slow, Duration.zero);
+    expect(motion.fadeThroughEnter, Duration.zero);
+    expect(motion.fadeThroughExit, Duration.zero);
+    expect(motion.progress, Duration.zero);
     expect(transitions.builders, hasLength(TargetPlatform.values.length));
+  });
+
+  test('interactive outlines meet non-text contrast in every base theme', () {
+    for (final colors in const [
+      TioColors.light,
+      TioColors.dark,
+      TioColors.oled,
+    ]) {
+      expect(
+        _contrastRatio(colors.outlineStrong, colors.surface),
+        greaterThanOrEqualTo(3),
+      );
+    }
   });
 
   testWidgets('OLED mode exposes pure-black semantic background',
@@ -138,4 +154,13 @@ void main() {
     expect(theme.scaffoldBackgroundColor, Colors.black);
     expect(theme.navigationBarTheme.backgroundColor, colors.surface);
   });
+}
+
+double _contrastRatio(Color foreground, Color background) {
+  final lighter = foreground.computeLuminance() > background.computeLuminance()
+      ? foreground
+      : background;
+  final darker = identical(lighter, foreground) ? background : foreground;
+  return (lighter.computeLuminance() + 0.05) /
+      (darker.computeLuminance() + 0.05);
 }

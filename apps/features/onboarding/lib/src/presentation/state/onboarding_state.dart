@@ -4,7 +4,9 @@ class OnboardingState {
   OnboardingState({
     required this.draft,
     required this.flowPlan,
+    required this.workoutFlowPlan,
     required this.stepId,
+    this.completionEligibility = OnboardingCompletionEligibility.eligible,
     Set<OnboardingStepId> completedStepIds = const {},
     Map<String, String> validationErrors = const {},
     this.isInitializing = false,
@@ -16,7 +18,9 @@ class OnboardingState {
 
   final OnboardingDraft draft;
   final OnboardingFlowPlan flowPlan;
+  final WorkoutFlowPlan workoutFlowPlan;
   final OnboardingStepId stepId;
+  final OnboardingCompletionEligibility completionEligibility;
   final Set<OnboardingStepId> completedStepIds;
   final Map<String, String> validationErrors;
   final bool isInitializing;
@@ -25,35 +29,74 @@ class OnboardingState {
   final Object? retryableError;
 
   OnboardingStepDefinition get currentStep => flowPlan.definitionFor(stepId);
+  OnboardingSectionId get currentSection => currentStep.section;
   int get currentIndex => flowPlan.indexOf(stepId);
   bool get isBusy => isInitializing || isSaving || isCompleting;
-  bool get canGoBack => currentIndex > 0 && !isBusy;
+  bool get hasPreviousStep => currentIndex > 0;
+  bool get canGoBack => hasPreviousStep && !isBusy;
   bool get canContinue =>
       !isBusy &&
       validationErrors.isEmpty &&
-      (stepId != OnboardingStepId.mode || draft.selectedMode != null);
+      switch (stepId) {
+        OnboardingStepId.review => completionEligibility.isEligible,
+        OnboardingStepId.mode => draft.selectedMode != null,
+        OnboardingStepId.workoutIntro => draft.workoutIntroChoice != null,
+        _ => true,
+      };
 
   String get primaryActionLabel {
     if (stepId == OnboardingStepId.review) return 'Finish';
-    if (stepId == OnboardingStepId.targets) return 'Review';
+    if (stepId == OnboardingStepId.targets) {
+      return const TargetsFlowPlan().primaryActionLabel(draft.targets.currentStepId);
+    }
     return 'Continue';
   }
 
-  double get progressValue {
+  OnboardingProgressPlan get progressPlan {
+    return const BuildOnboardingProgressPlanUseCase()(
+      flowPlan: flowPlan,
+      workoutFlowPlan: workoutFlowPlan,
+    );
+  }
+
+  int get progressStepCount {
     if (draft.selectedMode == null) return 0;
-    return (currentIndex + 1) / flowPlan.steps.length;
+    return progressPlan.totalSteps;
+  }
+
+  int get progressStepNumber {
+    if (draft.selectedMode == null || stepId == OnboardingStepId.mode) return 0;
+    final index = progressPlan.indexOfCurrentScreen(
+      stepId: stepId,
+      profileStepId: draft.profile.currentStepId,
+      workoutStepId: draft.workout.currentStepId,
+      targetStepId: draft.targets.currentStepId,
+    );
+    return index < 0 ? 0 : index + 1;
+  }
+
+  double get progressValue {
+    if (draft.selectedMode == null || stepId == OnboardingStepId.mode) return 0.0;
+    return progressPlan.progressFor(
+      stepId: stepId,
+      profileStepId: draft.profile.currentStepId,
+      workoutStepId: draft.workout.currentStepId,
+      targetStepId: draft.targets.currentStepId,
+    );
   }
 
   String get progressSemantics {
-    if (draft.selectedMode == null) return currentStep.progressTitle;
-    return 'Step ${currentIndex + 1} of ${flowPlan.steps.length}, '
+    if (progressStepNumber == 0) return currentStep.progressTitle;
+    return 'Step $progressStepNumber of $progressStepCount, '
         '${currentStep.progressTitle}';
   }
 
   OnboardingState copyWith({
     OnboardingDraft? draft,
     OnboardingFlowPlan? flowPlan,
+    WorkoutFlowPlan? workoutFlowPlan,
     OnboardingStepId? stepId,
+    OnboardingCompletionEligibility? completionEligibility,
     Set<OnboardingStepId>? completedStepIds,
     Map<String, String>? validationErrors,
     bool? isInitializing,
@@ -65,7 +108,10 @@ class OnboardingState {
     return OnboardingState(
       draft: draft ?? this.draft,
       flowPlan: flowPlan ?? this.flowPlan,
+      workoutFlowPlan: workoutFlowPlan ?? this.workoutFlowPlan,
       stepId: stepId ?? this.stepId,
+      completionEligibility:
+          completionEligibility ?? this.completionEligibility,
       completedStepIds: completedStepIds ?? this.completedStepIds,
       validationErrors: validationErrors ?? this.validationErrors,
       isInitializing: isInitializing ?? this.isInitializing,

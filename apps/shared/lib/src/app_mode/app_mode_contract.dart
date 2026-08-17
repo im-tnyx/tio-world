@@ -15,6 +15,7 @@ enum AppMode {
     return null;
   }
 
+  /// Phone App Guided Destinations / Bottom Navigation Tabs
   List<AppDestination> get guidedDestinations {
     return switch (this) {
       AppMode.workout => const [
@@ -35,6 +36,28 @@ enum AppMode {
         ],
     };
   }
+
+  /// Watch (Wear OS / Apple Watch) Home Screen Cards & Tiles
+  List<WatchCardType> get watchCards {
+    return switch (this) {
+      AppMode.workout => const [
+          WatchCardType.activeWorkout,
+          WatchCardType.heartRateRestTimer,
+          WatchCardType.workoutHistory,
+        ],
+      AppMode.nutrition => const [
+          WatchCardType.caloriesMacros,
+          WatchCardType.quickWaterLog,
+          WatchCardType.dailyActivitySummary,
+        ],
+      AppMode.hybrid => const [
+          WatchCardType.activeWorkout,
+          WatchCardType.caloriesMacros,
+          WatchCardType.quickWaterLog,
+          WatchCardType.dailyActivitySummary,
+        ],
+    };
+  }
 }
 
 enum AppDestination {
@@ -42,4 +65,22 @@ enum AppDestination {
   workout,
   nutrition,
   progress,
+}
+
+enum WatchCardType {
+  activeWorkout,
+  heartRateRestTimer,
+  workoutHistory,
+  caloriesMacros,
+  quickWaterLog,
+  dailyActivitySummary;
+
+  String get label => switch (this) {
+        WatchCardType.activeWorkout => 'Active Workout Launcher',
+        WatchCardType.heartRateRestTimer => 'Heart Rate & Rest Timer',
+        WatchCardType.workoutHistory => 'Recent Routine & Logs',
+        WatchCardType.caloriesMacros => 'Calorie & Macro Ring',
+        WatchCardType.quickWaterLog => 'Quick Water Logger (+250ml)',
+        WatchCardType.dailyActivitySummary => 'Daily Activity & Burn',
+      };
 }

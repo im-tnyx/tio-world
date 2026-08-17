@@ -206,7 +206,7 @@ A final-stage custom navigation layer may promote implemented feature routes as 
 Profile and Settings are launch surfaces, not primary bottom tabs.
 
 ```text
-Home -> Profile avatar/account entry -> Profile -> Settings
+Home -> Profile avatar/account entry -> Profile -> Profile photo / Settings
 ```
 
 ## Melos Workspace

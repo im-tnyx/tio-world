@@ -17,6 +17,13 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  static const usernameSetup = TioRouteContract(
+    path: '/username-setup',
+    title: 'Choose Username',
+    description: 'Choose your unique Tio username.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
   static const onboarding = TioRouteContract(
     path: '/onboarding',
     title: 'Onboarding',
@@ -31,10 +38,52 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  static const profileAvatar = TioRouteContract(
+    path: '/profile/avatar',
+    title: 'Profile photo',
+    description: 'View and manage your profile photo.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
   static const settings = TioRouteContract(
     path: '/settings',
     title: 'Settings',
     description: 'Configure your app preferences and notifications.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
+  static const appSettings = TioRouteContract(
+    path: '/settings/app',
+    title: 'App Settings',
+    description: 'Manage app mode and theme preferences.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
+  static const appModeSettings = TioRouteContract(
+    path: '/settings/app-mode',
+    title: 'App Mode',
+    description: 'Choose your guided app experience.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
+  static const profileSettings = TioRouteContract(
+    path: '/settings/profile',
+    title: 'Profile Settings',
+    description: 'Manage your name, username, demographics and biometrics.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
+  static const accountSettings = TioRouteContract(
+    path: '/settings/account',
+    title: 'Account Settings',
+    description: 'Manage email, mobile number, security and account lifecycle.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
+  static const themeSettings = TioRouteContract(
+    path: '/settings/theme',
+    title: 'Theme',
+    description: 'Choose your app appearance.',
     chromePolicy: ChromePolicy.fullScreen,
   );
 
@@ -45,10 +94,38 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  static const emailLogin = TioRouteContract(
+    path: '/login/email',
+    title: 'Sign In',
+    description: 'Sign in with your email and password.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
+  static const emailSignup = TioRouteContract(
+    path: '/login/email-signup',
+    title: 'Create Account',
+    description: 'Register a new account with email and password.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
+  static const forgotPassword = TioRouteContract(
+    path: '/login/forgot-password',
+    title: 'Reset Password',
+    description: 'Send a password reset email.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
   static const splash = TioRouteContract(
     path: '/splash',
     title: 'Splash',
     description: 'Initializing session and data access...',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
+  static const congratulations = TioRouteContract(
+    path: '/congratulations',
+    title: 'Congratulations',
+    description: 'Welcome to Tio onboarding celebration.',
     chromePolicy: ChromePolicy.fullScreen,
   );
 }

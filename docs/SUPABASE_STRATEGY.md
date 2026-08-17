@@ -2,7 +2,11 @@
 
 ## Status
 
-**Target architecture; not implemented.** No Supabase project configuration, client package, migration, environment file, credential, or live integration exists in this repository yet.
+**Active production foundation (Onboarding Owner Persistence slice implemented).**
+- Workspace: `supabase/` created with `config.toml` and migrations (`20260814000001_create_onboarding_owner_tables.sql`).
+- Core owner tables: `profiles`, `workout_preferences`, `user_targets` with RLS (`auth.uid() = user_id`).
+- Adapters: `SupabaseProfileSetupRepository`, `SupabaseWorkoutPreferencesRepository`, `SupabaseTargetsSetupRepository`, `SupabaseAuthSessionRepository`.
+- Future HTTP/backend adapters preserved in parallel.
 
 ## Decision
 
@@ -91,6 +95,17 @@ Choose the exact runtime for Gemini later. A Supabase Edge Function may suit a s
 - Service-role keys in the repository, clients, screenshots, tests, or documentation.
 - A custom backend framework, worker system, or queue before a concrete server-side slice requires one.
 - Claims that Supabase Auth, RLS, Storage, Edge Functions, or Gemini are live.
+
+## Future-Safe Backend Preservation Rule
+
+Supabase is the **CURRENT production adapter**. Remote HTTP/backend adapters are **FUTURE-SAFE architecture**.
+
+Currently inactive backend code (`ApiClient`, `DioApiClient`, `RemoteProfileSetupRepository`, `RemoteWorkoutPreferencesRepository`, `RemoteTargetsSetupRepository`, `RemoteOnboardingFinalizer`, `BackendUserSyncRepository`, `RemoteBackendUserSyncRepository`, etc.) must NEVER be deleted merely because Supabase is active.
+
+Inactive != obsolete. Removal requires:
+1. architecture audit,
+2. explicit retirement decision,
+3. explicit user approval.
 
 ## Related
 

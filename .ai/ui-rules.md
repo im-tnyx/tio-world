@@ -59,6 +59,10 @@ Build the initial guided bottom navigation from `AppMode`, not from the current 
 | `nutrition` | Home, Nutrition, Progress |
 | `hybrid` | Home, Workout, Nutrition, Progress |
 
+Show bottom navigation only on exact main-tab root routes. Do not derive Back on a
+selected root. Child/sub-screens, editors, drill-downs, account flows, and
+full-screen routes hide bottom navigation and own an explicit top Back action.
+
 Workout Library is part of Workout, and Meal Plan is a future Nutrition flow; neither is a guided default tab. A later custom layout may promote an implemented route as a shortcut without changing ownership. Coach becomes eligible when Phase 7 begins.
 
 Future Navigation & Tabs personalization keeps Home fixed first and allows three to six eligible selections. Screen sections and action prominence may adapt through a prepared surface model, but screens must not branch on raw tab indexes or duplicate start-workout/meal-log logic.
@@ -69,15 +73,26 @@ Profile opens from avatar/account entry.
 
 Settings opens from the Profile launcher. Do not place a separate Settings icon in the Home top bar.
 
+Keep the Home top bar plain and full-width with uppercase `TIO` at the left.
+Only the centered plan label uses a
+fixed-size pill shape from `TioNavigationTokens`; center the label on both axes.
+Do not place streak status on Home. Workout owns the right-side Workout streak
+status on its root, and Nutrition owns the right-side Meal Log streak status on
+its root. Both stay non-interactive and icon-only until their owner supplies a
+real positive count.
+
 ## Onboarding Parent Flow
 
 - Keep `/onboarding` as one full-screen parent route.
-- Keep top progress and bottom actions fixed; only the middle child content changes
-  and scrolls.
+- Show only Back in the fixed-height top chrome on the unnumbered App Mode
+  chooser. Hide progress and keep system Back/safe exit active there.
+- On later children, keep top Back/progress and the bottom primary action fixed;
+  only the middle child content changes and scrolls.
 - Use one primary action from the parent. Child steps must not add a competing
   Continue or Finish button.
-- Derive progress and child eligibility from stable step IDs and draft App Mode,
-  not route paths or raw indexes.
+- Exclude App Mode from progress position/total. Count every later user-facing
+  child, including all nine Profile screens, and derive eligibility from stable
+  step IDs and draft App Mode, not route paths or raw indexes.
 - Keep the primary action reachable above the keyboard and safe-area inset.
 - Use shared motion tokens, reduced motion, semantic progress labels, field-error
   association, and non-color-only state.
@@ -86,7 +101,16 @@ Settings opens from the Profile launcher. Do not place a separate Settings icon 
 
 ## Reusable Avatar
 
-Use the shared `TioAvatar` component from `apps/core` across shell, lists, cards, and Profile. Select semantic sizes—`compact`, `small`, `medium`, and `large`—rather than local pixel values. The component is circular by default and supports rounded Profile treatment, optional images, centralized fallback behavior, and caller-supplied semantics.
+Use the shared `TioAvatar` component from `apps/core` across shell, lists, cards,
+Profile, and photo fallback. Select semantic sizes—`compact`, `small`, `medium`,
+`large`, and `extraLarge`—rather than local pixel values. The component is
+circular by default and supports rounded Profile treatment, optional images,
+centralized fallback behavior, and caller-supplied semantics.
+
+Plan framing is a visual input, not billing logic inside `TioAvatar`: Free uses no
+ring, Plus uses the shared semantic circular gradient ring, and Pro uses the
+shared semantic hexagon crop/frame. `extraLarge` always suppresses the frame on
+the full-screen Profile photo surface.
 
 ## Production Screen Checklist
 
