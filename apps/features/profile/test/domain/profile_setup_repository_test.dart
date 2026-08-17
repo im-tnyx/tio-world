@@ -1,9 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tio_core/core.dart';
 import 'package:tio_feature_profile/profile.dart';
 
 void main() {
   group('InMemoryProfileSetupRepository', () {
-    test('round trips profile setup data', () async {
+    test('round trips profile setup data with explicit mixed units', () async {
       final repository = InMemoryProfileSetupRepository();
       expect(await repository.getProfileSetup(), isNull);
 
@@ -15,6 +16,12 @@ void main() {
         heightCm: 178.5,
         currentWeightKg: 75.0,
         targetWeightKg: 80.0,
+        unitPreferences: const MeasurementUnitPreferences(
+          weightUnit: WeightUnit.lb,
+          heightUnit: HeightUnit.ftIn,
+          distanceUnit: DistanceUnit.km,
+          volumeUnit: VolumeUnit.flOz,
+        ),
         activityLevel: ProfileActivityLevel.active,
         healthConditions: const {ProfileHealthCondition.none},
       );
@@ -25,6 +32,32 @@ void main() {
       expect(retrieved, equals(data));
       expect(retrieved?.name, 'Tio User');
       expect(retrieved?.gender, ProfileGender.male);
+      expect(
+        retrieved?.unitPreferences,
+        const MeasurementUnitPreferences(
+          weightUnit: WeightUnit.lb,
+          heightUnit: HeightUnit.ftIn,
+          distanceUnit: DistanceUnit.km,
+          volumeUnit: VolumeUnit.flOz,
+        ),
+      );
+      expect(retrieved?.hasExplicitUnitPreferences, isTrue);
+    });
+
+    test('legacy caller gets metric display defaults without owning unit writes', () {
+      final data = ProfileSetupData(
+        name: 'Legacy User',
+        gender: ProfileGender.female,
+        goals: const {ProfileGoal.keepFit},
+        dateOfBirth: DateTime(1998, 1, 1),
+        heightCm: 160.0,
+        currentWeightKg: 60.0,
+        activityLevel: ProfileActivityLevel.active,
+        healthConditions: const {ProfileHealthCondition.none},
+      );
+
+      expect(data.unitPreferences, MeasurementUnitPreferences.metric);
+      expect(data.hasExplicitUnitPreferences, isFalse);
     });
 
     test('overwrites previous profile on subsequent save', () async {
