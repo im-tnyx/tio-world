@@ -72,6 +72,23 @@ Future<void> main() async {
                 (ref) => ref.watch(appOnboardingDraftRepositoryProvider)),
             onboardingCompletionValidatorProvider.overrideWith(
                 (ref) => ref.watch(appOnboardingCompletionValidatorProvider)),
+            onboardingControllerProvider.overrideWith((ref, seed) {
+              final handoff = ref.watch(onboardingAuthDraftHandoffProvider);
+              final currentUserId =
+                  ref.read(supabaseClientProvider)?.auth.currentUser?.id;
+              final controller = AppOnboardingController(
+                entryPath: seed.entryPath,
+                initialDraft: handoff.takeForUser(currentUserId) ?? seed.draft,
+                includeMobile: seed.includeMobile,
+                statusRepository: ref.watch(onboardingStatusRepositoryProvider),
+                draftRepository: ref.watch(onboardingDraftRepositoryProvider),
+                completionValidator:
+                    ref.watch(onboardingCompletionValidatorProvider),
+                authDraftHandoff: handoff,
+              );
+              unawaited(controller.hydrateDraft());
+              return controller;
+            }),
             appThemeControllerProvider
                 .overrideWith((ref) => appThemeController),
           ],
