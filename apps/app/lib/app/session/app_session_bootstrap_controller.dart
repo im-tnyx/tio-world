@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_onboarding/onboarding.dart';
+import 'package:tio_feature_profile/profile.dart';
 
 import '../onboarding/onboarding_status_controller.dart';
 import 'app_session_bootstrap_state.dart';
@@ -12,17 +13,20 @@ class AppSessionBootstrapController extends ChangeNotifier {
     required AuthSessionRepository authSessionRepository,
     required OnboardingCompletionRepository? onboardingCompletionRepository,
     required OnboardingStatusController onboardingStatusController,
+    ProfileAccountRepository? profileAccountRepository,
     OnboardingDraftRepository? onboardingDraftRepository,
     Duration completionLookupTimeout = const Duration(seconds: 8),
   })  : _authSessionRepository = authSessionRepository,
         _onboardingCompletionRepository = onboardingCompletionRepository,
         _onboardingStatusController = onboardingStatusController,
+        _profileAccountRepository = profileAccountRepository,
         _onboardingDraftRepository = onboardingDraftRepository,
         _completionLookupTimeout = completionLookupTimeout;
 
   final AuthSessionRepository _authSessionRepository;
   final OnboardingCompletionRepository? _onboardingCompletionRepository;
   final OnboardingStatusController _onboardingStatusController;
+  final ProfileAccountRepository? _profileAccountRepository;
   final OnboardingDraftRepository? _onboardingDraftRepository;
   final Duration _completionLookupTimeout;
 
@@ -63,11 +67,6 @@ class AppSessionBootstrapController extends ChangeNotifier {
   }
 
   /// Accepts the already-verified result of a successful onboarding completion.
-  ///
-  /// The completion use case has already persisted owner data and published the
-  /// durable backend completion marker before this is called. Advancing the
-  /// bootstrap state locally avoids a redundant backend read and lets the fresh
-  /// completion flow show Congratulations before entering Home.
   void markReadyAfterOnboardingCompletion(String userId) {
     if (_disposed) return;
     if (userId.isEmpty) {
@@ -91,6 +90,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
         _activeAuthenticatedUserId == authState.session.userId &&
         (_state is AppSessionBootstrapLoading ||
             _state is AppSessionBootstrapReady ||
+            _state is AppSessionBootstrapRequiresUsername ||
             _state is AppSessionBootstrapRequiresOnboarding)) {
       _debug('duplicate authenticated event ignored for active user');
       return;
@@ -127,25 +127,35 @@ class AppSessionBootstrapController extends ChangeNotifier {
           final remoteState = await completionRepository
               .readCurrent()
               .timeout(_completionLookupTimeout);
-          if (_disposed || generation != _resolutionGeneration) {
-            _debug('completion result ignored as stale generation=$generation');
-            return;
-          }
-          _debug('completion lookup result: $remoteState');
+          if (_disposed || generation != _resolutionGeneration) return;
 
           await _onboardingStatusController.reconcileRemote(remoteState);
-          if (_disposed || generation != _resolutionGeneration) {
-            _debug('reconcile result ignored as stale generation=$generation');
-            return;
-          }
+          if (_disposed || generation != _resolutionGeneration) return;
 
           switch (remoteState) {
             case RemoteOnboardingCompletionState.completed:
+              // Legacy completed accounts remain ready even if their historical
+              // profile predates the required Username bootstrap contract.
               _setState(AppSessionBootstrapReady(userId: session.userId));
               unawaited(_clearObsoleteDraft());
               break;
             case RemoteOnboardingCompletionState.uninitialized:
             case RemoteOnboardingCompletionState.incomplete:
+              final accountRepository = _profileAccountRepository;
+              if (accountRepository != null) {
+                final username = await accountRepository
+                    .currentUsername()
+                    .timeout(_completionLookupTimeout);
+                if (_disposed || generation != _resolutionGeneration) return;
+                if (username == null || username.trim().isEmpty) {
+                  _setState(
+                    AppSessionBootstrapRequiresUsername(
+                      userId: session.userId,
+                    ),
+                  );
+                  break;
+                }
+              }
               _setState(
                 AppSessionBootstrapRequiresOnboarding(userId: session.userId),
               );
@@ -153,7 +163,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
           }
         } catch (error) {
           if (_disposed || generation != _resolutionGeneration) return;
-          _debug('completion lookup failed: ${error.runtimeType}');
+          _debug('bootstrap lookup failed: ${error.runtimeType}');
           _setState(AppSessionBootstrapFailure(error));
         }
         break;
