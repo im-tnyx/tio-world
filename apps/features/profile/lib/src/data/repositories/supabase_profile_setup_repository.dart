@@ -9,6 +9,7 @@ import '../../domain/models/profile_goal.dart';
 import '../../domain/models/profile_health_condition.dart';
 import '../../domain/models/profile_setup_data.dart';
 import '../../domain/repositories/profile_setup_repository.dart';
+import '../avatar_write_policy.dart';
 
 /// Supabase-backed implementation of [ProfileSetupRepository].
 ///
@@ -60,8 +61,9 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
       // invalidates any prior verification timestamp; unchanged verified values
       // are preserved because this field is otherwise omitted from the upsert.
       if (mobileChanged) 'mobile_verified_at': null,
-      'avatar_url': data.avatarUrl,
-      'profile_image': data.avatarUrl,
+      // A null onboarding avatar must preserve a Google/bootstrap or custom
+      // avatar that is already stored. New avatar values write avatar_url only.
+      ...buildCanonicalAvatarWrite(avatarUrl: data.avatarUrl),
       'plan': data.plan,
       'gender': data.gender.name,
       'primary_goal': data.goals.isNotEmpty ? data.goals.first.name : null,
@@ -264,6 +266,8 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
     return ProfileSetupData(
       name: row['name'] as String? ?? '',
       username: row['username'] as String?,
+      // avatar_url is canonical. profile_image remains a legacy read fallback
+      // until historical data no longer needs it.
       avatarUrl: row['avatar_url'] as String? ?? row['profile_image'] as String?,
       avatarFrame: avatarFrame,
       plan: plan,
@@ -311,8 +315,7 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
     final publicUrl = _client.storage.from('avatars').getPublicUrl(storagePath);
 
     await _client.from('users').update({
-      'avatar_url': publicUrl,
-      'profile_image': publicUrl,
+      ...buildCanonicalAvatarWrite(avatarUrl: publicUrl),
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     }).eq('id', userId);
 
@@ -325,8 +328,9 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
     if (userId == null || userId.isEmpty) return;
 
     await _client.from('users').update({
-      'avatar_url': null,
-      'profile_image': null,
+      // Clear the legacy fallback too so an old profile_image cannot reappear
+      // after the canonical avatar has been explicitly deleted.
+      ...buildCanonicalAvatarWrite(clear: true),
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     }).eq('id', userId);
   }
