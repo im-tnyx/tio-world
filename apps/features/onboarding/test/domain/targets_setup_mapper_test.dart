@@ -22,6 +22,7 @@ void main() {
         dateOfBirth: DateTime(1996, 1, 1),
         heightCm: 175,
         currentWeightKg: 70,
+        targetWeightKg: 66,
         activityLevel: ProfileActivityLevel.active,
       );
 
@@ -34,8 +35,27 @@ void main() {
       expect(result.sleepTargetMinutes, 480);
       expect(result.waterMl, 3000);
       expect(result.goalPaceKgPerWeek, 0.5);
+      expect(result.heightCm, 175);
+      expect(result.currentWeightKg, 70);
+      expect(result.targetWeightKg, 66);
+      expect(result.activityLevel, 'active');
       expect(result.recommendation, isNotNull);
       expect(result.recommendation?.caloriesKcal, greaterThan(0));
+    });
+
+    test('keeps uncollected optional profile metrics null', () {
+      const targetsDraft = TargetsOnboardingDraft();
+      final profileDraft = ProfileOnboardingDraft();
+
+      final result = mapper.map(
+        targetsDraft: targetsDraft,
+        profileDraft: profileDraft,
+      );
+
+      expect(result.heightCm, isNull);
+      expect(result.currentWeightKg, isNull);
+      expect(result.targetWeightKg, isNull);
+      expect(result.activityLevel, isNull);
     });
 
     test('safely clamps steps and water to bounds', () {
