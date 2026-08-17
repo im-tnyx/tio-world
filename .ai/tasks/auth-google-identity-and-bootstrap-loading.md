@@ -271,3 +271,124 @@ Then terminate any old `flutter run` process and perform a fresh device run. For
 ```
 
 followed by Home.
+
+## 8. Provider-aware signup profile bootstrap and Mobile step
+
+These rules are frozen for the next auth/onboarding slices. They are product behavior, not a request to enable unfinished providers prematurely.
+
+### 8.1 Google profile photo — first signup only
+
+Current defect: a fresh Google signup can authenticate successfully but the Google account profile photo is not persisted into the Tio profile.
+
+Target behavior:
+
+```text
+Fresh Google signup
+→ Google identity contains profile photo
+→ Tio profile has no user-owned photo yet
+→ import provider photo once
+→ persist it into the canonical profile/avatar field
+```
+
+Rules:
+
+- Google photo import is **signup-only / first-account bootstrap only**.
+- Returning Google login must not re-import or overwrite the avatar.
+- A user-selected/uploaded Tio profile photo is always authoritative after signup.
+- Missing Google photo is valid and must not block signup.
+- Provider enrichment remains non-critical to the auth transaction: photo failure must not turn a valid signup into auth failure.
+- Before implementation, choose one canonical runtime/database avatar field (`avatar_url` vs legacy `profile_image`) and avoid writing two competing sources of truth.
+
+### 8.2 Mobile step visibility is auth-provider aware
+
+The Mobile onboarding section must not be shown blindly after every authentication method.
+
+#### Google signup
+
+```text
+Get Started / explicit signup
+→ Google auth succeeds
+→ Mobile step
+→ user enters mobile number
+→ OTP verification optional for current release
+→ continue onboarding
+```
+
+- Mobile number entry is required before continuing past this step.
+- OTP verification is not wired yet, so verification is optional/deferred for the current release.
+- Until OTP is actually completed, `mobile_verified_at` must remain null/unverified.
+- Do not fake verification just because the user typed a number.
+
+#### Email signup
+
+```text
+Explicit Email signup
+→ email auth succeeds
+→ Mobile step
+→ user enters mobile number
+→ OTP verification optional/deferred
+→ continue onboarding
+```
+
+Same persistence/verification rules as Google signup.
+
+#### Mobile-number auth — future provider
+
+```text
+Mobile auth succeeds
+→ authenticated identity already owns the mobile number
+→ skip Mobile onboarding step
+→ continue next onboarding section
+```
+
+Do not ask the user to re-enter the same mobile number immediately after mobile authentication.
+
+#### Truecaller auth — future provider, currently unavailable
+
+Current product state remains unchanged: Truecaller is not implemented and tapping it must continue to show the existing unavailable message until a dedicated provider slice is approved.
+
+Future target behavior once Truecaller auth is implemented:
+
+```text
+Truecaller auth succeeds
+→ mobile number comes from provider identity
+→ skip Mobile onboarding step
+→ provider may also return email
+→ email must NOT be assumed verified unless provider/backend evidence explicitly proves verification
+→ continue next onboarding section
+```
+
+- Truecaller-provided mobile may be used as the mobile identity only after the provider integration's verification semantics are explicitly validated.
+- Truecaller-provided email is profile/contact data by default, not a verified-email credential.
+
+### 8.3 Returning login vs explicit signup
+
+Provider-aware Mobile rules apply to **new-account onboarding**, not normal returning-user login.
+
+```text
+Returning existing Tio account login
+→ restore durable account/onboarding state
+→ do not inject Mobile onboarding just because login provider is Google/email
+```
+
+If an existing account is genuinely incomplete and its durable onboarding state says Mobile is still required, resume according to that saved onboarding state rather than provider name alone.
+
+### 8.4 Required tests before completion
+
+- [ ] fresh Google signup with provider photo imports avatar once;
+- [ ] later Google login does not overwrite a user-owned avatar;
+- [ ] Google signup routes to Mobile after auth before later onboarding sections;
+- [ ] Email signup routes to Mobile after auth;
+- [ ] entered mobile persists while `mobile_verified_at` remains null when OTP is skipped;
+- [ ] future mobile-auth path skips Mobile step;
+- [ ] future Truecaller path skips Mobile step and does not mark provider email verified without evidence;
+- [ ] returning completed Google/email account does not regress into Mobile onboarding;
+- [ ] incomplete returning account resumes from durable onboarding state rather than restarting provider-specific setup.
+
+### 8.5 Non-goals for the immediate slice
+
+- Do not implement Truecaller yet.
+- Do not implement/send OTP yet unless a separate OTP slice is explicitly started.
+- Do not mark typed mobile numbers verified without OTP/provider proof.
+- Do not overwrite existing/custom profile photos from Google on later logins.
+- Do not make Google photo enrichment part of the critical authentication success path.
