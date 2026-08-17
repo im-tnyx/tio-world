@@ -54,28 +54,34 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ReviewSection), findsOneWidget);
-    expect(find.text('Review setup'), findsOneWidget);
-    expect(find.text('App Mode'), findsOneWidget);
-    expect(find.text('Hybrid'), findsOneWidget);
-    expect(find.text('Later'), findsOneWidget);
-    expect(find.text('Profile'), findsOneWidget);
+    expect(find.text('Review your plan'), findsOneWidget);
+    expect(find.text('Profile & Goals'), findsOneWidget);
+    expect(find.text('Name'), findsOneWidget);
     expect(find.text('Tio User'), findsOneWidget);
+    expect(find.text('Gender'), findsOneWidget);
+    expect(find.text('Other'), findsOneWidget);
+    expect(find.text('Goals'), findsOneWidget);
     expect(find.text('Keep fit'), findsOneWidget);
-    expect(find.text('Dynamic'), findsOneWidget);
-    expect(find.text('Health detail provided'), findsOneWidget);
+    expect(find.text('Date of birth'), findsOneWidget);
+    expect(find.text('1 Jan 2000'), findsOneWidget);
+    expect(find.text('Height'), findsOneWidget);
+    expect(find.text('171 cm'), findsOneWidget);
+    expect(find.text('Weight plan'), findsOneWidget);
+    expect(find.text('70.0 kg ➔ 68.0 kg'), findsOneWidget);
+    expect(find.text('Activity'), findsOneWidget);
+    expect(find.text('Highly dynamic'), findsOneWidget);
+    expect(find.text('Health info'), findsOneWidget);
+    expect(find.text('Asthma note'), findsOneWidget);
     expect(find.text('Daily Targets'), findsOneWidget);
     expect(find.text('10000 steps/day'), findsOneWidget);
     expect(find.text('2500 ml/day'), findsOneWidget);
-    expect(find.textContaining('Only real onboarding data is summarized here'),
-        findsOneWidget);
+    expect(find.text('8h 00m / night'), findsOneWidget);
+    expect(find.text('Setup Incomplete'), findsOneWidget);
     expect(
       find.textContaining('Finish stays disabled until durable owner persistence'),
       findsOneWidget,
     );
-    expect(find.text('Pending'), findsNothing);
-    expect(find.text('Workout setup'), findsWidgets);
-    expect(find.text('Nutrition setup'), findsNothing);
-    expect(find.text('Nutrition preferences'), findsNothing);
+    expect(find.text('Workout Plan'), findsNothing);
     expect(find.byType(FilledButton), findsNothing);
   });
 
