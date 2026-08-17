@@ -16,6 +16,7 @@ final appSessionBootstrapControllerProvider =
     onboardingCompletionRepository:
         ref.read(onboardingCompletionRepositoryProvider),
     onboardingStatusController: ref.read(onboardingStatusControllerProvider),
+    profileAccountRepository: ref.read(profileAccountRepositoryProvider),
     onboardingDraftRepository: ref.read(hybridOnboardingDraftRepositoryProvider),
   );
   controller.start();
