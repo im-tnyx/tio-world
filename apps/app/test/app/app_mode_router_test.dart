@@ -516,9 +516,10 @@ Future<void> _completeProfileInputs(WidgetTester tester) async {
 
 class _FixedAppSessionBootstrapController extends AppSessionBootstrapController {
   _FixedAppSessionBootstrapController({
-    required this.fixedState,
+    required AppSessionBootstrapState state,
     required OnboardingStatusController onboardingStatusController,
-  }) : super(
+  })  : fixedState = state,
+        super(
           authSessionRepository: InMemoryAuthSessionRepository(),
           onboardingCompletionRepository: null,
           onboardingStatusController: onboardingStatusController,
