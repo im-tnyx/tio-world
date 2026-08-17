@@ -1,6 +1,6 @@
 # Provider-aware Username, Mobile Step & Google Photo Bootstrap
 
-**Status:** Planned — product contract frozen where specified, implementation pending
+**Status:** In progress — auth consolidation and required post-auth Username hardening implemented; provider-aware Mobile and remaining Google-photo validation pending
 **Parent tracking:** GitHub issue #10
 **Source branch:** `codex/onboarding-mode-migration`
 **Primary owners:** `apps/features/auth` + `apps/features/onboarding` + `apps/features/profile` + `apps/app`
@@ -196,10 +196,13 @@ Fresh Google / Email / future supported signup
 Rules:
 
 - Username is collected **after authentication**, never through a pre-auth Supabase user-owned write.
+- Username is **required** for fresh/incomplete authenticated accounts whose canonical username is missing; there is no Skip action at this checkpoint.
+- Completed legacy accounts are exempt from this retroactive gate even when their historical username is null.
 - The screen is fresh-account bootstrap, not a normal returning-login screen.
-- Persist to the canonical `public.users.username` field unless repository/schema audit establishes a different canonical owner before implementation.
+- Persist to the canonical `public.users.username` field.
 - Do not silently overwrite an existing username on later login.
-- Existing incomplete accounts should resume their durable onboarding state instead of blindly restarting Username because of the provider used to sign in.
+- Existing incomplete accounts resume according to durable account/onboarding state; Username is required only when that account still lacks its canonical username.
+- `public.users.username` remains nullable for legacy compatibility; do not add a global `NOT NULL` constraint.
 
 ### 4.1 Username normalization, availability, filtering, and suggestions
 
@@ -222,11 +225,11 @@ Frozen rules:
 
 - Canonical comparison is case-insensitive. Current production schema already has a unique index on `lower(username)`, so `Santosh` and `santosh` must be treated as the same handle.
 - Normalize candidate input consistently before checking/saving, including trim + lowercase canonical comparison.
-- Initial public-handle character policy should remain simple and spoof-resistant: ASCII letters, numbers, underscore, and dot unless a later reviewed policy expands it.
-- Minimum/maximum length must be enforced consistently in UI, server policy, and final persistence. The current UI uses a 3-character minimum; the exact maximum must be frozen before implementation and then mirrored at the database boundary where appropriate.
-- Reserved and misleading handles must be rejected before normal availability succeeds. The reviewed reserved set should include Tio/system/support/admin/security/billing/official-style names and impersonation-prone combinations.
-- Public username policy must account for profanity/abuse and obvious brand/support impersonation without exposing which account owns a blocked or taken name.
-- Do not expose broad `public.users` lookup access merely to implement username availability. Current users-table RLS is owner-scoped, so availability should use a narrowly scoped backend/RPC/API contract that returns availability/suggestions only.
+- Initial public-handle character policy is ASCII letters, numbers, underscore, and dot unless a later reviewed policy expands it.
+- Canonical length is **3–30 characters**, enforced in UI, server policy, and the database persistence boundary.
+- Reserved and misleading handles must be rejected before normal availability succeeds. The initial reviewed server policy protects Tio/system/support/admin/security/billing/official-style exact handles, system-role namespaces, and clear Tio-role combinations.
+- Comprehensive profanity/abuse filtering is a separate reviewed product-policy item; do not invent an unreviewed dictionary in this engineering slice.
+- Do not expose broad `public.users` lookup access merely to implement username availability. Current users-table RLS is owner-scoped, so availability uses a narrowly scoped backend/RPC contract that returns availability/suggestions only.
 - Availability UI is advisory; the database unique constraint remains the final concurrency authority when the user saves.
 - If a handle becomes taken between availability check and final save, return a controlled conflict state and refresh alternatives instead of failing generically.
 
@@ -258,6 +261,7 @@ But:
 - Suggestions should be dynamic and context-appropriate rather than a permanent hard-coded three-item list.
 - Avoid deriving numeric suffixes from private attributes such as date of birth.
 - Candidate generation may use name parts and short neutral/random numeric suffixes, but only server-verified available candidates should be displayed as suggestions.
+- Reserved/system candidates must not produce alternatives inside the same protected namespace; use neutral verified alternatives instead.
 
 Suggestion tap behavior:
 
@@ -276,28 +280,28 @@ Async/race protection:
 - A late response for an older typed handle must not overwrite UI state for the current handle.
 - Re-check or otherwise verify the selected suggestion before allowing it to be represented as available.
 
-Backend contract target:
+Backend contract:
 
 ```text
 check_username_availability(candidate)
 → normalized candidate
 → isAvailable
-→ safe message/reason category as needed
+→ safe reason category
 → verified available suggestions
+
+claim_username(candidate)
+→ canonical policy check
+→ owner-only atomic claim
+→ controlled taken/profile-missing result
 ```
 
-The endpoint/RPC must not reveal the identity or profile of the account that already owns a taken username.
+The RPCs must not reveal the identity or profile of the account that already owns a taken username.
 
-### Product decision still pending
+### Step 2B implementation note
 
-The placement is frozen, but **whether Username is mandatory or may be skipped is not yet frozen**. Do not invent this rule in implementation. Before the Username slice starts, explicitly decide:
+Production migrations `20260817000002_harden_username_policy.sql` and `20260817000003_refine_username_impersonation_policy.sql` implement the server policy, narrow authenticated RPCs, verified neutral suggestions, canonical claim path, and database policy constraint. The final `lower(username)` unique index remains the concurrency authority.
 
-```text
-Username screen
-→ required before Next
-OR
-→ optional / Skip allowed
-```
+The public username RPCs intentionally use `SECURITY DEFINER` with a fixed empty `search_path` because owner-scoped RLS cannot otherwise answer cross-account collision questions. `PUBLIC`/`anon` execute is revoked; `authenticated` execute is granted only to the narrow RPC surface. Private helpers are not executable by API roles.
 
 ## 5. Frozen Mobile-step contract
 
@@ -441,18 +445,19 @@ Mobile may remain null forever if the user chooses not to provide it.
 
 ### Username
 
-- [ ] fresh account authentication routes to Username before Mobile/later onboarding;
-- [ ] returning completed login does not show Username;
-- [ ] existing username is not overwritten by later login;
-- [ ] username normalization is case-insensitive and matches backend uniqueness semantics;
-- [ ] invalid/reserved/impersonation-prone usernames are rejected by the reviewed policy;
-- [ ] availability is checked through a narrow backend contract rather than broad users-table reads;
-- [ ] unavailable username returns only verified-available suggestions;
-- [ ] suggestions are dynamic and do not require `_fit`, `_tio`, or any year-based suffix;
-- [ ] current year is never automatically appended or preferred by the suggestion engine;
-- [ ] tapping a suggestion re-checks/validates it before showing Available;
-- [ ] stale async availability responses cannot overwrite the current input state;
-- [ ] final save handles a unique-race conflict with controlled UX and refreshed suggestions;
+- [x] fresh/incomplete authenticated account missing username routes to Username before later onboarding;
+- [x] returning completed login does not show Username retroactively;
+- [x] existing username is not overwritten by later login bootstrap;
+- [x] username normalization is case-insensitive and matches backend uniqueness semantics;
+- [x] invalid/reserved/system-impersonation usernames are rejected by the reviewed initial policy;
+- [x] availability is checked through a narrow backend contract rather than broad users-table reads;
+- [x] unavailable username returns only server-verified available suggestions;
+- [x] suggestions are dynamic and do not require `_fit`, `_tio`, or any year-based suffix;
+- [x] current year is never automatically appended or preferred by the suggestion engine;
+- [x] tapping a suggestion re-checks/validates it before showing Available;
+- [x] stale async availability responses cannot overwrite the current input state;
+- [x] final save handles a unique-race conflict with controlled UX and an authoritative suggestion refresh;
+- [ ] comprehensive profanity/abuse policy reviewed and implemented, if product requires one beyond the initial reserved/system policy.
 
 ### Mobile / provider behavior
 
@@ -480,7 +485,7 @@ Mobile may remain null forever if the user chooses not to provide it.
 - Do not mark typed mobile verified.
 - Do not overwrite existing/custom profile photos from Google on later logins.
 - Do not add pre-auth Supabase writes.
-- Do not assume Username is mandatory or optional until that product decision is explicitly frozen.
+- Do not make `public.users.username` globally `NOT NULL` or force completed legacy accounts through the Username checkpoint.
 - Do not expose broad user-directory reads for availability checking.
 - Do not treat locally generated username suggestions as authoritative availability results.
 - Do not bias username suggestions toward the current year.
