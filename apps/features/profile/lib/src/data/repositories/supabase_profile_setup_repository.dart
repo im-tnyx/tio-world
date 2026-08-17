@@ -72,13 +72,7 @@ class SupabaseProfileSetupRepository
       'current_weight_kg': data.currentWeightKg,
       'target_weight_kg': data.targetWeightKg,
       if (data.hasExplicitUnitPreferences)
-        'weight_unit': data.unitPreferences.weightUnit.storageValue,
-      if (data.hasExplicitUnitPreferences)
-        'height_unit': data.unitPreferences.heightUnit.storageValue,
-      if (data.hasExplicitUnitPreferences)
-        'distance_unit': data.unitPreferences.distanceUnit.storageValue,
-      if (data.hasExplicitUnitPreferences)
-        'volume_unit': data.unitPreferences.volumeUnit.storageValue,
+        'unit_preferences': data.unitPreferences.toJson(),
       'activity_level': data.activityLevel.name,
       'health_conditions': data.healthConditions.map((c) => c.name).toList(),
       'other_health_condition': data.otherHealthCondition,
@@ -124,10 +118,7 @@ class SupabaseProfileSetupRepository
     }
 
     await _client.from('users').update({
-      'weight_unit': preferences.weightUnit.storageValue,
-      'height_unit': preferences.heightUnit.storageValue,
-      'distance_unit': preferences.distanceUnit.storageValue,
-      'volume_unit': preferences.volumeUnit.storageValue,
+      'unit_preferences': preferences.toJson(),
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     }).eq('id', userId);
   }
@@ -262,12 +253,16 @@ class SupabaseProfileSetupRepository
         (row['current_weight_kg'] as num?)?.toDouble() ?? 70.0;
     final targetWeight = (row['target_weight_kg'] as num?)?.toDouble();
 
-    final unitPreferences = MeasurementUnitPreferences(
-      weightUnit: WeightUnit.fromStorage(row['weight_unit'] as String?),
-      heightUnit: HeightUnit.fromStorage(row['height_unit'] as String?),
-      distanceUnit: DistanceUnit.fromStorage(row['distance_unit'] as String?),
-      volumeUnit: VolumeUnit.fromStorage(row['volume_unit'] as String?),
-    );
+    final rawUnitPreferences = row['unit_preferences'];
+    final unitPreferences = rawUnitPreferences is Map
+        ? MeasurementUnitPreferences.fromJson(rawUnitPreferences)
+        : MeasurementUnitPreferences(
+            weightUnit: WeightUnit.fromStorage(row['weight_unit'] as String?),
+            heightUnit: HeightUnit.fromStorage(row['height_unit'] as String?),
+            distanceUnit:
+                DistanceUnit.fromStorage(row['distance_unit'] as String?),
+            volumeUnit: VolumeUnit.fromStorage(row['volume_unit'] as String?),
+          );
 
     final activityStr = row['activity_level'] as String?;
     final activity = ProfileActivityLevel.values.firstWhere(
