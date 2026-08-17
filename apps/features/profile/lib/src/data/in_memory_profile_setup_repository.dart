@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:tio_core/core.dart';
 
 import '../domain/models/profile_setup_data.dart';
+import '../domain/repositories/measurement_unit_preferences_repository.dart';
 import '../domain/repositories/profile_setup_repository.dart';
 
-/// Thread-safe in-memory implementation of [ProfileSetupRepository].
-class InMemoryProfileSetupRepository implements ProfileSetupRepository {
+/// Thread-safe in-memory implementation of profile and unit-preference owners.
+class InMemoryProfileSetupRepository
+    implements ProfileSetupRepository, MeasurementUnitPreferencesRepository {
   InMemoryProfileSetupRepository({ProfileSetupData? initialData})
       : _data = initialData;
 
