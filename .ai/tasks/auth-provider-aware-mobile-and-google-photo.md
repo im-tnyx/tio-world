@@ -48,7 +48,7 @@ Rules:
 
 ### 3.1 Username normalization, availability, filtering, and suggestions
 
-The existing `TioUsernameInputField` candidate style (`_fit`, current year, `_tio`) may be used as **optional candidate-generation examples only**. Tio must not require those suffixes and must not present them as the fixed or preferred username pattern.
+The existing `TioUsernameInputField` candidate style may be used only as inspiration for candidate generation. Tio must not require fixed suffixes or present any single pattern as the preferred username format.
 
 Target behavior:
 
@@ -79,8 +79,8 @@ Suggestion policy:
 
 ```text
 @santosh taken
-→ candidate generator may produce variations
-→ backend filters them through the same policy + availability rules
+→ candidate generator produces multiple neutral variations
+→ backend filters every candidate through the same policy + availability rules
 → UI receives only verified-available alternatives
 ```
 
@@ -98,10 +98,11 @@ But:
 
 - `_fit` is not mandatory.
 - `_tio` is not mandatory and should not be mechanically appended to every user.
-- current-year suffix is not mandatory.
-- suggestions should be dynamic and context-appropriate rather than a permanent hard-coded three-item list.
-- avoid deriving numeric suffixes from private attributes such as date of birth.
-- candidate generation may use name parts and short neutral/random numeric suffixes, but only server-verified available candidates should be displayed as suggestions.
+- **Current year has no special role in username suggestions and must not be automatically appended or preferred.**
+- A numeric suffix is just a neutral candidate variation; it must not encode or imply a year unless the user explicitly typed/chose that value.
+- Suggestions should be dynamic and context-appropriate rather than a permanent hard-coded three-item list.
+- Avoid deriving numeric suffixes from private attributes such as date of birth.
+- Candidate generation may use name parts and short neutral/random numeric suffixes, but only server-verified available candidates should be displayed as suggestions.
 
 Suggestion tap behavior:
 
@@ -273,7 +274,8 @@ Mobile may remain null forever if the user chooses not to provide it.
 - [ ] invalid/reserved/impersonation-prone usernames are rejected by the reviewed policy;
 - [ ] availability is checked through a narrow backend contract rather than broad users-table reads;
 - [ ] unavailable username returns only verified-available suggestions;
-- [ ] suggestions are dynamic and do not require `_fit`, `_tio`, or year suffixes;
+- [ ] suggestions are dynamic and do not require `_fit`, `_tio`, or any year-based suffix;
+- [ ] current year is never automatically appended or preferred by the suggestion engine;
 - [ ] tapping a suggestion re-checks/validates it before showing Available;
 - [ ] stale async availability responses cannot overwrite the current input state;
 - [ ] final save handles a unique-race conflict with controlled UX and refreshed suggestions;
@@ -301,3 +303,4 @@ Mobile may remain null forever if the user chooses not to provide it.
 - Do not assume Username is mandatory or optional until that product decision is explicitly frozen.
 - Do not expose broad user-directory reads for availability checking.
 - Do not treat locally generated username suggestions as authoritative availability results.
+- Do not bias username suggestions toward the current year.
