@@ -75,10 +75,14 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
       'height_cm': data.heightCm,
       'current_weight_kg': data.currentWeightKg,
       'target_weight_kg': data.targetWeightKg,
-      'weight_unit': data.unitPreferences.weightUnit.storageValue,
-      'height_unit': data.unitPreferences.heightUnit.storageValue,
-      'distance_unit': data.unitPreferences.distanceUnit.storageValue,
-      'volume_unit': data.unitPreferences.volumeUnit.storageValue,
+      if (data.hasExplicitUnitPreferences)
+        'weight_unit': data.unitPreferences.weightUnit.storageValue,
+      if (data.hasExplicitUnitPreferences)
+        'height_unit': data.unitPreferences.heightUnit.storageValue,
+      if (data.hasExplicitUnitPreferences)
+        'distance_unit': data.unitPreferences.distanceUnit.storageValue,
+      if (data.hasExplicitUnitPreferences)
+        'volume_unit': data.unitPreferences.volumeUnit.storageValue,
       'activity_level': data.activityLevel.name,
       'health_conditions': data.healthConditions.map((c) => c.name).toList(),
       'other_health_condition': data.otherHealthCondition,
@@ -145,12 +149,10 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
       realtimeSubscription?.cancel();
       postgresChannel?.unsubscribe();
 
-      // 1. Initial snapshot fetch
       getProfileSetup().then((data) {
         if (!controller.isClosed) controller.add(data);
       }).catchError((_) {});
 
-      // 2. Supabase SDK stream
       realtimeSubscription = _client
           .from('users')
           .stream(primaryKey: ['id'])
@@ -165,14 +167,12 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
           }
         },
         onError: (err) {
-          // Fallback to getProfileSetup on stream error
           getProfileSetup().then((data) {
             if (!controller.isClosed) controller.add(data);
           }).catchError((_) {});
         },
       );
 
-      // 3. Direct Postgres changes channel as secondary realtime listener
       postgresChannel = _client.channel('public:users:$userId')
         ..onPostgresChanges(
           event: PostgresChangeEvent.all,
@@ -283,8 +283,6 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
     return ProfileSetupData(
       name: row['name'] as String? ?? '',
       username: row['username'] as String?,
-      // avatar_url is canonical. profile_image remains a legacy read fallback
-      // until historical data no longer needs it.
       avatarUrl: row['avatar_url'] as String? ?? row['profile_image'] as String?,
       avatarFrame: avatarFrame,
       plan: plan,
@@ -322,7 +320,6 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
     final storagePath =
         '$userId/avatar_${DateTime.now().millisecondsSinceEpoch}.$ext';
 
-    // Normalize mime type: Supabase expects 'image/jpeg' for '.jpg' files
     final mimeType =
         ext == 'jpg' || ext == 'jpeg' ? 'image/jpeg' : 'image/$ext';
 
@@ -350,8 +347,6 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
     if (userId == null || userId.isEmpty) return;
 
     await _client.from('users').update({
-      // Clear the legacy fallback too so an old profile_image cannot reappear
-      // after the canonical avatar has been explicitly deleted.
       ...buildCanonicalAvatarWrite(clear: true),
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     }).eq('id', userId);
