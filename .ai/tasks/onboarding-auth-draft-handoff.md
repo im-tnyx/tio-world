@@ -1,9 +1,9 @@
 # Onboarding Auth Draft Handoff
 
-**Status:** In progress — root cause verified, implementation pending
+**Status:** Implemented — automated slice validation green; real-device validation pending
 **Tracking:** GitHub issue #13 (related to #10)
 **Source branch:** `codex/onboarding-mode-migration`
-**Primary owner:** `apps/features/onboarding` + `apps/app`
+**Primary owner:** `apps/app`
 
 ## User-reported regression
 
@@ -28,43 +28,77 @@ select fresh Google account
 
 Before authentication, `SupabaseOnboardingDraftRepository` cannot save that draft because there is no authenticated `user_id`.
 
-Google signup establishes a Supabase session and bootstrap can redirect `/login -> /onboarding` before the original `context.push()`/controller continuation resumes. The original auto-disposed onboarding controller can therefore disappear with the pre-auth draft. The newly built onboarding route currently receives a fresh `OnboardingDraft`; a fresh account has no remote draft yet, so flow planning falls back to App Mode.
+Google signup establishes a Supabase session and bootstrap can redirect `/login -> /onboarding` before the original `context.push()`/controller continuation resumes. The original auto-disposed onboarding controller can therefore disappear with the pre-auth draft. A fresh account has no remote draft yet, so a newly built onboarding controller would otherwise fall back to App Mode.
 
-## Frozen behavior
+## Implemented behavior
 
 ```text
 profile completed
--> prepare resume-after-auth draft at the next top-level step
--> stage that draft before opening auth
--> fresh Google signup
--> bootstrap may redirect immediately
--> authenticated /onboarding consumes the staged draft once
--> if a remote user-owned draft exists, hydrate/remote draft remains authoritative
--> otherwise continue the staged draft
--> do not repeat App Mode or Profile
+-> AppOnboardingController prepares the exact next top-level draft
+-> OnboardingAuthDraftHandoff stages it before opening auth
+-> fresh Google signup establishes Supabase identity
+-> handoff binds to that identity
+-> bootstrap may redirect immediately to /onboarding
+-> production onboarding provider consumes the staged draft once for that user
+-> normal hydrateDraft() still runs
+-> if a remote user-owned draft exists, remote draft wins
+-> otherwise staged draft continues
+-> App Mode/Profile are not repeated
 ```
 
-Existing completed Tio account selected at the checkpoint remains governed by authenticated bootstrap and must route Home.
+Existing completed Tio accounts remain governed by authenticated bootstrap and route Home. A handoff that is not consumed remains bound to that identity and is cleared on sign-out; it cannot be consumed by a different user.
 
-## Guardrails
+## Guardrails preserved
 
 - No rendered UI/layout change.
 - No Supabase schema/data migration.
-- Do not rely only on `context.pop(true)`; auth-state redirects can race it.
-- Never consume an unbound staged draft while unauthenticated.
-- Never leak a staged draft from one authenticated identity into another or into a later logged-out onboarding attempt.
+- No account row mutation/deletion.
+- Auth-state redirect race does not depend on `context.pop(true)`.
+- Unauthenticated routes cannot consume a staged draft.
+- A conflicting authenticated identity invalidates the staged draft.
 - Remote `onboarding_drafts` remains user-scoped and authoritative when present.
-- Cancellation/failure clears the transient handoff.
+- Cancellation/failure clears the transient handoff when no Supabase session was established.
 
-## Implementation plan
+## Implementation
 
-- [ ] Make the auth checkpoint expose a `resumeAfterAuth` draft that has already advanced past Profile.
-- [ ] Add a small app-owned transient one-shot handoff object.
-- [ ] Stage the resume draft before pushing AuthLanding.
-- [ ] Seed a freshly redirected authenticated onboarding route from the staged draft.
-- [ ] Ensure the staged draft is not consumed when unauthenticated and cannot cross identities.
-- [ ] Keep existing completed-account bootstrap -> Home behavior unchanged.
-- [ ] Add focused controller regression for the resume draft.
-- [ ] Add handoff lifecycle/isolation unit tests.
-- [ ] Run onboarding/app targeted tests and analyzers.
+- [x] Make the auth checkpoint expose a resume-after-auth draft that has already advanced past Profile.
+- [x] Add app-owned transient one-shot `OnboardingAuthDraftHandoff`.
+- [x] Stage the resume draft before AuthLanding is opened by the existing callback.
+- [x] Override the production `onboardingControllerProvider` so a redirected authenticated onboarding route can consume the staged draft.
+- [x] Bind/consume the staged draft by authenticated Supabase user ID.
+- [x] Keep normal `hydrateDraft()` after seeding so an existing remote draft remains authoritative.
+- [x] Preserve completed-account bootstrap -> Home behavior.
+- [x] Add focused resume, cancellation, identity-isolation, one-shot, and remote-precedence tests.
+- [x] Run automated analyzer/test validation.
 - [ ] Real-device test fresh Google signup resumes after Profile instead of App Mode.
+
+## Automated validation
+
+GitHub Actions run #68 on commit `e12d5233b50dc800054bc8145f334739df6cee64`:
+
+- Flutter analyzers: all packages passed.
+- Dart analyzer: passed.
+- `apps/app/test/app/onboarding_auth_draft_handoff_test.dart`: 5/5 passed.
+  - unauthenticated/wrong-identity isolation
+  - matching one-shot consumption
+  - exact first post-Profile resume step staged before auth returns
+  - cancellation clears unconsumed handoff
+  - remote user-owned draft overrides transient seed
+- Existing session bootstrap regression tests passed.
+
+The workspace test job remains red because of 10 unrelated pre-existing app test failures (`welcome_accessibility_test.dart`, `tio_avatar_test.dart`, and `app_mode_router_test.dart`). Baseline run #57 on pre-handoff commit `42dc360feb466511c0119d807db1f6aaa97670cb` had the same 10 failures and 97 passing tests. Run #68 has the same failure set and 102 passing tests, with the +5 being this slice's new passing tests.
+
+## Device gate
+
+Expected fresh-account flow:
+
+```text
+Get Started
+-> App Mode
+-> Profile
+-> Continue/auth checkpoint
+-> choose a fresh Google account
+-> session/bootstrap
+-> resume at first post-Profile onboarding step
+-> must NOT show App Mode or Profile again
+```
