@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../../domain/domain.dart';
@@ -324,6 +325,15 @@ class OnboardingController extends ChangeNotifier {
       state.draft.profile.copyWith(
         dateOfBirth: DateTime(value.year, value.month, value.day),
       ),
+    );
+  }
+
+  void updateMeasurementUnitPreferences(
+    MeasurementUnitPreferences preferences,
+  ) {
+    _markInProgress();
+    _updateProfile(
+      state.draft.profile.copyWith(unitPreferences: preferences),
     );
   }
 
@@ -703,7 +713,6 @@ class OnboardingController extends ChangeNotifier {
         return;
       }
     }
-
 
     if (!state.canContinue) return;
 
