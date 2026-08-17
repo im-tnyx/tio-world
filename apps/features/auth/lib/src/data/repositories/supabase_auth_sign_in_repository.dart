@@ -11,6 +11,12 @@ import '../../domain/repositories/auth_sign_in_repository.dart';
 import '../../domain/repositories/user_device_repository.dart';
 import '../google_login_admission_checker.dart';
 
+typedef GoogleProfileSyncCallback = Future<void> Function({
+  required User user,
+  required AuthSession session,
+  required bool importProviderPhoto,
+});
+
 /// Supabase-backed implementation of [AuthSignInRepository].
 ///
 /// Authenticates users directly with Supabase GoTrue and establishes
@@ -23,6 +29,7 @@ class SupabaseAuthSignInRepository
     String? serverClientId,
     UserDeviceRepository? userDeviceRepository,
     GoogleLoginAdmissionChecker? googleLoginAdmissionChecker,
+    GoogleProfileSyncCallback? googleProfileSyncCallback,
     Duration googleAccountSelectionTimeout = const Duration(seconds: 30),
     Duration googleCredentialTimeout = const Duration(seconds: 15),
     Duration googleAdmissionTimeout = const Duration(seconds: 8),
@@ -31,6 +38,7 @@ class SupabaseAuthSignInRepository
         _userDeviceRepository = userDeviceRepository,
         _googleLoginAdmissionChecker = googleLoginAdmissionChecker ??
             SupabaseGoogleLoginAdmissionChecker(client: client).call,
+        _googleProfileSyncCallback = googleProfileSyncCallback,
         _googleAccountSelectionTimeout = googleAccountSelectionTimeout,
         _googleCredentialTimeout = googleCredentialTimeout,
         _googleAdmissionTimeout = googleAdmissionTimeout,
@@ -50,6 +58,7 @@ class SupabaseAuthSignInRepository
   final GoogleSignIn _googleSignIn;
   final UserDeviceRepository? _userDeviceRepository;
   final GoogleLoginAdmissionChecker _googleLoginAdmissionChecker;
+  final GoogleProfileSyncCallback? _googleProfileSyncCallback;
   final Duration _googleAccountSelectionTimeout;
   final Duration _googleCredentialTimeout;
   final Duration _googleAdmissionTimeout;
@@ -180,10 +189,22 @@ class SupabaseAuthSignInRepository
           developer.log('[GoogleAuth] OAuth fallback session established');
           final session = _mapUser(user);
           _startDeviceSync();
+          // Without a native ID token we cannot classify fresh-vs-returning
+          // before account creation. Be conservative and never import a
+          // provider avatar on this fallback path.
           _startGoogleProfileSync(user: user, session: session);
           return SignInSuccess(session);
         }
         return const SignInCancelled();
+      }
+
+      Future<GoogleLoginAdmissionDecision?>? signupAccountDecision;
+      if (intent == GoogleSignInIntent.signupOrExisting) {
+        // Start fresh-vs-returning classification before the Supabase exchange,
+        // but do not await it on the authentication critical path. Profile
+        // enrichment can consume the result later in the background.
+        signupAccountDecision =
+            _classifyGoogleAccountForProfileBootstrap(idToken);
       }
 
       if (intent == GoogleSignInIntent.existingAccountOnly) {
@@ -259,7 +280,11 @@ class SupabaseAuthSignInRepository
       // Device/profile synchronization is secondary and must not keep the login
       // action loading if the network or a downstream table is slow/unavailable.
       _startDeviceSync();
-      _startGoogleProfileSync(user: user, session: session);
+      _startGoogleProfileSync(
+        user: user,
+        session: session,
+        accountDecision: signupAccountDecision,
+      );
 
       developer.log('[GoogleAuth] sign-in completed successfully');
       return SignInSuccess(session);
@@ -420,34 +445,70 @@ class SupabaseAuthSignInRepository
     );
   }
 
+  Future<GoogleLoginAdmissionDecision?>
+      _classifyGoogleAccountForProfileBootstrap(String idToken) async {
+    try {
+      developer.log('[GoogleAuth] signup profile classification started');
+      final decision = await _googleLoginAdmissionChecker(idToken)
+          .timeout(_googleAdmissionTimeout);
+      developer.log(
+        '[GoogleAuth] signup profile classification completed: ${decision.name}',
+      );
+      return decision;
+    } on TimeoutException catch (error, stackTrace) {
+      developer.log(
+        '[GoogleAuth] signup profile classification timed out; avatar import skipped',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return null;
+    } catch (error, stackTrace) {
+      developer.log(
+        '[GoogleAuth] signup profile classification failed; avatar import skipped',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return null;
+    }
+  }
+
   void _startGoogleProfileSync({
     required User user,
     required AuthSession session,
+    Future<GoogleLoginAdmissionDecision?>? accountDecision,
   }) {
-    unawaited(_syncGoogleProfile(user: user, session: session));
+    unawaited(
+      _syncGoogleProfile(
+        user: user,
+        session: session,
+        accountDecision: accountDecision,
+      ),
+    );
   }
 
   Future<void> _syncGoogleProfile({
     required User user,
     required AuthSession session,
+    Future<GoogleLoginAdmissionDecision?>? accountDecision,
   }) async {
     try {
-      final nowIso = DateTime.now().toUtc().toIso8601String();
-      await _client.from('users').upsert(
-        {
-          'id': user.id,
-          if (session.displayName != null && session.displayName!.isNotEmpty)
-            'name': session.displayName,
-          if (session.email != null && session.email!.isNotEmpty)
-            'email': session.email,
-          if (session.photoUrl != null && session.photoUrl!.isNotEmpty) ...{
-            'avatar_url': session.photoUrl,
-            'profile_image': session.photoUrl,
-          },
-          'last_active_at': nowIso,
-          'updated_at': nowIso,
-        },
-        onConflict: 'id',
+      final decision = accountDecision == null ? null : await accountDecision;
+      final importProviderPhoto =
+          decision == GoogleLoginAdmissionDecision.noAccount;
+      final callback = _googleProfileSyncCallback;
+      if (callback != null) {
+        await callback(
+          user: user,
+          session: session,
+          importProviderPhoto: importProviderPhoto,
+        );
+        return;
+      }
+
+      await _persistGoogleProfile(
+        user: user,
+        session: session,
+        importProviderPhoto: importProviderPhoto,
       );
     } catch (e, stackTrace) {
       developer.log(
@@ -456,6 +517,32 @@ class SupabaseAuthSignInRepository
         stackTrace: stackTrace,
       );
     }
+  }
+
+  Future<void> _persistGoogleProfile({
+    required User user,
+    required AuthSession session,
+    required bool importProviderPhoto,
+  }) async {
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    await _client.from('users').upsert(
+      {
+        'id': user.id,
+        if (session.displayName != null && session.displayName!.isNotEmpty)
+          'name': session.displayName,
+        if (session.email != null && session.email!.isNotEmpty)
+          'email': session.email,
+        // Provider avatar enrichment is first-account bootstrap only. Returning
+        // Google sign-in must never overwrite a user-owned/custom avatar.
+        if (importProviderPhoto &&
+            session.photoUrl != null &&
+            session.photoUrl!.isNotEmpty)
+          'avatar_url': session.photoUrl,
+        'last_active_at': nowIso,
+        'updated_at': nowIso,
+      },
+      onConflict: 'id',
+    );
   }
 
   AuthSession _mapUser(User user) {
