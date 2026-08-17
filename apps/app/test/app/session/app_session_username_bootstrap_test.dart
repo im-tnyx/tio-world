@@ -108,6 +108,16 @@ class _FakeProfileAccountRepository implements ProfileAccountRepository {
   Future<String?> currentUsername() async => username;
 
   @override
+  Future<UsernameAvailabilityCheck> checkUsernameAvailability(
+    String username,
+  ) async {
+    return UsernameAvailabilityCheck(
+      normalized: username.trim().toLowerCase(),
+      isAvailable: true,
+    );
+  }
+
+  @override
   Future<bool> isUsernameAvailable(String username) async => true;
 
   @override
