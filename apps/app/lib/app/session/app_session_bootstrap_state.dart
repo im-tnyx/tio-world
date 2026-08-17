@@ -22,6 +22,19 @@ class AppSessionBootstrapUnauthenticated extends AppSessionBootstrapState {
   int get hashCode => runtimeType.hashCode;
 }
 
+class AppSessionBootstrapRequiresUsername extends AppSessionBootstrapState {
+  const AppSessionBootstrapRequiresUsername({required this.userId});
+
+  final String userId;
+
+  @override
+  bool operator ==(Object other) =>
+      other is AppSessionBootstrapRequiresUsername && other.userId == userId;
+
+  @override
+  int get hashCode => Object.hash(runtimeType, userId);
+}
+
 class AppSessionBootstrapRequiresOnboarding extends AppSessionBootstrapState {
   const AppSessionBootstrapRequiresOnboarding({required this.userId});
 
