@@ -43,9 +43,94 @@ Rules:
 - Username is collected **after authentication**, never through a pre-auth Supabase user-owned write.
 - The screen is fresh-account bootstrap, not a normal returning-login screen.
 - Persist to the canonical `public.users.username` field unless repository/schema audit establishes a different canonical owner before implementation.
-- Username normalization, allowed characters, minimum/maximum length, case-sensitivity, uniqueness behavior, availability checking, and conflict/error UX must be explicitly defined before implementation.
 - Do not silently overwrite an existing username on later login.
 - Existing incomplete accounts should resume their durable onboarding state instead of blindly restarting Username because of the provider used to sign in.
+
+### 3.1 Username normalization, availability, filtering, and suggestions
+
+The existing `TioUsernameInputField` candidate style (`_fit`, current year, `_tio`) may be used as **optional candidate-generation examples only**. Tio must not require those suffixes and must not present them as the fixed or preferred username pattern.
+
+Target behavior:
+
+```text
+User enters candidate
+→ normalize locally
+→ local format validation
+→ debounce
+→ server-side username policy + availability check
+→ available
+   OR
+→ unavailable + 3–5 server-verified alternative suggestions
+```
+
+Frozen rules:
+
+- Canonical comparison is case-insensitive. Current production schema already has a unique index on `lower(username)`, so `Santosh` and `santosh` must be treated as the same handle.
+- Normalize candidate input consistently before checking/saving, including trim + lowercase canonical comparison.
+- Initial public-handle character policy should remain simple and spoof-resistant: ASCII letters, numbers, underscore, and dot unless a later reviewed policy expands it.
+- Minimum/maximum length must be enforced consistently in UI, server policy, and final persistence. The current UI uses a 3-character minimum; the exact maximum must be frozen before implementation and then mirrored at the database boundary where appropriate.
+- Reserved and misleading handles must be rejected before normal availability succeeds. The reviewed reserved set should include Tio/system/support/admin/security/billing/official-style names and impersonation-prone combinations.
+- Public username policy must account for profanity/abuse and obvious brand/support impersonation without exposing which account owns a blocked or taken name.
+- Do not expose broad `public.users` lookup access merely to implement username availability. Current users-table RLS is owner-scoped, so availability should use a narrowly scoped backend/RPC/API contract that returns availability/suggestions only.
+- Availability UI is advisory; the database unique constraint remains the final concurrency authority when the user saves.
+- If a handle becomes taken between availability check and final save, return a controlled conflict state and refresh alternatives instead of failing generically.
+
+Suggestion policy:
+
+```text
+@santosh taken
+→ candidate generator may produce variations
+→ backend filters them through the same policy + availability rules
+→ UI receives only verified-available alternatives
+```
+
+Examples may include:
+
+```text
+@santosh47
+@santosh.j
+@santosh_jangid
+@santosh214
+@santosh_fit
+```
+
+But:
+
+- `_fit` is not mandatory.
+- `_tio` is not mandatory and should not be mechanically appended to every user.
+- current-year suffix is not mandatory.
+- suggestions should be dynamic and context-appropriate rather than a permanent hard-coded three-item list.
+- avoid deriving numeric suffixes from private attributes such as date of birth.
+- candidate generation may use name parts and short neutral/random numeric suffixes, but only server-verified available candidates should be displayed as suggestions.
+
+Suggestion tap behavior:
+
+```text
+user taps suggestion
+→ populate field
+→ run the same authoritative availability check
+→ mark Available only after current candidate is confirmed
+```
+
+Never mark a suggestion available merely because it was generated locally.
+
+Async/race protection:
+
+- Debounced availability requests must carry candidate/generation identity.
+- A late response for an older typed handle must not overwrite UI state for the current handle.
+- Re-check or otherwise verify the selected suggestion before allowing it to be represented as available.
+
+Backend contract target:
+
+```text
+check_username_availability(candidate)
+→ normalized candidate
+→ isAvailable
+→ safe message/reason category as needed
+→ verified available suggestions
+```
+
+The endpoint/RPC must not reveal the identity or profile of the account that already owns a taken username.
 
 ### Product decision still pending
 
@@ -184,7 +269,14 @@ Mobile may remain null forever if the user chooses not to provide it.
 - [ ] fresh account authentication routes to Username before Mobile/later onboarding;
 - [ ] returning completed login does not show Username;
 - [ ] existing username is not overwritten by later login;
-- [ ] Username validation/availability tests are added once the pending requiredness/format contract is frozen;
+- [ ] username normalization is case-insensitive and matches backend uniqueness semantics;
+- [ ] invalid/reserved/impersonation-prone usernames are rejected by the reviewed policy;
+- [ ] availability is checked through a narrow backend contract rather than broad users-table reads;
+- [ ] unavailable username returns only verified-available suggestions;
+- [ ] suggestions are dynamic and do not require `_fit`, `_tio`, or year suffixes;
+- [ ] tapping a suggestion re-checks/validates it before showing Available;
+- [ ] stale async availability responses cannot overwrite the current input state;
+- [ ] final save handles a unique-race conflict with controlled UX and refreshed suggestions;
 - [ ] fresh Google signup routes to Mobile after Username;
 - [ ] fresh Email signup routes to Mobile after Username;
 - [ ] blank Mobile screen can continue with `Next`;
@@ -207,3 +299,5 @@ Mobile may remain null forever if the user chooses not to provide it.
 - Do not overwrite existing/custom profile photos from Google on later logins.
 - Do not add pre-auth Supabase writes.
 - Do not assume Username is mandatory or optional until that product decision is explicitly frozen.
+- Do not expose broad user-directory reads for availability checking.
+- Do not treat locally generated username suggestions as authoritative availability results.
