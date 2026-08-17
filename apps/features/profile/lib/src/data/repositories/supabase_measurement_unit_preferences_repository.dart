@@ -22,10 +22,7 @@ class SupabaseMeasurementUnitPreferencesRepository
     }
 
     await _client.from('users').update({
-      'weight_unit': preferences.weightUnit.storageValue,
-      'height_unit': preferences.heightUnit.storageValue,
-      'distance_unit': preferences.distanceUnit.storageValue,
-      'volume_unit': preferences.volumeUnit.storageValue,
+      'unit_preferences': preferences.toJson(),
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     }).eq('id', userId);
   }
