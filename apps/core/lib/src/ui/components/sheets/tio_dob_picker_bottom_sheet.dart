@@ -233,6 +233,7 @@ class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
   late int _selectedDay;
   late int _selectedMonthIndex; // 0-indexed (0 = Jan, 11 = Dec)
   late int _selectedYear;
+  bool _isSyncingControllers = false;
 
   late FixedExtentScrollController _dayController;
   late FixedExtentScrollController _monthController;
@@ -277,7 +278,10 @@ class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
         setState(() {
           _selectedYear = init.year.clamp(widget.startYear, widget.endYear);
           _selectedMonthIndex = (init.month - 1).clamp(0, 11);
-          _selectedDay = init.day.clamp(1, _daysInMonth(_selectedYear, _selectedMonthIndex + 1));
+          _selectedDay = init.day.clamp(
+            1,
+            _daysInMonth(_selectedYear, _selectedMonthIndex + 1),
+          );
         });
         _syncControllers();
       }
@@ -301,22 +305,35 @@ class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
     final monthIndex = _selectedMonthIndex.clamp(0, 11);
     final yearIndex = _years.indexOf(_selectedYear);
 
-    if (_dayController.hasClients && _dayController.selectedItem != dayIndex) {
-      _dayController.jumpToItem(dayIndex);
-    }
-    if (_monthController.hasClients && _monthController.selectedItem != monthIndex) {
-      _monthController.jumpToItem(monthIndex);
-    }
-    if (_yearController.hasClients && yearIndex >= 0 && _yearController.selectedItem != yearIndex) {
-      _yearController.jumpToItem(yearIndex);
+    _isSyncingControllers = true;
+    try {
+      if (_dayController.hasClients && _dayController.selectedItem != dayIndex) {
+        _dayController.jumpToItem(dayIndex);
+      }
+      if (_monthController.hasClients &&
+          _monthController.selectedItem != monthIndex) {
+        _monthController.jumpToItem(monthIndex);
+      }
+      if (_yearController.hasClients &&
+          yearIndex >= 0 &&
+          _yearController.selectedItem != yearIndex) {
+        _yearController.jumpToItem(yearIndex);
+      }
+    } finally {
+      _isSyncingControllers = false;
     }
   }
 
   void _onWheelChanged() {
+    if (_isSyncingControllers) return;
+
     HapticFeedback.selectionClick();
-    final dayIndex = _dayController.hasClients ? _dayController.selectedItem : 0;
-    final monthIndex = _monthController.hasClients ? _monthController.selectedItem : 0;
-    final yearIndex = _yearController.hasClients ? _yearController.selectedItem : 0;
+    final dayIndex =
+        _dayController.hasClients ? _dayController.selectedItem : 0;
+    final monthIndex =
+        _monthController.hasClients ? _monthController.selectedItem : 0;
+    final yearIndex =
+        _yearController.hasClients ? _yearController.selectedItem : 0;
 
     final resolvedYear = (yearIndex >= 0 && yearIndex < _years.length)
         ? _years[yearIndex]
