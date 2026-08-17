@@ -18,7 +18,8 @@ class SignInWithGoogleUseCase {
   }) {
     final repository = _signInRepository;
     if (repository is GoogleSignInIntentRepository) {
-      return repository.signInWithGoogleForIntent(intent: intent);
+      return (repository as GoogleSignInIntentRepository)
+          .signInWithGoogleForIntent(intent: intent);
     }
     return repository.signInWithGoogle();
   }
