@@ -28,7 +28,7 @@ void main() {
       );
     });
 
-    test('unauthenticated users can use auth routes but not protected routes', () {
+    test('unauthenticated users can use auth and onboarding routes but not protected routes', () {
       expect(
         appSessionBootstrapRedirect(
           path: AppRoutes.splash.path,
@@ -39,6 +39,13 @@ void main() {
       expect(
         appSessionBootstrapRedirect(
           path: AppRoutes.login.path,
+          state: const AppSessionBootstrapUnauthenticated(),
+        ),
+        isNull,
+      );
+      expect(
+        appSessionBootstrapRedirect(
+          path: AppRoutes.onboarding.path,
           state: const AppSessionBootstrapUnauthenticated(),
         ),
         isNull,
