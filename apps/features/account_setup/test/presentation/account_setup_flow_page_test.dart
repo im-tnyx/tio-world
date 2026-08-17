@@ -64,7 +64,7 @@ void main() {
     );
 
     await tester.tap(find.byKey(const ValueKey('account-setup-continue')));
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(setupRepository.completeCalls, 1);
     expect(setupRepository.lastMobile, '');
@@ -92,7 +92,7 @@ void main() {
     );
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('account-setup-continue')));
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(setupRepository.lastMobile, '+91 9876543210');
     expect(setupRepository.state.isMobileVerified, isFalse);
@@ -146,7 +146,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('account-setup-continue')));
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(setupRepository.completeCalls, 1);
     expect(setupRepository.lastMobile, isNull);
