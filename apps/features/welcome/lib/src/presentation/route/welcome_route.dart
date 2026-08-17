@@ -34,7 +34,7 @@ class _WelcomeRouteState extends State<WelcomeRoute> {
         context.push(AppRoutes.onboarding.path);
         break;
       case WelcomeSignInClicked():
-        context.push(AppRoutes.emailLogin.path);
+        context.push(AppRoutes.login.path);
         break;
       case WelcomeSkipForNowClicked():
         context.push(AppRoutes.login.path);
