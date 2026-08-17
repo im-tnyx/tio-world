@@ -25,7 +25,7 @@ void main() {
     );
   }
 
-  testWidgets('mobile is optional and does not expose fake OTP verification',
+  testWidgets('mobile is optional without putting Optional in the title',
       (tester) async {
     String? mobile;
     bool? verified;
@@ -37,11 +37,16 @@ void main() {
       ),
     );
 
-    expect(find.text("What's your mobile number? (Optional)"), findsOneWidget);
+    expect(find.text("What's your mobile number?"), findsOneWidget);
+    expect(find.textContaining('(Optional)'), findsNothing);
+    expect(find.byType(TioMobileNumberField), findsOneWidget);
+    expect(find.byType(SingleChildScrollView), findsNothing);
     expect(find.text('Verify'), findsNothing);
-    expect(find.text('Verified'), findsNothing);
+    expect(find.byIcon(Icons.verified_rounded), findsNothing);
     expect(
-      find.text('Verification is optional for now and can be completed later.'),
+      find.text(
+        'You can add or verify a mobile number later from Account Settings.',
+      ),
       findsOneWidget,
     );
 
@@ -54,7 +59,7 @@ void main() {
     expect(mobile, '+91 9876543210');
     expect(verified, isFalse);
     expect(find.text('Verify'), findsNothing);
-    expect(find.text('Verified'), findsNothing);
+    expect(find.byIcon(Icons.verified_rounded), findsNothing);
   });
 
   testWidgets('provider-verified mobile can be represented as verified',
@@ -66,11 +71,17 @@ void main() {
       ),
     );
 
-    expect(find.text('Verified'), findsOneWidget);
+    expect(find.byType(TioMobileNumberField), findsOneWidget);
+    expect(find.byIcon(Icons.verified_rounded), findsOneWidget);
     expect(
       find.text('Verified by your authentication provider.'),
       findsOneWidget,
     );
     expect(find.text('Verify'), findsNothing);
+
+    final field = tester.widget<TextField>(
+      find.byKey(const ValueKey('mobile-number-input')),
+    );
+    expect(field.controller?.text, '9876543210');
   });
 }
