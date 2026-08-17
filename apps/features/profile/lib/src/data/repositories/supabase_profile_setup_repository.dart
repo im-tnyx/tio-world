@@ -46,9 +46,9 @@ class SupabaseProfileSetupRepository
         .maybeSingle();
     final previousMobile = (currentProfile?['mobile'] as String?)?.trim() ?? '';
 
-    // Mobile is account-owned. A null value means this profile save does not
-    // own Mobile and must preserve the durable Account Setup value. An explicit
-    // empty string clears it; a changed explicit value invalidates verification.
+    // Username and Mobile are account-owned. Null means this profile save does
+    // not own that field and must preserve the durable Account Setup value.
+    final ownsUsername = data.username != null;
     final ownsMobile = data.mobile != null;
     final requestedMobile = data.mobile?.trim() ?? '';
     final mobileChanged = ownsMobile && previousMobile != requestedMobile;
@@ -58,7 +58,7 @@ class SupabaseProfileSetupRepository
     final payload = <String, dynamic>{
       'id': userId,
       'name': data.name,
-      'username': data.username,
+      if (ownsUsername) 'username': data.username,
       if (email != null && email.isNotEmpty) 'email': email,
       if (ownsMobile) 'mobile': requestedMobile.isEmpty ? null : requestedMobile,
       if (mobileChanged) 'mobile_verified_at': null,
@@ -90,7 +90,7 @@ class SupabaseProfileSetupRepository
         final corePayload = <String, dynamic>{
           'id': userId,
           'name': data.name,
-          'username': data.username,
+          if (ownsUsername) 'username': data.username,
           'gender': data.gender.name,
           'goals': data.goals.map((g) => g.name).toList(),
           'date_of_birth': dobIso,
