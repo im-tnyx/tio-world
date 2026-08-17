@@ -13,7 +13,8 @@ void main() {
     Future<void> Function()? onExit,
   }) {
     return MaterialApp(
-      theme: ThemeData(extensions: const [TioColors.light]),
+      builder: (context, child) =>
+          TioTheme(child: child ?? const SizedBox.shrink()),
       home: AccountSetupFlowPage(
         usernameRepository: usernameRepository,
         accountSetupRepository: setupRepository,
@@ -67,6 +68,35 @@ void main() {
 
     expect(setupRepository.completeCalls, 1);
     expect(setupRepository.lastMobile, '');
+    expect(completed, 1);
+  });
+
+  testWidgets('entered mobile persists but remains unverified', (tester) async {
+    final setupRepository = _FakeAccountSetupRepository(
+      const AccountSetupAccountState(username: 'existing.user'),
+    );
+    var completed = 0;
+
+    await tester.pumpWidget(
+      app(
+        usernameRepository: _FakeProfileAccountRepository(),
+        setupRepository: setupRepository,
+        onCompleted: () async => completed++,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('account-setup-mobile-input')),
+      '9876543210',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('account-setup-continue')));
+    await tester.pumpAndSettle();
+
+    expect(setupRepository.lastMobile, '+91 9876543210');
+    expect(setupRepository.state.isMobileVerified, isFalse);
+    expect(setupRepository.state.isCompleted, isTrue);
     expect(completed, 1);
   });
 
@@ -140,6 +170,66 @@ void main() {
     await tester.pump();
 
     expect(exits, 1);
+  });
+
+  testWidgets('Back from Mobile returns to Username before exiting', (tester) async {
+    var exits = 0;
+    await tester.pumpWidget(
+      app(
+        usernameRepository: _FakeProfileAccountRepository(),
+        setupRepository: _FakeAccountSetupRepository(
+          const AccountSetupAccountState(),
+        ),
+        onExit: () async => exits++,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('tio-username-input')),
+      'back.user',
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('account-setup-continue')));
+    await tester.pumpAndSettle();
+    expect(find.text("What's your mobile number?"), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('account-setup-back-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Choose your username'), findsOneWidget);
+    expect(exits, 0);
+  });
+
+  testWidgets('Account Setup owns fixed footer and shared auth-style chrome',
+      (tester) async {
+    tester.view.physicalSize = const Size(393, 852);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      app(
+        usernameRepository: _FakeProfileAccountRepository(),
+        setupRepository: _FakeAccountSetupRepository(
+          const AccountSetupAccountState(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('account-setup-back-button')), findsOneWidget);
+    expect(find.byKey(const ValueKey('account-setup-content')), findsOneWidget);
+    expect(find.byKey(const ValueKey('account-setup-footer')), findsOneWidget);
+    expect(find.byKey(const ValueKey('account-setup-continue')), findsOneWidget);
+    expect(find.text('Choose your username'), findsOneWidget);
+
+    final footerRect = tester.getRect(
+      find.byKey(const ValueKey('account-setup-footer')),
+    );
+    expect(footerRect.bottom, closeTo(852, 1));
+    expect(tester.takeException(), isNull);
   });
 }
 
