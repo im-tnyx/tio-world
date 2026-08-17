@@ -1,3 +1,4 @@
+import '../models/google_sign_in_intent.dart';
 import '../models/sign_in_result.dart';
 import '../repositories/auth_sign_in_repository.dart';
 
@@ -11,5 +12,8 @@ class SignInWithGoogleUseCase {
 
   final AuthSignInRepository _signInRepository;
 
-  Future<SignInResult> call() => _signInRepository.signInWithGoogle();
+  Future<SignInResult> call({
+    required GoogleSignInIntent intent,
+  }) =>
+      _signInRepository.signInWithGoogle(intent: intent);
 }
