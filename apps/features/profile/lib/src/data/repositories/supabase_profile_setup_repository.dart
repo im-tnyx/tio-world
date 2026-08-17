@@ -39,6 +39,14 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
     final effectiveMobile = (data.mobile != null && data.mobile!.trim().isNotEmpty)
         ? data.mobile!.trim()
         : (phone != null && phone.isNotEmpty ? phone : null);
+    final currentProfile = await _client
+        .from('users')
+        .select('mobile')
+        .eq('id', userId)
+        .maybeSingle();
+    final previousMobile = (currentProfile?['mobile'] as String?)?.trim() ?? '';
+    final normalizedMobile = effectiveMobile?.trim() ?? '';
+    final mobileChanged = previousMobile != normalizedMobile;
     final dobIso = data.dateOfBirth.toIso8601String().split('T').first;
     final nowIso = DateTime.now().toUtc().toIso8601String();
     final payload = <String, dynamic>{
@@ -46,10 +54,12 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
       'name': data.name,
       'username': data.username,
       if (email != null && email.isNotEmpty) 'email': email,
-      if (effectiveMobile != null) 'mobile': effectiveMobile,
+      'mobile': effectiveMobile,
       // Onboarding may collect a mobile number, but verification evidence must
-      // come from the authentication provider/backend. Never manufacture a
-      // mobile_verified_at timestamp from draft UI state.
+      // come from the authentication provider/backend. A manual mobile change
+      // invalidates any prior verification timestamp; unchanged verified values
+      // are preserved because this field is otherwise omitted from the upsert.
+      if (mobileChanged) 'mobile_verified_at': null,
       'avatar_url': data.avatarUrl,
       'profile_image': data.avatarUrl,
       'plan': data.plan,
