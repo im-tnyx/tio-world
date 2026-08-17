@@ -1,3 +1,5 @@
+import 'package:tio_core/core.dart';
+
 import 'profile_step_id.dart';
 
 enum ProfileGender { male, female, other }
@@ -28,16 +30,22 @@ class ProfileOnboardingDraft {
     Set<ProfileGoal> goals = const {},
     this.dateOfBirth,
     this.heightCm,
-    this.heightUnit = 'cm',
+    MeasurementUnitPreferences? unitPreferences,
+    String? heightUnit,
     this.currentWeightKg,
-    this.weightUnit = 'kg',
+    String? weightUnit,
     this.targetWeightKg,
     this.activityLevel,
     Set<ProfileHealthCondition> healthConditions = const {},
     this.otherHealthCondition = '',
     this.mobile = '',
     this.isMobileVerified = false,
-  })  : goals = Set.unmodifiable(goals),
+  })  : unitPreferences = _resolveUnitPreferences(
+          base: unitPreferences ?? MeasurementUnitPreferences.metric,
+          legacyHeightUnit: heightUnit,
+          legacyWeightUnit: weightUnit,
+        ),
+        goals = Set.unmodifiable(goals),
         healthConditions = Set.unmodifiable(healthConditions);
 
   final ProfileStepId currentStepId;
@@ -46,15 +54,20 @@ class ProfileOnboardingDraft {
   final Set<ProfileGoal> goals;
   final DateTime? dateOfBirth;
   final double? heightCm;
-  final String heightUnit;
+  final MeasurementUnitPreferences unitPreferences;
   final double? currentWeightKg;
-  final String weightUnit;
   final double? targetWeightKg;
   final ProfileActivityLevel? activityLevel;
   final Set<ProfileHealthCondition> healthConditions;
   final String otherHealthCondition;
   final String mobile;
   final bool isMobileVerified;
+
+  /// Compatibility presentation aliases while screens migrate to typed units.
+  String get heightUnit =>
+      unitPreferences.heightUnit == HeightUnit.ftIn ? 'ft' : 'cm';
+  String get weightUnit =>
+      unitPreferences.weightUnit == WeightUnit.lb ? 'lbs' : 'kg';
 
   ProfileOnboardingDraft copyWith({
     ProfileStepId? currentStepId,
@@ -63,6 +76,7 @@ class ProfileOnboardingDraft {
     Set<ProfileGoal>? goals,
     DateTime? dateOfBirth,
     double? heightCm,
+    MeasurementUnitPreferences? unitPreferences,
     String? heightUnit,
     bool clearHeightCm = false,
     double? currentWeightKg,
@@ -83,10 +97,11 @@ class ProfileOnboardingDraft {
       goals: goals ?? this.goals,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       heightCm: clearHeightCm ? null : heightCm ?? this.heightCm,
-      heightUnit: heightUnit ?? this.heightUnit,
+      unitPreferences: unitPreferences ?? this.unitPreferences,
+      heightUnit: heightUnit,
       currentWeightKg:
           clearCurrentWeightKg ? null : currentWeightKg ?? this.currentWeightKg,
-      weightUnit: weightUnit ?? this.weightUnit,
+      weightUnit: weightUnit,
       targetWeightKg:
           clearTargetWeightKg ? null : targetWeightKg ?? this.targetWeightKg,
       activityLevel: activityLevel ?? this.activityLevel,
@@ -107,9 +122,8 @@ class ProfileOnboardingDraft {
             _sameSet(goals, other.goals) &&
             dateOfBirth == other.dateOfBirth &&
             heightCm == other.heightCm &&
-            heightUnit == other.heightUnit &&
+            unitPreferences == other.unitPreferences &&
             currentWeightKg == other.currentWeightKg &&
-            weightUnit == other.weightUnit &&
             targetWeightKg == other.targetWeightKg &&
             activityLevel == other.activityLevel &&
             _sameSet(healthConditions, other.healthConditions) &&
@@ -126,6 +140,7 @@ class ProfileOnboardingDraft {
         Object.hashAllUnordered(goals),
         dateOfBirth,
         heightCm,
+        unitPreferences,
         currentWeightKg,
         targetWeightKg,
         activityLevel,
@@ -134,6 +149,24 @@ class ProfileOnboardingDraft {
         mobile,
         isMobileVerified,
       );
+}
+
+MeasurementUnitPreferences _resolveUnitPreferences({
+  required MeasurementUnitPreferences base,
+  String? legacyHeightUnit,
+  String? legacyWeightUnit,
+}) {
+  final height = switch (legacyHeightUnit) {
+    'ft' || 'in' || 'ft_in' => HeightUnit.ftIn,
+    'cm' => HeightUnit.cm,
+    _ => null,
+  };
+  final weight = switch (legacyWeightUnit) {
+    'lb' || 'lbs' => WeightUnit.lb,
+    'kg' => WeightUnit.kg,
+    _ => null,
+  };
+  return base.copyWith(heightUnit: height, weightUnit: weight);
 }
 
 bool _sameSet<T>(Set<T> left, Set<T> right) =>

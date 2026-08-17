@@ -30,23 +30,23 @@ class TargetWeightScreen extends StatelessWidget {
 
   static const double _defaultKg = 68.0;
 
+  bool get _usesPounds => unit == 'lb' || unit == 'lbs';
+
   String get _displayValue {
     final kg = valueKg ?? _defaultKg;
-    if (unit == 'lbs') {
-      final lbs = kg * 2.20462;
-      return '${lbs.toStringAsFixed(1)} lbs';
-    }
-    return '${kg.toStringAsFixed(1)} kg';
+    return MeasurementFormatters.formatWeight(
+      kg,
+      _usesPounds ? WeightUnit.lb : WeightUnit.kg,
+    );
   }
 
   ({String badge, String diffText, String message, Color color}) _getTargetAnalysis() {
     final target = valueKg ?? _defaultKg;
     final current = currentWeightKg ?? target;
     final diffKg = target - current;
-    final isLbs = unit == 'lbs';
-    final diffVal = isLbs ? diffKg * 2.20462 : diffKg;
+    final diffVal = _usesPounds ? MeasurementConverters.kgToLb(diffKg) : diffKg;
     final diffAbs = diffVal.abs();
-    final unitLabel = isLbs ? 'lbs' : 'kg';
+    final unitLabel = _usesPounds ? 'lb' : 'kg';
 
     if (diffAbs < 0.2) {
       return (
@@ -57,7 +57,7 @@ class TargetWeightScreen extends StatelessWidget {
       );
     } else if (diffKg < 0) {
       final diffStr = '-${diffAbs.toStringAsFixed(1)} $unitLabel';
-      if (diffAbs <= (isLbs ? 33 : 15)) {
+      if (diffAbs <= (_usesPounds ? 33 : 15)) {
         return (
           badge: 'Weight Loss',
           diffText: diffStr,
@@ -74,7 +74,7 @@ class TargetWeightScreen extends StatelessWidget {
       }
     } else {
       final diffStr = '+${diffAbs.toStringAsFixed(1)} $unitLabel';
-      if (diffAbs <= (isLbs ? 22 : 10)) {
+      if (diffAbs <= (_usesPounds ? 22 : 10)) {
         return (
           badge: 'Muscle Gain',
           diffText: diffStr,
@@ -107,8 +107,6 @@ class TargetWeightScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 8),
-
-          // Large Bold Value Header (Syncs with kg vs lbs unit)
           Center(
             child: Text(
               _displayValue,
@@ -121,10 +119,7 @@ class TargetWeightScreen extends StatelessWidget {
               ),
             ),
           ),
-
           const SizedBox(height: 24),
-
-          // Live Target Analysis Card (100% Identical pattern to CurrentWeightScreen BMI Card)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -135,7 +130,6 @@ class TargetWeightScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top Row: Difference Label + Value + Status Badge (Identical to BMI row)
                 Row(
                   children: [
                     Text(
@@ -176,10 +170,7 @@ class TargetWeightScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 8),
-
-                // Description text
                 Text(
                   analysis.message,
                   style: TextStyle(

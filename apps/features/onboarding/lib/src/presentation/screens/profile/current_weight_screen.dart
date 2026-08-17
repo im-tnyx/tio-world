@@ -28,11 +28,8 @@ class CurrentWeightScreen extends StatelessWidget {
 
   String get _displayValue {
     final kg = valueKg ?? _defaultKg;
-    if (unit == 'lbs') {
-      final lbs = kg * 2.20462;
-      return '${lbs.toStringAsFixed(1)} lbs';
-    }
-    return '${kg.toStringAsFixed(1)} kg';
+    final typedUnit = unit == 'lb' || unit == 'lbs' ? WeightUnit.lb : WeightUnit.kg;
+    return MeasurementFormatters.formatWeight(kg, typedUnit);
   }
 
   double get _currentBmi {
@@ -86,8 +83,6 @@ class CurrentWeightScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 8),
-
-          // Large Bold Value Header (Syncs with kg vs lbs unit)
           Center(
             child: Text(
               _displayValue,
@@ -100,10 +95,7 @@ class CurrentWeightScreen extends StatelessWidget {
               ),
             ),
           ),
-
           const SizedBox(height: 24),
-
-          // Live Dynamic BMI Card
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),

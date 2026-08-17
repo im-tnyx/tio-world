@@ -37,6 +37,7 @@ class ProfileStepValidator {
           ? null
           : 'Choose one primary goal.',
       ProfileStepId.age => _validateDateOfBirth(draft.dateOfBirth),
+      ProfileStepId.measurementUnits => null,
       ProfileStepId.height => _validateRange(
           draft.heightCm,
           minimumHeightCm,
