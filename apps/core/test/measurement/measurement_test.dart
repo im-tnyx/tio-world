@@ -30,6 +30,44 @@ void main() {
       expect(mixed.isImperialPreset, isFalse);
     });
 
+    test('serializes mixed preferences into one durable json object', () {
+      const mixed = MeasurementUnitPreferences(
+        weightUnit: WeightUnit.kg,
+        heightUnit: HeightUnit.ftIn,
+        distanceUnit: DistanceUnit.mi,
+        volumeUnit: VolumeUnit.ml,
+      );
+
+      expect(mixed.toJson(), {
+        'weight': 'kg',
+        'height': 'ft_in',
+        'distance': 'mi',
+        'volume': 'ml',
+      });
+      expect(
+        MeasurementUnitPreferences.fromJson(mixed.toJson()),
+        mixed,
+      );
+    });
+
+    test('invalid json values fall back per category to safe metric defaults', () {
+      final parsed = MeasurementUnitPreferences.fromJson({
+        'weight': 'stones',
+        'height': 'ft_in',
+        'distance': null,
+        'volume': 'fl_oz',
+      });
+
+      expect(parsed.weightUnit, WeightUnit.kg);
+      expect(parsed.heightUnit, HeightUnit.ftIn);
+      expect(parsed.distanceUnit, DistanceUnit.km);
+      expect(parsed.volumeUnit, VolumeUnit.flOz);
+      expect(
+        MeasurementUnitPreferences.fromJson(null),
+        MeasurementUnitPreferences.metric,
+      );
+    });
+
     test('invalid stored unit values fall back to safe metric defaults', () {
       expect(WeightUnit.fromStorage('stones'), WeightUnit.kg);
       expect(HeightUnit.fromStorage('yards'), HeightUnit.cm);
