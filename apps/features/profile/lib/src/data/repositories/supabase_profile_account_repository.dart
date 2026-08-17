@@ -41,11 +41,10 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
     final normalizedUsername = _normalizeUsername(username);
     if (!_isValidUsername(normalizedUsername)) return false;
 
-    final result = await _client.rpc(
+    return _client.rpc<bool>(
       'is_username_available',
       params: {'p_username': normalizedUsername},
     );
-    return result == true;
   }
 
   @override
