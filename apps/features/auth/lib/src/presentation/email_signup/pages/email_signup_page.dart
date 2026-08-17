@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_core/core.dart';
 
 import '../../../domain/domain.dart';
@@ -33,13 +32,11 @@ class EmailSignupPage extends StatefulWidget {
 }
 
 class _EmailSignupPageState extends State<EmailSignupPage> {
-  final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
   String? _errorMessage;
-  TioUsernameStatus _usernameStatus = TioUsernameStatus.idle;
 
   @override
   void initState() {
@@ -50,7 +47,6 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
 
   @override
   void dispose() {
-    _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -60,50 +56,13 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
     if (mounted) setState(() {});
   }
 
-  Future<UsernameAvailabilityResult> _checkUsernameAvailability(
-    String handle,
-  ) async {
-    try {
-      final client = Supabase.instance.client;
-      final row = await client
-          .from('users')
-          .select('id')
-          .eq('username', handle)
-          .maybeSingle();
-
-      if (row == null) {
-        return const UsernameAvailabilityResult(isAvailable: true);
-      }
-
-      final year = DateTime.now().year % 100;
-      return UsernameAvailabilityResult(
-        isAvailable: false,
-        suggestions: [
-          '${handle}_fit',
-          '${handle}_$year',
-          '${handle}_tio',
-        ],
-        message: 'This username is already taken. Try another:',
-      );
-    } catch (_) {
-      return const UsernameAvailabilityResult(isAvailable: true);
-    }
-  }
-
-  bool get _isUsernameValid {
-    final username = _usernameController.text.trim();
-    return username.isEmpty ||
-        (_usernameStatus != TioUsernameStatus.unavailable &&
-            _usernameStatus != TioUsernameStatus.checking);
-  }
-
   bool get _isEmailValid {
     final email = _emailController.text.trim();
     return email.contains('@') && email.contains('.') && email.length >= 5;
   }
 
   bool get _isPasswordValid => _passwordController.text.length >= 6;
-  bool get _isFormValid => _isEmailValid && _isPasswordValid && _isUsernameValid;
+  bool get _isFormValid => _isEmailValid && _isPasswordValid;
 
   Future<void> _handleSignUp() async {
     if (!_isFormValid || _isLoading) return;
@@ -120,11 +79,9 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
     }
 
     try {
-      final username = _usernameController.text.trim();
       final result = await useCase(
         email: _emailController.text.trim(),
         password: _passwordController.text,
-        name: username.isNotEmpty ? username : null,
       );
       if (!mounted) return;
 
@@ -245,18 +202,6 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: TioSpacing.large),
-                        TioUsernameInputField(
-                          key: const ValueKey('signup-username-input'),
-                          controller: _usernameController,
-                          enabled: !_isLoading,
-                          onStatusChanged: (status) {
-                            if (mounted) {
-                              setState(() => _usernameStatus = status);
-                            }
-                          },
-                          onCheckAvailability: _checkUsernameAvailability,
-                        ),
                         const SizedBox(height: TioSpacing.large),
                         TextField(
                           key: const ValueKey('signup-email-input'),
