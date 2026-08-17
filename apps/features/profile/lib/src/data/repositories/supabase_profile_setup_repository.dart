@@ -47,7 +47,9 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
       'username': data.username,
       if (email != null && email.isNotEmpty) 'email': email,
       if (effectiveMobile != null) 'mobile': effectiveMobile,
-      if (data.isMobileVerified) 'mobile_verified_at': nowIso,
+      // Onboarding may collect a mobile number, but verification evidence must
+      // come from the authentication provider/backend. Never manufacture a
+      // mobile_verified_at timestamp from draft UI state.
       'avatar_url': data.avatarUrl,
       'profile_image': data.avatarUrl,
       'plan': data.plan,
