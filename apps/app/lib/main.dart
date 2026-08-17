@@ -77,13 +77,9 @@ Future<void> main() async {
             onboardingControllerProvider.overrideWith((ref, seed) {
               final draftRepository =
                   ref.watch(hybridOnboardingDraftRepositoryProvider);
-              final currentAuthPhone =
-                  ref.watch(supabaseClientProvider)?.auth.currentUser?.phone;
               final controller = AppOnboardingController(
                 entryPath: seed.entryPath,
                 initialDraft: seed.draft,
-                includeMobile:
-                    shouldIncludeMobileOnboarding(currentAuthPhone),
                 statusRepository: ref.watch(onboardingStatusRepositoryProvider),
                 draftRepository: draftRepository,
                 completionValidator:
