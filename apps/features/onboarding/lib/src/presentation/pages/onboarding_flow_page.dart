@@ -31,7 +31,6 @@ class OnboardingFlowPage extends ConsumerWidget {
     OnboardingState state,
     OnboardingController controller,
   ) async {
-    // Check if on Date of Birth step
     if (state.stepId == OnboardingStepId.profileBasics &&
         state.draft.profile.currentStepId == ProfileStepId.age) {
       final dob = state.draft.profile.dateOfBirth ?? DateTime.now();
@@ -42,14 +41,13 @@ class OnboardingFlowPage extends ConsumerWidget {
         age--;
       }
 
-      // Underage or Today's date selected -> Trigger verification flow
       if (age < 13) {
         final confirmed =
             await AgeVerificationDialogs.showConfirmation(context, dob);
         if (confirmed == true && context.mounted) {
           await AgeVerificationDialogs.showUnderageRejection(context);
         }
-        return; // Prevent advancing to next step
+        return;
       }
     }
 
@@ -60,181 +58,49 @@ class OnboardingFlowPage extends ConsumerWidget {
   }
 
   void _showGoalDataCollectionSheet(BuildContext context) {
-    final colors = TioTheme.colors(context);
-
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: colors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: TioSpacing.extraLarge,
-            vertical: TioSpacing.large,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Data Collection',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: colors.textPrimary,
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close, color: colors.textSecondary),
-                    onPressed: () => Navigator.of(sheetContext).pop(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: TioSpacing.medium),
-              Text(
-                'Your fitness goals help Tio calculate baseline energy expenditure, macro distribution, and customized training splits.\n\n'
-                'Primary goals define your target workout intensity, while supporting goals tailor your recovery and mobility recommendations.\n\n'
-                'All data is encrypted and used solely for tailoring your personal fitness plan.',
-                style: TextStyle(
-                  fontSize: 14,
-                  height: 1.5,
-                  color: colors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: TioSpacing.extraLarge),
-              TioButton.primary(
-                label: 'Understood',
-                expand: true,
-                onPressed: () => Navigator.of(sheetContext).pop(),
-              ),
-            ],
-          ),
-        ),
+    unawaited(
+      showOnboardingDataCollectionSheet(
+        context: context,
+        body:
+            'Your fitness goals help Tio calculate baseline energy expenditure, macro distribution, and customized training splits.\n\n'
+            'Primary goals define your target workout intensity, while supporting goals tailor your recovery and mobility recommendations.\n\n'
+            'All data is encrypted and used solely for tailoring your personal fitness plan.',
       ),
     );
   }
 
   void _showActivityDataCollectionSheet(BuildContext context) {
-    final colors = TioTheme.colors(context);
-
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: colors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: TioSpacing.extraLarge,
-            vertical: TioSpacing.large,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Data Collection',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: colors.textPrimary,
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close, color: colors.textSecondary),
-                    onPressed: () => Navigator.of(sheetContext).pop(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: TioSpacing.medium),
-              Text(
-                'We value your trust and appreciate the importance of your daily routine in shaping your fitness journey. The reason we ask about your whole-day activity is to design a plan that aligns seamlessly with your lifestyle.\n\n'
-                'Your activity levels help us determine the most suitable calorie targets, energy expenditure, and exercise recommendations for you.\n\n'
-                'By understanding how active you are throughout the day, we can provide personalized guidance that fits your routine and ensures you stay on track with your goals, one step at a time.',
-                style: TextStyle(
-                  fontSize: 14,
-                  height: 1.5,
-                  color: colors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: TioSpacing.extraLarge),
-              TioButton.primary(
-                label: 'Understood',
-                expand: true,
-                onPressed: () => Navigator.of(sheetContext).pop(),
-              ),
-            ],
-          ),
-        ),
+    unawaited(
+      showOnboardingDataCollectionSheet(
+        context: context,
+        body:
+            'We value your trust and appreciate the importance of your daily routine in shaping your fitness journey. The reason we ask about your whole-day activity is to design a plan that aligns seamlessly with your lifestyle.\n\n'
+            'Your activity levels help us determine the most suitable calorie targets, energy expenditure, and exercise recommendations for you.\n\n'
+            'By understanding how active you are throughout the day, we can provide personalized guidance that fits your routine and ensures you stay on track with your goals, one step at a time.',
       ),
     );
   }
 
   void _showHealthDataCollectionSheet(BuildContext context) {
-    final colors = TioTheme.colors(context);
-
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: colors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    unawaited(
+      showOnboardingDataCollectionSheet(
+        context: context,
+        body:
+            'We value your trust and understand that your health is personal.\n\n'
+            'The reason we ask about health conditions like diabetes, low blood pressure, or high blood pressure is to create a safe and effective plan tailored to your needs.\n\n'
+            'This ensures that our recommendations align with your health and fitness goals while prioritizing your well-being every step of the way.',
       ),
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: TioSpacing.extraLarge,
-            vertical: TioSpacing.large,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Data Collection',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: colors.textPrimary,
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close, color: colors.textSecondary),
-                    onPressed: () => Navigator.of(sheetContext).pop(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: TioSpacing.medium),
-              Text(
-                'We value your trust and understand that your health is personal.\n\n'
-                'The reason we ask about health conditions like diabetes, low blood pressure, or high blood pressure is to create a safe and effective plan tailored to your needs.\n\n'
-                'This ensures that our recommendations align with your health and fitness goals while prioritizing your well-being every step of the way.',
-                style: TextStyle(
-                  fontSize: 14,
-                  height: 1.5,
-                  color: colors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: TioSpacing.extraLarge),
-              TioButton.primary(
-                label: 'Understood',
-                expand: true,
-                onPressed: () => Navigator.of(sheetContext).pop(),
-              ),
-            ],
-          ),
-        ),
+    );
+  }
+
+  void _showMobileDataCollectionSheet(BuildContext context) {
+    unawaited(
+      showOnboardingDataCollectionSheet(
+        context: context,
+        body:
+            'Your mobile number can support account recovery, future security options, and optional reminders. Adding it is optional in the current release.\n\n'
+            'Entering a number does not mark it as verified. Verification is only recognized when a trusted authentication provider or backend supplies verification evidence.\n\n'
+            'We use this information only for account and product features you choose to use and do not sell your contact information.',
       ),
     );
   }
@@ -259,9 +125,13 @@ class OnboardingFlowPage extends ConsumerWidget {
             ? null
             : () => unawaited(onExitRequested!());
 
-    // Fixed contextual Info Link on the bottom gradient bar
     OnboardingBottomInfoAction? infoAction;
-    if (state.stepId == OnboardingStepId.profileBasics) {
+    if (state.stepId == OnboardingStepId.mobile) {
+      infoAction = OnboardingBottomInfoAction(
+        label: 'Why do we ask for your mobile number?',
+        onTap: () => _showMobileDataCollectionSheet(context),
+      );
+    } else if (state.stepId == OnboardingStepId.profileBasics) {
       final step = state.draft.profile.currentStepId;
       if (step == ProfileStepId.goal) {
         infoAction = OnboardingBottomInfoAction(
