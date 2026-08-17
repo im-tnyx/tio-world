@@ -1,3 +1,4 @@
+import '../models/google_sign_in_intent.dart';
 import '../models/sign_in_result.dart';
 
 /// Repository contract for signing in users.
@@ -5,8 +6,15 @@ import '../models/sign_in_result.dart';
 /// Current production implementation delegates to Supabase Auth.
 /// Future custom backend implementation can implement this same contract.
 abstract interface class AuthSignInRepository {
-  /// Signs in using Google OAuth / ID token exchange.
-  Future<SignInResult> signInWithGoogle();
+  /// Authenticates using Google according to the product [intent].
+  ///
+  /// Returning-user Login must pass [GoogleSignInIntent.existingAccountOnly]
+  /// so an unknown Google identity cannot silently create a Tio account.
+  /// Explicit onboarding/account-creation flows may pass
+  /// [GoogleSignInIntent.signupOrExisting].
+  Future<SignInResult> signInWithGoogle({
+    required GoogleSignInIntent intent,
+  });
 
   /// Signs in using email and password.
   Future<SignInResult> signInWithEmailPassword({
