@@ -37,6 +37,7 @@ class TioUsernameInputField extends StatefulWidget {
     this.onChanged,
     this.onStatusChanged,
     this.onCheckAvailability,
+    this.availabilityRefreshToken = 0,
     this.enabled = true,
     this.textInputAction = TextInputAction.next,
     this.onSubmitted,
@@ -50,6 +51,10 @@ class TioUsernameInputField extends StatefulWidget {
   final ValueChanged<TioUsernameStatus>? onStatusChanged;
   final Future<UsernameAvailabilityResult> Function(String username)?
       onCheckAvailability;
+
+  /// Increment to invalidate the current availability result and recheck the
+  /// controller value. Used after a persistence race or server policy change.
+  final int availabilityRefreshToken;
   final bool enabled;
   final TextInputAction textInputAction;
   final ValueChanged<String>? onSubmitted;
@@ -76,6 +81,14 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
     final initial = widget.controller.text.trim().toLowerCase();
     if (initial.isNotEmpty && initial == _normalizedCurrentUsername) {
       _status = TioUsernameStatus.available;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant TioUsernameInputField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.availabilityRefreshToken != widget.availabilityRefreshToken) {
+      _onInputChanged(widget.controller.text);
     }
   }
 
@@ -199,7 +212,6 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
       text: clean,
       selection: TextSelection.collapsed(offset: clean.length),
     );
-    widget.onChanged?.call(clean);
     _onInputChanged(clean);
   }
 
