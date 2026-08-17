@@ -56,6 +56,18 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
   }
 
   @override
+  Future<String?> currentUsername() async {
+    final userId = _requireUserId();
+    final row = await _client
+        .from('users')
+        .select('username')
+        .eq('id', userId)
+        .maybeSingle();
+    final username = (row?['username'] as String?)?.trim().toLowerCase();
+    return username == null || username.isEmpty ? null : username;
+  }
+
+  @override
   Future<bool> isUsernameAvailable(String username) async {
     _requireUser();
     final normalizedUsername = _normalizeUsername(username);
