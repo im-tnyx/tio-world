@@ -100,6 +100,17 @@ class ProfilePage extends StatelessWidget {
     };
   }
 
+  String _formatHeightCm(double heightCm) {
+    final fixed = heightCm.toStringAsFixed(2);
+    if (fixed.endsWith('.00')) {
+      return fixed.substring(0, fixed.length - 3);
+    }
+    if (fixed.endsWith('0')) {
+      return fixed.substring(0, fixed.length - 1);
+    }
+    return fixed;
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = TioTheme.colors(context);
@@ -378,7 +389,7 @@ class ProfilePage extends StatelessWidget {
                         icon: Icons.straighten_rounded,
                         label: 'HEIGHT',
                         value: heightCm != null
-                            ? '${heightCm.toStringAsFixed(heightCm % 1 == 0 ? 0 : 1)} cm'
+                            ? '${_formatHeightCm(heightCm)} cm'
                             : '--',
                       ),
                       _MetricColumn(
