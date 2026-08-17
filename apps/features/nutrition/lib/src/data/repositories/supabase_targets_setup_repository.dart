@@ -34,6 +34,12 @@ class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
 
     final canonicalNutritionPayload = {
       'user_id': userId,
+      if (data.heightCm != null) 'height_cm': data.heightCm,
+      if (data.currentWeightKg != null)
+        'current_weight_kg': data.currentWeightKg,
+      if (data.targetWeightKg != null) 'target_weight_kg': data.targetWeightKg,
+      if (data.activityLevel != null && data.activityLevel!.isNotEmpty)
+        'activity_level': data.activityLevel,
       'steps_target': data.dailySteps,
       'sleep_target_minutes': data.sleepTargetMinutes,
       'water_target_ml': data.waterMl,
@@ -143,6 +149,11 @@ class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
     }
     final weeklyPace = rawPace.toDouble();
 
+    final rawHeight = canonicalRow['height_cm'];
+    final rawCurrentWeight = canonicalRow['current_weight_kg'];
+    final rawTargetWeight = canonicalRow['target_weight_kg'];
+    final rawActivityLevel = canonicalRow['activity_level'];
+
     final rawMacros = canonicalRow['macro_targets'];
     final NutritionTargetRecommendation? recommendation;
     if (rawMacros is Map<String, dynamic> && rawMacros.isNotEmpty) {
@@ -185,6 +196,13 @@ class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
       wakeTimeMinutes: wakeTimeMinutes,
       waterMl: waterMl,
       goalPaceKgPerWeek: weeklyPace,
+      heightCm: rawHeight is num ? rawHeight.toDouble() : null,
+      currentWeightKg:
+          rawCurrentWeight is num ? rawCurrentWeight.toDouble() : null,
+      targetWeightKg: rawTargetWeight is num ? rawTargetWeight.toDouble() : null,
+      activityLevel: rawActivityLevel is String && rawActivityLevel.isNotEmpty
+          ? rawActivityLevel
+          : null,
       recommendation: recommendation,
     );
   }
