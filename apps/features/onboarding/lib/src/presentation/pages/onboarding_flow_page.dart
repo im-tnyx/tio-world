@@ -37,13 +37,15 @@ class OnboardingFlowPage extends ConsumerWidget {
       final dob = state.draft.profile.dateOfBirth ?? DateTime.now();
       final now = DateTime.now();
       int age = now.year - dob.year;
-      if (now.month < dob.month || (now.month == dob.month && now.day < dob.day)) {
+      if (now.month < dob.month ||
+          (now.month == dob.month && now.day < dob.day)) {
         age--;
       }
 
       // Underage or Today's date selected -> Trigger verification flow
       if (age < 13) {
-        final confirmed = await AgeVerificationDialogs.showConfirmation(context, dob);
+        final confirmed =
+            await AgeVerificationDialogs.showConfirmation(context, dob);
         if (confirmed == true && context.mounted) {
           await AgeVerificationDialogs.showUnderageRejection(context);
         }
@@ -240,8 +242,9 @@ class OnboardingFlowPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.watch(onboardingControllerProvider(seed));
+    final shouldGateHydration = ref.watch(onboardingHydrationGateProvider);
 
-    if (!controller.isHydrated) {
+    if (shouldGateHydration && !controller.isHydrated) {
       return Scaffold(
         backgroundColor: TioTheme.colors(context).background,
         body: const SizedBox.expand(),
