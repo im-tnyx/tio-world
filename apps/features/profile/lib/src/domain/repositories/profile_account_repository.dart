@@ -9,6 +9,10 @@ class UsernameUnavailableException implements Exception {
 /// Repository boundary for account fields owned by Account Settings and
 /// authenticated account bootstrap.
 abstract interface class ProfileAccountRepository {
+  /// Returns the current authenticated user's normalized username, or null when
+  /// the local profile is missing or the username has not been chosen yet.
+  Future<String?> currentUsername();
+
   /// Checks whether [username] is available for the current authenticated user.
   ///
   /// Implementations must not expose other users' profile rows while answering
