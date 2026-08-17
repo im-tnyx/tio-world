@@ -230,6 +230,38 @@ void main() {
           OnboardingStepId.profileBasics);
       controller.dispose();
     });
+
+    test('publishes hydrated resolved step for the render gate', () async {
+      final remoteDraft = OnboardingDraft(
+        selectedMode: AppMode.workout,
+        currentStepId: OnboardingStepId.workoutPreferences,
+        completedStepIds: const {
+          OnboardingStepId.mode,
+          OnboardingStepId.profileBasics,
+        },
+        profile: _validProfile(),
+      );
+      final controller = AppOnboardingController(
+        entryPath: OnboardingEntryPath.firstRun,
+        localDraftStore: _MemoryLocalDraftStore(),
+        draftRepository:
+            _RecordingRemoteDraftRepository(remoteDraft: remoteDraft),
+      );
+      var hydratedNotificationSeen = false;
+      controller.addListener(() {
+        if (controller.isHydrated) hydratedNotificationSeen = true;
+      });
+
+      expect(controller.isHydrated, isFalse);
+      expect(controller.state.stepId, OnboardingStepId.mode);
+
+      await controller.hydrateDraft();
+
+      expect(controller.isHydrated, isTrue);
+      expect(controller.state.stepId, OnboardingStepId.workoutPreferences);
+      expect(hydratedNotificationSeen, isTrue);
+      controller.dispose();
+    });
   });
 }
 
