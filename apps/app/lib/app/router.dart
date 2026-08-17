@@ -102,7 +102,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       supabaseClient != null
           ? SupabaseMeasurementUnitPreferencesRepository(client: supabaseClient)
           : profileRepository is MeasurementUnitPreferencesRepository
-              ? profileRepository
+              ? profileRepository as MeasurementUnitPreferencesRepository
               : null;
   const hasDurableStorage = true;
 
@@ -757,7 +757,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
-
   ref.onDispose(router.dispose);
   return router;
 });
