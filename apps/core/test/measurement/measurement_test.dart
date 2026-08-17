@@ -29,6 +29,17 @@ void main() {
       expect(mixed.isMetricPreset, isFalse);
       expect(mixed.isImperialPreset, isFalse);
     });
+
+    test('invalid stored unit values fall back to safe metric defaults', () {
+      expect(WeightUnit.fromStorage('stones'), WeightUnit.kg);
+      expect(HeightUnit.fromStorage('yards'), HeightUnit.cm);
+      expect(DistanceUnit.fromStorage('nautical_miles'), DistanceUnit.km);
+      expect(VolumeUnit.fromStorage('cups'), VolumeUnit.ml);
+      expect(WeightUnit.fromStorage(null), WeightUnit.kg);
+      expect(HeightUnit.fromStorage(null), HeightUnit.cm);
+      expect(DistanceUnit.fromStorage(null), DistanceUnit.km);
+      expect(VolumeUnit.fromStorage(null), VolumeUnit.ml);
+    });
   });
 
   group('MeasurementConverters', () {
