@@ -107,6 +107,18 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
     await widget.onExitRequested();
   }
 
+  Widget _withBackHandling(Widget child) {
+    return PopScope<Object?>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          _handleBack();
+        }
+      },
+      child: child,
+    );
+  }
+
   Future<void> _handleContinue() async {
     if (_busy || _plan == null) return;
 
@@ -192,36 +204,40 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
     final theme = Theme.of(context);
 
     if (_loading) {
-      return Scaffold(
-        backgroundColor: colors.background,
-        body: const SafeArea(
-          child: Center(child: CircularProgressIndicator()),
+      return _withBackHandling(
+        Scaffold(
+          backgroundColor: colors.background,
+          body: const SafeArea(
+            child: Center(child: CircularProgressIndicator()),
+          ),
         ),
       );
     }
 
     if (_flowError != null && (_plan == null || _accountState == null)) {
-      return Scaffold(
-        backgroundColor: colors.background,
-        body: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(TioSpacing.large),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _flowError!,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyLarge,
-                  ),
-                  const SizedBox(height: TioSpacing.medium),
-                  FilledButton(
-                    key: const ValueKey('account-setup-retry'),
-                    onPressed: _hydrate,
-                    child: const Text('Retry'),
-                  ),
-                ],
+      return _withBackHandling(
+        Scaffold(
+          backgroundColor: colors.background,
+          body: SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(TioSpacing.large),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _flowError!,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: TioSpacing.medium),
+                    FilledButton(
+                      key: const ValueKey('account-setup-retry'),
+                      onPressed: _hydrate,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -235,131 +251,133 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
     final canContinue = step == AccountSetupStepId.mobile ||
         (step == AccountSetupStepId.username && _usernameCanContinue);
 
-    return Scaffold(
-      backgroundColor: colors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                TioSpacing.small,
-                0,
-                TioSpacing.large,
-                0,
-              ),
-              child: SizedBox(
-                height: 48,
-                child: Row(
-                  children: [
-                    IconButton(
-                      key: const ValueKey('account-setup-back-button'),
-                      onPressed: _busy ? null : _handleBack,
-                      icon: Icon(
-                        Icons.arrow_back,
-                        color: colors.textPrimary,
-                      ),
-                    ),
-                    const Spacer(),
-                    Semantics(
-                      label:
-                          'Account setup step ${_currentIndex + 1} of ${plan.steps.length}',
-                      child: Text(
-                        '${_currentIndex + 1} / ${plan.steps.length}',
-                        key: const ValueKey('account-setup-progress'),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colors.textSecondary,
-                          fontWeight: FontWeight.w600,
+    return _withBackHandling(
+      Scaffold(
+        backgroundColor: colors.background,
+        body: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  TioSpacing.small,
+                  0,
+                  TioSpacing.large,
+                  0,
+                ),
+                child: SizedBox(
+                  height: 48,
+                  child: Row(
+                    children: [
+                      IconButton(
+                        key: const ValueKey('account-setup-back-button'),
+                        onPressed: _busy ? null : _handleBack,
+                        icon: Icon(
+                          Icons.arrow_back,
+                          color: colors.textPrimary,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                key: const ValueKey('account-setup-content'),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: TioSpacing.large,
-                  vertical: TioSpacing.medium,
-                ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 480),
-                    child: _buildStep(account),
-                  ),
-                ),
-              ),
-            ),
-            Container(
-              key: const ValueKey('account-setup-footer'),
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(
-                TioSpacing.large,
-                TioSpacing.small,
-                TioSpacing.large,
-                TioSpacing.large,
-              ),
-              decoration: BoxDecoration(
-                color: colors.background,
-                border: Border(
-                  top: BorderSide(
-                    color: colors.outlineStrong.withValues(alpha: 0.18),
-                  ),
-                ),
-              ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 480),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (_flowError case final error?) ...[
-                        Text(
-                          error,
-                          key: const ValueKey('account-setup-flow-error'),
-                          textAlign: TextAlign.center,
+                      const Spacer(),
+                      Semantics(
+                        label:
+                            'Account setup step ${_currentIndex + 1} of ${plan.steps.length}',
+                        child: Text(
+                          '${_currentIndex + 1} / ${plan.steps.length}',
+                          key: const ValueKey('account-setup-progress'),
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.error,
+                            color: colors.textSecondary,
                             fontWeight: FontWeight.w600,
                           ),
-                        ),
-                        const SizedBox(height: TioSpacing.small),
-                      ],
-                      Text(
-                        step == AccountSetupStepId.username
-                            ? 'Username is required before continuing.'
-                            : 'Mobile is optional. You can leave it blank and continue.',
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: TioSpacing.small),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          key: const ValueKey('account-setup-continue'),
-                          onPressed: canContinue && !_busy
-                              ? _handleContinue
-                              : null,
-                          child: _busy
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Text('Continue'),
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-            ),
-          ],
+              Expanded(
+                child: SingleChildScrollView(
+                  key: const ValueKey('account-setup-content'),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: TioSpacing.large,
+                    vertical: TioSpacing.medium,
+                  ),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 480),
+                      child: _buildStep(account),
+                    ),
+                  ),
+                ),
+              ),
+              Container(
+                key: const ValueKey('account-setup-footer'),
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(
+                  TioSpacing.large,
+                  TioSpacing.small,
+                  TioSpacing.large,
+                  TioSpacing.large,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.background,
+                  border: Border(
+                    top: BorderSide(
+                      color: colors.outlineStrong.withValues(alpha: 0.18),
+                    ),
+                  ),
+                ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 480),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_flowError case final error?) ...[
+                          Text(
+                            error,
+                            key: const ValueKey('account-setup-flow-error'),
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.error,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: TioSpacing.small),
+                        ],
+                        Text(
+                          step == AccountSetupStepId.username
+                              ? 'Username is required before continuing.'
+                              : 'Mobile is optional. You can leave it blank and continue.',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: TioSpacing.small),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            key: const ValueKey('account-setup-continue'),
+                            onPressed: canContinue && !_busy
+                                ? _handleContinue
+                                : null,
+                            child: _busy
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text('Continue'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
