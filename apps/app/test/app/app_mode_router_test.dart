@@ -479,6 +479,16 @@ Future<void> _completeProfileInputs(WidgetTester tester) async {
       warnIfMissed: false);
   await tester.pumpAndSettle();
 
+  final onboardingController = tester
+      .widget<ProfileStepRenderer>(find.byType(ProfileStepRenderer))
+      .controller;
+  onboardingController
+    ..updateProfileDateOfBirth(DateTime(2000, 1, 1))
+    ..updateProfileHeight(170.0)
+    ..updateProfileCurrentWeight(70.0)
+    ..updateProfileTargetWeight(65.0);
+  await tester.pump();
+
   await tester.tap(find.widgetWithText(TioButton, 'Continue'),
       warnIfMissed: false);
   await tester.pumpAndSettle();
