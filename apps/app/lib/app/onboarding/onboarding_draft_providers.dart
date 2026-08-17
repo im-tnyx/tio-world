@@ -17,14 +17,16 @@ final localOnboardingDraftStoreProvider =
 final hybridOnboardingDraftRepositoryProvider =
     Provider<OnboardingDraftRepository>((ref) {
   final client = ref.watch(supabaseClientProvider);
-  final remote = client == null
-      ? null
-      : SupabaseOnboardingDraftRepository(client: client);
-  final userIdChanges = client == null
-      ? null
-      : client.auth.onAuthStateChange.map((state) {
-          return state.session?.user.id ?? client.auth.currentUser?.id;
-        }).distinct();
+  final remote = switch (client) {
+    null => null,
+    final value => SupabaseOnboardingDraftRepository(client: value),
+  };
+  final userIdChanges = switch (client) {
+    null => null,
+    final value => value.auth.onAuthStateChange.map((state) {
+        return state.session?.user.id ?? value.auth.currentUser?.id;
+      }).distinct(),
+  };
 
   final repository = AuthAwareOnboardingDraftRepository(
     localStore: ref.watch(localOnboardingDraftStoreProvider),
