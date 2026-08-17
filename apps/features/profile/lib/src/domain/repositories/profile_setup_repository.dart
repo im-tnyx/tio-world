@@ -1,11 +1,21 @@
 import 'dart:async';
 
+import 'package:tio_core/core.dart';
+
 import '../models/profile_setup_data.dart';
 
 /// Canonical repository contract for persisting and retrieving user profile setup data.
 abstract interface class ProfileSetupRepository {
   /// Persists or updates the complete user profile setup data.
   Future<void> saveProfileSetup(ProfileSetupData data);
+
+  /// Updates only account-owned measurement-unit preferences.
+  ///
+  /// Implementations must not reconstruct or overwrite unrelated profile,
+  /// avatar, mobile, verification, or onboarding fields.
+  Future<void> updateMeasurementUnitPreferences(
+    MeasurementUnitPreferences preferences,
+  );
 
   /// Retrieves the persisted profile setup data, or null if not yet saved.
   Future<ProfileSetupData?> getProfileSetup();
