@@ -5,7 +5,7 @@ import 'package:tio_core/core.dart';
 void main() {
   test('keeps Home and Profile avatar dimensions explicit', () {
     expect(TioAvatarSize.small.dimension, 36);
-    expect(TioAvatarSize.large.dimension, 80);
+    expect(TioAvatarSize.large.dimension, 100);
     expect(TioAvatarSize.extraLarge.dimension, 160);
   });
 
@@ -103,7 +103,7 @@ void main() {
   testWidgets('shows initials instead of the fallback icon', (tester) async {
     await tester.pumpWidget(
       const _AvatarTestApp(
-        child: TioAvatar(displayName: 'st'),
+        child: TioAvatar(displayName: 'Santosh Tiwari'),
       ),
     );
 
