@@ -100,7 +100,7 @@ const _mobile = OnboardingStepDefinition(
   id: OnboardingStepId.mobile,
   section: OnboardingSectionId.mobile,
   owner: OnboardingStepOwner.profile,
-  progressTitle: 'Mobile verification',
+  progressTitle: 'Mobile (optional)',
 );
 const _workoutIntro = OnboardingStepDefinition(
   id: OnboardingStepId.workoutIntro,
