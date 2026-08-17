@@ -69,22 +69,22 @@ Future<void> main() async {
             onboardingStatusRepositoryProvider
                 .overrideWith((ref) => onboardingStatusRepository),
             onboardingDraftRepositoryProvider.overrideWith(
-                (ref) => ref.watch(appOnboardingDraftRepositoryProvider)),
+              (ref) => ref.watch(hybridOnboardingDraftRepositoryProvider),
+            ),
             onboardingCompletionValidatorProvider.overrideWith(
                 (ref) => ref.watch(appOnboardingCompletionValidatorProvider)),
             onboardingControllerProvider.overrideWith((ref, seed) {
-              final handoff = ref.watch(onboardingAuthDraftHandoffProvider);
-              final currentUserId =
-                  ref.read(supabaseClientProvider)?.auth.currentUser?.id;
+              final draftRepository =
+                  ref.watch(hybridOnboardingDraftRepositoryProvider);
               final controller = AppOnboardingController(
                 entryPath: seed.entryPath,
-                initialDraft: handoff.takeForUser(currentUserId) ?? seed.draft,
+                initialDraft: seed.draft,
                 includeMobile: seed.includeMobile,
                 statusRepository: ref.watch(onboardingStatusRepositoryProvider),
-                draftRepository: ref.watch(onboardingDraftRepositoryProvider),
+                draftRepository: draftRepository,
                 completionValidator:
                     ref.watch(onboardingCompletionValidatorProvider),
-                authDraftHandoff: handoff,
+                localDraftStore: ref.watch(localOnboardingDraftStoreProvider),
               );
               unawaited(controller.hydrateDraft());
               return controller;

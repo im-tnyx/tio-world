@@ -7,109 +7,96 @@ import 'package:tio_shared/shared.dart';
 import 'package:tio_app/app/onboarding/onboarding.dart';
 
 void main() {
-  group('OnboardingAuthDraftHandoff', () {
-    test('does not consume while unauthenticated and rejects another identity',
-        () {
-      final handoff = OnboardingAuthDraftHandoff();
-      final draft = OnboardingDraft(selectedMode: AppMode.nutrition);
-
-      handoff.stage(draft);
-
-      expect(handoff.takeForUser(null), isNull);
-      expect(handoff.hasPendingDraft, isTrue);
-
-      handoff.bindAuthenticatedUser('user-a');
-      expect(handoff.takeForUser('user-b'), isNull);
-      expect(handoff.hasPendingDraft, isFalse);
-
-      handoff.dispose();
-    });
-
-    test('matching authenticated identity consumes staged draft once', () {
-      final handoff = OnboardingAuthDraftHandoff();
-      final draft = OnboardingDraft(selectedMode: AppMode.workout);
-
-      handoff.stage(draft);
-      handoff.bindAuthenticatedUser('user-a');
-
-      expect(handoff.takeForUser('user-a'), same(draft));
-      expect(handoff.takeForUser('user-a'), isNull);
-      expect(handoff.hasPendingDraft, isFalse);
-
-      handoff.dispose();
-    });
-  });
-
-  group('AppOnboardingController auth checkpoint', () {
-    test('stages the first post-profile step before auth result returns',
+  group('AuthAwareOnboardingDraftRepository', () {
+    test('signed-out saves stay local and never call the remote repository',
         () async {
-      final handoff = OnboardingAuthDraftHandoff();
-      final authResult = Completer<bool>();
-      final controller = AppOnboardingController(
-        entryPath: OnboardingEntryPath.firstRun,
-        initialDraft: OnboardingDraft(
+      String? userId;
+      final local = _MemoryLocalDraftStore();
+      final remote = _RecordingRemoteDraftRepository();
+      final repository = AuthAwareOnboardingDraftRepository(
+        localStore: local,
+        currentUserId: () => userId,
+        remoteRepository: remote,
+      );
+      final snapshot = OnboardingDraftSnapshot(
+        draft: OnboardingDraft(
           selectedMode: AppMode.nutrition,
           currentStepId: OnboardingStepId.profileBasics,
-          completedStepIds: const {OnboardingStepId.mode},
           profile: _validProfile(),
         ),
-        authDraftHandoff: handoff,
       );
 
-      final nextFuture = controller.next(
-        onFinish: (_) async {},
-        onAuthRequired: () => authResult.future,
-      );
-      await Future<void>.delayed(Duration.zero);
+      await repository.saveDraft(snapshot);
 
-      final resumeDraft = handoff.takeForUser('fresh-user');
-      expect(resumeDraft, isNotNull);
-      expect(resumeDraft!.selectedMode, AppMode.nutrition);
-      expect(resumeDraft.currentStepId, OnboardingStepId.targets);
-      expect(
-        resumeDraft.completedStepIds,
-        containsAll(const {
+      expect(local.record?.draft.draft.selectedMode, AppMode.nutrition);
+      expect(local.record?.draft.draft.profile.heightCm, 171);
+      expect(local.record?.draft.draft.profile.currentWeightKg, 70);
+      expect(remote.saveCalls, 0);
+      repository.dispose();
+    });
+
+    test('fresh authenticated user migrates the post-auth resume draft once',
+        () async {
+      const userId = 'fresh-user';
+      final currentDraft = OnboardingDraft(
+        selectedMode: AppMode.nutrition,
+        currentStepId: OnboardingStepId.profileBasics,
+        completedStepIds: const {OnboardingStepId.mode},
+        profile: _validProfile(),
+      );
+      final resumeDraft = currentDraft.copyWith(
+        currentStepId: OnboardingStepId.targets,
+        completedStepIds: const {
           OnboardingStepId.mode,
           OnboardingStepId.profileBasics,
-        }),
+        },
       );
-      expect(controller.state.stepId, OnboardingStepId.profileBasics);
-
-      authResult.complete(false);
-      await nextFuture;
-
-      controller.dispose();
-      handoff.dispose();
-    });
-
-    test('cancelled authentication clears an unconsumed staged draft', () async {
-      final handoff = OnboardingAuthDraftHandoff();
-      final controller = AppOnboardingController(
-        entryPath: OnboardingEntryPath.firstRun,
-        initialDraft: OnboardingDraft(
-          selectedMode: AppMode.nutrition,
-          currentStepId: OnboardingStepId.profileBasics,
-          completedStepIds: const {OnboardingStepId.mode},
-          profile: _validProfile(),
+      final local = _MemoryLocalDraftStore(
+        LocalOnboardingDraftRecord(
+          draft: OnboardingDraftSnapshot(draft: currentDraft),
+          resumeAfterAuth: OnboardingDraftSnapshot(draft: resumeDraft),
         ),
-        authDraftHandoff: handoff,
+      );
+      final remote = _RecordingRemoteDraftRepository();
+      final repository = AuthAwareOnboardingDraftRepository(
+        localStore: local,
+        currentUserId: () => userId,
+        remoteRepository: remote,
       );
 
-      await controller.next(
-        onFinish: (_) async {},
-        onAuthRequired: () async => false,
-      );
+      final loaded = await repository.loadDraft();
 
-      expect(handoff.hasPendingDraft, isFalse);
-      expect(controller.state.stepId, OnboardingStepId.profileBasics);
-
-      controller.dispose();
-      handoff.dispose();
+      expect(loaded?.draft.currentStepId, OnboardingStepId.targets);
+      expect(loaded?.draft.profile.name, 'Tio User');
+      expect(loaded?.draft.profile.heightCm, 171);
+      expect(loaded?.draft.profile.currentWeightKg, 70);
+      expect(remote.saveCalls, 1);
+      expect(remote.saved?.draft.currentStepId, OnboardingStepId.targets);
+      expect(local.record, isNull);
+      repository.dispose();
     });
 
-    test('remote user-owned draft remains authoritative over handoff seed',
+    test('existing remote user draft stays authoritative over local pre-auth data',
         () async {
-      final handoff = OnboardingAuthDraftHandoff();
+      const userId = 'existing-user';
+      final local = _MemoryLocalDraftStore(
+        LocalOnboardingDraftRecord(
+          draft: OnboardingDraftSnapshot(
+            draft: OnboardingDraft(
+              selectedMode: AppMode.workout,
+              currentStepId: OnboardingStepId.profileBasics,
+              profile: _validProfile(),
+            ),
+          ),
+          resumeAfterAuth: OnboardingDraftSnapshot(
+            draft: OnboardingDraft(
+              selectedMode: AppMode.workout,
+              currentStepId: OnboardingStepId.workoutPreferences,
+              profile: _validProfile(),
+            ),
+          ),
+        ),
+      );
       final remoteDraft = OnboardingDraft(
         selectedMode: AppMode.nutrition,
         currentStepId: OnboardingStepId.review,
@@ -120,28 +107,128 @@ void main() {
         },
         profile: _validProfile(),
       );
+      final remote = _RecordingRemoteDraftRepository(remoteDraft: remoteDraft);
+      final repository = AuthAwareOnboardingDraftRepository(
+        localStore: local,
+        currentUserId: () => userId,
+        remoteRepository: remote,
+      );
+
+      final loaded = await repository.loadDraft();
+
+      expect(loaded?.draft.currentStepId, OnboardingStepId.review);
+      expect(loaded?.draft.selectedMode, AppMode.nutrition);
+      expect(remote.saveCalls, 0);
+      expect(local.record, isNull);
+      repository.dispose();
+    });
+
+    test('a local draft bound to another identity is discarded, not migrated',
+        () async {
+      final local = _MemoryLocalDraftStore(
+        LocalOnboardingDraftRecord(
+          draft: OnboardingDraftSnapshot(
+            draft: OnboardingDraft(
+              selectedMode: AppMode.hybrid,
+              profile: _validProfile(),
+            ),
+          ),
+          boundUserId: 'user-a',
+        ),
+      );
+      final remote = _RecordingRemoteDraftRepository();
+      final repository = AuthAwareOnboardingDraftRepository(
+        localStore: local,
+        currentUserId: () => 'user-b',
+        remoteRepository: remote,
+      );
+
+      expect(await repository.loadDraft(), isNull);
+      expect(remote.saveCalls, 0);
+      expect(local.record, isNull);
+      repository.dispose();
+    });
+
+    test('auth lifecycle binds a staged draft then clears it after sign-out',
+        () async {
+      String? userId;
+      final userIds = StreamController<String?>();
+      final local = _MemoryLocalDraftStore(
+        LocalOnboardingDraftRecord(
+          draft: OnboardingDraftSnapshot(
+            draft: OnboardingDraft(
+              selectedMode: AppMode.workout,
+              profile: _validProfile(),
+            ),
+          ),
+        ),
+      );
+      final repository = AuthAwareOnboardingDraftRepository(
+        localStore: local,
+        currentUserId: () => userId,
+        userIdChanges: userIds.stream,
+      );
+
+      userId = 'user-a';
+      userIds.add(userId);
+      await Future<void>.delayed(Duration.zero);
+      expect(local.record?.boundUserId, 'user-a');
+
+      userId = null;
+      userIds.add(null);
+      await Future<void>.delayed(Duration.zero);
+      expect(local.record, isNull);
+
+      await userIds.close();
+      repository.dispose();
+    });
+  });
+
+  group('AppOnboardingController auth checkpoint', () {
+    test('keeps signed-out screen draft and stages exact post-auth resume data',
+        () async {
+      final local = _MemoryLocalDraftStore();
+      final authResult = Completer<bool>();
       final controller = AppOnboardingController(
         entryPath: OnboardingEntryPath.firstRun,
         initialDraft: OnboardingDraft(
           selectedMode: AppMode.nutrition,
-          currentStepId: OnboardingStepId.targets,
-          completedStepIds: const {
-            OnboardingStepId.mode,
-            OnboardingStepId.profileBasics,
-          },
+          currentStepId: OnboardingStepId.profileBasics,
+          completedStepIds: const {OnboardingStepId.mode},
           profile: _validProfile(),
         ),
-        draftRepository: _RemoteDraftRepository(remoteDraft),
-        authDraftHandoff: handoff,
+        localDraftStore: local,
       );
 
-      await controller.hydrateDraft();
+      final nextFuture = controller.next(
+        onFinish: (_) async {},
+        onAuthRequired: () => authResult.future,
+      );
+      await Future<void>.delayed(Duration.zero);
 
-      expect(controller.state.stepId, OnboardingStepId.review);
-      expect(controller.state.draft.currentStepId, OnboardingStepId.review);
+      final record = local.record;
+      expect(record, isNotNull);
+      expect(record!.draft.draft.currentStepId, OnboardingStepId.profileBasics);
+      expect(record.draft.draft.profile.name, 'Tio User');
+      expect(record.draft.draft.profile.heightCm, 171);
+      expect(record.draft.draft.profile.currentWeightKg, 70);
+      expect(record.resumeAfterAuth?.draft.currentStepId, OnboardingStepId.targets);
+      expect(
+        record.resumeAfterAuth?.draft.completedStepIds,
+        containsAll(const {
+          OnboardingStepId.mode,
+          OnboardingStepId.profileBasics,
+        }),
+      );
+      expect(controller.state.stepId, OnboardingStepId.profileBasics);
 
+      authResult.complete(false);
+      await nextFuture;
+
+      expect(local.record?.resumeAfterAuth, isNull);
+      expect(local.record?.draft.draft.currentStepId,
+          OnboardingStepId.profileBasics);
       controller.dispose();
-      handoff.dispose();
     });
   });
 }
@@ -161,19 +248,44 @@ ProfileOnboardingDraft _validProfile() {
   );
 }
 
-class _RemoteDraftRepository implements OnboardingDraftRepository {
-  _RemoteDraftRepository(this.draft);
+class _MemoryLocalDraftStore implements LocalOnboardingDraftStore {
+  _MemoryLocalDraftStore([this.record]);
 
-  final OnboardingDraft draft;
+  LocalOnboardingDraftRecord? record;
 
   @override
-  Future<OnboardingDraftSnapshot?> loadDraft() async {
-    return OnboardingDraftSnapshot(draft: draft);
+  Future<void> clear() async {
+    record = null;
   }
 
   @override
-  Future<void> saveDraft(OnboardingDraftSnapshot snapshot) async {}
+  Future<LocalOnboardingDraftRecord?> load() async => record;
+
+  @override
+  Future<void> save(LocalOnboardingDraftRecord record) async {
+    this.record = record;
+  }
+}
+
+class _RecordingRemoteDraftRepository implements OnboardingDraftRepository {
+  _RecordingRemoteDraftRepository({this.remoteDraft});
+
+  final OnboardingDraft? remoteDraft;
+  int saveCalls = 0;
+  OnboardingDraftSnapshot? saved;
 
   @override
   Future<void> clearDraft() async {}
+
+  @override
+  Future<OnboardingDraftSnapshot?> loadDraft() async {
+    final draft = remoteDraft;
+    return draft == null ? null : OnboardingDraftSnapshot(draft: draft);
+  }
+
+  @override
+  Future<void> saveDraft(OnboardingDraftSnapshot snapshot) async {
+    saveCalls++;
+    saved = snapshot;
+  }
 }

@@ -24,22 +24,18 @@ class SupabaseOnboardingDraftRepository implements OnboardingDraftRepository {
       return null;
     }
 
-    try {
-      final row = await _client
-          .from('onboarding_drafts')
-          .select()
-          .eq('user_id', userId)
-          .maybeSingle();
+    final row = await _client
+        .from('onboarding_drafts')
+        .select()
+        .eq('user_id', userId)
+        .maybeSingle();
 
-      if (row == null) return null;
+    if (row == null) return null;
 
-      final payload = row['payload'] as Map<String, dynamic>?;
-      if (payload == null) return null;
+    final payload = row['payload'] as Map<String, dynamic>?;
+    if (payload == null) return null;
 
-      return _mapper.fromJson(payload);
-    } catch (_) {
-      return null;
-    }
+    return _mapper.fromJson(payload);
   }
 
   @override
