@@ -1,3 +1,5 @@
+import 'package:tio_core/core.dart';
+
 import 'profile_activity_level.dart';
 import 'profile_gender.dart';
 import 'profile_goal.dart';
@@ -17,6 +19,7 @@ class ProfileSetupData {
     required this.heightCm,
     required this.currentWeightKg,
     this.targetWeightKg,
+    this.unitPreferences = MeasurementUnitPreferences.metric,
     required this.activityLevel,
     required this.healthConditions,
     this.otherHealthCondition,
@@ -35,6 +38,7 @@ class ProfileSetupData {
   final double heightCm;
   final double currentWeightKg;
   final double? targetWeightKg;
+  final MeasurementUnitPreferences unitPreferences;
   final ProfileActivityLevel activityLevel;
   final Set<ProfileHealthCondition> healthConditions;
   final String? otherHealthCondition;
@@ -58,6 +62,7 @@ class ProfileSetupData {
             heightCm == other.heightCm &&
             currentWeightKg == other.currentWeightKg &&
             targetWeightKg == other.targetWeightKg &&
+            unitPreferences == other.unitPreferences &&
             activityLevel == other.activityLevel &&
             healthConditions.length == other.healthConditions.length &&
             healthConditions.containsAll(other.healthConditions) &&
@@ -71,6 +76,7 @@ class ProfileSetupData {
         name,
         username,
         avatarUrl,
+        avatarFrame,
         plan,
         gender,
         Object.hashAll(goals),
@@ -78,6 +84,7 @@ class ProfileSetupData {
         heightCm,
         currentWeightKg,
         targetWeightKg,
+        unitPreferences,
         activityLevel,
         Object.hashAll(healthConditions),
         otherHealthCondition,
@@ -87,6 +94,6 @@ class ProfileSetupData {
 
   @override
   String toString() {
-    return 'ProfileSetupData(name: $name, username: $username, gender: $gender, mobile: $mobile, verified: $isMobileVerified)';
+    return 'ProfileSetupData(name: $name, username: $username, gender: $gender, mobile: $mobile, verified: $isMobileVerified, units: ${unitPreferences.weightUnit.storageValue}/${unitPreferences.heightUnit.storageValue}/${unitPreferences.distanceUnit.storageValue}/${unitPreferences.volumeUnit.storageValue})';
   }
 }
