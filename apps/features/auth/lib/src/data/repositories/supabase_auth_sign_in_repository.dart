@@ -48,6 +48,34 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
   @override
   Future<SignInResult> signInWithGoogle() async {
     try {
+      developer.log('[GoogleAuth] clearing cached Google account selection');
+      try {
+        await _googleSignIn
+            .signOut()
+            .timeout(_googleAccountSelectionTimeout);
+      } on TimeoutException catch (error, stackTrace) {
+        developer.log(
+          '[GoogleAuth] cached Google account reset timed out',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        return const SignInFailure(
+          'Google account selection could not be prepared in time. Please try again.',
+          code: 'google_account_reset_timeout',
+        );
+      } catch (error, stackTrace) {
+        developer.log(
+          '[GoogleAuth] cached Google account reset failed',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        return const SignInFailure(
+          'Could not open the Google account chooser. Please try again.',
+          code: 'google_account_reset_failed',
+        );
+      }
+      developer.log('[GoogleAuth] cached Google account selection cleared');
+
       developer.log('[GoogleAuth] account selection started');
       GoogleSignInAccount? googleUser;
       try {
@@ -101,6 +129,7 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
               .signInWithOAuth(
                 OAuthProvider.google,
                 redirectTo: 'tio://login-callback',
+                queryParams: const {'prompt': 'select_account'},
               )
               .timeout(_googleSupabaseExchangeTimeout);
         } on TimeoutException catch (error, stackTrace) {

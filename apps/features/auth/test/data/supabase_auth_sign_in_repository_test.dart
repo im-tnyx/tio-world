@@ -13,7 +13,7 @@ void main() {
       expect(repo, isNotNull);
     });
 
-    test('signInWithGoogle returns SignInCancelled when Google Sign-In returns null', () async {
+    test('signInWithGoogle clears cached account before interactive selection', () async {
       final fakeClient = FakeSupabaseClient();
       final fakeGoogleSignIn = FakeGoogleSignIn(accountToReturn: null);
       final repo = SupabaseAuthSignInRepository(
@@ -22,6 +22,9 @@ void main() {
       );
 
       final result = await repo.signInWithGoogle();
+
+      expect(fakeGoogleSignIn.signOutCalls, 1);
+      expect(fakeGoogleSignIn.signInCalls, 1);
       expect(result, isA<SignInCancelled>());
     });
 
@@ -303,9 +306,18 @@ class FakeGoogleSignIn extends Fake implements GoogleSignIn {
 
   final GoogleSignInAccount? accountToReturn;
   final Future<GoogleSignInAccount?>? signInFuture;
+  int signOutCalls = 0;
+  int signInCalls = 0;
+
+  @override
+  Future<GoogleSignInAccount?> signOut() async {
+    signOutCalls++;
+    return null;
+  }
 
   @override
   Future<GoogleSignInAccount?> signIn() async {
+    signInCalls++;
     final pending = signInFuture;
     if (pending != null) return pending;
     return accountToReturn;
