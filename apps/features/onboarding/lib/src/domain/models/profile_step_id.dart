@@ -3,6 +3,7 @@ enum ProfileStepId {
   gender,
   goal,
   age,
+  measurementUnits,
   height,
   currentWeight,
   targetWeight,

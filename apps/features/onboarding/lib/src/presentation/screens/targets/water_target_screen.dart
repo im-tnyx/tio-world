@@ -12,11 +12,15 @@ class WaterTargetScreen extends StatefulWidget {
     required this.waterMl,
     required this.onChanged,
     super.key,
+    this.volumeUnit = VolumeUnit.ml,
+    this.onVolumeUnitChanged,
     this.errorText,
   });
 
   final int waterMl;
   final ValueChanged<int> onChanged;
+  final VolumeUnit volumeUnit;
+  final ValueChanged<VolumeUnit>? onVolumeUnitChanged;
   final String? errorText;
 
   @override
@@ -24,7 +28,31 @@ class WaterTargetScreen extends StatefulWidget {
 }
 
 class _WaterTargetScreenState extends State<WaterTargetScreen> {
-  _WaterDisplayUnit _displayUnit = _WaterDisplayUnit.litres;
+  late _WaterDisplayUnit _displayUnit;
+
+  @override
+  void initState() {
+    super.initState();
+    _displayUnit = _preferredDisplayUnit(widget.volumeUnit);
+  }
+
+  @override
+  void didUpdateWidget(covariant WaterTargetScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.volumeUnit != widget.volumeUnit) {
+      _displayUnit = _preferredDisplayUnit(widget.volumeUnit);
+    }
+  }
+
+  _WaterDisplayUnit _preferredDisplayUnit(VolumeUnit unit) =>
+      unit == VolumeUnit.flOz ? _WaterDisplayUnit.oz : _WaterDisplayUnit.litres;
+
+  void _selectDisplayUnit(_WaterDisplayUnit unit) {
+    setState(() => _displayUnit = unit);
+    widget.onVolumeUnitChanged?.call(
+      unit == _WaterDisplayUnit.oz ? VolumeUnit.flOz : VolumeUnit.ml,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +68,7 @@ class _WaterTargetScreenState extends State<WaterTargetScreen> {
     final displayUnitSuffix = switch (_displayUnit) {
       _WaterDisplayUnit.litres => 'L/day',
       _WaterDisplayUnit.ml => 'ml/day',
-      _WaterDisplayUnit.oz => 'oz/day',
+      _WaterDisplayUnit.oz => 'fl oz/day',
     };
 
     return TargetsScreenScaffold(
@@ -86,17 +114,15 @@ class _WaterTargetScreenState extends State<WaterTargetScreen> {
                         ),
                         DropdownMenuItem(
                           value: _WaterDisplayUnit.ml,
-                          child: Text('ml'),
+                          child: Text('mL'),
                         ),
                         DropdownMenuItem(
                           value: _WaterDisplayUnit.oz,
-                          child: Text('oz'),
+                          child: Text('fl oz'),
                         ),
                       ],
                       onChanged: (unit) {
-                        if (unit != null) {
-                          setState(() => _displayUnit = unit);
-                        }
+                        if (unit != null) _selectDisplayUnit(unit);
                       },
                     ),
                   ],
@@ -124,7 +150,6 @@ class _WaterTargetScreenState extends State<WaterTargetScreen> {
                                   color: colors.textSecondary,
                                 ),
                       ),
-
                     ],
                   ),
                 ),
@@ -137,9 +162,9 @@ class _WaterTargetScreenState extends State<WaterTargetScreen> {
                         TargetStepValidator.maxWaterMl,
                       )
                       .toDouble(),
-                  min: TargetStepValidator.minWaterMl.toDouble(), // 1000
-                  max: TargetStepValidator.maxWaterMl.toDouble(), // 8000
-                  divisions: 70, // 100 ml steps from 1000 to 8000
+                  min: TargetStepValidator.minWaterMl.toDouble(),
+                  max: TargetStepValidator.maxWaterMl.toDouble(),
+                  divisions: 70,
                   activeColor: colors.primary,
                   onChanged: (val) {
                     HapticFeedback.selectionClick();
@@ -157,7 +182,7 @@ class _WaterTargetScreenState extends State<WaterTargetScreen> {
           ),
           const SizedBox(height: TioSpacing.large),
           Text(
-            'Drinking 2.0–4.0 L (68–135 oz) of water daily is recommended for most active adults to maintain optimal hydration and performance.',
+            'Drinking 2.0–4.0 L (68–135 fl oz) of water daily is recommended for most active adults to maintain optimal hydration and performance.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: colors.textMuted,
                 ),

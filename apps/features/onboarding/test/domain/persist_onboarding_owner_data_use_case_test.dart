@@ -50,7 +50,7 @@ void main() {
       final draft = OnboardingDraft(
         selectedMode: AppMode.nutrition,
         profile: _validProfile(),
-        workout: _validWorkout(), // inactive in-memory draft
+        workout: _validWorkout(),
         targets: _validTargets(),
       );
 
@@ -63,7 +63,7 @@ void main() {
       await useCase(draft: draft, flowPlan: flowPlan);
 
       expect(await profileRepo.getProfileSetup(), isNotNull);
-      expect(await workoutRepo.getWorkoutPreferences(), isNull); // protected
+      expect(await workoutRepo.getWorkoutPreferences(), isNull);
       expect(await targetsRepo.getTargetsSetup(), isNotNull);
     });
 
@@ -94,7 +94,7 @@ void main() {
         selectedMode: AppMode.hybrid,
         workoutIntroChoice: WorkoutIntroChoice.later,
         profile: _validProfile(),
-        workout: _validWorkout(), // inactive in-memory draft
+        workout: _validWorkout(),
         targets: _validTargets(),
       );
 
@@ -107,7 +107,7 @@ void main() {
       await useCase(draft: draft, flowPlan: flowPlan);
 
       expect(await profileRepo.getProfileSetup(), isNotNull);
-      expect(await workoutRepo.getWorkoutPreferences(), isNull); // protected
+      expect(await workoutRepo.getWorkoutPreferences(), isNull);
       expect(await targetsRepo.getTargetsSetup(), isNotNull);
     });
 

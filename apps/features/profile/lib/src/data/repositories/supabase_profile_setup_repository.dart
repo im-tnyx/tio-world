@@ -2,19 +2,22 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:tio_core/core.dart';
 
 import '../../domain/models/profile_activity_level.dart';
 import '../../domain/models/profile_gender.dart';
 import '../../domain/models/profile_goal.dart';
 import '../../domain/models/profile_health_condition.dart';
 import '../../domain/models/profile_setup_data.dart';
+import '../../domain/repositories/measurement_unit_preferences_repository.dart';
 import '../../domain/repositories/profile_setup_repository.dart';
 import '../avatar_write_policy.dart';
 
 /// Supabase-backed implementation of [ProfileSetupRepository].
 ///
 /// Directly manages RLS-protected user profile records in Postgres.
-class SupabaseProfileSetupRepository implements ProfileSetupRepository {
+class SupabaseProfileSetupRepository
+    implements ProfileSetupRepository, MeasurementUnitPreferencesRepository {
   const SupabaseProfileSetupRepository({
     required SupabaseClient client,
   }) : _client = client;
@@ -37,9 +40,10 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
     final currentUser = _client.auth.currentUser;
     final email = currentUser?.email;
     final phone = currentUser?.phone;
-    final effectiveMobile = (data.mobile != null && data.mobile!.trim().isNotEmpty)
-        ? data.mobile!.trim()
-        : (phone != null && phone.isNotEmpty ? phone : null);
+    final effectiveMobile =
+        (data.mobile != null && data.mobile!.trim().isNotEmpty)
+            ? data.mobile!.trim()
+            : (phone != null && phone.isNotEmpty ? phone : null);
     final currentProfile = await _client
         .from('users')
         .select('mobile')
@@ -56,13 +60,7 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
       'username': data.username,
       if (email != null && email.isNotEmpty) 'email': email,
       'mobile': effectiveMobile,
-      // Onboarding may collect a mobile number, but verification evidence must
-      // come from the authentication provider/backend. A manual mobile change
-      // invalidates any prior verification timestamp; unchanged verified values
-      // are preserved because this field is otherwise omitted from the upsert.
       if (mobileChanged) 'mobile_verified_at': null,
-      // A null onboarding avatar must preserve a Google/bootstrap or custom
-      // avatar that is already stored. New avatar values write avatar_url only.
       ...buildCanonicalAvatarWrite(avatarUrl: data.avatarUrl),
       'plan': data.plan,
       'gender': data.gender.name,
@@ -73,6 +71,8 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
       'height_cm': data.heightCm,
       'current_weight_kg': data.currentWeightKg,
       'target_weight_kg': data.targetWeightKg,
+      if (data.hasExplicitUnitPreferences)
+        'unit_preferences': data.unitPreferences.toJson(),
       'activity_level': data.activityLevel.name,
       'health_conditions': data.healthConditions.map((c) => c.name).toList(),
       'other_health_condition': data.otherHealthCondition,
@@ -109,6 +109,21 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
   }
 
   @override
+  Future<void> updateMeasurementUnitPreferences(
+    MeasurementUnitPreferences preferences,
+  ) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null || userId.isEmpty) {
+      throw StateError('User is not authenticated');
+    }
+
+    await _client.from('users').update({
+      'unit_preferences': preferences.toJson(),
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }).eq('id', userId);
+  }
+
+  @override
   Future<ProfileSetupData?> getProfileSetup() async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null || userId.isEmpty) {
@@ -136,12 +151,10 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
       realtimeSubscription?.cancel();
       postgresChannel?.unsubscribe();
 
-      // 1. Initial snapshot fetch
       getProfileSetup().then((data) {
         if (!controller.isClosed) controller.add(data);
       }).catchError((_) {});
 
-      // 2. Supabase SDK stream
       realtimeSubscription = _client
           .from('users')
           .stream(primaryKey: ['id'])
@@ -156,14 +169,12 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
           }
         },
         onError: (err) {
-          // Fallback to getProfileSetup on stream error
           getProfileSetup().then((data) {
             if (!controller.isClosed) controller.add(data);
           }).catchError((_) {});
         },
       );
 
-      // 3. Direct Postgres changes channel as secondary realtime listener
       postgresChannel = _client.channel('public:users:$userId')
         ..onPostgresChanges(
           event: PostgresChangeEvent.all,
@@ -242,6 +253,17 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
         (row['current_weight_kg'] as num?)?.toDouble() ?? 70.0;
     final targetWeight = (row['target_weight_kg'] as num?)?.toDouble();
 
+    final rawUnitPreferences = row['unit_preferences'];
+    final unitPreferences = rawUnitPreferences is Map
+        ? MeasurementUnitPreferences.fromJson(rawUnitPreferences)
+        : MeasurementUnitPreferences(
+            weightUnit: WeightUnit.fromStorage(row['weight_unit'] as String?),
+            heightUnit: HeightUnit.fromStorage(row['height_unit'] as String?),
+            distanceUnit:
+                DistanceUnit.fromStorage(row['distance_unit'] as String?),
+            volumeUnit: VolumeUnit.fromStorage(row['volume_unit'] as String?),
+          );
+
     final activityStr = row['activity_level'] as String?;
     final activity = ProfileActivityLevel.values.firstWhere(
       (a) => a.name == activityStr,
@@ -251,8 +273,9 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
     final conditionsList =
         (row['health_conditions'] as List<dynamic>?) ?? [];
     final healthConditions = conditionsList
-        .map((c) =>
-            ProfileHealthCondition.values.where((hc) => hc.name == c).firstOrNull)
+        .map((c) => ProfileHealthCondition.values
+            .where((hc) => hc.name == c)
+            .firstOrNull)
         .whereType<ProfileHealthCondition>()
         .toSet();
 
@@ -266,8 +289,6 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
     return ProfileSetupData(
       name: row['name'] as String? ?? '',
       username: row['username'] as String?,
-      // avatar_url is canonical. profile_image remains a legacy read fallback
-      // until historical data no longer needs it.
       avatarUrl: row['avatar_url'] as String? ?? row['profile_image'] as String?,
       avatarFrame: avatarFrame,
       plan: plan,
@@ -277,6 +298,7 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
       heightCm: height,
       currentWeightKg: currentWeight,
       targetWeightKg: targetWeight,
+      unitPreferences: unitPreferences,
       activityLevel: activity,
       healthConditions: healthConditions.isEmpty
           ? {ProfileHealthCondition.none}
@@ -298,11 +320,14 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
       throw StateError('User is not authenticated');
     }
 
-    final ext = fileName.contains('.') ? fileName.split('.').last.toLowerCase() : 'jpg';
-    final storagePath = '$userId/avatar_${DateTime.now().millisecondsSinceEpoch}.$ext';
+    final ext = fileName.contains('.')
+        ? fileName.split('.').last.toLowerCase()
+        : 'jpg';
+    final storagePath =
+        '$userId/avatar_${DateTime.now().millisecondsSinceEpoch}.$ext';
 
-    // Normalize mime type: Supabase expects 'image/jpeg' for '.jpg' files
-    final mimeType = ext == 'jpg' || ext == 'jpeg' ? 'image/jpeg' : 'image/$ext';
+    final mimeType =
+        ext == 'jpg' || ext == 'jpeg' ? 'image/jpeg' : 'image/$ext';
 
     await _client.storage.from('avatars').uploadBinary(
           storagePath,
@@ -328,8 +353,6 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
     if (userId == null || userId.isEmpty) return;
 
     await _client.from('users').update({
-      // Clear the legacy fallback too so an old profile_image cannot reappear
-      // after the canonical avatar has been explicitly deleted.
       ...buildCanonicalAvatarWrite(clear: true),
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     }).eq('id', userId);

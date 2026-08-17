@@ -172,7 +172,7 @@ void main() {
 
       expect(
         find.bySemanticsLabel(
-          "Profile step 8 of 9, What's your typical day like?",
+          "Profile step 9 of 10, What's your typical day like?",
         ),
         findsOneWidget,
       );
@@ -188,6 +188,7 @@ void main() {
       ProfileStepId.gender: 'How do you describe your gender?',
       ProfileStepId.goal: "Hi Tio User 👋, what's your main goal?",
       ProfileStepId.age: 'When were you born?',
+      ProfileStepId.measurementUnits: 'Choose your units',
       ProfileStepId.height: 'What is your height?',
       ProfileStepId.currentWeight: 'What is your current weight?',
       ProfileStepId.targetWeight: 'What is your target weight?',

@@ -49,6 +49,7 @@ ChromePolicy shellChromePolicyForPath(String location) {
     AppRoutes.accountSettings,
     AppRoutes.appSettings,
     AppRoutes.appModeSettings,
+    AppRoutes.measurementUnitsSettings,
     AppRoutes.themeSettings,
     AppRoutes.login,
     AppRoutes.emailLogin,
@@ -97,6 +98,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   final onboardingCompletionRepository =
       ref.read(onboardingCompletionRepositoryProvider);
   final supabaseClient = ref.read(supabaseClientProvider);
+  final MeasurementUnitPreferencesRepository? unitPreferencesRepository =
+      supabaseClient != null
+          ? SupabaseMeasurementUnitPreferencesRepository(client: supabaseClient)
+          : profileRepository is MeasurementUnitPreferencesRepository
+              ? profileRepository as MeasurementUnitPreferencesRepository
+              : null;
   const hasDurableStorage = true;
 
   late final GoRouter router;
@@ -534,9 +541,48 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           onAccountSettingsPressed: () =>
               context.push(AppRoutes.accountSettings.path),
           onAppSettingsPressed: () => context.push(AppRoutes.appSettings.path),
+          onMeasurementUnitsPressed: () =>
+              context.push(AppRoutes.measurementUnitsSettings.path),
           onLogoutPressed: () async {
             await ref.read(authSessionRepositoryProvider).signOut();
             if (context.mounted) context.go(AppRoutes.auth.path);
+          },
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.measurementUnitsSettings.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => Consumer(
+          builder: (context, ref, _) {
+            final profileAsync = ref.watch(profileDataProvider);
+            final profileData = profileAsync.valueOrNull;
+
+            if (profileAsync.isLoading && profileData == null) {
+              return Scaffold(
+                body: SafeArea(
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: TioTheme.colors(context).primary,
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            return MeasurementUnitsSettingsPage(
+              initialPreferences:
+                  profileData?.unitPreferences ?? MeasurementUnitPreferences.metric,
+              onSave: (preferences) async {
+                final repository = unitPreferencesRepository;
+                if (repository == null) {
+                  throw StateError(
+                    'Measurement unit persistence is unavailable.',
+                  );
+                }
+                await repository.updateMeasurementUnitPreferences(preferences);
+                ref.invalidate(profileDataProvider);
+              },
+            );
           },
         ),
       ),
@@ -711,7 +757,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
-
   ref.onDispose(router.dispose);
   return router;
 });

@@ -2,6 +2,7 @@ export 'navigation/settings_navigation.dart';
 export 'pages/account_settings_page.dart';
 export 'pages/app_mode_settings_page.dart';
 export 'pages/app_settings_page.dart';
+export 'pages/measurement_units_settings_page.dart';
 export 'pages/profile_settings_page.dart';
 export 'pages/settings_page.dart';
 export 'pages/theme_settings_page.dart';

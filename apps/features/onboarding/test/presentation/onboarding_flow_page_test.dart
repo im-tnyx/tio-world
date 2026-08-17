@@ -83,7 +83,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.bySemanticsLabel('Step 1 of 24, About you'),
+        find.bySemanticsLabel('Step 1 of 25, About you'),
         findsOneWidget,
       );
     } finally {
@@ -120,7 +120,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Child profileBasics'), findsOneWidget);
       expect(
-        find.bySemanticsLabel('Step 9 of 16, About you'),
+        find.bySemanticsLabel('Step 10 of 17, About you'),
         findsOneWidget,
       );
 
@@ -185,7 +185,7 @@ void main() {
     final progress = tester.widget<OnboardingProgressIndicator>(
       find.byType(OnboardingProgressIndicator),
     );
-    expect(progress.state.progressSemantics, 'Step 1 of 16, About you');
+    expect(progress.state.progressSemantics, 'Step 1 of 17, About you');
   });
 
   testWidgets('App Mode selection does not change content height',
@@ -526,18 +526,18 @@ void main() {
         .value!;
 
     await tester.pumpAndSettle();
-    expect(progressValue(), 9 / 24);
+    expect(progressValue(), 10 / 25);
 
     await tester.tap(find.text('Continue'));
     await tester.pump();
-    expect(progressValue(), 9 / 24);
+    expect(progressValue(), 10 / 25);
 
     await tester.pump(const Duration(milliseconds: 125));
-    expect(progressValue(), greaterThan(9 / 24));
-    expect(progressValue(), lessThan(10 / 24));
+    expect(progressValue(), greaterThan(10 / 25));
+    expect(progressValue(), lessThan(11 / 25));
 
     await tester.pumpAndSettle();
-    expect(progressValue(), 10 / 24);
+    expect(progressValue(), 11 / 25);
   });
 
   testWidgets('completion failure is announced as a live region',

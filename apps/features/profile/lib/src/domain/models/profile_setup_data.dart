@@ -1,3 +1,5 @@
+import 'package:tio_core/core.dart';
+
 import 'profile_activity_level.dart';
 import 'profile_gender.dart';
 import 'profile_goal.dart';
@@ -17,12 +19,14 @@ class ProfileSetupData {
     required this.heightCm,
     required this.currentWeightKg,
     this.targetWeightKg,
+    MeasurementUnitPreferences? unitPreferences,
     required this.activityLevel,
     required this.healthConditions,
     this.otherHealthCondition,
     this.mobile,
     this.isMobileVerified = false,
-  });
+  })  : unitPreferences = unitPreferences ?? MeasurementUnitPreferences.metric,
+        hasExplicitUnitPreferences = unitPreferences != null;
 
   final String name;
   final String? username;
@@ -35,6 +39,15 @@ class ProfileSetupData {
   final double heightCm;
   final double currentWeightKg;
   final double? targetWeightKg;
+  final MeasurementUnitPreferences unitPreferences;
+
+  /// Distinguishes an explicit unit mutation from a legacy/profile-only save.
+  ///
+  /// Existing callers that do not own unit preferences continue to see Metric
+  /// defaults in memory, but repositories can omit unit columns so an unrelated
+  /// profile edit cannot overwrite persisted preferences.
+  final bool hasExplicitUnitPreferences;
+
   final ProfileActivityLevel activityLevel;
   final Set<ProfileHealthCondition> healthConditions;
   final String? otherHealthCondition;
@@ -58,6 +71,7 @@ class ProfileSetupData {
             heightCm == other.heightCm &&
             currentWeightKg == other.currentWeightKg &&
             targetWeightKg == other.targetWeightKg &&
+            unitPreferences == other.unitPreferences &&
             activityLevel == other.activityLevel &&
             healthConditions.length == other.healthConditions.length &&
             healthConditions.containsAll(other.healthConditions) &&
@@ -71,6 +85,7 @@ class ProfileSetupData {
         name,
         username,
         avatarUrl,
+        avatarFrame,
         plan,
         gender,
         Object.hashAll(goals),
@@ -78,6 +93,7 @@ class ProfileSetupData {
         heightCm,
         currentWeightKg,
         targetWeightKg,
+        unitPreferences,
         activityLevel,
         Object.hashAll(healthConditions),
         otherHealthCondition,
@@ -87,6 +103,6 @@ class ProfileSetupData {
 
   @override
   String toString() {
-    return 'ProfileSetupData(name: $name, username: $username, gender: $gender, mobile: $mobile, verified: $isMobileVerified)';
+    return 'ProfileSetupData(name: $name, username: $username, gender: $gender, mobile: $mobile, verified: $isMobileVerified, units: ${unitPreferences.weightUnit.storageValue}/${unitPreferences.heightUnit.storageValue}/${unitPreferences.distanceUnit.storageValue}/${unitPreferences.volumeUnit.storageValue})';
   }
 }

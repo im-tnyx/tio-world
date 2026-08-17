@@ -1,18 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 
-/// The central user settings page structured into categorized section cards.
-///
-/// Sections:
-/// - **Account & Profile**: Profile Settings, Manage Subscription, Reset Password, Account Settings.
-/// - **Workout & Wearables**: Workout Settings + Wear OS / Watch Settings.
-/// - **Nutrition**: Nutrition & Diet (calories, macros, food preferences).
-/// - **Preferences**: App Preferences (theme, sound & haptics, alerts, units).
-/// - **About**: About Tio (version, terms, privacy policy).
-/// - **Session**: Log Out (Danger action).
 class SettingsPage extends StatelessWidget {
   const SettingsPage({
     required this.onAppSettingsPressed,
+    this.onMeasurementUnitsPressed,
     this.onProfileSettingsPressed,
     this.onAccountSettingsPressed,
     this.onManageSubscriptionPressed,
@@ -26,6 +18,7 @@ class SettingsPage extends StatelessWidget {
   });
 
   final VoidCallback onAppSettingsPressed;
+  final VoidCallback? onMeasurementUnitsPressed;
   final VoidCallback? onProfileSettingsPressed;
   final VoidCallback? onAccountSettingsPressed;
   final VoidCallback? onManageSubscriptionPressed;
@@ -55,9 +48,7 @@ class SettingsPage extends StatelessWidget {
         ),
         content: Text(
           'Are you sure you want to log out of your account?',
-          style: TextStyle(
-            color: colors.textSecondary,
-          ),
+          style: TextStyle(color: colors.textSecondary),
         ),
         actions: [
           TextButton(
@@ -93,9 +84,7 @@ class SettingsPage extends StatelessWidget {
         backgroundColor: colors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: BackButton(
-          color: colors.textPrimary,
-        ),
+        leading: BackButton(color: colors.textPrimary),
         title: Text(
           'Settings',
           style: TextStyle(
@@ -112,7 +101,6 @@ class SettingsPage extends StatelessWidget {
             vertical: TioSpacing.medium,
           ),
           children: [
-            // ── Account & Profile Section Card ──
             const _SettingsSectionHeader(title: 'ACCOUNT & PROFILE'),
             _SettingsGroupCard(
               children: [
@@ -149,10 +137,7 @@ class SettingsPage extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: TioSpacing.large),
-
-            // ── Workout & Wearables Section ──
             const _SettingsSectionHeader(title: 'WORKOUT & WEARABLES'),
             _SettingsGroupCard(
               children: [
@@ -173,10 +158,7 @@ class SettingsPage extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: TioSpacing.large),
-
-            // ── Nutrition Section ──
             const _SettingsSectionHeader(title: 'NUTRITION'),
             _SettingsGroupCard(
               children: [
@@ -189,10 +171,7 @@ class SettingsPage extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: TioSpacing.large),
-
-            // ── Preferences Section ──
             const _SettingsSectionHeader(title: 'PREFERENCES'),
             _SettingsGroupCard(
               children: [
@@ -200,15 +179,20 @@ class SettingsPage extends StatelessWidget {
                   key: const ValueKey('settings-app-settings-entry'),
                   icon: Icons.tune_rounded,
                   title: 'App Preferences',
-                  subtitle: 'Theme, sound & haptics, alerts, units & calendar',
+                  subtitle: 'Theme, sound & haptics, alerts & calendar',
                   onTap: onAppSettingsPressed,
+                ),
+                const _SettingsDivider(),
+                _SettingsTile(
+                  key: const ValueKey('settings-measurement-units-entry'),
+                  icon: Icons.straighten_rounded,
+                  title: 'Measurement Units',
+                  subtitle: 'Weight, height, distance & water units',
+                  onTap: onMeasurementUnitsPressed,
                 ),
               ],
             ),
-
             const SizedBox(height: TioSpacing.large),
-
-            // ── About Section ──
             const _SettingsSectionHeader(title: 'ABOUT'),
             _SettingsGroupCard(
               children: [
@@ -221,10 +205,7 @@ class SettingsPage extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: TioSpacing.large),
-
-            // ── Session Section ──
             const _SettingsSectionHeader(title: 'SESSION'),
             _SettingsGroupCard(
               children: [
@@ -240,7 +221,6 @@ class SettingsPage extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: TioSpacing.extraLarge),
           ],
         ),
@@ -249,16 +229,13 @@ class SettingsPage extends StatelessWidget {
   }
 }
 
-/// Category Header for Settings Groups
 class _SettingsSectionHeader extends StatelessWidget {
   const _SettingsSectionHeader({required this.title});
-
   final String title;
 
   @override
   Widget build(BuildContext context) {
     final colors = TioTheme.colors(context);
-
     return Padding(
       padding: const EdgeInsets.only(
         left: TioSpacing.small,
@@ -277,36 +254,28 @@ class _SettingsSectionHeader extends StatelessWidget {
   }
 }
 
-/// Unified Inset Group Card Container for each Settings Category
 class _SettingsGroupCard extends StatelessWidget {
   const _SettingsGroupCard({required this.children});
-
   final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
     final colors = TioTheme.colors(context);
-
     return Material(
       color: colors.surfaceRaised,
       borderRadius: BorderRadius.circular(TioRadius.large),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: children,
-      ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: children),
     );
   }
 }
 
-/// Subtle Divider between Settings Tiles inside a Group Card
 class _SettingsDivider extends StatelessWidget {
   const _SettingsDivider();
 
   @override
   Widget build(BuildContext context) {
     final colors = TioTheme.colors(context);
-
     return Divider(
       height: 1,
       thickness: 1,
@@ -316,7 +285,6 @@ class _SettingsDivider extends StatelessWidget {
   }
 }
 
-/// Reusable Setting Row Item within a Group Card
 class _SettingsTile extends StatelessWidget {
   const _SettingsTile({
     required this.icon,
@@ -340,7 +308,6 @@ class _SettingsTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = TioTheme.colors(context);
-
     return InkWell(
       onTap: onTap,
       child: Padding(

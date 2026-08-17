@@ -8,6 +8,7 @@ class ProfileFlowPlan {
     ProfileStepId.gender,
     ProfileStepId.goal,
     ProfileStepId.age,
+    ProfileStepId.measurementUnits,
     ProfileStepId.height,
     ProfileStepId.currentWeight,
     ProfileStepId.targetWeight,

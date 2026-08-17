@@ -26,18 +26,11 @@ class HeightScreen extends StatelessWidget {
 
   String get _displayValue {
     final cm = valueCm ?? _defaultCm;
-    if (unit == 'in' || unit == 'ft') {
-      final totalInches = (cm / 2.54).round();
-      final feet = totalInches ~/ 12;
-      final inches = totalInches % 12;
-      return '$feet ft $inches in';
-    } else {
-      if (cm % 1 == 0) {
-        return '${cm.toInt()} cm';
-      } else {
-        return '${cm.toStringAsFixed(1)} cm';
-      }
-    }
+    final typedUnit = switch (unit) {
+      'ft' || 'in' || 'ft_in' => HeightUnit.ftIn,
+      _ => HeightUnit.cm,
+    };
+    return MeasurementFormatters.formatHeight(cm, typedUnit);
   }
 
   @override
@@ -53,8 +46,6 @@ class HeightScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 8),
-
-          // Large Bold Value Header (Syncs with cm vs ft/in unit)
           Center(
             child: Text(
               _displayValue,
@@ -67,10 +58,7 @@ class HeightScreen extends StatelessWidget {
               ),
             ),
           ),
-
           const SizedBox(height: 24),
-
-          // BMI Info Card
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),

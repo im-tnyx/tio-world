@@ -1,5 +1,6 @@
 export 'package:flutter_svg/flutter_svg.dart';
 
+export 'src/measurement/measurement.dart';
 export 'src/theme/locals/theme_locals.dart';
 export 'src/theme/theme.dart';
 export 'src/theme/tokens/tio_tokens.dart';

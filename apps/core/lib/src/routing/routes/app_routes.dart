@@ -66,6 +66,13 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  static const measurementUnitsSettings = TioRouteContract(
+    path: '/settings/measurement-units',
+    title: 'Measurement Units',
+    description: 'Choose weight, height, distance, and volume display units.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
   static const profileSettings = TioRouteContract(
     path: '/settings/profile',
     title: 'Profile Settings',

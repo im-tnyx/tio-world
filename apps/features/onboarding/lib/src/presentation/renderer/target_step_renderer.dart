@@ -42,6 +42,11 @@ class TargetStepRenderer extends StatelessWidget {
         ),
       TargetStepId.waterTarget => WaterTargetScreen(
           waterMl: draft.waterMl,
+          volumeUnit: profile.unitPreferences.volumeUnit,
+          onVolumeUnitChanged: (volumeUnit) =>
+              controller.updateMeasurementUnitPreferences(
+            profile.unitPreferences.copyWith(volumeUnit: volumeUnit),
+          ),
           onChanged: controller.updateWaterTargetMl,
           errorText: errorText,
         ),

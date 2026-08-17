@@ -10,6 +10,7 @@ void main() {
       ProfileStepId.gender,
       ProfileStepId.goal,
       ProfileStepId.age,
+      ProfileStepId.measurementUnits,
       ProfileStepId.height,
       ProfileStepId.currentWeight,
       ProfileStepId.targetWeight,
@@ -22,6 +23,8 @@ void main() {
     expect(flow.previous(ProfileStepId.name), isNull);
     expect(flow.next(ProfileStepId.name), ProfileStepId.gender);
     expect(flow.previous(ProfileStepId.gender), ProfileStepId.name);
+    expect(flow.next(ProfileStepId.age), ProfileStepId.measurementUnits);
+    expect(flow.next(ProfileStepId.measurementUnits), ProfileStepId.height);
     expect(flow.next(ProfileStepId.activity), ProfileStepId.healthConditions);
     expect(flow.next(ProfileStepId.healthConditions), isNull);
   });

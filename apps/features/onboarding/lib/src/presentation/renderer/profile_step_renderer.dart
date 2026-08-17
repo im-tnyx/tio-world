@@ -9,6 +9,7 @@ import '../screens/profile/gender_screen.dart';
 import '../screens/profile/goal_screen.dart';
 import '../screens/profile/health_conditions_screen.dart';
 import '../screens/profile/height_screen.dart';
+import '../screens/profile/measurement_units_screen.dart';
 import '../screens/profile/name_screen.dart';
 import '../screens/profile/target_weight_screen.dart';
 import '../state/state.dart';
@@ -45,6 +46,10 @@ class ProfileStepRenderer extends StatelessWidget {
           onContinue: () => controller.next(onFinish: (_) async {}),
           isBusy: state.isBusy,
           errorText: errorText),
+      ProfileStepId.measurementUnits => MeasurementUnitsScreen(
+          preferences: draft.unitPreferences,
+          onChanged: controller.updateMeasurementUnitPreferences,
+        ),
       ProfileStepId.height => HeightScreen(
           valueCm: draft.heightCm,
           unit: draft.heightUnit,

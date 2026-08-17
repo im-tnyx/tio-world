@@ -140,7 +140,7 @@ void main() {
     );
 
     expect(controller.state.canContinue, isFalse);
-    expect(controller.state.progressStepCount, 26);
+    expect(controller.state.progressStepCount, 27);
 
     controller.selectWorkoutIntroChoice(WorkoutIntroChoice.later);
 
@@ -150,7 +150,7 @@ void main() {
       controller.state.flowPlan.stepIds,
       isNot(contains(OnboardingStepId.workoutPreferences)),
     );
-    expect(controller.state.progressStepCount, 18);
+    expect(controller.state.progressStepCount, 19);
 
     await controller.next(onFinish: _completeImmediately);
     expect(controller.state.stepId, OnboardingStepId.targets);
@@ -164,7 +164,7 @@ void main() {
       controller.state.flowPlan.stepIds,
       contains(OnboardingStepId.workoutPreferences),
     );
-    expect(controller.state.progressStepCount, 26);
+    expect(controller.state.progressStepCount, 27);
 
     await controller.next(onFinish: _completeImmediately);
     expect(controller.state.stepId, OnboardingStepId.workoutPreferences);
@@ -212,6 +212,11 @@ void main() {
     controller.toggleProfileGoal(ProfileGoal.keepFit);
     await controller.next(onFinish: _completeImmediately);
     controller.updateProfileDateOfBirth(DateTime(2000, 1, 1));
+    await controller.next(onFinish: _completeImmediately);
+    expect(
+      controller.state.draft.profile.currentStepId,
+      ProfileStepId.measurementUnits,
+    );
     await controller.next(onFinish: _completeImmediately);
     controller.updateProfileHeight(171);
     await controller.next(onFinish: _completeImmediately);
@@ -308,14 +313,14 @@ void main() {
 
     controller.selectMode(AppMode.hybrid);
     controller.selectWorkoutIntroChoice(WorkoutIntroChoice.setupNow);
-    expect(controller.state.progressStepCount, 25);
+    expect(controller.state.progressStepCount, 26);
     expect(controller.state.progressStepNumber, 0); // on AppMode
     expect(controller.state.progressValue, 0.0);
 
     await controller.next(onFinish: _completeImmediately);
     // Profile name
     expect(controller.state.progressStepNumber, 1);
-    expect(controller.state.progressValue, closeTo(1 / 25, 0.0001));
+    expect(controller.state.progressValue, closeTo(1 / 26, 0.0001));
 
     final reviewController = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
@@ -327,7 +332,7 @@ void main() {
         workout: _validWorkout(),
       ),
     );
-    expect(reviewController.state.progressStepNumber, 25);
+    expect(reviewController.state.progressStepNumber, 26);
     expect(reviewController.state.progressValue, 1.0);
   });
 
@@ -345,18 +350,18 @@ void main() {
       ),
     );
 
-    // Workout mode with gym: 9 (profile) + 8 (workout) + 6 (targets) + 1 (review) = 24
-    expect(controller.state.progressStepCount, 24);
+    // Workout mode with gym: 10 (profile) + 8 (workout) + 6 (targets) + 1 (review) = 25
+    expect(controller.state.progressStepCount, 25);
     expect(controller.state.progressStepNumber, 1);
-    expect(controller.state.progressValue, closeTo(1 / 24, 0.0001));
+    expect(controller.state.progressValue, closeTo(1 / 25, 0.0001));
 
     await controller.next(onFinish: _completeImmediately);
 
-    // Moves to gender inside Profile, global progress increases to step 2 of 24
+    // Moves to gender inside Profile, global progress increases to step 2 of 25
     expect(controller.state.draft.profile.currentStepId, ProfileStepId.gender);
-    expect(controller.state.progressStepCount, 24);
+    expect(controller.state.progressStepCount, 25);
     expect(controller.state.progressStepNumber, 2);
-    expect(controller.state.progressValue, closeTo(2 / 24, 0.0001));
+    expect(controller.state.progressValue, closeTo(2 / 25, 0.0001));
   });
 
   test('updateDailyStepTarget updates target in draft', () {
