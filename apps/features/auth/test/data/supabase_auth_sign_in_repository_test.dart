@@ -121,20 +121,21 @@ void main() {
       expect(result, isA<SignInSuccess>());
     });
 
-    test('signup-capable Google flow skips existing-account admission', () async {
+    test('signup-capable Google flow classifies account without gating exchange',
+        () async {
       final fakeUser = _googleUser();
       final fakeGoTrue = FakeGoTrueClient(
         currentUser: fakeUser,
         authResponseToReturn: _authResponse(fakeUser),
       );
-      var admissionCalls = 0;
+      var classificationCalls = 0;
       final repo = SupabaseAuthSignInRepository(
         client: FakeSupabaseClient(goTrueClient: fakeGoTrue),
         googleSignIn: FakeGoogleSignIn(
           accountToReturn: _googleAccountWithTokens(),
         ),
         googleLoginAdmissionChecker: (_) async {
-          admissionCalls++;
+          classificationCalls++;
           return GoogleLoginAdmissionDecision.noAccount;
         },
       );
@@ -143,7 +144,7 @@ void main() {
         intent: GoogleSignInIntent.signupOrExisting,
       );
 
-      expect(admissionCalls, 0);
+      expect(classificationCalls, 1);
       expect(fakeGoTrue.idTokenCalls, 1);
       expect(result, isA<SignInSuccess>());
     });
