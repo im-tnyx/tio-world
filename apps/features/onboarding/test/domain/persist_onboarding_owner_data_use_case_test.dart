@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tio_core/core.dart';
 import 'package:tio_feature_nutrition/nutrition.dart' as nutrition_owner;
 import 'package:tio_feature_onboarding/src/domain/domain.dart';
 import 'package:tio_feature_profile/profile.dart' as profile_owner;
@@ -51,7 +50,7 @@ void main() {
       final draft = OnboardingDraft(
         selectedMode: AppMode.nutrition,
         profile: _validProfile(),
-        workout: _validWorkout(), // inactive in-memory draft
+        workout: _validWorkout(),
         targets: _validTargets(),
       );
 
@@ -64,7 +63,7 @@ void main() {
       await useCase(draft: draft, flowPlan: flowPlan);
 
       expect(await profileRepo.getProfileSetup(), isNotNull);
-      expect(await workoutRepo.getWorkoutPreferences(), isNull); // protected
+      expect(await workoutRepo.getWorkoutPreferences(), isNull);
       expect(await targetsRepo.getTargetsSetup(), isNotNull);
     });
 
@@ -95,7 +94,7 @@ void main() {
         selectedMode: AppMode.hybrid,
         workoutIntroChoice: WorkoutIntroChoice.later,
         profile: _validProfile(),
-        workout: _validWorkout(), // inactive in-memory draft
+        workout: _validWorkout(),
         targets: _validTargets(),
       );
 
@@ -108,7 +107,7 @@ void main() {
       await useCase(draft: draft, flowPlan: flowPlan);
 
       expect(await profileRepo.getProfileSetup(), isNotNull);
-      expect(await workoutRepo.getWorkoutPreferences(), isNull); // protected
+      expect(await workoutRepo.getWorkoutPreferences(), isNull);
       expect(await targetsRepo.getTargetsSetup(), isNotNull);
     });
 
@@ -155,13 +154,6 @@ class _FailingProfileSetupRepository implements profile_owner.ProfileSetupReposi
 
   @override
   Future<void> saveProfileSetup(profile_owner.ProfileSetupData data) async {
-    throw StateError('Profile database write failed');
-  }
-
-  @override
-  Future<void> updateMeasurementUnitPreferences(
-    MeasurementUnitPreferences preferences,
-  ) async {
     throw StateError('Profile database write failed');
   }
 
