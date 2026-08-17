@@ -131,18 +131,25 @@ class SecureLocalOnboardingDraftStore implements LocalOnboardingDraftStore {
 /// Routes onboarding draft persistence according to authentication ownership.
 ///
 /// Signed out: local encrypted draft only.
-/// Authenticated: user-scoped remote draft is authoritative; an eligible local
-/// pre-auth draft is migrated once and then cleared.
+/// Authenticated: durable onboarding completion is checked before any draft is
+/// loaded or saved. Completed accounts reject transient onboarding handoff data;
+/// incomplete accounts may migrate an eligible local draft once and then clear
+/// the local copy.
 class AuthAwareOnboardingDraftRepository implements OnboardingDraftRepository {
   AuthAwareOnboardingDraftRepository({
     required LocalOnboardingDraftStore localStore,
     required String? Function() currentUserId,
     OnboardingDraftRepository? remoteRepository,
+    OnboardingCompletionRepository? completionRepository,
     Stream<String?>? userIdChanges,
   })  : _localStore = localStore,
         _currentUserId = currentUserId,
-        _remoteRepository = remoteRepository {
+        _remoteRepository = remoteRepository,
+        _completionRepository = completionRepository {
     _userSubscription = userIdChanges?.listen((userId) {
+      if (_completionStateUserId != userId) {
+        _invalidateCompletionState();
+      }
       if (userId == null || userId.isEmpty) {
         unawaited(_clearBoundDraftAfterSignOut());
       } else {
@@ -154,7 +161,10 @@ class AuthAwareOnboardingDraftRepository implements OnboardingDraftRepository {
   final LocalOnboardingDraftStore _localStore;
   final String? Function() _currentUserId;
   final OnboardingDraftRepository? _remoteRepository;
+  final OnboardingCompletionRepository? _completionRepository;
   StreamSubscription<String?>? _userSubscription;
+  String? _completionStateUserId;
+  RemoteOnboardingCompletionState? _completionState;
 
   String? get _authenticatedUserId {
     final userId = _currentUserId();
@@ -174,6 +184,21 @@ class AuthAwareOnboardingDraftRepository implements OnboardingDraftRepository {
       return local?.draft;
     }
 
+    final completionState = await _readCompletionState(userId);
+    if (completionState == RemoteOnboardingCompletionState.completed) {
+      await _remoteRepository?.clearDraft();
+      await _localStore.clear();
+      return null;
+    }
+
+    if (local != null) {
+      final boundUserId = local.boundUserId;
+      if (boundUserId != null && boundUserId != userId) {
+        await _localStore.clear();
+        return _remoteRepository?.loadDraft();
+      }
+    }
+
     final remote = _remoteRepository;
     if (remote != null) {
       final remoteSnapshot = await remote.loadDraft();
@@ -184,17 +209,12 @@ class AuthAwareOnboardingDraftRepository implements OnboardingDraftRepository {
     }
 
     if (local == null) return null;
-    final boundUserId = local.boundUserId;
-    if (boundUserId != null && boundUserId != userId) {
-      await _localStore.clear();
-      return null;
-    }
 
     final candidate = local.resumeAfterAuth ?? local.draft;
     if (remote != null) {
       await remote.saveDraft(candidate);
       await _localStore.clear();
-    } else if (boundUserId == null) {
+    } else if (local.boundUserId == null) {
       await _localStore.save(local.copyWith(boundUserId: userId));
     }
     return candidate;
@@ -212,6 +232,13 @@ class AuthAwareOnboardingDraftRepository implements OnboardingDraftRepository {
           resumeAfterAuth: unbound?.resumeAfterAuth,
         ),
       );
+      return;
+    }
+
+    final completionState = await _readCompletionState(userId);
+    if (completionState == RemoteOnboardingCompletionState.completed) {
+      await _remoteRepository?.clearDraft();
+      await _localStore.clear();
       return;
     }
 
@@ -238,6 +265,27 @@ class AuthAwareOnboardingDraftRepository implements OnboardingDraftRepository {
       await _remoteRepository?.clearDraft();
     }
     await _localStore.clear();
+    _invalidateCompletionState();
+  }
+
+  Future<RemoteOnboardingCompletionState?> _readCompletionState(
+    String userId,
+  ) async {
+    final completionRepository = _completionRepository;
+    if (completionRepository == null) return null;
+    if (_completionStateUserId == userId && _completionState != null) {
+      return _completionState;
+    }
+
+    final state = await completionRepository.readCurrent();
+    _completionStateUserId = userId;
+    _completionState = state;
+    return state;
+  }
+
+  void _invalidateCompletionState() {
+    _completionStateUserId = null;
+    _completionState = null;
   }
 
   Future<void> _bindLocalDraft(String userId) async {
