@@ -1,125 +1,169 @@
 # Onboarding Pre-Auth Draft Persistence
 
-**Status:** Implemented — automated validation green; real-device validation pending
-**Tracking:** GitHub issue #13 (related to #10)
+**Status:** Implemented — automated validation green; real-device revalidation pending
+**Tracking:** GitHub issue #13 (related to #10 and profile persistence #8)
 **Source branch:** `codex/onboarding-mode-migration`
-**Primary owner:** `apps/app` + `apps/features/onboarding`
+**Primary owner:** `apps/app` + `apps/features/onboarding` + `apps/features/nutrition`
 
-## User-reported regression
+## User-reported regressions
+
+### 1. Pre-auth draft loss
 
 ```text
-Get Started / onboarding
+Get Started
 -> choose App Mode
 -> complete Profile (name/height/weight/etc.)
 -> Google auth checkpoint
--> select a fresh Google account
+-> select fresh Google account
 -> bootstrap requires onboarding
--> app returns to App Mode (incorrect)
+-> app restarts at App Mode
 ```
 
-## Verified root cause
+### 2. Resolved-step flash after first local-draft fix
 
-Before authentication there is no Supabase `user_id`, so `SupabaseOnboardingDraftRepository` cannot own or persist the draft. App Mode/Profile answers therefore existed only in the auto-disposed onboarding controller. Google authentication can rebuild `/onboarding` before the original controller continuation resumes, losing those answers and restarting the plan at App Mode.
+Real-device retest showed the flow eventually resumed correctly at Workout Intro, but briefly rendered App Mode for about one second first.
 
-The first in-memory one-shot handoff implementation was covered by unit tests but failed the real-device gate, so it is no longer the production source of truth for this transition.
+### 3. Entered profile metrics missing from nutrition owner
+
+Real-device completion collected height, current weight, target weight and activity level. Read-only Supabase audit showed those values were correctly persisted in `public.users`, while the matching columns in `public.user_nutrition_profiles` were still null.
+
+Latest audited completed account showed:
+
+```text
+public.users
+height_cm             = 129.54
+current_weight_kg     = 76.0
+target_weight_kg      = 75.2
+activity_level        = dynamic
+
+public.user_nutrition_profiles
+height_cm             = null
+current_weight_kg     = null
+target_weight_kg      = null
+activity_level        = null
+steps_target          = 10000
+water_target_ml       = 2500
+sleep_target_minutes  = 480
+```
+
+No production row was mutated or backfilled during this audit.
+
+## Verified root causes
+
+### Pre-auth ownership
+
+Before authentication there is no Supabase `user_id`, so the user-owned remote draft cannot safely own pre-auth answers. The previous implementation kept those answers only in an auto-disposed controller, allowing the auth redirect to destroy them.
+
+### App Mode flash
+
+`OnboardingController` is constructed with a default/fresh draft before asynchronous local/remote hydration finishes. The default first step is App Mode. The hydrated resume draft then replaces that state with Workout Intro, creating the visible one-second wrong-step flash.
+
+### Nutrition projection gap
+
+`ProfileSetupMapper` and `SupabaseProfileSetupRepository` already persisted collected measurements into `public.users`.
+
+However, `TargetsSetupData` did not contain height/current weight/target weight/activity level. `TargetsSetupMapper` therefore could not project those collected Profile values into the nutrition owner, and `SupabaseTargetsSetupRepository` never wrote the corresponding existing `user_nutrition_profiles` columns.
 
 ## Frozen ownership contract
 
 ```text
 SIGNED OUT
--> onboarding draft stays device-local only
--> no onboarding/profile draft writes to Supabase
+-> onboarding/profile draft stays encrypted device-local only
+-> no onboarding/profile draft write to Supabase
 
 AUTH CHECKPOINT
--> keep current signed-out draft unchanged
--> store a separate resume-after-auth checkpoint locally
+-> keep current signed-out draft
+-> store separate resume-after-auth checkpoint locally
 
 AUTHENTICATED
--> bind local record to the selected Supabase user id
+-> bind local record to selected Supabase user id
 -> existing remote onboarding draft wins when present
--> otherwise migrate the matching local resume checkpoint to onboarding_drafts
--> clear the local temporary copy after successful migration
+-> otherwise migrate matching local resume checkpoint to onboarding_drafts
+-> clear local temporary copy after successful migration
 
-COMPLETED EXISTING ACCOUNT
--> bootstrap routes Home
--> local bound pre-auth draft is not consumed by another identity
--> bound local draft is cleared on sign-out
+ONBOARDING COMPLETION
+-> persist entered canonical owner data
+-> entered height/current weight/target weight/activity project to users + nutrition profile
+-> optional/uncollected nutrition fields may remain null
 ```
 
 ## Local data protection
 
-Pre-auth onboarding can include profile/health-adjacent fields such as date of birth, height, weight, goals, and health conditions. The production local adapter therefore uses platform secure storage rather than plain SharedPreferences. A process-memory fallback exists only for tests/platform storage failure.
+Pre-auth onboarding includes profile/health-adjacent fields such as DOB, height, weight, goals and health conditions. Production local persistence uses platform secure storage (`flutter_secure_storage`), not plain SharedPreferences.
 
-## Resume semantics
+The local record keeps two snapshots:
 
-The local record intentionally stores two snapshots:
+- `draft`: signed-out screen state. App restart or cancelled auth resumes here.
+- `resumeAfterAuth`: first valid post-Profile state. Only an authenticated matching identity can migrate/use it.
 
-- `draft`: the signed-out screen state. App restart or cancelled auth resumes here, so authentication cannot be skipped.
-- `resumeAfterAuth`: the first valid post-Profile onboarding state. Only an authenticated matching identity may consume/migrate it.
+## Implemented changes
 
-This separation also protects the resume checkpoint from a late pre-auth autosave of the Profile screen.
+- [x] Encrypted device-local pre-auth onboarding draft store.
+- [x] Auth-aware local/remote draft repository.
+- [x] Signed-out autosaves remain local only.
+- [x] Identity binding and one-time local -> remote draft migration after auth.
+- [x] Existing remote user-owned draft remains authoritative.
+- [x] Separate current signed-out draft and post-auth resume snapshot.
+- [x] Identity mismatch / stale bound local state protection.
+- [x] Remote draft read failures are not treated as confirmed missing rows.
+- [x] Production hydration render gate: default App Mode content is hidden until the resume draft resolves.
+- [x] Hydration gate is an explicit production policy; feature/default contexts retain backwards-compatible eager rendering.
+- [x] `TargetsSetupData` carries optional collected profile measurements.
+- [x] `TargetsSetupMapper` maps entered height/current weight/target weight/activity.
+- [x] `SupabaseTargetsSetupRepository` writes/reads those existing nutrition profile columns.
+- [x] Null/optional projection fields are omitted on write instead of fabricating values.
+- [x] Regression coverage for local-only persistence, migration, identity isolation, resume hydration and measurement mapping.
 
-## Guardrails
+## Relevant commits
 
-- No Supabase write before authentication.
-- No rendered UI/layout changes.
-- No Supabase schema migration.
-- No account row deletion/mutation.
-- Existing remote user-owned draft remains authoritative.
-- Local draft cannot cross authenticated identities.
-- A stale bound draft is cleared after sign-out.
-- Remote read failures are not treated as confirmed "row missing"; they propagate to the controller fallback instead of triggering an unsafe overwrite.
-- Onboarding completion continues to clear obsolete remote draft data; migrated local temporary data is already cleared after ownership transfer.
-
-## Implementation
-
-- [x] Add encrypted device-local onboarding draft store.
-- [x] Add auth-aware local/remote repository boundary.
-- [x] Keep all signed-out autosaves local.
-- [x] Bind the local record to the selected authenticated identity.
-- [x] Migrate local resume state only when remote draft is truly missing.
-- [x] Keep remote draft authoritative when it exists.
-- [x] Add separate signed-out and post-auth resume snapshots.
-- [x] Prevent late stale Profile autosave from replacing the post-auth resume checkpoint.
-- [x] Clear mismatched/bound stale local state safely.
-- [x] Stop swallowing Supabase draft read errors as `null`.
-- [x] Add regression tests for local-only writes, height/weight retention, migration, remote precedence, identity isolation, lifecycle clear, and auth checkpoint resume.
-- [x] CI analyzer + targeted test validation.
-- [ ] Real-device fresh Google signup resumes after Profile instead of App Mode.
+- `aecfec8946fe143755c9624479662b792b7b88be` — encrypted local-first onboarding draft persistence.
+- `6348478a58dfbfe00bce0de1a4b333fbb264d418` — local-draft analyzer cleanup.
+- `88aaf6aadc410dd6be08e7e1ec9be803d556daad` — extend nutrition target owner with profile metrics.
+- `754e1233ec7d4ef2e2196623b206e297aefc234e` — map Profile measurements to nutrition owner.
+- `84f5cbce66bc3250bbdbd6a8f69d518c8ed89eab` — persist/read metrics in `user_nutrition_profiles`.
+- `aa94e7dfb6d4d19ac4c0d87efa926372c6784739` — mapper regression coverage.
+- `871e052900475a8981e5cbbd7e8157abc9d32a12` / `d76d9db958cba24a127b72ba1dbf744712133a18` — publish hydration readiness and hide unresolved default step.
+- `fe812228d9883a950f9c9ba79cd150e79ed57f2e` — hydration-resume regression coverage.
+- `3fad862a8a43e79a5a712949ef305d26016c10b8` / `7d7b66087cfa0483fd48ad0cea8922ee99dcf7ed` / `146adcc5ec814b2ff7b573bb8866c173274d7e2c` / `583ec1b08e12036e84088f48375d68fe4247fc5f` — make hydration gate explicit and enable it only in production app wiring.
 
 ## Automated validation
 
-GitHub Actions run #72 on code commit `6348478a58dfbfe00bce0de1a4b333fbb264d418`:
+GitHub Actions run #97 on head `583ec1b08e12036e84088f48375d68fe4247fc5f`:
 
-- workspace bootstrap: passed, including `flutter_secure_storage` resolution
-- Flutter analyzers: all Flutter packages passed
+- workspace bootstrap: passed
+- Flutter analyzers: all packages passed
 - Dart analyzer: passed
-- `apps/app/test/app/onboarding_auth_draft_handoff_test.dart`: all new local-first persistence tests passed
-  - signed-out save stays local and never calls remote
-  - fresh authenticated user migrates the post-auth resume draft
-  - existing remote user draft remains authoritative
-  - mismatched identity cannot consume/migrate the local draft
-  - auth lifecycle binds and clears stale bound data on sign-out
-  - Profile data including height/weight is retained while staging the post-auth resume checkpoint
+- app local-draft/auth-resume tests: passed, including hydrated resolved-step notification
+- app test total: 104 passed / 10 failed
+- the 10 failures are the same pre-existing Welcome accessibility, avatar expectation, and AppMode router `pumpAndSettle` baseline failures
+- no new failing test class was introduced by this slice
 
-The workspace Flutter test step remains red with the same 10 pre-existing app test failures in Welcome accessibility, avatar expectations, and AppMode router `pumpAndSettle` coverage. This slice introduces no new failing test class.
+`apps/features/onboarding/test/domain/targets_setup_mapper_test.dart` additionally covers collected metric projection and null preservation for uncollected optional values. Because workspace tests currently use fail-fast and the app package hits the known baseline failures first, this later-package test still needs targeted local execution or a future CI non-fail-fast improvement.
 
-## Current commits
+## Remaining device gate
 
-- `aecfec8946fe143755c9624479662b792b7b88be` — local-first encrypted onboarding draft persistence.
-- `6348478a58dfbfe00bce0de1a4b333fbb264d418` — analyzer lint cleanup.
-
-## Device gate
+Use a fresh onboarding completion after pulling the latest branch:
 
 ```text
 Get Started
 -> App Mode
--> Profile
--> fill name / height / weight / remaining Profile fields
--> Continue / Google auth checkpoint
--> select fresh Google account
--> bootstrap
--> resume at first post-Profile onboarding step
+-> fill Profile height/current weight/target weight/activity
+-> Google fresh signup
+-> auth/bootstrap
+-> direct resolved next step (Workout Intro for workout flow)
+-> no App Mode flash
+-> complete onboarding
 ```
 
-Must not repeat App Mode or Profile, and the values entered before auth must remain intact.
+Then read-only Supabase verification must show:
+
+```text
+public.users
+entered measurement fields = persisted
+
+public.user_nutrition_profiles
+same entered height/current weight/target weight/activity = persisted
+optional/skipped fields = allowed to remain null
+```
+
+Do not backfill earlier completed rows until separately approved.
