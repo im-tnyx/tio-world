@@ -76,8 +76,9 @@ class ProfileSetupMapper {
       otherHealthCondition: draft.otherHealthCondition.trim().isEmpty
           ? null
           : draft.otherHealthCondition.trim(),
-      mobile: draft.mobile.trim().isEmpty ? null : draft.mobile.trim(),
-      isMobileVerified: draft.isMobileVerified,
+      // Mobile is intentionally not mapped. It belongs to Account Setup and an
+      // old/resumed onboarding draft must never overwrite the durable account
+      // mobile or its verification evidence.
     );
   }
 }
