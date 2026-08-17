@@ -5,27 +5,35 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/models/auth_session.dart';
+import '../../domain/models/google_sign_in_intent.dart';
 import '../../domain/models/sign_in_result.dart';
 import '../../domain/repositories/auth_sign_in_repository.dart';
 import '../../domain/repositories/user_device_repository.dart';
+import '../google_login_admission_checker.dart';
 
 /// Supabase-backed implementation of [AuthSignInRepository].
 ///
 /// Authenticates users directly with Supabase GoTrue and establishes
 /// an authenticated session.
-class SupabaseAuthSignInRepository implements AuthSignInRepository {
+class SupabaseAuthSignInRepository
+    implements AuthSignInRepository, GoogleSignInIntentRepository {
   SupabaseAuthSignInRepository({
     required SupabaseClient client,
     GoogleSignIn? googleSignIn,
     String? serverClientId,
     UserDeviceRepository? userDeviceRepository,
+    GoogleLoginAdmissionChecker? googleLoginAdmissionChecker,
     Duration googleAccountSelectionTimeout = const Duration(seconds: 30),
     Duration googleCredentialTimeout = const Duration(seconds: 15),
+    Duration googleAdmissionTimeout = const Duration(seconds: 8),
     Duration googleSupabaseExchangeTimeout = const Duration(seconds: 15),
   })  : _client = client,
         _userDeviceRepository = userDeviceRepository,
+        _googleLoginAdmissionChecker = googleLoginAdmissionChecker ??
+            SupabaseGoogleLoginAdmissionChecker(client: client).call,
         _googleAccountSelectionTimeout = googleAccountSelectionTimeout,
         _googleCredentialTimeout = googleCredentialTimeout,
+        _googleAdmissionTimeout = googleAdmissionTimeout,
         _googleSupabaseExchangeTimeout = googleSupabaseExchangeTimeout,
         _googleSignIn = googleSignIn ??
             GoogleSignIn(
@@ -41,12 +49,21 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
   final SupabaseClient _client;
   final GoogleSignIn _googleSignIn;
   final UserDeviceRepository? _userDeviceRepository;
+  final GoogleLoginAdmissionChecker _googleLoginAdmissionChecker;
   final Duration _googleAccountSelectionTimeout;
   final Duration _googleCredentialTimeout;
+  final Duration _googleAdmissionTimeout;
   final Duration _googleSupabaseExchangeTimeout;
 
   @override
-  Future<SignInResult> signInWithGoogle() async {
+  Future<SignInResult> signInWithGoogle() => signInWithGoogleForIntent(
+        intent: GoogleSignInIntent.existingAccountOnly,
+      );
+
+  @override
+  Future<SignInResult> signInWithGoogleForIntent({
+    required GoogleSignInIntent intent,
+  }) async {
     try {
       developer.log('[GoogleAuth] clearing cached Google account selection');
       try {
@@ -122,7 +139,19 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
       final accessToken = googleAuth.accessToken;
 
       if (idToken == null || idToken.isEmpty) {
-        developer.log('[GoogleAuth] native ID token unavailable; OAuth fallback started');
+        if (intent == GoogleSignInIntent.existingAccountOnly) {
+          developer.log(
+            '[GoogleAuth] native ID token unavailable for existing-account admission',
+          );
+          return const SignInFailure(
+            'Tio could not verify this Google account. Please try again.',
+            code: 'google_login_admission_token_unavailable',
+          );
+        }
+
+        developer.log(
+          '[GoogleAuth] native ID token unavailable; signup-capable OAuth fallback started',
+        );
         bool success;
         try {
           success = await _client.auth
@@ -153,6 +182,45 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
           return SignInSuccess(_mapUser(user));
         }
         return const SignInCancelled();
+      }
+
+      if (intent == GoogleSignInIntent.existingAccountOnly) {
+        developer.log('[GoogleAuth] existing-account admission started');
+        GoogleLoginAdmissionDecision admissionDecision;
+        try {
+          admissionDecision = await _googleLoginAdmissionChecker(idToken)
+              .timeout(_googleAdmissionTimeout);
+        } on TimeoutException catch (error, stackTrace) {
+          developer.log(
+            '[GoogleAuth] existing-account admission timed out',
+            error: error,
+            stackTrace: stackTrace,
+          );
+          return const SignInFailure(
+            'Tio could not verify your account in time. Please try again.',
+            code: 'google_login_admission_timeout',
+          );
+        } catch (error, stackTrace) {
+          developer.log(
+            '[GoogleAuth] existing-account admission failed',
+            error: error,
+            stackTrace: stackTrace,
+          );
+          return const SignInFailure(
+            'Tio could not verify your account right now. Please try again.',
+            code: 'google_login_admission_failed',
+          );
+        }
+
+        if (admissionDecision == GoogleLoginAdmissionDecision.noAccount) {
+          developer.log('[GoogleAuth] existing-account admission denied');
+          return const SignInFailure(
+            'No Tio account found for this Google account.\n'
+            'Create a Tio account first to continue.',
+            code: 'google_account_not_found',
+          );
+        }
+        developer.log('[GoogleAuth] existing-account admission allowed');
       }
 
       developer.log('[GoogleAuth] Supabase ID-token exchange started');
@@ -269,7 +337,8 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
           {
             'id': user.id,
             if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
-            if (name != null && name.trim().isNotEmpty) 'username': name.trim().toLowerCase(),
+            if (name != null && name.trim().isNotEmpty)
+              'username': name.trim().toLowerCase(),
             'email': email.trim().toLowerCase(),
             'last_active_at': nowIso,
             'updated_at': nowIso,
@@ -339,7 +408,9 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
     if (repository == null) return;
 
     unawaited(
-      repository.syncCurrentDevice().catchError((Object error, StackTrace stackTrace) {
+      repository
+          .syncCurrentDevice()
+          .catchError((Object error, StackTrace stackTrace) {
         developer.log(
           'Failed to sync authenticated user device',
           error: error,
@@ -392,8 +463,8 @@ class SupabaseAuthSignInRepository implements AuthSignInRepository {
     final displayName = metadata['full_name'] as String? ??
         metadata['name'] as String? ??
         metadata['display_name'] as String?;
-    final photoUrl = metadata['avatar_url'] as String? ??
-        metadata['picture'] as String?;
+    final photoUrl =
+        metadata['avatar_url'] as String? ?? metadata['picture'] as String?;
 
     return AuthSession(
       userId: user.id,
