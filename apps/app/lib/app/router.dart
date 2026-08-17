@@ -309,6 +309,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           }
           return UsernameSetupPage(
             repository: accountRepository,
+            onBack: () async {
+              await ref.read(authSessionRepositoryProvider).signOut();
+              await appSessionBootstrapController.refresh();
+            },
             onCompleted: () async {
               ref.invalidate(profileDataProvider);
               await appSessionBootstrapController.refresh();
