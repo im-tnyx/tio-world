@@ -9,7 +9,8 @@ class BuildOnboardingFlowUseCase {
     required OnboardingEntryPath entryPath,
     AppMode? mode,
     WorkoutIntroChoice? workoutIntroChoice,
-    bool includeMobile = true,
+    @Deprecated('Mobile belongs to Account Setup and is never included here.')
+    bool includeMobile = false,
   }) {
     return OnboardingFlowPlan(
       entryPath: entryPath,
@@ -19,7 +20,6 @@ class BuildOnboardingFlowUseCase {
           : _stepsByMode(
               mode,
               workoutIntroChoice: workoutIntroChoice,
-              includeMobile: includeMobile,
             ),
     );
   }
@@ -44,38 +44,34 @@ class BuildOnboardingFlowUseCase {
 List<OnboardingStepDefinition> _stepsByMode(
   AppMode mode, {
   WorkoutIntroChoice? workoutIntroChoice,
-  bool includeMobile = true,
 }) {
-  final profileAndMobile = <OnboardingStepDefinition>[
-    _profileBasics,
-    if (includeMobile) _mobile,
-  ];
+  const profile = <OnboardingStepDefinition>[_profileBasics];
 
   return switch (mode) {
     AppMode.workout => [
         _mode,
-        ...profileAndMobile,
+        ...profile,
         _workoutPreferences,
         _targets,
         _review,
       ],
     AppMode.nutrition => [
         _mode,
-        ...profileAndMobile,
+        ...profile,
         _targets,
         _review,
       ],
     AppMode.hybrid => workoutIntroChoice == WorkoutIntroChoice.later
         ? [
             _mode,
-            ...profileAndMobile,
+            ...profile,
             _workoutIntro,
             _targets,
             _review,
           ]
         : [
             _mode,
-            ...profileAndMobile,
+            ...profile,
             _workoutIntro,
             _workoutPreferences,
             _targets,
@@ -95,12 +91,6 @@ const _profileBasics = OnboardingStepDefinition(
   section: OnboardingSectionId.profile,
   owner: OnboardingStepOwner.profile,
   progressTitle: 'About you',
-);
-const _mobile = OnboardingStepDefinition(
-  id: OnboardingStepId.mobile,
-  section: OnboardingSectionId.mobile,
-  owner: OnboardingStepOwner.profile,
-  progressTitle: 'Mobile (optional)',
 );
 const _workoutIntro = OnboardingStepDefinition(
   id: OnboardingStepId.workoutIntro,

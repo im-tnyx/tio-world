@@ -28,31 +28,10 @@ void main() {
       );
     });
 
-    test('unauthenticated users can use auth and onboarding routes but not protected routes', () {
+    test('unauthenticated users cannot enter Account Setup', () {
       expect(
         appSessionBootstrapRedirect(
-          path: AppRoutes.splash.path,
-          state: const AppSessionBootstrapUnauthenticated(),
-        ),
-        AppRoutes.auth.path,
-      );
-      expect(
-        appSessionBootstrapRedirect(
-          path: AppRoutes.login.path,
-          state: const AppSessionBootstrapUnauthenticated(),
-        ),
-        isNull,
-      );
-      expect(
-        appSessionBootstrapRedirect(
-          path: AppRoutes.onboarding.path,
-          state: const AppSessionBootstrapUnauthenticated(),
-        ),
-        isNull,
-      );
-      expect(
-        appSessionBootstrapRedirect(
-          path: AppRoutes.usernameSetup.path,
+          path: AppRoutes.accountSetup.path,
           state: const AppSessionBootstrapUnauthenticated(),
         ),
         AppRoutes.auth.path,
@@ -66,32 +45,39 @@ void main() {
       );
     });
 
-    test('authenticated users missing username are gated to username setup', () {
-      const state = AppSessionBootstrapRequiresUsername(userId: 'user-a');
+    test('incomplete account is gated to generic Account Setup boundary', () {
+      const state = AppSessionBootstrapRequiresAccountSetup(userId: 'user-a');
       expect(
         appSessionBootstrapRedirect(
           path: FeatureRoutes.home.path,
           state: state,
         ),
-        AppRoutes.usernameSetup.path,
+        AppRoutes.accountSetup.path,
       );
       expect(
         appSessionBootstrapRedirect(
           path: AppRoutes.onboarding.path,
           state: state,
         ),
-        AppRoutes.usernameSetup.path,
+        AppRoutes.accountSetup.path,
       );
       expect(
         appSessionBootstrapRedirect(
           path: AppRoutes.usernameSetup.path,
           state: state,
         ),
+        AppRoutes.accountSetup.path,
+      );
+      expect(
+        appSessionBootstrapRedirect(
+          path: AppRoutes.accountSetup.path,
+          state: state,
+        ),
         isNull,
       );
     });
 
-    test('incomplete authenticated users are gated to onboarding', () {
+    test('Account Setup complete authenticated users are gated to onboarding', () {
       const state = AppSessionBootstrapRequiresOnboarding(userId: 'user-a');
       expect(
         appSessionBootstrapRedirect(
@@ -102,7 +88,7 @@ void main() {
       );
       expect(
         appSessionBootstrapRedirect(
-          path: AppRoutes.login.path,
+          path: AppRoutes.accountSetup.path,
           state: state,
         ),
         AppRoutes.onboarding.path,
@@ -114,16 +100,9 @@ void main() {
         ),
         isNull,
       );
-      expect(
-        appSessionBootstrapRedirect(
-          path: AppRoutes.congratulations.path,
-          state: state,
-        ),
-        isNull,
-      );
     });
 
-    test('ready returning users leave bootstrap/auth entry routes for Home', () {
+    test('ready returning users leave all setup entry routes for Home', () {
       const state = AppSessionBootstrapReady(userId: 'user-a');
       for (final path in [
         AppRoutes.splash.path,
@@ -131,6 +110,7 @@ void main() {
         AppRoutes.login.path,
         AppRoutes.emailLogin.path,
         AppRoutes.emailSignup.path,
+        AppRoutes.accountSetup.path,
         AppRoutes.usernameSetup.path,
         AppRoutes.onboarding.path,
       ]) {
