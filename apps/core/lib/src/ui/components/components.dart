@@ -6,4 +6,5 @@ export 'inputs/inputs.dart';
 export 'layouts/layouts.dart';
 export 'legal/legal.dart';
 export 'navigation/navigation.dart';
+export 'preferences/preferences.dart';
 export 'sheets/sheets.dart';
