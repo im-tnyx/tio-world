@@ -13,7 +13,6 @@ void main() {
     final semantics = tester.ensureSemantics();
 
     try {
-      // Step 1: Bridge
       expect(find.byType(TargetsSection), findsOneWidget);
       expect(find.byType(BridgeScreen), findsOneWidget);
       expect(
@@ -25,7 +24,6 @@ void main() {
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
 
-      // Step 2: StepTarget
       expect(find.byType(StepTargetScreen), findsOneWidget);
       expect(
         find.bySemanticsLabel('Target step 2 of 6, Daily step target'),
@@ -36,7 +34,6 @@ void main() {
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
 
-      // Step 3: SleepTarget
       expect(find.byType(SleepTargetScreen), findsOneWidget);
       expect(
         find.bySemanticsLabel('Target step 3 of 6, Sleep schedule target'),
@@ -47,7 +44,6 @@ void main() {
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
 
-      // Step 4: WaterTarget
       expect(find.byType(WaterTargetScreen), findsOneWidget);
       expect(
         find.bySemanticsLabel('Target step 4 of 6, Daily hydration target'),
@@ -58,7 +54,6 @@ void main() {
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
 
-      // Step 5: GoalPace (Real Screen) — CTA must be 'Continue'
       expect(find.byType(GoalPaceScreen), findsOneWidget);
       expect(
         find.bySemanticsLabel(RegExp(r'Target step 5 of 6')),
@@ -69,7 +64,6 @@ void main() {
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
 
-      // Step 6: NutritionTarget (Real Screen with Canonical Calculations) — CTA must be 'Review'
       expect(find.byType(NutritionTargetScreen), findsOneWidget);
       expect(
         find.bySemanticsLabel('Target step 6 of 6, Nutrition targets'),
@@ -84,7 +78,6 @@ void main() {
       await tester.tap(find.text('Review'));
       await tester.pumpAndSettle();
 
-      // Advances to Review section
       expect(harness.controller.state.stepId, OnboardingStepId.review);
       expect(find.byType(ReviewSection), findsOneWidget);
     } finally {
@@ -106,28 +99,24 @@ void main() {
     expect(find.text('2.5'), findsOneWidget);
     expect(find.text('L/day'), findsOneWidget);
 
-    // Change unit to ml via dropdown
     await tester.tap(find.byKey(const ValueKey('targets-water-unit-dropdown')));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('ml').last);
+    await tester.tap(find.text('mL').last);
     await tester.pumpAndSettle();
 
     expect(find.text('2500'), findsOneWidget);
     expect(find.text('ml/day'), findsOneWidget);
-    // Domain waterMl is still 2500
     expect(harness.controller.state.draft.targets.waterMl, 2500);
 
-    // Change unit to oz via dropdown
     await tester.tap(find.byKey(const ValueKey('targets-water-unit-dropdown')));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('oz').last);
+    await tester.tap(find.text('fl oz').last);
     await tester.pumpAndSettle();
 
     expect(find.text('85'), findsOneWidget);
-    expect(find.text('oz/day'), findsOneWidget);
-    // Domain waterMl is still 2500
+    expect(find.text('fl oz/day'), findsOneWidget);
     expect(harness.controller.state.draft.targets.waterMl, 2500);
   });
 
@@ -159,7 +148,6 @@ void main() {
     expect(find.text('Medium'), findsOneWidget);
     expect(find.byKey(const ValueKey('targets-goal-pace-slider')), findsOneWidget);
 
-    // Update pace to 1.2 kg/week -> should show aggressive warning
     harness.controller.updateGoalPaceKgPerWeek(1.2);
     await tester.pumpAndSettle();
 
