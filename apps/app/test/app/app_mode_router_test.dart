@@ -8,7 +8,9 @@ import 'package:tio_app/app/onboarding/onboarding.dart';
 import 'package:tio_app/app/app_theme.dart';
 import 'package:tio_app/app/network_providers.dart';
 import 'package:tio_app/app/router.dart';
+import 'package:tio_app/app/session/session.dart';
 import 'package:tio_core/core.dart';
+import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_home/home.dart';
 import 'package:tio_feature_onboarding/onboarding.dart'
     hide
@@ -104,6 +106,12 @@ void main() {
         onboardingStatusRepositoryProvider
             .overrideWith((ref) => onboardingRepository),
         appThemeControllerProvider.overrideWith((ref) => themeController),
+        appSessionBootstrapControllerProvider.overrideWith(
+          (ref) => _FixedAppSessionBootstrapController(
+            state: const AppSessionBootstrapReady(userId: 'test-user'),
+            onboardingStatusController: onboardingStatusController,
+          ),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -154,6 +162,14 @@ void main() {
         onboardingStatusRepositoryProvider
             .overrideWith((ref) => onboardingRepository),
         appThemeControllerProvider.overrideWith((ref) => themeController),
+        appSessionBootstrapControllerProvider.overrideWith(
+          (ref) => _FixedAppSessionBootstrapController(
+            state: const AppSessionBootstrapRequiresOnboarding(
+              userId: 'test-user',
+            ),
+            onboardingStatusController: onboardingStatusController,
+          ),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -238,6 +254,12 @@ void main() {
         onboardingStatusRepositoryProvider
             .overrideWith((ref) => onboardingRepository),
         appThemeControllerProvider.overrideWith((ref) => themeController),
+        appSessionBootstrapControllerProvider.overrideWith(
+          (ref) => _FixedAppSessionBootstrapController(
+            state: const AppSessionBootstrapReady(userId: 'test-user'),
+            onboardingStatusController: onboardingStatusController,
+          ),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -318,6 +340,12 @@ void main() {
         onboardingStatusRepositoryProvider
             .overrideWith((ref) => onboardingRepository),
         appThemeControllerProvider.overrideWith((ref) => themeController),
+        appSessionBootstrapControllerProvider.overrideWith(
+          (ref) => _FixedAppSessionBootstrapController(
+            state: const AppSessionBootstrapReady(userId: 'test-user'),
+            onboardingStatusController: onboardingStatusController,
+          ),
+        ),
         profileDataProvider.overrideWith((ref) => Stream.value(
               ProfileSetupData(
                 name: 'Tio User',
@@ -392,6 +420,12 @@ Future<SystemUiOverlayStyle> _pumpSystemUiOverlay(
       onboardingStatusRepositoryProvider
           .overrideWith((ref) => onboardingRepository),
       appThemeControllerProvider.overrideWith((ref) => themeController),
+      appSessionBootstrapControllerProvider.overrideWith(
+        (ref) => _FixedAppSessionBootstrapController(
+          state: const AppSessionBootstrapReady(userId: 'test-user'),
+          onboardingStatusController: onboardingStatusController,
+        ),
+      ),
     ],
   );
   addTearDown(container.dispose);
@@ -423,46 +457,80 @@ Future<AppThemeController> _createThemeController() async {
 
 Future<void> _completeProfileInputs(WidgetTester tester) async {
   await tester.enterText(find.byType(TextField), 'Tio User');
-  await tester.tap(find.widgetWithText(TioButton, 'Continue'), warnIfMissed: false);
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
+      warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  await tester.tap(find.byKey(const ValueKey('gender-other'), skipOffstage: false), warnIfMissed: false);
+  await tester.tap(
+    find.byKey(const ValueKey('gender-other'), skipOffstage: false),
+    warnIfMissed: false,
+  );
   await tester.pumpAndSettle();
-  await tester.tap(find.widgetWithText(TioButton, 'Continue'), warnIfMissed: false);
-  await tester.pumpAndSettle();
-
-  await tester.tap(find.byKey(const ValueKey('goal-keepFit'), skipOffstage: false), warnIfMissed: false);
-  await tester.pumpAndSettle();
-  await tester.tap(find.widgetWithText(TioButton, 'Continue'), warnIfMissed: false);
-  await tester.pumpAndSettle();
-
-  // Date of birth
-  await tester.tap(find.widgetWithText(TioButton, 'Continue'), warnIfMissed: false);
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
+      warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  // Height
-  await tester.tap(find.widgetWithText(TioButton, 'Continue'), warnIfMissed: false);
+  await tester.tap(
+    find.byKey(const ValueKey('goal-keepFit'), skipOffstage: false),
+    warnIfMissed: false,
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
+      warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  // Current weight
-  await tester.tap(find.widgetWithText(TioButton, 'Continue'), warnIfMissed: false);
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
+      warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  // Target weight
-  await tester.tap(find.widgetWithText(TioButton, 'Continue'), warnIfMissed: false);
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
+      warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  // Activity
-  await tester.tap(find.byKey(const ValueKey('activity-active'), skipOffstage: false), warnIfMissed: false);
-  await tester.pumpAndSettle();
-  await tester.tap(find.widgetWithText(TioButton, 'Continue'), warnIfMissed: false);
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
+      warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  // Health conditions
-  await tester.tap(find.byKey(const ValueKey('health-none'), skipOffstage: false), warnIfMissed: false);
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
+      warnIfMissed: false);
   await tester.pumpAndSettle();
-  await tester.tap(find.widgetWithText(TioButton, 'Continue'), warnIfMissed: false);
+
+  await tester.tap(
+    find.byKey(const ValueKey('activity-active'), skipOffstage: false),
+    warnIfMissed: false,
+  );
   await tester.pumpAndSettle();
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
+      warnIfMissed: false);
+  await tester.pumpAndSettle();
+
+  await tester.tap(
+    find.byKey(const ValueKey('health-none'), skipOffstage: false),
+    warnIfMissed: false,
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
+      warnIfMissed: false);
+  await tester.pumpAndSettle();
+}
+
+class _FixedAppSessionBootstrapController extends AppSessionBootstrapController {
+  _FixedAppSessionBootstrapController({
+    required this.fixedState,
+    required OnboardingStatusController onboardingStatusController,
+  }) : super(
+          authSessionRepository: InMemoryAuthSessionRepository(),
+          onboardingCompletionRepository: null,
+          onboardingStatusController: onboardingStatusController,
+        );
+
+  final AppSessionBootstrapState fixedState;
+
+  @override
+  AppSessionBootstrapState get state => fixedState;
+
+  @override
+  void start() {}
 }
 
 class _MemoryAppModePreference implements AppModePreference {
