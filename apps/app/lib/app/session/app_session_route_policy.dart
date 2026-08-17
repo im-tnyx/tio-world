@@ -8,6 +8,7 @@ final _unauthenticatedPublicPaths = <String>{
   AppRoutes.emailLogin.path,
   AppRoutes.emailSignup.path,
   AppRoutes.forgotPassword.path,
+  AppRoutes.onboarding.path,
 };
 
 final _readyEntryPaths = <String>{
