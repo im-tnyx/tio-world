@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -6,12 +5,11 @@ import 'package:tio_core/core.dart';
 
 import '../../../domain/domain.dart';
 
-/// Clean, modern Sign Up screen aligned with Tnyx-Hub authentication design.
+/// Canonical Sign Up screen for fresh-account authentication.
 ///
-/// Supports conditional social buttons:
-/// - When [showSocialButtons] is false (e.g. pushed from mid-flow AuthLandingPage),
-///   it presents a clean, focused Email + Password creation form.
-/// - When [showSocialButtons] is true, it includes Google and Truecaller options.
+/// Email/password, Google, future Truecaller, and the legal disclaimer live on
+/// this one surface. Entry source affects post-auth continuation in the app
+/// router/bootstrap layer, not which signup providers are visible here.
 class EmailSignupPage extends StatefulWidget {
   const EmailSignupPage({
     this.signUpWithEmailUseCase,
@@ -20,7 +18,6 @@ class EmailSignupPage extends StatefulWidget {
     this.onSignUpSuccess,
     this.onAuthSuccess,
     this.onTruecallerClick,
-    this.showSocialButtons = false,
     super.key,
   });
 
@@ -30,7 +27,6 @@ class EmailSignupPage extends StatefulWidget {
   final ValueChanged<SignInSuccess>? onSignUpSuccess;
   final ValueChanged<GoogleAuthComplete>? onAuthSuccess;
   final VoidCallback? onTruecallerClick;
-  final bool showSocialButtons;
 
   @override
   State<EmailSignupPage> createState() => _EmailSignupPageState();
@@ -64,7 +60,9 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
     if (mounted) setState(() {});
   }
 
-  Future<UsernameAvailabilityResult> _checkUsernameAvailability(String handle) async {
+  Future<UsernameAvailabilityResult> _checkUsernameAvailability(
+    String handle,
+  ) async {
     try {
       final client = Supabase.instance.client;
       final row = await client
@@ -75,18 +73,18 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
 
       if (row == null) {
         return const UsernameAvailabilityResult(isAvailable: true);
-      } else {
-        final year = DateTime.now().year % 100;
-        return UsernameAvailabilityResult(
-          isAvailable: false,
-          suggestions: [
-            '${handle}_fit',
-            '${handle}_$year',
-            '${handle}_tio',
-          ],
-          message: 'This username is already taken. Try another:',
-        );
       }
+
+      final year = DateTime.now().year % 100;
+      return UsernameAvailabilityResult(
+        isAvailable: false,
+        suggestions: [
+          '${handle}_fit',
+          '${handle}_$year',
+          '${handle}_tio',
+        ],
+        message: 'This username is already taken. Try another:',
+      );
     } catch (_) {
       return const UsernameAvailabilityResult(isAvailable: true);
     }
@@ -107,66 +105,32 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
   bool get _isPasswordValid => _passwordController.text.length >= 6;
   bool get _isFormValid => _isEmailValid && _isPasswordValid && _isUsernameValid;
 
-  Future<void> _navigateOnAuthSuccess([String? userId]) async {
-    final effectiveUserId = userId ?? Supabase.instance.client.auth.currentUser?.id;
-    if (effectiveUserId != null && effectiveUserId.isNotEmpty) {
-      try {
-        final client = Supabase.instance.client;
-        final row = await client
-            .from('users')
-            .select('is_onboarded, name')
-            .eq('id', effectiveUserId)
-            .maybeSingle();
-
-        if (row != null && row['is_onboarded'] == true) {
-          if (!mounted) return;
-          final name = row['name'] as String? ?? '';
-          context.go(
-            AppRoutes.congratulations.path,
-            extra: {
-              'userName': name,
-              'isWelcomeBack': true,
-            },
-          );
-          return;
-        }
-      } catch (_) {
-        // Non-blocking fallback
-      }
-    }
-
-    if (!mounted) return;
-    if (context.canPop()) {
-      context.pop(true);
-    } else {
-      context.go(AppRoutes.onboarding.path);
-    }
-  }
-
   Future<void> _handleSignUp() async {
     if (!_isFormValid || _isLoading) return;
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
-    if (widget.signUpWithEmailUseCase == null) {
-      await _navigateOnAuthSuccess();
+    final useCase = widget.signUpWithEmailUseCase;
+    if (useCase == null) {
+      if (mounted) setState(() => _isLoading = false);
       return;
     }
 
     try {
       final username = _usernameController.text.trim();
-      final result = await widget.signUpWithEmailUseCase!(
+      final result = await useCase(
         email: _emailController.text.trim(),
         password: _passwordController.text,
         name: username.isNotEmpty ? username : null,
       );
       if (!mounted) return;
+
       switch (result) {
         case SignInSuccess():
           widget.onSignUpSuccess?.call(result);
-          await _navigateOnAuthSuccess(result.session.userId);
           break;
         case SignInFailure(:final message):
           setState(() => _errorMessage = message);
@@ -183,34 +147,38 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
 
   Future<void> _handleGoogleSignIn() async {
     if (_isLoading) return;
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
-    if (widget.signInWithGoogleUseCase == null && widget.googleAuthUseCase == null) {
-      await _navigateOnAuthSuccess();
-      return;
-    }
-
     try {
       if (widget.signInWithGoogleUseCase != null) {
-        final result = await widget.signInWithGoogleUseCase!();
+        final result = await widget.signInWithGoogleUseCase!(
+          intent: GoogleSignInIntent.signupOrExisting,
+        );
         if (!mounted) return;
+
         if (result is SignInSuccess) {
-          await _navigateOnAuthSuccess(result.session.userId);
+          widget.onSignUpSuccess?.call(result);
           return;
-        } else if (result is SignInFailure) {
+        }
+        if (result is SignInFailure) {
           setState(() => _errorMessage = result.message);
         }
-      } else if (widget.googleAuthUseCase != null) {
+        return;
+      }
+
+      if (widget.googleAuthUseCase != null) {
         final result = await widget.googleAuthUseCase!();
         if (!mounted) return;
+
         if (result is GoogleAuthComplete) {
           widget.onAuthSuccess?.call(result);
-          await _navigateOnAuthSuccess(result.session.userId);
           return;
-        } else if (result is GoogleAuthFailed) {
+        }
+        if (result is GoogleAuthFailed) {
           setState(() => _errorMessage = result.message);
         }
       }
@@ -232,7 +200,6 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
           children: [
             Column(
               children: [
-                // Top App Bar (100% Identical alignment with OnboardingTopBar & Login)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(
                     TioSpacing.small,
@@ -270,30 +237,27 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                     ),
                   ),
                 ),
-
-                // Form Content
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: TioSpacing.large),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: TioSpacing.large,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: TioSpacing.large),
-
-                        // Reusable TioUsernameInputField Component from tio_core
                         TioUsernameInputField(
                           key: const ValueKey('signup-username-input'),
                           controller: _usernameController,
                           enabled: !_isLoading,
                           onStatusChanged: (status) {
-                            if (mounted) setState(() => _usernameStatus = status);
+                            if (mounted) {
+                              setState(() => _usernameStatus = status);
+                            }
                           },
                           onCheckAvailability: _checkUsernameAvailability,
                         ),
-
                         const SizedBox(height: TioSpacing.large),
-
-                        // Email Input Field
                         TextField(
                           key: const ValueKey('signup-email-input'),
                           controller: _emailController,
@@ -304,32 +268,47 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                           decoration: InputDecoration(
                             labelText: 'Email',
                             hintText: 'Enter your email',
-                            prefixIcon: Icon(Icons.email_outlined, color: colors.textMuted, size: 20),
+                            prefixIcon: Icon(
+                              Icons.email_outlined,
+                              color: colors.textMuted,
+                              size: 20,
+                            ),
                             labelStyle: TextStyle(color: colors.textMuted),
-                            hintStyle: TextStyle(color: colors.textMuted.withValues(alpha: 0.6)),
+                            hintStyle: TextStyle(
+                              color: colors.textMuted.withValues(alpha: 0.6),
+                            ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: TioSpacing.large,
                               vertical: TioSpacing.large - 2,
                             ),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(TioRadius.large),
-                              borderSide: BorderSide(color: colors.outlineStrong.withValues(alpha: 0.4)),
+                              borderRadius:
+                                  BorderRadius.circular(TioRadius.large),
+                              borderSide: BorderSide(
+                                color: colors.outlineStrong.withValues(
+                                  alpha: 0.4,
+                                ),
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(TioRadius.large),
-                              borderSide: BorderSide(color: colors.outlineStrong.withValues(alpha: 0.4)),
+                              borderRadius:
+                                  BorderRadius.circular(TioRadius.large),
+                              borderSide: BorderSide(
+                                color: colors.outlineStrong.withValues(
+                                  alpha: 0.4,
+                                ),
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(TioRadius.large),
-                              borderSide: BorderSide(color: colors.primary, width: 2),
+                              borderRadius:
+                                  BorderRadius.circular(TioRadius.large),
+                              borderSide:
+                                  BorderSide(color: colors.primary, width: 2),
                             ),
                             filled: false,
                           ),
                         ),
-
                         const SizedBox(height: TioSpacing.large),
-
-                        // Password Input Field
                         TextField(
                           key: const ValueKey('signup-password-input'),
                           controller: _passwordController,
@@ -341,24 +320,42 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                           decoration: InputDecoration(
                             labelText: 'Password',
                             hintText: 'At least 6 characters',
-                            prefixIcon: Icon(Icons.lock_outline, color: colors.textMuted, size: 20),
+                            prefixIcon: Icon(
+                              Icons.lock_outline,
+                              color: colors.textMuted,
+                              size: 20,
+                            ),
                             labelStyle: TextStyle(color: colors.textMuted),
-                            hintStyle: TextStyle(color: colors.textMuted.withValues(alpha: 0.6)),
+                            hintStyle: TextStyle(
+                              color: colors.textMuted.withValues(alpha: 0.6),
+                            ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: TioSpacing.large,
                               vertical: TioSpacing.large - 2,
                             ),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(TioRadius.large),
-                              borderSide: BorderSide(color: colors.outlineStrong.withValues(alpha: 0.4)),
+                              borderRadius:
+                                  BorderRadius.circular(TioRadius.large),
+                              borderSide: BorderSide(
+                                color: colors.outlineStrong.withValues(
+                                  alpha: 0.4,
+                                ),
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(TioRadius.large),
-                              borderSide: BorderSide(color: colors.outlineStrong.withValues(alpha: 0.4)),
+                              borderRadius:
+                                  BorderRadius.circular(TioRadius.large),
+                              borderSide: BorderSide(
+                                color: colors.outlineStrong.withValues(
+                                  alpha: 0.4,
+                                ),
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(TioRadius.large),
-                              borderSide: BorderSide(color: colors.primary, width: 2),
+                              borderRadius:
+                                  BorderRadius.circular(TioRadius.large),
+                              borderSide:
+                                  BorderSide(color: colors.primary, width: 2),
                             ),
                             suffixIcon: IconButton(
                               icon: Icon(
@@ -369,16 +366,15 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                                 size: 22,
                               ),
                               onPressed: () {
-                                setState(() => _isPasswordVisible = !_isPasswordVisible);
+                                setState(
+                                  () => _isPasswordVisible = !_isPasswordVisible,
+                                );
                               },
                             ),
                             filled: false,
                           ),
                         ),
-
                         const SizedBox(height: 28),
-
-                        // Create Account Action Button (Reusable TioButton Component)
                         TioButton.primary(
                           key: const ValueKey('signup-submit-button'),
                           label: 'Create Account',
@@ -387,34 +383,34 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                           enabled: _isFormValid,
                           onPressed: _handleSignUp,
                         ),
-
-                        // Conditional Social Buttons
-                        if (widget.showSocialButtons) ...[
-                          const SizedBox(height: 24),
-                          _OrDivider(colors: colors),
-                          const SizedBox(height: 24),
-                          TioSocialButton.google(
-                            key: const ValueKey('signup-google-button'),
-                            loading: _isLoading,
-                            onPressed: _handleGoogleSignIn,
-                          ),
-                          const SizedBox(height: 12),
-                          TioSocialButton.truecaller(
-                            key: const ValueKey('signup-truecaller-button'),
-                            loading: false,
-                            onPressed: widget.onTruecallerClick ?? () {},
-                          ),
-                        ],
-
-                        const SizedBox(height: TioSpacing.extraLarge + TioSpacing.small),
+                        const SizedBox(height: 24),
+                        _OrDivider(colors: colors),
+                        const SizedBox(height: 24),
+                        TioSocialButton.google(
+                          key: const ValueKey('signup-google-button'),
+                          loading: _isLoading,
+                          onPressed: _handleGoogleSignIn,
+                        ),
+                        const SizedBox(height: 12),
+                        TioSocialButton.truecaller(
+                          key: const ValueKey('signup-truecaller-button'),
+                          loading: false,
+                          onPressed: widget.onTruecallerClick ?? () {},
+                        ),
+                        const SizedBox(height: 16),
+                        const TioTermsDisclaimer(),
+                        const SizedBox(
+                          height: TioSpacing.extraLarge + TioSpacing.small,
+                        ),
                       ],
                     ),
                   ),
                 ),
-
-                // Footer: Already have an account? Log In
                 Padding(
-                  padding: const EdgeInsets.only(bottom: TioSpacing.large, top: TioSpacing.small),
+                  padding: const EdgeInsets.only(
+                    bottom: TioSpacing.large,
+                    top: TioSpacing.small,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -429,11 +425,14 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                         key: const ValueKey('signup-login-link'),
                         onPressed: () {
                           if (!_isLoading) {
-                            context.pushReplacement(AppRoutes.emailLogin.path);
+                            context.pushReplacement(AppRoutes.login.path);
                           }
                         },
                         style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 8,
+                          ),
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
@@ -451,8 +450,6 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                 ),
               ],
             ),
-
-            // Floating Error Banner at Top
             if (_errorMessage != null)
               Positioned(
                 top: TioSpacing.medium,
@@ -472,6 +469,7 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
 
 class _OrDivider extends StatelessWidget {
   const _OrDivider({required this.colors});
+
   final TioColors colors;
 
   @override
@@ -479,7 +477,9 @@ class _OrDivider extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: Divider(color: colors.outlineStrong.withValues(alpha: 0.3)),
+          child: Divider(
+            color: colors.outlineStrong.withValues(alpha: 0.3),
+          ),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -494,7 +494,9 @@ class _OrDivider extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: Divider(color: colors.outlineStrong.withValues(alpha: 0.3)),
+          child: Divider(
+            color: colors.outlineStrong.withValues(alpha: 0.3),
+          ),
         ),
       ],
     );
@@ -513,11 +515,15 @@ class _FloatingErrorBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = TioTheme.colors(context);
+
     return Material(
       color: Colors.transparent,
       elevation: 6,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: TioSpacing.large, vertical: TioSpacing.medium),
+        padding: const EdgeInsets.symmetric(
+          horizontal: TioSpacing.large,
+          vertical: TioSpacing.medium,
+        ),
         decoration: BoxDecoration(
           color: colors.danger,
           borderRadius: BorderRadius.circular(TioRadius.large),
@@ -549,12 +555,15 @@ class _FloatingErrorBanner extends StatelessWidget {
               TextButton(
                 onPressed: () {
                   onDismiss();
-                  context.pushReplacement(AppRoutes.emailLogin.path);
+                  context.pushReplacement(AppRoutes.login.path);
                 },
                 style: TextButton.styleFrom(
                   foregroundColor: Colors.white,
                   backgroundColor: Colors.white.withAlpha(50),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   shape: RoundedRectangleBorder(
@@ -563,7 +572,10 @@ class _FloatingErrorBanner extends StatelessWidget {
                 ),
                 child: const Text(
                   'Log In',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                  ),
                 ),
               ),
               const SizedBox(width: TioSpacing.small),
