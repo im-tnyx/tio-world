@@ -489,18 +489,28 @@ Future<void> _completeProfileInputs(WidgetTester tester) async {
     ..updateProfileTargetWeight(65.0);
   await tester.pump();
 
+  // Age -> Measurement Units. Defaults are valid, so Continue advances.
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
+      warnIfMissed: false);
+  await tester.pumpAndSettle();
+  expect(find.text('Choose your units'), findsOneWidget);
+
+  // Measurement Units -> Height.
   await tester.tap(find.widgetWithText(TioButton, 'Continue'),
       warnIfMissed: false);
   await tester.pumpAndSettle();
 
+  // Height -> Current Weight.
   await tester.tap(find.widgetWithText(TioButton, 'Continue'),
       warnIfMissed: false);
   await tester.pumpAndSettle();
 
+  // Current Weight -> Target Weight.
   await tester.tap(find.widgetWithText(TioButton, 'Continue'),
       warnIfMissed: false);
   await tester.pumpAndSettle();
 
+  // Target Weight -> Activity.
   await tester.tap(find.widgetWithText(TioButton, 'Continue'),
       warnIfMissed: false);
   await tester.pumpAndSettle();
