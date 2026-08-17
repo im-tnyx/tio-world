@@ -152,35 +152,41 @@ class _UnitChoiceRow extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: leftSelected
-              ? TioButton.primary(
-                  key: leftKey,
-                  label: leftLabel,
-                  onPressed: onLeft,
-                  expand: true,
-                )
-              : TioButton.secondary(
-                  key: leftKey,
-                  label: leftLabel,
-                  onPressed: onLeft,
-                  expand: true,
-                ),
+          child: Semantics(
+            selected: leftSelected,
+            child: leftSelected
+                ? TioButton.primary(
+                    key: leftKey,
+                    label: leftLabel,
+                    onPressed: onLeft,
+                    expand: true,
+                  )
+                : TioButton.secondary(
+                    key: leftKey,
+                    label: leftLabel,
+                    onPressed: onLeft,
+                    expand: true,
+                  ),
+          ),
         ),
         const SizedBox(width: TioSpacing.medium),
         Expanded(
-          child: rightSelected
-              ? TioButton.primary(
-                  key: rightKey,
-                  label: rightLabel,
-                  onPressed: onRight,
-                  expand: true,
-                )
-              : TioButton.secondary(
-                  key: rightKey,
-                  label: rightLabel,
-                  onPressed: onRight,
-                  expand: true,
-                ),
+          child: Semantics(
+            selected: rightSelected,
+            child: rightSelected
+                ? TioButton.primary(
+                    key: rightKey,
+                    label: rightLabel,
+                    onPressed: onRight,
+                    expand: true,
+                  )
+                : TioButton.secondary(
+                    key: rightKey,
+                    label: rightLabel,
+                    onPressed: onRight,
+                    expand: true,
+                  ),
+          ),
         ),
       ],
     );
