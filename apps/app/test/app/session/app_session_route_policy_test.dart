@@ -52,10 +52,42 @@ void main() {
       );
       expect(
         appSessionBootstrapRedirect(
+          path: AppRoutes.usernameSetup.path,
+          state: const AppSessionBootstrapUnauthenticated(),
+        ),
+        AppRoutes.auth.path,
+      );
+      expect(
+        appSessionBootstrapRedirect(
           path: FeatureRoutes.home.path,
           state: const AppSessionBootstrapUnauthenticated(),
         ),
         AppRoutes.auth.path,
+      );
+    });
+
+    test('authenticated users missing username are gated to username setup', () {
+      const state = AppSessionBootstrapRequiresUsername(userId: 'user-a');
+      expect(
+        appSessionBootstrapRedirect(
+          path: FeatureRoutes.home.path,
+          state: state,
+        ),
+        AppRoutes.usernameSetup.path,
+      );
+      expect(
+        appSessionBootstrapRedirect(
+          path: AppRoutes.onboarding.path,
+          state: state,
+        ),
+        AppRoutes.usernameSetup.path,
+      );
+      expect(
+        appSessionBootstrapRedirect(
+          path: AppRoutes.usernameSetup.path,
+          state: state,
+        ),
+        isNull,
       );
     });
 
@@ -99,6 +131,7 @@ void main() {
         AppRoutes.login.path,
         AppRoutes.emailLogin.path,
         AppRoutes.emailSignup.path,
+        AppRoutes.usernameSetup.path,
         AppRoutes.onboarding.path,
       ]) {
         expect(
