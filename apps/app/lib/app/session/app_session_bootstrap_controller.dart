@@ -12,15 +12,18 @@ class AppSessionBootstrapController extends ChangeNotifier {
     required AuthSessionRepository authSessionRepository,
     required OnboardingCompletionRepository? onboardingCompletionRepository,
     required OnboardingStatusController onboardingStatusController,
+    OnboardingDraftRepository? onboardingDraftRepository,
     Duration completionLookupTimeout = const Duration(seconds: 8),
   })  : _authSessionRepository = authSessionRepository,
         _onboardingCompletionRepository = onboardingCompletionRepository,
         _onboardingStatusController = onboardingStatusController,
+        _onboardingDraftRepository = onboardingDraftRepository,
         _completionLookupTimeout = completionLookupTimeout;
 
   final AuthSessionRepository _authSessionRepository;
   final OnboardingCompletionRepository? _onboardingCompletionRepository;
   final OnboardingStatusController _onboardingStatusController;
+  final OnboardingDraftRepository? _onboardingDraftRepository;
   final Duration _completionLookupTimeout;
 
   AppSessionBootstrapState _state = const AppSessionBootstrapLoading();
@@ -139,6 +142,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
           switch (remoteState) {
             case RemoteOnboardingCompletionState.completed:
               _setState(AppSessionBootstrapReady(userId: session.userId));
+              unawaited(_clearObsoleteDraft());
               break;
             case RemoteOnboardingCompletionState.uninitialized:
             case RemoteOnboardingCompletionState.incomplete:
@@ -153,6 +157,17 @@ class AppSessionBootstrapController extends ChangeNotifier {
           _setState(AppSessionBootstrapFailure(error));
         }
         break;
+    }
+  }
+
+  Future<void> _clearObsoleteDraft() async {
+    final repository = _onboardingDraftRepository;
+    if (repository == null) return;
+    try {
+      await repository.clearDraft();
+      _debug('cleared obsolete completed-account draft');
+    } catch (error) {
+      _debug('obsolete draft cleanup failed: ${error.runtimeType}');
     }
   }
 
