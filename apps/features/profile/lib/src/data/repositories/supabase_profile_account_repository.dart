@@ -55,6 +55,42 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
     return 'Tio User';
   }
 
+  UsernameAvailabilityReason? _parseReason(Object? value) {
+    return switch (value) {
+      'taken' => UsernameAvailabilityReason.taken,
+      'invalid' => UsernameAvailabilityReason.invalid,
+      'reserved' => UsernameAvailabilityReason.reserved,
+      'profile_missing' => UsernameAvailabilityReason.profileMissing,
+      null => null,
+      _ => UsernameAvailabilityReason.unknown,
+    };
+  }
+
+  Map<String, dynamic> _requireRpcMap(Object? response, String rpcName) {
+    if (response is Map<String, dynamic>) return response;
+    if (response is Map) return Map<String, dynamic>.from(response);
+    throw StateError('$rpcName returned an unexpected response.');
+  }
+
+  List<String> _parseSuggestions(Object? value) {
+    if (value is! List) return const [];
+    return value
+        .whereType<String>()
+        .map((suggestion) => suggestion.trim().toLowerCase())
+        .where((suggestion) => suggestion.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  UsernameAvailabilityCheck _parseAvailability(Object? response) {
+    final map = _requireRpcMap(response, 'check_username_availability');
+    return UsernameAvailabilityCheck(
+      normalized: (map['normalized'] as String? ?? '').trim().toLowerCase(),
+      isAvailable: map['is_available'] == true,
+      reason: _parseReason(map['reason']),
+      suggestions: _parseSuggestions(map['suggestions']),
+    );
+  }
+
   @override
   Future<String?> currentUsername() async {
     final userId = _requireUserId();
@@ -68,14 +104,43 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
   }
 
   @override
-  Future<bool> isUsernameAvailable(String username) async {
+  Future<UsernameAvailabilityCheck> checkUsernameAvailability(
+    String username,
+  ) async {
     _requireUser();
     final normalizedUsername = _normalizeUsername(username);
-    if (!_isValidUsername(normalizedUsername)) return false;
+    if (!_isValidUsername(normalizedUsername)) {
+      return UsernameAvailabilityCheck(
+        normalized: normalizedUsername,
+        isAvailable: false,
+        reason: UsernameAvailabilityReason.invalid,
+      );
+    }
 
-    return _client.rpc<bool>(
-      'is_username_available',
+    final response = await _client.rpc<dynamic>(
+      'check_username_availability',
       params: {'p_username': normalizedUsername},
+    );
+    return _parseAvailability(response);
+  }
+
+  @override
+  Future<bool> isUsernameAvailable(String username) async {
+    return (await checkUsernameAvailability(username)).isAvailable;
+  }
+
+  Future<Map<String, dynamic>> _claimUsername(String username) async {
+    final response = await _client.rpc<dynamic>(
+      'claim_username',
+      params: {'p_username': username},
+    );
+    return _requireRpcMap(response, 'claim_username');
+  }
+
+  Never _throwClaimFailure(Map<String, dynamic> claim) {
+    throw UsernameUnavailableException(
+      reason: _parseReason(claim['reason']),
+      suggestions: _parseSuggestions(claim['suggestions']),
     );
   }
 
@@ -91,41 +156,36 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
       );
     }
 
+    var claim = await _claimUsername(normalizedUsername);
+    if (claim['claimed'] == true) return;
+
+    if (_parseReason(claim['reason']) != UsernameAvailabilityReason.profileMissing) {
+      _throwClaimFailure(claim);
+    }
+
+    // Google profile sync is intentionally best-effort and can still be
+    // running when the mandatory Username checkpoint is reached. Create only
+    // the minimum profile identity fields, without writing username, then let
+    // the canonical claim RPC enforce policy and uniqueness on retry.
     final nowIso = DateTime.now().toUtc().toIso8601String();
     try {
-      final updatedRows = await _client
-          .from('users')
-          .update({
-            'username': normalizedUsername,
-            'updated_at': nowIso,
-          })
-          .eq('id', user.id)
-          .select('id');
-
-      if (updatedRows.isNotEmpty) return;
-
-      // Google profile sync is intentionally best-effort and can still be
-      // running when the mandatory Username checkpoint is reached. If the
-      // local row is missing, create the minimum valid profile from auth
-      // identity metadata. Username never participates in resolving `name`.
-      await _client.from('users').upsert(
-        {
-          'id': user.id,
-          'name': _resolveProfileName(user),
-          if (user.email != null && user.email!.trim().isNotEmpty)
-            'email': user.email!.trim().toLowerCase(),
-          'username': normalizedUsername,
-          'last_active_at': nowIso,
-          'updated_at': nowIso,
-        },
-        onConflict: 'id',
-      );
+      await _client.from('users').insert({
+        'id': user.id,
+        'name': _resolveProfileName(user),
+        if (user.email != null && user.email!.trim().isNotEmpty)
+          'email': user.email!.trim().toLowerCase(),
+        'last_active_at': nowIso,
+        'updated_at': nowIso,
+      });
     } on PostgrestException catch (error) {
-      if (error.code == '23505') {
-        throw const UsernameUnavailableException();
-      }
-      rethrow;
+      // A concurrent profile sync may have created the row after the first
+      // claim attempt. In that case keep the synced row untouched and retry.
+      if (error.code != '23505') rethrow;
     }
+
+    claim = await _claimUsername(normalizedUsername);
+    if (claim['claimed'] == true) return;
+    _throwClaimFailure(claim);
   }
 
   @override
@@ -150,13 +210,22 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
     final previousMobile = (current['mobile'] as String?)?.trim() ?? '';
     final mobileChanged = previousMobile != normalizedMobile;
 
-    if (normalizedUsername.isNotEmpty &&
-        !_isValidUsername(normalizedUsername)) {
-      throw ArgumentError.value(
-        username,
-        'username',
-        'must be 3-30 characters using only lowercase letters, numbers, dots, and underscores',
-      );
+    if (normalizedUsername.isNotEmpty) {
+      if (!_isValidUsername(normalizedUsername)) {
+        throw ArgumentError.value(
+          username,
+          'username',
+          'must be 3-30 characters using only lowercase letters, numbers, dots, and underscores',
+        );
+      }
+
+      final availability = await checkUsernameAvailability(normalizedUsername);
+      if (!availability.isAvailable) {
+        throw UsernameUnavailableException(
+          reason: availability.reason,
+          suggestions: availability.suggestions,
+        );
+      }
     }
 
     final payload = <String, dynamic>{
@@ -180,7 +249,14 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
       }
     } on PostgrestException catch (error) {
       if (error.code == '23505') {
-        throw const UsernameUnavailableException();
+        throw const UsernameUnavailableException(
+          reason: UsernameAvailabilityReason.taken,
+        );
+      }
+      if (error.code == '23514') {
+        throw const UsernameUnavailableException(
+          reason: UsernameAvailabilityReason.invalid,
+        );
       }
       rethrow;
     }
