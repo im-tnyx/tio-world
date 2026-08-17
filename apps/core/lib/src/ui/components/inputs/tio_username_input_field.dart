@@ -88,7 +88,10 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
   void didUpdateWidget(covariant TioUsernameInputField oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.availabilityRefreshToken != widget.availabilityRefreshToken) {
-      _onInputChanged(widget.controller.text);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _onInputChanged(widget.controller.text, notifyChanged: false);
+      });
     }
   }
 
@@ -104,9 +107,9 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
     _availabilityGeneration++;
   }
 
-  void _onInputChanged(String value) {
+  void _onInputChanged(String value, {bool notifyChanged = true}) {
     final raw = value.trim().toLowerCase();
-    widget.onChanged?.call(raw);
+    if (notifyChanged) widget.onChanged?.call(raw);
     _cancelPendingCheck();
 
     if (raw.isEmpty) {
