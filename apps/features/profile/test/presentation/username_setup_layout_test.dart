@@ -25,8 +25,11 @@ void main() {
     );
 
     expect(find.byKey(const ValueKey('username-setup-back-button')), findsOneWidget);
-    expect(find.text('Username'), findsOneWidget);
     expect(find.text('Choose your username'), findsOneWidget);
+    expect(
+      find.textContaining('Your username is your unique public Tio handle'),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('username-setup-content')), findsOneWidget);
     expect(find.byKey(const ValueKey('username-setup-footer')), findsOneWidget);
     expect(find.byKey(const ValueKey('username-setup-continue')), findsOneWidget);
