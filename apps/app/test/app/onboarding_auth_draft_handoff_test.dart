@@ -62,6 +62,9 @@ void main() {
         localStore: local,
         currentUserId: () => userId,
         remoteRepository: remote,
+        completionRepository: _FixedCompletionRepository(
+          RemoteOnboardingCompletionState.incomplete,
+        ),
       );
 
       final loaded = await repository.loadDraft();
@@ -72,6 +75,79 @@ void main() {
       expect(loaded?.draft.profile.currentWeightKg, 70);
       expect(remote.saveCalls, 1);
       expect(remote.saved?.draft.currentStepId, OnboardingStepId.targets);
+      expect(local.record, isNull);
+      repository.dispose();
+    });
+
+    test('completed account rejects local handoff and clears stale remote draft',
+        () async {
+      final local = _MemoryLocalDraftStore(
+        LocalOnboardingDraftRecord(
+          draft: OnboardingDraftSnapshot(
+            draft: OnboardingDraft(
+              selectedMode: AppMode.workout,
+              currentStepId: OnboardingStepId.profileBasics,
+              profile: _validProfile(),
+            ),
+          ),
+          resumeAfterAuth: OnboardingDraftSnapshot(
+            draft: OnboardingDraft(
+              selectedMode: AppMode.workout,
+              currentStepId: OnboardingStepId.workoutPreferences,
+              profile: _validProfile(),
+            ),
+          ),
+        ),
+      );
+      final remote = _RecordingRemoteDraftRepository(
+        remoteDraft: OnboardingDraft(
+          selectedMode: AppMode.workout,
+          currentStepId: OnboardingStepId.workoutPreferences,
+          profile: _validProfile(),
+        ),
+      );
+      final repository = AuthAwareOnboardingDraftRepository(
+        localStore: local,
+        currentUserId: () => 'completed-user',
+        remoteRepository: remote,
+        completionRepository: _FixedCompletionRepository(
+          RemoteOnboardingCompletionState.completed,
+        ),
+      );
+
+      final loaded = await repository.loadDraft();
+
+      expect(loaded, isNull);
+      expect(remote.saveCalls, 0);
+      expect(remote.clearCalls, 1);
+      expect(local.record, isNull);
+      repository.dispose();
+    });
+
+    test('completed account blocks late authenticated stale autosave', () async {
+      final local = _MemoryLocalDraftStore();
+      final remote = _RecordingRemoteDraftRepository();
+      final repository = AuthAwareOnboardingDraftRepository(
+        localStore: local,
+        currentUserId: () => 'completed-user',
+        remoteRepository: remote,
+        completionRepository: _FixedCompletionRepository(
+          RemoteOnboardingCompletionState.completed,
+        ),
+      );
+      final staleSnapshot = OnboardingDraftSnapshot(
+        draft: OnboardingDraft(
+          status: OnboardingStatus.inProgress,
+          selectedMode: AppMode.workout,
+          currentStepId: OnboardingStepId.workoutPreferences,
+          profile: _validProfile(),
+        ),
+      );
+
+      await repository.saveDraft(staleSnapshot);
+
+      expect(remote.saveCalls, 0);
+      expect(remote.clearCalls, 1);
       expect(local.record, isNull);
       repository.dispose();
     });
@@ -112,6 +188,9 @@ void main() {
         localStore: local,
         currentUserId: () => userId,
         remoteRepository: remote,
+        completionRepository: _FixedCompletionRepository(
+          RemoteOnboardingCompletionState.incomplete,
+        ),
       );
 
       final loaded = await repository.loadDraft();
@@ -304,10 +383,13 @@ class _RecordingRemoteDraftRepository implements OnboardingDraftRepository {
 
   final OnboardingDraft? remoteDraft;
   int saveCalls = 0;
+  int clearCalls = 0;
   OnboardingDraftSnapshot? saved;
 
   @override
-  Future<void> clearDraft() async {}
+  Future<void> clearDraft() async {
+    clearCalls++;
+  }
 
   @override
   Future<OnboardingDraftSnapshot?> loadDraft() async {
@@ -320,4 +402,16 @@ class _RecordingRemoteDraftRepository implements OnboardingDraftRepository {
     saveCalls++;
     saved = snapshot;
   }
+}
+
+class _FixedCompletionRepository implements OnboardingCompletionRepository {
+  _FixedCompletionRepository(this.state);
+
+  final RemoteOnboardingCompletionState state;
+
+  @override
+  Future<RemoteOnboardingCompletionState> readCurrent() async => state;
+
+  @override
+  Future<void> markCurrentCompleted() async {}
 }
