@@ -1,6 +1,35 @@
-/// Raised when a username loses an availability race before persistence.
+enum UsernameAvailabilityReason {
+  taken,
+  invalid,
+  reserved,
+  profileMissing,
+  unknown,
+}
+
+class UsernameAvailabilityCheck {
+  const UsernameAvailabilityCheck({
+    required this.normalized,
+    required this.isAvailable,
+    this.suggestions = const [],
+    this.reason,
+  });
+
+  final String normalized;
+  final bool isAvailable;
+  final List<String> suggestions;
+  final UsernameAvailabilityReason? reason;
+}
+
+/// Raised when a username cannot be persisted under the canonical server
+/// policy, including a final database uniqueness race.
 class UsernameUnavailableException implements Exception {
-  const UsernameUnavailableException();
+  const UsernameUnavailableException({
+    this.reason,
+    this.suggestions = const [],
+  });
+
+  final UsernameAvailabilityReason? reason;
+  final List<String> suggestions;
 
   @override
   String toString() => 'UsernameUnavailableException';
@@ -13,10 +42,13 @@ abstract interface class ProfileAccountRepository {
   /// the local profile is missing or the username has not been chosen yet.
   Future<String?> currentUsername();
 
-  /// Checks whether [username] is available for the current authenticated user.
+  /// Returns the server-owned availability decision and verified alternatives.
   ///
   /// Implementations must not expose other users' profile rows while answering
   /// this question.
+  Future<UsernameAvailabilityCheck> checkUsernameAvailability(String username);
+
+  /// Compatibility convenience for callers that only need the boolean answer.
   Future<bool> isUsernameAvailable(String username);
 
   /// Updates only the current authenticated user's username.
