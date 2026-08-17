@@ -37,6 +37,10 @@ class TargetsSetupMapper {
       wakeTimeMinutes: targetsDraft.wakeTimeMinutes,
       waterMl: waterMl,
       goalPaceKgPerWeek: targetsDraft.goalPaceKgPerWeek,
+      heightCm: profileDraft.heightCm,
+      currentWeightKg: profileDraft.currentWeightKg,
+      targetWeightKg: profileDraft.targetWeightKg,
+      activityLevel: profileDraft.activityLevel?.name,
       recommendation: recommendation,
     );
   }
