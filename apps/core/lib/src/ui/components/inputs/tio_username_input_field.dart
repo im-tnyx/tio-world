@@ -1,6 +1,12 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
 import '../../../theme/theme.dart';
+
+const int tioUsernameMinLength = 3;
+const int tioUsernameMaxLength = 30;
 
 /// Result returned from checking username availability.
 class UsernameAvailabilityResult {
@@ -18,10 +24,11 @@ class UsernameAvailabilityResult {
 enum TioUsernameStatus { idle, checking, available, unavailable }
 
 /// Reusable Username input field following AGENTS.md design tokens:
+/// - Canonical lowercase input with a 3-30 character contract
 /// - Live debounced availability check
-/// - Smart suggestion pills with tap-to-autofill
+/// - Suggestion pills that are rechecked before becoming available
 /// - Suffix status indicators (Checking spinner, Available check, Unavailable warning)
-/// - Reused across Sign Up, Account Settings, and Profile Editing screens
+/// - Reused across Username setup, Account Settings, and Profile Editing screens
 class TioUsernameInputField extends StatefulWidget {
   const TioUsernameInputField({
     required this.controller,
@@ -41,7 +48,8 @@ class TioUsernameInputField extends StatefulWidget {
   final String? currentUsername;
   final ValueChanged<String>? onChanged;
   final ValueChanged<TioUsernameStatus>? onStatusChanged;
-  final Future<UsernameAvailabilityResult> Function(String username)? onCheckAvailability;
+  final Future<UsernameAvailabilityResult> Function(String username)?
+      onCheckAvailability;
   final bool enabled;
   final TextInputAction textInputAction;
   final ValueChanged<String>? onSubmitted;
@@ -57,28 +65,38 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
   TioUsernameStatus _status = TioUsernameStatus.idle;
   List<String> _suggestions = const [];
   String? _feedbackMessage;
+  int _availabilityGeneration = 0;
+
+  String get _normalizedCurrentUsername =>
+      (widget.currentUsername ?? '').trim().toLowerCase();
 
   @override
   void initState() {
     super.initState();
-    if (widget.controller.text.isNotEmpty &&
-        widget.controller.text.trim().toLowerCase() == (widget.currentUsername ?? '').trim().toLowerCase()) {
+    final initial = widget.controller.text.trim().toLowerCase();
+    if (initial.isNotEmpty && initial == _normalizedCurrentUsername) {
       _status = TioUsernameStatus.available;
     }
   }
 
   @override
   void dispose() {
-    _debounceTimer?.cancel();
+    _cancelPendingCheck();
     super.dispose();
   }
 
-  void _onInputChanged(String val) {
-    widget.onChanged?.call(val);
-    final raw = val.trim().toLowerCase();
+  void _cancelPendingCheck() {
     _debounceTimer?.cancel();
+    _debounceTimer = null;
+    _availabilityGeneration++;
+  }
 
-    if (raw.isEmpty || raw == (widget.currentUsername ?? '').trim().toLowerCase()) {
+  void _onInputChanged(String value) {
+    final raw = value.trim().toLowerCase();
+    widget.onChanged?.call(raw);
+    _cancelPendingCheck();
+
+    if (raw.isEmpty) {
       _updateState(
         status: TioUsernameStatus.idle,
         suggestions: const [],
@@ -87,45 +105,75 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
       return;
     }
 
-    if (raw.length < 3) {
+    if (raw == _normalizedCurrentUsername && raw.isNotEmpty) {
       _updateState(
-        status: TioUsernameStatus.unavailable,
+        status: TioUsernameStatus.available,
         suggestions: const [],
-        feedback: 'Username must be at least 3 characters.',
+        feedback: null,
       );
       return;
     }
 
-    if (!RegExp(r'^[a-zA-Z0-9_.]+$').hasMatch(raw)) {
+    if (raw.length < tioUsernameMinLength) {
       _updateState(
         status: TioUsernameStatus.unavailable,
         suggestions: const [],
-        feedback: 'Only letters, numbers, underscores and dots allowed.',
+        feedback:
+            'Username must be at least $tioUsernameMinLength characters.',
       );
       return;
     }
 
+    if (raw.length > tioUsernameMaxLength) {
+      _updateState(
+        status: TioUsernameStatus.unavailable,
+        suggestions: const [],
+        feedback:
+            'Username must be at most $tioUsernameMaxLength characters.',
+      );
+      return;
+    }
+
+    if (!RegExp(r'^[a-z0-9._]+$').hasMatch(raw)) {
+      _updateState(
+        status: TioUsernameStatus.unavailable,
+        suggestions: const [],
+        feedback:
+            'Only lowercase letters, numbers, underscores and dots allowed.',
+      );
+      return;
+    }
+
+    _scheduleAvailabilityCheck(raw);
+  }
+
+  void _scheduleAvailabilityCheck(String handle) {
     _updateState(
       status: TioUsernameStatus.checking,
       suggestions: const [],
       feedback: null,
     );
 
+    final generation = ++_availabilityGeneration;
     _debounceTimer = Timer(const Duration(milliseconds: 400), () async {
-      final result = await _checkAvailability(raw);
-      if (!mounted) return;
+      final result = await _checkAvailability(handle);
+      if (!mounted || generation != _availabilityGeneration) return;
+
+      final current = widget.controller.text.trim().toLowerCase();
+      if (current != handle) return;
 
       if (result.isAvailable) {
         _updateState(
           status: TioUsernameStatus.available,
           suggestions: const [],
-          feedback: '@$raw is available!',
+          feedback: '@$handle is available!',
         );
       } else {
         _updateState(
           status: TioUsernameStatus.unavailable,
           suggestions: result.suggestions,
-          feedback: result.message ?? 'This username is already taken. Try another:',
+          feedback:
+              result.message ?? 'This username is already taken. Try another:',
         );
       }
     });
@@ -136,30 +184,26 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
       return widget.onCheckAvailability!(handle);
     }
 
-    // Default intelligent suggestion fallback
-    final year = DateTime.now().year % 100;
-    return UsernameAvailabilityResult(
+    return const UsernameAvailabilityResult(
       isAvailable: false,
-      suggestions: [
-        '${handle}_fit',
-        '${handle}_$year',
-        '${handle}_tio',
-      ],
-      message: 'This username is already taken. Try another:',
+      message: 'Username availability could not be verified.',
     );
   }
 
   void _applySuggestion(String suggestion) {
-    _debounceTimer?.cancel();
-    final clean = suggestion.replaceAll('@', '').trim();
-    widget.controller.text = clean;
-    widget.onChanged?.call(clean);
+    _cancelPendingCheck();
+    final clean = suggestion
+        .replaceAll('@', '')
+        .trim()
+        .toLowerCase();
+    if (clean.isEmpty) return;
 
-    _updateState(
-      status: TioUsernameStatus.available,
-      suggestions: const [],
-      feedback: '@$clean is available!',
+    widget.controller.value = TextEditingValue(
+      text: clean,
+      selection: TextSelection.collapsed(offset: clean.length),
     );
+    widget.onChanged?.call(clean);
+    _onInputChanged(clean);
   }
 
   void _updateState({
@@ -167,6 +211,7 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
     required List<String> suggestions,
     required String? feedback,
   }) {
+    if (!mounted) return;
     setState(() {
       _status = status;
       _suggestions = suggestions;
@@ -212,13 +257,18 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
           keyboardType: TextInputType.text,
           textInputAction: widget.textInputAction,
           enabled: widget.enabled,
+          inputFormatters: const [
+            _LowercaseTextInputFormatter(),
+            LengthLimitingTextInputFormatter(tioUsernameMaxLength),
+          ],
           onChanged: _onInputChanged,
           onSubmitted: widget.onSubmitted,
           style: TextStyle(color: colors.textPrimary),
           decoration: InputDecoration(
             labelText: widget.labelText,
             hintText: widget.hintText,
-            prefixIcon: Icon(Icons.alternate_email, color: colors.textMuted, size: 20),
+            prefixIcon:
+                Icon(Icons.alternate_email, color: colors.textMuted, size: 20),
             suffixIcon: _buildSuffixIcon(colors),
             labelStyle: TextStyle(color: colors.textMuted),
             hintStyle: TextStyle(color: colors.textMuted.withValues(alpha: 0.6)),
@@ -254,7 +304,6 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
             filled: false,
           ),
         ),
-
         if (_feedbackMessage != null) ...[
           const SizedBox(height: 6),
           Padding(
@@ -273,7 +322,6 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
             ),
           ),
         ],
-
         if (_suggestions.isNotEmpty) ...[
           const SizedBox(height: 6),
           Wrap(
@@ -310,5 +358,19 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
         ],
       ],
     );
+  }
+}
+
+class _LowercaseTextInputFormatter extends TextInputFormatter {
+  const _LowercaseTextInputFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final lower = newValue.text.toLowerCase();
+    if (lower == newValue.text) return newValue;
+    return newValue.copyWith(text: lower);
   }
 }
