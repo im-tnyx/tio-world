@@ -25,6 +25,14 @@ void main() {
     final topBarText = tester.widget<Text>(find.text('EN'));
     expect(topBarText.style?.color, Colors.white);
 
+    final skipRect = tester.getRect(
+      find.byKey(const ValueKey('welcome-skip-action')),
+    );
+    final localeRect = tester.getRect(find.text('EN'));
+    expect(skipRect.center.dx, greaterThan(393 / 2));
+    expect(skipRect.center.dx, greaterThan(localeRect.center.dx));
+    expect(skipRect.right, greaterThan(350));
+
     final featureTitle = tester.widget<Text>(find.text('AI WORKOUT'));
     final featureContext = tester.element(find.text('AI WORKOUT'));
     expect(
@@ -57,7 +65,8 @@ void main() {
     expect(animation.duration, Duration.zero);
   });
 
-  testWidgets('placeholder language is not announced as actions and legal copy is omitted',
+  testWidgets(
+      'placeholder language is not announced as actions and legal copy is omitted',
       (tester) async {
     final semantics = tester.ensureSemantics();
     try {
