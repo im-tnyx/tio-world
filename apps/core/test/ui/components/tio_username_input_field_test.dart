@@ -94,11 +94,13 @@ void main() {
     final controller = TextEditingController();
     addTearDown(controller.dispose);
     final checkedHandles = <String>[];
+    final changedHandles = <String>[];
 
     await tester.pumpWidget(
       buildTestApp(
         TioUsernameInputField(
           controller: controller,
+          onChanged: changedHandles.add,
           onCheckAvailability: (username) async {
             checkedHandles.add(username);
             if (username == 'candidate') {
@@ -127,6 +129,7 @@ void main() {
     await tester.pump();
 
     expect(controller.text, 'candidate_2');
+    expect(changedHandles, ['candidate', 'candidate_2']);
     expect(find.text('@candidate_2 is available!'), findsNothing);
 
     await tester.pump(const Duration(milliseconds: 400));
@@ -134,5 +137,53 @@ void main() {
 
     expect(checkedHandles, ['candidate', 'candidate_2']);
     expect(find.text('@candidate_2 is available!'), findsOneWidget);
+  });
+
+  testWidgets('refresh token rechecks without reporting a user text change',
+      (tester) async {
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+    final checkedHandles = <String>[];
+    final changedHandles = <String>[];
+    var refreshToken = 0;
+    late StateSetter setHarnessState;
+
+    await tester.pumpWidget(
+      buildTestApp(
+        StatefulBuilder(
+          builder: (context, setState) {
+            setHarnessState = setState;
+            return TioUsernameInputField(
+              controller: controller,
+              availabilityRefreshToken: refreshToken,
+              onChanged: changedHandles.add,
+              onCheckAvailability: (username) async {
+                checkedHandles.add(username);
+                return const UsernameAvailabilityResult(isAvailable: true);
+              },
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('tio-username-input')),
+      'race.user',
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump();
+
+    expect(checkedHandles, ['race.user']);
+    expect(changedHandles, ['race.user']);
+
+    setHarnessState(() => refreshToken++);
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump();
+
+    expect(checkedHandles, ['race.user', 'race.user']);
+    expect(changedHandles, ['race.user']);
   });
 }
