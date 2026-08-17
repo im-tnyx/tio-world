@@ -231,41 +231,43 @@ class _UsernameSetupPageState extends State<UsernameSetupPage> {
                 color: colors.background,
                 border: Border(
                   top: BorderSide(
-                    color: colors.outlineVariant.withValues(alpha: 0.5),
+                    color: colors.outlineStrong.withValues(alpha: 0.18),
                   ),
                 ),
               ),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Username is required before continuing.',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colors.textSecondary,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Username is required before continuing.',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colors.textSecondary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: TioSpacing.small),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        key: const ValueKey('username-setup-continue'),
-                        onPressed:
-                            _status == TioUsernameStatus.available && !_saving
-                                ? _save
-                                : null,
-                        child: _saving
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Text('Continue'),
+                      const SizedBox(height: TioSpacing.small),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          key: const ValueKey('username-setup-continue'),
+                          onPressed:
+                              _status == TioUsernameStatus.available && !_saving
+                                  ? _save
+                                  : null,
+                          child: _saving
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Text('Continue'),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
