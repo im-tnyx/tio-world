@@ -240,6 +240,14 @@ class OnboardingFlowPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.watch(onboardingControllerProvider(seed));
+
+    if (!controller.isHydrated) {
+      return Scaffold(
+        backgroundColor: TioTheme.colors(context).background,
+        body: const SizedBox.expand(),
+      );
+    }
+
     final state = controller.state;
     final shouldHandleRouteExit = onExitRequested != null;
     final visibleBack = state.hasPreviousStep
