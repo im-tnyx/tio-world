@@ -24,6 +24,35 @@ class MeasurementUnitPreferences {
   bool get isMetricPreset => this == metric;
   bool get isImperialPreset => this == imperial;
 
+  /// Canonical account-storage shape used by the Supabase `jsonb` column.
+  ///
+  /// Presets are intentionally not persisted because mixed preferences are a
+  /// first-class state. Each category remains independently selectable.
+  Map<String, String> toJson() => <String, String>{
+        'weight': weightUnit.storageValue,
+        'height': heightUnit.storageValue,
+        'distance': distanceUnit.storageValue,
+        'volume': volumeUnit.storageValue,
+      };
+
+  /// Parses the durable account-storage shape and safely falls back to metric
+  /// values when the object or any individual value is missing/corrupt.
+  factory MeasurementUnitPreferences.fromJson(Object? value) {
+    if (value is! Map) return metric;
+
+    String? readString(String key) {
+      final raw = value[key];
+      return raw is String ? raw : null;
+    }
+
+    return MeasurementUnitPreferences(
+      weightUnit: WeightUnit.fromStorage(readString('weight')),
+      heightUnit: HeightUnit.fromStorage(readString('height')),
+      distanceUnit: DistanceUnit.fromStorage(readString('distance')),
+      volumeUnit: VolumeUnit.fromStorage(readString('volume')),
+    );
+  }
+
   MeasurementUnitPreferences copyWith({
     WeightUnit? weightUnit,
     HeightUnit? heightUnit,
