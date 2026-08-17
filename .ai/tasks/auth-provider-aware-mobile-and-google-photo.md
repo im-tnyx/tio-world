@@ -13,7 +13,8 @@ This focused task is the source of truth for these rules and supersedes earlier 
 
 - mobile-number entry is required;
 - `AuthLandingPage` must remain the signup/provider gateway;
-- the legal disclaimer must remain owned by AuthLanding.
+- the legal disclaimer must remain owned by AuthLanding;
+- Username should remain a pre-auth field inside the canonical Signup form.
 
 ## 2. Auth surface consolidation — remove standalone AuthLanding
 
@@ -31,6 +32,9 @@ Signup
 + Google signup
 + future Truecaller signup
 + legal disclaimer
+
+Username
+= authenticated fresh-account username bootstrap
 
 Onboarding
 = product/profile data collection
@@ -72,6 +76,29 @@ App Mode / Profile already collected locally
 ```
 
 The Signup screen must not hide/show social buttons based on whether it was opened from Login or from the onboarding checkpoint. Entry context affects **post-auth continuation**, not the visible provider set.
+
+### Current Signup username field must be migrated out
+
+Current `EmailSignupPage` includes `TioUsernameInputField` before Email/Password. That field belongs to the old pre-auth form model and must not remain in the canonical unified Signup screen.
+
+Target:
+
+```text
+Signup
+→ Email/password OR Google OR future Truecaller
+→ authentication succeeds
+→ Username screen opens
+→ username is checked/saved for authenticated user
+```
+
+Frozen rules:
+
+- Remove/migrate the current pre-auth username field from Signup.
+- Do not require Google users to fill a username before opening the Google account chooser.
+- Do not keep Username only for Email while Google uses a separate rule.
+- Email and Google fresh signup converge on the same post-auth Username screen.
+- Do not stage username locally before auth merely to preserve the old Signup layout; authenticated ownership is cleaner and is the target contract.
+- Current Email Signup behavior that passes the username input through the email signup call as `name` must be audited and removed/re-mapped; `name` and `username` are separate concepts and must not be conflated.
 
 ### Returning/existing identity selected from Signup
 
@@ -401,6 +428,10 @@ Mobile may remain null forever if the user chooses not to provide it.
 - [ ] Login `Sign Up` routes directly to the canonical Signup screen, never through AuthLanding;
 - [ ] onboarding auth checkpoint routes directly to the same canonical Signup screen;
 - [ ] Signup shows Email creation + Google + future Truecaller surface consistently regardless of entry source;
+- [ ] canonical Signup no longer contains the pre-auth Username input;
+- [ ] Email and Google fresh signup both route to the same post-auth Username screen;
+- [ ] Google account chooser/auth is not blocked on a pre-auth username value;
+- [ ] email signup does not conflate username with `name` in its auth creation call;
 - [ ] Signup owns `TioTermsDisclaimer`;
 - [ ] Login does not gain the signup legal disclaimer;
 - [ ] AuthLanding routes/callbacks/tests are migrated before the screen is removed;
@@ -455,3 +486,4 @@ Mobile may remain null forever if the user chooses not to provide it.
 - Do not bias username suggestions toward the current year.
 - Do not keep AuthLanding as an extra hop after canonical Signup takes over its responsibilities.
 - Do not add entry-source-specific social-button visibility logic to Signup.
+- Do not keep Username as a pre-auth Signup field after the post-auth Username screen becomes canonical.
