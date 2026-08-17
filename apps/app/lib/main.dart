@@ -73,6 +73,7 @@ Future<void> main() async {
             ),
             onboardingCompletionValidatorProvider.overrideWith(
                 (ref) => ref.watch(appOnboardingCompletionValidatorProvider)),
+            onboardingHydrationGateProvider.overrideWith((ref) => true),
             onboardingControllerProvider.overrideWith((ref, seed) {
               final draftRepository =
                   ref.watch(hybridOnboardingDraftRepositoryProvider);
