@@ -50,7 +50,9 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
 
     try {
       if (widget.signInWithGoogleUseCase != null) {
-        final result = await widget.signInWithGoogleUseCase!();
+        final result = await widget.signInWithGoogleUseCase!(
+          intent: GoogleSignInIntent.signupOrExisting,
+        );
         if (!mounted) return;
         if (result is SignInSuccess) {
           widget.onSignInSuccess?.call(result);
