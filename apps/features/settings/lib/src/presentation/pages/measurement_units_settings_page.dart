@@ -109,21 +109,6 @@ class _MeasurementUnitsSettingsPageState
                       });
                     },
                   ),
-                  if (_errorMessage != null) ...[
-                    const SizedBox(height: TioSpacing.large),
-                    Semantics(
-                      liveRegion: true,
-                      child: Text(
-                        _errorMessage!,
-                        key: const ValueKey('measurement-units-save-error'),
-                        style: TextStyle(
-                          color: colors.danger,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -142,12 +127,33 @@ class _MeasurementUnitsSettingsPageState
               ),
               child: SafeArea(
                 top: false,
-                child: TioButton.primary(
-                  key: const ValueKey('measurement-units-save'),
-                  label: 'Save',
-                  onPressed: _hasChanges && !_isSaving ? _save : null,
-                  loading: _isSaving,
-                  expand: true,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_errorMessage != null) ...[
+                      Semantics(
+                        liveRegion: true,
+                        child: Text(
+                          _errorMessage!,
+                          key: const ValueKey('measurement-units-save-error'),
+                          style: TextStyle(
+                            color: colors.danger,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: TioSpacing.medium),
+                    ],
+                    TioButton.primary(
+                      key: const ValueKey('measurement-units-save'),
+                      label: 'Save',
+                      onPressed: _hasChanges && !_isSaving ? _save : null,
+                      loading: _isSaving,
+                      expand: true,
+                    ),
+                  ],
                 ),
               ),
             ),
