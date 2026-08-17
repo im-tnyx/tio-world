@@ -192,10 +192,7 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
 
   void _applySuggestion(String suggestion) {
     _cancelPendingCheck();
-    final clean = suggestion
-        .replaceAll('@', '')
-        .trim()
-        .toLowerCase();
+    final clean = suggestion.replaceAll('@', '').trim().toLowerCase();
     if (clean.isEmpty) return;
 
     widget.controller.value = TextEditingValue(
@@ -257,8 +254,8 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
           keyboardType: TextInputType.text,
           textInputAction: widget.textInputAction,
           enabled: widget.enabled,
-          inputFormatters: const [
-            _LowercaseTextInputFormatter(),
+          inputFormatters: [
+            const _LowercaseTextInputFormatter(),
             LengthLimitingTextInputFormatter(tioUsernameMaxLength),
           ],
           onChanged: _onInputChanged,
