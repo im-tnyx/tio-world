@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import '../models/profile_setup_data.dart';
+import 'measurement_unit_preferences_repository.dart';
 
 /// Canonical repository contract for persisting and retrieving user profile setup data.
-abstract interface class ProfileSetupRepository {
+abstract interface class ProfileSetupRepository
+    implements MeasurementUnitPreferencesRepository {
   /// Persists or updates the complete user profile setup data.
   Future<void> saveProfileSetup(ProfileSetupData data);
 
