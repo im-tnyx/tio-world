@@ -28,20 +28,29 @@ void main() {
       );
     });
 
-    test('unauthenticated users cannot enter Account Setup', () {
+    test('unauthenticated users stay in Auth before any setup flow', () {
+      for (final protectedPath in [
+        AppRoutes.accountSetup.path,
+        AppRoutes.usernameSetup.path,
+        AppRoutes.onboarding.path,
+        FeatureRoutes.home.path,
+      ]) {
+        expect(
+          appSessionBootstrapRedirect(
+            path: protectedPath,
+            state: const AppSessionBootstrapUnauthenticated(),
+          ),
+          AppRoutes.auth.path,
+          reason: protectedPath,
+        );
+      }
+
       expect(
         appSessionBootstrapRedirect(
-          path: AppRoutes.accountSetup.path,
+          path: AppRoutes.login.path,
           state: const AppSessionBootstrapUnauthenticated(),
         ),
-        AppRoutes.auth.path,
-      );
-      expect(
-        appSessionBootstrapRedirect(
-          path: FeatureRoutes.home.path,
-          state: const AppSessionBootstrapUnauthenticated(),
-        ),
-        AppRoutes.auth.path,
+        isNull,
       );
     });
 
