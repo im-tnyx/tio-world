@@ -4,7 +4,8 @@ import '../repositories/auth_sign_in_repository.dart';
 
 /// Clean use case for authenticating with Google.
 ///
-/// Current production implementation routes through [AuthSignInRepository].
+/// Returning-user Login is the safe default. Explicit account-creation flows
+/// must opt into [GoogleSignInIntent.signupOrExisting].
 class SignInWithGoogleUseCase {
   const SignInWithGoogleUseCase({
     required AuthSignInRepository signInRepository,
@@ -13,7 +14,12 @@ class SignInWithGoogleUseCase {
   final AuthSignInRepository _signInRepository;
 
   Future<SignInResult> call({
-    required GoogleSignInIntent intent,
-  }) =>
-      _signInRepository.signInWithGoogle(intent: intent);
+    GoogleSignInIntent intent = GoogleSignInIntent.existingAccountOnly,
+  }) {
+    final repository = _signInRepository;
+    if (repository is GoogleSignInIntentRepository) {
+      return repository.signInWithGoogleForIntent(intent: intent);
+    }
+    return repository.signInWithGoogle();
+  }
 }
