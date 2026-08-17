@@ -9,6 +9,10 @@ class TargetsSetupData {
     required this.wakeTimeMinutes,
     required this.waterMl,
     required this.goalPaceKgPerWeek,
+    this.heightCm,
+    this.currentWeightKg,
+    this.targetWeightKg,
+    this.activityLevel,
     this.recommendation,
   });
 
@@ -18,6 +22,15 @@ class TargetsSetupData {
   final int wakeTimeMinutes;
   final int waterMl;
   final double goalPaceKgPerWeek;
+
+  /// Profile measurements mirrored into the nutrition owner when they were
+  /// explicitly collected during onboarding. Optional/skipped values remain
+  /// null instead of being fabricated.
+  final double? heightCm;
+  final double? currentWeightKg;
+  final double? targetWeightKg;
+  final String? activityLevel;
+
   final NutritionTargetRecommendation? recommendation;
 
   @override
@@ -31,6 +44,10 @@ class TargetsSetupData {
             wakeTimeMinutes == other.wakeTimeMinutes &&
             waterMl == other.waterMl &&
             (goalPaceKgPerWeek - other.goalPaceKgPerWeek).abs() < 0.001 &&
+            heightCm == other.heightCm &&
+            currentWeightKg == other.currentWeightKg &&
+            targetWeightKg == other.targetWeightKg &&
+            activityLevel == other.activityLevel &&
             recommendation == other.recommendation;
   }
 
@@ -42,6 +59,10 @@ class TargetsSetupData {
         wakeTimeMinutes,
         waterMl,
         goalPaceKgPerWeek,
+        heightCm,
+        currentWeightKg,
+        targetWeightKg,
+        activityLevel,
         recommendation,
       );
 
