@@ -82,7 +82,7 @@ class _UsernameSetupPageState extends State<UsernameSetupPage> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(TioSpacing.xLarge),
+            padding: const EdgeInsets.all(TioSpacing.extraLarge),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 480),
               child: Column(
@@ -99,7 +99,7 @@ class _UsernameSetupPageState extends State<UsernameSetupPage> {
                     'Your username is your unique public Tio handle. You can use lowercase letters, numbers, dots, and underscores.',
                     style: theme.textTheme.bodyLarge,
                   ),
-                  const SizedBox(height: TioSpacing.xLarge),
+                  const SizedBox(height: TioSpacing.extraLarge),
                   TioUsernameInputField(
                     controller: _usernameController,
                     enabled: !_saving,
@@ -125,7 +125,7 @@ class _UsernameSetupPageState extends State<UsernameSetupPage> {
                       ),
                     ),
                   ],
-                  const SizedBox(height: TioSpacing.xLarge),
+                  const SizedBox(height: TioSpacing.extraLarge),
                   FilledButton(
                     key: const ValueKey('username-setup-continue'),
                     onPressed: _status == TioUsernameStatus.available && !_saving
