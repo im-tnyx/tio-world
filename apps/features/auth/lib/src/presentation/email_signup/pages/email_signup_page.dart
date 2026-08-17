@@ -31,12 +31,18 @@ class EmailSignupPage extends StatefulWidget {
   State<EmailSignupPage> createState() => _EmailSignupPageState();
 }
 
+enum _SignupAuthAction { email, google }
+
 class _EmailSignupPageState extends State<EmailSignupPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
-  bool _isLoading = false;
+  _SignupAuthAction? _activeAction;
   String? _errorMessage;
+
+  bool get _isBusy => _activeAction != null;
+  bool get _isEmailLoading => _activeAction == _SignupAuthAction.email;
+  bool get _isGoogleLoading => _activeAction == _SignupAuthAction.google;
 
   @override
   void initState() {
@@ -47,6 +53,8 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
 
   @override
   void dispose() {
+    _emailController.removeListener(_onFieldChanged);
+    _passwordController.removeListener(_onFieldChanged);
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -65,16 +73,16 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
   bool get _isFormValid => _isEmailValid && _isPasswordValid;
 
   Future<void> _handleSignUp() async {
-    if (!_isFormValid || _isLoading) return;
+    if (!_isFormValid || _isBusy) return;
 
     setState(() {
-      _isLoading = true;
+      _activeAction = _SignupAuthAction.email;
       _errorMessage = null;
     });
 
     final useCase = widget.signUpWithEmailUseCase;
     if (useCase == null) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _activeAction = null);
       return;
     }
 
@@ -98,15 +106,17 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
     } catch (e) {
       if (mounted) setState(() => _errorMessage = e.toString());
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted && _activeAction == _SignupAuthAction.email) {
+        setState(() => _activeAction = null);
+      }
     }
   }
 
   Future<void> _handleGoogleSignIn() async {
-    if (_isLoading) return;
+    if (_isBusy) return;
 
     setState(() {
-      _isLoading = true;
+      _activeAction = _SignupAuthAction.google;
       _errorMessage = null;
     });
 
@@ -142,7 +152,9 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
     } catch (e) {
       if (mounted) setState(() => _errorMessage = e.toString());
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted && _activeAction == _SignupAuthAction.google) {
+        setState(() => _activeAction = null);
+      }
     }
   }
 
@@ -172,7 +184,7 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                           key: const ValueKey('signup-back-button'),
                           icon: Icon(Icons.arrow_back, color: colors.textPrimary),
                           onPressed: () {
-                            if (!_isLoading) {
+                            if (!_isBusy) {
                               if (context.canPop()) {
                                 context.pop();
                               } else {
@@ -208,7 +220,7 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.next,
-                          enabled: !_isLoading,
+                          enabled: !_isBusy,
                           style: TextStyle(color: colors.textPrimary),
                           decoration: InputDecoration(
                             labelText: 'Email',
@@ -259,7 +271,7 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                           controller: _passwordController,
                           obscureText: !_isPasswordVisible,
                           textInputAction: TextInputAction.done,
-                          enabled: !_isLoading,
+                          enabled: !_isBusy,
                           style: TextStyle(color: colors.textPrimary),
                           onSubmitted: (_) => _handleSignUp(),
                           decoration: InputDecoration(
@@ -310,11 +322,14 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                                 color: colors.textMuted,
                                 size: 22,
                               ),
-                              onPressed: () {
-                                setState(
-                                  () => _isPasswordVisible = !_isPasswordVisible,
-                                );
-                              },
+                              onPressed: _isBusy
+                                  ? null
+                                  : () {
+                                      setState(
+                                        () => _isPasswordVisible =
+                                            !_isPasswordVisible,
+                                      );
+                                    },
                             ),
                             filled: false,
                           ),
@@ -324,8 +339,8 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                           key: const ValueKey('signup-submit-button'),
                           label: 'Create Account',
                           expand: true,
-                          loading: _isLoading,
-                          enabled: _isFormValid,
+                          loading: _isEmailLoading,
+                          enabled: _isFormValid && !_isGoogleLoading,
                           onPressed: _handleSignUp,
                         ),
                         const SizedBox(height: 24),
@@ -333,13 +348,15 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                         const SizedBox(height: 24),
                         TioSocialButton.google(
                           key: const ValueKey('signup-google-button'),
-                          loading: _isLoading,
+                          loading: _isGoogleLoading,
+                          enabled: !_isEmailLoading,
                           onPressed: _handleGoogleSignIn,
                         ),
                         const SizedBox(height: 12),
                         TioSocialButton.truecaller(
                           key: const ValueKey('signup-truecaller-button'),
                           loading: false,
+                          enabled: !_isBusy,
                           onPressed: widget.onTruecallerClick ?? () {},
                         ),
                         const SizedBox(height: 16),
@@ -368,11 +385,9 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                       ),
                       TextButton(
                         key: const ValueKey('signup-login-link'),
-                        onPressed: () {
-                          if (!_isLoading) {
-                            context.pushReplacement(AppRoutes.login.path);
-                          }
-                        },
+                        onPressed: _isBusy
+                            ? null
+                            : () => context.pushReplacement(AppRoutes.login.path),
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 4,
