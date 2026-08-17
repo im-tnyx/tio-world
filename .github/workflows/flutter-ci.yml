@@ -60,13 +60,13 @@ jobs:
         run: melos bootstrap
 
       - name: Analyze Flutter packages
-        run: melos exec --flutter --fail-fast -- "flutter analyze"
+        run: melos exec -c 1 --flutter --fail-fast -- "flutter analyze --no-pub"
 
       - name: Analyze Dart packages
-        run: melos exec --no-flutter --fail-fast -- "dart analyze ."
+        run: melos exec -c 1 --no-flutter --fail-fast -- "dart analyze ."
 
       - name: Test Flutter packages
-        run: melos exec --flutter --dir-exists=test --fail-fast -- "flutter test"
+        run: melos exec -c 1 --flutter --dir-exists=test --fail-fast -- "flutter test --no-pub"
 
       - name: Test Dart packages
-        run: melos exec --no-flutter --dir-exists=test --fail-fast -- "dart test"
+        run: melos exec -c 1 --no-flutter --dir-exists=test --fail-fast -- "dart test"
