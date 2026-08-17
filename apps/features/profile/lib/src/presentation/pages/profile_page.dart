@@ -50,7 +50,8 @@ class ProfilePage extends StatelessWidget {
         await onPickImage?.call(TioImageSource.camera);
         break;
       case TioAvatarAction.delete:
-        final confirmed = await showTioRemoveImageConfirmationBottomSheet(context);
+        final confirmed =
+            await showTioRemoveImageConfirmationBottomSheet(context);
         if (confirmed == true) {
           await onDeleteImage?.call();
         }
@@ -61,7 +62,8 @@ class ProfilePage extends StatelessWidget {
   int _calculateAge(DateTime dob) {
     final now = DateTime.now();
     var age = now.year - dob.year;
-    if (now.month < dob.month || (now.month == dob.month && now.day < dob.day)) {
+    if (now.month < dob.month ||
+        (now.month == dob.month && now.day < dob.day)) {
       age--;
     }
     return age;
@@ -100,23 +102,13 @@ class ProfilePage extends StatelessWidget {
     };
   }
 
-  String _formatHeightCm(double heightCm) {
-    final fixed = heightCm.toStringAsFixed(2);
-    if (fixed.endsWith('.00')) {
-      return fixed.substring(0, fixed.length - 3);
-    }
-    if (fixed.endsWith('0')) {
-      return fixed.substring(0, fixed.length - 1);
-    }
-    return fixed;
-  }
-
   @override
   Widget build(BuildContext context) {
     final colors = TioTheme.colors(context);
 
     final data = profileData;
-    final name = data?.name.trim().isNotEmpty == true ? data!.name.trim() : '';
+    final name =
+        data?.name.trim().isNotEmpty == true ? data!.name.trim() : '';
     final rawUsername = data?.username?.trim();
     final hasUsername = rawUsername != null && rawUsername.isNotEmpty;
     final username = hasUsername
@@ -125,19 +117,23 @@ class ProfilePage extends StatelessWidget {
 
     final age = data != null ? _calculateAge(data.dateOfBirth) : null;
     final genderStr = data != null ? _genderLabel(data.gender) : null;
-    final heightCm = (data != null && data.heightCm > 0) ? data.heightCm : null;
-    final weightKg = (data != null && data.currentWeightKg > 0) ? data.currentWeightKg : null;
+    final heightCm =
+        (data != null && data.heightCm > 0) ? data.heightCm : null;
+    final weightKg = (data != null && data.currentWeightKg > 0)
+        ? data.currentWeightKg
+        : null;
     final bmi = (weightKg != null && heightCm != null)
         ? _calculateBmi(weightKg: weightKg, heightCm: heightCm)
         : null;
-    final bmr = (data != null && weightKg != null && heightCm != null && age != null)
-        ? _calculateBmr(
-            weightKg: weightKg,
-            heightCm: heightCm,
-            age: age,
-            gender: data.gender,
-          )
-        : null;
+    final bmr =
+        (data != null && weightKg != null && heightCm != null && age != null)
+            ? _calculateBmr(
+                weightKg: weightKg,
+                heightCm: heightCm,
+                age: age,
+                gender: data.gender,
+              )
+            : null;
 
     final demoParts = <String>[];
     if (age != null) demoParts.add('$age year old');
@@ -150,14 +146,13 @@ class ProfilePage extends StatelessWidget {
     final normalizedPlan = (rawPlan ?? 'free').toLowerCase();
     final isPro = normalizedPlan == 'pro' || normalizedPlan == 'premium';
     final isPlus = normalizedPlan == 'plus';
-    final displayPlan = rawPlan != null && rawPlan.isNotEmpty
-        ? rawPlan.toUpperCase()
-        : null;
+    final displayPlan =
+        rawPlan != null && rawPlan.isNotEmpty ? rawPlan.toUpperCase() : null;
 
     final avatarUrl = data?.avatarUrl?.trim();
     final hasValidPhoto = avatarUrl != null &&
-                         avatarUrl.isNotEmpty &&
-                         avatarUrl.startsWith('http');
+        avatarUrl.isNotEmpty &&
+        avatarUrl.startsWith('http');
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -205,19 +200,17 @@ class ProfilePage extends StatelessWidget {
         child: isLoading
             ? const Center(child: CircularProgressIndicator())
             : ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 children: [
                   const SizedBox(height: 12),
-
-                  // Avatar with dynamic frame and edit/add badges
                   Center(
                     child: SizedBox(
-                      width: TioAvatarSize.large.dimension ,
-                      height: TioAvatarSize.large.dimension ,
+                      width: TioAvatarSize.large.dimension,
+                      height: TioAvatarSize.large.dimension,
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
-                          // Main Avatar Click
                           Center(
                             child: InkWell(
                               key: const ValueKey('profile-avatar-entry'),
@@ -235,13 +228,12 @@ class ProfilePage extends StatelessWidget {
                               child: TioAvatar(
                                 size: TioAvatarSize.large,
                                 frame: avatarFrame,
-                                displayName: name.isNotEmpty ? name : (username ?? ''),
+                                displayName:
+                                    name.isNotEmpty ? name : (username ?? ''),
                                 imageUrl: avatarUrl,
                               ),
                             ),
                           ),
-
-                          // Bottom-Right Badge Click: ALWAYS opens Bottom Sheet
                           Positioned(
                             bottom: 0,
                             right: 0,
@@ -274,7 +266,7 @@ class ProfilePage extends StatelessWidget {
                                         width: 16,
                                         height: 16,
                                         colorFilter: const ColorFilter.mode(
-                                          Color(0xFF5EEAD4), // Teal Pro brand accent
+                                          Color(0xFF5EEAD4),
                                           BlendMode.srcIn,
                                         ),
                                       )
@@ -282,7 +274,7 @@ class ProfilePage extends StatelessWidget {
                                         ? const Icon(
                                             Icons.star_rounded,
                                             size: 16,
-                                            color: Color(0xFFF59E0B), // Golden Plus Star
+                                            color: Color(0xFFF59E0B),
                                           )
                                         : const Icon(
                                             Icons.edit,
@@ -296,10 +288,7 @@ class ProfilePage extends StatelessWidget {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 16),
-
-                  // Dynamic Name (from Supabase)
                   if (name.isNotEmpty)
                     Center(
                       child: Text(
@@ -311,8 +300,6 @@ class ProfilePage extends StatelessWidget {
                         ),
                       ),
                     ),
-
-                  // Dynamic Demographics (only shown when available)
                   if (demographics.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Center(
@@ -326,13 +313,14 @@ class ProfilePage extends StatelessWidget {
                       ),
                     ),
                   ],
-
-                  // Dynamic Plan Pill (e.g. ★ PLUS / ★ PRO)
                   if (displayPlan != null) ...[
                     const SizedBox(height: 12),
                     Center(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: colors.surfaceVariant.withAlpha(140),
                           borderRadius: BorderRadius.circular(14),
@@ -360,19 +348,13 @@ class ProfilePage extends StatelessWidget {
                       ),
                     ),
                   ],
-
                   const SizedBox(height: 20),
-
-                  // Subtle horizontal divider
                   Divider(
                     height: 24,
                     thickness: 1,
                     color: colors.outlineStrong.withAlpha(20),
                   ),
-
                   const SizedBox(height: 16),
-
-                  // Clean 4-Column Metrics (WITHOUT CARDS - 100% Dynamic)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
@@ -380,16 +362,22 @@ class ProfilePage extends StatelessWidget {
                         key: const ValueKey('profile-weight-metric'),
                         icon: Icons.crop_square_rounded,
                         label: 'WEIGHT',
-                        value: weightKg != null
-                            ? '${weightKg.toStringAsFixed(weightKg % 1 == 0 ? 0 : 1)} kg'
+                        value: weightKg != null && data != null
+                            ? MeasurementFormatters.formatWeight(
+                                weightKg,
+                                data.unitPreferences.weightUnit,
+                              )
                             : '--',
                       ),
                       _MetricColumn(
                         key: const ValueKey('profile-height-metric'),
                         icon: Icons.straighten_rounded,
                         label: 'HEIGHT',
-                        value: heightCm != null
-                            ? '${_formatHeightCm(heightCm)} cm'
+                        value: heightCm != null && data != null
+                            ? MeasurementFormatters.formatHeight(
+                                heightCm,
+                                data.unitPreferences.heightUnit,
+                              )
                             : '--',
                       ),
                       _MetricColumn(
@@ -413,7 +401,6 @@ class ProfilePage extends StatelessWidget {
   }
 }
 
-/// Clean Minimalist Metric Column without card borders
 class _MetricColumn extends StatelessWidget {
   const _MetricColumn({
     required this.icon,
