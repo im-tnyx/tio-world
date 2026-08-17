@@ -40,6 +40,33 @@ void main() {
     expect(saved!.volumeUnit, VolumeUnit.flOz);
   });
 
+  testWidgets('unit choices expose selected semantics', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) =>
+            TioTheme(child: child ?? const SizedBox.shrink()),
+        home: MeasurementUnitsSettingsPage(
+          initialPreferences: MeasurementUnitPreferences.metric,
+          onSave: (_) async {},
+        ),
+      ),
+    );
+
+    int selectedSemanticsCount() => tester
+        .widgetList<Semantics>(find.byType(Semantics))
+        .where((widget) => widget.properties.selected == true)
+        .length;
+
+    expect(selectedSemanticsCount(), 5);
+
+    await tester.tap(
+      find.byKey(const ValueKey('measurement-units-preset-imperial')),
+    );
+    await tester.pump();
+
+    expect(selectedSemanticsCount(), 5);
+  });
+
   testWidgets('save failure stays retryable and exposes feedback',
       (tester) async {
     await tester.pumpWidget(
