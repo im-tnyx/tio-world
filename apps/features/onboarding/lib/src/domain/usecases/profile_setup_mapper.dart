@@ -14,9 +14,10 @@ class ProfileSetupMapper {
     final height = (draft.heightCm != null && draft.heightCm! > 0)
         ? draft.heightCm!
         : 170.0;
-    final currentWeight = (draft.currentWeightKg != null && draft.currentWeightKg! > 0)
-        ? draft.currentWeightKg!
-        : 70.0;
+    final currentWeight =
+        (draft.currentWeightKg != null && draft.currentWeightKg! > 0)
+            ? draft.currentWeightKg!
+            : 70.0;
     final activity = draft.activityLevel ?? ProfileActivityLevel.active;
     final rawHealth = draft.healthConditions.isEmpty
         ? const {ProfileHealthCondition.none}
@@ -44,6 +45,7 @@ class ProfileSetupMapper {
       heightCm: height,
       currentWeightKg: currentWeight,
       targetWeightKg: draft.targetWeightKg,
+      unitPreferences: draft.unitPreferences,
       activityLevel: switch (activity) {
         ProfileActivityLevel.sedentary =>
           profile_owner.ProfileActivityLevel.sedentary,
