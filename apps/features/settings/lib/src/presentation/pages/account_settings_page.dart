@@ -78,7 +78,9 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
   void initState() {
     super.initState();
     _usernameController = TextEditingController(text: widget.username ?? '');
-    _phoneController = TextEditingController(text: widget.phoneNumber ?? '');
+    _phoneController = TextEditingController(
+      text: _nationalPhoneDigits(widget.phoneNumber),
+    );
   }
 
   @override
@@ -131,13 +133,16 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
         } else {
           _usernameStatus = _UsernameStatus.unavailable;
           _suggestions = result.suggestions;
-          _usernameFeedback = result.message ?? 'This username is already taken. Try another.';
+          _usernameFeedback =
+              result.message ?? 'This username is already taken. Try another.';
         }
       });
     });
   }
 
-  Future<UsernameAvailabilityResult> _performAvailabilityCheck(String handle) async {
+  Future<UsernameAvailabilityResult> _performAvailabilityCheck(
+    String handle,
+  ) async {
     if (widget.onCheckUsernameAvailability != null) {
       return widget.onCheckUsernameAvailability!(handle);
     }
@@ -216,7 +221,9 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
   }
 
   Future<void> _handleSave() async {
-    if (_isSaving || _usernameStatus == _UsernameStatus.unavailable || _usernameStatus == _UsernameStatus.checking) {
+    if (_isSaving ||
+        _usernameStatus == _UsernameStatus.unavailable ||
+        _usernameStatus == _UsernameStatus.checking) {
       return;
     }
     setState(() => _isSaving = true);
@@ -328,7 +335,9 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                           controller: _usernameController,
                           cursorColor: colors.primary,
                           inputFormatters: [
-                            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_.]')),
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'[a-zA-Z0-9_.]'),
+                            ),
                             LengthLimitingTextInputFormatter(30),
                           ],
                           onChanged: _onUsernameInput,
@@ -380,8 +389,6 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                     ],
                   ),
                 ),
-
-                // ── Feedback Message ──
                 if (_usernameFeedback case final msg?) ...[
                   const SizedBox(height: 6),
                   Padding(
@@ -398,8 +405,6 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                     ),
                   ),
                 ],
-
-                // ── Clickable Suggestion Chips ──
                 if (_suggestions.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   Padding(
@@ -448,10 +453,8 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                 ],
               ],
             ),
-
             const SizedBox(height: TioSpacing.large),
-
-            // ── Field 2: EMAIL (with Verify / Twitter-style Verified Badge) ──
+            // ── Field 2: EMAIL (with Verify / Verified Badge) ──
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -498,7 +501,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                         const Icon(
                           Icons.verified_rounded,
                           size: 22,
-                          color: Color(0xFF1DA1F2), // Twitter/X Verified Badge Blue
+                          color: Color(0xFF1DA1F2),
                         )
                       else if (widget.email?.isNotEmpty == true)
                         GestureDetector(
@@ -527,10 +530,8 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                 ),
               ],
             ),
-
             const SizedBox(height: TioSpacing.large),
-
-            // ── Field 3: PHONE NUMBER (with Verify / Twitter-style Verified Badge) ──
+            // ── Field 3: PHONE NUMBER ──
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -544,121 +545,18 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    // Flag + Country Code
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          '🇮🇳',
-                          style: TextStyle(fontSize: 22),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '+91',
-                          style: TextStyle(
-                            color: colors.textPrimary,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 14),
-
-                    // Number Editable Capsule Box
-                    Expanded(
-                      child: Container(
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: colors.surfaceRaised,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: colors.outlineStrong.withAlpha(40),
-                          ),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        alignment: Alignment.center,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _phoneController,
-                                keyboardType: TextInputType.phone,
-                                cursorColor: colors.primary,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                  LengthLimitingTextInputFormatter(10),
-                                ],
-                                onChanged: (val) {
-                                  widget.onPhoneNumberChanged?.call(val);
-                                  setState(() {});
-                                },
-                                style: TextStyle(
-                                  color: colors.textPrimary,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  letterSpacing: 0.5,
-                                ),
-                                decoration: InputDecoration(
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  errorBorder: InputBorder.none,
-                                  disabledBorder: InputBorder.none,
-                                  focusedErrorBorder: InputBorder.none,
-                                  filled: false,
-                                  fillColor: Colors.transparent,
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.zero,
-                                  hintText: 'Enter mobile number',
-                                  hintStyle: TextStyle(
-                                    color: colors.textMuted,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            if (widget.isPhoneVerified)
-                              const Icon(
-                                Icons.verified_rounded,
-                                size: 22,
-                                color: Color(0xFF1DA1F2), // Twitter/X Verified Badge Blue
-                              )
-                            else if (_phoneController.text.trim().isNotEmpty)
-                              GestureDetector(
-                                onTap: _handleVerifyPhone,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 5,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: colors.primary.withAlpha(22),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    'Verify',
-                                    style: TextStyle(
-                                      color: colors.primary,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                TioMobileNumberField(
+                  controller: _phoneController,
+                  isVerified: widget.isPhoneVerified,
+                  onVerifyPressed: _handleVerifyPhone,
+                  onChanged: (value) {
+                    widget.onPhoneNumberChanged?.call(value);
+                    setState(() {});
+                  },
                 ),
               ],
             ),
-
             const SizedBox(height: TioSpacing.large),
-
             // ── Field 4: LINKED ACCOUNT ──
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -728,7 +626,6 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
           ],
         ),
       ),
-      // ── Fixed Bottom Actions Bar: Save Changes + Delete Account ──
       bottomNavigationBar: ClipRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
@@ -789,4 +686,15 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
       ),
     );
   }
+}
+
+String _nationalPhoneDigits(String? value) {
+  final digits = (value ?? '').replaceAll(RegExp(r'[^0-9]'), '');
+  if (digits.startsWith('91') && digits.length > 10) {
+    return digits.substring(2);
+  }
+  if (digits.length > 10) {
+    return digits.substring(digits.length - 10);
+  }
+  return digits;
 }
