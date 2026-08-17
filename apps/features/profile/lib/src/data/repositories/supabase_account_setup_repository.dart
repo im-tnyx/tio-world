@@ -44,11 +44,15 @@ class SupabaseAccountSetupRepository implements AccountSetupRepository {
 
     final username = (row['username'] as String?)?.trim().toLowerCase();
     final mobile = (row['mobile'] as String?)?.trim() ?? '';
+    final isMobileVerified = row['mobile_verified_at'] != null;
     return AccountSetupAccountState(
       username: username == null || username.isEmpty ? null : username,
       mobile: mobile,
-      isMobileVerified: row['mobile_verified_at'] != null,
-      isCompleted: row['account_setup_completed_at'] != null,
+      isMobileVerified: isMobileVerified,
+      // A trusted backend-verified mobile already satisfies the optional
+      // Mobile step even if this row predates the explicit completion marker.
+      isCompleted:
+          row['account_setup_completed_at'] != null || isMobileVerified,
     );
   }
 

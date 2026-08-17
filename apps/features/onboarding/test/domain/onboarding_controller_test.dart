@@ -131,7 +131,6 @@ void main() {
       () async {
     final controller = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
-      includeMobile: true,
       initialDraft: OnboardingDraft(
         selectedMode: AppMode.hybrid,
         currentStepId: OnboardingStepId.workoutIntro,
@@ -140,7 +139,7 @@ void main() {
     );
 
     expect(controller.state.canContinue, isFalse);
-    expect(controller.state.progressStepCount, 27);
+    expect(controller.state.progressStepCount, 26);
 
     controller.selectWorkoutIntroChoice(WorkoutIntroChoice.later);
 
@@ -150,7 +149,7 @@ void main() {
       controller.state.flowPlan.stepIds,
       isNot(contains(OnboardingStepId.workoutPreferences)),
     );
-    expect(controller.state.progressStepCount, 19);
+    expect(controller.state.progressStepCount, 18);
 
     await controller.next(onFinish: _completeImmediately);
     expect(controller.state.stepId, OnboardingStepId.targets);
@@ -164,7 +163,7 @@ void main() {
       controller.state.flowPlan.stepIds,
       contains(OnboardingStepId.workoutPreferences),
     );
-    expect(controller.state.progressStepCount, 27);
+    expect(controller.state.progressStepCount, 26);
 
     await controller.next(onFinish: _completeImmediately);
     expect(controller.state.stepId, OnboardingStepId.workoutPreferences);
