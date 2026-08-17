@@ -22,6 +22,7 @@ class _UsernameSetupPageState extends State<UsernameSetupPage> {
   TioUsernameStatus _status = TioUsernameStatus.idle;
   bool _saving = false;
   String? _saveError;
+  int _availabilityRefreshToken = 0;
 
   @override
   void dispose() {
@@ -29,12 +30,28 @@ class _UsernameSetupPageState extends State<UsernameSetupPage> {
     super.dispose();
   }
 
+  String _availabilityMessage(UsernameAvailabilityCheck check) {
+    return switch (check.reason) {
+      UsernameAvailabilityReason.reserved =>
+        'That username is reserved. Try one of these instead:',
+      UsernameAvailabilityReason.invalid =>
+        'Choose a valid username using lowercase letters, numbers, dots, and underscores.',
+      UsernameAvailabilityReason.taken =>
+        'This username is already taken. Try one of these instead:',
+      UsernameAvailabilityReason.profileMissing ||
+      UsernameAvailabilityReason.unknown =>
+        'Could not verify this username. Please try again.',
+      null => 'This username is unavailable. Please try another.',
+    };
+  }
+
   Future<UsernameAvailabilityResult> _checkAvailability(String username) async {
     try {
-      final available = await widget.repository.isUsernameAvailable(username);
+      final check = await widget.repository.checkUsernameAvailability(username);
       return UsernameAvailabilityResult(
-        isAvailable: available,
-        message: available ? null : 'This username is already taken.',
+        isAvailable: check.isAvailable,
+        suggestions: check.suggestions,
+        message: check.isAvailable ? null : _availabilityMessage(check),
       );
     } catch (_) {
       return const UsernameAvailabilityResult(
@@ -42,6 +59,16 @@ class _UsernameSetupPageState extends State<UsernameSetupPage> {
         message: 'Could not verify this username. Please try again.',
       );
     }
+  }
+
+  String _saveConflictMessage(UsernameUnavailableException error) {
+    return switch (error.reason) {
+      UsernameAvailabilityReason.reserved =>
+        'That username is reserved. Please choose another.',
+      UsernameAvailabilityReason.invalid =>
+        'That username is no longer valid. Please choose another.',
+      _ => 'That username was just taken. Please choose another.',
+    };
   }
 
   Future<void> _save() async {
@@ -56,11 +83,12 @@ class _UsernameSetupPageState extends State<UsernameSetupPage> {
       await widget.repository.updateUsername(_usernameController.text);
       if (!mounted) return;
       await widget.onCompleted();
-    } on UsernameUnavailableException {
+    } on UsernameUnavailableException catch (error) {
       if (!mounted) return;
       setState(() {
         _status = TioUsernameStatus.unavailable;
-        _saveError = 'That username was just taken. Please choose another.';
+        _saveError = _saveConflictMessage(error);
+        _availabilityRefreshToken++;
       });
     } catch (_) {
       if (!mounted) return;
@@ -105,12 +133,14 @@ class _UsernameSetupPageState extends State<UsernameSetupPage> {
                     enabled: !_saving,
                     textInputAction: TextInputAction.done,
                     onCheckAvailability: _checkAvailability,
+                    availabilityRefreshToken: _availabilityRefreshToken,
+                    onChanged: (_) {
+                      if (_saveError == null || !mounted) return;
+                      setState(() => _saveError = null);
+                    },
                     onStatusChanged: (status) {
                       if (!mounted) return;
-                      setState(() {
-                        _status = status;
-                        _saveError = null;
-                      });
+                      setState(() => _status = status);
                     },
                     onSubmitted: (_) => _save(),
                   ),
