@@ -17,13 +17,15 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
 
   final SupabaseClient _client;
 
-  String _requireUserId() {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null || userId.isEmpty) {
+  User _requireUser() {
+    final user = _client.auth.currentUser;
+    if (user == null || user.id.isEmpty) {
       throw StateError('Please sign in to update account settings.');
     }
-    return userId;
+    return user;
   }
+
+  String _requireUserId() => _requireUser().id;
 
   String _normalizeUsername(String username) {
     return username.trim().toLowerCase();
@@ -35,9 +37,27 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
         _usernamePattern.hasMatch(username);
   }
 
+  String _resolveProfileName(User user) {
+    final metadata = user.userMetadata ?? const <String, dynamic>{};
+    for (final key in const ['full_name', 'display_name', 'name']) {
+      final value = metadata[key];
+      if (value is String && value.trim().isNotEmpty) {
+        return value.trim();
+      }
+    }
+
+    final email = user.email?.trim() ?? '';
+    if (email.contains('@')) {
+      final localPart = email.split('@').first.trim();
+      if (localPart.isNotEmpty) return localPart;
+    }
+
+    return 'Tio User';
+  }
+
   @override
   Future<bool> isUsernameAvailable(String username) async {
-    _requireUserId();
+    _requireUser();
     final normalizedUsername = _normalizeUsername(username);
     if (!_isValidUsername(normalizedUsername)) return false;
 
@@ -49,7 +69,7 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
 
   @override
   Future<void> updateUsername(String username) async {
-    final userId = _requireUserId();
+    final user = _requireUser();
     final normalizedUsername = _normalizeUsername(username);
     if (!_isValidUsername(normalizedUsername)) {
       throw ArgumentError.value(
@@ -59,21 +79,35 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
       );
     }
 
+    final nowIso = DateTime.now().toUtc().toIso8601String();
     try {
       final updatedRows = await _client
           .from('users')
           .update({
             'username': normalizedUsername,
-            'updated_at': DateTime.now().toUtc().toIso8601String(),
+            'updated_at': nowIso,
           })
-          .eq('id', userId)
+          .eq('id', user.id)
           .select('id');
 
-      if (updatedRows.isEmpty) {
-        throw StateError(
-          'Username update did not modify the current profile.',
-        );
-      }
+      if (updatedRows.isNotEmpty) return;
+
+      // Google profile sync is intentionally best-effort and can still be
+      // running when the mandatory Username checkpoint is reached. If the
+      // local row is missing, create the minimum valid profile from auth
+      // identity metadata. Username never participates in resolving `name`.
+      await _client.from('users').upsert(
+        {
+          'id': user.id,
+          'name': _resolveProfileName(user),
+          if (user.email != null && user.email!.trim().isNotEmpty)
+            'email': user.email!.trim().toLowerCase(),
+          'username': normalizedUsername,
+          'last_active_at': nowIso,
+          'updated_at': nowIso,
+        },
+        onConflict: 'id',
+      );
     } on PostgrestException catch (error) {
       if (error.code == '23505') {
         throw const UsernameUnavailableException();
