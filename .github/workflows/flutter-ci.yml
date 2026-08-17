@@ -66,7 +66,7 @@ jobs:
         run: melos exec -c 1 --no-flutter --fail-fast -- "dart analyze ."
 
       - name: Test Flutter packages
-        run: melos exec -c 1 --flutter --dir-exists=test --fail-fast -- "flutter test"
+        run: melos exec -c 1 --flutter --dir-exists=test --fail-fast -- "flutter pub get && flutter test --no-pub"
 
       - name: Test Dart packages
         run: melos exec -c 1 --no-flutter --dir-exists=test --fail-fast -- "dart test"
