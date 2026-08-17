@@ -19,7 +19,7 @@ void main() {
 
       expect(find.text('Sign Up'), findsOneWidget);
       expect(find.byKey(const ValueKey('signup-back-button')), findsOneWidget);
-      expect(find.byKey(const ValueKey('signup-username-input')), findsOneWidget);
+      expect(find.byKey(const ValueKey('signup-username-input')), findsNothing);
       expect(find.byKey(const ValueKey('signup-email-input')), findsOneWidget);
       expect(find.byKey(const ValueKey('signup-password-input')), findsOneWidget);
       expect(find.byKey(const ValueKey('signup-submit-button')), findsOneWidget);
@@ -93,7 +93,8 @@ void main() {
       expect(submitBtnValid.enabled, isTrue);
     });
 
-    testWidgets('calls signUpWithEmailUseCase on valid submit', (tester) async {
+    testWidgets('calls signUpWithEmailUseCase without mapping username to name',
+        (tester) async {
       var emailSubmitted = '';
       var passwordSubmitted = '';
 
@@ -131,6 +132,7 @@ void main() {
 
       expect(emailSubmitted, 'new@tnyx.fit');
       expect(passwordSubmitted, 'Pass123456');
+      expect(mockRepo.lastSignUpName, isNull);
     });
 
     testWidgets('Google signup explicitly uses signup-or-existing intent',
@@ -202,6 +204,7 @@ class FakeAuthSignInRepository implements AuthSignInRepository {
 
   final Future<SignInResult> Function(String email, String password)?
       onSignUpWithEmail;
+  String? lastSignUpName;
 
   @override
   Future<SignInResult> signUpWithEmailPassword({
@@ -209,6 +212,7 @@ class FakeAuthSignInRepository implements AuthSignInRepository {
     required String password,
     String? name,
   }) async {
+    lastSignUpName = name;
     if (onSignUpWithEmail != null) {
       return onSignUpWithEmail!(email, password);
     }
