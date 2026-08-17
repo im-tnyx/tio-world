@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../theme/welcome_tokens.dart';
 
 class WelcomeTopBar extends StatelessWidget {
@@ -21,38 +22,39 @@ class WelcomeTopBar extends StatelessWidget {
 
     return Row(
       children: [
-        Flexible(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: WelcomeDimens.spaceXS,
-              vertical: WelcomeDimens.spaceXXS,
-            ),
-            child: Text(
-              localeCode.toUpperCase(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: headerStyle,
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: WelcomeDimens.spaceXS,
+                vertical: WelcomeDimens.spaceXXS,
+              ),
+              child: Text(
+                localeCode.toUpperCase(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: headerStyle,
+              ),
             ),
           ),
         ),
-        const Spacer(),
-        Flexible(
-          child: Material(
-            color: WelcomeColors.transparent,
-            child: InkWell(
-              onTap: onSkip,
-              borderRadius: BorderRadius.circular(WelcomeDimens.radiusL),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: WelcomeDimens.spaceXS,
-                  vertical: WelcomeDimens.spaceXXS,
-                ),
-                child: Text(
-                  skipText,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: headerStyle,
-                ),
+        Material(
+          color: WelcomeColors.transparent,
+          child: InkWell(
+            key: const ValueKey('welcome-skip-action'),
+            onTap: onSkip,
+            borderRadius: BorderRadius.circular(WelcomeDimens.radiusL),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: WelcomeDimens.spaceXS,
+                vertical: WelcomeDimens.spaceXXS,
+              ),
+              child: Text(
+                skipText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: headerStyle,
               ),
             ),
           ),
