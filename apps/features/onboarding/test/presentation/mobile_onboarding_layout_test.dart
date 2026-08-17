@@ -17,6 +17,7 @@ void main() {
           home: OnboardingFlowPage(
             seed: OnboardingControllerSeed(
               entryPath: OnboardingEntryPath.firstRun,
+              includeMobile: true,
               draft: OnboardingDraft(
                 selectedMode: AppMode.workout,
                 currentStepId: OnboardingStepId.mobile,
