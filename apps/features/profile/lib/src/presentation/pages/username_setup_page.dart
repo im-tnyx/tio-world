@@ -134,27 +134,17 @@ class _UsernameSetupPageState extends State<UsernameSetupPage> {
               ),
               child: SizedBox(
                 height: 48,
-                child: Row(
-                  children: [
-                    IconButton(
-                      key: const ValueKey('username-setup-back-button'),
-                      icon: Icon(
-                        Icons.arrow_back,
-                        color: colors.textPrimary,
-                        size: 24,
-                      ),
-                      onPressed: _saving ? null : _handleBack,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: IconButton(
+                    key: const ValueKey('username-setup-back-button'),
+                    icon: Icon(
+                      Icons.arrow_back,
+                      color: colors.textPrimary,
+                      size: 24,
                     ),
-                    const SizedBox(width: TioSpacing.small),
-                    Text(
-                      'Username',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: colors.textPrimary,
-                      ),
-                    ),
-                  ],
+                    onPressed: _saving ? null : _handleBack,
+                  ),
                 ),
               ),
             ),
@@ -164,56 +154,49 @@ class _UsernameSetupPageState extends State<UsernameSetupPage> {
                 padding: const EdgeInsets.symmetric(
                   horizontal: TioSpacing.large,
                 ),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 480),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const SizedBox(height: TioSpacing.large),
-                      Text(
-                        'Choose your username',
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          color: colors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: TioSpacing.small),
-                      Text(
-                        'Your username is your unique public Tio handle. You can use lowercase letters, numbers, dots, and underscores.',
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: colors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: TioSpacing.extraLarge),
-                      TioUsernameInputField(
-                        controller: _usernameController,
-                        enabled: !_saving,
-                        textInputAction: TextInputAction.done,
-                        onCheckAvailability: _checkAvailability,
-                        availabilityRefreshToken: _availabilityRefreshToken,
-                        onChanged: (_) {
-                          if (_saveError == null || !mounted) return;
-                          setState(() => _saveError = null);
-                        },
-                        onStatusChanged: (status) {
-                          if (!mounted) return;
-                          setState(() => _status = status);
-                        },
-                        onSubmitted: (_) => _save(),
-                      ),
-                      if (_saveError != null) ...[
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 480),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
                         const SizedBox(height: TioSpacing.medium),
-                        Text(
-                          _saveError!,
-                          key: const ValueKey('username-setup-error'),
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.error,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        const TioScreenHeader(
+                          title: 'Choose your username',
+                          subtitle:
+                              'Your username is your unique public Tio handle. Use lowercase letters, numbers, dots, and underscores.',
                         ),
+                        const SizedBox(height: TioSpacing.large),
+                        TioUsernameInputField(
+                          controller: _usernameController,
+                          enabled: !_saving,
+                          textInputAction: TextInputAction.done,
+                          onCheckAvailability: _checkAvailability,
+                          availabilityRefreshToken: _availabilityRefreshToken,
+                          onChanged: (_) {
+                            if (_saveError == null || !mounted) return;
+                            setState(() => _saveError = null);
+                          },
+                          onStatusChanged: (status) {
+                            if (!mounted) return;
+                            setState(() => _status = status);
+                          },
+                          onSubmitted: (_) => _save(),
+                        ),
+                        if (_saveError != null) ...[
+                          const SizedBox(height: TioSpacing.medium),
+                          Text(
+                            _saveError!,
+                            key: const ValueKey('username-setup-error'),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.error,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: TioSpacing.extraLarge),
                       ],
-                      const SizedBox(height: TioSpacing.extraLarge),
-                    ],
+                    ),
                   ),
                 ),
               ),
