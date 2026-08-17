@@ -16,6 +16,18 @@ class AppOnboardingController extends OnboardingController {
   }) : _localDraftStore = localDraftStore;
 
   final LocalOnboardingDraftStore _localDraftStore;
+  bool _isDisposed = false;
+
+  @override
+  Future<void> hydrateDraft() async {
+    await super.hydrateDraft();
+    if (!_isDisposed) {
+      // The base controller marks hydration complete after applying the loaded
+      // draft. Publish that readiness so the UI can render only the resolved
+      // onboarding step instead of briefly showing the default App Mode step.
+      notifyListeners();
+    }
+  }
 
   @override
   Future<void> next({
@@ -69,5 +81,11 @@ class AppOnboardingController extends OnboardingController {
         currentState.stepId,
       },
     );
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
   }
 }
