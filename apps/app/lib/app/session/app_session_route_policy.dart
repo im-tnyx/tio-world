@@ -18,6 +18,7 @@ final _readyEntryPaths = <String>{
   AppRoutes.emailLogin.path,
   AppRoutes.emailSignup.path,
   AppRoutes.forgotPassword.path,
+  AppRoutes.usernameSetup.path,
   AppRoutes.onboarding.path,
 };
 
@@ -34,6 +35,10 @@ String? appSessionBootstrapRedirect({
       return _unauthenticatedPublicPaths.contains(path)
           ? null
           : AppRoutes.auth.path;
+    case AppSessionBootstrapRequiresUsername():
+      return path == AppRoutes.usernameSetup.path
+          ? null
+          : AppRoutes.usernameSetup.path;
     case AppSessionBootstrapRequiresOnboarding():
       if (path == AppRoutes.onboarding.path ||
           path == AppRoutes.congratulations.path) {
