@@ -146,7 +146,7 @@ class _MeasurementUnitsSettingsPageState
                   key: const ValueKey('measurement-units-save'),
                   label: 'Save',
                   onPressed: _hasChanges && !_isSaving ? _save : null,
-                  isLoading: _isSaving,
+                  loading: _isSaving,
                   expand: true,
                 ),
               ),
