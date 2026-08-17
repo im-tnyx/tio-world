@@ -81,6 +81,8 @@ void main() {
       expect(deserialized.draft.profile.currentWeightKg, equals(64.2));
       expect(deserialized.draft.profile.targetWeightKg, equals(58.0));
       expect(deserialized.draft.profile.otherHealthCondition, equals('Asthma'));
+      expect(deserialized.draft.profile.mobile, equals('+1234567890'));
+      expect(deserialized.draft.profile.isMobileVerified, isTrue);
 
       // Workout assertions
       expect(deserialized.draft.workout.gymAccess, equals(WorkoutGymAccess.home));
