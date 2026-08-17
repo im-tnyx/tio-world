@@ -178,8 +178,10 @@ class SupabaseAuthSignInRepository
         final user = _client.auth.currentUser;
         if (user != null) {
           developer.log('[GoogleAuth] OAuth fallback session established');
+          final session = _mapUser(user);
           _startDeviceSync();
-          return SignInSuccess(_mapUser(user));
+          _startGoogleProfileSync(user: user, session: session);
+          return SignInSuccess(session);
         }
         return const SignInCancelled();
       }
@@ -337,8 +339,6 @@ class SupabaseAuthSignInRepository
           {
             'id': user.id,
             if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
-            if (name != null && name.trim().isNotEmpty)
-              'username': name.trim().toLowerCase(),
             'email': email.trim().toLowerCase(),
             'last_active_at': nowIso,
             'updated_at': nowIso,
@@ -346,7 +346,7 @@ class SupabaseAuthSignInRepository
           onConflict: 'id',
         );
       } catch (e) {
-        developer.log('Failed to save username to public.users: $e');
+        developer.log('Failed to save email signup profile: $e');
       }
       return SignInSuccess(_mapUser(user));
     } on AuthException catch (e) {
