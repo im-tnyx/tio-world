@@ -60,6 +60,38 @@ void main() {
       expect(data.hasExplicitUnitPreferences, isFalse);
     });
 
+    test('field-specific unit update preserves canonical profile values', () async {
+      final repository = InMemoryProfileSetupRepository();
+      final initial = ProfileSetupData(
+        name: 'Stable Values',
+        username: 'stable',
+        gender: ProfileGender.other,
+        goals: const {ProfileGoal.keepFit},
+        dateOfBirth: DateTime(1990, 2, 3),
+        heightCm: 182.88,
+        currentWeightKg: 81.6466266,
+        targetWeightKg: 78.0,
+        activityLevel: ProfileActivityLevel.active,
+        healthConditions: const {ProfileHealthCondition.none},
+        mobile: '+919876543210',
+        isMobileVerified: true,
+      );
+      await repository.saveProfileSetup(initial);
+
+      await repository.updateMeasurementUnitPreferences(
+        MeasurementUnitPreferences.imperial,
+      );
+
+      final updated = await repository.getProfileSetup();
+      expect(updated?.unitPreferences, MeasurementUnitPreferences.imperial);
+      expect(updated?.heightCm, 182.88);
+      expect(updated?.currentWeightKg, 81.6466266);
+      expect(updated?.targetWeightKg, 78.0);
+      expect(updated?.mobile, '+919876543210');
+      expect(updated?.isMobileVerified, isTrue);
+      expect(updated?.username, 'stable');
+    });
+
     test('overwrites previous profile on subsequent save', () async {
       final repository = InMemoryProfileSetupRepository();
 
