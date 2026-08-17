@@ -7,13 +7,120 @@
 
 ## 1. Purpose
 
-Define the post-auth onboarding behavior for fresh account signup, the new Username screen, Google/email signup, future mobile/Truecaller auth, optional mobile collection, and first-signup Google profile-photo bootstrap.
+Define the signup/auth surface consolidation, post-auth onboarding behavior for fresh account signup, the new Username screen, Google/email signup, future mobile/Truecaller auth, optional mobile collection, and first-signup Google profile-photo bootstrap.
 
-This focused task is the source of truth for these rules and **supersedes any earlier wording that said mobile-number entry is required**.
+This focused task is the source of truth for these rules and supersedes earlier wording that:
 
-## 2. Fresh-signup post-auth order
+- mobile-number entry is required;
+- `AuthLandingPage` must remain the signup/provider gateway;
+- the legal disclaimer must remain owned by AuthLanding.
 
-For a newly created Tio account, authentication establishes ownership before account-specific profile fields are written to Supabase.
+## 2. Auth surface consolidation — remove standalone AuthLanding
+
+The standalone AuthLanding screen is now considered redundant for the target product flow and should be retired after its routes, tests, callbacks, and legal/provider responsibilities are migrated safely.
+
+### Canonical screen ownership
+
+```text
+Login
+= existing-account authentication only
+
+Signup
+= all fresh-account creation options
+= Email/password form
++ Google signup
++ future Truecaller signup
++ legal disclaimer
+
+Onboarding
+= product/profile data collection
+```
+
+Target navigation from Login:
+
+```text
+Login
+→ "Don't have an account? Sign Up"
+→ Signup
+   - Email/password creation
+   - Continue with Google
+   - future Continue with Truecaller
+   - legal disclaimer
+→ auth success
+→ Username
+→ provider-aware optional Mobile
+→ onboarding continuation/start
+```
+
+There must be no intermediate AuthLanding screen in this path.
+
+### Onboarding auth checkpoint uses the same Signup screen
+
+When a signed-out onboarding flow reaches its auth checkpoint:
+
+```text
+App Mode / Profile already collected locally
+→ Signup
+   - same Email UI
+   - same Google button
+   - same future Truecaller button
+   - same legal disclaimer
+→ auth success
+→ Username
+→ provider-aware optional Mobile
+→ resume the exact durable post-auth onboarding step
+```
+
+The Signup screen must not hide/show social buttons based on whether it was opened from Login or from the onboarding checkpoint. Entry context affects **post-auth continuation**, not the visible provider set.
+
+### Returning/existing identity selected from Signup
+
+Provider signup actions may discover that the selected identity already owns an existing Tio account.
+
+```text
+Signup provider action
+→ existing completed Tio account resolved
+→ authenticated bootstrap remains authoritative
+→ Home
+→ do not force Username/Mobile/onboarding restart
+```
+
+For an existing incomplete account, durable account/onboarding state remains authoritative.
+
+### Legal disclaimer ownership
+
+`TioTermsDisclaimer` should move to the canonical Signup screen and remain visible with the account-creation methods there.
+
+Target ownership:
+
+```text
+Welcome
+→ no Terms/Privacy disclaimer
+
+Login
+→ no signup legal disclaimer
+
+Signup
+→ TioTermsDisclaimer present
+
+AuthLanding
+→ retired/removed after migration
+```
+
+Do not duplicate the disclaimer across Login and Signup merely because both contain provider buttons.
+
+### Migration guardrails
+
+- Do not delete AuthLanding first and repair routing later; migrate callers/tests/routes deliberately, then remove dead ownership.
+- Preserve current Login existing-account-only Google admission behavior.
+- Signup Google intent remains account-creation-or-existing-account aware.
+- Preserve onboarding local-draft handoff semantics from issue #13.
+- No conditional social-button rendering based on entry source.
+- Do not introduce a second provider-selection screen after this consolidation.
+
+## 3. Fresh-signup post-auth order
+
+For a genuinely newly created Tio account, authentication establishes ownership before account-specific profile fields are written to Supabase.
 
 ```text
 Fresh signup authentication succeeds
@@ -22,11 +129,32 @@ Fresh signup authentication succeeds
 → remaining onboarding flow
 ```
 
-The Username screen therefore belongs immediately after successful fresh-account authentication and before the optional Mobile screen.
+If Signup was entered from Login with no pre-auth onboarding draft:
+
+```text
+Login
+→ Signup
+→ fresh account created
+→ Username
+→ Mobile when applicable
+→ onboarding begins at its normal first product step
+```
+
+If Signup was entered from an onboarding auth checkpoint:
+
+```text
+pre-auth App Mode/Profile draft exists
+→ Signup
+→ fresh account created
+→ Username
+→ Mobile when applicable
+→ existing local resume checkpoint wins
+→ App Mode/Profile are not repeated
+```
 
 Returning existing accounts must not be forced through this fresh-signup bootstrap sequence just because they authenticate again.
 
-## 3. Username screen contract
+## 4. Username screen contract
 
 ### Fresh account
 
@@ -46,7 +174,7 @@ Rules:
 - Do not silently overwrite an existing username on later login.
 - Existing incomplete accounts should resume their durable onboarding state instead of blindly restarting Username because of the provider used to sign in.
 
-### 3.1 Username normalization, availability, filtering, and suggestions
+### 4.1 Username normalization, availability, filtering, and suggestions
 
 The existing `TioUsernameInputField` candidate style may be used only as inspiration for candidate generation. Tio must not require fixed suffixes or present any single pattern as the preferred username format.
 
@@ -144,12 +272,12 @@ OR
 → optional / Skip allowed
 ```
 
-## 4. Frozen Mobile-step contract
+## 5. Frozen Mobile-step contract
 
 ### Google fresh signup
 
 ```text
-Get Started / explicit signup
+Signup → Google
 → Google auth succeeds
 → Username screen
 → Mobile screen
@@ -173,7 +301,7 @@ Rules:
 ### Email fresh signup
 
 ```text
-Explicit Email signup
+Signup → Email/password create account
 → email auth succeeds
 → Username screen
 → Mobile screen
@@ -204,7 +332,8 @@ Truecaller remains unavailable in the current release. Do not enable it in this 
 Future target:
 
 ```text
-Truecaller auth succeeds
+Signup → Truecaller
+→ Truecaller auth succeeds
 → Username screen for a genuinely fresh account
 → mobile supplied by provider
 → skip Mobile onboarding screen
@@ -215,7 +344,7 @@ Truecaller auth succeeds
 
 Provider-supplied mobile should only be marked verified once Truecaller verification semantics are explicitly validated.
 
-## 5. Returning-user behavior
+## 6. Returning-user behavior
 
 ```text
 Existing completed Tio account login
@@ -227,7 +356,7 @@ Existing completed Tio account login
 
 For an existing incomplete account, resume the durable saved onboarding state. Do not restart provider-specific setup just because the current login provider is Google/email.
 
-## 6. Google profile photo — first signup only
+## 7. Google profile photo — first signup only
 
 Current defect: a fresh Google signup can authenticate successfully but the Google profile photo is not persisted into the Tio profile.
 
@@ -250,7 +379,7 @@ Rules:
 - Provider-photo enrichment is non-critical; failure must not turn valid authentication into failure.
 - Before implementation, choose one canonical DB/runtime field (`avatar_url` vs legacy `profile_image`) and avoid dual source-of-truth writes.
 
-## 7. Persistence ownership
+## 8. Persistence ownership
 
 ```text
 Before auth
@@ -265,7 +394,21 @@ After auth
 
 Mobile may remain null forever if the user chooses not to provide it.
 
-## 8. Required implementation tests
+## 9. Required implementation tests
+
+### Auth-surface consolidation
+
+- [ ] Login `Sign Up` routes directly to the canonical Signup screen, never through AuthLanding;
+- [ ] onboarding auth checkpoint routes directly to the same canonical Signup screen;
+- [ ] Signup shows Email creation + Google + future Truecaller surface consistently regardless of entry source;
+- [ ] Signup owns `TioTermsDisclaimer`;
+- [ ] Login does not gain the signup legal disclaimer;
+- [ ] AuthLanding routes/callbacks/tests are migrated before the screen is removed;
+- [ ] no second provider-selection screen remains after migration;
+- [ ] existing completed account selected through a Signup provider action routes according to completed bootstrap state rather than fresh onboarding;
+- [ ] signed-out onboarding draft resumes correctly after Signup authentication;
+
+### Username
 
 - [ ] fresh account authentication routes to Username before Mobile/later onboarding;
 - [ ] returning completed login does not show Username;
@@ -279,6 +422,9 @@ Mobile may remain null forever if the user chooses not to provide it.
 - [ ] tapping a suggestion re-checks/validates it before showing Available;
 - [ ] stale async availability responses cannot overwrite the current input state;
 - [ ] final save handles a unique-race conflict with controlled UX and refreshed suggestions;
+
+### Mobile / provider behavior
+
 - [ ] fresh Google signup routes to Mobile after Username;
 - [ ] fresh Email signup routes to Mobile after Username;
 - [ ] blank Mobile screen can continue with `Next`;
@@ -288,11 +434,14 @@ Mobile may remain null forever if the user chooses not to provide it.
 - [ ] incomplete returning account resumes its durable saved step;
 - [ ] future mobile-auth path skips Mobile screen;
 - [ ] future Truecaller path skips Mobile screen and does not mark provider email verified without evidence;
+
+### Google photo
+
 - [ ] fresh Google signup imports provider photo once when Tio avatar is empty;
 - [ ] later Google login does not overwrite a custom/user-owned avatar;
 - [ ] missing Google photo does not block signup.
 
-## 9. Non-goals
+## 10. Non-goals
 
 - Do not implement Truecaller in this slice.
 - Do not implement/send OTP in this slice unless separately approved.
@@ -304,3 +453,5 @@ Mobile may remain null forever if the user chooses not to provide it.
 - Do not expose broad user-directory reads for availability checking.
 - Do not treat locally generated username suggestions as authoritative availability results.
 - Do not bias username suggestions toward the current year.
+- Do not keep AuthLanding as an extra hop after canonical Signup takes over its responsibilities.
+- Do not add entry-source-specific social-button visibility logic to Signup.
