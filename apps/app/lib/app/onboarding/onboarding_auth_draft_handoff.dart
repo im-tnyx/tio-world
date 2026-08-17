@@ -22,7 +22,7 @@ class OnboardingAuthDraftHandoff {
         return;
       }
 
-      if (_boundUserId != null && client?.auth.currentUser == null) {
+      if (_boundUserId != null && client.auth.currentUser == null) {
         clear();
       }
     });
@@ -118,24 +118,14 @@ final onboardingAuthDraftHandoffProvider =
 /// before the signup auth route is opened.
 class AppOnboardingController extends OnboardingController {
   AppOnboardingController({
-    required OnboardingEntryPath entryPath,
+    required super.entryPath,
     required OnboardingAuthDraftHandoff authDraftHandoff,
-    OnboardingDraft? initialDraft,
-    bool includeMobile = false,
-    OnboardingStatusRepository statusRepository =
-        const NoOpOnboardingStatusRepository(),
-    OnboardingDraftRepository? draftRepository,
-    OnboardingCompletionValidator completionValidator =
-        const OnboardingCompletionValidator(),
-  })  : _authDraftHandoff = authDraftHandoff,
-        super(
-          entryPath: entryPath,
-          initialDraft: initialDraft,
-          includeMobile: includeMobile,
-          statusRepository: statusRepository,
-          draftRepository: draftRepository,
-          completionValidator: completionValidator,
-        );
+    super.initialDraft,
+    super.includeMobile,
+    super.statusRepository,
+    super.draftRepository,
+    super.completionValidator,
+  }) : _authDraftHandoff = authDraftHandoff;
 
   final OnboardingAuthDraftHandoff _authDraftHandoff;
 
@@ -167,7 +157,7 @@ class AppOnboardingController extends OnboardingController {
 
   OnboardingDraft _buildResumeAfterAuthDraft() {
     final currentState = state;
-    if (currentState.currentIndex >= currentState.flowPlan.stepCount - 1) {
+    if (currentState.currentIndex >= currentState.flowPlan.steps.length - 1) {
       return currentState.draft;
     }
 
