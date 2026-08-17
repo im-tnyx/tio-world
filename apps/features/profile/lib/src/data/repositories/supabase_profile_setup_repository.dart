@@ -58,13 +58,7 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
       'username': data.username,
       if (email != null && email.isNotEmpty) 'email': email,
       'mobile': effectiveMobile,
-      // Onboarding may collect a mobile number, but verification evidence must
-      // come from the authentication provider/backend. A manual mobile change
-      // invalidates any prior verification timestamp; unchanged verified values
-      // are preserved because this field is otherwise omitted from the upsert.
       if (mobileChanged) 'mobile_verified_at': null,
-      // A null onboarding avatar must preserve a Google/bootstrap or custom
-      // avatar that is already stored. New avatar values write avatar_url only.
       ...buildCanonicalAvatarWrite(avatarUrl: data.avatarUrl),
       'plan': data.plan,
       'gender': data.gender.name,
@@ -96,9 +90,6 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
       await _client.from('users').upsert(payload);
     } on PostgrestException catch (e) {
       if (e.code == '42703' || e.code == 'PGRST204') {
-        // Compatibility fallback for an app build that reaches a database
-        // before the unit-preference migration has been applied. Keep this
-        // payload limited to the pre-existing canonical profile columns.
         final corePayload = <String, dynamic>{
           'id': userId,
           'name': data.name,
@@ -119,6 +110,24 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
         rethrow;
       }
     }
+  }
+
+  @override
+  Future<void> updateMeasurementUnitPreferences(
+    MeasurementUnitPreferences preferences,
+  ) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null || userId.isEmpty) {
+      throw StateError('User is not authenticated');
+    }
+
+    await _client.from('users').update({
+      'weight_unit': preferences.weightUnit.storageValue,
+      'height_unit': preferences.heightUnit.storageValue,
+      'distance_unit': preferences.distanceUnit.storageValue,
+      'volume_unit': preferences.volumeUnit.storageValue,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }).eq('id', userId);
   }
 
   @override
