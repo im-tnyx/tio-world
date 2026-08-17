@@ -9,13 +9,15 @@ import '../../domain/models/profile_gender.dart';
 import '../../domain/models/profile_goal.dart';
 import '../../domain/models/profile_health_condition.dart';
 import '../../domain/models/profile_setup_data.dart';
+import '../../domain/repositories/measurement_unit_preferences_repository.dart';
 import '../../domain/repositories/profile_setup_repository.dart';
 import '../avatar_write_policy.dart';
 
 /// Supabase-backed implementation of [ProfileSetupRepository].
 ///
 /// Directly manages RLS-protected user profile records in Postgres.
-class SupabaseProfileSetupRepository implements ProfileSetupRepository {
+class SupabaseProfileSetupRepository
+    implements ProfileSetupRepository, MeasurementUnitPreferencesRepository {
   const SupabaseProfileSetupRepository({
     required SupabaseClient client,
   }) : _client = client;
