@@ -1,6 +1,6 @@
 # Onboarding Pre-Auth Draft Persistence
 
-**Status:** Implemented — CI/device validation pending
+**Status:** Implemented — automated validation green; real-device validation pending
 **Tracking:** GitHub issue #13 (related to #10)
 **Source branch:** `codex/onboarding-mode-migration`
 **Primary owner:** `apps/app` + `apps/features/onboarding`
@@ -84,8 +84,25 @@ This separation also protects the resume checkpoint from a late pre-auth autosav
 - [x] Clear mismatched/bound stale local state safely.
 - [x] Stop swallowing Supabase draft read errors as `null`.
 - [x] Add regression tests for local-only writes, height/weight retention, migration, remote precedence, identity isolation, lifecycle clear, and auth checkpoint resume.
-- [ ] CI analyzer + targeted test validation on latest head.
+- [x] CI analyzer + targeted test validation.
 - [ ] Real-device fresh Google signup resumes after Profile instead of App Mode.
+
+## Automated validation
+
+GitHub Actions run #72 on code commit `6348478a58dfbfe00bce0de1a4b333fbb264d418`:
+
+- workspace bootstrap: passed, including `flutter_secure_storage` resolution
+- Flutter analyzers: all Flutter packages passed
+- Dart analyzer: passed
+- `apps/app/test/app/onboarding_auth_draft_handoff_test.dart`: all new local-first persistence tests passed
+  - signed-out save stays local and never calls remote
+  - fresh authenticated user migrates the post-auth resume draft
+  - existing remote user draft remains authoritative
+  - mismatched identity cannot consume/migrate the local draft
+  - auth lifecycle binds and clears stale bound data on sign-out
+  - Profile data including height/weight is retained while staging the post-auth resume checkpoint
+
+The workspace Flutter test step remains red with the same 10 pre-existing app test failures in Welcome accessibility, avatar expectations, and AppMode router `pumpAndSettle` coverage. This slice introduces no new failing test class.
 
 ## Current commits
 
