@@ -78,7 +78,9 @@ class TioMobileNumberField extends StatelessWidget {
                     width: isVerified ? 1.5 : 1,
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: TioSpacing.large),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: TioSpacing.large,
+                ),
                 alignment: Alignment.center,
                 child: Row(
                   children: [
@@ -134,10 +136,16 @@ class TioMobileNumberField extends StatelessWidget {
                         child: InkWell(
                           onTap: enabled ? onVerifyPressed : null,
                           borderRadius: BorderRadius.circular(TioRadius.small),
-                          child: Padding(
+                          child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,
                               vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colors.primary.withValues(alpha: 0.09),
+                              borderRadius: BorderRadius.circular(
+                                TioRadius.small,
+                              ),
                             ),
                             child: Text(
                               'Verify',
