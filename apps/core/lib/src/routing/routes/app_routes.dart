@@ -17,6 +17,13 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  static const usernameSetup = TioRouteContract(
+    path: '/username-setup',
+    title: 'Choose Username',
+    description: 'Choose your unique Tio username.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
   static const onboarding = TioRouteContract(
     path: '/onboarding',
     title: 'Onboarding',
