@@ -42,6 +42,25 @@ void main() {
     );
   });
 
+  test('remote completed self-heals obsolete onboarding draft', () async {
+    final draftRepository = _RecordingDraftRepository();
+    final fixture = await _Fixture.create(
+      authState: _authenticated('user-a'),
+      completionResolver: () async =>
+          RemoteOnboardingCompletionState.completed,
+      draftRepository: draftRepository,
+    );
+
+    await fixture.controller.refresh();
+    await _flush();
+
+    expect(
+      fixture.controller.state,
+      const AppSessionBootstrapReady(userId: 'user-a'),
+    );
+    expect(draftRepository.clearCalls, 1);
+  });
+
   test('remote incomplete requires onboarding and clears stale local completed',
       () async {
     final fixture = await _Fixture.create(
@@ -257,6 +276,7 @@ class _Fixture {
     _FakeAuthSessionRepository? authRepository,
     OnboardingStatus? initialLocalStatus,
     Future<RemoteOnboardingCompletionState> Function()? completionResolver,
+    OnboardingDraftRepository? draftRepository,
     Duration completionLookupTimeout = const Duration(seconds: 8),
   }) async {
     final modeController = AppModeController(_FakeAppModePreference());
@@ -285,6 +305,7 @@ class _Fixture {
         authSessionRepository: sessionRepository,
         onboardingCompletionRepository: completionRepository,
         onboardingStatusController: statusController,
+        onboardingDraftRepository: draftRepository,
         completionLookupTimeout: completionLookupTimeout,
       ),
     );
@@ -330,6 +351,21 @@ class _FakeOnboardingCompletionRepository
 
   @override
   Future<void> markCurrentCompleted() async {}
+}
+
+class _RecordingDraftRepository implements OnboardingDraftRepository {
+  int clearCalls = 0;
+
+  @override
+  Future<void> clearDraft() async {
+    clearCalls++;
+  }
+
+  @override
+  Future<OnboardingDraftSnapshot?> loadDraft() async => null;
+
+  @override
+  Future<void> saveDraft(OnboardingDraftSnapshot snapshot) async {}
 }
 
 class _FakeAppModePreference implements AppModePreference {
