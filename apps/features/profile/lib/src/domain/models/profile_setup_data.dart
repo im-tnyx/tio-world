@@ -7,7 +7,7 @@ import 'profile_health_condition.dart';
 
 /// Immutable domain model representing user profile data captured during setup/onboarding.
 class ProfileSetupData {
-  ProfileSetupData({
+  const ProfileSetupData({
     required this.name,
     this.username,
     this.avatarUrl,
