@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:tio_core/core.dart';
 
 import '../../domain/models/profile_activity_level.dart';
 import '../../domain/models/profile_gender.dart';
@@ -37,9 +38,10 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
     final currentUser = _client.auth.currentUser;
     final email = currentUser?.email;
     final phone = currentUser?.phone;
-    final effectiveMobile = (data.mobile != null && data.mobile!.trim().isNotEmpty)
-        ? data.mobile!.trim()
-        : (phone != null && phone.isNotEmpty ? phone : null);
+    final effectiveMobile =
+        (data.mobile != null && data.mobile!.trim().isNotEmpty)
+            ? data.mobile!.trim()
+            : (phone != null && phone.isNotEmpty ? phone : null);
     final currentProfile = await _client
         .from('users')
         .select('mobile')
@@ -73,6 +75,10 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
       'height_cm': data.heightCm,
       'current_weight_kg': data.currentWeightKg,
       'target_weight_kg': data.targetWeightKg,
+      'weight_unit': data.unitPreferences.weightUnit.storageValue,
+      'height_unit': data.unitPreferences.heightUnit.storageValue,
+      'distance_unit': data.unitPreferences.distanceUnit.storageValue,
+      'volume_unit': data.unitPreferences.volumeUnit.storageValue,
       'activity_level': data.activityLevel.name,
       'health_conditions': data.healthConditions.map((c) => c.name).toList(),
       'other_health_condition': data.otherHealthCondition,
@@ -86,6 +92,9 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
       await _client.from('users').upsert(payload);
     } on PostgrestException catch (e) {
       if (e.code == '42703' || e.code == 'PGRST204') {
+        // Compatibility fallback for an app build that reaches a database
+        // before the unit-preference migration has been applied. Keep this
+        // payload limited to the pre-existing canonical profile columns.
         final corePayload = <String, dynamic>{
           'id': userId,
           'name': data.name,
@@ -242,6 +251,13 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
         (row['current_weight_kg'] as num?)?.toDouble() ?? 70.0;
     final targetWeight = (row['target_weight_kg'] as num?)?.toDouble();
 
+    final unitPreferences = MeasurementUnitPreferences(
+      weightUnit: WeightUnit.fromStorage(row['weight_unit'] as String?),
+      heightUnit: HeightUnit.fromStorage(row['height_unit'] as String?),
+      distanceUnit: DistanceUnit.fromStorage(row['distance_unit'] as String?),
+      volumeUnit: VolumeUnit.fromStorage(row['volume_unit'] as String?),
+    );
+
     final activityStr = row['activity_level'] as String?;
     final activity = ProfileActivityLevel.values.firstWhere(
       (a) => a.name == activityStr,
@@ -251,8 +267,9 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
     final conditionsList =
         (row['health_conditions'] as List<dynamic>?) ?? [];
     final healthConditions = conditionsList
-        .map((c) =>
-            ProfileHealthCondition.values.where((hc) => hc.name == c).firstOrNull)
+        .map((c) => ProfileHealthCondition.values
+            .where((hc) => hc.name == c)
+            .firstOrNull)
         .whereType<ProfileHealthCondition>()
         .toSet();
 
@@ -277,6 +294,7 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
       heightCm: height,
       currentWeightKg: currentWeight,
       targetWeightKg: targetWeight,
+      unitPreferences: unitPreferences,
       activityLevel: activity,
       healthConditions: healthConditions.isEmpty
           ? {ProfileHealthCondition.none}
@@ -298,11 +316,15 @@ class SupabaseProfileSetupRepository implements ProfileSetupRepository {
       throw StateError('User is not authenticated');
     }
 
-    final ext = fileName.contains('.') ? fileName.split('.').last.toLowerCase() : 'jpg';
-    final storagePath = '$userId/avatar_${DateTime.now().millisecondsSinceEpoch}.$ext';
+    final ext = fileName.contains('.')
+        ? fileName.split('.').last.toLowerCase()
+        : 'jpg';
+    final storagePath =
+        '$userId/avatar_${DateTime.now().millisecondsSinceEpoch}.$ext';
 
     // Normalize mime type: Supabase expects 'image/jpeg' for '.jpg' files
-    final mimeType = ext == 'jpg' || ext == 'jpeg' ? 'image/jpeg' : 'image/$ext';
+    final mimeType =
+        ext == 'jpg' || ext == 'jpeg' ? 'image/jpeg' : 'image/$ext';
 
     await _client.storage.from('avatars').uploadBinary(
           storagePath,
