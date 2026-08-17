@@ -7,7 +7,7 @@ import 'profile_health_condition.dart';
 
 /// Immutable domain model representing user profile data captured during setup/onboarding.
 class ProfileSetupData {
-  const ProfileSetupData({
+  ProfileSetupData({
     required this.name,
     this.username,
     this.avatarUrl,
@@ -19,13 +19,14 @@ class ProfileSetupData {
     required this.heightCm,
     required this.currentWeightKg,
     this.targetWeightKg,
-    this.unitPreferences = MeasurementUnitPreferences.metric,
+    MeasurementUnitPreferences? unitPreferences,
     required this.activityLevel,
     required this.healthConditions,
     this.otherHealthCondition,
     this.mobile,
     this.isMobileVerified = false,
-  });
+  })  : unitPreferences = unitPreferences ?? MeasurementUnitPreferences.metric,
+        hasExplicitUnitPreferences = unitPreferences != null;
 
   final String name;
   final String? username;
@@ -39,6 +40,14 @@ class ProfileSetupData {
   final double currentWeightKg;
   final double? targetWeightKg;
   final MeasurementUnitPreferences unitPreferences;
+
+  /// Distinguishes an explicit unit mutation from a legacy/profile-only save.
+  ///
+  /// Existing callers that do not own unit preferences continue to see Metric
+  /// defaults in memory, but repositories can omit unit columns so an unrelated
+  /// profile edit cannot overwrite persisted preferences.
+  final bool hasExplicitUnitPreferences;
+
   final ProfileActivityLevel activityLevel;
   final Set<ProfileHealthCondition> healthConditions;
   final String? otherHealthCondition;
