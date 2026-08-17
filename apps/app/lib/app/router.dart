@@ -40,6 +40,7 @@ ChromePolicy shellChromePolicyForPath(String location) {
   final appRoutes = [
     AppRoutes.splash,
     AppRoutes.auth,
+    AppRoutes.usernameSetup,
     AppRoutes.onboarding,
     AppRoutes.profile,
     AppRoutes.profileAvatar,
@@ -295,6 +296,25 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             );
           },
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.usernameSetup.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) {
+          final accountRepository = ref.read(profileAccountRepositoryProvider);
+          if (accountRepository == null) {
+            return const SplashScreen(
+              failureMessage: 'Username setup is unavailable right now.',
+            );
+          }
+          return UsernameSetupPage(
+            repository: accountRepository,
+            onCompleted: () async {
+              ref.invalidate(profileDataProvider);
+              await appSessionBootstrapController.refresh();
+            },
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.onboarding.path,
