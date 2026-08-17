@@ -31,6 +31,18 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
     return username.trim().toLowerCase();
   }
 
+  String _normalizeMobile(String mobile) {
+    final trimmed = mobile.trim();
+    if (trimmed.isEmpty) return '';
+
+    final digits = trimmed.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.length == 10) return '+91 $digits';
+    if (digits.startsWith('91') && digits.length == 12) {
+      return '+91 ${digits.substring(2)}';
+    }
+    return trimmed;
+  }
+
   bool _isValidUsername(String username) {
     return username.length >= _usernameMinLength &&
         username.length <= _usernameMaxLength &&
@@ -159,14 +171,11 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
     var claim = await _claimUsername(normalizedUsername);
     if (claim['claimed'] == true) return;
 
-    if (_parseReason(claim['reason']) != UsernameAvailabilityReason.profileMissing) {
+    if (_parseReason(claim['reason']) !=
+        UsernameAvailabilityReason.profileMissing) {
       _throwClaimFailure(claim);
     }
 
-    // Google profile sync is intentionally best-effort and can still be
-    // running when the mandatory Username checkpoint is reached. Create only
-    // the minimum profile identity fields, without writing username, then let
-    // the canonical claim RPC enforce policy and uniqueness on retry.
     final nowIso = DateTime.now().toUtc().toIso8601String();
     try {
       await _client.from('users').insert({
@@ -178,8 +187,6 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
         'updated_at': nowIso,
       });
     } on PostgrestException catch (error) {
-      // A concurrent profile sync may have created the row after the first
-      // claim attempt. In that case keep the synced row untouched and retry.
       if (error.code != '23505') rethrow;
     }
 
@@ -206,8 +213,10 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
     }
 
     final normalizedUsername = _normalizeUsername(username);
-    final normalizedMobile = mobile.trim();
-    final previousMobile = (current['mobile'] as String?)?.trim() ?? '';
+    final normalizedMobile = _normalizeMobile(mobile);
+    final previousMobile = _normalizeMobile(
+      (current['mobile'] as String?)?.trim() ?? '',
+    );
     final mobileChanged = previousMobile != normalizedMobile;
 
     if (normalizedUsername.isNotEmpty) {
