@@ -2,18 +2,19 @@ import '../foundation/tio_radius.dart';
 import '../foundation/tio_spacing.dart';
 import '../foundation/tio_stroke.dart';
 import '../primitive/tio_opacity.dart';
+import '../primitive/tio_size.dart';
 
 class TioCardTokens {
   const TioCardTokens._();
 
-  static const radius = TioRadius.large;
-  static const radiusItem = TioRadius.small;
-  static const padding = TioSpacing.large;
+  static const radius = TioRadius.lg;
+  static const radiusItem = TioRadius.sm;
+  static const padding = TioSpacing.lg;
 
   // Material CardTheme currently has a distinct live runtime contract from
   // TioCard. Keep it explicit and pixel-preserving until a separate visual
   // decision intentionally unifies the two card shapes.
-  static const materialThemeRadius = 20.0;
+  static const materialThemeRadius = TioSize.dp20;
   static const materialThemeElevation = 0.0;
 
   static const glassContainerOpacity = TioOpacity.opacity72;
