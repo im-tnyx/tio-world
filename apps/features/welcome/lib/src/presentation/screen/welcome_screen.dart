@@ -4,7 +4,6 @@ import 'package:tio_core/core.dart';
 
 import '../action/welcome_action.dart';
 import '../state/welcome_ui_state.dart';
-import '../theme/welcome_visual_tokens.dart';
 import '../widgets/welcome_backdrop.dart';
 import '../widgets/welcome_feature_tile.dart';
 import '../widgets/welcome_top_bar.dart';
@@ -22,6 +21,7 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.tioColors;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       // Transparent system bars are intentional for the edge-to-edge hero.
@@ -34,7 +34,7 @@ class WelcomeScreen extends StatelessWidget {
         systemNavigationBarContrastEnforced: false,
       ),
       child: Scaffold(
-        backgroundColor: WelcomeColorTokens.mediaBackground,
+        backgroundColor: colors.mediaBackground,
         body: Stack(
           fit: StackFit.expand,
           children: [
@@ -42,8 +42,7 @@ class WelcomeScreen extends StatelessWidget {
               top: 0,
               left: 0,
               right: 0,
-              height: MediaQuery.sizeOf(context).height *
-                  WelcomeLayoutTokens.heroImageHeightFactor,
+              height: MediaQuery.sizeOf(context).height * 0.82,
               child: Image.asset(
                 'assets/landing_screen.png',
                 package: 'tio_feature_welcome',
@@ -55,12 +54,12 @@ class WelcomeScreen extends StatelessWidget {
             SafeArea(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: TioSpacing.large,
+                  horizontal: TioSpacing.lg,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: TioSpacing.small),
+                    const SizedBox(height: TioSpacing.sm),
                     WelcomeTopBar(
                       localeCode: state.localeCode,
                       skipText: state.skipText,
@@ -71,7 +70,7 @@ class WelcomeScreen extends StatelessWidget {
                         tween: Tween(begin: 0.0, end: 1.0),
                         duration: context.tioMotion.slow,
                         curve: const Interval(
-                          WelcomeMotionTokens.contentRevealStart,
+                          0.40,
                           1.0,
                           curve: Curves.easeOutCubic,
                         ),
@@ -81,8 +80,7 @@ class WelcomeScreen extends StatelessWidget {
                             child: Transform.translate(
                               offset: Offset(
                                 0,
-                                WelcomeMotionTokens.contentRevealOffsetY *
-                                    (1.0 - value),
+                                TioSize.dp30 * (1.0 - value),
                               ),
                               child: child,
                             ),
@@ -91,11 +89,16 @@ class WelcomeScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Spacer(flex: WelcomeLayoutTokens.heroTopFlex),
+                            const Spacer(flex: 1),
                             RichText(
                               text: TextSpan(
-                                style: WelcomeTypographyTokens.hero.copyWith(
-                                  color: WelcomeColorTokens.onMediaPrimary,
+                                style: const TextStyle(
+                                  fontSize: TioFontSize.size42,
+                                  height: TioLineHeight.height110,
+                                  fontWeight: TioFontWeight.w900,
+                                  fontFamily: TioFontFamily.roboto,
+                                ).copyWith(
+                                  color: colors.onMediaPrimary,
                                 ),
                                 children: const [
                                   TextSpan(text: 'TRAIN.\n'),
@@ -104,42 +107,42 @@ class WelcomeScreen extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            const SizedBox(height: TioSpacing.medium),
-                            const SizedBox(
-                              width: WelcomeLayoutTokens.heroDividerWidth,
-                              height: WelcomeLayoutTokens.heroDividerHeight,
+                            const SizedBox(height: TioSpacing.md),
+                            SizedBox(
+                              width: TioSize.dp60,
+                              height: TioSize.dp2,
                               child: ColoredBox(
-                                color: WelcomeColorTokens.onMediaPrimary,
+                                color: colors.onMediaPrimary,
                               ),
                             ),
-                            const SizedBox(height: TioSpacing.medium),
+                            const SizedBox(height: TioSpacing.md),
                             Text(
                               'AI guidance.\nPersonalized for you.\nResults that last.',
-                              style: WelcomeTypographyTokens.supporting.copyWith(
-                                color: WelcomeColorTokens.onMediaSecondary,
+                              style: const TextStyle(
+                                fontSize: TioFontSize.size16,
+                                height: TioLineHeight.height140,
+                              ).copyWith(
+                                color: colors.onMediaSecondary,
                               ),
                             ),
-                            const Spacer(
-                              flex: WelcomeLayoutTokens.heroBottomFlex,
-                            ),
+                            const Spacer(flex: 3),
                             DecoratedBox(
                               key: const ValueKey('welcome-feature-panel'),
                               decoration: BoxDecoration(
                                 color: colorScheme.surface.withValues(
-                                  alpha: WelcomeLayoutTokens
-                                      .featurePanelSurfaceOpacity,
+                                  alpha: TioOpacity.opacity94,
                                 ),
                                 border: Border.all(
                                   color: colorScheme.outlineVariant,
                                 ),
                                 borderRadius: BorderRadius.circular(
-                                  WelcomeLayoutTokens.featurePanelRadius,
+                                  TioSize.dp20,
                                 ),
                               ),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: TioSpacing.small,
-                                  vertical: TioSpacing.medium,
+                                  horizontal: TioSpacing.sm,
+                                  vertical: TioSpacing.md,
                                 ),
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,14 +152,11 @@ class WelcomeScreen extends StatelessWidget {
                                         i++) ...[
                                       if (i > 0)
                                         Container(
-                                          width: WelcomeLayoutTokens
-                                              .featureDividerWidth,
-                                          height: WelcomeLayoutTokens
-                                              .featureDividerHeight,
+                                          width: TioSize.dp1,
+                                          height: TioSize.dp64,
                                           color: colorScheme.outlineVariant,
                                           margin: const EdgeInsets.symmetric(
-                                            horizontal: WelcomeLayoutTokens
-                                                .featureDividerHorizontalMargin,
+                                            horizontal: TioSpacing.xs,
                                           ),
                                         ),
                                       Expanded(
@@ -171,18 +171,15 @@ class WelcomeScreen extends StatelessWidget {
                                               ? Image.asset(
                                                   'assets/dumbell-blue.png',
                                                   package: 'tio_feature_welcome',
-                                                  width: WelcomeLayoutTokens
-                                                      .featureAssetWidth,
-                                                  height: WelcomeLayoutTokens
-                                                      .featureGlyphSize,
+                                                  width: TioSize.dp32,
+                                                  height: TioSize.dp28,
                                                   color: colorScheme.primary,
                                                   colorBlendMode: BlendMode.srcIn,
                                                 )
                                               : i == 1
                                                   ? Icon(
                                                       Icons.restaurant,
-                                                      size: WelcomeLayoutTokens
-                                                          .featureGlyphSize,
+                                                      size: TioSize.dp28,
                                                       color:
                                                           colorScheme.primary,
                                                     )
@@ -190,10 +187,8 @@ class WelcomeScreen extends StatelessWidget {
                                                       'assets/ic_chat.svg',
                                                       package:
                                                           'tio_feature_welcome',
-                                                      width: WelcomeLayoutTokens
-                                                          .featureAssetWidth,
-                                                      height: WelcomeLayoutTokens
-                                                          .featureGlyphSize,
+                                                      width: TioSize.dp32,
+                                                      height: TioSize.dp28,
                                                       colorFilter:
                                                           ColorFilter.mode(
                                                         colorScheme.primary,
@@ -207,7 +202,7 @@ class WelcomeScreen extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: TioSpacing.extraLarge),
+                            const SizedBox(height: TioSpacing.xxl),
                             Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -217,23 +212,25 @@ class WelcomeScreen extends StatelessWidget {
                                     label: state.ctaText,
                                     trailing: const Icon(
                                       Icons.arrow_forward,
-                                      size: WelcomeLayoutTokens.ctaIconSize,
+                                      size: TioSize.dp20,
                                     ),
                                     onPressed: () => onAction(
                                       const WelcomeGetStartedClicked(),
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: TioSpacing.extraLarge),
+                                const SizedBox(height: TioSpacing.xxl),
                                 Wrap(
                                   alignment: WrapAlignment.center,
                                   crossAxisAlignment: WrapCrossAlignment.center,
                                   children: [
                                     Text(
                                       'Already have an account? ',
-                                      style: WelcomeTypographyTokens.accountPrompt
-                                          .copyWith(
-                                        color: WelcomeColorTokens.onMediaSecondary,
+                                      style: const TextStyle(
+                                        fontSize: TioFontSize.size14,
+                                        fontWeight: TioFontWeight.w400,
+                                      ).copyWith(
+                                        color: colors.onMediaSecondary,
                                       ),
                                     ),
                                     GestureDetector(
@@ -245,16 +242,18 @@ class WelcomeScreen extends StatelessWidget {
                                       ),
                                       child: Text(
                                         'Log In',
-                                        style: WelcomeTypographyTokens.loginAction
-                                            .copyWith(
-                                          color:
-                                              WelcomeColorTokens.onMediaPrimary,
+                                        style: const TextStyle(
+                                          fontSize: TioFontSize.size14,
+                                          fontWeight: TioFontWeight.w700,
+                                          decoration: TextDecoration.underline,
+                                        ).copyWith(
+                                          color: colors.onMediaPrimary,
                                         ),
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: TioSpacing.small),
+                                const SizedBox(height: TioSpacing.sm),
                               ],
                             ),
                           ],
