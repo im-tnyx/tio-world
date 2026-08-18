@@ -7,6 +7,7 @@ import '../domain/models/account_setup_step_id.dart';
 import '../domain/usecases/build_account_setup_flow_use_case.dart';
 import 'steps/mobile_step.dart';
 import 'steps/username_step.dart';
+import 'theme/account_setup_visual_tokens.dart';
 
 class AccountSetupFlowPage extends StatefulWidget {
   const AccountSetupFlowPage({
@@ -200,7 +201,7 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final theme = Theme.of(context);
 
     if (_loading) {
@@ -265,7 +266,7 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
                   0,
                 ),
                 child: SizedBox(
-                  height: 48,
+                  height: AccountSetupVisualTokens.topBarHeight,
                   child: Row(
                     children: [
                       IconButton(
@@ -285,7 +286,8 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
                           key: const ValueKey('account-setup-progress'),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: colors.textSecondary,
-                            fontWeight: FontWeight.w600,
+                            fontWeight:
+                                AccountSetupVisualTokens.statusFontWeight,
                           ),
                         ),
                       ),
@@ -302,7 +304,9 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
                   ),
                   child: Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 480),
+                      constraints: const BoxConstraints(
+                        maxWidth: AccountSetupVisualTokens.contentMaxWidth,
+                      ),
                       child: _buildStep(account),
                     ),
                   ),
@@ -321,13 +325,17 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
                   color: colors.background,
                   border: Border(
                     top: BorderSide(
-                      color: colors.outlineStrong.withValues(alpha: 0.18),
+                      color: colors.outlineStrong.withValues(
+                        alpha: AccountSetupVisualTokens.footerDividerOpacity,
+                      ),
                     ),
                   ),
                 ),
                 child: Center(
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 480),
+                    constraints: const BoxConstraints(
+                      maxWidth: AccountSetupVisualTokens.contentMaxWidth,
+                    ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -338,7 +346,8 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
                             textAlign: TextAlign.center,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.error,
-                              fontWeight: FontWeight.w600,
+                              fontWeight:
+                                  AccountSetupVisualTokens.statusFontWeight,
                             ),
                           ),
                           const SizedBox(height: TioSpacing.small),
@@ -362,10 +371,13 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
                                 : null,
                             child: _busy
                                 ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
+                                    width: AccountSetupVisualTokens
+                                        .busyIndicatorSize,
+                                    height: AccountSetupVisualTokens
+                                        .busyIndicatorSize,
                                     child: CircularProgressIndicator(
-                                      strokeWidth: 2,
+                                      strokeWidth: AccountSetupVisualTokens
+                                          .busyIndicatorStrokeWidth,
                                     ),
                                   )
                                 : const Text('Continue'),
