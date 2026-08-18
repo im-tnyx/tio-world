@@ -78,7 +78,7 @@ class _TioWeightPickerBottomSheetState
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final isKg = widget.unit == 'kg';
 
     return Container(

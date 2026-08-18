@@ -22,7 +22,7 @@ Future<TioAvatarAction?> showTioAvatarActionBottomSheet({
   required BuildContext context,
   bool hasPhoto = false,
 }) {
-  final colors = TioTheme.colors(context);
+  final colors = context.tioColors;
 
   return showModalBottomSheet<TioAvatarAction>(
     context: context,

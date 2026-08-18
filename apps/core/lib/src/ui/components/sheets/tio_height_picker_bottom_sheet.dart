@@ -86,7 +86,7 @@ class _TioHeightPickerBottomSheetState
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final isFt = widget.unit == 'ft';
 
     return Container(

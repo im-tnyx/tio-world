@@ -10,7 +10,7 @@ import '../../../theme/theme.dart';
 /// - Full-width "Remove 🗑️" capsule button
 /// - Full-width "Cancel ✕" capsule button
 Future<bool?> showTioRemoveImageConfirmationBottomSheet(BuildContext context) {
-  final colors = TioTheme.colors(context);
+  final colors = context.tioColors;
 
   return showModalBottomSheet<bool>(
     context: context,
