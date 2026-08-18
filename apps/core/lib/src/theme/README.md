@@ -119,6 +119,18 @@ Text('Title', style: TextStyle(color: colors.textPrimary));
 
 `Theme.of(context).colorScheme` is also valid when the Material semantic role is appropriate.
 
+Media/image compositions use runtime semantic media roles rather than direct palette colors:
+
+```dart
+final colors = context.tioColors;
+
+Container(color: colors.mediaBackground);
+Text('Hero', style: TextStyle(color: colors.onMediaPrimary));
+Text('Supporting', style: TextStyle(color: colors.onMediaSecondary));
+```
+
+`mediaBackground`, `onMediaPrimary`, and `onMediaSecondary` are resolved by the active `TioColors` scheme. Their current light/dark/OLED mappings intentionally preserve the existing media composition pixels, but each theme mode owns its mapping centrally and can diverge later without feature-level color changes.
+
 `TioPalette` is the physical color registry. Feature screens should not normally consume palette colors directly.
 
 Prefer:
