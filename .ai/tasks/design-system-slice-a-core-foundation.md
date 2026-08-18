@@ -56,8 +56,8 @@ Component token classes are semantic contracts, not independent numeric/color st
 
 Current source audit identified these concrete debts:
 
-- `primitive/` does not yet exist;
-- `TioSpacing` and `TioRadius` independently own overlapping raw geometry values;
+- `primitive/` did not exist before Slice A implementation began;
+- `TioSpacing` and `TioRadius` independently owned overlapping raw geometry values;
 - component token files contain raw geometry, opacity, alpha, typography and color values;
 - `TioMotion` and `TioMotionTokens` duplicate `150/250/400ms` ownership;
 - `TioShadowTokens.soft` and `TioShadows.standard.soft` duplicate the same shadow contract;
@@ -73,18 +73,18 @@ Current source audit identified these concrete debts:
 
 ### A1 — Inventory and classification
 
-- [ ] Inventory every raw fixed visual scalar/color/duration/factor under `apps/core/lib/src/theme/tokens/**`.
-- [ ] Classify each as geometry, opacity, exact integer alpha, duration, typography, palette color, effect/shadow, factor/ratio, semantic role, reusable component role, or genuine non-design/runtime value.
-- [ ] Record exact current values before edits.
+- [x] Inventory every raw fixed visual scalar/color/duration/factor under `apps/core/lib/src/theme/tokens/**`.
+- [x] Classify each as geometry, opacity, exact integer alpha, duration, typography, palette color, effect/shadow, factor/ratio, semantic role, reusable component role, or genuine non-design/runtime value.
+- [x] Record exact current values before edits.
 
 ### A2 — Primitive geometry
 
-- [ ] Create `tokens/primitive/primitive.dart`.
-- [ ] Create canonical `TioSize` (or final agreed equivalent).
-- [ ] Add only evidenced production values, not an arbitrary integer range.
-- [ ] Alias `TioSpacing` raw values to geometry primitives.
-- [ ] Alias `TioRadius` raw values to geometry primitives.
-- [ ] Add `TioIconSize` and/or `TioStroke` only when reusable roles are evidenced.
+- [x] Create `tokens/primitive/primitive.dart`.
+- [x] Create canonical `TioSize`.
+- [x] Add only evidenced production values, not an arbitrary integer range.
+- [x] Alias `TioSpacing` raw values to geometry primitives.
+- [x] Alias `TioRadius` raw values to geometry primitives.
+- [ ] Add `TioIconSize` and/or `TioStroke` only when reusable roles are evidenced during the component audit.
 
 ### A3 — Opacity and exact alpha
 
@@ -149,14 +149,132 @@ Screen-specific token bag → forbidden
 
 ### A10 — Exports and tests
 
-- [ ] Update token barrels intentionally.
+- [x] Export the new primitive barrel intentionally through `tio_tokens.dart`.
 - [ ] Remove obsolete duplicate public exports only after consumer search.
-- [ ] Update primitive contract tests.
-- [ ] Update alias tests to lock relationships such as `TioInputTokens.radius == TioSize.dp14`, not independent component ownership.
-- [ ] Preserve exact existing runtime-value assertions where they protect pixels.
+- [x] Add primitive geometry contract tests.
+- [x] Add alias tests for the migrated foundation relationships.
+- [ ] Update remaining component alias tests as component values migrate to primitives.
+- [x] Preserve existing runtime-value assertions that protect current pixels.
 - [ ] Run focused core theme tests.
 - [ ] Run Flutter/Dart analyze.
 - [ ] Run full workspace CI at the slice boundary.
+
+## A1 Inventory Evidence
+
+The token tree audited before the first implementation edit was Git tree `9cdf0ec103e766b582466f4f4ee0f9ad058457a0`. The audit covered every source file under `apps/core/lib/src/theme/tokens/**`.
+
+### Geometry / stroke values
+
+Current core token files evidence fixed geometry/stroke values including:
+
+```text
+0, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 6,
+8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 27, 28,
+30, 32, 36, 38, 44, 46, 48, 52, 54, 56, 62, 64,
+72, 100, 125, 140, 160, 200, 999
+```
+
+The first bounded A2 implementation intentionally centralizes only the already-proven foundation physical contracts `4/8/12/16/24/999`. Component-specific values will be added to `TioSize` only when their owners are migrated, rather than pre-populating a speculative numeric catalog.
+
+### Normalized opacity values
+
+Current token contracts include normalized opacity/state values such as:
+
+```text
+0.08, 0.09, 0.10, 0.12, 0.14, 0.16, 0.30, 0.35,
+0.38, 0.40, 0.45, 0.50, 0.60, 0.70, 0.72
+```
+
+A3 remains pending; these values have not been normalized or changed.
+
+### Exact integer alpha values
+
+Current APIs also use exact 0–255 alpha contracts including:
+
+```text
+25, 30, 35, 40, 50, 80, 90, 120, 200, 245
+```
+
+These are classified separately from normalized opacity so conversion cannot introduce rounding/pixel drift.
+
+### Motion / duration values
+
+Current duration ownership includes:
+
+```text
+90ms, 150ms, 250ms, 310ms, 400ms, 1200ms
+```
+
+`150/250/400ms` are duplicated between `TioMotion` and `TioMotionTokens`. A4 remains pending.
+
+### Typography physical values
+
+Core typography/component contracts currently evidence font sizes including:
+
+```text
+12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 28, 34, 36
+```
+
+and fixed letter-spacing/line-height contracts including values such as:
+
+```text
+letter spacing: -0.5, -0.3, -0.2, 0.5, 0.8, 6.0
+line-height ratios: 1.25, 1.35, 1.4, 1.5
+```
+
+Typography remains separate from `TioSize`; A7 remains pending.
+
+### Ratios / factors
+
+Fixed visual ratios/factors include examples such as:
+
+```text
+0.28, 0.5, 0.36, 0.004, 1.3
+```
+
+These remain classified separately until reusable ownership is proven.
+
+### Color / effect ownership
+
+The audit confirmed raw palette/theme/domain/component colors across `TioPalette`, `TioColors`, `TioDomainColors`, Navigation/Dialog contracts and shadow definitions. Duplicate physical examples include domain colors such as workout/nutrition/progress/coach and the identical soft shadow physical definition in both `TioShadowTokens` and `TioShadows`. A5/A6 remain pending and must preserve exact ARGB values.
+
+## A2 Implementation Evidence
+
+First bounded geometry bootstrap:
+
+```text
+7a55f2dea97074790007b0c8f3b81ac8a6672783
+  refactor(theme): add canonical size primitives
+
+9916df8d64022ecf8f39b3e05533d70a4a2e03be
+  refactor(theme): alias spacing and radius to size primitives
+```
+
+Current canonical relationships:
+
+```text
+TioSpacing.extraSmall  → TioSize.dp4
+TioSpacing.small       → TioSize.dp8
+TioSpacing.medium      → TioSize.dp12
+TioSpacing.large       → TioSize.dp16
+TioSpacing.extraLarge  → TioSize.dp24
+
+TioRadius.small        → TioSize.dp8
+TioRadius.medium       → TioSize.dp12
+TioRadius.large        → TioSize.dp16
+TioRadius.extraLarge   → TioSize.dp24
+TioRadius.full         → TioSize.dp999
+```
+
+No rendered value changed in this migration.
+
+Validation status:
+
+```text
+Flutter CI #518 — IN PROGRESS
+Focused/core test result — not yet claimed until CI executes tests
+Analyze result — not yet claimed until CI executes analyze
+```
 
 ## Completion Lifecycle
 
