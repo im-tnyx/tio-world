@@ -56,8 +56,8 @@ void main() {
 
     test('component alpha roles alias canonical primitives', () {
       expect(TioAvatarActionSheetTokens.dragHandleAlpha, TioAlpha.alpha50);
-      expect(TioDialogTokens.otpPanelOutlineAlpha, TioAlpha.alpha30);
-      expect(TioDialogTokens.otpErrorOutlineAlpha, TioAlpha.alpha90);
+      expect(TioOtpDialogTokens.panelOutlineAlpha, TioAlpha.alpha30);
+      expect(TioOtpDialogTokens.errorOutlineAlpha, TioAlpha.alpha90);
       expect(TioDialogTokens.deleteOverlayBackgroundAlpha, TioAlpha.alpha245);
       expect(TioDialogTokens.deleteCloseContainerAlpha, TioAlpha.alpha25);
       expect(TioDialogTokens.deleteActionContainerAlpha, TioAlpha.alpha35);
