@@ -118,7 +118,7 @@ class _SectionLabel extends StatelessWidget {
         label,
         style: TextStyle(
           color: colors.textSecondary,
-          fontSize: 13,
+          fontSize: TioMeasurementPreferenceTokens.sectionLabelFontSize,
           fontWeight: FontWeight.w700,
         ),
       ),
