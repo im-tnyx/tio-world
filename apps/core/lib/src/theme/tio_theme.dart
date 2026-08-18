@@ -56,7 +56,10 @@ class TioTheme extends StatelessWidget {
         useMaterial3: config.useMaterial3,
         colorScheme: colors.toColorScheme(),
         scaffoldBackgroundColor: colors.background,
-        textTheme: TioTypography.textTheme(colors),
+        textTheme: TioTypography.textTheme(
+          colors,
+          fontFamily: config.resolvedFontFamily,
+        ),
         pageTransitionsTheme: reducedMotion
             ? const PageTransitionsTheme(
                 builders: {
