@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_profile/profile.dart';
 
+import '../theme/account_setup_visual_tokens.dart';
+
 class UsernameStep extends StatefulWidget {
   const UsernameStep({
     required this.repository,
@@ -157,7 +159,7 @@ class UsernameStepState extends State<UsernameStep> {
             key: const ValueKey('account-setup-username-error'),
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.error,
-              fontWeight: FontWeight.w600,
+              fontWeight: AccountSetupVisualTokens.statusFontWeight,
             ),
           ),
         ],
