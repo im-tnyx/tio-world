@@ -1,5 +1,4 @@
-import 'package:flutter/material.dart';
-
+import '../foundation/tio_palette.dart';
 import '../primitive/tio_alpha.dart';
 
 class TioDialogTokens {
@@ -9,7 +8,7 @@ class TioDialogTokens {
   static const otpPanelTopPadding = 28.0;
   static const otpPanelRadius = 28.0;
   static const otpPanelOutlineAlpha = TioAlpha.alpha30;
-  static const otpShadowColor = Color(0x50000000);
+  static const otpShadowColor = TioPalette.blackAlpha80;
   static const otpShadowBlurRadius = 30.0;
   static const otpShadowOffsetY = 10.0;
   static const otpTitleFontSize = 16.0;
@@ -36,8 +35,8 @@ class TioDialogTokens {
   static const otpActionLetterSpacing = 0.8;
   static const otpBackTopGap = 14.0;
 
-  static const deleteHoldFillColor = Color(0xFFE55757);
-  static const deleteHoldContentColor = Color(0xFFFFFFFF);
+  static const deleteHoldFillColor = TioPalette.red550;
+  static const deleteHoldContentColor = TioPalette.white;
   static const deleteOverlayBackgroundAlpha = TioAlpha.alpha245;
   static const deleteCloseButtonSize = 36.0;
   static const deleteCloseContainerAlpha = TioAlpha.alpha25;
