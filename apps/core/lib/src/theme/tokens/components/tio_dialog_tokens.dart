@@ -8,7 +8,12 @@ class TioDialogTokens {
   static const otpPanelTopPadding = 28.0;
   static const otpPanelRadius = 28.0;
   static const otpPanelOutlineAlpha = TioAlpha.alpha30;
+
+  /// Compatibility-only physical shadow color for unmigrated callers.
+  /// Runtime dialog rendering must resolve the semantic shadow color through
+  /// `context.tioShadows.elevatedPanelColor` so theme modes can diverge later.
   static const otpShadowColor = TioPalette.blackAlpha80;
+
   static const otpShadowBlurRadius = 30.0;
   static const otpShadowOffsetY = 10.0;
   static const otpTitleFontSize = 16.0;
