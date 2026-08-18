@@ -61,7 +61,7 @@ class _TioDobPickerBottomSheetState extends State<TioDobPickerBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Container(
       decoration: BoxDecoration(
@@ -353,7 +353,7 @@ class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final maxDays = _daysInMonth(_selectedYear, _selectedMonthIndex + 1);
 
     return SizedBox(
