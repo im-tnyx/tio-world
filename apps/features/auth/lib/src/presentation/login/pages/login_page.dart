@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
 
 import '../../../domain/domain.dart';
+import '../../theme/auth_form_tokens.dart';
 import '../../theme/auth_visual_tokens.dart';
 
 /// Pixel-perfect implementation of the Tnyx-Hub Email/Social Login Screen.
@@ -201,7 +202,7 @@ class _LoginPageState extends State<LoginPage> {
                     0,
                   ),
                   child: SizedBox(
-                    height: 48,
+                    height: AuthFormTokens.topBarHeight,
                     child: Row(
                       children: [
                         IconButton(
@@ -225,8 +226,8 @@ class _LoginPageState extends State<LoginPage> {
                         Text(
                           'Login',
                           style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
+                            fontSize: AuthFormTokens.titleFontSize,
+                            fontWeight: AuthFormTokens.titleFontWeight,
                             color: colors.textPrimary,
                           ),
                         ),
@@ -311,7 +312,7 @@ class _LoginPageState extends State<LoginPage> {
                                     ? Icons.visibility_outlined
                                     : Icons.visibility_off_outlined,
                                 color: colors.textMuted,
-                                size: 22,
+                                size: AuthFormTokens.passwordVisibilityIconSize,
                               ),
                               onPressed: () {
                                 setState(() => _isPasswordVisible = !_isPasswordVisible);
@@ -340,7 +341,7 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: TioSpacing.extraLarge),
                         // Login Action Button (Reusable TioButton Component)
                         TioButton.primary(
                           key: const ValueKey('login-submit-button'),
@@ -393,7 +394,7 @@ class _LoginPageState extends State<LoginPage> {
                           onPressed: _handleGoogleSignIn,
                         ),
 
-                        const SizedBox(height: 12),
+                        const SizedBox(height: AuthFormTokens.socialProviderGap),
 
                         // Continue with Truecaller Button
                         TioSocialButton.truecaller(
@@ -418,7 +419,7 @@ class _LoginPageState extends State<LoginPage> {
                       Text(
                         "Don't have an account? ",
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: AuthFormTokens.footerFontSize,
                           color: colors.textSecondary,
                         ),
                       ),
@@ -430,15 +431,18 @@ class _LoginPageState extends State<LoginPage> {
                           }
                         },
                         style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AuthFormTokens.footerLinkHorizontalPadding,
+                            vertical: AuthFormTokens.footerLinkVerticalPadding,
+                          ),
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                         child: Text(
                           'Sign Up',
                           style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
+                            fontSize: AuthFormTokens.footerFontSize,
+                            fontWeight: AuthFormTokens.footerLinkFontWeight,
                             color: colors.textPrimary,
                           ),
                         ),
