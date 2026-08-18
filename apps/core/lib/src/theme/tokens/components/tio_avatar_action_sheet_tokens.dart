@@ -1,20 +1,21 @@
 import '../foundation/tio_radius.dart';
 import '../foundation/tio_spacing.dart';
 import '../primitive/tio_alpha.dart';
+import '../primitive/tio_size.dart';
 import '../typography/tio_font_size.dart';
 
 class TioAvatarActionSheetTokens {
   const TioAvatarActionSheetTokens._();
 
-  static const sheetRadius = TioRadius.large;
-  static const dragHandleWidth = 36.0;
-  static const dragHandleHeight = 4.0;
+  static const sheetRadius = TioRadius.lg;
+  static const dragHandleWidth = TioSize.dp36;
+  static const dragHandleHeight = TioSize.dp4;
   static const dragHandleAlpha = TioAlpha.alpha50;
-  static const dragHandleRadius = 2.0;
-  static const handleToTitleGap = TioSpacing.large;
+  static const dragHandleRadius = TioSize.dp2;
+  static const handleToTitleGap = TioSpacing.lg;
   static const titleFontSize = TioFontSize.size18;
-  static const titleToOptionsGap = TioSpacing.medium;
-  static const optionIconPadding = TioSpacing.small;
-  static const optionIconSize = 20.0;
-  static const bottomGap = TioSpacing.small;
+  static const titleToOptionsGap = TioSpacing.md;
+  static const optionIconPadding = TioSpacing.sm;
+  static const optionIconSize = TioSize.dp20;
+  static const bottomGap = TioSpacing.sm;
 }
