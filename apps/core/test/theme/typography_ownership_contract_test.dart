@@ -51,11 +51,10 @@ void main() {
   });
 
   group('runtime font-family selection', () {
-    test('font options expose stable persistence ids and family resolution', () {
+    test('only verified cross-platform font options are selectable', () {
+      expect(TioFontFamilyOption.values, const [TioFontFamilyOption.system]);
       expect(TioFontFamilyOption.system.id, 'system');
       expect(TioFontFamilyOption.system.family, TioFontFamily.system);
-      expect(TioFontFamilyOption.roboto.id, 'roboto');
-      expect(TioFontFamilyOption.roboto.family, TioFontFamily.roboto);
     });
 
     test('theme config defaults to the platform/system family', () {
@@ -65,39 +64,15 @@ void main() {
       expect(config.resolvedFontFamily, TioFontFamily.system);
     });
 
-    test('semantic TextTheme can resolve a selected family at runtime', () {
+    test('semantic TextTheme accepts an injected named family', () {
       final textTheme = TioTypography.textTheme(
         TioColors.light,
-        fontFamily: TioFontFamilyOption.roboto.family,
+        fontFamily: TioFontFamily.roboto,
       );
 
       expect(textTheme.displayLarge?.fontFamily, TioFontFamily.roboto);
       expect(textTheme.bodyMedium?.fontFamily, TioFontFamily.roboto);
       expect(textTheme.labelSmall?.fontFamily, TioFontFamily.roboto);
-    });
-
-    testWidgets('TioTheme propagates configured font family to consumers', (
-      tester,
-    ) async {
-      String? resolvedFamily;
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: TioTheme(
-            config: const TioThemeConfig(
-              fontFamilyOption: TioFontFamilyOption.roboto,
-            ),
-            child: Builder(
-              builder: (context) {
-                resolvedFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
-                return const SizedBox.shrink();
-              },
-            ),
-          ),
-        ),
-      );
-
-      expect(resolvedFamily, TioFontFamily.roboto);
     });
   });
 
