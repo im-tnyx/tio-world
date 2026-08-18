@@ -80,12 +80,15 @@ void main() {
       expect(TioRadius.extraLarge, TioRadius.xl);
     });
 
-    test('avatar size roles alias canonical geometry primitives', () {
+    test('avatar geometry aliases canonical primitives', () {
       expect(TioAvatarTokens.compactSize, TioSize.dp24);
       expect(TioAvatarTokens.smallSize, TioSize.dp36);
       expect(TioAvatarTokens.mediumSize, TioSize.dp48);
       expect(TioAvatarTokens.largeSize, TioSize.dp100);
       expect(TioAvatarTokens.extraLargeSize, TioSize.dp160);
+      expect(TioAvatarTokens.plusRingGap, TioSize.dp4);
+      expect(TioAvatarTokens.smallPlusRingGap, TioSize.dp2);
+      expect(TioAvatarTokens.smallProFramePadding, TioSize.dp2);
     });
 
     test('button and card geometry alias canonical owners', () {
@@ -136,6 +139,88 @@ void main() {
       expect(TioNavigationTokens.aiTabIconSize, TioSize.dp14);
       expect(TioNavigationTokens.aiTabGlowBlurRadius, TioSize.dp6);
       expect(TioNavigationTokens.aiTabGlowOffsetY, TioSize.dp2);
+    });
+
+    test('avatar action sheet geometry aliases canonical owners', () {
+      expect(TioAvatarActionSheetTokens.sheetRadius, TioRadius.lg);
+      expect(TioAvatarActionSheetTokens.dragHandleWidth, TioSize.dp36);
+      expect(TioAvatarActionSheetTokens.dragHandleHeight, TioSize.dp4);
+      expect(TioAvatarActionSheetTokens.dragHandleRadius, TioSize.dp2);
+      expect(TioAvatarActionSheetTokens.handleToTitleGap, TioSpacing.lg);
+      expect(TioAvatarActionSheetTokens.titleToOptionsGap, TioSpacing.md);
+      expect(TioAvatarActionSheetTokens.optionIconPadding, TioSpacing.sm);
+      expect(TioAvatarActionSheetTokens.optionIconSize, TioSize.dp20);
+      expect(TioAvatarActionSheetTokens.bottomGap, TioSpacing.sm);
+    });
+
+    test('dialog geometry aliases exact canonical sizes', () {
+      expect(TioDialogTokens.otpInsetHorizontal, TioSize.dp32);
+      expect(TioDialogTokens.otpPanelTopPadding, TioSize.dp28);
+      expect(TioDialogTokens.otpPanelRadius, TioSize.dp28);
+      expect(TioDialogTokens.otpShadowBlurRadius, TioSize.dp30);
+      expect(TioDialogTokens.otpShadowOffsetY, TioSize.dp10);
+      expect(TioDialogTokens.otpInputHeight, TioSize.dp52);
+      expect(TioDialogTokens.otpInputRadius, TioSize.dp26);
+      expect(TioDialogTokens.otpActionRadius, TioSize.dp20);
+      expect(TioDialogTokens.deleteActionButtonHeight, TioSize.dp54);
+      expect(TioDialogTokens.deleteActionButtonRadius, TioSize.dp27);
+      expect(TioDialogTokens.deleteHoldControlSize, TioSize.dp140);
+      expect(TioDialogTokens.deleteHoldButtonSize, TioSize.dp100);
+      expect(TioDialogTokens.deleteHoldGlowSpreadRadius, TioSize.dp2);
+      expect(TioDialogTokens.deleteCompletedIconContainerSize, TioSize.dp72);
+      expect(TioDialogTokens.deleteCompletedIconSize, TioSize.dp38);
+    });
+
+    test('picker geometry aliases canonical owners without ratio changes', () {
+      expect(TioWheelPickerTokens.viewportHeight, TioSize.dp200);
+      expect(TioWheelPickerTokens.selectionHeight, TioSize.dp48);
+      expect(TioWheelPickerTokens.selectionHorizontalMargin, TioSpacing.lg);
+      expect(TioWheelPickerTokens.itemExtent, TioSize.dp44);
+
+      expect(TioDobPickerTokens.closeIconSize, TioSize.dp24);
+      expect(TioDobPickerTokens.closeSplashRadius, TioSize.dp20);
+      expect(TioDobPickerTokens.headerSubtitleGap, TioSize.dp6);
+      expect(TioDobPickerTokens.columnHeaderToWheelGap, TioSpacing.md);
+      expect(TioDobPickerTokens.perspective, 0.004);
+      expect(TioDobPickerTokens.diameterRatio, 1.3);
+
+      expect(TioMeasurementPickerTokens.closeButtonSize, TioSize.dp32);
+      expect(TioMeasurementPickerTokens.closeIconSize, TioSize.dp18);
+      expect(TioMeasurementPickerTokens.closeSplashRadius, TioSize.dp16);
+      expect(TioMeasurementPickerTokens.headerSubtitleGap, TioSpacing.md);
+      expect(TioMeasurementPickerTokens.inputSectionGap, TioSize.dp28);
+      expect(TioMeasurementPickerTokens.inputHeight, TioSize.dp64);
+      expect(TioMeasurementPickerTokens.inputRadius, TioSize.dp18);
+      expect(TioMeasurementPickerTokens.inputHorizontalPadding, TioSize.dp20);
+      expect(TioMeasurementPickerTokens.dualInputGap, TioSize.dp14);
+    });
+
+    test('sheet geometry aliases canonical owners', () {
+      expect(TioRemoveImageSheetTokens.sheetRadius, TioRadius.xl);
+      expect(TioRemoveImageSheetTokens.contentHorizontalPadding, TioSize.dp20);
+      expect(TioRemoveImageSheetTokens.contentTopPadding, TioSpacing.lg);
+      expect(TioRemoveImageSheetTokens.contentBottomPadding, TioSpacing.xl);
+      expect(TioRemoveImageSheetTokens.closeButtonSize, TioSize.dp32);
+      expect(TioRemoveImageSheetTokens.closeIconSize, TioSize.dp18);
+      expect(TioRemoveImageSheetTokens.closeToTitleGap, TioSize.dp6);
+      expect(TioRemoveImageSheetTokens.titleToSubtitleGap, TioSpacing.sm);
+      expect(TioRemoveImageSheetTokens.subtitleToActionsGap, TioSize.dp26);
+      expect(TioRemoveImageSheetTokens.actionRadius, TioSize.dp20);
+      expect(TioRemoveImageSheetTokens.actionVerticalPadding, TioSpacing.lg);
+      expect(TioRemoveImageSheetTokens.actionIconGap, TioSpacing.sm);
+      expect(TioRemoveImageSheetTokens.removeIconSize, TioSize.dp20);
+      expect(TioRemoveImageSheetTokens.cancelIconSize, TioSize.dp18);
+      expect(TioRemoveImageSheetTokens.actionGap, TioSpacing.md);
+
+      expect(TioSheetTokens.radius, TioRadius.xl);
+      expect(TioSheetTokens.padding, TioSpacing.lg);
+      expect(TioSheetTokens.titleGap, TioSpacing.md);
+    });
+
+    test('avatar ratios remain component-specific exact contracts', () {
+      expect(TioAvatarTokens.roundedRadiusFactor, 0.28);
+      expect(TioAvatarTokens.iconSizeFactor, 0.5);
+      expect(TioAvatarTokens.textSizeFactor, 0.36);
     });
   });
 }
