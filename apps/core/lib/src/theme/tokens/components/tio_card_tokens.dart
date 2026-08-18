@@ -1,9 +1,12 @@
+import '../foundation/tio_radius.dart';
+import '../foundation/tio_spacing.dart';
+
 class TioCardTokens {
   const TioCardTokens._();
 
-  static const radius = 16.0;
-  static const radiusItem = 8.0;
-  static const padding = 16.0;
+  static const radius = TioRadius.large;
+  static const radiusItem = TioRadius.small;
+  static const padding = TioSpacing.large;
 
   // Border Tokens
   static const borderThin = 0.75;

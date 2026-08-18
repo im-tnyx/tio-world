@@ -1,11 +1,14 @@
+import '../foundation/tio_radius.dart';
+import '../foundation/tio_spacing.dart';
+
 class TioButtonTokens {
   const TioButtonTokens._();
 
   static const height = 46.0;
   static const minimumWidth = 0.0;
-  static const radius = 999.0;
+  static const radius = TioRadius.full;
   static const horizontalPadding = 20.0;
-  static const contentGap = 8.0;
+  static const contentGap = TioSpacing.small;
   static const loadingIndicatorSize = 18.0;
   static const loadingIndicatorStrokeWidth = 2.0;
   static const pressedStateOpacity = 0.12;
