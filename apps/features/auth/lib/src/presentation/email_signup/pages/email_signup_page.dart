@@ -4,6 +4,7 @@ import 'package:tio_core/core.dart';
 
 import '../../../domain/domain.dart';
 import '../../theme/auth_form_tokens.dart';
+import '../../theme/auth_signup_tokens.dart';
 import '../../theme/auth_visual_tokens.dart';
 
 /// Canonical Sign Up screen for fresh-account authentication.
@@ -224,22 +225,25 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                             prefixIcon: Icon(
                               Icons.email_outlined,
                               color: colors.textMuted,
-                              size: 20,
+                              size: AuthSignupTokens.inputPrefixIconSize,
                             ),
                             labelStyle: TextStyle(color: colors.textMuted),
                             hintStyle: TextStyle(
-                              color: colors.textMuted.withValues(alpha: 0.6),
+                              color: colors.textMuted.withValues(
+                                alpha: AuthSignupTokens.inputHintOpacity,
+                              ),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
-                              horizontal: TioSpacing.large,
-                              vertical: TioSpacing.large - 2,
+                              horizontal: TioInputTokens.horizontalPadding,
+                              vertical:
+                                  AuthSignupTokens.inputContentVerticalPadding,
                             ),
                             border: OutlineInputBorder(
                               borderRadius:
                                   BorderRadius.circular(TioRadius.large),
                               borderSide: BorderSide(
                                 color: colors.outlineStrong.withValues(
-                                  alpha: 0.4,
+                                  alpha: AuthSignupTokens.inputOutlineOpacity,
                                 ),
                               ),
                             ),
@@ -248,15 +252,17 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                                   BorderRadius.circular(TioRadius.large),
                               borderSide: BorderSide(
                                 color: colors.outlineStrong.withValues(
-                                  alpha: 0.4,
+                                  alpha: AuthSignupTokens.inputOutlineOpacity,
                                 ),
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius:
                                   BorderRadius.circular(TioRadius.large),
-                              borderSide:
-                                  BorderSide(color: colors.primary, width: 2),
+                              borderSide: BorderSide(
+                                color: colors.primary,
+                                width: AuthSignupTokens.inputFocusedOutlineWidth,
+                              ),
                             ),
                             filled: false,
                           ),
@@ -276,22 +282,25 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                             prefixIcon: Icon(
                               Icons.lock_outline,
                               color: colors.textMuted,
-                              size: 20,
+                              size: AuthSignupTokens.inputPrefixIconSize,
                             ),
                             labelStyle: TextStyle(color: colors.textMuted),
                             hintStyle: TextStyle(
-                              color: colors.textMuted.withValues(alpha: 0.6),
+                              color: colors.textMuted.withValues(
+                                alpha: AuthSignupTokens.inputHintOpacity,
+                              ),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
-                              horizontal: TioSpacing.large,
-                              vertical: TioSpacing.large - 2,
+                              horizontal: TioInputTokens.horizontalPadding,
+                              vertical:
+                                  AuthSignupTokens.inputContentVerticalPadding,
                             ),
                             border: OutlineInputBorder(
                               borderRadius:
                                   BorderRadius.circular(TioRadius.large),
                               borderSide: BorderSide(
                                 color: colors.outlineStrong.withValues(
-                                  alpha: 0.4,
+                                  alpha: AuthSignupTokens.inputOutlineOpacity,
                                 ),
                               ),
                             ),
@@ -300,15 +309,17 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                                   BorderRadius.circular(TioRadius.large),
                               borderSide: BorderSide(
                                 color: colors.outlineStrong.withValues(
-                                  alpha: 0.4,
+                                  alpha: AuthSignupTokens.inputOutlineOpacity,
                                 ),
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius:
                                   BorderRadius.circular(TioRadius.large),
-                              borderSide:
-                                  BorderSide(color: colors.primary, width: 2),
+                              borderSide: BorderSide(
+                                color: colors.primary,
+                                width: AuthSignupTokens.inputFocusedOutlineWidth,
+                              ),
                             ),
                             suffixIcon: IconButton(
                               icon: Icon(
@@ -330,7 +341,7 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                             filled: false,
                           ),
                         ),
-                        const SizedBox(height: 28),
+                        const SizedBox(height: AuthSignupTokens.submitTopGap),
                         TioButton.primary(
                           key: const ValueKey('signup-submit-button'),
                           label: 'Create Account',
@@ -420,28 +431,32 @@ class _OrDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Row(
       children: [
         Expanded(
           child: Divider(
-            color: colors.outlineStrong.withValues(alpha: 0.3),
+            color: colors.outlineStrong.withValues(
+              alpha: AuthFormTokens.dividerOpacity,
+            ),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AuthFormTokens.dividerHorizontalPadding,
+          ),
           child: Text(
             'OR',
-            style: TextStyle(
-              color: colors.textMuted,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 1,
+            style: textTheme.labelSmall?.copyWith(
+              letterSpacing: AuthSignupTokens.dividerLabelLetterSpacing,
             ),
           ),
         ),
         Expanded(
           child: Divider(
-            color: colors.outlineStrong.withValues(alpha: 0.3),
+            color: colors.outlineStrong.withValues(
+              alpha: AuthFormTokens.dividerOpacity,
+            ),
           ),
         ),
       ],
