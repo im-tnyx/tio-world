@@ -43,7 +43,7 @@ class _MobileStepState extends State<MobileStep> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
