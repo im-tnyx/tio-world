@@ -163,6 +163,7 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -196,14 +197,7 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                           },
                         ),
                         const SizedBox(width: TioSpacing.small),
-                        Text(
-                          'Sign Up',
-                          style: TextStyle(
-                            fontSize: AuthFormTokens.titleFontSize,
-                            fontWeight: AuthFormTokens.titleFontWeight,
-                            color: colors.textPrimary,
-                          ),
-                        ),
+                        Text('Sign Up', style: textTheme.titleLarge),
                       ],
                     ),
                   ),
@@ -380,10 +374,7 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                     children: [
                       Text(
                         'Already have an account? ',
-                        style: TextStyle(
-                          fontSize: AuthFormTokens.footerFontSize,
-                          color: colors.textSecondary,
-                        ),
+                        style: textTheme.bodyMedium,
                       ),
                       TextButton(
                         key: const ValueKey('signup-login-link'),
@@ -398,14 +389,7 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: Text(
-                          'Log In',
-                          style: TextStyle(
-                            fontSize: AuthFormTokens.footerFontSize,
-                            fontWeight: AuthFormTokens.footerLinkFontWeight,
-                            color: colors.textPrimary,
-                          ),
-                        ),
+                        child: Text('Log In', style: textTheme.labelLarge),
                       ),
                     ],
                   ),
