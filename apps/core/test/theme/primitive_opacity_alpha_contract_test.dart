@@ -20,6 +20,23 @@ void main() {
       expect(TioOpacity.opacity70, 0.70);
       expect(TioOpacity.opacity72, 0.72);
     });
+
+    test('component opacity roles alias canonical primitives', () {
+      expect(TioButtonTokens.pressedStateOpacity, TioOpacity.opacity12);
+      expect(TioButtonTokens.hoveredStateOpacity, TioOpacity.opacity08);
+      expect(TioButtonTokens.disabledContentOpacity, TioOpacity.opacity38);
+      expect(TioCardTokens.glassContainerOpacity, TioOpacity.opacity72);
+      expect(TioCardTokens.glassBorderOpacity, TioOpacity.opacity16);
+      expect(TioInputTokens.darkUnfocusedOutlineOpacity, TioOpacity.opacity35);
+      expect(TioInputTokens.lightUnfocusedOutlineOpacity, TioOpacity.opacity45);
+      expect(TioInputTokens.mobileVerifyContainerOpacity, TioOpacity.opacity09);
+      expect(TioInputTokens.usernameHintOpacity, TioOpacity.opacity60);
+      expect(TioNavigationTokens.indicatorOpacity, TioOpacity.opacity14);
+      expect(TioNavigationTokens.aiTabGlowOpacity, TioOpacity.opacity30);
+      expect(TioNavigationTokens.aiTabInactiveOutlineOpacity, TioOpacity.opacity40);
+      expect(TioLegalTokens.bodyTextOpacity, TioOpacity.opacity70);
+      expect(TioLegalTokens.linkUnderlineOpacity, TioOpacity.opacity50);
+    });
   });
 
   group('canonical exact alpha primitives', () {
@@ -34,6 +51,23 @@ void main() {
       expect(TioAlpha.alpha120, 120);
       expect(TioAlpha.alpha200, 200);
       expect(TioAlpha.alpha245, 245);
+    });
+
+    test('component alpha roles alias canonical primitives', () {
+      expect(TioAvatarActionSheetTokens.dragHandleAlpha, TioAlpha.alpha50);
+      expect(TioDialogTokens.otpPanelOutlineAlpha, TioAlpha.alpha30);
+      expect(TioDialogTokens.otpErrorOutlineAlpha, TioAlpha.alpha90);
+      expect(TioDialogTokens.deleteOverlayBackgroundAlpha, TioAlpha.alpha245);
+      expect(TioDialogTokens.deleteCloseContainerAlpha, TioAlpha.alpha25);
+      expect(TioDialogTokens.deleteActionContainerAlpha, TioAlpha.alpha35);
+      expect(TioDialogTokens.deleteHoldGlowAlpha, TioAlpha.alpha80);
+      expect(TioDobPickerTokens.sheetOutlineAlpha, TioAlpha.alpha25);
+      expect(TioDobPickerTokens.unselectedTextAlpha, TioAlpha.alpha120);
+      expect(TioInputTokens.usernameSuggestionOutlineAlpha, TioAlpha.alpha80);
+      expect(TioMeasurementPickerTokens.closeContainerAlpha, TioAlpha.alpha50);
+      expect(TioMeasurementPickerTokens.inputOutlineAlpha, TioAlpha.alpha40);
+      expect(TioRemoveImageSheetTokens.actionOutlineAlpha, TioAlpha.alpha25);
+      expect(TioWheelPickerTokens.selectionSurfaceAlpha, TioAlpha.alpha200);
     });
   });
 }

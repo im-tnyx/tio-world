@@ -1,5 +1,6 @@
 import '../foundation/tio_radius.dart';
 import '../foundation/tio_spacing.dart';
+import '../primitive/tio_opacity.dart';
 
 class TioCardTokens {
   const TioCardTokens._();
@@ -14,8 +15,8 @@ class TioCardTokens {
   static const materialThemeRadius = 20.0;
   static const materialThemeElevation = 0.0;
 
-  static const glassContainerOpacity = 0.72;
-  static const glassBorderOpacity = 0.16;
+  static const glassContainerOpacity = TioOpacity.opacity72;
+  static const glassBorderOpacity = TioOpacity.opacity16;
 
   // Border Tokens
   static const borderThin = 0.75;
@@ -26,6 +27,6 @@ class TioCardTokens {
   static const selectedBorderWidth = borderThick;
   static const unselectedBorderWidth = borderThin;
 
-  static const selectedContainerAlpha = 0.10;
-  static const unselectedOutlineAlpha = 0.40;
+  static const selectedContainerAlpha = TioOpacity.opacity10;
+  static const unselectedOutlineAlpha = TioOpacity.opacity40;
 }

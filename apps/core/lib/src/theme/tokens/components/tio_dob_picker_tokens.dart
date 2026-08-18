@@ -1,10 +1,11 @@
 import '../foundation/tio_spacing.dart';
+import '../primitive/tio_alpha.dart';
 import 'tio_wheel_picker_tokens.dart';
 
 class TioDobPickerTokens {
   const TioDobPickerTokens._();
 
-  static const sheetOutlineAlpha = 25;
+  static const sheetOutlineAlpha = TioAlpha.alpha25;
   static const titleFontSize = 22.0;
   static const titleLetterSpacing = -0.2;
   static const closeIconSize = 24.0;
@@ -23,5 +24,5 @@ class TioDobPickerTokens {
   static const diameterRatio = 1.3;
   static const selectedFontSize = TioWheelPickerTokens.selectedFontSize;
   static const unselectedFontSize = 17.0;
-  static const unselectedTextAlpha = 120;
+  static const unselectedTextAlpha = TioAlpha.alpha120;
 }

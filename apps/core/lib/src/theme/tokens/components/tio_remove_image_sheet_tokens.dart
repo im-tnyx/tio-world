@@ -1,5 +1,6 @@
 import '../foundation/tio_radius.dart';
 import '../foundation/tio_spacing.dart';
+import '../primitive/tio_alpha.dart';
 
 class TioRemoveImageSheetTokens {
   const TioRemoveImageSheetTokens._();
@@ -18,7 +19,7 @@ class TioRemoveImageSheetTokens {
   static const subtitleToActionsGap = 26.0;
   static const actionRadius = 20.0;
   static const actionVerticalPadding = TioSpacing.large;
-  static const actionOutlineAlpha = 25;
+  static const actionOutlineAlpha = TioAlpha.alpha25;
   static const actionOutlineWidth = 1.0;
   static const actionLabelFontSize = 16.0;
   static const actionIconGap = TioSpacing.small;
