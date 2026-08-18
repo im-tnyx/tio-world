@@ -5,5 +5,6 @@ export 'tio_dialog_tokens.dart';
 export 'tio_dob_picker_tokens.dart';
 export 'tio_input_tokens.dart';
 export 'tio_legal_tokens.dart';
+export 'tio_measurement_picker_tokens.dart';
 export 'tio_navigation_tokens.dart';
 export 'tio_sheet_tokens.dart';

@@ -22,6 +22,7 @@ void main() {
       expect(TioInputTokens.horizontalPadding, TioSpacing.large);
       expect(TioInputTokens.compactContentHorizontalPadding, TioSpacing.small);
       expect(TioInputTokens.standardContentVerticalPadding, TioSpacing.large);
+      expect(TioMeasurementPickerTokens.headerSubtitleGap, TioSpacing.medium);
       expect(TioSheetTokens.padding, TioSpacing.large);
       expect(TioSheetTokens.titleGap, TioSpacing.medium);
     });
@@ -104,6 +105,17 @@ void main() {
       expect(TioLegalTokens.bodyTextOpacity, 0.70);
       expect(TioLegalTokens.linkUnderlineOpacity, 0.50);
       expect(TioLegalTokens.bodyLineHeight, 1.5);
+      expect(TioMeasurementPickerTokens.sheetOutlineAlpha, 25);
+      expect(TioMeasurementPickerTokens.titleFontSize, 24.0);
+      expect(TioMeasurementPickerTokens.closeButtonSize, 32.0);
+      expect(TioMeasurementPickerTokens.subtitleFontSize, 14.0);
+      expect(TioMeasurementPickerTokens.inputSectionGap, 28.0);
+      expect(TioMeasurementPickerTokens.inputHeight, 64.0);
+      expect(TioMeasurementPickerTokens.inputRadius, 18.0);
+      expect(TioMeasurementPickerTokens.inputOutlineAlpha, 40);
+      expect(TioMeasurementPickerTokens.inputTextFontSize, 24.0);
+      expect(TioMeasurementPickerTokens.unitFontSize, 18.0);
+      expect(TioMeasurementPickerTokens.dualInputGap, 14.0);
       expect(TioNavigationTokens.labelTopPadding, 2.0);
 
       expect(TioNavigationTokens.iconSize, 22.0);
