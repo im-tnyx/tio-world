@@ -11,6 +11,8 @@ class TioPalette {
 
   static const black = Color(0xFF000000);
   static const white = Color(0xFFFFFFFF);
+  static const whiteAlpha179 =
+      Color.fromARGB(TioAlpha.alpha179, 255, 255, 255);
   static const blackAlpha26 = Color.fromARGB(TioAlpha.alpha26, 0, 0, 0);
   static const blackAlpha80 = Color.fromARGB(TioAlpha.alpha80, 0, 0, 0);
 
