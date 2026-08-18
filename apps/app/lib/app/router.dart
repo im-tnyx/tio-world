@@ -404,14 +404,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   backendUserReady: isDurablePersistenceReady,
                 ),
               );
-              final currentUser = supabaseClient?.auth.currentUser;
-              final isPhoneVerified =
-                  currentUser?.phone != null && currentUser!.phone!.isNotEmpty;
               final flowPlan = const BuildOnboardingFlowUseCase()(
                 entryPath: onboardingStatusController.entryPath,
                 mode: draft.selectedMode,
                 workoutIntroChoice: draft.workoutIntroChoice,
-                includeMobile: !isPhoneVerified,
               );
 
               debugPrint('[Router] Executing completeOnboarding...');
