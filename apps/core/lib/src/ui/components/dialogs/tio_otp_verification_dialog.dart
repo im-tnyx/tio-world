@@ -102,28 +102,28 @@ class _TioOtpVerificationDialogState extends State<TioOtpVerificationDialog> {
       // Transparent dialog canvas lets the custom panel own its full visual.
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(
-        horizontal: TioDialogTokens.otpInsetHorizontal,
+        horizontal: TioOtpDialogTokens.insetHorizontal,
       ),
       child: Container(
         padding: const EdgeInsets.fromLTRB(
           TioSpacing.extraLarge,
-          TioDialogTokens.otpPanelTopPadding,
+          TioOtpDialogTokens.panelTopPadding,
           TioSpacing.extraLarge,
           TioSpacing.extraLarge,
         ),
         decoration: BoxDecoration(
           color: colors.surfaceRaised,
-          borderRadius: BorderRadius.circular(TioDialogTokens.otpPanelRadius),
+          borderRadius: BorderRadius.circular(TioOtpDialogTokens.panelRadius),
           boxShadow: [
             BoxShadow(
               color: shadows.elevatedPanelColor,
-              blurRadius: TioDialogTokens.otpShadowBlurRadius,
-              offset: const Offset(0, TioDialogTokens.otpShadowOffsetY),
+              blurRadius: TioOtpDialogTokens.shadowBlurRadius,
+              offset: const Offset(0, TioOtpDialogTokens.shadowOffsetY),
             ),
           ],
           border: Border.all(
             color: colors.outlineStrong.withAlpha(
-              TioDialogTokens.otpPanelOutlineAlpha,
+              TioOtpDialogTokens.panelOutlineAlpha,
             ),
           ),
         ),
@@ -135,31 +135,31 @@ class _TioOtpVerificationDialogState extends State<TioOtpVerificationDialog> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: colors.textPrimary,
-                fontSize: TioDialogTokens.otpTitleFontSize,
+                fontSize: TioOtpDialogTokens.titleFontSize,
                 fontWeight: FontWeight.w600,
-                letterSpacing: TioDialogTokens.otpTitleLetterSpacing,
+                letterSpacing: TioOtpDialogTokens.titleLetterSpacing,
               ),
             ),
-            const SizedBox(height: TioDialogTokens.otpTitleToInputGap),
+            const SizedBox(height: TioOtpDialogTokens.titleToInputGap),
             Container(
-              height: TioDialogTokens.otpInputHeight,
+              height: TioOtpDialogTokens.inputHeight,
               decoration: BoxDecoration(
                 color: colors.background,
                 borderRadius: BorderRadius.circular(
-                  TioDialogTokens.otpInputRadius,
+                  TioOtpDialogTokens.inputRadius,
                 ),
                 border: Border.all(
                   color: _errorMessage != null
                       ? colors.danger.withAlpha(
-                          TioDialogTokens.otpErrorOutlineAlpha,
+                          TioOtpDialogTokens.errorOutlineAlpha,
                         )
                       : colors.outlineStrong.withAlpha(
-                          TioDialogTokens.otpInputOutlineAlpha,
+                          TioOtpDialogTokens.inputOutlineAlpha,
                         ),
                 ),
               ),
               padding: const EdgeInsets.symmetric(
-                horizontal: TioDialogTokens.otpInputHorizontalPadding,
+                horizontal: TioOtpDialogTokens.inputHorizontalPadding,
               ),
               alignment: Alignment.center,
               child: TextField(
@@ -175,9 +175,9 @@ class _TioOtpVerificationDialogState extends State<TioOtpVerificationDialog> {
                 onSubmitted: (_) => _handleVerify(),
                 style: TextStyle(
                   color: colors.textPrimary,
-                  fontSize: TioDialogTokens.otpInputFontSize,
+                  fontSize: TioOtpDialogTokens.inputFontSize,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: TioDialogTokens.otpInputLetterSpacing,
+                  letterSpacing: TioOtpDialogTokens.inputLetterSpacing,
                 ),
                 decoration: const InputDecoration(
                   border: InputBorder.none,
@@ -201,48 +201,48 @@ class _TioOtpVerificationDialogState extends State<TioOtpVerificationDialog> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: colors.danger,
-                  fontSize: TioDialogTokens.otpErrorFontSize,
+                  fontSize: TioOtpDialogTokens.errorFontSize,
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ],
-            const SizedBox(height: TioDialogTokens.otpSubtitleTopGap),
+            const SizedBox(height: TioOtpDialogTokens.subtitleTopGap),
             Text(
               widget.subtitle ??
                   'Please check your ${widget.targetLabel} for the verification code.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: colors.textSecondary,
-                fontSize: TioDialogTokens.otpSubtitleFontSize,
-                height: TioDialogTokens.otpSubtitleLineHeight,
+                fontSize: TioOtpDialogTokens.subtitleFontSize,
+                height: TioOtpDialogTokens.subtitleLineHeight,
                 fontWeight: FontWeight.w400,
               ),
             ),
-            const SizedBox(height: TioDialogTokens.otpVerifyTopGap),
+            const SizedBox(height: TioOtpDialogTokens.verifyTopGap),
             InkWell(
               onTap: _isVerifying ? null : _handleVerify,
               borderRadius: BorderRadius.circular(
-                TioDialogTokens.otpActionRadius,
+                TioOtpDialogTokens.actionRadius,
               ),
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: TioDialogTokens.otpActionHorizontalPadding,
+                  horizontal: TioOtpDialogTokens.actionHorizontalPadding,
                   vertical: TioSpacing.medium,
                 ),
                 decoration: BoxDecoration(
                   color: colors.outlineStrong.withAlpha(
-                    TioDialogTokens.otpActionContainerAlpha,
+                    TioOtpDialogTokens.actionContainerAlpha,
                   ),
                   borderRadius: BorderRadius.circular(
-                    TioDialogTokens.otpActionRadius,
+                    TioOtpDialogTokens.actionRadius,
                   ),
                 ),
                 child: _isVerifying
                     ? SizedBox(
-                        width: TioDialogTokens.otpLoadingSize,
-                        height: TioDialogTokens.otpLoadingSize,
+                        width: TioOtpDialogTokens.loadingSize,
+                        height: TioOtpDialogTokens.loadingSize,
                         child: CircularProgressIndicator(
-                          strokeWidth: TioDialogTokens.otpLoadingStrokeWidth,
+                          strokeWidth: TioOtpDialogTokens.loadingStrokeWidth,
                           color: colors.textPrimary,
                         ),
                       )
@@ -251,14 +251,14 @@ class _TioOtpVerificationDialogState extends State<TioOtpVerificationDialog> {
                         style: TextStyle(
                           color: colors.textPrimary,
                           fontWeight: FontWeight.w700,
-                          fontSize: TioDialogTokens.otpActionFontSize,
+                          fontSize: TioOtpDialogTokens.actionFontSize,
                           letterSpacing:
-                              TioDialogTokens.otpActionLetterSpacing,
+                              TioOtpDialogTokens.actionLetterSpacing,
                         ),
                       ),
               ),
             ),
-            const SizedBox(height: TioDialogTokens.otpBackTopGap),
+            const SizedBox(height: TioOtpDialogTokens.backTopGap),
             GestureDetector(
               onTap: () => Navigator.of(context).pop(),
               child: Text(
@@ -266,8 +266,8 @@ class _TioOtpVerificationDialogState extends State<TioOtpVerificationDialog> {
                 style: TextStyle(
                   color: colors.primary,
                   fontWeight: FontWeight.w700,
-                  fontSize: TioDialogTokens.otpActionFontSize,
-                  letterSpacing: TioDialogTokens.otpActionLetterSpacing,
+                  fontSize: TioOtpDialogTokens.actionFontSize,
+                  letterSpacing: TioOtpDialogTokens.actionLetterSpacing,
                 ),
               ),
             ),
