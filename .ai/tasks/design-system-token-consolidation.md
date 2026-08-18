@@ -1,43 +1,93 @@
 # Design System Token Consolidation
 
 **Status:** In progress
-**Primary owner:** `apps/core` design-system tokens; `apps/features/welcome` as the first migration consumer
+**Primary owner:** `apps/core` design-system contracts; every Flutter screen is a consumer
 **Affected platforms:** Flutter mobile UI
 **Related issue:** #6
 **Working branch:** `codex/design-system-token-consolidation`
 **Draft PR:** #22
 
-## 1. Discovery
+## 1. Product Outcome
 
-### User Outcome
+Tio must use one professional, governed design system across the phone app. Screen and widget files must not invent visual values ad hoc. Reusable styling comes from `tio_core`; feature-only composition values use narrowly named role tokens rather than anonymous numbers.
 
-Keep the current Tio phone UI visually unchanged while making `tio_core` the source of truth for reusable design-system values and removing duplicate/private token ownership only where semantics genuinely match.
+The migration remains pixel-preserving unless a separate visual-design decision explicitly approves a change.
 
-### Success Criteria
+## 2. Non-Negotiable Design-System Rules
 
-- No unapproved pixel or behavior changes.
-- `TioSpacing` and `TioRadius` remain distinct semantic APIs.
-- Component-local physical dimensions stay component-owned unless reuse evidence proves otherwise.
-- Welcome reusable spacing/radius roles consume `tio_core`; Welcome-only composition geometry stays local.
-- `welcome_tokens.dart` is removed only after every live member has a value-preserving destination and every remaining declaration is proven obsolete.
-- No generic numeric `TioDimensions` catalog is introduced.
-- Analyze/tests remain green.
+### No Random Visual Literals
 
-### Scope
+Final production screen/widget code must not contain unexplained hardcoded styling values for:
 
-1. **Slice 1 — core aliases:** complete + validated.
-2. **Slice 2 — Avatar source of truth:** complete + validated.
-3. **Slice 3 — Welcome private-token ownership migration:** classified; implementation next.
-4. **Slice 4 — Welcome raw literals + orphan state/widget cleanup:** pending.
-5. **Slice 5 — final docs/validation:** pending.
+- spacing / padding / gaps
+- radius / shape
+- fixed width / height / min size
+- icon size
+- border / stroke width
+- opacity / alpha
+- typography size / weight / line height / letter spacing
+- animation duration / easing
+- reusable colors
+- elevation / shadow
+- recurring layout dimensions
 
-### Non-Goals
+A value is not made acceptable merely by moving `20.0` into a file-local constant. It must have an intentional token role.
 
-No mobile redesign, Auth/Account Setup/onboarding behavior, backend, Supabase, arbitrary value normalization, or feature-specific geometry promotion into core.
+### Token Taxonomy
 
-## 2. Codebase Exploration
+```text
+Foundation tokens
+  spacing / radius / primitive size / stroke / opacity / motion
+        ↓
+Semantic tokens
+  colors / typography / state / domain roles
+        ↓
+Component tokens
+  button / input / card / avatar / navigation / sheet / reusable widgets
+        ↓
+Feature composition tokens (only when truly feature-specific)
+  e.g. WelcomeLayoutTokens.featurePanelRadius
+        ↓
+Screen/widget implementation
+```
 
-### Slice 1 — Core Alias Result
+Rules:
+
+1. **Use an existing token first.**
+2. If no token exists, classify the role before adding one.
+3. Add a foundation token only when it is a stable reusable scale value.
+4. Add a component token when the value belongs to a reusable component contract.
+5. Add a feature composition token only when the value is intentionally feature-specific and not reusable elsewhere.
+6. Feature tokens should alias core foundation/semantic tokens whenever possible.
+7. Never create `size4`, `radius20`, `value56`, or a generic numeric catalog solely to hide literals.
+8. Never normalize pixels to the nearest existing token without explicit visual approval.
+9. Theme-aware colors and typography should come from `TioTheme`, `ColorScheme`, `TextTheme`, semantic tokens, or explicit component tokens—not arbitrary screen colors/styles.
+10. Any new token requires a semantic name, owner, usage evidence, and focused contract/test coverage where practical.
+
+### Allowed Non-Design Literals
+
+This rule targets **visual design values**. Normal program/data literals remain allowed when they are not design decisions, for example loop indexes, enum/data values, mathematical zero/one, validation limits, IDs, dates, and business calculations.
+
+Responsive values derived from runtime constraints may remain expressions, but any reusable design factor or breakpoint must itself have an intentional token/contract.
+
+## 3. Current Foundation Evidence
+
+Current shared foundations are intentionally small:
+
+```text
+TioSpacing: small=8, medium=12, large=16, extraLarge=24
+TioRadius: small=8, medium=12, large=16, extraLarge=24, full=999
+```
+
+A common `4dp` rhythm is now evidenced by real layout usage and is eligible to become a named smallest spacing foundation role (for example `TioSpacing.extraSmall = 4`) rather than being repeated as file-local `4.0`.
+
+A Welcome-only `20dp` feature-panel radius is **not** enough evidence for a generic shared `20` radius primitive. It should live behind a semantic Welcome composition token such as `WelcomeLayoutTokens.featurePanelRadius` until broader reuse proves a shared role.
+
+## 4. Completed Slices
+
+### Slice 1 — Core Component Aliases
+
+Exact-value aliases implemented:
 
 | Component token | Previous | Current owner |
 |---|---:|---|
@@ -49,143 +99,155 @@ No mobile redesign, Auth/Account Setup/onboarding behavior, backend, Supabase, a
 | `TioNavigationTokens.itemRadius` | `16` | `TioRadius.large` |
 | `TioSheetTokens.padding` | `24` | `TioSpacing.extraLarge` |
 
-Component-only values such as Button `46`, Input `14/52`, Navigation `62/22/125`, and Sheet radius `28` remain unchanged.
+CI #399 passed full bootstrap/analyze/test on source head `24c4dbd`.
 
-### Slice 2 — Avatar Decision
+### Slice 2 — Avatar Source Of Truth
 
-Runtime and tests agree on `small=36`, `large=100`, `extraLarge=160`. Profile/Profile Settings consume semantic `large`; shell consumes `small`; Profile Photo uses screen-derived `customDimension` rather than a fixed 160dp preview. Runtime `large=100dp` is authoritative and stale docs/test wording were aligned without changing UI.
+Runtime/test contract is `small=36`, `large=100`, `extraLarge=160`. Profile/Profile Settings use semantic `large`; shell uses `small`; Profile Photo uses a responsive `customDimension` preview.
 
-### Slice 3 — Welcome Usage Inventory
+Runtime `large=100dp` remains unchanged. Stale 80dp docs/test wording was aligned to runtime. CI #401 passed full bootstrap/analyze/test on head `18e8d89`.
 
-Verified live `WelcomeDimens` usage exists only in `welcome_screen.dart` and `welcome_top_bar.dart`. `welcome_tokens.dart` is not part of the package public API.
+## 5. Welcome Migration — Revised Professional Standard
 
-| Private member | Runtime usage | Destination | Decision |
-|---|---|---|---|
-| `paddingScreen = 16` | Welcome screen horizontal padding | `TioSpacing.large` | migrate |
-| `spaceXS = 8` | screen/top-bar gaps/padding | `TioSpacing.small` | migrate |
-| `spaceS = 12` | screen vertical gaps/panel padding | `TioSpacing.medium` | migrate |
-| `radiusL = 16` | top-bar InkWell radius | `TioRadius.large` | migrate |
-| `spaceXXS = 4` | top-bar vertical padding + feature-divider margin | local composition constants | keep local, rename by role |
-| `radiusXL = 20` | feature-panel radius | local `_featurePanelRadius` | keep local, rename by role |
-| `spaceSM = 16` | no live reference | none | obsolete |
-| `spaceM = 24` | no live reference | none | obsolete |
-| `buttonHeightLarge = 56` | no live reference | none | obsolete |
-| `borderThin = 1` | no live reference | none | obsolete |
-| `borderSubtle = 0.8` | no live reference | none | obsolete |
-| `featureTileHeight = 80` | no live reference | none | obsolete |
-| `featureTileIconContainerSize = 48` | no live reference | none | obsolete |
-| `radiusFeatureIcon = 12` | no live reference | none | obsolete |
-| `iconSizeXS = 20` | no live reference | none | obsolete |
-| `iconSizeS = 24` | no live reference | none | obsolete |
-| `opacityGlass = 0.08` | no live reference | none | obsolete |
-| `opacityOverlayLow = 0.1` | no live reference | none | obsolete |
-| `opacityMuted = 0.5` | no live reference | none | obsolete |
-| `WelcomeColors.transparent` | top-bar Material color | framework `Colors.transparent` | remove wrapper |
-| `getAdaptivePrimary` | definition only | none | obsolete |
-| `getOnSurfaceColor` | definition only | none | obsolete |
+### Existing Migration
 
-### Welcome Raw-Value Boundary
+`WelcomeDimens` / `WelcomeColors` were removed from live screen usage and reusable values were mapped to core tokens. Source head `1ad507e` is currently under CI validation.
 
-`welcome_screen.dart`, `welcome_feature_tile.dart`, and `welcome_backdrop.dart` still contain raw typography, icon sizes, animation offsets, divider dimensions, gradients, stops, and composition geometry. These are **not** part of Slice 3 unless required to eliminate `welcome_tokens.dart`. They remain for Slice 4 classification; numeric proximity alone is not a reason to replace them.
+### Required Follow-Up Before Welcome Is Considered Complete
 
-### Welcome Legal Orphan Evidence
+The current temporary file-local visual constants introduced during migration are **not final architecture** under the new governance:
 
-`WelcomeDisclaimer` has no live call site. `termsPrefix/termsText/andText/privacyText` are referenced only by `WelcomeUiState` and that orphan widget. Product intent in #6 says the Welcome legal footer stays removed while shared `TioTermsDisclaimer` remains for Auth. Deleting the Welcome wrapper/state leftovers is deferred to Slice 4 so Slice 3 stays token-focused.
+- `_topBarVerticalPadding = 4.0`
+- `_featureDividerHorizontalMargin = 4.0`
+- `_featurePanelRadius = 20.0`
 
-## 3. Clarification
+They must be replaced by governed tokens:
 
-| Decision | Status | Rationale |
-|---|---|---|
-| Pixel-preserving migration | Made | #6 is ownership cleanup, not redesign |
-| Generic `TioDimensions` | Rejected | no repository-wide evidence |
-| Avatar `100 -> 80` | Rejected | runtime/test contract is 100dp |
-| Welcome `4` → nearest spacing token | Rejected | would change pixels |
-| Welcome panel `20` → nearest radius token | Rejected | would change pixels |
-| Delete `welcome_tokens.dart` after Slice 3 migration | Approved | all live members have classified destinations; remaining members are obsolete |
-| Remove Welcome disclaimer/state in Slice 3 | Deferred | keep token migration narrow; do in Slice 4 |
+- add the proven common `4dp` role to the spacing foundation and consume it through `TioSpacing`;
+- create a narrow Welcome composition token contract for the intentional 20dp panel radius (and any other truly Welcome-only visual geometry that survives the audit);
+- do not recreate the old catch-all `WelcomeDimens` bag.
 
-## 4. Architecture Design
+### Welcome Raw-Value Audit
+
+Audit and classify every remaining Welcome visual literal in:
+
+- `welcome_screen.dart`
+- `welcome_top_bar.dart`
+- `welcome_feature_tile.dart`
+- `welcome_backdrop.dart`
+- any live Welcome route/component
+
+Each value must end as one of:
+
+1. existing core token/theme role;
+2. newly justified core foundation/semantic/component token;
+3. narrowly scoped `WelcomeLayoutTokens` / equivalent feature composition token;
+4. non-design program literal with documented reason;
+5. obsolete code removed.
+
+Do **not** blindly tokenise gradient math, responsive calculations, or one-off visuals; first identify their semantic design role.
+
+### Welcome Legal Orphans
+
+`WelcomeDisclaimer` has no live call site. Its four legal-copy fields exist only for that orphan widget. Product intent keeps the Welcome legal footer removed while shared `TioTermsDisclaimer` remains available for Auth. Remove only the Welcome orphan wrapper/state after final reference audit.
+
+## 6. Repository-Wide Professional Token Audit
+
+Issue #6 is now treated as the design-system governance foundation, not merely a Welcome cleanup. After Welcome establishes the pattern, audit all active Flutter surfaces in bounded slices.
+
+### Audit Order
+
+1. `apps/core` reusable components and shell
+2. Welcome
+3. Auth + Account Setup
+4. Product Onboarding
+5. Home + shell-owned surfaces
+6. Profile + Settings
+7. Workout
+8. Nutrition
+9. Progress / remaining active phone features
+10. app-level composed screens and tests
+
+Each package gets an inventory before edits. Do not mix unrelated features into one commit.
+
+### Per-Screen Checklist
+
+For every active screen/widget:
+
+- [ ] colors use theme/semantic/component roles;
+- [ ] typography uses `TextTheme` / typography/component roles;
+- [ ] spacing uses `TioSpacing` or semantic component/feature layout tokens;
+- [ ] radius/shape uses `TioRadius` or semantic component/feature tokens;
+- [ ] icon dimensions use a governed size/component token;
+- [ ] fixed component dimensions use component tokens;
+- [ ] borders/strokes use governed roles;
+- [ ] opacity/state layers use governed roles;
+- [ ] motion uses `TioMotionScheme` / motion tokens;
+- [ ] responsive factors/breakpoints have named contracts when reusable;
+- [ ] no accidental pixel change;
+- [ ] no duplicate private token bag shadowing `tio_core`;
+- [ ] focused tests/analyze pass.
+
+## 7. Enforcement / Quality Gate
+
+Before final completion:
+
+- add/update token contract tests;
+- add a practical static-audit strategy for obvious raw visual literals in production screen/widget paths where it can be reliable without blocking legitimate business/math constants;
+- document intentional exceptions rather than silently allowing them;
+- run full Flutter/Dart analyze and tests;
+- review the PR diff feature-by-feature;
+- perform light/dark and compact-width validation for UI-touching migrations where practical.
+
+A regex-only ban is not sufficient by itself because it cannot distinguish business numbers from design numbers. Enforcement should combine token ownership conventions, code review, focused tests, and targeted static checks.
+
+## 8. Architecture Decisions
+
+| Decision | Status |
+|---|---|
+| Preserve current pixels during ownership migration | Required |
+| Screen/widget raw visual styling values | Disallowed final state |
+| `TioSpacing` and `TioRadius` | Keep separate |
+| Generic `TioDimensions.sizeN` catalog | Rejected |
+| Common 4dp spacing foundation role | Approved by usage evidence |
+| Generic shared 20dp radius only for Welcome | Rejected |
+| Welcome semantic composition token for 20dp panel | Approved |
+| Feature token bags duplicating core scales | Rejected |
+| Component-specific dimensions | Keep with component owner |
+| Theme/semantic typography and colors | Required |
+| Repo-wide screen audit | Required, sliced by package |
+
+## 9. Implementation Plan From This Checkpoint
+
+### Slice 3B — Finish Welcome Token Architecture
+
+- [ ] wait for / inspect CI on `1ad507e`;
+- [ ] add `TioSpacing.extraSmall = 4` with contract coverage;
+- [ ] create narrow Welcome composition token contract for remaining feature-only geometry;
+- [ ] replace temporary file-local visual constants;
+- [ ] inventory and classify remaining Welcome raw visual literals;
+- [ ] migrate only values with clear semantic destinations;
+- [ ] remove obsolete Welcome-only legal wrapper/state;
+- [ ] full CI + diff audit.
+
+### Slice 4+ — Package Audits
+
+- [ ] core reusable components/shell raw-value audit;
+- [ ] Auth + Account Setup audit;
+- [ ] Product Onboarding audit;
+- [ ] Home/Profile/Settings audit;
+- [ ] Workout/Nutrition/Progress audit;
+- [ ] remaining app screen audit;
+- [ ] final docs/enforcement/tests.
+
+## 10. Quality Evidence
 
 ```text
-TioSpacing / TioRadius
-        ↓
-Reusable core components/tokens
-        ↓
-Welcome reusable roles
-
-Welcome-only composition geometry
-        ↓
-file-local named constants
+CI #399 — PASS (Slice 1 source head 24c4dbd)
+CI #401 — PASS (Slice 2 head 18e8d89)
+CI #404 — validating Welcome source head 1ad507e at time of governance update
 ```
 
-A feature-local parallel `theme/` token system is not retained after the live reusable roles are migrated.
+## 11. Final Status
 
-## 5. Implementation Plan
-
-### Slice 1 — Complete
-
-- [x] Seven exact semantic aliases.
-- [x] Token contract tests.
-- [x] CI #399 full green on `24c4dbd`.
-
-### Slice 2 — Complete
-
-- [x] Avatar runtime/docs/test audit.
-- [x] Keep runtime Profile avatar at 100dp.
-- [x] Align canonical docs and stale test description.
-- [x] CI #401 full green on `18e8d89`.
-
-### Slice 3 — Welcome token ownership
-
-- [x] Inventory all private token members and live call sites.
-- [x] Classify core destinations vs local composition vs obsolete declarations.
-- [x] Verify `welcome_tokens.dart` is not public API.
-- [ ] Replace screen `16/8/12` usages with `TioSpacing.large/small/medium`.
-- [ ] Replace top-bar radius `16` with `TioRadius.large`.
-- [ ] Replace `WelcomeColors.transparent` with `Colors.transparent`.
-- [ ] Keep exact `4` values as role-named file-local constants.
-- [ ] Keep exact `20` panel radius as a role-named file-local constant.
-- [ ] Remove `welcome_tokens.dart` once zero references remain.
-- [ ] Run full CI and inspect diff for pixel changes.
-
-### Slice 4 — Pending
-
-- [ ] Classify raw typography/colors/icon sizes/dividers/animation/gradient values.
-- [ ] Remove orphan `WelcomeDisclaimer` and Welcome-only legal state after final reference audit.
-- [ ] Preserve shared `TioTermsDisclaimer` and Auth legal UI.
-
-### Slice 5 — Pending
-
-- [ ] Final docs/task/Issue #6 sync.
-- [ ] Relevant before/after compact/light/dark validation where practical.
-- [ ] Final PR diff review.
-
-## 6. Quality Review
-
-```text
-CI #399 — full green (Slice 1 source head 24c4dbd)
-CI #401 — full green (Slice 2 head 18e8d89)
-CI #402 — latest task-sync head validation in progress at Slice 3 start
-```
-
-## 7. Final Handoff
-
-### Changed Files So Far
-
-- `.ai/tasks/design-system-token-consolidation.md`
-- four core component token files
-- core token alias contract test
-- avatar/Profile documentation
-- stale Profile avatar test description
-
-### Actual Behavior
-
-Slices 1-2 preserve rendered behavior. Slice 3 implementation has not yet changed runtime source at this checkpoint.
-
-### Known Limitations
-
-Welcome token migration, raw-literal classification, and orphan cleanup remain open.
-
-### Final Status
-
-`PARTIAL`
+`PARTIAL — professional token governance approved; repo-wide screen migration remains in progress.`
