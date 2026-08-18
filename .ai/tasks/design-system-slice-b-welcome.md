@@ -1,6 +1,6 @@
 # Design System Slice B — Welcome Cleanup
 
-**Status:** In progress  
+**Status:** Validated  
 **Parent task:** `.ai/tasks/design-system-token-consolidation.md`  
 **Related issue:** #6  
 **Working PR:** #22  
@@ -8,110 +8,111 @@
 
 ## Outcome
 
-Remove the transitional Welcome-owned visual token catalog and migrate Welcome to governed core primitives, semantic roles, typography/effects, and reusable components without changing rendered UI.
+The transitional Welcome-owned visual token catalog has been removed. Welcome now consumes governed core primitives, runtime semantic theme roles, typography/effects, and reusable components without an approved visible UI change.
 
 ## Mandatory Visual Freeze
 
 No Welcome layout, spacing, color appearance, typography appearance, radius, image/icon sizing, gradient, motion, or component geometry may change without separate explicit owner/design approval.
 
-`pixels before == pixels after` is the default contract.
+`pixels before == pixels after` remained the migration contract.
 
 ## Preconditions
 
-- [x] Slice A runtime/source boundary is validated by Flutter CI #624 (Flutter/Dart analyze + Flutter/Dart tests passed).
-- [x] Canonical primitive/core ownership is stable for feature migration.
-- [x] Color audit rules are available from `.ai/tasks/design-system-hardcoded-color-audit.md`.
+- [x] Slice A runtime/source boundary validated by Flutter CI #624.
+- [x] Canonical primitive/core ownership was stable for feature migration.
+- [x] Color audit rules were available from `.ai/tasks/design-system-hardcoded-color-audit.md`.
 - [x] Canonical usage/maintenance guide exists at `apps/core/lib/src/theme/README.md`.
 
-## Scope
-
-- `apps/features/welcome/**`
-- focused shared/core contracts only when an evidenced missing reusable role is discovered
-- focused core contract tests for any newly evidenced primitives
-- Welcome-focused static/audit validation
-
-## Hard Boundaries
-
-- no Auth behavior changes;
-- no onboarding flow changes;
-- no legal placement restoration/movement;
-- no feature-owned replacement token file;
-- no screen redesign.
-
-## Verified Inventory / Classification
-
-Current `welcome_visual_tokens.dart` owns five transitional feature catalogs:
+## Final Ownership
 
 ```text
-WelcomeLayoutTokens
-WelcomeMotionTokens
-WelcomeTypographyTokens
-WelcomeColorTokens
-WelcomeBackdropTokens
+Core physical values / semantic roles
+        ↓
+TioColors runtime light/dark/OLED scheme
+        ↓
+WelcomeScreen / Welcome widgets
 ```
 
-Initial ownership map:
+Welcome does **not** own or export a design-token/theme catalog.
 
-- exact geometry values already governed by `TioSize`/`TioSpacing` are consumed directly;
-- missing exact geometry `60dp` requires evidenced `TioSize.dp60`;
-- exact normalized opacity contracts require `TioOpacity.opacity0/18/94/100` where currently missing;
-- exact `0xB3FFFFFF` requires byte-exact alpha ownership (`TioAlpha.alpha179`) plus a governed palette color;
-- Welcome typography adds evidenced physical sizes `9.5`, `10.5`, `42` and line height `1.10`; these belong in typography physical registries, not a Welcome typography bag;
-- existing `Roboto` hero family remains `TioFontFamily.roboto` to preserve current rendering; it does not become a selectable Settings font option merely because Welcome uses it;
-- timeline/coverage/layout factors such as `0.40`, `0.50`, `0.82`, gradient stops, and flex values are composition/program values, not geometry/opacity primitives; keep them private to the owning widget/screen rather than promoting fake global tokens;
-- no `Welcome*Tokens` replacement bag will be introduced.
+### Generic core contracts added from evidenced UI
 
-## Checklist
+Exact existing Welcome values justified these generic app-wide owners:
 
-- [x] Inventory every value in `welcome_visual_tokens.dart`.
-- [x] Classify each as geometry, color, typography, motion/effect, reusable component role, fixed factor/ratio, or genuine runtime/program value.
-- [x] Reuse existing governed core ownership first.
-- [ ] Add missing core primitives only for exact evidenced values.
-- [ ] Add semantic/component roles only when reusable intent is justified.
-- [ ] For truly one-off fixed Welcome geometry, consume the governed primitive directly.
-- [ ] Remove `WelcomeLayoutTokens` final dependency.
-- [ ] Remove `WelcomeTypographyTokens` final dependency.
-- [ ] Remove `WelcomeColorTokens` final dependency.
-- [ ] Remove `WelcomeMotionTokens` final dependency.
-- [ ] Remove `WelcomeBackdropTokens` final dependency for fixed visual contracts.
-- [ ] Do not introduce `WelcomeTokens`, `WelcomeVisualTokens`, or another feature token bag.
-- [ ] Preserve current Welcome legal/footer decisions.
-- [ ] Run focused core tests for new primitives and Welcome static literal/zero-reference audit.
-- [ ] Compare representative states/viewports before and after where practical.
-- [ ] Run analyze and required CI.
+- `TioSize.dp60`;
+- `TioOpacity.opacity0/18/94/100`;
+- `TioAlpha.alpha179` and byte-exact `TioPalette.whiteAlpha179`;
+- `TioFontSize.size9_5/size10_5/size42`;
+- `TioLineHeight.height110`;
+- runtime semantic media roles `TioColors.mediaBackground`, `onMediaPrimary`, and `onMediaSecondary`.
 
-## Planned Bounded Execution
+No core API is named after Welcome. Media roles are resolved by the active light/dark/OLED scheme, while their current mappings preserve the existing media composition pixels.
 
-### B1 — Missing governed physical values
+### Composition data intentionally remains local
 
-Add only the exact missing physical values proven by the current Welcome UI and lock them with existing core contract tests. Update `apps/core/lib/src/theme/README.md` in the same change when the public token contract changes.
+The following are program/composition values, not global design tokens:
 
-### B2 — Welcome consumer migration
+- hero image height factor `0.82`;
+- flex values `1/3`;
+- content reveal interval start `0.40`;
+- backdrop coverage factor `0.50`;
+- gradient stop arrays and associated local composition data.
 
-Migrate `WelcomeScreen`, `WelcomeFeatureTile`, `WelcomeTopBar`, and `WelcomeBackdrop` to core governed values. Preserve private composition ratios/stops locally. No visual normalization.
+## Completed Checklist
 
-### B3 — Delete transitional catalog
+- [x] Inventory every value formerly owned by `welcome_visual_tokens.dart`.
+- [x] Classify geometry, color, typography, motion/effect, component roles, factors/ratios, and runtime/program values.
+- [x] Reuse existing governed ownership first.
+- [x] Add missing core physical values only where exact current UI evidence required them.
+- [x] Add generic runtime media semantic roles rather than Welcome-specific color roles.
+- [x] Migrate `WelcomeScreen`, `WelcomeFeatureTile`, `WelcomeTopBar`, and `WelcomeBackdrop`.
+- [x] Remove `WelcomeLayoutTokens` dependency.
+- [x] Remove `WelcomeTypographyTokens` dependency.
+- [x] Remove `WelcomeColorTokens` dependency.
+- [x] Remove `WelcomeMotionTokens` dependency.
+- [x] Remove `WelcomeBackdropTokens` dependency.
+- [x] Delete `welcome_visual_tokens.dart`.
+- [x] Remove the now-empty `presentation/theme/` boundary from the tracked tree.
+- [x] Do not introduce `WelcomeTokens`, `WelcomeVisualTokens`, or another replacement feature token bag.
+- [x] Preserve current Welcome legal/footer decisions.
+- [x] Preserve existing Roboto hero family through governed `TioFontFamily.roboto`; do not expose it as a Settings-selectable font without verified availability.
+- [x] Run focused core tests for newly evidenced primitives/media semantics.
+- [x] Run static import/public-export/structure audit.
+- [x] Run analyze and required CI.
 
-Verify zero legitimate references to the five `Welcome*Tokens` classes, delete `welcome_visual_tokens.dart` and its imports, run static audit/analyze/required CI, and record evidence.
+## Pixel-Equivalence Evidence
 
-## Completion Lifecycle
+No approved visual normalization was applied in Slice B.
 
-1. Inventory
-2. Classification
-3. Planned ownership
-4. Implementation
-5. Focused tests
-6. Static audit
-7. Pixel/UI regression check
-8. Analyze
-9. Required CI
-10. Update evidence
-11. Mark `Validated`
-12. Unblock Slice C
+During migration, an initial mapping of legacy `TioSpacing.extraLarge` to `TioSpacing.xxl` was caught by the explicit value audit before final validation. The correct exact mapping is `extraLarge -> xl -> 24dp`; both occurrences were corrected before the validated B2 head.
+
+Other representative exact mappings include:
+
+```text
+extraSmall -> xs -> 4dp
+small      -> sm -> 8dp
+medium     -> md -> 12dp
+large      -> lg -> 16dp
+extraLarge -> xl -> 24dp
+```
+
+Fixed Welcome geometry that is not a semantic spacing/radius role uses exact `TioSize` values rather than visual normalization.
+
+## Validation Evidence
+
+- Flutter CI #640: generic media semantic/core contract boundary passed Flutter/Dart analyze and tests.
+- Flutter CI #645: corrected Welcome consumer migration passed Flutter/Dart analyze and tests.
+- Flutter CI #646: final head after deleting `welcome_visual_tokens.dart` passed Flutter/Dart analyze and tests.
+- Final validated source commit: `2399b6745e2fd7396296a314ee660f2c3f0307e8`.
+- `apps/features/welcome/lib/welcome.dart` exports only the Welcome route; the removed token file was not public API.
+- Current `apps/features/welcome/lib/src/presentation/` tree contains no `theme/` directory after deletion.
 
 ## Exit Criteria
 
-- no Welcome-owned design-token catalog remains;
-- Welcome consumes governed core design-system contracts;
-- no visible UI change occurred without separate approval;
-- tests/analyze/required CI pass.
+- [x] No Welcome-owned design-token catalog remains.
+- [x] Welcome consumes governed core design-system contracts.
+- [x] Runtime media colors resolve through the active theme scheme.
+- [x] No visible UI change was approved or intentionally introduced.
+- [x] Tests/analyze/required CI pass.
+
+Slice C — Core Components is now unblocked.
