@@ -70,4 +70,74 @@ void main() {
     expect(textTheme.labelSmall?.fontSize, TioFontSize.size12);
     expect(textTheme.labelSmall?.fontWeight, TioFontWeight.w600);
   });
+
+  group('reusable component typography contracts', () {
+    test('input roles alias canonical typography primitives', () {
+      expect(TioInputTokens.compactTextFontSize, TioFontSize.size16);
+      expect(TioInputTokens.labelFontSize, TioFontSize.size14);
+      expect(TioInputTokens.compactHintFontSize, TioFontSize.size15);
+      expect(TioInputTokens.mobileCountryFlagFontSize, TioFontSize.size22);
+      expect(TioInputTokens.mobileVerifyLabelFontSize, TioFontSize.size12);
+      expect(TioInputTokens.usernameSuggestionFontSize, TioFontSize.size13);
+      expect(
+        TioInputTokens.mobileTextLetterSpacing,
+        TioLetterSpacing.positive05,
+      );
+    });
+
+    test('dialog roles alias canonical typography primitives', () {
+      expect(TioDialogTokens.otpTitleFontSize, TioFontSize.size16);
+      expect(
+        TioDialogTokens.otpTitleLetterSpacing,
+        TioLetterSpacing.negative02,
+      );
+      expect(TioDialogTokens.otpInputFontSize, TioFontSize.size20);
+      expect(
+        TioDialogTokens.otpInputLetterSpacing,
+        TioLetterSpacing.positive60,
+      );
+      expect(TioDialogTokens.otpSubtitleLineHeight, TioLineHeight.height135);
+      expect(TioDialogTokens.deleteHeadlineFontSize, TioFontSize.size28);
+      expect(TioDialogTokens.deleteBodyLineHeight, TioLineHeight.height140);
+      expect(TioDialogTokens.deleteCountdownFontSize, TioFontSize.size34);
+      expect(
+        TioDialogTokens.deleteHoldHeadlineLineHeight,
+        TioLineHeight.height125,
+      );
+    });
+
+    test('picker and supporting roles alias canonical typography primitives', () {
+      expect(TioWheelPickerTokens.selectedFontSize, TioFontSize.size22);
+      expect(TioDobPickerTokens.titleFontSize, TioFontSize.size22);
+      expect(
+        TioDobPickerTokens.titleLetterSpacing,
+        TioLetterSpacing.negative02,
+      );
+      expect(TioDobPickerTokens.unselectedFontSize, TioFontSize.size17);
+      expect(TioMeasurementPickerTokens.titleFontSize, TioFontSize.size24);
+      expect(
+        TioMeasurementPickerTokens.titleLetterSpacing,
+        TioLetterSpacing.negative03,
+      );
+      expect(
+        TioMeasurementPickerTokens.subtitleLineHeight,
+        TioLineHeight.height135,
+      );
+      expect(TioLegalTokens.defaultFontSize, TioFontSize.size12);
+      expect(TioLegalTokens.bodyLineHeight, TioLineHeight.height150);
+      expect(
+        TioMeasurementPreferenceTokens.sectionLabelFontSize,
+        TioFontSize.size13,
+      );
+      expect(TioRemoveImageSheetTokens.titleFontSize, TioFontSize.size22);
+      expect(
+        TioRemoveImageSheetTokens.titleLetterSpacing,
+        TioLetterSpacing.negative03,
+      );
+      expect(
+        TioAvatarActionSheetTokens.titleFontSize,
+        TioFontSize.size18,
+      );
+    });
+  });
 }
