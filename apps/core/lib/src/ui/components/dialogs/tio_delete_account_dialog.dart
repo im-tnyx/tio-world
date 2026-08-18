@@ -111,7 +111,7 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Scaffold(
       backgroundColor: colors.background.withAlpha(245),
