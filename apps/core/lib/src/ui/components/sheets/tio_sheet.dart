@@ -19,7 +19,7 @@ class TioSheet extends StatelessWidget {
 
     return Material(
       color: colors.surface,
-      borderRadius: BorderRadius.vertical(
+      borderRadius: const BorderRadius.vertical(
         top: Radius.circular(TioSheetTokens.radius),
       ),
       child: Padding(
