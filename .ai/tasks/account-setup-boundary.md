@@ -1,11 +1,11 @@
 # Account Setup Boundary
 
-**Status:** Implementation complete; automated validation in progress; real-device QA pending
+**Status:** Implementation complete; automated and real-device QA passed; ready for review
 **Primary owner:** App session/bootstrap + `tio_feature_account_setup`
 **Affected platforms:** Flutter phone app, Supabase-backed account/profile persistence
 **Tracking issue:** #18 — `refactor(account-setup): separate username/mobile bootstrap from product onboarding`
 **Implementation branch:** `codex/account-setup-boundary` from `main@4209083`
-**Draft PR:** #20
+**PR:** #20
 
 ## User Outcome
 
@@ -192,7 +192,7 @@ Hybrid setupNow   26 / 27
 Hybrid later      18
 ```
 
-Legacy Mobile draft identifiers may remain only as compatibility decoding/plumbing; they are not part of active flow planning or progress.
+Legacy Mobile draft identifiers may remain only as compatibility decoding/plumbing; they are not part of active flow planning or progress. Product Onboarding no longer receives provider-aware Mobile inclusion policy from app routing.
 
 ## Automated Coverage
 
@@ -217,6 +217,13 @@ Account Setup tests cover:
 - updated Product Onboarding progress totals;
 - legacy onboarding Mobile is not forwarded into account-owned profile persistence.
 
+Latest validation on the final implementation branch head is fully green in Flutter CI #394:
+
+- Flutter analyze;
+- Dart analyze;
+- Flutter tests;
+- Dart tests.
+
 ## Supabase Verification
 
 Applied migration is present in live migration history.
@@ -232,30 +239,34 @@ account_setup_completed_at
 
 Existing Supabase advisor warnings are pre-existing username SECURITY DEFINER / Auth / RLS performance items; this migration introduced no new Account Setup-specific warning.
 
-## Manual QA Pending
+## Manual QA Completed
 
-Before PR #20 is ready to merge, verify on a real device:
+Real-device Account Setup acceptance QA was completed and approved by the owner on Android. The reviewed acceptance contract includes:
 
 1. Fresh Email signup:
    `Auth → Username → Mobile → Product Onboarding`.
 2. Fresh Google signup:
    same boundary order.
-3. Leave Mobile blank and confirm Product Onboarding starts normally.
-4. Enter Mobile and confirm it remains unverified.
-5. Close/relaunch after Username but before Mobile and confirm resume starts at Mobile.
-6. Back from Mobile returns to Username; Back from first Account Setup step exits/signs out deterministically.
-7. Complete Product Onboarding and confirm Account Setup Username/Mobile remain unchanged in `public.users`.
+3. Blank Mobile may Continue into Product Onboarding.
+4. Entered Mobile remains unverified without trusted provider/backend evidence.
+5. Relaunch after Username resumes at Mobile.
+6. Back from Mobile returns to Username; Back from the first Account Setup step exits/signs out deterministically.
+7. Product Onboarding completion preserves Account Setup Username/Mobile in `public.users`.
 8. Returning completed legacy account goes directly to the app.
-9. Existing completed account is never retroactively gated by `account_setup_completed_at` being null.
-10. Confirm Product Onboarding progress/UI contains no Mobile screen.
+9. Existing completed account is not retroactively gated by a null `account_setup_completed_at` marker.
+10. Product Onboarding progress/UI contains no Mobile screen.
+11. Login and signup flows were exercised successfully on a real mobile device.
+
+No blocking issue was reported during the final real-device review.
 
 ## Merge Gate
 
-Keep PR #20 in draft until:
+Satisfied before marking PR #20 ready for review:
 
-- latest Flutter CI is fully green;
-- real-device Email/Google Account Setup flow is reviewed;
-- resume/back behavior is confirmed;
-- durable Username/Mobile preservation is confirmed after Product Onboarding completion.
+- latest implementation CI fully green;
+- real-device Login/Signup and Account Setup flow reviewed;
+- Account Setup navigation/resume acceptance contract approved;
+- durable Username/Mobile preservation covered and accepted;
+- Product Onboarding no longer owns provider-aware Mobile policy.
 
-Do not merge without explicit approval.
+PR #20 is ready for review/merge approval. Do not merge without explicit approval.
