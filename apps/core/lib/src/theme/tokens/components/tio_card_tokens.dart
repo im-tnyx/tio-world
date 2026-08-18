@@ -1,3 +1,4 @@
+import '../effects/tio_elevation.dart';
 import '../foundation/tio_radius.dart';
 import '../foundation/tio_spacing.dart';
 import '../foundation/tio_stroke.dart';
@@ -15,7 +16,7 @@ class TioCardTokens {
   // TioCard. Keep it explicit and pixel-preserving until a separate visual
   // decision intentionally unifies the two card shapes.
   static const materialThemeRadius = TioSize.dp20;
-  static const materialThemeElevation = 0.0;
+  static const materialThemeElevation = TioElevation.none;
 
   static const glassContainerOpacity = TioOpacity.opacity72;
   static const glassBorderOpacity = TioOpacity.opacity16;
