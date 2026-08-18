@@ -17,6 +17,8 @@ void main() {
     test('spacing aliases stay aligned with foundation semantics', () {
       expect(TioButtonTokens.contentGap, TioSpacing.small);
       expect(TioCardTokens.padding, TioSpacing.large);
+      expect(TioDobPickerTokens.columnHeaderToWheelGap, TioSpacing.medium);
+      expect(TioDobPickerTokens.selectionHorizontalMargin, TioSpacing.large);
       expect(TioInputTokens.horizontalPadding, TioSpacing.large);
       expect(TioInputTokens.compactContentHorizontalPadding, TioSpacing.small);
       expect(TioInputTokens.standardContentVerticalPadding, TioSpacing.large);
@@ -52,6 +54,17 @@ void main() {
       expect(TioDialogTokens.deleteHoldButtonSize, 100.0);
       expect(TioDialogTokens.deleteCompletedIconContainerSize, 72.0);
       expect(TioDialogTokens.deleteCompletedTitleFontSize, 24.0);
+      expect(TioDobPickerTokens.sheetOutlineAlpha, 25);
+      expect(TioDobPickerTokens.titleFontSize, 22.0);
+      expect(TioDobPickerTokens.closeIconSize, 24.0);
+      expect(TioDobPickerTokens.wheelHeight, 200.0);
+      expect(TioDobPickerTokens.selectionHeight, 48.0);
+      expect(TioDobPickerTokens.itemExtent, 44.0);
+      expect(TioDobPickerTokens.perspective, 0.004);
+      expect(TioDobPickerTokens.diameterRatio, 1.3);
+      expect(TioDobPickerTokens.selectedFontSize, 22.0);
+      expect(TioDobPickerTokens.unselectedFontSize, 17.0);
+      expect(TioDobPickerTokens.unselectedTextAlpha, 120);
       expect(TioInputTokens.radius, 14.0);
       expect(TioInputTokens.outlineWidth, 0.75);
       expect(TioInputTokens.focusedOutlineWidth, 1.25);
