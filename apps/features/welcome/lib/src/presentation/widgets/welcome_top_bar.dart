@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 
-const _topBarVerticalPadding = 4.0;
+import '../theme/welcome_visual_tokens.dart';
 
 class WelcomeTopBar extends StatelessWidget {
   const WelcomeTopBar({
@@ -18,7 +18,7 @@ class WelcomeTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final headerStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
-          color: Colors.white,
+          color: WelcomeColorTokens.onMediaPrimary,
         );
 
     return Row(
@@ -29,7 +29,7 @@ class WelcomeTopBar extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: TioSpacing.small,
-                vertical: _topBarVerticalPadding,
+                vertical: WelcomeLayoutTokens.topBarVerticalPadding,
               ),
               child: Text(
                 localeCode.toUpperCase(),
@@ -40,6 +40,8 @@ class WelcomeTopBar extends StatelessWidget {
             ),
           ),
         ),
+        // Transparent Material is intentional so the InkWell renders directly
+        // over the edge-to-edge hero instead of introducing a surface color.
         Material(
           color: Colors.transparent,
           child: InkWell(
@@ -49,7 +51,7 @@ class WelcomeTopBar extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: TioSpacing.small,
-                vertical: _topBarVerticalPadding,
+                vertical: WelcomeLayoutTokens.topBarVerticalPadding,
               ),
               child: Text(
                 skipText,

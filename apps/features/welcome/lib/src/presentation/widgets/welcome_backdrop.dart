@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 
+import '../theme/welcome_visual_tokens.dart';
+
 class WelcomeBackdrop extends StatelessWidget {
   const WelcomeBackdrop({super.key});
 
   @override
   Widget build(BuildContext context) {
     final themeColor = Theme.of(context).scaffoldBackgroundColor;
+    final topOverlayColors = WelcomeBackdropTokens.topOverlayAlphas
+        .map((alpha) => themeColor.withValues(alpha: alpha))
+        .toList(growable: false);
+    final bottomOverlayColors = WelcomeBackdropTokens.bottomOverlayAlphas
+        .map((alpha) => themeColor.withValues(alpha: alpha))
+        .toList(growable: false);
 
     return Stack(
       children: [
@@ -15,16 +23,8 @@ class WelcomeBackdrop extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  themeColor.withValues(alpha: 0.18),
-                  themeColor.withValues(alpha: 0.08),
-                  themeColor.withValues(alpha: 0.0),
-                ],
-                stops: const [
-                  0.0,
-                  0.35,
-                  1.0,
-                ],
+                colors: topOverlayColors,
+                stops: WelcomeBackdropTokens.topOverlayStops,
               ),
             ),
           ),
@@ -33,28 +33,14 @@ class WelcomeBackdrop extends StatelessWidget {
           alignment: Alignment.bottomCenter,
           child: FractionallySizedBox(
             widthFactor: 1,
-            heightFactor: 0.50,
+            heightFactor: WelcomeBackdropTokens.bottomCoverageFactor,
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    themeColor.withValues(alpha: 0.0),
-                    themeColor.withValues(alpha: 0.30),
-                    themeColor.withValues(alpha: 1.0),
-                    themeColor.withValues(alpha: 1.0),
-                    themeColor.withValues(alpha: 1.0),
-                    themeColor.withValues(alpha: 1.0),
-                  ],
-                  stops: const [
-                    0.0,
-                    0.20,
-                    0.50,
-                    0.80,
-                    0.90,
-                    1.0,
-                  ],
+                  colors: bottomOverlayColors,
+                  stops: WelcomeBackdropTokens.bottomOverlayStops,
                 ),
               ),
             ),

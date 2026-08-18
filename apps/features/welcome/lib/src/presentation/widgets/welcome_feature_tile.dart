@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/welcome_visual_tokens.dart';
+
 class WelcomeFeatureTile extends StatelessWidget {
   const WelcomeFeatureTile({
     required this.title,
@@ -21,30 +23,26 @@ class WelcomeFeatureTile extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         SizedBox(
-          width: 32,
-          height: 32,
+          width: WelcomeLayoutTokens.featureIconBoxSize,
+          height: WelcomeLayoutTokens.featureIconBoxSize,
           child: Center(child: iconWidget),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: WelcomeLayoutTokens.featureIconToTitleGap),
         Text(
           title,
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 10.5,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.8,
+          style: WelcomeTypographyTokens.featureTitle.copyWith(
             color: colorScheme.onSurface,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(
+          height: WelcomeLayoutTokens.featureTitleToDescriptionGap,
+        ),
         Text(
           description,
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 9.5,
-            fontWeight: FontWeight.normal,
+          style: WelcomeTypographyTokens.featureDescription.copyWith(
             color: colorScheme.onSurfaceVariant,
-            height: 1.3,
           ),
         ),
       ],
