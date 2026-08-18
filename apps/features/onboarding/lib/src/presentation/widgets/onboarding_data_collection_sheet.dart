@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 
+import '../theme/onboarding_data_sheet_tokens.dart';
+import '../theme/onboarding_modal_tokens.dart';
+
 Future<void> showOnboardingDataCollectionSheet({
   required BuildContext context,
   required String body,
   String title = 'Data Collection',
 }) {
-  final colors = TioTheme.colors(context);
+  final colors = context.tioColors;
 
   return showModalBottomSheet<void>(
     context: context,
@@ -33,8 +36,8 @@ Future<void> showOnboardingDataCollectionSheet({
                   child: Text(
                     title,
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
+                      fontSize: OnboardingModalTokens.titleFontSize,
+                      fontWeight: OnboardingModalTokens.titleFontWeight,
                       color: colors.textPrimary,
                     ),
                   ),
@@ -49,12 +52,12 @@ Future<void> showOnboardingDataCollectionSheet({
             Text(
               body,
               style: TextStyle(
-                fontSize: 14,
-                height: 1.5,
+                fontSize: OnboardingModalTokens.bodyFontSize,
+                height: OnboardingDataSheetTokens.bodyLineHeight,
                 color: colors.textSecondary,
               ),
             ),
-            const SizedBox(height: TioSpacing.extraLarge),
+            const SizedBox(height: OnboardingModalTokens.actionTopGap),
             TioButton.primary(
               label: 'Understood',
               expand: true,
