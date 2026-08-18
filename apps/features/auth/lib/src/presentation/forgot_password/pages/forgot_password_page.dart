@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
 
 import '../../../domain/domain.dart';
+import '../../theme/auth_visual_tokens.dart';
 
 /// Forgot password screen.
 /// Sends a password reset email via Supabase Auth.
@@ -249,22 +250,31 @@ class _ErrorBanner extends StatelessWidget {
     final colors = context.tioColors;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AuthVisualTokens.inlineErrorHorizontalPadding,
+        vertical: AuthVisualTokens.inlineErrorVerticalPadding,
+      ),
       decoration: BoxDecoration(
-        color: colors.danger.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(TioRadius.large),
+        color: colors.danger.withValues(
+          alpha: AuthVisualTokens.inlineErrorContainerOpacity,
+        ),
+        borderRadius: BorderRadius.circular(AuthVisualTokens.inlineErrorRadius),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.error_outline_rounded, color: colors.danger, size: 18),
-          const SizedBox(width: 10),
+          Icon(
+            Icons.error_outline_rounded,
+            color: colors.danger,
+            size: AuthVisualTokens.inlineErrorIconSize,
+          ),
+          const SizedBox(width: AuthVisualTokens.inlineErrorContentGap),
           Expanded(
             child: Text(
               message,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: colors.danger,
-                    fontSize: 13,
+                    fontSize: AuthVisualTokens.inlineErrorFontSize,
                   ),
             ),
           ),
