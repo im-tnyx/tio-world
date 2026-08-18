@@ -3,9 +3,36 @@ import 'package:flutter/material.dart';
 class TioDialogTokens {
   const TioDialogTokens._();
 
+  static const otpInsetHorizontal = 32.0;
+  static const otpPanelTopPadding = 28.0;
+  static const otpPanelRadius = 28.0;
+  static const otpPanelOutlineAlpha = 30;
   static const otpShadowColor = Color(0x50000000);
   static const otpShadowBlurRadius = 30.0;
   static const otpShadowOffsetY = 10.0;
+  static const otpTitleFontSize = 16.0;
+  static const otpTitleLetterSpacing = -0.2;
+  static const otpTitleToInputGap = 18.0;
+  static const otpInputHeight = 52.0;
+  static const otpInputRadius = 26.0;
+  static const otpErrorOutlineAlpha = 90;
+  static const otpInputOutlineAlpha = 40;
+  static const otpInputHorizontalPadding = 20.0;
+  static const otpInputFontSize = 20.0;
+  static const otpInputLetterSpacing = 6.0;
+  static const otpErrorFontSize = 12.0;
+  static const otpSubtitleTopGap = 14.0;
+  static const otpSubtitleFontSize = 13.0;
+  static const otpSubtitleLineHeight = 1.35;
+  static const otpVerifyTopGap = 22.0;
+  static const otpActionRadius = 20.0;
+  static const otpActionHorizontalPadding = 28.0;
+  static const otpActionContainerAlpha = 40;
+  static const otpLoadingSize = 18.0;
+  static const otpLoadingStrokeWidth = 2.0;
+  static const otpActionFontSize = 13.0;
+  static const otpActionLetterSpacing = 0.8;
+  static const otpBackTopGap = 14.0;
 
   static const deleteHoldFillColor = Color(0xFFE55757);
   static const deleteHoldContentColor = Color(0xFFFFFFFF);
