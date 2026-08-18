@@ -79,5 +79,13 @@ void main() {
       expect(TioRadius.large, TioRadius.lg);
       expect(TioRadius.extraLarge, TioRadius.xl);
     });
+
+    test('avatar size roles alias canonical geometry primitives', () {
+      expect(TioAvatarTokens.compactSize, TioSize.dp24);
+      expect(TioAvatarTokens.smallSize, TioSize.dp36);
+      expect(TioAvatarTokens.mediumSize, TioSize.dp48);
+      expect(TioAvatarTokens.largeSize, TioSize.dp100);
+      expect(TioAvatarTokens.extraLargeSize, TioSize.dp160);
+    });
   });
 }
