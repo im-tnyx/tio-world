@@ -166,7 +166,7 @@ class _TioInputState extends State<TioInput> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
     final isCompact = widget.variant == TioInputVariant.compactNumber;
     final isDark = colors.isDark;

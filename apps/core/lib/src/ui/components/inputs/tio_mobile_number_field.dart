@@ -36,7 +36,7 @@ class TioMobileNumberField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return ValueListenableBuilder<TextEditingValue>(
       valueListenable: controller,

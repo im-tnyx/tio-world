@@ -257,7 +257,7 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
