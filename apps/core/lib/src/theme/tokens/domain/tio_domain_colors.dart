@@ -1,11 +1,16 @@
-import 'package:flutter/material.dart';
+import '../foundation/tio_palette.dart';
 
+/// Compatibility domain color roles backed by the canonical physical palette.
+///
+/// Theme-dependent domain presentation should prefer the resolved TioColors
+/// roles. These static roles retain existing exact light/default contracts
+/// without independently owning raw ARGB values.
 class TioDomainColors {
   const TioDomainColors._();
 
-  static const workout = Color(0xFFEF4444);
-  static const nutrition = Color(0xFF22C55E);
-  static const progress = Color(0xFF8B5CF6);
-  static const coach = Color(0xFF06B6D4);
-  static const recovery = Color(0xFF38BDF8);
+  static const workout = TioPalette.red500;
+  static const nutrition = TioPalette.green500;
+  static const progress = TioPalette.violet500;
+  static const coach = TioPalette.cyan500;
+  static const recovery = TioPalette.sky400;
 }
