@@ -6,6 +6,7 @@ import 'package:tio_core/core.dart';
 import '../../domain/domain.dart';
 import '../controllers/controllers.dart';
 import '../state/state.dart';
+import '../theme/onboarding_visual_tokens.dart';
 import 'wheels/onboarding_dob_wheel.dart';
 import 'wheels/onboarding_height_wheel.dart';
 import 'wheels/onboarding_weight_wheel.dart';
@@ -63,7 +64,7 @@ class OnboardingBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     if (_isWheelStep && controller != null) {
       final profileStep = _currentProfileStep;
@@ -74,15 +75,17 @@ class OnboardingBottomBar extends StatelessWidget {
           color: colors.surfaceRaised,
           border: Border(
             top: BorderSide(
-              color: colors.outlineStrong.withAlpha(45),
-              width: 1.0,
+              color: colors.outlineStrong.withAlpha(
+                OnboardingVisualTokens.wheelSheetDividerAlpha,
+              ),
+              width: OnboardingVisualTokens.wheelSheetDividerWidth,
             ),
           ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 12),
+            const SizedBox(height: TioSpacing.medium),
 
             // Active Dynamic Wheel for current profile step
             if (profileStep == ProfileStepId.height)
@@ -162,12 +165,20 @@ class OnboardingBottomBar extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          stops: const [0.0, 0.25, 0.70, 1.0],
+          stops: OnboardingVisualTokens.normalGradientStops,
           colors: [
-            colors.background.withValues(alpha: 0.0),
-            colors.background.withValues(alpha: 0.50),
-            colors.background.withValues(alpha: 0.95),
-            colors.background.withValues(alpha: 1.0),
+            colors.background.withValues(
+              alpha: OnboardingVisualTokens.normalGradientTransparentOpacity,
+            ),
+            colors.background.withValues(
+              alpha: OnboardingVisualTokens.normalGradientMidOpacity,
+            ),
+            colors.background.withValues(
+              alpha: OnboardingVisualTokens.normalGradientStrongOpacity,
+            ),
+            colors.background.withValues(
+              alpha: OnboardingVisualTokens.normalGradientOpaqueOpacity,
+            ),
           ],
         ),
       ),
@@ -189,22 +200,25 @@ class OnboardingBottomBar extends StatelessWidget {
                 onTap: infoAction!.onTap,
                 behavior: HitTestBehavior.opaque,
                 child: Padding(
-                  padding: const EdgeInsets.only(bottom: TioSpacing.small, top: 2),
+                  padding: const EdgeInsets.only(
+                    bottom: TioSpacing.small,
+                    top: OnboardingVisualTokens.infoTopPadding,
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
                         infoAction!.icon,
-                        size: 16,
+                        size: OnboardingVisualTokens.infoIconSize,
                         color: colors.textSecondary,
                       ),
                       const SizedBox(width: TioSpacing.small),
                       Text(
                         infoAction!.label,
                         style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                          fontSize: OnboardingVisualTokens.infoFontSize,
+                          fontWeight: OnboardingVisualTokens.infoFontWeight,
                           color: colors.textSecondary,
                         ),
                       ),
