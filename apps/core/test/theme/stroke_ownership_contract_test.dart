@@ -40,7 +40,7 @@ void main() {
       expect(TioAvatarTokens.proFrameWidth, TioStroke.width4);
       expect(TioAvatarTokens.smallProFrameWidth, TioStroke.width15);
 
-      expect(TioDialogTokens.otpLoadingStrokeWidth, TioStroke.width2);
+      expect(TioOtpDialogTokens.loadingStrokeWidth, TioStroke.width2);
       expect(TioDialogTokens.deleteHoldStrokeWidth, TioStroke.width6);
       expect(
         TioDialogTokens.deleteHoldLoadingStrokeWidth,
