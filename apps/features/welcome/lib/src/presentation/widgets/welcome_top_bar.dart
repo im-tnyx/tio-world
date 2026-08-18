@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:tio_core/core.dart';
 
-import '../theme/welcome_tokens.dart';
+const _topBarVerticalPadding = 4.0;
 
 class WelcomeTopBar extends StatelessWidget {
   const WelcomeTopBar({
@@ -27,8 +28,8 @@ class WelcomeTopBar extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: WelcomeDimens.spaceXS,
-                vertical: WelcomeDimens.spaceXXS,
+                horizontal: TioSpacing.small,
+                vertical: _topBarVerticalPadding,
               ),
               child: Text(
                 localeCode.toUpperCase(),
@@ -40,15 +41,15 @@ class WelcomeTopBar extends StatelessWidget {
           ),
         ),
         Material(
-          color: WelcomeColors.transparent,
+          color: Colors.transparent,
           child: InkWell(
             key: const ValueKey('welcome-skip-action'),
             onTap: onSkip,
-            borderRadius: BorderRadius.circular(WelcomeDimens.radiusL),
+            borderRadius: BorderRadius.circular(TioRadius.large),
             child: Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: WelcomeDimens.spaceXS,
-                vertical: WelcomeDimens.spaceXXS,
+                horizontal: TioSpacing.small,
+                vertical: _topBarVerticalPadding,
               ),
               child: Text(
                 skipText,

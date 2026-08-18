@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
-import '../theme/welcome_tokens.dart';
-import '../state/welcome_ui_state.dart';
+
 import '../action/welcome_action.dart';
+import '../state/welcome_ui_state.dart';
 import '../widgets/welcome_backdrop.dart';
 import '../widgets/welcome_feature_tile.dart';
 import '../widgets/welcome_top_bar.dart';
+
+const _featurePanelRadius = 20.0;
+const _featureDividerHorizontalMargin = 4.0;
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({
@@ -52,12 +55,12 @@ class WelcomeScreen extends StatelessWidget {
             SafeArea(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: WelcomeDimens.paddingScreen,
+                  horizontal: TioSpacing.large,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: WelcomeDimens.spaceXS),
+                    const SizedBox(height: TioSpacing.small),
                     WelcomeTopBar(
                       localeCode: state.localeCode,
                       skipText: state.skipText,
@@ -104,13 +107,13 @@ class WelcomeScreen extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            const SizedBox(height: WelcomeDimens.spaceS),
+                            const SizedBox(height: TioSpacing.medium),
                             Container(
                               width: 60,
                               height: 2,
                               color: Colors.white,
                             ),
-                            const SizedBox(height: WelcomeDimens.spaceS),
+                            const SizedBox(height: TioSpacing.medium),
                             const Text(
                               'AI guidance.\nPersonalized for you.\nResults that last.',
                               style: TextStyle(
@@ -128,13 +131,13 @@ class WelcomeScreen extends StatelessWidget {
                                   color: colorScheme.outlineVariant,
                                 ),
                                 borderRadius: BorderRadius.circular(
-                                  WelcomeDimens.radiusXL,
+                                  _featurePanelRadius,
                                 ),
                               ),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: WelcomeDimens.spaceXS,
-                                  vertical: WelcomeDimens.spaceS,
+                                  horizontal: TioSpacing.small,
+                                  vertical: TioSpacing.medium,
                                 ),
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -148,7 +151,8 @@ class WelcomeScreen extends StatelessWidget {
                                           height: 64,
                                           color: colorScheme.outlineVariant,
                                           margin: const EdgeInsets.symmetric(
-                                            horizontal: WelcomeDimens.spaceXXS,
+                                            horizontal:
+                                                _featureDividerHorizontalMargin,
                                           ),
                                         ),
                                       Expanded(
@@ -176,7 +180,8 @@ class WelcomeScreen extends StatelessWidget {
                                                     )
                                                   : SvgPicture.asset(
                                                       'assets/ic_chat.svg',
-                                                      package: 'tio_feature_welcome',
+                                                      package:
+                                                          'tio_feature_welcome',
                                                       width: 32,
                                                       height: 28,
                                                       colorFilter:
