@@ -4,6 +4,50 @@ This directory is the canonical implementation and usage boundary for Tio's shar
 
 Use this guide before adding or changing visual values in `apps/core` or any feature package.
 
+## Feature UI Quick Start
+
+For normal UI work under `apps/features/*`, this README is the first design-system lookup. Do **not** start by crawling `tokens/**` files.
+
+```dart
+import 'package:tio_core/core.dart';
+```
+
+Prefer this order:
+
+```text
+Existing reusable core component
+        ↓
+Existing semantic/component role documented here
+        ↓
+Existing exact governed primitive
+        ↓
+Inspect core internals only if this README cannot answer the ownership question
+```
+
+Common static lookup:
+
+```text
+Spacing: none=0, xxs=2, xs=4, sm=8, md=12, lg=16, xl=24, xxl=32
+Radius:  none=0, xs=4, sm=8, md=12, lg=16, xl=24, full=999
+Exact geometry: TioSize.dpN when the current exact value is not a spacing/radius role
+Stroke: TioStroke
+Elevation: TioElevation
+Typography physical values: TioFontSize / TioFontWeight / TioLetterSpacing / TioLineHeight
+```
+
+Common runtime lookup:
+
+```dart
+final colors = context.tioColors;
+final motion = context.tioMotion;
+final shadows = context.tioShadows;
+final textTheme = Theme.of(context).textTheme;
+```
+
+Prefer reusable core UI such as `TioButton`, `TioInput`, `TioUsernameInputField`, `TioMobileNumberField`, `TioCard`, `TioAvatar`, and the shared dialogs/pickers/sheets before rebuilding the same contract inside a feature.
+
+A normal feature UI edit should not require opening internal theme/token implementation files. Inspect `apps/core/lib/src/theme/tokens/**` only when a documented role is missing/ambiguous, runtime source and this README disagree, or the task intentionally changes a core design-system contract. Do not create a feature-local token/theme/color/layout catalog merely to avoid using the governed core boundary.
+
 ## Maintenance Contract
 
 This README is part of the design-system contract, not optional commentary.
