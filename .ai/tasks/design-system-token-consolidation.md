@@ -1,8 +1,9 @@
 # Professional Core Theme & Token System
 
-**Status:** In progress — architecture blueprint frozen before further production edits  
+**Status:** In progress — architecture corrected before further production edits  
 **Primary owner:** `apps/core/lib/src/theme`  
 **Consumers:** every Flutter screen/component in `apps/app`, `apps/features/*`, and core UI  
+**Reference architecture:** `im-tnyx/Tio-hub` core theme centralization, adapted for Flutter  
 **Related issue:** #6  
 **Working branch:** `codex/design-system-token-consolidation`  
 **Draft PR:** #22
@@ -11,25 +12,32 @@
 
 ## 1. Goal
 
-Build `apps/core/lib/src/theme/` into the single professional design-system foundation for Tio.
+Build `apps/core/lib/src/theme/` into the single professional design-system source of truth for Tio.
 
-The finished app must not style screens by inventing random colors, sizes, spacing, radius, icon dimensions, typography, opacity, borders, motion, or reusable layout values inside screen/widget files.
+The finished app must not invent fixed visual values independently inside component, feature, screen, or widget files. Every fixed visual value must be governed from core theme/token ownership so the repository can answer questions such as:
+
+```text
+Where is 20dp used?
+Which components depend on 16dp?
+What is the blast radius of changing a fixed size?
+Which token owns a border width, icon size, radius, opacity, or duration?
+```
 
 The desired dependency direction is:
 
 ```text
-Core foundation tokens
+Primitive foundation tokens
         ↓
-Semantic/theme tokens
+Foundation / semantic / typography / effects roles
         ↓
 Component tokens
         ↓
 Reusable core components
         ↓
-Feature composition tokens (only when genuinely feature-specific)
-        ↓
-Screens/widgets
+Feature screens/widgets
 ```
+
+There is **no feature composition token layer** in the final architecture.
 
 The migration is **pixel-preserving by default**. Token ownership may change without changing the rendered value. A visual value changes only through a separate explicit product/design decision.
 
@@ -37,58 +45,176 @@ The migration is **pixel-preserving by default**. Token ownership may change wit
 
 ## 2. Non-Negotiable Rules
 
-### 2.1 No random visual literals in production UI
+### 2.1 One primitive source of truth for fixed visual values
 
-Final production screen/widget code must not contain unexplained hardcoded design values for:
+Every fixed visual numeric value must have exactly one primitive owner in core.
+
+Examples include:
+
+- spacing and gaps;
+- width, height, min/max size;
+- icon/image presentation size;
+- radius;
+- border/stroke width;
+- fixed padding/insets;
+- typography size, line height, letter spacing where represented as fixed design values;
+- opacity/state alpha;
+- animation duration;
+- reusable elevation/shadow measurements;
+- reusable breakpoints, ratios, or visual factors.
+
+Component tokens, semantic tokens, screens, and widgets may **reference or alias** primitive values. They must not redefine the same numeric value independently.
+
+Bad:
+
+```dart
+class TioButtonTokens {
+  static const height = 46.0;
+  static const horizontalPadding = 20.0;
+}
+```
+
+Target:
+
+```dart
+class TioSize {
+  static const dp20 = 20.0;
+  static const dp46 = 46.0;
+}
+
+class TioButtonTokens {
+  static const height = TioSize.dp46;
+  static const horizontalPadding = TioSize.dp20;
+}
+```
+
+The exact class/file names may be refined during implementation, but this ownership invariant is mandatory.
+
+### 2.2 Primitive numeric names are allowed only at the primitive layer
+
+Previous guidance that rejected every numeric token name was too broad.
+
+At the primitive layer, numeric names are intentional because the primitive represents the physical value itself:
+
+```text
+TioSize.dp0
+TioSize.dp1
+TioSize.dp2
+TioSize.dp4
+TioSize.dp6
+TioSize.dp8
+TioSize.dp10
+TioSize.dp12
+TioSize.dp14
+TioSize.dp16
+TioSize.dp18
+TioSize.dp20
+...
+```
+
+Do **not** pre-create every integer up to an arbitrary maximum. The primitive registry should contain every approved fixed value actually evidenced by production UI, plus values intentionally added by an explicit design decision.
+
+Numeric naming is **not allowed** as the public semantic/component role:
+
+```text
+TioButtonTokens.size46       ❌
+TioInputTokens.radius14      ❌
+TioSpacing.space8            ❌
+TioRadius.radius20           ❌
+
+TioButtonTokens.height       ✅
+TioInputTokens.radius        ✅
+TioSpacing.small             ✅
+TioRadius.large              ✅
+```
+
+### 2.3 Component tokens are aliases/contracts, not numeric stores
+
+Component tokens express component meaning:
+
+```text
+TioButtonTokens.height
+TioButtonTokens.horizontalPadding
+TioInputTokens.minHeight
+TioNavigationTokens.iconSize
+```
+
+Their fixed numeric values must resolve to primitive or lower-level governed tokens.
+
+A component token file must not become a second dimensions catalog.
+
+### 2.4 No feature-owned design-token catalogs
+
+Final production architecture must not introduce parallel feature token systems such as:
+
+```text
+WelcomeTokens
+WelcomeLayoutTokens
+WelcomeColorTokens
+WelcomeTypographyTokens
+WelcomeMotionTokens
+AuthTokens
+OnboardingTokens
+HomeTokens
+```
+
+Feature screens/widgets consume the core design system.
+
+For a truly one-off fixed layout value that does not deserve a reusable semantic/component role, the feature may consume an approved core primitive directly rather than creating a feature token catalog.
+
+Example:
+
+```dart
+SizedBox(width: TioSize.dp60)
+```
+
+This keeps the physical value centralized and searchable without creating another token ownership layer.
+
+### 2.5 No random visual literals in production UI
+
+Final production UI code must not contain unexplained raw visual literals for:
 
 - spacing, padding, gaps;
 - radius and shape;
-- fixed component width/height/min-size;
+- fixed width/height/min-size;
 - icon/image presentation size;
 - border/stroke width;
 - opacity/state alpha;
 - typography size, weight, line height, letter spacing;
-- animation duration/easing;
+- animation duration/easing contracts;
 - reusable colors;
 - elevation/shadow;
 - recurring layout dimensions;
 - reusable breakpoints or responsive factors.
 
-Moving `20.0` from a widget into `_radius = 20.0` does **not** make it a professional token. The value must have an intentional owner and semantic name.
+Moving `20.0` from a widget into `_radius = 20.0` does not solve ownership.
 
-### 2.2 Existing token first
+### 2.6 Existing primitive/token first
 
-Before adding any token:
+Before adding any fixed value or role:
 
-1. search the current core theme/token system;
-2. identify the visual role;
-3. verify whether an existing token has the same semantic role and exact value;
-4. reuse it if yes;
-5. add a new token only when ownership is justified by actual usage evidence.
+1. search the primitive registry;
+2. search existing foundation/semantic/component roles;
+3. identify the visual role;
+4. reuse the exact existing primitive if the physical value already exists;
+5. reuse an existing semantic/component role when semantics also match;
+6. add a new primitive only when the exact fixed value is not already governed;
+7. add a new role only when the role itself is justified.
 
-### 2.3 No numeric token catalog
+### 2.7 Do not normalize values silently
 
-Do not create APIs such as:
+If current UI uses `20dp` and the nearest semantic radius is `24dp`, do not replace `20 → 24` merely to fit a scale.
 
-```text
-size4
-size20
-radius20
-value56
-space10
-```
+Instead:
 
-solely to hide literals.
+1. preserve `20` as a primitive value;
+2. classify its role;
+3. alias it appropriately or consume the primitive directly;
+4. change pixels only through a separate design decision.
 
-Names describe **roles**, not numbers.
+### 2.8 Static vs dynamic ownership
 
-### 2.4 Do not normalize values silently
-
-If a current screen uses `20dp` and the nearest shared radius is `24dp`, do not replace `20 → 24` merely to fit the scale. Preserve 20 until an explicit visual decision approves the change.
-
-### 2.5 Static vs dynamic ownership
-
-Static values belong to token classes.
+Static primitives and static role contracts belong to token classes.
 
 Dynamic/theme-resolved values belong to `ThemeData`, `ThemeExtension`, or one canonical `BuildContext` extension.
 
@@ -98,9 +224,9 @@ Do not maintain multiple equivalent access APIs for the same value.
 
 ## 3. Allowed Non-Design Literals
 
-The no-hardcode rule applies to **visual design decisions**, not every number in Dart.
+The no-hardcode rule applies to visual design decisions, not every number in Dart.
 
-Examples that may remain inline when they are truly program/data logic:
+Examples that may remain inline when truly program/data logic:
 
 - loop indexes;
 - zero/one used as mathematical identity;
@@ -109,41 +235,48 @@ Examples that may remain inline when they are truly program/data logic:
 - dates and IDs;
 - business calculations;
 - collection indexes;
-- runtime-derived sizes such as `availableWidth`, where the result is not a reusable design constant.
+- runtime-derived sizes such as `availableWidth` where the result is not a fixed design decision.
 
-If a responsive ratio, breakpoint, or calculation is reused or expresses a design contract, it must receive a named token/contract.
+A fixed visual ratio, breakpoint, gradient stop, animation interval, or reusable calculation is governed if it represents a design contract.
 
 ---
 
 ## 4. Current Theme Audit
 
-Current root:
+Current core structure already has the right high-level category direction:
 
 ```text
 apps/core/lib/src/theme/
-├── locals/
+├── context/
 ├── tokens/
+│   ├── foundation/
+│   ├── semantic/
+│   ├── typography/
+│   ├── effects/
+│   ├── components/
+│   └── domain/
 ├── theme.dart
 ├── tio_theme.dart
 └── tio_theme_config.dart
 ```
 
-Current token categories already provide a good base:
+This broadly matches the centralized ownership principle verified in `Tio-hub`, where foundation, semantic, typography, effects, component, and domain contracts live under core theme rather than inside feature modules.
+
+### 4.1 Current foundation is incomplete
+
+Currently verified foundation files include:
 
 ```text
-tokens/
-├── foundation/
-├── semantic/
-├── typography/
-├── effects/
-├── components/
-└── domain/
+tio_palette.dart
+tio_spacing.dart
+tio_radius.dart
 ```
 
-### 4.1 Foundation currently verified
+Current spacing/radius roles include:
 
 ```text
 TioSpacing
+  extraSmall = 4
   small      = 8
   medium     = 12
   large      = 16
@@ -157,103 +290,89 @@ TioRadius
   full       = 999
 ```
 
-A repeated `4dp` spacing rhythm is evidenced by live UI and is eligible for a semantic smallest spacing role such as:
+These currently own raw values directly. Under the corrected architecture they should resolve through primitive values where appropriate.
 
-```dart
-TioSpacing.extraSmall = 4.0;
-```
+### 4.2 Raw numeric values already exist inside component token files
 
-This is an evidence-backed scale addition, not an arbitrary numeric token.
-
-### 4.2 Duplicate API layers found
-
-The current `locals/` directory contains multiple wrappers that alias existing tokens, for example:
-
-- `TioSpacingLocals` → `TioSpacing`;
-- `TioRadiusLocals` → `TioRadius`;
-- `TioComponentLocals` → component tokens;
-- `TioDomainLocals` → domain tokens;
-- `TioMotionLocals` → motion tokens;
-- `TioTypographyLocals.of(context)` → `Theme.of(context).textTheme`;
-- `TioShadowsLocals.of(context)` → the shadow extension.
-
-Repository search has not shown live consumers for several of these static wrapper classes. They are **candidate duplicate APIs**, not automatic deletion targets. Exact references must be verified before removal.
-
-`TioThemeContext` is different: `context.tioColors` and `context.tioMotion` have real consumers and represent useful dynamic theme access.
-
-### 4.3 `TioTheme` also contains duplicate/static facades
-
-Current `TioTheme` exposes:
+Examples currently verified:
 
 ```text
-TioTheme.spacing
-TioTheme.radius
-TioTheme.motion
+TioButtonTokens
+  height                      = 46
+  minimumWidth                = 0
+  horizontalPadding           = 20
+  loadingIndicatorSize        = 18
+  loadingIndicatorStrokeWidth = 2
+  outlineWidth                = 1
+  focusedOutlineWidth         = 2
+
+TioInputTokens
+  radius                       = 14
+  minHeight                    = 52
+  mobileFieldHeight            = 56
+  mobileVerifiedIconSize       = 22
+  usernameIconSize             = 20
+  usernameCheckingIndicatorSize = 16
+  usernameSupportingGap        = 6
+  usernameSuggestionRadius     = 20
+  ...
 ```
 
-which proxy token classes through additional wrapper objects.
+These are migration debt. Component tokens should retain their semantic names but their physical values must be moved to canonical primitives/lower roles.
 
-Known consumers exist for at least `TioTheme.spacing` and `TioTheme.radius` in core UI components. These must be migrated deliberately before facade removal.
+### 4.3 Duplicate access layers
 
-Target rule:
+Historical/static wrappers and facades must still be audited and consolidated deliberately.
 
-- `TioTheme` = theme composition/configuration;
-- static tokens = `TioSpacing`, `TioRadius`, component token classes, etc.;
-- dynamic access = one canonical `BuildContext` extension.
+Target principle:
 
-### 4.4 Raw values inside `TioTheme`
+- primitive/static role tokens = direct token classes;
+- dynamic theme values = one canonical context API;
+- `TioTheme` = theme composition/configuration, not a second static token facade.
 
-The theme builder itself currently contains visual literals that require ownership audit, including examples such as:
+### 4.4 Existing visual drift must not be hidden
 
-- Material card radius `20`;
-- input radius `14`;
-- navigation label top padding `2`.
+Known examples such as Material Card radius `20` vs reusable card radius `16` are real contract differences until proven stale.
 
-Some already have matching or related component contracts (`TioInputTokens.radius = 14`, card tokens, navigation tokens). Do not assume equivalence where semantics differ. Audit the resulting Material component and custom component contracts before aliasing.
+Do not collapse distinct pixels merely to simplify the registry.
 
-### 4.5 Existing drift that must not be hidden
-
-A raw Material `CardTheme` radius of `20` exists while the current reusable `TioCardTokens.radius` is `16`.
-
-This is a real design-contract drift. The token task must determine whether:
-
-- Material Card and `TioCard` intentionally use different shapes; or
-- one of them is stale.
-
-Do **not** silently change either pixel value during architecture cleanup.
+The primitive layer can contain both values while semantic/component ownership is audited.
 
 ---
 
 ## 5. Target Professional Theme Architecture
 
-The target should remain understandable to a Flutter engineer without requiring a project-specific token map.
-
 ```text
 apps/core/lib/src/theme/
-├── theme.dart                         # public theme barrel only
-├── tio_theme.dart                     # Tio Theme widget / ThemeData composition
-├── tio_theme_config.dart              # user/system theme configuration
+├── theme.dart
+├── tio_theme.dart
+├── tio_theme_config.dart
 │
 ├── context/
-│   ├── context.dart                   # context barrel
-│   └── tio_theme_context.dart         # canonical dynamic theme getters
+│   ├── context.dart
+│   └── tio_theme_context.dart
 │
 ├── tokens/
-│   ├── tio_tokens.dart                # token barrel
+│   ├── tio_tokens.dart
+│   │
+│   ├── primitive/
+│   │   ├── primitive.dart
+│   │   ├── tio_size.dart              # canonical fixed geometry values
+│   │   ├── tio_opacity.dart           # canonical alpha values
+│   │   ├── tio_duration.dart          # canonical fixed durations
+│   │   └── additional primitive families only when evidenced
 │   │
 │   ├── foundation/
 │   │   ├── foundation.dart
 │   │   ├── tio_palette.dart
 │   │   ├── tio_spacing.dart
 │   │   ├── tio_radius.dart
-│   │   ├── tio_icon_size.dart         # only if audit proves a reusable icon scale
-│   │   ├── tio_stroke.dart            # only if audit proves reusable stroke roles
-│   │   └── tio_opacity.dart           # only if audit proves stable reusable roles
+│   │   ├── tio_icon_size.dart
+│   │   └── tio_stroke.dart
 │   │
 │   ├── semantic/
 │   │   ├── semantic.dart
-│   │   ├── tio_colors.dart
-│   │   └── role/state color contracts
+│   │   └── tio_colors.dart
 │   │
 │   ├── typography/
 │   │   ├── typography.dart
@@ -279,7 +398,7 @@ apps/core/lib/src/theme/
 │       ├── domain.dart
 │       └── tio_domain_colors.dart
 │
-└── builders/                          # add only if TioTheme split improves clarity
+└── builders/                          # optional, only if ThemeData composition benefits
     ├── builders.dart
     ├── tio_button_theme_builder.dart
     ├── tio_input_theme_builder.dart
@@ -287,76 +406,131 @@ apps/core/lib/src/theme/
     └── tio_navigation_theme_builder.dart
 ```
 
-### Important: target tree is a responsibility map, not permission for file explosion
+### Dependency rule
 
-A proposed file is created only when audit evidence justifies it.
+```text
+Primitive physical values
+        ↓
+Foundation/semantic/type/effect roles
+        ↓
+Component contracts
+        ↓
+Reusable core components
+        ↓
+Features
+```
 
-For example, do not create `tio_icon_size.dart`, `tio_stroke.dart`, or `builders/` merely because they appear in this blueprint. First prove that centralization removes real duplication and creates a stable semantic contract.
+Dependencies must not point upward or sideways into feature-owned token catalogs.
+
+### No file explosion
+
+Create a primitive/token family only when evidence justifies it.
+
+However, unlike the earlier blueprint, `TioSize` or an equivalent canonical fixed-geometry primitive is now **required**, because current component files already prove that raw geometry is duplicated across owners.
 
 ---
 
-## 6. `locals/` Consolidation Plan
+## 6. Primitive Foundation Standard
 
-Goal: eliminate parallel token facades while preserving useful dynamic theme access.
+### 6.1 Geometry
 
-### Keep concept
+All approved fixed geometry values must resolve to one canonical registry such as `TioSize`.
 
-A canonical context extension is useful:
+Example shape:
 
 ```dart
-context.tioColors
-context.tioMotion
-context.tioShadows
-context.tioTextTheme // if adopted
+abstract final class TioSize {
+  static const dp0 = 0.0;
+  static const dp1 = 1.0;
+  static const dp2 = 2.0;
+  static const dp4 = 4.0;
+  static const dp6 = 6.0;
+  static const dp8 = 8.0;
+  static const dp10 = 10.0;
+  static const dp12 = 12.0;
+  static const dp14 = 14.0;
+  static const dp16 = 16.0;
+  static const dp18 = 18.0;
+  static const dp20 = 20.0;
+  static const dp22 = 22.0;
+  static const dp24 = 24.0;
+}
 ```
 
-### Remove/merge candidates after consumer audit
+This example is illustrative, not a license to add unused values.
+
+A repository search for `TioSize.dp20` should make the dependency surface of physical `20dp` discoverable.
+
+### 6.2 Spacing/radius/icon/stroke roles
+
+Role tokens alias primitives:
+
+```dart
+TioSpacing.small = TioSize.dp8;
+TioRadius.large = TioSize.dp16;
+TioIconSize.medium = TioSize.dp20;
+TioStroke.medium = TioSize.dp2;
+```
+
+### 6.3 Component geometry
+
+Component contracts alias primitive or semantic geometry:
+
+```dart
+TioButtonTokens.height = TioSize.dp46;
+TioButtonTokens.contentGap = TioSpacing.small;
+TioButtonTokens.loadingIndicatorSize = TioSize.dp18;
+```
+
+No raw `46.0`, `18.0`, etc. remain in the component file.
+
+### 6.4 Other primitive families
+
+The same one-source rule applies to other fixed visual scalar values.
+
+Examples:
 
 ```text
-TioSpacingLocals
-TioRadiusLocals
-TioComponentLocals
-TioDomainLocals
-TioMotionLocals
-TioTypographyLocals
-TioShadowsLocals
-TioColorLocals.localTioColors
-TioTheme.spacing
-TioTheme.radius
-TioTheme.motion
+opacity → TioOpacity or equivalent
+fixed duration → TioDuration / governed motion primitive
+typography physical scale → governed typography primitives/roles
+palette colors → TioPalette
 ```
 
-Migration rule:
-
-- static aliases → direct token class;
-- dynamic extension aliases → canonical `TioThemeContext` getter;
-- remove a wrapper only after repo search shows zero consumers.
-
-Do not break public `tio_core/core.dart` exports accidentally. Export changes require explicit API audit.
+Do not force unrelated concepts into `TioSize` just because they are numeric.
 
 ---
 
 ## 7. Token Ownership Rules
 
-### Foundation token
+### Primitive token
 
-Use when a stable low-level scale is reused across unrelated components/screens.
+Owns the physical value, not product meaning.
 
 Examples:
 
 ```text
-spacing rhythm
-radius scale
-widely reused icon-size scale
-widely reused stroke roles
-widely reused opacity/state primitives
+dp20
+alpha38
+milliseconds200
 ```
 
-Foundation values must not encode a feature name.
+### Foundation role
+
+Names a reusable geometric role and aliases primitives.
+
+Examples:
+
+```text
+spacing.small
+radius.large
+iconSize.medium
+stroke.thin
+```
 
 ### Semantic token
 
-Use when the value expresses product meaning rather than geometry.
+Expresses product/theme meaning.
 
 Examples:
 
@@ -375,7 +549,7 @@ coach
 
 ### Component token
 
-Use when the dimension/state belongs to a reusable component.
+Expresses reusable component meaning and composes lower-level tokens.
 
 Examples:
 
@@ -386,54 +560,49 @@ TioAvatarTokens.largeSize
 TioNavigationTokens.bottomBarHeight
 ```
 
-Do not push these into a generic dimensions class.
+### Feature code
 
-### Feature composition token
+Features consume core tokens/components.
 
-Use only when a visual contract is intentionally owned by one feature composition and is not reusable elsewhere.
+They do not own a parallel design-token taxonomy.
 
-Example:
-
-```dart
-class WelcomeLayoutTokens {
-  const WelcomeLayoutTokens._();
-
-  static const featurePanelRadius = 20.0;
-}
-```
-
-A feature token file must be narrow and role-based. It must not become another `WelcomeDimens` catch-all bag duplicating core spacing/radius scales.
+For one-off layout geometry, prefer a direct governed primitive over a feature token wrapper when no reusable semantic role exists.
 
 ---
 
 ## 8. Naming Standard
 
-Good:
+### Primitive layer
+
+Numeric physical names are acceptable and expected:
+
+```text
+dp0
+dp1
+dp2
+dp20
+```
+
+### Semantic/component layer
+
+Names describe intent:
 
 ```text
 extraSmall
 screenHorizontalPadding
-featurePanelRadius
 contentGap
 loadingIndicatorSize
 selectedBorderWidth
-heroImageHeightFactor
-featureDividerHeight
 ```
 
-Bad:
+Avoid semantic APIs named only by number:
 
 ```text
 size20
-space10
 radius20
+space10
 value08
-customSize
-bigPadding
-small2
 ```
-
-Token names describe intent and owner.
 
 ---
 
@@ -441,9 +610,10 @@ Token names describe intent and owner.
 
 ### Static
 
-Prefer:
+Prefer direct canonical classes:
 
 ```dart
+TioSize.dp20
 TioSpacing.large
 TioRadius.small
 TioButtonTokens.height
@@ -458,10 +628,12 @@ Prefer one canonical extension:
 context.tioColors
 context.tioMotion
 context.tioShadows
-Theme.of(context).textTheme // or context.tioTextTheme if one canonical helper is adopted
+Theme.of(context).textTheme
 ```
 
-### Avoid final state
+### Avoid duplicate APIs
+
+Do not keep equivalent wrappers such as:
 
 ```dart
 TioTheme.spacing.large
@@ -470,11 +642,13 @@ context.spaceLarge
 TioComponentLocals.buttonHeight
 ```
 
-when these merely duplicate the canonical token API.
+when they merely mirror the canonical source.
 
 ---
 
 ## 10. Typography Standard
+
+Typography must also avoid raw visual numbers scattered through feature/component files.
 
 Screen code should first use semantic `TextTheme` roles:
 
@@ -489,90 +663,86 @@ labelLarge
 labelSmall
 ```
 
-If a valid reusable typography role is missing:
+If the current product requires additional exact typography values:
 
-1. inventory all occurrences;
-2. determine whether it is shared product typography or feature-specific display treatment;
-3. add a semantic typography contract only with evidence;
-4. preserve existing pixels during migration.
+1. inventory occurrences;
+2. preserve current pixels;
+3. add the physical typography scale/role in core;
+4. expose a semantic typography role;
+5. consume that role from features.
 
-Do not create a global font token merely because one Welcome headline currently uses `42`.
-
-A feature-specific hero style may remain feature-owned if it is genuinely unique, but its styling still belongs in an intentional feature style/token contract—not inline `TextStyle` literals in the screen.
+Do not solve a unique Welcome headline by creating `WelcomeTypographyTokens`.
 
 ---
 
 ## 11. Color Standard
 
-Use in this order:
+Use centralized core ownership in this order:
 
 1. `context.tioColors` semantic roles;
 2. `Theme.of(context).colorScheme` where Material semantic roles are appropriate;
 3. domain semantic colors;
-4. component-specific state colors;
-5. feature composition color token only when a real feature-specific visual contract exists.
+4. component-specific state colors that resolve from core theme roles;
+5. palette primitives only when intentionally required.
 
-Do not create arbitrary global colors such as `gold`, `white70`, or `overlay94` unless product semantics/reuse justify them.
+Do not create `WelcomeColorTokens`, `AuthColorTokens`, or equivalent feature color catalogs.
 
-Media-overlay text may legitimately require a feature composition role, but the role must be named by intent.
+If a missing media-overlay semantic is real, add a reusable/intentional core semantic role after evidence rather than hiding the raw color inside a feature.
 
 ---
 
 ## 12. Motion Standard
 
-Use `TioMotionScheme`/`context.tioMotion` for durations and reduced-motion behavior.
+Use governed core motion contracts for durations and reduced-motion behavior.
 
-Raw animation timing inside screens is not allowed in the final state unless it is runtime-derived and not a reusable design contract.
+Raw animation timings must not be introduced in screen/widget files.
 
-Easing curves and interval contracts must be audited similarly. Shared motion belongs in core effects; feature-specific choreography may use a feature motion contract that respects reduced motion.
+Shared easing and interval contracts belong in core effects/motion ownership.
+
+For one-off choreography values, use governed core primitive/effect contracts rather than `WelcomeMotionTokens` or another feature motion catalog.
 
 ---
 
 ## 13. Responsive Layout Standard
 
-Do not tokenise every runtime size calculation.
-
-Allowed:
+Runtime-derived measurements may stay runtime-derived:
 
 ```dart
 final available = MediaQuery.sizeOf(context).width;
 ```
 
-Governed when reusable/design-defined:
+Fixed design breakpoints, max widths, ratios, and factors are governed values.
 
-```text
-compact breakpoint
-content max width
-hero image height factor
-sheet max width
-navigation transition breakpoint
-```
-
-Responsive contracts must be named by behavior, not numeric value.
+If a fixed value is unique to one screen and no reusable semantic role is justified, consume a canonical core primitive directly. Do not create a feature token layer merely to rename it.
 
 ---
 
-## 14. Completed Work Before Architecture Freeze
+## 14. `locals/` Consolidation Plan
+
+Keep one canonical dynamic context API where Flutter needs theme-resolved access.
+
+Audit/remove duplicate static wrappers only after zero-reference verification.
+
+Migration rule:
+
+- static aliases → direct canonical token class;
+- dynamic aliases → canonical `TioThemeContext` getter;
+- preserve public exports intentionally;
+- do not copy Jetpack Compose `CompositionLocal` mechanics into Flutter merely because `Tio-hub` uses them.
+
+`Tio-hub` is the ownership reference, not a framework-mechanics template.
+
+---
+
+## 15. Completed Work Before Architecture Correction
 
 ### Slice 1 — component alias consolidation
 
-Implemented exact semantic aliases:
-
-```text
-Button contentGap 8   → TioSpacing.small
-Button radius 999     → TioRadius.full
-Card padding 16       → TioSpacing.large
-Card radius 16        → TioRadius.large
-Card radiusItem 8     → TioRadius.small
-Navigation radius 16  → TioRadius.large
-Sheet padding 24      → TioSpacing.extraLarge
-```
-
-CI #399 passed full workspace analyze/tests on source head `24c4dbd`.
+Previous work aliased several component roles to spacing/radius roles and passed CI #399.
 
 ### Slice 2 — Avatar source-of-truth
 
-Runtime contract remains:
+Runtime contract remained:
 
 ```text
 small      = 36
@@ -580,57 +750,59 @@ large      = 100
 extraLarge = 160
 ```
 
-Stale Profile documentation/test wording was aligned to runtime without a visual change. CI #401 passed full workspace analyze/tests on head `18e8d89`.
+CI #401 passed.
 
 ### Slice 3 — initial Welcome private-token migration
 
-`WelcomeDimens`/`WelcomeColors` were removed from live usage and exact existing spacing/radius values were migrated where clear.
+Earlier work removed `WelcomeDimens`/`WelcomeColors` from live usage but later introduced `welcome_visual_tokens.dart` with feature-owned layout/motion/typography/color contracts.
 
-This initial source commit introduced temporary local constants for `4` and `20`; under the newly approved professional architecture those constants are **not final** and must be migrated to governed roles before Welcome is considered complete.
+Under this corrected architecture, that is **transitional debt, not the final pattern**.
+
+Do not replicate it into Auth, Onboarding, Home, or other features.
 
 ---
 
-## 15. Implementation Slices From This Point
+## 16. Implementation Slices From This Point
 
-### Slice A — Core Theme Architecture Baseline
+### Slice A — Primitive Foundation + Core Ownership Baseline
 
-Purpose: make core theme ownership clean before migrating more screens.
+Do this before further feature migration.
 
-- [ ] add evidence-backed `TioSpacing.extraSmall = 4`;
-- [ ] update spacing contract tests;
-- [ ] inventory every file under `theme/locals` and every consumer;
+- [ ] inventory every raw fixed visual scalar in `apps/core/lib/src/theme/tokens/**`;
+- [ ] create canonical primitive geometry registry (`TioSize` or final agreed equivalent);
+- [ ] populate it only with evidenced fixed values currently in production UI;
+- [ ] add governed primitive families for opacity/duration only where needed;
+- [ ] migrate `TioSpacing` and `TioRadius` raw values to primitive aliases;
+- [ ] add `TioIconSize` / `TioStroke` when evidence supports reusable roles;
+- [ ] migrate raw geometry out of `TioButtonTokens`;
+- [ ] migrate raw geometry out of `TioInputTokens`;
+- [ ] audit every remaining component token class for raw fixed numbers;
+- [ ] inventory every file under old/static `theme/locals` APIs and every consumer;
 - [ ] consolidate dynamic access into one canonical context extension;
-- [ ] migrate consumers of duplicate static `Locals` wrappers;
-- [ ] migrate `TioTheme.spacing/radius/motion` consumers to canonical APIs;
-- [ ] remove wrappers only after zero-reference verification;
+- [ ] migrate duplicate static facade consumers;
 - [ ] audit `TioTheme` raw visual values;
-- [ ] map each ThemeData visual value to a component/foundation token or document intentional distinct ownership;
-- [ ] decide Material Card radius `20` vs reusable card radius `16` without changing pixels silently;
-- [ ] extract ThemeData component builders only if it materially improves responsibility and testability;
-- [ ] keep public exports coherent;
+- [ ] preserve distinct values such as card radius `20` vs `16` until design ownership is resolved;
+- [ ] update token contract tests;
 - [ ] full CI.
 
-### Slice B — Welcome As First Professional Consumer
+### Slice B — Welcome Cleanup as First Consumer
 
-- [ ] create narrow Welcome composition/style contracts for truly feature-specific values;
-- [ ] replace temporary `4dp` locals with `TioSpacing.extraSmall`;
-- [ ] replace panel radius `20` with role-based Welcome composition token;
-- [ ] audit remaining Welcome spacing/radius/dimensions;
-- [ ] audit hero typography;
-- [ ] audit feature-tile typography;
-- [ ] audit icon/image presentation sizes;
-- [ ] audit divider width/height;
-- [ ] audit panel opacity/border;
-- [ ] audit backdrop gradient opacity/stops/height factor;
-- [ ] audit animation offset/easing/interval;
-- [ ] keep only role-based feature-specific tokens that cannot live in core;
-- [ ] remove orphan Welcome legal wrapper/state after exact reference audit;
-- [ ] ensure Welcome screens/widgets contain no unexplained visual literals;
+- [ ] inventory every value currently in `welcome_visual_tokens.dart`;
+- [ ] classify each as primitive geometry, semantic color, typography, motion/effect, reusable component role, or runtime/program logic;
+- [ ] move/alias governed physical values into core primitives/roles;
+- [ ] migrate Welcome screen/widgets to core tokens/components;
+- [ ] remove `WelcomeLayoutTokens` final-state dependency;
+- [ ] remove `WelcomeTypographyTokens` final-state dependency;
+- [ ] remove `WelcomeColorTokens` final-state dependency;
+- [ ] remove `WelcomeMotionTokens` final-state dependency;
+- [ ] remove `WelcomeBackdropTokens` final-state dependency where values are fixed visual contracts;
+- [ ] do not replace them with another feature token file;
+- [ ] preserve pixels/behavior;
 - [ ] focused Welcome regression tests + full CI.
 
 ### Slice C — Core UI Components & Shell
 
-Audit all core reusable components before feature migrations:
+Audit:
 
 ```text
 buttons
@@ -645,11 +817,11 @@ shell top/bottom navigation
 
 For each:
 
-- [ ] no duplicate raw component constants;
-- [ ] component-specific geometry owned by component token;
-- [ ] shared geometry aliases foundation tokens where semantics match;
-- [ ] theme state layers use semantic/component tokens;
-- [ ] tests lock important token contracts.
+- [ ] no raw fixed visual numbers inside component token files except justified non-design logic;
+- [ ] component roles alias primitive/foundation/semantic contracts;
+- [ ] no duplicate physical value ownership;
+- [ ] theme state layers use semantic/component contracts;
+- [ ] tests lock important ownership relationships.
 
 ### Slice D — Auth + Account Setup
 
@@ -659,129 +831,153 @@ For each:
 - [ ] migrate spacing/radius;
 - [ ] migrate icon/component sizes;
 - [ ] migrate state opacity/strokes/motion;
+- [ ] no feature token catalog;
 - [ ] preserve pixels and behavior;
 - [ ] focused package CI.
 
 ### Slice E — Product Onboarding
 
-Same audit discipline. Do not mix onboarding business-flow changes into theme migration.
+Same ownership rules. Do not mix business-flow changes into theme migration.
 
 ### Slice F — Home + Profile + Settings
 
-Same audit discipline. Keep feature behavior untouched.
+Same ownership rules. No feature design-token catalogs.
 
 ### Slice G — Workout + Nutrition + Progress + Remaining Phone UI
 
-Proceed package-by-package, with one bounded diff at a time.
+Proceed package-by-package with bounded diffs.
 
 ### Slice H — App-Level Composition & Final Enforcement
 
 - [ ] app shell/composition raw visual audit;
+- [ ] final primitive registry audit;
+- [ ] confirm no duplicate raw fixed geometry in semantic/component/feature layers;
+- [ ] confirm no feature-owned token catalogs remain;
 - [ ] final export cleanup;
-- [ ] final dead token cleanup;
+- [ ] dead token cleanup;
 - [ ] docs update;
-- [ ] targeted static audit strategy;
+- [ ] static audit strategy;
 - [ ] full workspace CI;
 - [ ] final PR diff review;
 - [ ] compact/light/dark/high-contrast/reduced-motion validation where applicable.
 
 ---
 
-## 16. Per-File Audit Template
+## 17. Per-File Audit Template
 
-For every UI file, record:
+For every UI/token file, record:
 
 ```text
 File:
 Owner:
-Current raw visual values:
-Existing token matches:
-Missing semantic roles:
-Feature-only values:
+Raw fixed visual values:
+Existing primitive matches:
+Existing semantic/component role matches:
+New primitive values required:
+New roles required:
+Runtime/program literals allowed:
 Pixel changes required: NO by default
 Tests impacted:
 Result:
 ```
 
-No implementation edit should begin before this classification is clear for the slice.
+No implementation edit should begin before classification is clear for the slice.
 
 ---
 
-## 17. Per-Screen Acceptance Checklist
+## 18. Per-Screen Acceptance Checklist
 
 For every active screen/widget:
 
-- [ ] colors use semantic/theme/component roles;
-- [ ] typography uses semantic or deliberate feature style roles;
-- [ ] spacing uses shared or role-based tokens;
-- [ ] radius/shape uses shared/component/feature role tokens;
+- [ ] no raw fixed visual geometry;
+- [ ] colors use core semantic/theme/component roles;
+- [ ] typography uses core semantic roles;
+- [ ] spacing uses governed core roles/primitives;
+- [ ] radius/shape uses governed core roles/primitives;
 - [ ] icon/image presentation size is governed;
 - [ ] fixed component dimensions are governed;
 - [ ] borders/strokes are governed;
 - [ ] opacity/state layers are governed;
-- [ ] motion uses governed contracts and reduced-motion support;
-- [ ] reusable responsive factors/breakpoints are governed;
-- [ ] no feature token duplicates a core scale;
-- [ ] no arbitrary `sizeN`/`radiusN` token names;
+- [ ] motion is governed and supports reduced motion;
+- [ ] fixed responsive factors/breakpoints are governed;
+- [ ] no feature-owned design-token catalog;
+- [ ] no duplicate physical value source;
 - [ ] no accidental pixel change;
 - [ ] analyze/tests pass.
 
 ---
 
-## 18. Test Strategy
+## 19. Test Strategy
 
-### Token contract tests
+### Primitive contract tests
 
-Lock important ownership relationships, for example:
+Lock important canonical values that are already product contracts.
+
+### Alias contract tests
+
+Verify ownership relationships such as:
 
 ```text
-component alias == foundation semantic role
-semantic avatar size == documented runtime size
-new spacing scale values remain stable
+TioSpacing.small == TioSize.dp8
+TioRadius.large == TioSize.dp16
+TioButtonTokens.contentGap == TioSpacing.small
+TioButtonTokens.height == canonical primitive
 ```
 
 ### Component tests
 
-Validate important computed presentation contracts instead of testing implementation details.
+Validate computed presentation contracts rather than implementation details.
 
 ### Screen regression tests
 
-For UI-touching migrations, preserve existing key layout/contrast/semantics behavior.
+Preserve layout/contrast/semantics behavior during ownership migration.
 
 ### Static audit
 
-A regex-only hardcoded-number ban is insufficient because business/math literals are legitimate.
+A regex-only numeric ban is insufficient because business/math literals are legitimate.
 
-Use a combination of:
-
-- token ownership conventions;
-- targeted repository searches;
-- focused lint/static checks where reliable;
-- code review checklist;
-- contract/widget tests;
-- documented exceptions.
+Static/review checks should specifically target UI constructors and token files for raw fixed visual scalars and feature-token catalogs.
 
 ---
 
-## 19. Commit Discipline
+## 20. Searchability Requirement
 
-Each commit should express one design-system responsibility.
+The design system must make physical values discoverable.
+
+Example expectation:
+
+```text
+search: TioSize.dp20
+```
+
+should reveal every role/component/screen that directly depends on the canonical `20dp` primitive.
+
+A raw repository search for `20.0` should not be required to understand design-system ownership.
+
+This searchability requirement is a first-class acceptance criterion.
+
+---
+
+## 21. Commit Discipline
+
+Each commit should express one ownership responsibility.
 
 Good examples:
 
 ```text
-refactor(theme): consolidate context token access
-refactor(theme): remove duplicate static locals
-refactor(theme): align material component theme tokens
-refactor(welcome): migrate layout values to governed tokens
+refactor(theme): add canonical size primitives
+refactor(theme): alias spacing and radius to primitives
+refactor(theme): migrate button geometry to primitives
+refactor(theme): migrate input geometry to primitives
+refactor(welcome): remove feature token catalog
 refactor(auth): consume core theme contracts
 ```
 
-Avoid giant commits that simultaneously touch unrelated features.
+Avoid giant commits that touch unrelated features simultaneously.
 
 ---
 
-## 20. Hard Boundaries
+## 22. Hard Boundaries
 
 This task must not modify:
 
@@ -796,23 +992,26 @@ Any such discovery becomes a separate task/issue unless a compile-only adaptatio
 
 ---
 
-## 21. Quality Gates
+## 23. Quality Gates
 
 A slice is complete only when:
 
 1. inventory/classification is recorded;
-2. ownership is clear;
-3. no accidental visual value changes are introduced;
-4. obsolete duplicate APIs have zero references before deletion;
-5. focused tests pass;
-6. Flutter/Dart analyze passes;
-7. full workspace tests pass for merge-boundary slices;
-8. task file is updated with actual evidence;
-9. PR diff is reviewed for scope creep.
+2. every fixed visual scalar has one primitive source of truth;
+3. semantic/component tokens do not redefine raw physical values;
+4. features do not create parallel token catalogs;
+5. no accidental visual value changes are introduced;
+6. obsolete duplicate APIs have zero references before deletion;
+7. focused tests pass;
+8. Flutter/Dart analyze passes;
+9. full workspace tests pass for merge-boundary slices;
+10. task file is updated with actual evidence;
+11. PR diff is reviewed for scope creep;
+12. token searchability is verified for representative physical values.
 
 ---
 
-## 22. Current Evidence
+## 24. Current Evidence
 
 ```text
 CI #399 — PASS — Slice 1 source head 24c4dbd
@@ -820,24 +1019,32 @@ CI #401 — PASS — Slice 2 head 18e8d89
 CI #404 — superseded/cancelled after later task-head commits; analyze stages had passed before cancellation
 ```
 
+Repository evidence also confirms:
+
+```text
+Tio-hub centralizes token categories under core theme.
+Tio-world currently has raw physical values inside component token files.
+Tio-world currently has a transitional Welcome feature token catalog.
+```
+
 Draft PR #22 remains the working review surface. Issue #6 stays open until the agreed design-system scope is complete.
 
 ---
 
-## 23. Next Action
+## 25. Next Action
 
-**Do not start the repo-wide screen migration yet.**
+**Do not continue repo-wide feature migration yet.**
 
-The next implementation slice is:
+The next implementation slice is now:
 
 ```text
-Slice A — Core Theme Architecture Baseline
+Slice A — Primitive Foundation + Core Ownership Baseline
 ```
 
-Start with the `apps/core/lib/src/theme` ownership cleanup and contract tests. Once the core API is stable and CI is green, migrate Welcome as the first full consumer, then continue feature-by-feature.
+First establish the canonical primitive registry and remove raw physical-value ownership from semantic/component layers. Then clean Welcome as the first consumer and continue feature-by-feature.
 
 ---
 
-## 24. Final Status
+## 26. Final Status
 
-`PARTIAL — professional architecture blueprint complete; implementation must now follow this task file slice-by-slice.`
+`PARTIAL — architecture corrected; implementation must now migrate existing component/feature token debt to the canonical core primitive model before further rollout.`
