@@ -122,7 +122,7 @@ TioAvatarTokens.largeSize      → TioSize.dp100
 TioAvatarTokens.extraLargeSize → TioSize.dp160
 ```
 
-The verified `36/100/160` runtime decisions therefore remain valid as semantic Avatar contracts, but their physical values are owned by `TioSize`.
+The verified `36/100/160` runtime decisions remain valid as semantic Avatar contracts, while physical values are owned by `TioSize`.
 
 Avatar ring widths and size factors remain separate pending `TioStroke`/factor ownership decisions.
 
