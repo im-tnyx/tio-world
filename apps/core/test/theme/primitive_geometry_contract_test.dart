@@ -154,14 +154,14 @@ void main() {
     });
 
     test('dialog geometry aliases exact canonical sizes', () {
-      expect(TioDialogTokens.otpInsetHorizontal, TioSize.dp32);
-      expect(TioDialogTokens.otpPanelTopPadding, TioSize.dp28);
-      expect(TioDialogTokens.otpPanelRadius, TioSize.dp28);
-      expect(TioDialogTokens.otpShadowBlurRadius, TioSize.dp30);
-      expect(TioDialogTokens.otpShadowOffsetY, TioSize.dp10);
-      expect(TioDialogTokens.otpInputHeight, TioSize.dp52);
-      expect(TioDialogTokens.otpInputRadius, TioSize.dp26);
-      expect(TioDialogTokens.otpActionRadius, TioSize.dp20);
+      expect(TioOtpDialogTokens.insetHorizontal, TioSize.dp32);
+      expect(TioOtpDialogTokens.panelTopPadding, TioSize.dp28);
+      expect(TioOtpDialogTokens.panelRadius, TioSize.dp28);
+      expect(TioOtpDialogTokens.shadowBlurRadius, TioSize.dp30);
+      expect(TioOtpDialogTokens.shadowOffsetY, TioSize.dp10);
+      expect(TioOtpDialogTokens.inputHeight, TioSize.dp52);
+      expect(TioOtpDialogTokens.inputRadius, TioSize.dp26);
+      expect(TioOtpDialogTokens.actionRadius, TioSize.dp20);
       expect(TioDialogTokens.deleteActionButtonHeight, TioSize.dp54);
       expect(TioDialogTokens.deleteActionButtonRadius, TioSize.dp27);
       expect(TioDialogTokens.deleteHoldControlSize, TioSize.dp140);
