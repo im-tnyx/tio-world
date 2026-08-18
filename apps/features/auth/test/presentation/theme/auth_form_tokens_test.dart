@@ -1,13 +1,16 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_auth/src/presentation/theme/auth_form_tokens.dart';
 
 void main() {
   group('Auth shared form visual contracts', () {
-    test('keeps shared chrome geometry', () {
+    test('keeps shared chrome geometry and action roles', () {
       expect(AuthFormTokens.topBarHeight, 48.0);
+      expect(AuthFormTokens.backIconSize, 24.0);
       expect(AuthFormTokens.inputLeadingIconSize, 20.0);
       expect(AuthFormTokens.passwordVisibilityIconSize, 22.0);
+      expect(AuthFormTokens.secondaryActionFontWeight, FontWeight.w600);
     });
 
     test('reuses exact shared divider and spacing roles', () {
