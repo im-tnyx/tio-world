@@ -96,6 +96,7 @@ class _TioOtpVerificationDialogState extends State<TioOtpVerificationDialog> {
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
+    final shadows = context.tioShadows;
 
     return Dialog(
       // Transparent dialog canvas lets the custom panel own its full visual.
@@ -113,11 +114,11 @@ class _TioOtpVerificationDialogState extends State<TioOtpVerificationDialog> {
         decoration: BoxDecoration(
           color: colors.surfaceRaised,
           borderRadius: BorderRadius.circular(TioDialogTokens.otpPanelRadius),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: TioDialogTokens.otpShadowColor,
+              color: shadows.elevatedPanelColor,
               blurRadius: TioDialogTokens.otpShadowBlurRadius,
-              offset: Offset(0, TioDialogTokens.otpShadowOffsetY),
+              offset: const Offset(0, TioDialogTokens.otpShadowOffsetY),
             ),
           ],
           border: Border.all(
