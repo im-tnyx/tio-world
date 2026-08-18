@@ -1028,6 +1028,13 @@ packages:
       relative: true
     source: path
     version: "0.0.0"
+  tio_feature_account_setup:
+    dependency: "direct main"
+    description:
+      path: "../features/account_setup"
+      relative: true
+    source: path
+    version: "0.0.0"
   tio_feature_auth:
     dependency: "direct main"
     description:
