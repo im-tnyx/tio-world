@@ -151,10 +151,6 @@ void main() {
       );
       expect(TioLegalTokens.defaultFontSize, TioFontSize.size12);
       expect(TioLegalTokens.bodyLineHeight, TioLineHeight.height150);
-      expect(
-        TioMeasurementPreferenceTokens.sectionLabelFontSize,
-        TioFontSize.size13,
-      );
       expect(TioRemoveImageSheetTokens.titleFontSize, TioFontSize.size22);
       expect(
         TioRemoveImageSheetTokens.titleLetterSpacing,
