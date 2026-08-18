@@ -87,5 +87,55 @@ void main() {
       expect(TioAvatarTokens.largeSize, TioSize.dp100);
       expect(TioAvatarTokens.extraLargeSize, TioSize.dp160);
     });
+
+    test('button and card geometry alias canonical owners', () {
+      expect(TioButtonTokens.height, TioSize.dp46);
+      expect(TioButtonTokens.minimumWidth, TioSize.dp0);
+      expect(TioButtonTokens.horizontalPadding, TioSize.dp20);
+      expect(TioButtonTokens.contentGap, TioSpacing.sm);
+      expect(TioButtonTokens.loadingIndicatorSize, TioSize.dp18);
+
+      expect(TioCardTokens.radius, TioRadius.lg);
+      expect(TioCardTokens.radiusItem, TioRadius.sm);
+      expect(TioCardTokens.padding, TioSpacing.lg);
+      expect(TioCardTokens.materialThemeRadius, TioSize.dp20);
+    });
+
+    test('input geometry aliases canonical owners without normalization', () {
+      expect(TioInputTokens.radius, TioSize.dp14);
+      expect(TioInputTokens.minHeight, TioSize.dp52);
+      expect(TioInputTokens.horizontalPadding, TioSpacing.lg);
+      expect(TioInputTokens.compactContentVerticalPadding, TioSize.dp10);
+      expect(TioInputTokens.compactContentHorizontalPadding, TioSpacing.sm);
+      expect(TioInputTokens.standardContentVerticalPadding, TioSpacing.lg);
+      expect(TioInputTokens.mobileCountryToFieldGap, TioSize.dp14);
+      expect(TioInputTokens.mobileFieldHeight, TioSize.dp56);
+      expect(TioInputTokens.mobileVerifiedIconSize, TioSize.dp22);
+      expect(TioInputTokens.mobileVerifyHorizontalPadding, TioSize.dp10);
+      expect(TioInputTokens.mobileVerifyVerticalPadding, TioSize.dp5);
+      expect(TioInputTokens.usernameIconSize, TioSize.dp20);
+      expect(TioInputTokens.usernameCheckingIndicatorSize, TioSize.dp16);
+      expect(TioInputTokens.usernameContentVerticalPadding, TioSize.dp14);
+      expect(TioInputTokens.usernameSupportingGap, TioSize.dp6);
+      expect(TioInputTokens.usernameSuggestionRadius, TioSize.dp20);
+      expect(TioInputTokens.usernameSuggestionVerticalPadding, TioSize.dp6);
+    });
+
+    test('navigation geometry aliases canonical owners without normalization', () {
+      expect(TioNavigationTokens.bottomBarHeight, TioSize.dp62);
+      expect(TioNavigationTokens.itemRadius, TioRadius.lg);
+      expect(TioNavigationTokens.iconSize, TioSize.dp22);
+      expect(TioNavigationTokens.labelTopPadding, TioSpacing.xxs);
+      expect(TioNavigationTokens.topBarLeadingWidth, TioSize.dp72);
+      expect(TioNavigationTokens.planPillWidth, TioSize.dp125);
+      expect(TioNavigationTokens.planPillHeight, TioSize.dp32);
+      expect(TioNavigationTokens.planIconSize, TioSize.dp14);
+      expect(TioNavigationTokens.planContentGap, TioSpacing.xs);
+      expect(TioNavigationTokens.aiTabActivePadding, TioSize.dp5);
+      expect(TioNavigationTokens.aiTabInactivePadding, TioSpacing.xs);
+      expect(TioNavigationTokens.aiTabIconSize, TioSize.dp14);
+      expect(TioNavigationTokens.aiTabGlowBlurRadius, TioSize.dp6);
+      expect(TioNavigationTokens.aiTabGlowOffsetY, TioSize.dp2);
+    });
   });
 }
