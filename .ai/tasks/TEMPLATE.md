@@ -4,6 +4,21 @@
 **Primary owner:**
 **Affected platforms:**
 
+## Global UI / Design-System Guardrail
+
+For any Flutter UI work, read `.ai/tasks/design-system-token-consolidation.md` before changing visual implementation.
+
+Mandatory rules:
+
+- fixed product-visible visual values follow the centralized `apps/core` design-system ownership model;
+- feature packages must not create parallel design-token catalogs such as `WelcomeTokens`, `AuthTokens`, `HomeTokens`, or equivalent feature color/layout/theme bags;
+- component/feature/screen/widget code must not introduce independent raw fixed visual values when they belong to governed core ownership;
+- design-system refactors are pixel-preserving by default;
+- **no screen design, layout, color appearance, typography appearance, spacing, radius, icon sizing, component geometry, motion choreography, or other visible UI contract may change without separate explicit owner/design confirmation**;
+- if implementation work exposes a UI/design improvement, record it as a separate decision/task and preserve current rendering until approved.
+
+These rules do not prohibit business/domain values, runtime-derived measurements, indexes, validation limits, dates, calculations, or other genuine non-design literals.
+
 ## 1. Discovery
 
 ### User Outcome
