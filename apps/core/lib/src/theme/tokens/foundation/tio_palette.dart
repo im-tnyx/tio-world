@@ -12,6 +12,7 @@ class TioPalette {
   static const black = Color(0xFF000000);
   static const white = Color(0xFFFFFFFF);
   static const blackAlpha26 = Color.fromARGB(TioAlpha.alpha26, 0, 0, 0);
+  static const blackAlpha80 = Color.fromARGB(TioAlpha.alpha80, 0, 0, 0);
 
   static const gray005 = Color(0xFF050505);
   static const gray016 = Color(0xFF101010);
@@ -34,6 +35,7 @@ class TioPalette {
 
   static const red400 = Color(0xFFF87171);
   static const red500 = Color(0xFFEF4444);
+  static const red550 = Color(0xFFE55757);
   static const red600 = Color(0xFFDC2626);
 
   static const green400 = Color(0xFF4ADE80);
