@@ -8,6 +8,7 @@ import 'tokens/foundation/tio_radius.dart';
 import 'tokens/foundation/tio_spacing.dart';
 import 'tokens/semantic/tio_colors.dart';
 import 'tokens/components/tio_button_tokens.dart';
+import 'tokens/components/tio_card_tokens.dart';
 import 'tokens/components/tio_input_tokens.dart';
 import 'tokens/components/tio_navigation_tokens.dart';
 import 'tokens/typography/tio_typography.dart';
@@ -81,10 +82,12 @@ class TioTheme extends StatelessWidget {
             : const PageTransitionsTheme(),
         cardTheme: CardThemeData(
           color: colors.surface,
-          elevation: 0,
+          elevation: TioCardTokens.materialThemeElevation,
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(
+              TioCardTokens.materialThemeRadius,
+            ),
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(

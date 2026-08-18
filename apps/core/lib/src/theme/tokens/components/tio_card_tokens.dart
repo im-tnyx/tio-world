@@ -8,6 +8,12 @@ class TioCardTokens {
   static const radiusItem = TioRadius.small;
   static const padding = TioSpacing.large;
 
+  // Material CardTheme currently has a distinct live runtime contract from
+  // TioCard. Keep it explicit and pixel-preserving until a separate visual
+  // decision intentionally unifies the two card shapes.
+  static const materialThemeRadius = 20.0;
+  static const materialThemeElevation = 0.0;
+
   // Border Tokens
   static const borderThin = 0.75;
   static const borderThick = 1.25;
