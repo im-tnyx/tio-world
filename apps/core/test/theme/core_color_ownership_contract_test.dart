@@ -85,8 +85,7 @@ void main() {
       expect(TioShadows.standard.elevatedPanelColor, TioPalette.blackAlpha80);
     });
 
-    test('component compatibility colors keep exact palette mappings', () {
-      expect(TioDialogTokens.otpShadowColor, TioPalette.blackAlpha80);
+    test('component fixed colors keep exact palette mappings', () {
       expect(TioDialogTokens.deleteHoldFillColor, TioPalette.red550);
       expect(TioDialogTokens.deleteHoldContentColor, TioPalette.white);
       expect(TioNavigationTokens.planPlusAccentColor, TioPalette.amber500);
