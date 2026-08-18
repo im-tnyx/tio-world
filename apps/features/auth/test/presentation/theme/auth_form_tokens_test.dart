@@ -9,7 +9,9 @@ void main() {
       expect(AuthFormTokens.passwordVisibilityIconSize, 22.0);
     });
 
-    test('reuses exact foundation spacing roles', () {
+    test('reuses exact shared divider and spacing roles', () {
+      expect(AuthFormTokens.dividerOpacity, 0.30);
+      expect(AuthFormTokens.dividerHorizontalPadding, TioSpacing.large);
       expect(AuthFormTokens.socialProviderGap, TioSpacing.medium);
       expect(AuthFormTokens.footerLinkHorizontalPadding, TioSpacing.extraSmall);
       expect(AuthFormTokens.footerLinkVerticalPadding, TioSpacing.small);
