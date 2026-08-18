@@ -1,5 +1,6 @@
 import '../foundation/tio_spacing.dart';
 import '../primitive/tio_alpha.dart';
+import '../primitive/tio_size.dart';
 import '../typography/tio_font_size.dart';
 
 /// Cross-picker visual contracts proven identical across reusable DOB and
@@ -10,10 +11,10 @@ import '../typography/tio_font_size.dart';
 class TioWheelPickerTokens {
   const TioWheelPickerTokens._();
 
-  static const viewportHeight = 200.0;
-  static const selectionHeight = 48.0;
-  static const selectionHorizontalMargin = TioSpacing.large;
+  static const viewportHeight = TioSize.dp200;
+  static const selectionHeight = TioSize.dp48;
+  static const selectionHorizontalMargin = TioSpacing.lg;
   static const selectionSurfaceAlpha = TioAlpha.alpha200;
-  static const itemExtent = 44.0;
+  static const itemExtent = TioSize.dp44;
   static const selectedFontSize = TioFontSize.size22;
 }
