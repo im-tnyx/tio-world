@@ -1,87 +1,119 @@
 import '../foundation/tio_palette.dart';
-import '../foundation/tio_stroke.dart';
-import '../primitive/tio_alpha.dart';
-import '../primitive/tio_size.dart';
-import '../typography/tio_font_size.dart';
-import '../typography/tio_letter_spacing.dart';
-import '../typography/tio_line_height.dart';
+import 'tio_delete_account_dialog_tokens.dart';
+import 'tio_otp_dialog_tokens.dart';
 
-class TioDialogTokens {
-  const TioDialogTokens._();
-
-  static const otpInsetHorizontal = TioSize.dp32;
-  static const otpPanelTopPadding = TioSize.dp28;
-  static const otpPanelRadius = TioSize.dp28;
-  static const otpPanelOutlineAlpha = TioAlpha.alpha30;
+/// Temporary compatibility facade while current core consumers migrate to the
+/// focused reusable dialog contracts.
+@Deprecated('Use TioOtpDialogTokens or TioDeleteAccountDialogTokens.')
+abstract final class TioDialogTokens {
+  static const otpInsetHorizontal = TioOtpDialogTokens.insetHorizontal;
+  static const otpPanelTopPadding = TioOtpDialogTokens.panelTopPadding;
+  static const otpPanelRadius = TioOtpDialogTokens.panelRadius;
+  static const otpPanelOutlineAlpha = TioOtpDialogTokens.panelOutlineAlpha;
 
   /// Compatibility-only physical shadow color for unmigrated callers.
-  /// Runtime dialog rendering must resolve the semantic shadow color through
-  /// `context.tioShadows.elevatedPanelColor` so theme modes can diverge later.
+  /// Runtime dialog rendering resolves `context.tioShadows.elevatedPanelColor`.
   static const otpShadowColor = TioPalette.blackAlpha80;
 
-  static const otpShadowBlurRadius = TioSize.dp30;
-  static const otpShadowOffsetY = TioSize.dp10;
-  static const otpTitleFontSize = TioFontSize.size16;
-  static const otpTitleLetterSpacing = TioLetterSpacing.negative02;
-  static const otpTitleToInputGap = TioSize.dp18;
-  static const otpInputHeight = TioSize.dp52;
-  static const otpInputRadius = TioSize.dp26;
-  static const otpErrorOutlineAlpha = TioAlpha.alpha90;
-  static const otpInputOutlineAlpha = TioAlpha.alpha40;
-  static const otpInputHorizontalPadding = TioSize.dp20;
-  static const otpInputFontSize = TioFontSize.size20;
-  static const otpInputLetterSpacing = TioLetterSpacing.positive60;
-  static const otpErrorFontSize = TioFontSize.size12;
-  static const otpSubtitleTopGap = TioSize.dp14;
-  static const otpSubtitleFontSize = TioFontSize.size13;
-  static const otpSubtitleLineHeight = TioLineHeight.height135;
-  static const otpVerifyTopGap = TioSize.dp22;
-  static const otpActionRadius = TioSize.dp20;
-  static const otpActionHorizontalPadding = TioSize.dp28;
-  static const otpActionContainerAlpha = TioAlpha.alpha40;
-  static const otpLoadingSize = TioSize.dp18;
-  static const otpLoadingStrokeWidth = TioStroke.width2;
-  static const otpActionFontSize = TioFontSize.size13;
-  static const otpActionLetterSpacing = TioLetterSpacing.positive08;
-  static const otpBackTopGap = TioSize.dp14;
+  static const otpShadowBlurRadius = TioOtpDialogTokens.shadowBlurRadius;
+  static const otpShadowOffsetY = TioOtpDialogTokens.shadowOffsetY;
+  static const otpTitleFontSize = TioOtpDialogTokens.titleFontSize;
+  static const otpTitleLetterSpacing = TioOtpDialogTokens.titleLetterSpacing;
+  static const otpTitleToInputGap = TioOtpDialogTokens.titleToInputGap;
+  static const otpInputHeight = TioOtpDialogTokens.inputHeight;
+  static const otpInputRadius = TioOtpDialogTokens.inputRadius;
+  static const otpErrorOutlineAlpha = TioOtpDialogTokens.errorOutlineAlpha;
+  static const otpInputOutlineAlpha = TioOtpDialogTokens.inputOutlineAlpha;
+  static const otpInputHorizontalPadding =
+      TioOtpDialogTokens.inputHorizontalPadding;
+  static const otpInputFontSize = TioOtpDialogTokens.inputFontSize;
+  static const otpInputLetterSpacing = TioOtpDialogTokens.inputLetterSpacing;
+  static const otpErrorFontSize = TioOtpDialogTokens.errorFontSize;
+  static const otpSubtitleTopGap = TioOtpDialogTokens.subtitleTopGap;
+  static const otpSubtitleFontSize = TioOtpDialogTokens.subtitleFontSize;
+  static const otpSubtitleLineHeight = TioOtpDialogTokens.subtitleLineHeight;
+  static const otpVerifyTopGap = TioOtpDialogTokens.verifyTopGap;
+  static const otpActionRadius = TioOtpDialogTokens.actionRadius;
+  static const otpActionHorizontalPadding =
+      TioOtpDialogTokens.actionHorizontalPadding;
+  static const otpActionContainerAlpha = TioOtpDialogTokens.actionContainerAlpha;
+  static const otpLoadingSize = TioOtpDialogTokens.loadingSize;
+  static const otpLoadingStrokeWidth = TioOtpDialogTokens.loadingStrokeWidth;
+  static const otpActionFontSize = TioOtpDialogTokens.actionFontSize;
+  static const otpActionLetterSpacing = TioOtpDialogTokens.actionLetterSpacing;
+  static const otpBackTopGap = TioOtpDialogTokens.backTopGap;
 
-  static const deleteHoldFillColor = TioPalette.red550;
-  static const deleteHoldContentColor = TioPalette.white;
-  static const deleteOverlayBackgroundAlpha = TioAlpha.alpha245;
-  static const deleteCloseButtonSize = TioSize.dp36;
-  static const deleteCloseContainerAlpha = TioAlpha.alpha25;
-  static const deleteCloseIconSize = TioSize.dp20;
-  static const deleteCloseSplashRadius = TioSize.dp18;
-  static const deleteHeadlineFontSize = TioFontSize.size28;
-  static const deleteHeadlineLetterSpacing = TioLetterSpacing.negative05;
-  static const deleteBodyFontSize = TioFontSize.size16;
-  static const deleteBodyLineHeight = TioLineHeight.height140;
-  static const deleteWarningFontSize = TioFontSize.size14;
-  static const deleteActionSectionGap = TioSize.dp36;
-  static const deleteActionButtonHeight = TioSize.dp54;
-  static const deleteActionButtonRadius = TioSize.dp27;
-  static const deleteActionLabelFontSize = TioFontSize.size16;
-  static const deleteActionContainerAlpha = TioAlpha.alpha35;
-  static const deleteHoldHeadlineLineHeight = TioLineHeight.height125;
-  static const deleteHoldBodyFontSize = TioFontSize.size15;
-  static const deleteHoldControlTopGap = TioSize.dp48;
-  static const deleteCountdownHeight = TioSize.dp44;
-  static const deleteCountdownFontSize = TioFontSize.size34;
-  static const deleteHoldControlSize = TioSize.dp140;
-  static const deleteHoldStrokeWidth = TioStroke.width6;
-  static const deleteHoldTrackAlpha = TioAlpha.alpha25;
-  static const deleteHoldButtonSize = TioSize.dp100;
-  static const deleteHoldGlowAlpha = TioAlpha.alpha80;
-  static const deleteHoldGlowBlurRadius = TioSize.dp20;
-  static const deleteHoldGlowSpreadRadius = TioSize.dp2;
-  static const deleteHoldLoadingStrokeWidth = TioStroke.width25;
-  static const deleteHoldActionGap = TioSize.dp56;
-  static const deleteCompletedIconContainerSize = TioSize.dp72;
-  static const deleteCompletedIconContainerAlpha = TioAlpha.alpha30;
-  static const deleteCompletedIconSize = TioSize.dp38;
-  static const deleteCompletedIconGap = TioSize.dp20;
-  static const deleteCompletedTitleFontSize = TioFontSize.size24;
-  static const deleteCompletedTextGap = TioSize.dp10;
-  static const deleteCompletedBodyFontSize = TioFontSize.size14;
-  static const deleteCompletedBodyLineHeight = TioLineHeight.height135;
+  static const deleteHoldFillColor = TioDeleteAccountDialogTokens.holdFillColor;
+  static const deleteHoldContentColor =
+      TioDeleteAccountDialogTokens.holdContentColor;
+  static const deleteOverlayBackgroundAlpha =
+      TioDeleteAccountDialogTokens.overlayBackgroundAlpha;
+  static const deleteCloseButtonSize =
+      TioDeleteAccountDialogTokens.closeButtonSize;
+  static const deleteCloseContainerAlpha =
+      TioDeleteAccountDialogTokens.closeContainerAlpha;
+  static const deleteCloseIconSize = TioDeleteAccountDialogTokens.closeIconSize;
+  static const deleteCloseSplashRadius =
+      TioDeleteAccountDialogTokens.closeSplashRadius;
+  static const deleteHeadlineFontSize =
+      TioDeleteAccountDialogTokens.headlineFontSize;
+  static const deleteHeadlineLetterSpacing =
+      TioDeleteAccountDialogTokens.headlineLetterSpacing;
+  static const deleteBodyFontSize = TioDeleteAccountDialogTokens.bodyFontSize;
+  static const deleteBodyLineHeight = TioDeleteAccountDialogTokens.bodyLineHeight;
+  static const deleteWarningFontSize =
+      TioDeleteAccountDialogTokens.warningFontSize;
+  static const deleteActionSectionGap =
+      TioDeleteAccountDialogTokens.actionSectionGap;
+  static const deleteActionButtonHeight =
+      TioDeleteAccountDialogTokens.actionButtonHeight;
+  static const deleteActionButtonRadius =
+      TioDeleteAccountDialogTokens.actionButtonRadius;
+  static const deleteActionLabelFontSize =
+      TioDeleteAccountDialogTokens.actionLabelFontSize;
+  static const deleteActionContainerAlpha =
+      TioDeleteAccountDialogTokens.actionContainerAlpha;
+  static const deleteHoldHeadlineLineHeight =
+      TioDeleteAccountDialogTokens.holdHeadlineLineHeight;
+  static const deleteHoldBodyFontSize =
+      TioDeleteAccountDialogTokens.holdBodyFontSize;
+  static const deleteHoldControlTopGap =
+      TioDeleteAccountDialogTokens.holdControlTopGap;
+  static const deleteCountdownHeight =
+      TioDeleteAccountDialogTokens.countdownHeight;
+  static const deleteCountdownFontSize =
+      TioDeleteAccountDialogTokens.countdownFontSize;
+  static const deleteHoldControlSize =
+      TioDeleteAccountDialogTokens.holdControlSize;
+  static const deleteHoldStrokeWidth =
+      TioDeleteAccountDialogTokens.holdStrokeWidth;
+  static const deleteHoldTrackAlpha =
+      TioDeleteAccountDialogTokens.holdTrackAlpha;
+  static const deleteHoldButtonSize =
+      TioDeleteAccountDialogTokens.holdButtonSize;
+  static const deleteHoldGlowAlpha = TioDeleteAccountDialogTokens.holdGlowAlpha;
+  static const deleteHoldGlowBlurRadius =
+      TioDeleteAccountDialogTokens.holdGlowBlurRadius;
+  static const deleteHoldGlowSpreadRadius =
+      TioDeleteAccountDialogTokens.holdGlowSpreadRadius;
+  static const deleteHoldLoadingStrokeWidth =
+      TioDeleteAccountDialogTokens.holdLoadingStrokeWidth;
+  static const deleteHoldActionGap =
+      TioDeleteAccountDialogTokens.holdActionGap;
+  static const deleteCompletedIconContainerSize =
+      TioDeleteAccountDialogTokens.completedIconContainerSize;
+  static const deleteCompletedIconContainerAlpha =
+      TioDeleteAccountDialogTokens.completedIconContainerAlpha;
+  static const deleteCompletedIconSize =
+      TioDeleteAccountDialogTokens.completedIconSize;
+  static const deleteCompletedIconGap =
+      TioDeleteAccountDialogTokens.completedIconGap;
+  static const deleteCompletedTitleFontSize =
+      TioDeleteAccountDialogTokens.completedTitleFontSize;
+  static const deleteCompletedTextGap =
+      TioDeleteAccountDialogTokens.completedTextGap;
+  static const deleteCompletedBodyFontSize =
+      TioDeleteAccountDialogTokens.completedBodyFontSize;
+  static const deleteCompletedBodyLineHeight =
+      TioDeleteAccountDialogTokens.completedBodyLineHeight;
 }
