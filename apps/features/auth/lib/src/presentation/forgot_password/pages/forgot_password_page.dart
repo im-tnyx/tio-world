@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
 
 import '../../../domain/domain.dart';
+import '../../theme/auth_forgot_password_tokens.dart';
+import '../../theme/auth_form_tokens.dart';
 import '../../theme/auth_visual_tokens.dart';
 
 /// Forgot password screen.
@@ -82,11 +84,15 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
+        // Intentional framework-transparent app bar; not a palette role.
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back,
-              color: colors.textPrimary, size: 24),
+          icon: Icon(
+            Icons.arrow_back,
+            color: colors.textPrimary,
+            size: AuthFormTokens.backIconSize,
+          ),
           onPressed: () => context.pop(),
           tooltip: 'Back',
         ),
@@ -108,18 +114,24 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 16),
+                        const SizedBox(height: TioSpacing.large),
                         Text(
                           'Reset password',
                           style: textTheme.displayLarge,
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(
+                          height:
+                              AuthForgotPasswordTokens.titleToDescriptionGap,
+                        ),
                         Text(
                           "Enter your email address and we'll send you\na reset link.",
                           style: textTheme.bodyLarge
                               ?.copyWith(color: colors.textSecondary),
                         ),
-                        const SizedBox(height: 40),
+                        const SizedBox(
+                          height:
+                              AuthForgotPasswordTokens.descriptionToInputGap,
+                        ),
 
                         // Email field
                         TextFormField(
@@ -136,20 +148,25 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                             prefixIcon: Icon(
                               Icons.mail_outline_rounded,
                               color: colors.textMuted,
-                              size: 20,
+                              size: AuthFormTokens.inputLeadingIconSize,
                             ),
                             contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 16),
+                              horizontal: TioInputTokens.horizontalPadding,
+                              vertical:
+                                  TioInputTokens.standardContentVerticalPadding,
+                            ),
                           ),
                           validator: _validateEmail,
                         ),
 
                         // Error banner
                         if (_errorMessage != null) ...[
-                          const SizedBox(height: 16),
+                          const SizedBox(height: TioSpacing.large),
                           _ErrorBanner(message: _errorMessage!),
                         ],
-                        const SizedBox(height: 28),
+                        const SizedBox(
+                          height: AuthForgotPasswordTokens.submitTopGap,
+                        ),
 
                         // Send reset button
                         TioButton.primary(
@@ -158,7 +175,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                           loading: _isLoading,
                           onPressed: _isLoading ? null : _handleSendReset,
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: TioSpacing.extraLarge),
 
                         // Back to sign in
                         Center(
@@ -171,7 +188,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                               'Back to Sign In',
                               style: textTheme.bodyLarge?.copyWith(
                                 color: colors.primary,
-                                fontWeight: FontWeight.w600,
+                                fontWeight:
+                                    AuthFormTokens.secondaryActionFontWeight,
                               ),
                             ),
                           ),
@@ -204,30 +222,41 @@ class _SuccessState extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const SizedBox(height: 48),
+        const SizedBox(height: AuthForgotPasswordTokens.successTopGap),
         Container(
-          width: 80,
-          height: 80,
+          width: AuthForgotPasswordTokens.successIconContainerSize,
+          height: AuthForgotPasswordTokens.successIconContainerSize,
           decoration: BoxDecoration(
-            color: colors.success.withValues(alpha: 0.12),
+            color: colors.success.withValues(
+              alpha: AuthForgotPasswordTokens.successIconContainerOpacity,
+            ),
             shape: BoxShape.circle,
           ),
-          child:
-              Icon(Icons.mark_email_read_outlined, color: colors.success, size: 40),
+          child: Icon(
+            Icons.mark_email_read_outlined,
+            color: colors.success,
+            size: AuthForgotPasswordTokens.successIconSize,
+          ),
         ),
-        const SizedBox(height: 28),
+        const SizedBox(
+          height: AuthForgotPasswordTokens.successIconToTitleGap,
+        ),
         Text(
           'Check your inbox',
           style: textTheme.displayLarge,
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(
+          height: AuthForgotPasswordTokens.successTitleToBodyGap,
+        ),
         Text(
           'We sent a password reset link to\n$email',
           style: textTheme.bodyLarge?.copyWith(color: colors.textSecondary),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 40),
+        const SizedBox(
+          height: AuthForgotPasswordTokens.successBodyToButtonGap,
+        ),
         SizedBox(
           width: double.infinity,
           child: TioButton.primary(
