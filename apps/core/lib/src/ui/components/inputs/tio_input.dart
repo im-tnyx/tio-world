@@ -177,7 +177,7 @@ class _TioInputState extends State<TioInput> {
             color: hasError
                 ? colors.danger
                 : (widget.enabled ? colors.textPrimary : colors.textMuted),
-            fontSize: 16,
+            fontSize: TioInputTokens.compactTextFontSize,
             fontWeight: FontWeight.w700,
           )
         : textTheme.bodyLarge?.copyWith(
@@ -185,7 +185,11 @@ class _TioInputState extends State<TioInput> {
           );
 
     final inputBorderRadius = BorderRadius.circular(TioInputTokens.radius);
-    final unfocusedBorderColor = colors.outlineStrong.withValues(alpha: isDark ? 0.35 : 0.45);
+    final unfocusedBorderColor = colors.outlineStrong.withValues(
+      alpha: isDark
+          ? TioInputTokens.darkUnfocusedOutlineOpacity
+          : TioInputTokens.lightUnfocusedOutlineOpacity,
+    );
     final focusedBorderColor = colors.primary;
 
     final effectiveBorder = isCompact
@@ -194,7 +198,7 @@ class _TioInputState extends State<TioInput> {
             borderRadius: inputBorderRadius,
             borderSide: BorderSide(
               color: hasError ? colors.danger : unfocusedBorderColor,
-              width: TioCardTokens.borderThin, // 0.75px (AppDimens.borderThin)
+              width: TioInputTokens.outlineWidth,
             ),
           );
 
@@ -202,14 +206,14 @@ class _TioInputState extends State<TioInput> {
         ? UnderlineInputBorder(
             borderSide: BorderSide(
               color: hasError ? colors.danger : colors.primary,
-              width: TioCardTokens.borderThick, // 1.25px (AppDimens.borderThick)
+              width: TioInputTokens.focusedOutlineWidth,
             ),
           )
         : OutlineInputBorder(
             borderRadius: inputBorderRadius,
             borderSide: BorderSide(
               color: hasError ? colors.danger : focusedBorderColor,
-              width: TioCardTokens.borderThick, // 1.25px (AppDimens.borderThick)
+              width: TioInputTokens.focusedOutlineWidth,
             ),
           );
 
@@ -246,16 +250,18 @@ class _TioInputState extends State<TioInput> {
           color: hasError
               ? colors.danger
               : (_isFocused ? colors.textPrimary : colors.textSecondary),
-          fontSize: 14,
+          fontSize: TioInputTokens.labelFontSize,
         ),
         floatingLabelStyle: TextStyle(
           color: hasError ? colors.danger : colors.textPrimary,
-          fontSize: 14,
+          fontSize: TioInputTokens.labelFontSize,
           fontWeight: FontWeight.w500,
         ),
         hintStyle: TextStyle(
           color: colors.textMuted,
-          fontSize: isCompact ? 15 : 14,
+          fontSize: isCompact
+              ? TioInputTokens.compactHintFontSize
+              : TioInputTokens.standardHintFontSize,
           fontWeight: isCompact ? FontWeight.w600 : FontWeight.normal,
         ),
         enabledBorder: effectiveBorder,
@@ -264,8 +270,14 @@ class _TioInputState extends State<TioInput> {
         focusedErrorBorder: effectiveFocusedBorder,
         contentPadding: widget.contentPadding ??
             (isCompact
-                ? const EdgeInsets.symmetric(vertical: 10, horizontal: 8)
-                : const EdgeInsets.symmetric(horizontal: 16, vertical: 16)),
+                ? const EdgeInsets.symmetric(
+                    vertical: TioInputTokens.compactContentVerticalPadding,
+                    horizontal: TioInputTokens.compactContentHorizontalPadding,
+                  )
+                : const EdgeInsets.symmetric(
+                    horizontal: TioInputTokens.horizontalPadding,
+                    vertical: TioInputTokens.standardContentVerticalPadding,
+                  )),
       ),
     );
   }

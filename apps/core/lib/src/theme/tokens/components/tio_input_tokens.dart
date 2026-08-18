@@ -6,6 +6,17 @@ class TioInputTokens {
   static const radius = 14.0;
   static const minHeight = 52.0;
   static const horizontalPadding = TioSpacing.large;
+  static const outlineWidth = 0.75;
+  static const focusedOutlineWidth = 1.25;
+  static const darkUnfocusedOutlineOpacity = 0.35;
+  static const lightUnfocusedOutlineOpacity = 0.45;
+  static const compactTextFontSize = 16.0;
+  static const labelFontSize = 14.0;
+  static const compactHintFontSize = 15.0;
+  static const standardHintFontSize = 14.0;
+  static const compactContentVerticalPadding = 10.0;
+  static const compactContentHorizontalPadding = TioSpacing.small;
+  static const standardContentVerticalPadding = TioSpacing.large;
 
   static const mobileCountryToFieldGap = 14.0;
   static const mobileFieldHeight = 56.0;

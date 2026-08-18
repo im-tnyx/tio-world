@@ -18,6 +18,8 @@ void main() {
       expect(TioButtonTokens.contentGap, TioSpacing.small);
       expect(TioCardTokens.padding, TioSpacing.large);
       expect(TioInputTokens.horizontalPadding, TioSpacing.large);
+      expect(TioInputTokens.compactContentHorizontalPadding, TioSpacing.small);
+      expect(TioInputTokens.standardContentVerticalPadding, TioSpacing.large);
       expect(TioSheetTokens.padding, TioSpacing.large);
       expect(TioSheetTokens.titleGap, TioSpacing.medium);
     });
@@ -39,6 +41,15 @@ void main() {
       expect(TioDialogTokens.otpShadowBlurRadius, 30.0);
       expect(TioDialogTokens.otpShadowOffsetY, 10.0);
       expect(TioInputTokens.radius, 14.0);
+      expect(TioInputTokens.outlineWidth, 0.75);
+      expect(TioInputTokens.focusedOutlineWidth, 1.25);
+      expect(TioInputTokens.darkUnfocusedOutlineOpacity, 0.35);
+      expect(TioInputTokens.lightUnfocusedOutlineOpacity, 0.45);
+      expect(TioInputTokens.compactTextFontSize, 16.0);
+      expect(TioInputTokens.labelFontSize, 14.0);
+      expect(TioInputTokens.compactHintFontSize, 15.0);
+      expect(TioInputTokens.standardHintFontSize, 14.0);
+      expect(TioInputTokens.compactContentVerticalPadding, 10.0);
       expect(TioInputTokens.mobileCountryToFieldGap, 14.0);
       expect(TioInputTokens.mobileFieldHeight, 56.0);
       expect(TioInputTokens.mobileCountryFlagFontSize, 22.0);
