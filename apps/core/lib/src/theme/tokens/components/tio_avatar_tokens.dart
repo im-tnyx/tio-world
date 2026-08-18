@@ -1,11 +1,16 @@
+import '../primitive/tio_size.dart';
+
 class TioAvatarTokens {
   const TioAvatarTokens._();
 
-  static const compactSize = 24.0;
-  static const smallSize = 36.0;
-  static const mediumSize = 48.0;
-  static const largeSize = 100.0;
-  static const extraLargeSize = 160.0;
+  // Reusable Avatar size contracts alias the canonical physical geometry
+  // registry. Avatar owns the semantic roles; TioSize owns the numbers.
+  static const compactSize = TioSize.dp24;
+  static const smallSize = TioSize.dp36;
+  static const mediumSize = TioSize.dp48;
+  static const largeSize = TioSize.dp100;
+  static const extraLargeSize = TioSize.dp160;
+
   static const roundedRadiusFactor = 0.28;
 
   static const plusRingWidth = 3.0;
