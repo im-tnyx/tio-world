@@ -32,6 +32,8 @@ void main() {
     test('component-owned values keep audited runtime contracts', () {
       expect(TioCardTokens.materialThemeRadius, 20.0);
       expect(TioCardTokens.materialThemeElevation, 0.0);
+      expect(TioCardTokens.glassContainerOpacity, 0.72);
+      expect(TioCardTokens.glassBorderOpacity, 0.16);
       expect(TioInputTokens.radius, 14.0);
       expect(TioNavigationTokens.labelTopPadding, 2.0);
 

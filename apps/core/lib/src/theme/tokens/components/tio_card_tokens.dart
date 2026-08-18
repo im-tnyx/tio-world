@@ -14,6 +14,9 @@ class TioCardTokens {
   static const materialThemeRadius = 20.0;
   static const materialThemeElevation = 0.0;
 
+  static const glassContainerOpacity = 0.72;
+  static const glassBorderOpacity = 0.16;
+
   // Border Tokens
   static const borderThin = 0.75;
   static const borderThick = 1.25;
