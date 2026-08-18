@@ -17,7 +17,7 @@ class OnboardingDobWheel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 200,
+      height: TioWheelPickerTokens.viewportHeight,
       child: TioDobWheelPicker(
         initialDate: value ?? DateTime.now(),
         startYear: _startYear,
