@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../theme/locals/tio_theme_context.dart';
+import '../../../theme/context/tio_theme_context.dart';
 import '../../../theme/tokens/components/tio_avatar_tokens.dart';
 
 enum TioAvatarSize {

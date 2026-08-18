@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tio_shared/shared.dart';
 
-import '../../../../theme/locals/tio_theme_context.dart';
+import '../../../../theme/context/tio_theme_context.dart';
 import '../../../../theme/tokens/components/tio_navigation_tokens.dart';
 import '../state/shell_state.dart';
 
