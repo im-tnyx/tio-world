@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
 
 import '../../../domain/domain.dart';
+import '../../theme/auth_form_tokens.dart';
 import '../../theme/auth_visual_tokens.dart';
 
 /// Canonical Sign Up screen for fresh-account authentication.
@@ -178,7 +179,7 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                     0,
                   ),
                   child: SizedBox(
-                    height: 48,
+                    height: AuthFormTokens.topBarHeight,
                     child: Row(
                       children: [
                         IconButton(
@@ -198,8 +199,8 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                         Text(
                           'Sign Up',
                           style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
+                            fontSize: AuthFormTokens.titleFontSize,
+                            fontWeight: AuthFormTokens.titleFontWeight,
                             color: colors.textPrimary,
                           ),
                         ),
@@ -321,7 +322,7 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                                     ? Icons.visibility_outlined
                                     : Icons.visibility_off_outlined,
                                 color: colors.textMuted,
-                                size: 22,
+                                size: AuthFormTokens.passwordVisibilityIconSize,
                               ),
                               onPressed: _isBusy
                                   ? null
@@ -344,23 +345,23 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                           enabled: _isFormValid && !_isGoogleLoading,
                           onPressed: _handleSignUp,
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: TioSpacing.extraLarge),
                         _OrDivider(colors: colors),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: TioSpacing.extraLarge),
                         TioSocialButton.google(
                           key: const ValueKey('signup-google-button'),
                           loading: _isGoogleLoading,
                           enabled: !_isEmailLoading,
                           onPressed: _handleGoogleSignIn,
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: AuthFormTokens.socialProviderGap),
                         TioSocialButton.truecaller(
                           key: const ValueKey('signup-truecaller-button'),
                           loading: false,
                           enabled: !_isBusy,
                           onPressed: widget.onTruecallerClick ?? () {},
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: TioSpacing.large),
                         const TioTermsDisclaimer(),
                         const SizedBox(
                           height: TioSpacing.extraLarge + TioSpacing.small,
@@ -380,7 +381,7 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                       Text(
                         'Already have an account? ',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: AuthFormTokens.footerFontSize,
                           color: colors.textSecondary,
                         ),
                       ),
@@ -391,8 +392,8 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                             : () => context.pushReplacement(AppRoutes.login.path),
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 8,
+                            horizontal: AuthFormTokens.footerLinkHorizontalPadding,
+                            vertical: AuthFormTokens.footerLinkVerticalPadding,
                           ),
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -400,8 +401,8 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                         child: Text(
                           'Log In',
                           style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
+                            fontSize: AuthFormTokens.footerFontSize,
+                            fontWeight: AuthFormTokens.footerLinkFontWeight,
                             color: colors.textPrimary,
                           ),
                         ),
