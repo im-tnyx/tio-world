@@ -23,6 +23,7 @@ void main() {
       expect(TioInputTokens.compactContentHorizontalPadding, TioSpacing.small);
       expect(TioInputTokens.standardContentVerticalPadding, TioSpacing.large);
       expect(TioMeasurementPickerTokens.headerSubtitleGap, TioSpacing.medium);
+      expect(TioNavigationTokens.planContentGap, TioSpacing.extraSmall);
       expect(TioSheetTokens.padding, TioSpacing.large);
       expect(TioSheetTokens.titleGap, TioSpacing.medium);
     });
@@ -117,6 +118,9 @@ void main() {
       expect(TioMeasurementPickerTokens.unitFontSize, 18.0);
       expect(TioMeasurementPickerTokens.dualInputGap, 14.0);
       expect(TioNavigationTokens.labelTopPadding, 2.0);
+      expect(TioNavigationTokens.topBarLeadingWidth, 72.0);
+      expect(TioNavigationTokens.planIconSize, 14.0);
+      expect(TioNavigationTokens.planPlusAccentColor, const Color(0xFFF59E0B));
 
       expect(TioNavigationTokens.iconSize, 22.0);
       expect(TioNavigationTokens.aiTabActivePadding, 5.0);

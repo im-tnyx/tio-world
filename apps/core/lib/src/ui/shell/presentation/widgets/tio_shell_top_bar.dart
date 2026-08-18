@@ -34,10 +34,11 @@ class TioShellTopBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       automaticallyImplyLeading: false,
       shape: null,
+      // Transparent tint/shadow intentionally suppress Material overlay effects.
       surfaceTintColor: Colors.transparent,
       shadowColor: Colors.transparent,
-      scrolledUnderElevation: 0,
-      leadingWidth: TioSpacing.extraLarge * 3,
+      scrolledUnderElevation: TioNavigationTokens.elevation,
+      leadingWidth: TioNavigationTokens.topBarLeadingWidth,
       leading: Padding(
         padding: const EdgeInsets.only(left: TioSpacing.large),
         child: Align(
@@ -70,15 +71,15 @@ class TioShellTopBar extends StatelessWidget implements PreferredSizeWidget {
                     if (planTier == ShellPlanTier.plus)
                       const Icon(
                         Icons.star_rounded,
-                        size: 14,
-                        color: Color(0xFFF59E0B),
+                        size: TioNavigationTokens.planIconSize,
+                        color: TioNavigationTokens.planPlusAccentColor,
                       )
                     else if (planTier == ShellPlanTier.premium)
                       SvgPicture.asset(
                         'assets/svg_icon/ic_pro_fill.svg',
                         package: 'tio_core',
-                        width: 14,
-                        height: 14,
+                        width: TioNavigationTokens.planIconSize,
+                        height: TioNavigationTokens.planIconSize,
                         colorFilter: ColorFilter.mode(
                           colorScheme.onPrimaryContainer,
                           BlendMode.srcIn,
@@ -88,14 +89,14 @@ class TioShellTopBar extends StatelessWidget implements PreferredSizeWidget {
                       SvgPicture.asset(
                         'assets/svg_icon/ic_pro_outline.svg',
                         package: 'tio_core',
-                        width: 14,
-                        height: 14,
+                        width: TioNavigationTokens.planIconSize,
+                        height: TioNavigationTokens.planIconSize,
                         colorFilter: ColorFilter.mode(
                           colorScheme.onPrimaryContainer,
                           BlendMode.srcIn,
                         ),
                       ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: TioNavigationTokens.planContentGap),
                     Flexible(
                       child: Text(
                         planTier.label,
@@ -117,7 +118,7 @@ class TioShellTopBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
       backgroundColor: colorScheme.surface.withValues(alpha: opacity),
-      elevation: 0,
+      elevation: TioNavigationTokens.elevation,
       actions: [
         IconButton(
           tooltip: 'Profile',
