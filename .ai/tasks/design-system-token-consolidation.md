@@ -82,6 +82,8 @@ Current audited integer geometry includes values such as:
 
 Do not generate arbitrary unused ranges. Add exact values when product code/design evidence proves they are needed.
 
+A primitive may remain while another semantic category still uses it. Remove an audited primitive only after zero-reference verification proves it is no longer needed.
+
 ### TioSpacing
 
 Canonical reusable spacing scale:
@@ -127,19 +129,31 @@ TioIconSize.xs may later be 16dp
 
 `TioIconSize` and `TioStroke` should be introduced only when reusable roles are evidenced by the component audit.
 
-## No Silent Normalization
+## Controlled Semantic Normalization
 
-Architecture cleanup preserves exact rendered values.
+The earlier rule that every existing spacing/radius value must remain numerically exact during token migration is superseded by this explicitly approved normalization rule.
+
+When migrating a **spacing or radius** value to the canonical semantic scale, a value that is exactly `1dp` away from the intended reusable role may be normalized to that role when the semantic intent is clear.
+
+Approved examples:
 
 ```text
-current = 7dp
-nearby shared role = 8dp
-
-7 → 8                       ❌
-add/reuse governed exact 7  ✅
+5dp spacing → TioSpacing.xs → 4dp   ✅
+7dp spacing → TioSpacing.sm → 8dp   ✅
 ```
 
-The same rule applies to colors, alpha, typography, motion, shadows, and fixed ratios.
+This is an intentional design-system migration adjustment, not accidental pixel drift.
+
+Rules:
+
+- normalization is limited to `±1dp`;
+- it applies only to spacing/radius migration into a clearly matching canonical semantic role;
+- record every normalization in the active slice evidence;
+- do not create `TioSpacing` roles such as `5dp` or `7dp` merely to preserve near-duplicate spacing;
+- do not delete `TioSize.dp5` or another physical primitive if another legitimate geometry contract still uses it;
+- if the difference is greater than `1dp`, the semantic target is ambiguous, or the value belongs to another category, preserve the current value unless separately approved.
+
+This approval does **not** automatically normalize component heights, icon/image sizes, typography, colors, alpha, shadows, motion, responsive ratios, or unrelated geometry.
 
 ## Component Ownership Rule
 
@@ -174,13 +188,13 @@ Theme.of(context).textTheme
 
 `context/` must not become a wrapper layer for static tokens. Compatibility APIs are removed only after zero-reference verification.
 
-## Mandatory Visual Freeze
+## Visual Governance
 
-This program is an ownership/refactor program, not a screen redesign.
+This program is an ownership/refactor program, not a general screen redesign.
 
-**No screen design/UI may change under this task, Issue #6, or PR #22 without a separate explicit owner/design confirmation.**
+**No screen design/UI may change under this task, Issue #6, or PR #22 without explicit approval, except the controlled `±1dp` spacing/radius normalization approved above.**
 
-Without separate approval, do not change visible colors, layout, spacing, radius/shape, typography appearance, icon/image sizing, component geometry, shadows/elevation, motion/choreography, or other product-visible pixel contracts.
+Without another explicit approval, do not change visible colors, typography appearance, icon/image sizing, component heights/widths, shadows/elevation, motion/choreography, responsive visual contracts, or other product-visible values outside that narrow normalization rule.
 
 ## Target Core Structure
 
@@ -238,7 +252,7 @@ Each slice follows:
 4. Implementation
 5. Focused tests
 6. Static audit
-7. Pixel/UI regression check
+7. Visual regression / approved-normalization review
 8. Analyze
 9. Required CI
 10. Evidence update
@@ -253,12 +267,14 @@ This program does not change Auth/session identity architecture, Account Setup b
 
 ## Testing and Searchability Standard
 
-Tests must preserve exact product values and ownership relationships.
+Tests must preserve canonical physical ownership and approved semantic relationships.
 
 ```dart
 expect(TioSize.dp14, 14.0);
 expect(TioInputTokens.radius, TioSize.dp14);
 ```
+
+Where controlled normalization is applied, tests should lock the canonical target relationship rather than the retired near-duplicate spacing/radius literal.
 
 Canonical physical values must be searchable from their primitive owner. Regex-only number bans are insufficient; audits must classify legitimate business/runtime values separately from fixed visual contracts.
 
@@ -269,12 +285,13 @@ The parent task is complete only when Slice H is validated and repository-wide e
 - every fixed product-visible physical value has one canonical core owner;
 - primitive registries contain evidenced/approved values only;
 - semantic scales are scalable and not artificially capped by legacy role counts;
+- approved `±1dp` spacing/radius normalizations are documented and intentional;
 - foundation/semantic/typography/effects/component contracts compose governed ownership;
 - no feature-owned design-token/color/layout/theme catalog remains;
 - no screen-specific token bag is hidden in core components;
 - canonical dynamic Flutter theme access has no duplicate equivalent API;
 - no unexplained production visual literal remains after classification;
-- no visible UI change occurred without separate explicit approval;
+- no visible UI change occurred outside separately approved decisions, including the controlled normalization rule;
 - focused tests, analyze, and required CI pass;
 - Issue #6 and Draft PR #22 reflect the validated final state.
 
