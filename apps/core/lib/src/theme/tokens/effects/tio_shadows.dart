@@ -1,19 +1,15 @@
 import 'package:flutter/material.dart';
 
+import 'tio_shadow_tokens.dart';
+
 class TioShadows extends ThemeExtension<TioShadows> {
   const TioShadows({required this.soft});
 
   final List<BoxShadow> soft;
 
-  static const standard = TioShadows(
-    soft: [
-      BoxShadow(
-        blurRadius: 24,
-        offset: Offset(0, 12),
-        color: Color(0x1A000000),
-      ),
-    ],
-  );
+  /// Runtime standard shadow scheme backed by the canonical static effect
+  /// contract. Physical shadow values are owned by [TioShadowTokens].
+  static const standard = TioShadows(soft: TioShadowTokens.soft);
 
   @override
   TioShadows copyWith({List<BoxShadow>? soft}) {
