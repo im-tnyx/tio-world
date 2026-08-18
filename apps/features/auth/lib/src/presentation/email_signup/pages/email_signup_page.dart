@@ -160,7 +160,7 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -474,7 +474,7 @@ class _FloatingErrorBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Material(
       color: Colors.transparent,
