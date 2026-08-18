@@ -175,7 +175,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final isDark = colors.isDark;
 
     final inputBorderRadius = BorderRadius.circular(TioRadius.large);
@@ -478,7 +478,7 @@ class _FloatingErrorBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     return Material(
       color: Colors.transparent,
       elevation: 6,
