@@ -16,7 +16,9 @@ void main() {
     test('spacing aliases stay aligned with foundation semantics', () {
       expect(TioButtonTokens.contentGap, TioSpacing.small);
       expect(TioCardTokens.padding, TioSpacing.large);
-      expect(TioSheetTokens.padding, TioSpacing.extraLarge);
+      expect(TioInputTokens.horizontalPadding, TioSpacing.large);
+      expect(TioSheetTokens.padding, TioSpacing.large);
+      expect(TioSheetTokens.titleGap, TioSpacing.medium);
     });
 
     test('radius aliases stay aligned with foundation semantics', () {
@@ -24,6 +26,12 @@ void main() {
       expect(TioCardTokens.radius, TioRadius.large);
       expect(TioCardTokens.radiusItem, TioRadius.small);
       expect(TioNavigationTokens.itemRadius, TioRadius.large);
+      expect(TioSheetTokens.radius, TioRadius.extraLarge);
+    });
+
+    test('component-owned values keep audited runtime contracts', () {
+      expect(TioInputTokens.radius, 14.0);
+      expect(TioNavigationTokens.labelTopPadding, 2.0);
     });
   });
 }

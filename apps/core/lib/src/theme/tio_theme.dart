@@ -8,6 +8,7 @@ import 'tokens/foundation/tio_radius.dart';
 import 'tokens/foundation/tio_spacing.dart';
 import 'tokens/semantic/tio_colors.dart';
 import 'tokens/components/tio_button_tokens.dart';
+import 'tokens/components/tio_input_tokens.dart';
 import 'tokens/components/tio_navigation_tokens.dart';
 import 'tokens/typography/tio_typography.dart';
 
@@ -90,15 +91,15 @@ class TioTheme extends StatelessWidget {
           filled: true,
           fillColor: colors.surface,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(TioInputTokens.radius),
             borderSide: BorderSide(color: colors.outlineStrong),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(TioInputTokens.radius),
             borderSide: BorderSide(color: colors.outlineStrong),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(TioInputTokens.radius),
             borderSide: BorderSide(color: colors.primary),
           ),
         ),
@@ -166,7 +167,9 @@ class TioTheme extends StatelessWidget {
           indicatorColor: colors.primary.withValues(
             alpha: TioNavigationTokens.indicatorOpacity,
           ),
-          labelPadding: const EdgeInsets.only(top: 2),
+          labelPadding: const EdgeInsets.only(
+            top: TioNavigationTokens.labelTopPadding,
+          ),
           indicatorShape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(
               TioNavigationTokens.itemRadius,
