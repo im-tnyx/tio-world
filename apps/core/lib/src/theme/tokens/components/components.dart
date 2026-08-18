@@ -7,4 +7,5 @@ export 'tio_input_tokens.dart';
 export 'tio_legal_tokens.dart';
 export 'tio_measurement_picker_tokens.dart';
 export 'tio_navigation_tokens.dart';
+export 'tio_remove_image_sheet_tokens.dart';
 export 'tio_sheet_tokens.dart';
