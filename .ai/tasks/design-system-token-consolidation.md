@@ -27,8 +27,8 @@ Keep the current Tio phone UI visually unchanged while making `tio_core` the cle
 ### Scope
 
 1. **Slice 1 — inventory + safe core aliases** — implemented and CI validated.
-2. **Slice 2 — Avatar source-of-truth decision** — audited; documentation alignment pending.
-3. **Slice 3 — Welcome token ownership migration** — pending.
+2. **Slice 2 — Avatar source-of-truth decision** — implemented and CI validated.
+3. **Slice 3 — Welcome token ownership migration** — next.
 4. **Slice 4 — Welcome raw literals / dead-code cleanup** — pending.
 5. **Slice 5 — docs + regression validation** — pending.
 
@@ -94,29 +94,27 @@ Component-local physical dimensions remain component-owned unless repository-wid
 | `TioNavigationTokens.planPillWidth` | `125` | component | unchanged |
 | `TioSheetTokens.radius` | `28` | component | unchanged |
 
-### Welcome Findings Frozen for Later Slices
+### Welcome Findings Frozen for Slice 3+
 
 - `WelcomeDimens` mixes reusable spacing/radius values with Welcome-specific composition geometry.
 - `paddingScreen=16`, `spaceXS=8`, `spaceS=12`, `spaceSM=16`, `spaceM=24`, and `radiusL=16` have direct numeric matches in core, but each usage still needs semantic/value-preserving migration.
 - `spaceXXS=4`, `radiusXL=20`, feature-panel/icon geometry, border/opacity values, and raw values in Welcome require classification instead of automatic token creation.
 - `WelcomeColors.transparent` is a framework-primitive wrapper; other color helpers require usage review before removal.
-- No Welcome runtime source is changed in Slice 1 or Slice 2 audit.
+- No Welcome runtime source was changed in Slice 1 or Slice 2.
 
-### Slice 2 Avatar Audit
+### Slice 2 Avatar Decision
 
 Verified runtime contract:
 
 - `TioAvatarTokens.largeSize = 100.0`.
 - `TioAvatarSize.large.dimension` delegates to that token.
-- `ProfilePage` uses `TioAvatarSize.large` and sizes its avatar container from `large.dimension`.
-- `ProfileSettingsPage` uses the same semantic `large` size.
-- shell Profile entry uses `TioAvatarSize.small = 36`.
-- `AvatarPreviewPage` intentionally uses a screen-derived `customDimension`; it is not an `extraLarge=160` runtime preview.
+- `ProfilePage` and `ProfileSettingsPage` use semantic `large`.
+- shell Profile entry uses semantic `small = 36`.
+- `AvatarPreviewPage` uses screen-derived `customDimension`; it is not a fixed `extraLarge=160` preview.
 - `tio_avatar_test.dart` explicitly asserts `small=36`, `large=100`, `extraLarge=160`.
-- `profile_page_test.dart` has a stale test description saying `80dp`, but it does not assert an 80dp size.
-- canonical UI/Profile docs still contain stale 80dp wording.
+- no assertion enforces an 80dp runtime Profile avatar.
 
-Decision: **preserve runtime `large=100dp` and align stale documentation/test wording to 100dp.** No evidence was found that currently enforces a separate 80dp runtime product requirement, and changing `100 -> 80` would violate the pixel-preserving guardrail.
+Decision: **runtime `large=100dp` is authoritative.** Canonical UI/Profile docs and stale test wording were aligned to 100dp. Profile Photo docs were also corrected to describe the actual screen-sized `customDimension` preview while retaining `extraLarge=160` as a reusable semantic token.
 
 ## 3. Clarification
 
@@ -126,7 +124,7 @@ Decision: **preserve runtime `large=100dp` and align stale documentation/test wo
 | Keep spacing/radius as separate semantic APIs | Made | equal values do not imply equal meaning |
 | Seven exact component aliases | Implemented | semantic role + exact runtime value match |
 | Create `TioDimensions` now | Rejected | no repository-wide evidence yet |
-| Avatar large source of truth | Made: `100dp` runtime | runtime token + call sites + explicit core test agree |
+| Avatar large source of truth | Implemented: `100dp` runtime | runtime token + call sites + explicit core test agree |
 | Change Avatar large `100 -> 80` | Rejected | would create an unapproved visual change |
 | Delete `welcome_tokens.dart` now | Rejected | migration/classification not complete |
 
@@ -170,12 +168,11 @@ Token ownership changes must not alter computed dimensions, hit targets, contras
 - [x] Audit semantic-size mapping.
 - [x] Audit Profile/Profile Settings/shell/preview call sites.
 - [x] Audit avatar tests.
-- [x] Audit canonical docs containing 80dp wording.
 - [x] Decide source of truth: runtime `large=100dp`.
-- [ ] Align `docs/UX_UI_SYSTEM.md` to 100dp.
-- [ ] Align Profile/Profile Photo screen docs to 100dp.
-- [ ] Rename stale `profile_page_test.dart` 80dp test description without changing behavior.
-- [ ] Validate documentation/test-wording diff.
+- [x] Align `docs/UX_UI_SYSTEM.md` to 100dp and actual preview behavior.
+- [x] Align Profile/Profile Photo screen docs to 100dp.
+- [x] Rename stale `profile_page_test.dart` 80dp description without changing behavior.
+- [x] GitHub CI #401: bootstrap, Flutter/Dart analyze, Flutter/Dart tests all passed on head `18e8d89`.
 
 ### Slice 3 — Welcome ownership migration
 
@@ -201,14 +198,22 @@ GitHub Flutter CI #399 on source head 24c4dbd:
 - Dart analyze: PASS
 - Flutter tests: PASS
 - Dart tests: PASS
+
+GitHub Flutter CI #401 on head 18e8d89:
+- Workspace bootstrap: PASS
+- Flutter analyze: PASS
+- Dart analyze: PASS
+- Flutter tests: PASS
+- Dart tests: PASS
 ```
 
 ### Review Findings and Resolution
 
 - Seven aliases preserve exact computed values.
 - No evidence currently justifies a generic physical-dimension foundation.
-- Welcome migration remains deliberately separate from the first core-token diff.
-- Avatar runtime is internally consistent at 100dp; documentation/test naming is the drift.
+- Avatar runtime is internally consistent at 100dp; canonical docs now match runtime truth.
+- The Profile Photo preview is screen-sized via `customDimension`; `extraLarge=160` remains a reusable semantic size rather than that route's actual runtime size.
+- Welcome migration remains deliberately separate from the first two slices.
 
 ## 7. Final Handoff
 
@@ -220,14 +225,18 @@ GitHub Flutter CI #399 on source head 24c4dbd:
 - `apps/core/lib/src/theme/tokens/components/tio_navigation_tokens.dart`
 - `apps/core/lib/src/theme/tokens/components/tio_sheet_tokens.dart`
 - `apps/core/test/theme/token_alias_contract_test.dart`
+- `apps/features/profile/test/presentation/profile_page_test.dart`
+- `docs/UX_UI_SYSTEM.md`
+- `docs/screens/profile.md`
+- `docs/screens/profile-avatar.md`
 
 ### Actual Behavior
 
-Slice 1 changes token ownership only; computed runtime values and rendered UI remain unchanged.
+Slices 1-2 change token ownership and documentation/test wording only. Computed runtime values and rendered UI remain unchanged.
 
 ### Known Limitations
 
-Avatar documentation alignment and Welcome migration remain open. Global `.ai` orientation files contain older project snapshots and are not treated as canonical runtime truth for this narrow slice.
+Welcome token migration/raw-literal cleanup remain open. Global `.ai` orientation files contain older project snapshots and are not treated as canonical runtime truth for this narrow slice.
 
 ### Final Status
 
