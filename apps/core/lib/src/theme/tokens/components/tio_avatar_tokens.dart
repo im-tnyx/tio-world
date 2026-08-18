@@ -16,12 +16,12 @@ class TioAvatarTokens {
 
   static const plusRingWidth = TioStroke.width3;
   static const smallPlusRingWidth = TioStroke.width15;
-  static const plusRingGap = 4.0;
-  static const smallPlusRingGap = 2.0;
+  static const plusRingGap = TioSize.dp4;
+  static const smallPlusRingGap = TioSize.dp2;
 
   static const proFrameWidth = TioStroke.width4;
   static const smallProFrameWidth = TioStroke.width15;
-  static const smallProFramePadding = 2.0;
+  static const smallProFramePadding = TioSize.dp2;
 
   static const iconSizeFactor = 0.5;
   static const textSizeFactor = 0.36;
