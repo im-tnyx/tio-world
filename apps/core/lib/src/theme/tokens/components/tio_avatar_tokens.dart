@@ -1,3 +1,4 @@
+import '../foundation/tio_stroke.dart';
 import '../primitive/tio_size.dart';
 
 class TioAvatarTokens {
@@ -13,13 +14,13 @@ class TioAvatarTokens {
 
   static const roundedRadiusFactor = 0.28;
 
-  static const plusRingWidth = 3.0;
-  static const smallPlusRingWidth = 1.5;
+  static const plusRingWidth = TioStroke.width3;
+  static const smallPlusRingWidth = TioStroke.width15;
   static const plusRingGap = 4.0;
   static const smallPlusRingGap = 2.0;
 
-  static const proFrameWidth = 4.0;
-  static const smallProFrameWidth = 1.5;
+  static const proFrameWidth = TioStroke.width4;
+  static const smallProFrameWidth = TioStroke.width15;
   static const smallProFramePadding = 2.0;
 
   static const iconSizeFactor = 0.5;
