@@ -27,4 +27,24 @@ void main() {
       expect(TioLineHeight.height110, 1.10);
     });
   });
+
+  group('runtime media color semantics', () {
+    test('light scheme resolves current media contract through semantics', () {
+      expect(TioColors.light.mediaBackground, TioPalette.black);
+      expect(TioColors.light.onMediaPrimary, TioPalette.white);
+      expect(TioColors.light.onMediaSecondary, TioPalette.whiteAlpha179);
+    });
+
+    test('dark scheme resolves current media contract through semantics', () {
+      expect(TioColors.dark.mediaBackground, TioPalette.black);
+      expect(TioColors.dark.onMediaPrimary, TioPalette.white);
+      expect(TioColors.dark.onMediaSecondary, TioPalette.whiteAlpha179);
+    });
+
+    test('oled scheme resolves current media contract through semantics', () {
+      expect(TioColors.oled.mediaBackground, TioPalette.black);
+      expect(TioColors.oled.onMediaPrimary, TioPalette.white);
+      expect(TioColors.oled.onMediaSecondary, TioPalette.whiteAlpha179);
+    });
+  });
 }
