@@ -12,7 +12,7 @@ class TioTermsDisclaimer extends StatelessWidget {
     this.privacyText = 'Privacy Policy',
     this.onTermsTap,
     this.onPrivacyTap,
-    this.fontSize = 12,
+    this.fontSize = TioLegalTokens.defaultFontSize,
     this.textColor,
     this.linkColor,
     super.key,
@@ -32,8 +32,10 @@ class TioTermsDisclaimer extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
 
-    final resolvedTextColor =
-        textColor ?? colors.textSecondary.withValues(alpha: 0.7);
+    final resolvedTextColor = textColor ??
+        colors.textSecondary.withValues(
+          alpha: TioLegalTokens.bodyTextOpacity,
+        );
     final resolvedLinkColor = linkColor ?? colors.textPrimary;
 
     final linkStyle = TextStyle(
@@ -41,7 +43,9 @@ class TioTermsDisclaimer extends StatelessWidget {
       color: resolvedLinkColor,
       fontWeight: FontWeight.w600,
       decoration: TextDecoration.underline,
-      decorationColor: resolvedLinkColor.withValues(alpha: 0.5),
+      decorationColor: resolvedLinkColor.withValues(
+        alpha: TioLegalTokens.linkUnderlineOpacity,
+      ),
     );
 
     return Center(
@@ -51,7 +55,7 @@ class TioTermsDisclaimer extends StatelessWidget {
           style: TextStyle(
             fontSize: fontSize,
             color: resolvedTextColor,
-            height: 1.5,
+            height: TioLegalTokens.bodyLineHeight,
           ),
           children: [
             TextSpan(

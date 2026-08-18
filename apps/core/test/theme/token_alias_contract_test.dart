@@ -35,6 +35,10 @@ void main() {
       expect(TioCardTokens.glassContainerOpacity, 0.72);
       expect(TioCardTokens.glassBorderOpacity, 0.16);
       expect(TioInputTokens.radius, 14.0);
+      expect(TioLegalTokens.defaultFontSize, 12.0);
+      expect(TioLegalTokens.bodyTextOpacity, 0.70);
+      expect(TioLegalTokens.linkUnderlineOpacity, 0.50);
+      expect(TioLegalTokens.bodyLineHeight, 1.5);
       expect(TioNavigationTokens.labelTopPadding, 2.0);
 
       expect(TioNavigationTokens.iconSize, 22.0);
