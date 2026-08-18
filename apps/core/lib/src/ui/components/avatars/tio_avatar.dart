@@ -118,8 +118,12 @@ class TioAvatar extends StatelessWidget {
       TioAvatarFrame.plusRing => Builder(
         builder: (context) {
           final isSmall = dimension <= TioAvatarTokens.smallSize;
-          final ringWidth = isSmall ? 1.5 : TioAvatarTokens.plusRingWidth;
-          final gapWidth = isSmall ? 2.0 : 4.0;
+          final ringWidth = isSmall
+              ? TioAvatarTokens.smallPlusRingWidth
+              : TioAvatarTokens.plusRingWidth;
+          final gapWidth = isSmall
+              ? TioAvatarTokens.smallPlusRingGap
+              : TioAvatarTokens.plusRingGap;
 
           return DecoratedBox(
             key: const ValueKey('tio-avatar-plus-ring'),
@@ -150,11 +154,15 @@ class TioAvatar extends StatelessWidget {
           foregroundPainter: _HexagonFramePainter(
             startColor: colors.primary,
             endColor: colors.progress,
-            strokeWidth: dimension <= TioAvatarTokens.smallSize ? 1.5 : TioAvatarTokens.proFrameWidth,
+            strokeWidth: dimension <= TioAvatarTokens.smallSize
+                ? TioAvatarTokens.smallProFrameWidth
+                : TioAvatarTokens.proFrameWidth,
           ),
           child: Padding(
             padding: EdgeInsets.all(
-              dimension <= TioAvatarTokens.smallSize ? 2.0 : TioAvatarTokens.proFrameWidth,
+              dimension <= TioAvatarTokens.smallSize
+                  ? TioAvatarTokens.smallProFramePadding
+                  : TioAvatarTokens.proFrameWidth,
             ),
             child: ClipPath(
               clipper: const _HexagonClipper(),

@@ -34,6 +34,22 @@ void main() {
       expect(TioCardTokens.materialThemeElevation, 0.0);
       expect(TioInputTokens.radius, 14.0);
       expect(TioNavigationTokens.labelTopPadding, 2.0);
+
+      expect(TioNavigationTokens.iconSize, 22.0);
+      expect(TioNavigationTokens.aiTabActivePadding, 5.0);
+      expect(TioNavigationTokens.aiTabInactivePadding, 4.0);
+      expect(TioNavigationTokens.aiTabIconSize, 14.0);
+      expect(TioNavigationTokens.aiTabGlowOpacity, 0.30);
+      expect(TioNavigationTokens.aiTabGlowBlurRadius, 6.0);
+      expect(TioNavigationTokens.aiTabGlowOffsetY, 2.0);
+      expect(TioNavigationTokens.aiTabInactiveOutlineOpacity, 0.40);
+      expect(TioNavigationTokens.aiTabInactiveOutlineWidth, 1.5);
+
+      expect(TioAvatarTokens.smallPlusRingWidth, 1.5);
+      expect(TioAvatarTokens.plusRingGap, 4.0);
+      expect(TioAvatarTokens.smallPlusRingGap, 2.0);
+      expect(TioAvatarTokens.smallProFrameWidth, 1.5);
+      expect(TioAvatarTokens.smallProFramePadding, 2.0);
     });
   });
 }

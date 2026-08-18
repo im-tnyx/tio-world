@@ -11,4 +11,13 @@ class TioNavigationTokens {
   static const labelTopPadding = 2.0;
   static const planPillWidth = 125.0;
   static const planPillHeight = 32.0;
+
+  static const aiTabActivePadding = 5.0;
+  static const aiTabInactivePadding = 4.0;
+  static const aiTabIconSize = 14.0;
+  static const aiTabGlowOpacity = 0.30;
+  static const aiTabGlowBlurRadius = 6.0;
+  static const aiTabGlowOffsetY = 2.0;
+  static const aiTabInactiveOutlineOpacity = 0.40;
+  static const aiTabInactiveOutlineWidth = 1.5;
 }
