@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 
 import '../state/state.dart';
+import '../theme/onboarding_visual_tokens.dart';
 import 'onboarding_progress_indicator.dart';
 
 class OnboardingTopBar extends StatelessWidget {
@@ -28,7 +29,7 @@ class OnboardingTopBar extends StatelessWidget {
           0,
         ),
         child: SizedBox(
-          height: 48,
+          height: OnboardingVisualTokens.topBarHeight,
           child: Row(
             children: [
               if (onBack != null)
