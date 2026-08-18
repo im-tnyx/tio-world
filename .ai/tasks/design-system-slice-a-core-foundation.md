@@ -11,7 +11,7 @@
 
 Establish one canonical core owner for fixed visual primitives before feature migration continues.
 
-This is an ownership/architecture slice, not a general screen redesign. The only standing visual adjustment approved by this program is the controlled `±1dp` spacing/radius normalization described below.
+This is an ownership/architecture slice, not a general screen redesign. The only standing visual adjustment approved by this program is the controlled `±1dp` spacing/radius normalization below.
 
 ## Visual Governance
 
@@ -37,8 +37,8 @@ Rules:
 
 - maximum adjustment is `±1dp`;
 - semantic intent must be clear;
-- every actual normalization must be recorded in the active slice evidence;
-- do not create new spacing/radius roles only to preserve near-duplicate `5dp`/`7dp` values;
+- every actual normalization must be recorded in active slice evidence;
+- do not create new spacing/radius roles only to preserve near-duplicate values;
 - this exception does not apply to component heights, Avatar sizes, icon/image sizes, typography, colors, alpha, shadows, motion, ratios/factors, or unrelated geometry;
 - ambiguous or larger changes require separate approval or exact preservation.
 
@@ -50,9 +50,16 @@ This slice must not migrate Welcome, Auth, Account Setup, Onboarding, Home, Prof
 
 ```text
 TioSize                         physical numeric geometry registry
+TioOpacity                      normalized opacity registry
+TioAlpha                        exact 0–255 alpha registry
+TioDuration                     physical duration registry
     ↓
 TioSpacing / TioRadius          reusable semantic geometry scales
+TioMotion                       semantic motion roles
+TioShadowTokens                 reusable static shadow contracts
 TioIconSize / TioStroke        only when reusable roles are evidenced
+    ↓
+Runtime theme schemes           TioMotionScheme / TioShadows
     ↓
 Reusable component contracts   semantic aliases to governed primitives/roles
     ↓
@@ -61,13 +68,13 @@ Reusable core components
 Feature screens/widgets
 ```
 
-`TioSize` owns physical numbers. Foundation/component families own semantic intent.
+Physical primitives own numbers. Foundation/effects/component families own semantic intent.
 
 ## Scalable Foundation Contract
 
 ### TioSize
 
-`TioSize` contains fixed geometry values evidenced by production UI or explicit design decisions. It is not limited by the number of spacing/radius roles.
+`TioSize` contains fixed geometry values evidenced by production UI or explicit design decisions. It is not limited by spacing/radius role count.
 
 Current audited integer geometry includes:
 
@@ -110,9 +117,7 @@ Legacy `small/medium/large/extraLarge` names are temporary compatibility aliases
 
 ### Reusable component geometry
 
-Reusable component size contracts retain semantic component names but alias `TioSize` instead of owning raw numbers.
-
-Avatar is the first explicit example:
+Reusable component size contracts retain semantic component names but alias governed primitives.
 
 ```text
 TioAvatarTokens.compactSize    → TioSize.dp24
@@ -122,9 +127,20 @@ TioAvatarTokens.largeSize      → TioSize.dp100
 TioAvatarTokens.extraLargeSize → TioSize.dp160
 ```
 
-The verified `36/100/160` runtime decisions remain valid as semantic Avatar contracts, while physical values are owned by `TioSize`.
-
 Avatar ring widths and size factors remain separate pending `TioStroke`/factor ownership decisions.
+
+## Verified Starting Debt
+
+- primitive geometry ownership did not exist before Slice A;
+- spacing/radius independently owned overlapping raw numbers;
+- original `TioSpacing` had only five roles and insufficient growth scope;
+- component token files still contain raw geometry, typography, color, factor and other physical values;
+- `TioMotion` and `TioMotionTokens` duplicated duration ownership;
+- `TioShadowTokens` and `TioShadows` duplicated the same soft shadow;
+- `TioPalette`, `TioSemanticColors`, `TioDomainColors`, and `TioColors` overlap in color ownership;
+- static compatibility getters remain under `context/`;
+- `TioTheme.colors(context)` remains transitional;
+- typography physical values remain split across typography and component token classes.
 
 ## Implementation Checklist
 
@@ -157,15 +173,25 @@ Avatar ring widths and size factors remain separate pending `TioStroke`/factor o
 
 ### A4 — Motion and duration
 
-- [ ] Establish one canonical fixed-duration owner such as `TioDuration`.
-- [ ] Remove duplicate physical ownership between `TioMotion` and `TioMotionTokens`.
-- [ ] Keep `TioMotionScheme` as runtime/reduced-motion resolution.
-- [ ] Preserve `90/150/250/310/400/1200ms` unless a separate motion decision approves change.
+- [x] Establish `TioDuration` as the canonical fixed-duration owner.
+- [x] Alias `TioMotion` semantic roles to `TioDuration`.
+- [x] Convert `TioMotionTokens` into a compatibility facade instead of a second physical owner.
+- [x] Keep `TioMotionScheme` as runtime/reduced-motion resolution.
+- [x] Preserve `90/150/250/310/400/1200ms` exactly.
+- [x] Add primitive/semantic/runtime motion contract tests.
+- [x] Flutter CI #541 passed Flutter/Dart analyze and tests for the A4 head.
 
 ### A5 — Shadows/effects
 
-- [ ] Resolve duplicate ownership between `TioShadowTokens` and `TioShadows`.
-- [ ] Preserve shadow colors, blur, spread, and offset unless separately approved.
+- [x] Resolve duplicate soft-shadow ownership between `TioShadowTokens` and `TioShadows`.
+- [x] Make `TioShadowTokens.soft` the single static soft-shadow contract.
+- [x] Make `TioShadows.standard` alias `TioShadowTokens.soft`.
+- [x] Alias soft shadow blur/offset geometry to `TioSize`.
+- [x] Preserve exact shadow color `0x1A000000`, blur `24`, spread `0`, and offset `0/12`.
+- [x] Add shadow effect ownership contract tests.
+- [ ] Flutter CI #544 must pass before A5 is considered validated.
+
+The shadow color remains exact and will be classified in A6 rather than redesigned inside A5.
 
 ### A6 — Colors
 
@@ -209,9 +235,11 @@ Screen-specific bag   → forbidden
 - [x] Primitive barrels exported intentionally.
 - [x] Primitive geometry/spacing/radius tests added.
 - [x] Avatar primitive alias tests added.
+- [x] Motion duration/scheme tests added.
+- [x] Shadow ownership tests added.
 - [ ] Update assertions when an approved `±1dp` spacing/radius normalization intentionally changes a canonical value.
-- [ ] Current branch head must pass CI before the latest A2/A8 corrections are validated.
-- [ ] Run focused core theme tests, analyze, and required workspace CI at the slice boundary.
+- [ ] Current branch head must pass CI before latest A5 changes are validated.
+- [ ] Run focused core theme tests, analyze, and required workspace CI at the Slice A boundary.
 
 ## Implementation Evidence
 
@@ -226,6 +254,14 @@ f9ac707576730207593d3e34240dce1a239ba286  add scalable spacing roles
 c29a7ca50e8f0a82c51e1ce5e920c7959e606631  lock scalable radius contracts
 738e3df77603da3975fe9d30746ef8148761ad50  alias Avatar size roles to TioSize
 bc5f85490d03c430ce697fc4cc9aae3bca114864  lock Avatar size primitive relationships
+93f671c37a32e9d782c2a5853b69e61b0a5e8a82  add TioDuration primitives
+9b220a6e6b7ea046f173e76cf30382816eafd843  export TioDuration
+7791363ef4fb5638ffb9feb760df0f0beda90d64  alias TioMotion to TioDuration
+65a366e84e419883a4a7bc75c3179df3b18e82a9  convert TioMotionTokens to compatibility aliases
+6e9a301d65563b98009c3fe5de5cdeb6d9a0c652  lock duration/motion runtime contracts
+ad2ec6a42940e6b427f5b00a603a4a733dd11430  centralize static soft shadow contract
+eae3ef3488f9e865b8806bf9ff839457c55087fd  alias runtime shadows to static contract
+218c2b36c33294bccfd4bc5618480bd875294eee  lock shadow effect ownership
 ```
 
 Slice B remains blocked until Slice A is validated.
