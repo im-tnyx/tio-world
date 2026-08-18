@@ -60,11 +60,12 @@ TioLineHeight                   physical line-height registry
 TioFontFamily                   physical/named family identifiers
     ↓
 TioSpacing / TioRadius          reusable semantic geometry scales
+TioStroke                       reusable stroke-width physical contract
 TioMotion                       semantic motion roles
 TioShadowTokens                 reusable static shadow contracts
 TioTypography                   semantic TextTheme roles
 TioFontFamilyOption             verified runtime-selectable font choices
-TioIconSize / TioStroke        only when reusable roles are evidenced
+TioIconSize                     only when reusable semantic roles are evidenced
     ↓
 Runtime theme schemes/config    TioMotionScheme / TioShadows / TioThemeConfig
     ↓
@@ -134,7 +135,7 @@ TioAvatarTokens.largeSize      → TioSize.dp100
 TioAvatarTokens.extraLargeSize → TioSize.dp160
 ```
 
-Avatar ring widths and size factors remain separate pending `TioStroke`/factor ownership decisions.
+Avatar ring/frame widths now alias `TioStroke`; Avatar size/radius/text factors remain component-specific ratios because they are not physical geometry primitives.
 
 ## Typography Runtime Preference Contract
 
@@ -170,12 +171,12 @@ Rules:
 - primitive geometry ownership did not exist before Slice A;
 - spacing/radius independently owned overlapping raw numbers;
 - original `TioSpacing` had only five roles and insufficient growth scope;
-- component token files still contain raw geometry, factor and other physical values;
+- component token files still contained raw geometry, factor and other physical values;
 - `TioMotion` and `TioMotionTokens` duplicated duration ownership;
 - `TioShadowTokens` and `TioShadows` duplicated the same soft shadow;
 - `TioPalette`, `TioSemanticColors`, `TioDomainColors`, and `TioColors` overlapped in color ownership;
-- static compatibility getters remain under `context/`;
-- `TioTheme.colors(context)` remains transitional;
+- static compatibility getters remain under `context/` for live consumers;
+- `TioTheme.colors(context)` remains transitional for live consumers;
 - typography physical values were split across typography and component token classes;
 - runtime font selection was not modeled before A7.
 
@@ -197,8 +198,9 @@ Rules:
 - [x] Preserve old radius names as compatibility aliases.
 - [x] Add physical/semantic/compatibility contract tests.
 - [x] Approve controlled `±1dp` normalization for clearly matching spacing/radius roles.
-- [ ] Record each actual future `±1dp` normalization during consumer migration.
-- [ ] Add `TioIconSize` and/or `TioStroke` only when reusable roles are evidenced.
+- [x] Record current component-migration normalization outcome: **none applied**; exact values were preserved through `TioSize` where no exact semantic spacing/radius role existed.
+- [x] Add `TioStroke` after repeated reusable stroke-width evidence was confirmed.
+- [x] Defer `TioIconSize`; current evidence does not justify a shared semantic icon-size family yet.
 
 ### A3 — Opacity and exact alpha
 
@@ -255,19 +257,23 @@ Rules:
 - [x] Keep currently unbundled `Roboto` as an evidenced named family, not a selectable Settings option.
 - [x] Add typography primitive/component/runtime-selection contract tests.
 - [x] Flutter CI #576 passed the A7 foundation/component typography head before runtime-font preference wiring.
-- [ ] Latest runtime-font preference head must pass Flutter/Dart analyze and tests before A7 is fully validated.
+- [x] Flutter CI #595 passed the runtime-font preference head; A7 is validated.
 
 ### A8 — Component token audit
 
-- [ ] Audit every `tokens/components/` file.
+- [x] Audit every `tokens/components/` file.
 - [x] Migrate Avatar size contracts `24/36/48/100/160` to `TioSize` aliases.
 - [x] Add tests locking Avatar semantic size roles to canonical primitives.
 - [x] Migrate reusable component typography roles to canonical typography owners.
-- [ ] Add `TioStroke` now that repeated reusable stroke-width evidence exists.
-- [ ] Move remaining raw physical geometry to primitive/foundation/semantic/typography/effects owners.
-- [ ] Apply controlled `±1dp` normalization only to eligible spacing/radius roles and record each change.
-- [ ] Keep component token classes only for genuinely reusable component contracts.
-- [ ] Do not create screen-specific core token bags.
+- [x] Add `TioStroke` after repeated reusable stroke-width evidence was confirmed.
+- [x] Move remaining raw integer physical geometry to `TioSize`/canonical spacing/radius owners without changing rendered values.
+- [x] Apply controlled `±1dp` rule conservatively: **no normalization was performed in A8**; exact `5dp`, `6dp`, `14dp`, etc. contracts remain exact where semantic substitution would change pixels.
+- [x] Keep component token classes only for genuinely reusable component contracts.
+- [x] Keep component-specific ratios/factors local rather than misclassifying them as geometry primitives.
+- [x] Do not create screen-specific core token bags.
+- [x] Flutter CI #605 passed the `TioStroke` ownership head.
+- [x] Flutter CI #610 passed the first exact component-geometry migration batch.
+- [x] Flutter CI #620 passed the complete component-geometry migration/test head.
 
 ```text
 Reusable component    → semantic component tokens alias governed primitives/roles
@@ -278,10 +284,14 @@ Screen-specific bag   → forbidden
 
 ### A9 — Context and compatibility APIs
 
-- [ ] Keep `context.tioColors`, `context.tioMotion`, and `context.tioShadows` as canonical dynamic accessors.
-- [ ] Remove static radius context compatibility accessors only after zero-reference migration.
-- [ ] Remove `TioTheme.colors(context)` only after zero-reference migration.
-- [ ] Do not make `context/` a wrapper for static tokens.
+- [x] Keep `context.tioColors`, `context.tioMotion`, and `context.tioShadows` as canonical dynamic accessors.
+- [x] Confirm current branch has one canonical `theme/context/` path; old `theme/locals/` duplicate path is absent.
+- [x] Audit radius context compatibility accessors against current-branch consumers; live feature references remain, so deletion is intentionally deferred until zero-reference migration.
+- [x] Route temporary `radiusSmall/radiusMedium/radiusLarge` compatibility getters through canonical `TioRadius.sm/md/lg` internally.
+- [x] Audit `TioTheme.colors(context)`; live consumers remain, so deletion is intentionally deferred until zero-reference migration.
+- [x] Do not make `context/` a general wrapper for static tokens; only runtime theme accessors plus explicitly temporary compatibility getters remain.
+- [x] Add focused context-accessor contract coverage.
+- [ ] Flutter CI #622 must pass before the A9 implementation head is considered validated.
 
 ### A10 — Validation
 
@@ -292,8 +302,11 @@ Screen-specific bag   → forbidden
 - [x] Shadow ownership tests added.
 - [x] Color ownership tests added.
 - [x] Typography ownership/runtime-selection tests added.
-- [ ] Update assertions when an approved `±1dp` spacing/radius normalization intentionally changes a canonical value.
-- [ ] Run focused core theme tests, analyze, and required workspace CI at the Slice A boundary.
+- [x] Stroke ownership tests added.
+- [x] Component geometry ownership tests added.
+- [x] Context runtime/compatibility accessor test added.
+- [x] No approved `±1dp` normalization occurred in Slice A component migration, so no assertions intentionally changed pixel values.
+- [ ] Run focused core theme tests, analyze, and required workspace CI at the final Slice A boundary after A9 validation.
 
 ## Implementation Evidence
 
@@ -329,6 +342,11 @@ c4ede3f3a93b7c7427f13200c7c3e7ae6d6c718c  alias TextTheme to typography primitiv
 158af0756a54ab6d07be0fd52a7229d6997927b0  wire TioTheme to configured font family
 07948cb8c13818cfffa25baff577dc21c513b2ba  gate selectable fonts on verified availability
 6f8255f32183c8515e2d0821050af5ef3a752028  lock font option/runtime contracts
+d334f7198be941f9c599f6d9c76f3dbb1d2b9628  validate TioStroke ownership batch
+c9bc949fed8dae7bec836c0f13967dae6af682bd  lock first exact component geometry batch
+2bd07356ce8165e0ef7074dc39ba51c04e6b843b  lock complete component geometry ownership
+a94a030b9e81d62b6fd2e2ad33c34febec7b2860  route context radius compatibility through canonical roles
+16fe9bc02fa36b57dd698724c67de917028838c9  lock context accessor contracts
 ```
 
 Slice B remains blocked until Slice A is validated.
