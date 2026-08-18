@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
 
 import '../../../domain/domain.dart';
+import '../../theme/auth_visual_tokens.dart';
 
 /// Pixel-perfect implementation of the Tnyx-Hub Email/Social Login Screen.
 ///
@@ -481,37 +482,50 @@ class _FloatingErrorBanner extends StatelessWidget {
     final colors = context.tioColors;
     return Material(
       color: Colors.transparent,
-      elevation: 6,
+      elevation: AuthVisualTokens.floatingErrorElevation,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: TioSpacing.large, vertical: TioSpacing.medium),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AuthVisualTokens.floatingErrorHorizontalPadding,
+          vertical: AuthVisualTokens.floatingErrorVerticalPadding,
+        ),
         decoration: BoxDecoration(
           color: colors.danger,
-          borderRadius: BorderRadius.circular(TioRadius.large),
+          borderRadius: BorderRadius.circular(AuthVisualTokens.floatingErrorRadius),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: AuthVisualTokens.floatingErrorShadowBaseColor.withValues(
+                alpha: AuthVisualTokens.floatingErrorShadowOpacity,
+              ),
+              blurRadius: AuthVisualTokens.floatingErrorShadowBlurRadius,
+              offset: AuthVisualTokens.floatingErrorShadowOffset,
             ),
           ],
         ),
         child: Row(
           children: [
-            const Icon(Icons.error_outline, color: Colors.white, size: 20),
-            const SizedBox(width: TioSpacing.medium),
+            const Icon(
+              Icons.error_outline,
+              color: AuthVisualTokens.floatingErrorContentColor,
+              size: AuthVisualTokens.floatingErrorIconSize,
+            ),
+            const SizedBox(width: AuthVisualTokens.floatingErrorContentGap),
             Expanded(
               child: Text(
                 message,
                 style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+                  color: AuthVisualTokens.floatingErrorContentColor,
+                  fontSize: AuthVisualTokens.floatingErrorMessageFontSize,
+                  fontWeight: AuthVisualTokens.floatingErrorLoginMessageFontWeight,
                 ),
               ),
             ),
             GestureDetector(
               onTap: onDismiss,
-              child: const Icon(Icons.close, color: Colors.white70, size: 18),
+              child: const Icon(
+                Icons.close,
+                color: AuthVisualTokens.floatingErrorDismissColor,
+                size: AuthVisualTokens.floatingErrorDismissIconSize,
+              ),
             ),
           ],
         ),
