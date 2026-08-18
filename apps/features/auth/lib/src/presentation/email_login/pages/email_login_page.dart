@@ -188,6 +188,7 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
       body: SafeArea(
         child: Column(
           children: [
+            // Scrollable Content
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
@@ -204,6 +205,8 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
                         const SizedBox(height: 16),
                       ],
                       const SizedBox(height: 16),
+
+                      // Email field
                       TextFormField(
                         key: const ValueKey('signin-email-input'),
                         controller: _emailController,
@@ -219,6 +222,8 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
+
+                      // Password field
                       TextFormField(
                         key: const ValueKey('signin-password-input'),
                         controller: _passwordController,
@@ -246,6 +251,8 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
                         ),
                       ),
                       const SizedBox(height: 8),
+
+                      // Forgot password
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
@@ -266,6 +273,8 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
                         ),
                       ),
                       const SizedBox(height: 24),
+
+                      // Sign in button
                       TioButton.primary(
                         label: 'Sign In',
                         expand: true,
@@ -273,25 +282,34 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
                         onPressed: _isLoading ? null : _handleSignIn,
                       ),
                       const SizedBox(height: 28),
+
+                      // OR Divider
                       _OrDivider(colors: colors),
                       const SizedBox(height: 24),
+
+                      // Social Buttons (Google + Truecaller)
                       TioSocialButton.google(
                         key: const ValueKey('signin-google-button'),
                         loading: _isLoading,
                         onPressed: _handleGoogleSignIn,
                       ),
+
                       const SizedBox(height: 12),
+
                       TioSocialButton.truecaller(
                         key: const ValueKey('signin-truecaller-button'),
                         loading: false,
                         onPressed: widget.onTruecallerClick ?? () {},
                       ),
+
                       const SizedBox(height: 16),
                     ],
                   ),
                 ),
               ),
             ),
+
+            // Pinned Bottom Footer: Don't have an account? Create Account
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Row(
@@ -344,7 +362,8 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
     return InputDecoration(
       labelText: label,
       hintText: hint,
-      prefixIcon: Icon(prefixIcon, color: colors.textMuted, size: 20),
+      prefixIcon:
+          Icon(prefixIcon, color: colors.textMuted, size: 20),
       suffixIcon: suffix,
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
