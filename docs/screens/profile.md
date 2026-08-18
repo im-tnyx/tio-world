@@ -15,13 +15,13 @@ Give the user a single place to review and update personal and fitness context, 
 
 - Identity and account summary.
 - Reusable `TioAvatar` with `TioAvatarSize.large` for the main Profile identity;
-  its centralized semantic size is 80dp and it remains circular unless this
+  its centralized semantic size is 100dp and it remains circular unless this
   screen explicitly adopts the shared rounded treatment.
 - Personal and fitness profile details required by approved feature flows.
 - Clear entry points to module-owned Nutrition Targets and Workout Settings.
 - Links to Progress history or account controls only through their public navigation contracts.
 - Settings launch entry; Home does not duplicate this action in its top bar.
-- Tapping the 80dp avatar opens the owned [Profile Photo](profile-avatar.md)
+- Tapping the 100dp avatar opens the owned [Profile Photo](profile-avatar.md)
   screen.
 
 When avatar upload is approved, its file belongs in the private Supabase `profile` bucket through a Profile-owned repository. Profile fields remain structured data, not Storage files.

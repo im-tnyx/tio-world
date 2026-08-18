@@ -21,8 +21,10 @@ logic in Home, the app shell, or Settings.
 - A real `ImageProvider` fills the square with `BoxFit.cover` when supplied.
 - If the supplied image cannot be decoded, the screen returns to the shared
   unframed fallback and announces that the Profile photo is unavailable.
-- With no photo, the square shows the shared `TioAvatarSize.extraLarge` fallback,
-  whose centralized semantic size is 160dp.
+- With no photo, the square uses the shared avatar fallback behavior while the
+  preview surface itself remains screen-sized through `customDimension`.
+- `TioAvatarSize.extraLarge` remains a reusable 160dp semantic size, but the
+  current full-screen preview does not use it as its runtime dimension.
 - The full-screen fallback is intentionally unframed for every plan tier.
 - The current app route has no media repository or image, so Edit, Delete, and
   Download are visibly disabled. It never pretends that an operation succeeded.
@@ -44,9 +46,9 @@ and repository contract exist. Client code must never receive service-role keys.
 
 ## Acceptance Criteria
 
-- The Profile 80dp avatar opens this route.
+- The Profile 100dp avatar opens this route.
 - The preview remains 1:1 on compact and standard phone widths.
-- Missing media shows a truthful fallback and no destructive action is enabled.
+- Missing media shows a truthful shared fallback within the screen-sized preview.
 - Real actions remain disabled until their handlers and data source exist.
 - Back returns to Profile without changing bottom-navigation state.
 - Screen-reader labels identify the photo and each available action.

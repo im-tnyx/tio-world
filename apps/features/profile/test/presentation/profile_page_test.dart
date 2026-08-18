@@ -4,7 +4,7 @@ import 'package:tio_core/core.dart';
 import 'package:tio_feature_profile/profile.dart';
 
 void main() {
-  testWidgets('Profile uses an actionable 80dp avatar', (tester) async {
+  testWidgets('Profile uses an actionable 100dp avatar', (tester) async {
     var avatarTaps = 0;
     var settingsTaps = 0;
     await tester.pumpWidget(

@@ -159,20 +159,21 @@ Feature commands remain canonical even when their entry point moves:
 
 `apps/core` owns one `TioAvatar` component with semantic sizes `compact`,
 `small`, `medium`, `large`, and `extraLarge`. Home uses `small` (36dp), Profile
-uses `large` (80dp), and the empty photo-preview state uses `extraLarge` (160dp).
+uses `large` (100dp), and `extraLarge` remains a reusable 160dp semantic size.
 It is circular by default and supports a rounded Profile treatment, optional
 `ImageProvider`, initials/icon fallback, failed-image fallback, and
-caller-supplied semantics. Screens do not create their own avatar dimensions,
-clipping, fallback behavior, or image-loading rules.
+caller-supplied semantics.
 
-Screen code selects only a reusable `TioAvatarSize` semantic value; pixel
-dimensions remain defined in one component/token layer and are never hardcoded in
-screens.
+The current Profile Photo route is a media-preview composition rather than a
+fixed semantic avatar-size use: it supplies a screen-derived `customDimension`
+so the 1:1 preview fills the available square. Ordinary identity surfaces select
+a reusable `TioAvatarSize`; screen code must not invent hardcoded fixed avatar
+pixels when a semantic size already exists.
 
 Plan frames use theme semantic colors: Free is unframed, Plus has a circular
 `info`-to-`progress` ring, and Pro uses a hexagon `primary`-to-`progress` frame.
 The frame remains a caller-supplied presentation value; the avatar does not infer
-entitlement. `extraLarge` is always unframed on the Profile photo screen.
+entitlement. Screen-sized Profile photo previews are always unframed.
 
 The centered Home plan pill displays `Get Pro`, `Plus`, or `Pro`. It remains
 non-interactive until the Billing/Entitlement slice provides a real destination
