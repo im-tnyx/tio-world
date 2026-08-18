@@ -42,6 +42,7 @@ void main() {
   group('canonical exact alpha primitives', () {
     test('0-255 alpha contracts stay byte-exact', () {
       expect(TioAlpha.alpha25, 25);
+      expect(TioAlpha.alpha26, 26);
       expect(TioAlpha.alpha30, 30);
       expect(TioAlpha.alpha35, 35);
       expect(TioAlpha.alpha40, 40);
