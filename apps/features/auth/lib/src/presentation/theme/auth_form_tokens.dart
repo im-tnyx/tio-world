@@ -1,20 +1,21 @@
 import 'package:tio_core/core.dart';
 
-/// Shared geometry and spacing contracts for the canonical Login and Sign Up
-/// form chrome.
+/// Shared geometry and spacing contracts across canonical Auth form surfaces.
 ///
 /// Typography is intentionally resolved through Theme.of(context).textTheme so
 /// Auth consumes the canonical core semantic typography instead of duplicating
-/// font sizes and weights here. Input border and surface-specific divider
-/// details remain local until their source-of-truth audit is complete.
+/// font sizes and weights here. Surface-specific border and divider details stay
+/// local until repeated role evidence proves shared ownership.
 class AuthFormTokens {
   const AuthFormTokens._();
 
   static const topBarHeight = 48.0;
+  static const inputLeadingIconSize = 20.0;
   static const passwordVisibilityIconSize = 22.0;
 
   static const dividerOpacity = 0.30;
   static const dividerHorizontalPadding = TioSpacing.large;
+  static const dividerLabelLetterSpacing = 1.0;
 
   static const socialProviderGap = TioSpacing.medium;
 
