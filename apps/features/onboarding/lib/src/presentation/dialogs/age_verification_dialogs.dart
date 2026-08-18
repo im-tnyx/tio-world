@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 
+import '../theme/onboarding_age_dialog_tokens.dart';
+import '../theme/onboarding_modal_tokens.dart';
+
 class AgeVerificationDialogs {
   const AgeVerificationDialogs._();
 
@@ -16,7 +19,7 @@ class AgeVerificationDialogs {
 
   /// ── 1. Date Confirmation Dialog ("Is this date correct?") ──
   static Future<bool?> showConfirmation(BuildContext context, DateTime date) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return showDialog<bool>(
       context: context,
@@ -25,11 +28,20 @@ class AgeVerificationDialogs {
         return Dialog(
           backgroundColor: colors.surfaceRaised,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(
+              OnboardingAgeDialogTokens.panelRadius,
+            ),
           ),
-          insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: OnboardingAgeDialogTokens.horizontalInset,
+          ),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+            padding: const EdgeInsets.fromLTRB(
+              OnboardingAgeDialogTokens.panelHorizontalPadding,
+              OnboardingAgeDialogTokens.panelTopPadding,
+              OnboardingAgeDialogTokens.panelHorizontalPadding,
+              OnboardingAgeDialogTokens.panelBottomPadding,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,33 +50,37 @@ class AgeVerificationDialogs {
                   'Is this date correct?',
                   style: TextStyle(
                     color: colors.textPrimary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
+                    fontSize: OnboardingModalTokens.titleFontSize,
+                    fontWeight: OnboardingModalTokens.titleFontWeight,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: OnboardingModalTokens.titleToBodyGap),
                 Text(
                   _formatDate(date),
                   style: TextStyle(
                     color: colors.textSecondary,
-                    fontSize: 14,
+                    fontSize: OnboardingModalTokens.bodyFontSize,
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: OnboardingModalTokens.actionTopGap),
                 Row(
                   children: [
-                    // No Button
                     Expanded(
                       child: SizedBox(
-                        height: 48,
+                        height: OnboardingAgeDialogTokens.actionHeight,
                         child: OutlinedButton(
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(
-                              color: colors.outlineStrong.withAlpha(90),
-                              width: 1.5,
+                              color: colors.outlineStrong.withAlpha(
+                                OnboardingAgeDialogTokens.outlinedActionAlpha,
+                              ),
+                              width:
+                                  OnboardingAgeDialogTokens.outlinedActionWidth,
                             ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
+                              borderRadius: BorderRadius.circular(
+                                OnboardingAgeDialogTokens.actionRadius,
+                              ),
                             ),
                           ),
                           onPressed: () => Navigator.of(context).pop(false),
@@ -72,34 +88,42 @@ class AgeVerificationDialogs {
                             'No',
                             style: TextStyle(
                               color: colors.textPrimary,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
+                              fontSize:
+                                  OnboardingAgeDialogTokens.actionLabelFontSize,
+                              fontWeight: OnboardingAgeDialogTokens
+                                  .actionLabelFontWeight,
                             ),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    // Yes Button
+                    const SizedBox(width: OnboardingAgeDialogTokens.choiceGap),
                     Expanded(
                       child: SizedBox(
-                        height: 48,
+                        height: OnboardingAgeDialogTokens.actionHeight,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.black,
+                            backgroundColor: OnboardingAgeDialogTokens
+                                .primaryActionBackgroundColor,
+                            foregroundColor: OnboardingAgeDialogTokens
+                                .primaryActionForegroundColor,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
+                              borderRadius: BorderRadius.circular(
+                                OnboardingAgeDialogTokens.actionRadius,
+                              ),
                             ),
                           ),
                           onPressed: () => Navigator.of(context).pop(true),
                           child: const Text(
                             'Yes',
                             style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
+                              color: OnboardingAgeDialogTokens
+                                  .primaryActionForegroundColor,
+                              fontSize:
+                                  OnboardingAgeDialogTokens.actionLabelFontSize,
+                              fontWeight: OnboardingAgeDialogTokens
+                                  .actionLabelFontWeight,
                             ),
                           ),
                         ),
@@ -117,7 +141,7 @@ class AgeVerificationDialogs {
 
   /// ── 2. Underage Rejection Dialog ("Sorry, we can't make your account.") ──
   static Future<void> showUnderageRejection(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return showDialog<void>(
       context: context,
@@ -126,11 +150,20 @@ class AgeVerificationDialogs {
         return Dialog(
           backgroundColor: colors.surfaceRaised,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(
+              OnboardingAgeDialogTokens.panelRadius,
+            ),
           ),
-          insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: OnboardingAgeDialogTokens.horizontalInset,
+          ),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+            padding: const EdgeInsets.fromLTRB(
+              OnboardingAgeDialogTokens.panelHorizontalPadding,
+              OnboardingAgeDialogTokens.panelTopPadding,
+              OnboardingAgeDialogTokens.panelHorizontalPadding,
+              OnboardingAgeDialogTokens.panelBottomPadding,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -139,39 +172,45 @@ class AgeVerificationDialogs {
                   "Sorry, we can't make your account.",
                   style: TextStyle(
                     color: colors.textPrimary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
+                    fontSize: OnboardingModalTokens.titleFontSize,
+                    fontWeight: OnboardingModalTokens.titleFontWeight,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: OnboardingModalTokens.titleToBodyGap),
                 Text(
                   'Any personal information will be deleted',
                   style: TextStyle(
                     color: colors.textSecondary,
-                    fontSize: 14,
-                    height: 1.3,
+                    fontSize: OnboardingModalTokens.bodyFontSize,
+                    height: OnboardingAgeDialogTokens.rejectionBodyLineHeight,
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: OnboardingModalTokens.actionTopGap),
                 SizedBox(
                   width: double.infinity,
-                  height: 48,
+                  height: OnboardingAgeDialogTokens.actionHeight,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black,
+                      backgroundColor:
+                          OnboardingAgeDialogTokens.primaryActionBackgroundColor,
+                      foregroundColor:
+                          OnboardingAgeDialogTokens.primaryActionForegroundColor,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
+                        borderRadius: BorderRadius.circular(
+                          OnboardingAgeDialogTokens.actionRadius,
+                        ),
                       ),
                     ),
                     onPressed: () => Navigator.of(context).pop(),
                     child: const Text(
                       'Okay',
                       style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
+                        color: OnboardingAgeDialogTokens
+                            .primaryActionForegroundColor,
+                        fontSize: OnboardingAgeDialogTokens.actionLabelFontSize,
+                        fontWeight:
+                            OnboardingAgeDialogTokens.actionLabelFontWeight,
                       ),
                     ),
                   ),
