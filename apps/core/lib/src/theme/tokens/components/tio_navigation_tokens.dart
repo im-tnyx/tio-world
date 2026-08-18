@@ -1,5 +1,4 @@
-import 'package:flutter/material.dart';
-
+import '../foundation/tio_palette.dart';
 import '../foundation/tio_radius.dart';
 import '../foundation/tio_spacing.dart';
 import '../primitive/tio_opacity.dart';
@@ -19,7 +18,7 @@ class TioNavigationTokens {
   static const planPillHeight = 32.0;
   static const planIconSize = 14.0;
   static const planContentGap = TioSpacing.extraSmall;
-  static const planPlusAccentColor = Color(0xFFF59E0B);
+  static const planPlusAccentColor = TioPalette.amber500;
 
   static const aiTabActivePadding = 5.0;
   static const aiTabInactivePadding = 4.0;
