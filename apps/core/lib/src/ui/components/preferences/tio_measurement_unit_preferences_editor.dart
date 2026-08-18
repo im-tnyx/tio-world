@@ -111,7 +111,7 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     return Padding(
       padding: const EdgeInsets.only(bottom: TioSpacing.small),
       child: Text(

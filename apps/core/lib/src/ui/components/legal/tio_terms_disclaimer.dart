@@ -30,7 +30,7 @@ class TioTermsDisclaimer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     final resolvedTextColor =
         textColor ?? colors.textSecondary.withValues(alpha: 0.7);
