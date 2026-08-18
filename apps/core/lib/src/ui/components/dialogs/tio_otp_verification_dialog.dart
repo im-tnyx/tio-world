@@ -95,7 +95,7 @@ class _TioOtpVerificationDialogState extends State<TioOtpVerificationDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -105,11 +105,11 @@ class _TioOtpVerificationDialogState extends State<TioOtpVerificationDialog> {
         decoration: BoxDecoration(
           color: colors.surfaceRaised,
           borderRadius: BorderRadius.circular(28),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
-              color: Colors.black.withAlpha(80),
-              blurRadius: 30,
-              offset: const Offset(0, 10),
+              color: TioDialogTokens.otpShadowColor,
+              blurRadius: TioDialogTokens.otpShadowBlurRadius,
+              offset: Offset(0, TioDialogTokens.otpShadowOffsetY),
             ),
           ],
           border: Border.all(

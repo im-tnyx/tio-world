@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 
@@ -34,6 +35,9 @@ void main() {
       expect(TioCardTokens.materialThemeElevation, 0.0);
       expect(TioCardTokens.glassContainerOpacity, 0.72);
       expect(TioCardTokens.glassBorderOpacity, 0.16);
+      expect(TioDialogTokens.otpShadowColor, const Color(0x50000000));
+      expect(TioDialogTokens.otpShadowBlurRadius, 30.0);
+      expect(TioDialogTokens.otpShadowOffsetY, 10.0);
       expect(TioInputTokens.radius, 14.0);
       expect(TioLegalTokens.defaultFontSize, 12.0);
       expect(TioLegalTokens.bodyTextOpacity, 0.70);
