@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import '../theme/welcome_visual_tokens.dart';
+import 'package:tio_core/core.dart';
 
 class WelcomeFeatureTile extends StatelessWidget {
   const WelcomeFeatureTile({
@@ -23,25 +22,31 @@ class WelcomeFeatureTile extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         SizedBox(
-          width: WelcomeLayoutTokens.featureIconBoxSize,
-          height: WelcomeLayoutTokens.featureIconBoxSize,
+          width: TioSize.dp32,
+          height: TioSize.dp32,
           child: Center(child: iconWidget),
         ),
-        const SizedBox(height: WelcomeLayoutTokens.featureIconToTitleGap),
+        const SizedBox(height: TioSize.dp10),
         Text(
           title,
           textAlign: TextAlign.center,
-          style: WelcomeTypographyTokens.featureTitle.copyWith(
+          style: const TextStyle(
+            fontSize: TioFontSize.size10_5,
+            fontWeight: TioFontWeight.w800,
+            letterSpacing: TioLetterSpacing.positive08,
+          ).copyWith(
             color: colorScheme.onSurface,
           ),
         ),
-        const SizedBox(
-          height: WelcomeLayoutTokens.featureTitleToDescriptionGap,
-        ),
+        const SizedBox(height: TioSize.dp6),
         Text(
           description,
           textAlign: TextAlign.center,
-          style: WelcomeTypographyTokens.featureDescription.copyWith(
+          style: const TextStyle(
+            fontSize: TioFontSize.size9_5,
+            fontWeight: TioFontWeight.w400,
+            height: TioLineHeight.height130,
+          ).copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
         ),
