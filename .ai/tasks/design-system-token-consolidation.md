@@ -11,232 +11,180 @@
 
 ### User Outcome
 
-Keep the current Tio phone UI visually unchanged while making `tio_core` the clear source of truth for reusable design-system values and removing parallel/duplicate token ownership where semantics genuinely match.
+Keep the current Tio phone UI visually unchanged while making `tio_core` the source of truth for reusable design-system values and removing duplicate/private token ownership only where semantics genuinely match.
 
 ### Success Criteria
 
-- Current rendered values remain unchanged unless a separate visual change is explicitly approved.
+- No unapproved pixel or behavior changes.
 - `TioSpacing` and `TioRadius` remain distinct semantic APIs.
-- Core component tokens alias existing foundation tokens only where role and value both match.
-- Component-only physical dimensions remain component-owned unless repository-wide evidence proves a shared primitive is justified.
-- Welcome reusable design language migrates toward `tio_core` without turning Welcome-only composition geometry into global tokens.
-- `welcome_tokens.dart` is removed only after every call site has a verified value-preserving destination.
-- Avatar documentation/runtime drift is resolved intentionally without silently changing runtime pixels.
-- Relevant analyze/tests pass and the final diff contains no unintended visual redesign.
+- Component-local physical dimensions stay component-owned unless reuse evidence proves otherwise.
+- Welcome reusable spacing/radius roles consume `tio_core`; Welcome-only composition geometry stays local.
+- `welcome_tokens.dart` is removed only after every live member has a value-preserving destination and every remaining declaration is proven obsolete.
+- No generic numeric `TioDimensions` catalog is introduced.
+- Analyze/tests remain green.
 
 ### Scope
 
-1. **Slice 1 — inventory + safe core aliases** — implemented and CI validated.
-2. **Slice 2 — Avatar source-of-truth decision** — implemented and CI validated.
-3. **Slice 3 — Welcome token ownership migration** — next.
-4. **Slice 4 — Welcome raw literals / dead-code cleanup** — pending.
-5. **Slice 5 — docs + regression validation** — pending.
+1. **Slice 1 — core aliases:** complete + validated.
+2. **Slice 2 — Avatar source of truth:** complete + validated.
+3. **Slice 3 — Welcome private-token ownership migration:** classified; implementation next.
+4. **Slice 4 — Welcome raw literals + orphan state/widget cleanup:** pending.
+5. **Slice 5 — final docs/validation:** pending.
 
 ### Non-Goals
 
-- No mobile redesign.
-- No Auth, Account Setup, onboarding-flow, backend, or Supabase behavior changes.
-- Do not merge `TioSpacing` and `TioRadius`.
-- Do not create a generic `size1...size100` token catalog.
-- Do not replace literals mechanically just because numeric values are close.
-- Do not normalize local values (for example `7 -> 8`) to fit a shared scale.
-- Do not move Welcome-only illustration/layout geometry into core without reuse evidence.
+No mobile redesign, Auth/Account Setup/onboarding behavior, backend, Supabase, arbitrary value normalization, or feature-specific geometry promotion into core.
 
 ## 2. Codebase Exploration
 
-### Verified Evidence
+### Slice 1 — Core Alias Result
 
-Inspected:
+| Component token | Previous | Current owner |
+|---|---:|---|
+| `TioButtonTokens.contentGap` | `8` | `TioSpacing.small` |
+| `TioButtonTokens.radius` | `999` | `TioRadius.full` |
+| `TioCardTokens.padding` | `16` | `TioSpacing.large` |
+| `TioCardTokens.radius` | `16` | `TioRadius.large` |
+| `TioCardTokens.radiusItem` | `8` | `TioRadius.small` |
+| `TioNavigationTokens.itemRadius` | `16` | `TioRadius.large` |
+| `TioSheetTokens.padding` | `24` | `TioSpacing.extraLarge` |
 
-- `.ai/workflow.md`
-- `.ai/tasks/TEMPLATE.md`
-- core foundation spacing/radius tokens
-- all current core component token files
-- `TioAvatar` and semantic avatar-size mapping
-- Profile/Profile Settings avatar call sites
-- full-screen Avatar Preview custom-dimension behavior
-- Welcome private tokens and initial call sites
-- `docs/UX_UI_SYSTEM.md`
-- `docs/screens/profile.md`
-- `docs/screens/profile-avatar.md`
-- avatar regression tests
+Component-only values such as Button `46`, Input `14/52`, Navigation `62/22/125`, and Sheet radius `28` remain unchanged.
 
-Existing pattern:
+### Slice 2 — Avatar Decision
 
-```text
-Foundation semantic tokens
-        ↓
-Component tokens
-        ↓
-Reusable core components
-        ↓
-Feature screens
-```
+Runtime and tests agree on `small=36`, `large=100`, `extraLarge=160`. Profile/Profile Settings consume semantic `large`; shell consumes `small`; Profile Photo uses screen-derived `customDimension` rather than a fixed 160dp preview. Runtime `large=100dp` is authoritative and stale docs/test wording were aligned without changing UI.
 
-Component-local physical dimensions remain component-owned unless repository-wide evidence proves a reusable semantic primitive.
+### Slice 3 — Welcome Usage Inventory
 
-### Slice 1 Classification
+Verified live `WelcomeDimens` usage exists only in `welcome_screen.dart` and `welcome_top_bar.dart`. `welcome_tokens.dart` is not part of the package public API.
 
-| Component token | Previous | Owner after Slice 1 | Result |
-|---|---:|---|---|
-| `TioButtonTokens.contentGap` | `8` | `TioSpacing.small` | aliased |
-| `TioButtonTokens.radius` | `999` | `TioRadius.full` | aliased |
-| `TioCardTokens.padding` | `16` | `TioSpacing.large` | aliased |
-| `TioCardTokens.radius` | `16` | `TioRadius.large` | aliased |
-| `TioCardTokens.radiusItem` | `8` | `TioRadius.small` | aliased |
-| `TioNavigationTokens.itemRadius` | `16` | `TioRadius.large` | aliased |
-| `TioSheetTokens.padding` | `24` | `TioSpacing.extraLarge` | aliased |
-| `TioButtonTokens.height` | `46` | component | unchanged |
-| `TioInputTokens.radius` | `14` | component | unchanged |
-| `TioInputTokens.minHeight` | `52` | component | unchanged |
-| `TioNavigationTokens.bottomBarHeight` | `62` | component | unchanged |
-| `TioNavigationTokens.iconSize` | `22` | component | unchanged |
-| `TioNavigationTokens.planPillWidth` | `125` | component | unchanged |
-| `TioSheetTokens.radius` | `28` | component | unchanged |
+| Private member | Runtime usage | Destination | Decision |
+|---|---|---|---|
+| `paddingScreen = 16` | Welcome screen horizontal padding | `TioSpacing.large` | migrate |
+| `spaceXS = 8` | screen/top-bar gaps/padding | `TioSpacing.small` | migrate |
+| `spaceS = 12` | screen vertical gaps/panel padding | `TioSpacing.medium` | migrate |
+| `radiusL = 16` | top-bar InkWell radius | `TioRadius.large` | migrate |
+| `spaceXXS = 4` | top-bar vertical padding + feature-divider margin | local composition constants | keep local, rename by role |
+| `radiusXL = 20` | feature-panel radius | local `_featurePanelRadius` | keep local, rename by role |
+| `spaceSM = 16` | no live reference | none | obsolete |
+| `spaceM = 24` | no live reference | none | obsolete |
+| `buttonHeightLarge = 56` | no live reference | none | obsolete |
+| `borderThin = 1` | no live reference | none | obsolete |
+| `borderSubtle = 0.8` | no live reference | none | obsolete |
+| `featureTileHeight = 80` | no live reference | none | obsolete |
+| `featureTileIconContainerSize = 48` | no live reference | none | obsolete |
+| `radiusFeatureIcon = 12` | no live reference | none | obsolete |
+| `iconSizeXS = 20` | no live reference | none | obsolete |
+| `iconSizeS = 24` | no live reference | none | obsolete |
+| `opacityGlass = 0.08` | no live reference | none | obsolete |
+| `opacityOverlayLow = 0.1` | no live reference | none | obsolete |
+| `opacityMuted = 0.5` | no live reference | none | obsolete |
+| `WelcomeColors.transparent` | top-bar Material color | framework `Colors.transparent` | remove wrapper |
+| `getAdaptivePrimary` | definition only | none | obsolete |
+| `getOnSurfaceColor` | definition only | none | obsolete |
 
-### Welcome Findings Frozen for Slice 3+
+### Welcome Raw-Value Boundary
 
-- `WelcomeDimens` mixes reusable spacing/radius values with Welcome-specific composition geometry.
-- `paddingScreen=16`, `spaceXS=8`, `spaceS=12`, `spaceSM=16`, `spaceM=24`, and `radiusL=16` have direct numeric matches in core, but each usage still needs semantic/value-preserving migration.
-- `spaceXXS=4`, `radiusXL=20`, feature-panel/icon geometry, border/opacity values, and raw values in Welcome require classification instead of automatic token creation.
-- `WelcomeColors.transparent` is a framework-primitive wrapper; other color helpers require usage review before removal.
-- No Welcome runtime source was changed in Slice 1 or Slice 2.
+`welcome_screen.dart`, `welcome_feature_tile.dart`, and `welcome_backdrop.dart` still contain raw typography, icon sizes, animation offsets, divider dimensions, gradients, stops, and composition geometry. These are **not** part of Slice 3 unless required to eliminate `welcome_tokens.dart`. They remain for Slice 4 classification; numeric proximity alone is not a reason to replace them.
 
-### Slice 2 Avatar Decision
+### Welcome Legal Orphan Evidence
 
-Verified runtime contract:
-
-- `TioAvatarTokens.largeSize = 100.0`.
-- `TioAvatarSize.large.dimension` delegates to that token.
-- `ProfilePage` and `ProfileSettingsPage` use semantic `large`.
-- shell Profile entry uses semantic `small = 36`.
-- `AvatarPreviewPage` uses screen-derived `customDimension`; it is not a fixed `extraLarge=160` preview.
-- `tio_avatar_test.dart` explicitly asserts `small=36`, `large=100`, `extraLarge=160`.
-- no assertion enforces an 80dp runtime Profile avatar.
-
-Decision: **runtime `large=100dp` is authoritative.** Canonical UI/Profile docs and stale test wording were aligned to 100dp. Profile Photo docs were also corrected to describe the actual screen-sized `customDimension` preview while retaining `extraLarge=160` as a reusable semantic token.
+`WelcomeDisclaimer` has no live call site. `termsPrefix/termsText/andText/privacyText` are referenced only by `WelcomeUiState` and that orphan widget. Product intent in #6 says the Welcome legal footer stays removed while shared `TioTermsDisclaimer` remains for Auth. Deleting the Welcome wrapper/state leftovers is deferred to Slice 4 so Slice 3 stays token-focused.
 
 ## 3. Clarification
 
 | Decision | Status | Rationale |
 |---|---|---|
-| Preserve pixels during token ownership changes | Made | #6 is architecture cleanup, not redesign |
-| Keep spacing/radius as separate semantic APIs | Made | equal values do not imply equal meaning |
-| Seven exact component aliases | Implemented | semantic role + exact runtime value match |
-| Create `TioDimensions` now | Rejected | no repository-wide evidence yet |
-| Avatar large source of truth | Implemented: `100dp` runtime | runtime token + call sites + explicit core test agree |
-| Change Avatar large `100 -> 80` | Rejected | would create an unapproved visual change |
-| Delete `welcome_tokens.dart` now | Rejected | migration/classification not complete |
+| Pixel-preserving migration | Made | #6 is ownership cleanup, not redesign |
+| Generic `TioDimensions` | Rejected | no repository-wide evidence |
+| Avatar `100 -> 80` | Rejected | runtime/test contract is 100dp |
+| Welcome `4` → nearest spacing token | Rejected | would change pixels |
+| Welcome panel `20` → nearest radius token | Rejected | would change pixels |
+| Delete `welcome_tokens.dart` after Slice 3 migration | Approved | all live members have classified destinations; remaining members are obsolete |
+| Remove Welcome disclaimer/state in Slice 3 | Deferred | keep token migration narrow; do in Slice 4 |
 
 ## 4. Architecture Design
 
-### Chosen Approach
-
 ```text
-Foundation semantic tokens
+TioSpacing / TioRadius
         ↓
-Component tokens (semantic aliases + component-local dimensions)
+Reusable core components/tokens
         ↓
-Reusable core components
+Welcome reusable roles
+
+Welcome-only composition geometry
         ↓
-Feature UI
+file-local named constants
 ```
 
-Feature-specific composition geometry stays local. Shared values enter core only when usage demonstrates a stable reusable semantic role.
-
-### Failure and Accessibility States
-
-Token ownership changes must not alter computed dimensions, hit targets, contrast, typography, navigation behavior, semantics, or accessibility output. UI-affecting later slices require before/after validation at equivalent viewport/theme states.
+A feature-local parallel `theme/` token system is not retained after the live reusable roles are migrated.
 
 ## 5. Implementation Plan
 
-### Slice 1 — inventory + safe core aliases
+### Slice 1 — Complete
 
-- [x] Read #6 and implementation guardrails.
-- [x] Inspect workflow/task template.
-- [x] Audit foundation/component tokens.
-- [x] Alias Button `contentGap` and `radius`.
-- [x] Alias Card `padding`, `radius`, and `radiusItem`.
-- [x] Alias Navigation `itemRadius`.
-- [x] Alias Sheet `padding`.
-- [x] Add focused token-contract tests.
-- [x] Review source diff for computed-value changes.
-- [x] GitHub CI #399: bootstrap, Flutter/Dart analyze, Flutter/Dart tests all passed on source head `24c4dbd`.
+- [x] Seven exact semantic aliases.
+- [x] Token contract tests.
+- [x] CI #399 full green on `24c4dbd`.
 
-### Slice 2 — Avatar source of truth
+### Slice 2 — Complete
 
-- [x] Audit semantic-size mapping.
-- [x] Audit Profile/Profile Settings/shell/preview call sites.
-- [x] Audit avatar tests.
-- [x] Decide source of truth: runtime `large=100dp`.
-- [x] Align `docs/UX_UI_SYSTEM.md` to 100dp and actual preview behavior.
-- [x] Align Profile/Profile Photo screen docs to 100dp.
-- [x] Rename stale `profile_page_test.dart` 80dp description without changing behavior.
-- [x] GitHub CI #401: bootstrap, Flutter/Dart analyze, Flutter/Dart tests all passed on head `18e8d89`.
+- [x] Avatar runtime/docs/test audit.
+- [x] Keep runtime Profile avatar at 100dp.
+- [x] Align canonical docs and stale test description.
+- [x] CI #401 full green on `18e8d89`.
 
-### Slice 3 — Welcome ownership migration
+### Slice 3 — Welcome token ownership
 
-- [ ] Inventory every `WelcomeDimens` / `WelcomeColors` member and usage.
-- [ ] Classify each as existing core token / missing shared role / component token / Welcome-only composition / obsolete.
-- [ ] Migrate reusable values with exact runtime-value preservation.
-- [ ] Keep composition geometry local.
+- [x] Inventory all private token members and live call sites.
+- [x] Classify core destinations vs local composition vs obsolete declarations.
+- [x] Verify `welcome_tokens.dart` is not public API.
+- [ ] Replace screen `16/8/12` usages with `TioSpacing.large/small/medium`.
+- [ ] Replace top-bar radius `16` with `TioRadius.large`.
+- [ ] Replace `WelcomeColors.transparent` with `Colors.transparent`.
+- [ ] Keep exact `4` values as role-named file-local constants.
+- [ ] Keep exact `20` panel radius as a role-named file-local constant.
+- [ ] Remove `welcome_tokens.dart` once zero references remain.
+- [ ] Run full CI and inspect diff for pixel changes.
 
-### Slice 4/5
+### Slice 4 — Pending
 
-- [ ] Classify raw reusable Welcome colors/typography/spacing/dimensions.
-- [ ] Remove obsolete Welcome theme/dead code only after zero references.
-- [ ] Update final design-system docs and validation evidence.
+- [ ] Classify raw typography/colors/icon sizes/dividers/animation/gradient values.
+- [ ] Remove orphan `WelcomeDisclaimer` and Welcome-only legal state after final reference audit.
+- [ ] Preserve shared `TioTermsDisclaimer` and Auth legal UI.
+
+### Slice 5 — Pending
+
+- [ ] Final docs/task/Issue #6 sync.
+- [ ] Relevant before/after compact/light/dark validation where practical.
+- [ ] Final PR diff review.
 
 ## 6. Quality Review
 
-### Validation Run
-
 ```text
-GitHub Flutter CI #399 on source head 24c4dbd:
-- Workspace bootstrap: PASS
-- Flutter analyze: PASS
-- Dart analyze: PASS
-- Flutter tests: PASS
-- Dart tests: PASS
-
-GitHub Flutter CI #401 on head 18e8d89:
-- Workspace bootstrap: PASS
-- Flutter analyze: PASS
-- Dart analyze: PASS
-- Flutter tests: PASS
-- Dart tests: PASS
+CI #399 — full green (Slice 1 source head 24c4dbd)
+CI #401 — full green (Slice 2 head 18e8d89)
+CI #402 — latest task-sync head validation in progress at Slice 3 start
 ```
-
-### Review Findings and Resolution
-
-- Seven aliases preserve exact computed values.
-- No evidence currently justifies a generic physical-dimension foundation.
-- Avatar runtime is internally consistent at 100dp; canonical docs now match runtime truth.
-- The Profile Photo preview is screen-sized via `customDimension`; `extraLarge=160` remains a reusable semantic size rather than that route's actual runtime size.
-- Welcome migration remains deliberately separate from the first two slices.
 
 ## 7. Final Handoff
 
 ### Changed Files So Far
 
 - `.ai/tasks/design-system-token-consolidation.md`
-- `apps/core/lib/src/theme/tokens/components/tio_button_tokens.dart`
-- `apps/core/lib/src/theme/tokens/components/tio_card_tokens.dart`
-- `apps/core/lib/src/theme/tokens/components/tio_navigation_tokens.dart`
-- `apps/core/lib/src/theme/tokens/components/tio_sheet_tokens.dart`
-- `apps/core/test/theme/token_alias_contract_test.dart`
-- `apps/features/profile/test/presentation/profile_page_test.dart`
-- `docs/UX_UI_SYSTEM.md`
-- `docs/screens/profile.md`
-- `docs/screens/profile-avatar.md`
+- four core component token files
+- core token alias contract test
+- avatar/Profile documentation
+- stale Profile avatar test description
 
 ### Actual Behavior
 
-Slices 1-2 change token ownership and documentation/test wording only. Computed runtime values and rendered UI remain unchanged.
+Slices 1-2 preserve rendered behavior. Slice 3 implementation has not yet changed runtime source at this checkpoint.
 
 ### Known Limitations
 
-Welcome token migration/raw-literal cleanup remain open. Global `.ai` orientation files contain older project snapshots and are not treated as canonical runtime truth for this narrow slice.
+Welcome token migration, raw-literal classification, and orphan cleanup remain open.
 
 ### Final Status
 
