@@ -112,17 +112,17 @@ void main() {
     });
 
     test('dialog roles alias canonical typography primitives', () {
-      expect(TioDialogTokens.otpTitleFontSize, TioFontSize.size16);
+      expect(TioOtpDialogTokens.titleFontSize, TioFontSize.size16);
       expect(
-        TioDialogTokens.otpTitleLetterSpacing,
+        TioOtpDialogTokens.titleLetterSpacing,
         TioLetterSpacing.negative02,
       );
-      expect(TioDialogTokens.otpInputFontSize, TioFontSize.size20);
+      expect(TioOtpDialogTokens.inputFontSize, TioFontSize.size20);
       expect(
-        TioDialogTokens.otpInputLetterSpacing,
+        TioOtpDialogTokens.inputLetterSpacing,
         TioLetterSpacing.positive60,
       );
-      expect(TioDialogTokens.otpSubtitleLineHeight, TioLineHeight.height135);
+      expect(TioOtpDialogTokens.subtitleLineHeight, TioLineHeight.height135);
       expect(TioDialogTokens.deleteHeadlineFontSize, TioFontSize.size28);
       expect(TioDialogTokens.deleteBodyLineHeight, TioLineHeight.height140);
       expect(TioDialogTokens.deleteCountdownFontSize, TioFontSize.size34);
