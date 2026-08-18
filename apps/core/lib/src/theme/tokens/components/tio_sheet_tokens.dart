@@ -6,7 +6,7 @@ class TioSheetTokens {
 
   // Audited against the current TioSheet runtime contract. Keep these values
   // pixel-preserving unless a separate visual-design decision changes them.
-  static const radius = TioRadius.extraLarge;
-  static const padding = TioSpacing.large;
-  static const titleGap = TioSpacing.medium;
+  static const radius = TioRadius.xl;
+  static const padding = TioSpacing.lg;
+  static const titleGap = TioSpacing.md;
 }
