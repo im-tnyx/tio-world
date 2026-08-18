@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
 
 import '../../../domain/domain.dart';
+import '../../theme/auth_email_login_tokens.dart';
+import '../../theme/auth_form_tokens.dart';
 import '../../theme/auth_visual_tokens.dart';
 
 /// Pixel-perfect implementation of Tnyx-Hub Email/Social Login Screen (`EmailAuthScreen.kt`).
@@ -177,13 +179,7 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
           icon: Icon(Icons.arrow_back, color: colors.textPrimary),
           onPressed: () => context.pop(false),
         ),
-        title: Text(
-          'Sign In',
-          style: textTheme.titleLarge?.copyWith(
-            color: colors.textPrimary,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        title: Text('Sign In', style: textTheme.titleLarge),
       ),
       body: SafeArea(
         child: Column(
@@ -193,7 +189,7 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
                   horizontal: TioSpacing.large,
-                  vertical: 8,
+                  vertical: TioSpacing.small,
                 ),
                 child: Form(
                   key: _formKey,
@@ -202,9 +198,9 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
                     children: [
                       if (_errorMessage != null) ...[
                         _ErrorBanner(message: _errorMessage!),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: TioSpacing.large),
                       ],
-                      const SizedBox(height: 16),
+                      const SizedBox(height: TioSpacing.large),
 
                       // Email field
                       TextFormField(
@@ -221,7 +217,7 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
                           prefixIcon: Icons.email_outlined,
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: TioSpacing.large),
 
                       // Password field
                       TextFormField(
@@ -243,14 +239,15 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
                                   ? Icons.visibility_off_outlined
                                   : Icons.visibility_outlined,
                               color: colors.textMuted,
-                              size: 20,
+                              size:
+                                  AuthEmailLoginTokens.passwordVisibilityIconSize,
                             ),
                             onPressed: () =>
                                 setState(() => _obscurePassword = !_obscurePassword),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: TioSpacing.small),
 
                       // Forgot password
                       Align(
@@ -267,12 +264,13 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
                             'Forgot Password?',
                             style: textTheme.bodyMedium?.copyWith(
                               color: colors.primary,
-                              fontWeight: FontWeight.w600,
+                              fontWeight:
+                                  AuthEmailLoginTokens.forgotPasswordFontWeight,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: TioSpacing.extraLarge),
 
                       // Sign in button
                       TioButton.primary(
@@ -281,11 +279,13 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
                         loading: _isLoading,
                         onPressed: _isLoading ? null : _handleSignIn,
                       ),
-                      const SizedBox(height: 28),
+                      const SizedBox(
+                        height: AuthEmailLoginTokens.postSubmitGap,
+                      ),
 
                       // OR Divider
                       _OrDivider(colors: colors),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: TioSpacing.extraLarge),
 
                       // Social Buttons (Google + Truecaller)
                       TioSocialButton.google(
@@ -294,7 +294,7 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
                         onPressed: _handleGoogleSignIn,
                       ),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AuthFormTokens.socialProviderGap),
 
                       TioSocialButton.truecaller(
                         key: const ValueKey('signin-truecaller-button'),
@@ -302,7 +302,7 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
                         onPressed: widget.onTruecallerClick ?? () {},
                       ),
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: TioSpacing.large),
                     ],
                   ),
                 ),
@@ -311,16 +311,16 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
 
             // Pinned Bottom Footer: Don't have an account? Create Account
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.symmetric(
+                horizontal: TioSpacing.extraLarge,
+                vertical: TioSpacing.large,
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     "Don't have an account? ",
-                    style: textTheme.bodyLarge?.copyWith(
-                      color: colors.textSecondary,
-                      fontSize: 14,
-                    ),
+                    style: textTheme.bodyMedium,
                   ),
                   TextButton(
                     onPressed: () {
@@ -329,16 +329,17 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
                       }
                     },
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AuthFormTokens.footerLinkHorizontalPadding,
+                        vertical: AuthFormTokens.footerLinkVerticalPadding,
+                      ),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                     child: Text(
                       'Sign Up',
-                      style: textTheme.bodyLarge?.copyWith(
+                      style: textTheme.labelLarge?.copyWith(
                         color: colors.primary,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
                       ),
                     ),
                   ),
@@ -362,11 +363,16 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
     return InputDecoration(
       labelText: label,
       hintText: hint,
-      prefixIcon:
-          Icon(prefixIcon, color: colors.textMuted, size: 20),
+      prefixIcon: Icon(
+        prefixIcon,
+        color: colors.textMuted,
+        size: AuthFormTokens.inputLeadingIconSize,
+      ),
       suffixIcon: suffix,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: TioInputTokens.horizontalPadding,
+        vertical: TioInputTokens.standardContentVerticalPadding,
+      ),
     );
   }
 }
@@ -377,25 +383,33 @@ class _OrDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Row(
       children: [
         Expanded(
-          child: Divider(color: colors.outlineStrong.withValues(alpha: 0.3)),
+          child: Divider(
+            color: colors.outlineStrong.withValues(
+              alpha: AuthFormTokens.dividerOpacity,
+            ),
+          ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AuthFormTokens.dividerHorizontalPadding,
+          ),
           child: Text(
             'OR',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: colors.textMuted,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1,
-                ),
+            style: textTheme.labelSmall?.copyWith(
+              letterSpacing: AuthFormTokens.dividerLabelLetterSpacing,
+            ),
           ),
         ),
         Expanded(
-          child: Divider(color: colors.outlineStrong.withValues(alpha: 0.3)),
+          child: Divider(
+            color: colors.outlineStrong.withValues(
+              alpha: AuthFormTokens.dividerOpacity,
+            ),
+          ),
         ),
       ],
     );
