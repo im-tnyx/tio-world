@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 
+import '../theme/account_setup_visual_tokens.dart';
+
 class MobileStep extends StatefulWidget {
   const MobileStep({
     required this.initialMobile,
@@ -69,8 +71,8 @@ class _MobileStepState extends State<MobileStep> {
               : 'You can add or verify a mobile number later from Account Settings.',
           style: TextStyle(
             color: colors.textMuted,
-            fontSize: 12,
-            height: 1.3,
+            fontSize: AccountSetupVisualTokens.helperFontSize,
+            height: AccountSetupVisualTokens.helperLineHeight,
           ),
         ),
       ],
