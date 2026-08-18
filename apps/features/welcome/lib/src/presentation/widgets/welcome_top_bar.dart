@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 
-import '../theme/welcome_visual_tokens.dart';
-
 class WelcomeTopBar extends StatelessWidget {
   const WelcomeTopBar({
     required this.localeCode,
@@ -17,8 +15,9 @@ class WelcomeTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.tioColors;
     final headerStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
-          color: WelcomeColorTokens.onMediaPrimary,
+          color: colors.onMediaPrimary,
         );
 
     return Row(
@@ -28,8 +27,8 @@ class WelcomeTopBar extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: TioSpacing.small,
-                vertical: WelcomeLayoutTokens.topBarVerticalPadding,
+                horizontal: TioSpacing.sm,
+                vertical: TioSpacing.xs,
               ),
               child: Text(
                 localeCode.toUpperCase(),
@@ -47,11 +46,11 @@ class WelcomeTopBar extends StatelessWidget {
           child: InkWell(
             key: const ValueKey('welcome-skip-action'),
             onTap: onSkip,
-            borderRadius: BorderRadius.circular(TioRadius.large),
+            borderRadius: BorderRadius.circular(TioRadius.lg),
             child: Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: TioSpacing.small,
-                vertical: WelcomeLayoutTokens.topBarVerticalPadding,
+                horizontal: TioSpacing.sm,
+                vertical: TioSpacing.xs,
               ),
               child: Text(
                 skipText,
