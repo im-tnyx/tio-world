@@ -5,13 +5,16 @@ import 'package:tio_core/core.dart';
 ///
 /// Typography is intentionally resolved through Theme.of(context).textTheme so
 /// Auth consumes the canonical core semantic typography instead of duplicating
-/// font sizes and weights here. Input border and divider details remain
-/// surface-owned until their source-of-truth audit is complete.
+/// font sizes and weights here. Input border and surface-specific divider
+/// details remain local until their source-of-truth audit is complete.
 class AuthFormTokens {
   const AuthFormTokens._();
 
   static const topBarHeight = 48.0;
   static const passwordVisibilityIconSize = 22.0;
+
+  static const dividerOpacity = 0.30;
+  static const dividerHorizontalPadding = TioSpacing.large;
 
   static const socialProviderGap = TioSpacing.medium;
 
