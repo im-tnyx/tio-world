@@ -15,6 +15,9 @@ class TioColors extends ThemeExtension<TioColors> {
     required this.textPrimary,
     required this.textSecondary,
     required this.textMuted,
+    required this.mediaBackground,
+    required this.onMediaPrimary,
+    required this.onMediaSecondary,
     required this.success,
     required this.warning,
     required this.danger,
@@ -36,6 +39,19 @@ class TioColors extends ThemeExtension<TioColors> {
   final Color textPrimary;
   final Color textSecondary;
   final Color textMuted;
+
+  /// Background/fallback behind edge-to-edge media compositions.
+  ///
+  /// Consumers resolve this through the active runtime theme rather than
+  /// reading a physical palette color directly.
+  final Color mediaBackground;
+
+  /// Highest-emphasis content rendered over media/image compositions.
+  final Color onMediaPrimary;
+
+  /// Secondary-emphasis content rendered over media/image compositions.
+  final Color onMediaSecondary;
+
   final Color success;
   final Color warning;
   final Color danger;
@@ -57,6 +73,9 @@ class TioColors extends ThemeExtension<TioColors> {
     textPrimary: TioPalette.neutral900,
     textSecondary: TioPalette.neutral600,
     textMuted: TioPalette.neutral400,
+    mediaBackground: TioPalette.black,
+    onMediaPrimary: TioPalette.white,
+    onMediaSecondary: TioPalette.whiteAlpha179,
     success: TioPalette.green600,
     warning: TioPalette.amber500,
     danger: TioPalette.red600,
@@ -79,6 +98,9 @@ class TioColors extends ThemeExtension<TioColors> {
     textPrimary: TioPalette.neutral50,
     textSecondary: TioPalette.neutral300,
     textMuted: TioPalette.neutral400,
+    mediaBackground: TioPalette.black,
+    onMediaPrimary: TioPalette.white,
+    onMediaSecondary: TioPalette.whiteAlpha179,
     success: TioPalette.green500,
     warning: TioPalette.amber400,
     danger: TioPalette.red400,
@@ -101,6 +123,9 @@ class TioColors extends ThemeExtension<TioColors> {
     textPrimary: TioPalette.white,
     textSecondary: TioPalette.neutral200,
     textMuted: TioPalette.neutral400,
+    mediaBackground: TioPalette.black,
+    onMediaPrimary: TioPalette.white,
+    onMediaSecondary: TioPalette.whiteAlpha179,
     success: TioPalette.green500,
     warning: TioPalette.amber400,
     danger: TioPalette.red400,
@@ -166,6 +191,9 @@ class TioColors extends ThemeExtension<TioColors> {
     Color? textPrimary,
     Color? textSecondary,
     Color? textMuted,
+    Color? mediaBackground,
+    Color? onMediaPrimary,
+    Color? onMediaSecondary,
     Color? success,
     Color? warning,
     Color? danger,
@@ -187,6 +215,9 @@ class TioColors extends ThemeExtension<TioColors> {
       textPrimary: textPrimary ?? this.textPrimary,
       textSecondary: textSecondary ?? this.textSecondary,
       textMuted: textMuted ?? this.textMuted,
+      mediaBackground: mediaBackground ?? this.mediaBackground,
+      onMediaPrimary: onMediaPrimary ?? this.onMediaPrimary,
+      onMediaSecondary: onMediaSecondary ?? this.onMediaSecondary,
       success: success ?? this.success,
       warning: warning ?? this.warning,
       danger: danger ?? this.danger,
