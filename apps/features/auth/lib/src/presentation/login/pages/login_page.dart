@@ -4,6 +4,7 @@ import 'package:tio_core/core.dart';
 
 import '../../../domain/domain.dart';
 import '../../theme/auth_form_tokens.dart';
+import '../../theme/auth_login_tokens.dart';
 import '../../theme/auth_visual_tokens.dart';
 
 /// Pixel-perfect implementation of the Tnyx-Hub Email/Social Login Screen.
@@ -182,7 +183,11 @@ class _LoginPageState extends State<LoginPage> {
     final isDark = colors.isDark;
 
     final inputBorderRadius = BorderRadius.circular(TioRadius.large);
-    final inputBorderColor = colors.outlineStrong.withValues(alpha: isDark ? 0.35 : 0.45);
+    final inputBorderColor = colors.outlineStrong.withValues(
+      alpha: isDark
+          ? TioInputTokens.darkUnfocusedOutlineOpacity
+          : TioInputTokens.lightUnfocusedOutlineOpacity,
+    );
     final inputFocusedBorderColor = colors.textPrimary;
 
     return Scaffold(
@@ -211,7 +216,7 @@ class _LoginPageState extends State<LoginPage> {
                           icon: Icon(
                             Icons.arrow_back,
                             color: colors.textPrimary,
-                            size: 24,
+                            size: AuthLoginTokens.backIconSize,
                           ),
                           onPressed: () {
                             if (!_isBusy) {
@@ -245,30 +250,33 @@ class _LoginPageState extends State<LoginPage> {
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.next,
-                          style: TextStyle(color: colors.textPrimary, fontSize: 16),
+                          style: textTheme.bodyLarge,
                           cursorColor: colors.primary,
                           decoration: InputDecoration(
                             labelText: 'Email',
-                            labelStyle: TextStyle(
-                              color: colors.textSecondary,
-                              fontSize: 14,
-                            ),
-                            floatingLabelStyle: TextStyle(
+                            labelStyle: textTheme.bodyMedium,
+                            floatingLabelStyle: textTheme.bodyMedium?.copyWith(
                               color: colors.textPrimary,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
+                              fontWeight:
+                                  AuthLoginTokens.inputFloatingLabelFontWeight,
                             ),
                             contentPadding: const EdgeInsets.symmetric(
-                              horizontal: TioSpacing.large,
-                              vertical: TioSpacing.large,
+                              horizontal: TioInputTokens.horizontalPadding,
+                              vertical: TioInputTokens.standardContentVerticalPadding,
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: inputBorderRadius,
-                              borderSide: BorderSide(color: inputBorderColor, width: 1.2),
+                              borderSide: BorderSide(
+                                color: inputBorderColor,
+                                width: AuthLoginTokens.inputEnabledOutlineWidth,
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: inputBorderRadius,
-                              borderSide: BorderSide(color: inputFocusedBorderColor, width: 1.8),
+                              borderSide: BorderSide(
+                                color: inputFocusedBorderColor,
+                                width: AuthLoginTokens.inputFocusedOutlineWidth,
+                              ),
                             ),
                             filled: false,
                           ),
@@ -283,22 +291,30 @@ class _LoginPageState extends State<LoginPage> {
                           obscureText: !_isPasswordVisible,
                           textInputAction: TextInputAction.done,
                           onFieldSubmitted: (_) => _handleEmailSignIn(),
-                          style: TextStyle(color: colors.textPrimary, fontSize: 16),
+                          style: textTheme.bodyLarge,
                           cursorColor: colors.primary,
                           decoration: InputDecoration(
                             hintText: 'Password',
-                            hintStyle: TextStyle(color: colors.textMuted, fontSize: 16),
+                            hintStyle: textTheme.bodyLarge?.copyWith(
+                              color: colors.textMuted,
+                            ),
                             contentPadding: const EdgeInsets.symmetric(
-                              horizontal: TioSpacing.large,
-                              vertical: TioSpacing.large,
+                              horizontal: TioInputTokens.horizontalPadding,
+                              vertical: TioInputTokens.standardContentVerticalPadding,
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: inputBorderRadius,
-                              borderSide: BorderSide(color: inputBorderColor, width: 1.2),
+                              borderSide: BorderSide(
+                                color: inputBorderColor,
+                                width: AuthLoginTokens.inputEnabledOutlineWidth,
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: inputBorderRadius,
-                              borderSide: BorderSide(color: inputFocusedBorderColor, width: 1.8),
+                              borderSide: BorderSide(
+                                color: inputFocusedBorderColor,
+                                width: AuthLoginTokens.inputFocusedOutlineWidth,
+                              ),
                             ),
                             suffixIcon: IconButton(
                               icon: Icon(
@@ -349,26 +365,35 @@ class _LoginPageState extends State<LoginPage> {
                           children: [
                             Expanded(
                               child: Divider(
-                                color: colors.outlineStrong.withValues(alpha: 0.3),
-                                thickness: 1,
+                                color: colors.outlineStrong.withValues(
+                                  alpha: AuthFormTokens.dividerOpacity,
+                                ),
+                                thickness: AuthLoginTokens.dividerThickness,
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: TioSpacing.large),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal:
+                                    AuthFormTokens.dividerHorizontalPadding,
+                              ),
                               child: Text(
                                 'OR',
                                 style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: AuthLoginTokens.dividerLabelFontSize,
+                                  fontWeight:
+                                      AuthLoginTokens.dividerLabelFontWeight,
                                   color: colors.textMuted,
-                                  letterSpacing: 0.5,
+                                  letterSpacing:
+                                      AuthLoginTokens.dividerLabelLetterSpacing,
                                 ),
                               ),
                             ),
                             Expanded(
                               child: Divider(
-                                color: colors.outlineStrong.withValues(alpha: 0.3),
-                                thickness: 1,
+                                color: colors.outlineStrong.withValues(
+                                  alpha: AuthFormTokens.dividerOpacity,
+                                ),
+                                thickness: AuthLoginTokens.dividerThickness,
                               ),
                             ),
                           ],
