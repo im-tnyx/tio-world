@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../theme/tokens/effects/tio_elevation.dart';
 import '../../../../theme/tokens/foundation/tio_spacing.dart';
 
 class TioShellStatusTopBar extends StatelessWidget
@@ -33,14 +34,14 @@ class TioShellStatusTopBar extends StatelessWidget
 
     return AppBar(
       automaticallyImplyLeading: false,
-      titleSpacing: TioSpacing.large,
+      titleSpacing: TioSpacing.lg,
       title: Text(title),
       shape: null,
       surfaceTintColor: Colors.transparent,
       shadowColor: Colors.transparent,
-      scrolledUnderElevation: 0,
+      scrolledUnderElevation: TioElevation.none,
       backgroundColor: colorScheme.surface.withValues(alpha: opacity),
-      elevation: 0,
+      elevation: TioElevation.none,
       actions: [
         Tooltip(
           message: semanticsLabel,
@@ -50,14 +51,14 @@ class TioShellStatusTopBar extends StatelessWidget
             child: ExcludeSemantics(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: TioSpacing.large,
+                  horizontal: TioSpacing.lg,
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.local_fire_department_outlined),
                     if (visibleDays case final value?) ...[
-                      const SizedBox(width: TioSpacing.small),
+                      const SizedBox(width: TioSpacing.sm),
                       Text(value.toString()),
                     ],
                   ],
