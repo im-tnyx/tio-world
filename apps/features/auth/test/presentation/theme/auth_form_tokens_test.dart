@@ -6,12 +6,14 @@ void main() {
   group('Auth shared form visual contracts', () {
     test('keeps shared chrome geometry', () {
       expect(AuthFormTokens.topBarHeight, 48.0);
+      expect(AuthFormTokens.inputLeadingIconSize, 20.0);
       expect(AuthFormTokens.passwordVisibilityIconSize, 22.0);
     });
 
     test('reuses exact shared divider and spacing roles', () {
       expect(AuthFormTokens.dividerOpacity, 0.30);
       expect(AuthFormTokens.dividerHorizontalPadding, TioSpacing.large);
+      expect(AuthFormTokens.dividerLabelLetterSpacing, 1.0);
       expect(AuthFormTokens.socialProviderGap, TioSpacing.medium);
       expect(AuthFormTokens.footerLinkHorizontalPadding, TioSpacing.extraSmall);
       expect(AuthFormTokens.footerLinkVerticalPadding, TioSpacing.small);
