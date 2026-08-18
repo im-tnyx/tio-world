@@ -1,5 +1,6 @@
 import '../foundation/tio_spacing.dart';
 import '../primitive/tio_alpha.dart';
+import '../typography/tio_font_size.dart';
 
 /// Cross-picker visual contracts proven identical across reusable DOB and
 /// Product Onboarding drum-wheel implementations.
@@ -14,5 +15,5 @@ class TioWheelPickerTokens {
   static const selectionHorizontalMargin = TioSpacing.large;
   static const selectionSurfaceAlpha = TioAlpha.alpha200;
   static const itemExtent = 44.0;
-  static const selectedFontSize = 22.0;
+  static const selectedFontSize = TioFontSize.size22;
 }
