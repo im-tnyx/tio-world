@@ -26,281 +26,224 @@ Without separate explicit owner/design approval:
 - no component geometry changes;
 - no screen redesign.
 
-Current rendered values must remain exact. Do not normalize a value to the nearest scale value. If current UI uses `7dp`, preserve `7dp` through governed ownership rather than changing it to `8dp`.
+Current rendered values must remain exact. Never normalize an existing value merely to fit a nearby scale value.
 
 ## Hard Boundaries
 
-This slice must not migrate Welcome, Auth, Account Setup, Onboarding, Home, Profile, Settings, or other feature screens.
+This slice must not migrate Welcome, Auth, Account Setup, Onboarding, Home, Profile, Settings, or other feature screens. It must not change auth/session behavior, navigation behavior, persistence, Supabase behavior, business logic, or product flow.
 
-It must not change auth/session behavior, navigation behavior, persistence, Supabase behavior, business logic, or product flow.
-
-## Architecture Contract
+## Canonical Ownership
 
 ```text
-Primitive physical values
-        ↓
-Foundation / semantic / typography / effects roles
-        ↓
+TioSize                         physical numeric geometry registry
+    ↓
+TioSpacing / TioRadius          reusable semantic geometry scales
+TioIconSize / TioStroke        add only when reusable roles are evidenced
+    ↓
 Reusable component contracts
-        ↓
+    ↓
 Reusable core components
-        ↓
+    ↓
 Feature screens/widgets
 ```
 
-There is no feature composition token layer.
+`TioSize` uses numeric names because it owns physical values. Semantic families use intent/scale names and must not redefine raw physical values.
 
-Component token classes are semantic contracts, not independent numeric/color stores. Screen-specific token bags must not be moved into `core/components` merely to avoid feature-local tokens.
+## Scalable Foundation Contract
+
+The original five-role spacing API was too restrictive as a final design-system scale. Slice A corrects that limitation without changing any current pixels.
+
+### TioSize
+
+`TioSize` must contain the fixed geometry values actually evidenced by current production UI or separately approved design decisions. It must not be limited to the values currently used by `TioSpacing`.
+
+Current audited integer geometry registry includes:
+
+```text
+0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24,
+26, 27, 28, 30, 32, 36, 38, 44, 46, 48, 52, 54, 56, 62, 64,
+72, 100, 125, 140, 160, 200, 999
+```
+
+Do not generate arbitrary unused values. Fractional stroke widths remain separate until `TioStroke` ownership is established.
+
+### TioSpacing
+
+Canonical reusable spacing roles:
+
+```text
+none → TioSize.dp0
+xxs  → TioSize.dp2
+xs   → TioSize.dp4
+sm   → TioSize.dp8
+md   → TioSize.dp12
+lg   → TioSize.dp16
+xl   → TioSize.dp24
+xxl  → TioSize.dp32
+```
+
+Temporary compatibility aliases preserve existing consumers during migration:
+
+```text
+extraSmall → xs
+small      → sm
+medium     → md
+large      → lg
+extraLarge → xl
+```
+
+These legacy names are not the final canonical API.
+
+### TioRadius
+
+Radius has its own semantic scale even when some physical values overlap spacing:
+
+```text
+none → TioSize.dp0
+xs   → TioSize.dp4
+sm   → TioSize.dp8
+md   → TioSize.dp12
+lg   → TioSize.dp16
+xl   → TioSize.dp24
+full → TioSize.dp999
+```
+
+Temporary compatibility aliases:
+
+```text
+small      → sm
+medium     → md
+large      → lg
+extraLarge → xl
+```
+
+`full` belongs to radius/shape semantics, not spacing.
+
+### Category independence
+
+Do not force equal semantic names to equal physical values across categories merely for symmetry.
+
+```text
+TioSpacing.xs may be 4dp
+TioRadius.xs may be 4dp
+TioIconSize.xs may later be 16dp
+```
+
+Each semantic family must reflect its actual reusable product contracts.
 
 ## Verified Starting Debt
 
-Current source audit identified these concrete debts:
-
-- `primitive/` did not exist before Slice A implementation began;
-- `TioSpacing` and `TioRadius` independently owned overlapping raw geometry values;
-- component token files contain raw geometry, opacity, alpha, typography and color values;
-- `TioMotion` and `TioMotionTokens` duplicate `150/250/400ms` ownership;
-- `TioShadowTokens.soft` and `TioShadows.standard.soft` duplicate the same shadow contract;
-- `TioPalette`, `TioSemanticColors`, `TioDomainColors`, and `TioColors` have overlapping color ownership;
-- `context.radiusSmall`, `context.radiusMedium`, and `context.radiusLarge` are static compatibility accessors in the dynamic context API;
-- `TioTheme.colors(context)` remains a transitional duplicate of `context.tioColors`;
-- typography physical values are split between `TioTypography` and multiple component token classes;
-- integer alpha values such as `25`, `40`, `50`, `80`, `120`, `200`, `245` coexist with normalized opacity values and must not be rounded during migration;
-- fixed ratios/factors such as avatar sizing factors and wheel-picker perspective/diameter values require classification;
-- current contract tests still lock many values as "component-owned" instead of locking canonical primitive + alias ownership.
+- primitive geometry ownership did not exist before Slice A;
+- spacing/radius independently owned overlapping raw numbers;
+- original `TioSpacing` had only five roles and insufficient growth scope;
+- component token files still contain raw geometry, typography, color, factor and other physical values;
+- `TioMotion` and `TioMotionTokens` duplicate duration ownership;
+- `TioShadowTokens` and `TioShadows` duplicate shadow ownership;
+- `TioPalette`, `TioSemanticColors`, `TioDomainColors`, and `TioColors` overlap in color ownership;
+- static compatibility getters remain under `context/`;
+- `TioTheme.colors(context)` remains transitional;
+- typography physical values remain split across typography and component token classes.
 
 ## Implementation Checklist
 
 ### A1 — Inventory and classification
 
-- [x] Inventory every raw fixed visual scalar/color/duration/factor under `apps/core/lib/src/theme/tokens/**`.
-- [x] Classify each as geometry, opacity, exact integer alpha, duration, typography, palette color, effect/shadow, factor/ratio, semantic role, reusable component role, or genuine non-design/runtime value.
-- [x] Record exact current values before edits.
+- [x] Inventory raw fixed visual values under `apps/core/lib/src/theme/tokens/**`.
+- [x] Classify geometry, opacity, exact alpha, duration, typography, color, effects, ratios/factors, semantic roles, component roles, and genuine non-design values.
+- [x] Record exact values before edits.
 
-### A2 — Primitive geometry
+### A2 — Primitive geometry and scalable foundation
 
 - [x] Create `tokens/primitive/primitive.dart`.
 - [x] Create canonical `TioSize`.
-- [x] Add only evidenced production values, not an arbitrary integer range.
-- [x] Alias `TioSpacing` raw values to geometry primitives.
-- [x] Alias `TioRadius` raw values to geometry primitives.
-- [ ] Add `TioIconSize` and/or `TioStroke` only when reusable roles are evidenced during the component audit.
+- [x] Expand `TioSize` to audited/evidenced integer geometry values instead of five spacing values only.
+- [x] Add canonical `dp0` and the other audited integer geometry primitives.
+- [x] Establish `TioSpacing.none/xxs/xs/sm/md/lg/xl/xxl`.
+- [x] Preserve old spacing names as compatibility aliases.
+- [x] Establish `TioRadius.none/xs/sm/md/lg/xl/full`.
+- [x] Preserve old radius names as compatibility aliases.
+- [x] Add contract tests for physical values, canonical semantic roles, and compatibility aliases.
+- [ ] Add `TioIconSize` and/or `TioStroke` only when reusable roles are evidenced during component audit.
 
 ### A3 — Opacity and exact alpha
 
-- [ ] Decide canonical ownership for normalized opacity values.
-- [ ] Preserve exact 0–255 alpha contracts when used by APIs that depend on integer alpha.
-- [ ] Do not silently convert `25/255` to rounded `0.10` or otherwise change rendered color.
-- [ ] Add `TioOpacity`, `TioAlpha`, or equivalent families only if the inventory proves they are needed.
+- [x] Establish `TioOpacity` for normalized opacity/state values.
+- [x] Establish `TioAlpha` for exact 0–255 alpha values.
+- [x] Preserve exact integer-alpha contracts without rounded conversion.
+- [x] Migrate current component opacity/alpha roles to primitive aliases without changing public semantic names.
+- [x] Flutter CI #521 passed for the A3 head.
 
 ### A4 — Motion and duration
 
-- [ ] Establish one canonical fixed-duration owner such as `TioDuration` or an equivalent motion primitive.
+- [ ] Establish one canonical fixed-duration owner such as `TioDuration`.
 - [ ] Remove duplicate physical ownership between `TioMotion` and `TioMotionTokens`.
-- [ ] Keep `TioMotionScheme` as the runtime/reduced-motion-resolved scheme.
-- [ ] Preserve all current timings exactly.
+- [ ] Keep `TioMotionScheme` as runtime/reduced-motion resolution.
+- [ ] Preserve `90/150/250/310/400/1200ms` contracts exactly.
 
 ### A5 — Shadows/effects
 
 - [ ] Resolve duplicate ownership between `TioShadowTokens` and `TioShadows`.
-- [ ] Keep one physical shadow definition and let runtime/theme-resolved contracts reference it.
-- [ ] Preserve blur, offset, spread and color values exactly.
+- [ ] Preserve exact shadow colors, blur, spread, and offset.
 
 ### A6 — Colors
 
-- [ ] Audit `TioPalette`, `TioColors`, `TioSemanticColors`, and `TioDomainColors` as one ownership graph.
-- [ ] Ensure raw physical colors have one core primitive owner.
-- [ ] Keep dynamic light/dark/OLED/high-contrast semantic resolution in `TioColors` where appropriate.
-- [ ] Retain `TioDomainColors` only if it has a distinct non-duplicate contract.
-- [ ] Remove duplicate raw color definitions without recoloring any screen.
-- [ ] Apply `.ai/tasks/design-system-hardcoded-color-audit.md` rules.
+- [ ] Audit `TioPalette`, `TioColors`, `TioSemanticColors`, and `TioDomainColors` as one graph.
+- [ ] Ensure raw physical colors have one core owner.
+- [ ] Preserve all current visible colors.
+- [ ] Apply `.ai/tasks/design-system-hardcoded-color-audit.md`.
 
 ### A7 — Typography
 
-- [ ] Inventory `fontSize`, `fontWeight`, `fontFamily`, line height, letter spacing, decoration, and relevant font style contracts.
+- [ ] Inventory font size, weight, family, line height, letter spacing, decoration, and relevant style contracts.
 - [ ] Keep typography physical ownership separate from `TioSize`.
-- [ ] Introduce a governed type scale only if evidence supports it.
-- [ ] Prefer semantic `TextTheme` roles for screen consumption.
-- [ ] Preserve every current rendered typography value.
+- [ ] Introduce a governed type scale only when evidence supports it.
 
-### A8 — Component-token audit
+### A8 — Component token audit
 
-- [ ] Audit every file under `tokens/components/`, not only Button/Input.
-- [ ] Migrate raw physical values to primitive/foundation/semantic/typography/effects ownership.
-- [ ] Keep component token classes only when they represent reusable component contracts.
+- [ ] Audit every `tokens/components/` file.
+- [ ] Move raw physical values to primitive/foundation/semantic/typography/effects owners.
+- [ ] Keep component token classes only for genuinely reusable component contracts.
 - [ ] Do not create screen-specific core token bags.
-- [ ] Reclassify oversized bags such as dialog/surface-specific collections instead of automatically preserving them.
-
-Decision rule:
 
 ```text
-Reusable component → component tokens
-Reusable semantic role → foundation/semantic/typography/effects
-One-off screen visual → governed core primitive/role directly
-Screen-specific token bag → forbidden
+Reusable component   → component tokens
+Reusable semantic    → foundation/semantic/typography/effects
+One-off screen visual→ governed primitive/core role directly
+Screen-specific bag  → forbidden
 ```
 
 ### A9 — Context and compatibility APIs
 
 - [ ] Keep `context.tioColors`, `context.tioMotion`, and `context.tioShadows` as canonical dynamic accessors.
-- [ ] Migrate consumers of `context.radiusSmall/Medium/Large` and remove those getters after zero-reference verification.
-- [ ] Migrate `TioTheme.colors(context)` consumers to `context.tioColors` package-by-package and remove only after zero-reference verification.
-- [ ] Do not turn `context/` into a wrapper layer for static tokens.
+- [ ] Remove static radius context compatibility accessors only after zero-reference migration.
+- [ ] Remove `TioTheme.colors(context)` only after zero-reference migration.
+- [ ] Do not make `context/` a wrapper for static tokens.
 
-### A10 — Exports and tests
+### A10 — Validation
 
-- [x] Export the new primitive barrel intentionally through `tio_tokens.dart`.
-- [ ] Remove obsolete duplicate public exports only after consumer search.
-- [x] Add primitive geometry contract tests.
-- [x] Add alias tests for the migrated foundation relationships.
-- [ ] Update remaining component alias tests as component values migrate to primitives.
-- [x] Preserve existing runtime-value assertions that protect current pixels.
-- [ ] Run focused core theme tests.
-- [ ] Run Flutter/Dart analyze.
-- [ ] Run full workspace CI at the slice boundary.
+- [x] Primitive barrels exported intentionally.
+- [x] Primitive geometry/spacing/radius tests added.
+- [x] Existing runtime-value assertions preserved.
+- [ ] Current scalable-foundation head must pass CI before A2 correction is considered validated.
+- [ ] Run focused core theme tests, analyze, and required workspace CI at the slice boundary.
 
-## A1 Inventory Evidence
-
-The token tree audited before the first implementation edit was Git tree `9cdf0ec103e766b582466f4f4ee0f9ad058457a0`. The audit covered every source file under `apps/core/lib/src/theme/tokens/**`.
-
-### Geometry / stroke values
-
-Current core token files evidence fixed geometry/stroke values including:
+## Implementation Evidence
 
 ```text
-0, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 6,
-8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 27, 28,
-30, 32, 36, 38, 44, 46, 48, 52, 54, 56, 62, 64,
-72, 100, 125, 140, 160, 200, 999
+7a55f2dea97074790007b0c8f3b81ac8a6672783  add initial size primitives
+9916df8d64022ecf8f39b3e05533d70a4a2e03be  alias original spacing/radius roles
+83da96d41fbc6a31a2e79d6f25b0e9d752ea3d12  add opacity/alpha primitives
+631040377a7c36c9c4c2ad2e6f845def4887ed85  migrate opacity/alpha component roles
+02ff356e27619df8a31388c71bd018ab4345e168  expand audited TioSize registry
+f9ac707576730207593d3e34240dce1a239ba286  add scalable spacing roles
+1a0416003f4616d6b8cd02e2badec54c1cdf5c20  add scalable radius roles
+c29a7ca50e8f0a82c51e1ce5e920c7959e606631  lock scalable radius contracts
 ```
 
-The first bounded A2 implementation intentionally centralizes only the already-proven foundation physical contracts `4/8/12/16/24/999`. Component-specific values will be added to `TioSize` only when their owners are migrated, rather than pre-populating a speculative numeric catalog.
-
-### Normalized opacity values
-
-Current token contracts include normalized opacity/state values such as:
-
-```text
-0.08, 0.09, 0.10, 0.12, 0.14, 0.16, 0.30, 0.35,
-0.38, 0.40, 0.45, 0.50, 0.60, 0.70, 0.72
-```
-
-A3 remains pending; these values have not been normalized or changed.
-
-### Exact integer alpha values
-
-Current APIs also use exact 0–255 alpha contracts including:
-
-```text
-25, 30, 35, 40, 50, 80, 90, 120, 200, 245
-```
-
-These are classified separately from normalized opacity so conversion cannot introduce rounding/pixel drift.
-
-### Motion / duration values
-
-Current duration ownership includes:
-
-```text
-90ms, 150ms, 250ms, 310ms, 400ms, 1200ms
-```
-
-`150/250/400ms` are duplicated between `TioMotion` and `TioMotionTokens`. A4 remains pending.
-
-### Typography physical values
-
-Core typography/component contracts currently evidence font sizes including:
-
-```text
-12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 28, 34, 36
-```
-
-and fixed letter-spacing/line-height contracts including values such as:
-
-```text
-letter spacing: -0.5, -0.3, -0.2, 0.5, 0.8, 6.0
-line-height ratios: 1.25, 1.35, 1.4, 1.5
-```
-
-Typography remains separate from `TioSize`; A7 remains pending.
-
-### Ratios / factors
-
-Fixed visual ratios/factors include examples such as:
-
-```text
-0.28, 0.5, 0.36, 0.004, 1.3
-```
-
-These remain classified separately until reusable ownership is proven.
-
-### Color / effect ownership
-
-The audit confirmed raw palette/theme/domain/component colors across `TioPalette`, `TioColors`, `TioDomainColors`, Navigation/Dialog contracts and shadow definitions. Duplicate physical examples include domain colors such as workout/nutrition/progress/coach and the identical soft shadow physical definition in both `TioShadowTokens` and `TioShadows`. A5/A6 remain pending and must preserve exact ARGB values.
-
-## A2 Implementation Evidence
-
-First bounded geometry bootstrap:
-
-```text
-7a55f2dea97074790007b0c8f3b81ac8a6672783
-  refactor(theme): add canonical size primitives
-
-9916df8d64022ecf8f39b3e05533d70a4a2e03be
-  refactor(theme): alias spacing and radius to size primitives
-```
-
-Current canonical relationships:
-
-```text
-TioSpacing.extraSmall  → TioSize.dp4
-TioSpacing.small       → TioSize.dp8
-TioSpacing.medium      → TioSize.dp12
-TioSpacing.large       → TioSize.dp16
-TioSpacing.extraLarge  → TioSize.dp24
-
-TioRadius.small        → TioSize.dp8
-TioRadius.medium       → TioSize.dp12
-TioRadius.large        → TioSize.dp16
-TioRadius.extraLarge   → TioSize.dp24
-TioRadius.full         → TioSize.dp999
-```
-
-No rendered value changed in this migration.
-
-Validation status:
-
-```text
-Flutter CI #518 — IN PROGRESS
-Focused/core test result — not yet claimed until CI executes tests
-Analyze result — not yet claimed until CI executes analyze
-```
-
-## Completion Lifecycle
-
-1. Inventory
-2. Classification
-3. Planned ownership
-4. Implementation
-5. Focused tests
-6. Static audit
-7. Pixel/UI regression check
-8. Analyze
-9. Full CI
-10. Update evidence
-11. Mark Slice A `Validated`
-12. Unblock Slice B
+No production screen was redesigned by these changes. Legacy semantic names remain aliases so current rendered spacing/radius values are unchanged.
 
 ## Exit Criteria
 
-Slice A is complete only when:
+Slice A remains `In progress` until every core fixed visual value has one canonical owner, duplicate motion/shadow/color ownership is resolved, component contracts no longer independently own physical values, compatibility APIs are safely migrated, and focused tests/analyze/full required CI pass.
 
-- every fixed core visual scalar has one canonical physical owner;
-- no duplicate motion/shadow/color physical ownership remains in core theme;
-- component contracts no longer act as independent physical-value stores;
-- dynamic context access and static token access are clearly separated;
-- tests lock both exact values and ownership aliases;
-- no visible UI value changed without separate approval;
-- focused tests, analyze, and required CI pass.
-
-Until these conditions are met, Slice B remains blocked.
+Slice B remains blocked until Slice A is validated.
