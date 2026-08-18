@@ -1,3 +1,4 @@
+import '../effects/tio_elevation.dart';
 import '../foundation/tio_palette.dart';
 import '../foundation/tio_radius.dart';
 import '../foundation/tio_spacing.dart';
@@ -12,7 +13,7 @@ class TioNavigationTokens {
   static const itemRadius = TioRadius.lg;
   static const iconSize = TioSize.dp22;
   static const indicatorOpacity = TioOpacity.opacity14;
-  static const elevation = 0.0;
+  static const elevation = TioElevation.none;
   static const labelTopPadding = TioSpacing.xxs;
 
   static const topBarLeadingWidth = TioSize.dp72;
