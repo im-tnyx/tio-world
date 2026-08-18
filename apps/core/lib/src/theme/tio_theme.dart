@@ -36,6 +36,7 @@ class TioTheme extends StatelessWidget {
     final reducedMotion =
         config.reducedMotion || (mediaQuery?.disableAnimations ?? false);
     final colors = _resolveColors(systemBrightness, highContrast: highContrast);
+    final shadows = _resolveShadows(systemBrightness);
     final motion = reducedMotion
         ? const TioMotionScheme.reduced()
         : const TioMotionScheme.standard();
@@ -171,7 +172,7 @@ class TioTheme extends StatelessWidget {
         ),
         extensions: <ThemeExtension<dynamic>>[
           colors,
-          TioShadows.standard,
+          shadows,
           motion,
         ],
       ),
@@ -191,6 +192,17 @@ class TioTheme extends StatelessWidget {
         systemBrightness == Brightness.dark ? TioColors.dark : TioColors.light,
     };
     return highContrast ? colors.highContrast : colors;
+  }
+
+  TioShadows _resolveShadows(Brightness systemBrightness) {
+    return switch (config.mode) {
+      TioThemeMode.light => TioShadows.light,
+      TioThemeMode.dark => TioShadows.dark,
+      TioThemeMode.oled => TioShadows.oled,
+      TioThemeMode.system => systemBrightness == Brightness.dark
+          ? TioShadows.dark
+          : TioShadows.light,
+    };
   }
 }
 
