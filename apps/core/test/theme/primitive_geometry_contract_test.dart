@@ -63,12 +63,21 @@ void main() {
       expect(TioSpacing.extraLarge, TioSpacing.xl);
     });
 
-    test('radius roles alias canonical geometry primitives', () {
-      expect(TioRadius.small, TioSize.dp8);
-      expect(TioRadius.medium, TioSize.dp12);
-      expect(TioRadius.large, TioSize.dp16);
-      expect(TioRadius.extraLarge, TioSize.dp24);
+    test('scalable radius roles alias canonical geometry primitives', () {
+      expect(TioRadius.none, TioSize.dp0);
+      expect(TioRadius.xs, TioSize.dp4);
+      expect(TioRadius.sm, TioSize.dp8);
+      expect(TioRadius.md, TioSize.dp12);
+      expect(TioRadius.lg, TioSize.dp16);
+      expect(TioRadius.xl, TioSize.dp24);
       expect(TioRadius.full, TioSize.dp999);
+    });
+
+    test('legacy radius names preserve current rendered values', () {
+      expect(TioRadius.small, TioRadius.sm);
+      expect(TioRadius.medium, TioRadius.md);
+      expect(TioRadius.large, TioRadius.lg);
+      expect(TioRadius.extraLarge, TioRadius.xl);
     });
   });
 }
