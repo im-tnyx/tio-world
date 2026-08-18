@@ -146,7 +146,7 @@ TioIconSize.xs may later be 16dp
 
 The earlier rule that every existing spacing/radius value must remain numerically exact during token migration is superseded by this explicitly approved normalization rule.
 
-When migrating a **spacing or radius** value to the canonical semantic scale, a value that is exactly `1dp` away from the intended reusable role may be normalized to that role when the semantic intent is clear.
+When migrating a **spacing or radius** value to the canonical semantic scale, a value that is exactly `1dp` away from the intended reusable role may be normalized to that role when semantic intent is clear.
 
 Approved examples:
 
@@ -155,16 +155,14 @@ Approved examples:
 7dp spacing → TioSpacing.sm → 8dp   ✅
 ```
 
-This is an intentional design-system migration adjustment, not accidental pixel drift.
-
 Rules:
 
 - normalization is limited to `±1dp`;
 - it applies only to spacing/radius migration into a clearly matching canonical semantic role;
 - record every normalization in the active slice evidence;
 - do not create `TioSpacing` roles such as `5dp` or `7dp` merely to preserve near-duplicate spacing;
-- do not delete `TioSize.dp5` or another physical primitive if another legitimate geometry contract still uses it;
-- if the difference is greater than `1dp`, the semantic target is ambiguous, or the value belongs to another category, preserve the current value unless separately approved.
+- do not delete `TioSize.dp5` or another primitive if another legitimate geometry contract still uses it;
+- if the difference is greater than `1dp`, semantic intent is ambiguous, or the value belongs to another category, preserve the current value unless separately approved.
 
 This approval does **not** automatically normalize component heights, Avatar sizes, icon/image sizes, typography, colors, alpha, shadows, motion, responsive ratios, or unrelated geometry.
 
@@ -257,20 +255,7 @@ Cross-cutting color rules live in `design-system-hardcoded-color-audit.md`.
 
 ## Slice Completion Contract
 
-Each slice follows:
-
-1. Inventory
-2. Classification
-3. Planned ownership
-4. Implementation
-5. Focused tests
-6. Static audit
-7. Visual regression / approved-normalization review
-8. Analyze
-9. Required CI
-10. Evidence update
-11. Mark slice `Validated`
-12. Unblock next slice
+Each slice follows inventory → classification → planned ownership → implementation → focused tests → static audit → visual regression/approved-normalization review → analyze → required CI → evidence update → validation → next-slice unblock.
 
 Do not start a blocked slice while its dependency remains partial/unvalidated.
 
@@ -290,8 +275,6 @@ expect(TioAvatarTokens.largeSize, TioSize.dp100);
 
 Where controlled normalization is applied, tests should lock the canonical target relationship rather than the retired near-duplicate spacing/radius literal.
 
-Canonical physical values must be searchable from their primitive owner. Regex-only number bans are insufficient; audits must classify legitimate business/runtime values separately from fixed visual contracts.
-
 ## Definition of Done
 
 The parent task is complete only when Slice H is validated and repository-wide evidence proves:
@@ -301,7 +284,6 @@ The parent task is complete only when Slice H is validated and repository-wide e
 - semantic scales are scalable and not artificially capped by legacy role counts;
 - approved `±1dp` spacing/radius normalizations are documented and intentional;
 - reusable component geometry contracts alias canonical primitives/roles instead of owning raw numbers;
-- foundation/semantic/typography/effects/component contracts compose governed ownership;
 - no feature-owned design-token/color/layout/theme catalog remains;
 - no screen-specific token bag is hidden in core components;
 - canonical dynamic Flutter theme access has no duplicate equivalent API;
