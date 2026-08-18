@@ -46,9 +46,22 @@ TioSpacing.sm
 TioRadius.lg
 TioButtonTokens.height
 TioInputTokens.minHeight
+TioAvatarTokens.largeSize
 ```
 
-Component token classes are contracts, not independent physical-value stores.
+Component token classes are semantic contracts, not independent physical-value stores.
+
+For reusable component size contracts, the component keeps the semantic role while `TioSize` owns the number:
+
+```dart
+TioAvatarTokens.compactSize    = TioSize.dp24;
+TioAvatarTokens.smallSize      = TioSize.dp36;
+TioAvatarTokens.mediumSize     = TioSize.dp48;
+TioAvatarTokens.largeSize      = TioSize.dp100;
+TioAvatarTokens.extraLargeSize = TioSize.dp160;
+```
+
+The same ownership pattern applies to other reusable component geometry when those contracts are migrated.
 
 ## Primitive Families Are Concept-Specific
 
@@ -153,15 +166,15 @@ Rules:
 - do not delete `TioSize.dp5` or another physical primitive if another legitimate geometry contract still uses it;
 - if the difference is greater than `1dp`, the semantic target is ambiguous, or the value belongs to another category, preserve the current value unless separately approved.
 
-This approval does **not** automatically normalize component heights, icon/image sizes, typography, colors, alpha, shadows, motion, responsive ratios, or unrelated geometry.
+This approval does **not** automatically normalize component heights, Avatar sizes, icon/image sizes, typography, colors, alpha, shadows, motion, responsive ratios, or unrelated geometry.
 
 ## Component Ownership Rule
 
 ```text
-Reusable component    → component tokens
-Reusable semantic role→ foundation/semantic/typography/effects
-One-off screen visual → governed core primitive/role directly
-Screen-specific bag   → forbidden
+Reusable component     → semantic component tokens alias governed primitives/roles
+Reusable semantic role → foundation/semantic/typography/effects
+One-off screen visual  → governed core primitive/role directly
+Screen-specific bag    → forbidden
 ```
 
 Removing feature token catalogs does not justify moving each screen's private style values into `tokens/components/`.
@@ -194,7 +207,7 @@ This program is an ownership/refactor program, not a general screen redesign.
 
 **No screen design/UI may change under this task, Issue #6, or PR #22 without explicit approval, except the controlled `±1dp` spacing/radius normalization approved above.**
 
-Without another explicit approval, do not change visible colors, typography appearance, icon/image sizing, component heights/widths, shadows/elevation, motion/choreography, responsive visual contracts, or other product-visible values outside that narrow normalization rule.
+Without another explicit approval, do not change visible colors, typography appearance, Avatar/component sizes, icon/image sizing, component heights/widths, shadows/elevation, motion/choreography, responsive visual contracts, or other product-visible values outside that narrow normalization rule.
 
 ## Target Core Structure
 
@@ -272,6 +285,7 @@ Tests must preserve canonical physical ownership and approved semantic relations
 ```dart
 expect(TioSize.dp14, 14.0);
 expect(TioInputTokens.radius, TioSize.dp14);
+expect(TioAvatarTokens.largeSize, TioSize.dp100);
 ```
 
 Where controlled normalization is applied, tests should lock the canonical target relationship rather than the retired near-duplicate spacing/radius literal.
@@ -286,6 +300,7 @@ The parent task is complete only when Slice H is validated and repository-wide e
 - primitive registries contain evidenced/approved values only;
 - semantic scales are scalable and not artificially capped by legacy role counts;
 - approved `±1dp` spacing/radius normalizations are documented and intentional;
+- reusable component geometry contracts alias canonical primitives/roles instead of owning raw numbers;
 - foundation/semantic/typography/effects/component contracts compose governed ownership;
 - no feature-owned design-token/color/layout/theme catalog remains;
 - no screen-specific token bag is hidden in core components;
