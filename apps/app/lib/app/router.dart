@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:tio_core/core.dart';
+import 'package:tio_feature_account_setup/account_setup.dart';
 import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_home/home.dart';
 import 'package:tio_feature_onboarding/onboarding.dart'
@@ -15,6 +16,7 @@ import 'package:tio_feature_splash/splash.dart';
 import 'package:tio_feature_welcome/welcome.dart';
 import 'package:tio_shared/shared.dart';
 
+import 'account_setup/account_setup.dart';
 import 'app_mode/app_mode.dart';
 import 'app_theme.dart';
 import 'network_providers.dart';
@@ -40,6 +42,7 @@ ChromePolicy shellChromePolicyForPath(String location) {
   final appRoutes = [
     AppRoutes.splash,
     AppRoutes.auth,
+    AppRoutes.accountSetup,
     AppRoutes.usernameSetup,
     AppRoutes.onboarding,
     AppRoutes.profile,
@@ -305,18 +308,23 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        path: AppRoutes.usernameSetup.path,
+        path: AppRoutes.accountSetup.path,
         parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) {
-          final accountRepository = ref.read(profileAccountRepositoryProvider);
-          if (accountRepository == null) {
+          final usernameRepository = ref.read(profileAccountRepositoryProvider);
+          final setupRepository = ref.read(accountSetupRepositoryProvider);
+          if (usernameRepository == null || setupRepository == null) {
             return const SplashScreen(
-              failureMessage: 'Username setup is unavailable right now.',
+              failureMessage: 'Account setup is unavailable right now.',
             );
           }
-          return UsernameSetupPage(
-            repository: accountRepository,
-            onBack: () async {
+          final currentPhone = supabaseClient?.auth.currentUser?.phone?.trim();
+          return AccountSetupFlowPage(
+            usernameRepository: usernameRepository,
+            accountSetupRepository: setupRepository,
+            hasTrustedPhoneIdentity:
+                currentPhone != null && currentPhone.isNotEmpty,
+            onExitRequested: () async {
               await ref.read(authSessionRepositoryProvider).signOut();
               await appSessionBootstrapController.refresh();
             },
@@ -326,6 +334,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             },
           );
         },
+      ),
+      GoRoute(
+        path: AppRoutes.usernameSetup.path,
+        parentNavigatorKey: rootNavigatorKey,
+        redirect: (context, state) => AppRoutes.accountSetup.path,
       ),
       GoRoute(
         path: AppRoutes.onboarding.path,
@@ -391,13 +404,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   backendUserReady: isDurablePersistenceReady,
                 ),
               );
-              final currentUser = supabaseClient?.auth.currentUser;
-              final isPhoneVerified = currentUser?.phone != null && currentUser!.phone!.isNotEmpty;
               final flowPlan = const BuildOnboardingFlowUseCase()(
                 entryPath: onboardingStatusController.entryPath,
                 mode: draft.selectedMode,
                 workoutIntroChoice: draft.workoutIntroChoice,
-                includeMobile: !isPhoneVerified,
               );
 
               debugPrint('[Router] Executing completeOnboarding...');

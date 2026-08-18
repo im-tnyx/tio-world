@@ -13,12 +13,14 @@ class AppSessionBootstrapController extends ChangeNotifier {
     required AuthSessionRepository authSessionRepository,
     required OnboardingCompletionRepository? onboardingCompletionRepository,
     required OnboardingStatusController onboardingStatusController,
+    AccountSetupRepository? accountSetupRepository,
     ProfileAccountRepository? profileAccountRepository,
     OnboardingDraftRepository? onboardingDraftRepository,
     Duration completionLookupTimeout = const Duration(seconds: 8),
   })  : _authSessionRepository = authSessionRepository,
         _onboardingCompletionRepository = onboardingCompletionRepository,
         _onboardingStatusController = onboardingStatusController,
+        _accountSetupRepository = accountSetupRepository,
         _profileAccountRepository = profileAccountRepository,
         _onboardingDraftRepository = onboardingDraftRepository,
         _completionLookupTimeout = completionLookupTimeout;
@@ -26,6 +28,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
   final AuthSessionRepository _authSessionRepository;
   final OnboardingCompletionRepository? _onboardingCompletionRepository;
   final OnboardingStatusController _onboardingStatusController;
+  final AccountSetupRepository? _accountSetupRepository;
   final ProfileAccountRepository? _profileAccountRepository;
   final OnboardingDraftRepository? _onboardingDraftRepository;
   final Duration _completionLookupTimeout;
@@ -90,7 +93,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
         _activeAuthenticatedUserId == authState.session.userId &&
         (_state is AppSessionBootstrapLoading ||
             _state is AppSessionBootstrapReady ||
-            _state is AppSessionBootstrapRequiresUsername ||
+            _state is AppSessionBootstrapRequiresAccountSetup ||
             _state is AppSessionBootstrapRequiresOnboarding)) {
       _debug('duplicate authenticated event ignored for active user');
       return;
@@ -135,12 +138,38 @@ class AppSessionBootstrapController extends ChangeNotifier {
           switch (remoteState) {
             case RemoteOnboardingCompletionState.completed:
               // Legacy completed accounts remain ready even if their historical
-              // profile predates the required Username bootstrap contract.
+              // profile predates the Account Setup completion marker.
               _setState(AppSessionBootstrapReady(userId: session.userId));
               unawaited(_clearObsoleteDraft());
               break;
             case RemoteOnboardingCompletionState.uninitialized:
             case RemoteOnboardingCompletionState.incomplete:
+              final accountSetupRepository = _accountSetupRepository;
+              if (accountSetupRepository != null) {
+                final accountState = await accountSetupRepository
+                    .readAccountSetupState()
+                    .timeout(_completionLookupTimeout);
+                if (_disposed || generation != _resolutionGeneration) return;
+
+                if (!accountState.hasUsername || !accountState.isCompleted) {
+                  _setState(
+                    AppSessionBootstrapRequiresAccountSetup(
+                      userId: session.userId,
+                    ),
+                  );
+                  break;
+                }
+
+                _setState(
+                  AppSessionBootstrapRequiresOnboarding(
+                    userId: session.userId,
+                  ),
+                );
+                break;
+              }
+
+              // Compatibility fallback for non-Supabase/test environments that
+              // do not yet expose the narrow AccountSetupRepository capability.
               final accountRepository = _profileAccountRepository;
               if (accountRepository != null) {
                 final username = await accountRepository
@@ -149,7 +178,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
                 if (_disposed || generation != _resolutionGeneration) return;
                 if (username == null || username.trim().isEmpty) {
                   _setState(
-                    AppSessionBootstrapRequiresUsername(
+                    AppSessionBootstrapRequiresAccountSetup(
                       userId: session.userId,
                     ),
                   );

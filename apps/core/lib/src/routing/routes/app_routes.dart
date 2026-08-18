@@ -17,10 +17,18 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  static const accountSetup = TioRouteContract(
+    path: '/account-setup',
+    title: 'Account Setup',
+    description: 'Complete required account details before product onboarding.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
+  /// Legacy deep-link alias. New bootstrap routing uses [accountSetup].
   static const usernameSetup = TioRouteContract(
     path: '/username-setup',
     title: 'Choose Username',
-    description: 'Choose your unique Tio username.',
+    description: 'Legacy account setup entry.',
     chromePolicy: ChromePolicy.fullScreen,
   );
 

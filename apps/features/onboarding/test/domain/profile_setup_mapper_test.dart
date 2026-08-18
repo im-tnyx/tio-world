@@ -81,5 +81,18 @@ void main() {
         {profile_owner.ProfileHealthCondition.none},
       );
     });
+
+    test('does not forward legacy onboarding mobile into account-owned profile state', () {
+      final draft = ProfileOnboardingDraft(
+        name: 'Tio User',
+        mobile: '+91 9000000000',
+        isMobileVerified: true,
+      );
+
+      final result = mapper.map(draft);
+
+      expect(result.mobile, isNull);
+      expect(result.isMobileVerified, isFalse);
+    });
   });
 }

@@ -19,6 +19,8 @@ dependencies:
     path: ../core
   tio_shared:
     path: ../shared
+  tio_feature_account_setup:
+    path: ../features/account_setup
   tio_feature_auth:
     path: ../features/auth
   tio_feature_home:

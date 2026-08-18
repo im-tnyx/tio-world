@@ -39,27 +39,28 @@ class SupabaseProfileSetupRepository
 
     final currentUser = _client.auth.currentUser;
     final email = currentUser?.email;
-    final phone = currentUser?.phone;
-    final effectiveMobile =
-        (data.mobile != null && data.mobile!.trim().isNotEmpty)
-            ? data.mobile!.trim()
-            : (phone != null && phone.isNotEmpty ? phone : null);
     final currentProfile = await _client
         .from('users')
         .select('mobile')
         .eq('id', userId)
         .maybeSingle();
     final previousMobile = (currentProfile?['mobile'] as String?)?.trim() ?? '';
-    final normalizedMobile = effectiveMobile?.trim() ?? '';
-    final mobileChanged = previousMobile != normalizedMobile;
+
+    // Username and Mobile are account-owned. Null means this profile save does
+    // not own that field and must preserve the durable Account Setup value.
+    final ownsUsername = data.username != null;
+    final ownsMobile = data.mobile != null;
+    final requestedMobile = data.mobile?.trim() ?? '';
+    final mobileChanged = ownsMobile && previousMobile != requestedMobile;
+
     final dobIso = data.dateOfBirth.toIso8601String().split('T').first;
     final nowIso = DateTime.now().toUtc().toIso8601String();
     final payload = <String, dynamic>{
       'id': userId,
       'name': data.name,
-      'username': data.username,
+      if (ownsUsername) 'username': data.username,
       if (email != null && email.isNotEmpty) 'email': email,
-      'mobile': effectiveMobile,
+      if (ownsMobile) 'mobile': requestedMobile.isEmpty ? null : requestedMobile,
       if (mobileChanged) 'mobile_verified_at': null,
       ...buildCanonicalAvatarWrite(avatarUrl: data.avatarUrl),
       'plan': data.plan,
@@ -89,7 +90,7 @@ class SupabaseProfileSetupRepository
         final corePayload = <String, dynamic>{
           'id': userId,
           'name': data.name,
-          'username': data.username,
+          if (ownsUsername) 'username': data.username,
           'gender': data.gender.name,
           'goals': data.goals.map((g) => g.name).toList(),
           'date_of_birth': dobIso,

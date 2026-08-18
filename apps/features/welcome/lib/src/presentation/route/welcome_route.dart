@@ -31,7 +31,9 @@ class _WelcomeRouteState extends State<WelcomeRoute> {
     _viewModel.onAction(action);
     switch (action) {
       case WelcomeGetStartedClicked():
-        context.push(AppRoutes.onboarding.path);
+        // Authentication must complete before Account Setup and Product
+        // Onboarding. Bootstrap chooses the next boundary after signup.
+        context.push(AppRoutes.emailSignup.path);
         break;
       case WelcomeSignInClicked():
         context.push(AppRoutes.login.path);

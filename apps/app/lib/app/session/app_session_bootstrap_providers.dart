@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../account_setup/account_setup.dart';
 import '../network_providers.dart';
 import '../onboarding/onboarding.dart';
 import 'app_session_bootstrap_controller.dart';
@@ -16,6 +17,7 @@ final appSessionBootstrapControllerProvider =
     onboardingCompletionRepository:
         ref.read(onboardingCompletionRepositoryProvider),
     onboardingStatusController: ref.read(onboardingStatusControllerProvider),
+    accountSetupRepository: ref.read(accountSetupRepositoryProvider),
     profileAccountRepository: ref.read(profileAccountRepositoryProvider),
     onboardingDraftRepository: ref.read(hybridOnboardingDraftRepositoryProvider),
   );
