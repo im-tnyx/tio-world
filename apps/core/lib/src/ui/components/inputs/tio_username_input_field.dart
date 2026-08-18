@@ -236,20 +236,30 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
     switch (_status) {
       case TioUsernameStatus.checking:
         return const SizedBox(
-          width: 20,
-          height: 20,
+          width: TioInputTokens.usernameIconSize,
+          height: TioInputTokens.usernameIconSize,
           child: Center(
             child: SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
+              width: TioInputTokens.usernameCheckingIndicatorSize,
+              height: TioInputTokens.usernameCheckingIndicatorSize,
+              child: CircularProgressIndicator(
+                strokeWidth: TioInputTokens.usernameCheckingStrokeWidth,
+              ),
             ),
           ),
         );
       case TioUsernameStatus.available:
-        return Icon(Icons.check_circle_rounded, color: colors.success, size: 20);
+        return Icon(
+          Icons.check_circle_rounded,
+          color: colors.success,
+          size: TioInputTokens.usernameIconSize,
+        );
       case TioUsernameStatus.unavailable:
-        return Icon(Icons.error_outline_rounded, color: colors.danger, size: 20);
+        return Icon(
+          Icons.error_outline_rounded,
+          color: colors.danger,
+          size: TioInputTokens.usernameIconSize,
+        );
       case TioUsernameStatus.idle:
         return null;
     }
@@ -279,21 +289,30 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
           decoration: InputDecoration(
             labelText: widget.labelText,
             hintText: widget.hintText,
-            prefixIcon:
-                Icon(Icons.alternate_email, color: colors.textMuted, size: 20),
+            prefixIcon: Icon(
+              Icons.alternate_email,
+              color: colors.textMuted,
+              size: TioInputTokens.usernameIconSize,
+            ),
             suffixIcon: _buildSuffixIcon(colors),
             labelStyle: TextStyle(color: colors.textMuted),
-            hintStyle: TextStyle(color: colors.textMuted.withValues(alpha: 0.6)),
+            hintStyle: TextStyle(
+              color: colors.textMuted.withValues(
+                alpha: TioInputTokens.usernameHintOpacity,
+              ),
+            ),
             contentPadding: const EdgeInsets.symmetric(
-              horizontal: TioSpacing.large,
-              vertical: TioSpacing.large - 2,
+              horizontal: TioInputTokens.horizontalPadding,
+              vertical: TioInputTokens.usernameContentVerticalPadding,
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(TioRadius.large),
               borderSide: BorderSide(
                 color: _status == TioUsernameStatus.unavailable
                     ? colors.danger
-                    : colors.outlineStrong.withValues(alpha: 0.4),
+                    : colors.outlineStrong.withValues(
+                        alpha: TioInputTokens.usernameOutlineOpacity,
+                      ),
               ),
             ),
             enabledBorder: OutlineInputBorder(
@@ -301,7 +320,9 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
               borderSide: BorderSide(
                 color: _status == TioUsernameStatus.unavailable
                     ? colors.danger
-                    : colors.outlineStrong.withValues(alpha: 0.4),
+                    : colors.outlineStrong.withValues(
+                        alpha: TioInputTokens.usernameOutlineOpacity,
+                      ),
               ),
             ),
             focusedBorder: OutlineInputBorder(
@@ -310,16 +331,18 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
                 color: _status == TioUsernameStatus.unavailable
                     ? colors.danger
                     : colors.primary,
-                width: 2,
+                width: TioInputTokens.usernameFocusedOutlineWidth,
               ),
             ),
             filled: false,
           ),
         ),
         if (_feedbackMessage != null) ...[
-          const SizedBox(height: 6),
+          const SizedBox(height: TioInputTokens.usernameSupportingGap),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+            padding: const EdgeInsets.symmetric(
+              horizontal: TioSpacing.extraSmall,
+            ),
             child: Text(
               _feedbackMessage!,
               style: TextStyle(
@@ -328,38 +351,44 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
                     : _status == TioUsernameStatus.unavailable
                         ? colors.danger
                         : colors.textMuted,
-                fontSize: 12,
+                fontSize: TioInputTokens.usernameFeedbackFontSize,
                 fontWeight: FontWeight.w600,
               ),
             ),
           ),
         ],
         if (_suggestions.isNotEmpty) ...[
-          const SizedBox(height: 6),
+          const SizedBox(height: TioInputTokens.usernameSupportingGap),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: TioSpacing.small,
+            runSpacing: TioSpacing.small,
             children: _suggestions.map((suggestion) {
               return InkWell(
                 onTap: () => _applySuggestion(suggestion),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(
+                  TioInputTokens.usernameSuggestionRadius,
+                ),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
+                    horizontal: TioSpacing.medium,
+                    vertical: TioInputTokens.usernameSuggestionVerticalPadding,
                   ),
                   decoration: BoxDecoration(
                     color: colors.surfaceRaised,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(
+                      TioInputTokens.usernameSuggestionRadius,
+                    ),
                     border: Border.all(
-                      color: colors.primary.withAlpha(80),
+                      color: colors.primary.withAlpha(
+                        TioInputTokens.usernameSuggestionOutlineAlpha,
+                      ),
                     ),
                   ),
                   child: Text(
                     '@$suggestion',
                     style: TextStyle(
                       color: colors.primary,
-                      fontSize: 13,
+                      fontSize: TioInputTokens.usernameSuggestionFontSize,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

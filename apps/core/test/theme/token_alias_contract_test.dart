@@ -77,6 +77,16 @@ void main() {
       expect(TioInputTokens.mobileVerifyVerticalPadding, 5.0);
       expect(TioInputTokens.mobileVerifyContainerOpacity, 0.09);
       expect(TioInputTokens.mobileVerifyLabelFontSize, 12.0);
+      expect(TioInputTokens.usernameIconSize, 20.0);
+      expect(TioInputTokens.usernameCheckingIndicatorSize, 16.0);
+      expect(TioInputTokens.usernameCheckingStrokeWidth, 2.0);
+      expect(TioInputTokens.usernameHintOpacity, 0.60);
+      expect(TioInputTokens.usernameContentVerticalPadding, 14.0);
+      expect(TioInputTokens.usernameOutlineOpacity, 0.40);
+      expect(TioInputTokens.usernameFocusedOutlineWidth, 2.0);
+      expect(TioInputTokens.usernameSupportingGap, 6.0);
+      expect(TioInputTokens.usernameSuggestionRadius, 20.0);
+      expect(TioInputTokens.usernameSuggestionOutlineAlpha, 80);
       expect(TioLegalTokens.defaultFontSize, 12.0);
       expect(TioLegalTokens.bodyTextOpacity, 0.70);
       expect(TioLegalTokens.linkUnderlineOpacity, 0.50);

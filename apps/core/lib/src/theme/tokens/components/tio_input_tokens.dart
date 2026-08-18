@@ -33,4 +33,18 @@ class TioInputTokens {
   static const mobileVerifyVerticalPadding = 5.0;
   static const mobileVerifyContainerOpacity = 0.09;
   static const mobileVerifyLabelFontSize = 12.0;
+
+  static const usernameIconSize = 20.0;
+  static const usernameCheckingIndicatorSize = 16.0;
+  static const usernameCheckingStrokeWidth = 2.0;
+  static const usernameHintOpacity = 0.60;
+  static const usernameContentVerticalPadding = 14.0;
+  static const usernameOutlineOpacity = 0.40;
+  static const usernameFocusedOutlineWidth = 2.0;
+  static const usernameSupportingGap = 6.0;
+  static const usernameFeedbackFontSize = 12.0;
+  static const usernameSuggestionRadius = 20.0;
+  static const usernameSuggestionVerticalPadding = 6.0;
+  static const usernameSuggestionOutlineAlpha = 80;
+  static const usernameSuggestionFontSize = 13.0;
 }
