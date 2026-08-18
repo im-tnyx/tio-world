@@ -12,7 +12,7 @@ When a change adds, removes, renames, or materially changes any of the following
 
 - token categories or ownership rules;
 - public theme or context APIs;
-- spacing, radius, stroke, typography, color, motion, shadow, or component contracts;
+- spacing, radius, stroke, typography, color, motion, elevation, shadow, or component contracts;
 - `TioThemeConfig` behavior;
 - runtime-selectable font behavior;
 - compatibility/deprecation guidance;
@@ -210,6 +210,18 @@ Do not add raw repeated `Duration(milliseconds: ...)` values in feature UI when 
 
 Animation interval positions, normalized progress factors, gradient stops, flex values, and other composition/program ratios are not durations or geometry primitives merely because they are numeric. Keep genuinely local factors close to the owning consumer.
 
+Behavior timing is not automatically motion. For example, an input debounce or destructive hold duration may remain component/domain behavior unless a shared visual-motion role is genuinely being expressed.
+
+### Elevation
+
+Use `TioElevation` for repeated semantic Material/effect elevation roles rather than treating elevation as layout geometry.
+
+```dart
+AppBar(elevation: TioElevation.none);
+```
+
+`TioElevation.none` is the canonical zero-elevation role currently shared by Card and Navigation/Shell contracts. Add further elevation roles only after repeated component/theme evidence justifies them; do not create a broad speculative scale.
+
 ### Shadows
 
 Use runtime shadows when a theme-aware shadow/effect role is required:
@@ -264,6 +276,7 @@ TioSize.dp20
 TioSpacing.lg
 TioRadius.md
 TioStroke.width1
+TioElevation.none
 TioFontSize.size16
 ```
 
@@ -389,7 +402,7 @@ theme/
 │   ├── semantic/     theme-aware semantic colors
 │   ├── domain/       shared product-domain semantic roles
 │   ├── typography/   font physical registries + semantic typography
-│   ├── effects/      motion/shadow contracts and runtime schemes
+│   ├── effects/      motion/elevation/shadow contracts and runtime schemes
 │   └── components/   reusable component contracts
 ├── tio_theme_config.dart
 ├── tio_theme.dart
