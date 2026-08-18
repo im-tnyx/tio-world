@@ -50,6 +50,57 @@ void main() {
     });
   });
 
+  group('runtime font-family selection', () {
+    test('font options expose stable persistence ids and family resolution', () {
+      expect(TioFontFamilyOption.system.id, 'system');
+      expect(TioFontFamilyOption.system.family, TioFontFamily.system);
+      expect(TioFontFamilyOption.roboto.id, 'roboto');
+      expect(TioFontFamilyOption.roboto.family, TioFontFamily.roboto);
+    });
+
+    test('theme config defaults to the platform/system family', () {
+      const config = TioThemeConfig();
+
+      expect(config.fontFamilyOption, TioFontFamilyOption.system);
+      expect(config.resolvedFontFamily, TioFontFamily.system);
+    });
+
+    test('semantic TextTheme can resolve a selected family at runtime', () {
+      final textTheme = TioTypography.textTheme(
+        TioColors.light,
+        fontFamily: TioFontFamilyOption.roboto.family,
+      );
+
+      expect(textTheme.displayLarge?.fontFamily, TioFontFamily.roboto);
+      expect(textTheme.bodyMedium?.fontFamily, TioFontFamily.roboto);
+      expect(textTheme.labelSmall?.fontFamily, TioFontFamily.roboto);
+    });
+
+    testWidgets('TioTheme propagates configured font family to consumers', (
+      tester,
+    ) async {
+      String? resolvedFamily;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TioTheme(
+            config: const TioThemeConfig(
+              fontFamilyOption: TioFontFamilyOption.roboto,
+            ),
+            child: Builder(
+              builder: (context) {
+                resolvedFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(resolvedFamily, TioFontFamily.roboto);
+    });
+  });
+
   test('semantic TextTheme aliases canonical typography primitives', () {
     final textTheme = TioTypography.textTheme(TioColors.light);
 
