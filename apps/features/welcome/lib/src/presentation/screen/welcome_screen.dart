@@ -202,7 +202,7 @@ class WelcomeScreen extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: TioSpacing.xxl),
+                            const SizedBox(height: TioSpacing.xl),
                             Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -219,7 +219,7 @@ class WelcomeScreen extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: TioSpacing.xxl),
+                                const SizedBox(height: TioSpacing.xl),
                                 Wrap(
                                   alignment: WrapAlignment.center,
                                   crossAxisAlignment: WrapCrossAlignment.center,
