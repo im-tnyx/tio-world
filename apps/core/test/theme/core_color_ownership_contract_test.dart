@@ -71,13 +71,21 @@ void main() {
       expect(TioDomainColors.recovery, TioPalette.sky400);
     });
 
-    test('soft shadow color aliases exact palette alpha color', () {
+    test('runtime shadow schemes preserve current values per theme mode', () {
       expect(TioAlpha.alpha26, 26);
       expect(TioShadowTokens.softColor, TioPalette.blackAlpha26);
-      expect(TioShadows.standard.soft, same(TioShadowTokens.soft));
+
+      expect(TioShadows.light.soft, same(TioShadowTokens.soft));
+      expect(TioShadows.dark.soft, same(TioShadowTokens.soft));
+      expect(TioShadows.oled.soft, same(TioShadowTokens.soft));
+
+      expect(TioShadows.light.elevatedPanelColor, TioPalette.blackAlpha80);
+      expect(TioShadows.dark.elevatedPanelColor, TioPalette.blackAlpha80);
+      expect(TioShadows.oled.elevatedPanelColor, TioPalette.blackAlpha80);
+      expect(TioShadows.standard.elevatedPanelColor, TioPalette.blackAlpha80);
     });
 
-    test('dialog and navigation colors keep exact current palette mappings', () {
+    test('component compatibility colors keep exact palette mappings', () {
       expect(TioDialogTokens.otpShadowColor, TioPalette.blackAlpha80);
       expect(TioDialogTokens.deleteHoldFillColor, TioPalette.red550);
       expect(TioDialogTokens.deleteHoldContentColor, TioPalette.white);
