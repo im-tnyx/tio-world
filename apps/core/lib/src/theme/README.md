@@ -75,7 +75,7 @@ Example:
 const SizedBox(width: TioSize.dp20);
 ```
 
-Do not add arbitrary values “just in case”. A new primitive must be evidenced by current UI or an approved design decision.
+Do not add arbitrary values “just in case”. A new primitive must be evidenced by current UI or an approved design decision. Exact migration evidence may add values that are uncommon globally (for example a fixed `60dp` geometry or exact opacity/alpha contract); the physical registry owns the exact value so feature code does not recreate it.
 
 ### Foundation geometry
 
@@ -132,8 +132,10 @@ Avoid:
 
 ```dart
 const Color(0xFF...);       // repeated product-visible color in feature UI
-TioPalette.someColor;       // direct physical palette use from feature UI
+TioPalette.someColor;       // direct physical palette use when a semantic role exists
 ```
+
+A rare audited one-off fixed color with no honest reusable semantic role may consume the governed `TioPalette` value directly rather than creating a feature color-token bag. Preserve byte-exact alpha through `TioAlpha`/palette ownership when the current ARGB contract depends on an exact alpha byte.
 
 Intentional framework-transparent values such as `Colors.transparent` may remain where transparency itself is implementation behavior rather than a product color role.
 
@@ -160,6 +162,8 @@ TioFontFamily
 
 These are primarily for `TioTypography` and reusable component typography contracts. Feature screens should not recreate a full style system from physical typography primitives.
 
+For a truly one-off typography composition that has no reusable semantic role, compose the exact style at the consumer from governed physical typography values rather than introducing a feature typography-token catalog. Fractional font-size identifiers preserve the decimal explicitly, for example `TioFontSize.size9_5` and `TioFontSize.size10_5`.
+
 #### Runtime font selection
 
 The architecture supports a future Settings font preference:
@@ -178,7 +182,7 @@ Theme.of(context).textTheme
 
 The default is the platform/system font. A font becomes a user-selectable `TioFontFamilyOption` only after availability is verified on all supported platforms, normally by bundling/registering the font assets.
 
-Do not add per-screen font-family switches.
+Do not add per-screen font-family switches. An evidenced explicit family that is required to preserve an existing composition may remain a governed `TioFontFamily` identifier without automatically becoming a Settings-selectable option.
 
 ### Motion
 
@@ -191,6 +195,8 @@ duration: context.tioMotion.slow,
 `TioDuration` owns physical durations. `TioMotion` owns semantic duration roles. `TioMotionScheme` is the runtime-resolved scheme.
 
 Do not add raw repeated `Duration(milliseconds: ...)` values in feature UI when an existing governed motion role applies.
+
+Animation interval positions, normalized progress factors, gradient stops, flex values, and other composition/program ratios are not durations or geometry primitives merely because they are numeric. Keep genuinely local factors close to the owning consumer.
 
 ### Shadows
 
