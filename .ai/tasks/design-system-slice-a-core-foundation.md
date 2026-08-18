@@ -9,24 +9,38 @@
 
 ## Outcome
 
-Establish one canonical core owner for every fixed visual primitive used by the current theme/token system before any feature migration continues.
+Establish one canonical core owner for fixed visual primitives before feature migration continues.
 
-This slice changes ownership and architecture only. It does not redesign screens.
+This is an ownership/architecture slice, not a general screen redesign. The only standing visual adjustment approved by this program is the controlled `±1dp` spacing/radius normalization described below.
 
-## Mandatory Visual Freeze
+## Visual Governance
 
 Without separate explicit owner/design approval:
 
-- no layout or spacing changes;
 - no visible color changes;
 - no typography appearance changes;
-- no radius/shape changes;
 - no icon/image sizing changes;
+- no Avatar/component size changes;
 - no motion/choreography changes;
-- no component geometry changes;
-- no screen redesign.
+- no screen composition redesign.
 
-Current rendered values must remain exact. Never normalize an existing value merely to fit a nearby scale value.
+### Approved spacing/radius normalization
+
+When migrating a **spacing or radius** value to the canonical semantic scale, a value exactly `1dp` away from a clearly matching role may normalize to that role.
+
+```text
+5dp spacing → TioSpacing.xs → 4dp   ✅
+7dp spacing → TioSpacing.sm → 8dp   ✅
+```
+
+Rules:
+
+- maximum adjustment is `±1dp`;
+- semantic intent must be clear;
+- every actual normalization must be recorded in the active slice evidence;
+- do not create new spacing/radius roles only to preserve near-duplicate `5dp`/`7dp` values;
+- this exception does not apply to component heights, Avatar sizes, icon/image sizes, typography, colors, alpha, shadows, motion, ratios/factors, or unrelated geometry;
+- ambiguous or larger changes require separate approval or exact preservation.
 
 ## Hard Boundaries
 
@@ -38,26 +52,24 @@ This slice must not migrate Welcome, Auth, Account Setup, Onboarding, Home, Prof
 TioSize                         physical numeric geometry registry
     ↓
 TioSpacing / TioRadius          reusable semantic geometry scales
-TioIconSize / TioStroke        add only when reusable roles are evidenced
+TioIconSize / TioStroke        only when reusable roles are evidenced
     ↓
-Reusable component contracts
+Reusable component contracts   semantic aliases to governed primitives/roles
     ↓
 Reusable core components
     ↓
 Feature screens/widgets
 ```
 
-`TioSize` uses numeric names because it owns physical values. Semantic families use intent/scale names and must not redefine raw physical values.
+`TioSize` owns physical numbers. Foundation/component families own semantic intent.
 
 ## Scalable Foundation Contract
 
-The original five-role spacing API was too restrictive as a final design-system scale. Slice A corrects that limitation without changing any current pixels.
-
 ### TioSize
 
-`TioSize` must contain the fixed geometry values actually evidenced by current production UI or separately approved design decisions. It must not be limited to the values currently used by `TioSpacing`.
+`TioSize` contains fixed geometry values evidenced by production UI or explicit design decisions. It is not limited by the number of spacing/radius roles.
 
-Current audited integer geometry registry includes:
+Current audited integer geometry includes:
 
 ```text
 0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24,
@@ -65,11 +77,9 @@ Current audited integer geometry registry includes:
 72, 100, 125, 140, 160, 200, 999
 ```
 
-Do not generate arbitrary unused values. Fractional stroke widths remain separate until `TioStroke` ownership is established.
+Do not generate arbitrary unused values. Remove an audited primitive only after zero-reference verification.
 
 ### TioSpacing
-
-Canonical reusable spacing roles:
 
 ```text
 none → TioSize.dp0
@@ -82,21 +92,9 @@ xl   → TioSize.dp24
 xxl  → TioSize.dp32
 ```
 
-Temporary compatibility aliases preserve existing consumers during migration:
-
-```text
-extraSmall → xs
-small      → sm
-medium     → md
-large      → lg
-extraLarge → xl
-```
-
-These legacy names are not the final canonical API.
+Legacy `extraSmall/small/medium/large/extraLarge` names are temporary compatibility aliases.
 
 ### TioRadius
-
-Radius has its own semantic scale even when some physical values overlap spacing:
 
 ```text
 none → TioSize.dp0
@@ -108,41 +106,25 @@ xl   → TioSize.dp24
 full → TioSize.dp999
 ```
 
-Temporary compatibility aliases:
+Legacy `small/medium/large/extraLarge` names are temporary compatibility aliases. `full` belongs to radius/shape semantics, not spacing.
+
+### Reusable component geometry
+
+Reusable component size contracts retain semantic component names but alias `TioSize` instead of owning raw numbers.
+
+Avatar is the first explicit example:
 
 ```text
-small      → sm
-medium     → md
-large      → lg
-extraLarge → xl
+TioAvatarTokens.compactSize    → TioSize.dp24
+TioAvatarTokens.smallSize      → TioSize.dp36
+TioAvatarTokens.mediumSize     → TioSize.dp48
+TioAvatarTokens.largeSize      → TioSize.dp100
+TioAvatarTokens.extraLargeSize → TioSize.dp160
 ```
 
-`full` belongs to radius/shape semantics, not spacing.
+The verified `36/100/160` runtime decisions therefore remain valid as semantic Avatar contracts, but their physical values are owned by `TioSize`.
 
-### Category independence
-
-Do not force equal semantic names to equal physical values across categories merely for symmetry.
-
-```text
-TioSpacing.xs may be 4dp
-TioRadius.xs may be 4dp
-TioIconSize.xs may later be 16dp
-```
-
-Each semantic family must reflect its actual reusable product contracts.
-
-## Verified Starting Debt
-
-- primitive geometry ownership did not exist before Slice A;
-- spacing/radius independently owned overlapping raw numbers;
-- original `TioSpacing` had only five roles and insufficient growth scope;
-- component token files still contain raw geometry, typography, color, factor and other physical values;
-- `TioMotion` and `TioMotionTokens` duplicate duration ownership;
-- `TioShadowTokens` and `TioShadows` duplicate shadow ownership;
-- `TioPalette`, `TioSemanticColors`, `TioDomainColors`, and `TioColors` overlap in color ownership;
-- static compatibility getters remain under `context/`;
-- `TioTheme.colors(context)` remains transitional;
-- typography physical values remain split across typography and component token classes.
+Avatar ring widths and size factors remain separate pending `TioStroke`/factor ownership decisions.
 
 ## Implementation Checklist
 
@@ -155,22 +137,22 @@ Each semantic family must reflect its actual reusable product contracts.
 ### A2 — Primitive geometry and scalable foundation
 
 - [x] Create `tokens/primitive/primitive.dart`.
-- [x] Create canonical `TioSize`.
-- [x] Expand `TioSize` to audited/evidenced integer geometry values instead of five spacing values only.
-- [x] Add canonical `dp0` and the other audited integer geometry primitives.
+- [x] Create and expand canonical `TioSize` to audited/evidenced integer geometry values.
 - [x] Establish `TioSpacing.none/xxs/xs/sm/md/lg/xl/xxl`.
 - [x] Preserve old spacing names as compatibility aliases.
 - [x] Establish `TioRadius.none/xs/sm/md/lg/xl/full`.
 - [x] Preserve old radius names as compatibility aliases.
-- [x] Add contract tests for physical values, canonical semantic roles, and compatibility aliases.
-- [ ] Add `TioIconSize` and/or `TioStroke` only when reusable roles are evidenced during component audit.
+- [x] Add physical/semantic/compatibility contract tests.
+- [x] Approve controlled `±1dp` normalization for clearly matching spacing/radius roles.
+- [ ] Record each actual future `±1dp` normalization during consumer migration.
+- [ ] Add `TioIconSize` and/or `TioStroke` only when reusable roles are evidenced.
 
 ### A3 — Opacity and exact alpha
 
 - [x] Establish `TioOpacity` for normalized opacity/state values.
 - [x] Establish `TioAlpha` for exact 0–255 alpha values.
 - [x] Preserve exact integer-alpha contracts without rounded conversion.
-- [x] Migrate current component opacity/alpha roles to primitive aliases without changing public semantic names.
+- [x] Migrate current component opacity/alpha roles to primitive aliases.
 - [x] Flutter CI #521 passed for the A3 head.
 
 ### A4 — Motion and duration
@@ -178,18 +160,18 @@ Each semantic family must reflect its actual reusable product contracts.
 - [ ] Establish one canonical fixed-duration owner such as `TioDuration`.
 - [ ] Remove duplicate physical ownership between `TioMotion` and `TioMotionTokens`.
 - [ ] Keep `TioMotionScheme` as runtime/reduced-motion resolution.
-- [ ] Preserve `90/150/250/310/400/1200ms` contracts exactly.
+- [ ] Preserve `90/150/250/310/400/1200ms` unless a separate motion decision approves change.
 
 ### A5 — Shadows/effects
 
 - [ ] Resolve duplicate ownership between `TioShadowTokens` and `TioShadows`.
-- [ ] Preserve exact shadow colors, blur, spread, and offset.
+- [ ] Preserve shadow colors, blur, spread, and offset unless separately approved.
 
 ### A6 — Colors
 
 - [ ] Audit `TioPalette`, `TioColors`, `TioSemanticColors`, and `TioDomainColors` as one graph.
 - [ ] Ensure raw physical colors have one core owner.
-- [ ] Preserve all current visible colors.
+- [ ] Preserve current visible colors unless separately approved.
 - [ ] Apply `.ai/tasks/design-system-hardcoded-color-audit.md`.
 
 ### A7 — Typography
@@ -201,15 +183,18 @@ Each semantic family must reflect its actual reusable product contracts.
 ### A8 — Component token audit
 
 - [ ] Audit every `tokens/components/` file.
-- [ ] Move raw physical values to primitive/foundation/semantic/typography/effects owners.
+- [x] Migrate Avatar size contracts `24/36/48/100/160` to `TioSize` aliases.
+- [x] Add tests locking Avatar semantic size roles to canonical primitives.
+- [ ] Move remaining raw physical geometry to primitive/foundation/semantic/typography/effects owners.
+- [ ] Apply controlled `±1dp` normalization only to eligible spacing/radius roles and record each change.
 - [ ] Keep component token classes only for genuinely reusable component contracts.
 - [ ] Do not create screen-specific core token bags.
 
 ```text
-Reusable component   → component tokens
-Reusable semantic    → foundation/semantic/typography/effects
-One-off screen visual→ governed primitive/core role directly
-Screen-specific bag  → forbidden
+Reusable component    → semantic component tokens alias governed primitives/roles
+Reusable semantic     → foundation/semantic/typography/effects
+One-off screen visual → governed primitive/core role directly
+Screen-specific bag   → forbidden
 ```
 
 ### A9 — Context and compatibility APIs
@@ -223,8 +208,9 @@ Screen-specific bag  → forbidden
 
 - [x] Primitive barrels exported intentionally.
 - [x] Primitive geometry/spacing/radius tests added.
-- [x] Existing runtime-value assertions preserved.
-- [ ] Current scalable-foundation head must pass CI before A2 correction is considered validated.
+- [x] Avatar primitive alias tests added.
+- [ ] Update assertions when an approved `±1dp` spacing/radius normalization intentionally changes a canonical value.
+- [ ] Current branch head must pass CI before the latest A2/A8 corrections are validated.
 - [ ] Run focused core theme tests, analyze, and required workspace CI at the slice boundary.
 
 ## Implementation Evidence
@@ -238,12 +224,8 @@ Screen-specific bag  → forbidden
 f9ac707576730207593d3e34240dce1a239ba286  add scalable spacing roles
 1a0416003f4616d6b8cd02e2badec54c1cdf5c20  add scalable radius roles
 c29a7ca50e8f0a82c51e1ce5e920c7959e606631  lock scalable radius contracts
+738e3df77603da3975fe9d30746ef8148761ad50  alias Avatar size roles to TioSize
+bc5f85490d03c430ce697fc4cc9aae3bca114864  lock Avatar size primitive relationships
 ```
-
-No production screen was redesigned by these changes. Legacy semantic names remain aliases so current rendered spacing/radius values are unchanged.
-
-## Exit Criteria
-
-Slice A remains `In progress` until every core fixed visual value has one canonical owner, duplicate motion/shadow/color ownership is resolved, component contracts no longer independently own physical values, compatibility APIs are safely migrated, and focused tests/analyze/full required CI pass.
 
 Slice B remains blocked until Slice A is validated.
