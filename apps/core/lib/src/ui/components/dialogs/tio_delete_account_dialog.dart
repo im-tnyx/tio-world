@@ -340,7 +340,7 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
                   height: 100,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFFE55757), // Salmon Red
+                    color: TioDialogTokens.deleteHoldFillColor,
                     boxShadow: [
                       BoxShadow(
                         color: colors.danger.withAlpha(80),
@@ -352,7 +352,7 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
                   child: _isDeleting
                       ? const Center(
                           child: CircularProgressIndicator(
-                            color: Colors.white,
+                            color: TioDialogTokens.deleteHoldContentColor,
                             strokeWidth: 2.5,
                           ),
                         )

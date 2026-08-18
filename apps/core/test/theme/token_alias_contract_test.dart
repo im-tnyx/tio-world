@@ -40,6 +40,8 @@ void main() {
       expect(TioDialogTokens.otpShadowColor, const Color(0x50000000));
       expect(TioDialogTokens.otpShadowBlurRadius, 30.0);
       expect(TioDialogTokens.otpShadowOffsetY, 10.0);
+      expect(TioDialogTokens.deleteHoldFillColor, const Color(0xFFE55757));
+      expect(TioDialogTokens.deleteHoldContentColor, const Color(0xFFFFFFFF));
       expect(TioInputTokens.radius, 14.0);
       expect(TioInputTokens.outlineWidth, 0.75);
       expect(TioInputTokens.focusedOutlineWidth, 1.25);

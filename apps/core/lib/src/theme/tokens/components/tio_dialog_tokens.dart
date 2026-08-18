@@ -6,4 +6,7 @@ class TioDialogTokens {
   static const otpShadowColor = Color(0x50000000);
   static const otpShadowBlurRadius = 30.0;
   static const otpShadowOffsetY = 10.0;
+
+  static const deleteHoldFillColor = Color(0xFFE55757);
+  static const deleteHoldContentColor = Color(0xFFFFFFFF);
 }
