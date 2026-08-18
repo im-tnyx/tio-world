@@ -5,6 +5,7 @@ import '../../domain/domain.dart';
 import '../controllers/controllers.dart';
 import '../renderer/onboarding_section_renderer.dart';
 import '../state/state.dart';
+import '../theme/onboarding_visual_tokens.dart';
 
 typedef OnboardingStepBuilder = Widget Function(
   BuildContext context,
@@ -59,7 +60,7 @@ class OnboardingContentHost extends StatelessWidget {
               TioSpacing.large,
               TioSpacing.large,
               TioSpacing.large,
-              100.0,
+              OnboardingVisualTokens.contentBottomClearance,
             ),
             child: child,
           ),
