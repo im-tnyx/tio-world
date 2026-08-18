@@ -178,6 +178,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
+    final textTheme = Theme.of(context).textTheme;
     final isDark = colors.isDark;
 
     final inputBorderRadius = BorderRadius.circular(TioRadius.large);
@@ -223,14 +224,7 @@ class _LoginPageState extends State<LoginPage> {
                           },
                         ),
                         const SizedBox(width: TioSpacing.small),
-                        Text(
-                          'Login',
-                          style: TextStyle(
-                            fontSize: AuthFormTokens.titleFontSize,
-                            fontWeight: AuthFormTokens.titleFontWeight,
-                            color: colors.textPrimary,
-                          ),
-                        ),
+                        Text('Login', style: textTheme.titleLarge),
                       ],
                     ),
                   ),
@@ -334,11 +328,7 @@ class _LoginPageState extends State<LoginPage> {
                           },
                           child: Text(
                             'Forgot Password?',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: colors.textPrimary,
-                            ),
+                            style: textTheme.labelLarge,
                           ),
                         ),
                         const SizedBox(height: TioSpacing.extraLarge),
@@ -418,10 +408,7 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       Text(
                         "Don't have an account? ",
-                        style: TextStyle(
-                          fontSize: AuthFormTokens.footerFontSize,
-                          color: colors.textSecondary,
-                        ),
+                        style: textTheme.bodyMedium,
                       ),
                       TextButton(
                         key: const ValueKey('login-signup-link'),
@@ -438,14 +425,7 @@ class _LoginPageState extends State<LoginPage> {
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: Text(
-                          'Sign Up',
-                          style: TextStyle(
-                            fontSize: AuthFormTokens.footerFontSize,
-                            fontWeight: AuthFormTokens.footerLinkFontWeight,
-                            color: colors.textPrimary,
-                          ),
-                        ),
+                        child: Text('Sign Up', style: textTheme.labelLarge),
                       ),
                     ],
                   ),
