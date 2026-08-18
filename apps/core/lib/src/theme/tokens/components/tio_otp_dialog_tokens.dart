@@ -5,7 +5,7 @@ import '../typography/tio_font_size.dart';
 import '../typography/tio_letter_spacing.dart';
 import '../typography/tio_line_height.dart';
 
-/// Reusable visual contract for [TioOtpVerificationDialog].
+/// Reusable visual contract for the OTP verification dialog.
 ///
 /// Physical values alias governed core primitives; runtime theme-dependent
 /// colors and shadows remain resolved by the dialog through BuildContext.
