@@ -19,6 +19,8 @@ void main() {
       expect(TioPalette.gray017, const Color(0xFF111111));
       expect(TioPalette.gray031, const Color(0xFF1F1F1F));
       expect(TioPalette.blackAlpha26, const Color(0x1A000000));
+      expect(TioPalette.blackAlpha80, const Color(0x50000000));
+      expect(TioPalette.red550, const Color(0xFFE55757));
     });
   });
 
@@ -60,7 +62,7 @@ void main() {
     });
   });
 
-  group('domain and effect roles do not own duplicate raw colors', () {
+  group('domain, effect, and component roles alias palette owners', () {
     test('domain defaults alias palette values', () {
       expect(TioDomainColors.workout, TioPalette.red500);
       expect(TioDomainColors.nutrition, TioPalette.green500);
@@ -73,6 +75,13 @@ void main() {
       expect(TioAlpha.alpha26, 26);
       expect(TioShadowTokens.softColor, TioPalette.blackAlpha26);
       expect(TioShadows.standard.soft, same(TioShadowTokens.soft));
+    });
+
+    test('dialog and navigation colors keep exact current palette mappings', () {
+      expect(TioDialogTokens.otpShadowColor, TioPalette.blackAlpha80);
+      expect(TioDialogTokens.deleteHoldFillColor, TioPalette.red550);
+      expect(TioDialogTokens.deleteHoldContentColor, TioPalette.white);
+      expect(TioNavigationTokens.planPlusAccentColor, TioPalette.amber500);
     });
   });
 }
