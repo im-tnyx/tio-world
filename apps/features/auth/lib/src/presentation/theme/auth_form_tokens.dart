@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 
 /// Shared geometry and spacing contracts across canonical Auth form surfaces.
@@ -10,8 +11,10 @@ class AuthFormTokens {
   const AuthFormTokens._();
 
   static const topBarHeight = 48.0;
+  static const backIconSize = 24.0;
   static const inputLeadingIconSize = 20.0;
   static const passwordVisibilityIconSize = 22.0;
+  static const secondaryActionFontWeight = FontWeight.w600;
 
   static const dividerOpacity = 0.30;
   static const dividerHorizontalPadding = TioSpacing.large;
