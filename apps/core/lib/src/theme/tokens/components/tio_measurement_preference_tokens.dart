@@ -1,5 +1,7 @@
+import '../typography/tio_font_size.dart';
+
 class TioMeasurementPreferenceTokens {
   const TioMeasurementPreferenceTokens._();
 
-  static const sectionLabelFontSize = 13.0;
+  static const sectionLabelFontSize = TioFontSize.size13;
 }
