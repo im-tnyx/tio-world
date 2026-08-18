@@ -20,8 +20,10 @@ extension TioThemeContext on BuildContext {
   }
 
   // Compatibility accessors for existing feature consumers. Migrate these
-  // call sites to TioRadius in their focused feature token slices.
-  double get radiusSmall => TioRadius.small;
-  double get radiusMedium => TioRadius.medium;
-  double get radiusLarge => TioRadius.large;
+  // call sites to canonical TioRadius roles in their focused feature slices.
+  // The compatibility API stays pixel-equivalent while its implementation
+  // resolves through the canonical radius names.
+  double get radiusSmall => TioRadius.sm;
+  double get radiusMedium => TioRadius.md;
+  double get radiusLarge => TioRadius.lg;
 }
