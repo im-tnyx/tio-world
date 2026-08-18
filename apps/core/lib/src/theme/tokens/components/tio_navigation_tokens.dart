@@ -1,6 +1,7 @@
 import '../foundation/tio_palette.dart';
 import '../foundation/tio_radius.dart';
 import '../foundation/tio_spacing.dart';
+import '../foundation/tio_stroke.dart';
 import '../primitive/tio_opacity.dart';
 
 class TioNavigationTokens {
@@ -27,5 +28,5 @@ class TioNavigationTokens {
   static const aiTabGlowBlurRadius = 6.0;
   static const aiTabGlowOffsetY = 2.0;
   static const aiTabInactiveOutlineOpacity = TioOpacity.opacity40;
-  static const aiTabInactiveOutlineWidth = 1.5;
+  static const aiTabInactiveOutlineWidth = TioStroke.width15;
 }
