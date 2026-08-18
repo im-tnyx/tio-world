@@ -11,7 +11,7 @@ extension TioThemeContext on BuildContext {
   }
 
   TioShadows get tioShadows {
-    return Theme.of(this).extension<TioShadows>() ?? TioShadows.standard;
+    return Theme.of(this).extension<TioShadows>() ?? TioShadows.light;
   }
 
   TioMotionScheme get tioMotion {
