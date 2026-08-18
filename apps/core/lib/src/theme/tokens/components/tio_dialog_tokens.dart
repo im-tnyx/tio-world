@@ -1,4 +1,5 @@
 import '../foundation/tio_palette.dart';
+import '../foundation/tio_stroke.dart';
 import '../primitive/tio_alpha.dart';
 import '../typography/tio_font_size.dart';
 import '../typography/tio_letter_spacing.dart';
@@ -38,7 +39,7 @@ class TioDialogTokens {
   static const otpActionHorizontalPadding = 28.0;
   static const otpActionContainerAlpha = TioAlpha.alpha40;
   static const otpLoadingSize = 18.0;
-  static const otpLoadingStrokeWidth = 2.0;
+  static const otpLoadingStrokeWidth = TioStroke.width2;
   static const otpActionFontSize = TioFontSize.size13;
   static const otpActionLetterSpacing = TioLetterSpacing.positive08;
   static const otpBackTopGap = 14.0;
@@ -66,13 +67,13 @@ class TioDialogTokens {
   static const deleteCountdownHeight = 44.0;
   static const deleteCountdownFontSize = TioFontSize.size34;
   static const deleteHoldControlSize = 140.0;
-  static const deleteHoldStrokeWidth = 6.0;
+  static const deleteHoldStrokeWidth = TioStroke.width6;
   static const deleteHoldTrackAlpha = TioAlpha.alpha25;
   static const deleteHoldButtonSize = 100.0;
   static const deleteHoldGlowAlpha = TioAlpha.alpha80;
   static const deleteHoldGlowBlurRadius = 20.0;
   static const deleteHoldGlowSpreadRadius = 2.0;
-  static const deleteHoldLoadingStrokeWidth = 2.5;
+  static const deleteHoldLoadingStrokeWidth = TioStroke.width25;
   static const deleteHoldActionGap = 56.0;
   static const deleteCompletedIconContainerSize = 72.0;
   static const deleteCompletedIconContainerAlpha = TioAlpha.alpha30;
