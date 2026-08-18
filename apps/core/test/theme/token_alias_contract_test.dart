@@ -42,6 +42,16 @@ void main() {
       expect(TioDialogTokens.otpShadowOffsetY, 10.0);
       expect(TioDialogTokens.deleteHoldFillColor, const Color(0xFFE55757));
       expect(TioDialogTokens.deleteHoldContentColor, const Color(0xFFFFFFFF));
+      expect(TioDialogTokens.deleteOverlayBackgroundAlpha, 245);
+      expect(TioDialogTokens.deleteCloseButtonSize, 36.0);
+      expect(TioDialogTokens.deleteHeadlineFontSize, 28.0);
+      expect(TioDialogTokens.deleteActionButtonHeight, 54.0);
+      expect(TioDialogTokens.deleteActionButtonRadius, 27.0);
+      expect(TioDialogTokens.deleteHoldControlSize, 140.0);
+      expect(TioDialogTokens.deleteHoldStrokeWidth, 6.0);
+      expect(TioDialogTokens.deleteHoldButtonSize, 100.0);
+      expect(TioDialogTokens.deleteCompletedIconContainerSize, 72.0);
+      expect(TioDialogTokens.deleteCompletedTitleFontSize, 24.0);
       expect(TioInputTokens.radius, 14.0);
       expect(TioInputTokens.outlineWidth, 0.75);
       expect(TioInputTokens.focusedOutlineWidth, 1.25);
