@@ -9,12 +9,14 @@ import '../primitive/tio_alpha.dart';
 class TioPalette {
   const TioPalette._();
 
+  static const transparent = Color(0x00000000);
   static const black = Color(0xFF000000);
   static const white = Color(0xFFFFFFFF);
   static const whiteAlpha179 =
       Color.fromARGB(TioAlpha.alpha179, 255, 255, 255);
   static const blackAlpha26 = Color.fromARGB(TioAlpha.alpha26, 0, 0, 0);
   static const blackAlpha80 = Color.fromARGB(TioAlpha.alpha80, 0, 0, 0);
+  static const blackAlpha221 = Color.fromARGB(TioAlpha.alpha221, 0, 0, 0);
 
   static const gray005 = Color(0xFF050505);
   static const gray016 = Color(0xFF101010);
@@ -50,8 +52,13 @@ class TioPalette {
   static const cyan400 = Color(0xFF22D3EE);
   static const cyan500 = Color(0xFF06B6D4);
 
+  static const amber300 = Color(0xFFFFE082);
   static const amber400 = Color(0xFFFBBF24);
   static const amber500 = Color(0xFFF59E0B);
+  static const amber600 = Color(0xFFFFB300);
+  static const gold400 = Color(0xFFFFD700);
+  static const gold500 = Color(0xFFFFC107);
+  static const orange500 = Color(0xFFFF9800);
 
   static const sky400 = Color(0xFF38BDF8);
   static const sky600 = Color(0xFF0284C7);
