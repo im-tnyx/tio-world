@@ -1,6 +1,7 @@
 # Design System Slice G — Remaining UI
 
-**Status:** Blocked by Slice F  
+**Status:** Ready  
+**Current phase:** Inventory  
 **Parent task:** `.ai/tasks/design-system-token-consolidation.md`  
 **Related issue:** #6  
 **Working PR:** #22  
@@ -16,11 +17,14 @@ No visible UI change is allowed without separate explicit owner/design approval.
 
 ## Preconditions
 
-- [ ] Slices A–F are `Validated`.
+- [x] Slices A–F are `Validated`.
+- [x] Slice F final implementation head `da9e60d6b8a5afc1b293d59cef7a7aacce5553c4` passed Flutter CI #843.
 
 ## Scope
 
 Remaining production Flutter UI not already covered by earlier slices, executed package-by-package with bounded diffs.
+
+Initial inventory must identify all remaining production presentation packages and separate fixed product-visible values from behavior/domain/program values before any mutation.
 
 ## Hard Boundaries
 
@@ -41,6 +45,10 @@ Remaining production Flutter UI not already covered by earlier slices, executed 
 - [ ] Preserve platform-specific behavior where intentional.
 - [ ] Run focused package tests/static audit after each bounded migration.
 - [ ] Run analyze and required CI at package/slice boundaries.
+
+## Execution Rule
+
+Do not begin implementation by broad search-and-replace. First establish the remaining-package inventory and classification, then migrate one bounded package/surface at a time. Reuse existing core ownership before introducing any new evidenced primitive or semantic contract.
 
 ## Completion Lifecycle
 
