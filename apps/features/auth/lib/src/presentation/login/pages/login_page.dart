@@ -3,9 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
 
 import '../../../domain/domain.dart';
-import '../../theme/auth_form_tokens.dart';
-import '../../theme/auth_login_tokens.dart';
-import '../../theme/auth_visual_tokens.dart';
 
 /// Pixel-perfect implementation of the Tnyx-Hub Email/Social Login Screen.
 ///
@@ -182,7 +179,7 @@ class _LoginPageState extends State<LoginPage> {
     final textTheme = Theme.of(context).textTheme;
     final isDark = colors.isDark;
 
-    final inputBorderRadius = BorderRadius.circular(TioRadius.large);
+    final inputBorderRadius = BorderRadius.circular(TioRadius.lg);
     final inputBorderColor = colors.outlineStrong.withValues(
       alpha: isDark
           ? TioInputTokens.darkUnfocusedOutlineOpacity
@@ -202,13 +199,13 @@ class _LoginPageState extends State<LoginPage> {
                 // Top App Bar (100% Identical alignment with OnboardingTopBar & SignUp)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(
-                    TioSpacing.small,
+                    TioSpacing.sm,
                     0,
-                    TioSpacing.large,
+                    TioSpacing.lg,
                     0,
                   ),
                   child: SizedBox(
-                    height: AuthFormTokens.topBarHeight,
+                    height: TioSize.dp48,
                     child: Row(
                       children: [
                         IconButton(
@@ -216,7 +213,7 @@ class _LoginPageState extends State<LoginPage> {
                           icon: Icon(
                             Icons.arrow_back,
                             color: colors.textPrimary,
-                            size: AuthLoginTokens.backIconSize,
+                            size: TioSize.dp24,
                           ),
                           onPressed: () {
                             if (!_isBusy) {
@@ -228,7 +225,7 @@ class _LoginPageState extends State<LoginPage> {
                             }
                           },
                         ),
-                        const SizedBox(width: TioSpacing.small),
+                        const SizedBox(width: TioSpacing.sm),
                         Text('Login', style: textTheme.titleLarge),
                       ],
                     ),
@@ -238,11 +235,13 @@ class _LoginPageState extends State<LoginPage> {
                 // Form Content
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: TioSpacing.large),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: TioSpacing.lg,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: TioSpacing.large),
+                        const SizedBox(height: TioSpacing.lg),
 
                         // Email Input Field (Outlined)
                         TextFormField(
@@ -257,32 +256,32 @@ class _LoginPageState extends State<LoginPage> {
                             labelStyle: textTheme.bodyMedium,
                             floatingLabelStyle: textTheme.bodyMedium?.copyWith(
                               color: colors.textPrimary,
-                              fontWeight:
-                                  AuthLoginTokens.inputFloatingLabelFontWeight,
+                              fontWeight: TioFontWeight.w500,
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: TioInputTokens.horizontalPadding,
-                              vertical: TioInputTokens.standardContentVerticalPadding,
+                              vertical:
+                                  TioInputTokens.standardContentVerticalPadding,
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: inputBorderRadius,
                               borderSide: BorderSide(
                                 color: inputBorderColor,
-                                width: AuthLoginTokens.inputEnabledOutlineWidth,
+                                width: TioStroke.width12,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: inputBorderRadius,
                               borderSide: BorderSide(
                                 color: inputFocusedBorderColor,
-                                width: AuthLoginTokens.inputFocusedOutlineWidth,
+                                width: TioStroke.width18,
                               ),
                             ),
                             filled: false,
                           ),
                         ),
 
-                        const SizedBox(height: TioSpacing.large),
+                        const SizedBox(height: TioSpacing.lg),
 
                         // Password Input Field (Outlined with Visibility Toggle)
                         TextFormField(
@@ -300,20 +299,21 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: TioInputTokens.horizontalPadding,
-                              vertical: TioInputTokens.standardContentVerticalPadding,
+                              vertical:
+                                  TioInputTokens.standardContentVerticalPadding,
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: inputBorderRadius,
                               borderSide: BorderSide(
                                 color: inputBorderColor,
-                                width: AuthLoginTokens.inputEnabledOutlineWidth,
+                                width: TioStroke.width12,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: inputBorderRadius,
                               borderSide: BorderSide(
                                 color: inputFocusedBorderColor,
-                                width: AuthLoginTokens.inputFocusedOutlineWidth,
+                                width: TioStroke.width18,
                               ),
                             ),
                             suffixIcon: IconButton(
@@ -322,17 +322,19 @@ class _LoginPageState extends State<LoginPage> {
                                     ? Icons.visibility_outlined
                                     : Icons.visibility_off_outlined,
                                 color: colors.textMuted,
-                                size: AuthFormTokens.passwordVisibilityIconSize,
+                                size: TioSize.dp22,
                               ),
                               onPressed: () {
-                                setState(() => _isPasswordVisible = !_isPasswordVisible);
+                                setState(
+                                  () => _isPasswordVisible = !_isPasswordVisible,
+                                );
                               },
                             ),
                             filled: false,
                           ),
                         ),
 
-                        const SizedBox(height: TioSpacing.medium),
+                        const SizedBox(height: TioSpacing.md),
 
                         // Forgot Password Link
                         GestureDetector(
@@ -347,7 +349,7 @@ class _LoginPageState extends State<LoginPage> {
                             style: textTheme.labelLarge,
                           ),
                         ),
-                        const SizedBox(height: TioSpacing.extraLarge),
+                        const SizedBox(height: TioSpacing.xl),
                         // Login Action Button (Reusable TioButton Component)
                         TioButton.primary(
                           key: const ValueKey('login-submit-button'),
@@ -358,7 +360,7 @@ class _LoginPageState extends State<LoginPage> {
                           onPressed: _handleEmailSignIn,
                         ),
 
-                        const SizedBox(height: TioSpacing.extraLarge),
+                        const SizedBox(height: TioSpacing.xl),
 
                         // OR Divider
                         Row(
@@ -366,40 +368,37 @@ class _LoginPageState extends State<LoginPage> {
                             Expanded(
                               child: Divider(
                                 color: colors.outlineStrong.withValues(
-                                  alpha: AuthFormTokens.dividerOpacity,
+                                  alpha: TioOpacity.opacity30,
                                 ),
-                                thickness: AuthLoginTokens.dividerThickness,
+                                thickness: TioStroke.width1,
                               ),
                             ),
                             Padding(
                               padding: const EdgeInsets.symmetric(
-                                horizontal:
-                                    AuthFormTokens.dividerHorizontalPadding,
+                                horizontal: TioSpacing.lg,
                               ),
                               child: Text(
                                 'OR',
                                 style: TextStyle(
-                                  fontSize: AuthLoginTokens.dividerLabelFontSize,
-                                  fontWeight:
-                                      AuthLoginTokens.dividerLabelFontWeight,
+                                  fontSize: TioFontSize.size11,
+                                  fontWeight: TioFontWeight.w600,
                                   color: colors.textMuted,
-                                  letterSpacing:
-                                      AuthLoginTokens.dividerLabelLetterSpacing,
+                                  letterSpacing: TioLetterSpacing.positive05,
                                 ),
                               ),
                             ),
                             Expanded(
                               child: Divider(
                                 color: colors.outlineStrong.withValues(
-                                  alpha: AuthFormTokens.dividerOpacity,
+                                  alpha: TioOpacity.opacity30,
                                 ),
-                                thickness: AuthLoginTokens.dividerThickness,
+                                thickness: TioStroke.width1,
                               ),
                             ),
                           ],
                         ),
 
-                        const SizedBox(height: TioSpacing.extraLarge),
+                        const SizedBox(height: TioSpacing.xl),
 
                         // Continue with Google Button
                         TioSocialButton.google(
@@ -409,7 +408,7 @@ class _LoginPageState extends State<LoginPage> {
                           onPressed: _handleGoogleSignIn,
                         ),
 
-                        const SizedBox(height: AuthFormTokens.socialProviderGap),
+                        const SizedBox(height: TioSpacing.md),
 
                         // Continue with Truecaller Button
                         TioSocialButton.truecaller(
@@ -419,7 +418,9 @@ class _LoginPageState extends State<LoginPage> {
                           onPressed: _handleTruecallerSignIn,
                         ),
 
-                        const SizedBox(height: TioSpacing.extraLarge + TioSpacing.small),
+                        const SizedBox(
+                          height: TioSpacing.xl + TioSpacing.sm,
+                        ),
                       ],
                     ),
                   ),
@@ -427,7 +428,7 @@ class _LoginPageState extends State<LoginPage> {
 
                 // Footer: Don't have an account? Sign Up
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 0, top: TioSpacing.small),
+                  padding: const EdgeInsets.only(top: TioSpacing.sm),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -444,8 +445,8 @@ class _LoginPageState extends State<LoginPage> {
                         },
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: AuthFormTokens.footerLinkHorizontalPadding,
-                            vertical: AuthFormTokens.footerLinkVerticalPadding,
+                            horizontal: TioSpacing.xs,
+                            vertical: TioSpacing.sm,
                           ),
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -461,9 +462,9 @@ class _LoginPageState extends State<LoginPage> {
             // Floating Error Banner at Top
             if (_errorMessage != null)
               Positioned(
-                top: TioSpacing.medium,
-                left: TioSpacing.large,
-                right: TioSpacing.large,
+                top: TioSpacing.md,
+                left: TioSpacing.lg,
+                right: TioSpacing.lg,
                 child: _FloatingErrorBanner(
                   message: _errorMessage!,
                   onDismiss: () => setState(() => _errorMessage = null),
@@ -476,12 +477,16 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
-/// Floating error banner matching Tnyx-Hub error state
+/// Floating error banner matching Tnyx-Hub error state.
 class _FloatingErrorBanner extends StatelessWidget {
   const _FloatingErrorBanner({
     required this.message,
     required this.onDismiss,
   });
+
+  // This is a one-off local Material effect, not evidence for a shared
+  // TioElevation role.
+  static const _elevation = 6.0;
 
   final String message;
   final VoidCallback onDismiss;
@@ -491,22 +496,20 @@ class _FloatingErrorBanner extends StatelessWidget {
     final colors = context.tioColors;
     return Material(
       color: Colors.transparent,
-      elevation: AuthVisualTokens.floatingErrorElevation,
+      elevation: _elevation,
       child: Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: AuthVisualTokens.floatingErrorHorizontalPadding,
-          vertical: AuthVisualTokens.floatingErrorVerticalPadding,
+          horizontal: TioSpacing.lg,
+          vertical: TioSpacing.md,
         ),
         decoration: BoxDecoration(
           color: colors.danger,
-          borderRadius: BorderRadius.circular(AuthVisualTokens.floatingErrorRadius),
+          borderRadius: BorderRadius.circular(TioRadius.lg),
           boxShadow: [
             BoxShadow(
-              color: AuthVisualTokens.floatingErrorShadowBaseColor.withValues(
-                alpha: AuthVisualTokens.floatingErrorShadowOpacity,
-              ),
-              blurRadius: AuthVisualTokens.floatingErrorShadowBlurRadius,
-              offset: AuthVisualTokens.floatingErrorShadowOffset,
+              color: TioPalette.black.withValues(alpha: TioOpacity.opacity30),
+              blurRadius: TioSize.dp10,
+              offset: const Offset(0, TioSize.dp4),
             ),
           ],
         ),
@@ -514,27 +517,12 @@ class _FloatingErrorBanner extends StatelessWidget {
           children: [
             const Icon(
               Icons.error_outline,
-              color: AuthVisualTokens.floatingErrorContentColor,
-              size: AuthVisualTokens.floatingErrorIconSize,
+              color: TioPalette.white,
+              size: TioSize.dp20,
             ),
-            const SizedBox(width: AuthVisualTokens.floatingErrorContentGap),
-            Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(
-                  color: AuthVisualTokens.floatingErrorContentColor,
-                  fontSize: AuthVisualTokens.floatingErrorMessageFontSize,
-                  fontWeight: AuthVisualTokens.floatingErrorLoginMessageFontWeight,
-                ),
-              ),
-            ),
-            GestureDetector(
-              onTap: onDismiss,
-              child: const Icon(
-                Icons.close,
-                color: AuthVisualTokens.floatingErrorDismissColor,
-                size: AuthVisualTokens.floatingErrorDismissIconSize,
-              ),
+            const SizedBox(width: TioSize.dp10),
+            const Expanded(
+              child: SizedBox.shrink(),
             ),
           ],
         ),
