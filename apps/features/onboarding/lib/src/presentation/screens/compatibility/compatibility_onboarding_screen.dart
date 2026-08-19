@@ -25,13 +25,13 @@ class CompatibilityOnboardingScreen extends StatelessWidget {
           title: title,
           subtitle: description,
         ),
-        const SizedBox(height: TioSpacing.extraLarge),
+        const SizedBox(height: TioSpacing.xl),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(TioSpacing.large),
+          padding: const EdgeInsets.all(TioSpacing.lg),
           decoration: BoxDecoration(
             color: colors.surface,
-            borderRadius: BorderRadius.circular(context.radiusLarge),
+            borderRadius: BorderRadius.circular(TioRadius.lg),
             border: Border.all(color: colors.surfaceVariant),
           ),
           child: Column(
@@ -41,16 +41,19 @@ class CompatibilityOnboardingScreen extends StatelessWidget {
                 'Compatibility preview',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: TioSpacing.medium),
+              const SizedBox(height: TioSpacing.md),
               for (final highlight in highlights) ...[
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Padding(
-                      padding: EdgeInsets.only(top: 6),
-                      child: Icon(Icons.check_circle_outline, size: 16),
+                      padding: EdgeInsets.only(top: TioSize.dp6),
+                      child: Icon(
+                        Icons.check_circle_outline,
+                        size: TioSize.dp16,
+                      ),
                     ),
-                    const SizedBox(width: TioSpacing.small),
+                    const SizedBox(width: TioSpacing.sm),
                     Expanded(
                       child: Text(
                         highlight,
@@ -62,7 +65,7 @@ class CompatibilityOnboardingScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: TioSpacing.small),
+                const SizedBox(height: TioSpacing.sm),
               ],
             ],
           ),
@@ -91,19 +94,19 @@ class CompatibilityReviewScreen extends StatelessWidget {
               'with the matching guided navigation. Later onboarding slices '
               'will replace these preview steps with module-owned inputs.',
         ),
-        const SizedBox(height: TioSpacing.extraLarge),
+        const SizedBox(height: TioSpacing.xl),
         if (selectedMode != null) ...[
           _SummaryRow(label: 'Selected mode', value: _modeLabel(selectedMode)),
-          const SizedBox(height: TioSpacing.medium),
+          const SizedBox(height: TioSpacing.md),
           _SummaryRow(label: 'Guided tabs', value: _tabSummary(selectedMode)),
-          const SizedBox(height: TioSpacing.medium),
+          const SizedBox(height: TioSpacing.md),
         ],
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(TioSpacing.large),
+          padding: const EdgeInsets.all(TioSpacing.lg),
           decoration: BoxDecoration(
             color: colors.surface,
-            borderRadius: BorderRadius.circular(context.radiusLarge),
+            borderRadius: BorderRadius.circular(TioRadius.lg),
             border: Border.all(color: colors.surfaceVariant),
           ),
           child: Text(
@@ -133,10 +136,10 @@ class _SummaryRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 108,
+          width: TioSize.dp108,
           child: Text(label, style: Theme.of(context).textTheme.labelLarge),
         ),
-        const SizedBox(width: TioSpacing.medium),
+        const SizedBox(width: TioSpacing.md),
         Expanded(
           child: Text(value, style: Theme.of(context).textTheme.bodyLarge),
         ),
