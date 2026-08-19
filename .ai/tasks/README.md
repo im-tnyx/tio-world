@@ -7,10 +7,10 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 | Task | Status | Primary owner | Read before |
 |---|---|---|---|
 | [Design-system token consolidation](design-system-token-consolidation.md) | In progress | `apps/core/lib/src/theme` | **Any Flutter visual/token/theme/component styling change** |
-| [Design-system Slice A — Core Foundation](design-system-slice-a-core-foundation.md) | **In progress** | `apps/core/lib/src/theme`, `apps/core/test/theme` | Current design-system implementation work |
-| [Design-system Slice B — Welcome](design-system-slice-b-welcome.md) | Blocked | Welcome + governed core contracts | Starts only after Slice A is validated |
-| [Design-system Slice C — Core Components](design-system-slice-c-core-components.md) | Blocked | reusable core UI/component contracts | Starts only after Slices A–B are validated |
-| [Design-system Slice D — Auth + Account Setup](design-system-slice-d-auth-account.md) | Blocked | Auth/Account Setup presentation | Starts only after Slice C is validated |
+| [Design-system Slice A — Core Foundation](design-system-slice-a-core-foundation.md) | Validated | `apps/core/lib/src/theme`, `apps/core/test/theme` | Foundation/source boundary validated by Flutter CI #624 |
+| [Design-system Slice B — Welcome](design-system-slice-b-welcome.md) | Validated | Welcome + governed core contracts | Welcome final boundary validated by Flutter CI #646 |
+| [Design-system Slice C — Core Components](design-system-slice-c-core-components.md) | Validated | reusable core UI/component contracts | Core components final source boundary validated by Flutter CI #710 |
+| [Design-system Slice D — Auth + Account Setup](design-system-slice-d-auth-account.md) | **In progress** | Auth/Account Setup presentation | Current active design-system feature slice |
 | [Design-system Slice E — Product Onboarding](design-system-slice-e-onboarding.md) | Blocked | Onboarding presentation | Starts only after Slice D is validated |
 | [Design-system Slice F — Home + Profile + Settings](design-system-slice-f-home-profile-settings.md) | Blocked | Home/Profile/Settings presentation | Starts only after Slice E is validated |
 | [Design-system Slice G — Remaining UI](design-system-slice-g-remaining-ui.md) | Blocked | remaining phone/Wear presentation | Starts only after Slice F is validated |
@@ -28,13 +28,13 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 ```text
 Parent architecture contract
         ↓
-Slice A — Core Foundation              IN PROGRESS
+Slice A — Core Foundation              VALIDATED (#624)
         ↓
-Slice B — Welcome                      BLOCKED
+Slice B — Welcome                      VALIDATED (#646)
         ↓
-Slice C — Core Components              BLOCKED
+Slice C — Core Components              VALIDATED (#710)
         ↓
-Slice D — Auth + Account Setup         BLOCKED
+Slice D — Auth + Account Setup         IN PROGRESS
         ↓
 Slice E — Product Onboarding           BLOCKED
         ↓
@@ -49,17 +49,23 @@ Do not start a blocked design-system slice until its dependency is validated wit
 
 ## Mandatory UI Governance
 
-Before any Flutter production UI/theme/token change, read [Design-system token consolidation](design-system-token-consolidation.md) and the currently active slice task.
+Before any Flutter production UI/theme/token change:
+
+1. read [Design-system token consolidation](design-system-token-consolidation.md);
+2. read the currently active slice task;
+3. for normal feature UI work, follow `apps/features/AGENTS.md` and read `apps/core/lib/src/theme/README.md` before inspecting internal token files.
 
 Global rules:
 
 - centralized `apps/core` design-system ownership is the visual source of truth;
 - feature packages must not create parallel design-token/color/layout/theme catalogs;
-- fixed visual values must follow the canonical primitive/semantic/component ownership model;
-- component token classes must not become screen-specific token bags;
+- fixed visual values must follow canonical primitive/semantic/component ownership;
+- **not every widget/dialog/screen gets a token file**; component-token classes are admitted only for proven reusable contracts;
+- screen/feature/workflow/product-action token bags are forbidden final architecture;
+- behavior/domain constants must not be misclassified as visual tokens;
 - design-system migration is pixel-preserving by default;
-- **no screen design/UI may change without a separate explicit owner/design confirmation**;
-- if a visual improvement is discovered during non-visual work, record it separately and preserve the existing screen until approved.
+- **no screen design/UI may change without separate explicit owner/design confirmation**;
+- if a visual improvement is discovered during non-visual work, record it separately and preserve existing rendering until approved.
 
 The active design-system work is tracked by GitHub Issue #6 and Draft PR #22. The parent task owns stable architecture rules; child slices own detailed implementation evidence.
 
