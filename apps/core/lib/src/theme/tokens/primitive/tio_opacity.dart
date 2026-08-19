@@ -10,6 +10,7 @@ abstract final class TioOpacity {
   static const opacity10 = 0.10;
   static const opacity12 = 0.12;
   static const opacity14 = 0.14;
+  static const opacity15 = 0.15;
   static const opacity16 = 0.16;
   static const opacity18 = 0.18;
   static const opacity20 = 0.20;
