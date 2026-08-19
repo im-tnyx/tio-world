@@ -16,6 +16,18 @@ void main() {
       '.radius' 'Small',
       '.radius' 'Medium',
       '.radius' 'Large',
+      'TioTheme.' 'colors(',
+      'TioSpacing.' 'extraSmall',
+      'TioSpacing.' 'small',
+      'TioSpacing.' 'medium',
+      'TioSpacing.' 'large',
+      'TioSpacing.' 'extraLarge',
+      'TioRadius.' 'small',
+      'TioRadius.' 'medium',
+      'TioRadius.' 'large',
+      'TioRadius.' 'extraLarge',
+      'TioDialog' 'Tokens',
+      '.otpShadow' 'Color',
     ];
     final violations = <String>[];
 
