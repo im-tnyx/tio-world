@@ -15,7 +15,7 @@ void main() {
       draft: OnboardingDraft(
         selectedMode: AppMode.workout,
         currentStepId: OnboardingStepId.profileBasics,
-        profile: const ProfileOnboardingDraft(name: 'Tio User'),
+        profile: ProfileOnboardingDraft(name: 'Tio User'),
       ),
       stepBuilder: _buildProfileAwarePlaceholder,
     );
@@ -58,7 +58,7 @@ void main() {
                   draft: OnboardingDraft(
                     selectedMode: AppMode.workout,
                     currentStepId: OnboardingStepId.profileBasics,
-                    profile: const ProfileOnboardingDraft(name: 'Tio User'),
+                    profile: ProfileOnboardingDraft(name: 'Tio User'),
                   ),
                 ),
                 onFinishRequested: (_) async {},
@@ -174,7 +174,7 @@ void main() {
       draft: OnboardingDraft(
         selectedMode: AppMode.workout,
         currentStepId: OnboardingStepId.profileBasics,
-        profile: const ProfileOnboardingDraft(
+        profile: ProfileOnboardingDraft(
           currentStepId: ProfileStepId.gender,
           name: 'Tio User',
         ),
@@ -196,7 +196,7 @@ void main() {
       draft: OnboardingDraft(
         selectedMode: AppMode.workout,
         currentStepId: OnboardingStepId.profileBasics,
-        profile: const ProfileOnboardingDraft(
+        profile: ProfileOnboardingDraft(
           currentStepId: ProfileStepId.gender,
           name: 'Tio User',
         ),
@@ -353,7 +353,7 @@ void main() {
       draft: OnboardingDraft(
         selectedMode: AppMode.workout,
         currentStepId: OnboardingStepId.profileBasics,
-        profile: const ProfileOnboardingDraft(
+        profile: ProfileOnboardingDraft(
           currentStepId: ProfileStepId.gender,
           name: 'Tio User',
         ),
