@@ -59,7 +59,7 @@ class GoalScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final hasPrimary = _goals
         .where((item) => item.isMainGoal)
         .any((item) => selectedGoals.contains(item.goal));
@@ -75,19 +75,16 @@ class GoalScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Helper text with minLines: 1 behavior (Zero layout shift)
           Text(
             !hasPrimary ? 'Please select a primary goal' : '',
             style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontSize: TioFontSize.size12,
+              fontWeight: TioFontWeight.w600,
               color: colors.primary,
-              height: 1.5,
+              height: TioLineHeight.height150,
             ),
           ),
-          const SizedBox(height: TioSpacing.small),
-
-          // Goal Choice Cards List
+          const SizedBox(height: TioSpacing.sm),
           for (final item in _goals) ...[
             _GoalCard(
               item: item,
@@ -97,7 +94,7 @@ class GoalScreen extends StatelessWidget {
                 onToggled(item.goal);
               },
             ),
-            const SizedBox(height: TioSpacing.medium),
+            const SizedBox(height: TioSpacing.md),
           ],
         ],
       ),
@@ -118,11 +115,13 @@ class _GoalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Material(
       color: isSelected
-          ? colors.primary.withValues(alpha: TioCardTokens.selectedContainerAlpha)
+          ? colors.primary.withValues(
+              alpha: TioCardTokens.selectedContainerAlpha,
+            )
           : colors.surface,
       borderRadius: BorderRadius.circular(TioCardTokens.radius),
       child: InkWell(
@@ -130,14 +129,16 @@ class _GoalCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(TioCardTokens.radius),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
+          duration: const Duration(milliseconds: TioDuration.ms150),
           padding: const EdgeInsets.all(TioCardTokens.padding),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(TioCardTokens.radius),
             border: Border.all(
               color: isSelected
                   ? colors.primary
-                  : colors.outlineStrong.withValues(alpha: TioCardTokens.unselectedOutlineAlpha),
+                  : colors.outlineStrong.withValues(
+                      alpha: TioCardTokens.unselectedOutlineAlpha,
+                    ),
               width: isSelected
                   ? TioCardTokens.selectedBorderWidth
                   : TioCardTokens.unselectedBorderWidth,
@@ -146,48 +147,50 @@ class _GoalCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Row: SVG Icon + Title + Radio/CheckCircle (all aligned)
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   SvgPicture.asset(
                     item.svgAsset,
                     package: 'tio_core',
-                    width: 24,
-                    height: 24,
+                    width: TioSize.dp24,
+                    height: TioSize.dp24,
                     colorFilter: ColorFilter.mode(
                       isSelected ? colors.primary : colors.textSecondary,
                       BlendMode.srcIn,
                     ),
                   ),
-                  const SizedBox(width: TioSpacing.small),
+                  const SizedBox(width: TioSpacing.sm),
                   Expanded(
                     child: Text(
                       item.title,
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                        color: isSelected ? colors.primary : colors.textPrimary,
+                        fontSize: TioFontSize.size16,
+                        fontWeight: isSelected
+                            ? TioFontWeight.w600
+                            : TioFontWeight.w500,
+                        color: isSelected
+                            ? colors.primary
+                            : colors.textPrimary,
                       ),
                     ),
                   ),
                   Icon(
-                    isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-                    size: 24,
+                    isSelected
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    size: TioSize.dp24,
                     color: isSelected ? colors.primary : colors.outlineStrong,
                   ),
                 ],
               ),
-
-              const SizedBox(height: 4),
-
-              // Description spanning full width below
+              const SizedBox(height: TioSpacing.xs),
               Text(
                 item.description,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: TioFontSize.size14,
                   color: colors.textSecondary,
-                  height: 1.3,
+                  height: TioLineHeight.height130,
                 ),
               ),
             ],
