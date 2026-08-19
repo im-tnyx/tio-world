@@ -1,6 +1,7 @@
 # Design System Slice F — Home + Profile + Settings
 
-**Status:** Ready  
+**Status:** In progress  
+**Current phase:** Inventory and classification  
 **Parent task:** `.ai/tasks/design-system-token-consolidation.md`  
 **Related issue:** #6  
 **Working PR:** #22  
@@ -18,6 +19,7 @@ No layout, spacing, color appearance, typography appearance, radius, icon/image 
 
 - [x] Slices A–E are `Validated`.
 - [x] Slice E final implementation passed Flutter CI #825.
+- [x] Slice E synchronized branch state passed Flutter CI #828.
 
 ## Hard Boundaries
 
@@ -38,6 +40,16 @@ No layout, spacing, color appearance, typography appearance, radius, icon/image 
 - [ ] Preserve existing rendering and behavior.
 - [ ] Run focused tests/static audit.
 - [ ] Run analyze and required CI.
+
+## Active Inventory
+
+Inventory order is intentionally bounded:
+
+1. Home
+2. Profile
+3. Settings
+
+For each area, classify fixed product-visible values separately from behavior/domain/program values before mutation. Existing core roles/components must be reused before adding any new primitive or semantic contract.
 
 ## Completion Lifecycle
 
