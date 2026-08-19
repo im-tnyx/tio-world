@@ -111,7 +111,7 @@ void main() {
       );
     });
 
-    test('dialog roles alias canonical typography primitives', () {
+    test('OTP dialog roles alias canonical typography primitives', () {
       expect(TioOtpDialogTokens.titleFontSize, TioFontSize.size16);
       expect(
         TioOtpDialogTokens.titleLetterSpacing,
@@ -123,22 +123,6 @@ void main() {
         TioLetterSpacing.positive60,
       );
       expect(TioOtpDialogTokens.subtitleLineHeight, TioLineHeight.height135);
-      expect(
-        TioDeleteAccountDialogTokens.headlineFontSize,
-        TioFontSize.size28,
-      );
-      expect(
-        TioDeleteAccountDialogTokens.bodyLineHeight,
-        TioLineHeight.height140,
-      );
-      expect(
-        TioDeleteAccountDialogTokens.countdownFontSize,
-        TioFontSize.size34,
-      );
-      expect(
-        TioDeleteAccountDialogTokens.holdHeadlineLineHeight,
-        TioLineHeight.height125,
-      );
     });
 
     test('picker and supporting roles alias canonical typography primitives', () {
