@@ -8,14 +8,22 @@ import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
-  testWidgets('keeps parent regions fixed while only child content changes',
+  testWidgets('keeps parent regions fixed while Profile child content changes',
       (tester) async {
-    await _pumpFlow(tester);
+    await _pumpFlow(
+      tester,
+      draft: OnboardingDraft(
+        selectedMode: AppMode.workout,
+        currentStepId: OnboardingStepId.profileBasics,
+        profile: const ProfileOnboardingDraft(name: 'Tio User'),
+      ),
+      stepBuilder: _buildProfileAwarePlaceholder,
+    );
 
     expect(find.text('Set up Tio'), findsNothing);
     expect(find.byType(OnboardingTopBar), findsOneWidget);
     expect(find.byType(OnboardingBottomBar), findsOneWidget);
-    expect(find.text('Child mode'), findsOneWidget);
+    expect(find.text('Profile name'), findsOneWidget);
 
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
@@ -23,7 +31,7 @@ void main() {
     expect(find.text('Set up Tio'), findsNothing);
     expect(find.byType(OnboardingTopBar), findsOneWidget);
     expect(find.byType(OnboardingBottomBar), findsOneWidget);
-    expect(find.text('Child profileBasics'), findsOneWidget);
+    expect(find.text('Profile gender'), findsOneWidget);
     expect(find.byTooltip('Back'), findsOneWidget);
     expect(
       find.descendant(
@@ -34,7 +42,7 @@ void main() {
     );
   });
 
-  testWidgets('parent rebuild keeps the active step and controller',
+  testWidgets('parent rebuild keeps the active nested step and controller',
       (tester) async {
     late StateSetter rebuildParent;
 
@@ -47,12 +55,14 @@ void main() {
               return OnboardingFlowPage(
                 seed: OnboardingControllerSeed(
                   entryPath: OnboardingEntryPath.firstRun,
-                  draft: OnboardingDraft(selectedMode: AppMode.workout),
+                  draft: OnboardingDraft(
+                    selectedMode: AppMode.workout,
+                    currentStepId: OnboardingStepId.profileBasics,
+                    profile: const ProfileOnboardingDraft(name: 'Tio User'),
+                  ),
                 ),
                 onFinishRequested: (_) async {},
-                stepBuilder: (context, state, controller) {
-                  return Text('Child ${state.stepId.name}');
-                },
+                stepBuilder: _buildProfileAwarePlaceholder,
               );
             },
           ),
@@ -62,172 +72,31 @@ void main() {
 
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
-    expect(find.text('Child profileBasics'), findsOneWidget);
+    expect(find.text('Profile gender'), findsOneWidget);
 
     rebuildParent(() {});
     await tester.pump();
 
-    expect(find.text('Child profileBasics'), findsOneWidget);
+    expect(find.text('Profile gender'), findsOneWidget);
   });
 
-  testWidgets('mode keeps fixed Back chrome but hides progress',
+  testWidgets('seeded Product Onboarding starts at Profile with progress',
       (tester) async {
     final semantics = tester.ensureSemantics();
     try {
       await _pumpFlow(tester);
 
+      expect(find.text('Child profileBasics'), findsOneWidget);
       expect(find.byType(OnboardingTopBar), findsOneWidget);
-      expect(find.byType(OnboardingProgressIndicator), findsNothing);
-
-      await tester.tap(find.text('Continue'));
-      await tester.pumpAndSettle();
-
+      expect(find.byType(OnboardingProgressIndicator), findsOneWidget);
       expect(
         find.bySemanticsLabel('Step 1 of 25, About you'),
         findsOneWidget,
       );
+      expect(find.byType(AppModeScreen), findsNothing);
     } finally {
       semantics.dispose();
     }
-  });
-
-  testWidgets('App Mode section updates the draft and derives its child path',
-      (tester) async {
-    final semantics = tester.ensureSemantics();
-    try {
-      await _pumpFlow(
-        tester,
-        draft: OnboardingDraft(profile: _validProfile()),
-        stepBuilder: _buildModeAwareStep,
-      );
-
-      expect(find.text('How will you use Tio?'), findsOneWidget);
-      expect(find.byType(OnboardingTopBar), findsOneWidget);
-      expect(find.byType(OnboardingProgressIndicator), findsNothing);
-      expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
-          isNull);
-
-      await tester.tap(find.byKey(const ValueKey('app-mode-nutrition')));
-      await tester.pumpAndSettle();
-
-      expect(
-        find.text(
-          'Next, Tio will focus setup on nutrition targets and meal preferences.',
-        ),
-        findsOneWidget,
-      );
-      await tester.tap(find.text('Continue'));
-      await tester.pumpAndSettle();
-      expect(find.text('Child profileBasics'), findsOneWidget);
-      expect(
-        find.bySemanticsLabel('Step 10 of 17, About you'),
-        findsOneWidget,
-      );
-
-      await tester.tap(find.text('Continue'));
-      await tester.pumpAndSettle();
-      expect(find.text('Child targets'), findsOneWidget);
-      expect(find.text('Child workoutIntro'), findsNothing);
-    } finally {
-      semantics.dispose();
-    }
-  });
-
-  testWidgets(
-      'default renderer uses AppMode section and screen before downstream sections',
-      (tester) async {
-    await _pumpFlow(
-      tester,
-      draft: OnboardingDraft(),
-      useDefaultRenderer: true,
-    );
-
-    expect(find.byType(OnboardingSectionRenderer), findsOneWidget);
-    expect(find.byType(AppModeSection), findsOneWidget);
-    expect(find.byType(AppModeScreen), findsOneWidget);
-    expect(find.byKey(const ValueKey('app-mode-workout')), findsOneWidget);
-    expect(find.byKey(const ValueKey('app-mode-nutrition')), findsOneWidget);
-    expect(find.byKey(const ValueKey('app-mode-hybrid')), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byType(OnboardingBottomBar),
-        matching: find.text('Continue'),
-      ),
-      findsOneWidget,
-    );
-
-    await tester.tap(find.byKey(const ValueKey('app-mode-nutrition')));
-    await tester.pumpAndSettle();
-
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('app-mode-nutrition')),
-        matching: find.byIcon(Icons.check_circle),
-      ),
-      findsOneWidget,
-    );
-    expect(find.byType(OnboardingTopBar), findsOneWidget);
-    expect(find.byType(OnboardingProgressIndicator), findsNothing);
-
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-
-    expect(find.byType(OnboardingSectionRenderer), findsOneWidget);
-    expect(find.byType(AppModeSection), findsNothing);
-    expect(find.byType(AppModeScreen), findsNothing);
-    expect(
-      find.descendant(
-        of: find.byType(OnboardingContentHost),
-        matching: find.text('What should Tio call you?'),
-      ),
-      findsOneWidget,
-    );
-    final progress = tester.widget<OnboardingProgressIndicator>(
-      find.byType(OnboardingProgressIndicator),
-    );
-    expect(progress.state.progressSemantics, 'Step 1 of 17, About you');
-  });
-
-  testWidgets('App Mode selection does not change content height',
-      (tester) async {
-    await _pumpFlow(
-      tester,
-      draft: OnboardingDraft(),
-      useDefaultRenderer: true,
-    );
-
-    final before = tester.getSize(find.byType(AppModeScreen));
-    await tester.tap(find.byKey(const ValueKey('app-mode-workout')));
-    await tester.pumpAndSettle();
-    final after = tester.getSize(find.byType(AppModeScreen));
-
-    expect(after.height, before.height);
-  });
-
-  testWidgets('App Mode and Profile titles keep the same vertical position',
-      (tester) async {
-    await _pumpFlow(
-      tester,
-      draft: OnboardingDraft(),
-      useDefaultRenderer: true,
-    );
-
-    final appModeTitleTop =
-        tester.getTopLeft(find.text('How will you use Tio?')).dy;
-    final appModeTitleStyle =
-        tester.widget<Text>(find.text('How will you use Tio?')).style;
-    await tester.tap(find.byKey(const ValueKey('app-mode-workout')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-    final profileTitleTop =
-        tester.getTopLeft(find.text('What should Tio call you?')).dy;
-    final profileTitleStyle =
-        tester.widget<Text>(find.text('What should Tio call you?')).style;
-
-    expect(profileTitleTop, appModeTitleTop);
-    expect(profileTitleStyle?.fontSize, appModeTitleStyle?.fontSize);
-    expect(profileTitleStyle?.fontWeight, appModeTitleStyle?.fontWeight);
   });
 
   testWidgets('real workout intro screen skips to targets when deferred',
@@ -280,8 +149,7 @@ void main() {
     );
   });
 
-  testWidgets(
-      'default renderer uses targets section for nutrition mode',
+  testWidgets('default renderer uses targets section for nutrition mode',
       (tester) async {
     await _pumpFlow(
       tester,
@@ -299,29 +167,47 @@ void main() {
     expect(find.text('Building your targets'), findsOneWidget);
   });
 
-  testWidgets('system back uses the same internal previous transition',
+  testWidgets('system back uses the same nested Profile previous transition',
       (tester) async {
-    await _pumpFlow(tester);
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-    expect(find.text('Child profileBasics'), findsOneWidget);
+    await _pumpFlow(
+      tester,
+      draft: OnboardingDraft(
+        selectedMode: AppMode.workout,
+        currentStepId: OnboardingStepId.profileBasics,
+        profile: const ProfileOnboardingDraft(
+          currentStepId: ProfileStepId.gender,
+          name: 'Tio User',
+        ),
+      ),
+      stepBuilder: _buildProfileAwarePlaceholder,
+    );
+    expect(find.text('Profile gender'), findsOneWidget);
 
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
-    expect(find.text('Child mode'), findsOneWidget);
+    expect(find.text('Profile name'), findsOneWidget);
   });
 
-  testWidgets('visible top-bar Back uses the internal previous transition',
+  testWidgets('visible top-bar Back uses the nested Profile transition',
       (tester) async {
-    await _pumpFlow(tester);
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
+    await _pumpFlow(
+      tester,
+      draft: OnboardingDraft(
+        selectedMode: AppMode.workout,
+        currentStepId: OnboardingStepId.profileBasics,
+        profile: const ProfileOnboardingDraft(
+          currentStepId: ProfileStepId.gender,
+          name: 'Tio User',
+        ),
+      ),
+      stepBuilder: _buildProfileAwarePlaceholder,
+    );
 
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Child mode'), findsOneWidget);
+    expect(find.text('Profile name'), findsOneWidget);
   });
 
   testWidgets('busy completion blocks visible and system Back', (tester) async {
@@ -337,7 +223,6 @@ void main() {
         profile: _validProfile(),
         workout: _validWorkout(),
         completedStepIds: const {
-          OnboardingStepId.mode,
           OnboardingStepId.profileBasics,
           OnboardingStepId.workoutPreferences,
           OnboardingStepId.targets,
@@ -377,7 +262,7 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('first-step system back delegates to explicit exit',
+  testWidgets('root system back requires confirmation before explicit exit',
       (tester) async {
     var exits = 0;
     await _pumpFlow(
@@ -388,10 +273,15 @@ void main() {
     expect(find.byTooltip('Back'), findsOneWidget);
 
     await tester.binding.handlePopRoute();
-    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TioConfirmationCard), findsOneWidget);
+    expect(exits, 0);
+
+    await tester.tap(find.text('Log out'));
+    await tester.pumpAndSettle();
 
     expect(exits, 1);
-    expect(find.byTooltip('Back'), findsOneWidget);
   });
 
   testWidgets('reduced motion removes child transition duration',
@@ -408,9 +298,6 @@ void main() {
       ),
     );
     expect(switcher.duration, Duration.zero);
-
-    await tester.tap(find.text('Continue'));
-    await tester.pump();
 
     final progressAnimation = tester.widget<TweenAnimationBuilder<double>>(
       find.descendant(
@@ -460,18 +347,23 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(320, 560));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    await _pumpFlow(tester, textScaler: const TextScaler.linear(1.8));
-
-    expect(tester.takeException(), isNull);
-    expect(find.text('Continue'), findsOneWidget);
-    expect(find.byType(OnboardingBottomBar), findsOneWidget);
-
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
+    await _pumpFlow(
+      tester,
+      textScaler: const TextScaler.linear(1.8),
+      draft: OnboardingDraft(
+        selectedMode: AppMode.workout,
+        currentStepId: OnboardingStepId.profileBasics,
+        profile: const ProfileOnboardingDraft(
+          currentStepId: ProfileStepId.gender,
+          name: 'Tio User',
+        ),
+      ),
+    );
 
     expect(tester.takeException(), isNull);
     expect(find.byTooltip('Back'), findsOneWidget);
     expect(find.text('Continue'), findsOneWidget);
+    expect(find.byType(OnboardingBottomBar), findsOneWidget);
   });
 
   testWidgets('keyboard inset keeps the bottom action above the keyboard',
@@ -555,7 +447,6 @@ void main() {
           profile: _validProfile(),
           workout: _validWorkout(),
           completedStepIds: const {
-            OnboardingStepId.mode,
             OnboardingStepId.profileBasics,
             OnboardingStepId.workoutPreferences,
             OnboardingStepId.targets,
@@ -640,19 +531,12 @@ class _AlwaysEligibleValidator extends OnboardingCompletionValidator {
   }
 }
 
-Widget _buildModeAwareStep(
+Widget _buildProfileAwarePlaceholder(
   BuildContext context,
   OnboardingState state,
   OnboardingController controller,
 ) {
-  if (state.stepId == OnboardingStepId.mode) {
-    return AppModeScreen(
-      selectedMode: state.draft.selectedMode,
-      onModeSelected: controller.selectMode,
-    );
-  }
-
-  return _buildPlaceholderStep(context, state, controller);
+  return Text('Profile ${state.draft.profile.currentStepId.name}');
 }
 
 Widget _buildPlaceholderStep(
