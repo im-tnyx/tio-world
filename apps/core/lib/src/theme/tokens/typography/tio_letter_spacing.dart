@@ -1,4 +1,5 @@
 abstract final class TioLetterSpacing {
+  static const negative10 = -1.0;
   static const negative05 = -0.5;
   static const negative03 = -0.3;
   static const negative02 = -0.2;
