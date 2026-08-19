@@ -8,7 +8,10 @@ import 'package:tio_shared/shared.dart';
 void main() {
   testWidgets('top bar contains only Back and one progress bar',
       (tester) async {
-    await _pumpProfile(tester);
+    await _pumpProfile(
+      tester,
+      onExitRequested: () async {},
+    );
 
     final topBar = find.byType(OnboardingTopBar);
     expect(topBar, findsOneWidget);
@@ -279,6 +282,7 @@ Future<void> _pumpDirectProfileSection(
 Future<_ProfileHarness> _pumpProfile(
   WidgetTester tester, {
   ProfileOnboardingDraft? profile,
+  Future<void> Function()? onExitRequested,
 }) async {
   final container = ProviderContainer();
   addTearDown(container.dispose);
@@ -298,6 +302,7 @@ Future<_ProfileHarness> _pumpProfile(
         home: TioTheme(
           child: OnboardingFlowPage(
             seed: seed,
+            onExitRequested: onExitRequested,
             onFinishRequested: (_) async {},
           ),
         ),
