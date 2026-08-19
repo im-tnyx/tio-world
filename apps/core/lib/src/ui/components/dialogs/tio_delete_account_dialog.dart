@@ -115,22 +115,22 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
 
     return Scaffold(
       backgroundColor: colors.background.withAlpha(
-        TioDialogTokens.deleteOverlayBackgroundAlpha,
+        TioDeleteAccountDialogTokens.overlayBackgroundAlpha,
       ),
       body: SafeArea(
         child: Stack(
           children: [
             // ── Top Right Close Button ──
             Positioned(
-              top: TioSpacing.medium,
-              right: TioSpacing.large,
+              top: TioSpacing.md,
+              right: TioSpacing.lg,
               child: Container(
-                width: TioDialogTokens.deleteCloseButtonSize,
-                height: TioDialogTokens.deleteCloseButtonSize,
+                width: TioDeleteAccountDialogTokens.closeButtonSize,
+                height: TioDeleteAccountDialogTokens.closeButtonSize,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: colors.textPrimary.withAlpha(
-                    TioDialogTokens.deleteCloseContainerAlpha,
+                    TioDeleteAccountDialogTokens.closeContainerAlpha,
                   ),
                 ),
                 child: IconButton(
@@ -138,9 +138,9 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
                   icon: Icon(
                     Icons.close_rounded,
                     color: colors.textPrimary,
-                    size: TioDialogTokens.deleteCloseIconSize,
+                    size: TioDeleteAccountDialogTokens.closeIconSize,
                   ),
-                  splashRadius: TioDialogTokens.deleteCloseSplashRadius,
+                  splashRadius: TioDeleteAccountDialogTokens.closeSplashRadius,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
@@ -150,7 +150,7 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
             // ── Center Content Step ──
             Center(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: TioSpacing.large),
+                padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
                 child: switch (_step) {
                   DeleteAccountStep.confirm => _buildConfirmStep(colors),
                   DeleteAccountStep.holdToDelete => _buildHoldToDeleteStep(colors),
@@ -174,38 +174,38 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
           textAlign: TextAlign.center,
           style: TextStyle(
             color: colors.textPrimary,
-            fontSize: TioDialogTokens.deleteHeadlineFontSize,
-            fontWeight: FontWeight.w800,
-            letterSpacing: TioDialogTokens.deleteHeadlineLetterSpacing,
+            fontSize: TioDeleteAccountDialogTokens.headlineFontSize,
+            fontWeight: TioFontWeight.w800,
+            letterSpacing: TioDeleteAccountDialogTokens.headlineLetterSpacing,
           ),
         ),
-        const SizedBox(height: TioSpacing.medium),
+        const SizedBox(height: TioSpacing.md),
         Text(
           'This means all your saved progress will be deleted permanently.',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: colors.textSecondary,
-            fontSize: TioDialogTokens.deleteBodyFontSize,
-            height: TioDialogTokens.deleteBodyLineHeight,
-            fontWeight: FontWeight.w400,
+            fontSize: TioDeleteAccountDialogTokens.bodyFontSize,
+            height: TioDeleteAccountDialogTokens.bodyLineHeight,
+            fontWeight: TioFontWeight.w400,
           ),
         ),
-        const SizedBox(height: TioSpacing.small),
+        const SizedBox(height: TioSpacing.sm),
         Text(
           "This action can't be reversed",
           textAlign: TextAlign.center,
           style: TextStyle(
             color: colors.danger,
-            fontSize: TioDialogTokens.deleteWarningFontSize,
-            fontWeight: FontWeight.w600,
+            fontSize: TioDeleteAccountDialogTokens.warningFontSize,
+            fontWeight: TioFontWeight.w600,
           ),
         ),
-        const SizedBox(height: TioDialogTokens.deleteActionSectionGap),
+        const SizedBox(height: TioDeleteAccountDialogTokens.actionSectionGap),
 
         // Keep Account Button (Primary White)
         SizedBox(
           width: double.infinity,
-          height: TioDialogTokens.deleteActionButtonHeight,
+          height: TioDeleteAccountDialogTokens.actionButtonHeight,
           child: FilledButton(
             onPressed: () => Navigator.of(context).pop(false),
             style: FilledButton.styleFrom(
@@ -213,44 +213,44 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
               foregroundColor: colors.background,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(
-                  TioDialogTokens.deleteActionButtonRadius,
+                  TioDeleteAccountDialogTokens.actionButtonRadius,
                 ),
               ),
             ),
             child: const Text(
               'Keep Account',
               style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: TioDialogTokens.deleteActionLabelFontSize,
+                fontWeight: TioFontWeight.w700,
+                fontSize: TioDeleteAccountDialogTokens.actionLabelFontSize,
               ),
             ),
           ),
         ),
 
-        const SizedBox(height: TioSpacing.medium),
+        const SizedBox(height: TioSpacing.md),
 
         // Delete Button (Translucent Red)
         SizedBox(
           width: double.infinity,
-          height: TioDialogTokens.deleteActionButtonHeight,
+          height: TioDeleteAccountDialogTokens.actionButtonHeight,
           child: FilledButton(
             onPressed: () => setState(() => _step = DeleteAccountStep.holdToDelete),
             style: FilledButton.styleFrom(
               backgroundColor: colors.danger.withAlpha(
-                TioDialogTokens.deleteActionContainerAlpha,
+                TioDeleteAccountDialogTokens.actionContainerAlpha,
               ),
               foregroundColor: colors.danger,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(
-                  TioDialogTokens.deleteActionButtonRadius,
+                  TioDeleteAccountDialogTokens.actionButtonRadius,
                 ),
               ),
             ),
             child: const Text(
               'Delete',
               style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: TioDialogTokens.deleteActionLabelFontSize,
+                fontWeight: TioFontWeight.w700,
+                fontSize: TioDeleteAccountDialogTokens.actionLabelFontSize,
               ),
             ),
           ),
@@ -269,24 +269,24 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
           textAlign: TextAlign.center,
           style: TextStyle(
             color: colors.textPrimary,
-            fontSize: TioDialogTokens.deleteHeadlineFontSize,
-            fontWeight: FontWeight.w800,
-            letterSpacing: TioDialogTokens.deleteHeadlineLetterSpacing,
-            height: TioDialogTokens.deleteHoldHeadlineLineHeight,
+            fontSize: TioDeleteAccountDialogTokens.headlineFontSize,
+            fontWeight: TioFontWeight.w800,
+            letterSpacing: TioDeleteAccountDialogTokens.headlineLetterSpacing,
+            height: TioDeleteAccountDialogTokens.holdHeadlineLineHeight,
           ),
         ),
-        const SizedBox(height: TioSpacing.medium),
+        const SizedBox(height: TioSpacing.md),
         Text(
           'to delete all your progress permanently.',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: colors.textSecondary,
-            fontSize: TioDialogTokens.deleteHoldBodyFontSize,
-            fontWeight: FontWeight.w400,
+            fontSize: TioDeleteAccountDialogTokens.holdBodyFontSize,
+            fontWeight: TioFontWeight.w400,
           ),
         ),
 
-        const SizedBox(height: TioDialogTokens.deleteHoldControlTopGap),
+        const SizedBox(height: TioDeleteAccountDialogTokens.holdControlTopGap),
 
         // Countdown Text
         AnimatedBuilder(
@@ -294,15 +294,15 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
           builder: (context, _) {
             final isHolding = _holdController.value > 0;
             return Container(
-              height: TioDialogTokens.deleteCountdownHeight,
+              height: TioDeleteAccountDialogTokens.countdownHeight,
               alignment: Alignment.center,
               child: isHolding
                   ? Text(
                       '$_remainingSeconds',
                       style: TextStyle(
                         color: colors.danger,
-                        fontSize: TioDialogTokens.deleteCountdownFontSize,
-                        fontWeight: FontWeight.w900,
+                        fontSize: TioDeleteAccountDialogTokens.countdownFontSize,
+                        fontWeight: TioFontWeight.w900,
                       ),
                     )
                   : const SizedBox.shrink(),
@@ -310,7 +310,7 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
           },
         ),
 
-        const SizedBox(height: TioSpacing.medium),
+        const SizedBox(height: TioSpacing.md),
 
         // ── Interactive 5-Second Hold Button ──
         GestureDetector(
@@ -319,20 +319,20 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
           onTapUp: (_) => _onHoldReleased(),
           onTapCancel: () => _onHoldReleased(),
           child: SizedBox(
-            width: TioDialogTokens.deleteHoldControlSize,
-            height: TioDialogTokens.deleteHoldControlSize,
+            width: TioDeleteAccountDialogTokens.holdControlSize,
+            height: TioDeleteAccountDialogTokens.holdControlSize,
             child: Stack(
               alignment: Alignment.center,
               children: [
                 // Outer Track
                 SizedBox(
-                  width: TioDialogTokens.deleteHoldControlSize,
-                  height: TioDialogTokens.deleteHoldControlSize,
+                  width: TioDeleteAccountDialogTokens.holdControlSize,
+                  height: TioDeleteAccountDialogTokens.holdControlSize,
                   child: CircularProgressIndicator(
                     value: 1.0,
-                    strokeWidth: TioDialogTokens.deleteHoldStrokeWidth,
+                    strokeWidth: TioDeleteAccountDialogTokens.holdStrokeWidth,
                     color: colors.textPrimary.withAlpha(
-                      TioDialogTokens.deleteHoldTrackAlpha,
+                      TioDeleteAccountDialogTokens.holdTrackAlpha,
                     ),
                   ),
                 ),
@@ -341,11 +341,11 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
                 AnimatedBuilder(
                   animation: _holdController,
                   builder: (context, _) => SizedBox(
-                    width: TioDialogTokens.deleteHoldControlSize,
-                    height: TioDialogTokens.deleteHoldControlSize,
+                    width: TioDeleteAccountDialogTokens.holdControlSize,
+                    height: TioDeleteAccountDialogTokens.holdControlSize,
                     child: CircularProgressIndicator(
                       value: _holdController.value,
-                      strokeWidth: TioDialogTokens.deleteHoldStrokeWidth,
+                      strokeWidth: TioDeleteAccountDialogTokens.holdStrokeWidth,
                       strokeCap: StrokeCap.round,
                       color: colors.danger,
                     ),
@@ -354,27 +354,28 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
 
                 // Center Red Circle Button
                 Container(
-                  width: TioDialogTokens.deleteHoldButtonSize,
-                  height: TioDialogTokens.deleteHoldButtonSize,
+                  width: TioDeleteAccountDialogTokens.holdButtonSize,
+                  height: TioDeleteAccountDialogTokens.holdButtonSize,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: TioDialogTokens.deleteHoldFillColor,
+                    color: TioDeleteAccountDialogTokens.holdFillColor,
                     boxShadow: [
                       BoxShadow(
                         color: colors.danger.withAlpha(
-                          TioDialogTokens.deleteHoldGlowAlpha,
+                          TioDeleteAccountDialogTokens.holdGlowAlpha,
                         ),
-                        blurRadius: TioDialogTokens.deleteHoldGlowBlurRadius,
-                        spreadRadius: TioDialogTokens.deleteHoldGlowSpreadRadius,
+                        blurRadius: TioDeleteAccountDialogTokens.holdGlowBlurRadius,
+                        spreadRadius:
+                            TioDeleteAccountDialogTokens.holdGlowSpreadRadius,
                       ),
                     ],
                   ),
                   child: _isDeleting
                       ? const Center(
                           child: CircularProgressIndicator(
-                            color: TioDialogTokens.deleteHoldContentColor,
+                            color: TioDeleteAccountDialogTokens.holdContentColor,
                             strokeWidth:
-                                TioDialogTokens.deleteHoldLoadingStrokeWidth,
+                                TioDeleteAccountDialogTokens.holdLoadingStrokeWidth,
                           ),
                         )
                       : null,
@@ -384,12 +385,12 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
           ),
         ),
 
-        const SizedBox(height: TioDialogTokens.deleteHoldActionGap),
+        const SizedBox(height: TioDeleteAccountDialogTokens.holdActionGap),
 
         // Keep Account Button
         SizedBox(
           width: double.infinity,
-          height: TioDialogTokens.deleteActionButtonHeight,
+          height: TioDeleteAccountDialogTokens.actionButtonHeight,
           child: FilledButton(
             onPressed: () => Navigator.of(context).pop(false),
             style: FilledButton.styleFrom(
@@ -397,15 +398,15 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
               foregroundColor: colors.background,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(
-                  TioDialogTokens.deleteActionButtonRadius,
+                  TioDeleteAccountDialogTokens.actionButtonRadius,
                 ),
               ),
             ),
             child: const Text(
               'Keep Account',
               style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: TioDialogTokens.deleteActionLabelFontSize,
+                fontWeight: TioFontWeight.w700,
+                fontSize: TioDeleteAccountDialogTokens.actionLabelFontSize,
               ),
             ),
           ),
@@ -420,44 +421,44 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: TioDialogTokens.deleteCompletedIconContainerSize,
-          height: TioDialogTokens.deleteCompletedIconContainerSize,
+          width: TioDeleteAccountDialogTokens.completedIconContainerSize,
+          height: TioDeleteAccountDialogTokens.completedIconContainerSize,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: colors.primary.withAlpha(
-              TioDialogTokens.deleteCompletedIconContainerAlpha,
+              TioDeleteAccountDialogTokens.completedIconContainerAlpha,
             ),
           ),
           child: Icon(
             Icons.lock_open_rounded,
-            size: TioDialogTokens.deleteCompletedIconSize,
+            size: TioDeleteAccountDialogTokens.completedIconSize,
             color: colors.primary,
           ),
         ),
-        const SizedBox(height: TioDialogTokens.deleteCompletedIconGap),
+        const SizedBox(height: TioDeleteAccountDialogTokens.completedIconGap),
         Text(
           'Account Deleted',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: colors.textPrimary,
-            fontSize: TioDialogTokens.deleteCompletedTitleFontSize,
-            fontWeight: FontWeight.w800,
+            fontSize: TioDeleteAccountDialogTokens.completedTitleFontSize,
+            fontWeight: TioFontWeight.w800,
           ),
         ),
-        const SizedBox(height: TioDialogTokens.deleteCompletedTextGap),
+        const SizedBox(height: TioDeleteAccountDialogTokens.completedTextGap),
         Text(
           'Your account and all associated data have been permanently removed.',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: colors.textSecondary,
-            fontSize: TioDialogTokens.deleteCompletedBodyFontSize,
-            height: TioDialogTokens.deleteCompletedBodyLineHeight,
+            fontSize: TioDeleteAccountDialogTokens.completedBodyFontSize,
+            height: TioDeleteAccountDialogTokens.completedBodyLineHeight,
           ),
         ),
-        const SizedBox(height: TioDialogTokens.deleteActionSectionGap),
+        const SizedBox(height: TioDeleteAccountDialogTokens.actionSectionGap),
         SizedBox(
           width: double.infinity,
-          height: TioDialogTokens.deleteActionButtonHeight,
+          height: TioDeleteAccountDialogTokens.actionButtonHeight,
           child: FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: FilledButton.styleFrom(
@@ -465,15 +466,15 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
               foregroundColor: colors.background,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(
-                  TioDialogTokens.deleteActionButtonRadius,
+                  TioDeleteAccountDialogTokens.actionButtonRadius,
                 ),
               ),
             ),
             child: const Text(
               'Close',
               style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: TioDialogTokens.deleteActionLabelFontSize,
+                fontWeight: TioFontWeight.w700,
+                fontSize: TioDeleteAccountDialogTokens.actionLabelFontSize,
               ),
             ),
           ),
