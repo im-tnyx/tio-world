@@ -42,7 +42,7 @@ class ProfileScreenScaffold extends StatelessWidget {
               subtitle: description,
             ),
           ),
-          const SizedBox(height: TioSpacing.large),
+          const SizedBox(height: TioSpacing.lg),
         ] else ...[
           Semantics(
             label: 'Profile step $stepNumber of $stepCount, $title',
@@ -54,7 +54,7 @@ class ProfileScreenScaffold extends StatelessWidget {
         ],
         child,
         if (errorText case final message?) ...[
-          const SizedBox(height: TioSpacing.medium),
+          const SizedBox(height: TioSpacing.md),
           Semantics(
             liveRegion: true,
             child: Text(
@@ -91,7 +91,7 @@ class ProfileChoiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Semantics(
       button: true,
@@ -99,7 +99,9 @@ class ProfileChoiceCard extends StatelessWidget {
       label: description == null ? title : '$title. $description',
       child: Material(
         color: selected
-            ? colors.primary.withValues(alpha: TioCardTokens.selectedContainerAlpha)
+            ? colors.primary.withValues(
+                alpha: TioCardTokens.selectedContainerAlpha,
+              )
             : colors.surface,
         borderRadius: BorderRadius.circular(TioCardTokens.radius),
         child: InkWell(
@@ -107,14 +109,16 @@ class ProfileChoiceCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(TioCardTokens.radius),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.all(TioSpacing.large),
+            duration: const Duration(milliseconds: TioDuration.ms150),
+            padding: const EdgeInsets.all(TioSpacing.lg),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(TioCardTokens.radius),
               border: Border.all(
                 color: selected
                     ? colors.primary
-                    : colors.outlineStrong.withValues(alpha: 0.35),
+                    : colors.outlineStrong.withValues(
+                        alpha: TioOpacity.opacity35,
+                      ),
                 width: selected
                     ? TioCardTokens.selectedBorderWidth
                     : TioCardTokens.unselectedBorderWidth,
@@ -125,7 +129,7 @@ class ProfileChoiceCard extends StatelessWidget {
               children: [
                 if (leading != null) ...[
                   leading!,
-                  const SizedBox(width: TioSpacing.medium),
+                  const SizedBox(width: TioSpacing.md),
                 ],
                 Expanded(
                   child: Column(
@@ -135,25 +139,25 @@ class ProfileChoiceCard extends StatelessWidget {
                         title,
                         style: TextStyle(
                           color: selected ? colors.primary : colors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
+                          fontWeight: TioFontWeight.w700,
+                          fontSize: TioFontSize.size16,
                         ),
                       ),
                       if (description case final desc?) ...[
-                        const SizedBox(height: 4),
+                        const SizedBox(height: TioSpacing.xs),
                         Text(
                           desc,
                           style: TextStyle(
                             color: colors.textSecondary,
-                            fontSize: 13,
-                            height: 1.3,
+                            fontSize: TioFontSize.size13,
+                            height: TioLineHeight.height130,
                           ),
                         ),
                       ],
                     ],
                   ),
                 ),
-                const SizedBox(width: TioSpacing.medium),
+                const SizedBox(width: TioSpacing.md),
                 Icon(
                   selected
                       ? Icons.check_circle_rounded
