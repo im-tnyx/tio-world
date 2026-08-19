@@ -382,11 +382,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                     ),
             ),
             onExitRequested: () async {
-              if (context.canPop()) {
-                context.pop();
-                return;
-              }
-              context.go(AppRoutes.auth.path);
+              await ref.read(authSessionRepositoryProvider).signOut();
+              await appSessionBootstrapController.refresh();
             },
             onAuthRequired: () async {
               final authProductState = ref.read(authProductStateProvider);
