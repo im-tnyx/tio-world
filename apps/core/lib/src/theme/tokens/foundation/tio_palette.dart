@@ -21,7 +21,9 @@ class TioPalette {
   static const gray005 = Color(0xFF050505);
   static const gray016 = Color(0xFF101010);
   static const gray017 = Color(0xFF111111);
+  static const gray022 = Color(0xFF161616);
   static const gray031 = Color(0xFF1F1F1F);
+  static const gray036 = Color(0xFF242424);
 
   static const slate50 = Color(0xFFF8FAFC);
   static const slate800 = Color(0xFF1E293B);
