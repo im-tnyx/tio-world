@@ -30,20 +30,20 @@ class SettingsPage extends StatelessWidget {
   final VoidCallback? onLogoutPressed;
 
   void _showLogoutDialog(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: colors.surfaceRaised,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(TioRadius.large),
+          borderRadius: BorderRadius.circular(TioRadius.lg),
         ),
         title: Text(
           'Log Out',
           style: TextStyle(
             color: colors.textPrimary,
-            fontWeight: FontWeight.w700,
+            fontWeight: TioFontWeight.w700,
           ),
         ),
         content: Text(
@@ -61,7 +61,7 @@ class SettingsPage extends StatelessWidget {
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: colors.danger,
-              foregroundColor: Colors.white,
+              foregroundColor: TioPalette.white,
             ),
             onPressed: () {
               Navigator.of(dialogContext).pop();
@@ -76,29 +76,29 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
         backgroundColor: colors.background,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+        elevation: TioElevation.none,
+        scrolledUnderElevation: TioElevation.none,
         leading: BackButton(color: colors.textPrimary),
         title: Text(
           'Settings',
           style: TextStyle(
             color: colors.textPrimary,
-            fontWeight: FontWeight.w800,
-            fontSize: 20,
+            fontWeight: TioFontWeight.w800,
+            fontSize: TioFontSize.size20,
           ),
         ),
       ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.symmetric(
-            horizontal: TioSpacing.large,
-            vertical: TioSpacing.medium,
+            horizontal: TioSpacing.lg,
+            vertical: TioSpacing.md,
           ),
           children: [
             const _SettingsSectionHeader(title: 'ACCOUNT & PROFILE'),
@@ -137,7 +137,7 @@ class SettingsPage extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: TioSpacing.large),
+            const SizedBox(height: TioSpacing.lg),
             const _SettingsSectionHeader(title: 'WORKOUT & WEARABLES'),
             _SettingsGroupCard(
               children: [
@@ -158,7 +158,7 @@ class SettingsPage extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: TioSpacing.large),
+            const SizedBox(height: TioSpacing.lg),
             const _SettingsSectionHeader(title: 'NUTRITION'),
             _SettingsGroupCard(
               children: [
@@ -171,7 +171,7 @@ class SettingsPage extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: TioSpacing.large),
+            const SizedBox(height: TioSpacing.lg),
             const _SettingsSectionHeader(title: 'PREFERENCES'),
             _SettingsGroupCard(
               children: [
@@ -192,7 +192,7 @@ class SettingsPage extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: TioSpacing.large),
+            const SizedBox(height: TioSpacing.lg),
             const _SettingsSectionHeader(title: 'ABOUT'),
             _SettingsGroupCard(
               children: [
@@ -205,7 +205,7 @@ class SettingsPage extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: TioSpacing.large),
+            const SizedBox(height: TioSpacing.lg),
             const _SettingsSectionHeader(title: 'SESSION'),
             _SettingsGroupCard(
               children: [
@@ -221,7 +221,7 @@ class SettingsPage extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: TioSpacing.extraLarge),
+            const SizedBox(height: TioSpacing.xl),
           ],
         ),
       ),
@@ -235,19 +235,19 @@ class _SettingsSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     return Padding(
       padding: const EdgeInsets.only(
-        left: TioSpacing.small,
-        bottom: TioSpacing.small,
+        left: TioSpacing.sm,
+        bottom: TioSpacing.sm,
       ),
       child: Text(
         title,
         style: TextStyle(
           color: colors.textMuted,
-          fontWeight: FontWeight.w700,
-          fontSize: 11,
-          letterSpacing: 0.8,
+          fontWeight: TioFontWeight.w700,
+          fontSize: TioFontSize.size11,
+          letterSpacing: TioLetterSpacing.positive08,
         ),
       ),
     );
@@ -260,10 +260,10 @@ class _SettingsGroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     return Material(
       color: colors.surfaceRaised,
-      borderRadius: BorderRadius.circular(TioRadius.large),
+      borderRadius: BorderRadius.circular(TioRadius.lg),
       clipBehavior: Clip.antiAlias,
       child: Column(mainAxisSize: MainAxisSize.min, children: children),
     );
@@ -275,12 +275,12 @@ class _SettingsDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     return Divider(
-      height: 1,
-      thickness: 1,
-      indent: 64,
-      color: colors.outlineStrong.withAlpha(20),
+      height: TioSize.dp1,
+      thickness: TioStroke.width1,
+      indent: TioSize.dp64,
+      color: colors.outlineStrong.withAlpha(TioAlpha.alpha20),
     );
   }
 }
@@ -307,30 +307,31 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     return InkWell(
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(
-          horizontal: TioSpacing.large,
-          vertical: TioSpacing.medium + 4,
+          horizontal: TioSpacing.lg,
+          vertical: TioSpacing.md + TioSize.dp4,
         ),
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: TioSize.dp40,
+              height: TioSize.dp40,
               decoration: BoxDecoration(
-                color: (iconColor ?? colors.primary).withAlpha(18),
-                borderRadius: BorderRadius.circular(TioRadius.small),
+                color: (iconColor ?? colors.primary)
+                    .withAlpha(TioAlpha.alpha18),
+                borderRadius: BorderRadius.circular(TioRadius.sm),
               ),
               child: Icon(
                 icon,
-                size: 22,
+                size: TioSize.dp22,
                 color: iconColor ?? colors.primary,
               ),
             ),
-            const SizedBox(width: TioSpacing.large),
+            const SizedBox(width: TioSpacing.lg),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -339,17 +340,17 @@ class _SettingsTile extends StatelessWidget {
                     title,
                     style: TextStyle(
                       color: titleColor ?? colors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
+                      fontWeight: TioFontWeight.w700,
+                      fontSize: TioFontSize.size15,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: TioSpacing.xxs),
                   Text(
                     subtitle,
                     style: TextStyle(
                       color: colors.textSecondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400,
+                      fontSize: TioFontSize.size12,
+                      fontWeight: TioFontWeight.w400,
                     ),
                   ),
                 ],
@@ -358,7 +359,7 @@ class _SettingsTile extends StatelessWidget {
             if (showChevron)
               Icon(
                 Icons.chevron_right_rounded,
-                size: 20,
+                size: TioSize.dp20,
                 color: colors.textMuted,
               ),
           ],

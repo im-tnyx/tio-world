@@ -36,7 +36,7 @@ class TioMobileNumberField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return ValueListenableBuilder<TextEditingValue>(
       valueListenable: controller,
@@ -51,35 +51,46 @@ class TioMobileNumberField extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(countryFlag, style: const TextStyle(fontSize: 22)),
-                  const SizedBox(width: TioSpacing.small),
+                  Text(
+                    countryFlag,
+                    style: const TextStyle(
+                      fontSize: TioInputTokens.mobileCountryFlagFontSize,
+                    ),
+                  ),
+                  const SizedBox(width: TioSpacing.sm),
                   Text(
                     countryCode,
                     style: TextStyle(
                       color: colors.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontSize: TioInputTokens.mobileCountryCodeFontSize,
+                      fontWeight: TioFontWeight.w600,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: TioSpacing.medium + 2),
+            const SizedBox(width: TioInputTokens.mobileCountryToFieldGap),
             Expanded(
               child: Container(
-                height: 56,
+                height: TioInputTokens.mobileFieldHeight,
                 decoration: BoxDecoration(
                   color: colors.surfaceRaised,
-                  borderRadius: BorderRadius.circular(TioRadius.large),
+                  borderRadius: BorderRadius.circular(TioRadius.lg),
                   border: Border.all(
                     color: isVerified
-                        ? colors.info.withValues(alpha: 0.45)
-                        : colors.outlineStrong.withValues(alpha: 0.16),
-                    width: isVerified ? 1.5 : 1,
+                        ? colors.info.withValues(
+                            alpha: TioInputTokens.mobileVerifiedOutlineOpacity,
+                          )
+                        : colors.outlineStrong.withValues(
+                            alpha: TioInputTokens.mobileDefaultOutlineOpacity,
+                          ),
+                    width: isVerified
+                        ? TioInputTokens.mobileVerifiedOutlineWidth
+                        : TioInputTokens.mobileDefaultOutlineWidth,
                   ),
                 ),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: TioSpacing.large,
+                  horizontal: TioInputTokens.horizontalPadding,
                 ),
                 alignment: Alignment.center,
                 child: Row(
@@ -98,9 +109,9 @@ class TioMobileNumberField extends StatelessWidget {
                         onChanged: onChanged,
                         style: TextStyle(
                           color: colors.textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.5,
+                          fontSize: TioInputTokens.mobileTextFontSize,
+                          fontWeight: TioFontWeight.w500,
+                          letterSpacing: TioInputTokens.mobileTextLetterSpacing,
                         ),
                         decoration: InputDecoration(
                           border: InputBorder.none,
@@ -115,7 +126,7 @@ class TioMobileNumberField extends StatelessWidget {
                           hintText: hintText,
                           hintStyle: TextStyle(
                             color: colors.textMuted,
-                            fontWeight: FontWeight.w400,
+                            fontWeight: TioFontWeight.w400,
                           ),
                         ),
                       ),
@@ -125,7 +136,7 @@ class TioMobileNumberField extends StatelessWidget {
                         label: 'Verified mobile number',
                         child: Icon(
                           Icons.verified_rounded,
-                          size: 22,
+                          size: TioInputTokens.mobileVerifiedIconSize,
                           color: colors.info,
                         ),
                       )
@@ -135,24 +146,29 @@ class TioMobileNumberField extends StatelessWidget {
                         label: 'Verify mobile number',
                         child: InkWell(
                           onTap: enabled ? onVerifyPressed : null,
-                          borderRadius: BorderRadius.circular(TioRadius.small),
+                          borderRadius: BorderRadius.circular(TioRadius.sm),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
+                              horizontal:
+                                  TioInputTokens.mobileVerifyHorizontalPadding,
+                              vertical: TioInputTokens.mobileVerifyVerticalPadding,
                             ),
                             decoration: BoxDecoration(
-                              color: colors.primary.withValues(alpha: 0.09),
+                              color: colors.primary.withValues(
+                                alpha:
+                                    TioInputTokens.mobileVerifyContainerOpacity,
+                              ),
                               borderRadius: BorderRadius.circular(
-                                TioRadius.small,
+                                TioRadius.sm,
                               ),
                             ),
                             child: Text(
                               'Verify',
                               style: TextStyle(
                                 color: colors.primary,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 12,
+                                fontWeight: TioFontWeight.w700,
+                                fontSize:
+                                    TioInputTokens.mobileVerifyLabelFontSize,
                               ),
                             ),
                           ),

@@ -109,6 +109,7 @@ Architecture, backend, auth, routing, persistence, and token cleanup do **not** 
 - Prefer immutable state and explicit action/event flows.
 - Keep `build()` methods readable and free of heavy business logic.
 - Use `apps/core` for shared tokens and reusable widgets.
+- For design-system/theme work, read `apps/core/lib/src/theme/README.md` before changing public theme/token contracts. If a change adds, removes, renames, or materially changes a theme/token/context/config usage contract, update that README in the same change/PR.
 - Do not hardcode repeated colors, spacing, typography, radii, or shadows in production UI.
 - Use generated model code only when configured by the repo, and do not commit generated outputs unless the repo explicitly tracks them.
 

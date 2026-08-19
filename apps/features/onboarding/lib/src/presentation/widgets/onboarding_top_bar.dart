@@ -22,13 +22,13 @@ class OnboardingTopBar extends StatelessWidget {
       color: context.tioColors.background,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
-          TioSpacing.small,
+          TioSpacing.sm,
           0,
-          TioSpacing.large,
+          TioSpacing.lg,
           0,
         ),
         child: SizedBox(
-          height: 48,
+          height: TioSize.dp48,
           child: Row(
             children: [
               if (onBack != null)
@@ -37,7 +37,7 @@ class OnboardingTopBar extends StatelessWidget {
                   onPressed: state.isBusy ? null : onBack,
                   icon: const Icon(Icons.arrow_back),
                 ),
-              const SizedBox(width: TioSpacing.small),
+              const SizedBox(width: TioSpacing.sm),
               if (showProgress)
                 Expanded(
                   child: OnboardingProgressIndicator(state: state),

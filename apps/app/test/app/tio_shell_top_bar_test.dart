@@ -80,7 +80,7 @@ void main() {
       );
 
       expect(titleX, lessThan(planX));
-      expect(titleLeft, closeTo(TioSpacing.large, 1));
+      expect(titleLeft, closeTo(TioSpacing.lg, 1));
       expect(planX, lessThan(profileX));
       expect(planX, closeTo(screenCenterX, 1));
       expect(planWidth, TioNavigationTokens.planPillWidth);

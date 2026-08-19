@@ -38,7 +38,7 @@ class GymAccessScreen extends StatelessWidget {
             selectionStyle: WorkoutSelectionStyle.single,
             onTap: () => onSelected(WorkoutGymAccess.gym),
           ),
-          const SizedBox(height: TioSpacing.medium),
+          const SizedBox(height: TioSpacing.md),
           WorkoutChoiceCard(
             id: 'gym-access-home',
             title: 'Home workouts',

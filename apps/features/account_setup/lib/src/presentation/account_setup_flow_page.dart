@@ -200,7 +200,7 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final theme = Theme.of(context);
 
     if (_loading) {
@@ -221,7 +221,7 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
           body: SafeArea(
             child: Center(
               child: Padding(
-                padding: const EdgeInsets.all(TioSpacing.large),
+                padding: const EdgeInsets.all(TioSpacing.lg),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -230,7 +230,7 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodyLarge,
                     ),
-                    const SizedBox(height: TioSpacing.medium),
+                    const SizedBox(height: TioSpacing.md),
                     FilledButton(
                       key: const ValueKey('account-setup-retry'),
                       onPressed: _hydrate,
@@ -259,13 +259,13 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(
-                  TioSpacing.small,
+                  TioSpacing.sm,
                   0,
-                  TioSpacing.large,
+                  TioSpacing.lg,
                   0,
                 ),
                 child: SizedBox(
-                  height: 48,
+                  height: TioSize.dp48,
                   child: Row(
                     children: [
                       IconButton(
@@ -285,7 +285,7 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
                           key: const ValueKey('account-setup-progress'),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: colors.textSecondary,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: TioFontWeight.w600,
                           ),
                         ),
                       ),
@@ -297,12 +297,14 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
                 child: SingleChildScrollView(
                   key: const ValueKey('account-setup-content'),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: TioSpacing.large,
-                    vertical: TioSpacing.medium,
+                    horizontal: TioSpacing.lg,
+                    vertical: TioSpacing.md,
                   ),
                   child: Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 480),
+                      constraints: const BoxConstraints(
+                        maxWidth: TioSize.dp480,
+                      ),
                       child: _buildStep(account),
                     ),
                   ),
@@ -312,22 +314,26 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
                 key: const ValueKey('account-setup-footer'),
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(
-                  TioSpacing.large,
-                  TioSpacing.small,
-                  TioSpacing.large,
-                  TioSpacing.large,
+                  TioSpacing.lg,
+                  TioSpacing.sm,
+                  TioSpacing.lg,
+                  TioSpacing.lg,
                 ),
                 decoration: BoxDecoration(
                   color: colors.background,
                   border: Border(
                     top: BorderSide(
-                      color: colors.outlineStrong.withValues(alpha: 0.18),
+                      color: colors.outlineStrong.withValues(
+                        alpha: TioOpacity.opacity18,
+                      ),
                     ),
                   ),
                 ),
                 child: Center(
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 480),
+                    constraints: const BoxConstraints(
+                      maxWidth: TioSize.dp480,
+                    ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -338,10 +344,10 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
                             textAlign: TextAlign.center,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.error,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: TioFontWeight.w600,
                             ),
                           ),
-                          const SizedBox(height: TioSpacing.small),
+                          const SizedBox(height: TioSpacing.sm),
                         ],
                         Text(
                           step == AccountSetupStepId.username
@@ -352,7 +358,7 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
                             color: colors.textSecondary,
                           ),
                         ),
-                        const SizedBox(height: TioSpacing.small),
+                        const SizedBox(height: TioSpacing.sm),
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton(
@@ -362,10 +368,10 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
                                 : null,
                             child: _busy
                                 ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
+                                    width: TioSize.dp20,
+                                    height: TioSize.dp20,
                                     child: CircularProgressIndicator(
-                                      strokeWidth: 2,
+                                      strokeWidth: TioStroke.width2,
                                     ),
                                   )
                                 : const Text('Continue'),

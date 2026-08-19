@@ -16,8 +16,8 @@ class TioScreenHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
-    final textTheme = TioTheme.typography(context);
+    final colors = context.tioColors;
+    final textTheme = Theme.of(context).textTheme;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -33,7 +33,7 @@ class TioScreenHeader extends StatelessWidget {
                 ),
               ),
               if (subtitle != null) ...[
-                SizedBox(height: TioTheme.spacing.small),
+                const SizedBox(height: TioSpacing.sm),
                 Text(
                   subtitle!,
                   style: textTheme.bodyLarge?.copyWith(

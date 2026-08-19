@@ -33,7 +33,8 @@ class _MeasurementUnitsSettingsPageState
   @override
   void didUpdateWidget(covariant MeasurementUnitsSettingsPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!_hasChanges && oldWidget.initialPreferences != widget.initialPreferences) {
+    if (!_hasChanges &&
+        oldWidget.initialPreferences != widget.initialPreferences) {
       _preferences = widget.initialPreferences;
     }
   }
@@ -53,28 +54,29 @@ class _MeasurementUnitsSettingsPageState
       if (!mounted) return;
       setState(() {
         _isSaving = false;
-        _errorMessage = 'Could not save your unit preferences. Please try again.';
+        _errorMessage =
+            'Could not save your unit preferences. Please try again.';
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
         backgroundColor: colors.background,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+        elevation: TioElevation.none,
+        scrolledUnderElevation: TioElevation.none,
         leading: BackButton(color: colors.textPrimary),
         title: Text(
           'Measurement Units',
           style: TextStyle(
             color: colors.textPrimary,
-            fontWeight: FontWeight.w800,
-            fontSize: 20,
+            fontWeight: TioFontWeight.w800,
+            fontSize: TioFontSize.size20,
           ),
         ),
       ),
@@ -84,21 +86,21 @@ class _MeasurementUnitsSettingsPageState
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(
-                  TioSpacing.large,
-                  TioSpacing.medium,
-                  TioSpacing.large,
-                  TioSpacing.extraLarge,
+                  TioSpacing.lg,
+                  TioSpacing.md,
+                  TioSpacing.lg,
+                  TioSpacing.xl,
                 ),
                 children: [
                   Text(
                     'Choose how measurements are displayed across Tio. Your stored body and target values remain unchanged when you switch units.',
                     style: TextStyle(
                       color: colors.textSecondary,
-                      fontSize: 14,
-                      height: 1.45,
+                      fontSize: TioFontSize.size14,
+                      height: TioLineHeight.height145,
                     ),
                   ),
-                  const SizedBox(height: TioSpacing.extraLarge),
+                  const SizedBox(height: TioSpacing.xl),
                   TioMeasurementUnitPreferencesEditor(
                     preferences: _preferences,
                     onChanged: (preferences) {
@@ -114,15 +116,18 @@ class _MeasurementUnitsSettingsPageState
             ),
             Container(
               padding: const EdgeInsets.fromLTRB(
-                TioSpacing.large,
-                TioSpacing.medium,
-                TioSpacing.large,
-                TioSpacing.large,
+                TioSpacing.lg,
+                TioSpacing.md,
+                TioSpacing.lg,
+                TioSpacing.lg,
               ),
               decoration: BoxDecoration(
                 color: colors.background,
                 border: Border(
-                  top: BorderSide(color: colors.outlineStrong.withAlpha(24)),
+                  top: BorderSide(
+                    color: colors.outlineStrong.withAlpha(TioAlpha.alpha24),
+                    width: TioStroke.width1,
+                  ),
                 ),
               ),
               child: SafeArea(
@@ -139,12 +144,12 @@ class _MeasurementUnitsSettingsPageState
                           key: const ValueKey('measurement-units-save-error'),
                           style: TextStyle(
                             color: colors.danger,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
+                            fontSize: TioFontSize.size13,
+                            fontWeight: TioFontWeight.w600,
                           ),
                         ),
                       ),
-                      const SizedBox(height: TioSpacing.medium),
+                      const SizedBox(height: TioSpacing.md),
                     ],
                     TioButton.primary(
                       key: const ValueKey('measurement-units-save'),

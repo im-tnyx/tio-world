@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../theme/tokens/components/tio_navigation_tokens.dart';
 import '../../../../theme/tokens/foundation/tio_spacing.dart';
+import '../../../../theme/tokens/typography/tio_font_weight.dart';
 import '../../../components/avatars/tio_avatar.dart';
 import '../action/shell_action.dart';
 import '../state/shell_state.dart';
@@ -34,12 +35,13 @@ class TioShellTopBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       automaticallyImplyLeading: false,
       shape: null,
+      // Transparent tint/shadow intentionally suppress Material overlay effects.
       surfaceTintColor: Colors.transparent,
       shadowColor: Colors.transparent,
-      scrolledUnderElevation: 0,
-      leadingWidth: TioSpacing.extraLarge * 3,
+      scrolledUnderElevation: TioNavigationTokens.elevation,
+      leadingWidth: TioNavigationTokens.topBarLeadingWidth,
       leading: Padding(
-        padding: const EdgeInsets.only(left: TioSpacing.large),
+        padding: const EdgeInsets.only(left: TioSpacing.lg),
         child: Align(
           alignment: Alignment.centerLeft,
           child: Text(
@@ -70,15 +72,15 @@ class TioShellTopBar extends StatelessWidget implements PreferredSizeWidget {
                     if (planTier == ShellPlanTier.plus)
                       const Icon(
                         Icons.star_rounded,
-                        size: 14,
-                        color: Color(0xFFF59E0B),
+                        size: TioNavigationTokens.planIconSize,
+                        color: TioNavigationTokens.planPlusAccentColor,
                       )
                     else if (planTier == ShellPlanTier.premium)
                       SvgPicture.asset(
                         'assets/svg_icon/ic_pro_fill.svg',
                         package: 'tio_core',
-                        width: 14,
-                        height: 14,
+                        width: TioNavigationTokens.planIconSize,
+                        height: TioNavigationTokens.planIconSize,
                         colorFilter: ColorFilter.mode(
                           colorScheme.onPrimaryContainer,
                           BlendMode.srcIn,
@@ -88,14 +90,14 @@ class TioShellTopBar extends StatelessWidget implements PreferredSizeWidget {
                       SvgPicture.asset(
                         'assets/svg_icon/ic_pro_outline.svg',
                         package: 'tio_core',
-                        width: 14,
-                        height: 14,
+                        width: TioNavigationTokens.planIconSize,
+                        height: TioNavigationTokens.planIconSize,
                         colorFilter: ColorFilter.mode(
                           colorScheme.onPrimaryContainer,
                           BlendMode.srcIn,
                         ),
                       ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: TioNavigationTokens.planContentGap),
                     Flexible(
                       child: Text(
                         planTier.label,
@@ -105,7 +107,7 @@ class TioShellTopBar extends StatelessWidget implements PreferredSizeWidget {
                         style:
                             Theme.of(context).textTheme.labelMedium?.copyWith(
                                   color: colorScheme.onPrimaryContainer,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: TioFontWeight.w700,
                                 ),
                       ),
                     ),
@@ -117,7 +119,7 @@ class TioShellTopBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
       backgroundColor: colorScheme.surface.withValues(alpha: opacity),
-      elevation: 0,
+      elevation: TioNavigationTokens.elevation,
       actions: [
         IconButton(
           tooltip: 'Profile',
@@ -134,7 +136,7 @@ class TioShellTopBar extends StatelessWidget implements PreferredSizeWidget {
           ),
           onPressed: () => onAction(const ShellProfileClicked()),
         ),
-        const SizedBox(width: TioSpacing.small),
+        const SizedBox(width: TioSpacing.sm),
       ],
     );
   }

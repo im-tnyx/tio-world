@@ -44,9 +44,9 @@ class StepTargetScreen extends StatelessWidget {
                         Icon(
                           Icons.directions_walk,
                           color: colors.workout,
-                          size: 24,
+                          size: TioSize.dp24,
                         ),
-                        const SizedBox(width: TioSpacing.small),
+                        const SizedBox(width: TioSpacing.sm),
                         Text(
                           'Step Target',
                           style: Theme.of(context).textTheme.titleMedium,
@@ -55,13 +55,16 @@ class StepTargetScreen extends StatelessWidget {
                     ),
                     IconButton(
                       key: const ValueKey('targets-step-edit-button'),
-                      icon: const Icon(Icons.edit_outlined, size: 20),
+                      icon: const Icon(
+                        Icons.edit_outlined,
+                        size: TioSize.dp20,
+                      ),
                       tooltip: 'Enter exact steps',
                       onPressed: () => _showEditDialog(context),
                     ),
                   ],
                 ),
-                const SizedBox(height: TioSpacing.medium),
+                const SizedBox(height: TioSpacing.md),
                 Center(
                   child: Column(
                     children: [
@@ -72,11 +75,11 @@ class StepTargetScreen extends StatelessWidget {
                             .textTheme
                             .headlineLarge
                             ?.copyWith(
-                              fontWeight: FontWeight.bold,
+                              fontWeight: TioFontWeight.w700,
                               color: colors.textPrimary,
                             ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: TioSpacing.xs),
                       Text(
                         'steps/day',
                         style:
@@ -84,11 +87,10 @@ class StepTargetScreen extends StatelessWidget {
                                   color: colors.textSecondary,
                                 ),
                       ),
-
                     ],
                   ),
                 ),
-                const SizedBox(height: TioSpacing.medium),
+                const SizedBox(height: TioSpacing.md),
                 Slider(
                   key: const ValueKey('targets-step-slider'),
                   value: dailySteps
@@ -99,7 +101,7 @@ class StepTargetScreen extends StatelessWidget {
                       .toDouble(),
                   min: TargetStepValidator.minDailySteps.toDouble(),
                   max: TargetStepValidator.maxDailySteps.toDouble(),
-                  divisions: 16, // 1000-step increments from 2000 to 18000
+                  divisions: 16, // Program value: 1000-step increments.
                   activeColor: colors.primary,
                   onChanged: (val) {
                     HapticFeedback.selectionClick();
@@ -116,7 +118,7 @@ class StepTargetScreen extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: TioSpacing.large),
+          const SizedBox(height: TioSpacing.lg),
           Text(
             '10,000 steps per day is a widely recommended baseline for cardiovascular health and daily energy expenditure.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(

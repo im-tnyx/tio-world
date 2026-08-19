@@ -54,13 +54,13 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
       appBar: AppBar(title: const Text('Theme')),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(TioSpacing.xl),
           children: [
             Text(
               'Choose your app appearance',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: TioSpacing.sm),
             Text(
               'Theme updates the app look instantly and is saved on this device.',
               style: Theme.of(context)
@@ -68,7 +68,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                   .bodyLarge
                   ?.copyWith(color: colors.textSecondary),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: TioSpacing.xl),
             SizedBox(
               width: double.infinity,
               child: SegmentedButton<TioThemeMode>(
@@ -104,13 +104,13 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
               ),
             ),
             if (_errorText case final errorText?) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: TioSpacing.lg),
               Text(
                 errorText,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ],
-            const SizedBox(height: 24),
+            const SizedBox(height: TioSpacing.xl),
             TioButton.primary(
               label: 'Save Theme',
               loading: _isSaving,

@@ -14,21 +14,28 @@ class TioSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
-    final textTheme = TioTheme.typography(context);
+    final colors = context.tioColors;
+    final textTheme = Theme.of(context).textTheme;
 
     return Material(
       color: colors.surface,
-      borderRadius: BorderRadius.vertical(top: Radius.circular(TioTheme.radius.extraLarge)),
+      borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(TioSheetTokens.radius),
+      ),
       child: Padding(
-        padding: EdgeInsets.all(TioTheme.spacing.large),
+        padding: const EdgeInsets.all(TioSheetTokens.padding),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (title != null) ...[
-              Text(title!, style: textTheme.titleLarge?.copyWith(color: colors.textPrimary)),
-              SizedBox(height: TioTheme.spacing.medium),
+              Text(
+                title!,
+                style: textTheme.titleLarge?.copyWith(
+                  color: colors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: TioSheetTokens.titleGap),
             ],
             child,
           ],

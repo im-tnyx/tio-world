@@ -40,8 +40,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     String destination;
     try {
-      destination = await destinationResolver()
-          .timeout(const Duration(seconds: 4), onTimeout: () => AppRoutes.auth.path);
+      destination = await destinationResolver().timeout(
+        const Duration(seconds: 4),
+        onTimeout: () => AppRoutes.auth.path,
+      );
     } catch (_) {
       destination = AppRoutes.auth.path;
     }
@@ -67,7 +69,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final failureMessage = widget.failureMessage;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -87,24 +89,26 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             children: [
               // Center Brand Logo
               ClipRRect(
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(TioRadius.xl),
                 child: Image.asset(
                   'assets/dark_logo.jpg',
                   package: 'tio_feature_splash',
-                  width: 120,
-                  height: 120,
+                  width: TioSize.dp120,
+                  height: TioSize.dp120,
                   fit: BoxFit.cover,
                 ),
               ),
-              const SizedBox(height: 48),
+              const SizedBox(height: TioSize.dp48),
               if (failureMessage == null || _isRetrying)
                 const CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2.5,
+                  color: TioPalette.white,
+                  strokeWidth: TioStroke.width25,
                 )
               else
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: TioSpacing.xxl,
+                  ),
                   child: Column(
                     children: [
                       Text(
@@ -112,18 +116,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: colors.textSecondary,
-                          fontSize: 14,
-                          height: 1.4,
+                          fontSize: TioFontSize.size14,
+                          height: TioLineHeight.height140,
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: TioSpacing.lg),
                       TextButton(
                         onPressed: widget.onRetry == null ? null : _handleRetry,
                         child: Text(
                           'Retry',
                           style: TextStyle(
                             color: colors.primary,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: TioFontWeight.w700,
                           ),
                         ),
                       ),

@@ -42,7 +42,8 @@ class _AppModeSettingsPageState extends State<AppModeSettingsPage> {
     } catch (_) {
       if (!mounted) return;
       setState(
-          () => _errorText = 'Could not update App Mode. Please try again.');
+        () => _errorText = 'Could not update App Mode. Please try again.',
+      );
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -50,57 +51,57 @@ class _AppModeSettingsPageState extends State<AppModeSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
         backgroundColor: colors.background,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+        elevation: TioElevation.none,
+        scrolledUnderElevation: TioElevation.none,
         leading: BackButton(color: colors.textPrimary),
         title: Text(
           'App Mode',
           style: TextStyle(
             color: colors.textPrimary,
-            fontWeight: FontWeight.w800,
-            fontSize: 20,
+            fontWeight: TioFontWeight.w800,
+            fontSize: TioFontSize.size20,
           ),
         ),
       ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(
-            TioSpacing.large,
-            TioSpacing.medium,
-            TioSpacing.large,
-            TioSpacing.extraLarge,
+            TioSpacing.lg,
+            TioSpacing.md,
+            TioSpacing.lg,
+            TioSpacing.xl,
           ),
           children: [
             Text(
               'Choose your guided experience',
               style: TextStyle(
                 color: colors.textPrimary,
-                fontWeight: FontWeight.w800,
-                fontSize: 22,
+                fontWeight: TioFontWeight.w800,
+                fontSize: TioFontSize.size22,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: TioSize.dp6),
             Text(
               'Changing mode updates your main tabs. It does not delete your workout, nutrition, or progress history.',
               style: TextStyle(
                 color: colors.textSecondary,
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
+                fontSize: TioFontSize.size14,
+                fontWeight: TioFontWeight.w400,
               ),
             ),
 
-            const SizedBox(height: TioSpacing.large),
+            const SizedBox(height: TioSpacing.lg),
 
             // ── Top Navigation Preview Card ──
             _AppModeNavPreviewCard(mode: _selectedMode),
 
-            const SizedBox(height: TioSpacing.large),
+            const SizedBox(height: TioSpacing.lg),
 
             // ── Mode Choice Cards ──
             for (final mode in AppMode.values) ...[
@@ -111,25 +112,28 @@ class _AppModeSettingsPageState extends State<AppModeSettingsPage> {
                 onTap: () => setState(() => _selectedMode = mode),
               ),
               if (mode != AppMode.values.last)
-                const SizedBox(height: TioSpacing.medium),
+                const SizedBox(height: TioSpacing.md),
             ],
 
             if (_errorText case final errorText?) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: TioSpacing.lg),
               Text(
                 errorText,
                 style: TextStyle(color: colors.danger),
               ),
             ],
 
-            const SizedBox(height: 16),
+            const SizedBox(height: TioSpacing.lg),
           ],
         ),
       ),
       // ── Fixed Bottom Action Bar with Gradient Blur ──
       bottomNavigationBar: ClipRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          filter: ImageFilter.blur(
+            sigmaX: TioSize.dp8,
+            sigmaY: TioSize.dp8,
+          ),
           child: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -137,15 +141,15 @@ class _AppModeSettingsPageState extends State<AppModeSettingsPage> {
                 end: Alignment.bottomCenter,
                 stops: const [0.0, 0.45, 1.0],
                 colors: [
-                  colors.background.withValues(alpha: 0.0),
-                  colors.background.withValues(alpha: 0.75),
-                  colors.background.withValues(alpha: 0.98),
+                  colors.background.withValues(alpha: TioOpacity.opacity0),
+                  colors.background.withValues(alpha: TioOpacity.opacity75),
+                  colors.background.withValues(alpha: TioOpacity.opacity98),
                 ],
               ),
             ),
             child: SafeArea(
               top: false,
-              minimum: const EdgeInsets.all(TioSpacing.large),
+              minimum: const EdgeInsets.all(TioSpacing.lg),
               child: TioButton.primary(
                 label: 'Save App Mode',
                 loading: _isSaving,
@@ -170,15 +174,16 @@ class _AppModeNavPreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Container(
-      padding: const EdgeInsets.all(TioSpacing.large),
+      padding: const EdgeInsets.all(TioSpacing.lg),
       decoration: BoxDecoration(
         color: colors.surfaceRaised,
-        borderRadius: BorderRadius.circular(TioRadius.large),
+        borderRadius: BorderRadius.circular(TioRadius.lg),
         border: Border.all(
-          color: colors.outlineStrong.withAlpha(30),
+          color: colors.outlineStrong.withAlpha(TioAlpha.alpha30),
+          width: TioStroke.width1,
         ),
       ),
       child: Column(
@@ -188,34 +193,38 @@ class _AppModeNavPreviewCard extends StatelessWidget {
             children: [
               Icon(
                 Icons.navigation_outlined,
-                size: 15,
+                size: TioSize.dp15,
                 color: colors.primary,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: TioSize.dp6),
               Text(
                 'BOTTOM NAVIGATION PREVIEW',
                 style: TextStyle(
                   color: colors.textMuted,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 11,
-                  letterSpacing: 0.8,
+                  fontWeight: TioFontWeight.w800,
+                  fontSize: TioFontSize.size11,
+                  letterSpacing: TioLetterSpacing.positive08,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: TioSize.dp14),
           // Mock Bottom Navigation Bar Preview Box
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+            padding: const EdgeInsets.symmetric(
+              vertical: TioSize.dp10,
+              horizontal: TioSpacing.sm,
+            ),
             decoration: BoxDecoration(
               color: colors.background,
-              borderRadius: BorderRadius.circular(TioRadius.medium),
+              borderRadius: BorderRadius.circular(TioRadius.md),
               border: Border.all(
-                color: colors.outlineStrong.withAlpha(25),
+                color: colors.outlineStrong.withAlpha(TioAlpha.alpha25),
+                width: TioStroke.width1,
               ),
             ),
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
+              duration: const Duration(milliseconds: TioMotion.normalMs),
               child: Row(
                 key: ValueKey(mode),
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -230,49 +239,53 @@ class _AppModeNavPreviewCard extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: TioSize.dp14),
 
           // ── Watch Experience Preview ──
           Row(
             children: [
               Icon(
                 Icons.watch_outlined,
-                size: 15,
+                size: TioSize.dp15,
                 color: colors.textSecondary,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: TioSize.dp6),
               Text(
                 'WATCH TILES & HOME CARDS',
                 style: TextStyle(
                   color: colors.textMuted,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 11,
-                  letterSpacing: 0.8,
+                  fontWeight: TioFontWeight.w800,
+                  fontSize: TioFontSize.size11,
+                  letterSpacing: TioLetterSpacing.positive08,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: TioSpacing.sm),
           Wrap(
-            spacing: 6,
-            runSpacing: 6,
+            spacing: TioSize.dp6,
+            runSpacing: TioSize.dp6,
             children: [
               for (final card in mode.watchCards)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: TioSize.dp10,
+                    vertical: TioSize.dp5,
+                  ),
                   decoration: BoxDecoration(
                     color: colors.background,
-                    borderRadius: BorderRadius.circular(TioRadius.small),
+                    borderRadius: BorderRadius.circular(TioRadius.sm),
                     border: Border.all(
-                      color: colors.outlineStrong.withAlpha(20),
+                      color: colors.outlineStrong.withAlpha(TioAlpha.alpha20),
+                      width: TioStroke.width1,
                     ),
                   ),
                   child: Text(
                     card.label,
                     style: TextStyle(
                       color: colors.textSecondary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                      fontSize: TioFontSize.size11,
+                      fontWeight: TioFontWeight.w600,
                     ),
                   ),
                 ),
@@ -296,7 +309,7 @@ class _NavPreviewItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     final label = switch (destination) {
       AppDestination.home => 'Home',
@@ -309,23 +322,29 @@ class _NavPreviewItem extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          padding: const EdgeInsets.symmetric(
+            horizontal: TioSize.dp14,
+            vertical: TioSize.dp4,
+          ),
           decoration: BoxDecoration(
-            color: isSelected ? colors.primary.withAlpha(24) : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
+            color: isSelected
+                ? colors.primary.withAlpha(TioAlpha.alpha24)
+                : TioPalette.transparent,
+            borderRadius: BorderRadius.circular(TioRadius.md),
           ),
           child: TioDestinationNavIcon(
             destination: destination,
             isSelected: isSelected,
-            size: 22,
+            size: TioSize.dp22,
           ),
         ),
-        const SizedBox(height: 3),
+        const SizedBox(height: TioSize.dp3),
         Text(
           label,
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            fontSize: TioFontSize.size11,
+            fontWeight:
+                isSelected ? TioFontWeight.w700 : TioFontWeight.w500,
             color: isSelected ? colors.primary : colors.textSecondary,
           ),
         ),
@@ -349,47 +368,52 @@ class _ModeOptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Opacity(
-      opacity: enabled ? 1 : 0.64,
+      opacity: enabled ? TioOpacity.opacity100 : TioOpacity.opacity64,
       child: Semantics(
         button: true,
         selected: selected,
         label: '${_appModeLabel(mode)}. ${_appModeDescription(mode)}',
         child: Material(
           color: selected ? colors.surfaceRaised : colors.surface,
-          borderRadius: BorderRadius.circular(TioRadius.large),
+          borderRadius: BorderRadius.circular(TioRadius.lg),
           child: InkWell(
             key: ValueKey('app-mode-settings-${mode.storageValue}'),
             onTap: enabled ? onTap : null,
-            borderRadius: BorderRadius.circular(TioRadius.large),
+            borderRadius: BorderRadius.circular(TioRadius.lg),
             child: Container(
-              padding: const EdgeInsets.all(TioSpacing.large),
+              padding: const EdgeInsets.all(TioSpacing.lg),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(TioRadius.large),
+                borderRadius: BorderRadius.circular(TioRadius.lg),
                 border: Border.all(
-                  color: selected ? colors.primary : colors.outlineStrong.withAlpha(35),
-                  width: selected ? 2 : 1,
+                  color: selected
+                      ? colors.primary
+                      : colors.outlineStrong.withAlpha(TioAlpha.alpha35),
+                  width:
+                      selected ? TioStroke.width2 : TioStroke.width1,
                 ),
               ),
               child: Row(
                 children: [
                   Container(
-                    width: 44,
-                    height: 44,
+                    width: TioSize.dp44,
+                    height: TioSize.dp44,
                     decoration: BoxDecoration(
                       color: (selected ? colors.primary : colors.textSecondary)
-                          .withAlpha(selected ? 20 : 12),
-                      borderRadius: BorderRadius.circular(TioRadius.medium),
+                          .withAlpha(
+                        selected ? TioAlpha.alpha20 : TioAlpha.alpha12,
+                      ),
+                      borderRadius: BorderRadius.circular(TioRadius.md),
                     ),
                     child: Icon(
                       _icon(mode),
-                      size: 22,
+                      size: TioSize.dp22,
                       color: selected ? colors.primary : colors.textSecondary,
                     ),
                   ),
-                  const SizedBox(width: TioSpacing.large),
+                  const SizedBox(width: TioSpacing.lg),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -398,25 +422,27 @@ class _ModeOptionCard extends StatelessWidget {
                           _appModeLabel(mode),
                           style: TextStyle(
                             color: colors.textPrimary,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
+                            fontWeight: TioFontWeight.w700,
+                            fontSize: TioFontSize.size16,
                           ),
                         ),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: TioSize.dp3),
                         Text(
                           _appModeDescription(mode),
                           style: TextStyle(
                             color: colors.textSecondary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w400,
+                            fontSize: TioFontSize.size12,
+                            fontWeight: TioFontWeight.w400,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: TioSpacing.medium),
+                  const SizedBox(width: TioSpacing.md),
                   Icon(
-                    selected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                    selected
+                        ? Icons.check_circle_rounded
+                        : Icons.radio_button_unchecked_rounded,
                     color: selected ? colors.primary : colors.outlineStrong,
                   ),
                 ],

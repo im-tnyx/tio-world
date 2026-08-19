@@ -27,6 +27,8 @@ class _OnboardingWeightWheelState extends State<OnboardingWeightWheel> {
 
   static const int _minLbs = 66;
   static const int _maxLbs = 485;
+  static const double _perspective = 0.003;
+  static const double _diameterRatio = 1.6;
 
   late double _selectedKg;
   late int _selectedUnitIndex; // 0: kg, 1: lbs
@@ -86,10 +88,12 @@ class _OnboardingWeightWheelState extends State<OnboardingWeightWheel> {
 
     if (_selectedUnitIndex == 0) {
       final wholeIndex = whole - _minKg;
-      if (_wholeController.hasClients && _wholeController.selectedItem != wholeIndex) {
+      if (_wholeController.hasClients &&
+          _wholeController.selectedItem != wholeIndex) {
         _wholeController.jumpToItem(wholeIndex);
       }
-      if (_decimalController.hasClients && _decimalController.selectedItem != decimal) {
+      if (_decimalController.hasClients &&
+          _decimalController.selectedItem != decimal) {
         _decimalController.jumpToItem(decimal);
       }
     } else {
@@ -98,10 +102,12 @@ class _OnboardingWeightWheelState extends State<OnboardingWeightWheel> {
       final decimalLbs = ((lbs - wholeLbs) * 10).round().clamp(0, 9);
 
       final wholeIndex = wholeLbs - _minLbs;
-      if (_wholeController.hasClients && _wholeController.selectedItem != wholeIndex) {
+      if (_wholeController.hasClients &&
+          _wholeController.selectedItem != wholeIndex) {
         _wholeController.jumpToItem(wholeIndex);
       }
-      if (_decimalController.hasClients && _decimalController.selectedItem != decimalLbs) {
+      if (_decimalController.hasClients &&
+          _decimalController.selectedItem != decimalLbs) {
         _decimalController.jumpToItem(decimalLbs);
       }
     }
@@ -111,8 +117,10 @@ class _OnboardingWeightWheelState extends State<OnboardingWeightWheel> {
 
   void _onWheelChanged() {
     HapticFeedback.selectionClick();
-    final wholeIndex = _wholeController.hasClients ? _wholeController.selectedItem : 0;
-    final decimalIndex = _decimalController.hasClients ? _decimalController.selectedItem : 0;
+    final wholeIndex =
+        _wholeController.hasClients ? _wholeController.selectedItem : 0;
+    final decimalIndex =
+        _decimalController.hasClients ? _decimalController.selectedItem : 0;
 
     if (_selectedUnitIndex == 0) {
       final whole = _minKg + wholeIndex;
@@ -122,7 +130,8 @@ class _OnboardingWeightWheelState extends State<OnboardingWeightWheel> {
     } else {
       final wholeLbs = _minLbs + wholeIndex;
       final totalLbs = wholeLbs + (decimalIndex / 10.0);
-      final newKg = (totalLbs / 2.20462).clamp(_minKg.toDouble(), _maxKg.toDouble());
+      final newKg =
+          (totalLbs / 2.20462).clamp(_minKg.toDouble(), _maxKg.toDouble());
       setState(() => _selectedKg = newKg);
       widget.onChanged(newKg);
     }
@@ -151,26 +160,30 @@ class _OnboardingWeightWheelState extends State<OnboardingWeightWheel> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return SizedBox(
-      height: 200,
+      height: TioWheelPickerTokens.viewportHeight,
       child: Stack(
         alignment: Alignment.center,
         children: [
           // Center Horizontal Highlight Pill
           Container(
-            height: 48,
-            margin: const EdgeInsets.symmetric(horizontal: 16),
+            height: TioWheelPickerTokens.selectionHeight,
+            margin: const EdgeInsets.symmetric(
+              horizontal: TioWheelPickerTokens.selectionHorizontalMargin,
+            ),
             decoration: BoxDecoration(
-              color: colors.surface.withAlpha(200),
-              borderRadius: BorderRadius.circular(TioRadius.medium),
+              color: colors.surface.withAlpha(
+                TioWheelPickerTokens.selectionSurfaceAlpha,
+              ),
+              borderRadius: BorderRadius.circular(TioRadius.md),
             ),
           ),
 
           // Drum Wheels Row
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 28),
+            padding: const EdgeInsets.symmetric(horizontal: TioSize.dp28),
             child: Row(
               children: [
                 // Whole Number Drum
@@ -178,9 +191,9 @@ class _OnboardingWeightWheelState extends State<OnboardingWeightWheel> {
                   flex: 3,
                   child: ListWheelScrollView.useDelegate(
                     controller: _wholeController,
-                    itemExtent: 44,
-                    perspective: 0.003,
-                    diameterRatio: 1.6,
+                    itemExtent: TioWheelPickerTokens.itemExtent,
+                    perspective: _perspective,
+                    diameterRatio: _diameterRatio,
                     physics: const FixedExtentScrollPhysics(),
                     onSelectedItemChanged: (_) => _onWheelChanged(),
                     childDelegate: ListWheelChildBuilderDelegate(
@@ -199,11 +212,17 @@ class _OnboardingWeightWheelState extends State<OnboardingWeightWheel> {
                           child: Text(
                             '$whole',
                             style: TextStyle(
-                              fontSize: isSelected ? 22 : 16,
-                              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                              fontSize: isSelected
+                                  ? TioWheelPickerTokens.selectedFontSize
+                                  : TioFontSize.size16,
+                              fontWeight: isSelected
+                                  ? TioFontWeight.w800
+                                  : TioFontWeight.w500,
                               color: isSelected
                                   ? colors.textPrimary
-                                  : colors.textSecondary.withAlpha(90),
+                                  : colors.textSecondary.withAlpha(
+                                      TioAlpha.alpha90,
+                                    ),
                             ),
                           ),
                         );
@@ -217,8 +236,8 @@ class _OnboardingWeightWheelState extends State<OnboardingWeightWheel> {
                   child: Text(
                     '.',
                     style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w900,
+                      fontSize: TioFontSize.size28,
+                      fontWeight: TioFontWeight.w900,
                       color: colors.textPrimary,
                     ),
                   ),
@@ -229,27 +248,37 @@ class _OnboardingWeightWheelState extends State<OnboardingWeightWheel> {
                   flex: 2,
                   child: ListWheelScrollView.useDelegate(
                     controller: _decimalController,
-                    itemExtent: 44,
-                    perspective: 0.003,
-                    diameterRatio: 1.6,
+                    itemExtent: TioWheelPickerTokens.itemExtent,
+                    perspective: _perspective,
+                    diameterRatio: _diameterRatio,
                     physics: const FixedExtentScrollPhysics(),
                     onSelectedItemChanged: (_) => _onWheelChanged(),
                     childDelegate: ListWheelChildBuilderDelegate(
                       childCount: 10,
                       builder: (context, index) {
                         final currentDecimal = _selectedUnitIndex == 0
-                            ? ((_selectedKg - _selectedKg.truncate()) * 10).round()
-                            : (((_selectedKg * 2.20462) - (_selectedKg * 2.20462).truncate()) * 10).round();
+                            ? ((_selectedKg - _selectedKg.truncate()) * 10)
+                                .round()
+                            : (((_selectedKg * 2.20462) -
+                                          (_selectedKg * 2.20462).truncate()) *
+                                      10)
+                                  .round();
                         final isSelected = index == currentDecimal;
                         return Center(
                           child: Text(
                             '$index',
                             style: TextStyle(
-                              fontSize: isSelected ? 22 : 16,
-                              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                              fontSize: isSelected
+                                  ? TioWheelPickerTokens.selectedFontSize
+                                  : TioFontSize.size16,
+                              fontWeight: isSelected
+                                  ? TioFontWeight.w800
+                                  : TioFontWeight.w500,
                               color: isSelected
                                   ? colors.textPrimary
-                                  : colors.textSecondary.withAlpha(90),
+                                  : colors.textSecondary.withAlpha(
+                                      TioAlpha.alpha90,
+                                    ),
                             ),
                           ),
                         );
@@ -263,9 +292,9 @@ class _OnboardingWeightWheelState extends State<OnboardingWeightWheel> {
                   flex: 2,
                   child: ListWheelScrollView.useDelegate(
                     controller: _unitController,
-                    itemExtent: 44,
-                    perspective: 0.003,
-                    diameterRatio: 1.6,
+                    itemExtent: TioWheelPickerTokens.itemExtent,
+                    perspective: _perspective,
+                    diameterRatio: _diameterRatio,
                     physics: const FixedExtentScrollPhysics(),
                     onSelectedItemChanged: _onUnitIndexChanged,
                     childDelegate: ListWheelChildBuilderDelegate(
@@ -277,11 +306,17 @@ class _OnboardingWeightWheelState extends State<OnboardingWeightWheel> {
                           child: Text(
                             unitText,
                             style: TextStyle(
-                              fontSize: isSelected ? 18 : 15,
-                              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                              fontSize: isSelected
+                                  ? TioFontSize.size18
+                                  : TioFontSize.size15,
+                              fontWeight: isSelected
+                                  ? TioFontWeight.w800
+                                  : TioFontWeight.w500,
                               color: isSelected
                                   ? colors.textPrimary
-                                  : colors.textSecondary.withAlpha(90),
+                                  : colors.textSecondary.withAlpha(
+                                      TioAlpha.alpha90,
+                                    ),
                             ),
                           ),
                         );

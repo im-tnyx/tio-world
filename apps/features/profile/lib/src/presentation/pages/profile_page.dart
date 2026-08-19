@@ -104,7 +104,7 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     final data = profileData;
     final name =
@@ -170,8 +170,8 @@ class ProfilePage extends StatelessWidget {
                 username,
                 style: TextStyle(
                   color: colors.textPrimary,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 18,
+                  fontWeight: TioFontWeight.w800,
+                  fontSize: TioFontSize.size18,
                 ),
               )
             : const SizedBox.shrink(),
@@ -200,10 +200,12 @@ class ProfilePage extends StatelessWidget {
         child: isLoading
             ? const Center(child: CircularProgressIndicator())
             : ListView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: TioSpacing.xl,
+                  vertical: TioSpacing.md,
+                ),
                 children: [
-                  const SizedBox(height: 12),
+                  const SizedBox(height: TioSpacing.md),
                   Center(
                     child: SizedBox(
                       width: TioAvatarSize.large.dimension,
@@ -244,18 +246,18 @@ class ProfilePage extends StatelessWidget {
                                 hasPhoto: hasValidPhoto,
                               ),
                               child: Container(
-                                width: 26,
-                                height: 26,
+                                width: TioSize.dp26,
+                                height: TioSize.dp26,
                                 decoration: BoxDecoration(
                                   color: isPro
-                                      ? const Color(0xFF0F172A)
+                                      ? TioDomainColors.planProBackground
                                       : isPlus
-                                          ? const Color(0xFF1E1B4B)
-                                          : const Color(0xFF0F172A),
+                                          ? TioDomainColors.planPlusBackground
+                                          : TioDomainColors.planProBackground,
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                     color: colors.background,
-                                    width: 2.5,
+                                    width: TioStroke.width25,
                                   ),
                                 ),
                                 alignment: Alignment.center,
@@ -263,23 +265,24 @@ class ProfilePage extends StatelessWidget {
                                     ? SvgPicture.asset(
                                         'assets/svg_icon/ic_pro_outline.svg',
                                         package: 'tio_core',
-                                        width: 16,
-                                        height: 16,
+                                        width: TioSize.dp16,
+                                        height: TioSize.dp16,
                                         colorFilter: const ColorFilter.mode(
-                                          Color(0xFF5EEAD4),
+                                          TioDomainColors.planProAccent,
                                           BlendMode.srcIn,
                                         ),
                                       )
                                     : isPlus
                                         ? const Icon(
                                             Icons.star_rounded,
-                                            size: 16,
-                                            color: Color(0xFFF59E0B),
+                                            size: TioSize.dp16,
+                                            color:
+                                                TioDomainColors.planPlusAccent,
                                           )
                                         : const Icon(
                                             Icons.edit,
-                                            size: 14,
-                                            color: Colors.white,
+                                            size: TioSize.dp14,
+                                            color: TioPalette.white,
                                           ),
                               ),
                             ),
@@ -288,59 +291,60 @@ class ProfilePage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: TioSpacing.lg),
                   if (name.isNotEmpty)
                     Center(
                       child: Text(
                         name,
                         style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
+                          fontSize: TioFontSize.size22,
+                          fontWeight: TioFontWeight.w800,
                           color: colors.textPrimary,
                         ),
                       ),
                     ),
                   if (demographics.isNotEmpty) ...[
-                    const SizedBox(height: 6),
+                    const SizedBox(height: TioSize.dp6),
                     Center(
                       child: Text(
                         demographics,
                         style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
+                          fontSize: TioFontSize.size13,
+                          fontWeight: TioFontWeight.w500,
                           color: colors.textSecondary,
                         ),
                       ),
                     ),
                   ],
                   if (displayPlan != null) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: TioSpacing.md),
                     Center(
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
+                          horizontal: TioSpacing.md,
+                          vertical: TioSpacing.xs,
                         ),
                         decoration: BoxDecoration(
-                          color: colors.surfaceVariant.withAlpha(140),
-                          borderRadius: BorderRadius.circular(14),
+                          color: colors.surfaceVariant
+                              .withAlpha(TioAlpha.alpha140),
+                          borderRadius: BorderRadius.circular(TioSize.dp14),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(
                               Icons.star_rounded,
-                              size: 14,
-                              color: Color(0xFFD97706),
+                              size: TioSize.dp14,
+                              color: TioDomainColors.planLabelAccent,
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: TioSpacing.xs),
                             Text(
                               displayPlan,
                               style: const TextStyle(
-                                color: Color(0xFFD97706),
-                                fontWeight: FontWeight.w800,
-                                fontSize: 11,
-                                letterSpacing: 0.5,
+                                color: TioDomainColors.planLabelAccent,
+                                fontWeight: TioFontWeight.w800,
+                                fontSize: TioFontSize.size11,
+                                letterSpacing: TioLetterSpacing.positive05,
                               ),
                             ),
                           ],
@@ -348,13 +352,13 @@ class ProfilePage extends StatelessWidget {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 20),
+                  const SizedBox(height: TioSize.dp20),
                   Divider(
-                    height: 24,
-                    thickness: 1,
-                    color: colors.outlineStrong.withAlpha(20),
+                    height: TioSpacing.xl,
+                    thickness: TioStroke.width1,
+                    color: colors.outlineStrong.withAlpha(TioAlpha.alpha20),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: TioSpacing.lg),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
@@ -415,33 +419,33 @@ class _MetricColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
           icon,
-          size: 22,
+          size: TioSize.dp22,
           color: colors.textPrimary,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: TioSpacing.sm),
         Text(
           label,
           style: TextStyle(
             color: colors.textMuted,
-            fontWeight: FontWeight.w600,
-            fontSize: 11,
-            letterSpacing: 0.5,
+            fontWeight: TioFontWeight.w600,
+            fontSize: TioFontSize.size11,
+            letterSpacing: TioLetterSpacing.positive05,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: TioSpacing.xs),
         Text(
           value,
           style: TextStyle(
             color: colors.textPrimary,
-            fontWeight: FontWeight.w800,
-            fontSize: 16,
+            fontWeight: TioFontWeight.w800,
+            fontSize: TioFontSize.size16,
           ),
         ),
       ],

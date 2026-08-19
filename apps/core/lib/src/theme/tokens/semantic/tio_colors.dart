@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../foundation/tio_palette.dart';
+
 class TioColors extends ThemeExtension<TioColors> {
   const TioColors({
     required this.isDark,
@@ -13,6 +15,9 @@ class TioColors extends ThemeExtension<TioColors> {
     required this.textPrimary,
     required this.textSecondary,
     required this.textMuted,
+    required this.mediaBackground,
+    required this.onMediaPrimary,
+    required this.onMediaSecondary,
     required this.success,
     required this.warning,
     required this.danger,
@@ -34,6 +39,19 @@ class TioColors extends ThemeExtension<TioColors> {
   final Color textPrimary;
   final Color textSecondary;
   final Color textMuted;
+
+  /// Background/fallback behind edge-to-edge media compositions.
+  ///
+  /// Consumers resolve this through the active runtime theme rather than
+  /// reading a physical palette color directly.
+  final Color mediaBackground;
+
+  /// Highest-emphasis content rendered over media/image compositions.
+  final Color onMediaPrimary;
+
+  /// Secondary-emphasis content rendered over media/image compositions.
+  final Color onMediaSecondary;
+
   final Color success;
   final Color warning;
   final Color danger;
@@ -45,68 +63,77 @@ class TioColors extends ThemeExtension<TioColors> {
 
   static const light = TioColors(
     isDark: false,
-    primary: Color(0xFF111827),
-    onPrimary: Color(0xFFFFFFFF),
-    background: Color(0xFFF8FAFC),
-    surface: Color(0xFFFFFFFF),
-    surfaceRaised: Color(0xFFFFFFFF),
-    surfaceVariant: Color(0xFFE5E7EB),
-    outlineStrong: Color(0xFF6B7280),
-    textPrimary: Color(0xFF111827),
-    textSecondary: Color(0xFF4B5563),
-    textMuted: Color(0xFF9CA3AF),
-    success: Color(0xFF16A34A),
-    warning: Color(0xFFF59E0B),
-    danger: Color(0xFFDC2626),
-    info: Color(0xFF0284C7),
-    workout: Color(0xFFEF4444),
-    nutrition: Color(0xFF22C55E),
-    progress: Color(0xFF8B5CF6),
-    coach: Color(0xFF06B6D4),
+    primary: TioPalette.neutral900,
+    onPrimary: TioPalette.white,
+    background: TioPalette.slate50,
+    surface: TioPalette.white,
+    surfaceRaised: TioPalette.white,
+    surfaceVariant: TioPalette.neutral200,
+    outlineStrong: TioPalette.neutral500,
+    textPrimary: TioPalette.neutral900,
+    textSecondary: TioPalette.neutral600,
+    textMuted: TioPalette.neutral400,
+    mediaBackground: TioPalette.black,
+    onMediaPrimary: TioPalette.white,
+    onMediaSecondary: TioPalette.whiteAlpha179,
+    success: TioPalette.green600,
+    warning: TioPalette.amber500,
+    danger: TioPalette.red600,
+    info: TioPalette.sky600,
+    workout: TioPalette.red500,
+    nutrition: TioPalette.green500,
+    progress: TioPalette.violet500,
+    coach: TioPalette.cyan500,
   );
 
   static const dark = TioColors(
     isDark: true,
-    primary: Color(0xFFFFFFFF),
-    onPrimary: Color(0xFF111827),
-    background: Color(0xFF0B1120),
-    surface: Color(0xFF111827),
-    surfaceRaised: Color(0xFF1F2937),
-    surfaceVariant: Color(0xFF374151),
-    outlineStrong: Color(0xFF9CA3AF),
-    textPrimary: Color(0xFFF9FAFB),
-    textSecondary: Color(0xFFD1D5DB),
-    textMuted: Color(0xFF9CA3AF),
-    success: Color(0xFF22C55E),
-    warning: Color(0xFFFBBF24),
-    danger: Color(0xFFF87171),
-    info: Color(0xFF38BDF8),
-    workout: Color(0xFFF87171),
-    nutrition: Color(0xFF4ADE80),
-    progress: Color(0xFFA78BFA),
-    coach: Color(0xFF22D3EE),
+    primary: TioPalette.white,
+    onPrimary: TioPalette.neutral900,
+    background: TioPalette.neutral950,
+    surface: TioPalette.neutral900,
+    surfaceRaised: TioPalette.neutral800,
+    surfaceVariant: TioPalette.neutral700,
+    outlineStrong: TioPalette.neutral400,
+    textPrimary: TioPalette.neutral50,
+    textSecondary: TioPalette.neutral300,
+    textMuted: TioPalette.neutral400,
+    mediaBackground: TioPalette.black,
+    onMediaPrimary: TioPalette.white,
+    onMediaSecondary: TioPalette.whiteAlpha179,
+    success: TioPalette.green500,
+    warning: TioPalette.amber400,
+    danger: TioPalette.red400,
+    info: TioPalette.sky400,
+    workout: TioPalette.red400,
+    nutrition: TioPalette.green400,
+    progress: TioPalette.violet400,
+    coach: TioPalette.cyan400,
   );
 
   static const oled = TioColors(
     isDark: true,
-    primary: Color(0xFFFFFFFF),
-    onPrimary: Color(0xFF000000),
-    background: Color(0xFF000000),
-    surface: Color(0xFF050505),
-    surfaceRaised: Color(0xFF101010),
-    surfaceVariant: Color(0xFF1F1F1F),
-    outlineStrong: Color(0xFF9CA3AF),
-    textPrimary: Color(0xFFFFFFFF),
-    textSecondary: Color(0xFFE5E7EB),
-    textMuted: Color(0xFF9CA3AF),
-    success: Color(0xFF22C55E),
-    warning: Color(0xFFFBBF24),
-    danger: Color(0xFFF87171),
-    info: Color(0xFF38BDF8),
-    workout: Color(0xFFF87171),
-    nutrition: Color(0xFF4ADE80),
-    progress: Color(0xFFA78BFA),
-    coach: Color(0xFF22D3EE),
+    primary: TioPalette.white,
+    onPrimary: TioPalette.black,
+    background: TioPalette.black,
+    surface: TioPalette.gray005,
+    surfaceRaised: TioPalette.gray016,
+    surfaceVariant: TioPalette.gray031,
+    outlineStrong: TioPalette.neutral400,
+    textPrimary: TioPalette.white,
+    textSecondary: TioPalette.neutral200,
+    textMuted: TioPalette.neutral400,
+    mediaBackground: TioPalette.black,
+    onMediaPrimary: TioPalette.white,
+    onMediaSecondary: TioPalette.whiteAlpha179,
+    success: TioPalette.green500,
+    warning: TioPalette.amber400,
+    danger: TioPalette.red400,
+    info: TioPalette.sky400,
+    workout: TioPalette.red400,
+    nutrition: TioPalette.green400,
+    progress: TioPalette.violet400,
+    coach: TioPalette.cyan400,
   );
 
   ColorScheme toColorScheme() => ColorScheme.fromSeed(
@@ -124,30 +151,30 @@ class TioColors extends ThemeExtension<TioColors> {
   TioColors get highContrast {
     if (isDark) {
       return copyWith(
-        primary: const Color(0xFFFFFFFF),
-        onPrimary: const Color(0xFF000000),
-        background: const Color(0xFF000000),
-        surface: const Color(0xFF050505),
-        surfaceRaised: const Color(0xFF111111),
-        surfaceVariant: const Color(0xFFD1D5DB),
-        outlineStrong: const Color(0xFFFFFFFF),
-        textPrimary: const Color(0xFFFFFFFF),
-        textSecondary: const Color(0xFFF9FAFB),
-        textMuted: const Color(0xFFD1D5DB),
+        primary: TioPalette.white,
+        onPrimary: TioPalette.black,
+        background: TioPalette.black,
+        surface: TioPalette.gray005,
+        surfaceRaised: TioPalette.gray017,
+        surfaceVariant: TioPalette.neutral300,
+        outlineStrong: TioPalette.white,
+        textPrimary: TioPalette.white,
+        textSecondary: TioPalette.neutral50,
+        textMuted: TioPalette.neutral300,
       );
     }
 
     return copyWith(
-      primary: const Color(0xFF000000),
-      onPrimary: const Color(0xFFFFFFFF),
-      background: const Color(0xFFFFFFFF),
-      surface: const Color(0xFFFFFFFF),
-      surfaceRaised: const Color(0xFFF9FAFB),
-      surfaceVariant: const Color(0xFF374151),
-      outlineStrong: const Color(0xFF000000),
-      textPrimary: const Color(0xFF000000),
-      textSecondary: const Color(0xFF111827),
-      textMuted: const Color(0xFF374151),
+      primary: TioPalette.black,
+      onPrimary: TioPalette.white,
+      background: TioPalette.white,
+      surface: TioPalette.white,
+      surfaceRaised: TioPalette.neutral50,
+      surfaceVariant: TioPalette.neutral700,
+      outlineStrong: TioPalette.black,
+      textPrimary: TioPalette.black,
+      textSecondary: TioPalette.neutral900,
+      textMuted: TioPalette.neutral700,
     );
   }
 
@@ -164,6 +191,9 @@ class TioColors extends ThemeExtension<TioColors> {
     Color? textPrimary,
     Color? textSecondary,
     Color? textMuted,
+    Color? mediaBackground,
+    Color? onMediaPrimary,
+    Color? onMediaSecondary,
     Color? success,
     Color? warning,
     Color? danger,
@@ -185,6 +215,9 @@ class TioColors extends ThemeExtension<TioColors> {
       textPrimary: textPrimary ?? this.textPrimary,
       textSecondary: textSecondary ?? this.textSecondary,
       textMuted: textMuted ?? this.textMuted,
+      mediaBackground: mediaBackground ?? this.mediaBackground,
+      onMediaPrimary: onMediaPrimary ?? this.onMediaPrimary,
+      onMediaSecondary: onMediaSecondary ?? this.onMediaSecondary,
       success: success ?? this.success,
       warning: warning ?? this.warning,
       danger: danger ?? this.danger,

@@ -39,7 +39,7 @@ class WorkoutDurationScreen extends StatelessWidget {
               onTap: () => onSelected(duration),
             ),
             if (duration != WorkoutDuration.values.last)
-              const SizedBox(height: TioSpacing.medium),
+              const SizedBox(height: TioSpacing.md),
           ],
         ],
       ),

@@ -22,83 +22,106 @@ Future<TioAvatarAction?> showTioAvatarActionBottomSheet({
   required BuildContext context,
   bool hasPhoto = false,
 }) {
-  final colors = TioTheme.colors(context);
+  final colors = context.tioColors;
 
   return showModalBottomSheet<TioAvatarAction>(
     context: context,
     backgroundColor: colors.surfaceRaised,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(TioRadius.large)),
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(TioAvatarActionSheetTokens.sheetRadius),
+      ),
     ),
     builder: (sheetContext) {
       return SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: TioSpacing.large,
-            vertical: TioSpacing.medium,
+            horizontal: TioSpacing.lg,
+            vertical: TioSpacing.md,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top drag indicator
               Center(
                 child: Container(
-                  width: 36,
-                  height: 4,
+                  width: TioAvatarActionSheetTokens.dragHandleWidth,
+                  height: TioAvatarActionSheetTokens.dragHandleHeight,
                   decoration: BoxDecoration(
-                    color: colors.outlineStrong.withAlpha(50),
-                    borderRadius: BorderRadius.circular(2),
+                    color: colors.outlineStrong.withAlpha(
+                      TioAvatarActionSheetTokens.dragHandleAlpha,
+                    ),
+                    borderRadius: BorderRadius.circular(
+                      TioAvatarActionSheetTokens.dragHandleRadius,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: TioSpacing.large),
-
+              const SizedBox(
+                height: TioAvatarActionSheetTokens.handleToTitleGap,
+              ),
               Text(
                 'Profile Photo',
                 style: TextStyle(
                   color: colors.textPrimary,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 18,
+                  fontWeight: TioFontWeight.w700,
+                  fontSize: TioAvatarActionSheetTokens.titleFontSize,
                 ),
               ),
-              const SizedBox(height: TioSpacing.medium),
-
-              // Option 1: Gallery
+              const SizedBox(
+                height: TioAvatarActionSheetTokens.titleToOptionsGap,
+              ),
               ListTile(
                 leading: Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(
+                    TioAvatarActionSheetTokens.optionIconPadding,
+                  ),
                   decoration: BoxDecoration(
                     color: colors.surface,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.photo_library_outlined, color: colors.primary, size: 20),
+                  child: Icon(
+                    Icons.photo_library_outlined,
+                    color: colors.primary,
+                    size: TioAvatarActionSheetTokens.optionIconSize,
+                  ),
                 ),
                 title: Text(
                   'Choose from Gallery',
-                  style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontWeight: TioFontWeight.w600,
+                  ),
                 ),
-                onTap: () => Navigator.of(sheetContext).pop(TioAvatarAction.gallery),
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(TioAvatarAction.gallery),
               ),
-
-              // Option 2: Camera
               ListTile(
                 leading: Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(
+                    TioAvatarActionSheetTokens.optionIconPadding,
+                  ),
                   decoration: BoxDecoration(
                     color: colors.surface,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.camera_alt_outlined, color: colors.primary, size: 20),
+                  child: Icon(
+                    Icons.camera_alt_outlined,
+                    color: colors.primary,
+                    size: TioAvatarActionSheetTokens.optionIconSize,
+                  ),
                 ),
                 title: Text(
                   'Take Photo',
-                  style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontWeight: TioFontWeight.w600,
+                  ),
                 ),
-                onTap: () => Navigator.of(sheetContext).pop(TioAvatarAction.camera),
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(TioAvatarAction.camera),
               ),
-
-              const SizedBox(height: TioSpacing.small),
+              const SizedBox(height: TioAvatarActionSheetTokens.bottomGap),
             ],
           ),
         ),

@@ -44,25 +44,25 @@ class CurrentWeightScreen extends StatelessWidget {
     if (bmi < 18.5) {
       return (
         title: 'Underweight',
-        color: const Color(0xFF38BDF8),
+        color: TioDomainColors.healthInfo,
         message: 'Your weight is below the standard recommended healthy range.',
       );
     } else if (bmi < 25.0) {
       return (
         title: 'Normal Weight',
-        color: const Color(0xFF4ADE80),
+        color: TioDomainColors.healthPositive,
         message: 'Your body mass index is within a healthy and balanced range.',
       );
     } else if (bmi < 30.0) {
       return (
         title: 'Overweight',
-        color: const Color(0xFFFBBF24),
+        color: TioDomainColors.healthWarning,
         message: 'Slightly above standard range. Regular exercise can optimize health.',
       );
     } else {
       return (
         title: 'High Risk',
-        color: const Color(0xFFF87171),
+        color: TioDomainColors.healthDanger,
         message: 'Consider consulting a healthcare specialist for tailored guidance.',
       );
     }
@@ -70,7 +70,7 @@ class CurrentWeightScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final bmi = _currentBmi;
     final bmiCategory = _getBmiCategory(bmi);
 
@@ -82,26 +82,29 @@ class CurrentWeightScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 8),
+          const SizedBox(height: TioSpacing.sm),
           Center(
             child: Text(
               _displayValue,
               key: const ValueKey('profile-current-weight-display'),
               style: TextStyle(
                 color: colors.textPrimary,
-                fontSize: 44,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -1.0,
+                fontSize: TioFontSize.size44,
+                fontWeight: TioFontWeight.w900,
+                letterSpacing: TioLetterSpacing.negative10,
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: TioSpacing.xl),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: const EdgeInsets.symmetric(
+              horizontal: TioSize.dp20,
+              vertical: TioSpacing.lg,
+            ),
             decoration: BoxDecoration(
               color: colors.surfaceRaised,
-              borderRadius: BorderRadius.circular(TioRadius.large),
+              borderRadius: BorderRadius.circular(TioRadius.lg),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,47 +115,50 @@ class CurrentWeightScreen extends StatelessWidget {
                       'BMI  ',
                       style: TextStyle(
                         color: colors.textSecondary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
+                        fontWeight: TioFontWeight.w600,
+                        fontSize: TioFontSize.size15,
                       ),
                     ),
                     Text(
                       bmi.toStringAsFixed(1),
                       style: TextStyle(
                         color: bmiCategory.color,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 18,
+                        fontWeight: TioFontWeight.w800,
+                        fontSize: TioFontSize.size18,
                       ),
                     ),
-                    const SizedBox(width: TioSpacing.medium),
+                    const SizedBox(width: TioSpacing.md),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: TioSize.dp10,
+                        vertical: TioSize.dp3,
+                      ),
                       decoration: BoxDecoration(
-                        color: bmiCategory.color.withAlpha(25),
+                        color: bmiCategory.color.withAlpha(TioAlpha.alpha25),
                         borderRadius: BorderRadius.circular(TioRadius.full),
                         border: Border.all(
-                          color: bmiCategory.color.withAlpha(80),
-                          width: 1,
+                          color: bmiCategory.color.withAlpha(TioAlpha.alpha80),
+                          width: TioStroke.width1,
                         ),
                       ),
                       child: Text(
                         bmiCategory.title,
                         style: TextStyle(
                           color: bmiCategory.color,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
+                          fontWeight: TioFontWeight.w700,
+                          fontSize: TioFontSize.size12,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: TioSpacing.sm),
                 Text(
                   bmiCategory.message,
                   style: TextStyle(
                     color: colors.textSecondary,
-                    fontSize: 13,
-                    height: 1.4,
+                    fontSize: TioFontSize.size13,
+                    height: TioLineHeight.height140,
                   ),
                 ),
               ],

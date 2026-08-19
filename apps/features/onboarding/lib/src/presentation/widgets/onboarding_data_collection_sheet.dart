@@ -6,7 +6,7 @@ Future<void> showOnboardingDataCollectionSheet({
   required String body,
   String title = 'Data Collection',
 }) {
-  final colors = TioTheme.colors(context);
+  final colors = context.tioColors;
 
   return showModalBottomSheet<void>(
     context: context,
@@ -14,14 +14,14 @@ Future<void> showOnboardingDataCollectionSheet({
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(
-        top: Radius.circular(TioRadius.large),
+        top: Radius.circular(TioRadius.lg),
       ),
     ),
     builder: (sheetContext) => SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(
-          horizontal: TioSpacing.extraLarge,
-          vertical: TioSpacing.large,
+          horizontal: TioSpacing.xl,
+          vertical: TioSpacing.lg,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -33,8 +33,8 @@ Future<void> showOnboardingDataCollectionSheet({
                   child: Text(
                     title,
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
+                      fontSize: TioFontSize.size18,
+                      fontWeight: TioFontWeight.w700,
                       color: colors.textPrimary,
                     ),
                   ),
@@ -45,16 +45,16 @@ Future<void> showOnboardingDataCollectionSheet({
                 ),
               ],
             ),
-            const SizedBox(height: TioSpacing.medium),
+            const SizedBox(height: TioSpacing.md),
             Text(
               body,
               style: TextStyle(
-                fontSize: 14,
-                height: 1.5,
+                fontSize: TioFontSize.size14,
+                height: TioLineHeight.height150,
                 color: colors.textSecondary,
               ),
             ),
-            const SizedBox(height: TioSpacing.extraLarge),
+            const SizedBox(height: TioSpacing.xl),
             TioButton.primary(
               label: 'Understood',
               expand: true,

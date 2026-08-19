@@ -24,6 +24,8 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
   static const int _minCm = 100;
   static const int _maxCm = 250;
   static const double _defaultCm = 170.0;
+  static const double _perspective = 0.003;
+  static const double _diameterRatio = 1.6;
 
   late double _selectedCm;
   late int _selectedUnitIndex; // 0: cm, 1: in (ft/in)
@@ -98,10 +100,12 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
     final whole = cm.truncate().clamp(_minCm, _maxCm);
     final decimal = ((cm - whole) * 10).round().clamp(0, 9);
 
-    if (_cmWholeController.hasClients && _cmWholeController.selectedItem != (whole - _minCm)) {
+    if (_cmWholeController.hasClients &&
+        _cmWholeController.selectedItem != (whole - _minCm)) {
       _cmWholeController.jumpToItem(whole - _minCm);
     }
-    if (_cmDecimalController.hasClients && _cmDecimalController.selectedItem != decimal) {
+    if (_cmDecimalController.hasClients &&
+        _cmDecimalController.selectedItem != decimal) {
       _cmDecimalController.jumpToItem(decimal);
     }
 
@@ -109,10 +113,12 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
     final feet = (totalInches ~/ 12).clamp(3, 8);
     final inches = (totalInches % 12).clamp(0, 11);
 
-    if (_feetController.hasClients && _feetController.selectedItem != (feet - 3)) {
+    if (_feetController.hasClients &&
+        _feetController.selectedItem != (feet - 3)) {
       _feetController.jumpToItem(feet - 3);
     }
-    if (_inchesController.hasClients && _inchesController.selectedItem != inches) {
+    if (_inchesController.hasClients &&
+        _inchesController.selectedItem != inches) {
       _inchesController.jumpToItem(inches);
     }
 
@@ -121,8 +127,10 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
 
   void _onCmWheelChanged() {
     HapticFeedback.selectionClick();
-    final wholeIndex = _cmWholeController.hasClients ? _cmWholeController.selectedItem : 0;
-    final decimalIndex = _cmDecimalController.hasClients ? _cmDecimalController.selectedItem : 0;
+    final wholeIndex =
+        _cmWholeController.hasClients ? _cmWholeController.selectedItem : 0;
+    final decimalIndex =
+        _cmDecimalController.hasClients ? _cmDecimalController.selectedItem : 0;
     final whole = _minCm + wholeIndex;
     final newCm = whole + (decimalIndex / 10.0);
     setState(() => _selectedCm = newCm);
@@ -131,10 +139,13 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
 
   void _onFtInChanged() {
     HapticFeedback.selectionClick();
-    final feet = (_feetController.hasClients ? _feetController.selectedItem : 0) + 3;
-    final inches = _inchesController.hasClients ? _inchesController.selectedItem : 0;
+    final feet =
+        (_feetController.hasClients ? _feetController.selectedItem : 0) + 3;
+    final inches =
+        _inchesController.hasClients ? _inchesController.selectedItem : 0;
     final totalInches = (feet * 12) + inches;
-    final newCm = (totalInches * 2.54).clamp(_minCm.toDouble(), _maxCm.toDouble());
+    final newCm =
+        (totalInches * 2.54).clamp(_minCm.toDouble(), _maxCm.toDouble());
     setState(() => _selectedCm = newCm);
     widget.onChanged(newCm);
   }
@@ -162,20 +173,24 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return SizedBox(
-      height: 200,
+      height: TioWheelPickerTokens.viewportHeight,
       child: Stack(
         alignment: Alignment.center,
         children: [
           // Center Horizontal Highlight Pill
           Container(
-            height: 48,
-            margin: const EdgeInsets.symmetric(horizontal: 16),
+            height: TioWheelPickerTokens.selectionHeight,
+            margin: const EdgeInsets.symmetric(
+              horizontal: TioWheelPickerTokens.selectionHorizontalMargin,
+            ),
             decoration: BoxDecoration(
-              color: colors.surface.withAlpha(200),
-              borderRadius: BorderRadius.circular(TioRadius.medium),
+              color: colors.surface.withAlpha(
+                TioWheelPickerTokens.selectionSurfaceAlpha,
+              ),
+              borderRadius: BorderRadius.circular(TioRadius.md),
             ),
           ),
 
@@ -191,7 +206,7 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
 
   Widget _buildCmWheelRow(TioColors colors) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
+      padding: const EdgeInsets.symmetric(horizontal: TioSize.dp28),
       child: Row(
         children: [
           // Whole Number Drum (100..250)
@@ -199,9 +214,9 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
             flex: 3,
             child: ListWheelScrollView.useDelegate(
               controller: _cmWholeController,
-              itemExtent: 44,
-              perspective: 0.003,
-              diameterRatio: 1.6,
+              itemExtent: TioWheelPickerTokens.itemExtent,
+              perspective: _perspective,
+              diameterRatio: _diameterRatio,
               physics: const FixedExtentScrollPhysics(),
               onSelectedItemChanged: (_) => _onCmWheelChanged(),
               childDelegate: ListWheelChildBuilderDelegate(
@@ -213,11 +228,15 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
                     child: Text(
                       '$cm',
                       style: TextStyle(
-                        fontSize: isSelected ? 22 : 16,
-                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                        fontSize: isSelected
+                            ? TioWheelPickerTokens.selectedFontSize
+                            : TioFontSize.size16,
+                        fontWeight: isSelected
+                            ? TioFontWeight.w800
+                            : TioFontWeight.w500,
                         color: isSelected
                             ? colors.textPrimary
-                            : colors.textSecondary.withAlpha(90),
+                            : colors.textSecondary.withAlpha(TioAlpha.alpha90),
                       ),
                     ),
                   );
@@ -231,8 +250,8 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
             child: Text(
               '.',
               style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
+                fontSize: TioFontSize.size28,
+                fontWeight: TioFontWeight.w900,
                 color: colors.textPrimary,
               ),
             ),
@@ -243,25 +262,30 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
             flex: 2,
             child: ListWheelScrollView.useDelegate(
               controller: _cmDecimalController,
-              itemExtent: 44,
-              perspective: 0.003,
-              diameterRatio: 1.6,
+              itemExtent: TioWheelPickerTokens.itemExtent,
+              perspective: _perspective,
+              diameterRatio: _diameterRatio,
               physics: const FixedExtentScrollPhysics(),
               onSelectedItemChanged: (_) => _onCmWheelChanged(),
               childDelegate: ListWheelChildBuilderDelegate(
                 childCount: 10,
                 builder: (context, index) {
-                  final currentDecimal = ((_selectedCm - _selectedCm.truncate()) * 10).round();
+                  final currentDecimal =
+                      ((_selectedCm - _selectedCm.truncate()) * 10).round();
                   final isSelected = index == currentDecimal;
                   return Center(
                     child: Text(
                       '$index',
                       style: TextStyle(
-                        fontSize: isSelected ? 22 : 16,
-                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                        fontSize: isSelected
+                            ? TioWheelPickerTokens.selectedFontSize
+                            : TioFontSize.size16,
+                        fontWeight: isSelected
+                            ? TioFontWeight.w800
+                            : TioFontWeight.w500,
                         color: isSelected
                             ? colors.textPrimary
-                            : colors.textSecondary.withAlpha(90),
+                            : colors.textSecondary.withAlpha(TioAlpha.alpha90),
                       ),
                     ),
                   );
@@ -282,7 +306,7 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
 
   Widget _buildFtInWheelRow(TioColors colors) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 36),
+      padding: const EdgeInsets.symmetric(horizontal: TioSize.dp36),
       child: Row(
         children: [
           // Feet Column (3'..8')
@@ -290,9 +314,9 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
             flex: 2,
             child: ListWheelScrollView.useDelegate(
               controller: _feetController,
-              itemExtent: 44,
-              perspective: 0.003,
-              diameterRatio: 1.6,
+              itemExtent: TioWheelPickerTokens.itemExtent,
+              perspective: _perspective,
+              diameterRatio: _diameterRatio,
               physics: const FixedExtentScrollPhysics(),
               onSelectedItemChanged: (_) => _onFtInChanged(),
               childDelegate: ListWheelChildBuilderDelegate(
@@ -306,11 +330,15 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
                     child: Text(
                       "$ft'",
                       style: TextStyle(
-                        fontSize: isSelected ? 22 : 16,
-                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                        fontSize: isSelected
+                            ? TioWheelPickerTokens.selectedFontSize
+                            : TioFontSize.size16,
+                        fontWeight: isSelected
+                            ? TioFontWeight.w800
+                            : TioFontWeight.w500,
                         color: isSelected
                             ? colors.textPrimary
-                            : colors.textSecondary.withAlpha(90),
+                            : colors.textSecondary.withAlpha(TioAlpha.alpha90),
                       ),
                     ),
                   );
@@ -324,9 +352,9 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
             flex: 2,
             child: ListWheelScrollView.useDelegate(
               controller: _inchesController,
-              itemExtent: 44,
-              perspective: 0.003,
-              diameterRatio: 1.6,
+              itemExtent: TioWheelPickerTokens.itemExtent,
+              perspective: _perspective,
+              diameterRatio: _diameterRatio,
               physics: const FixedExtentScrollPhysics(),
               onSelectedItemChanged: (_) => _onFtInChanged(),
               childDelegate: ListWheelChildBuilderDelegate(
@@ -339,11 +367,15 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
                     child: Text(
                       '$index"',
                       style: TextStyle(
-                        fontSize: isSelected ? 22 : 16,
-                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                        fontSize: isSelected
+                            ? TioWheelPickerTokens.selectedFontSize
+                            : TioFontSize.size16,
+                        fontWeight: isSelected
+                            ? TioFontWeight.w800
+                            : TioFontWeight.w500,
                         color: isSelected
                             ? colors.textPrimary
-                            : colors.textSecondary.withAlpha(90),
+                            : colors.textSecondary.withAlpha(TioAlpha.alpha90),
                       ),
                     ),
                   );
@@ -365,9 +397,9 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
   Widget _buildUnitPicker(TioColors colors) {
     return ListWheelScrollView.useDelegate(
       controller: _unitController,
-      itemExtent: 44,
-      perspective: 0.003,
-      diameterRatio: 1.6,
+      itemExtent: TioWheelPickerTokens.itemExtent,
+      perspective: _perspective,
+      diameterRatio: _diameterRatio,
       physics: const FixedExtentScrollPhysics(),
       onSelectedItemChanged: _onUnitIndexChanged,
       childDelegate: ListWheelChildBuilderDelegate(
@@ -379,11 +411,13 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
             child: Text(
               unitText,
               style: TextStyle(
-                fontSize: isSelected ? 18 : 15,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                fontSize:
+                    isSelected ? TioFontSize.size18 : TioFontSize.size15,
+                fontWeight:
+                    isSelected ? TioFontWeight.w800 : TioFontWeight.w500,
                 color: isSelected
                     ? colors.textPrimary
-                    : colors.textSecondary.withAlpha(90),
+                    : colors.textSecondary.withAlpha(TioAlpha.alpha90),
               ),
             ),
           );

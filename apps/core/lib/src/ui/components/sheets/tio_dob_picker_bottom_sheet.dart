@@ -61,26 +61,26 @@ class _TioDobPickerBottomSheetState extends State<TioDobPickerBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Container(
       decoration: BoxDecoration(
         color: colors.surfaceRaised,
         borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(TioRadius.extraLarge),
+          top: Radius.circular(TioRadius.xl),
         ),
         border: Border.all(
-          color: colors.outlineStrong.withAlpha(25),
+          color: colors.outlineStrong.withAlpha(TioAlpha.alpha25),
         ),
       ),
       child: SafeArea(
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
-            TioSpacing.large,
-            TioSpacing.large,
-            TioSpacing.large,
-            TioSpacing.extraLarge,
+            TioSpacing.lg,
+            TioSpacing.lg,
+            TioSpacing.lg,
+            TioSpacing.xl,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -94,9 +94,9 @@ class _TioDobPickerBottomSheetState extends State<TioDobPickerBottomSheet> {
                     'Select Date of Birth',
                     style: TextStyle(
                       color: colors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 22,
-                      letterSpacing: -0.2,
+                      fontWeight: TioFontWeight.w700,
+                      fontSize: TioFontSize.size22,
+                      letterSpacing: TioLetterSpacing.negative02,
                     ),
                   ),
                   IconButton(
@@ -104,27 +104,27 @@ class _TioDobPickerBottomSheetState extends State<TioDobPickerBottomSheet> {
                     icon: Icon(
                       Icons.close_rounded,
                       color: colors.textSecondary,
-                      size: 24,
+                      size: TioSize.dp24,
                     ),
-                    splashRadius: 20,
+                    splashRadius: TioSize.dp20,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: TioSize.dp6),
 
               // ── Subtitle ──
               Text(
                 'We use this data to help personalize Tio for you',
                 style: TextStyle(
                   color: colors.textSecondary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
+                  fontSize: TioFontSize.size14,
+                  fontWeight: TioFontWeight.w400,
                 ),
               ),
 
-              const SizedBox(height: TioSpacing.large),
+              const SizedBox(height: TioSpacing.lg),
 
               // ── Column Headers: Day, Month, Year ──
               Row(
@@ -135,8 +135,8 @@ class _TioDobPickerBottomSheetState extends State<TioDobPickerBottomSheet> {
                         'Day',
                         style: TextStyle(
                           color: colors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 17,
+                          fontWeight: TioFontWeight.w700,
+                          fontSize: TioFontSize.size17,
                         ),
                       ),
                     ),
@@ -147,8 +147,8 @@ class _TioDobPickerBottomSheetState extends State<TioDobPickerBottomSheet> {
                         'Month',
                         style: TextStyle(
                           color: colors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 17,
+                          fontWeight: TioFontWeight.w700,
+                          fontSize: TioFontSize.size17,
                         ),
                       ),
                     ),
@@ -159,8 +159,8 @@ class _TioDobPickerBottomSheetState extends State<TioDobPickerBottomSheet> {
                         'Year',
                         style: TextStyle(
                           color: colors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 17,
+                          fontWeight: TioFontWeight.w700,
+                          fontSize: TioFontSize.size17,
                         ),
                       ),
                     ),
@@ -168,7 +168,7 @@ class _TioDobPickerBottomSheetState extends State<TioDobPickerBottomSheet> {
                 ],
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: TioSpacing.md),
 
               // ── Reusable Pure Wheel Picker ──
               TioDobWheelPicker(
@@ -178,7 +178,7 @@ class _TioDobPickerBottomSheetState extends State<TioDobPickerBottomSheet> {
                 onChanged: (date) => _selectedDate = date,
               ),
 
-              const SizedBox(height: TioSpacing.large),
+              const SizedBox(height: TioSpacing.lg),
 
               // ── Action Button: Save ──
               TioButton.primary(
@@ -215,6 +215,9 @@ class TioDobWheelPicker extends StatefulWidget {
 }
 
 class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
+  static const double _perspective = 0.004;
+  static const double _diameterRatio = 1.3;
+
   static const List<String> _months = [
     'Jan',
     'Feb',
@@ -353,21 +356,25 @@ class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final maxDays = _daysInMonth(_selectedYear, _selectedMonthIndex + 1);
 
     return SizedBox(
-      height: 200,
+      height: TioWheelPickerTokens.viewportHeight,
       child: Stack(
         alignment: Alignment.center,
         children: [
           // Center Selection Highlight Pill (Matches Height & Weight Wheels)
           Container(
-            height: 48,
-            margin: const EdgeInsets.symmetric(horizontal: 16),
+            height: TioWheelPickerTokens.selectionHeight,
+            margin: const EdgeInsets.symmetric(
+              horizontal: TioWheelPickerTokens.selectionHorizontalMargin,
+            ),
             decoration: BoxDecoration(
-              color: colors.surface.withAlpha(200),
-              borderRadius: BorderRadius.circular(TioRadius.medium),
+              color: colors.surface.withAlpha(
+                TioWheelPickerTokens.selectionSurfaceAlpha,
+              ),
+              borderRadius: BorderRadius.circular(TioRadius.md),
             ),
           ),
 
@@ -378,9 +385,9 @@ class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
               Expanded(
                 child: ListWheelScrollView.useDelegate(
                   controller: _dayController,
-                  itemExtent: 44,
-                  perspective: 0.004,
-                  diameterRatio: 1.3,
+                  itemExtent: TioWheelPickerTokens.itemExtent,
+                  perspective: _perspective,
+                  diameterRatio: _diameterRatio,
                   physics: const FixedExtentScrollPhysics(),
                   onSelectedItemChanged: (_) => _onWheelChanged(),
                   childDelegate: ListWheelChildBuilderDelegate(
@@ -393,12 +400,15 @@ class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
                         child: Text(
                           '$day',
                           style: TextStyle(
-                            fontSize: isSelected ? 22 : 17,
-                            fontWeight:
-                                isSelected ? FontWeight.w800 : FontWeight.w500,
+                            fontSize: isSelected
+                                ? TioWheelPickerTokens.selectedFontSize
+                                : TioFontSize.size17,
+                            fontWeight: isSelected
+                                ? TioFontWeight.w800
+                                : TioFontWeight.w500,
                             color: isSelected
                                 ? colors.textPrimary
-                                : colors.textMuted.withAlpha(120),
+                                : colors.textMuted.withAlpha(TioAlpha.alpha120),
                           ),
                         ),
                       );
@@ -411,9 +421,9 @@ class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
               Expanded(
                 child: ListWheelScrollView.useDelegate(
                   controller: _monthController,
-                  itemExtent: 44,
-                  perspective: 0.004,
-                  diameterRatio: 1.3,
+                  itemExtent: TioWheelPickerTokens.itemExtent,
+                  perspective: _perspective,
+                  diameterRatio: _diameterRatio,
                   physics: const FixedExtentScrollPhysics(),
                   onSelectedItemChanged: (_) => _onWheelChanged(),
                   childDelegate: ListWheelChildBuilderDelegate(
@@ -425,12 +435,15 @@ class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
                         child: Text(
                           _months[index],
                           style: TextStyle(
-                            fontSize: isSelected ? 22 : 17,
-                            fontWeight:
-                                isSelected ? FontWeight.w800 : FontWeight.w500,
+                            fontSize: isSelected
+                                ? TioWheelPickerTokens.selectedFontSize
+                                : TioFontSize.size17,
+                            fontWeight: isSelected
+                                ? TioFontWeight.w800
+                                : TioFontWeight.w500,
                             color: isSelected
                                 ? colors.textPrimary
-                                : colors.textMuted.withAlpha(120),
+                                : colors.textMuted.withAlpha(TioAlpha.alpha120),
                           ),
                         ),
                       );
@@ -443,9 +456,9 @@ class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
               Expanded(
                 child: ListWheelScrollView.useDelegate(
                   controller: _yearController,
-                  itemExtent: 44,
-                  perspective: 0.004,
-                  diameterRatio: 1.3,
+                  itemExtent: TioWheelPickerTokens.itemExtent,
+                  perspective: _perspective,
+                  diameterRatio: _diameterRatio,
                   physics: const FixedExtentScrollPhysics(),
                   onSelectedItemChanged: (_) => _onWheelChanged(),
                   childDelegate: ListWheelChildBuilderDelegate(
@@ -458,12 +471,15 @@ class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
                         child: Text(
                           '$year',
                           style: TextStyle(
-                            fontSize: isSelected ? 22 : 17,
-                            fontWeight:
-                                isSelected ? FontWeight.w800 : FontWeight.w500,
+                            fontSize: isSelected
+                                ? TioWheelPickerTokens.selectedFontSize
+                                : TioFontSize.size17,
+                            fontWeight: isSelected
+                                ? TioFontWeight.w800
+                                : TioFontWeight.w500,
                             color: isSelected
                                 ? colors.textPrimary
-                                : colors.textMuted.withAlpha(120),
+                                : colors.textMuted.withAlpha(TioAlpha.alpha120),
                           ),
                         ),
                       );

@@ -40,15 +40,16 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
     super.initState();
     _confettiController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3600),
+      duration: const Duration(milliseconds: TioDuration.ms3600),
     )..forward();
 
-    // Generate 65 celebratory golden confetti particles with depth and 3D flip physics
+    // Confetti physics are one-off celebration composition data, not reusable
+    // design-token roles.
     for (int i = 0; i < 65; i++) {
       _particles.add(
         _ConfettiParticle(
           x: _random.nextDouble(),
-          y: _random.nextDouble() * 0.4 - 0.45, // Staggered start from above top edge
+          y: _random.nextDouble() * 0.4 - 0.45,
           speed: 0.85 + _random.nextDouble() * 0.55,
           size: 7.0 + _random.nextDouble() * 12.0,
           aspectRatio: 0.35 + _random.nextDouble() * 0.5,
@@ -64,18 +65,13 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
   }
 
   Color _getConfettiColor(int index) {
-    switch (index) {
-      case 0:
-        return const Color(0xFFFFD700); // Pure Gold
-      case 1:
-        return const Color(0xFFFFB300); // Amber Gold
-      case 2:
-        return const Color(0xFFFF9800); // Deep Warm Gold
-      case 3:
-        return const Color(0xFFFFE082); // Bright Gold Accent
-      default:
-        return const Color(0xFFFFC107); // Vivid Metallic Gold
-    }
+    return switch (index) {
+      0 => TioDomainColors.celebrationGoldPrimary,
+      1 => TioDomainColors.celebrationGoldSecondary,
+      2 => TioDomainColors.celebrationWarmAccent,
+      3 => TioDomainColors.celebrationGoldHighlight,
+      _ => TioDomainColors.celebrationGoldMetallic,
+    };
   }
 
   @override
@@ -94,9 +90,11 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final displayName = (widget.userName != null && widget.userName!.trim().isNotEmpty)
-        ? widget.userName!.trim()
-        : 'Champion';
+    final colors = context.tioColors;
+    final displayName =
+        (widget.userName != null && widget.userName!.trim().isNotEmpty)
+            ? widget.userName!.trim()
+            : 'Champion';
 
     final title = widget.isWelcomeBack
         ? 'Welcome back,\n$displayName!'
@@ -107,6 +105,8 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
         : "You're all set — let's jump straight into Tio!";
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
+      // Transparent system bars are an edge-to-edge framework requirement; the
+      // visible media/background colors are governed below.
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.light,
@@ -115,11 +115,10 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
         systemNavigationBarContrastEnforced: false,
       ),
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: colors.mediaBackground,
         body: Stack(
           fit: StackFit.expand,
           children: [
-            // 1. Hero Trophy Image Background
             Positioned(
               top: 0,
               left: 0,
@@ -133,30 +132,28 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
                 errorBuilder: (_, __, ___) => const SizedBox.shrink(),
               ),
             ),
-
-            // 2. Smooth gradient fade from trophy to black content zone
             Positioned(
               top: MediaQuery.of(context).size.height * 0.35,
               left: 0,
               right: 0,
               bottom: 0,
               child: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    stops: [0.0, 0.3, 1.0],
+                    stops: const [0.0, 0.3, 1.0],
                     colors: [
-                      Colors.transparent,
-                      Colors.black87,
-                      Colors.black,
+                      colors.mediaBackground.withValues(
+                        alpha: TioOpacity.opacity0,
+                      ),
+                      colors.mediaBackground.withAlpha(TioAlpha.alpha221),
+                      colors.mediaBackground,
                     ],
                   ),
                 ),
               ),
             ),
-
-            // 3. Falling Gold Confetti Particles with 3D Flip
             AnimatedBuilder(
               animation: _confettiController,
               builder: (context, child) {
@@ -169,41 +166,40 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
                 );
               },
             ),
-
-            // 4. Foreground Content
             SafeArea(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: TioSpacing.large,
-                  vertical: TioSpacing.medium,
+                  horizontal: TioSpacing.lg,
+                  vertical: TioSpacing.md,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Top-Left Brand Logo
                     Padding(
-                      padding: const EdgeInsets.only(left: 4, top: 4),
+                      padding: const EdgeInsets.only(
+                        left: TioSpacing.xs,
+                        top: TioSpacing.xs,
+                      ),
                       child: Text(
                         'tio',
                         style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w900,
+                          fontSize: TioFontSize.size28,
+                          fontWeight: TioFontWeight.w900,
                           fontStyle: FontStyle.italic,
-                          color: Colors.white,
-                          letterSpacing: -1.0,
+                          color: colors.onMediaPrimary,
+                          letterSpacing: TioLetterSpacing.negative10,
                           shadows: [
                             Shadow(
-                              color: Colors.black.withValues(alpha: 0.6),
-                              blurRadius: 8,
+                              color: colors.mediaBackground.withValues(
+                                alpha: TioOpacity.opacity60,
+                              ),
+                              blurRadius: TioSize.dp8,
                             ),
                           ],
                         ),
                       ),
                     ),
-
                     const Spacer(),
-
-                    // Centered Text Content
                     Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -211,43 +207,43 @@ class _CongratulationsScreenState extends State<CongratulationsScreen>
                           Text(
                             title,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 38,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              height: 1.15,
-                              letterSpacing: -0.5,
+                            style: TextStyle(
+                              fontSize: TioFontSize.size38,
+                              fontWeight: TioFontWeight.w800,
+                              color: colors.onMediaPrimary,
+                              height: TioLineHeight.height115,
+                              letterSpacing: TioLetterSpacing.negative05,
                             ),
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: TioSize.dp14),
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: TioSpacing.lg,
+                            ),
                             child: Text(
                               subtitle,
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w400,
-                                color: Colors.white.withValues(alpha: 0.85),
-                                height: 1.4,
+                                fontSize: TioFontSize.size16,
+                                fontWeight: TioFontWeight.w400,
+                                color: colors.onMediaPrimary.withValues(
+                                  alpha: TioOpacity.opacity85,
+                                ),
+                                height: TioLineHeight.height140,
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
-
-                    const SizedBox(height: 48),
-
-                    // Design System Reusable Button from tio_core
+                    const SizedBox(height: TioSize.dp48),
                     TioButton.primary(
                       key: const ValueKey('congratulations-lets-go-button'),
                       label: "Let's go!",
                       expand: true,
                       onPressed: _handleContinue,
                     ),
-
-                    const SizedBox(height: 8),
+                    const SizedBox(height: TioSpacing.sm),
                   ],
                 ),
               ),
@@ -295,9 +291,8 @@ class _ConfettiPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (progress >= 1.0) return; // Fully completed and idle (zero CPU)
+    if (progress >= 1.0) return;
 
-    // Smooth fade out in the last 15% of the burst
     final alpha = progress > 0.85
         ? (1.0 - (progress - 0.85) / 0.15).clamp(0.0, 1.0)
         : 1.0;
@@ -306,12 +301,15 @@ class _ConfettiPainter extends CustomPainter {
       final currentY = (p.y + progress * p.speed * 1.3) * size.height;
       if (currentY > size.height + 40 || currentY < -60) continue;
 
-      final sway = math.sin(progress * math.pi * 2 * p.swaySpeed + p.x * 10) * p.swayMagnitude;
+      final sway =
+          math.sin(progress * math.pi * 2 * p.swaySpeed + p.x * 10) *
+              p.swayMagnitude;
       final currentX = (p.x * size.width) + sway;
       final currentRot = p.rotation + progress * p.rotationSpeed * math.pi * 2;
-
-      // 3D paper ribbon flip effect
-      final flip = math.cos(p.rotation + progress * p.flipSpeed * math.pi * 2).abs().clamp(0.12, 1.0);
+      final flip = math
+          .cos(p.rotation + progress * p.flipSpeed * math.pi * 2)
+          .abs()
+          .clamp(0.12, 1.0);
 
       canvas.save();
       canvas.translate(currentX, currentY);

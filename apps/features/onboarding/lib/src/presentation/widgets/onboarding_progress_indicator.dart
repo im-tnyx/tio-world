@@ -20,8 +20,8 @@ class OnboardingProgressIndicator extends StatelessWidget {
           curve: Curves.linearToEaseOut,
           builder: (context, progress, _) => LinearProgressIndicator(
             value: progress,
-            minHeight: 4,
-            borderRadius: BorderRadius.circular(context.radiusSmall),
+            minHeight: TioSize.dp4,
+            borderRadius: BorderRadius.circular(TioRadius.sm),
             backgroundColor: context.tioColors.surfaceVariant,
           ),
         ),

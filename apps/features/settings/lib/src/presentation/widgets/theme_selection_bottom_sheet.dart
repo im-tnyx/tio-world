@@ -11,7 +11,7 @@ Future<TioThemeMode?> showThemeSelectionBottomSheet({
     context: context,
     isScrollControlled: true,
     showDragHandle: false,
-    backgroundColor: Colors.transparent,
+    backgroundColor: TioPalette.transparent,
     builder: (context) => ThemeSelectionBottomSheet(
       currentMode: currentMode,
       onThemeSelected: onThemeSelected,
@@ -65,25 +65,32 @@ class _ThemeSelectionBottomSheetState extends State<ThemeSelectionBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final theme = Theme.of(context);
 
     return Container(
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(TioSize.dp28),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(40),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
+            color: TioPalette.black.withAlpha(TioAlpha.alpha40),
+            blurRadius: TioSize.dp20,
+            offset: const Offset(TioSize.dp0, -TioSize.dp4),
           ),
         ],
       ),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          padding: const EdgeInsets.fromLTRB(
+            TioSize.dp20,
+            TioSpacing.md,
+            TioSize.dp20,
+            TioSpacing.xl,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -91,12 +98,12 @@ class _ThemeSelectionBottomSheetState extends State<ThemeSelectionBottomSheet> {
               // Drag Handle
               Center(
                 child: Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 20),
+                  width: TioSize.dp36,
+                  height: TioSize.dp4,
+                  margin: const EdgeInsets.only(bottom: TioSize.dp20),
                   decoration: BoxDecoration(
-                    color: colors.textMuted.withAlpha(80),
-                    borderRadius: BorderRadius.circular(2),
+                    color: colors.textMuted.withAlpha(TioAlpha.alpha80),
+                    borderRadius: BorderRadius.circular(TioSize.dp2),
                   ),
                 ),
               ),
@@ -111,11 +118,11 @@ class _ThemeSelectionBottomSheetState extends State<ThemeSelectionBottomSheet> {
                       Text(
                         'Appearance',
                         style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
+                          fontWeight: TioFontWeight.w700,
                           color: colors.textPrimary,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: TioSpacing.xs),
                       Text(
                         'Choose how Tio looks on this device',
                         style: theme.textTheme.bodyMedium?.copyWith(
@@ -125,13 +132,16 @@ class _ThemeSelectionBottomSheetState extends State<ThemeSelectionBottomSheet> {
                     ],
                   ),
                   IconButton(
-                    icon: Icon(Icons.close_rounded, color: colors.textSecondary),
+                    icon: Icon(
+                      Icons.close_rounded,
+                      color: colors.textSecondary,
+                    ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: TioSize.dp20),
 
               // Options
               _ThemeOptionTile(
@@ -144,7 +154,7 @@ class _ThemeSelectionBottomSheetState extends State<ThemeSelectionBottomSheet> {
                 isUpdating: _isUpdating,
                 onTap: () => _handleModeSelect(TioThemeMode.system),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: TioSize.dp10),
               _ThemeOptionTile(
                 key: const ValueKey('theme-option-light'),
                 mode: TioThemeMode.light,
@@ -155,7 +165,7 @@ class _ThemeSelectionBottomSheetState extends State<ThemeSelectionBottomSheet> {
                 isUpdating: _isUpdating,
                 onTap: () => _handleModeSelect(TioThemeMode.light),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: TioSize.dp10),
               _ThemeOptionTile(
                 key: const ValueKey('theme-option-dark'),
                 mode: TioThemeMode.dark,
@@ -166,12 +176,13 @@ class _ThemeSelectionBottomSheetState extends State<ThemeSelectionBottomSheet> {
                 isUpdating: _isUpdating,
                 onTap: () => _handleModeSelect(TioThemeMode.dark),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: TioSize.dp10),
               _ThemeOptionTile(
                 key: const ValueKey('theme-option-oled'),
                 mode: TioThemeMode.oled,
                 title: 'OLED (Pure Black)',
-                subtitle: 'Pitch black background for AMOLED & battery efficiency',
+                subtitle:
+                    'Pitch black background for AMOLED & battery efficiency',
                 icon: Icons.brightness_2_rounded,
                 isSelected: _selectedMode == TioThemeMode.oled,
                 isUpdating: _isUpdating,
@@ -207,50 +218,53 @@ class _ThemeOptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final theme = Theme.of(context);
 
     final borderColor = isSelected
         ? colors.primary
-        : colors.outlineStrong.withAlpha(40);
+        : colors.outlineStrong.withAlpha(TioAlpha.alpha40);
 
     final backgroundColor = isSelected
-        ? colors.primary.withAlpha(12)
+        ? colors.primary.withAlpha(TioAlpha.alpha12)
         : colors.surfaceRaised;
 
     return Material(
-      color: Colors.transparent,
+      color: TioPalette.transparent,
       child: InkWell(
         onTap: isUpdating ? null : onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(TioRadius.lg),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(
+            horizontal: TioSpacing.lg,
+            vertical: TioSize.dp14,
+          ),
           decoration: BoxDecoration(
             color: backgroundColor,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(TioRadius.lg),
             border: Border.all(
               color: borderColor,
-              width: isSelected ? 1.5 : 1.0,
+              width: isSelected ? TioStroke.width15 : TioStroke.width1,
             ),
           ),
           child: Row(
             children: [
               Container(
-                width: 42,
-                height: 42,
+                width: TioSize.dp42,
+                height: TioSize.dp42,
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? colors.primary.withAlpha(24)
+                      ? colors.primary.withAlpha(TioAlpha.alpha24)
                       : colors.surfaceVariant,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   icon,
                   color: isSelected ? colors.primary : colors.textSecondary,
-                  size: 22,
+                  size: TioSize.dp22,
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: TioSize.dp14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,11 +272,13 @@ class _ThemeOptionTile extends StatelessWidget {
                     Text(
                       title,
                       style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        fontWeight: isSelected
+                            ? TioFontWeight.w600
+                            : TioFontWeight.w500,
                         color: colors.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: TioSpacing.xxs),
                     Text(
                       subtitle,
                       style: theme.textTheme.bodySmall?.copyWith(
@@ -272,23 +288,26 @@ class _ThemeOptionTile extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: TioSize.dp10),
               AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: 22,
-                height: 22,
+                duration: const Duration(milliseconds: TioMotion.selectionMs),
+                width: TioSize.dp22,
+                height: TioSize.dp22,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: isSelected ? colors.primary : colors.outlineStrong.withAlpha(100),
-                    width: 2,
+                    color: isSelected
+                        ? colors.primary
+                        : colors.outlineStrong.withAlpha(TioAlpha.alpha100),
+                    width: TioStroke.width2,
                   ),
-                  color: isSelected ? colors.primary : Colors.transparent,
+                  color:
+                      isSelected ? colors.primary : TioPalette.transparent,
                 ),
                 child: isSelected
                     ? Icon(
                         Icons.check_rounded,
-                        size: 14,
+                        size: TioSize.dp14,
                         color: colors.onPrimary,
                       )
                     : null,

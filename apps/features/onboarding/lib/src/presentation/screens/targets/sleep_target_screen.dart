@@ -29,7 +29,7 @@ class SleepTargetScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final hours = sleepTargetMinutes / 60.0;
-    final isRecommended = sleepTargetMinutes >= 420 && sleepTargetMinutes <= 540; // 7h–9h
+    final isRecommended = sleepTargetMinutes >= 420 && sleepTargetMinutes <= 540;
 
     final hoursDisplay = hours == hours.roundToDouble()
         ? '${hours.toInt()}h'
@@ -54,16 +54,16 @@ class SleepTargetScreen extends StatelessWidget {
                     Icon(
                       Icons.bedtime_outlined,
                       color: colors.progress,
-                      size: 24,
+                      size: TioSize.dp24,
                     ),
-                    const SizedBox(width: TioSpacing.small),
+                    const SizedBox(width: TioSpacing.sm),
                     Text(
                       'Sleep Target',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ],
                 ),
-                const SizedBox(height: TioSpacing.medium),
+                const SizedBox(height: TioSpacing.md),
                 Center(
                   child: Column(
                     children: [
@@ -74,11 +74,11 @@ class SleepTargetScreen extends StatelessWidget {
                             .textTheme
                             .headlineLarge
                             ?.copyWith(
-                              fontWeight: FontWeight.bold,
+                              fontWeight: TioFontWeight.w700,
                               color: colors.textPrimary,
                             ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: TioSpacing.xs),
                       Text(
                         'hours/day ($sleepTargetMinutes min)',
                         style:
@@ -86,11 +86,10 @@ class SleepTargetScreen extends StatelessWidget {
                                   color: colors.textSecondary,
                                 ),
                       ),
-
                     ],
                   ),
                 ),
-                const SizedBox(height: TioSpacing.medium),
+                const SizedBox(height: TioSpacing.md),
                 Slider(
                   key: const ValueKey('targets-sleep-slider'),
                   value: sleepTargetMinutes
@@ -99,9 +98,9 @@ class SleepTargetScreen extends StatelessWidget {
                         SleepScheduleHelper.maxDurationMinutes,
                       )
                       .toDouble(),
-                  min: SleepScheduleHelper.minDurationMinutes.toDouble(), // 240
-                  max: SleepScheduleHelper.maxDurationMinutes.toDouble(), // 720
-                  divisions: 16, // 30-min increments from 240 to 720
+                  min: SleepScheduleHelper.minDurationMinutes.toDouble(),
+                  max: SleepScheduleHelper.maxDurationMinutes.toDouble(),
+                  divisions: 16, // Program value: 30-minute increments.
                   activeColor: colors.primary,
                   onChanged: (val) {
                     HapticFeedback.selectionClick();
@@ -117,7 +116,7 @@ class SleepTargetScreen extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: TioSpacing.large),
+          const SizedBox(height: TioSpacing.lg),
           TioCard(
             key: const ValueKey('targets-sleep-schedule-card'),
             variant: TioCardVariant.outlined,
@@ -136,7 +135,7 @@ class SleepTargetScreen extends StatelessWidget {
                         onSleepScheduleChange(sleepTimeMinutes: mins),
                   ),
                 ),
-                const Divider(height: 1),
+                const Divider(height: TioSize.dp1),
                 _TimePickerRow(
                   key: const ValueKey('targets-wake-time-row'),
                   icon: Icons.wb_sunny_outlined,
@@ -153,7 +152,7 @@ class SleepTargetScreen extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: TioSpacing.medium),
+          const SizedBox(height: TioSpacing.md),
           Text(
             '7–9 hours of sleep per night is recommended for optimal cognitive performance, muscle recovery, and metabolic health.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -218,13 +217,13 @@ class _TimePickerRow extends StatelessWidget {
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(
-          horizontal: TioSpacing.medium,
-          vertical: TioSpacing.large,
+          horizontal: TioSpacing.md,
+          vertical: TioSpacing.lg,
         ),
         child: Row(
           children: [
-            Icon(icon, color: iconColor, size: 22),
-            const SizedBox(width: TioSpacing.medium),
+            Icon(icon, color: iconColor, size: TioSize.dp22),
+            const SizedBox(width: TioSpacing.md),
             Text(
               label,
               style: Theme.of(context).textTheme.bodyLarge,
@@ -233,14 +232,14 @@ class _TimePickerRow extends StatelessWidget {
             Text(
               formattedTime,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+                    fontWeight: TioFontWeight.w600,
                     color: colors.textPrimary,
                   ),
             ),
-            const SizedBox(width: TioSpacing.small),
+            const SizedBox(width: TioSpacing.sm),
             Icon(
               Icons.chevron_right,
-              size: 20,
+              size: TioSize.dp20,
               color: colors.outlineStrong,
             ),
           ],

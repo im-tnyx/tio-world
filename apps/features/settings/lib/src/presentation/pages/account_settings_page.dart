@@ -258,31 +258,31 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
         backgroundColor: colors.background,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+        elevation: TioElevation.none,
+        scrolledUnderElevation: TioElevation.none,
         leading: BackButton(color: colors.textPrimary),
         title: Text(
           'Account Settings',
           style: TextStyle(
             color: colors.textPrimary,
-            fontWeight: FontWeight.w800,
-            fontSize: 20,
+            fontWeight: TioFontWeight.w800,
+            fontSize: TioFontSize.size20,
           ),
         ),
       ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(
-            TioSpacing.large,
-            TioSpacing.medium,
-            TioSpacing.large,
-            TioSpacing.extraLarge + 80,
+            TioSpacing.lg,
+            TioSpacing.md,
+            TioSpacing.lg,
+            TioSpacing.xl + TioSize.dp80,
           ),
           children: [
             // ── Field 1: USERNAME (Live Availability Check + Suggestions) ──
@@ -293,43 +293,46 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                   'USERNAME',
                   style: TextStyle(
                     color: colors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    letterSpacing: 0.8,
+                    fontWeight: TioFontWeight.w700,
+                    fontSize: TioFontSize.size13,
+                    letterSpacing: TioLetterSpacing.positive08,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: TioSpacing.sm),
                 Container(
-                  height: 56,
+                  height: TioSize.dp56,
                   decoration: BoxDecoration(
                     color: colors.surfaceRaised,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(TioRadius.lg),
                     border: Border.all(
                       color: _usernameStatus == _UsernameStatus.unavailable
-                          ? colors.danger.withAlpha(80)
+                          ? colors.danger.withAlpha(TioAlpha.alpha80)
                           : _usernameStatus == _UsernameStatus.available
-                              ? colors.primary.withAlpha(80)
-                              : colors.outlineStrong.withAlpha(40),
+                              ? colors.primary.withAlpha(TioAlpha.alpha80)
+                              : colors.outlineStrong
+                                  .withAlpha(TioAlpha.alpha40),
                       width: _usernameStatus == _UsernameStatus.unavailable ||
                               _usernameStatus == _UsernameStatus.available
-                          ? 1.5
-                          : 1.0,
+                          ? TioStroke.width15
+                          : TioStroke.width1,
                     ),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: TioSpacing.lg,
+                  ),
                   alignment: Alignment.center,
                   child: Row(
                     children: [
                       Icon(
                         Icons.alternate_email_rounded,
-                        size: 22,
+                        size: TioSize.dp22,
                         color: _usernameStatus == _UsernameStatus.unavailable
                             ? colors.danger
                             : _usernameStatus == _UsernameStatus.available
                                 ? colors.primary
                                 : colors.textPrimary,
                       ),
-                      const SizedBox(width: 14),
+                      const SizedBox(width: TioSize.dp14),
                       Expanded(
                         child: TextField(
                           controller: _usernameController,
@@ -343,8 +346,8 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                           onChanged: _onUsernameInput,
                           style: TextStyle(
                             color: colors.textPrimary,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
+                            fontSize: TioFontSize.size16,
+                            fontWeight: TioFontWeight.w500,
                           ),
                           decoration: InputDecoration(
                             border: InputBorder.none,
@@ -354,96 +357,97 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                             disabledBorder: InputBorder.none,
                             focusedErrorBorder: InputBorder.none,
                             filled: false,
-                            fillColor: Colors.transparent,
+                            fillColor: TioPalette.transparent,
                             isDense: true,
                             contentPadding: EdgeInsets.zero,
                             hintText: 'username',
                             hintStyle: TextStyle(
                               color: colors.textMuted,
-                              fontWeight: FontWeight.w400,
+                              fontWeight: TioFontWeight.w400,
                             ),
                           ),
                         ),
                       ),
                       if (_usernameStatus == _UsernameStatus.checking)
                         SizedBox(
-                          width: 18,
-                          height: 18,
+                          width: TioSize.dp18,
+                          height: TioSize.dp18,
                           child: CircularProgressIndicator(
-                            strokeWidth: 2,
+                            strokeWidth: TioStroke.width2,
                             color: colors.primary,
                           ),
                         )
                       else if (_usernameStatus == _UsernameStatus.available)
                         Icon(
                           Icons.check_circle_rounded,
-                          size: 22,
+                          size: TioSize.dp22,
                           color: colors.primary,
                         )
                       else if (_usernameStatus == _UsernameStatus.unavailable)
                         Icon(
                           Icons.error_outline_rounded,
-                          size: 22,
+                          size: TioSize.dp22,
                           color: colors.danger,
                         ),
                     ],
                   ),
                 ),
                 if (_usernameFeedback case final msg?) ...[
-                  const SizedBox(height: 6),
+                  const SizedBox(height: TioSize.dp6),
                   Padding(
-                    padding: const EdgeInsets.only(left: 4),
+                    padding: const EdgeInsets.only(left: TioSpacing.xs),
                     child: Text(
                       msg,
                       style: TextStyle(
                         color: _usernameStatus == _UsernameStatus.available
                             ? colors.primary
                             : colors.danger,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                        fontSize: TioFontSize.size13,
+                        fontWeight: TioFontWeight.w500,
                       ),
                     ),
                   ),
                 ],
                 if (_suggestions.isNotEmpty) ...[
-                  const SizedBox(height: 10),
+                  const SizedBox(height: TioSize.dp10),
                   Padding(
-                    padding: const EdgeInsets.only(left: 4),
+                    padding: const EdgeInsets.only(left: TioSpacing.xs),
                     child: Text(
                       'Suggestions:',
                       style: TextStyle(
                         color: colors.textSecondary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                        fontSize: TioFontSize.size12,
+                        fontWeight: TioFontWeight.w600,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: TioSize.dp6),
                   Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                    spacing: TioSpacing.sm,
+                    runSpacing: TioSpacing.sm,
                     children: _suggestions.map((suggestion) {
                       return InkWell(
                         onTap: () => _applySuggestion(suggestion),
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(TioSize.dp20),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
+                            horizontal: TioSpacing.md,
+                            vertical: TioSize.dp6,
                           ),
                           decoration: BoxDecoration(
                             color: colors.surfaceRaised,
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(TioSize.dp20),
                             border: Border.all(
-                              color: colors.primary.withAlpha(50),
+                              color: colors.primary.withAlpha(TioAlpha.alpha50),
+                              width: TioStroke.width1,
                             ),
                           ),
                           child: Text(
                             '@$suggestion',
                             style: TextStyle(
                               color: colors.primary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                              fontSize: TioFontSize.size13,
+                              fontWeight: TioFontWeight.w600,
                             ),
                           ),
                         ),
@@ -453,7 +457,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                 ],
               ],
             ),
-            const SizedBox(height: TioSpacing.large),
+            const SizedBox(height: TioSpacing.lg),
             // ── Field 2: EMAIL (with Verify / Verified Badge) ──
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -462,65 +466,69 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                   'EMAIL',
                   style: TextStyle(
                     color: colors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    letterSpacing: 0.8,
+                    fontWeight: TioFontWeight.w700,
+                    fontSize: TioFontSize.size13,
+                    letterSpacing: TioLetterSpacing.positive08,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: TioSpacing.sm),
                 Container(
-                  height: 56,
+                  height: TioSize.dp56,
                   decoration: BoxDecoration(
                     color: colors.surfaceRaised,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(TioRadius.lg),
                     border: Border.all(
-                      color: colors.outlineStrong.withAlpha(40),
+                      color: colors.outlineStrong.withAlpha(TioAlpha.alpha40),
+                      width: TioStroke.width1,
                     ),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: TioSpacing.lg,
+                  ),
                   alignment: Alignment.center,
                   child: Row(
                     children: [
                       Icon(
                         Icons.email_outlined,
-                        size: 22,
+                        size: TioSize.dp22,
                         color: colors.textPrimary,
                       ),
-                      const SizedBox(width: 14),
+                      const SizedBox(width: TioSize.dp14),
                       Expanded(
                         child: Text(
                           widget.email ?? 'Not set',
                           style: TextStyle(
                             color: colors.textPrimary,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
+                            fontSize: TioFontSize.size16,
+                            fontWeight: TioFontWeight.w500,
                           ),
                         ),
                       ),
                       if (widget.isEmailVerified)
-                        const Icon(
+                        Icon(
                           Icons.verified_rounded,
-                          size: 22,
-                          color: Color(0xFF1DA1F2),
+                          size: TioSize.dp22,
+                          color: colors.info,
                         )
                       else if (widget.email?.isNotEmpty == true)
                         GestureDetector(
                           onTap: _handleVerifyEmail,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
+                              horizontal: TioSize.dp10,
+                              vertical: TioSize.dp5,
                             ),
                             decoration: BoxDecoration(
-                              color: colors.primary.withAlpha(22),
-                              borderRadius: BorderRadius.circular(8),
+                              color:
+                                  colors.primary.withAlpha(TioAlpha.alpha22),
+                              borderRadius: BorderRadius.circular(TioRadius.sm),
                             ),
                             child: Text(
                               'Verify',
                               style: TextStyle(
                                 color: colors.primary,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 12,
+                                fontWeight: TioFontWeight.w700,
+                                fontSize: TioFontSize.size12,
                               ),
                             ),
                           ),
@@ -530,7 +538,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                 ),
               ],
             ),
-            const SizedBox(height: TioSpacing.large),
+            const SizedBox(height: TioSpacing.lg),
             // ── Field 3: PHONE NUMBER ──
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -539,12 +547,12 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                   'PHONE NUMBER',
                   style: TextStyle(
                     color: colors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    letterSpacing: 0.8,
+                    fontWeight: TioFontWeight.w700,
+                    fontSize: TioFontSize.size13,
+                    letterSpacing: TioLetterSpacing.positive08,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: TioSpacing.sm),
                 TioMobileNumberField(
                   controller: _phoneController,
                   isVerified: widget.isPhoneVerified,
@@ -556,7 +564,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                 ),
               ],
             ),
-            const SizedBox(height: TioSpacing.large),
+            const SizedBox(height: TioSpacing.lg),
             // ── Field 4: LINKED ACCOUNT ──
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -565,56 +573,59 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                   'AUTHENTICATION',
                   style: TextStyle(
                     color: colors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    letterSpacing: 0.8,
+                    fontWeight: TioFontWeight.w700,
+                    fontSize: TioFontSize.size13,
+                    letterSpacing: TioLetterSpacing.positive08,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: TioSpacing.sm),
                 Container(
-                  height: 56,
+                  height: TioSize.dp56,
                   decoration: BoxDecoration(
                     color: colors.surfaceRaised,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(TioRadius.lg),
                     border: Border.all(
-                      color: colors.outlineStrong.withAlpha(40),
+                      color: colors.outlineStrong.withAlpha(TioAlpha.alpha40),
+                      width: TioStroke.width1,
                     ),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: TioSpacing.lg,
+                  ),
                   alignment: Alignment.center,
                   child: Row(
                     children: [
                       Icon(
                         Icons.link_rounded,
-                        size: 22,
+                        size: TioSize.dp22,
                         color: colors.textPrimary,
                       ),
-                      const SizedBox(width: 14),
+                      const SizedBox(width: TioSize.dp14),
                       Expanded(
                         child: Text(
                           widget.linkedProvider,
                           style: TextStyle(
                             color: colors.textPrimary,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
+                            fontSize: TioFontSize.size16,
+                            fontWeight: TioFontWeight.w500,
                           ),
                         ),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
+                          horizontal: TioSpacing.sm,
+                          vertical: TioSize.dp3,
                         ),
                         decoration: BoxDecoration(
-                          color: colors.primary.withAlpha(20),
-                          borderRadius: BorderRadius.circular(6),
+                          color: colors.primary.withAlpha(TioAlpha.alpha20),
+                          borderRadius: BorderRadius.circular(TioSize.dp6),
                         ),
                         child: Text(
                           'Connected',
                           style: TextStyle(
                             color: colors.primary,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 11,
+                            fontWeight: TioFontWeight.w700,
+                            fontSize: TioFontSize.size11,
                           ),
                         ),
                       ),
@@ -628,7 +639,10 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
       ),
       bottomNavigationBar: ClipRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          filter: ImageFilter.blur(
+            sigmaX: TioSize.dp8,
+            sigmaY: TioSize.dp8,
+          ),
           child: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -636,19 +650,19 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                 end: Alignment.bottomCenter,
                 stops: const [0.0, 0.4, 1.0],
                 colors: [
-                  colors.background.withValues(alpha: 0.0),
-                  colors.background.withValues(alpha: 0.85),
-                  colors.background.withValues(alpha: 0.98),
+                  colors.background.withValues(alpha: TioOpacity.opacity0),
+                  colors.background.withValues(alpha: TioOpacity.opacity85),
+                  colors.background.withValues(alpha: TioOpacity.opacity98),
                 ],
               ),
             ),
             child: SafeArea(
               top: false,
               minimum: const EdgeInsets.fromLTRB(
-                TioSpacing.large,
-                TioSpacing.small,
-                TioSpacing.large,
-                TioSpacing.medium,
+                TioSpacing.lg,
+                TioSpacing.sm,
+                TioSpacing.lg,
+                TioSpacing.md,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -662,19 +676,21 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                     expand: true,
                     onPressed: _handleSave,
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: TioSize.dp6),
                   TextButton(
                     onPressed: _showDeleteAccountDialog,
                     style: TextButton.styleFrom(
                       foregroundColor: colors.danger,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: TioSpacing.sm,
+                      ),
                     ),
                     child: Text(
                       'Delete Account',
                       style: TextStyle(
                         color: colors.danger,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
+                        fontWeight: TioFontWeight.w700,
+                        fontSize: TioFontSize.size14,
                       ),
                     ),
                   ),

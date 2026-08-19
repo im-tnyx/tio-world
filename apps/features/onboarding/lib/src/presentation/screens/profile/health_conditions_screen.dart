@@ -56,7 +56,7 @@ class HealthConditionsScreen extends StatelessWidget {
                   onToggled(condition);
                 },
               ),
-            const SizedBox(height: TioSpacing.medium),
+            const SizedBox(height: TioSpacing.md),
           ],
         ],
       ),
@@ -105,7 +105,7 @@ class _OtherConditionCardState extends State<_OtherConditionCard> {
           Scrollable.ensureVisible(
             context,
             alignment: 0.85,
-            duration: const Duration(milliseconds: 200),
+            duration: const Duration(milliseconds: TioDuration.ms200),
             curve: Curves.easeOutCubic,
           );
         }
@@ -124,11 +124,13 @@ class _OtherConditionCardState extends State<_OtherConditionCard> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Material(
       color: widget.isSelected
-          ? colors.primary.withValues(alpha: TioCardTokens.selectedContainerAlpha)
+          ? colors.primary.withValues(
+              alpha: TioCardTokens.selectedContainerAlpha,
+            )
           : colors.surface,
       borderRadius: BorderRadius.circular(TioCardTokens.radius),
       child: InkWell(
@@ -136,15 +138,19 @@ class _OtherConditionCardState extends State<_OtherConditionCard> {
         onTap: widget.onTap,
         borderRadius: BorderRadius.circular(TioCardTokens.radius),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.all(TioSpacing.large),
+          duration: const Duration(milliseconds: TioDuration.ms150),
+          padding: const EdgeInsets.all(TioSpacing.lg),
           decoration: BoxDecoration(
-            color: Colors.transparent,
+            // Transparent composition lets the Material surface above own the
+            // visible selected/unselected card fill.
+            color: TioPalette.transparent,
             borderRadius: BorderRadius.circular(TioCardTokens.radius),
             border: Border.all(
               color: widget.isSelected
                   ? colors.primary
-                  : colors.outlineStrong.withValues(alpha: 0.35),
+                  : colors.outlineStrong.withValues(
+                      alpha: TioOpacity.opacity35,
+                    ),
               width: widget.isSelected
                   ? TioCardTokens.selectedBorderWidth
                   : TioCardTokens.unselectedBorderWidth,
@@ -153,7 +159,6 @@ class _OtherConditionCardState extends State<_OtherConditionCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Row: Title + Radio/Check Icon (Exact match with ProfileChoiceCard)
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -161,35 +166,39 @@ class _OtherConditionCardState extends State<_OtherConditionCard> {
                     child: Text(
                       'Other',
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: widget.isSelected ? FontWeight.w700 : FontWeight.w700,
-                        color: widget.isSelected ? colors.primary : colors.textPrimary,
+                        fontSize: TioFontSize.size16,
+                        fontWeight: TioFontWeight.w700,
+                        color: widget.isSelected
+                            ? colors.primary
+                            : colors.textPrimary,
                       ),
                     ),
                   ),
                   Icon(
-                    widget.isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-                    size: 24,
-                    color: widget.isSelected ? colors.primary : colors.outlineStrong,
+                    widget.isSelected
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    size: TioSize.dp24,
+                    color: widget.isSelected
+                        ? colors.primary
+                        : colors.outlineStrong,
                   ),
                 ],
               ),
-
-              // Seamless Inline Input directly on the card surface (100% pure transparent background)
               if (widget.isSelected) ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: TioSize.dp6),
                 TextField(
                   controller: _controller,
                   focusNode: _focusNode,
                   minLines: 1,
                   maxLines: 2,
                   textInputAction: TextInputAction.done,
-                  scrollPadding: const EdgeInsets.only(bottom: 110),
+                  scrollPadding: const EdgeInsets.only(bottom: TioSize.dp110),
                   cursorColor: colors.primary,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: TioFontSize.size14,
                     color: colors.textPrimary,
-                    height: 1.3,
+                    height: TioLineHeight.height130,
                   ),
                   decoration: InputDecoration(
                     isDense: true,
@@ -200,8 +209,8 @@ class _OtherConditionCardState extends State<_OtherConditionCard> {
                     focusedBorder: InputBorder.none,
                     hintText: 'e.g. Asthma, Thyroid, Joint pain...',
                     hintStyle: TextStyle(
-                      fontSize: 13,
-                      color: colors.textSecondary.withAlpha(140),
+                      fontSize: TioFontSize.size13,
+                      color: colors.textSecondary.withAlpha(TioAlpha.alpha140),
                     ),
                   ),
                   onChanged: widget.onTextChanged,

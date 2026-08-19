@@ -38,6 +38,8 @@ class OnboardingBottomBar extends StatelessWidget {
     super.key,
   });
 
+  static const _normalGradientStops = <double>[0.0, 0.25, 0.70, 1.0];
+
   final OnboardingState state;
   final OnboardingController? controller;
   final Future<void> Function() onContinue;
@@ -63,7 +65,7 @@ class OnboardingBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     if (_isWheelStep && controller != null) {
       final profileStep = _currentProfileStep;
@@ -74,15 +76,15 @@ class OnboardingBottomBar extends StatelessWidget {
           color: colors.surfaceRaised,
           border: Border(
             top: BorderSide(
-              color: colors.outlineStrong.withAlpha(45),
-              width: 1.0,
+              color: colors.outlineStrong.withAlpha(TioAlpha.alpha45),
+              width: TioStroke.width1,
             ),
           ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 12),
+            const SizedBox(height: TioSpacing.md),
 
             // Active Dynamic Wheel for current profile step
             if (profileStep == ProfileStepId.height)
@@ -118,10 +120,11 @@ class OnboardingBottomBar extends StatelessWidget {
             SafeArea(
               top: false,
               minimum: EdgeInsets.only(
-                left: TioSpacing.large,
-                right: TioSpacing.large,
-                top: TioSpacing.small,
-                bottom: TioSpacing.large + MediaQuery.viewInsetsOf(context).bottom,
+                left: TioSpacing.lg,
+                right: TioSpacing.lg,
+                top: TioSpacing.sm,
+                bottom:
+                    TioSpacing.lg + MediaQuery.viewInsetsOf(context).bottom,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -137,7 +140,7 @@ class OnboardingBottomBar extends StatelessWidget {
                             ),
                       ),
                     ),
-                    const SizedBox(height: TioSpacing.medium),
+                    const SizedBox(height: TioSpacing.md),
                   ],
                   TioButton.primary(
                     label: state.primaryActionLabel,
@@ -162,22 +165,22 @@ class OnboardingBottomBar extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          stops: const [0.0, 0.25, 0.70, 1.0],
+          stops: _normalGradientStops,
           colors: [
-            colors.background.withValues(alpha: 0.0),
-            colors.background.withValues(alpha: 0.50),
-            colors.background.withValues(alpha: 0.95),
-            colors.background.withValues(alpha: 1.0),
+            colors.background.withValues(alpha: TioOpacity.opacity0),
+            colors.background.withValues(alpha: TioOpacity.opacity50),
+            colors.background.withValues(alpha: TioOpacity.opacity95),
+            colors.background.withValues(alpha: TioOpacity.opacity100),
           ],
         ),
       ),
       child: SafeArea(
         top: false,
         minimum: EdgeInsets.only(
-          left: TioSpacing.large,
-          right: TioSpacing.large,
-          bottom: TioSpacing.large + MediaQuery.viewInsetsOf(context).bottom,
-          top: TioSpacing.extraLarge,
+          left: TioSpacing.lg,
+          right: TioSpacing.lg,
+          bottom: TioSpacing.lg + MediaQuery.viewInsetsOf(context).bottom,
+          top: TioSpacing.xl,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -189,22 +192,25 @@ class OnboardingBottomBar extends StatelessWidget {
                 onTap: infoAction!.onTap,
                 behavior: HitTestBehavior.opaque,
                 child: Padding(
-                  padding: const EdgeInsets.only(bottom: TioSpacing.small, top: 2),
+                  padding: const EdgeInsets.only(
+                    bottom: TioSpacing.sm,
+                    top: TioSize.dp2,
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
                         infoAction!.icon,
-                        size: 16,
+                        size: TioSize.dp16,
                         color: colors.textSecondary,
                       ),
-                      const SizedBox(width: TioSpacing.small),
+                      const SizedBox(width: TioSpacing.sm),
                       Text(
                         infoAction!.label,
                         style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                          fontSize: TioFontSize.size12,
+                          fontWeight: TioFontWeight.w500,
                           color: colors.textSecondary,
                         ),
                       ),
@@ -224,7 +230,7 @@ class OnboardingBottomBar extends StatelessWidget {
                       ),
                 ),
               ),
-              const SizedBox(height: TioSpacing.medium),
+              const SizedBox(height: TioSpacing.md),
             ],
             TioButton.primary(
               label: state.primaryActionLabel,

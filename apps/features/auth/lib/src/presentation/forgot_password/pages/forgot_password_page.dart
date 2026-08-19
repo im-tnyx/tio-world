@@ -47,7 +47,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     });
 
     if (widget.sendPasswordResetEmailUseCase == null) {
-      // Dev mode: simulate success
+      // Dev mode: simulate success. This is behavior timing, not visual motion.
       await Future<void>.delayed(const Duration(milliseconds: 600));
       if (mounted) setState(() => _emailSent = true);
       setState(() => _isLoading = false);
@@ -56,7 +56,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
     try {
       final result = await widget.sendPasswordResetEmailUseCase!(
-          _emailController.text.trim());
+        _emailController.text.trim(),
+      );
       if (!mounted) return;
       switch (result) {
         case SignInSuccess():
@@ -75,17 +76,21 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
+        // Intentional framework-transparent app bar; not a palette role.
         backgroundColor: Colors.transparent,
-        elevation: 0,
+        elevation: TioElevation.none,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back,
-              color: colors.textPrimary, size: 24),
+          icon: Icon(
+            Icons.arrow_back,
+            color: colors.textPrimary,
+            size: TioSize.dp24,
+          ),
           onPressed: () => context.pop(),
           tooltip: 'Back',
         ),
@@ -94,7 +99,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         child: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: TioSpacing.large),
+            padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
             child: _emailSent
                 ? _SuccessState(
                     email: _emailController.text.trim(),
@@ -107,18 +112,18 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 16),
+                        const SizedBox(height: TioSpacing.lg),
                         Text(
                           'Reset password',
                           style: textTheme.displayLarge,
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: TioSize.dp6),
                         Text(
                           "Enter your email address and we'll send you\na reset link.",
                           style: textTheme.bodyLarge
                               ?.copyWith(color: colors.textSecondary),
                         ),
-                        const SizedBox(height: 40),
+                        const SizedBox(height: TioSize.dp40),
 
                         // Email field
                         TextFormField(
@@ -135,20 +140,23 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                             prefixIcon: Icon(
                               Icons.mail_outline_rounded,
                               color: colors.textMuted,
-                              size: 20,
+                              size: TioSize.dp20,
                             ),
                             contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 16),
+                              horizontal: TioInputTokens.horizontalPadding,
+                              vertical:
+                                  TioInputTokens.standardContentVerticalPadding,
+                            ),
                           ),
                           validator: _validateEmail,
                         ),
 
                         // Error banner
                         if (_errorMessage != null) ...[
-                          const SizedBox(height: 16),
+                          const SizedBox(height: TioSpacing.lg),
                           _ErrorBanner(message: _errorMessage!),
                         ],
-                        const SizedBox(height: 28),
+                        const SizedBox(height: TioSize.dp28),
 
                         // Send reset button
                         TioButton.primary(
@@ -157,7 +165,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                           loading: _isLoading,
                           onPressed: _isLoading ? null : _handleSendReset,
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: TioSpacing.xl),
 
                         // Back to sign in
                         Center(
@@ -170,7 +178,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                               'Back to Sign In',
                               style: textTheme.bodyLarge?.copyWith(
                                 color: colors.primary,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: TioFontWeight.w600,
                               ),
                             ),
                           ),
@@ -203,30 +211,33 @@ class _SuccessState extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const SizedBox(height: 48),
+        const SizedBox(height: TioSize.dp48),
         Container(
-          width: 80,
-          height: 80,
+          width: TioSize.dp80,
+          height: TioSize.dp80,
           decoration: BoxDecoration(
-            color: colors.success.withValues(alpha: 0.12),
+            color: colors.success.withValues(alpha: TioOpacity.opacity12),
             shape: BoxShape.circle,
           ),
-          child:
-              Icon(Icons.mark_email_read_outlined, color: colors.success, size: 40),
+          child: Icon(
+            Icons.mark_email_read_outlined,
+            color: colors.success,
+            size: TioSize.dp40,
+          ),
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: TioSize.dp28),
         Text(
           'Check your inbox',
           style: textTheme.displayLarge,
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: TioSize.dp10),
         Text(
           'We sent a password reset link to\n$email',
           style: textTheme.bodyLarge?.copyWith(color: colors.textSecondary),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 40),
+        const SizedBox(height: TioSize.dp40),
         SizedBox(
           width: double.infinity,
           child: TioButton.primary(
@@ -246,25 +257,32 @@ class _ErrorBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: TioSpacing.lg,
+        vertical: TioSpacing.md,
+      ),
       decoration: BoxDecoration(
-        color: colors.danger.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(TioRadius.large),
+        color: colors.danger.withValues(alpha: TioOpacity.opacity10),
+        borderRadius: BorderRadius.circular(TioRadius.lg),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.error_outline_rounded, color: colors.danger, size: 18),
-          const SizedBox(width: 10),
+          Icon(
+            Icons.error_outline_rounded,
+            color: colors.danger,
+            size: TioSize.dp18,
+          ),
+          const SizedBox(width: TioSize.dp10),
           Expanded(
             child: Text(
               message,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: colors.danger,
-                    fontSize: 13,
+                    fontSize: TioFontSize.size13,
                   ),
             ),
           ),

@@ -35,7 +35,7 @@ class TioMeasurementUnitPreferencesEditor extends StatelessWidget {
           onLeft: () => onChanged(MeasurementUnitPreferences.metric),
           onRight: () => onChanged(MeasurementUnitPreferences.imperial),
         ),
-        const SizedBox(height: TioSpacing.large),
+        const SizedBox(height: TioSpacing.lg),
         const _SectionLabel('Weight'),
         _UnitChoiceRow(
           leftKey: const ValueKey('measurement-units-weight-kg'),
@@ -51,7 +51,7 @@ class TioMeasurementUnitPreferencesEditor extends StatelessWidget {
             preferences.copyWith(weightUnit: WeightUnit.lb),
           ),
         ),
-        const SizedBox(height: TioSpacing.large),
+        const SizedBox(height: TioSpacing.lg),
         const _SectionLabel('Height'),
         _UnitChoiceRow(
           leftKey: const ValueKey('measurement-units-height-cm'),
@@ -67,7 +67,7 @@ class TioMeasurementUnitPreferencesEditor extends StatelessWidget {
             preferences.copyWith(heightUnit: HeightUnit.ftIn),
           ),
         ),
-        const SizedBox(height: TioSpacing.large),
+        const SizedBox(height: TioSpacing.lg),
         const _SectionLabel('Distance'),
         _UnitChoiceRow(
           leftKey: const ValueKey('measurement-units-distance-km'),
@@ -83,7 +83,7 @@ class TioMeasurementUnitPreferencesEditor extends StatelessWidget {
             preferences.copyWith(distanceUnit: DistanceUnit.mi),
           ),
         ),
-        const SizedBox(height: TioSpacing.large),
+        const SizedBox(height: TioSpacing.lg),
         const _SectionLabel('Water & volume'),
         _UnitChoiceRow(
           leftKey: const ValueKey('measurement-units-volume-ml'),
@@ -111,15 +111,15 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     return Padding(
-      padding: const EdgeInsets.only(bottom: TioSpacing.small),
+      padding: const EdgeInsets.only(bottom: TioSpacing.sm),
       child: Text(
         label,
         style: TextStyle(
           color: colors.textSecondary,
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
+          fontSize: TioFontSize.size13,
+          fontWeight: TioFontWeight.w700,
         ),
       ),
     );
@@ -169,7 +169,7 @@ class _UnitChoiceRow extends StatelessWidget {
                   ),
           ),
         ),
-        const SizedBox(width: TioSpacing.medium),
+        const SizedBox(width: TioSpacing.md),
         Expanded(
           child: Semantics(
             selected: rightSelected,

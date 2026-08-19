@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tio_shared/shared.dart';
 
-import '../../../../theme/locals/tio_theme_context.dart';
+import '../../../../theme/context/tio_theme_context.dart';
 import '../../../../theme/tokens/components/tio_navigation_tokens.dart';
 import '../state/shell_state.dart';
 
@@ -76,7 +76,7 @@ class TioDestinationNavIcon extends StatelessWidget {
   const TioDestinationNavIcon({
     required this.destination,
     this.isSelected = false,
-    this.size = 22,
+    this.size = TioNavigationTokens.iconSize,
     this.color,
     super.key,
   });
@@ -151,37 +151,44 @@ class _AiTabIcon extends StatelessWidget {
 
     if (isActive) {
       return Container(
-        padding: const EdgeInsets.all(5),
+        padding: const EdgeInsets.all(TioNavigationTokens.aiTabActivePadding),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: colors.coach,
           boxShadow: [
             BoxShadow(
-              color: colors.coach.withValues(alpha: 0.3),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
+              color: colors.coach.withValues(
+                alpha: TioNavigationTokens.aiTabGlowOpacity,
+              ),
+              blurRadius: TioNavigationTokens.aiTabGlowBlurRadius,
+              offset: const Offset(
+                0,
+                TioNavigationTokens.aiTabGlowOffsetY,
+              ),
             ),
           ],
         ),
         child: Icon(
           Icons.auto_awesome,
-          size: 14,
+          size: TioNavigationTokens.aiTabIconSize,
           color: colors.isDark ? colors.background : colors.surface,
         ),
       );
     } else {
       return Container(
-        padding: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(TioNavigationTokens.aiTabInactivePadding),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: colors.textMuted.withValues(alpha: 0.4),
-            width: 1.5,
+            color: colors.textMuted.withValues(
+              alpha: TioNavigationTokens.aiTabInactiveOutlineOpacity,
+            ),
+            width: TioNavigationTokens.aiTabInactiveOutlineWidth,
           ),
         ),
         child: Icon(
           Icons.auto_awesome,
-          size: 14,
+          size: TioNavigationTokens.aiTabIconSize,
           color: colors.textMuted,
         ),
       );

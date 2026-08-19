@@ -39,10 +39,10 @@ class TargetsScreenScaffold extends StatelessWidget {
             subtitle: description,
           ),
         ),
-        const SizedBox(height: TioSpacing.extraLarge),
+        const SizedBox(height: TioSpacing.xl),
         child,
         if (errorText case final message?) ...[
-          const SizedBox(height: TioSpacing.medium),
+          const SizedBox(height: TioSpacing.md),
           Semantics(
             liveRegion: true,
             child: Text(
@@ -73,27 +73,26 @@ class TargetsStatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final bg = isRecommended
-        ? colors.success.withValues(alpha: 0.12)
-        : colors.warning.withValues(alpha: 0.12);
+        ? colors.success.withValues(alpha: TioOpacity.opacity12)
+        : colors.warning.withValues(alpha: TioOpacity.opacity12);
     final fg = isRecommended ? colors.success : colors.warning;
 
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: TioSpacing.medium,
-        vertical: 4,
+        horizontal: TioSpacing.md,
+        vertical: TioSpacing.xs,
       ),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(TioRadius.extraLarge),
+        borderRadius: BorderRadius.circular(TioRadius.xl),
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: fg,
-              fontWeight: FontWeight.w600,
+              fontWeight: TioFontWeight.w600,
             ),
       ),
     );
-
   }
 }

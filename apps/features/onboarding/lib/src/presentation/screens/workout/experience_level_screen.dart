@@ -21,7 +21,7 @@ class ExperienceLevelScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
 
     return WorkoutScreenScaffold(
@@ -45,7 +45,7 @@ class ExperienceLevelScreen extends StatelessWidget {
               textTheme: textTheme,
             ),
             if (level != WorkoutExperienceLevel.values.last)
-              const SizedBox(height: TioSpacing.medium),
+              const SizedBox(height: TioSpacing.md),
           ],
         ],
       ),
@@ -76,7 +76,9 @@ class _ExperienceCard extends StatelessWidget {
       label: '${_title(level)}. ${_years(level)}. ${_description(level)}',
       child: Material(
         color: isSelected
-            ? colors.primary.withValues(alpha: TioCardTokens.selectedContainerAlpha)
+            ? colors.primary.withValues(
+                alpha: TioCardTokens.selectedContainerAlpha,
+              )
             : colors.surface,
         borderRadius: BorderRadius.circular(TioCardTokens.radius),
         child: InkWell(
@@ -84,14 +86,16 @@ class _ExperienceCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(TioCardTokens.radius),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            padding: const EdgeInsets.all(TioSpacing.large),
+            duration: const Duration(milliseconds: TioDuration.ms180),
+            padding: const EdgeInsets.all(TioSpacing.lg),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(TioCardTokens.radius),
               border: Border.all(
                 color: isSelected
                     ? colors.primary
-                    : colors.outlineStrong.withValues(alpha: TioCardTokens.unselectedOutlineAlpha),
+                    : colors.outlineStrong.withValues(
+                        alpha: TioCardTokens.unselectedOutlineAlpha,
+                      ),
                 width: isSelected
                     ? TioCardTokens.selectedBorderWidth
                     : TioCardTokens.unselectedBorderWidth,
@@ -106,22 +110,26 @@ class _ExperienceCard extends StatelessWidget {
                       level: _levelNumber(level),
                       isSelected: isSelected,
                     ),
-                    const SizedBox(width: TioSpacing.small + 2),
+                    const SizedBox(width: TioSize.dp10),
                     Expanded(
                       child: Text(
                         _title(level),
                         style: textTheme.titleMedium?.copyWith(
-                          fontSize: 16,
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                          color: isSelected ? colors.primary : colors.textPrimary,
+                          fontSize: TioFontSize.size16,
+                          fontWeight: isSelected
+                              ? TioFontWeight.w700
+                              : TioFontWeight.w600,
+                          color: isSelected
+                              ? colors.primary
+                              : colors.textPrimary,
                         ),
                       ),
                     ),
-                    const SizedBox(width: TioSpacing.small),
+                    const SizedBox(width: TioSpacing.sm),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
+                        horizontal: TioSize.dp10,
+                        vertical: TioSpacing.xs,
                       ),
                       decoration: BoxDecoration(
                         color: isSelected
@@ -132,22 +140,26 @@ class _ExperienceCard extends StatelessWidget {
                       child: Text(
                         _years(level),
                         style: textTheme.bodySmall?.copyWith(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.6,
-                          color: isSelected ? colors.onPrimary : colors.textSecondary,
+                          fontSize: TioFontSize.size11,
+                          fontWeight: TioFontWeight.w700,
+                          letterSpacing: TioLetterSpacing.positive06,
+                          color: isSelected
+                              ? colors.onPrimary
+                              : colors.textSecondary,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: TioSize.dp6),
                 Text(
                   _description(level),
                   style: textTheme.bodyMedium?.copyWith(
-                    fontSize: 13,
-                    height: 1.35,
-                    color: isSelected ? colors.textPrimary : colors.textSecondary,
+                    fontSize: TioFontSize.size13,
+                    height: TioLineHeight.height135,
+                    color: isSelected
+                        ? colors.textPrimary
+                        : colors.textSecondary,
                   ),
                 ),
               ],
@@ -171,20 +183,24 @@ class LevelSignalIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final activeColor = isSelected ? colors.primary : colors.textPrimary;
-    final inactiveColor = colors.outlineStrong.withValues(alpha: 0.35);
+    final inactiveColor = colors.outlineStrong.withValues(
+      alpha: TioOpacity.opacity35,
+    );
 
     return SizedBox(
-      height: 22,
+      height: TioSize.dp22,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
+          // Signal-bar dimensions are a one-off icon composition, not a
+          // reusable design-token family.
           for (var i = 1; i <= 4; i++) ...[
             Container(
               width: 3.5,
-              height: (6.0 + (i * 4.0)),
+              height: 6.0 + (i * 4.0),
               decoration: BoxDecoration(
                 color: i <= level ? activeColor : inactiveColor,
                 borderRadius: BorderRadius.circular(2.0),

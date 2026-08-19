@@ -572,7 +572,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 body: SafeArea(
                   child: Center(
                     child: CircularProgressIndicator(
-                      color: TioTheme.colors(context).primary,
+                      color: context.tioColors.primary,
                     ),
                   ),
                 ),

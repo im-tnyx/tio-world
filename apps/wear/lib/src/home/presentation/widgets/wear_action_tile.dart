@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tio_core/core.dart';
 
 import '../model/wear_home_tile.dart';
 
@@ -15,31 +16,36 @@ class WearActionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF161616),
-      borderRadius: BorderRadius.circular(22),
+      color: TioPalette.gray022,
+      borderRadius: BorderRadius.circular(TioSize.dp22),
       child: InkWell(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(TioSize.dp22),
         onTap: () => onSelected(tile.action),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(
+            horizontal: TioSize.dp14,
+            vertical: TioSpacing.md,
+          ),
           child: Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: TioSize.dp36,
+                height: TioSize.dp36,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF242424),
-                  borderRadius: BorderRadius.circular(18),
+                  color: TioPalette.gray036,
+                  borderRadius: BorderRadius.circular(TioSize.dp18),
                 ),
-                child: Icon(tile.icon, size: 20),
+                child: Icon(tile.icon, size: TioSize.dp20),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: TioSpacing.md),
               Expanded(
                 child: Text(
                   tile.title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: TioFontWeight.w700,
+                      ),
                 ),
               ),
             ],

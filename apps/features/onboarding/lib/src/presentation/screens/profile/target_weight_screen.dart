@@ -53,7 +53,7 @@ class TargetWeightScreen extends StatelessWidget {
         badge: 'Maintain',
         diffText: '0.0 $unitLabel',
         message: 'Your plan will focus on body recomposition, stamina, and overall vitality.',
-        color: const Color(0xFF38BDF8),
+        color: TioDomainColors.healthInfo,
       );
     } else if (diffKg < 0) {
       final diffStr = '-${diffAbs.toStringAsFixed(1)} $unitLabel';
@@ -62,14 +62,14 @@ class TargetWeightScreen extends StatelessWidget {
           badge: 'Weight Loss',
           diffText: diffStr,
           message: 'Sustainable calorie deficit and cardio-strength blend will achieve this safely.',
-          color: const Color(0xFF4ADE80),
+          color: TioDomainColors.healthPositive,
         );
       } else {
         return (
           badge: 'Ambitious Loss',
           diffText: diffStr,
           message: 'Ambitious target. We will pace your progression in sustainable phased cycles.',
-          color: const Color(0xFFFBBF24),
+          color: TioDomainColors.healthWarning,
         );
       }
     } else {
@@ -79,14 +79,14 @@ class TargetWeightScreen extends StatelessWidget {
           badge: 'Muscle Gain',
           diffText: diffStr,
           message: 'Hypertrophy resistance workouts and protein surplus will fuel lean gains.',
-          color: const Color(0xFF4ADE80),
+          color: TioDomainColors.healthPositive,
         );
       } else {
         return (
           badge: 'Significant Gain',
           diffText: diffStr,
           message: 'High calorie surplus and progressive overload will drive healthy mass growth.',
-          color: const Color(0xFFFBBF24),
+          color: TioDomainColors.healthWarning,
         );
       }
     }
@@ -94,7 +94,7 @@ class TargetWeightScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final analysis = _getTargetAnalysis();
 
     return ProfileScreenScaffold(
@@ -106,26 +106,29 @@ class TargetWeightScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 8),
+          const SizedBox(height: TioSpacing.sm),
           Center(
             child: Text(
               _displayValue,
               key: const ValueKey('profile-target-weight-display'),
               style: TextStyle(
                 color: colors.textPrimary,
-                fontSize: 44,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -1.0,
+                fontSize: TioFontSize.size44,
+                fontWeight: TioFontWeight.w900,
+                letterSpacing: TioLetterSpacing.negative10,
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: TioSpacing.xl),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: const EdgeInsets.symmetric(
+              horizontal: TioSize.dp20,
+              vertical: TioSpacing.lg,
+            ),
             decoration: BoxDecoration(
               color: colors.surfaceRaised,
-              borderRadius: BorderRadius.circular(TioRadius.large),
+              borderRadius: BorderRadius.circular(TioRadius.lg),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,47 +139,50 @@ class TargetWeightScreen extends StatelessWidget {
                       'Difference  ',
                       style: TextStyle(
                         color: colors.textSecondary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
+                        fontWeight: TioFontWeight.w600,
+                        fontSize: TioFontSize.size15,
                       ),
                     ),
                     Text(
                       analysis.diffText,
                       style: TextStyle(
                         color: analysis.color,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 18,
+                        fontWeight: TioFontWeight.w800,
+                        fontSize: TioFontSize.size18,
                       ),
                     ),
-                    const SizedBox(width: TioSpacing.medium),
+                    const SizedBox(width: TioSpacing.md),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: TioSize.dp10,
+                        vertical: TioSize.dp3,
+                      ),
                       decoration: BoxDecoration(
-                        color: analysis.color.withAlpha(25),
+                        color: analysis.color.withAlpha(TioAlpha.alpha25),
                         borderRadius: BorderRadius.circular(TioRadius.full),
                         border: Border.all(
-                          color: analysis.color.withAlpha(80),
-                          width: 1,
+                          color: analysis.color.withAlpha(TioAlpha.alpha80),
+                          width: TioStroke.width1,
                         ),
                       ),
                       child: Text(
                         analysis.badge,
                         style: TextStyle(
                           color: analysis.color,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
+                          fontWeight: TioFontWeight.w700,
+                          fontSize: TioFontSize.size12,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: TioSpacing.sm),
                 Text(
                   analysis.message,
                   style: TextStyle(
                     color: colors.textSecondary,
-                    fontSize: 13,
-                    height: 1.4,
+                    fontSize: TioFontSize.size13,
+                    height: TioLineHeight.height140,
                   ),
                 ),
               ],

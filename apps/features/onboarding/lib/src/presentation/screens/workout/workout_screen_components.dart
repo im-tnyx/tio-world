@@ -40,10 +40,10 @@ class WorkoutScreenScaffold extends StatelessWidget {
             subtitle: description,
           ),
         ),
-        const SizedBox(height: TioSpacing.large),
+        const SizedBox(height: TioSpacing.lg),
         child,
         if (errorText case final message?) ...[
-          const SizedBox(height: TioSpacing.medium),
+          const SizedBox(height: TioSpacing.md),
           Semantics(
             liveRegion: true,
             child: Text(
@@ -92,7 +92,9 @@ class WorkoutChoiceCard extends StatelessWidget {
       label: description == null ? title : '$title. $description',
       child: Material(
         color: selected
-            ? colors.primary.withValues(alpha: TioCardTokens.selectedContainerAlpha)
+            ? colors.primary.withValues(
+                alpha: TioCardTokens.selectedContainerAlpha,
+              )
             : colors.surface,
         borderRadius: BorderRadius.circular(TioCardTokens.radius),
         child: InkWell(
@@ -100,14 +102,16 @@ class WorkoutChoiceCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(TioCardTokens.radius),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.all(TioSpacing.large),
+            duration: const Duration(milliseconds: TioDuration.ms150),
+            padding: const EdgeInsets.all(TioSpacing.lg),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(TioCardTokens.radius),
               border: Border.all(
                 color: selected
                     ? colors.primary
-                    : colors.outlineStrong.withValues(alpha: 0.35),
+                    : colors.outlineStrong.withValues(
+                        alpha: TioOpacity.opacity35,
+                      ),
                 width: selected
                     ? TioCardTokens.selectedBorderWidth
                     : TioCardTokens.unselectedBorderWidth,
@@ -118,7 +122,7 @@ class WorkoutChoiceCard extends StatelessWidget {
               children: [
                 if (icon != null) ...[
                   Padding(
-                    padding: const EdgeInsets.only(top: 2),
+                    padding: const EdgeInsets.only(top: TioSpacing.xxs),
                     child: Icon(
                       icon,
                       color: selected
@@ -126,7 +130,7 @@ class WorkoutChoiceCard extends StatelessWidget {
                           : colors.textSecondary,
                     ),
                   ),
-                  const SizedBox(width: TioSpacing.medium),
+                  const SizedBox(width: TioSpacing.md),
                 ],
                 Expanded(
                   child: Column(
@@ -135,26 +139,28 @@ class WorkoutChoiceCard extends StatelessWidget {
                       Text(
                         title,
                         style: TextStyle(
-                          color: selected ? colors.primary : colors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
+                          color: selected
+                              ? colors.primary
+                              : colors.textPrimary,
+                          fontWeight: TioFontWeight.w700,
+                          fontSize: TioFontSize.size16,
                         ),
                       ),
                       if (description case final details?) ...[
-                        const SizedBox(height: TioSpacing.small),
+                        const SizedBox(height: TioSpacing.sm),
                         Text(
                           details,
                           style: TextStyle(
                             color: colors.textSecondary,
-                            fontSize: 13,
-                            height: 1.3,
+                            fontSize: TioFontSize.size13,
+                            height: TioLineHeight.height130,
                           ),
                         ),
                       ],
                     ],
                   ),
                 ),
-                const SizedBox(width: TioSpacing.medium),
+                const SizedBox(width: TioSpacing.md),
                 Icon(
                   switch (selectionStyle) {
                     WorkoutSelectionStyle.single => selected

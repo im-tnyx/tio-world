@@ -10,85 +10,96 @@ import '../../../theme/theme.dart';
 /// - Full-width "Remove 🗑️" capsule button
 /// - Full-width "Cancel ✕" capsule button
 Future<bool?> showTioRemoveImageConfirmationBottomSheet(BuildContext context) {
-  final colors = TioTheme.colors(context);
+  final colors = context.tioColors;
 
   return showModalBottomSheet<bool>(
     context: context,
     backgroundColor: colors.surfaceRaised,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(TioRemoveImageSheetTokens.sheetRadius),
+      ),
     ),
     builder: (sheetContext) {
       return SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          padding: const EdgeInsets.fromLTRB(
+            TioRemoveImageSheetTokens.contentHorizontalPadding,
+            TioRemoveImageSheetTokens.contentTopPadding,
+            TioRemoveImageSheetTokens.contentHorizontalPadding,
+            TioRemoveImageSheetTokens.contentBottomPadding,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Top-right close button
               Align(
                 alignment: Alignment.topRight,
                 child: GestureDetector(
                   onTap: () => Navigator.of(sheetContext).pop(false),
                   child: Container(
-                    width: 32,
-                    height: 32,
+                    width: TioRemoveImageSheetTokens.closeButtonSize,
+                    height: TioRemoveImageSheetTokens.closeButtonSize,
                     decoration: BoxDecoration(
                       color: colors.surface,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       Icons.close_rounded,
-                      size: 18,
+                      size: TioRemoveImageSheetTokens.closeIconSize,
                       color: colors.textSecondary,
                     ),
                   ),
                 ),
               ),
-
-              const SizedBox(height: 6),
-
-              // Title: Remove Image
+              const SizedBox(
+                height: TioRemoveImageSheetTokens.closeToTitleGap,
+              ),
               Text(
                 'Remove Image',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: colors.textPrimary,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 22,
-                  letterSpacing: -0.3,
+                  fontWeight: TioFontWeight.w800,
+                  fontSize: TioRemoveImageSheetTokens.titleFontSize,
+                  letterSpacing: TioRemoveImageSheetTokens.titleLetterSpacing,
                 ),
               ),
-
-              const SizedBox(height: 8),
-
-              // Subtitle
+              const SizedBox(
+                height: TioRemoveImageSheetTokens.titleToSubtitleGap,
+              ),
               Text(
                 'Are you sure you want to remove this image?',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: colors.textMuted,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
+                  fontSize: TioRemoveImageSheetTokens.subtitleFontSize,
+                  fontWeight: TioFontWeight.w500,
                 ),
               ),
-
-              const SizedBox(height: 26),
-
-              // Remove Button (Capsule with Trash Icon)
+              const SizedBox(
+                height: TioRemoveImageSheetTokens.subtitleToActionsGap,
+              ),
               InkWell(
                 onTap: () => Navigator.of(sheetContext).pop(true),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(
+                  TioRemoveImageSheetTokens.actionRadius,
+                ),
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: TioRemoveImageSheetTokens.actionVerticalPadding,
+                  ),
                   decoration: BoxDecoration(
                     color: colors.surface,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(
+                      TioRemoveImageSheetTokens.actionRadius,
+                    ),
                     border: Border.all(
-                      color: colors.outlineStrong.withAlpha(25),
-                      width: 1,
+                      color: colors.outlineStrong.withAlpha(
+                        TioRemoveImageSheetTokens.actionOutlineAlpha,
+                      ),
+                      width: TioRemoveImageSheetTokens.actionOutlineWidth,
                     ),
                   ),
                   child: Row(
@@ -98,36 +109,44 @@ Future<bool?> showTioRemoveImageConfirmationBottomSheet(BuildContext context) {
                         'Remove',
                         style: TextStyle(
                           color: colors.danger,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
+                          fontWeight: TioFontWeight.w700,
+                          fontSize:
+                              TioRemoveImageSheetTokens.actionLabelFontSize,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(
+                        width: TioRemoveImageSheetTokens.actionIconGap,
+                      ),
                       Icon(
                         Icons.delete_outline_rounded,
                         color: colors.danger,
-                        size: 20,
+                        size: TioRemoveImageSheetTokens.removeIconSize,
                       ),
                     ],
                   ),
                 ),
               ),
-
-              const SizedBox(height: 12),
-
-              // Cancel Button (Capsule with Close Icon)
+              const SizedBox(height: TioRemoveImageSheetTokens.actionGap),
               InkWell(
                 onTap: () => Navigator.of(sheetContext).pop(false),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(
+                  TioRemoveImageSheetTokens.actionRadius,
+                ),
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: TioRemoveImageSheetTokens.actionVerticalPadding,
+                  ),
                   decoration: BoxDecoration(
                     color: colors.surface,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(
+                      TioRemoveImageSheetTokens.actionRadius,
+                    ),
                     border: Border.all(
-                      color: colors.outlineStrong.withAlpha(25),
-                      width: 1,
+                      color: colors.outlineStrong.withAlpha(
+                        TioRemoveImageSheetTokens.actionOutlineAlpha,
+                      ),
+                      width: TioRemoveImageSheetTokens.actionOutlineWidth,
                     ),
                   ),
                   child: Row(
@@ -137,15 +156,18 @@ Future<bool?> showTioRemoveImageConfirmationBottomSheet(BuildContext context) {
                         'Cancel',
                         style: TextStyle(
                           color: colors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
+                          fontWeight: TioFontWeight.w700,
+                          fontSize:
+                              TioRemoveImageSheetTokens.actionLabelFontSize,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(
+                        width: TioRemoveImageSheetTokens.actionIconGap,
+                      ),
                       Icon(
                         Icons.close_rounded,
                         color: colors.textPrimary,
-                        size: 18,
+                        size: TioRemoveImageSheetTokens.cancelIconSize,
                       ),
                     ],
                   ),

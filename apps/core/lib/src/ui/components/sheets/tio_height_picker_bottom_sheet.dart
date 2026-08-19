@@ -86,17 +86,19 @@ class _TioHeightPickerBottomSheetState
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final isFt = widget.unit == 'ft';
 
     return Container(
       decoration: BoxDecoration(
         color: colors.surfaceRaised,
         borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(TioRadius.extraLarge),
+          top: Radius.circular(TioRadius.xl),
         ),
         border: Border.all(
-          color: colors.outlineStrong.withAlpha(25),
+          color: colors.outlineStrong.withAlpha(
+            TioMeasurementPickerTokens.sheetOutlineAlpha,
+          ),
         ),
       ),
       padding: EdgeInsets.only(
@@ -106,10 +108,10 @@ class _TioHeightPickerBottomSheetState
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
-            TioSpacing.large,
-            TioSpacing.large,
-            TioSpacing.large,
-            TioSpacing.extraLarge,
+            TioSpacing.lg,
+            TioSpacing.lg,
+            TioSpacing.lg,
+            TioSpacing.xl,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -123,29 +125,33 @@ class _TioHeightPickerBottomSheetState
                       'Height',
                       style: TextStyle(
                         color: colors.textPrimary,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 24,
-                        letterSpacing: -0.3,
+                        fontWeight: TioFontWeight.w700,
+                        fontSize: TioMeasurementPickerTokens.titleFontSize,
+                        letterSpacing:
+                            TioMeasurementPickerTokens.titleLetterSpacing,
                       ),
                     ),
                   ),
                   Align(
                     alignment: Alignment.centerRight,
                     child: Container(
-                      width: 32,
-                      height: 32,
+                      width: TioMeasurementPickerTokens.closeButtonSize,
+                      height: TioMeasurementPickerTokens.closeButtonSize,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: colors.outlineStrong.withAlpha(50),
+                        color: colors.outlineStrong.withAlpha(
+                          TioMeasurementPickerTokens.closeContainerAlpha,
+                        ),
                       ),
                       child: IconButton(
                         onPressed: () => Navigator.of(context).pop(),
                         icon: Icon(
                           Icons.close_rounded,
                           color: colors.textSecondary,
-                          size: 18,
+                          size: TioMeasurementPickerTokens.closeIconSize,
                         ),
-                        splashRadius: 16,
+                        splashRadius:
+                            TioMeasurementPickerTokens.closeSplashRadius,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                       ),
@@ -153,7 +159,9 @@ class _TioHeightPickerBottomSheetState
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(
+                height: TioMeasurementPickerTokens.headerSubtitleGap,
+              ),
 
               // ── Subtitle ──
               Text(
@@ -161,13 +169,15 @@ class _TioHeightPickerBottomSheetState
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: colors.textSecondary,
-                  fontSize: 14,
-                  height: 1.35,
-                  fontWeight: FontWeight.w400,
+                  fontSize: TioMeasurementPickerTokens.subtitleFontSize,
+                  height: TioMeasurementPickerTokens.subtitleLineHeight,
+                  fontWeight: TioFontWeight.w400,
                 ),
               ),
 
-              const SizedBox(height: 28),
+              const SizedBox(
+                height: TioMeasurementPickerTokens.inputSectionGap,
+              ),
 
               // ── Input Fields ──
               if (isFt)
@@ -181,7 +191,9 @@ class _TioHeightPickerBottomSheetState
                         colors: colors,
                       ),
                     ),
-                    const SizedBox(width: 14),
+                    const SizedBox(
+                      width: TioMeasurementPickerTokens.dualInputGap,
+                    ),
                     // Inches Box
                     Expanded(
                       child: _HeightInputCapsule(
@@ -199,7 +211,9 @@ class _TioHeightPickerBottomSheetState
                   colors: colors,
                 ),
 
-              const SizedBox(height: 28),
+              const SizedBox(
+                height: TioMeasurementPickerTokens.inputSectionGap,
+              ),
 
               // ── Save Button ──
               TioButton.primary(
@@ -229,15 +243,21 @@ class _HeightInputCapsule extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 64,
+      height: TioMeasurementPickerTokens.inputHeight,
       decoration: BoxDecoration(
         color: colors.surfaceRaised,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(
+          TioMeasurementPickerTokens.inputRadius,
+        ),
         border: Border.all(
-          color: colors.outlineStrong.withAlpha(40),
+          color: colors.outlineStrong.withAlpha(
+            TioMeasurementPickerTokens.inputOutlineAlpha,
+          ),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(
+        horizontal: TioMeasurementPickerTokens.inputHorizontalPadding,
+      ),
       alignment: Alignment.center,
       child: Row(
         children: [
@@ -252,8 +272,8 @@ class _HeightInputCapsule extends StatelessWidget {
               cursorColor: colors.primary,
               style: TextStyle(
                 color: colors.textPrimary,
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
+                fontSize: TioMeasurementPickerTokens.inputTextFontSize,
+                fontWeight: TioFontWeight.w700,
               ),
               decoration: const InputDecoration(
                 border: InputBorder.none,
@@ -273,8 +293,8 @@ class _HeightInputCapsule extends StatelessWidget {
             suffix,
             style: TextStyle(
               color: colors.textSecondary,
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
+              fontSize: TioMeasurementPickerTokens.unitFontSize,
+              fontWeight: TioFontWeight.w500,
             ),
           ),
         ],

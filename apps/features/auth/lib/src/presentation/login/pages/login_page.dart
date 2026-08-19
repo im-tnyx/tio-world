@@ -175,11 +175,16 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
+    final textTheme = Theme.of(context).textTheme;
     final isDark = colors.isDark;
 
-    final inputBorderRadius = BorderRadius.circular(TioRadius.large);
-    final inputBorderColor = colors.outlineStrong.withValues(alpha: isDark ? 0.35 : 0.45);
+    final inputBorderRadius = BorderRadius.circular(TioRadius.lg);
+    final inputBorderColor = colors.outlineStrong.withValues(
+      alpha: isDark
+          ? TioInputTokens.darkUnfocusedOutlineOpacity
+          : TioInputTokens.lightUnfocusedOutlineOpacity,
+    );
     final inputFocusedBorderColor = colors.textPrimary;
 
     return Scaffold(
@@ -194,13 +199,13 @@ class _LoginPageState extends State<LoginPage> {
                 // Top App Bar (100% Identical alignment with OnboardingTopBar & SignUp)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(
-                    TioSpacing.small,
+                    TioSpacing.sm,
                     0,
-                    TioSpacing.large,
+                    TioSpacing.lg,
                     0,
                   ),
                   child: SizedBox(
-                    height: 48,
+                    height: TioSize.dp48,
                     child: Row(
                       children: [
                         IconButton(
@@ -208,7 +213,7 @@ class _LoginPageState extends State<LoginPage> {
                           icon: Icon(
                             Icons.arrow_back,
                             color: colors.textPrimary,
-                            size: 24,
+                            size: TioSize.dp24,
                           ),
                           onPressed: () {
                             if (!_isBusy) {
@@ -220,15 +225,8 @@ class _LoginPageState extends State<LoginPage> {
                             }
                           },
                         ),
-                        const SizedBox(width: TioSpacing.small),
-                        Text(
-                          'Login',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: colors.textPrimary,
-                          ),
-                        ),
+                        const SizedBox(width: TioSpacing.sm),
+                        Text('Login', style: textTheme.titleLarge),
                       ],
                     ),
                   ),
@@ -237,11 +235,13 @@ class _LoginPageState extends State<LoginPage> {
                 // Form Content
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: TioSpacing.large),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: TioSpacing.lg,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: TioSpacing.large),
+                        const SizedBox(height: TioSpacing.lg),
 
                         // Email Input Field (Outlined)
                         TextFormField(
@@ -249,36 +249,39 @@ class _LoginPageState extends State<LoginPage> {
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.next,
-                          style: TextStyle(color: colors.textPrimary, fontSize: 16),
+                          style: textTheme.bodyLarge,
                           cursorColor: colors.primary,
                           decoration: InputDecoration(
                             labelText: 'Email',
-                            labelStyle: TextStyle(
-                              color: colors.textSecondary,
-                              fontSize: 14,
-                            ),
-                            floatingLabelStyle: TextStyle(
+                            labelStyle: textTheme.bodyMedium,
+                            floatingLabelStyle: textTheme.bodyMedium?.copyWith(
                               color: colors.textPrimary,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: TioFontWeight.w500,
                             ),
                             contentPadding: const EdgeInsets.symmetric(
-                              horizontal: TioSpacing.large,
-                              vertical: TioSpacing.large,
+                              horizontal: TioInputTokens.horizontalPadding,
+                              vertical:
+                                  TioInputTokens.standardContentVerticalPadding,
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: inputBorderRadius,
-                              borderSide: BorderSide(color: inputBorderColor, width: 1.2),
+                              borderSide: BorderSide(
+                                color: inputBorderColor,
+                                width: TioStroke.width12,
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: inputBorderRadius,
-                              borderSide: BorderSide(color: inputFocusedBorderColor, width: 1.8),
+                              borderSide: BorderSide(
+                                color: inputFocusedBorderColor,
+                                width: TioStroke.width18,
+                              ),
                             ),
                             filled: false,
                           ),
                         ),
 
-                        const SizedBox(height: TioSpacing.large),
+                        const SizedBox(height: TioSpacing.lg),
 
                         // Password Input Field (Outlined with Visibility Toggle)
                         TextFormField(
@@ -287,22 +290,31 @@ class _LoginPageState extends State<LoginPage> {
                           obscureText: !_isPasswordVisible,
                           textInputAction: TextInputAction.done,
                           onFieldSubmitted: (_) => _handleEmailSignIn(),
-                          style: TextStyle(color: colors.textPrimary, fontSize: 16),
+                          style: textTheme.bodyLarge,
                           cursorColor: colors.primary,
                           decoration: InputDecoration(
                             hintText: 'Password',
-                            hintStyle: TextStyle(color: colors.textMuted, fontSize: 16),
+                            hintStyle: textTheme.bodyLarge?.copyWith(
+                              color: colors.textMuted,
+                            ),
                             contentPadding: const EdgeInsets.symmetric(
-                              horizontal: TioSpacing.large,
-                              vertical: TioSpacing.large,
+                              horizontal: TioInputTokens.horizontalPadding,
+                              vertical:
+                                  TioInputTokens.standardContentVerticalPadding,
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: inputBorderRadius,
-                              borderSide: BorderSide(color: inputBorderColor, width: 1.2),
+                              borderSide: BorderSide(
+                                color: inputBorderColor,
+                                width: TioStroke.width12,
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: inputBorderRadius,
-                              borderSide: BorderSide(color: inputFocusedBorderColor, width: 1.8),
+                              borderSide: BorderSide(
+                                color: inputFocusedBorderColor,
+                                width: TioStroke.width18,
+                              ),
                             ),
                             suffixIcon: IconButton(
                               icon: Icon(
@@ -310,17 +322,19 @@ class _LoginPageState extends State<LoginPage> {
                                     ? Icons.visibility_outlined
                                     : Icons.visibility_off_outlined,
                                 color: colors.textMuted,
-                                size: 22,
+                                size: TioSize.dp22,
                               ),
                               onPressed: () {
-                                setState(() => _isPasswordVisible = !_isPasswordVisible);
+                                setState(
+                                  () => _isPasswordVisible = !_isPasswordVisible,
+                                );
                               },
                             ),
                             filled: false,
                           ),
                         ),
 
-                        const SizedBox(height: TioSpacing.medium),
+                        const SizedBox(height: TioSpacing.md),
 
                         // Forgot Password Link
                         GestureDetector(
@@ -332,14 +346,10 @@ class _LoginPageState extends State<LoginPage> {
                           },
                           child: Text(
                             'Forgot Password?',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: colors.textPrimary,
-                            ),
+                            style: textTheme.labelLarge,
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: TioSpacing.xl),
                         // Login Action Button (Reusable TioButton Component)
                         TioButton.primary(
                           key: const ValueKey('login-submit-button'),
@@ -350,39 +360,45 @@ class _LoginPageState extends State<LoginPage> {
                           onPressed: _handleEmailSignIn,
                         ),
 
-                        const SizedBox(height: TioSpacing.extraLarge),
+                        const SizedBox(height: TioSpacing.xl),
 
                         // OR Divider
                         Row(
                           children: [
                             Expanded(
                               child: Divider(
-                                color: colors.outlineStrong.withValues(alpha: 0.3),
-                                thickness: 1,
+                                color: colors.outlineStrong.withValues(
+                                  alpha: TioOpacity.opacity30,
+                                ),
+                                thickness: TioStroke.width1,
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: TioSpacing.large),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: TioSpacing.lg,
+                              ),
                               child: Text(
                                 'OR',
                                 style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: TioFontSize.size11,
+                                  fontWeight: TioFontWeight.w600,
                                   color: colors.textMuted,
-                                  letterSpacing: 0.5,
+                                  letterSpacing: TioLetterSpacing.positive05,
                                 ),
                               ),
                             ),
                             Expanded(
                               child: Divider(
-                                color: colors.outlineStrong.withValues(alpha: 0.3),
-                                thickness: 1,
+                                color: colors.outlineStrong.withValues(
+                                  alpha: TioOpacity.opacity30,
+                                ),
+                                thickness: TioStroke.width1,
                               ),
                             ),
                           ],
                         ),
 
-                        const SizedBox(height: TioSpacing.extraLarge),
+                        const SizedBox(height: TioSpacing.xl),
 
                         // Continue with Google Button
                         TioSocialButton.google(
@@ -392,7 +408,7 @@ class _LoginPageState extends State<LoginPage> {
                           onPressed: _handleGoogleSignIn,
                         ),
 
-                        const SizedBox(height: 12),
+                        const SizedBox(height: TioSpacing.md),
 
                         // Continue with Truecaller Button
                         TioSocialButton.truecaller(
@@ -402,7 +418,9 @@ class _LoginPageState extends State<LoginPage> {
                           onPressed: _handleTruecallerSignIn,
                         ),
 
-                        const SizedBox(height: TioSpacing.extraLarge + TioSpacing.small),
+                        const SizedBox(
+                          height: TioSpacing.xl + TioSpacing.sm,
+                        ),
                       ],
                     ),
                   ),
@@ -410,16 +428,13 @@ class _LoginPageState extends State<LoginPage> {
 
                 // Footer: Don't have an account? Sign Up
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 0, top: TioSpacing.small),
+                  padding: const EdgeInsets.only(top: TioSpacing.sm),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         "Don't have an account? ",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: colors.textSecondary,
-                        ),
+                        style: textTheme.bodyMedium,
                       ),
                       TextButton(
                         key: const ValueKey('login-signup-link'),
@@ -429,18 +444,14 @@ class _LoginPageState extends State<LoginPage> {
                           }
                         },
                         style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: TioSpacing.xs,
+                            vertical: TioSpacing.sm,
+                          ),
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: Text(
-                          'Sign Up',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: colors.textPrimary,
-                          ),
-                        ),
+                        child: Text('Sign Up', style: textTheme.labelLarge),
                       ),
                     ],
                   ),
@@ -451,9 +462,9 @@ class _LoginPageState extends State<LoginPage> {
             // Floating Error Banner at Top
             if (_errorMessage != null)
               Positioned(
-                top: TioSpacing.medium,
-                left: TioSpacing.large,
-                right: TioSpacing.large,
+                top: TioSpacing.md,
+                left: TioSpacing.lg,
+                right: TioSpacing.lg,
                 child: _FloatingErrorBanner(
                   message: _errorMessage!,
                   onDismiss: () => setState(() => _errorMessage = null),
@@ -466,52 +477,67 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
-/// Floating error banner matching Tnyx-Hub error state
+/// Floating error banner matching Tnyx-Hub error state.
 class _FloatingErrorBanner extends StatelessWidget {
   const _FloatingErrorBanner({
     required this.message,
     required this.onDismiss,
   });
 
+  // This is a one-off local Material effect, not evidence for a shared
+  // TioElevation role.
+  static const _elevation = 6.0;
+
   final String message;
   final VoidCallback onDismiss;
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     return Material(
       color: Colors.transparent,
-      elevation: 6,
+      elevation: _elevation,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: TioSpacing.large, vertical: TioSpacing.medium),
+        padding: const EdgeInsets.symmetric(
+          horizontal: TioSpacing.lg,
+          vertical: TioSpacing.md,
+        ),
         decoration: BoxDecoration(
           color: colors.danger,
-          borderRadius: BorderRadius.circular(TioRadius.large),
+          borderRadius: BorderRadius.circular(TioRadius.lg),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: TioPalette.black.withValues(alpha: TioOpacity.opacity30),
+              blurRadius: TioSize.dp10,
+              offset: const Offset(0, TioSize.dp4),
             ),
           ],
         ),
         child: Row(
           children: [
-            const Icon(Icons.error_outline, color: Colors.white, size: 20),
-            const SizedBox(width: TioSpacing.medium),
+            const Icon(
+              Icons.error_outline,
+              color: TioPalette.white,
+              size: TioSize.dp20,
+            ),
+            const SizedBox(width: TioSpacing.md),
             Expanded(
               child: Text(
                 message,
                 style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+                  color: TioPalette.white,
+                  fontSize: TioFontSize.size13,
+                  fontWeight: TioFontWeight.w500,
                 ),
               ),
             ),
             GestureDetector(
               onTap: onDismiss,
-              child: const Icon(Icons.close, color: Colors.white70, size: 18),
+              child: const Icon(
+                Icons.close,
+                color: TioPalette.whiteAlpha179,
+                size: TioSize.dp18,
+              ),
             ),
           ],
         ),

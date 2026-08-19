@@ -17,7 +17,7 @@ class AppModeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -28,7 +28,7 @@ class AppModeScreen extends StatelessWidget {
               'shapes your setup steps and guided navigation, and you can '
               'change it later in Settings.',
         ),
-        const SizedBox(height: TioSpacing.extraLarge),
+        const SizedBox(height: TioSpacing.xl),
 
         for (final mode in AppMode.values) ...[
           _ModeChoiceCard(
@@ -36,9 +36,9 @@ class AppModeScreen extends StatelessWidget {
             selected: selectedMode == mode,
             onTap: enabled ? () => onModeSelected(mode) : null,
           ),
-          const SizedBox(height: TioSpacing.medium),
+          const SizedBox(height: TioSpacing.md),
         ],
-        const SizedBox(height: TioSpacing.small),
+        const SizedBox(height: TioSpacing.sm),
         Stack(
           children: [
             for (final mode in AppMode.values)
@@ -49,13 +49,13 @@ class AppModeScreen extends StatelessWidget {
                       ? const ValueKey('app-mode-next-setup')
                       : null,
                   opacity: selectedMode == mode ? 1 : 0,
-                  duration: const Duration(milliseconds: 200),
+                  duration: const Duration(milliseconds: TioDuration.ms200),
                   child: Text(
                     _nextSetupText(mode),
                     style: TextStyle(
                       color: colors.textSecondary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w400,
+                      fontSize: TioFontSize.size13,
+                      fontWeight: TioFontWeight.w400,
                     ),
                   ),
                 ),
@@ -80,7 +80,7 @@ class _ModeChoiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Semantics(
       button: true,
@@ -88,7 +88,9 @@ class _ModeChoiceCard extends StatelessWidget {
       label: '${_label(mode)} mode. ${_description(mode)}',
       child: Material(
         color: selected
-            ? colors.primary.withValues(alpha: TioCardTokens.selectedContainerAlpha)
+            ? colors.primary.withValues(
+                alpha: TioCardTokens.selectedContainerAlpha,
+              )
             : colors.surface,
         borderRadius: BorderRadius.circular(TioCardTokens.radius),
         child: InkWell(
@@ -96,34 +98,38 @@ class _ModeChoiceCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(TioCardTokens.radius),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.all(TioSpacing.large),
+            duration: const Duration(milliseconds: TioDuration.ms200),
+            padding: const EdgeInsets.all(TioSpacing.lg),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(TioCardTokens.radius),
               border: Border.all(
                 color: selected
                     ? colors.primary
-                    : colors.outlineStrong.withValues(alpha: 0.35),
-                width: 1.0,
+                    : colors.outlineStrong.withValues(
+                        alpha: TioOpacity.opacity35,
+                      ),
+                width: TioStroke.width1,
               ),
             ),
             child: Row(
               children: [
                 Container(
-                  width: 44,
-                  height: 44,
+                  width: TioSize.dp44,
+                  height: TioSize.dp44,
                   decoration: BoxDecoration(
                     color: (selected ? colors.primary : colors.textSecondary)
-                        .withAlpha(selected ? 20 : 12),
-                    borderRadius: BorderRadius.circular(TioRadius.medium),
+                        .withAlpha(
+                          selected ? TioAlpha.alpha20 : TioAlpha.alpha12,
+                        ),
+                    borderRadius: BorderRadius.circular(TioRadius.md),
                   ),
                   child: Icon(
                     _icon(mode),
-                    size: 22,
+                    size: TioSize.dp22,
                     color: selected ? colors.primary : colors.textSecondary,
                   ),
                 ),
-                const SizedBox(width: TioSpacing.large),
+                const SizedBox(width: TioSpacing.lg),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -132,25 +138,27 @@ class _ModeChoiceCard extends StatelessWidget {
                         _label(mode),
                         style: TextStyle(
                           color: colors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
+                          fontWeight: TioFontWeight.w700,
+                          fontSize: TioFontSize.size16,
                         ),
                       ),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: TioSize.dp3),
                       Text(
                         _description(mode),
                         style: TextStyle(
                           color: colors.textSecondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
+                          fontSize: TioFontSize.size12,
+                          fontWeight: TioFontWeight.w400,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: TioSpacing.medium),
+                const SizedBox(width: TioSpacing.md),
                 Icon(
-                  selected ? Icons.check_circle : Icons.radio_button_unchecked_rounded,
+                  selected
+                      ? Icons.check_circle
+                      : Icons.radio_button_unchecked_rounded,
                   color: selected ? colors.primary : colors.outlineStrong,
                 ),
               ],
@@ -183,9 +191,12 @@ String _label(AppMode mode) {
 
 String _description(AppMode mode) {
   return switch (mode) {
-    AppMode.workout => 'Focus entirely on workouts, routines, and training history.',
-    AppMode.nutrition => 'Focus on daily calories, macros, and nutrition logging.',
-    AppMode.hybrid => 'Complete experience with combined workout and nutrition tracking.',
+    AppMode.workout =>
+      'Focus entirely on workouts, routines, and training history.',
+    AppMode.nutrition =>
+      'Focus on daily calories, macros, and nutrition logging.',
+    AppMode.hybrid =>
+      'Complete experience with combined workout and nutrition tracking.',
   };
 }
 

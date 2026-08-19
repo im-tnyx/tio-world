@@ -20,10 +20,13 @@ class TioCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
-    final radius = BorderRadius.circular(TioTheme.radius.large);
+    final colors = context.tioColors;
+    final radius = BorderRadius.circular(TioCardTokens.radius);
     final background = switch (variant) {
-      TioCardVariant.glass => colors.surfaceRaised.withValues(alpha: 0.72),
+      TioCardVariant.glass => colors.surfaceRaised.withValues(
+          alpha: TioCardTokens.glassContainerOpacity,
+        ),
+      // Transparent is intentional: outlined cards have no fill.
       TioCardVariant.outlined => Colors.transparent,
       TioCardVariant.normal => colors.surfaceRaised,
       _ => colors.surface,
@@ -32,7 +35,9 @@ class TioCard extends StatelessWidget {
     final border = switch (variant) {
       TioCardVariant.outlined => Border.all(color: colors.outlineStrong),
       TioCardVariant.glass => Border.all(
-          color: colors.textPrimary.withValues(alpha: 0.16),
+          color: colors.textPrimary.withValues(
+            alpha: TioCardTokens.glassBorderOpacity,
+          ),
         ),
       _ => null,
     };
@@ -43,16 +48,17 @@ class TioCard extends StatelessWidget {
         borderRadius: radius,
         border: border,
         boxShadow: variant == TioCardVariant.elevated
-            ? TioTheme.shadows(context).soft
+            ? context.tioShadows.soft
             : null,
       ),
-      padding: padding ?? EdgeInsets.all(TioTheme.spacing.large),
+      padding: padding ?? const EdgeInsets.all(TioCardTokens.padding),
       child: child,
     );
 
     if (onTap == null) return content;
 
     return Material(
+      // Transparent is intentional: Material only hosts the InkWell ripple.
       color: Colors.transparent,
       child: InkWell(
         borderRadius: radius,

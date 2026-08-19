@@ -122,7 +122,8 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
         break;
       case TioAvatarAction.delete:
         if (!mounted) return;
-        final confirmed = await showTioRemoveImageConfirmationBottomSheet(this.context);
+        final confirmed =
+            await showTioRemoveImageConfirmationBottomSheet(this.context);
         if (confirmed == true) {
           await widget.onDeleteImage?.call();
         }
@@ -142,20 +143,22 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
   }
 
   void _showGenderPicker() {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: colors.surfaceRaised,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(TioRadius.large)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(TioRadius.lg),
+        ),
       ),
       builder: (modalContext) {
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(
-              horizontal: TioSpacing.large,
-              vertical: TioSpacing.medium,
+              horizontal: TioSpacing.lg,
+              vertical: TioSpacing.md,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -163,31 +166,34 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
               children: [
                 Center(
                   child: Container(
-                    width: 36,
-                    height: 4,
+                    width: TioSize.dp36,
+                    height: TioSize.dp4,
                     decoration: BoxDecoration(
-                      color: colors.outlineStrong.withAlpha(50),
-                      borderRadius: BorderRadius.circular(2),
+                      color: colors.outlineStrong.withAlpha(TioAlpha.alpha50),
+                      borderRadius: BorderRadius.circular(TioSize.dp2),
                     ),
                   ),
                 ),
-                const SizedBox(height: TioSpacing.medium),
+                const SizedBox(height: TioSpacing.md),
                 Text(
                   'Select Biological Sex',
                   style: TextStyle(
                     color: colors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 18,
+                    fontWeight: TioFontWeight.w700,
+                    fontSize: TioFontSize.size18,
                   ),
                 ),
-                const SizedBox(height: TioSpacing.small),
+                const SizedBox(height: TioSpacing.sm),
                 for (final g in _genderOptions)
                   ListTile(
                     title: Text(
                       g,
                       style: TextStyle(
-                        color: _gender == g ? colors.primary : colors.textPrimary,
-                        fontWeight: _gender == g ? FontWeight.w700 : FontWeight.w500,
+                        color:
+                            _gender == g ? colors.primary : colors.textPrimary,
+                        fontWeight: _gender == g
+                            ? TioFontWeight.w700
+                            : TioFontWeight.w500,
                       ),
                     ),
                     trailing: _gender == g
@@ -264,7 +270,9 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _errorMessage = 'Could not update profile. Please try again.');
+        setState(
+          () => _errorMessage = 'Could not update profile. Please try again.',
+        );
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -273,47 +281,47 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     final normalizedPlan = widget.plan.toLowerCase();
     final isPro = normalizedPlan == 'pro' || normalizedPlan == 'premium';
     final isPlus = normalizedPlan == 'plus';
 
     final avatarUrl = widget.avatarUrl?.trim();
-    final hasValidPhoto = avatarUrl != null && 
-                         avatarUrl.isNotEmpty && 
-                         avatarUrl.startsWith('http');
+    final hasValidPhoto = avatarUrl != null &&
+        avatarUrl.isNotEmpty &&
+        avatarUrl.startsWith('http');
 
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
         backgroundColor: colors.background,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+        elevation: TioElevation.none,
+        scrolledUnderElevation: TioElevation.none,
         leading: BackButton(color: colors.textPrimary),
         title: Text(
           'Profile Settings',
           style: TextStyle(
             color: colors.textPrimary,
-            fontWeight: FontWeight.w800,
-            fontSize: 20,
+            fontWeight: TioFontWeight.w800,
+            fontSize: TioFontSize.size20,
           ),
         ),
       ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(
-            TioSpacing.large,
-            TioSpacing.small,
-            TioSpacing.large,
-            TioSpacing.extraLarge + 50,
+            TioSpacing.lg,
+            TioSpacing.sm,
+            TioSpacing.lg,
+            TioSpacing.xl + TioSize.dp50,
           ),
           children: [
             // ── Dynamic Avatar Edit Header ──
             Center(
               child: SizedBox(
-                width: TioAvatarSize.large.dimension ,
-                height: TioAvatarSize.large.dimension ,
+                width: TioAvatarSize.large.dimension,
+                height: TioAvatarSize.large.dimension,
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -344,8 +352,8 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
 
                     // Bottom-Right Dynamic Plan Tier / Edit Badge: ALWAYS opens Bottom Sheet
                     Positioned(
-                      bottom: 0,
-                      right: 0,
+                      bottom: TioSize.dp0,
+                      right: TioSize.dp0,
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: () {
@@ -355,18 +363,18 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
                           );
                         },
                         child: Container(
-                          width: 26,
-                          height: 26,
+                          width: TioSize.dp26,
+                          height: TioSize.dp26,
                           decoration: BoxDecoration(
                             color: isPro
-                                ? const Color(0xFF0F172A)
+                                ? TioDomainColors.planProBackground
                                 : isPlus
-                                    ? const Color(0xFF1E1B4B)
-                                    : const Color(0xFF0F172A),
+                                    ? TioDomainColors.planPlusBackground
+                                    : TioDomainColors.planProBackground,
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: colors.background,
-                              width: 2.5,
+                              width: TioStroke.width25,
                             ),
                           ),
                           alignment: Alignment.center,
@@ -374,23 +382,23 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
                               ? SvgPicture.asset(
                                   'assets/svg_icon/ic_pro_outline.svg',
                                   package: 'tio_core',
-                                  width: 16,
-                                  height: 16,
+                                  width: TioSize.dp16,
+                                  height: TioSize.dp16,
                                   colorFilter: const ColorFilter.mode(
-                                    Color(0xFF5EEAD4),
+                                    TioDomainColors.planProAccent,
                                     BlendMode.srcIn,
                                   ),
                                 )
                               : isPlus
                                   ? const Icon(
                                       Icons.star_rounded,
-                                      size: 16,
-                                      color: Color(0xFFF59E0B),
+                                      size: TioSize.dp16,
+                                      color: TioDomainColors.planPlusAccent,
                                     )
                                   : const Icon(
                                       Icons.edit,
-                                      size: 14,
-                                      color: Colors.white,
+                                      size: TioSize.dp14,
+                                      color: TioPalette.white,
                                     ),
                         ),
                       ),
@@ -400,7 +408,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
               ),
             ),
 
-            const SizedBox(height: TioSpacing.extraLarge),
+            const SizedBox(height: TioSpacing.xl),
 
             // ── Field 1: FULL NAME ──
             _CapsuleInputField(
@@ -411,7 +419,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
               colors: colors,
             ),
 
-            const SizedBox(height: TioSpacing.large),
+            const SizedBox(height: TioSpacing.lg),
 
             // ── Field 2: DATE OF BIRTH ──
             _CapsuleActionField(
@@ -422,7 +430,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
               colors: colors,
             ),
 
-            const SizedBox(height: TioSpacing.large),
+            const SizedBox(height: TioSpacing.lg),
 
             // ── Field 4: BIOLOGICAL SEX ──
             _CapsuleActionField(
@@ -438,7 +446,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
               colors: colors,
             ),
 
-            const SizedBox(height: TioSpacing.large),
+            const SizedBox(height: TioSpacing.lg),
 
             // ── Field 5: HEIGHT (with cm / ft unit switch) ──
             _CapsuleWithUnitField(
@@ -451,7 +459,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
               colors: colors,
             ),
 
-            const SizedBox(height: TioSpacing.large),
+            const SizedBox(height: TioSpacing.lg),
 
             // ── Field 6: CURRENT WEIGHT (with kg / lbs unit switch) ──
             _CapsuleWithUnitField(
@@ -465,13 +473,13 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
             ),
 
             if (_errorMessage case final err?) ...[
-              const SizedBox(height: TioSpacing.large),
+              const SizedBox(height: TioSpacing.lg),
               Text(
                 err,
                 style: TextStyle(
                   color: colors.danger,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+                  fontSize: TioFontSize.size13,
+                  fontWeight: TioFontWeight.w500,
                 ),
               ),
             ],
@@ -481,7 +489,10 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
       // ── Fixed Bottom Save Action Bar ──
       bottomNavigationBar: ClipRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          filter: ImageFilter.blur(
+            sigmaX: TioSize.dp8,
+            sigmaY: TioSize.dp8,
+          ),
           child: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -489,15 +500,15 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
                 end: Alignment.bottomCenter,
                 stops: const [0.0, 0.45, 1.0],
                 colors: [
-                  colors.background.withValues(alpha: 0.0),
-                  colors.background.withValues(alpha: 0.75),
-                  colors.background.withValues(alpha: 0.98),
+                  colors.background.withValues(alpha: TioOpacity.opacity0),
+                  colors.background.withValues(alpha: TioOpacity.opacity75),
+                  colors.background.withValues(alpha: TioOpacity.opacity98),
                 ],
               ),
             ),
             child: SafeArea(
               top: false,
-              minimum: const EdgeInsets.all(TioSpacing.large),
+              minimum: const EdgeInsets.all(TioSpacing.lg),
               child: TioButton.primary(
                 label: 'Save Changes',
                 loading: _isSaving,
@@ -538,35 +549,36 @@ class _CapsuleInputField extends StatelessWidget {
           label,
           style: TextStyle(
             color: colors.textPrimary,
-            fontWeight: FontWeight.w700,
-            fontSize: 13,
-            letterSpacing: 0.8,
+            fontWeight: TioFontWeight.w700,
+            fontSize: TioFontSize.size13,
+            letterSpacing: TioLetterSpacing.positive08,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: TioSpacing.sm),
         Container(
-          height: 56,
+          height: TioSize.dp56,
           decoration: BoxDecoration(
             color: colors.surfaceRaised,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(TioRadius.lg),
             border: Border.all(
-              color: colors.outlineStrong.withAlpha(40),
+              color: colors.outlineStrong.withAlpha(TioAlpha.alpha40),
+              width: TioStroke.width1,
             ),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
           alignment: Alignment.center,
           child: Row(
             children: [
-              Icon(icon, size: 22, color: colors.textPrimary),
-              const SizedBox(width: 14),
+              Icon(icon, size: TioSize.dp22, color: colors.textPrimary),
+              const SizedBox(width: TioSize.dp14),
               Expanded(
                 child: TextField(
                   controller: controller,
                   cursorColor: colors.primary,
                   style: TextStyle(
                     color: colors.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                    fontSize: TioFontSize.size16,
+                    fontWeight: TioFontWeight.w500,
                   ),
                   decoration: InputDecoration(
                     border: InputBorder.none,
@@ -576,13 +588,13 @@ class _CapsuleInputField extends StatelessWidget {
                     disabledBorder: InputBorder.none,
                     focusedErrorBorder: InputBorder.none,
                     filled: false,
-                    fillColor: Colors.transparent,
+                    fillColor: TioPalette.transparent,
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
                     hintText: hintText,
                     hintStyle: TextStyle(
                       color: colors.textMuted,
-                      fontWeight: FontWeight.w400,
+                      fontWeight: TioFontWeight.w400,
                     ),
                   ),
                 ),
@@ -622,43 +634,44 @@ class _CapsuleActionField extends StatelessWidget {
           label,
           style: TextStyle(
             color: colors.textPrimary,
-            fontWeight: FontWeight.w700,
-            fontSize: 13,
-            letterSpacing: 0.8,
+            fontWeight: TioFontWeight.w700,
+            fontSize: TioFontSize.size13,
+            letterSpacing: TioLetterSpacing.positive08,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: TioSpacing.sm),
         InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(TioRadius.lg),
           child: Container(
-            height: 56,
+            height: TioSize.dp56,
             decoration: BoxDecoration(
               color: colors.surfaceRaised,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(TioRadius.lg),
               border: Border.all(
-                color: colors.outlineStrong.withAlpha(40),
+                color: colors.outlineStrong.withAlpha(TioAlpha.alpha40),
+                width: TioStroke.width1,
               ),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
             child: Row(
               children: [
-                Icon(icon, size: 22, color: colors.textPrimary),
-                const SizedBox(width: 14),
+                Icon(icon, size: TioSize.dp22, color: colors.textPrimary),
+                const SizedBox(width: TioSize.dp14),
                 Expanded(
                   child: Text(
                     value,
                     style: TextStyle(
                       color: colors.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
+                      fontSize: TioFontSize.size16,
+                      fontWeight: TioFontWeight.w500,
                     ),
                   ),
                 ),
                 if (trailingIcon != null)
                   Icon(
                     trailingIcon,
-                    size: 22,
+                    size: TioSize.dp22,
                     color: colors.textPrimary,
                   ),
               ],
@@ -699,54 +712,57 @@ class _CapsuleWithUnitField extends StatelessWidget {
           label,
           style: TextStyle(
             color: colors.textPrimary,
-            fontWeight: FontWeight.w700,
-            fontSize: 13,
-            letterSpacing: 0.8,
+            fontWeight: TioFontWeight.w700,
+            fontSize: TioFontSize.size13,
+            letterSpacing: TioLetterSpacing.positive08,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: TioSpacing.sm),
         Row(
           children: [
             // ── Left Value Box ──
             Expanded(
               child: InkWell(
                 onTap: onTapValue,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(TioRadius.lg),
                 child: Container(
-                  height: 56,
+                  height: TioSize.dp56,
                   decoration: BoxDecoration(
                     color: colors.surfaceRaised,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(TioRadius.lg),
                     border: Border.all(
-                      color: colors.outlineStrong.withAlpha(40),
+                      color: colors.outlineStrong.withAlpha(TioAlpha.alpha40),
+                      width: TioStroke.width1,
                     ),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
                   alignment: Alignment.centerLeft,
                   child: Text(
                     value,
                     style: TextStyle(
                       color: colors.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
+                      fontSize: TioFontSize.size16,
+                      fontWeight: TioFontWeight.w500,
                     ),
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: TioSpacing.md),
 
             // ── Right Segmented Unit Toggle ──
             Container(
-              height: 56,
+              height: TioSize.dp56,
               decoration: BoxDecoration(
                 color: colors.surfaceRaised,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(TioRadius.lg),
                 border: Border.all(
-                  color: colors.outlineStrong.withAlpha(40),
+                  color: colors.outlineStrong.withAlpha(TioAlpha.alpha40),
+                  width: TioStroke.width1,
                 ),
               ),
-              padding: const EdgeInsets.all(5),
+              padding: const EdgeInsets.all(TioSize.dp5),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: units.map((u) {
@@ -755,16 +771,16 @@ class _CapsuleWithUnitField extends StatelessWidget {
                   return GestureDetector(
                     onTap: () => onUnitChanged(u),
                     child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
+                      duration: const Duration(milliseconds: TioMotion.fastMs),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
+                        horizontal: TioSize.dp14,
+                        vertical: TioSize.dp10,
                       ),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? colors.outlineStrong.withAlpha(80)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(12),
+                            ? colors.outlineStrong.withAlpha(TioAlpha.alpha80)
+                            : TioPalette.transparent,
+                        borderRadius: BorderRadius.circular(TioRadius.md),
                       ),
                       child: Center(
                         child: Text(
@@ -774,9 +790,9 @@ class _CapsuleWithUnitField extends StatelessWidget {
                                 ? colors.textPrimary
                                 : colors.textMuted,
                             fontWeight: isSelected
-                                ? FontWeight.w700
-                                : FontWeight.w500,
-                            fontSize: 15,
+                                ? TioFontWeight.w700
+                                : TioFontWeight.w500,
+                            fontSize: TioFontSize.size15,
                           ),
                         ),
                       ),

@@ -25,13 +25,14 @@ void main() {
     final topBarText = tester.widget<Text>(find.text('EN'));
     expect(topBarText.style?.color, Colors.white);
 
-    final skipRect = tester.getRect(
-      find.byKey(const ValueKey('welcome-skip-action')),
-    );
+    final skipFinder = find.byKey(const ValueKey('welcome-skip-action'));
+    final skipRect = tester.getRect(skipFinder);
+    final skipInkWell = tester.widget<InkWell>(skipFinder);
     final localeRect = tester.getRect(find.text('EN'));
     expect(skipRect.center.dx, greaterThan(393 / 2));
     expect(skipRect.center.dx, greaterThan(localeRect.center.dx));
     expect(skipRect.right, greaterThan(350));
+    expect(skipInkWell.borderRadius, BorderRadius.circular(TioRadius.lg));
 
     final featureTitle = tester.widget<Text>(find.text('AI WORKOUT'));
     final featureContext = tester.element(find.text('AI WORKOUT'));
@@ -45,6 +46,7 @@ void main() {
     );
     final decoration = panel.decoration as BoxDecoration;
     expect(decoration.color?.a, greaterThan(0.9));
+    expect(decoration.borderRadius, BorderRadius.circular(20));
     expect(tester.takeException(), isNull);
   });
 

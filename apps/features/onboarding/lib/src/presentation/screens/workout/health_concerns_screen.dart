@@ -47,7 +47,7 @@ class _HealthConcernsScreenState extends State<HealthConcernsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
 
     return WorkoutScreenScaffold(
@@ -63,13 +63,13 @@ class _HealthConcernsScreenState extends State<HealthConcernsScreen> {
           Text(
             'CONCERNS & LIMITATIONS',
             style: textTheme.labelSmall?.copyWith(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
+              fontSize: TioFontSize.size12,
+              fontWeight: TioFontWeight.w700,
+              letterSpacing: TioLetterSpacing.positive08,
               color: colors.textSecondary,
             ),
           ),
-          const SizedBox(height: TioSpacing.small),
+          const SizedBox(height: TioSpacing.sm),
           Container(
             key: const ValueKey('workout-health-concerns-input'),
             child: TextFormField(
@@ -81,22 +81,24 @@ class _HealthConcernsScreenState extends State<HealthConcernsScreen> {
               textCapitalization: TextCapitalization.sentences,
               keyboardType: TextInputType.multiline,
               style: textTheme.bodyLarge?.copyWith(
-                fontSize: 15,
+                fontSize: TioFontSize.size15,
                 color: colors.textPrimary,
-                height: 1.4,
+                height: TioLineHeight.height140,
               ),
               decoration: InputDecoration(
                 hintText: 'E.g. Knee pain, back ache, asthma...',
                 hintStyle: textTheme.bodyLarge?.copyWith(
-                  fontSize: 14,
-                  color: colors.textSecondary.withValues(alpha: 0.5),
-                  height: 1.4,
+                  fontSize: TioFontSize.size14,
+                  color: colors.textSecondary.withValues(
+                    alpha: TioOpacity.opacity50,
+                  ),
+                  height: TioLineHeight.height140,
                 ),
-                contentPadding: const EdgeInsets.all(TioSpacing.large),
+                contentPadding: const EdgeInsets.all(TioSpacing.lg),
                 filled: true,
                 fillColor: colors.surface,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(TioRadius.large),
+                  borderRadius: BorderRadius.circular(TioRadius.lg),
                   borderSide: BorderSide(
                     color: colors.outlineStrong.withValues(
                       alpha: TioCardTokens.unselectedOutlineAlpha,
@@ -105,7 +107,7 @@ class _HealthConcernsScreenState extends State<HealthConcernsScreen> {
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(TioRadius.large),
+                  borderRadius: BorderRadius.circular(TioRadius.lg),
                   borderSide: BorderSide(
                     color: colors.outlineStrong.withValues(
                       alpha: TioCardTokens.unselectedOutlineAlpha,
@@ -114,7 +116,7 @@ class _HealthConcernsScreenState extends State<HealthConcernsScreen> {
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(TioRadius.large),
+                  borderRadius: BorderRadius.circular(TioRadius.lg),
                   borderSide: BorderSide(
                     color: colors.primary,
                     width: TioCardTokens.selectedBorderWidth,
@@ -123,14 +125,16 @@ class _HealthConcernsScreenState extends State<HealthConcernsScreen> {
               ),
             ),
           ),
-          const SizedBox(height: TioSpacing.small),
+          const SizedBox(height: TioSpacing.sm),
           Text(
             '(OPTIONAL)',
             style: textTheme.labelSmall?.copyWith(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.6,
-              color: colors.textSecondary.withValues(alpha: 0.6),
+              fontSize: TioFontSize.size11,
+              fontWeight: TioFontWeight.w600,
+              letterSpacing: TioLetterSpacing.positive06,
+              color: colors.textSecondary.withValues(
+                alpha: TioOpacity.opacity60,
+              ),
             ),
           ),
         ],

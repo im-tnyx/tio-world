@@ -23,7 +23,7 @@ class FocusAreasScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
 
     return WorkoutScreenScaffold(
@@ -40,8 +40,9 @@ class FocusAreasScreen extends StatelessWidget {
         itemCount: WorkoutFocusArea.values.length,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 3,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 12,
+          crossAxisSpacing: TioSize.dp10,
+          mainAxisSpacing: TioSpacing.md,
+          // Grid composition ratio stays local to this screen.
           childAspectRatio: 0.78,
         ),
         itemBuilder: (context, index) {
@@ -105,7 +106,6 @@ class _FocusAreaCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    // Photo image
                     Image.asset(
                       imagePath,
                       package: 'tio_core',
@@ -113,21 +113,21 @@ class _FocusAreaCard extends StatelessWidget {
                       errorBuilder: (_, __, ___) => Center(
                         child: Icon(
                           _fallbackIcon(area),
-                          size: 32,
-                          color: isSelected ? colors.primary : colors.textSecondary,
+                          size: TioSize.dp32,
+                          color: isSelected
+                              ? colors.primary
+                              : colors.textSecondary,
                         ),
                       ),
                     ),
-
-                    // Primary tint overlay when selected
                     if (isSelected)
                       Container(
-                        color: colors.primary.withValues(alpha: 0.20),
+                        color: colors.primary.withValues(
+                          alpha: TioOpacity.opacity20,
+                        ),
                       ),
-
-                    // Border outline
                     AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
+                      duration: const Duration(milliseconds: TioDuration.ms180),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(TioCardTokens.radius),
                         border: Border.all(
@@ -142,22 +142,20 @@ class _FocusAreaCard extends StatelessWidget {
                         ),
                       ),
                     ),
-
-                    // Check circle in top-right corner
                     if (isSelected)
                       Positioned(
-                        top: 6,
-                        right: 6,
+                        top: TioSize.dp6,
+                        right: TioSize.dp6,
                         child: Container(
-                          width: 20,
-                          height: 20,
+                          width: TioSize.dp20,
+                          height: TioSize.dp20,
                           decoration: BoxDecoration(
                             color: colors.primary,
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             Icons.check,
-                            size: 13,
+                            size: TioFontSize.size13,
                             color: colors.onPrimary,
                           ),
                         ),
@@ -167,15 +165,17 @@ class _FocusAreaCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: TioSize.dp6),
           Text(
             _label(area),
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: textTheme.titleSmall?.copyWith(
-              fontSize: 13,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              fontSize: TioFontSize.size13,
+              fontWeight: isSelected
+                  ? TioFontWeight.w600
+                  : TioFontWeight.w500,
               color: isSelected ? colors.primary : colors.textPrimary,
             ),
           ),
@@ -203,7 +203,6 @@ String _imagePath(WorkoutFocusArea area, ProfileGender? gender) {
     WorkoutFocusArea.abs =>
       'assets/image/specific_focus_area/$subfolder/abs.webp',
     WorkoutFocusArea.glutes =>
-      // Female has glutes.webp; male falls back to female glutes asset or legs
       'assets/image/specific_focus_area/female/glutes.webp',
     WorkoutFocusArea.legs =>
       'assets/image/specific_focus_area/$subfolder/legs.webp',

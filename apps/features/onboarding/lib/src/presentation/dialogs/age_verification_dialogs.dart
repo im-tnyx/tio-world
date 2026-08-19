@@ -16,7 +16,7 @@ class AgeVerificationDialogs {
 
   /// ── 1. Date Confirmation Dialog ("Is this date correct?") ──
   static Future<bool?> showConfirmation(BuildContext context, DateTime date) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return showDialog<bool>(
       context: context,
@@ -25,11 +25,18 @@ class AgeVerificationDialogs {
         return Dialog(
           backgroundColor: colors.surfaceRaised,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(TioSize.dp20),
           ),
-          insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: TioSize.dp28,
+          ),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+            padding: const EdgeInsets.fromLTRB(
+              TioSpacing.xl,
+              TioSpacing.xl,
+              TioSpacing.xl,
+              TioSize.dp20,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,33 +45,36 @@ class AgeVerificationDialogs {
                   'Is this date correct?',
                   style: TextStyle(
                     color: colors.textPrimary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
+                    fontSize: TioFontSize.size18,
+                    fontWeight: TioFontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: TioSize.dp10),
                 Text(
                   _formatDate(date),
                   style: TextStyle(
                     color: colors.textSecondary,
-                    fontSize: 14,
+                    fontSize: TioFontSize.size14,
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: TioSpacing.xl),
                 Row(
                   children: [
-                    // No Button
                     Expanded(
                       child: SizedBox(
-                        height: 48,
+                        height: TioSize.dp48,
                         child: OutlinedButton(
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(
-                              color: colors.outlineStrong.withAlpha(90),
-                              width: 1.5,
+                              color: colors.outlineStrong.withAlpha(
+                                TioAlpha.alpha90,
+                              ),
+                              width: TioStroke.width15,
                             ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
+                              borderRadius: BorderRadius.circular(
+                                TioSize.dp30,
+                              ),
                             ),
                           ),
                           onPressed: () => Navigator.of(context).pop(false),
@@ -72,34 +82,35 @@ class AgeVerificationDialogs {
                             'No',
                             style: TextStyle(
                               color: colors.textPrimary,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
+                              fontSize: TioFontSize.size15,
+                              fontWeight: TioFontWeight.w700,
                             ),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    // Yes Button
+                    const SizedBox(width: TioSpacing.md),
                     Expanded(
                       child: SizedBox(
-                        height: 48,
+                        height: TioSize.dp48,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.black,
-                            elevation: 0,
+                            backgroundColor: TioPalette.white,
+                            foregroundColor: TioPalette.black,
+                            elevation: TioElevation.none,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
+                              borderRadius: BorderRadius.circular(
+                                TioSize.dp30,
+                              ),
                             ),
                           ),
                           onPressed: () => Navigator.of(context).pop(true),
                           child: const Text(
                             'Yes',
                             style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
+                              color: TioPalette.black,
+                              fontSize: TioFontSize.size15,
+                              fontWeight: TioFontWeight.w700,
                             ),
                           ),
                         ),
@@ -117,7 +128,7 @@ class AgeVerificationDialogs {
 
   /// ── 2. Underage Rejection Dialog ("Sorry, we can't make your account.") ──
   static Future<void> showUnderageRejection(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return showDialog<void>(
       context: context,
@@ -126,11 +137,18 @@ class AgeVerificationDialogs {
         return Dialog(
           backgroundColor: colors.surfaceRaised,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(TioSize.dp20),
           ),
-          insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: TioSize.dp28,
+          ),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+            padding: const EdgeInsets.fromLTRB(
+              TioSpacing.xl,
+              TioSpacing.xl,
+              TioSpacing.xl,
+              TioSize.dp20,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -139,39 +157,39 @@ class AgeVerificationDialogs {
                   "Sorry, we can't make your account.",
                   style: TextStyle(
                     color: colors.textPrimary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
+                    fontSize: TioFontSize.size18,
+                    fontWeight: TioFontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: TioSize.dp10),
                 Text(
                   'Any personal information will be deleted',
                   style: TextStyle(
                     color: colors.textSecondary,
-                    fontSize: 14,
-                    height: 1.3,
+                    fontSize: TioFontSize.size14,
+                    height: TioLineHeight.height130,
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: TioSpacing.xl),
                 SizedBox(
                   width: double.infinity,
-                  height: 48,
+                  height: TioSize.dp48,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black,
-                      elevation: 0,
+                      backgroundColor: TioPalette.white,
+                      foregroundColor: TioPalette.black,
+                      elevation: TioElevation.none,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
+                        borderRadius: BorderRadius.circular(TioSize.dp30),
                       ),
                     ),
                     onPressed: () => Navigator.of(context).pop(),
                     child: const Text(
                       'Okay',
                       style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
+                        color: TioPalette.black,
+                        fontSize: TioFontSize.size15,
+                        fontWeight: TioFontWeight.w700,
                       ),
                     ),
                   ),

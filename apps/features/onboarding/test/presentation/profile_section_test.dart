@@ -36,9 +36,9 @@ void main() {
     expect(
       padding.padding,
       const EdgeInsets.fromLTRB(
-        TioSpacing.small,
+        TioSpacing.sm,
         0.0,
-        TioSpacing.large,
+        TioSpacing.lg,
         0.0,
       ),
     );
@@ -79,11 +79,11 @@ void main() {
         tester.view.physicalSize.width / tester.view.devicePixelRatio;
     expect(
       progressRect.left - iconRect.right,
-      closeTo(TioSpacing.small, 0.001),
+      closeTo(TioSpacing.sm, 0.001),
     );
     expect(
       screenWidth - progressRect.right,
-      closeTo(TioSpacing.large, 0.001),
+      closeTo(TioSpacing.lg, 0.001),
     );
   });
 

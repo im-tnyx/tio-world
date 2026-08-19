@@ -31,7 +31,7 @@ class GenderScreen extends StatelessWidget {
               selected: selectedGender == gender,
               onTap: () => onSelected(gender),
             ),
-            const SizedBox(height: TioSpacing.medium),
+            const SizedBox(height: TioSpacing.md),
           ],
         ],
       ),

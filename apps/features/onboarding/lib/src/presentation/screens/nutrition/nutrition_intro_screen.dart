@@ -6,7 +6,7 @@ class NutritionIntroScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
 
     return Column(
@@ -17,7 +17,7 @@ class NutritionIntroScreen extends StatelessWidget {
           subtitle:
               'We will calculate your personalized energy targets and daily habits based on your profile.',
         ),
-        const SizedBox(height: TioSpacing.extraLarge),
+        const SizedBox(height: TioSpacing.xl),
 
         // Feature Highlights List (Clean non-clickable format)
         _FeatureHighlightRow(
@@ -28,7 +28,7 @@ class NutritionIntroScreen extends StatelessWidget {
           colors: colors,
           textTheme: textTheme,
         ),
-        const SizedBox(height: TioSpacing.large),
+        const SizedBox(height: TioSpacing.lg),
 
         _FeatureHighlightRow(
           icon: Icons.water_drop_outlined,
@@ -38,7 +38,7 @@ class NutritionIntroScreen extends StatelessWidget {
           colors: colors,
           textTheme: textTheme,
         ),
-        const SizedBox(height: TioSpacing.large),
+        const SizedBox(height: TioSpacing.lg),
 
         _FeatureHighlightRow(
           icon: Icons.bedtime_outlined,
@@ -49,23 +49,27 @@ class NutritionIntroScreen extends StatelessWidget {
           textTheme: textTheme,
         ),
 
-        const SizedBox(height: TioSpacing.extraLarge),
+        const SizedBox(height: TioSpacing.xl),
 
         // Privacy note at bottom
         Row(
           children: [
             Icon(
               Icons.lock_outline,
-              size: 16,
-              color: colors.textSecondary.withValues(alpha: 0.7),
+              size: TioSize.dp16,
+              color: colors.textSecondary.withValues(
+                alpha: TioOpacity.opacity70,
+              ),
             ),
-            const SizedBox(width: TioSpacing.small),
+            const SizedBox(width: TioSpacing.sm),
             Expanded(
               child: Text(
                 'Your nutrition and body data is private and secure.',
                 style: textTheme.bodySmall?.copyWith(
-                  fontSize: 12,
-                  color: colors.textSecondary.withValues(alpha: 0.7),
+                  fontSize: TioFontSize.size12,
+                  color: colors.textSecondary.withValues(
+                    alpha: TioOpacity.opacity70,
+                  ),
                 ),
               ),
             ),
@@ -97,19 +101,19 @@ class _FeatureHighlightRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 44,
-          height: 44,
+          width: TioSize.dp44,
+          height: TioSize.dp44,
           decoration: BoxDecoration(
-            color: colors.primary.withValues(alpha: 0.12),
+            color: colors.primary.withValues(alpha: TioOpacity.opacity12),
             shape: BoxShape.circle,
           ),
           child: Icon(
             icon,
-            size: 22,
+            size: TioSize.dp22,
             color: colors.primary,
           ),
         ),
-        const SizedBox(width: TioSpacing.medium + 2),
+        const SizedBox(width: TioSize.dp14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -117,17 +121,17 @@ class _FeatureHighlightRow extends StatelessWidget {
               Text(
                 title,
                 style: textTheme.titleMedium?.copyWith(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
+                  fontSize: TioFontSize.size15,
+                  fontWeight: TioFontWeight.w700,
                   color: colors.textPrimary,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: TioSpacing.xs),
               Text(
                 description,
                 style: textTheme.bodyMedium?.copyWith(
-                  fontSize: 13,
-                  height: 1.35,
+                  fontSize: TioFontSize.size13,
+                  height: TioLineHeight.height135,
                   color: colors.textSecondary,
                 ),
               ),

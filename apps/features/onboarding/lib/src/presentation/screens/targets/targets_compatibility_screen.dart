@@ -42,19 +42,19 @@ class TargetsCompatibilityScreen extends StatelessWidget {
                     Icon(
                       Icons.lock_clock_outlined,
                       color: colors.info,
-                      size: 22,
+                      size: TioSize.dp22,
                     ),
-                    const SizedBox(width: TioSpacing.small),
+                    const SizedBox(width: TioSpacing.sm),
                     Text(
                       'Blocked by Formula Authority',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
+                            fontWeight: TioFontWeight.w600,
                             color: colors.info,
                           ),
                     ),
                   ],
                 ),
-                const SizedBox(height: TioSpacing.small),
+                const SizedBox(height: TioSpacing.sm),
                 Text(
                   'Daily calorie and macronutrient (protein, carbs, fat, fiber) recommendation requires an approved canonical formula from the nutrition domain. Onboarding remains navigation-passable for preview, but completion is gated until approved calculations are provided.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(

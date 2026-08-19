@@ -1,23 +1,50 @@
 import 'package:flutter/material.dart';
 
+import '../foundation/tio_palette.dart';
+import 'tio_shadow_tokens.dart';
+
 class TioShadows extends ThemeExtension<TioShadows> {
-  const TioShadows({required this.soft});
+  const TioShadows({
+    required this.soft,
+    required this.elevatedPanelColor,
+  });
 
   final List<BoxShadow> soft;
 
-  static const standard = TioShadows(
-    soft: [
-      BoxShadow(
-        blurRadius: 24,
-        offset: Offset(0, 12),
-        color: Color(0x1A000000),
-      ),
-    ],
+  /// Runtime semantic color for stronger floating/elevated panel shadows.
+  ///
+  /// Light, dark, and OLED intentionally preserve the same audited color for
+  /// now. Keeping the role in the runtime scheme allows future theme-specific
+  /// tuning without changing component code.
+  final Color elevatedPanelColor;
+
+  static const light = TioShadows(
+    soft: TioShadowTokens.soft,
+    elevatedPanelColor: TioPalette.blackAlpha80,
   );
 
+  static const dark = TioShadows(
+    soft: TioShadowTokens.soft,
+    elevatedPanelColor: TioPalette.blackAlpha80,
+  );
+
+  static const oled = TioShadows(
+    soft: TioShadowTokens.soft,
+    elevatedPanelColor: TioPalette.blackAlpha80,
+  );
+
+  /// Compatibility default for callers that do not yet resolve a theme mode.
+  static const standard = light;
+
   @override
-  TioShadows copyWith({List<BoxShadow>? soft}) {
-    return TioShadows(soft: soft ?? this.soft);
+  TioShadows copyWith({
+    List<BoxShadow>? soft,
+    Color? elevatedPanelColor,
+  }) {
+    return TioShadows(
+      soft: soft ?? this.soft,
+      elevatedPanelColor: elevatedPanelColor ?? this.elevatedPanelColor,
+    );
   }
 
   @override
