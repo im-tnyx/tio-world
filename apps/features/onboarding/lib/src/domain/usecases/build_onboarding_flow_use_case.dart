@@ -15,8 +15,11 @@ class BuildOnboardingFlowUseCase {
     return OnboardingFlowPlan(
       entryPath: entryPath,
       mode: mode,
+      // A null mode is retained only as a legacy compatibility state so old
+      // drafts/tests can reconcile through the former mode step. Current app
+      // routing always seeds a selected mode before Product Onboarding.
       steps: mode == null
-          ? const [_mode]
+          ? const [_legacyMode]
           : _stepsByMode(
               mode,
               workoutIntroChoice: workoutIntroChoice,
@@ -49,28 +52,24 @@ List<OnboardingStepDefinition> _stepsByMode(
 
   return switch (mode) {
     AppMode.workout => [
-        _mode,
         ...profile,
         _workoutPreferences,
         _targets,
         _review,
       ],
     AppMode.nutrition => [
-        _mode,
         ...profile,
         _targets,
         _review,
       ],
     AppMode.hybrid => workoutIntroChoice == WorkoutIntroChoice.later
         ? [
-            _mode,
             ...profile,
             _workoutIntro,
             _targets,
             _review,
           ]
         : [
-            _mode,
             ...profile,
             _workoutIntro,
             _workoutPreferences,
@@ -80,7 +79,7 @@ List<OnboardingStepDefinition> _stepsByMode(
   };
 }
 
-const _mode = OnboardingStepDefinition(
+const _legacyMode = OnboardingStepDefinition(
   id: OnboardingStepId.mode,
   section: OnboardingSectionId.appMode,
   owner: OnboardingStepOwner.onboarding,
