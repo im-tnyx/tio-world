@@ -65,7 +65,7 @@ class _ThemeSelectionBottomSheetState extends State<ThemeSelectionBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final theme = Theme.of(context);
 
     return Container(
@@ -218,7 +218,7 @@ class _ThemeOptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final theme = Theme.of(context);
 
     final borderColor = isSelected

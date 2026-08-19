@@ -51,7 +51,7 @@ class _AppModeSettingsPageState extends State<AppModeSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -174,7 +174,7 @@ class _AppModeNavPreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Container(
       padding: const EdgeInsets.all(TioSpacing.lg),
@@ -309,7 +309,7 @@ class _NavPreviewItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     final label = switch (destination) {
       AppDestination.home => 'Home',
@@ -368,7 +368,7 @@ class _ModeOptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Opacity(
       opacity: enabled ? TioOpacity.opacity100 : TioOpacity.opacity64,

@@ -30,7 +30,7 @@ class SettingsPage extends StatelessWidget {
   final VoidCallback? onLogoutPressed;
 
   void _showLogoutDialog(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     showDialog<void>(
       context: context,
@@ -76,7 +76,7 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -235,7 +235,7 @@ class _SettingsSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     return Padding(
       padding: const EdgeInsets.only(
         left: TioSpacing.sm,
@@ -260,7 +260,7 @@ class _SettingsGroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     return Material(
       color: colors.surfaceRaised,
       borderRadius: BorderRadius.circular(TioRadius.lg),
@@ -275,7 +275,7 @@ class _SettingsDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     return Divider(
       height: TioSize.dp1,
       thickness: TioStroke.width1,
@@ -307,7 +307,7 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     return InkWell(
       onTap: onTap,
       child: Padding(
