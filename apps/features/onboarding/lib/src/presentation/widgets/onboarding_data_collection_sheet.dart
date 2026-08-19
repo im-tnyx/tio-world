@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 
-import '../theme/onboarding_data_sheet_tokens.dart';
-import '../theme/onboarding_modal_tokens.dart';
-
 Future<void> showOnboardingDataCollectionSheet({
   required BuildContext context,
   required String body,
@@ -17,14 +14,14 @@ Future<void> showOnboardingDataCollectionSheet({
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(
-        top: Radius.circular(TioRadius.large),
+        top: Radius.circular(TioRadius.lg),
       ),
     ),
     builder: (sheetContext) => SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(
-          horizontal: TioSpacing.extraLarge,
-          vertical: TioSpacing.large,
+          horizontal: TioSpacing.xl,
+          vertical: TioSpacing.lg,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -36,8 +33,8 @@ Future<void> showOnboardingDataCollectionSheet({
                   child: Text(
                     title,
                     style: TextStyle(
-                      fontSize: OnboardingModalTokens.titleFontSize,
-                      fontWeight: OnboardingModalTokens.titleFontWeight,
+                      fontSize: TioFontSize.size18,
+                      fontWeight: TioFontWeight.w700,
                       color: colors.textPrimary,
                     ),
                   ),
@@ -48,16 +45,16 @@ Future<void> showOnboardingDataCollectionSheet({
                 ),
               ],
             ),
-            const SizedBox(height: TioSpacing.medium),
+            const SizedBox(height: TioSpacing.md),
             Text(
               body,
               style: TextStyle(
-                fontSize: OnboardingModalTokens.bodyFontSize,
-                height: OnboardingDataSheetTokens.bodyLineHeight,
+                fontSize: TioFontSize.size14,
+                height: TioLineHeight.height150,
                 color: colors.textSecondary,
               ),
             ),
-            const SizedBox(height: OnboardingModalTokens.actionTopGap),
+            const SizedBox(height: TioSpacing.xl),
             TioButton.primary(
               label: 'Understood',
               expand: true,
