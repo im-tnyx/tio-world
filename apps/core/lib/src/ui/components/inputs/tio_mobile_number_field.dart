@@ -57,13 +57,13 @@ class TioMobileNumberField extends StatelessWidget {
                       fontSize: TioInputTokens.mobileCountryFlagFontSize,
                     ),
                   ),
-                  const SizedBox(width: TioSpacing.small),
+                  const SizedBox(width: TioSpacing.sm),
                   Text(
                     countryCode,
                     style: TextStyle(
                       color: colors.textPrimary,
                       fontSize: TioInputTokens.mobileCountryCodeFontSize,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: TioFontWeight.w600,
                     ),
                   ),
                 ],
@@ -75,7 +75,7 @@ class TioMobileNumberField extends StatelessWidget {
                 height: TioInputTokens.mobileFieldHeight,
                 decoration: BoxDecoration(
                   color: colors.surfaceRaised,
-                  borderRadius: BorderRadius.circular(TioRadius.large),
+                  borderRadius: BorderRadius.circular(TioRadius.lg),
                   border: Border.all(
                     color: isVerified
                         ? colors.info.withValues(
@@ -110,7 +110,7 @@ class TioMobileNumberField extends StatelessWidget {
                         style: TextStyle(
                           color: colors.textPrimary,
                           fontSize: TioInputTokens.mobileTextFontSize,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: TioFontWeight.w500,
                           letterSpacing: TioInputTokens.mobileTextLetterSpacing,
                         ),
                         decoration: InputDecoration(
@@ -126,7 +126,7 @@ class TioMobileNumberField extends StatelessWidget {
                           hintText: hintText,
                           hintStyle: TextStyle(
                             color: colors.textMuted,
-                            fontWeight: FontWeight.w400,
+                            fontWeight: TioFontWeight.w400,
                           ),
                         ),
                       ),
@@ -146,7 +146,7 @@ class TioMobileNumberField extends StatelessWidget {
                         label: 'Verify mobile number',
                         child: InkWell(
                           onTap: enabled ? onVerifyPressed : null,
-                          borderRadius: BorderRadius.circular(TioRadius.small),
+                          borderRadius: BorderRadius.circular(TioRadius.sm),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal:
@@ -159,14 +159,14 @@ class TioMobileNumberField extends StatelessWidget {
                                     TioInputTokens.mobileVerifyContainerOpacity,
                               ),
                               borderRadius: BorderRadius.circular(
-                                TioRadius.small,
+                                TioRadius.sm,
                               ),
                             ),
                             child: Text(
                               'Verify',
                               style: TextStyle(
                                 color: colors.primary,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: TioFontWeight.w700,
                                 fontSize:
                                     TioInputTokens.mobileVerifyLabelFontSize,
                               ),
