@@ -33,7 +33,7 @@ class TioScreenHeader extends StatelessWidget {
                 ),
               ),
               if (subtitle != null) ...[
-                const SizedBox(height: TioSpacing.small),
+                const SizedBox(height: TioSpacing.sm),
                 Text(
                   subtitle!,
                   style: textTheme.bodyLarge?.copyWith(
