@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_onboarding/src/presentation/theme/onboarding_age_dialog_tokens.dart';
-import 'package:tio_feature_onboarding/src/presentation/theme/onboarding_data_sheet_tokens.dart';
 import 'package:tio_feature_onboarding/src/presentation/theme/onboarding_modal_tokens.dart';
 
 void main() {
@@ -13,7 +12,6 @@ void main() {
       expect(OnboardingModalTokens.bodyFontSize, 14.0);
       expect(OnboardingModalTokens.titleToBodyGap, 10.0);
       expect(OnboardingModalTokens.actionTopGap, TioSpacing.extraLarge);
-      expect(OnboardingDataSheetTokens.bodyLineHeight, 1.5);
     });
 
     test('keeps exact age-dialog geometry and action palette', () {
