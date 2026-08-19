@@ -14,6 +14,8 @@ dependencies:
     path: ../../core
   tio_shared:
     path: ../../shared
+  tio_feature_account_setup:
+    path: ../account_setup
   tio_feature_profile:
     path: ../profile
   tio_feature_workout:
