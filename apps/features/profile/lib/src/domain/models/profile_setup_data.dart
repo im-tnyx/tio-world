@@ -14,10 +14,8 @@ class ProfileSetupData {
     this.avatarFrame = 'none',
     this.plan = 'free',
     required this.gender,
-    this.hasPersistedGender = true,
     required this.goals,
     required this.dateOfBirth,
-    this.hasPersistedDateOfBirth = true,
     required this.heightCm,
     required this.currentWeightKg,
     this.targetWeightKg,
@@ -36,22 +34,8 @@ class ProfileSetupData {
   final String avatarFrame;
   final String plan;
   final ProfileGender gender;
-
-  /// Whether Gender/Sex was actually persisted/provided for this profile.
-  ///
-  /// Repositories may use an enum fallback for rendering legacy/missing rows;
-  /// this flag prevents that fallback from falsely counting as completed data.
-  final bool hasPersistedGender;
-
   final Set<ProfileGoal> goals;
   final DateTime dateOfBirth;
-
-  /// Whether DOB was actually persisted/provided for this profile.
-  ///
-  /// Repositories may use a fallback date for legacy/missing rows; this flag
-  /// keeps completion scoring based on real field presence instead.
-  final bool hasPersistedDateOfBirth;
-
   final double heightCm;
   final double currentWeightKg;
   final double? targetWeightKg;
@@ -81,11 +65,9 @@ class ProfileSetupData {
             avatarFrame == other.avatarFrame &&
             plan == other.plan &&
             gender == other.gender &&
-            hasPersistedGender == other.hasPersistedGender &&
             goals.length == other.goals.length &&
             goals.containsAll(other.goals) &&
             dateOfBirth == other.dateOfBirth &&
-            hasPersistedDateOfBirth == other.hasPersistedDateOfBirth &&
             heightCm == other.heightCm &&
             currentWeightKg == other.currentWeightKg &&
             targetWeightKg == other.targetWeightKg &&
@@ -106,10 +88,8 @@ class ProfileSetupData {
         avatarFrame,
         plan,
         gender,
-        hasPersistedGender,
         Object.hashAll(goals),
         dateOfBirth,
-        hasPersistedDateOfBirth,
         heightCm,
         currentWeightKg,
         targetWeightKg,
