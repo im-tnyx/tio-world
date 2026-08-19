@@ -122,7 +122,7 @@ Confirmed root logout performs one explicit awaited repository save before sign-
 
 ### Validation Run
 
-GitHub Actions Flutter CI **#923**, run `32285931528`, source head `83fb0171183af90dde163b57dae61392f1ac106f`:
+Implementation head `83fb0171183af90dde163b57dae61392f1ac106f` passed GitHub Actions Flutter CI **#923**, run `32285931528`:
 
 ```text
 Bootstrap workspace      PASS
@@ -131,6 +131,8 @@ Analyze Dart packages    PASS
 Test Flutter packages    PASS
 Test Dart packages       PASS
 ```
+
+After this task evidence was recorded, latest PR head `8a33e170cb019518def290dd5658a692e77d72ba` also passed Flutter CI **#924**, run `32286508843`, with the same full analyze/test matrix green.
 
 ### Review Findings
 
