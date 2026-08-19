@@ -20,13 +20,6 @@ class TioTheme extends StatelessWidget {
   final TioThemeConfig config;
   final Widget child;
 
-  // Retained temporarily while feature packages migrate to context.tioColors.
-  // Unlike the removed static spacing/radius/motion facades, this still has
-  // widespread live consumers and will be retired package-by-package.
-  static TioColors colors(BuildContext context) {
-    return Theme.of(context).extension<TioColors>() ?? TioColors.light;
-  }
-
   @override
   Widget build(BuildContext context) {
     final systemBrightness = MediaQuery.platformBrightnessOf(context);
