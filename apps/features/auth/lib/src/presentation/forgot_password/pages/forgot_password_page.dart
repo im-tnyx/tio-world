@@ -3,9 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
 
 import '../../../domain/domain.dart';
-import '../../theme/auth_forgot_password_tokens.dart';
-import '../../theme/auth_form_tokens.dart';
-import '../../theme/auth_visual_tokens.dart';
 
 /// Forgot password screen.
 /// Sends a password reset email via Supabase Auth.
@@ -50,7 +47,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     });
 
     if (widget.sendPasswordResetEmailUseCase == null) {
-      // Dev mode: simulate success
+      // Dev mode: simulate success. This is behavior timing, not visual motion.
       await Future<void>.delayed(const Duration(milliseconds: 600));
       if (mounted) setState(() => _emailSent = true);
       setState(() => _isLoading = false);
@@ -59,7 +56,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
     try {
       final result = await widget.sendPasswordResetEmailUseCase!(
-          _emailController.text.trim());
+        _emailController.text.trim(),
+      );
       if (!mounted) return;
       switch (result) {
         case SignInSuccess():
@@ -86,12 +84,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       appBar: AppBar(
         // Intentional framework-transparent app bar; not a palette role.
         backgroundColor: Colors.transparent,
-        elevation: 0,
+        elevation: TioElevation.none,
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back,
             color: colors.textPrimary,
-            size: AuthFormTokens.backIconSize,
+            size: TioSize.dp24,
           ),
           onPressed: () => context.pop(),
           tooltip: 'Back',
@@ -101,7 +99,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         child: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: TioSpacing.large),
+            padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
             child: _emailSent
                 ? _SuccessState(
                     email: _emailController.text.trim(),
@@ -114,24 +112,18 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: TioSpacing.large),
+                        const SizedBox(height: TioSpacing.lg),
                         Text(
                           'Reset password',
                           style: textTheme.displayLarge,
                         ),
-                        const SizedBox(
-                          height:
-                              AuthForgotPasswordTokens.titleToDescriptionGap,
-                        ),
+                        const SizedBox(height: TioSize.dp6),
                         Text(
                           "Enter your email address and we'll send you\na reset link.",
                           style: textTheme.bodyLarge
                               ?.copyWith(color: colors.textSecondary),
                         ),
-                        const SizedBox(
-                          height:
-                              AuthForgotPasswordTokens.descriptionToInputGap,
-                        ),
+                        const SizedBox(height: TioSize.dp40),
 
                         // Email field
                         TextFormField(
@@ -148,7 +140,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                             prefixIcon: Icon(
                               Icons.mail_outline_rounded,
                               color: colors.textMuted,
-                              size: AuthFormTokens.inputLeadingIconSize,
+                              size: TioSize.dp20,
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: TioInputTokens.horizontalPadding,
@@ -161,12 +153,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
                         // Error banner
                         if (_errorMessage != null) ...[
-                          const SizedBox(height: TioSpacing.large),
+                          const SizedBox(height: TioSpacing.lg),
                           _ErrorBanner(message: _errorMessage!),
                         ],
-                        const SizedBox(
-                          height: AuthForgotPasswordTokens.submitTopGap,
-                        ),
+                        const SizedBox(height: TioSize.dp28),
 
                         // Send reset button
                         TioButton.primary(
@@ -175,7 +165,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                           loading: _isLoading,
                           onPressed: _isLoading ? null : _handleSendReset,
                         ),
-                        const SizedBox(height: TioSpacing.extraLarge),
+                        const SizedBox(height: TioSpacing.xl),
 
                         // Back to sign in
                         Center(
@@ -188,8 +178,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                               'Back to Sign In',
                               style: textTheme.bodyLarge?.copyWith(
                                 color: colors.primary,
-                                fontWeight:
-                                    AuthFormTokens.secondaryActionFontWeight,
+                                fontWeight: TioFontWeight.w600,
                               ),
                             ),
                           ),
@@ -222,41 +211,33 @@ class _SuccessState extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const SizedBox(height: AuthForgotPasswordTokens.successTopGap),
+        const SizedBox(height: TioSize.dp48),
         Container(
-          width: AuthForgotPasswordTokens.successIconContainerSize,
-          height: AuthForgotPasswordTokens.successIconContainerSize,
+          width: TioSize.dp80,
+          height: TioSize.dp80,
           decoration: BoxDecoration(
-            color: colors.success.withValues(
-              alpha: AuthForgotPasswordTokens.successIconContainerOpacity,
-            ),
+            color: colors.success.withValues(alpha: TioOpacity.opacity12),
             shape: BoxShape.circle,
           ),
           child: Icon(
             Icons.mark_email_read_outlined,
             color: colors.success,
-            size: AuthForgotPasswordTokens.successIconSize,
+            size: TioSize.dp40,
           ),
         ),
-        const SizedBox(
-          height: AuthForgotPasswordTokens.successIconToTitleGap,
-        ),
+        const SizedBox(height: TioSize.dp28),
         Text(
           'Check your inbox',
           style: textTheme.displayLarge,
           textAlign: TextAlign.center,
         ),
-        const SizedBox(
-          height: AuthForgotPasswordTokens.successTitleToBodyGap,
-        ),
+        const SizedBox(height: TioSize.dp10),
         Text(
           'We sent a password reset link to\n$email',
           style: textTheme.bodyLarge?.copyWith(color: colors.textSecondary),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(
-          height: AuthForgotPasswordTokens.successBodyToButtonGap,
-        ),
+        const SizedBox(height: TioSize.dp40),
         SizedBox(
           width: double.infinity,
           child: TioButton.primary(
@@ -280,14 +261,12 @@ class _ErrorBanner extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
-        horizontal: AuthVisualTokens.inlineErrorHorizontalPadding,
-        vertical: AuthVisualTokens.inlineErrorVerticalPadding,
+        horizontal: TioSpacing.lg,
+        vertical: TioSpacing.md,
       ),
       decoration: BoxDecoration(
-        color: colors.danger.withValues(
-          alpha: AuthVisualTokens.inlineErrorContainerOpacity,
-        ),
-        borderRadius: BorderRadius.circular(AuthVisualTokens.inlineErrorRadius),
+        color: colors.danger.withValues(alpha: TioOpacity.opacity10),
+        borderRadius: BorderRadius.circular(TioRadius.lg),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -295,15 +274,15 @@ class _ErrorBanner extends StatelessWidget {
           Icon(
             Icons.error_outline_rounded,
             color: colors.danger,
-            size: AuthVisualTokens.inlineErrorIconSize,
+            size: TioSize.dp18,
           ),
-          const SizedBox(width: AuthVisualTokens.inlineErrorContentGap),
+          const SizedBox(width: TioSize.dp10),
           Expanded(
             child: Text(
               message,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: colors.danger,
-                    fontSize: AuthVisualTokens.inlineErrorFontSize,
+                    fontSize: TioFontSize.size13,
                   ),
             ),
           ),
