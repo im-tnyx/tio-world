@@ -22,7 +22,7 @@ class AppSettingsPage extends StatelessWidget {
       appBar: AppBar(title: const Text('App Settings')),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(TioSpacing.xl),
           children: [
             Card(
               child: Column(
@@ -35,7 +35,7 @@ class AppSettingsPage extends StatelessWidget {
                     trailing: const Icon(Icons.chevron_right),
                     onTap: onAppModePressed,
                   ),
-                  const Divider(height: 1),
+                  const Divider(height: TioSize.dp1),
                   ListTile(
                     key: const ValueKey('app-settings-theme-entry'),
                     leading: const Icon(Icons.palette_outlined),
