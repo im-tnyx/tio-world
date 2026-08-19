@@ -112,7 +112,7 @@ class OnboardingFlowPage extends ConsumerWidget {
 
     if (shouldGateHydration && !controller.isHydrated) {
       return Scaffold(
-        backgroundColor: TioTheme.colors(context).background,
+        backgroundColor: context.tioColors.background,
         body: const SizedBox.expand(),
       );
     }
@@ -164,7 +164,7 @@ class OnboardingFlowPage extends ConsumerWidget {
         if (exit != null) unawaited(exit());
       },
       child: Scaffold(
-        backgroundColor: TioTheme.colors(context).background,
+        backgroundColor: context.tioColors.background,
         resizeToAvoidBottomInset: true,
         body: SafeArea(
           bottom: false,

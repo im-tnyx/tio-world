@@ -69,7 +69,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final failureMessage = widget.failureMessage;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
