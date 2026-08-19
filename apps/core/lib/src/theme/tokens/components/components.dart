@@ -2,7 +2,6 @@ export 'tio_avatar_action_sheet_tokens.dart';
 export 'tio_avatar_tokens.dart';
 export 'tio_button_tokens.dart';
 export 'tio_card_tokens.dart';
-export 'tio_dob_picker_tokens.dart';
 export 'tio_input_tokens.dart';
 export 'tio_legal_tokens.dart';
 export 'tio_measurement_picker_tokens.dart';
