@@ -1,12 +1,12 @@
 # Tio Core Theme and Design System
 
-This directory is the canonical implementation and usage boundary for Tio's shared Flutter theme, design tokens, typography, runtime theme extensions, and reusable component visual contracts.
+This directory is the canonical usage and implementation boundary for Tio's shared Flutter theme, design tokens, typography, runtime theme extensions, effects, and reusable component visual contracts.
 
-Use this guide before adding or changing visual values in `apps/core` or any feature package.
+**Read this file before changing Flutter UI in `apps/core` or any feature package.** Normal feature UI work should not begin by crawling `tokens/**` files.
 
 ## Feature UI Quick Start
 
-For normal UI work under `apps/features/*`, this README is the first design-system lookup. Do **not** start by crawling `tokens/**` files.
+Use the public core boundary:
 
 ```dart
 import 'package:tio_core/core.dart';
@@ -29,10 +29,10 @@ Common static lookup:
 ```text
 Spacing: none=0, xxs=2, xs=4, sm=8, md=12, lg=16, xl=24, xxl=32
 Radius:  none=0, xs=4, sm=8, md=12, lg=16, xl=24, full=999
-Exact geometry: TioSize.dpN when the current exact value is not a spacing/radius role
+Exact geometry: TioSize.dpN
 Stroke: TioStroke
 Elevation: TioElevation
-Typography physical values: TioFontSize / TioFontWeight / TioLetterSpacing / TioLineHeight
+Typography: TioFontSize / TioFontWeight / TioLetterSpacing / TioLineHeight
 ```
 
 Common runtime lookup:
@@ -44,41 +44,42 @@ final shadows = context.tioShadows;
 final textTheme = Theme.of(context).textTheme;
 ```
 
-Prefer reusable core UI such as `TioButton`, `TioInput`, `TioUsernameInputField`, `TioMobileNumberField`, `TioCard`, `TioAvatar`, and the shared dialogs/pickers/sheets before rebuilding the same contract inside a feature.
+Prefer reusable core UI such as `TioButton`, `TioInput`, `TioUsernameInputField`, `TioMobileNumberField`, `TioCard`, `TioAvatar`, and shared dialogs/pickers/sheets before rebuilding the same contract in a feature.
 
-A normal feature UI edit should not require opening internal theme/token implementation files. Inspect `apps/core/lib/src/theme/tokens/**` only when a documented role is missing/ambiguous, runtime source and this README disagree, or the task intentionally changes a core design-system contract. Do not create a feature-local token/theme/color/layout catalog merely to avoid using the governed core boundary.
+A normal feature edit should not require opening internal token source. Inspect `apps/core/lib/src/theme/tokens/**` only when a documented role is missing/ambiguous, runtime source and this README disagree, or the task intentionally changes the core design-system contract.
 
 ## Maintenance Contract
 
-This README is part of the design-system contract, not optional commentary.
+This README is part of the design-system contract.
 
-When a change adds, removes, renames, or materially changes any of the following, update this README in the **same change/PR**:
+Update it in the **same change/PR** when adding, removing, renaming, or materially changing:
 
 - token categories or ownership rules;
-- public theme or context APIs;
-- spacing, radius, stroke, typography, color, motion, elevation, shadow, or component contracts;
+- public theme/context APIs;
+- spacing, radius, stroke, typography, color, motion, elevation or shadow contracts;
+- reusable component contracts;
 - `TioThemeConfig` behavior;
 - runtime-selectable font behavior;
 - compatibility/deprecation guidance;
-- the recommended way feature code consumes the design system.
+- the recommended feature-consumption flow.
 
-If runtime source and this README disagree, runtime source is authoritative for current behavior, but the documentation is stale and must be corrected before the design-system task is considered complete.
+If runtime source and this README disagree, runtime source is authoritative for current behavior, but the documentation must be corrected before the design-system task is complete.
 
 ## Public Entry Point
 
-Feature packages should normally import the core package:
+Feature packages should normally import:
 
 ```dart
 import 'package:tio_core/core.dart';
 ```
 
-The theme barrel is:
+The internal theme barrel is:
 
 ```text
 apps/core/lib/src/theme/theme.dart
 ```
 
-It exports runtime context helpers, `TioTheme`, `TioThemeConfig`, and the governed token families.
+It exports runtime context helpers, `TioTheme`, `TioThemeConfig`, and governed token families.
 
 ## Ownership Hierarchy
 
@@ -87,24 +88,52 @@ Primitive physical values
         ↓
 Foundation / semantic / typography / effects roles
         ↓
-Reusable component contracts
+Reusable component contracts (only when genuinely useful)
         ↓
 Reusable core components
         ↓
 Feature screens/widgets
 ```
 
-The important rule is:
+Core invariant:
 
-> A fixed product-visible physical value has one canonical owner. Upper layers alias governed lower-level values instead of redefining the same number/color/duration independently.
+> Every fixed product-visible physical value has one canonical owner. Upper layers alias governed lower-level values instead of independently redefining the same number, color, duration, or typography value.
 
-Feature-specific token bags such as `WelcomeTokens`, `AuthTokens`, `ProfileTokens`, or screen-local theme catalogs are not the target architecture.
+Feature/screen/workflow token bags such as `WelcomeTokens`, `AuthTokens`, `ProfileTokens`, or `DeleteAccountDialogTokens` are not valid final architecture.
+
+## Component-Token Admission Gate
+
+**Do not create one token file per widget, dialog, sheet, screen, or product action.** A file under `tokens/components/` exists only for a proven reusable component contract.
+
+A new or retained component-token class must pass all of these checks:
+
+1. The owning UI is genuinely reusable, not a single product screen/workflow disguised as a component.
+2. The class expresses a stable reusable visual contract that adds value beyond directly calling existing primitives/semantic roles.
+3. Reuse is evidenced by multiple contexts/consumers or a clearly generic API with independent use cases.
+4. The class name describes reusable component capability, not a feature, screen, workflow, or product action.
+5. Physical values alias governed lower-level owners; the class is never a second physical registry.
+6. If these checks fail, **do not create a token file**. Keep the composition with its owner and consume governed core values directly.
+
+Examples:
+
+```text
+TioButtonTokens             ✅ reusable button contract
+TioInputTokens              ✅ reusable input-family contract
+TioOtpDialogTokens          ✅ reusable email/phone/reset verification dialog
+WelcomeTokens               ❌ feature token bag
+ProfileTokens               ❌ feature token bag
+DeleteAccountDialogTokens   ❌ single destructive product workflow
+```
+
+A reusable widget does not automatically need a token class. Small/simple components may directly consume `TioSize`, `TioSpacing`, `TioRadius`, `TioStroke`, typography registries, and runtime semantic roles when a separate component-token facade adds no useful contract.
+
+Likewise, a product-specific workflow living under core does not become a design-system component merely by giving it a token class.
 
 ## Token Families
 
 ### Primitive physical values
 
-Use these as the lowest-level exact-value registries:
+Lowest-level exact-value registries:
 
 ```text
 TioSize       fixed geometry values
@@ -119,11 +148,11 @@ Example:
 const SizedBox(width: TioSize.dp20);
 ```
 
-Do not add arbitrary values “just in case”. A new primitive must be evidenced by current UI or an approved design decision. Exact migration evidence may add values that are uncommon globally (for example a fixed `60dp` geometry or exact opacity/alpha contract); the physical registry owns the exact value so feature code does not recreate it.
+Do not add arbitrary values “just in case”. A new primitive must be evidenced by current UI or an approved design decision.
 
 ### Foundation geometry
 
-Use semantic geometry when the role actually matches:
+Use semantic geometry when the role honestly matches:
 
 ```text
 TioSpacing.none / xxs / xs / sm / md / lg / xl / xxl
@@ -135,24 +164,21 @@ Examples:
 
 ```dart
 const EdgeInsets.all(TioSpacing.lg);
-
 BorderRadius.circular(TioRadius.lg);
-
 BorderSide(width: TioStroke.width1);
 ```
 
-If an exact component value has no matching semantic spacing/radius role, preserve the exact value through `TioSize` rather than forcing a nearby scale value.
+If a fixed value has no matching semantic spacing/radius role, preserve it exactly with `TioSize` instead of forcing a nearby scale value.
 
 ```dart
-// Correct when 20dp is the exact component contract.
 const EdgeInsets.symmetric(horizontal: TioSize.dp20);
 ```
 
-Do not mechanically normalize `20` to `16` or `24` merely to use `TioSpacing`.
+Do not normalize `20` to `16` or `24` merely to use `TioSpacing`.
 
 ### Colors
 
-Feature and reusable UI should resolve theme-aware colors dynamically:
+Theme-aware UI resolves runtime semantic colors:
 
 ```dart
 final colors = context.tioColors;
@@ -163,19 +189,17 @@ Text('Title', style: TextStyle(color: colors.textPrimary));
 
 `Theme.of(context).colorScheme` is also valid when the Material semantic role is appropriate.
 
-Media/image compositions use runtime semantic media roles rather than direct palette colors:
+Media/image compositions use runtime media roles:
 
 ```dart
-final colors = context.tioColors;
-
 Container(color: colors.mediaBackground);
 Text('Hero', style: TextStyle(color: colors.onMediaPrimary));
 Text('Supporting', style: TextStyle(color: colors.onMediaSecondary));
 ```
 
-`mediaBackground`, `onMediaPrimary`, and `onMediaSecondary` are resolved by the active `TioColors` scheme. Their current light/dark/OLED mappings intentionally preserve the existing media composition pixels, but each theme mode owns its mapping centrally and can diverge later without feature-level color changes.
+`mediaBackground`, `onMediaPrimary`, and `onMediaSecondary` are owned by the active `TioColors` light/dark/OLED scheme. Current mappings preserve existing pixels while allowing modes to diverge centrally later.
 
-`TioPalette` is the physical color registry. Feature screens should not normally consume palette colors directly.
+`TioPalette` is the physical color registry. Features should not normally consume palette colors directly.
 
 Prefer:
 
@@ -184,20 +208,15 @@ context.tioColors
 Theme.of(context).colorScheme
 ```
 
-Avoid:
+Avoid repeated feature-level `Color(0xFF...)` literals or direct palette access when a semantic role exists.
 
-```dart
-const Color(0xFF...);       // repeated product-visible color in feature UI
-TioPalette.someColor;       // direct physical palette use when a semantic role exists
-```
+A rare audited one-off fixed color with no honest reusable semantic role may use its governed `TioPalette` owner directly rather than creating a feature color-token bag. Preserve byte-exact alpha through `TioAlpha`/palette ownership when required.
 
-A rare audited one-off fixed color with no honest reusable semantic role may consume the governed `TioPalette` value directly rather than creating a feature color-token bag. Preserve byte-exact alpha through `TioAlpha`/palette ownership when the current ARGB contract depends on an exact alpha byte.
-
-Intentional framework-transparent values such as `Colors.transparent` may remain where transparency itself is implementation behavior rather than a product color role.
+`Colors.transparent` may remain where transparency itself is framework/composition behavior rather than a product color role.
 
 ### Typography
 
-Feature UI should normally consume semantic `TextTheme` roles:
+Prefer semantic Flutter text roles:
 
 ```dart
 final textTheme = Theme.of(context).textTheme;
@@ -216,13 +235,11 @@ TioLineHeight
 TioFontFamily
 ```
 
-These are primarily for `TioTypography` and reusable component typography contracts. Feature screens should not recreate a full style system from physical typography primitives.
+A truly one-off typography composition may combine governed physical typography values at the consumer. Do not create a feature typography catalog to hide it.
 
-For a truly one-off typography composition that has no reusable semantic role, compose the exact style at the consumer from governed physical typography values rather than introducing a feature typography-token catalog. Fractional font-size identifiers preserve the decimal explicitly, for example `TioFontSize.size9_5` and `TioFontSize.size10_5`.
+Fractional evidenced sizes use explicit identifiers such as `TioFontSize.size9_5` and `TioFontSize.size10_5`.
 
 #### Runtime font selection
-
-The architecture supports a future Settings font preference:
 
 ```text
 TioFontFamily
@@ -236,63 +253,53 @@ TioTypography
 Theme.of(context).textTheme
 ```
 
-The default is the platform/system font. A font becomes a user-selectable `TioFontFamilyOption` only after availability is verified on all supported platforms, normally by bundling/registering the font assets.
+The default remains the platform/system font. A font becomes selectable only after cross-platform availability is verified, normally through bundled/registered assets. An evidenced named family such as Roboto may exist without becoming a Settings option.
 
-Do not add per-screen font-family switches. An evidenced explicit family that is required to preserve an existing composition may remain a governed `TioFontFamily` identifier without automatically becoming a Settings-selectable option.
+Do not add per-screen font-family switches.
 
 ### Motion
 
-Use the runtime motion scheme so reduced/custom motion behavior can be resolved centrally:
+Use the runtime motion scheme:
 
 ```dart
 duration: context.tioMotion.slow,
 ```
 
-`TioDuration` owns physical durations. `TioMotion` owns semantic duration roles. `TioMotionScheme` is the runtime-resolved scheme.
+`TioDuration` owns physical durations, `TioMotion` semantic motion roles, and `TioMotionScheme` runtime/reduced-motion resolution.
 
-Do not add raw repeated `Duration(milliseconds: ...)` values in feature UI when an existing governed motion role applies.
+Animation interval positions, progress factors, gradient stops, flex values, and component-specific ratios are not motion/geometry tokens merely because they are numeric.
 
-Animation interval positions, normalized progress factors, gradient stops, flex values, and other composition/program ratios are not durations or geometry primitives merely because they are numeric. Keep genuinely local factors close to the owning consumer.
-
-Behavior timing is not automatically motion. For example, an input debounce or destructive hold duration may remain component/domain behavior unless a shared visual-motion role is genuinely being expressed.
+Behavior timing is not automatically motion. Input debounce or destructive hold duration may remain component/domain behavior.
 
 ### Elevation
 
-Use `TioElevation` for repeated semantic Material/effect elevation roles rather than treating elevation as layout geometry.
+Repeated semantic elevation roles belong to `TioElevation`:
 
 ```dart
 AppBar(elevation: TioElevation.none);
 ```
 
-`TioElevation.none` is the canonical zero-elevation role currently shared by Card and Navigation/Shell contracts. Add further elevation roles only after repeated component/theme evidence justifies them; do not create a broad speculative scale.
+`TioElevation.none` is the canonical shared zero-elevation role. Add further roles only after real repeated evidence; do not create a speculative scale.
 
 ### Shadows
 
-Use runtime shadows when a theme-aware shadow/effect role is required:
+Theme-aware effects use:
 
 ```dart
 final shadows = context.tioShadows;
 ```
 
-Static reusable shadow contracts live under the effects token family; runtime mode-specific resolution belongs to `TioShadows`.
+Static reusable shadow contracts live under effects; runtime mode-specific resolution belongs to `TioShadows`.
 
 ### Domain semantic colors
 
-`TioDomainColors` owns reusable product-domain color semantics where the role is shared across features. Do not create a feature-local color catalog when an existing semantic/domain role already expresses the intent.
+`TioDomainColors` owns product-domain color semantics only when the role is genuinely shared across features.
 
 ### Reusable component tokens
 
-Files under:
+Current component-token families are intentionally limited to reusable contracts that passed the admission gate, including Button, Input, Card, Avatar, Navigation, shared picker/sheet contracts, Legal, and reusable OTP verification.
 
-```text
-tokens/components/
-```
-
-own reusable component contracts such as button, input, card, avatar, dialog, picker, navigation, and sheet values.
-
-Component tokens may keep semantic names, but physical values must alias governed lower layers.
-
-Example:
+Physical values must alias governed lower layers:
 
 ```dart
 class TioButtonTokens {
@@ -302,11 +309,9 @@ class TioButtonTokens {
 }
 ```
 
-A feature screen should prefer the reusable component itself (`TioButton`, `TioInput`, `TioCard`, etc.) rather than copying its token contract to rebuild the same component locally.
+A feature should prefer the reusable component itself rather than copying its token contract.
 
 ## Static vs Runtime Values
-
-A useful rule:
 
 ```text
 Static physical/semantic value → token directly
@@ -334,48 +339,38 @@ Theme.of(context).textTheme
 Theme.of(context).colorScheme
 ```
 
-Do not put static token wrappers into `BuildContext` merely for convenience.
+Do not wrap static tokens in `BuildContext` merely for convenience.
 
 ## Choosing the Correct Owner
 
-Before adding a visual value, classify it.
+Before adding a visual value:
 
-### 1. Is it a raw physical value reused by governed contracts?
+1. **Raw physical value reused by governed contracts?** Use/add the appropriate primitive.
+2. **Reusable semantic role?** Use/add foundation, semantic, typography, effects, or domain ownership.
+3. **Proven reusable component contract?** Use a component token class only if it passes the admission gate.
+4. **One-off composition/program data?** Keep it close to the consumer while fixed physical values use governed core owners.
 
-Add/consume a primitive such as `TioSize`, `TioOpacity`, `TioAlpha`, `TioDuration`, or a typography physical registry.
-
-### 2. Is it a reusable semantic role?
-
-Use/add the appropriate foundation, semantic, typography, effects, or domain role.
-
-### 3. Is it a reusable component contract?
-
-Keep the semantic name in the component token class, but alias governed lower-level values.
-
-### 4. Is it truly one-off feature composition data?
-
-Do **not** create a feature token bag solely to hide it. Keep genuinely local runtime/composition data close to its consumer while using governed primitives for any fixed physical values.
-
-Examples of composition/program data that should not be misclassified as geometry tokens include animation intervals, gradient stop positions, flex values, and component-specific ratios/factors when they are not reusable design-system roles.
+Local composition/program data includes animation intervals, gradient stops, flex values, mathematical construction coefficients, and component-specific ratios/factors when they are not reusable design-system roles.
 
 ## Adding a New Token or Role
 
 Before adding anything new:
 
-1. Search the repository for an existing equivalent owner.
-2. Confirm whether the value is physical, semantic, component-specific, or runtime/composition data.
+1. Search for an existing equivalent owner.
+2. Classify the value as physical, semantic, reusable-component, runtime, behavior/domain, or local composition data.
 3. Reuse existing governed ownership first.
-4. Add an exact primitive only when current UI/approved design evidence requires it.
-5. Add a semantic/component role only when reuse or intent justifies it.
-6. Preserve current rendered values unless the active task explicitly approves a visual change.
-7. Add/update focused contract tests.
-8. Update this README if the public usage/ownership contract changed.
+4. Add an exact primitive only when current UI/approved evidence requires it.
+5. Add a semantic/component role only when reuse and intent justify it.
+6. Apply the component-token admission gate before creating anything under `tokens/components/`.
+7. Preserve current rendered values unless the active task explicitly approves a visual change.
+8. Add/update the smallest relevant tests.
+9. Update this README when the public usage/ownership contract changes.
 
-Do not create near-duplicate token systems to preserve feature ownership.
+Do not create near-duplicate token systems or per-screen token bags.
 
 ## Reusable Components First
 
-Feature screens should prefer reusable core UI:
+Prefer:
 
 ```text
 TioButton
@@ -384,16 +379,16 @@ TioUsernameInputField
 TioMobileNumberField
 TioCard
 TioAvatar
-core dialogs/pickers/sheets
+core reusable dialogs/pickers/sheets
 ```
 
-When a repeated visual/behavior pattern is missing, audit whether the correct fix is a reusable component or reusable variant before adding another screen-local implementation.
+When a repeated pattern is missing, first ask whether the correct fix is an existing component, reusable variant, or direct governed primitives—not another token file.
 
-Raw Flutter primitives are valid inside reusable core implementations and for rare justified one-off cases.
+Raw Flutter primitives are valid inside reusable core implementations and rare justified one-off cases.
 
 ## Compatibility APIs
 
-The following compatibility surfaces still exist because current feature consumers have not all migrated yet:
+Temporary compatibility surfaces remain while live feature consumers migrate:
 
 ```text
 context.radiusSmall / radiusMedium / radiusLarge
@@ -403,27 +398,21 @@ legacy TioRadius names (small/medium/large/extraLarge)
 TioMotionTokens compatibility facade
 ```
 
-Do not add new usage of these APIs. New/edited consumers should use canonical contracts. Remove compatibility APIs only after repository-wide zero-reference verification and focused validation.
+Do not add new usage. Remove compatibility APIs only after repository-wide zero-reference verification and focused validation.
 
 ## Visual Safety
 
 Design-system cleanup is not permission to redesign UI.
 
-By default:
-
 ```text
 pixels before == pixels after
 ```
 
-Preserve current colors, typography appearance, component sizes, icon/image sizes, spacing, radius, shadows, and motion unless the active task explicitly approves a visible change.
-
-Numeric similarity is not enough to change a rendered value.
+Preserve colors, typography appearance, component sizes, icon/image sizes, spacing, radius, shadows and motion unless the active task explicitly approves a visible change. Numeric similarity alone never authorizes a rendered-value change.
 
 ## Tests and Validation
 
-When changing theme/token ownership, add or update the smallest relevant contract/widget tests and run the applicable workspace validation.
-
-Typical repository validation:
+For theme/token ownership changes, update the smallest relevant contract/widget tests and run applicable workspace validation:
 
 ```bash
 melos bootstrap
@@ -431,7 +420,7 @@ melos analyze
 melos test
 ```
 
-For docs-only changes, at minimum ensure the diff is clean (`git diff --check` in a local workflow). Required GitHub CI remains the final source of truth for the branch/PR validation boundary.
+Required GitHub CI is the final source of truth for source validation boundaries.
 
 ## Directory Map
 
@@ -447,10 +436,10 @@ theme/
 │   ├── domain/       shared product-domain semantic roles
 │   ├── typography/   font physical registries + semantic typography
 │   ├── effects/      motion/elevation/shadow contracts and runtime schemes
-│   └── components/   reusable component contracts
+│   └── components/   admitted reusable component contracts only
 ├── tio_theme_config.dart
 ├── tio_theme.dart
 └── theme.dart
 ```
 
-Keep this map and the examples above current whenever the theme system evolves.
+Keep this map and the rules above current whenever the theme system evolves.
