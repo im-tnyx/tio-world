@@ -42,11 +42,15 @@ final hybridOnboardingDraftRepositoryProvider =
   );
   ref.onDispose(authAwareRepository.dispose);
 
-  return GoogleIdentityOnboardingDraftRepository(
+  final identityRepository = GoogleIdentityOnboardingDraftRepository(
     delegate: authAwareRepository,
     selectedMode: () => ref.read(appModeControllerProvider).selectedMode,
     trustedGoogleDisplayName: () =>
         _trustedGoogleDisplayName(client?.auth.currentUser),
+  );
+
+  return ResumePreservingOnboardingDraftRepository(
+    delegate: identityRepository,
   );
 });
 
