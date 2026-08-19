@@ -13,4 +13,10 @@ class TioDomainColors {
   static const progress = TioPalette.violet500;
   static const coach = TioPalette.cyan500;
   static const recovery = TioPalette.sky400;
+
+  // Exact health-analysis colors used by current onboarding status surfaces.
+  static const healthInfo = TioPalette.sky400;
+  static const healthPositive = TioPalette.green400;
+  static const healthWarning = TioPalette.amber400;
+  static const healthDanger = TioPalette.red400;
 }
