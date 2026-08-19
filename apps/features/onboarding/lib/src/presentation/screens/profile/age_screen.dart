@@ -54,7 +54,7 @@ class AgeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return ProfileScreenScaffold(
       stepId: ProfileStepId.age,
@@ -64,7 +64,7 @@ class AgeScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 8),
+          const SizedBox(height: TioSpacing.sm),
 
           // Large Bold Date Display (Syncs with 44px across Height & Weight)
           Center(
@@ -75,30 +75,33 @@ class AgeScreen extends StatelessWidget {
                 key: const ValueKey('profile-date-of-birth-display'),
                 style: TextStyle(
                   color: colors.textPrimary,
-                  fontSize: 44,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -1.0,
+                  fontSize: TioFontSize.size44,
+                  fontWeight: TioFontWeight.w900,
+                  letterSpacing: TioLetterSpacing.negative10,
                 ),
               ),
             ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: TioSpacing.md),
 
           // Dynamic Age Badge (Horizontally Centered)
           Center(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              padding: const EdgeInsets.symmetric(
+                horizontal: TioSize.dp14,
+                vertical: TioSize.dp6,
+              ),
               decoration: BoxDecoration(
-                color: colors.primary.withAlpha(25),
+                color: colors.primary.withAlpha(TioAlpha.alpha25),
                 borderRadius: BorderRadius.circular(TioRadius.full),
               ),
               child: Text(
                 '$_calculatedAge years old',
                 style: TextStyle(
                   color: colors.primary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
+                  fontSize: TioFontSize.size13,
+                  fontWeight: TioFontWeight.w700,
                 ),
               ),
             ),
