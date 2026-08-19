@@ -20,6 +20,13 @@ class TioDomainColors {
   static const healthWarning = TioPalette.amber400;
   static const healthDanger = TioPalette.red400;
 
+  // Exact subscription-plan badge colors shared by profile surfaces.
+  static const planProBackground = TioPalette.slate900;
+  static const planPlusBackground = TioPalette.indigo950;
+  static const planProAccent = TioPalette.teal300;
+  static const planPlusAccent = TioPalette.amber500;
+  static const planLabelAccent = TioPalette.gold700;
+
   // Exact celebratory accent colors used by confetti/media celebrations.
   static const celebrationGoldPrimary = TioPalette.gold400;
   static const celebrationGoldSecondary = TioPalette.amber600;
