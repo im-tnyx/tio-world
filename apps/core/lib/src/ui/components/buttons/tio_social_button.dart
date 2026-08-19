@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+
+import '../../../theme/theme.dart';
 import 'tio_button.dart';
 
 enum TioSocialButtonType { google, truecaller, email, phone }
@@ -74,12 +76,12 @@ class TioSocialButton extends StatelessWidget {
           loading: loading,
           expand: expand,
           leading: Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.only(right: TioSpacing.sm),
             child: SvgPicture.asset(
               'assets/svg_icon/ic_trucaller.svg',
               package: 'tio_core',
-              width: 20,
-              height: 20,
+              width: TioSize.dp20,
+              height: TioSize.dp20,
             ),
           ),
         );
@@ -92,12 +94,12 @@ class TioSocialButton extends StatelessWidget {
           loading: loading,
           expand: expand,
           leading: Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.only(right: TioSpacing.sm),
             child: SvgPicture.asset(
               'assets/svg_icon/ic_google.svg',
               package: 'tio_core',
-              width: 20,
-              height: 20,
+              width: TioSize.dp20,
+              height: TioSize.dp20,
             ),
           ),
         );
@@ -110,8 +112,8 @@ class TioSocialButton extends StatelessWidget {
           loading: loading,
           expand: expand,
           leading: const Padding(
-            padding: EdgeInsets.only(right: 8),
-            child: Icon(Icons.mail_outline, size: 20),
+            padding: EdgeInsets.only(right: TioSpacing.sm),
+            child: Icon(Icons.mail_outline, size: TioSize.dp20),
           ),
         );
 
@@ -123,8 +125,8 @@ class TioSocialButton extends StatelessWidget {
           loading: loading,
           expand: expand,
           leading: const Padding(
-            padding: EdgeInsets.only(right: 8),
-            child: Icon(Icons.phone_outlined, size: 20),
+            padding: EdgeInsets.only(right: TioSpacing.sm),
+            child: Icon(Icons.phone_outlined, size: TioSize.dp20),
           ),
         );
     }
