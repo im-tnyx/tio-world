@@ -521,8 +521,23 @@ class _FloatingErrorBanner extends StatelessWidget {
               size: TioSize.dp20,
             ),
             const SizedBox(width: TioSize.dp10),
-            const Expanded(
-              child: SizedBox.shrink(),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: TioPalette.white,
+                  fontSize: TioFontSize.size13,
+                  fontWeight: TioFontWeight.w500,
+                ),
+              ),
+            ),
+            GestureDetector(
+              onTap: onDismiss,
+              child: const Icon(
+                Icons.close,
+                color: TioPalette.whiteAlpha179,
+                size: TioSize.dp18,
+              ),
             ),
           ],
         ),
