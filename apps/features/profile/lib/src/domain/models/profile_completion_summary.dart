@@ -1,5 +1,3 @@
-import 'profile_setup_data.dart';
-
 enum ProfileCompletionField {
   name,
   username,
@@ -19,35 +17,32 @@ class ProfileCompletionSummary {
     required this.missingFields,
   });
 
-  factory ProfileCompletionSummary.fromProfile(
-    ProfileSetupData data, {
+  factory ProfileCompletionSummary.fromFields({
+    required String? name,
+    required String? username,
     required String? email,
+    required String? mobile,
+    required bool hasGender,
+    required bool hasDateOfBirth,
   }) {
     final completed = <ProfileCompletionField>{};
 
-    if (data.name.trim().isNotEmpty) {
+    if ((name ?? '').trim().isNotEmpty) {
       completed.add(ProfileCompletionField.name);
     }
-
-    final username = data.username?.trim() ?? '';
-    if (username.isNotEmpty) {
+    if ((username ?? '').trim().isNotEmpty) {
       completed.add(ProfileCompletionField.username);
     }
-
     if ((email ?? '').trim().isNotEmpty) {
       completed.add(ProfileCompletionField.email);
     }
-
-    final mobile = data.mobile?.trim() ?? '';
-    if (mobile.isNotEmpty) {
+    if ((mobile ?? '').trim().isNotEmpty) {
       completed.add(ProfileCompletionField.mobile);
     }
-
-    if (data.hasPersistedGender) {
+    if (hasGender) {
       completed.add(ProfileCompletionField.gender);
     }
-
-    if (data.hasPersistedDateOfBirth) {
+    if (hasDateOfBirth) {
       completed.add(ProfileCompletionField.dateOfBirth);
     }
 
@@ -73,6 +68,15 @@ class ProfileCompletionSummary {
           ProfileCompletionField.username ||
           ProfileCompletionField.email ||
           ProfileCompletionField.mobile => true,
+          _ => false,
+        },
+      );
+
+  bool get hasProfileOwnedMissingField => missingFields.any(
+        (field) => switch (field) {
+          ProfileCompletionField.name ||
+          ProfileCompletionField.gender ||
+          ProfileCompletionField.dateOfBirth => true,
           _ => false,
         },
       );
