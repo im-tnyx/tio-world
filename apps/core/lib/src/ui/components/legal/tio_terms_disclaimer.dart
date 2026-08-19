@@ -41,7 +41,7 @@ class TioTermsDisclaimer extends StatelessWidget {
     final linkStyle = TextStyle(
       fontSize: fontSize,
       color: resolvedLinkColor,
-      fontWeight: FontWeight.w600,
+      fontWeight: TioFontWeight.w600,
       decoration: TextDecoration.underline,
       decorationColor: resolvedLinkColor.withValues(
         alpha: TioLegalTokens.linkUnderlineOpacity,
