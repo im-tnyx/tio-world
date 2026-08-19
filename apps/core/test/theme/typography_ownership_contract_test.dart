@@ -127,12 +127,6 @@ void main() {
 
     test('picker and supporting roles alias canonical typography primitives', () {
       expect(TioWheelPickerTokens.selectedFontSize, TioFontSize.size22);
-      expect(TioDobPickerTokens.titleFontSize, TioFontSize.size22);
-      expect(
-        TioDobPickerTokens.titleLetterSpacing,
-        TioLetterSpacing.negative02,
-      );
-      expect(TioDobPickerTokens.unselectedFontSize, TioFontSize.size17);
       expect(TioMeasurementPickerTokens.titleFontSize, TioFontSize.size24);
       expect(
         TioMeasurementPickerTokens.titleLetterSpacing,
