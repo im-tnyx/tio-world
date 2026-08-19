@@ -5,6 +5,7 @@
 abstract final class TioDuration {
   static const ms90 = 90;
   static const ms150 = 150;
+  static const ms200 = 200;
   static const ms250 = 250;
   static const ms310 = 310;
   static const ms400 = 400;
