@@ -137,6 +137,11 @@ void main() {
       );
     }
 
+    final report = violations.isEmpty
+        ? 'NO_VISUAL_VIOLATIONS\n'
+        : '${violations.join('\n')}\n';
+    File('final-visual-violations.txt').writeAsStringSync(report);
+
     expect(
       violations,
       isEmpty,

@@ -3,6 +3,9 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  final report = File('final-architecture-violations.txt');
+  report.writeAsStringSync('');
+
   test('final tree has no feature-owned presentation design-system catalogs', () {
     final featuresRoot = Directory('../features');
     expect(featuresRoot.existsSync(), isTrue);
@@ -26,6 +29,13 @@ void main() {
       }
     }
 
+    report.writeAsStringSync(
+      violations.isEmpty
+          ? 'NO_FEATURE_CATALOG_VIOLATIONS\n'
+          : '${violations.join('\n')}\n',
+      mode: FileMode.append,
+    );
+
     expect(
       violations,
       isEmpty,
@@ -34,16 +44,16 @@ void main() {
   });
 
   test('retired core compatibility structure is absent', () {
-    expect(
-      Directory('lib/src/theme/locals').existsSync(),
-      isFalse,
-      reason: 'Legacy theme/locals compatibility directory must stay deleted.',
-    );
-    expect(
-      File('lib/src/theme/tokens/effects/tio_motion_tokens.dart').existsSync(),
-      isFalse,
-      reason: 'TioMotionTokens compatibility facade must stay deleted.',
-    );
+    final violations = <String>[];
+
+    if (Directory('lib/src/theme/locals').existsSync()) {
+      violations.add('lib/src/theme/locals: legacy compatibility directory exists');
+    }
+    if (File('lib/src/theme/tokens/effects/tio_motion_tokens.dart').existsSync()) {
+      violations.add(
+        'lib/src/theme/tokens/effects/tio_motion_tokens.dart: retired facade exists',
+      );
+    }
 
     final contextRoot = Directory('lib/src/theme/context');
     final contextSources = contextRoot
@@ -53,8 +63,27 @@ void main() {
         .map((file) => file.readAsStringSync())
         .join('\n');
 
-    expect(contextSources, isNot(contains('TioSpacing.')));
-    expect(contextSources, isNot(contains('TioRadius.')));
-    expect(contextSources, isNot(contains('TioMotionTokens')));
+    if (contextSources.contains('TioSpacing.')) {
+      violations.add('theme/context: static TioSpacing wrapper remains');
+    }
+    if (contextSources.contains('TioRadius.')) {
+      violations.add('theme/context: static TioRadius wrapper remains');
+    }
+    if (contextSources.contains('TioMotionTokens')) {
+      violations.add('theme/context: retired TioMotionTokens reference remains');
+    }
+
+    report.writeAsStringSync(
+      violations.isEmpty
+          ? 'NO_COMPATIBILITY_STRUCTURE_VIOLATIONS\n'
+          : '${violations.join('\n')}\n',
+      mode: FileMode.append,
+    );
+
+    expect(
+      violations,
+      isEmpty,
+      reason: 'Final compatibility structure violations:\n${violations.join('\n')}',
+    );
   });
 }
