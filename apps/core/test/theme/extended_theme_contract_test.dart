@@ -35,6 +35,8 @@ void main() {
       expect(TioFontSize.size10_5, 10.5);
       expect(TioFontSize.size11, 11.0);
       expect(TioFontSize.size42, 42.0);
+      expect(TioFontSize.size44, 44.0);
+      expect(TioLetterSpacing.negative10, -1.0);
       expect(TioLetterSpacing.positive10, 1.0);
       expect(TioLineHeight.height110, 1.10);
     });
