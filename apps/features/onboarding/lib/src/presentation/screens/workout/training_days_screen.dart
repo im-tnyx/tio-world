@@ -21,7 +21,7 @@ class TrainingDaysScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
 
     return WorkoutScreenScaffold(
@@ -45,7 +45,7 @@ class TrainingDaysScreen extends StatelessWidget {
               textTheme: textTheme,
             ),
             if (day != WorkoutTrainingDay.values.last)
-              const SizedBox(height: 10),
+              const SizedBox(height: TioSize.dp10),
           ],
         ],
       ),
@@ -76,7 +76,9 @@ class _TrainingDayCard extends StatelessWidget {
       label: _label(day),
       child: Material(
         color: isSelected
-            ? colors.primary.withValues(alpha: TioCardTokens.selectedContainerAlpha)
+            ? colors.primary.withValues(
+                alpha: TioCardTokens.selectedContainerAlpha,
+              )
             : colors.surface,
         borderRadius: BorderRadius.circular(TioCardTokens.radius),
         child: InkWell(
@@ -84,10 +86,10 @@ class _TrainingDayCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(TioCardTokens.radius),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
+            duration: const Duration(milliseconds: TioDuration.ms180),
             padding: const EdgeInsets.symmetric(
-              horizontal: TioSpacing.large,
-              vertical: 14,
+              horizontal: TioSpacing.lg,
+              vertical: TioSize.dp14,
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(TioCardTokens.radius),
@@ -108,30 +110,36 @@ class _TrainingDayCard extends StatelessWidget {
                   child: Text(
                     _label(day),
                     style: textTheme.titleMedium?.copyWith(
-                      fontSize: 15,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                      color: isSelected ? colors.primary : colors.textPrimary,
+                      fontSize: TioFontSize.size15,
+                      fontWeight: isSelected
+                          ? TioFontWeight.w700
+                          : TioFontWeight.w600,
+                      color: isSelected
+                          ? colors.primary
+                          : colors.textPrimary,
                     ),
                   ),
                 ),
                 AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  width: 22,
-                  height: 22,
+                  duration: const Duration(milliseconds: TioDuration.ms180),
+                  width: TioSize.dp22,
+                  height: TioSize.dp22,
                   decoration: BoxDecoration(
-                    color: isSelected ? colors.primary : Colors.transparent,
+                    color: isSelected ? colors.primary : TioPalette.transparent,
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: isSelected
                           ? colors.primary
-                          : colors.outlineStrong.withValues(alpha: 0.4),
-                      width: 1.5,
+                          : colors.outlineStrong.withValues(
+                              alpha: TioOpacity.opacity40,
+                            ),
+                      width: TioStroke.width15,
                     ),
                   ),
                   child: isSelected
                       ? Icon(
                           Icons.check,
-                          size: 14,
+                          size: TioSize.dp14,
                           color: colors.onPrimary,
                         )
                       : null,
