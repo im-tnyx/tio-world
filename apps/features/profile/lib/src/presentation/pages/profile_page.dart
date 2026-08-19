@@ -104,7 +104,7 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     final data = profileData;
     final name =
@@ -419,7 +419,7 @@ class _MetricColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
