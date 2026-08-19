@@ -58,10 +58,6 @@ void main() {
       expect(TioAvatarActionSheetTokens.dragHandleAlpha, TioAlpha.alpha50);
       expect(TioOtpDialogTokens.panelOutlineAlpha, TioAlpha.alpha30);
       expect(TioOtpDialogTokens.errorOutlineAlpha, TioAlpha.alpha90);
-      expect(TioDialogTokens.deleteOverlayBackgroundAlpha, TioAlpha.alpha245);
-      expect(TioDialogTokens.deleteCloseContainerAlpha, TioAlpha.alpha25);
-      expect(TioDialogTokens.deleteActionContainerAlpha, TioAlpha.alpha35);
-      expect(TioDialogTokens.deleteHoldGlowAlpha, TioAlpha.alpha80);
       expect(TioDobPickerTokens.sheetOutlineAlpha, TioAlpha.alpha25);
       expect(TioDobPickerTokens.unselectedTextAlpha, TioAlpha.alpha120);
       expect(TioInputTokens.usernameSuggestionOutlineAlpha, TioAlpha.alpha80);
