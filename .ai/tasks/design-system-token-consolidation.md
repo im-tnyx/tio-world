@@ -1,6 +1,6 @@
 # Professional Core Theme & Token System
 
-**Status:** In progress — Slice A is active  
+**Status:** In progress — Slices A–E validated; Slice F is ready  
 **Primary owner:** `apps/core/lib/src/theme`  
 **Consumers:** every Flutter screen/component in `apps/app`, `apps/features/*`, core UI, and Wear where applicable  
 **Reference architecture:** `im-tnyx/Tio-hub` centralized ownership, adapted to Flutter framework mechanics  
@@ -84,14 +84,6 @@ Do not force typography, opacity, duration, ratios, or other unrelated numeric c
 `TioSize` is a numeric physical geometry registry, not a semantic size scale. It must include exact fixed geometry values evidenced by current production UI or explicitly approved design decisions.
 
 It must **not** be capped by the number of semantic `TioSpacing` or `TioRadius` roles.
-
-Current audited integer geometry includes values such as:
-
-```text
-0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24,
-26, 27, 28, 30, 32, 36, 38, 44, 46, 48, 52, 54, 56, 62, 64,
-72, 100, 125, 140, 160, 200, 999
-```
 
 Do not generate arbitrary unused ranges. Add exact values when product code/design evidence proves they are needed.
 
@@ -222,7 +214,7 @@ apps/core/lib/src/theme/
     │   ├── tio_size.dart
     │   ├── tio_opacity.dart
     │   ├── tio_alpha.dart
-    │   ├── tio_duration.dart       # when implemented/evidenced
+    │   ├── tio_duration.dart
     │   └── additional justified primitive families only
     ├── foundation/
     │   ├── foundation.dart
@@ -230,7 +222,7 @@ apps/core/lib/src/theme/
     │   ├── tio_spacing.dart
     │   ├── tio_radius.dart
     │   ├── tio_icon_size.dart      # when reusable roles are proven
-    │   └── tio_stroke.dart         # when reusable roles are proven
+    │   └── tio_stroke.dart
     ├── semantic/
     ├── typography/
     ├── effects/
@@ -242,12 +234,12 @@ apps/core/lib/src/theme/
 
 | Slice | Task | Status | Gate |
 |---|---|---|---|
-| A | [Core Foundation](design-system-slice-a-core-foundation.md) | **In progress** | Current work |
-| B | [Welcome Cleanup](design-system-slice-b-welcome.md) | Blocked | Slice A validated |
-| C | [Core Components](design-system-slice-c-core-components.md) | Blocked | Slices A–B validated |
-| D | [Auth + Account Setup](design-system-slice-d-auth-account.md) | Blocked | Slice C validated |
-| E | [Product Onboarding](design-system-slice-e-onboarding.md) | Blocked | Slice D validated |
-| F | [Home + Profile + Settings](design-system-slice-f-home-profile-settings.md) | Blocked | Slice E validated |
+| A | [Core Foundation](design-system-slice-a-core-foundation.md) | **Validated** | Flutter CI #624 |
+| B | [Welcome Cleanup](design-system-slice-b-welcome.md) | **Validated** | Flutter CI #646 |
+| C | [Core Components](design-system-slice-c-core-components.md) | **Validated** | Flutter CI #710 |
+| D | [Auth + Account Setup](design-system-slice-d-auth-account.md) | **Validated** | Flutter CI #742 |
+| E | [Product Onboarding](design-system-slice-e-onboarding.md) | **Validated** | Flutter CI #825 |
+| F | [Home + Profile + Settings](design-system-slice-f-home-profile-settings.md) | **Ready** | Current next slice |
 | G | [Remaining UI](design-system-slice-g-remaining-ui.md) | Blocked | Slice F validated |
 | H | [Final Enforcement](design-system-slice-h-final-enforcement.md) | Blocked | Slice G validated |
 
@@ -297,4 +289,4 @@ The parent task is complete only when Slice H is validated and repository-wide e
 - GitHub Issue: #6
 - Draft PR: #22
 - Cross-cutting color audit: `.ai/tasks/design-system-hardcoded-color-audit.md`
-- Current execution task: `.ai/tasks/design-system-slice-a-core-foundation.md`
+- Current execution task: `.ai/tasks/design-system-slice-f-home-profile-settings.md`
