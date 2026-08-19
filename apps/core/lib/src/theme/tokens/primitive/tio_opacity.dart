@@ -5,6 +5,7 @@
 /// decision requires it. Do not use this registry for 0–255 integer alpha.
 abstract final class TioOpacity {
   static const opacity0 = 0.0;
+  static const opacity02 = 0.02;
   static const opacity08 = 0.08;
   static const opacity09 = 0.09;
   static const opacity10 = 0.10;
@@ -14,6 +15,7 @@ abstract final class TioOpacity {
   static const opacity16 = 0.16;
   static const opacity18 = 0.18;
   static const opacity20 = 0.20;
+  static const opacity28 = 0.28;
   static const opacity30 = 0.30;
   static const opacity35 = 0.35;
   static const opacity38 = 0.38;
