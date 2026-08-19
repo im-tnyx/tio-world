@@ -93,6 +93,88 @@ void main() {
     expect(find.text('@rahul_fit'), findsOneWidget);
   });
 
+  testWidgets('completion card uses TioCard after metrics and emits tap',
+      (tester) async {
+    var completionTaps = 0;
+    final completion = ProfileCompletionSummary.fromFields(
+      name: 'Rahul Sharma',
+      username: 'rahul_fit',
+      email: 'rahul@example.com',
+      mobile: null,
+      hasGender: true,
+      hasDateOfBirth: true,
+    );
+
+    await tester.pumpWidget(
+      _ProfileTestApp(
+        child: ProfilePage(
+          onAvatarPressed: () {},
+          onSettingsPressed: () {},
+          onCompletionPressed: () => completionTaps++,
+          completionSummary: completion,
+          profileData: ProfileSetupData(
+            name: 'Rahul Sharma',
+            username: 'rahul_fit',
+            gender: ProfileGender.male,
+            goals: const {ProfileGoal.buildMuscle},
+            dateOfBirth: DateTime(2000, 1, 1),
+            heightCm: 180,
+            currentWeightKg: 75,
+            activityLevel: ProfileActivityLevel.active,
+            healthConditions: const {ProfileHealthCondition.none},
+          ),
+        ),
+      ),
+    );
+
+    final card = find.byKey(const ValueKey('profile-completion-card'));
+    final bmr = find.byKey(const ValueKey('profile-bmr-metric'));
+
+    expect(card, findsOneWidget);
+    expect(find.byType(TioCard), findsOneWidget);
+    expect(find.text('Your profile is 83% finished'), findsOneWidget);
+    expect(tester.getTopLeft(card).dy, greaterThan(tester.getBottomLeft(bmr).dy));
+
+    await tester.ensureVisible(card);
+    await tester.tap(card);
+    expect(completionTaps, 1);
+  });
+
+  testWidgets('completion card is absent at 100 percent', (tester) async {
+    final completion = ProfileCompletionSummary.fromFields(
+      name: 'Rahul Sharma',
+      username: 'rahul_fit',
+      email: 'rahul@example.com',
+      mobile: '+91 9876543210',
+      hasGender: true,
+      hasDateOfBirth: true,
+    );
+
+    await tester.pumpWidget(
+      _ProfileTestApp(
+        child: ProfilePage(
+          onAvatarPressed: () {},
+          onSettingsPressed: () {},
+          onCompletionPressed: () {},
+          completionSummary: completion,
+          profileData: ProfileSetupData(
+            name: 'Rahul Sharma',
+            username: 'rahul_fit',
+            gender: ProfileGender.male,
+            goals: const {ProfileGoal.buildMuscle},
+            dateOfBirth: DateTime(2000, 1, 1),
+            heightCm: 180,
+            currentWeightKg: 75,
+            activityLevel: ProfileActivityLevel.active,
+            healthConditions: const {ProfileHealthCondition.none},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byKey(const ValueKey('profile-completion-card')), findsNothing);
+  });
+
   testWidgets('photo route is square and back navigation functions',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 800));
