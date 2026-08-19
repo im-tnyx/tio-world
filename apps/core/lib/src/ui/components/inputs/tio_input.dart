@@ -178,7 +178,7 @@ class _TioInputState extends State<TioInput> {
                 ? colors.danger
                 : (widget.enabled ? colors.textPrimary : colors.textMuted),
             fontSize: TioInputTokens.compactTextFontSize,
-            fontWeight: FontWeight.w700,
+            fontWeight: TioFontWeight.w700,
           )
         : textTheme.bodyLarge?.copyWith(
             color: hasError ? colors.danger : colors.textPrimary,
@@ -255,14 +255,14 @@ class _TioInputState extends State<TioInput> {
         floatingLabelStyle: TextStyle(
           color: hasError ? colors.danger : colors.textPrimary,
           fontSize: TioInputTokens.labelFontSize,
-          fontWeight: FontWeight.w500,
+          fontWeight: TioFontWeight.w500,
         ),
         hintStyle: TextStyle(
           color: colors.textMuted,
           fontSize: isCompact
               ? TioInputTokens.compactHintFontSize
               : TioInputTokens.standardHintFontSize,
-          fontWeight: isCompact ? FontWeight.w600 : FontWeight.normal,
+          fontWeight: isCompact ? TioFontWeight.w600 : TioFontWeight.w400,
         ),
         enabledBorder: effectiveBorder,
         focusedBorder: effectiveFocusedBorder,
