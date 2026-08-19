@@ -1,6 +1,6 @@
 # Design System Slice E — Product Onboarding
 
-**Status:** Blocked by Slice D  
+**Status:** In progress  
 **Parent task:** `.ai/tasks/design-system-token-consolidation.md`  
 **Related issue:** #6  
 **Working PR:** #22  
@@ -12,11 +12,19 @@ Migrate Product Onboarding presentation to governed core design-system ownership
 
 ## Mandatory Visual Freeze
 
+```text
+pixels before == pixels after
+```
+
 No layout, spacing, color appearance, typography appearance, radius, icon/image sizing, picker geometry, motion, gradient, or component geometry may change without separate explicit owner/design approval.
 
 ## Preconditions
 
-- [ ] Slices A–D are `Validated`.
+- [x] Slice A validated by Flutter CI #624.
+- [x] Slice B validated by Flutter CI #646.
+- [x] Slice C validated by Flutter CI #710.
+- [x] Slice D Auth + Account Setup validated; final source/catalog boundary passed Flutter CI #742.
+- [x] Theme README-first workflow and component-token admission gate are active.
 
 ## Hard Boundaries
 
@@ -24,18 +32,55 @@ No layout, spacing, color appearance, typography appearance, radius, icon/image 
 - no draft/resume/completion behavior changes;
 - no persistence/Supabase changes;
 - no app-mode business-rule changes;
-- no feature token catalog.
+- no feature token/color/layout/theme catalog;
+- no `OnboardingTokens`, screen-specific core token class, or equivalent replacement bag;
+- behavior/domain/program values remain outside the design-token system;
+- the separate reusable-field Issue #24 is not implemented unless explicitly expanded later.
+
+## Ownership Order
+
+```text
+Existing reusable core component
+        ↓
+Existing runtime semantic role / TextTheme
+        ↓
+Existing reusable component contract
+        ↓
+Existing exact governed primitive
+        ↓
+Only then consider a narrowly evidenced reusable core extension
+```
 
 ## Checklist
 
-- [ ] Inventory onboarding screen/widget visual literals and helpers.
+### E1 — Inventory and classification
+
+- [ ] Inventory onboarding screen/widget visual literals and helper/theme/token files.
 - [ ] Classify colors, typography, geometry, strokes, opacity/alpha, motion, picker factors/ratios and fixed responsive values.
+- [ ] Separate behavior/domain/program values from product-visible fixed visual values.
+- [ ] Record exact current rendered values before mutation.
+
+### E2 — Ownership plan
+
 - [ ] Reuse governed core primitives/roles/components first.
 - [ ] Apply `.ai/tasks/design-system-hardcoded-color-audit.md`.
-- [ ] Remove feature-owned visual/token catalogs if found.
-- [ ] Preserve all existing rendered values and interaction visuals.
+- [ ] Identify feature-owned visual/token catalogs for removal.
+- [ ] Reject any proposed component token class that fails the admission gate.
+- [ ] Keep genuine one-off composition data local instead of creating an Onboarding token bag.
+
+### E3 — Implementation
+
+- [ ] Migrate onboarding consumers in bounded batches.
+- [ ] Preserve picker geometry, field visuals, progress chrome and navigation visuals exactly.
+- [ ] Delete obsolete feature visual/token helpers only after zero-reference verification.
+
+### E4 — Validation
+
 - [ ] Run focused onboarding tests/static audit.
+- [ ] Verify no onboarding sequence/persistence/validation/business behavior changed.
+- [ ] Verify no unapproved visible UI change occurred.
 - [ ] Run analyze and required CI.
+- [ ] Record evidence, mark `Validated`, and unblock Slice F.
 
 ## Completion Lifecycle
 
@@ -55,7 +100,8 @@ No layout, spacing, color appearance, typography appearance, radius, icon/image 
 ## Exit Criteria
 
 - onboarding consumes canonical core visual ownership;
-- no feature token catalog remains;
+- no feature token/color/layout/theme catalog remains;
+- no screen/workflow-specific core token class is introduced;
 - onboarding behavior is unchanged;
 - no visible UI change occurred without separate approval;
 - tests/analyze/required CI pass.
