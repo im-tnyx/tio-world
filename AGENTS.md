@@ -108,8 +108,11 @@ Architecture, backend, auth, routing, persistence, and token cleanup do **not** 
 - Prefer `go_router` for app routing unless the repository documents a different standard.
 - Prefer immutable state and explicit action/event flows.
 - Keep `build()` methods readable and free of heavy business logic.
-- Use `apps/core` for shared tokens and reusable widgets.
-- For design-system/theme work, read `apps/core/lib/src/theme/README.md` before changing public theme/token contracts. If a change adds, removes, renames, or materially changes a theme/token/context/config usage contract, update that README in the same change/PR.
+- Before **any Flutter production UI change** in `apps/app`, `apps/features/*`, `apps/core`, or `apps/wear`, read `apps/core/lib/src/theme/README.md` and inspect the existing reusable UI/component surface under `apps/core` before writing local visual implementation. This applies even when the task is feature/app-shell work rather than an explicit design-system task.
+- Consume shared UI through the public `package:tio_core/core.dart` boundary where available, and prefer an existing reusable core component before rebuilding an equivalent card, button, input, avatar, dialog, picker, sheet, navigation surface, or other shared pattern with raw Flutter primitives.
+- When editing `apps/features/*`, also follow `apps/features/AGENTS.md`. Do not duplicate its shared UI rules inside individual feature packages unless that feature has genuinely unique product/domain instructions.
+- Use `apps/core` for shared tokens and reusable widgets. Promote a new UI contract into core only when genuine cross-context reuse is evidenced; keep one-off feature/workflow composition with its owning feature while consuming governed core values.
+- For changes that add, remove, rename, or materially change a public theme/token/context/config or reusable-component usage contract, update `apps/core/lib/src/theme/README.md` in the same change/PR.
 - Do not hardcode repeated colors, spacing, typography, radii, or shadows in production UI.
 - Use generated model code only when configured by the repo, and do not commit generated outputs unless the repo explicitly tracks them.
 
