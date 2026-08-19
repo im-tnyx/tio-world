@@ -37,6 +37,7 @@ abstract final class TioSize {
   static const dp44 = 44.0;
   static const dp46 = 46.0;
   static const dp48 = 48.0;
+  static const dp50 = 50.0;
   static const dp52 = 52.0;
   static const dp54 = 54.0;
   static const dp56 = 56.0;
