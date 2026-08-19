@@ -106,10 +106,10 @@ class _TioOtpVerificationDialogState extends State<TioOtpVerificationDialog> {
       ),
       child: Container(
         padding: const EdgeInsets.fromLTRB(
-          TioSpacing.extraLarge,
+          TioSpacing.xl,
           TioOtpDialogTokens.panelTopPadding,
-          TioSpacing.extraLarge,
-          TioSpacing.extraLarge,
+          TioSpacing.xl,
+          TioSpacing.xl,
         ),
         decoration: BoxDecoration(
           color: colors.surfaceRaised,
@@ -136,7 +136,7 @@ class _TioOtpVerificationDialogState extends State<TioOtpVerificationDialog> {
               style: TextStyle(
                 color: colors.textPrimary,
                 fontSize: TioOtpDialogTokens.titleFontSize,
-                fontWeight: FontWeight.w600,
+                fontWeight: TioFontWeight.w600,
                 letterSpacing: TioOtpDialogTokens.titleLetterSpacing,
               ),
             ),
@@ -176,7 +176,7 @@ class _TioOtpVerificationDialogState extends State<TioOtpVerificationDialog> {
                 style: TextStyle(
                   color: colors.textPrimary,
                   fontSize: TioOtpDialogTokens.inputFontSize,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: TioFontWeight.w700,
                   letterSpacing: TioOtpDialogTokens.inputLetterSpacing,
                 ),
                 decoration: const InputDecoration(
@@ -195,14 +195,14 @@ class _TioOtpVerificationDialogState extends State<TioOtpVerificationDialog> {
               ),
             ),
             if (_errorMessage case final err?) ...[
-              const SizedBox(height: TioSpacing.small),
+              const SizedBox(height: TioSpacing.sm),
               Text(
                 err,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: colors.danger,
                   fontSize: TioOtpDialogTokens.errorFontSize,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: TioFontWeight.w500,
                 ),
               ),
             ],
@@ -215,7 +215,7 @@ class _TioOtpVerificationDialogState extends State<TioOtpVerificationDialog> {
                 color: colors.textSecondary,
                 fontSize: TioOtpDialogTokens.subtitleFontSize,
                 height: TioOtpDialogTokens.subtitleLineHeight,
-                fontWeight: FontWeight.w400,
+                fontWeight: TioFontWeight.w400,
               ),
             ),
             const SizedBox(height: TioOtpDialogTokens.verifyTopGap),
@@ -227,7 +227,7 @@ class _TioOtpVerificationDialogState extends State<TioOtpVerificationDialog> {
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: TioOtpDialogTokens.actionHorizontalPadding,
-                  vertical: TioSpacing.medium,
+                  vertical: TioSpacing.md,
                 ),
                 decoration: BoxDecoration(
                   color: colors.outlineStrong.withAlpha(
@@ -250,7 +250,7 @@ class _TioOtpVerificationDialogState extends State<TioOtpVerificationDialog> {
                         'VERIFY',
                         style: TextStyle(
                           color: colors.textPrimary,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: TioFontWeight.w700,
                           fontSize: TioOtpDialogTokens.actionFontSize,
                           letterSpacing:
                               TioOtpDialogTokens.actionLetterSpacing,
@@ -265,7 +265,7 @@ class _TioOtpVerificationDialogState extends State<TioOtpVerificationDialog> {
                 'BACK',
                 style: TextStyle(
                   color: colors.primary,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: TioFontWeight.w700,
                   fontSize: TioOtpDialogTokens.actionFontSize,
                   letterSpacing: TioOtpDialogTokens.actionLetterSpacing,
                 ),
