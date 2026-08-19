@@ -244,3 +244,13 @@ For durable architecture decisions, the phone design-system contract, and MVP de
 - [Architecture Decision Records](docs/adr/README.md)
 - [UX/UI system](docs/UX_UI_SYSTEM.md)
 - [MVP acceptance gates](docs/MVP_ACCEPTANCE.md)
+
+## License and source-use notice
+
+Copyright © 2026 TNYX. All rights reserved.
+
+`tio-world` is proprietary TNYX software. Public source visibility on GitHub does not make this project open source or free software and does not grant general permission to reuse, modify, redistribute, sublicense, sell, white-label, commercially host, or create derivative products from TNYX-owned code.
+
+GitHub platform functionality, applicable law, and any separate written authorization from TNYX may provide limited rights beyond this notice. Third-party components remain governed by their own licenses and notices.
+
+See [NOTICE.md](NOTICE.md) for the full repository source-use notice, including the historical MIT-license transition boundary.
