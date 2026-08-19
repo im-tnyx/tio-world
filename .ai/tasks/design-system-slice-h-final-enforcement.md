@@ -1,6 +1,7 @@
 # Design System Slice H — Final Enforcement
 
-**Status:** Blocked by Slice G  
+**Status:** Ready  
+**Current phase:** Final inventory  
 **Parent task:** `.ai/tasks/design-system-token-consolidation.md`  
 **Related issue:** #6  
 **Working PR:** #22  
@@ -16,7 +17,9 @@ No cleanup in this slice may redesign or restyle any screen. Any discovered visu
 
 ## Preconditions
 
-- [ ] Slices A–G are `Validated`.
+- [x] Slices A–G are `Validated`.
+- [x] Slice G Splash migration passed Flutter CI #845.
+- [x] Slice G final Wear/remaining-UI implementation head `1a031d76ab7155e2879320437dff448031cf6b0c` passed Flutter CI #846.
 
 ## Compatibility Debt Exit Rule
 
