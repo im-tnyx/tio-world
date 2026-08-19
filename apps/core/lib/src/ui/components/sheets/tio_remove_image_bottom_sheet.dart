@@ -60,7 +60,7 @@ Future<bool?> showTioRemoveImageConfirmationBottomSheet(BuildContext context) {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: colors.textPrimary,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: TioFontWeight.w800,
                   fontSize: TioRemoveImageSheetTokens.titleFontSize,
                   letterSpacing: TioRemoveImageSheetTokens.titleLetterSpacing,
                 ),
@@ -74,7 +74,7 @@ Future<bool?> showTioRemoveImageConfirmationBottomSheet(BuildContext context) {
                 style: TextStyle(
                   color: colors.textMuted,
                   fontSize: TioRemoveImageSheetTokens.subtitleFontSize,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: TioFontWeight.w500,
                 ),
               ),
               const SizedBox(
@@ -109,7 +109,7 @@ Future<bool?> showTioRemoveImageConfirmationBottomSheet(BuildContext context) {
                         'Remove',
                         style: TextStyle(
                           color: colors.danger,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: TioFontWeight.w700,
                           fontSize:
                               TioRemoveImageSheetTokens.actionLabelFontSize,
                         ),
@@ -156,7 +156,7 @@ Future<bool?> showTioRemoveImageConfirmationBottomSheet(BuildContext context) {
                         'Cancel',
                         style: TextStyle(
                           color: colors.textPrimary,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: TioFontWeight.w700,
                           fontSize:
                               TioRemoveImageSheetTokens.actionLabelFontSize,
                         ),
