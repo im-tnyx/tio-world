@@ -14,6 +14,8 @@ class ProfilePage extends StatelessWidget {
     this.onPickImage,
     this.onDeleteImage,
     this.profileData,
+    this.completionSummary,
+    this.onCompletionPressed,
     this.isLoading = false,
     this.avatarFrame = TioAvatarFrame.none,
     this.planName,
@@ -27,6 +29,8 @@ class ProfilePage extends StatelessWidget {
   final Future<void> Function(TioImageSource source)? onPickImage;
   final Future<void> Function()? onDeleteImage;
   final ProfileSetupData? profileData;
+  final ProfileCompletionSummary? completionSummary;
+  final VoidCallback? onCompletionPressed;
   final bool isLoading;
   final TioAvatarFrame avatarFrame;
   final String? planName;
@@ -153,8 +157,7 @@ class ProfilePage extends StatelessWidget {
     final hasValidPhoto = avatarUrl != null &&
         avatarUrl.isNotEmpty &&
         avatarUrl.startsWith('http');
-    final completion =
-        data != null ? ProfileCompletionSummary.fromProfile(data) : null;
+    final completion = completionSummary;
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -400,7 +403,9 @@ class ProfilePage extends StatelessWidget {
                       ),
                     ],
                   ),
-                  if (completion != null && !completion.isComplete) ...[
+                  if (completion != null &&
+                      !completion.isComplete &&
+                      onCompletionPressed != null) ...[
                     const SizedBox(height: TioSpacing.xl),
                     TioCard(
                       key: const ValueKey('profile-completion-card'),
@@ -409,7 +414,7 @@ class ProfilePage extends StatelessWidget {
                         horizontal: TioSpacing.lg,
                         vertical: TioSpacing.lg,
                       ),
-                      onTap: () => context.push(AppRoutes.accountSettings.path),
+                      onTap: onCompletionPressed,
                       child: Row(
                         children: [
                           Expanded(
