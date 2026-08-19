@@ -306,7 +306,7 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
               vertical: TioInputTokens.usernameContentVerticalPadding,
             ),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(TioRadius.large),
+              borderRadius: BorderRadius.circular(TioRadius.lg),
               borderSide: BorderSide(
                 color: _status == TioUsernameStatus.unavailable
                     ? colors.danger
@@ -316,7 +316,7 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
               ),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(TioRadius.large),
+              borderRadius: BorderRadius.circular(TioRadius.lg),
               borderSide: BorderSide(
                 color: _status == TioUsernameStatus.unavailable
                     ? colors.danger
@@ -326,7 +326,7 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
               ),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(TioRadius.large),
+              borderRadius: BorderRadius.circular(TioRadius.lg),
               borderSide: BorderSide(
                 color: _status == TioUsernameStatus.unavailable
                     ? colors.danger
@@ -341,7 +341,7 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
           const SizedBox(height: TioInputTokens.usernameSupportingGap),
           Padding(
             padding: const EdgeInsets.symmetric(
-              horizontal: TioSpacing.extraSmall,
+              horizontal: TioSpacing.xs,
             ),
             child: Text(
               _feedbackMessage!,
@@ -352,7 +352,7 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
                         ? colors.danger
                         : colors.textMuted,
                 fontSize: TioInputTokens.usernameFeedbackFontSize,
-                fontWeight: FontWeight.w600,
+                fontWeight: TioFontWeight.w600,
               ),
             ),
           ),
@@ -360,8 +360,8 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
         if (_suggestions.isNotEmpty) ...[
           const SizedBox(height: TioInputTokens.usernameSupportingGap),
           Wrap(
-            spacing: TioSpacing.small,
-            runSpacing: TioSpacing.small,
+            spacing: TioSpacing.sm,
+            runSpacing: TioSpacing.sm,
             children: _suggestions.map((suggestion) {
               return InkWell(
                 onTap: () => _applySuggestion(suggestion),
@@ -370,7 +370,7 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
                 ),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: TioSpacing.medium,
+                    horizontal: TioSpacing.md,
                     vertical: TioInputTokens.usernameSuggestionVerticalPadding,
                   ),
                   decoration: BoxDecoration(
@@ -389,7 +389,7 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
                     style: TextStyle(
                       color: colors.primary,
                       fontSize: TioInputTokens.usernameSuggestionFontSize,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: TioFontWeight.w600,
                     ),
                   ),
                 ),
