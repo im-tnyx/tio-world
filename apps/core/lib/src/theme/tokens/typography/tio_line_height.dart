@@ -1,5 +1,6 @@
 abstract final class TioLineHeight {
   static const height110 = 1.10;
+  static const height115 = 1.15;
   static const height125 = 1.25;
   static const height130 = 1.30;
   static const height135 = 1.35;
