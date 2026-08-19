@@ -19,4 +19,11 @@ class TioDomainColors {
   static const healthPositive = TioPalette.green400;
   static const healthWarning = TioPalette.amber400;
   static const healthDanger = TioPalette.red400;
+
+  // Exact celebratory accent colors used by confetti/media celebrations.
+  static const celebrationGoldPrimary = TioPalette.gold400;
+  static const celebrationGoldSecondary = TioPalette.amber600;
+  static const celebrationWarmAccent = TioPalette.orange500;
+  static const celebrationGoldHighlight = TioPalette.amber300;
+  static const celebrationGoldMetallic = TioPalette.gold500;
 }
