@@ -24,6 +24,10 @@ class OnboardingFlowPage extends ConsumerWidget {
   final OnboardingStepBuilder? stepBuilder;
   final Future<void> Function(OnboardingDraft draft) onFinishRequested;
   final Future<void> Function()? onExitRequested;
+
+  /// Retained temporarily for source compatibility with older app wiring.
+  /// Product Onboarding is authenticated-only, so active flow navigation no
+  /// longer invokes a mid-onboarding authentication checkpoint.
   final Future<bool> Function()? onAuthRequired;
 
   Future<void> _handleContinue(
@@ -53,7 +57,6 @@ class OnboardingFlowPage extends ConsumerWidget {
 
     await controller.next(
       onFinish: onFinishRequested,
-      onAuthRequired: onAuthRequired,
     );
   }
 
