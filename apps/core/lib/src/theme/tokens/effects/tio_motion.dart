@@ -8,6 +8,7 @@ class TioMotion {
   const TioMotion._();
 
   static const fastMs = TioDuration.ms150;
+  static const selectionMs = TioDuration.ms200;
   static const normalMs = TioDuration.ms250;
   static const slowMs = TioDuration.ms400;
   static const fadeThroughEnterMs = TioDuration.ms310;
