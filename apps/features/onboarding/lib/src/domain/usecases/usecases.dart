@@ -7,6 +7,7 @@ export 'goal_pace_resolver.dart';
 export 'goal_pace_target_date_calculator.dart';
 export 'onboarding_completion_validator.dart';
 export 'persist_onboarding_owner_data_use_case.dart';
+export 'preserve_onboarding_resume_checkpoint_use_case.dart';
 export 'profile_setup_mapper.dart';
 export 'profile_step_validator.dart';
 export 'sleep_schedule_helper.dart';
