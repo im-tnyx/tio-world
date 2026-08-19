@@ -6,11 +6,13 @@
 
 ## Global UI / Design-System Guardrail
 
-For any Flutter UI work, read `.ai/tasks/design-system-token-consolidation.md` before changing visual implementation.
+For any Flutter UI work, read `.ai/tasks/design-system-token-consolidation.md` and `apps/core/lib/src/theme/README.md` before changing visual implementation. Inspect the existing reusable core UI/component surface and prefer the public `package:tio_core/core.dart` boundary before rebuilding an equivalent pattern locally. When working under `apps/features/*`, also follow `apps/features/AGENTS.md`.
 
 Mandatory rules:
 
 - fixed product-visible visual values follow the centralized `apps/core` design-system ownership model;
+- existing reusable core components are preferred before raw local reconstruction of equivalent shared UI;
+- a new reusable core component/contract requires genuine reuse evidence; one-off feature/workflow composition stays with its owning feature while consuming governed core values;
 - feature packages must not create parallel design-token catalogs such as `WelcomeTokens`, `AuthTokens`, `HomeTokens`, or equivalent feature color/layout/theme bags;
 - component/feature/screen/widget code must not introduce independent raw fixed visual values when they belong to governed core ownership;
 - design-system refactors are pixel-preserving by default;
