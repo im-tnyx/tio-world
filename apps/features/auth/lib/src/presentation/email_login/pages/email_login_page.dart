@@ -3,9 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
 
 import '../../../domain/domain.dart';
-import '../../theme/auth_email_login_tokens.dart';
-import '../../theme/auth_form_tokens.dart';
-import '../../theme/auth_visual_tokens.dart';
 
 /// Pixel-perfect implementation of Tnyx-Hub Email/Social Login Screen (`EmailAuthScreen.kt`).
 ///
@@ -174,7 +171,7 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
       backgroundColor: colors.background,
       appBar: AppBar(
         backgroundColor: colors.background,
-        elevation: 0,
+        elevation: TioElevation.none,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: colors.textPrimary),
           onPressed: () => context.pop(false),
@@ -188,8 +185,8 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: TioSpacing.large,
-                  vertical: TioSpacing.small,
+                  horizontal: TioSpacing.lg,
+                  vertical: TioSpacing.sm,
                 ),
                 child: Form(
                   key: _formKey,
@@ -198,9 +195,9 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
                     children: [
                       if (_errorMessage != null) ...[
                         _ErrorBanner(message: _errorMessage!),
-                        const SizedBox(height: TioSpacing.large),
+                        const SizedBox(height: TioSpacing.lg),
                       ],
-                      const SizedBox(height: TioSpacing.large),
+                      const SizedBox(height: TioSpacing.lg),
 
                       // Email field
                       TextFormField(
@@ -217,7 +214,7 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
                           prefixIcon: Icons.email_outlined,
                         ),
                       ),
-                      const SizedBox(height: TioSpacing.large),
+                      const SizedBox(height: TioSpacing.lg),
 
                       // Password field
                       TextFormField(
@@ -239,15 +236,15 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
                                   ? Icons.visibility_off_outlined
                                   : Icons.visibility_outlined,
                               color: colors.textMuted,
-                              size:
-                                  AuthEmailLoginTokens.passwordVisibilityIconSize,
+                              size: TioSize.dp20,
                             ),
-                            onPressed: () =>
-                                setState(() => _obscurePassword = !_obscurePassword),
+                            onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: TioSpacing.small),
+                      const SizedBox(height: TioSpacing.sm),
 
                       // Forgot password
                       Align(
@@ -264,13 +261,12 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
                             'Forgot Password?',
                             style: textTheme.bodyMedium?.copyWith(
                               color: colors.primary,
-                              fontWeight:
-                                  AuthEmailLoginTokens.forgotPasswordFontWeight,
+                              fontWeight: TioFontWeight.w600,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: TioSpacing.extraLarge),
+                      const SizedBox(height: TioSpacing.xl),
 
                       // Sign in button
                       TioButton.primary(
@@ -279,13 +275,11 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
                         loading: _isLoading,
                         onPressed: _isLoading ? null : _handleSignIn,
                       ),
-                      const SizedBox(
-                        height: AuthEmailLoginTokens.postSubmitGap,
-                      ),
+                      const SizedBox(height: TioSize.dp28),
 
                       // OR Divider
                       _OrDivider(colors: colors),
-                      const SizedBox(height: TioSpacing.extraLarge),
+                      const SizedBox(height: TioSpacing.xl),
 
                       // Social Buttons (Google + Truecaller)
                       TioSocialButton.google(
@@ -294,7 +288,7 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
                         onPressed: _handleGoogleSignIn,
                       ),
 
-                      const SizedBox(height: AuthFormTokens.socialProviderGap),
+                      const SizedBox(height: TioSpacing.md),
 
                       TioSocialButton.truecaller(
                         key: const ValueKey('signin-truecaller-button'),
@@ -302,7 +296,7 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
                         onPressed: widget.onTruecallerClick ?? () {},
                       ),
 
-                      const SizedBox(height: TioSpacing.large),
+                      const SizedBox(height: TioSpacing.lg),
                     ],
                   ),
                 ),
@@ -312,8 +306,8 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
             // Pinned Bottom Footer: Don't have an account? Create Account
             Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: TioSpacing.extraLarge,
-                vertical: TioSpacing.large,
+                horizontal: TioSpacing.xl,
+                vertical: TioSpacing.lg,
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -330,8 +324,8 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
                     },
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: AuthFormTokens.footerLinkHorizontalPadding,
-                        vertical: AuthFormTokens.footerLinkVerticalPadding,
+                        horizontal: TioSpacing.xs,
+                        vertical: TioSpacing.sm,
                       ),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -366,7 +360,7 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
       prefixIcon: Icon(
         prefixIcon,
         color: colors.textMuted,
-        size: AuthFormTokens.inputLeadingIconSize,
+        size: TioSize.dp20,
       ),
       suffixIcon: suffix,
       contentPadding: const EdgeInsets.symmetric(
@@ -389,25 +383,25 @@ class _OrDivider extends StatelessWidget {
         Expanded(
           child: Divider(
             color: colors.outlineStrong.withValues(
-              alpha: AuthFormTokens.dividerOpacity,
+              alpha: TioOpacity.opacity30,
             ),
           ),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: AuthFormTokens.dividerHorizontalPadding,
+            horizontal: TioSpacing.lg,
           ),
           child: Text(
             'OR',
             style: textTheme.labelSmall?.copyWith(
-              letterSpacing: AuthFormTokens.dividerLabelLetterSpacing,
+              letterSpacing: TioLetterSpacing.positive10,
             ),
           ),
         ),
         Expanded(
           child: Divider(
             color: colors.outlineStrong.withValues(
-              alpha: AuthFormTokens.dividerOpacity,
+              alpha: TioOpacity.opacity30,
             ),
           ),
         ),
@@ -426,14 +420,12 @@ class _ErrorBanner extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
-        horizontal: AuthVisualTokens.inlineErrorHorizontalPadding,
-        vertical: AuthVisualTokens.inlineErrorVerticalPadding,
+        horizontal: TioSpacing.lg,
+        vertical: TioSpacing.md,
       ),
       decoration: BoxDecoration(
-        color: colors.danger.withValues(
-          alpha: AuthVisualTokens.inlineErrorContainerOpacity,
-        ),
-        borderRadius: BorderRadius.circular(AuthVisualTokens.inlineErrorRadius),
+        color: colors.danger.withValues(alpha: TioOpacity.opacity10),
+        borderRadius: BorderRadius.circular(TioRadius.lg),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -441,15 +433,15 @@ class _ErrorBanner extends StatelessWidget {
           Icon(
             Icons.error_outline_rounded,
             color: colors.danger,
-            size: AuthVisualTokens.inlineErrorIconSize,
+            size: TioSize.dp18,
           ),
-          const SizedBox(width: AuthVisualTokens.inlineErrorContentGap),
+          const SizedBox(width: TioSize.dp10),
           Expanded(
             child: Text(
               message,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: colors.danger,
-                    fontSize: AuthVisualTokens.inlineErrorFontSize,
+                    fontSize: TioFontSize.size13,
                   ),
             ),
           ),
