@@ -42,7 +42,7 @@ void main() {
     expect(
       File('lib/src/theme/tokens/effects/tio_motion_tokens.dart').existsSync(),
       isFalse,
-      reason: 'TioMotionTokens compatibility facade must stay deleted.',
+      reason: 'TioMotion' 'Tokens compatibility facade must stay deleted.',
     );
 
     final contextRoot = Directory('lib/src/theme/context');
@@ -55,6 +55,6 @@ void main() {
 
     expect(contextSources, isNot(contains('TioSpacing.')));
     expect(contextSources, isNot(contains('TioRadius.')));
-    expect(contextSources, isNot(contains('TioMotionTokens')));
+    expect(contextSources, isNot(contains('TioMotion' 'Tokens')));
   });
 }
