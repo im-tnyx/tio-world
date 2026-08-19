@@ -47,7 +47,7 @@ class _SpecialEventScreenState extends State<SpecialEventScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
 
     return WorkoutScreenScaffold(
@@ -71,23 +71,25 @@ class _SpecialEventScreenState extends State<SpecialEventScreen> {
               textCapitalization: TextCapitalization.sentences,
               keyboardType: TextInputType.multiline,
               style: textTheme.bodyLarge?.copyWith(
-                fontSize: 15,
+                fontSize: TioFontSize.size15,
                 color: colors.textPrimary,
-                height: 1.4,
+                height: TioLineHeight.height140,
               ),
               decoration: InputDecoration(
                 hintText:
                     'e.g., Hyrox, Marathon, Triathlon, Spartan Race, Ironman...',
                 hintStyle: textTheme.bodyLarge?.copyWith(
-                  fontSize: 14,
-                  color: colors.textSecondary.withValues(alpha: 0.5),
-                  height: 1.4,
+                  fontSize: TioFontSize.size14,
+                  color: colors.textSecondary.withValues(
+                    alpha: TioOpacity.opacity50,
+                  ),
+                  height: TioLineHeight.height140,
                 ),
-                contentPadding: const EdgeInsets.all(TioSpacing.large),
+                contentPadding: const EdgeInsets.all(TioSpacing.lg),
                 filled: true,
                 fillColor: colors.surface,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(TioRadius.large),
+                  borderRadius: BorderRadius.circular(TioRadius.lg),
                   borderSide: BorderSide(
                     color: colors.outlineStrong.withValues(
                       alpha: TioCardTokens.unselectedOutlineAlpha,
@@ -96,7 +98,7 @@ class _SpecialEventScreenState extends State<SpecialEventScreen> {
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(TioRadius.large),
+                  borderRadius: BorderRadius.circular(TioRadius.lg),
                   borderSide: BorderSide(
                     color: colors.outlineStrong.withValues(
                       alpha: TioCardTokens.unselectedOutlineAlpha,
@@ -105,7 +107,7 @@ class _SpecialEventScreenState extends State<SpecialEventScreen> {
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(TioRadius.large),
+                  borderRadius: BorderRadius.circular(TioRadius.lg),
                   borderSide: BorderSide(
                     color: colors.primary,
                     width: TioCardTokens.selectedBorderWidth,
@@ -114,13 +116,15 @@ class _SpecialEventScreenState extends State<SpecialEventScreen> {
               ),
             ),
           ),
-          const SizedBox(height: TioSpacing.medium),
+          const SizedBox(height: TioSpacing.md),
           Text(
             "Leave blank if you're not training for a specific event",
             style: textTheme.bodyMedium?.copyWith(
-              fontSize: 13,
+              fontSize: TioFontSize.size13,
               fontStyle: FontStyle.italic,
-              color: colors.textSecondary.withValues(alpha: 0.7),
+              color: colors.textSecondary.withValues(
+                alpha: TioOpacity.opacity70,
+              ),
             ),
           ),
         ],
