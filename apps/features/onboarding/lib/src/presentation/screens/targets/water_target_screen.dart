@@ -93,9 +93,9 @@ class _WaterTargetScreenState extends State<WaterTargetScreen> {
                         Icon(
                           Icons.water_drop_outlined,
                           color: colors.info,
-                          size: 24,
+                          size: TioSize.dp24,
                         ),
-                        const SizedBox(width: TioSpacing.small),
+                        const SizedBox(width: TioSpacing.sm),
                         Text(
                           'Water Target',
                           style: Theme.of(context).textTheme.titleMedium,
@@ -106,7 +106,10 @@ class _WaterTargetScreenState extends State<WaterTargetScreen> {
                       key: const ValueKey('targets-water-unit-dropdown'),
                       value: _displayUnit,
                       underline: const SizedBox.shrink(),
-                      icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+                      icon: const Icon(
+                        Icons.keyboard_arrow_down,
+                        size: TioSize.dp20,
+                      ),
                       items: const [
                         DropdownMenuItem(
                           value: _WaterDisplayUnit.litres,
@@ -127,7 +130,7 @@ class _WaterTargetScreenState extends State<WaterTargetScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: TioSpacing.medium),
+                const SizedBox(height: TioSpacing.md),
                 Center(
                   child: Column(
                     children: [
@@ -138,11 +141,11 @@ class _WaterTargetScreenState extends State<WaterTargetScreen> {
                             .textTheme
                             .headlineLarge
                             ?.copyWith(
-                              fontWeight: FontWeight.bold,
+                              fontWeight: TioFontWeight.w700,
                               color: colors.textPrimary,
                             ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: TioSpacing.xs),
                       Text(
                         displayUnitSuffix,
                         style:
@@ -153,7 +156,7 @@ class _WaterTargetScreenState extends State<WaterTargetScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: TioSpacing.medium),
+                const SizedBox(height: TioSpacing.md),
                 Slider(
                   key: const ValueKey('targets-water-slider'),
                   value: widget.waterMl
@@ -164,7 +167,7 @@ class _WaterTargetScreenState extends State<WaterTargetScreen> {
                       .toDouble(),
                   min: TargetStepValidator.minWaterMl.toDouble(),
                   max: TargetStepValidator.maxWaterMl.toDouble(),
-                  divisions: 70,
+                  divisions: 70, // Program value: 50 ml increments.
                   activeColor: colors.primary,
                   onChanged: (val) {
                     HapticFeedback.selectionClick();
@@ -180,7 +183,7 @@ class _WaterTargetScreenState extends State<WaterTargetScreen> {
               ],
             ),
           ),
-          const SizedBox(height: TioSpacing.large),
+          const SizedBox(height: TioSpacing.lg),
           Text(
             'Drinking 2.0–4.0 L (68–135 fl oz) of water daily is recommended for most active adults to maintain optimal hydration and performance.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
