@@ -74,7 +74,7 @@ class ActivityScreen extends StatelessWidget {
                 onSelected(item.level);
               },
             ),
-            const SizedBox(height: TioSpacing.medium),
+            const SizedBox(height: TioSpacing.md),
           ],
         ],
       ),
@@ -95,12 +95,14 @@ class _ActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Material(
       color: isSelected
-          ? colors.primary.withValues(alpha: TioCardTokens.selectedContainerAlpha)
+          ? colors.primary.withValues(
+              alpha: TioCardTokens.selectedContainerAlpha,
+            )
           : colors.surface,
       borderRadius: BorderRadius.circular(TioCardTokens.radius),
       child: InkWell(
@@ -108,14 +110,16 @@ class _ActivityCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(TioCardTokens.radius),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
+          duration: const Duration(milliseconds: TioDuration.ms150),
           padding: const EdgeInsets.all(TioCardTokens.padding),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(TioCardTokens.radius),
             border: Border.all(
               color: isSelected
                   ? colors.primary
-                  : colors.outlineStrong.withValues(alpha: TioCardTokens.unselectedOutlineAlpha),
+                  : colors.outlineStrong.withValues(
+                      alpha: TioCardTokens.unselectedOutlineAlpha,
+                    ),
               width: isSelected
                   ? TioCardTokens.selectedBorderWidth
                   : TioCardTokens.unselectedBorderWidth,
@@ -124,58 +128,63 @@ class _ActivityCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Row: Icon + Title + Steps Status Chip
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Icon(
                     item.icon,
-                    size: 24,
-                    color: isSelected ? colors.primary : colors.textSecondary,
+                    size: TioSize.dp24,
+                    color: isSelected
+                        ? colors.primary
+                        : colors.textSecondary,
                   ),
-                  const SizedBox(width: TioSpacing.small),
+                  const SizedBox(width: TioSpacing.sm),
                   Expanded(
                     child: Text(
                       item.title,
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                        color: isSelected ? colors.primary : colors.textPrimary,
+                        fontSize: TioFontSize.size16,
+                        fontWeight: isSelected
+                            ? TioFontWeight.w600
+                            : TioFontWeight.w500,
+                        color: isSelected
+                            ? colors.primary
+                            : colors.textPrimary,
                       ),
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: TioSize.dp10,
+                      vertical: TioSpacing.xs,
+                    ),
                     decoration: BoxDecoration(
                       color: isSelected
                           ? colors.primary
-                          : (isDark ? Colors.white : colors.surfaceRaised),
+                          : (isDark ? TioPalette.white : colors.surfaceRaised),
                       borderRadius: BorderRadius.circular(TioRadius.full),
                     ),
                     child: Text(
                       item.steps,
                       style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
+                        fontSize: TioFontSize.size11,
+                        fontWeight: TioFontWeight.w700,
+                        letterSpacing: TioLetterSpacing.positive05,
                         color: isSelected
                             ? colors.background
-                            : (isDark ? Colors.black : colors.textPrimary),
+                            : (isDark ? TioPalette.black : colors.textPrimary),
                       ),
                     ),
                   ),
                 ],
               ),
-
-              const SizedBox(height: 4),
-
-              // Description below
+              const SizedBox(height: TioSpacing.xs),
               Text(
                 item.description,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: TioFontSize.size14,
                   color: colors.textSecondary,
-                  height: 1.3,
+                  height: TioLineHeight.height130,
                 ),
               ),
             ],
