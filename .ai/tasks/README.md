@@ -16,6 +16,7 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 | [Design-system Slice G — Remaining UI](design-system-slice-g-remaining-ui.md) | Validated | remaining phone/Wear presentation | Validated by Flutter CI #846 |
 | [Design-system Slice H — Final Enforcement](design-system-slice-h-final-enforcement.md) | Validated | repository-wide design-system audit | Final enforcement validated by Flutter CI #865 |
 | [Design-system hardcoded color audit](design-system-hardcoded-color-audit.md) | Cross-cutting | `apps/core` design-system ownership | Any work touching colors, gradients, shadows, alpha/state colors, or feature color helpers |
+| [Flutter UI reusable-first governance](flutter-ui-reusable-governance.md) | In progress | repository AI governance + `apps/core` | Any change to repository-wide Flutter UI agent/workflow rules |
 | [App Mode foundation](app-mode-foundation.md) | In progress | `apps/shared`, onboarding, Settings, `apps/app`, `apps/core` | Changing phone navigation, onboarding, or Settings |
 | [Mode-conditional onboarding flow](onboarding-flow.md) | Ready | onboarding with Profile, Workout, Nutrition, `apps/shared`, `apps/app` contracts | Building onboarding steps, draft/resume, completion, or router gating |
 | [Adaptive navigation and action entry](adaptive-navigation-and-actions.md) | Ready | `apps/shared`, `apps/core`, `apps/app`, Settings, affected features | Designing custom tabs, Home composition, or feature action placement |
@@ -53,11 +54,15 @@ Before any Flutter production UI/theme/token change:
 
 1. read [Design-system token consolidation](design-system-token-consolidation.md);
 2. read the relevant feature/task brief;
-3. for normal feature UI work, follow `apps/features/AGENTS.md` and read `apps/core/lib/src/theme/README.md` before inspecting internal token files.
+3. read `apps/core/lib/src/theme/README.md` before implementing visual code or inspecting internal token files;
+4. inspect the existing reusable core UI/component surface and prefer the public `package:tio_core/core.dart` boundary before rebuilding an equivalent pattern locally;
+5. when editing under `apps/features/*`, also follow `apps/features/AGENTS.md` for the nested feature-package contract.
 
 Global rules:
 
 - centralized `apps/core` design-system ownership is the visual source of truth;
+- existing reusable core components are preferred before raw local reconstruction of equivalent cards, buttons, inputs, avatars, dialogs, pickers, sheets, navigation surfaces, or other shared patterns;
+- a new reusable core component/contract requires genuine reuse evidence; one-off feature/workflow composition stays with its owning feature while consuming governed core values;
 - feature packages must not create parallel design-token/color/layout/theme catalogs;
 - fixed visual values must follow canonical primitive/semantic/component ownership;
 - **not every widget/dialog/screen gets a token file**; component-token classes are admitted only for proven reusable contracts;
