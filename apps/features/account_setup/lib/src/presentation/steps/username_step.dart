@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_profile/profile.dart';
 
-import '../theme/account_setup_visual_tokens.dart';
-
 class UsernameStep extends StatefulWidget {
   const UsernameStep({
     required this.repository,
@@ -134,7 +132,7 @@ class UsernameStepState extends State<UsernameStep> {
           subtitle:
               'Your username is your unique public Tio handle. Use lowercase letters, numbers, dots, and underscores.',
         ),
-        const SizedBox(height: TioSpacing.large),
+        const SizedBox(height: TioSpacing.lg),
         TioUsernameInputField(
           controller: _controller,
           enabled: widget.enabled,
@@ -153,13 +151,13 @@ class UsernameStepState extends State<UsernameStep> {
           },
         ),
         if (_saveError case final error?) ...[
-          const SizedBox(height: TioSpacing.medium),
+          const SizedBox(height: TioSpacing.md),
           Text(
             error,
             key: const ValueKey('account-setup-username-error'),
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.error,
-              fontWeight: AccountSetupVisualTokens.statusFontWeight,
+              fontWeight: TioFontWeight.w600,
             ),
           ),
         ],
