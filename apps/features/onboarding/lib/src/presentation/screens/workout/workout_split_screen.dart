@@ -39,7 +39,7 @@ class WorkoutSplitScreen extends StatelessWidget {
               onTap: () => onSelected(split),
             ),
             if (split != WorkoutSplit.values.last)
-              const SizedBox(height: TioSpacing.medium),
+              const SizedBox(height: TioSpacing.md),
           ],
         ],
       ),
