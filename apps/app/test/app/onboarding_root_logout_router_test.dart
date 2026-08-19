@@ -112,12 +112,9 @@ class _TrackingAuthSessionRepository extends InMemoryAuthSessionRepository {
 
 class _ExitBootstrapController extends AppSessionBootstrapController {
   _ExitBootstrapController({
-    required AuthSessionRepository authSessionRepository,
+    required super.authSessionRepository,
     required super.onboardingStatusController,
-  }) : super(
-          authSessionRepository: authSessionRepository,
-          onboardingCompletionRepository: null,
-        );
+  }) : super(onboardingCompletionRepository: null);
 
   AppSessionBootstrapState _testState =
       const AppSessionBootstrapRequiresOnboarding(userId: 'test-user');
