@@ -20,12 +20,6 @@ void main() {
       expect(TioMotion.fadeThroughExitMs, TioDuration.ms90);
       expect(TioMotion.progressMs, TioDuration.ms1200);
     });
-
-    test('legacy motion-token facade does not own physical timings', () {
-      expect(TioMotionTokens.fastMs, TioMotion.fastMs);
-      expect(TioMotionTokens.normalMs, TioMotion.normalMs);
-      expect(TioMotionTokens.slowMs, TioMotion.slowMs);
-    });
   });
 
   group('runtime motion scheme', () {

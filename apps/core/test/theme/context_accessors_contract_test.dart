@@ -9,9 +9,6 @@ void main() {
     late TioColors colors;
     late TioShadows shadows;
     late TioMotionScheme motion;
-    late double radiusSmall;
-    late double radiusMedium;
-    late double radiusLarge;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -22,9 +19,6 @@ void main() {
               colors = context.tioColors;
               shadows = context.tioShadows;
               motion = context.tioMotion;
-              radiusSmall = context.radiusSmall;
-              radiusMedium = context.radiusMedium;
-              radiusLarge = context.radiusLarge;
               return const SizedBox.shrink();
             },
           ),
@@ -40,11 +34,5 @@ void main() {
     );
     expect(motion.reducedMotion, isFalse);
     expect(motion.normal, const TioMotionScheme.standard().normal);
-
-    // Compatibility getters remain available only while live feature
-    // consumers migrate, but they must resolve through canonical radius roles.
-    expect(radiusSmall, TioRadius.sm);
-    expect(radiusMedium, TioRadius.md);
-    expect(radiusLarge, TioRadius.lg);
   });
 }
