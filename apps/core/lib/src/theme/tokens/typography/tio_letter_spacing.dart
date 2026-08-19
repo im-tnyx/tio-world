@@ -7,5 +7,6 @@ abstract final class TioLetterSpacing {
   static const positive06 = 0.6;
   static const positive08 = 0.8;
   static const positive10 = 1.0;
+  static const positive12 = 1.2;
   static const positive60 = 6.0;
 }
