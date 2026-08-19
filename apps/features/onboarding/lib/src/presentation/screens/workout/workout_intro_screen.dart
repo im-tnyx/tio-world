@@ -27,16 +27,16 @@ class WorkoutIntroScreen extends StatelessWidget {
           subtitle: 'Answer a few quick questions to personalize your workouts '
               'now, or skip this for later and continue with nutrition setup.',
         ),
-        const SizedBox(height: TioSpacing.extraLarge),
+        const SizedBox(height: TioSpacing.xl),
         for (final choice in WorkoutIntroChoice.values) ...[
           _WorkoutIntroChoiceCard(
             choice: choice,
             selected: selectedChoice == choice,
             onTap: enabled ? () => onChoiceSelected(choice) : null,
           ),
-          const SizedBox(height: TioSpacing.medium),
+          const SizedBox(height: TioSpacing.md),
         ],
-        const SizedBox(height: TioSpacing.small),
+        const SizedBox(height: TioSpacing.sm),
         Stack(
           children: [
             for (final choice in WorkoutIntroChoice.values)
@@ -86,16 +86,16 @@ class _WorkoutIntroChoiceCard extends StatelessWidget {
       child: InkWell(
         key: ValueKey('workout-intro-${choice.name}'),
         onTap: onTap,
-        borderRadius: BorderRadius.circular(context.radiusLarge),
+        borderRadius: BorderRadius.circular(TioRadius.lg),
         child: AnimatedContainer(
           duration: context.tioMotion.fast,
-          padding: const EdgeInsets.all(TioSpacing.extraLarge),
+          padding: const EdgeInsets.all(TioSpacing.xl),
           decoration: BoxDecoration(
             color: colors.surface,
-            borderRadius: BorderRadius.circular(context.radiusLarge),
+            borderRadius: BorderRadius.circular(TioRadius.lg),
             border: Border.all(
               color: selected ? colors.primary : colors.outlineStrong,
-              width: 2,
+              width: TioStroke.width2,
             ),
           ),
           child: Row(
@@ -104,7 +104,7 @@ class _WorkoutIntroChoiceCard extends StatelessWidget {
                 _icon(choice),
                 color: selected ? colors.primary : colors.textSecondary,
               ),
-              const SizedBox(width: TioSpacing.large),
+              const SizedBox(width: TioSpacing.lg),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -113,7 +113,7 @@ class _WorkoutIntroChoiceCard extends StatelessWidget {
                       _label(choice),
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    const SizedBox(height: TioSpacing.small),
+                    const SizedBox(height: TioSpacing.sm),
                     Text(
                       _description(choice),
                       style: Theme.of(context)
