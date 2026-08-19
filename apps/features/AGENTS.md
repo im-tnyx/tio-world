@@ -18,7 +18,10 @@ Before editing production UI in a feature package:
 - Keep backend, persistence, database, entitlement, and AI-provider assumptions out of presentation widgets.
 - Do not create feature-local token/theme/color/layout catalogs to hide visual values.
 - For a true one-off composition, consume governed core primitives/semantic roles directly rather than creating a feature token bag.
-- If a pattern is reusable across features, move the reusable contract/component to `apps/core` instead of duplicating it.
+- Do not create or request a new core token class merely because one screen, dialog, sheet, or product action has several fixed visual values.
+- A token class named after a feature, screen, workflow, or product action (for example `WelcomeTokens`, `ProfileTokens`, or `DeleteAccountDialogTokens`) is a design smell unless independent reuse evidence proves it is actually a generic reusable component contract.
+- A core component token file is justified only when the component itself is reusable and a stable component-level visual contract adds value beyond directly consuming existing core primitives/semantic roles.
+- If a pattern is reusable across features, move the reusable contract/component to `apps/core` instead of duplicating it. If it is not reusable, keep the composition with the owning feature and use governed core values directly.
 
 ## Visual Safety
 
