@@ -19,6 +19,7 @@ No visible component or screen appearance may change without separate explicit o
 - [x] Slice A runtime/source boundary validated by Flutter CI #624 after A9/A10 implementation.
 - [x] Slice B is `Validated`; final Welcome deletion head passed Flutter CI #646.
 - [x] Theme usage/maintenance contract is documented in `apps/core/lib/src/theme/README.md`.
+- [x] Latest pre-correction Slice C boundary `8bc03bf...` passed Flutter CI #674.
 
 ## Scope
 
@@ -29,17 +30,41 @@ The separate reusable-field architecture tracked by Issue #24 is **not** impleme
 ## Ownership Rule
 
 ```text
-Reusable component → component tokens
+Reusable component with proven component-level contract → component tokens when useful
 Reusable semantic role → foundation/semantic/typography/effects
-One-off component composition → governed core primitive/role directly
-Screen-specific core token bag → forbidden
+One-off component or product-flow composition → governed core primitive/role directly
+Screen/feature/workflow-specific core token bag → forbidden
 ```
 
 A class must not be retained merely because it already exists under `tokens/components/`.
 
+## Component-Token Admission Gate
+
+A new or retained file under `tokens/components/` must pass all of these checks:
+
+1. The owning UI is a genuinely reusable core component, not a single product screen/workflow/action disguised as a component.
+2. The token class expresses a stable reusable component contract that adds value beyond directly consuming existing core primitives/semantic roles.
+3. Reuse evidence is recorded in the task: multiple feature contexts/consumers, or a clearly generic reusable API with independent use cases.
+4. The class name describes a generic reusable component capability, not a feature, screen, workflow, or product action.
+5. Physical values alias governed lower-level owners; the class does not become a second physical registry.
+6. If these checks fail, do **not** create a token file. Keep the composition with its owner and consume `TioSize`, `TioSpacing`, `TioRadius`, `TioStroke`, typography registries, runtime semantic colors/effects, and other governed roles directly.
+
+Examples:
+
+```text
+TioButtonTokens             ✅ reusable component contract
+TioInputTokens              ✅ reusable component contract
+TioOtpDialogTokens          ✅ only while the OTP dialog remains genuinely reusable across email/phone/reset flows
+WelcomeTokens               ❌ feature-specific token bag
+ProfileTokens               ❌ feature-specific token bag
+DeleteAccountDialogTokens   ❌ single destructive product workflow; do not retain as a core design-system token class
+```
+
+A product-specific workflow living under `apps/core` is itself an ownership smell and must be evaluated separately; a token class must not be used to legitimize the wrong module boundary.
+
 ## Initial Token-Contract Inventory
 
-All 14 current `tokens/components/` classes were read and classified before Slice C mutations:
+All original 14 `tokens/components/` classes were read and classified before Slice C mutations:
 
 ```text
 TioAvatarActionSheetTokens
@@ -58,30 +83,25 @@ TioSheetTokens
 TioWheelPickerTokens
 ```
 
-### Initial classification
+### Current classification
 
-Strong reusable-contract evidence currently exists for:
+Reusable-contract evidence exists for the generic/shared component families currently used across app contexts, including Button, Card, Input, Avatar, navigation, picker/sheet infrastructure, and OTP verification where multiple verification flows consume the same reusable dialog.
 
-- Avatar and Avatar action sheet;
-- Button;
-- Card;
-- DOB/wheel/measurement pickers;
-- Input plus specialized username/mobile contracts;
-- Legal disclaimer;
-- Navigation;
-- Remove-image sheet and generic sheet.
+Contracts are not accepted solely because they match an existing core widget name. Each retained class must pass the admission gate above during final C4 audit.
 
-Two contracts require focused reclassification:
+Rejected/reclassified cases:
 
-1. `TioDialogTokens` is an oversized mixed bag containing two independently implemented reusable components: OTP verification and Delete Account overlay. The final contract should not keep unrelated `otp*` and `delete*` families in one generic token class merely for historical convenience.
-2. `TioMeasurementPreferenceTokens` contains only one `sectionLabelFontSize` alias. Audit whether this one-value proxy expresses meaningful reusable intent; otherwise consume governed typography directly and delete the proxy after zero-reference validation.
+1. `TioMeasurementPreferenceTokens` was a one-value proxy and has been removed; the editor consumes canonical typography/spacing directly.
+2. `TioDialogTokens` was an oversized mixed compatibility bag and is being retired.
+3. Creating `TioDeleteAccountDialogTokens` as the replacement for the `delete*` half of `TioDialogTokens` was the wrong final direction: Delete Account is a specific destructive product workflow, so the dedicated core token class must be removed and the composition must consume governed core values directly.
+4. `TioOtpDialogTokens` may remain only because the reusable OTP dialog serves independent email/phone/reset verification contexts; final C4 audit must confirm this evidence still holds.
 
 ### Remaining physical/effect evidence
 
-- `TioCardTokens.materialThemeElevation = 0.0` and `TioNavigationTokens.elevation = 0.0` independently own the same fixed elevation value. This is repeated cross-component evidence for evaluating a generic effects owner such as `TioElevation.none`; do not add it until consumer audit confirms the role.
+- Repeated zero Material elevation is now owned by `TioElevation.none`; the implementation remains exact `0.0`.
 - Avatar ratios `0.28 / 0.5 / 0.36` are component-specific shape/icon/text factors and remain Avatar-owned unless broader reuse is proven.
 - DOB picker `perspective = 0.004` and `diameterRatio = 1.3` are component-specific rendering factors and remain local to that reusable picker contract.
-- Direct palette aliases such as navigation accent and delete-dialog destructive colors are permitted only as semantic component roles over governed physical palette ownership.
+- A rare exact one-off physical color may consume its governed palette owner directly when no honest reusable semantic role exists; do not create a product-flow color/token class merely to hide the palette access.
 
 ## Initial Component-Implementation Findings
 
@@ -89,67 +109,72 @@ The token audit is not sufficient by itself; reusable component source must also
 
 Confirmed examples:
 
-- `TioSocialButton` correctly composes `TioButton` but still recreates fixed `8` gap and `20` icon geometry in each provider branch. Final cleanup should consume `TioSpacing.sm` / `TioSize.dp20` directly rather than create `TioSocialButtonTokens`.
-- `TioMeasurementUnitPreferencesEditor` still uses legacy spacing aliases and raw `FontWeight.w700`, and its only dedicated token is the one-value `TioMeasurementPreferenceTokens` proxy.
-- `TioDeleteAccountOverlay` still contains component interaction constants such as the five-second hold contract plus legacy spacing aliases; duration/behavior values must be classified before any ownership change.
-- Existing widget tests already cover delete-account, OTP, DOB, height, weight, generic input, mobile number, and username components, giving Slice C a regression harness without inventing a new test framework.
+- `TioSocialButton` correctly composes `TioButton` but recreates fixed `8` gap and `20` icon geometry. Final cleanup should consume `TioSpacing.sm` / `TioSize.dp20` directly rather than create `TioSocialButtonTokens`.
+- `TioMeasurementUnitPreferencesEditor` one-value proxy was unnecessary; direct canonical typography/spacing is the correct ownership.
+- `TioDeleteAccountOverlay` owns a five-second destructive hold contract. That timing is product/interaction behavior, not a theme-motion token.
+- Delete Account is currently consumed from Account Settings, which reinforces that its dedicated core token class is not reusable design-system ownership.
+- Existing widget tests cover delete-account, OTP, DOB, height, weight, generic input, mobile number, and username components, giving Slice C a regression harness without inventing a new test framework.
 
 ## Checklist
 
-- [x] Inventory all 14 current reusable component token classes.
+- [x] Inventory original reusable component token classes.
 - [x] Classify obvious justified contracts, mixed bags, one-value proxies, shared raw effects, and component-specific ratios/factors.
-- [ ] Audit every reusable component implementation and its current token/primitive dependencies.
-- [ ] Confirm each retained component token class represents actual reusable component intent.
-- [ ] Reclassify `TioDialogTokens` without changing OTP/Delete Account rendering.
-- [ ] Resolve `TioMeasurementPreferenceTokens` one-value proxy after consumer audit.
-- [ ] Resolve repeated fixed elevation ownership only if the component consumer audit confirms the shared effect role.
+- [x] Resolve repeated zero-elevation ownership as `TioElevation.none` with exact-value tests; Flutter CI #655 passed that bounded batch.
+- [x] Remove the one-value `TioMeasurementPreferenceTokens` proxy and migrate its editor to canonical typography/spacing.
+- [ ] Complete every reusable component implementation audit and record actual reuse evidence for each retained component-token class.
+- [ ] Remove `TioDeleteAccountDialogTokens`; migrate Delete Account visuals directly to governed core primitives/semantic roles without changing rendering.
+- [ ] Retire the temporary `TioDialogTokens` facade after repository-wide zero-reference verification.
+- [ ] Re-evaluate whether the Delete Account product workflow itself belongs in `apps/core`; do not mix a larger feature-module move into the token correction unless the bounded migration is proven safe.
 - [ ] Remove raw fixed visual values from reusable component implementations when governed owners already exist.
 - [ ] Migrate edited core consumers away from legacy spacing/radius compatibility aliases.
-- [ ] Ensure colors resolve through governed semantic/domain/component roles.
+- [ ] Ensure colors resolve through governed semantic/domain roles or rare audited direct physical owners where no honest reusable semantic role exists.
 - [ ] Ensure typography resolves through governed typography roles.
 - [ ] Ensure geometry/strokes/opacities/durations/factors resolve through canonical ownership without inventing fake global factors.
 - [ ] Preserve intentional pixel differences such as distinct Material-vs-custom component contracts until separately approved.
-- [ ] Update component/contract tests to lock alias ownership and current rendering.
-- [ ] Run focused core UI tests, static audit, analyze and required CI.
+- [ ] Update component/contract tests to lock canonical ownership and current rendering.
+- [ ] Run focused core UI tests, static token-admission/compatibility audit, analyze and required CI.
 
 ## Planned Bounded Execution
 
 ### C1 — Complete component source inventory
 
-Audit every exported reusable core component and shell helper for raw fixed values, legacy compatibility aliases, direct physical palette usage, raw typography weights/sizes, durations, and token dependencies. Record findings before mutation.
+Audit every exported reusable core component and shell helper for raw fixed values, legacy compatibility aliases, direct physical palette usage, raw typography weights/sizes, durations, token dependencies, and actual reuse evidence.
 
 ### C2 — Contract reclassification
 
-Resolve oversized/misleading component token classes (`TioDialogTokens`, one-value proxies) and any shared effect ownership proven by C1. Preserve public component behavior and rendered pixels.
+Resolve oversized/misleading component token classes, one-value proxies, invalid product-flow token classes, and shared effect ownership proven by C1. Preserve public behavior and rendered pixels.
 
 ### C3 — Component implementation cleanup
 
-Migrate reusable component implementations to the validated contracts and canonical token names. Do not implement Issue #24 feature-screen field adoption in this slice.
+Migrate reusable component implementations to validated contracts/canonical token names. Product-specific compositions consume governed core roles directly rather than receiving their own token class. Do not implement Issue #24 feature-screen field adoption in this slice.
 
 ### C4 — Validation
 
-Run existing focused component widget tests, ownership contract tests, static literal/compatibility audit, analyze and required CI; then mark Slice C `Validated` and unblock Slice D.
+Run existing focused component widget tests, ownership contract tests, repository/static token-admission audit, analyze and required CI; then mark Slice C `Validated` and unblock Slice D.
 
 ## Completion Lifecycle
 
 1. Inventory
-2. Classification
-3. Planned ownership
-4. Implementation
-5. Focused tests
-6. Static audit
-7. Pixel/UI regression check
-8. Analyze
-9. Required CI
-10. Update evidence
-11. Mark `Validated`
-12. Unblock Slice D
+2. Reuse evidence
+3. Classification
+4. Planned ownership
+5. Implementation
+6. Focused tests
+7. Static audit
+8. Pixel/UI regression check
+9. Analyze
+10. Required CI
+11. Update evidence
+12. Mark `Validated`
+13. Unblock Slice D
 
 ## Exit Criteria
 
-- reusable component token classes are justified and semantic;
-- no component class independently owns governed fixed visual values;
-- no screen-specific token bag is hidden under core components;
+- every retained component-token class passes the component-token admission gate;
+- no token class is retained solely for one screen, dialog flow, sheet action, or product workflow;
+- no component class independently owns governed fixed physical values;
+- no screen/feature/workflow-specific token bag is hidden under core components;
+- `TioDeleteAccountDialogTokens` and the deprecated mixed `TioDialogTokens` facade are absent from final architecture;
 - component-specific program ratios/factors are not misclassified as global design tokens;
 - no unapproved visible UI change occurred;
-- tests/analyze/required CI pass.
+- focused tests/analyze/required CI pass.
