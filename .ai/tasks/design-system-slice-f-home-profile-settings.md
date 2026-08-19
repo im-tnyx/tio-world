@@ -1,6 +1,6 @@
 # Design System Slice F — Home + Profile + Settings
 
-**Status:** Blocked by Slice E  
+**Status:** Ready  
 **Parent task:** `.ai/tasks/design-system-token-consolidation.md`  
 **Related issue:** #6  
 **Working PR:** #22  
@@ -16,7 +16,8 @@ No layout, spacing, color appearance, typography appearance, radius, icon/image 
 
 ## Preconditions
 
-- [ ] Slices A–E are `Validated`.
+- [x] Slices A–E are `Validated`.
+- [x] Slice E final implementation passed Flutter CI #825.
 
 ## Hard Boundaries
 
