@@ -1,8 +1,9 @@
 # Onboarding Pre-Auth Draft Persistence
 
-**Status:** Implemented — automated validation green; real-device revalidation pending
+**Status:** Core handoff implemented; Product Onboarding root-Back exit follow-up open; real-device revalidation pending
 **Tracking:** GitHub issue #13 (related to #10 and profile persistence #8)
 **Source branch:** `codex/onboarding-mode-migration`
+**Current follow-up branch:** `agent/app-mode-pre-signup` / PR #36
 **Primary owner:** `apps/app` + `apps/features/onboarding` + `apps/features/nutrition`
 
 ## User-reported regressions
@@ -167,3 +168,52 @@ optional/skipped fields = allowed to remain null
 ```
 
 Do not backfill earlier completed rows until separately approved.
+
+## Audit follow-up — Product Onboarding root Back (2026-08-19)
+
+Read-only audit of PR #36 found a navigation/session boundary gap around the Google-name forward-skip behavior.
+
+Current intended Google flow is:
+
+```text
+Google signup/auth succeeds
+-> trusted Google display name seeds Profile Name
+-> forward entry starts at Gender
+-> Back from Gender reveals editable Name
+```
+
+Controller behavior already supports `Gender -> Back -> Name`, and Name remains the first/root Profile child. The page/router exit path is not yet aligned with that root boundary.
+
+### Verified gap
+
+`OnboardingFlowPage` decides whether Back is internal or an exit primarily from the outer `OnboardingState.hasPreviousStep`. That value is based on top-level onboarding steps and does not represent nested Profile child history. This creates a mismatch between controller-level child navigation and page-level Back ownership.
+
+At the Product Onboarding root, the current router `onExitRequested` may `pop()` or `go(AppRoutes.auth.path)` without signing out. For an authenticated user whose bootstrap state is `RequiresOnboarding`, routing to Auth is not a real exit because session policy redirects the authenticated incomplete account back to `/onboarding`.
+
+### Required acceptance contract
+
+```text
+Gender -> Back -> Name
+Goal -> Back -> Gender
+Name -> Back -> sign out -> refresh session bootstrap -> Welcome
+```
+
+Visible top-bar Back and Android/system Back must use the same contract.
+
+The root exit must end the authenticated session before navigating to Welcome. It must not rely on `go('/auth')` while the session is still authenticated.
+
+### Draft retention contract
+
+Root Back/logout must not discard the user-bound onboarding draft by default. A later login by the same user should remain eligible to resume the existing draft. Draft deletion should require a separate explicit discard/reset product action.
+
+### Open implementation / validation items
+
+- [ ] Make nested Profile Back ownership explicit at page/controller boundary instead of inferring it only from top-level `hasPreviousStep`.
+- [ ] Treat Profile `Name` as the Product Onboarding root exit boundary.
+- [ ] On root exit, call the auth session sign-out contract and refresh session bootstrap before resolving to Welcome.
+- [ ] Keep visible Back and system Back behavior identical.
+- [ ] Preserve the user-bound onboarding draft across this logout flow.
+- [ ] Add regression coverage for `Gender -> Name`, `Name -> logout -> Welcome`, and system/visible Back parity.
+- [ ] Real-device verify fresh Google signup: `Gender -> Back -> Name -> Back -> Welcome`, then re-login and confirm draft resume semantics.
+
+No source-code change was made during the audit that added this follow-up.
