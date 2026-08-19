@@ -18,5 +18,6 @@ abstract final class TioAlpha {
   static const alpha120 = 120;
   static const alpha179 = 179;
   static const alpha200 = 200;
+  static const alpha221 = 221;
   static const alpha245 = 245;
 }
