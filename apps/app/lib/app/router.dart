@@ -21,6 +21,7 @@ import 'app_mode/app_mode.dart';
 import 'app_theme.dart';
 import 'network_providers.dart';
 import 'onboarding/onboarding.dart';
+import 'profile/profile_completion.dart';
 import 'session/session.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -492,6 +493,22 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           builder: (context, ref, _) {
             final profileAsync = ref.watch(profileDataProvider);
             final profileData = profileAsync.valueOrNull;
+            final completion =
+                ref.watch(profileCompletionSummaryProvider).valueOrNull;
+            final reminderScope =
+                ref.watch(profileCompletionReminderScopeProvider);
+            final dismissedAsync = reminderScope == null
+                ? null
+                : ref.watch(
+                    profileCompletionReminderDismissedProvider(reminderScope),
+                  );
+            final visibleCompletion = reminderScope != null &&
+                    dismissedAsync?.hasValue == true &&
+                    dismissedAsync?.valueOrNull != true &&
+                    completion != null &&
+                    !completion.isComplete
+                ? completion
+                : null;
 
             final avatarFrame = switch (profileData?.plan.toLowerCase()) {
               'plus' => TioAvatarFrame.plusRing,
@@ -501,6 +518,27 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
             return ProfilePage(
               profileData: profileData,
+              completionSummary: visibleCompletion,
+              onCompletionPressed: visibleCompletion == null ||
+                      reminderScope == null
+                  ? null
+                  : () async {
+                      await ref
+                          .read(profileCompletionReminderPreferenceProvider)
+                          .dismiss(reminderScope);
+                      ref.invalidate(
+                        profileCompletionReminderDismissedProvider(
+                          reminderScope,
+                        ),
+                      );
+
+                      final route = visibleCompletion.hasProfileOwnedMissingField
+                          ? AppRoutes.profileSettings.path
+                          : AppRoutes.accountSettings.path;
+                      if (context.mounted) {
+                        await context.push<void>(route);
+                      }
+                    },
               isLoading: profileAsync.isLoading,
               avatarFrame: avatarFrame,
               onAvatarPressed: () => context.push(AppRoutes.profileAvatar.path),
@@ -706,6 +744,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               );
               await ref.read(profileSetupRepositoryProvider).saveProfileSetup(updated);
               ref.invalidate(profileDataProvider);
+              ref.invalidate(profileCompletionSummaryProvider);
             },
           );
         },
@@ -738,6 +777,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   mobile: phoneNumber,
                 );
                 ref.invalidate(profileDataProvider);
+                ref.invalidate(profileCompletionSummaryProvider);
               },
               onDeleteAccountConfirmed: () async {
                 try {
