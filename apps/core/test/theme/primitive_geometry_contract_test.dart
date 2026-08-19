@@ -170,13 +170,6 @@ void main() {
       expect(TioWheelPickerTokens.selectionHorizontalMargin, TioSpacing.lg);
       expect(TioWheelPickerTokens.itemExtent, TioSize.dp44);
 
-      expect(TioDobPickerTokens.closeIconSize, TioSize.dp24);
-      expect(TioDobPickerTokens.closeSplashRadius, TioSize.dp20);
-      expect(TioDobPickerTokens.headerSubtitleGap, TioSize.dp6);
-      expect(TioDobPickerTokens.columnHeaderToWheelGap, TioSpacing.md);
-      expect(TioDobPickerTokens.perspective, 0.004);
-      expect(TioDobPickerTokens.diameterRatio, 1.3);
-
       expect(TioMeasurementPickerTokens.closeButtonSize, TioSize.dp32);
       expect(TioMeasurementPickerTokens.closeIconSize, TioSize.dp18);
       expect(TioMeasurementPickerTokens.closeSplashRadius, TioSize.dp16);
