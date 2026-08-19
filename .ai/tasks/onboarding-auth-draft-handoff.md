@@ -1,6 +1,6 @@
 # Onboarding Pre-Auth Draft Persistence
 
-**Status:** Core handoff implemented; Product Onboarding root-Back exit follow-up open; real-device revalidation pending
+**Status:** Core handoff implemented; Product Onboarding root-Back confirmation/logout implemented; CI + real-device revalidation pending
 **Tracking:** GitHub issue #13 (related to #10 and profile persistence #8)
 **Source branch:** `codex/onboarding-mode-migration`
 **Current follow-up branch:** `agent/app-mode-pre-signup` / PR #36
@@ -127,7 +127,7 @@ The local record keeps two snapshots:
 - `fe812228d9883a950f9c9ba79cd150e79ed57f2e` — hydration-resume regression coverage.
 - `3fad862a8a43e79a5a712949ef305d26016c10b8` / `7d7b66087cfa0483fd48ad0cea8922ee99dcf7ed` / `146adcc5ec814b2ff7b573bb8866c173274d7e2c` / `583ec1b08e12036e84088f48375d68fe4247fc5f` — make hydration gate explicit and enable it only in production app wiring.
 
-## Automated validation
+## Automated validation history
 
 GitHub Actions run #97 on head `583ec1b08e12036e84088f48375d68fe4247fc5f`:
 
@@ -137,7 +137,7 @@ GitHub Actions run #97 on head `583ec1b08e12036e84088f48375d68fe4247fc5f`:
 - app local-draft/auth-resume tests: passed, including hydrated resolved-step notification
 - app test total: 104 passed / 10 failed
 - the 10 failures are the same pre-existing Welcome accessibility, avatar expectation, and AppMode router `pumpAndSettle` baseline failures
-- no new failing test class was introduced by this slice
+- no new failing test class was introduced by that slice
 
 `apps/features/onboarding/test/domain/targets_setup_mapper_test.dart` additionally covers collected metric projection and null preservation for uncollected optional values. Because workspace tests currently use fail-fast and the app package hits the known baseline failures first, this later-package test still needs targeted local execution or a future CI non-fail-fast improvement.
 
@@ -169,51 +169,66 @@ optional/skipped fields = allowed to remain null
 
 Do not backfill earlier completed rows until separately approved.
 
-## Audit follow-up — Product Onboarding root Back (2026-08-19)
+## Product Onboarding root Back follow-up (2026-08-19)
 
-Read-only audit of PR #36 found a navigation/session boundary gap around the Google-name forward-skip behavior.
+The Google-name forward-skip keeps Profile `Name` as a real editable first step while normal forward entry may begin at `Gender` when trusted Google identity metadata already supplied the name.
 
-Current intended Google flow is:
-
-```text
-Google signup/auth succeeds
--> trusted Google display name seeds Profile Name
--> forward entry starts at Gender
--> Back from Gender reveals editable Name
-```
-
-Controller behavior already supports `Gender -> Back -> Name`, and Name remains the first/root Profile child. The page/router exit path is not yet aligned with that root boundary.
-
-### Verified gap
-
-`OnboardingFlowPage` decides whether Back is internal or an exit primarily from the outer `OnboardingState.hasPreviousStep`. That value is based on top-level onboarding steps and does not represent nested Profile child history. This creates a mismatch between controller-level child navigation and page-level Back ownership.
-
-At the Product Onboarding root, the current router `onExitRequested` may `pop()` or `go(AppRoutes.auth.path)` without signing out. For an authenticated user whose bootstrap state is `RequiresOnboarding`, routing to Auth is not a real exit because session policy redirects the authenticated incomplete account back to `/onboarding`.
-
-### Required acceptance contract
+### Final acceptance contract
 
 ```text
-Gender -> Back -> Name
 Goal -> Back -> Gender
-Name -> Back -> sign out -> refresh session bootstrap -> Welcome
+Gender -> Back -> Name
+Name -> Back -> show logout confirmation card
+
+Stay
+-> close confirmation
+-> remain on Name
+-> remain authenticated
+-> keep draft unchanged
+
+Log out
+-> sign out
+-> refresh session bootstrap
+-> Welcome
 ```
 
-Visible top-bar Back and Android/system Back must use the same contract.
+Visible top-bar Back and Android/system Back use the same root/internal navigation decision.
 
-The root exit must end the authenticated session before navigating to Welcome. It must not rely on `go('/auth')` while the session is still authenticated.
+The confirmation is a session-exit confirmation, not a discard-progress action. Logging out must not call `clearDraft()` or otherwise erase the user-bound onboarding draft. The same account remains eligible to resume later.
 
-### Draft retention contract
+### UI ownership
 
-Root Back/logout must not discard the user-bound onboarding draft by default. A later login by the same user should remain eligible to resume the existing draft. Draft deletion should require a separate explicit discard/reset product action.
+The confirmation is not an `AlertDialog` and does not define feature-local visual tokens.
 
-### Open implementation / validation items
+- reusable `TioConfirmationCard` lives under `apps/core/lib/src/ui/components/cards/`;
+- it composes existing `TioCard`, `TioButton`, runtime theme colors, semantic typography, spacing and size contracts;
+- product-specific logout copy and behavior remain owned by Product Onboarding;
+- the card is presented from a modal sheet with a transparent framework surface;
+- `apps/core/lib/src/theme/README.md` documents the reusable component contract;
+- no new component token family was introduced.
 
-- [ ] Make nested Profile Back ownership explicit at page/controller boundary instead of inferring it only from top-level `hasPreviousStep`.
-- [ ] Treat Profile `Name` as the Product Onboarding root exit boundary.
-- [ ] On root exit, call the auth session sign-out contract and refresh session bootstrap before resolving to Welcome.
-- [ ] Keep visible Back and system Back behavior identical.
-- [ ] Preserve the user-bound onboarding draft across this logout flow.
-- [ ] Add regression coverage for `Gender -> Name`, `Name -> logout -> Welcome`, and system/visible Back parity.
-- [ ] Real-device verify fresh Google signup: `Gender -> Back -> Name -> Back -> Welcome`, then re-login and confirm draft resume semantics.
+### Implemented follow-up
 
-No source-code change was made during the audit that added this follow-up.
+- [x] Added nested-aware `OnboardingState.hasPreviousScreen` so Profile/Workout/Targets child history participates in Back ownership.
+- [x] Product Onboarding Back dispatch now uses one internal-vs-root decision for visible and system Back.
+- [x] Profile `Name` is the Product Onboarding root exit boundary.
+- [x] Root Back opens reusable themed `TioConfirmationCard` instead of immediately logging out.
+- [x] `Stay` closes the card and remains on Name without calling the exit callback.
+- [x] `Log out` delegates the confirmed exit.
+- [x] App router confirmed exit now calls `authSessionRepositoryProvider.signOut()` and `appSessionBootstrapController.refresh()`; it no longer tries to route an authenticated incomplete user directly to `/auth`.
+- [x] No draft clear/reset is part of this root logout path.
+- [x] Added focused feature regression tests for `Gender -> Name`, Cancel, Confirm, and system/visible Back parity.
+- [x] Added app router regression coverage for confirmed `signOut -> refresh -> Welcome` behavior.
+- [ ] Latest GitHub CI on the final branch head must complete.
+- [ ] Real-device verify fresh Google signup: `Gender -> Back -> Name -> Back -> confirmation -> Log out -> Welcome`, then re-login and confirm draft resume semantics.
+
+### Follow-up implementation commits
+
+- `c619f2a7` — add reusable core confirmation card.
+- `51fd5639` — export reusable confirmation card.
+- `e8134fa6` — expose nested Back availability.
+- `cf6bc9ee` — confirm Product Onboarding root exit with themed reusable card.
+- `77910081` — feature regression coverage for root confirmation and Back parity.
+- `11a193c1` — confirmed Product Onboarding root exit signs out and refreshes bootstrap.
+- `83110ec1` — app router regression for confirmed logout to Welcome.
+- `d75e05fe` — document the reusable confirmation-card theme contract.
