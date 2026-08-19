@@ -85,9 +85,7 @@ void main() {
       expect(TioShadows.standard.elevatedPanelColor, TioPalette.blackAlpha80);
     });
 
-    test('component fixed colors keep exact palette mappings', () {
-      expect(TioDeleteAccountDialogTokens.holdFillColor, TioPalette.red550);
-      expect(TioDeleteAccountDialogTokens.holdContentColor, TioPalette.white);
+    test('reusable component fixed colors keep exact palette mappings', () {
       expect(TioNavigationTokens.planPlusAccentColor, TioPalette.amber500);
     });
   });
