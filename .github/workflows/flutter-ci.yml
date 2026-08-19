@@ -65,31 +65,6 @@ jobs:
       - name: Analyze Dart packages
         run: melos exec -c 1 --no-flutter --fail-fast -- "dart analyze ."
 
-      - name: Final enforcement audit
-        id: final_audit
-        continue-on-error: true
-        shell: bash
-        run: |
-          cd apps/core
-          flutter pub get
-          flutter test --no-pub \
-            test/theme/final_enforcement_visual_ownership_test.dart \
-            test/theme/final_enforcement_architecture_test.dart
-
-      - name: Upload final enforcement audit reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: final-enforcement-audit
-          path: |
-            apps/core/final-visual-violations.txt
-            apps/core/final-architecture-violations.txt
-          if-no-files-found: ignore
-
-      - name: Fail final enforcement audit
-        if: steps.final_audit.outcome == 'failure'
-        run: exit 1
-
       - name: Test Flutter packages
         run: melos exec -c 1 --flutter --dir-exists=test --fail-fast -- "flutter pub get && flutter test --no-pub"
 
