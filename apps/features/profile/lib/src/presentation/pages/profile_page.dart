@@ -4,7 +4,7 @@ import 'package:tio_core/core.dart';
 
 import '../../domain/models/models.dart';
 
-/// The primary user profile page matching the clean, cardless design.
+/// The primary user profile page with one optional completion affordance.
 class ProfilePage extends StatelessWidget {
   const ProfilePage({
     required this.onSettingsPressed,
@@ -153,6 +153,8 @@ class ProfilePage extends StatelessWidget {
     final hasValidPhoto = avatarUrl != null &&
         avatarUrl.isNotEmpty &&
         avatarUrl.startsWith('http');
+    final completion =
+        data != null ? ProfileCompletionSummary.fromProfile(data) : null;
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -398,6 +400,39 @@ class ProfilePage extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (completion != null && !completion.isComplete) ...[
+                    const SizedBox(height: TioSpacing.xl),
+                    TioCard(
+                      key: const ValueKey('profile-completion-card'),
+                      variant: TioCardVariant.normal,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: TioSpacing.lg,
+                        vertical: TioSpacing.lg,
+                      ),
+                      onTap: () => context.push(AppRoutes.accountSettings.path),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Your profile is ${completion.percentage}% finished',
+                              key: const ValueKey('profile-completion-text'),
+                              style: TextStyle(
+                                color: colors.textPrimary,
+                                fontSize: TioFontSize.size16,
+                                fontWeight: TioFontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: TioSpacing.md),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            size: TioSize.dp24,
+                            color: colors.textPrimary,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
       ),
