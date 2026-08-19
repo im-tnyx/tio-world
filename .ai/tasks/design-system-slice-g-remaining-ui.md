@@ -1,7 +1,7 @@
 # Design System Slice G — Remaining UI
 
-**Status:** Ready  
-**Current phase:** Inventory  
+**Status:** Validated  
+**Current phase:** Complete  
 **Parent task:** `.ai/tasks/design-system-token-consolidation.md`  
 **Related issue:** #6  
 **Working PR:** #22  
@@ -9,65 +9,118 @@
 
 ## Outcome
 
-Migrate Workout, Nutrition, Progress, remaining phone UI, Wear UI, and any uncategorized production presentation code to governed core design-system ownership.
+Remaining production Flutter UI outside Slices A–F now consumes governed core design-system ownership where product-visible presentation exists. Packages without substantive production presentation were inventoried and intentionally left without fake token migrations.
 
 ## Mandatory Visual Freeze
 
-No visible UI change is allowed without separate explicit owner/design approval. Preserve current layout, spacing, colors, typography, radius, icon/image sizing, motion, gradients, component geometry and responsive behavior.
+No visible UI change was introduced. Existing layout, spacing, colors, typography, radius, icon/image sizing, motion, component geometry and platform behavior were preserved through exact-value ownership migration.
 
 ## Preconditions
 
 - [x] Slices A–F are `Validated`.
 - [x] Slice F final implementation head `da9e60d6b8a5afc1b293d59cef7a7aacce5553c4` passed Flutter CI #843.
 
-## Scope
+## Completed Inventory
 
-Remaining production Flutter UI not already covered by earlier slices, executed package-by-package with bounded diffs.
+### Feature packages with no substantive production presentation
 
-Initial inventory must identify all remaining production presentation packages and separate fixed product-visible values from behavior/domain/program values before any mutation.
+The following packages contain navigation/contracts/README shells but no substantive product screen/widget implementation requiring a Slice G visual migration:
 
-## Hard Boundaries
+- `apps/features/workout`
+- `apps/features/nutrition`
+- `apps/features/progress`
+- `apps/features/coaching`
 
-- no workout/nutrition/progress business-rule changes;
-- no domain calculation changes;
-- no persistence/Supabase changes;
-- no navigation behavior changes unrelated to styling;
-- no feature token catalogs.
+No fake token migration was introduced for these packages.
+
+### Shared package
+
+`apps/shared` contains shared contracts, device/network/result/domain code and no production presentation surface. No visual migration was required.
+
+### App composition
+
+`apps/app/lib/app/router.dart` contains composition/navigation wiring but no raw product visual colors or typography to migrate. `apps/app/lib/app/app.dart` uses transparent system/status navigation-bar values strictly as edge-to-edge platform chrome; those framework values remain intentionally outside product visual token ownership.
+
+### Splash
+
+`apps/features/splash/lib/src/presentation/screen/splash_screen.dart` was migrated in commit `0caeaadde2fd603af03cffa1075102be934a38db`.
+
+Governed ownership now covers:
+
+- exact `120dp` brand-logo geometry via `TioSize.dp120`;
+- radius, spacing and loader geometry;
+- loader color/stroke;
+- failure-state typography and line height.
+
+The `4s` initial-destination timeout remains behavior/program timing and was not converted into design-system motion.
+
+Static ownership gate:
+
+`apps/features/splash/test/presentation/splash_design_system_ownership_test.dart`
+
+Validation: **Flutter CI #845** passed Flutter analyze, Dart analyze, Flutter tests and Dart tests.
+
+### Wear
+
+Wear Home presentation was migrated in commit `1a031d76ab7155e2879320437dff448031cf6b0c`.
+
+Governed ownership now covers:
+
+- pure-black scaffold ownership;
+- exact existing Wear tile colors through `TioPalette.gray022` (`0xFF161616`) and `TioPalette.gray036` (`0xFF242424`);
+- exact one-off radii through physical `TioSize` ownership rather than forcing semantic normalization;
+- tile/icon geometry and spacing;
+- typography weight overrides.
+
+Static ownership gate:
+
+`apps/wear/test/wear_design_system_ownership_test.dart`
+
+Validation: **Flutter CI #846** passed Flutter analyze, Dart analyze, Flutter tests and Dart tests.
+
+## Hard Boundaries Preserved
+
+- [x] no workout/nutrition/progress business-rule changes;
+- [x] no domain calculation changes;
+- [x] no persistence/Supabase changes;
+- [x] no navigation behavior changes unrelated to styling;
+- [x] no feature token catalogs introduced;
+- [x] platform-specific system-bar behavior preserved.
 
 ## Checklist
 
-- [ ] Build a remaining-package inventory before edits.
-- [ ] Process one package or bounded UI surface at a time.
-- [ ] Classify all fixed visual values before migration.
-- [ ] Reuse governed core primitives/roles/components first.
-- [ ] Apply `.ai/tasks/design-system-hardcoded-color-audit.md`.
-- [ ] Remove feature-owned visual/token catalogs.
-- [ ] Preserve platform-specific behavior where intentional.
-- [ ] Run focused package tests/static audit after each bounded migration.
-- [ ] Run analyze and required CI at package/slice boundaries.
-
-## Execution Rule
-
-Do not begin implementation by broad search-and-replace. First establish the remaining-package inventory and classification, then migrate one bounded package/surface at a time. Reuse existing core ownership before introducing any new evidenced primitive or semantic contract.
+- [x] Build a remaining-package inventory before edits.
+- [x] Process one package or bounded UI surface at a time.
+- [x] Classify all fixed visual values before migration.
+- [x] Reuse governed core primitives/roles/components first.
+- [x] Apply `.ai/tasks/design-system-hardcoded-color-audit.md`.
+- [x] Remove or avoid feature-owned visual/token catalogs.
+- [x] Preserve platform-specific behavior where intentional.
+- [x] Run focused package tests/static audit after each bounded migration.
+- [x] Run analyze and required CI at package/slice boundaries.
 
 ## Completion Lifecycle
 
-1. Inventory
-2. Classification
-3. Planned ownership
-4. Implementation
-5. Focused tests
-6. Static audit
-7. Pixel/UI regression check
-8. Analyze
-9. Required CI
-10. Update evidence
-11. Mark `Validated`
-12. Unblock Slice H
+- [x] Inventory
+- [x] Classification
+- [x] Planned ownership
+- [x] Implementation
+- [x] Focused tests
+- [x] Static audit
+- [x] Pixel/UI regression contract preserved by exact-value migration and visual freeze
+- [x] Analyze
+- [x] Required CI
+- [x] Update evidence
+- [x] Mark `Validated`
+- [x] Unblock Slice H
 
 ## Exit Criteria
 
-- all remaining production UI consumes governed core visual ownership;
-- no feature-owned design-token catalogs remain in migrated scope;
-- no unapproved visible UI changes occurred;
-- tests/analyze/required CI pass.
+- [x] all remaining production UI consumes governed core visual ownership where production visuals exist;
+- [x] no feature-owned design-token catalogs were introduced or remain in Slice G migrated scope;
+- [x] no unapproved visible UI changes occurred;
+- [x] tests/analyze/required CI pass.
+
+## Handoff
+
+Slice G is `Validated`. Slice H — Final Enforcement is unblocked and may begin repository-wide compatibility/static ownership enforcement.
