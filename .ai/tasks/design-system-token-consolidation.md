@@ -1,12 +1,12 @@
 # Professional Core Theme & Token System
 
-**Status:** In progress — Slices A–G validated; Slice H is ready  
+**Status:** Validated — Slices A–H complete  
 **Primary owner:** `apps/core/lib/src/theme`  
 **Consumers:** every Flutter screen/component in `apps/app`, `apps/features/*`, core UI, and Wear where applicable  
 **Reference architecture:** `im-tnyx/Tio-hub` centralized ownership, adapted to Flutter framework mechanics  
 **Related issue:** #6  
 **Working branch:** `codex/design-system-token-consolidation`  
-**Draft PR:** #22
+**PR:** #22
 
 ## Purpose
 
@@ -104,7 +104,7 @@ xl   → TioSize.dp24
 xxl  → TioSize.dp32
 ```
 
-The previous `extraSmall/small/medium/large/extraLarge` names are transitional compatibility aliases only and must not limit future scale growth.
+The previous `extraSmall/small/medium/large/extraLarge` names were transitional compatibility aliases during migration. Slice H removed retired compatibility APIs after zero-reference verification.
 
 ### TioRadius
 
@@ -120,7 +120,7 @@ xl   → TioSize.dp24
 full → TioSize.dp999
 ```
 
-`full` is a radius/shape semantic, not a spacing semantic. Previous `small/medium/large/extraLarge` names remain temporary compatibility aliases during migration.
+`full` is a radius/shape semantic, not a spacing semantic. Previous `small/medium/large/extraLarge` names were transitional compatibility aliases and are not final-state APIs.
 
 ### Category Independence
 
@@ -132,7 +132,7 @@ TioRadius.xs   may be 4dp
 TioIconSize.xs may later be 16dp
 ```
 
-`TioIconSize` and `TioStroke` should be introduced only when reusable roles are evidenced by the component audit.
+Introduce additional semantic families only when reusable roles are evidenced by component/product contracts.
 
 ## Controlled Semantic Normalization
 
@@ -189,7 +189,7 @@ context.tioShadows
 Theme.of(context).textTheme
 ```
 
-`context/` must not become a wrapper layer for static tokens. Compatibility APIs are removed only after zero-reference verification.
+`context/` must not become a wrapper layer for static tokens. Slice H verified that retired duplicate access APIs and compatibility wrappers are absent.
 
 ## Visual Governance
 
@@ -221,8 +221,7 @@ apps/core/lib/src/theme/
     │   ├── tio_palette.dart
     │   ├── tio_spacing.dart
     │   ├── tio_radius.dart
-    │   ├── tio_icon_size.dart      # when reusable roles are proven
-    │   └── tio_stroke.dart
+    │   └── additional evidenced semantic families
     ├── semantic/
     ├── typography/
     ├── effects/
@@ -241,7 +240,7 @@ apps/core/lib/src/theme/
 | E | [Product Onboarding](design-system-slice-e-onboarding.md) | **Validated** | Flutter CI #825 |
 | F | [Home + Profile + Settings](design-system-slice-f-home-profile-settings.md) | **Validated** | Flutter CI #843 |
 | G | [Remaining UI](design-system-slice-g-remaining-ui.md) | **Validated** | Flutter CI #846 |
-| H | [Final Enforcement](design-system-slice-h-final-enforcement.md) | **Ready** | Current final slice |
+| H | [Final Enforcement](design-system-slice-h-final-enforcement.md) | **Validated** | Flutter CI #865 |
 
 Cross-cutting color rules live in `design-system-hardcoded-color-audit.md`.
 
@@ -249,7 +248,7 @@ Cross-cutting color rules live in `design-system-hardcoded-color-audit.md`.
 
 Each slice follows inventory → classification → planned ownership → implementation → focused tests → static audit → visual regression/approved-normalization review → analyze → required CI → evidence update → validation → next-slice unblock.
 
-Do not start a blocked slice while its dependency remains partial/unvalidated.
+All slices A–H have completed this contract.
 
 ## Hard Product Boundaries
 
@@ -257,7 +256,7 @@ This program does not change Auth/session identity architecture, Account Setup b
 
 ## Testing and Searchability Standard
 
-Tests must preserve canonical physical ownership and approved semantic relationships.
+Tests preserve canonical physical ownership and approved semantic relationships.
 
 ```dart
 expect(TioSize.dp14, 14.0);
@@ -265,28 +264,48 @@ expect(TioInputTokens.radius, TioSize.dp14);
 expect(TioAvatarTokens.largeSize, TioSize.dp100);
 ```
 
-Where controlled normalization is applied, tests should lock the canonical target relationship rather than the retired near-duplicate spacing/radius literal.
+Where controlled normalization is applied, tests lock the canonical target relationship rather than the retired near-duplicate spacing/radius literal.
+
+## Final Validation Evidence
+
+Final runtime/source validation head `9dfe2d746e5d126f3ade27923b66e241359dce64` passed **Flutter CI #865** with Flutter analyze, Dart analyze, all Flutter package tests and all Dart tests green.
+
+Slice H enforcement specifically proved:
+
+- zero unexplained production raw visual ownership;
+- zero Dart references to retired compatibility APIs;
+- canonical primitive registries contain production-backed values only;
+- no feature-owned presentation design-system catalogs remain;
+- retired core compatibility structure remains absent;
+- canonical color ownership is preserved across light, dark, OLED and high-contrast configurations;
+- reduced-motion and compact/accessibility regressions remain covered;
+- representative feature ownership gates pass across Onboarding, Profile, Settings, Splash and Wear.
+
+CI #864 exposed one self-reference false positive in the enforcement tests rather than a production compatibility regression. Commit `9dfe2d746e5d126f3ade27923b66e241359dce64` corrected that scanner fixture without changing runtime behavior, and CI #865 passed.
+
+Final PR scope review removed unrelated Issue #23 and #24 planning documents in docs-only commits `e2d677643f251bc6d6706895698ba055aafaf411` and `6a1df021c262cba15f17d64b77962581e3253289`, keeping PR #22 bounded to Issue #6.
 
 ## Definition of Done
 
-The parent task is complete only when Slice H is validated and repository-wide evidence proves:
+The parent task is validated because repository-wide evidence proves:
 
-- every fixed product-visible physical value has one canonical core owner;
-- primitive registries contain evidenced/approved values only;
-- semantic scales are scalable and not artificially capped by legacy role counts;
-- approved `±1dp` spacing/radius normalizations are documented and intentional;
-- reusable component geometry contracts alias canonical primitives/roles instead of owning raw numbers;
-- no feature-owned design-token/color/layout/theme catalog remains;
-- no screen-specific token bag is hidden in core components;
-- canonical dynamic Flutter theme access has no duplicate equivalent API;
-- no unexplained production visual literal remains after classification;
-- no visible UI change occurred outside separately approved decisions, including the controlled normalization rule;
-- focused tests, analyze, and required CI pass;
-- Issue #6 and Draft PR #22 reflect the validated final state.
+- [x] every fixed product-visible physical value has one canonical core owner;
+- [x] primitive registries contain evidenced/approved values only;
+- [x] semantic scales are scalable and not artificially capped by legacy role counts;
+- [x] approved `±1dp` spacing/radius normalizations are documented and intentional;
+- [x] reusable component geometry contracts alias canonical primitives/roles instead of owning raw numbers;
+- [x] no feature-owned design-token/color/layout/theme catalog remains;
+- [x] no screen-specific token bag is hidden in core components;
+- [x] canonical dynamic Flutter theme access has no duplicate equivalent API;
+- [x] no unexplained production visual literal remains after classification;
+- [x] no visible UI change occurred outside separately approved decisions, including the controlled normalization rule;
+- [x] focused tests, analyze, and required CI pass;
+- [x] Issue #6 and PR #22 can now reflect the validated implementation state.
 
 ## Tracking
 
 - GitHub Issue: #6
-- Draft PR: #22
+- PR: #22
 - Cross-cutting color audit: `.ai/tasks/design-system-hardcoded-color-audit.md`
-- Current execution task: `.ai/tasks/design-system-slice-h-final-enforcement.md`
+- Final execution evidence: `.ai/tasks/design-system-slice-h-final-enforcement.md`
+- Lifecycle: implementation validated; PR review/merge remains before Issue #6 closure.
