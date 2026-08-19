@@ -1,6 +1,6 @@
 # Professional Core Theme & Token System
 
-**Status:** In progress — Slices A–F validated; Slice G is ready  
+**Status:** In progress — Slices A–G validated; Slice H is ready  
 **Primary owner:** `apps/core/lib/src/theme`  
 **Consumers:** every Flutter screen/component in `apps/app`, `apps/features/*`, core UI, and Wear where applicable  
 **Reference architecture:** `im-tnyx/Tio-hub` centralized ownership, adapted to Flutter framework mechanics  
@@ -240,8 +240,8 @@ apps/core/lib/src/theme/
 | D | [Auth + Account Setup](design-system-slice-d-auth-account.md) | **Validated** | Flutter CI #742 |
 | E | [Product Onboarding](design-system-slice-e-onboarding.md) | **Validated** | Flutter CI #825 |
 | F | [Home + Profile + Settings](design-system-slice-f-home-profile-settings.md) | **Validated** | Flutter CI #843 |
-| G | [Remaining UI](design-system-slice-g-remaining-ui.md) | **Ready** | Current next slice |
-| H | [Final Enforcement](design-system-slice-h-final-enforcement.md) | Blocked | Slice G validated |
+| G | [Remaining UI](design-system-slice-g-remaining-ui.md) | **Validated** | Flutter CI #846 |
+| H | [Final Enforcement](design-system-slice-h-final-enforcement.md) | **Ready** | Current final slice |
 
 Cross-cutting color rules live in `design-system-hardcoded-color-audit.md`.
 
@@ -289,4 +289,4 @@ The parent task is complete only when Slice H is validated and repository-wide e
 - GitHub Issue: #6
 - Draft PR: #22
 - Cross-cutting color audit: `.ai/tasks/design-system-hardcoded-color-audit.md`
-- Current execution task: `.ai/tasks/design-system-slice-g-remaining-ui.md`
+- Current execution task: `.ai/tasks/design-system-slice-h-final-enforcement.md`
