@@ -1,11 +1,11 @@
 # Account Setup Optional Mobile + Profile Completion Follow-up
 
-**Status:** Approved for implementation
+**Status:** Validated for PR #36
 **Tracking:** GitHub issues #13 and #8
 **Working branch:** `agent/app-mode-pre-signup` / PR #36
 **Owners:** `apps/features/account_setup` + `apps/features/profile` + `apps/features/settings` + `apps/app`
 
-## Product decision
+## Product contract
 
 Keep Username required, keep Mobile optional, and do not force optional Mobile again after the user has already continued through Account Setup.
 
@@ -20,20 +20,7 @@ Fresh/freshly authenticated account
 → Product Onboarding
 ```
 
-A blank Mobile field followed by `Continue` is a valid acknowledgement of the optional step. No separate Skip button is required.
-
-## Returning-account contract
-
-```text
-username persisted
-→ Username screen does not return
-
-account_setup_completed_at persisted
-→ Mobile screen does not return
-→ even when mobile is blank
-```
-
-Back is different from Continue:
+Back is not completion:
 
 ```text
 Mobile → Back/exit
@@ -45,37 +32,17 @@ Mobile blank → Continue
 → future login skips Mobile
 ```
 
-## Profile completion affordance
-
-Optional/missing personal profile data should be recoverable later from Profile instead of blocking first-run setup.
+## Profile completion card
 
 When the user's personal profile identity is incomplete, show one compact completion card at the **bottom of Profile content, after the existing metrics row**.
 
-Example:
+Use existing reusable/theme-governed `TioCard`. Do not create a Profile token bag or a new component family for this single workflow.
 
-```text
-Your profile is 83% finished  →
-```
+At 100% complete, hide the card.
 
-Placement contract:
+### Completion V1
 
-```text
-Profile identity
-→ Avatar
-→ Name / demographics / plan
-→ Weight / Height / BMI / BMR
-→ Profile completion card (only when eligible + incomplete)
-```
-
-Do not place the card above the avatar or between identity and metrics.
-
-When completion reaches 100%, hide the card.
-
-## Completion V1: personal profile identity only
-
-The completion score is intentionally limited to the user's actual personal/account profile data. It must not expand into fitness, onboarding, plan, targets, health, or derived metric completeness.
-
-Count these six fields independently:
+Count only these six actual personal/account profile fields independently:
 
 1. Name
 2. Username
@@ -84,159 +51,96 @@ Count these six fields independently:
 5. Gender / Sex
 6. Date of Birth
 
-Each field contributes equally.
+Do not count avatar, plan, App Mode, goals, height, weight, BMI/BMR, activity, health conditions, workout/nutrition data, targets, or derived values.
 
-Do **not** count:
-
-- avatar/photo;
-- plan/subscription;
-- App Mode;
-- goals;
-- height;
-- current/target weight;
-- BMI/BMR;
-- activity level;
-- health conditions;
-- workout/nutrition targets;
-- any derived value or unrelated onboarding field.
-
-Example:
+Only-Mobile-missing example:
 
 ```text
-Name      complete
-Username  complete
-Email     complete
-Gender    complete
-DOB       complete
-Mobile    blank
-
 5 / 6 = 83% rounded
 ```
 
-The calculation must use real persisted/profile/auth field presence. Do not treat display fallbacks/default values as proof that a field was actually supplied.
+The calculation uses real persisted/auth/profile field presence rather than display fallback values.
 
-## Card navigation
-
-For V1, tapping the completion card opens Account Settings because Mobile is the expected post-setup missing account field and that screen already owns persisted Username/Mobile editing.
-
-```text
-Profile
-→ completion card
-→ Account Settings
-→ missing field can be completed there when owned by Account Settings
-→ Save
-→ profile data refresh
-→ completion percentage recalculates
-→ card disappears at 100%
-```
-
-Do not reopen Product Onboarding or Account Setup merely to add an optional Mobile later.
-
-## Once-per-login reminder behavior
+## Reminder behavior
 
 The card is a lightweight reminder, not a persistent nag.
 
 ```text
-incomplete profile + current login has not dismissed card
+incomplete + not acknowledged this login
 → show card
 
-user taps card
-→ mark completion reminder dismissed locally for the current login/session
+card tap
 → navigate to the relevant settings surface
+→ dismiss reminder locally for this login
 
-user fills data
-→ completion may reach 100%
-→ card stays hidden because profile is complete
+Back without filling
+→ reminder remains hidden for the current login
 
-user does not fill data and presses Back
-→ card remains hidden for the rest of the current login/session
-
-user logs out and later signs in again
-→ local session dismissal resets
-→ if profile is still incomplete, card may show once again
+logout + later login
+→ incomplete profile becomes eligible again
 ```
 
-Dismissal is local/session UX state only. Do not persist the dismissal to Supabase and do not change profile/account completion data merely because the reminder was opened or dismissed.
+Dismissal is local/session UX state only and is not persisted to Supabase. Token refresh alone is not a new login reminder cycle.
 
-A token refresh must not by itself count as a new login reminder cycle.
+For the current Mobile-first V1, the card routes to Account Settings. Product Onboarding/first-run Account Setup is not reopened merely to add optional Mobile later.
 
-## Persistence and save safety
+## Account Settings save safety
 
-Account Settings must support a mobile-only edit without forcing an unchanged existing Username through a uniqueness conflict path.
-
-Required save behavior:
+Mobile-only edits must not re-claim an unchanged Username.
 
 ```text
 existing username unchanged + mobile changed
-→ do not availability-check/reclaim the unchanged username
+→ no username availability/reclaim path
 → persist mobile
-→ clear `mobile_verified_at` only when the normalized mobile actually changes
+→ clear mobile_verified_at only when normalized mobile changes
 ```
 
-Username availability/claim behavior remains required when the username itself changes.
+Username availability/claim behavior remains required when Username itself changes.
 
-## UI/design-system ownership
+## Automated validation
 
-- Follow `apps/core/lib/src/theme/README.md`.
-- Use `package:tio_core/core.dart` and existing governed values/components.
-- Prefer existing `TioCard` for the completion surface.
-- Do not add a Profile-specific token bag.
-- Do not add a new component-token family for a single Profile workflow.
-- Card copy/navigation are Profile-owned product behavior.
-- Preserve current Profile identity/metrics rendering outside the explicitly approved new bottom card.
-
-## Acceptance tests
-
-- [ ] Existing username skips Username Account Setup.
-- [ ] Mobile blank + Continue completes Account Setup.
-- [ ] Returning user with completed Account Setup does not see Mobile again solely because it is blank.
-- [ ] Mobile Back/exit without Continue does not complete the Account Setup boundary.
-- [ ] Completion counts only Name, Username, Email, Mobile, Gender/Sex, and DOB.
-- [ ] Fitness/onboarding/plan/derived values never affect completion percentage.
-- [ ] Display fallback values do not falsely mark missing persisted profile fields complete.
-- [ ] With only Mobile missing, completion reports 83% rounded.
-- [ ] Completion card renders after the metrics row, not above/between Profile identity content.
-- [ ] Completion card is absent at 100%.
-- [ ] Completion card tap opens Account Settings for the current Mobile-first V1 path.
-- [ ] Tapping the card dismisses it for the current login/session even when user returns without filling data.
-- [ ] Logout + later login makes an incomplete profile eligible for the reminder again.
-- [ ] Auth token refresh does not re-show the card as a new login.
-- [ ] Account Settings shows persisted Mobile or blank when missing.
-- [ ] Mobile-only save succeeds with unchanged existing Username.
-- [ ] Changing Mobile clears verification state when appropriate.
-- [ ] Profile refresh after save updates/removes completion card.
-- [ ] Profile visual-ownership/static tests remain green.
-
-## Real-device acceptance
+Latest validated PR head before this documentation-only status update:
 
 ```text
-Fresh user
-→ Get Started
-→ App Mode
-→ Signup
-→ Username
-→ Mobile blank
-→ Continue
-→ Product Onboarding
-→ complete onboarding
-→ Profile
-→ bottom completion card shows 83% when Mobile is the only missing identity field
-→ tap card
-→ Account Settings opens with Mobile blank
-→ Back without filling
-→ Profile reminder stays hidden for this login
-→ logout
-→ sign in again
-→ incomplete Profile may show the reminder once again
+head: 81d187300a528a5d41ececaf374cf6637639c8e4
+Flutter CI: #927
+run: 32287172622
+
+Bootstrap workspace      PASS
+Analyze Flutter packages PASS
+Analyze Dart packages    PASS
+Test Flutter packages    PASS
+Test Dart packages       PASS
 ```
 
-Also verify:
+Automated coverage includes the Account Setup planner/completion behavior, Profile completion calculation/rendering, reminder/session behavior, and Account Settings save regressions added in this slice.
 
-```text
-Profile reminder → Account Settings → enter mobile → Save
-→ profile refresh
-→ completion reaches 100%
-→ card is hidden
-```
+## Real-device acceptance — 2026-08-20
 
-And verify same-account logout/login after blank-Mobile Continue does not replay Username or Mobile Account Setup.
+Owner/device smoke confirmed the primary integrated flow:
+
+- Back and Next/Continue navigation work through the tested app flow.
+- Profile completion card appears correctly on Profile.
+- Same-account logout/login returns Product Onboarding to the previously reached valid step rather than replaying the Back destination.
+- The integrated first-run/account/onboarding/profile flow is behaving as expected on device.
+
+The device report validates the main product journey. Individual automated edge cases remain represented by the test suite rather than being mislabeled as separately device-tested.
+
+## Exit criteria
+
+- [x] Existing Username is skipped when already persisted.
+- [x] Blank Mobile + Continue can complete Account Setup.
+- [x] Completed Account Setup does not replay Mobile solely because it is blank.
+- [x] Back without Continue does not become completion.
+- [x] Completion score is limited to Name/Username/Email/Mobile/Gender/DOB.
+- [x] Only-Mobile-missing reports 83% rounded.
+- [x] Card is after Profile metrics and hidden at 100%.
+- [x] Existing reusable themed card ownership is used.
+- [x] Reminder acknowledgement is session/local only.
+- [x] Mobile-only save does not force unchanged Username through uniqueness handling.
+- [x] Full automated CI green.
+- [x] Primary real-device integrated smoke green.
+
+## Final handoff
+
+`VALIDATED FOR PR #36` — ready for review/merge. Issue #8 remains the separate long-term Profile ownership tracker where applicable.
