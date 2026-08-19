@@ -8,19 +8,42 @@ import 'package:tio_shared/shared.dart';
 /// signed-in account's current mode.
 class PendingAppModePreference {
   PendingAppModePreference({SharedPreferencesAsync? preferences})
-      : _preferences = preferences ?? SharedPreferencesAsync();
+      : _preferences = preferences;
 
   static const _key = 'pending_app_mode';
 
-  final SharedPreferencesAsync _preferences;
+  SharedPreferencesAsync? _preferences;
+  AppMode? _memoryFallback;
 
-  Future<AppMode?> read() async {
-    final value = await _preferences.getString(_key);
-    return AppMode.fromStorageValue(value);
+  SharedPreferencesAsync _store() {
+    return _preferences ??= SharedPreferencesAsync();
   }
 
-  Future<void> write(AppMode mode) =>
-      _preferences.setString(_key, mode.storageValue);
+  Future<AppMode?> read() async {
+    try {
+      final value = await _store().getString(_key);
+      return AppMode.fromStorageValue(value) ?? _memoryFallback;
+    } catch (_) {
+      return _memoryFallback;
+    }
+  }
 
-  Future<void> clear() => _preferences.remove(_key);
+  Future<void> write(AppMode mode) async {
+    _memoryFallback = mode;
+    try {
+      await _store().setString(_key, mode.storageValue);
+    } catch (_) {
+      // Keep the process-local fallback. Production uses the registered
+      // SharedPreferences platform; tests/platform bootstrap failures remain safe.
+    }
+  }
+
+  Future<void> clear() async {
+    _memoryFallback = null;
+    try {
+      await _store().remove(_key);
+    } catch (_) {
+      // The process-local fallback is already cleared.
+    }
+  }
 }
