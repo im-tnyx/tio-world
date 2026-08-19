@@ -68,13 +68,5 @@ jobs:
       - name: Test Flutter packages
         run: melos exec -c 1 --flutter --dir-exists=test --fail-fast -- "flutter pub get && flutter test --no-pub"
 
-      - name: Upload primitive audit report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: primitive-liveness-report
-          path: apps/core/dead-primitives.txt
-          if-no-files-found: ignore
-
       - name: Test Dart packages
         run: melos exec -c 1 --no-flutter --dir-exists=test --fail-fast -- "dart test"

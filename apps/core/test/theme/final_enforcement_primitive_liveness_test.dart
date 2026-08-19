@@ -63,11 +63,6 @@ void main() {
       }
     }
 
-    final report = violations.isEmpty
-        ? 'NO_DEAD_PRIMITIVES\n'
-        : '${violations.join('\n')}\n';
-    File('dead-primitives.txt').writeAsStringSync(report);
-
     expect(
       violations,
       isEmpty,
