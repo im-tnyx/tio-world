@@ -35,7 +35,7 @@ class HeightScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return ProfileScreenScaffold(
       stepId: ProfileStepId.height,
@@ -45,26 +45,29 @@ class HeightScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 8),
+          const SizedBox(height: TioSpacing.sm),
           Center(
             child: Text(
               _displayValue,
               key: const ValueKey('profile-height-display'),
               style: TextStyle(
                 color: colors.textPrimary,
-                fontSize: 44,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -1.0,
+                fontSize: TioFontSize.size44,
+                fontWeight: TioFontWeight.w900,
+                letterSpacing: TioLetterSpacing.negative10,
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: TioSpacing.xl),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: const EdgeInsets.symmetric(
+              horizontal: TioSize.dp20,
+              vertical: TioSpacing.lg,
+            ),
             decoration: BoxDecoration(
               color: colors.surfaceRaised,
-              borderRadius: BorderRadius.circular(TioRadius.large),
+              borderRadius: BorderRadius.circular(TioRadius.lg),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,17 +76,17 @@ class HeightScreen extends StatelessWidget {
                   'Calculating your body mass index',
                   style: TextStyle(
                     color: colors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
+                    fontWeight: TioFontWeight.w700,
+                    fontSize: TioFontSize.size15,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: TioSize.dp6),
                 Text(
                   'BMI is widely used as a risk indicator for the development or prevalence of several health issues',
                   style: TextStyle(
                     color: colors.textSecondary,
-                    fontSize: 13,
-                    height: 1.4,
+                    fontSize: TioFontSize.size13,
+                    height: TioLineHeight.height140,
                   ),
                 ),
               ],
