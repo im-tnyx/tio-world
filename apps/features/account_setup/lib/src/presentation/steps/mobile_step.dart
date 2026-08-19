@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 
-import '../theme/account_setup_visual_tokens.dart';
-
 class MobileStep extends StatefulWidget {
   const MobileStep({
     required this.initialMobile,
@@ -55,7 +53,7 @@ class _MobileStepState extends State<MobileStep> {
           subtitle:
               'Add a mobile number for account recovery and future security options. This step is optional and can be completed later.',
         ),
-        const SizedBox(height: TioSpacing.large),
+        const SizedBox(height: TioSpacing.lg),
         TioMobileNumberField(
           fieldKey: const ValueKey('account-setup-mobile-input'),
           controller: _controller,
@@ -64,15 +62,15 @@ class _MobileStepState extends State<MobileStep> {
           onChanged: _handleChanged,
           hintText: 'Enter 10-digit number',
         ),
-        const SizedBox(height: TioSpacing.small),
+        const SizedBox(height: TioSpacing.sm),
         Text(
           widget.isVerified
               ? 'Verified by your authentication provider.'
               : 'You can add or verify a mobile number later from Account Settings.',
           style: TextStyle(
             color: colors.textMuted,
-            fontSize: AccountSetupVisualTokens.helperFontSize,
-            height: AccountSetupVisualTokens.helperLineHeight,
+            fontSize: TioFontSize.size12,
+            height: TioLineHeight.height130,
           ),
         ),
       ],
