@@ -5,7 +5,15 @@ import 'package:tio_core/core.dart';
 void main() {
   group('canonical extended physical values', () {
     test('geometry stays exact', () {
+      expect(TioSize.dp40, 40.0);
       expect(TioSize.dp60, 60.0);
+      expect(TioSize.dp80, 80.0);
+      expect(TioSize.dp480, 480.0);
+    });
+
+    test('stroke widths stay exact', () {
+      expect(TioStroke.width12, 1.2);
+      expect(TioStroke.width18, 1.8);
     });
 
     test('normalized opacity stays exact', () {
@@ -23,7 +31,9 @@ void main() {
     test('typography values stay exact', () {
       expect(TioFontSize.size9_5, 9.5);
       expect(TioFontSize.size10_5, 10.5);
+      expect(TioFontSize.size11, 11.0);
       expect(TioFontSize.size42, 42.0);
+      expect(TioLetterSpacing.positive10, 1.0);
       expect(TioLineHeight.height110, 1.10);
     });
   });
