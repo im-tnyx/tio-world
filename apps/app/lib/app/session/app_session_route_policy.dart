@@ -4,6 +4,7 @@ import 'app_session_bootstrap_state.dart';
 
 final _unauthenticatedPublicPaths = <String>{
   AppRoutes.auth.path,
+  AppRoutes.appModeSetup.path,
   AppRoutes.login.path,
   AppRoutes.emailLogin.path,
   AppRoutes.emailSignup.path,
@@ -13,6 +14,7 @@ final _unauthenticatedPublicPaths = <String>{
 final _readyEntryPaths = <String>{
   AppRoutes.splash.path,
   AppRoutes.auth.path,
+  AppRoutes.appModeSetup.path,
   AppRoutes.login.path,
   AppRoutes.emailLogin.path,
   AppRoutes.emailSignup.path,
