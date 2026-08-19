@@ -314,7 +314,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
             TioSpacing.lg,
             TioSpacing.sm,
             TioSpacing.lg,
-            TioSpacing.xl + 50,
+            TioSpacing.xl + TioSize.dp50,
           ),
           children: [
             // ── Dynamic Avatar Edit Header ──
@@ -500,9 +500,9 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
                 end: Alignment.bottomCenter,
                 stops: const [0.0, 0.45, 1.0],
                 colors: [
-                  colors.background.withValues(alpha: 0.0),
-                  colors.background.withValues(alpha: 0.75),
-                  colors.background.withValues(alpha: 0.98),
+                  colors.background.withValues(alpha: TioOpacity.opacity0),
+                  colors.background.withValues(alpha: TioOpacity.opacity75),
+                  colors.background.withValues(alpha: TioOpacity.opacity98),
                 ],
               ),
             ),
