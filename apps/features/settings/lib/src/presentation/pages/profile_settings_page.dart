@@ -143,7 +143,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
   }
 
   void _showGenderPicker() {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     showModalBottomSheet<void>(
       context: context,
@@ -281,7 +281,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     final normalizedPlan = widget.plan.toLowerCase();
     final isPro = normalizedPlan == 'pro' || normalizedPlan == 'premium';
