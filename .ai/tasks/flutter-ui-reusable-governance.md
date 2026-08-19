@@ -1,6 +1,6 @@
 # Flutter UI Reusable-First Governance
 
-**Status:** In progress
+**Status:** Validated
 **Primary owner:** repository AI governance + `apps/core` design-system boundary
 **Affected platforms:** Flutter production UI across phone/features/app shell/Wear
 
@@ -43,9 +43,9 @@ Make the repository-wide agent instructions unambiguous so every Flutter UI chan
 
 ### Verified Evidence
 
-- Root `AGENTS.md` already assigns reusable theme/widgets ownership to `apps/core`, but only explicitly requires the theme README for design-system/theme work.
+- Root `AGENTS.md` already assigns reusable theme/widgets ownership to `apps/core`, but only explicitly required the theme README for design-system/theme work.
 - `apps/features/AGENTS.md` already has the desired feature-level workflow: read theme README, import `package:tio_core/core.dart`, and prefer reusable core components before rebuilding locally.
-- `.ai/tasks/README.md` already mandates UI governance, but its explicit theme README/nested-agent step was phrased for normal feature UI rather than all Flutter production UI.
+- `.ai/tasks/README.md` already mandated UI governance, but its explicit theme README/nested-agent step was phrased for normal feature UI rather than all Flutter production UI.
 - `.ai/tasks/TEMPLATE.md` required the design-system consolidation brief for any Flutter UI work, but did not explicitly repeat the theme README + reusable-first lookup order.
 
 ### Existing Pattern to Follow
@@ -111,6 +111,10 @@ PR #39 patch inspected:
 - existing apps/features/AGENTS.md remains unchanged
 - no conflicting duplicate policy introduced
 
+After PR #36 merged:
+- PR #39 remained cleanly mergeable with the updated main branch
+- changed-file scope remained the same four governance/documentation files
+
 CI:
 - no workflow run triggered for the docs-only PR head
 
@@ -124,6 +128,7 @@ git diff --check:
 - Feature-package governance was already correct, so it was intentionally left unchanged.
 - Root/task governance now covers app shell, features, core, and Wear consistently.
 - Reusable-first guidance points to the public core boundary rather than encouraging internal token crawling.
+- PR #36 merged independently without creating a file overlap or semantic conflict with this governance slice.
 
 ## 7. Final Handoff
 
@@ -140,8 +145,8 @@ Future Flutter UI tasks are explicitly instructed to read the canonical theme RE
 
 ### Known Limitations
 
-The governance is implemented on branch `agent/ui-reusable-governance` in draft PR #39 and is not repository-main policy until that PR is merged. `git diff --check` could not be run in the connector-only environment.
+`git diff --check` could not be run in the connector-only environment. The change is documentation/governance-only and no runtime CI workflow is expected from the repository path filters.
 
 ### Final Status
 
-`REVIEW`
+`VALIDATED`
