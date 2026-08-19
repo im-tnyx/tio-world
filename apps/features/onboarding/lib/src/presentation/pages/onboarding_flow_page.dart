@@ -62,6 +62,7 @@ class OnboardingFlowPage extends ConsumerWidget {
 
   void _handleBack(
     BuildContext context,
+    WidgetRef ref,
     OnboardingController controller,
   ) {
     final state = controller.state;
@@ -73,11 +74,15 @@ class OnboardingFlowPage extends ConsumerWidget {
     }
 
     if (onExitRequested != null) {
-      unawaited(_confirmRootExit(context));
+      unawaited(_confirmRootExit(context, ref, controller));
     }
   }
 
-  Future<void> _confirmRootExit(BuildContext context) async {
+  Future<void> _confirmRootExit(
+    BuildContext context,
+    WidgetRef ref,
+    OnboardingController controller,
+  ) async {
     final exit = onExitRequested;
     if (exit == null) return;
 
@@ -107,7 +112,20 @@ class OnboardingFlowPage extends ConsumerWidget {
     );
 
     if (confirmed == true && context.mounted) {
-      await exit();
+      final draftRepository = ref.read(onboardingDraftRepositoryProvider);
+      if (draftRepository != null) {
+        try {
+          await draftRepository.saveDraft(
+            OnboardingDraftSnapshot(draft: controller.state.draft),
+          );
+        } catch (_) {
+          // Best effort. A save failure must not trap the user in onboarding;
+          // the last successfully persisted resume checkpoint remains intact.
+        }
+      }
+      if (context.mounted) {
+        await exit();
+      }
     }
   }
 
@@ -174,7 +192,7 @@ class OnboardingFlowPage extends ConsumerWidget {
     final state = controller.state;
     final shouldHandleRouteExit = onExitRequested != null;
     final visibleBack = state.hasPreviousScreen || shouldHandleRouteExit
-        ? () => _handleBack(context, controller)
+        ? () => _handleBack(context, ref, controller)
         : null;
 
     OnboardingBottomInfoAction? infoAction;
@@ -208,7 +226,7 @@ class OnboardingFlowPage extends ConsumerWidget {
           !state.isBusy && !state.hasPreviousScreen && !shouldHandleRouteExit,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        _handleBack(context, controller);
+        _handleBack(context, ref, controller);
       },
       child: Scaffold(
         backgroundColor: context.tioColors.background,
