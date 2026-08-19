@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 
 import '../state/state.dart';
-import '../theme/onboarding_visual_tokens.dart';
 
 class OnboardingProgressIndicator extends StatelessWidget {
   const OnboardingProgressIndicator({required this.state, super.key});
@@ -21,8 +20,8 @@ class OnboardingProgressIndicator extends StatelessWidget {
           curve: Curves.linearToEaseOut,
           builder: (context, progress, _) => LinearProgressIndicator(
             value: progress,
-            minHeight: OnboardingVisualTokens.progressThickness,
-            borderRadius: BorderRadius.circular(TioRadius.small),
+            minHeight: TioSize.dp4,
+            borderRadius: BorderRadius.circular(TioRadius.sm),
             backgroundColor: context.tioColors.surfaceVariant,
           ),
         ),
