@@ -28,7 +28,15 @@ void main() {
       );
     });
 
-    test('unauthenticated users stay in Auth before any setup flow', () {
+    test('unauthenticated users may choose App Mode but not enter protected setup', () {
+      expect(
+        appSessionBootstrapRedirect(
+          path: AppRoutes.appModeSetup.path,
+          state: const AppSessionBootstrapUnauthenticated(),
+        ),
+        isNull,
+      );
+
       for (final protectedPath in [
         AppRoutes.accountSetup.path,
         AppRoutes.usernameSetup.path,
@@ -59,6 +67,13 @@ void main() {
       expect(
         appSessionBootstrapRedirect(
           path: FeatureRoutes.home.path,
+          state: state,
+        ),
+        AppRoutes.accountSetup.path,
+      );
+      expect(
+        appSessionBootstrapRedirect(
+          path: AppRoutes.appModeSetup.path,
           state: state,
         ),
         AppRoutes.accountSetup.path,
@@ -97,6 +112,13 @@ void main() {
       );
       expect(
         appSessionBootstrapRedirect(
+          path: AppRoutes.appModeSetup.path,
+          state: state,
+        ),
+        AppRoutes.onboarding.path,
+      );
+      expect(
+        appSessionBootstrapRedirect(
           path: AppRoutes.accountSetup.path,
           state: state,
         ),
@@ -116,6 +138,7 @@ void main() {
       for (final path in [
         AppRoutes.splash.path,
         AppRoutes.auth.path,
+        AppRoutes.appModeSetup.path,
         AppRoutes.login.path,
         AppRoutes.emailLogin.path,
         AppRoutes.emailSignup.path,
