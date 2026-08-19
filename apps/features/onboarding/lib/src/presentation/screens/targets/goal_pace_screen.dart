@@ -57,7 +57,7 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
 
     final currentWeightKg = widget.profile.currentWeightKg ?? 70.0;
@@ -74,7 +74,7 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
     final isLoss = mode == GoalPaceMode.loss;
     final isMaintenance = mode == GoalPaceMode.maintenance;
 
-    // Calorie calculation matching Compose logic
+    // Domain calculation values stay outside the visual token system.
     final baseBmrValue = currentWeightKg > 0 ? (24.0 * currentWeightKg) : 1600.0;
     final stepCalories = widget.stepTarget * 0.04;
     final tdee = baseBmrValue + stepCalories;
@@ -101,7 +101,6 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
       paceKgPerWeek: _paceValue,
     );
 
-    // Timeline calculation
     final weightDiff = (currentWeightKg - targetWeightKg).abs();
     final weeksNeeded = _paceValue > 0 ? weightDiff / _paceValue : 0.0;
     final daysNeeded = (weeksNeeded * 7).round();
@@ -132,15 +131,13 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Card 1: Pace & Calories
           TioCard(
             key: const ValueKey('targets-goal-pace-card'),
             variant: TioCardVariant.elevated,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            padding: const EdgeInsets.all(TioSpacing.lg),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header Row: Flame Icon + Goal Label + Info Button
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -151,14 +148,14 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
                         Icon(
                           Icons.local_fire_department_outlined,
                           color: colors.primary,
-                          size: 22,
+                          size: TioSize.dp22,
                         ),
-                        const SizedBox(width: TioSpacing.small),
+                        const SizedBox(width: TioSpacing.sm),
                         Text(
                           headerLabel,
                           style: textTheme.titleMedium?.copyWith(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                            fontSize: TioFontSize.size16,
+                            fontWeight: TioFontWeight.w600,
                             color: colors.textPrimary,
                           ),
                         ),
@@ -166,47 +163,47 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
                     ),
                     InkResponse(
                       onTap: () => _showCalorieInfoSheet(context),
-                      radius: 16,
+                      radius: TioSize.dp16,
                       child: Icon(
                         Icons.info_outline,
-                        size: 20,
-                        color: colors.textSecondary.withValues(alpha: 0.6),
+                        size: TioSize.dp20,
+                        color: colors.textSecondary.withValues(
+                          alpha: TioOpacity.opacity60,
+                        ),
                       ),
                     ),
                   ],
                 ),
-
                 if (!isMaintenance) ...[
-                  const SizedBox(height: TioSpacing.medium),
-                  // Centered Big Pace text (e.g. 0.5 kg / week)
+                  const SizedBox(height: TioSpacing.md),
                   Center(
                     child: Text(
                       '${_paceValue.toStringAsFixed(1)} kg / week',
                       key: const ValueKey('targets-goal-pace-value-text'),
                       style: textTheme.headlineMedium?.copyWith(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w800,
+                        fontSize: TioFontSize.size32,
+                        fontWeight: TioFontWeight.w800,
                         color: colors.textPrimary,
-                        letterSpacing: -0.5,
+                        letterSpacing: TioLetterSpacing.negative05,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-
-                  // Slider
+                  const SizedBox(height: TioSpacing.sm),
                   SliderTheme(
                     data: SliderTheme.of(context).copyWith(
                       activeTrackColor: colors.primary,
                       inactiveTrackColor: colors.surfaceVariant,
                       thumbColor: colors.primary,
-                      overlayColor: colors.primary.withValues(alpha: 0.2),
-                      trackHeight: 6,
+                      overlayColor: colors.primary.withValues(
+                        alpha: TioOpacity.opacity20,
+                      ),
+                      trackHeight: TioSize.dp6,
                       trackShape: const RectangularSliderTrackShape(),
                       thumbShape: const RoundSliderThumbShape(
-                        enabledThumbRadius: 9,
+                        enabledThumbRadius: TioSize.dp9,
                       ),
                       overlayShape: const RoundSliderOverlayShape(
-                        overlayRadius: 16,
+                        overlayRadius: TioSize.dp16,
                       ),
                     ),
                     child: Slider(
@@ -230,45 +227,42 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
                     ),
                   ),
                 ],
-
-                const SizedBox(height: TioSpacing.medium),
-
-                // Bottom Chips Row (Fixed height in all states - never jumps)
+                const SizedBox(height: TioSpacing.md),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Left Pill: Pace tag or Warning chip
                     if (warning != GoalPaceWarning.none)
                       InkWell(
                         onTap: () => _showAttentionSheet(context, warning),
-                        borderRadius: BorderRadius.circular(TioRadius.medium),
+                        borderRadius: BorderRadius.circular(TioRadius.md),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
+                            horizontal: TioSpacing.md,
+                            vertical: TioSize.dp6,
                           ),
                           decoration: BoxDecoration(
-                            color: colors.danger.withValues(alpha: 0.15),
-                            borderRadius:
-                                BorderRadius.circular(TioRadius.medium),
+                            color: colors.danger.withValues(
+                              alpha: TioOpacity.opacity15,
+                            ),
+                            borderRadius: BorderRadius.circular(TioRadius.md),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 Icons.warning_amber_rounded,
-                                size: 15,
+                                size: TioFontSize.size15,
                                 color: colors.danger,
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: TioSpacing.xs),
                               Text(
                                 warning == GoalPaceWarning.aggressiveLoss
                                     ? 'Aggressive Loss Pace'
                                     : 'Aggressive Gain Pace',
                                 style: textTheme.labelMedium?.copyWith(
-                                  fontSize: 13,
+                                  fontSize: TioFontSize.size13,
                                   color: colors.danger,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: TioFontWeight.w600,
                                 ),
                               ),
                             ],
@@ -278,36 +272,37 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
                     else
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 6,
+                          horizontal: TioSize.dp14,
+                          vertical: TioSize.dp6,
                         ),
                         decoration: BoxDecoration(
-                          color: colors.primary.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(TioRadius.medium),
+                          color: colors.primary.withValues(
+                            alpha: TioOpacity.opacity15,
+                          ),
+                          borderRadius: BorderRadius.circular(TioRadius.md),
                         ),
                         child: Text(
                           isMaintenance ? 'Maintenance' : paceTag,
                           style: textTheme.labelMedium?.copyWith(
-                            fontSize: 13,
+                            fontSize: TioFontSize.size13,
                             color: colors.primary,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: TioFontWeight.w600,
                           ),
                         ),
                       ),
-
-                    // Right Calories Pill with Info
                     InkWell(
                       onTap: () => _showCalorieInfoSheet(context),
-                      borderRadius: BorderRadius.circular(TioRadius.medium),
+                      borderRadius: BorderRadius.circular(TioRadius.md),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 6,
+                          horizontal: TioSize.dp14,
+                          vertical: TioSize.dp6,
                         ),
                         decoration: BoxDecoration(
-                          color: colors.primary.withValues(alpha: 0.15),
-                          borderRadius:
-                              BorderRadius.circular(TioRadius.medium),
+                          color: colors.primary.withValues(
+                            alpha: TioOpacity.opacity15,
+                          ),
+                          borderRadius: BorderRadius.circular(TioRadius.md),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -315,15 +310,15 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
                             Text(
                               '$displayTargetKcal kcal',
                               style: textTheme.labelMedium?.copyWith(
-                                fontSize: 13,
+                                fontSize: TioFontSize.size13,
                                 color: colors.primary,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: TioFontWeight.w600,
                               ),
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: TioSpacing.xs),
                             Icon(
                               Icons.info_outline,
-                              size: 14,
+                              size: TioSize.dp14,
                               color: colors.primary,
                             ),
                           ],
@@ -335,84 +330,77 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
               ],
             ),
           ),
-
-          const SizedBox(height: TioSpacing.medium),
-
-          // Card 2: Projection & Timeline Graph
+          const SizedBox(height: TioSpacing.md),
           TioCard(
             key: const ValueKey('targets-projection-card'),
             variant: TioCardVariant.elevated,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.symmetric(
+              horizontal: TioSpacing.lg,
+              vertical: TioSize.dp14,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Rich Text: You'll be 63.6 kg by
                 RichText(
                   textAlign: TextAlign.center,
                   text: TextSpan(
                     text: "You'll be ",
                     style: textTheme.titleMedium?.copyWith(
                       color: colors.textSecondary,
-                      fontSize: 16,
+                      fontSize: TioFontSize.size16,
                     ),
                     children: [
                       TextSpan(
                         text: '${targetWeightKg.toStringAsFixed(1)} kg',
                         style: textTheme.titleLarge?.copyWith(
                           color: colors.textPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
+                          fontWeight: TioFontWeight.w700,
+                          fontSize: TioFontSize.size18,
                         ),
                       ),
                       const TextSpan(text: ' by'),
                     ],
                   ),
                 ),
-
-                const SizedBox(height: TioSpacing.small + 2),
-
-                // Date Pills Row (Day, Month, Year)
+                const SizedBox(height: TioSize.dp10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     _DatePill(
                       text: targetDay,
-                      width: 56,
+                      width: TioSize.dp56,
                       colors: colors,
                       textTheme: textTheme,
                     ),
-                    const SizedBox(width: TioSpacing.small),
+                    const SizedBox(width: TioSpacing.sm),
                     _DatePill(
                       text: targetMonthFull,
-                      width: 114,
+                      width: TioSize.dp114,
                       colors: colors,
                       textTheme: textTheme,
                     ),
-                    const SizedBox(width: TioSpacing.small),
+                    const SizedBox(width: TioSpacing.sm),
                     _DatePill(
                       text: targetYear,
-                      width: 76,
+                      width: TioSize.dp76,
                       colors: colors,
                       textTheme: textTheme,
                     ),
                   ],
                 ),
-
-                const SizedBox(height: TioSpacing.small),
-
+                const SizedBox(height: TioSpacing.sm),
                 Text(
                   'And achieve lasting results!',
                   style: textTheme.bodyMedium?.copyWith(
-                    color: colors.textSecondary.withValues(alpha: 0.7),
-                    fontSize: 13,
+                    color: colors.textSecondary.withValues(
+                      alpha: TioOpacity.opacity70,
+                    ),
+                    fontSize: TioFontSize.size13,
                   ),
                 ),
-
-                const SizedBox(height: TioSpacing.medium),
-
-                // Graph Canvas Area with Bezier curve and Weight Badges
+                const SizedBox(height: TioSpacing.md),
                 SizedBox(
-                  height: 135,
+                  height: TioSize.dp135,
                   width: double.infinity,
                   child: Stack(
                     children: [
@@ -424,15 +412,15 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
                           ),
                         ),
                       ),
-
-                      // Top/Bottom Labels: Today & Target Month
                       Align(
                         alignment: Alignment.bottomLeft,
                         child: Text(
                           'Today',
                           style: textTheme.labelSmall?.copyWith(
-                            color: colors.textSecondary.withValues(alpha: 0.7),
-                            fontSize: 11,
+                            color: colors.textSecondary.withValues(
+                              alpha: TioOpacity.opacity70,
+                            ),
+                            fontSize: TioFontSize.size11,
                           ),
                         ),
                       ),
@@ -441,29 +429,27 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
                         child: Text(
                           targetMonthShort,
                           style: textTheme.labelSmall?.copyWith(
-                            color: colors.textSecondary.withValues(alpha: 0.7),
-                            fontSize: 11,
+                            color: colors.textSecondary.withValues(
+                              alpha: TioOpacity.opacity70,
+                            ),
+                            fontSize: TioFontSize.size11,
                           ),
                         ),
                       ),
-
-                      // Start Weight Badge (Now)
                       Positioned(
-                        left: 0,
-                        top: isLoss ? 4 : null,
-                        bottom: isLoss ? null : 20,
+                        left: TioSize.dp0,
+                        top: isLoss ? TioSize.dp4 : null,
+                        bottom: isLoss ? null : TioSize.dp20,
                         child: _WeightBadge(
                           text: '${currentWeightKg.toStringAsFixed(1)} kg',
                           colors: colors,
                           textTheme: textTheme,
                         ),
                       ),
-
-                      // Target Weight Badge (Target)
                       Positioned(
-                        right: 0,
-                        bottom: isLoss ? 20 : null,
-                        top: isLoss ? null : 4,
+                        right: TioSize.dp0,
+                        bottom: isLoss ? TioSize.dp20 : null,
+                        top: isLoss ? null : TioSize.dp4,
                         child: _WeightBadge(
                           text: '${targetWeightKg.toStringAsFixed(1)} kg',
                           colors: colors,
@@ -482,36 +468,35 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
   }
 
   void _showCalorieInfoSheet(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: TioPalette.transparent,
       builder: (context) {
         return Container(
           decoration: BoxDecoration(
             color: colors.surfaceRaised,
             borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(TioRadius.extraLarge),
+              top: Radius.circular(TioRadius.xl),
             ),
             border: Border.all(
-              color: colors.outlineStrong.withAlpha(25),
+              color: colors.outlineStrong.withAlpha(TioAlpha.alpha25),
             ),
           ),
           child: SafeArea(
             top: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(
-                TioSpacing.large,
-                TioSpacing.large,
-                TioSpacing.large,
-                TioSpacing.extraLarge,
+                TioSpacing.lg,
+                TioSpacing.lg,
+                TioSpacing.lg,
+                TioSpacing.xl,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Header Stack: Title & Close Button
                   Stack(
                     alignment: Alignment.center,
                     children: [
@@ -520,29 +505,31 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
                           'Target Calories',
                           style: TextStyle(
                             color: colors.textPrimary,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 20,
-                            letterSpacing: -0.3,
+                            fontWeight: TioFontWeight.w700,
+                            fontSize: TioFontSize.size20,
+                            letterSpacing: TioLetterSpacing.negative03,
                           ),
                         ),
                       ),
                       Align(
                         alignment: Alignment.centerRight,
                         child: Container(
-                          width: 32,
-                          height: 32,
+                          width: TioSize.dp32,
+                          height: TioSize.dp32,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: colors.outlineStrong.withAlpha(50),
+                            color: colors.outlineStrong.withAlpha(
+                              TioAlpha.alpha50,
+                            ),
                           ),
                           child: IconButton(
                             onPressed: () => Navigator.of(context).pop(),
                             icon: Icon(
                               Icons.close_rounded,
                               color: colors.textSecondary,
-                              size: 18,
+                              size: TioSize.dp18,
                             ),
-                            splashRadius: 16,
+                            splashRadius: TioSize.dp16,
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           ),
@@ -550,23 +537,18 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
-
-                  // Description
+                  const SizedBox(height: TioSize.dp14),
                   Text(
                     'Your daily calorie target is dynamically calculated using your Basal Metabolic Rate (BMR), daily activity level, and chosen weekly pace.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: colors.textSecondary,
-                      fontSize: 14,
-                      height: 1.4,
-                      fontWeight: FontWeight.w400,
+                      fontSize: TioFontSize.size14,
+                      height: TioLineHeight.height140,
+                      fontWeight: TioFontWeight.w400,
                     ),
                   ),
-
-                  const SizedBox(height: 28),
-
-                  // Action Button
+                  const SizedBox(height: TioSize.dp28),
                   TioButton.primary(
                     label: 'Understood',
                     expand: true,
@@ -585,36 +567,35 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
     BuildContext context,
     GoalPaceWarning warning,
   ) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: TioPalette.transparent,
       builder: (context) {
         return Container(
           decoration: BoxDecoration(
             color: colors.surfaceRaised,
             borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(TioRadius.extraLarge),
+              top: Radius.circular(TioRadius.xl),
             ),
             border: Border.all(
-              color: colors.outlineStrong.withAlpha(25),
+              color: colors.outlineStrong.withAlpha(TioAlpha.alpha25),
             ),
           ),
           child: SafeArea(
             top: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(
-                TioSpacing.large,
-                TioSpacing.large,
-                TioSpacing.large,
-                TioSpacing.extraLarge,
+                TioSpacing.lg,
+                TioSpacing.lg,
+                TioSpacing.lg,
+                TioSpacing.xl,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Header Stack: Icon + Title & Close Button
                   Stack(
                     alignment: Alignment.center,
                     children: [
@@ -624,16 +605,16 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
                           Icon(
                             Icons.warning_amber_rounded,
                             color: colors.danger,
-                            size: 22,
+                            size: TioSize.dp22,
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: TioSpacing.sm),
                           Text(
                             'Attention',
                             style: TextStyle(
                               color: colors.textPrimary,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 20,
-                              letterSpacing: -0.3,
+                              fontWeight: TioFontWeight.w700,
+                              fontSize: TioFontSize.size20,
+                              letterSpacing: TioLetterSpacing.negative03,
                             ),
                           ),
                         ],
@@ -641,20 +622,22 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: Container(
-                          width: 32,
-                          height: 32,
+                          width: TioSize.dp32,
+                          height: TioSize.dp32,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: colors.outlineStrong.withAlpha(50),
+                            color: colors.outlineStrong.withAlpha(
+                              TioAlpha.alpha50,
+                            ),
                           ),
                           child: IconButton(
                             onPressed: () => Navigator.of(context).pop(),
                             icon: Icon(
                               Icons.close_rounded,
                               color: colors.textSecondary,
-                              size: 18,
+                              size: TioSize.dp18,
                             ),
-                            splashRadius: 16,
+                            splashRadius: TioSize.dp16,
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           ),
@@ -662,9 +645,7 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
-
-                  // Description
+                  const SizedBox(height: TioSize.dp14),
                   Text(
                     warning == GoalPaceWarning.aggressiveLoss
                         ? 'Losing more than 1.0 kg per week may cause fatigue, muscle loss, and lower adherence. A steady pace of 0.4–0.7 kg/week is recommended.'
@@ -672,15 +653,12 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: colors.textSecondary,
-                      fontSize: 14,
-                      height: 1.4,
-                      fontWeight: FontWeight.w400,
+                      fontSize: TioFontSize.size14,
+                      height: TioLineHeight.height140,
+                      fontWeight: TioFontWeight.w400,
                     ),
                   ),
-
-                  const SizedBox(height: 28),
-
-                  // Action Button
+                  const SizedBox(height: TioSize.dp28),
                   TioButton.primary(
                     label: 'Understood',
                     expand: true,
@@ -736,18 +714,20 @@ class _DatePill extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: width,
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: TioSize.dp10),
       decoration: BoxDecoration(
-        color: colors.surfaceVariant.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(TioRadius.medium),
+        color: colors.surfaceVariant.withValues(
+          alpha: TioOpacity.opacity50,
+        ),
+        borderRadius: BorderRadius.circular(TioRadius.md),
       ),
       child: Text(
         text,
         textAlign: TextAlign.center,
         style: textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.bold,
+          fontWeight: TioFontWeight.w700,
           color: colors.textPrimary,
-          fontSize: 16,
+          fontSize: TioFontSize.size16,
         ),
       ),
     );
@@ -768,17 +748,20 @@ class _WeightBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: TioSize.dp10,
+        vertical: TioSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: colors.primary,
-        borderRadius: BorderRadius.circular(TioRadius.medium),
+        borderRadius: BorderRadius.circular(TioRadius.md),
       ),
       child: Text(
         text,
         style: textTheme.labelSmall?.copyWith(
           color: colors.onPrimary,
-          fontWeight: FontWeight.w700,
-          fontSize: 12,
+          fontWeight: TioFontWeight.w700,
+          fontSize: TioFontSize.size12,
         ),
       ),
     );
@@ -799,14 +782,14 @@ class _ProjectionGraphPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    final startY = isLoss ? 12.0 : h - 24.0;
-    final endY = isLoss ? h - 24.0 : 12.0;
+    final startY = isLoss ? TioSize.dp12 : h - TioSize.dp24;
+    final endY = isLoss ? h - TioSize.dp24 : TioSize.dp12;
 
     final path = Path();
     path.moveTo(0, startY);
+    // Control-point ratios are one-off graph composition data.
     path.cubicTo(w * 0.4, startY, w * 0.6, endY, w, endY);
 
-    // Gradient fill below/above curve
     final fillPath = Path.from(path);
     fillPath.lineTo(w, h);
     fillPath.lineTo(0, h);
@@ -816,36 +799,29 @@ class _ProjectionGraphPainter extends CustomPainter {
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: isLoss
-            ? [
-                graphColor.withValues(alpha: 0.28),
-                graphColor.withValues(alpha: 0.02),
-              ]
-            : [
-                graphColor.withValues(alpha: 0.28),
-                graphColor.withValues(alpha: 0.02),
-              ],
+        colors: [
+          graphColor.withValues(alpha: TioOpacity.opacity28),
+          graphColor.withValues(alpha: TioOpacity.opacity02),
+        ],
       ).createShader(Rect.fromLTWH(0, 0, w, h))
       ..style = PaintingStyle.fill;
 
     canvas.drawPath(fillPath, gradientPaint);
 
-    // Smooth stroke
     final strokePaint = Paint()
       ..color = graphColor
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0
+      ..strokeWidth = TioStroke.width3
       ..strokeCap = StrokeCap.round;
 
     canvas.drawPath(path, strokePaint);
 
-    // Endpoint dots
     final dotPaint = Paint()
       ..color = graphColor
       ..style = PaintingStyle.fill;
 
-    canvas.drawCircle(Offset(0, startY), 5.0, dotPaint);
-    canvas.drawCircle(Offset(w, endY), 5.0, dotPaint);
+    canvas.drawCircle(Offset(0, startY), TioSize.dp5, dotPaint);
+    canvas.drawCircle(Offset(w, endY), TioSize.dp5, dotPaint);
   }
 
   @override
