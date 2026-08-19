@@ -23,6 +23,10 @@ void main() {
       var source = file.readAsStringSync();
       final relativePath = file.path.replaceAll('\\', '/');
 
+      // Controllers own behavior/program timing such as draft-save debounce;
+      // those values intentionally stay outside the visual token system.
+      if (relativePath.contains('/controllers/')) continue;
+
       // Edge-to-edge system bars intentionally remain transparent framework
       // values. The visible celebration media colors are governed separately.
       if (relativePath.endsWith('/screens/congratulations_screen.dart')) {
