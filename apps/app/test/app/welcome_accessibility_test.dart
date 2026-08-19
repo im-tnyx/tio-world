@@ -32,7 +32,7 @@ void main() {
     expect(skipRect.center.dx, greaterThan(393 / 2));
     expect(skipRect.center.dx, greaterThan(localeRect.center.dx));
     expect(skipRect.right, greaterThan(350));
-    expect(skipInkWell.borderRadius, BorderRadius.circular(TioRadius.large));
+    expect(skipInkWell.borderRadius, BorderRadius.circular(TioRadius.lg));
 
     final featureTitle = tester.widget<Text>(find.text('AI WORKOUT'));
     final featureContext = tester.element(find.text('AI WORKOUT'));

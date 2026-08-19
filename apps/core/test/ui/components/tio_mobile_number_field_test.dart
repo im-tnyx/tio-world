@@ -13,7 +13,7 @@ void main() {
           TioTheme(child: child ?? const SizedBox.shrink()),
       home: Scaffold(
         body: Padding(
-          padding: const EdgeInsets.all(TioSpacing.large),
+          padding: const EdgeInsets.all(TioSpacing.lg),
           child: TioMobileNumberField(
             fieldKey: const ValueKey('mobile-field'),
             controller: controller,

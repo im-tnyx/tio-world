@@ -17,13 +17,4 @@ class TioSpacing {
   static const lg = TioSize.dp16;
   static const xl = TioSize.dp24;
   static const xxl = TioSize.dp32;
-
-  // Transitional compatibility aliases. Existing production consumers keep
-  // their exact rendered spacing while package-by-package migration moves to
-  // the canonical scalable role names above.
-  static const extraSmall = xs;
-  static const small = sm;
-  static const medium = md;
-  static const large = lg;
-  static const extraLarge = xl;
 }

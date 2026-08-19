@@ -55,14 +55,6 @@ void main() {
       expect(TioSpacing.xxl, TioSize.dp32);
     });
 
-    test('legacy spacing names preserve current rendered values', () {
-      expect(TioSpacing.extraSmall, TioSpacing.xs);
-      expect(TioSpacing.small, TioSpacing.sm);
-      expect(TioSpacing.medium, TioSpacing.md);
-      expect(TioSpacing.large, TioSpacing.lg);
-      expect(TioSpacing.extraLarge, TioSpacing.xl);
-    });
-
     test('scalable radius roles alias canonical geometry primitives', () {
       expect(TioRadius.none, TioSize.dp0);
       expect(TioRadius.xs, TioSize.dp4);
@@ -71,13 +63,6 @@ void main() {
       expect(TioRadius.lg, TioSize.dp16);
       expect(TioRadius.xl, TioSize.dp24);
       expect(TioRadius.full, TioSize.dp999);
-    });
-
-    test('legacy radius names preserve current rendered values', () {
-      expect(TioRadius.small, TioRadius.sm);
-      expect(TioRadius.medium, TioRadius.md);
-      expect(TioRadius.large, TioRadius.lg);
-      expect(TioRadius.extraLarge, TioRadius.xl);
     });
 
     test('avatar geometry aliases canonical primitives', () {

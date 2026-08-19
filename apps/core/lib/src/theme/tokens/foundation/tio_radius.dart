@@ -3,9 +3,8 @@ import '../primitive/tio_size.dart';
 /// Reusable semantic radius roles.
 ///
 /// Radius semantics are independent from spacing semantics even when both alias
-/// the same physical [TioSize] value. Existing role names remain transitional
-/// compatibility aliases so current UI geometry does not change during
-/// migration.
+/// the same physical [TioSize] value. Exact one-off radius geometry can consume
+/// [TioSize] directly when no reusable radius role is justified.
 class TioRadius {
   const TioRadius._();
 
@@ -16,10 +15,4 @@ class TioRadius {
   static const lg = TioSize.dp16;
   static const xl = TioSize.dp24;
   static const full = TioSize.dp999;
-
-  // Transitional compatibility aliases.
-  static const small = sm;
-  static const medium = md;
-  static const large = lg;
-  static const extraLarge = xl;
 }

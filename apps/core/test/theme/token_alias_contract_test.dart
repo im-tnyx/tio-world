@@ -4,34 +4,37 @@ import 'package:tio_core/core.dart';
 
 void main() {
   group('foundation token contracts', () {
-    test('spacing scale keeps the approved rhythm', () {
-      expect(TioSpacing.extraSmall, 4.0);
-      expect(TioSpacing.small, 8.0);
-      expect(TioSpacing.medium, 12.0);
-      expect(TioSpacing.large, 16.0);
-      expect(TioSpacing.extraLarge, 24.0);
+    test('spacing scale keeps the approved canonical rhythm', () {
+      expect(TioSpacing.none, 0.0);
+      expect(TioSpacing.xxs, 2.0);
+      expect(TioSpacing.xs, 4.0);
+      expect(TioSpacing.sm, 8.0);
+      expect(TioSpacing.md, 12.0);
+      expect(TioSpacing.lg, 16.0);
+      expect(TioSpacing.xl, 24.0);
+      expect(TioSpacing.xxl, 32.0);
     });
   });
 
-  group('component token foundation aliases', () {
-    test('spacing aliases stay aligned with foundation semantics', () {
-      expect(TioButtonTokens.contentGap, TioSpacing.small);
-      expect(TioCardTokens.padding, TioSpacing.large);
-      expect(TioInputTokens.horizontalPadding, TioSpacing.large);
-      expect(TioInputTokens.compactContentHorizontalPadding, TioSpacing.small);
-      expect(TioInputTokens.standardContentVerticalPadding, TioSpacing.large);
-      expect(TioMeasurementPickerTokens.headerSubtitleGap, TioSpacing.medium);
-      expect(TioNavigationTokens.planContentGap, TioSpacing.extraSmall);
-      expect(TioSheetTokens.padding, TioSpacing.large);
-      expect(TioSheetTokens.titleGap, TioSpacing.medium);
+  group('component token foundation relationships', () {
+    test('spacing roles stay aligned with foundation semantics', () {
+      expect(TioButtonTokens.contentGap, TioSpacing.sm);
+      expect(TioCardTokens.padding, TioSpacing.lg);
+      expect(TioInputTokens.horizontalPadding, TioSpacing.lg);
+      expect(TioInputTokens.compactContentHorizontalPadding, TioSpacing.sm);
+      expect(TioInputTokens.standardContentVerticalPadding, TioSpacing.lg);
+      expect(TioMeasurementPickerTokens.headerSubtitleGap, TioSpacing.md);
+      expect(TioNavigationTokens.planContentGap, TioSpacing.xs);
+      expect(TioSheetTokens.padding, TioSpacing.lg);
+      expect(TioSheetTokens.titleGap, TioSpacing.md);
     });
 
-    test('radius aliases stay aligned with foundation semantics', () {
+    test('radius roles stay aligned with foundation semantics', () {
       expect(TioButtonTokens.radius, TioRadius.full);
-      expect(TioCardTokens.radius, TioRadius.large);
-      expect(TioCardTokens.radiusItem, TioRadius.small);
-      expect(TioNavigationTokens.itemRadius, TioRadius.large);
-      expect(TioSheetTokens.radius, TioRadius.extraLarge);
+      expect(TioCardTokens.radius, TioRadius.lg);
+      expect(TioCardTokens.radiusItem, TioRadius.sm);
+      expect(TioNavigationTokens.itemRadius, TioRadius.lg);
+      expect(TioSheetTokens.radius, TioRadius.xl);
     });
 
     test('component-owned values keep audited runtime contracts', () {
