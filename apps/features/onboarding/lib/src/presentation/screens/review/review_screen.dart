@@ -36,9 +36,7 @@ class ReviewScreen extends StatelessWidget {
           subtitle:
               'Everything is set up to match your personal goals. Take a quick look before we begin.',
         ),
-        const SizedBox(height: TioSpacing.large),
-
-        // ── Card 1: Profile & Goals ──
+        const SizedBox(height: TioSpacing.lg),
         _ReviewCard(
           title: 'Profile & Goals',
           icon: Icons.person_outline_rounded,
@@ -47,35 +45,35 @@ class ReviewScreen extends StatelessWidget {
               label: 'Name',
               value: profile.name.trim().isEmpty ? 'Not set' : profile.name.trim(),
             ),
-            const SizedBox(height: TioSpacing.small + 2),
+            const SizedBox(height: TioSize.dp10),
             _SummaryRow(
               label: 'Gender',
               value: profile.gender == null
                   ? 'Not selected'
                   : _genderLabel(profile.gender!),
             ),
-            const SizedBox(height: TioSpacing.small + 2),
+            const SizedBox(height: TioSize.dp10),
             _SummaryRow(
               label: 'Goals',
               value: profile.goals.isEmpty
                   ? 'Not selected'
                   : profile.goals.map(_goalLabel).join(', '),
             ),
-            const SizedBox(height: TioSpacing.small + 2),
+            const SizedBox(height: TioSize.dp10),
             _SummaryRow(
               label: 'Date of birth',
               value: profile.dateOfBirth == null
                   ? 'Not selected'
                   : _formatDate(profile.dateOfBirth!),
             ),
-            const SizedBox(height: TioSpacing.small + 2),
+            const SizedBox(height: TioSize.dp10),
             _SummaryRow(
               label: 'Height',
               value: profile.heightCm == null
                   ? 'Not selected'
                   : '${profile.heightCm!.round()} cm',
             ),
-            const SizedBox(height: TioSpacing.small + 2),
+            const SizedBox(height: TioSize.dp10),
             _SummaryRow(
               label: 'Weight plan',
               value: profile.currentWeightKg == null
@@ -84,7 +82,7 @@ class ReviewScreen extends StatelessWidget {
                       ? '${profile.currentWeightKg!.toStringAsFixed(1)} kg ➔ ${profile.targetWeightKg!.toStringAsFixed(1)} kg'
                       : '${profile.currentWeightKg!.toStringAsFixed(1)} kg',
             ),
-            const SizedBox(height: TioSpacing.small + 2),
+            const SizedBox(height: TioSize.dp10),
             _SummaryRow(
               label: 'Activity',
               value: profile.activityLevel == null
@@ -93,7 +91,7 @@ class ReviewScreen extends StatelessWidget {
             ),
             if (profile.healthConditions.isNotEmpty &&
                 !profile.healthConditions.contains(ProfileHealthCondition.none)) ...[
-              const SizedBox(height: TioSpacing.small + 2),
+              const SizedBox(height: TioSize.dp10),
               _SummaryRow(
                 label: 'Health info',
                 value: _healthSummary(profile),
@@ -101,10 +99,7 @@ class ReviewScreen extends StatelessWidget {
             ],
           ],
         ),
-
-        const SizedBox(height: TioSpacing.medium),
-
-        // ── Card 2: Daily Targets ──
+        const SizedBox(height: TioSpacing.md),
         _ReviewCard(
           title: 'Daily Targets',
           icon: Icons.track_changes_rounded,
@@ -113,12 +108,12 @@ class ReviewScreen extends StatelessWidget {
               label: 'Steps',
               value: '${draft.targets.dailySteps} steps/day',
             ),
-            const SizedBox(height: TioSpacing.small + 2),
+            const SizedBox(height: TioSize.dp10),
             _SummaryRow(
               label: 'Hydration',
               value: '${draft.targets.waterMl} ml/day',
             ),
-            const SizedBox(height: TioSpacing.small + 2),
+            const SizedBox(height: TioSize.dp10),
             _SummaryRow(
               label: 'Sleep',
               value:
@@ -129,7 +124,7 @@ class ReviewScreen extends StatelessWidget {
                   targetWeightKg: profile.targetWeightKg,
                 ) !=
                 GoalPaceMode.maintenance) ...[
-              const SizedBox(height: TioSpacing.small + 2),
+              const SizedBox(height: TioSize.dp10),
               _SummaryRow(
                 label: 'Goal pace',
                 value:
@@ -141,7 +136,7 @@ class ReviewScreen extends StatelessWidget {
                   targets: draft.targets,
                 )
                 case NutritionTargetRecommendationSuccess(:final recommendation)) ...[
-              const SizedBox(height: TioSpacing.small + 2),
+              const SizedBox(height: TioSize.dp10),
               _SummaryRow(
                 label: 'Target calories',
                 value:
@@ -150,10 +145,8 @@ class ReviewScreen extends StatelessWidget {
             ],
           ],
         ),
-
-        // ── Card 3: Workout Plan (if configured) ──
         if (hasWorkoutPreferences) ...[
-          const SizedBox(height: TioSpacing.medium),
+          const SizedBox(height: TioSpacing.md),
           _ReviewCard(
             title: 'Workout Plan',
             icon: Icons.fitness_center_rounded,
@@ -166,28 +159,28 @@ class ReviewScreen extends StatelessWidget {
                 },
               ),
               if (workout.workoutSplit != null) ...[
-                const SizedBox(height: TioSpacing.small + 2),
+                const SizedBox(height: TioSize.dp10),
                 _SummaryRow(
                   label: 'Workout split',
                   value: _splitLabel(workout.workoutSplit!),
                 ),
               ],
               if (workout.trainingDays.isNotEmpty) ...[
-                const SizedBox(height: TioSpacing.small + 2),
+                const SizedBox(height: TioSize.dp10),
                 _SummaryRow(
                   label: 'Training days',
                   value: '${workout.trainingDays.length} days / week',
                 ),
               ],
               if (workout.workoutDuration != null) ...[
-                const SizedBox(height: TioSpacing.small + 2),
+                const SizedBox(height: TioSize.dp10),
                 _SummaryRow(
                   label: 'Session duration',
                   value: _durationLabel(workout.workoutDuration!),
                 ),
               ],
               if (workout.focusAreas.isNotEmpty) ...[
-                const SizedBox(height: TioSpacing.small + 2),
+                const SizedBox(height: TioSize.dp10),
                 _SummaryRow(
                   label: 'Focus areas',
                   value: workout.focusAreas.map(_focusAreaLabel).join(', '),
@@ -196,52 +189,54 @@ class ReviewScreen extends StatelessWidget {
             ],
           ),
         ],
-
-        // ── Incomplete Flow Warning (if any blockers) ──
         if (!completionEligibility.isEligible &&
             completionEligibility.message != null) ...[
-          const SizedBox(height: TioSpacing.large),
+          const SizedBox(height: TioSpacing.lg),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(TioSpacing.medium),
+            padding: const EdgeInsets.all(TioSpacing.md),
             decoration: BoxDecoration(
-              color: colors.danger.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(TioRadius.medium),
-              border: Border.all(color: colors.danger.withValues(alpha: 0.3)),
+              color: colors.danger.withValues(alpha: TioOpacity.opacity12),
+              borderRadius: BorderRadius.circular(TioRadius.md),
+              border: Border.all(
+                color: colors.danger.withValues(alpha: TioOpacity.opacity30),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Icon(Icons.warning_amber_rounded, size: 18, color: colors.danger),
-                    const SizedBox(width: 6),
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: TioSize.dp18,
+                      color: colors.danger,
+                    ),
+                    const SizedBox(width: TioSize.dp6),
                     Text(
                       'Setup Incomplete',
                       style: textTheme.titleSmall?.copyWith(
                         color: colors.danger,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: TioFontWeight.w700,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: TioSize.dp6),
                 Text(
                   completionEligibility.message!,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: colors.danger,
-                  ),
+                  style: textTheme.bodySmall?.copyWith(color: colors.danger),
                 ),
                 if (blockers.isNotEmpty) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: TioSpacing.sm),
                   for (final step in blockers)
                     Padding(
-                      padding: const EdgeInsets.only(top: 2),
+                      padding: const EdgeInsets.only(top: TioSpacing.xxs),
                       child: Text(
                         '• ${step.progressTitle}',
                         style: textTheme.labelSmall?.copyWith(
                           color: colors.danger,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: TioFontWeight.w600,
                         ),
                       ),
                     ),
@@ -250,7 +245,7 @@ class ReviewScreen extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: TioSpacing.large),
+        const SizedBox(height: TioSpacing.lg),
       ],
     );
   }
@@ -275,27 +270,27 @@ class _ReviewCard extends StatelessWidget {
     return TioCard(
       variant: TioCardVariant.elevated,
       padding: const EdgeInsets.symmetric(
-        horizontal: TioSpacing.large,
-        vertical: 14,
+        horizontal: TioSpacing.lg,
+        vertical: TioSize.dp14,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 18, color: colors.primary),
-              const SizedBox(width: TioSpacing.small),
+              Icon(icon, size: TioSize.dp18, color: colors.primary),
+              const SizedBox(width: TioSpacing.sm),
               Text(
                 title,
                 style: textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
+                  fontWeight: TioFontWeight.w700,
                   color: colors.textPrimary,
-                  fontSize: 15,
+                  fontSize: TioFontSize.size15,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: TioSize.dp10),
           ...children,
         ],
       ),
@@ -318,24 +313,24 @@ class _SummaryRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 105,
+          width: TioSize.dp105,
           child: Text(
             label,
             style: textTheme.bodySmall?.copyWith(
               color: colors.textSecondary,
-              fontWeight: FontWeight.w500,
-              fontSize: 13,
+              fontWeight: TioFontWeight.w500,
+              fontSize: TioFontSize.size13,
             ),
           ),
         ),
-        const SizedBox(width: TioSpacing.small),
+        const SizedBox(width: TioSpacing.sm),
         Expanded(
           child: Text(
             value,
             style: textTheme.bodySmall?.copyWith(
               color: colors.textPrimary,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
+              fontWeight: TioFontWeight.w600,
+              fontSize: TioFontSize.size13,
             ),
           ),
         ),
