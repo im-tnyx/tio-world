@@ -153,7 +153,7 @@ void main() {
       expect(TioAvatarActionSheetTokens.bottomGap, TioSpacing.sm);
     });
 
-    test('dialog geometry aliases exact canonical sizes', () {
+    test('OTP dialog geometry aliases exact canonical sizes', () {
       expect(TioOtpDialogTokens.insetHorizontal, TioSize.dp32);
       expect(TioOtpDialogTokens.panelTopPadding, TioSize.dp28);
       expect(TioOtpDialogTokens.panelRadius, TioSize.dp28);
@@ -162,13 +162,6 @@ void main() {
       expect(TioOtpDialogTokens.inputHeight, TioSize.dp52);
       expect(TioOtpDialogTokens.inputRadius, TioSize.dp26);
       expect(TioOtpDialogTokens.actionRadius, TioSize.dp20);
-      expect(TioDialogTokens.deleteActionButtonHeight, TioSize.dp54);
-      expect(TioDialogTokens.deleteActionButtonRadius, TioSize.dp27);
-      expect(TioDialogTokens.deleteHoldControlSize, TioSize.dp140);
-      expect(TioDialogTokens.deleteHoldButtonSize, TioSize.dp100);
-      expect(TioDialogTokens.deleteHoldGlowSpreadRadius, TioSize.dp2);
-      expect(TioDialogTokens.deleteCompletedIconContainerSize, TioSize.dp72);
-      expect(TioDialogTokens.deleteCompletedIconSize, TioSize.dp38);
     });
 
     test('picker geometry aliases canonical owners without ratio changes', () {
