@@ -26,8 +26,8 @@ class AvatarPreviewPage extends StatelessWidget {
 
   Future<void> _openActionsSheet(BuildContext context) async {
     final hasPhoto = avatarUrl != null &&
-                    avatarUrl!.trim().isNotEmpty &&
-                    avatarUrl!.trim().startsWith('http');
+        avatarUrl!.trim().isNotEmpty &&
+        avatarUrl!.trim().startsWith('http');
     final action = await showTioAvatarActionBottomSheet(
       context: context,
       hasPhoto: hasPhoto,
@@ -68,15 +68,19 @@ class AvatarPreviewPage extends StatelessWidget {
         SnackBar(
           content: const Row(
             children: [
-              Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 20),
-              SizedBox(width: 10),
+              Icon(
+                Icons.check_circle_outline_rounded,
+                color: TioPalette.white,
+                size: TioSize.dp20,
+              ),
+              SizedBox(width: TioSize.dp10),
               Text('Profile photo saved to device!'),
             ],
           ),
-          backgroundColor: const Color(0xFF1E293B),
+          backgroundColor: TioPalette.slate800,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(TioRadius.md),
           ),
           duration: const Duration(seconds: 2),
         ),
@@ -92,8 +96,8 @@ class AvatarPreviewPage extends StatelessWidget {
       backgroundColor: colors.background,
       appBar: AppBar(
         backgroundColor: colors.background,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+        elevation: TioElevation.none,
+        scrolledUnderElevation: TioElevation.none,
         automaticallyImplyLeading: false,
         leading: BackButton(
           color: colors.textPrimary,
@@ -103,8 +107,8 @@ class AvatarPreviewPage extends StatelessWidget {
           'Profile Photo',
           style: TextStyle(
             color: colors.textPrimary,
-            fontWeight: FontWeight.w800,
-            fontSize: 18,
+            fontWeight: TioFontWeight.w800,
+            fontSize: TioFontSize.size18,
           ),
         ),
         actions: [
@@ -126,7 +130,7 @@ class AvatarPreviewPage extends StatelessWidget {
             icon: Icon(Icons.delete_outline_rounded, color: colors.danger),
             onPressed: () => _confirmDelete(context),
           ),
-          const SizedBox(width: TioSpacing.small),
+          const SizedBox(width: TioSpacing.sm),
         ],
       ),
       body: SafeArea(
