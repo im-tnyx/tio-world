@@ -132,7 +132,7 @@ Test Flutter packages    PASS
 Test Dart packages       PASS
 ```
 
-After this task evidence was recorded, latest PR head `8a33e170cb019518def290dd5658a692e77d72ba` also passed Flutter CI **#924**, run `32286508843`, with the same full analyze/test matrix green.
+After this task evidence was recorded, PR head `8a33e170cb019518def290dd5658a692e77d72ba` also passed Flutter CI **#924**, run `32286508843`, with the same full analyze/test matrix green.
 
 ### Review Findings
 
