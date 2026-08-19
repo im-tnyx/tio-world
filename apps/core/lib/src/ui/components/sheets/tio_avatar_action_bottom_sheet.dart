@@ -36,8 +36,8 @@ Future<TioAvatarAction?> showTioAvatarActionBottomSheet({
       return SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: TioSpacing.large,
-            vertical: TioSpacing.medium,
+            horizontal: TioSpacing.lg,
+            vertical: TioSpacing.md,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -64,7 +64,7 @@ Future<TioAvatarAction?> showTioAvatarActionBottomSheet({
                 'Profile Photo',
                 style: TextStyle(
                   color: colors.textPrimary,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: TioFontWeight.w700,
                   fontSize: TioAvatarActionSheetTokens.titleFontSize,
                 ),
               ),
@@ -90,7 +90,7 @@ Future<TioAvatarAction?> showTioAvatarActionBottomSheet({
                   'Choose from Gallery',
                   style: TextStyle(
                     color: colors.textPrimary,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: TioFontWeight.w600,
                   ),
                 ),
                 onTap: () =>
@@ -115,7 +115,7 @@ Future<TioAvatarAction?> showTioAvatarActionBottomSheet({
                   'Take Photo',
                   style: TextStyle(
                     color: colors.textPrimary,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: TioFontWeight.w600,
                   ),
                 ),
                 onTap: () =>
