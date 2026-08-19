@@ -86,8 +86,8 @@ void main() {
     });
 
     test('component fixed colors keep exact palette mappings', () {
-      expect(TioDialogTokens.deleteHoldFillColor, TioPalette.red550);
-      expect(TioDialogTokens.deleteHoldContentColor, TioPalette.white);
+      expect(TioDeleteAccountDialogTokens.holdFillColor, TioPalette.red550);
+      expect(TioDeleteAccountDialogTokens.holdContentColor, TioPalette.white);
       expect(TioNavigationTokens.planPlusAccentColor, TioPalette.amber500);
     });
   });
