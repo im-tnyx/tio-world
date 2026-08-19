@@ -93,7 +93,7 @@ class _TioHeightPickerBottomSheetState
       decoration: BoxDecoration(
         color: colors.surfaceRaised,
         borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(TioRadius.extraLarge),
+          top: Radius.circular(TioRadius.xl),
         ),
         border: Border.all(
           color: colors.outlineStrong.withAlpha(
@@ -108,10 +108,10 @@ class _TioHeightPickerBottomSheetState
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
-            TioSpacing.large,
-            TioSpacing.large,
-            TioSpacing.large,
-            TioSpacing.extraLarge,
+            TioSpacing.lg,
+            TioSpacing.lg,
+            TioSpacing.lg,
+            TioSpacing.xl,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -125,7 +125,7 @@ class _TioHeightPickerBottomSheetState
                       'Height',
                       style: TextStyle(
                         color: colors.textPrimary,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: TioFontWeight.w700,
                         fontSize: TioMeasurementPickerTokens.titleFontSize,
                         letterSpacing:
                             TioMeasurementPickerTokens.titleLetterSpacing,
@@ -171,7 +171,7 @@ class _TioHeightPickerBottomSheetState
                   color: colors.textSecondary,
                   fontSize: TioMeasurementPickerTokens.subtitleFontSize,
                   height: TioMeasurementPickerTokens.subtitleLineHeight,
-                  fontWeight: FontWeight.w400,
+                  fontWeight: TioFontWeight.w400,
                 ),
               ),
 
@@ -273,7 +273,7 @@ class _HeightInputCapsule extends StatelessWidget {
               style: TextStyle(
                 color: colors.textPrimary,
                 fontSize: TioMeasurementPickerTokens.inputTextFontSize,
-                fontWeight: FontWeight.w700,
+                fontWeight: TioFontWeight.w700,
               ),
               decoration: const InputDecoration(
                 border: InputBorder.none,
@@ -294,7 +294,7 @@ class _HeightInputCapsule extends StatelessWidget {
             style: TextStyle(
               color: colors.textSecondary,
               fontSize: TioMeasurementPickerTokens.unitFontSize,
-              fontWeight: FontWeight.w500,
+              fontWeight: TioFontWeight.w500,
             ),
           ),
         ],
