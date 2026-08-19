@@ -53,15 +53,14 @@ class _NutritionTargetContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Main Calorie Target Card
         Container(
-          padding: const EdgeInsets.all(TioSpacing.large),
+          padding: const EdgeInsets.all(TioSpacing.lg),
           decoration: BoxDecoration(
-            color: colors.nutrition.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(context.radiusLarge),
+            color: colors.nutrition.withValues(alpha: TioOpacity.opacity12),
+            borderRadius: BorderRadius.circular(TioRadius.lg),
             border: Border.all(
-              color: colors.nutrition.withValues(alpha: 0.35),
-              width: 1.5,
+              color: colors.nutrition.withValues(alpha: TioOpacity.opacity35),
+              width: TioStroke.width15,
             ),
           ),
           child: Column(
@@ -70,19 +69,19 @@ class _NutritionTargetContent extends StatelessWidget {
                 'DAILY CALORIE TARGET',
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                       color: colors.nutrition,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
+                      fontWeight: TioFontWeight.w700,
+                      letterSpacing: TioLetterSpacing.positive12,
                     ),
               ),
-              const SizedBox(height: TioSpacing.small),
+              const SizedBox(height: TioSpacing.sm),
               Text(
                 '${recommendation.caloriesKcal} kcal',
                 style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                      fontWeight: FontWeight.bold,
+                      fontWeight: TioFontWeight.w700,
                       color: colors.textPrimary,
                     ),
               ),
-              const SizedBox(height: TioSpacing.small),
+              const SizedBox(height: TioSpacing.sm),
               Text(
                 'Calculated energy expenditure adjusted for your goal',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -93,44 +92,40 @@ class _NutritionTargetContent extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: TioSpacing.large),
-
-        // Macro Cards
+        const SizedBox(height: TioSpacing.lg),
         _MacroRowCard(
           label: 'Protein',
           value: '${recommendation.proteinGrams} g',
           description: 'Essential for muscle repair and recovery',
           color: colors.workout,
         ),
-        const SizedBox(height: TioSpacing.medium),
+        const SizedBox(height: TioSpacing.md),
         _MacroRowCard(
           label: 'Carbohydrates',
           value: '${recommendation.carbsGrams} g',
           description: 'Primary energy fuel for daily activity and training',
           color: colors.nutrition,
         ),
-        const SizedBox(height: TioSpacing.medium),
+        const SizedBox(height: TioSpacing.md),
         _MacroRowCard(
           label: 'Fats',
           value: '${recommendation.fatGrams} g',
           description: 'Supports hormone regulation and vitamin absorption',
           color: colors.warning,
         ),
-        const SizedBox(height: TioSpacing.medium),
+        const SizedBox(height: TioSpacing.md),
         _MacroRowCard(
           label: 'Dietary Fiber',
           value: '${recommendation.fiberGrams} g',
           description: 'Supports healthy digestion and metabolic health',
           color: colors.textSecondary,
         ),
-        const SizedBox(height: TioSpacing.large),
-
-        // Metabolic Baseline Card
+        const SizedBox(height: TioSpacing.lg),
         Container(
-          padding: const EdgeInsets.all(TioSpacing.medium),
+          padding: const EdgeInsets.all(TioSpacing.md),
           decoration: BoxDecoration(
             color: colors.surfaceVariant,
-            borderRadius: BorderRadius.circular(context.radiusMedium),
+            borderRadius: BorderRadius.circular(TioRadius.md),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -140,9 +135,11 @@ class _NutritionTargetContent extends StatelessWidget {
                 value: '${recommendation.bmr} kcal',
               ),
               Container(
-                height: 28,
-                width: 1,
-                color: colors.outlineStrong.withValues(alpha: 0.3),
+                height: TioSize.dp28,
+                width: TioStroke.width1,
+                color: colors.outlineStrong.withValues(
+                  alpha: TioOpacity.opacity30,
+                ),
               ),
               _MetabolicMetric(
                 label: 'TDEE Maintenance',
@@ -175,12 +172,12 @@ class _MacroRowCard extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: TioSpacing.large,
-        vertical: TioSpacing.medium,
+        horizontal: TioSpacing.lg,
+        vertical: TioSpacing.md,
       ),
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius: BorderRadius.circular(context.radiusMedium),
+        borderRadius: BorderRadius.circular(TioRadius.md),
         border: Border.all(color: colors.surfaceVariant),
       ),
       child: Row(
@@ -192,11 +189,11 @@ class _MacroRowCard extends StatelessWidget {
                 Text(
                   label,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
+                        fontWeight: TioFontWeight.w600,
                         color: colors.textPrimary,
                       ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: TioSpacing.xxs),
                 Text(
                   description,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -206,11 +203,11 @@ class _MacroRowCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: TioSpacing.medium),
+          const SizedBox(width: TioSpacing.md),
           Text(
             value,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: TioFontWeight.w700,
                   color: color,
                 ),
           ),
@@ -241,11 +238,11 @@ class _MetabolicMetric extends StatelessWidget {
                 color: colors.textMuted,
               ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: TioSpacing.xxs),
         Text(
           value,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+                fontWeight: TioFontWeight.w700,
                 color: colors.textPrimary,
               ),
         ),
@@ -264,10 +261,10 @@ class _InsufficientInputCard extends StatelessWidget {
     final colors = context.tioColors;
 
     return Container(
-      padding: const EdgeInsets.all(TioSpacing.large),
+      padding: const EdgeInsets.all(TioSpacing.lg),
       decoration: BoxDecoration(
         color: colors.surfaceVariant,
-        borderRadius: BorderRadius.circular(context.radiusLarge),
+        borderRadius: BorderRadius.circular(TioRadius.lg),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -275,17 +272,17 @@ class _InsufficientInputCard extends StatelessWidget {
           Row(
             children: [
               Icon(Icons.info_outline, color: colors.info),
-              const SizedBox(width: TioSpacing.small),
+              const SizedBox(width: TioSpacing.sm),
               Text(
                 'Complete profile required',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                      fontWeight: TioFontWeight.w700,
                       color: colors.textPrimary,
                     ),
               ),
             ],
           ),
-          const SizedBox(height: TioSpacing.medium),
+          const SizedBox(height: TioSpacing.md),
           Text(
             'Calorie and macronutrient recommendations require your body stats, '
             'date of birth, gender, and activity level. Please complete previous profile steps.',
@@ -309,10 +306,10 @@ class _InvalidInputCard extends StatelessWidget {
     final colors = context.tioColors;
 
     return Container(
-      padding: const EdgeInsets.all(TioSpacing.large),
+      padding: const EdgeInsets.all(TioSpacing.lg),
       decoration: BoxDecoration(
-        color: colors.danger.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(context.radiusLarge),
+        color: colors.danger.withValues(alpha: TioOpacity.opacity15),
+        borderRadius: BorderRadius.circular(TioRadius.lg),
       ),
       child: Text(
         message,
