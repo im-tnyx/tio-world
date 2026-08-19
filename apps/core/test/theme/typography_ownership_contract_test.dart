@@ -123,11 +123,20 @@ void main() {
         TioLetterSpacing.positive60,
       );
       expect(TioOtpDialogTokens.subtitleLineHeight, TioLineHeight.height135);
-      expect(TioDialogTokens.deleteHeadlineFontSize, TioFontSize.size28);
-      expect(TioDialogTokens.deleteBodyLineHeight, TioLineHeight.height140);
-      expect(TioDialogTokens.deleteCountdownFontSize, TioFontSize.size34);
       expect(
-        TioDialogTokens.deleteHoldHeadlineLineHeight,
+        TioDeleteAccountDialogTokens.headlineFontSize,
+        TioFontSize.size28,
+      );
+      expect(
+        TioDeleteAccountDialogTokens.bodyLineHeight,
+        TioLineHeight.height140,
+      );
+      expect(
+        TioDeleteAccountDialogTokens.countdownFontSize,
+        TioFontSize.size34,
+      );
+      expect(
+        TioDeleteAccountDialogTokens.holdHeadlineLineHeight,
         TioLineHeight.height125,
       );
     });
