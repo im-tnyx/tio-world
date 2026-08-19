@@ -139,14 +139,14 @@ void main() {
   });
 
   testWidgets(
-      'first-run review stays in onboarding while compatibility steps block completion',
+      'first-run review stays in onboarding while durable persistence blocks completion',
       (tester) async {
-    final preference = _MemoryAppModePreference(null);
+    final preference = _MemoryAppModePreference(AppMode.hybrid);
     final controller = AppModeController(preference);
     await controller.load();
     final onboardingRepository = _MemoryOnboardingStatusRepository(
-      status: null,
-      hasStoredContractVersion: false,
+      status: OnboardingStatus.inProgress,
+      hasStoredContractVersion: true,
     );
     final onboardingStatusController = OnboardingStatusController(
       repository: onboardingRepository,
@@ -186,16 +186,9 @@ void main() {
 
     expect(router.routeInformationProvider.value.uri.path,
         AppRoutes.onboarding.path);
-    await tester.ensureVisible(find.byKey(const ValueKey('app-mode-hybrid')));
-    await tester.tap(find.byKey(const ValueKey('app-mode-hybrid')));
-    await tester.pumpAndSettle();
-    expect(controller.selectedMode, isNull);
-    expect(find.text('Continue'), findsOneWidget);
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-    expect(router.routeInformationProvider.value.uri.path,
-        AppRoutes.onboarding.path);
-    expect(controller.selectedMode, isNull);
+    expect(find.byKey(const ValueKey('app-mode-hybrid')), findsNothing);
+    expect(find.text('What should Tio call you?'), findsOneWidget);
+    expect(controller.selectedMode, AppMode.hybrid);
 
     await _completeProfileInputs(tester);
 
@@ -224,9 +217,9 @@ void main() {
     await tester.tap(find.text('Finish'));
     await tester.pumpAndSettle();
 
-    expect(controller.selectedMode, isNull);
+    expect(controller.selectedMode, AppMode.hybrid);
     expect(onboardingRepository.status, OnboardingStatus.inProgress);
-    expect(onboardingStatusController.status, OnboardingStatus.notStarted);
+    expect(onboardingStatusController.status, OnboardingStatus.inProgress);
     expect(router.routeInformationProvider.value.uri.path,
         AppRoutes.onboarding.path);
   });
