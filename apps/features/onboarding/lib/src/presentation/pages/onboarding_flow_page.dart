@@ -84,7 +84,7 @@ class OnboardingFlowPage extends ConsumerWidget {
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: TioPalette.transparent,
       builder: (sheetContext) {
         return SafeArea(
           top: false,
