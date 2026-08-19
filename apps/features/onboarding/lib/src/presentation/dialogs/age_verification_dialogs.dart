@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 
-import '../theme/onboarding_age_dialog_tokens.dart';
-import '../theme/onboarding_modal_tokens.dart';
-
 class AgeVerificationDialogs {
   const AgeVerificationDialogs._();
 
@@ -28,19 +25,17 @@ class AgeVerificationDialogs {
         return Dialog(
           backgroundColor: colors.surfaceRaised,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(
-              OnboardingAgeDialogTokens.panelRadius,
-            ),
+            borderRadius: BorderRadius.circular(TioSize.dp20),
           ),
           insetPadding: const EdgeInsets.symmetric(
-            horizontal: OnboardingAgeDialogTokens.horizontalInset,
+            horizontal: TioSize.dp28,
           ),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
-              OnboardingAgeDialogTokens.panelHorizontalPadding,
-              OnboardingAgeDialogTokens.panelTopPadding,
-              OnboardingAgeDialogTokens.panelHorizontalPadding,
-              OnboardingAgeDialogTokens.panelBottomPadding,
+              TioSpacing.xl,
+              TioSpacing.xl,
+              TioSpacing.xl,
+              TioSize.dp20,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -50,36 +45,35 @@ class AgeVerificationDialogs {
                   'Is this date correct?',
                   style: TextStyle(
                     color: colors.textPrimary,
-                    fontSize: OnboardingModalTokens.titleFontSize,
-                    fontWeight: OnboardingModalTokens.titleFontWeight,
+                    fontSize: TioFontSize.size18,
+                    fontWeight: TioFontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: OnboardingModalTokens.titleToBodyGap),
+                const SizedBox(height: TioSize.dp10),
                 Text(
                   _formatDate(date),
                   style: TextStyle(
                     color: colors.textSecondary,
-                    fontSize: OnboardingModalTokens.bodyFontSize,
+                    fontSize: TioFontSize.size14,
                   ),
                 ),
-                const SizedBox(height: OnboardingModalTokens.actionTopGap),
+                const SizedBox(height: TioSpacing.xl),
                 Row(
                   children: [
                     Expanded(
                       child: SizedBox(
-                        height: OnboardingAgeDialogTokens.actionHeight,
+                        height: TioSize.dp48,
                         child: OutlinedButton(
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(
                               color: colors.outlineStrong.withAlpha(
-                                OnboardingAgeDialogTokens.outlinedActionAlpha,
+                                TioAlpha.alpha90,
                               ),
-                              width:
-                                  OnboardingAgeDialogTokens.outlinedActionWidth,
+                              width: TioStroke.width15,
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(
-                                OnboardingAgeDialogTokens.actionRadius,
+                                TioSize.dp30,
                               ),
                             ),
                           ),
@@ -88,29 +82,25 @@ class AgeVerificationDialogs {
                             'No',
                             style: TextStyle(
                               color: colors.textPrimary,
-                              fontSize:
-                                  OnboardingAgeDialogTokens.actionLabelFontSize,
-                              fontWeight: OnboardingAgeDialogTokens
-                                  .actionLabelFontWeight,
+                              fontSize: TioFontSize.size15,
+                              fontWeight: TioFontWeight.w700,
                             ),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: OnboardingAgeDialogTokens.choiceGap),
+                    const SizedBox(width: TioSpacing.md),
                     Expanded(
                       child: SizedBox(
-                        height: OnboardingAgeDialogTokens.actionHeight,
+                        height: TioSize.dp48,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: OnboardingAgeDialogTokens
-                                .primaryActionBackgroundColor,
-                            foregroundColor: OnboardingAgeDialogTokens
-                                .primaryActionForegroundColor,
-                            elevation: 0,
+                            backgroundColor: TioPalette.white,
+                            foregroundColor: TioPalette.black,
+                            elevation: TioElevation.none,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(
-                                OnboardingAgeDialogTokens.actionRadius,
+                                TioSize.dp30,
                               ),
                             ),
                           ),
@@ -118,12 +108,9 @@ class AgeVerificationDialogs {
                           child: const Text(
                             'Yes',
                             style: TextStyle(
-                              color: OnboardingAgeDialogTokens
-                                  .primaryActionForegroundColor,
-                              fontSize:
-                                  OnboardingAgeDialogTokens.actionLabelFontSize,
-                              fontWeight: OnboardingAgeDialogTokens
-                                  .actionLabelFontWeight,
+                              color: TioPalette.black,
+                              fontSize: TioFontSize.size15,
+                              fontWeight: TioFontWeight.w700,
                             ),
                           ),
                         ),
@@ -150,19 +137,17 @@ class AgeVerificationDialogs {
         return Dialog(
           backgroundColor: colors.surfaceRaised,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(
-              OnboardingAgeDialogTokens.panelRadius,
-            ),
+            borderRadius: BorderRadius.circular(TioSize.dp20),
           ),
           insetPadding: const EdgeInsets.symmetric(
-            horizontal: OnboardingAgeDialogTokens.horizontalInset,
+            horizontal: TioSize.dp28,
           ),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
-              OnboardingAgeDialogTokens.panelHorizontalPadding,
-              OnboardingAgeDialogTokens.panelTopPadding,
-              OnboardingAgeDialogTokens.panelHorizontalPadding,
-              OnboardingAgeDialogTokens.panelBottomPadding,
+              TioSpacing.xl,
+              TioSpacing.xl,
+              TioSpacing.xl,
+              TioSize.dp20,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -172,45 +157,39 @@ class AgeVerificationDialogs {
                   "Sorry, we can't make your account.",
                   style: TextStyle(
                     color: colors.textPrimary,
-                    fontSize: OnboardingModalTokens.titleFontSize,
-                    fontWeight: OnboardingModalTokens.titleFontWeight,
+                    fontSize: TioFontSize.size18,
+                    fontWeight: TioFontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: OnboardingModalTokens.titleToBodyGap),
+                const SizedBox(height: TioSize.dp10),
                 Text(
                   'Any personal information will be deleted',
                   style: TextStyle(
                     color: colors.textSecondary,
-                    fontSize: OnboardingModalTokens.bodyFontSize,
-                    height: OnboardingAgeDialogTokens.rejectionBodyLineHeight,
+                    fontSize: TioFontSize.size14,
+                    height: TioLineHeight.height130,
                   ),
                 ),
-                const SizedBox(height: OnboardingModalTokens.actionTopGap),
+                const SizedBox(height: TioSpacing.xl),
                 SizedBox(
                   width: double.infinity,
-                  height: OnboardingAgeDialogTokens.actionHeight,
+                  height: TioSize.dp48,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          OnboardingAgeDialogTokens.primaryActionBackgroundColor,
-                      foregroundColor:
-                          OnboardingAgeDialogTokens.primaryActionForegroundColor,
-                      elevation: 0,
+                      backgroundColor: TioPalette.white,
+                      foregroundColor: TioPalette.black,
+                      elevation: TioElevation.none,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          OnboardingAgeDialogTokens.actionRadius,
-                        ),
+                        borderRadius: BorderRadius.circular(TioSize.dp30),
                       ),
                     ),
                     onPressed: () => Navigator.of(context).pop(),
                     child: const Text(
                       'Okay',
                       style: TextStyle(
-                        color: OnboardingAgeDialogTokens
-                            .primaryActionForegroundColor,
-                        fontSize: OnboardingAgeDialogTokens.actionLabelFontSize,
-                        fontWeight:
-                            OnboardingAgeDialogTokens.actionLabelFontWeight,
+                        color: TioPalette.black,
+                        fontSize: TioFontSize.size15,
+                        fontWeight: TioFontWeight.w700,
                       ),
                     ),
                   ),
