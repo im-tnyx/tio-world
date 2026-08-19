@@ -47,14 +47,14 @@ Mobile blank → Continue
 
 ## Profile completion affordance
 
-Optional/missing data should be recoverable later from Profile instead of blocking first-run setup.
+Optional/missing personal profile data should be recoverable later from Profile instead of blocking first-run setup.
 
-When relevant profile/account information is incomplete, show one compact completion card at the **bottom of Profile content, after the existing metrics row**.
+When the user's personal profile identity is incomplete, show one compact completion card at the **bottom of Profile content, after the existing metrics row**.
 
 Example:
 
 ```text
-Your profile is 80% finished  →
+Your profile is 83% finished  →
 ```
 
 Placement contract:
@@ -64,43 +64,66 @@ Profile identity
 → Avatar
 → Name / demographics / plan
 → Weight / Height / BMI / BMR
-→ Profile completion card (only when incomplete)
+→ Profile completion card (only when eligible + incomplete)
 ```
 
 Do not place the card above the avatar or between identity and metrics.
 
 When completion reaches 100%, hide the card.
 
-## Completion V1
+## Completion V1: personal profile identity only
 
-Use a small, explainable set of completion groups rather than counting every raw database column independently:
+The completion score is intentionally limited to the user's actual personal/account profile data. It must not expand into fitness, onboarding, plan, targets, health, or derived metric completeness.
+
+Count these six fields independently:
 
 1. Name
 2. Username
-3. Demographics (`gender` + `dateOfBirth`)
-4. Body measurements (`heightCm` + `currentWeightKg`)
-5. Mobile
+3. Email
+4. Mobile
+5. Gender / Sex
+6. Date of Birth
 
-Each group contributes equally. Avatar is intentionally excluded so a user is not prevented from reaching 100% simply because they do not upload a photo.
+Each field contributes equally.
 
-This gives the approved common case:
+Do **not** count:
+
+- avatar/photo;
+- plan/subscription;
+- App Mode;
+- goals;
+- height;
+- current/target weight;
+- BMI/BMR;
+- activity level;
+- health conditions;
+- workout/nutrition targets;
+- any derived value or unrelated onboarding field.
+
+Example:
 
 ```text
-all required profile groups complete + mobile blank
-→ 4 / 5 complete
-→ 80%
+Name      complete
+Username  complete
+Email     complete
+Gender    complete
+DOB       complete
+Mobile    blank
+
+5 / 6 = 83% rounded
 ```
+
+The calculation must use real persisted/profile/auth field presence. Do not treat display fallbacks/default values as proof that a field was actually supplied.
 
 ## Card navigation
 
-For V1, tapping the completion card opens Account Settings because Mobile is the expected post-setup missing account field and that screen already owns editing the persisted mobile number.
+For V1, tapping the completion card opens Account Settings because Mobile is the expected post-setup missing account field and that screen already owns persisted Username/Mobile editing.
 
 ```text
 Profile
 → completion card
 → Account Settings
-→ Mobile field is blank when no number is stored
-→ user enters number
+→ missing field can be completed there when owned by Account Settings
 → Save
 → profile data refresh
 → completion percentage recalculates
@@ -108,6 +131,34 @@ Profile
 ```
 
 Do not reopen Product Onboarding or Account Setup merely to add an optional Mobile later.
+
+## Once-per-login reminder behavior
+
+The card is a lightweight reminder, not a persistent nag.
+
+```text
+incomplete profile + current login has not dismissed card
+→ show card
+
+user taps card
+→ mark completion reminder dismissed locally for the current login/session
+→ navigate to the relevant settings surface
+
+user fills data
+→ completion may reach 100%
+→ card stays hidden because profile is complete
+
+user does not fill data and presses Back
+→ card remains hidden for the rest of the current login/session
+
+user logs out and later signs in again
+→ local session dismissal resets
+→ if profile is still incomplete, card may show once again
+```
+
+Dismissal is local/session UX state only. Do not persist the dismissal to Supabase and do not change profile/account completion data merely because the reminder was opened or dismissed.
+
+A token refresh must not by itself count as a new login reminder cycle.
 
 ## Persistence and save safety
 
@@ -117,7 +168,7 @@ Required save behavior:
 
 ```text
 existing username unchanged + mobile changed
-→ do not reject the save because the existing username belongs to the same user
+→ do not availability-check/reclaim the unchanged username
 → persist mobile
 → clear `mobile_verified_at` only when the normalized mobile actually changes
 ```
@@ -140,10 +191,16 @@ Username availability/claim behavior remains required when the username itself c
 - [ ] Mobile blank + Continue completes Account Setup.
 - [ ] Returning user with completed Account Setup does not see Mobile again solely because it is blank.
 - [ ] Mobile Back/exit without Continue does not complete the Account Setup boundary.
-- [ ] Profile with only Mobile missing reports 80% using the V1 completion groups.
+- [ ] Completion counts only Name, Username, Email, Mobile, Gender/Sex, and DOB.
+- [ ] Fitness/onboarding/plan/derived values never affect completion percentage.
+- [ ] Display fallback values do not falsely mark missing persisted profile fields complete.
+- [ ] With only Mobile missing, completion reports 83% rounded.
 - [ ] Completion card renders after the metrics row, not above/between Profile identity content.
 - [ ] Completion card is absent at 100%.
-- [ ] Completion card tap opens Account Settings.
+- [ ] Completion card tap opens Account Settings for the current Mobile-first V1 path.
+- [ ] Tapping the card dismisses it for the current login/session even when user returns without filling data.
+- [ ] Logout + later login makes an incomplete profile eligible for the reminder again.
+- [ ] Auth token refresh does not re-show the card as a new login.
 - [ ] Account Settings shows persisted Mobile or blank when missing.
 - [ ] Mobile-only save succeeds with unchanged existing Username.
 - [ ] Changing Mobile clears verification state when appropriate.
@@ -163,13 +220,23 @@ Fresh user
 → Product Onboarding
 → complete onboarding
 → Profile
-→ bottom completion card shows 80%
+→ bottom completion card shows 83% when Mobile is the only missing identity field
 → tap card
 → Account Settings opens with Mobile blank
-→ enter mobile
-→ Save
-→ return/reopen Profile
-→ completion reaches 100% and card is hidden
+→ Back without filling
+→ Profile reminder stays hidden for this login
+→ logout
+→ sign in again
+→ incomplete Profile may show the reminder once again
 ```
 
-Also verify a same-account logout/login after the blank-Mobile Continue does not replay Username or Mobile Account Setup.
+Also verify:
+
+```text
+Profile reminder → Account Settings → enter mobile → Save
+→ profile refresh
+→ completion reaches 100%
+→ card is hidden
+```
+
+And verify same-account logout/login after blank-Mobile Continue does not replay Username or Mobile Account Setup.
