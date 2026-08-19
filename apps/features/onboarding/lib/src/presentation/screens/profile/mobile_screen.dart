@@ -51,7 +51,7 @@ class _MobileScreenState extends State<MobileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = TioTheme.colors(context);
+    final colors = context.tioColors;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -61,7 +61,7 @@ class _MobileScreenState extends State<MobileScreen> {
           subtitle:
               'Add a mobile number for account recovery and future security options. This step is optional and can be completed later.',
         ),
-        const SizedBox(height: TioSpacing.large),
+        const SizedBox(height: TioSpacing.lg),
         TioMobileNumberField(
           fieldKey: const ValueKey('mobile-number-input'),
           controller: _phoneController,
@@ -69,15 +69,15 @@ class _MobileScreenState extends State<MobileScreen> {
           onChanged: _onPhoneChanged,
           hintText: 'Enter 10-digit number',
         ),
-        const SizedBox(height: TioSpacing.small),
+        const SizedBox(height: TioSpacing.sm),
         Text(
           widget.isVerified
               ? 'Verified by your authentication provider.'
               : 'You can add or verify a mobile number later from Account Settings.',
           style: TextStyle(
             color: colors.textMuted,
-            fontSize: 12,
-            height: 1.3,
+            fontSize: TioFontSize.size12,
+            height: TioLineHeight.height130,
           ),
         ),
       ],
