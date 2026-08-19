@@ -24,6 +24,7 @@ class TioPalette {
   static const gray031 = Color(0xFF1F1F1F);
 
   static const slate50 = Color(0xFFF8FAFC);
+  static const slate900 = Color(0xFF0F172A);
 
   static const neutral50 = Color(0xFFF9FAFB);
   static const neutral100 = Color(0xFFF3F4F6);
@@ -49,6 +50,10 @@ class TioPalette {
   static const violet400 = Color(0xFFA78BFA);
   static const violet500 = Color(0xFF8B5CF6);
 
+  static const indigo950 = Color(0xFF1E1B4B);
+
+  static const teal300 = Color(0xFF5EEAD4);
+
   static const cyan400 = Color(0xFF22D3EE);
   static const cyan500 = Color(0xFF06B6D4);
 
@@ -58,6 +63,7 @@ class TioPalette {
   static const amber600 = Color(0xFFFFB300);
   static const gold400 = Color(0xFFFFD700);
   static const gold500 = Color(0xFFFFC107);
+  static const gold700 = Color(0xFFD97706);
   static const orange500 = Color(0xFFFF9800);
 
   static const sky400 = Color(0xFF38BDF8);
