@@ -20,10 +20,12 @@ void main() {
       expect(TioOpacity.opacity0, 0.0);
       expect(TioOpacity.opacity18, 0.18);
       expect(TioOpacity.opacity94, 0.94);
+      expect(TioOpacity.opacity95, 0.95);
       expect(TioOpacity.opacity100, 1.0);
     });
 
-    test('media secondary color stays byte exact', () {
+    test('exact alpha values stay byte exact', () {
+      expect(TioAlpha.alpha45, 45);
       expect(TioAlpha.alpha179, 179);
       expect(TioPalette.whiteAlpha179, const Color(0xB3FFFFFF));
     });
