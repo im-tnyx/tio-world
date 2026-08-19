@@ -1,6 +1,6 @@
 # Onboarding Pre-Auth Draft Persistence
 
-**Status:** Core handoff implemented; Product Onboarding root-Back confirmation/logout implemented; CI + real-device revalidation pending
+**Status:** Core handoff implemented; Product Onboarding root-Back confirmation/logout implemented; automated validation green; real-device revalidation pending
 **Tracking:** GitHub issue #13 (related to #10 and profile persistence #8)
 **Source branch:** `codex/onboarding-mode-migration`
 **Current follow-up branch:** `agent/app-mode-pre-signup` / PR #36
@@ -136,10 +136,25 @@ GitHub Actions run #97 on head `583ec1b08e12036e84088f48375d68fe4247fc5f`:
 - Dart analyzer: passed
 - app local-draft/auth-resume tests: passed, including hydrated resolved-step notification
 - app test total: 104 passed / 10 failed
-- the 10 failures are the same pre-existing Welcome accessibility, avatar expectation, and AppMode router `pumpAndSettle` baseline failures
-- no new failing test class was introduced by that slice
+- the 10 failures were the then-existing Welcome accessibility, avatar expectation, and AppMode router/onboarding test baselines
 
-`apps/features/onboarding/test/domain/targets_setup_mapper_test.dart` additionally covers collected metric projection and null preservation for uncollected optional values. Because workspace tests currently use fail-fast and the app package hits the known baseline failures first, this later-package test still needs targeted local execution or a future CI non-fail-fast improvement.
+Those Product Onboarding AppMode-era expectations were later migrated as part of PR #36 after App Mode moved to the pre-auth Account Setup boundary.
+
+### Latest automated gate
+
+GitHub Actions Flutter CI **#897** on source head `5d31e5c3e7dc33d7e542110db8a13ff0a1abe3e7` completed green:
+
+- workspace bootstrap: passed
+- Flutter analyzers: passed across all Flutter packages
+- Dart analyzer: passed
+- Flutter tests: passed across the workspace
+- Dart tests: passed
+- reusable-card visual/theme enforcement: passed
+- app router confirmed logout regression: passed
+- Product Onboarding root confirmation / visible-system Back parity regressions: passed
+- stale Product Onboarding AppMode-era tests were migrated to the current Profile-first architecture; App Mode UI behavior remains covered under its Account Setup ownership
+
+This closes the automated-validation gate for the Product Onboarding root-Back confirmation/logout slice. The remaining acceptance gate is real-device behavior.
 
 ## Remaining device gate
 
@@ -148,15 +163,27 @@ Use a fresh onboarding completion after pulling the latest branch:
 ```text
 Get Started
 -> App Mode
--> fill Profile height/current weight/target weight/activity
--> Google fresh signup
--> auth/bootstrap
--> direct resolved next step (Workout Intro for workout flow)
--> no App Mode flash
--> complete onboarding
+-> fresh Google signup
+-> Account Setup
+-> Product Onboarding enters at Gender when trusted Google name is available
+-> Back -> Name
+-> Back -> logout confirmation card
+-> Stay -> remains on Name/authenticated
+-> Back -> confirmation -> Log out
+-> Welcome
+-> sign in again with the same account
+-> user-bound onboarding draft remains eligible to resume
 ```
 
-Then read-only Supabase verification must show:
+Also finish the existing fresh-completion persistence revalidation:
+
+```text
+complete Profile height/current weight/target weight/activity
+-> complete onboarding
+-> read-only Supabase verification
+```
+
+Expected:
 
 ```text
 public.users
@@ -203,7 +230,7 @@ The confirmation is not an `AlertDialog` and does not define feature-local visua
 - reusable `TioConfirmationCard` lives under `apps/core/lib/src/ui/components/cards/`;
 - it composes existing `TioCard`, `TioButton`, runtime theme colors, semantic typography, spacing and size contracts;
 - product-specific logout copy and behavior remain owned by Product Onboarding;
-- the card is presented from a modal sheet with a transparent framework surface;
+- the card is presented from a modal sheet using the governed transparent surface role;
 - `apps/core/lib/src/theme/README.md` documents the reusable component contract;
 - no new component token family was introduced.
 
@@ -215,11 +242,12 @@ The confirmation is not an `AlertDialog` and does not define feature-local visua
 - [x] Root Back opens reusable themed `TioConfirmationCard` instead of immediately logging out.
 - [x] `Stay` closes the card and remains on Name without calling the exit callback.
 - [x] `Log out` delegates the confirmed exit.
-- [x] App router confirmed exit now calls `authSessionRepositoryProvider.signOut()` and `appSessionBootstrapController.refresh()`; it no longer tries to route an authenticated incomplete user directly to `/auth`.
+- [x] App router confirmed exit calls `authSessionRepositoryProvider.signOut()` and `appSessionBootstrapController.refresh()`; it no longer tries to route an authenticated incomplete user directly to `/auth`.
 - [x] No draft clear/reset is part of this root logout path.
 - [x] Added focused feature regression tests for `Gender -> Name`, Cancel, Confirm, and system/visible Back parity.
 - [x] Added app router regression coverage for confirmed `signOut -> refresh -> Welcome` behavior.
-- [ ] Latest GitHub CI on the final branch head must complete.
+- [x] Migrated stale Product Onboarding AppMode-era page tests to the current Profile-first architecture.
+- [x] Latest source GitHub CI #897 completed green, including Flutter tests and Dart tests.
 - [ ] Real-device verify fresh Google signup: `Gender -> Back -> Name -> Back -> confirmation -> Log out -> Welcome`, then re-login and confirm draft resume semantics.
 
 ### Follow-up implementation commits
@@ -232,3 +260,5 @@ The confirmation is not an `AlertDialog` and does not define feature-local visua
 - `11a193c1` — confirmed Product Onboarding root exit signs out and refreshes bootstrap.
 - `83110ec1` — app router regression for confirmed logout to Welcome.
 - `d75e05fe` — document the reusable confirmation-card theme contract.
+- `f553587e` — use governed transparent sheet surface role.
+- `720b72fe` / `af4063d0` / `5d31e5c3` — migrate stale Product Onboarding tests to Profile-first and confirmed-root-exit behavior.
