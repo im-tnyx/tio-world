@@ -5,6 +5,7 @@
 /// current rendering without introducing rounding during ownership migration.
 abstract final class TioAlpha {
   static const alpha12 = 12;
+  static const alpha18 = 18;
   static const alpha20 = 20;
   static const alpha24 = 24;
   static const alpha25 = 25;
