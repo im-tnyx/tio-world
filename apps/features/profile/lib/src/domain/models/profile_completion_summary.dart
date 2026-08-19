@@ -1,39 +1,79 @@
 import 'profile_setup_data.dart';
 
-/// Small product-facing completion summary for the Profile surface.
+enum ProfileCompletionField {
+  name,
+  username,
+  email,
+  mobile,
+  gender,
+  dateOfBirth,
+}
+
+/// Product-facing completion summary for the Profile reminder surface.
 ///
-/// The V1 score intentionally uses five explainable groups instead of counting
-/// every persisted column independently. Avatar is not part of completion.
+/// V1 intentionally scores personal profile identity only. Fitness, health,
+/// onboarding, plan, avatar, and derived metrics do not participate.
 class ProfileCompletionSummary {
   const ProfileCompletionSummary({
-    required this.completedGroups,
-    this.totalGroups = 5,
+    required this.completedFields,
+    required this.missingFields,
   });
 
-  factory ProfileCompletionSummary.fromProfile(ProfileSetupData data) {
-    var completed = 0;
+  factory ProfileCompletionSummary.fromProfile(
+    ProfileSetupData data, {
+    required String? email,
+  }) {
+    final completed = <ProfileCompletionField>{};
 
-    if (data.name.trim().isNotEmpty) completed++;
+    if (data.name.trim().isNotEmpty) {
+      completed.add(ProfileCompletionField.name);
+    }
 
     final username = data.username?.trim() ?? '';
-    if (username.isNotEmpty) completed++;
+    if (username.isNotEmpty) {
+      completed.add(ProfileCompletionField.username);
+    }
 
-    // Gender and dateOfBirth are required domain values once Profile data has
-    // been hydrated, so together they satisfy the demographics group.
-    completed++;
-
-    if (data.heightCm > 0 && data.currentWeightKg > 0) completed++;
+    if ((email ?? '').trim().isNotEmpty) {
+      completed.add(ProfileCompletionField.email);
+    }
 
     final mobile = data.mobile?.trim() ?? '';
-    if (mobile.isNotEmpty) completed++;
+    if (mobile.isNotEmpty) {
+      completed.add(ProfileCompletionField.mobile);
+    }
 
-    return ProfileCompletionSummary(completedGroups: completed);
+    if (data.hasPersistedGender) {
+      completed.add(ProfileCompletionField.gender);
+    }
+
+    if (data.hasPersistedDateOfBirth) {
+      completed.add(ProfileCompletionField.dateOfBirth);
+    }
+
+    final missing = ProfileCompletionField.values.toSet()..removeAll(completed);
+
+    return ProfileCompletionSummary(
+      completedFields: Set.unmodifiable(completed),
+      missingFields: Set.unmodifiable(missing),
+    );
   }
 
-  final int completedGroups;
-  final int totalGroups;
+  final Set<ProfileCompletionField> completedFields;
+  final Set<ProfileCompletionField> missingFields;
 
-  int get percentage => ((completedGroups * 100) / totalGroups).round();
+  int get totalFields => ProfileCompletionField.values.length;
 
-  bool get isComplete => completedGroups >= totalGroups;
+  int get percentage => ((completedFields.length * 100) / totalFields).round();
+
+  bool get isComplete => missingFields.isEmpty;
+
+  bool get hasAccountOwnedMissingField => missingFields.any(
+        (field) => switch (field) {
+          ProfileCompletionField.username ||
+          ProfileCompletionField.email ||
+          ProfileCompletionField.mobile => true,
+          _ => false,
+        },
+      );
 }
