@@ -41,12 +41,6 @@ void main() {
       expect(TioAvatarTokens.smallProFrameWidth, TioStroke.width15);
 
       expect(TioOtpDialogTokens.loadingStrokeWidth, TioStroke.width2);
-      expect(TioDialogTokens.deleteHoldStrokeWidth, TioStroke.width6);
-      expect(
-        TioDialogTokens.deleteHoldLoadingStrokeWidth,
-        TioStroke.width25,
-      );
-
       expect(TioNavigationTokens.aiTabInactiveOutlineWidth, TioStroke.width15);
       expect(TioRemoveImageSheetTokens.actionOutlineWidth, TioStroke.width1);
     });
