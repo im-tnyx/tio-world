@@ -5,7 +5,8 @@ import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
-  test('mode selection stays in draft and does not mark completion', () {
+  test('legacy mode selection enters the active product plan without completing',
+      () {
     final controller = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
     );
@@ -15,28 +16,29 @@ void main() {
     expect(controller.state.draft.selectedMode, AppMode.hybrid);
     expect(controller.state.draft.status, OnboardingStatus.inProgress);
     expect(controller.state.draft.status, isNot(OnboardingStatus.completed));
-    expect(controller.state.stepId, OnboardingStepId.mode);
-    expect(controller.state.currentSection, OnboardingSectionId.appMode);
-    expect(controller.state.flowPlan.steps, hasLength(6));
+    expect(controller.state.stepId, OnboardingStepId.profileBasics);
+    expect(controller.state.currentSection, OnboardingSectionId.profile);
+    expect(controller.state.flowPlan.steps, hasLength(5));
+    expect(
+      controller.state.flowPlan.stepIds,
+      isNot(contains(OnboardingStepId.mode)),
+    );
   });
 
-  test('each mode selection rebuilds the matching typed plan', () {
+  test('each mode selection rebuilds the matching active typed plan', () {
     final expectedSteps = {
       AppMode.workout: const [
-        OnboardingStepId.mode,
         OnboardingStepId.profileBasics,
         OnboardingStepId.workoutPreferences,
         OnboardingStepId.targets,
         OnboardingStepId.review,
       ],
       AppMode.nutrition: const [
-        OnboardingStepId.mode,
         OnboardingStepId.profileBasics,
         OnboardingStepId.targets,
         OnboardingStepId.review,
       ],
       AppMode.hybrid: const [
-        OnboardingStepId.mode,
         OnboardingStepId.profileBasics,
         OnboardingStepId.workoutIntro,
         OnboardingStepId.workoutPreferences,
@@ -56,23 +58,29 @@ void main() {
     }
   });
 
-  test('next and previous update stable step identity', () async {
+  test('next and previous update stable Product Onboarding step identity',
+      () async {
     final controller = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
-    )..selectMode(AppMode.workout);
+      initialDraft: OnboardingDraft(
+        selectedMode: AppMode.workout,
+        currentStepId: OnboardingStepId.profileBasics,
+        profile: _validProfile(),
+      ),
+    );
 
     await controller.next(onFinish: _completeImmediately);
 
-    expect(controller.state.stepId, OnboardingStepId.profileBasics);
-    expect(controller.state.currentSection, OnboardingSectionId.profile);
+    expect(controller.state.stepId, OnboardingStepId.workoutPreferences);
+    expect(controller.state.currentSection, OnboardingSectionId.workout);
     expect(
       controller.state.completedStepIds,
-      contains(OnboardingStepId.mode),
+      contains(OnboardingStepId.profileBasics),
     );
     expect(controller.state.canGoBack, isTrue);
 
     controller.previous();
-    expect(controller.state.stepId, OnboardingStepId.mode);
+    expect(controller.state.stepId, OnboardingStepId.profileBasics);
   });
 
   test('mode change reconciles an ineligible step to nearest previous step',
@@ -103,7 +111,7 @@ void main() {
     );
   });
 
-  test('invalid restored step reconciles safely to mode', () {
+  test('invalid restored step reconciles safely to Profile', () {
     final controller = OnboardingController(
       entryPath: OnboardingEntryPath.resumeDraft,
       initialDraft: OnboardingDraft(
@@ -112,15 +120,19 @@ void main() {
       ),
     );
 
-    expect(controller.state.stepId, OnboardingStepId.mode);
+    expect(controller.state.stepId, OnboardingStepId.profileBasics);
   });
 
   test('validation errors disable continue until cleared', () {
     final controller = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
-    )..selectMode(AppMode.workout);
+      initialDraft: OnboardingDraft(
+        selectedMode: AppMode.workout,
+        currentStepId: OnboardingStepId.profileBasics,
+      ),
+    );
 
-    controller.setValidationErrors(const {'mode': 'Choose a mode'});
+    controller.setValidationErrors(const {'name': 'Enter your name'});
     expect(controller.state.canContinue, isFalse);
 
     controller.setValidationErrors(const {});
@@ -190,8 +202,11 @@ void main() {
       () async {
     final controller = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
-    )..selectMode(AppMode.workout);
-    await controller.next(onFinish: _completeImmediately);
+      initialDraft: OnboardingDraft(
+        selectedMode: AppMode.workout,
+        currentStepId: OnboardingStepId.profileBasics,
+      ),
+    );
 
     await controller.next(onFinish: _completeImmediately);
     expect(controller.state.stepId, OnboardingStepId.profileBasics);
@@ -243,7 +258,7 @@ void main() {
     );
   });
 
-  test('profile Back moves gender to name and name to AppMode', () async {
+  test('profile Back moves Gender to Name and Name remains Product root', () {
     final controller = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
       initialDraft: OnboardingDraft(
@@ -261,7 +276,9 @@ void main() {
     expect(controller.state.draft.profile.currentStepId, ProfileStepId.name);
 
     controller.previous();
-    expect(controller.state.stepId, OnboardingStepId.mode);
+    expect(controller.state.stepId, OnboardingStepId.profileBasics);
+    expect(controller.state.draft.profile.currentStepId, ProfileStepId.name);
+    expect(controller.state.canGoBack, isFalse);
   });
 
   test('final profile child follows each mode plan and mode switch keeps data',
@@ -300,7 +317,8 @@ void main() {
     expect(controller.state.draft.profile.goals, {ProfileGoal.keepFit});
   });
 
-  test('progress reflects continuous per-screen steps and reaches 1.0 on review', () async {
+  test('progress reflects Product Onboarding screens and reaches 1.0 on review',
+      () {
     final controller = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
       initialDraft: OnboardingDraft(),
@@ -313,12 +331,7 @@ void main() {
     controller.selectMode(AppMode.hybrid);
     controller.selectWorkoutIntroChoice(WorkoutIntroChoice.setupNow);
     expect(controller.state.progressStepCount, 26);
-    expect(controller.state.progressStepNumber, 0); // on AppMode
-    expect(controller.state.progressValue, 0.0);
-
-    await controller.next(onFinish: _completeImmediately);
-    // Profile name
-    expect(controller.state.progressStepNumber, 1);
+    expect(controller.state.progressStepNumber, 1); // Profile name
     expect(controller.state.progressValue, closeTo(1 / 26, 0.0001));
 
     final reviewController = OnboardingController(
