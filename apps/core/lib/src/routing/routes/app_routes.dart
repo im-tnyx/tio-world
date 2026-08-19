@@ -17,6 +17,13 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  static const appModeSetup = TioRouteContract(
+    path: '/account-setup/app-mode',
+    title: 'Choose App Mode',
+    description: 'Choose the Tio experience to use before creating an account.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
   static const accountSetup = TioRouteContract(
     path: '/account-setup',
     title: 'Account Setup',

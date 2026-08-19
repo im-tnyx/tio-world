@@ -24,6 +24,10 @@ class OnboardingFlowPage extends ConsumerWidget {
   final OnboardingStepBuilder? stepBuilder;
   final Future<void> Function(OnboardingDraft draft) onFinishRequested;
   final Future<void> Function()? onExitRequested;
+
+  /// Retained temporarily for source compatibility with older app wiring.
+  /// Product Onboarding is authenticated-only, so active flow navigation no
+  /// longer invokes a mid-onboarding authentication checkpoint.
   final Future<bool> Function()? onAuthRequired;
 
   Future<void> _handleContinue(
@@ -53,8 +57,76 @@ class OnboardingFlowPage extends ConsumerWidget {
 
     await controller.next(
       onFinish: onFinishRequested,
-      onAuthRequired: onAuthRequired,
     );
+  }
+
+  void _handleBack(
+    BuildContext context,
+    WidgetRef ref,
+    OnboardingController controller,
+  ) {
+    final state = controller.state;
+    if (state.isBusy) return;
+
+    if (state.hasPreviousScreen) {
+      controller.previous();
+      return;
+    }
+
+    if (onExitRequested != null) {
+      unawaited(_confirmRootExit(context, ref, controller));
+    }
+  }
+
+  Future<void> _confirmRootExit(
+    BuildContext context,
+    WidgetRef ref,
+    OnboardingController controller,
+  ) async {
+    final exit = onExitRequested;
+    if (exit == null) return;
+
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: TioPalette.transparent,
+      builder: (sheetContext) {
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.all(TioSpacing.lg),
+            child: TioConfirmationCard(
+              key: const ValueKey('onboarding-exit-confirmation-card'),
+              icon: const Icon(Icons.logout_rounded),
+              title: 'Log out of Tio?',
+              message:
+                  'You’ll return to Welcome. Your onboarding progress will stay saved so you can continue after signing in again.',
+              cancelLabel: 'Stay',
+              confirmLabel: 'Log out',
+              onCancel: () => Navigator.of(sheetContext).pop(false),
+              onConfirm: () => Navigator.of(sheetContext).pop(true),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (confirmed == true && context.mounted) {
+      final draftRepository = ref.read(onboardingDraftRepositoryProvider);
+      if (draftRepository != null) {
+        try {
+          await draftRepository.saveDraft(
+            OnboardingDraftSnapshot(draft: controller.state.draft),
+          );
+        } catch (_) {
+          // Best effort. A save failure must not trap the user in onboarding;
+          // the last successfully persisted resume checkpoint remains intact.
+        }
+      }
+      if (context.mounted) {
+        await exit();
+      }
+    }
   }
 
   void _showGoalDataCollectionSheet(BuildContext context) {
@@ -119,11 +191,9 @@ class OnboardingFlowPage extends ConsumerWidget {
 
     final state = controller.state;
     final shouldHandleRouteExit = onExitRequested != null;
-    final visibleBack = state.hasPreviousStep
-        ? controller.previous
-        : onExitRequested == null
-            ? null
-            : () => unawaited(onExitRequested!());
+    final visibleBack = state.hasPreviousScreen || shouldHandleRouteExit
+        ? () => _handleBack(context, ref, controller)
+        : null;
 
     OnboardingBottomInfoAction? infoAction;
     if (state.stepId == OnboardingStepId.mobile) {
@@ -152,16 +222,11 @@ class OnboardingFlowPage extends ConsumerWidget {
     }
 
     return PopScope(
-      canPop: !state.isBusy && !state.hasPreviousStep && !shouldHandleRouteExit,
+      canPop:
+          !state.isBusy && !state.hasPreviousScreen && !shouldHandleRouteExit,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        if (controller.state.isBusy) return;
-        if (controller.state.hasPreviousStep) {
-          controller.previous();
-          return;
-        }
-        final exit = onExitRequested;
-        if (exit != null) unawaited(exit());
+        _handleBack(context, ref, controller);
       },
       child: Scaffold(
         backgroundColor: context.tioColors.background,

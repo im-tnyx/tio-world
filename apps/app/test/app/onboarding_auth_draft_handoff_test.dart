@@ -294,10 +294,11 @@ void main() {
       expect(record.resumeAfterAuth?.draft.currentStepId, OnboardingStepId.targets);
       expect(
         record.resumeAfterAuth?.draft.completedStepIds,
-        containsAll(const {
-          OnboardingStepId.mode,
-          OnboardingStepId.profileBasics,
-        }),
+        contains(OnboardingStepId.profileBasics),
+      );
+      expect(
+        record.resumeAfterAuth?.draft.completedStepIds,
+        isNot(contains(OnboardingStepId.mode)),
       );
       expect(controller.state.stepId, OnboardingStepId.profileBasics);
 

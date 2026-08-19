@@ -32,8 +32,33 @@ class OnboardingState {
   OnboardingSectionId get currentSection => currentStep.section;
   int get currentIndex => flowPlan.indexOf(stepId);
   bool get isBusy => isInitializing || isSaving || isCompleting;
+
+  /// Whether the current user-facing onboarding screen has an internal
+  /// previous screen, including nested Profile, Workout, and Targets flows.
+  ///
+  /// [hasPreviousStep] intentionally remains the top-level flow-plan check for
+  /// callers that specifically need section-level position.
+  bool get hasPreviousScreen {
+    if (stepId == OnboardingStepId.profileBasics &&
+        const ProfileFlowPlan().previous(draft.profile.currentStepId) != null) {
+      return true;
+    }
+
+    if (stepId == OnboardingStepId.workoutPreferences &&
+        workoutFlowPlan.indexOf(draft.workout.currentStepId) > 0) {
+      return true;
+    }
+
+    if (stepId == OnboardingStepId.targets &&
+        const TargetsFlowPlan().previous(draft.targets.currentStepId) != null) {
+      return true;
+    }
+
+    return hasPreviousStep;
+  }
+
   bool get hasPreviousStep => currentIndex > 0;
-  bool get canGoBack => hasPreviousStep && !isBusy;
+  bool get canGoBack => hasPreviousScreen && !isBusy;
   bool get canContinue =>
       !isBusy &&
       validationErrors.isEmpty &&

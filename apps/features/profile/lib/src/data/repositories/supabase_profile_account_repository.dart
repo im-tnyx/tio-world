@@ -204,7 +204,7 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
 
     final current = await _client
         .from('users')
-        .select('mobile')
+        .select('username,mobile')
         .eq('id', userId)
         .maybeSingle();
 
@@ -213,13 +213,18 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
     }
 
     final normalizedUsername = _normalizeUsername(username);
+    final previousUsername = _normalizeUsername(
+      (current['username'] as String?)?.trim() ?? '',
+    );
+    final usernameChanged = previousUsername != normalizedUsername;
+
     final normalizedMobile = _normalizeMobile(mobile);
     final previousMobile = _normalizeMobile(
       (current['mobile'] as String?)?.trim() ?? '',
     );
     final mobileChanged = previousMobile != normalizedMobile;
 
-    if (normalizedUsername.isNotEmpty) {
+    if (usernameChanged && normalizedUsername.isNotEmpty) {
       if (!_isValidUsername(normalizedUsername)) {
         throw ArgumentError.value(
           username,
@@ -238,7 +243,8 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
     }
 
     final payload = <String, dynamic>{
-      'username': normalizedUsername.isEmpty ? null : normalizedUsername,
+      if (usernameChanged)
+        'username': normalizedUsername.isEmpty ? null : normalizedUsername,
       'mobile': normalizedMobile.isEmpty ? null : normalizedMobile,
       'updated_at': DateTime.now().toUtc().toIso8601String(),
       if (mobileChanged) 'mobile_verified_at': null,

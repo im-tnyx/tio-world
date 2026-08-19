@@ -6,12 +6,12 @@ void main() {
   const buildFlow = BuildOnboardingFlowUseCase();
 
   group('BuildOnboardingFlowUseCase', () {
-    test('starts with app mode only before a mode is selected', () {
+    test('retains legacy mode-only compatibility when no mode is seeded', () {
       final plan = buildFlow(entryPath: OnboardingEntryPath.firstRun);
       expect(plan.stepIds, const [OnboardingStepId.mode]);
     });
 
-    test('workout product onboarding never includes mobile', () {
+    test('workout product onboarding starts at profile and never includes mobile', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
@@ -20,17 +20,17 @@ void main() {
       expect(
         plan.stepIds,
         const [
-          OnboardingStepId.mode,
           OnboardingStepId.profileBasics,
           OnboardingStepId.workoutPreferences,
           OnboardingStepId.targets,
           OnboardingStepId.review,
         ],
       );
+      expect(plan.stepIds, isNot(contains(OnboardingStepId.mode)));
       expect(plan.stepIds, isNot(contains(OnboardingStepId.mobile)));
     });
 
-    test('nutrition product onboarding never includes mobile', () {
+    test('nutrition product onboarding starts at profile and never includes mobile', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.resumeDraft,
         mode: AppMode.nutrition,
@@ -39,15 +39,15 @@ void main() {
       expect(
         plan.stepIds,
         const [
-          OnboardingStepId.mode,
           OnboardingStepId.profileBasics,
           OnboardingStepId.targets,
           OnboardingStepId.review,
         ],
       );
+      expect(plan.stepIds, isNot(contains(OnboardingStepId.mode)));
     });
 
-    test('hybrid product onboarding never includes mobile', () {
+    test('hybrid product onboarding starts at profile and never includes mobile', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.hybrid,
@@ -56,7 +56,6 @@ void main() {
       expect(
         plan.stepIds,
         const [
-          OnboardingStepId.mode,
           OnboardingStepId.profileBasics,
           OnboardingStepId.workoutIntro,
           OnboardingStepId.workoutPreferences,
@@ -64,6 +63,7 @@ void main() {
           OnboardingStepId.review,
         ],
       );
+      expect(plan.stepIds, isNot(contains(OnboardingStepId.mode)));
     });
 
     test('hybrid later still skips workout preferences', () {
@@ -75,7 +75,6 @@ void main() {
       expect(
         plan.stepIds,
         const [
-          OnboardingStepId.mode,
           OnboardingStepId.profileBasics,
           OnboardingStepId.workoutIntro,
           OnboardingStepId.targets,

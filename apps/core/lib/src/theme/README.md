@@ -44,7 +44,7 @@ final shadows = context.tioShadows;
 final textTheme = Theme.of(context).textTheme;
 ```
 
-Prefer reusable core UI such as `TioButton`, `TioInput`, `TioUsernameInputField`, `TioMobileNumberField`, `TioCard`, `TioAvatar`, and shared dialogs/pickers/sheets before rebuilding the same contract in a feature.
+Prefer reusable core UI such as `TioButton`, `TioInput`, `TioUsernameInputField`, `TioMobileNumberField`, `TioCard`, `TioConfirmationCard`, `TioAvatar`, and shared dialogs/pickers/sheets before rebuilding the same contract in a feature.
 
 A normal feature edit should not require opening internal token source. Inspect `apps/core/lib/src/theme/tokens/**` only when a documented role is missing/ambiguous, runtime source and this README disagree, or the task intentionally changes the core design-system contract.
 
@@ -378,9 +378,12 @@ TioInput
 TioUsernameInputField
 TioMobileNumberField
 TioCard
+TioConfirmationCard
 TioAvatar
 core reusable dialogs/pickers/sheets
 ```
+
+`TioConfirmationCard` is the generic themed confirm/cancel card composition. Product-specific copy, consequences, persistence, and navigation remain feature-owned. Present the card through the surface that fits the workflow, such as a modal sheet, rather than creating a product-action-specific dialog/token bag.
 
 When a repeated pattern is missing, first ask whether the correct fix is an existing component, reusable variant, or direct governed primitives—not another token file.
 

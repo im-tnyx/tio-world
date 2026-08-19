@@ -21,6 +21,7 @@ import 'app_mode/app_mode.dart';
 import 'app_theme.dart';
 import 'network_providers.dart';
 import 'onboarding/onboarding.dart';
+import 'profile/profile_completion.dart';
 import 'session/session.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -42,6 +43,7 @@ ChromePolicy shellChromePolicyForPath(String location) {
   final appRoutes = [
     AppRoutes.splash,
     AppRoutes.auth,
+    AppRoutes.appModeSetup,
     AppRoutes.accountSetup,
     AppRoutes.usernameSetup,
     AppRoutes.onboarding,
@@ -86,6 +88,7 @@ void _handleShellAction(GoRouter router,
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   final appModeController = ref.read(appModeControllerProvider);
+  final pendingAppModePreference = PendingAppModePreference();
   final onboardingStatusController =
       ref.read(onboardingStatusControllerProvider);
   final appSessionBootstrapController =
@@ -217,6 +220,25 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const WelcomeRoute(),
       ),
       GoRoute(
+        path: AppRoutes.appModeSetup.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => PreAuthAppModeRoute(
+          pendingPreference: pendingAppModePreference,
+          onBack: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(AppRoutes.auth.path);
+            }
+          },
+          onContinueToSignup: () async {
+            if (context.mounted) {
+              await context.push<void>(AppRoutes.emailSignup.path);
+            }
+          },
+        ),
+      ),
+      GoRoute(
         path: AppRoutes.login.path,
         parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => Consumer(
@@ -329,6 +351,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               await appSessionBootstrapController.refresh();
             },
             onCompleted: () async {
+              final pendingMode = await pendingAppModePreference.read();
+              if (pendingMode != null) {
+                await appModeController.select(pendingMode);
+                await pendingAppModePreference.clear();
+              }
               ref.invalidate(profileDataProvider);
               await appSessionBootstrapController.refresh();
             },
@@ -343,101 +370,107 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.onboarding.path,
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => OnboardingFlowPage(
-          seed: OnboardingControllerSeed(
-            entryPath: onboardingStatusController.entryPath,
-          ),
-          onExitRequested: () async {
-            if (context.canPop()) {
-              context.pop();
-              return;
-            }
-            context.go(AppRoutes.auth.path);
-          },
-          onAuthRequired: () async {
-            final authProductState = ref.read(authProductStateProvider);
-            final isSupabaseReady =
-                supabaseClient != null && supabaseClient.auth.currentUser != null;
-            if (authProductState.isFirebaseAuthenticated || isSupabaseReady) {
-              return true;
-            }
-            if (authProductState.isAuthUnavailable && supabaseClient == null) {
-              return true;
-            }
-            final result = await context.push<bool>(AppRoutes.emailSignup.path);
-            return result ?? false;
-          },
-          onFinishRequested: (draft) async {
-            debugPrint('[Router] onFinishRequested invoked. Profile name: "${draft.profile.name}"');
-            try {
-              if (supabaseClient != null && supabaseClient.auth.currentUser == null) {
-                debugPrint('[Router] Supabase user is not logged in. Pushing Signup...');
-                await context.push<bool>(AppRoutes.emailSignup.path);
-                if (supabaseClient.auth.currentUser == null) {
-                  debugPrint('[Router] User still not logged in after signup sheet.');
-                  throw StateError('Sign in is required to save your setup to Supabase.');
-                }
-                debugPrint('[Router] Supabase auth succeeded! userId=${supabaseClient.auth.currentUser?.id}');
-              }
-
+        builder: (context, state) {
+          final selectedMode = appModeController.selectedMode;
+          return OnboardingFlowPage(
+            seed: OnboardingControllerSeed(
+              entryPath: onboardingStatusController.entryPath,
+              draft: selectedMode == null
+                  ? null
+                  : OnboardingDraft(
+                      selectedMode: selectedMode,
+                      currentStepId: OnboardingStepId.profileBasics,
+                    ),
+            ),
+            onExitRequested: () async {
+              await ref.read(authSessionRepositoryProvider).signOut();
+              await appSessionBootstrapController.refresh();
+            },
+            onAuthRequired: () async {
               final authProductState = ref.read(authProductStateProvider);
               final isSupabaseReady =
                   supabaseClient != null && supabaseClient.auth.currentUser != null;
-              final isDurablePersistenceReady = isSupabaseReady ||
-                  authProductState.isReadyForProtectedBackendCalls ||
-                  authProductState.isAuthUnavailable ||
-                  supabaseClient == null;
-
-              final completeOnboarding = CompleteOnboardingUseCase(
-                confirmedModePreference:
-                    _AppModeControllerPreferenceAdapter(appModeController),
-                statusRepository: onboardingStatusRepository,
-                completionRepository: onboardingCompletionRepository,
-                draftRepository: onboardingDraftRepository,
-                persistOwnerDataUseCase: PersistOnboardingOwnerDataUseCase(
-                  profileRepository: profileRepository,
-                  workoutRepository: workoutRepository,
-                  targetsRepository: targetsRepository,
-                ),
-                validator: OnboardingCompletionValidator(
-                  hasDurableOwnerPersistence: hasDurableStorage,
-                  backendUserReady: isDurablePersistenceReady,
-                ),
-              );
-              final flowPlan = const BuildOnboardingFlowUseCase()(
-                entryPath: onboardingStatusController.entryPath,
-                mode: draft.selectedMode,
-                workoutIntroChoice: draft.workoutIntroChoice,
-              );
-
-              debugPrint('[Router] Executing completeOnboarding...');
-              await completeOnboarding(
-                draft: draft,
-                flowPlan: flowPlan,
-              );
-              debugPrint('[Router] completeOnboarding SUCCESS!');
-              onboardingStatusController.markCompleted();
-              if (context.mounted) {
-                context.go(
-                  AppRoutes.congratulations.path,
-                  extra: {
-                    'userName': draft.profile.name,
-                    'isWelcomeBack': false,
-                  },
-                );
-                final completedUserId = supabaseClient?.auth.currentUser?.id;
-                if (completedUserId != null && completedUserId.isNotEmpty) {
-                  appSessionBootstrapController
-                      .markReadyAfterOnboardingCompletion(completedUserId);
-                }
+              if (authProductState.isFirebaseAuthenticated || isSupabaseReady) {
+                return true;
               }
-            } catch (e, st) {
-              debugPrint('[Router] onFinishRequested EXCEPTION: $e');
-              debugPrint('[Router] onFinishRequested StackTrace:\n$st');
-              rethrow;
-            }
-          },
-        ),
+              if (authProductState.isAuthUnavailable && supabaseClient == null) {
+                return true;
+              }
+              final result = await context.push<bool>(AppRoutes.emailSignup.path);
+              return result ?? false;
+            },
+            onFinishRequested: (draft) async {
+              debugPrint('[Router] onFinishRequested invoked. Profile name: "${draft.profile.name}"');
+              try {
+                if (supabaseClient != null && supabaseClient.auth.currentUser == null) {
+                  debugPrint('[Router] Supabase user is not logged in. Pushing Signup...');
+                  await context.push<bool>(AppRoutes.emailSignup.path);
+                  if (supabaseClient.auth.currentUser == null) {
+                    debugPrint('[Router] User still not logged in after signup sheet.');
+                    throw StateError('Sign in is required to save your setup to Supabase.');
+                  }
+                  debugPrint('[Router] Supabase auth succeeded! userId=${supabaseClient.auth.currentUser?.id}');
+                }
+
+                final authProductState = ref.read(authProductStateProvider);
+                final isSupabaseReady =
+                    supabaseClient != null && supabaseClient.auth.currentUser != null;
+                final isDurablePersistenceReady = isSupabaseReady ||
+                    authProductState.isReadyForProtectedBackendCalls ||
+                    authProductState.isAuthUnavailable ||
+                    supabaseClient == null;
+
+                final completeOnboarding = CompleteOnboardingUseCase(
+                  confirmedModePreference:
+                      _AppModeControllerPreferenceAdapter(appModeController),
+                  statusRepository: onboardingStatusRepository,
+                  completionRepository: onboardingCompletionRepository,
+                  draftRepository: onboardingDraftRepository,
+                  persistOwnerDataUseCase: PersistOnboardingOwnerDataUseCase(
+                    profileRepository: profileRepository,
+                    workoutRepository: workoutRepository,
+                    targetsRepository: targetsRepository,
+                  ),
+                  validator: OnboardingCompletionValidator(
+                    hasDurableOwnerPersistence: hasDurableStorage,
+                    backendUserReady: isDurablePersistenceReady,
+                  ),
+                );
+                final flowPlan = const BuildOnboardingFlowUseCase()(
+                  entryPath: onboardingStatusController.entryPath,
+                  mode: draft.selectedMode,
+                  workoutIntroChoice: draft.workoutIntroChoice,
+                );
+
+                debugPrint('[Router] Executing completeOnboarding...');
+                await completeOnboarding(
+                  draft: draft,
+                  flowPlan: flowPlan,
+                );
+                debugPrint('[Router] completeOnboarding SUCCESS!');
+                onboardingStatusController.markCompleted();
+                if (context.mounted) {
+                  context.go(
+                    AppRoutes.congratulations.path,
+                    extra: {
+                      'userName': draft.profile.name,
+                      'isWelcomeBack': false,
+                    },
+                  );
+                  final completedUserId = supabaseClient?.auth.currentUser?.id;
+                  if (completedUserId != null && completedUserId.isNotEmpty) {
+                    appSessionBootstrapController
+                        .markReadyAfterOnboardingCompletion(completedUserId);
+                  }
+                }
+              } catch (e, st) {
+                debugPrint('[Router] onFinishRequested EXCEPTION: $e');
+                debugPrint('[Router] onFinishRequested StackTrace:\n$st');
+                rethrow;
+              }
+            },
+          );
+        },
       ),
       GoRoute(
         path: AppRoutes.congratulations.path,
@@ -460,6 +493,22 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           builder: (context, ref, _) {
             final profileAsync = ref.watch(profileDataProvider);
             final profileData = profileAsync.valueOrNull;
+            final completion =
+                ref.watch(profileCompletionSummaryProvider).valueOrNull;
+            final reminderScope =
+                ref.watch(profileCompletionReminderScopeProvider);
+            final dismissedAsync = reminderScope == null
+                ? null
+                : ref.watch(
+                    profileCompletionReminderDismissedProvider(reminderScope),
+                  );
+            final visibleCompletion = reminderScope != null &&
+                    dismissedAsync?.hasValue == true &&
+                    dismissedAsync?.valueOrNull != true &&
+                    completion != null &&
+                    !completion.isComplete
+                ? completion
+                : null;
 
             final avatarFrame = switch (profileData?.plan.toLowerCase()) {
               'plus' => TioAvatarFrame.plusRing,
@@ -469,6 +518,27 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
             return ProfilePage(
               profileData: profileData,
+              completionSummary: visibleCompletion,
+              onCompletionPressed: visibleCompletion == null ||
+                      reminderScope == null
+                  ? null
+                  : () async {
+                      await ref
+                          .read(profileCompletionReminderPreferenceProvider)
+                          .dismiss(reminderScope);
+                      ref.invalidate(
+                        profileCompletionReminderDismissedProvider(
+                          reminderScope,
+                        ),
+                      );
+
+                      final route = visibleCompletion.hasProfileOwnedMissingField
+                          ? AppRoutes.profileSettings.path
+                          : AppRoutes.accountSettings.path;
+                      if (context.mounted) {
+                        await context.push<void>(route);
+                      }
+                    },
               isLoading: profileAsync.isLoading,
               avatarFrame: avatarFrame,
               onAvatarPressed: () => context.push(AppRoutes.profileAvatar.path),
@@ -674,6 +744,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               );
               await ref.read(profileSetupRepositoryProvider).saveProfileSetup(updated);
               ref.invalidate(profileDataProvider);
+              ref.invalidate(profileCompletionSummaryProvider);
             },
           );
         },
@@ -706,6 +777,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   mobile: phoneNumber,
                 );
                 ref.invalidate(profileDataProvider);
+                ref.invalidate(profileCompletionSummaryProvider);
               },
               onDeleteAccountConfirmed: () async {
                 try {
