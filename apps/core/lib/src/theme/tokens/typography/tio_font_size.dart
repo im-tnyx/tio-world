@@ -15,6 +15,7 @@ abstract final class TioFontSize {
   static const size28 = 28.0;
   static const size34 = 34.0;
   static const size36 = 36.0;
+  static const size38 = 38.0;
   static const size42 = 42.0;
   static const size44 = 44.0;
 }
