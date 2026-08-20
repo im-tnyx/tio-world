@@ -18,7 +18,17 @@ This task currently authorizes **planning/audit only**. It does not authorize pr
 
 ### User Outcome
 
-A new user should complete one clear Product Onboarding flow where every screen appears for a reason, goals are not duplicated across domains, optional health connections are consent-first, Review reflects the actual selected setup, and Review is followed by a truthful `0 → 100%` Plan Building/finalization screen before entering the app.
+A new user should complete one clear Product Onboarding flow where every screen appears for a reason, goals are not duplicated across domains, optional health connections are consent-first, Review reflects the actual selected setup, Review is followed by a truthful `0 → 100%` Plan Building/finalization screen, and successful finalization then reuses the **existing** `CongratulationsScreen` before the user enters the app.
+
+Target handoff:
+
+```text
+Review
+→ Plan Building 0…100
+→ existing CongratulationsScreen
+→ Let's go!
+→ App
+```
 
 The flow must remain mode-aware:
 
@@ -30,6 +40,7 @@ Workout
 → optional Health Connections
 → Review
 → Plan Building
+→ existing CongratulationsScreen
 → App
 
 Nutrition
@@ -39,6 +50,7 @@ Nutrition
 → optional Health Connections
 → Review
 → Plan Building
+→ existing CongratulationsScreen
 → App
 
 Hybrid
@@ -47,6 +59,7 @@ Hybrid
 → optional Health Connections
 → Review
 → Plan Building
+→ existing CongratulationsScreen
 → App
 ```
 
@@ -54,13 +67,16 @@ Common Wellness screens (Steps / Water / Sleep) remain a review decision: mandat
 
 ### Success Criteria
 
-- Product Onboarding has explicit section boundaries for common Profile, Body Goal, optional/common Wellness, Nutrition Profile, Nutrition Goals, Workout Profile, Workout Targets, Health Connections, Review, and Plan Building where approved.
+- Product Onboarding has explicit boundaries for common Profile, Body Goal, optional/common Wellness, Nutrition Profile, Nutrition Goals, Workout Profile, Workout Targets, Health Connections, Review, and Plan Building where approved.
 - `Lose/Gain/Maintain/Recomposition` is asked once as common Body Goal, not repeated as a Nutrition Goal.
 - Workout Goal remains training-specific.
 - Nutrition Targets remain numeric/recommendation-specific.
 - Settings #45/#46/#47 later edit the same canonical owners used by onboarding.
 - Health connection is optional and does not make Onboarding the owner of permissions, provider state, health records, sync, retention, or revocation.
 - Review is followed by a real finalization state with a visible `0 → 100%` ring; `100%` cannot be shown before required finalization succeeds.
+- Successful finalization reuses `apps/features/onboarding/lib/src/presentation/screens/congratulations_screen.dart`.
+- Failed/incomplete finalization never shows Congratulations.
+- No duplicate or redesigned Congratulations screen is introduced by this task.
 - Existing #13 App Mode/Auth/Account Setup behavior remains regression-protected.
 - Existing drafts/resume checkpoints are migrated/reconciled safely when step/section identity changes.
 - No implementation slice starts before its audit findings and ownership decisions are reviewed and explicitly approved.
@@ -74,6 +90,7 @@ Common Wellness screens (Steps / Water / Sleep) remain a review decision: mandat
 - Health Connections onboarding UX and integration-boundary audit.
 - Review grouping and safe edit-back/resume behavior.
 - Plan Building/finalization progress and failure contract.
+- Handoff from Plan Building to the existing Congratulations screen.
 - Draft/resume compatibility planning.
 - Sliced implementation plan and validation gates.
 
@@ -86,6 +103,8 @@ Common Wellness screens (Steps / Water / Sleep) remain a review decision: mandat
 - Supabase schema changes before #44 ownership approval.
 - Choosing or adding a health plugin/API before provider/integration audit.
 - Inventing a generated Workout Program or Diet Plan merely to animate the final Plan Building screen.
+- Creating a second Congratulations screen.
+- Redesigning the existing Congratulations screen.
 - Calculation formula changes.
 - Visual redesign outside separately approved screen designs.
 
@@ -96,7 +115,7 @@ Common Wellness screens (Steps / Water / Sleep) remain a review decision: mandat
 ### Verified Evidence
 
 - `main` verified at `833fc625ea75a2b8f29f6338764ce977680bb897` before this planning branch.
-- GitHub issue #40 is the Product Onboarding structure tracker and has been updated with the expanded flow proposal.
+- GitHub issue #40 is the Product Onboarding structure tracker and now records the expanded flow including the existing Congratulations handoff.
 - #44 is the canonical owner tracker.
 - #45 owns post-onboarding Body/Weight/Wellness Settings planning.
 - #46 owns post-onboarding Nutrition Profile/Goals Settings planning.
@@ -135,6 +154,14 @@ review
 - Current Nutrition `TargetsSetupData` mixes Wellness, Body Goal, common Profile mirrors and Nutrition recommendation values.
 - Current `WorkoutPreferencesData` mixes Workout Profile and Workout Target/schedule fields.
 - No existing dedicated Health Connect/Samsung Health integration owner/tracker was found during this planning audit.
+- Existing celebration screen is already implemented at:
+
+```text
+apps/features/onboarding/lib/src/presentation/screens/congratulations_screen.dart
+```
+
+- The existing screen already provides the celebration experience and `Let's go!` action.
+- Current app routing already uses the Congratulations route after successful onboarding completion. The new planning requirement is to insert Plan Building before this existing handoff, not replace it.
 
 ### Existing Pattern to Follow
 
@@ -143,10 +170,11 @@ review
 - Feature/domain owners retain calculations, validation and durable data.
 - `package:tio_core/core.dart` reusable-first UI boundary.
 - Draft/resume uses stable IDs and migration/reconciliation rather than screen index.
+- Existing Congratulations screen remains the celebration/handoff surface unless a separately approved product decision changes it.
 
 ### Tests or Validation Already Present
 
-Existing onboarding flow, draft/resume, owner persistence, Profile, Workout, Targets and Review tests provide a characterization baseline. Exact affected tests must be inventoried in Slice 0 before source changes.
+Existing onboarding flow, draft/resume, owner persistence, Profile, Workout, Targets, Review, completion and route tests provide a characterization baseline. Exact affected tests must be inventoried in Slice 0 before source changes.
 
 ---
 
@@ -162,14 +190,17 @@ Existing onboarding flow, draft/resume, owner persistence, Profile, Workout, Tar
 | Nutrition Targets numeric/recommended/custom | Proposed / review | Calories/macros are not body-goal identity | Nutrition + #46 |
 | Steps/Water/Sleep common Wellness | Proposed / review | Must not be Nutrition-owned by storage accident | #44/#45 |
 | Wellness screens mandatory vs optional vs Settings-only | Needs decision | Keep onboarding useful without unnecessary length | Product |
-| Health Connections is optional | Proposed / review | Connection should not block basic account setup | Product + integration owner |
-| Health Connections placed before Review | Needs decision | Allows Review/finalization to know truthful connection status if relevant | Product |
+| Health Connections is optional | Proposed / review | Connection should not block basic setup | Product + integration owner |
+| Health Connections placed before Review | Needs decision | Lets Review/finalization know truthful connection status if relevant | Product |
 | Provider choices show Samsung Health + Health Connect | Needs technical audit | UI labels must not imply incorrect independent APIs | Product + Android/integration owner |
-| Plan Building follows Review | Proposed / review | Matches intended final user flow | Product + Onboarding |
+| Plan Building follows Review | Proposed / review | Intended finalization UX | Product + Onboarding |
 | Progress `100%` only after required finalization succeeds | Proposed / review | Prevent false success | Onboarding + owner repositories |
+| Existing `CongratulationsScreen` follows successful Plan Building | Approved product direction | Screen already exists and should be reused | Product + Onboarding |
+| No new/redesigned Congratulations screen in this task | Approved guardrail | Avoid duplicate UI and preserve validated surface | Product + Onboarding |
 | Exact operations driving Plan Building progress | Needs decision | Must reflect real finalization work | Architecture + owners |
+| Congratulations remains route vs becomes flow identity | Needs audit | Preserve current routing/resume behavior | Onboarding + app routing |
 | New section/step IDs | Needs decision | Required for correct ownership but must preserve draft compatibility | Onboarding |
-| Stale App Mode/Mobile onboarding identities removal | Needs audit | #13 moved their active ownership elsewhere | Onboarding + Account Setup |
+| Stale App Mode/Mobile onboarding identities removal | Needs audit | #13 moved active ownership elsewhere | Onboarding + Account Setup |
 
 ---
 
@@ -203,6 +234,8 @@ Review
 Plan Building / Finalization
         0 → 100
         ↓
+existing CongratulationsScreen
+        ↓ Let's go!
 App
 ```
 
@@ -210,7 +243,7 @@ Exact Hybrid ordering between Nutrition and Workout sections is a product-flow d
 
 ### Proposed Section Identity
 
-Names are conceptual until Slice 1 approves migration-safe identifiers:
+Names remain conceptual until Slice 1 approves migration-safe identifiers:
 
 ```text
 userProfile
@@ -225,7 +258,9 @@ review
 planBuilding
 ```
 
-Do not create empty presentation folders solely to mirror this list. Section identity is a domain/flow concept; physical folders should be created only when a real approved slice needs them.
+The existing Congratulations route/screen is part of the final-flow audit, but this task does **not** assume it needs a persisted `OnboardingStepId`. Preserve the existing route/handoff if that remains the safest design.
+
+Do not create empty presentation folders solely to mirror this list. Physical folders follow approved implementation slices.
 
 ### Ownership and Data Flow
 
@@ -241,7 +276,7 @@ canonical owner mapper/use case
 Profile / Body-Wellness / Nutrition / Workout repository
 ```
 
-Health connection is separate:
+Health connection stays separate:
 
 ```text
 Health Connections onboarding screen
@@ -253,7 +288,7 @@ provider availability / permission / connection state
 
 Onboarding does not own imported health data.
 
-Finalization:
+Finalization/handoff:
 
 ```text
 Review confirmed
@@ -264,8 +299,15 @@ required owner persistence/finalization
         ↓
 mode-relevant setup/recommendation work that actually exists
         ↓
-success -> 100% -> mark onboarding completed -> App
-failure -> controlled retry state, no false completion
+success -> 100%
+        ↓
+existing CongratulationsScreen
+        ↓ Let's go!
+App
+
+failure -> controlled retry state
+          -> no Congratulations
+          -> no false completion
 ```
 
 ### Alternative Rejected
@@ -275,7 +317,9 @@ failure -> controlled retry state, no false completion
 - Put Workout Goal into generic Profile Goal.
 - Treat Settings as a separate owner of the same targets.
 - Put Health Connect/Samsung provider code inside onboarding screens.
-- Animate a fake 0→100 timer independent of actual finalization and route Home regardless of write failures.
+- Animate a fake 0→100 timer independent of actual finalization and continue regardless of write failures.
+- Route directly to App after Plan Building and skip the existing celebration screen.
+- Build a second Congratulations screen or redesign the current one as part of this task.
 - Add speculative folders/tables for every future capability before an approved slice needs them.
 
 ### Failure and Accessibility States
@@ -289,6 +333,7 @@ Later implementation must cover:
 - offline/pending state where applicable;
 - screen-reader progress semantics for the 0→100 ring;
 - reduced-motion alternative that communicates progress without requiring ring animation;
+- successful transition into the existing Congratulations screen only after finalization success;
 - high contrast / large text / compact phone layouts through governed core components.
 
 ---
@@ -303,10 +348,11 @@ Goal: make current flow behavior measurable before restructuring.
 
 - [ ] Fresh-fetch current main and active issue/task state.
 - [ ] Inventory `OnboardingSectionId`, `OnboardingStepId`, step definitions, `BuildOnboardingFlowUseCase`, renderer dispatch, controller transitions and progress plan.
-- [ ] Inventory existing mode matrices for Workout/Nutrition/Hybrid.
+- [ ] Inventory exact Workout/Nutrition/Hybrid mode matrices.
 - [ ] Inventory draft schema, furthest-reached/resume semantics and persisted stable IDs.
-- [ ] Inventory tests that characterize Back, resume, mode changes, Review and completion.
+- [ ] Inventory tests that characterize Back, resume, mode changes, Review, completion and Congratulations routing.
 - [ ] Identify whether `appMode` / `mobile` section/step identities have any active Product Onboarding consumers after #13.
+- [ ] Characterize current completion → Congratulations → App behavior.
 - [ ] Produce before-flow map; no production mutation.
 
 **Review gate:** approve the characterization baseline before Slice 1.
@@ -316,13 +362,14 @@ Goal: make current flow behavior measurable before restructuring.
 Goal: replace the conceptual one-bucket Targets model without breaking resume compatibility.
 
 - [ ] Decide final stable section identities.
-- [ ] Decide whether one outer step may dispatch multiple owner-specific child steps or whether stable child IDs are needed.
+- [ ] Decide whether one outer step dispatches owner-specific child steps or stable child IDs are needed.
 - [ ] Define old-ID → new-ID resume reconciliation.
-- [ ] Preserve old drafts safely; do not rewrite applied/persisted identity blindly.
+- [ ] Preserve old drafts safely; do not rewrite persisted identity blindly.
 - [ ] Decide safe retirement/compatibility handling for stale App Mode/Mobile Product Onboarding IDs.
 - [ ] Define progress semantics across mode-conditional sections.
+- [ ] Decide whether existing Congratulations remains an external post-completion route or requires a migration-safe flow identity; prefer no identity change unless needed.
 
-**Review gate:** user approves section tree and stable identity mapping before code.
+**Review gate:** approve section tree and identity mapping before code.
 
 ### Slice 2 — User Profile + Body Goal
 
@@ -349,7 +396,7 @@ Body Goal
 
 - [ ] Audit every current Profile field against #44.
 - [ ] Decide Body Recomposition behavior.
-- [ ] Decide whether current weight stays shared/profile input while durable ownership evolves toward Body Metrics.
+- [ ] Decide current-weight logical owner transition.
 - [ ] Define migration from current generic Profile Goal / Target Weight placement.
 - [ ] Reuse existing screens/components where behavior remains valid.
 
@@ -357,9 +404,7 @@ Body Goal
 
 ### Slice 3 — Wellness Goals Placement Decision
 
-Goal: decide whether onboarding should collect Steps/Water/Sleep at all.
-
-Candidate:
+Goal: decide whether onboarding should collect Steps/Water/Sleep.
 
 ```text
 Daily Steps
@@ -369,7 +414,7 @@ Bedtime / Wake Time     optional future
 ```
 
 - [ ] Confirm common Wellness ownership with #44/#45.
-- [ ] Compare three product options: mandatory onboarding, optional `Set daily goals`, Settings-only/defaults.
+- [ ] Compare mandatory onboarding vs optional `Set daily goals` vs Settings-only/defaults.
 - [ ] Decide Skip/default behavior.
 - [ ] Remove Nutrition-only assumptions from current generic Targets classification.
 
@@ -379,17 +424,13 @@ Bedtime / Wake Time     optional future
 
 Goal: create a clean Nutrition branch without repeating Body Goal.
 
-Proposed Nutrition Profile:
-
 ```text
+Nutrition Profile
 Diet Type
 Allergies / Restrictions
 Diet Style / Preference
-```
 
-Proposed Nutrition Target summary:
-
-```text
+Nutrition Targets
 Calories
 Protein
 Carbs
@@ -404,7 +445,7 @@ Customize
 - [ ] Audit #46 owner model direction and current Nutrition draft/models/repositories.
 - [ ] Confirm BMR/TDEE display-only calculated context.
 - [ ] Define recommended-vs-custom provenance.
-- [ ] Decide which custom target edits belong in onboarding vs later Settings.
+- [ ] Decide which custom edits belong in onboarding vs later Settings.
 - [ ] Define mode-conditional skip/order behavior.
 
 **Review gate:** approve Nutrition flow before implementation.
@@ -413,19 +454,15 @@ Customize
 
 Goal: separate training context from training objective/schedule.
 
-Proposed Workout Profile:
-
 ```text
+Workout Profile
 Training Environment
 Equipment
 Experience Level
 Focus Areas
 Injuries / Limitations
-```
 
-Proposed Workout Targets:
-
-```text
+Workout Targets
 Workout Goal
 Training Days
 Workout Duration
@@ -443,9 +480,7 @@ Special Event           optional
 
 ### Slice 6 — Health Connections Ownership and UX Audit
 
-Goal: add an optional onboarding connection surface without prematurely choosing the wrong integration architecture.
-
-Proposed screen:
+Goal: add an optional connection surface without prematurely choosing the wrong integration architecture.
 
 ```text
 Connect your health data
@@ -459,25 +494,21 @@ Bottom sheet
 [ Not now / Skip ]
 ```
 
-Audit before implementation:
-
 - [ ] Confirm Android/platform support and actual provider semantics.
-- [ ] Determine whether Samsung Health is a separate supported connector or routes through Health Connect for the approved data types/devices.
-- [ ] Decide package/adapter ownership for provider availability, permission request, connection state, sync and revoke.
-- [ ] Inventory health data types Tio actually needs before asking permissions; request minimum necessary access only.
-- [ ] Define permission education, denial, retry, unavailable-device and revocation behavior.
-- [ ] Define privacy/retention/storage ownership before importing any health records.
-- [ ] Decide final placement: before Review vs post-onboarding if connection does not affect setup.
-- [ ] Ensure connection remains optional unless a later explicit decision changes it.
-- [ ] Reuse a governed bottom-sheet/action pattern from `tio_core` rather than building a local parallel component.
+- [ ] Determine Samsung Health vs Health Connect relationship for approved data types/devices.
+- [ ] Decide package/adapter ownership for availability, permissions, connection, sync and revoke.
+- [ ] Inventory the minimum health data types Tio needs before requesting permission.
+- [ ] Define denial, retry, unavailable-device and revocation behavior.
+- [ ] Define privacy/retention/storage ownership before importing records.
+- [ ] Decide final placement: before Review vs post-onboarding.
+- [ ] Ensure connection remains optional unless explicitly changed later.
+- [ ] Reuse governed `tio_core` bottom-sheet/action patterns.
 
-**Review gate:** approve ownership, provider semantics, requested data and placement before adding a plugin or UI.
+**Review gate:** approve ownership, provider semantics, requested data and placement before plugin/UI work.
 
 ### Slice 7 — Review Restructure
 
 Goal: Review mirrors canonical owners rather than old section buckets.
-
-Proposed grouping:
 
 ```text
 Profile
@@ -493,16 +524,16 @@ Health Connection       connected / not connected
 - [ ] Audit current Review model and edit actions.
 - [ ] Define owner-specific edit-back destinations.
 - [ ] Preserve furthest-reached/resume checkpoint when reviewing earlier answers.
-- [ ] Ensure hidden/ineligible domain data is not displayed but also not destroyed.
-- [ ] Review must not claim unsaved/incomplete connection or target state as committed.
+- [ ] Hide ineligible domain data without destroying it.
+- [ ] Do not claim unsaved/incomplete connection or target state as committed.
 
 **Review gate:** approve final Review content/order before implementation.
 
-### Slice 8 — Plan Building 0→100 Finalization Contract
+### Slice 8 — Plan Building 0→100 + Existing Congratulations Handoff
 
-Goal: after Review, visibly prepare/finalize the user's setup and enter the app only on real success.
+Goal: after Review, visibly finalize the user's setup, then reuse the existing celebration screen.
 
-Proposed user flow:
+Required flow:
 
 ```text
 Review
@@ -513,36 +544,44 @@ Building your plan
    circular progress
 
 Preparing your Tio experience…
-  ↓
+  ↓ success
+existing CongratulationsScreen
+  ↓ Let's go!
 App
 ```
 
 Audit/decisions:
 
 - [ ] Inventory current `CompleteOnboardingUseCase` / owner-persistence ordering.
+- [ ] Inventory current router transition into `CongratulationsScreen`.
 - [ ] Define which real operations exist for Workout, Nutrition and Hybrid.
-- [ ] Define progress mapping to real checkpoints; no fake successful 100% independent of finalization.
-- [ ] Do not create a Workout Program or Diet Plan just because this screen is named Plan Building.
+- [ ] Map progress to real checkpoints; no fake successful `100%` independent of finalization.
+- [ ] Do not create a Workout Program or Diet Plan only because the screen is named Plan Building.
 - [ ] Decide whether progress may animate between real checkpoints while completion remains gated by actual success.
-- [ ] Define failure/retry state without losing Review answers.
+- [ ] Define failure/retry without losing Review answers.
 - [ ] Define Back/cancel behavior once finalization starts.
 - [ ] Define idempotency and duplicate-tap protection.
 - [ ] Define accessible progress semantics and reduced-motion behavior.
-- [ ] Route to App only after required owner writes + completion marker succeed in approved order.
+- [ ] Reach `100%` only after required owner writes + completion marker succeed in approved order.
+- [ ] On success, hand off to the existing `CongratulationsScreen`.
+- [ ] Preserve existing Congratulations UI/assets/copy/animation; no redesign in this task.
+- [ ] Ensure `Let's go!` remains the user-controlled transition into App.
+- [ ] Ensure any failure before successful finalization cannot expose Congratulations.
 
-**Review gate:** approve progress/finalization truth contract and visual concept before implementation.
+**Review gate:** approve finalization truth contract + existing-screen handoff before implementation.
 
 ### Slice 9 — Draft Schema, Resume, and Owner Persistence Reconciliation
 
 Goal: make the restructured flow durable without data loss or duplicate ownership.
 
 - [ ] Map every approved screen field to exactly one canonical owner from #44.
-- [ ] Update onboarding draft shape only for orchestration/edit state, not as a second canonical owner.
-- [ ] Define forward-compatible schema migration from existing drafts and stable IDs.
+- [ ] Update onboarding draft only for orchestration/edit state, not as a second canonical owner.
+- [ ] Define forward-compatible migration from existing drafts and stable IDs.
 - [ ] Define owner write ordering and partial-failure recovery.
 - [ ] Reconcile current Profile/Nutrition/Workout mirrored fields only through approved #44/#8 plan.
 - [ ] Verify inactive mode/domain data preservation.
 - [ ] Keep App Mode durability changes in #11.
+- [ ] Preserve safe Congratulations route/handoff semantics through completion-state changes.
 
 **Review gate:** approve persistence/migration plan before schema/repository mutations.
 
@@ -551,13 +590,16 @@ Goal: make the restructured flow durable without data loss or duplicate ownershi
 - [ ] Unit tests for exact Workout/Nutrition/Hybrid step order and conditional skips.
 - [ ] Draft/resume migration tests.
 - [ ] Back/edit/review/furthest-checkpoint tests.
-- [ ] Health connection skip/unavailable/denied/success/failure tests for the approved integration boundary.
+- [ ] Health connection skip/unavailable/denied/success/failure tests for approved boundary.
 - [ ] Plan Building progress/success/failure/retry/idempotency tests.
+- [ ] Tests proving failed finalization never shows Congratulations.
+- [ ] Tests proving successful finalization reaches existing Congratulations and `Let's go!` enters App.
 - [ ] Ensure completed #13 Account Setup/App Mode behavior remains green.
 - [ ] Analyze affected Flutter/Dart packages.
 - [ ] Full required CI.
 - [ ] Real-device fresh Workout, Nutrition and Hybrid onboarding acceptance.
-- [ ] Real-device health connection acceptance only on supported devices/providers after integration approval.
+- [ ] Real-device confirmation of `Review → Plan Building → existing Congratulations → App`.
+- [ ] Health connection device acceptance only after integration approval.
 - [ ] Remove obsolete compatibility paths only after zero-reference and migration verification.
 
 ---
@@ -567,7 +609,7 @@ Goal: make the restructured flow durable without data loss or duplicate ownershi
 ### Validation Run
 
 ```text
-Planning-only task creation.
+Planning-only task update.
 No production analyze/test run required yet.
 ```
 
@@ -576,7 +618,7 @@ No production analyze/test run required yet.
 Current structural finding:
 
 ```text
-Existing
+Existing broad onboarding
 Profile + Workout + Nutrition + Targets + Review
 
 Desired conceptual direction
@@ -588,6 +630,15 @@ Workout Profile / Targets
 Health Connections
 Review
 Plan Building
+existing CongratulationsScreen
+App
+```
+
+Important correction locked in this task:
+
+```text
+Plan Building = NEW finalization surface
+CongratulationsScreen = ALREADY EXISTS; REUSE AS-IS
 ```
 
 The task intentionally does not lock physical folder trees yet. Folder changes follow approved owner boundaries and real implementation slices; no speculative empty structure.
@@ -604,7 +655,7 @@ Planning branch only:
 
 GitHub planning tracker:
 
-- #40 updated separately with the expanded Product Onboarding flow contract.
+- #40 updated separately with the same flow/ownership contract.
 
 ### Actual Behavior
 
@@ -617,6 +668,7 @@ No runtime behavior changed.
 - Health integration/provider semantics and package ownership are undecided.
 - Plan Building's real operation/progress mapping is undecided.
 - Exact Hybrid section order remains reviewable.
+- Exact route/step identity treatment for the existing Congratulations handoff remains an implementation audit item; the screen itself is not to be recreated or redesigned.
 
 ### Final Status
 
