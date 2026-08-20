@@ -158,7 +158,7 @@ Test Flutter packages     PASS
 Test Dart packages        PASS
 ```
 
-The later task-acceptance commits change documentation evidence only; they do not alter runtime/test source.
+Later commits on the branch only update this task's acceptance evidence; they do not alter runtime/test source.
 
 Focused regressions cover:
 
