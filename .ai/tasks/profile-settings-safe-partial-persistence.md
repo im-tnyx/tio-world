@@ -142,7 +142,7 @@ updated_at
 
 ### Validation Run
 
-Runtime/test source head before this acceptance-record-only commit:
+Authoritative runtime/test source head:
 
 ```text
 73e469280773b700f452b1a61adc2eb053f7741c
@@ -157,6 +157,8 @@ Analyze Dart packages     PASS
 Test Flutter packages     PASS
 Test Dart packages        PASS
 ```
+
+The later task-acceptance commits change documentation evidence only; they do not alter runtime/test source.
 
 Focused regressions cover:
 
