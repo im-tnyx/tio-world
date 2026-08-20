@@ -2,13 +2,18 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/models/profile_settings_update.dart';
 import '../../domain/repositories/profile_settings_repository.dart';
+import '../mappers/profile_settings_write_mapper.dart';
 
 /// Supabase-backed narrow persistence boundary for Profile Settings.
 class SupabaseProfileSettingsRepository implements ProfileSettingsRepository {
-  const SupabaseProfileSettingsRepository({required SupabaseClient client})
-      : _client = client;
+  const SupabaseProfileSettingsRepository({
+    required SupabaseClient client,
+    ProfileSettingsWriteMapper mapper = const ProfileSettingsWriteMapper(),
+  })  : _client = client,
+        _mapper = mapper;
 
   final SupabaseClient _client;
+  final ProfileSettingsWriteMapper _mapper;
 
   String _requireUserId() {
     final userId = _client.auth.currentUser?.id;
@@ -21,23 +26,14 @@ class SupabaseProfileSettingsRepository implements ProfileSettingsRepository {
   @override
   Future<void> updateProfileSettings(ProfileSettingsUpdate update) async {
     final userId = _requireUserId();
-    final name = update.name.trim();
-    if (name.isEmpty) {
-      throw ArgumentError.value(update.name, 'name', 'Name is required.');
-    }
+    final payload = _mapper.toPayload(
+      update,
+      updatedAt: DateTime.now(),
+    );
 
-    final dobIso = update.dateOfBirth.toIso8601String().split('T').first;
     final updatedRow = await _client
         .from('users')
-        .update({
-          'name': name,
-          'gender': update.gender.name,
-          'date_of_birth': dobIso,
-          'dob': dobIso,
-          'height_cm': update.heightCm,
-          'current_weight_kg': update.currentWeightKg,
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
-        })
+        .update(payload)
         .eq('id', userId)
         .select('id')
         .maybeSingle();
