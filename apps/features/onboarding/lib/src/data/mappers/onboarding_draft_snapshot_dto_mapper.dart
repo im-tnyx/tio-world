@@ -5,6 +5,7 @@ import '../../domain/models/onboarding_draft.dart';
 import '../../domain/models/onboarding_draft_snapshot.dart';
 import '../../domain/models/onboarding_status.dart';
 import '../../domain/models/onboarding_step_id.dart';
+import '../../domain/models/onboarding_step_id_codec.dart';
 import '../../domain/models/profile_onboarding_draft.dart';
 import '../../domain/models/profile_step_id.dart';
 import '../../domain/models/target_step_id.dart';
@@ -29,6 +30,7 @@ class OnboardingDraftSnapshotDtoMapper {
 
   static const int supportedSchemaVersion =
       OnboardingDraftSnapshot.currentSchemaVersion;
+  static const OnboardingStepIdCodec _stepIdCodec = OnboardingStepIdCodec();
 
   Map<String, dynamic> toJson(OnboardingDraftSnapshot snapshot) {
     final draft = snapshot.draft;
@@ -38,8 +40,9 @@ class OnboardingDraftSnapshotDtoMapper {
       'status': draft.status.name,
       'selected_mode': draft.selectedMode?.name,
       'workout_intro_choice': draft.workoutIntroChoice?.name,
-      'current_step_id': draft.currentStepId.name,
-      'completed_step_ids': draft.completedStepIds.map((s) => s.name).toList(),
+      'current_step_id': _stepIdCodec.encode(draft.currentStepId),
+      'completed_step_ids':
+          draft.completedStepIds.map(_stepIdCodec.encode).toList(),
       'profile': _profileToJson(draft.profile),
       'workout': _workoutToJson(draft.workout),
       'targets': _targetsToJson(draft.targets),
@@ -71,17 +74,14 @@ class OnboardingDraftSnapshotDtoMapper {
         .where((c) => c.name == introStr)
         .firstOrNull;
 
-    final stepStr = json['current_step_id'] as String?;
-    final currentStepId = OnboardingStepId.values
-            .where((s) => s.name == stepStr)
-            .firstOrNull ??
-        OnboardingStepId.mode;
+    final currentStepId = _stepIdCodec.decodeOr(
+      json['current_step_id'],
+      fallback: OnboardingStepId.mode,
+    );
 
     final completedList = (json['completed_step_ids'] as List<dynamic>?) ?? [];
     final completedStepIds = completedList
-        .map((s) => OnboardingStepId.values
-            .where((step) => step.name == s)
-            .firstOrNull)
+        .map(_stepIdCodec.tryDecode)
         .whereType<OnboardingStepId>()
         .toSet();
 
