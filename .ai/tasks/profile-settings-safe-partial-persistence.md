@@ -160,16 +160,7 @@ Test Dart packages        PASS
 
 Later commits on the branch only update this task's acceptance evidence; they do not alter runtime/test source.
 
-Focused regressions cover:
-
-- unchanged normalized Username skips account mutation;
-- changed Username uses the canonical account owner before profile partial persistence;
-- Username failure prevents the profile partial write;
-- blank changed Username is rejected before mutation;
-- exact Profile Settings payload excludes unrelated account/profile fields;
-- unauthenticated Profile Settings repository write fails;
-- unresolved/missing profile state does not expose the editable form;
-- loaded real profile renders the existing Profile Settings form.
+Focused regressions cover unchanged/changed Username coordination, Username failure ordering, exact Profile Settings field ownership, unauthenticated write rejection, and hydration/missing-profile guards.
 
 ### Real-Device Acceptance — 2026-08-20
 
@@ -207,22 +198,6 @@ The Username RPC performs server normalization/policy/uniqueness checks. Taken/r
 
 ## 7. Final Handoff
 
-### Changed Files
-
-Core runtime changes are limited to:
-
-```text
-apps/app/lib/app/router.dart
-apps/app/lib/app/profile/profile_settings_route.dart
-apps/features/profile/lib/src/domain/models/profile_settings_update.dart
-apps/features/profile/lib/src/domain/repositories/profile_settings_repository.dart
-apps/features/profile/lib/src/domain/usecases/save_profile_settings_use_case.dart
-apps/features/profile/lib/src/data/mappers/profile_settings_write_mapper.dart
-apps/features/profile/lib/src/data/repositories/supabase_profile_settings_repository.dart
-```
-
-Plus barrels, focused tests, and this task brief.
-
 ### Actual Behavior
 
 ```text
@@ -240,11 +215,9 @@ Loaded Profile Settings
 
 ### Known Limitations
 
-- Username and profile-owned fields are two client-side writes, not one database transaction. The ordering intentionally validates/claims a changed Username first; a later profile-write failure can therefore leave the Username changed while profile-owned values remain unchanged. A transactional server boundary would require a separately approved backend/RPC design and is not introduced in this slice.
-- Changed Username has higher observed save latency than Mobile on the accepted device smoke. Current implementation performs the canonical Username RPC before the separate profile partial update; optimization/measurement is deferred rather than weakening Username integrity policy.
-- Body-metric duplication between `public.users` and `public.user_nutrition_profiles` remains intentionally deferred to Issue #8 canonical-owner consistency work.
-- Account Settings controlled repository-failure UX is a later #8 slice.
-- Workout/Nutrition legacy fallback cleanup is a later #8 slice.
+- Username and profile-owned fields are two client-side writes, not one database transaction. A later profile-write failure can therefore leave the Username changed while profile-owned values remain unchanged. A transactional server boundary is outside this slice.
+- Changed Username has higher observed save latency than Mobile. Optimization/measurement is deferred rather than weakening Username integrity policy.
+- Body-metric duplication between `public.users` and `public.user_nutrition_profiles`, Account Settings controlled failure UX, and Workout/Nutrition legacy fallback cleanup remain later Issue #8 slices.
 
 ### Final Status
 
