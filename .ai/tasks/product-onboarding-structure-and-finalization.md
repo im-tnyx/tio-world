@@ -81,6 +81,10 @@ Hybrid
 - **Home and Gym both have setup/facility classifications where useful.**
 - **Available Equipment is collected for both Home and Gym active setup paths.**
 - Setup/facility type may seed suggestions/defaults only; explicit Available Equipment remains authoritative.
+- **Reuse the existing `EquipmentScreen` for the Home path where practical.**
+- **Prefer evolving the same reusable Equipment screen/component for Gym context instead of creating duplicate Home/Gym equipment screens.**
+- Context-specific title/copy/suggestions may differ while canonical equipment selection stays shared.
+- Separate `HomeEquipmentScreen` / `GymEquipmentScreen` should exist only if a focused later UI audit proves materially different interaction needs.
 - Health connection remains optional and separately owned.
 - Plan Building reaches `100%` only after required finalization succeeds.
 - Existing `apps/features/onboarding/lib/src/presentation/screens/congratulations_screen.dart` is reused as-is.
@@ -119,7 +123,8 @@ Hybrid
 - Current Equipment validator requires selection only for Home.
 - Current `WorkoutEquipment` has only six items: Dumbbells, Bench, Mat, Barbell, Bands, Kettlebell.
 - Current Equipment screen copy is explicitly Home-only.
-- This is insufficient because both Home and Gym environments may have limited or extensive equipment.
+- Existing Home equipment implementation is `apps/features/onboarding/lib/src/presentation/screens/workout/equipment_screen.dart`.
+- This is insufficient because both Home and Gym environments may have limited or extensive equipment, but the existing screen is a reusable-first starting point rather than something to replace automatically.
 - Existing `CongratulationsScreen` already exists and current routing uses it after onboarding completion.
 
 ---
@@ -141,6 +146,9 @@ Hybrid
 | Available Equipment shown for Home + Gym | Approved product direction |
 | Setup/facility type only seeds suggestions | Approved product direction |
 | Explicit Available Equipment is authoritative | Approved product direction |
+| Existing `EquipmentScreen` reused for Home where practical | Approved reusable-first direction |
+| Same reusable Equipment screen/component preferred for Gym context | Approved reusable-first direction |
+| Separate Home/Gym equipment screens by default | Rejected unless focused audit proves different UX needs |
 | `Both` Training Location option | Needs decision |
 | Exact Home Setup labels | Needs focused audit |
 | Exact Gym/Facility labels | Needs focused audit |
@@ -235,7 +243,11 @@ Available Equipment
 - `Training Location` answers where the user trains.
 - `Home Setup Type` / `Gym Facility Type` describes the expected environment class.
 - `Available Equipment` is the actual capability truth.
+- Reuse the existing `equipment_screen.dart` Home experience where practical rather than rebuilding it.
+- Prefer making that existing screen/component context-aware for Gym: title, description, suggestions/defaults and category visibility may vary by environment.
 - Do not create incompatible HomeEquipment and GymEquipment identities for the same physical item.
+- Do not create separate Home/Gym equipment screens merely because copy or recommendations differ.
+- A separate screen is justified only if a focused Slice 5 UI audit proves the interaction itself must materially diverge.
 - Home/Gym type may filter, recommend, or preselect likely items for convenience.
 - A Dedicated Home Gym can have broad equipment.
 - A Large/Full Gym can still miss specific machines.
@@ -402,6 +414,10 @@ Audit/decisions:
 - [ ] Decide Training Location options (`Home`, `Gym`, possible `Both`).
 - [ ] Finalize Home Setup Type labels.
 - [ ] Finalize Gym/Facility Type labels.
+- [ ] **Reuse the existing `apps/features/onboarding/lib/src/presentation/screens/workout/equipment_screen.dart` for Home where practical.**
+- [ ] **Prefer evolving the same reusable Equipment screen/component for Gym context.**
+- [ ] Support context-specific Home/Gym title, description, suggested/default selections and category visibility without duplicating canonical equipment state.
+- [ ] Do not introduce separate `HomeEquipmentScreen` / `GymEquipmentScreen` unless a focused UI audit demonstrates materially different interaction requirements.
 - [ ] Expand Equipment beyond current six-item Home-only model.
 - [ ] Audit the provided categorized equipment reference (Weights/Bars, Benches/Racks, Machines, Cardio, Other) without copying blindly.
 - [ ] Keep one canonical equipment vocabulary across Home/Gym.
@@ -411,7 +427,7 @@ Audit/decisions:
 - [ ] Decide Workout Goal, Split and Special Event behavior.
 - [ ] Keep #48 runtime settings outside this slice.
 
-**Review gate:** approve complete Workout branch before implementation.
+**Review gate:** approve complete Workout branch and reusable Equipment-screen approach before implementation.
 
 ### Slice 6 — Health Connections
 
@@ -480,6 +496,8 @@ Review
 - [ ] Hybrid `Later` skips both and preserves saved data.
 - [ ] Home/Gym setup type eligibility tests.
 - [ ] Available Equipment always available for active Home/Gym setup.
+- [ ] Existing Home `EquipmentScreen` behavior remains regression-protected while it is evolved.
+- [ ] Home/Gym contexts share canonical selection state and do not duplicate owner models.
 - [ ] Setup/facility suggestions never override explicit availability without user action.
 - [ ] Draft/resume migration tests.
 - [ ] Review/back/edit tests.
@@ -511,6 +529,14 @@ Training Location
 LOCK-EQUIPMENT-TRUTH
 Setup/facility type = recommendation/default context
 Available Equipment = authoritative capability
+```
+
+```text
+LOCK-EQUIPMENT-REUSE
+Home = reuse existing EquipmentScreen where practical
+Gym = prefer same reusable screen/component with context-specific copy/suggestions
+Separate Home/Gym equipment screens = only if focused UI audit proves necessary
+Canonical equipment selection = shared
 ```
 
 ```text
