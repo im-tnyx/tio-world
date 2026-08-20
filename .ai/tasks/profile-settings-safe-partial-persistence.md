@@ -1,6 +1,6 @@
 # Profile Settings Safe Partial Persistence
 
-**Status:** In progress — automated validation green; real-device acceptance pending
+**Status:** Validated
 **Primary owner:** `apps/features/profile` + `apps/features/settings` + `apps/app`
 **Affected platforms:** Flutter phone app + Supabase
 **Tracking:** GitHub issue #8, Slice 1
@@ -34,7 +34,7 @@ Editing Profile Settings updates only the fields owned by that screen, routes Us
 - [x] Profile Settings cannot save fabricated fallback values while persisted profile data is unresolved/missing.
 - [x] Persistence failure remains on Profile Settings and does not reach its success Snackbar/pop path.
 - [x] Existing loaded `ProfileSettingsPage` visual implementation is unchanged.
-- [ ] Real-device smoke accepted.
+- [x] Real-device persistence smoke accepted.
 
 ### Scope
 
@@ -53,7 +53,8 @@ Editing Profile Settings updates only the fields owned by that screen, routes Us
 - deciding duplicated nutrition/body-metric canonical ownership;
 - anonymous-auth cleanup owned by #5 unless this slice is directly blocked;
 - Profile Settings visual redesign;
-- database migration/RLS change.
+- database migration/RLS change;
+- Username-save latency optimization or transactional consolidation.
 
 ## 2. Codebase Exploration
 
@@ -77,6 +78,7 @@ Editing Profile Settings updates only the fields owned by that screen, routes Us
 | Use a narrow Profile Settings repository instead of broad `saveProfileSetup()` | Approved | Partial screen must mutate only fields it owns | Profile domain/data |
 | Do not expose/save fallback Profile values before hydration | Approved | Prevent silent overwrite with fabricated defaults | App composition |
 | No DB migration | Verified | Required columns/RLS already exist live | Supabase |
+| Username latency observation does not block Slice 1 acceptance | Accepted | Persistence is correct; changed Username uses an additional policy RPC/server write path | Product owner / engineering |
 
 ## 4. Architecture Design
 
@@ -94,7 +96,7 @@ Editing Profile Settings updates only the fields owned by that screen, routes Us
 ProfileSettingsPage
         ↓ onSave
 SaveProfileSettingsUseCase
-        ├─ changed Username → ProfileAccountRepository → canonical server policy
+        ├─ changed Username → ProfileAccountRepository → claim_username RPC/server policy
         └─ profile fields   → ProfileSettingsRepository → public.users partial UPDATE
 ```
 
@@ -115,6 +117,7 @@ updated_at
 - Continue reconstructing `ProfileSetupData` in `router.dart`: rejected because the screen does not own the full record.
 - Put Username into the profile partial payload: rejected because that bypasses the canonical account policy.
 - Add a migration/RPC solely for this slice: rejected because live own-row UPDATE capability already supports the bounded requirement.
+- Collapse Username + profile fields into a new transactional RPC in this slice: rejected as a larger backend contract/performance change outside the accepted data-integrity scope.
 
 ### Failure and Accessibility States
 
@@ -132,20 +135,20 @@ updated_at
 - [x] replace broad Profile Settings router save construction with use-case call
 - [x] guard route against unresolved/missing persisted profile data
 - [x] add focused field-ownership, Username, auth and hydration regressions
-- [x] run repository-wide Flutter/Dart analyze/tests in CI on current head
-- [ ] run real-device acceptance
+- [x] run repository-wide Flutter/Dart analyze/tests in CI
+- [x] run real-device acceptance
 
 ## 6. Quality Review
 
 ### Validation Run
 
-Current source head before this task-status commit:
+Runtime/test source head before this acceptance-record-only commit:
 
 ```text
-f6ecf69410abe2a01945550ddd2fd91df6762218
+73e469280773b700f452b1a61adc2eb053f7741c
 ```
 
-GitHub Actions **Flutter CI #933** (run `32330987443`, job `96311403726`) completed successfully on that head:
+GitHub Actions **Flutter CI #934** (run `32331376822`, job `96312549178`) completed successfully on that head:
 
 ```text
 Bootstrap workspace       PASS
@@ -155,9 +158,7 @@ Test Flutter packages     PASS
 Test Dart packages        PASS
 ```
 
-An earlier implementation head also passed Flutter CI #932; #933 is authoritative because it includes the final hydration-guard widget tests.
-
-Focused regressions now cover:
+Focused regressions cover:
 
 - unchanged normalized Username skips account mutation;
 - changed Username uses the canonical account owner before profile partial persistence;
@@ -168,6 +169,31 @@ Focused regressions now cover:
 - unresolved/missing profile state does not expose the editable form;
 - loaded real profile renders the existing Profile Settings form.
 
+### Real-Device Acceptance — 2026-08-20
+
+Owner/device smoke accepted:
+
+- Profile Settings values saved successfully and persisted;
+- changed Username saved successfully through the server-owned Username path;
+- remaining tested Profile Settings behavior was correct;
+- Mobile was also changed through Account Settings and persisted successfully;
+- Mobile save completed noticeably faster than changed-Username save;
+- changed Username showed noticeable save latency, recorded as a non-blocking performance observation rather than a correctness failure.
+
+Latency interpretation from the audited call path:
+
+```text
+changed Username from Profile Settings
+→ claim_username RPC
+→ canonical username checks/update
+→ Profile Settings partial UPDATE
+
+Mobile change with unchanged Username
+→ simpler Account Settings read/update path
+```
+
+The Username RPC performs server normalization/policy/uniqueness checks. Taken/reserved failures may additionally generate suggestions. No correctness failure was observed in the accepted successful Username change.
+
 ### Review Findings and Resolution
 
 - Broad Profile Settings write ownership in `router.dart` removed.
@@ -175,6 +201,7 @@ Focused regressions now cover:
 - Fabricated fallback-value save path removed.
 - No existing loaded-screen presentation widget or visual geometry was redesigned.
 - Live schema was read-only verified; no SQL/migration was added.
+- Device smoke confirms persistence works; Username latency is retained as a future performance concern rather than expanding this slice.
 
 ## 7. Final Handoff
 
@@ -212,10 +239,11 @@ Loaded Profile Settings
 ### Known Limitations
 
 - Username and profile-owned fields are two client-side writes, not one database transaction. The ordering intentionally validates/claims a changed Username first; a later profile-write failure can therefore leave the Username changed while profile-owned values remain unchanged. A transactional server boundary would require a separately approved backend/RPC design and is not introduced in this slice.
+- Changed Username has higher observed save latency than Mobile on the accepted device smoke. Current implementation performs the canonical Username RPC before the separate profile partial update; optimization/measurement is deferred rather than weakening Username integrity policy.
 - Body-metric duplication between `public.users` and `public.user_nutrition_profiles` remains intentionally deferred to Issue #8 canonical-owner consistency work.
 - Account Settings controlled repository-failure UX is a later #8 slice.
 - Workout/Nutrition legacy fallback cleanup is a later #8 slice.
 
 ### Final Status
 
-`PARTIAL — AUTOMATED VALIDATION PASS; DEVICE ACCEPTANCE PENDING`
+`VALIDATED — AUTOMATED + REAL-DEVICE ACCEPTANCE PASS`
