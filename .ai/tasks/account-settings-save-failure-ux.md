@@ -1,10 +1,11 @@
 # Account Settings Save Failure UX
 
-**Status:** In progress
+**Status:** Validated
 **Primary owner:** `apps/features/settings`
 **Affected platforms:** Flutter phone app
 **Tracking:** GitHub issue #8, Slice 2
 **Source branch:** `agent/account-settings-save-failure-ux`
+**PR:** #43
 
 ## Global UI / Design-System Guardrail
 
@@ -14,28 +15,30 @@ Mandatory guardrails:
 
 - preserve the normal loaded Account Settings layout, spacing, typography, colors, controls, assets, and interaction geometry;
 - reuse the existing `TioButton` loading state;
-- generic save failure must use an existing transient feedback surface rather than inserting new layout-changing content;
+- generic save failure uses the existing transient Snackbar surface rather than adding layout-changing content;
 - do not create new feature-local tokens or duplicate reusable core UI;
-- no Supabase migration is approved or required for this slice.
+- no Supabase migration is required for this slice.
 
 ## 1. Discovery
 
 ### User Outcome
 
-When Account Settings persistence fails, the user remains on the page with their entered Username/Mobile intact, sees clear controlled feedback, and can retry without any false success or navigation.
+When Account Settings persistence fails, the user remains on the page with entered Username/Mobile intact, sees clear controlled feedback, and can retry without false success or navigation.
 
 ### Success Criteria
 
-- normal Account Settings rendering remains unchanged;
-- Save success preserves the current success Snackbar + pop behavior;
-- repository/save failure is caught inside Account Settings presentation flow;
-- failure never shows the success Snackbar and never pops the page;
-- `_isSaving` always resets and double-save remains prevented;
-- entered Username and Mobile values remain in their controllers after failure;
-- a generic persistence/network failure is surfaced through transient error feedback without changing page geometry;
-- missing `onSave` cannot produce a false success/pop;
-- focused widget tests cover success, failure, preserved values, retry, and unavailable-save behavior;
-- no DB/schema/RLS change.
+- [x] normal Account Settings rendering remains unchanged;
+- [x] Save success preserves the existing success Snackbar + pop behavior;
+- [x] repository/save failure is caught inside Account Settings presentation flow;
+- [x] failure never shows success feedback and never pops the page;
+- [x] `_isSaving` resets and duplicate save remains guarded;
+- [x] entered Username and Mobile remain in their controllers after failure;
+- [x] generic persistence/network failure is surfaced through transient error feedback without changing page geometry;
+- [x] missing `onSave` cannot produce a false success/pop;
+- [x] focused widget regressions cover failure recovery, preserved values, retry, and unavailable-save behavior;
+- [x] full Flutter/Dart CI passed;
+- [x] real-device acceptance passed;
+- [x] no DB/schema/RLS change.
 
 ### Scope
 
@@ -60,14 +63,12 @@ When Account Settings persistence fails, the user remains on the page with their
 
 ### Verified Evidence
 
-- `AccountSettingsPage._handleSave()` currently has `try/finally` but no `catch`.
-- Success Snackbar/pop occur only after successful `await`, so repository failures do not currently false-pop, but errors bubble without controlled user-facing feedback.
-- If `onSave` is null, the current null-aware callback call completes immediately and the page still shows success/pop; this is a presentation-level false-success edge case worth eliminating.
-- Existing `TioButton.primary` already owns the loading state and prevents duplicate user interaction while `_isSaving` is true.
-- `ProfileSettingsPage` has a controlled save-failure pattern, but its inline layout-changing error text is not copied here because this slice explicitly preserves Account Settings geometry.
+- Before this slice `AccountSettingsPage._handleSave()` had `try/finally` but no `catch`.
+- Success Snackbar/pop already happened only after successful `await`, but repository failures had no controlled user-facing recovery feedback.
+- A null `onSave` previously completed through the null-aware callback and could still produce success/pop.
+- Existing `TioButton.primary` already owns loading presentation.
 - `router.dart` already wires the real `ProfileAccountRepository.updateAccountSettings()` production save path.
-- Existing tests cover successful persisted Account Settings save/pop but not save failure/retry.
-- Audit also found that the page's optional live Username availability callback is not wired by the app route, so the page can use its simulated fallback while typing. That is a real adjacent UX/correctness concern, but it is explicitly deferred so this slice stays focused on persistence failure recovery. Final server save policy remains authoritative.
+- Audit also found the optional live Username availability callback is not wired by app composition. That adjacent UX/correctness concern remains explicitly deferred; final save remains server-authoritative.
 
 ## 3. Clarification
 
@@ -75,21 +76,19 @@ When Account Settings persistence fails, the user remains on the page with their
 
 | Decision | Status | Rationale | Owner |
 |---|---|---|---|
-| Preserve normal Account Settings pixels | Approved | Issue #8 explicitly excludes visual redesign | Product owner |
-| Generic save failure uses transient feedback | Approved | Avoid layout shift while surfacing failure | Settings presentation |
-| Missing save callback must fail visibly, not succeed | Approved | Prevent presentation false-success edge case | Settings presentation |
-| Real live Username availability wiring | Deferred | Adjacent correctness/UX work; not required to fix save-failure recovery | App/Profile follow-up |
-| No server-policy or migration change | Approved | Existing repository/RPC contract is sufficient | Profile/data |
+| Preserve normal Account Settings pixels | Approved | Issue #8 excludes visual redesign | Product owner |
+| Generic save failure uses transient feedback | Approved | Surfaces failure without layout shift | Settings presentation |
+| Missing save callback fails visibly | Approved | Prevent false-success edge case | Settings presentation |
+| Real live Username availability wiring | Deferred | Adjacent concern; not needed for save-failure recovery | App/Profile follow-up |
+| No server-policy or migration change | Approved | Existing persistence contract is sufficient | Profile/data |
 
 ## 4. Architecture Design
 
 ### Chosen Approach
 
-Keep persistence/domain details out of the Settings widget. `AccountSettingsPage` owns only presentation behavior: save/loading state, preserving controller values, and transient generic failure feedback.
+`AccountSettingsPage` keeps persistence/domain details outside the widget. The existing `onSave` callback remains the persistence boundary. A thrown callback failure is caught locally, shown as a generic retryable Snackbar, and leaves the route/controller state intact. A missing callback is treated as persistence unavailable instead of success.
 
-The page continues to delegate persistence through its existing `onSave` callback. A thrown callback failure is caught locally, shown as a generic retryable error Snackbar, and does not pop the page. A missing callback is treated as persistence unavailable rather than success.
-
-Normal success path remains unchanged.
+Normal success behavior is unchanged.
 
 ### Ownership and Data Flow
 
@@ -109,58 +108,95 @@ AccountSettingsPage
 
 ### Alternative Rejected
 
-- Add new inline error section under the form: rejected because it changes normal layout geometry and is unnecessary.
-- Let repository exceptions bubble to Flutter: rejected because the user gets no controlled recovery path.
-- Expand this slice into live Username availability architecture: deferred to keep the persistence-failure slice bounded and reviewable.
-- Change username RPC/server behavior in this slice: rejected as unrelated backend/performance expansion.
+- New inline error section: rejected because it would change page geometry.
+- Let repository exceptions bubble: rejected because it gives no controlled recovery UX.
+- Expand into live Username availability architecture: deferred to keep this slice bounded.
+- Change Username RPC/server behavior: outside this slice.
 
 ### Failure and Accessibility States
 
 - saving → existing button loading state;
 - generic save failure → transient error feedback, page remains, values preserved;
 - unavailable save callback → transient unavailable feedback, no success/pop;
-- retry → same form values can be resubmitted after transient failure;
+- retry → same form values can be resubmitted;
 - success → existing success feedback and pop.
 
 ## 5. Implementation Plan
 
-- [ ] add controlled `catch` path to Account Settings save flow without layout redesign
-- [ ] prevent null `onSave` from producing false success/pop
-- [ ] preserve values/loading state and retry after failure
-- [ ] add tests for generic failure: no pop/no success/values preserved/loading reset/retry
-- [ ] add test for unavailable save callback
-- [ ] keep existing success regression green
-- [ ] run focused analyze/tests
-- [ ] run full applicable CI before review-ready handoff
-- [ ] run narrow real-device acceptance
+- [x] add controlled `catch` path without layout redesign
+- [x] prevent null `onSave` from producing false success/pop
+- [x] preserve values/loading state and retry after failure
+- [x] add generic failure regression for no pop/no success/value preservation/retry
+- [x] add unavailable-save callback regression
+- [x] keep existing success regression green
+- [x] run full applicable CI
+- [x] run real-device acceptance
 
 ## 6. Quality Review
 
 ### Validation Run
 
+Authoritative runtime/test head before this acceptance-only task commit:
+
 ```text
-Not run yet.
+6bbdfafe32db1f30c181542b80482935d66479f4
 ```
+
+GitHub Actions **Flutter CI #942** (run `32348020543`, job `96360835170`) passed:
+
+```text
+Bootstrap workspace       PASS
+Analyze Flutter packages  PASS
+Analyze Dart packages     PASS
+Test Flutter packages     PASS
+Test Dart packages        PASS
+```
+
+Focused regressions cover save failure recovery, no false success/pop, value preservation, loading reset/retry, and missing-save callback behavior.
+
+### Real-Device Acceptance — 2026-08-20
+
+Owner/device smoke was accepted after checking the prescribed Account Settings failure/retry flow. No visual or persistence-recovery issue was reported.
 
 ### Review Findings and Resolution
 
-Implementation not started yet.
+- repository failures now receive controlled transient feedback;
+- failure keeps Account Settings open and retryable;
+- controller values are not cleared on failure;
+- missing persistence callback can no longer present success;
+- normal loaded screen geometry/style remains unchanged;
+- no DB/schema/RLS change was introduced.
 
 ## 7. Final Handoff
 
 ### Changed Files
 
-Task brief only so far.
+```text
+apps/features/settings/lib/src/presentation/pages/account_settings_page.dart
+apps/features/settings/test/presentation/account_settings_save_failure_test.dart
+.ai/tasks/account-settings-save-failure-ux.md
+```
 
 ### Actual Behavior
 
-Pending implementation.
+```text
+Save
+├─ success
+│  → existing success Snackbar
+│  → pop
+└─ failure
+   → controlled error Snackbar
+   → stay on Account Settings
+   → entered values preserved
+   → loading reset
+   → retry available
+```
 
 ### Known Limitations
 
-- Username-save latency is a separate non-blocking performance observation from Slice 1 and is not optimized here.
-- Real server-backed live Username availability wiring remains an explicit follow-up; final save continues to use the canonical server repository policy.
+- Username-save latency remains a separate non-blocking performance observation from Slice 1.
+- Real server-backed live Username availability wiring remains an explicit follow-up; final save continues to use canonical server repository policy.
 
 ### Final Status
 
-`PARTIAL`
+`VALIDATED — AUTOMATED + REAL-DEVICE ACCEPTANCE PASS`
