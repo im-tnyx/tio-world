@@ -226,9 +226,22 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
         _usernameStatus == _UsernameStatus.checking) {
       return;
     }
+
+    final onSave = widget.onSave;
+    if (onSave == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Account settings are unavailable right now. Please try again.',
+          ),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
     try {
-      await widget.onSave?.call(
+      await onSave(
         username: _usernameController.text.trim(),
         phoneNumber: _phoneController.text.trim(),
       );
@@ -237,6 +250,16 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
           const SnackBar(content: Text('Account settings saved!')),
         );
         Navigator.of(context).pop();
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not save account settings. Please try again.',
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
