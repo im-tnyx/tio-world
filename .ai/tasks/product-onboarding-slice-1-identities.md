@@ -1,6 +1,6 @@
 # Product Onboarding Slice 1 — Section and Step Identity Contract
 
-**Status:** In progress
+**Status:** Validated
 **Primary owner:** `apps/features/onboarding`
 **Affected platforms:** Flutter phone app
 **GitHub tracker:** #40
@@ -131,24 +131,33 @@ No visible UI or accessibility behavior changes. Future unscheduled identities f
 - [x] Make primary section renderer and compatibility section compile-safe for future unscheduled identities without creating screens.
 - [x] Add codec tests plus mapper tests for legacy-key preservation, future-key round-trip, unknown-key fallback/ignore behavior.
 - [x] Preserve existing exact mode-flow/Hybrid-Later/progress characterization tests unchanged.
-- [ ] Run focused onboarding tests/analyze in a Flutter-capable validation environment and record exact outcome.
+- [x] Validate through GitHub Flutter CI #945.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Static/source review completed.
-Automated Flutter analyze/tests: NOT RUN in the available execution environment.
-Reason: no Dart/Flutter toolchain is available here, and the branch head currently has no surfaced GitHub status checks/workflow run.
+GitHub Flutter CI #945 — PASS
+Run: 32395039284
+Code head: db24dc4ca9d0265b686e92d4880d15994087eab0
+
+PASS — Bootstrap workspace
+PASS — Analyze Flutter packages
+PASS — Analyze Dart packages
+PASS — Test Flutter packages
+PASS — Test Dart packages
 ```
+
+The local execution container had no Dart/Flutter toolchain, so authoritative automated validation was run by the repository CI on draft PR #49.
 
 ### Review Findings and Resolution
 
 - Enum expansion initially exposed one additional exhaustive switch in `onboarding_compatibility_section.dart`; it was added to the guarded future-identity handling.
-- Repository search found the remaining relevant `OnboardingStepId` control paths either already use non-exhaustive conditionals/default handling or are covered by the updated progress/renderer switches.
+- The remaining relevant `OnboardingStepId` control paths either use non-exhaustive conditionals/default handling or are covered by the updated progress/renderer switches.
 - `BuildOnboardingFlowUseCase`, resume checkpoint use case, controller, owner persistence, and `OnboardingState` runtime behavior were intentionally left unchanged because future identities are not active in Slice 1.
-- Existing exact flow tests already lock Workout/Nutrition/Hybrid and Hybrid `Later` ordering, so no planner mutation was necessary.
+- Existing exact flow tests continue to lock Workout/Nutrition/Hybrid and Hybrid `Later` ordering; CI passed without planner mutation.
+- No screen was created, moved, or visually modified.
 
 ## 7. Final Handoff
 
@@ -174,9 +183,8 @@ Current user-visible Product Onboarding flow is intentionally unchanged. Legacy 
 
 ### Known Limitations
 
-- Automated analyze/tests still require a Flutter-capable validation run before this slice can be marked `Validated` or be considered merge-ready.
-- Future identities remain intentionally inactive until later approved slices provide child flow/data contracts.
+Future identities remain intentionally inactive until later approved slices provide their child flow/data contracts.
 
 ### Final Status
 
-`REVIEW`
+`PASS`
