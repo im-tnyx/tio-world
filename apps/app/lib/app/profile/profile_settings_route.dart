@@ -190,7 +190,7 @@ class _ProfileSettingsUnavailablePage extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: colors.textSecondary,
-                fontSize: TioFontSize.size15,
+                fontSize: TioFontSize.size16,
                 fontWeight: TioFontWeight.w500,
               ),
             ),
