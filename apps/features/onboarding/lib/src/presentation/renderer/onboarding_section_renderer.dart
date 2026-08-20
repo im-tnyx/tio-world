@@ -59,6 +59,30 @@ class OnboardingSectionRenderer extends StatelessWidget {
           controller: controller,
         ),
       OnboardingSectionId.review => ReviewSection(state: state),
+      OnboardingSectionId.userProfile =>
+        _futureSectionNotActive(OnboardingSectionId.userProfile),
+      OnboardingSectionId.bodyGoal =>
+        _futureSectionNotActive(OnboardingSectionId.bodyGoal),
+      OnboardingSectionId.wellnessGoals =>
+        _futureSectionNotActive(OnboardingSectionId.wellnessGoals),
+      OnboardingSectionId.nutritionProfile =>
+        _futureSectionNotActive(OnboardingSectionId.nutritionProfile),
+      OnboardingSectionId.workoutProfile =>
+        _futureSectionNotActive(OnboardingSectionId.workoutProfile),
+      OnboardingSectionId.nutritionGoals =>
+        _futureSectionNotActive(OnboardingSectionId.nutritionGoals),
+      OnboardingSectionId.workoutTargets =>
+        _futureSectionNotActive(OnboardingSectionId.workoutTargets),
+      OnboardingSectionId.healthConnections =>
+        _futureSectionNotActive(OnboardingSectionId.healthConnections),
+      OnboardingSectionId.planBuilding =>
+        _futureSectionNotActive(OnboardingSectionId.planBuilding),
     };
   }
+}
+
+Never _futureSectionNotActive(OnboardingSectionId section) {
+  throw StateError(
+    'Future onboarding section ${section.name} is not active in Slice 1.',
+  );
 }
