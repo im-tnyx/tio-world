@@ -8,7 +8,18 @@
 
 ## Global UI / Design-System Guardrail
 
-For any later Flutter UI work, read `.ai/tasks/design-system-token-consolidation.md`, `apps/features/AGENTS.md`, and `apps/core/lib/src/theme/README.md` first. Reuse `package:tio_core/core.dart` components before rebuilding equivalents.
+**Mandatory implementation gate for every Flutter screen creation or UI modification in this task:** before creating a new screen or changing an existing screen UI, read and follow the governance that applies to the changed path, including at minimum:
+
+1. root `AGENTS.md`;
+2. `apps/features/AGENTS.md`;
+3. `apps/core/lib/src/theme/README.md`;
+4. `.ai/tasks/design-system-token-consolidation.md`.
+
+If a more specific `AGENTS.md` exists beneath the path being modified, it must also be read and followed.
+
+After reading those files, inspect the public reusable UI surface through `package:tio_core/core.dart` and existing `apps/core` components before implementing local UI. Reuse an existing component/pattern where it fits; do not create a local duplicate merely for convenience. Theme tokens, spacing, typography, colors, states, accessibility behavior, and reusable component conventions must follow the current theme/governance documentation. No visual redesign is authorized unless separately and explicitly approved.
+
+This gate applies to **all later slices**, including new Body Goal, Wellness, Nutrition, Workout, Health Connections, Review, or Plan Building screens, and to any evolution of existing screens such as `EquipmentScreen`. A slice that performs UI implementation must record/verify this governance read as part of its implementation review/validation before the screen change is considered complete.
 
 This task authorizes **planning/audit only**. No production UI, schema, migration, health integration, persistence mutation, PR merge, or runtime behavior change is authorized by this document.
 
@@ -85,6 +96,7 @@ Hybrid
 - **Prefer evolving the same reusable Equipment screen/component for Gym context instead of creating duplicate Home/Gym equipment screens.**
 - Context-specific title/copy/suggestions may differ while canonical equipment selection stays shared.
 - Separate `HomeEquipmentScreen` / `GymEquipmentScreen` should exist only if a focused later UI audit proves materially different interaction needs.
+- Every new/modified Flutter screen obeys the mandatory `AGENTS.md` + theme README + reusable-first implementation gate above.
 - Health connection remains optional and separately owned.
 - Plan Building reaches `100%` only after required finalization succeeds.
 - Existing `apps/features/onboarding/lib/src/presentation/screens/congratulations_screen.dart` is reused as-is.
@@ -149,6 +161,7 @@ Hybrid
 | Existing `EquipmentScreen` reused for Home where practical | Approved reusable-first direction |
 | Same reusable Equipment screen/component preferred for Gym context | Approved reusable-first direction |
 | Separate Home/Gym equipment screens by default | Rejected unless focused audit proves different UX needs |
+| Screen creation/modification requires root/feature AGENTS + theme README governance read | Approved mandatory implementation guardrail |
 | `Both` Training Location option | Needs decision |
 | Exact Home Setup labels | Needs focused audit |
 | Exact Gym/Facility labels | Needs focused audit |
@@ -278,6 +291,8 @@ Do not mechanically rename persisted IDs; migration/resume compatibility must be
 ## 5. Sliced Audit and Implementation Plan
 
 **Global rule:** Audit first → finding → ownership review → explicit approval → implementation later.
+
+**UI implementation rule for every slice:** before any new screen is created or any existing Flutter screen is visually changed, complete the Global UI / Design-System Guardrail read (`AGENTS.md`, `apps/features/AGENTS.md`, `apps/core/lib/src/theme/README.md`, applicable nested `AGENTS.md`, and the design-system task), inspect reusable `tio_core` components, and record the check in the slice implementation review.
 
 ### Slice 0 — Baseline and Characterization Audit
 
@@ -414,6 +429,7 @@ Audit/decisions:
 - [ ] Decide Training Location options (`Home`, `Gym`, possible `Both`).
 - [ ] Finalize Home Setup Type labels.
 - [ ] Finalize Gym/Facility Type labels.
+- [ ] Before any screen implementation/modification, complete and record the mandatory UI governance/theme read from the Global Guardrail.
 - [ ] **Reuse the existing `apps/features/onboarding/lib/src/presentation/screens/workout/equipment_screen.dart` for Home where practical.**
 - [ ] **Prefer evolving the same reusable Equipment screen/component for Gym context.**
 - [ ] Support context-specific Home/Gym title, description, suggested/default selections and category visibility without duplicating canonical equipment state.
@@ -499,6 +515,7 @@ Review
 - [ ] Existing Home `EquipmentScreen` behavior remains regression-protected while it is evolved.
 - [ ] Home/Gym contexts share canonical selection state and do not duplicate owner models.
 - [ ] Setup/facility suggestions never override explicit availability without user action.
+- [ ] Any implemented UI slice records that applicable `AGENTS.md` files and `apps/core/lib/src/theme/README.md` were read/followed and reusable `tio_core` components were inspected before screen work.
 - [ ] Draft/resume migration tests.
 - [ ] Review/back/edit tests.
 - [ ] Plan Building success/failure/retry/idempotency tests.
@@ -537,6 +554,17 @@ Home = reuse existing EquipmentScreen where practical
 Gym = prefer same reusable screen/component with context-specific copy/suggestions
 Separate Home/Gym equipment screens = only if focused UI audit proves necessary
 Canonical equipment selection = shared
+```
+
+```text
+LOCK-UI-GOVERNANCE
+Before any new or modified Flutter screen:
+→ read root AGENTS.md
+→ read apps/features/AGENTS.md
+→ read apps/core/lib/src/theme/README.md
+→ read any more-specific AGENTS.md for the changed path
+→ inspect/reuse package:tio_core/core.dart components
+→ no unapproved visual redesign
 ```
 
 ```text
