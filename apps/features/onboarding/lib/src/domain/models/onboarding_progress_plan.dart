@@ -51,6 +51,18 @@ class OnboardingProgressPlan {
         );
       case OnboardingStepId.review:
         return items.indexWhere((item) => item is ReviewProgressItem);
+      case OnboardingStepId.userProfile:
+      case OnboardingStepId.bodyGoal:
+      case OnboardingStepId.wellnessGoals:
+      case OnboardingStepId.nutritionProfile:
+      case OnboardingStepId.workoutProfile:
+      case OnboardingStepId.nutritionGoals:
+      case OnboardingStepId.workoutTargets:
+      case OnboardingStepId.healthConnections:
+      case OnboardingStepId.planBuilding:
+        throw StateError(
+          'Future onboarding step ${stepId.name} is not active in Slice 1.',
+        );
     }
   }
 
