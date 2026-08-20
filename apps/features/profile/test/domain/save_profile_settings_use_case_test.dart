@@ -2,10 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_feature_profile/profile.dart';
 
 void main() {
-  const update = ProfileSettingsUpdate(
+  final update = ProfileSettingsUpdate(
     name: '  Santosh Jangid  ',
     gender: ProfileGender.male,
-    dateOfBirth: _dob,
+    dateOfBirth: DateTime(1995, 6, 5),
     heightCm: 180,
     currentWeightKg: 80,
   );
@@ -97,8 +97,6 @@ void main() {
     expect(calls, isEmpty);
   });
 }
-
-final _dob = DateTime(1995, 6, 5);
 
 class _RecordingAccountRepository extends Fake
     implements ProfileAccountRepository {
