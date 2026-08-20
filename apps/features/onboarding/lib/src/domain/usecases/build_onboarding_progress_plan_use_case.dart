@@ -54,6 +54,19 @@ class BuildOnboardingProgressPlanUseCase {
         case OnboardingStepId.review:
           items.add(const ReviewProgressItem());
           break;
+
+        case OnboardingStepId.userProfile:
+        case OnboardingStepId.bodyGoal:
+        case OnboardingStepId.wellnessGoals:
+        case OnboardingStepId.nutritionProfile:
+        case OnboardingStepId.workoutProfile:
+        case OnboardingStepId.nutritionGoals:
+        case OnboardingStepId.workoutTargets:
+        case OnboardingStepId.healthConnections:
+        case OnboardingStepId.planBuilding:
+          throw StateError(
+            'Future onboarding step ${step.id.name} is not active in Slice 1.',
+          );
       }
     }
 
