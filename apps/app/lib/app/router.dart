@@ -22,6 +22,7 @@ import 'app_theme.dart';
 import 'network_providers.dart';
 import 'onboarding/onboarding.dart';
 import 'profile/profile_completion.dart';
+import 'profile/profile_settings_route.dart';
 import 'session/session.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -669,85 +670,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.profileSettings.path,
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) {
-          final profileAsync = ref.watch(profileDataProvider);
-          final profileData = profileAsync.valueOrNull;
-
-          final avatarFrame = switch (profileData?.plan.toLowerCase()) {
-            'plus' => TioAvatarFrame.plusRing,
-            'pro' || 'premium' => TioAvatarFrame.proHexagon,
-            _ => TioAvatarFrame.none,
-          };
-
-          return ProfileSettingsPage(
-            name: profileData?.name ?? '',
-            username: profileData?.username ?? '',
-            gender: profileData?.gender.name ?? 'Male',
-            dateOfBirth: profileData?.dateOfBirth,
-            heightCm: profileData?.heightCm ?? 170.0,
-            currentWeightKg: profileData?.currentWeightKg ?? 70.0,
-            avatarUrl: profileData?.avatarUrl,
-            avatarFrame: avatarFrame,
-            plan: profileData?.plan ?? 'free',
-            onAvatarPressed: () => context.push(AppRoutes.profileAvatar.path),
-            onPickImage: (source) async {
-              final imageSource = source == TioImageSource.gallery
-                  ? ImageSource.gallery
-                  : ImageSource.camera;
-              final picker = ImagePicker();
-              final picked = await picker.pickImage(
-                source: imageSource,
-                imageQuality: 85,
-                maxWidth: 1024,
-                maxHeight: 1024,
-              );
-              if (picked == null) return;
-              final bytes = await picked.readAsBytes();
-              await ref.read(profileSetupRepositoryProvider).uploadAvatarImage(
-                    fileName: picked.name,
-                    bytes: bytes,
-                  );
-              ref.invalidate(profileDataProvider);
-            },
-            onDeleteImage: () async {
-              await ref.read(profileSetupRepositoryProvider).deleteAvatarImage();
-              ref.invalidate(profileDataProvider);
-            },
-            onSave: ({
-              required name,
-              required username,
-              required gender,
-              required dateOfBirth,
-              required heightCm,
-              required currentWeightKg,
-            }) async {
-              final parsedGender = ProfileGender.values.firstWhere(
-                (g) => g.name.toLowerCase() == gender.toLowerCase(),
-                orElse: () => ProfileGender.male,
-              );
-              final updated = ProfileSetupData(
-                name: name,
-                username: username.isNotEmpty ? username : null,
-                gender: parsedGender,
-                goals: profileData?.goals ?? const {},
-                dateOfBirth: dateOfBirth,
-                heightCm: heightCm,
-                currentWeightKg: currentWeightKg,
-                targetWeightKg: profileData?.targetWeightKg ?? currentWeightKg,
-                activityLevel:
-                    profileData?.activityLevel ?? ProfileActivityLevel.active,
-                healthConditions: profileData?.healthConditions ?? const {},
-                otherHealthCondition: profileData?.otherHealthCondition,
-                avatarUrl: profileData?.avatarUrl,
-                avatarFrame: profileData?.avatarFrame ?? 'none',
-                plan: profileData?.plan ?? 'free',
-              );
-              await ref.read(profileSetupRepositoryProvider).saveProfileSetup(updated);
-              ref.invalidate(profileDataProvider);
-              ref.invalidate(profileCompletionSummaryProvider);
-            },
-          );
-        },
+        builder: (context, state) => const ProfileSettingsRoute(),
       ),
       GoRoute(
         path: AppRoutes.accountSettings.path,
