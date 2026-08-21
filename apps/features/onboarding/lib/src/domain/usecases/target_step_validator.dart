@@ -27,7 +27,7 @@ class TargetStepValidator {
   String? validateCurrentStep(
     TargetsOnboardingDraft draft, {
     ProfileOnboardingDraft? profile,
-    GoalWeightDirection? goalWeightDirection,
+    GoalWeightDirection? weightGoalDirection,
   }) {
     return switch (draft.currentStepId) {
       TargetStepId.bridge => null,
@@ -36,7 +36,7 @@ class TargetStepValidator {
       TargetStepId.waterTarget => _validateWater(draft.waterMl),
       TargetStepId.goalPace => _validateGoalPace(
           draft.goalPaceKgPerWeek,
-          goalWeightDirection,
+          weightGoalDirection,
         ),
       // NutritionTarget: navigation-passable to Review, but formula-blocked for completion
       TargetStepId.nutritionTarget => null,
@@ -46,12 +46,12 @@ class TargetStepValidator {
   bool isCurrentStepValid(
     TargetsOnboardingDraft draft, {
     ProfileOnboardingDraft? profile,
-    GoalWeightDirection? goalWeightDirection,
+    GoalWeightDirection? weightGoalDirection,
   }) =>
       validateCurrentStep(
         draft,
         profile: profile,
-        goalWeightDirection: goalWeightDirection,
+        weightGoalDirection: weightGoalDirection,
       ) ==
       null;
 
