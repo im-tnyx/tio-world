@@ -28,6 +28,21 @@ void main() {
     );
   });
 
+  test('nutrition tap always replaces the single primary goal', () {
+    final next = policy.applyTap(
+      mode: AppMode.nutrition,
+      current: const GoalIntentSelection(
+        primaryGoal: GoalIntent.loseWeight,
+      ),
+      tappedGoal: GoalIntent.gainWeight,
+    );
+
+    expect(
+      next,
+      const GoalIntentSelection(primaryGoal: GoalIntent.gainWeight),
+    );
+  });
+
   test('workout and hybrid expose the approved six-card set', () {
     const expected = [
       GoalIntent.loseWeight,
@@ -40,6 +55,79 @@ void main() {
 
     expect(policy.optionsFor(AppMode.workout), expected);
     expect(policy.optionsFor(AppMode.hybrid), expected);
+  });
+
+  test('compatible second tap becomes supporting and third replaces it', () {
+    final primary = policy.applyTap(
+      mode: AppMode.workout,
+      current: const GoalIntentSelection(),
+      tappedGoal: GoalIntent.buildMuscle,
+    );
+    final withSupporting = policy.applyTap(
+      mode: AppMode.workout,
+      current: primary,
+      tappedGoal: GoalIntent.getStronger,
+    );
+    final replacedSupporting = policy.applyTap(
+      mode: AppMode.workout,
+      current: withSupporting,
+      tappedGoal: GoalIntent.recomposition,
+    );
+
+    expect(
+      withSupporting,
+      const GoalIntentSelection(
+        primaryGoal: GoalIntent.buildMuscle,
+        supportingGoal: GoalIntent.getStronger,
+      ),
+    );
+    expect(
+      replacedSupporting,
+      const GoalIntentSelection(
+        primaryGoal: GoalIntent.buildMuscle,
+        supportingGoal: GoalIntent.recomposition,
+      ),
+    );
+  });
+
+  test('incompatible new tap starts a new primary selection', () {
+    final next = policy.applyTap(
+      mode: AppMode.hybrid,
+      current: const GoalIntentSelection(
+        primaryGoal: GoalIntent.loseWeight,
+        supportingGoal: GoalIntent.improveEndurance,
+      ),
+      tappedGoal: GoalIntent.stayFit,
+    );
+
+    expect(
+      next,
+      const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
+    );
+  });
+
+  test('mode reconciliation drops invalid supporting or promotes visible one', () {
+    expect(
+      policy.reconcileForMode(
+        mode: AppMode.nutrition,
+        selection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.loseWeight,
+          supportingGoal: GoalIntent.improveEndurance,
+        ),
+      ),
+      const GoalIntentSelection(primaryGoal: GoalIntent.loseWeight),
+    );
+
+    expect(
+      policy.reconcileForMode(
+        mode: AppMode.nutrition,
+        selection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.getStronger,
+          supportingGoal: GoalIntent.loseWeight,
+        ),
+      ),
+      const GoalIntentSelection(primaryGoal: GoalIntent.loseWeight),
+    );
   });
 
   test('compatible supporting pairs validate without changing ownership', () {
