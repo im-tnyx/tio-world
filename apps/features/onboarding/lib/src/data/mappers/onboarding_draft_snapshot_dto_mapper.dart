@@ -1,6 +1,7 @@
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
+import '../../domain/models/goal_intent.dart';
 import '../../domain/models/onboarding_draft.dart';
 import '../../domain/models/onboarding_draft_snapshot.dart';
 import '../../domain/models/onboarding_status.dart';
@@ -40,6 +41,7 @@ class OnboardingDraftSnapshotDtoMapper {
       'status': draft.status.name,
       'selected_mode': draft.selectedMode?.name,
       'workout_intro_choice': draft.workoutIntroChoice?.name,
+      'goal_selection': _goalSelectionToJson(draft.goalSelection),
       'current_step_id': _stepIdCodec.encode(draft.currentStepId),
       'completed_step_ids':
           draft.completedStepIds.map(_stepIdCodec.encode).toList(),
@@ -74,6 +76,12 @@ class OnboardingDraftSnapshotDtoMapper {
         .where((c) => c.name == introStr)
         .firstOrNull;
 
+    final goalSelection = json['goal_selection'] is Map<String, dynamic>
+        ? _goalSelectionFromJson(
+            json['goal_selection'] as Map<String, dynamic>,
+          )
+        : const GoalIntentSelection();
+
     final currentStepId = _stepIdCodec.decodeOr(
       json['current_step_id'],
       fallback: OnboardingStepId.mode,
@@ -105,6 +113,7 @@ class OnboardingDraftSnapshotDtoMapper {
       status: status,
       selectedMode: selectedMode,
       workoutIntroChoice: workoutIntroChoice,
+      goalSelection: goalSelection,
       currentStepId: currentStepId,
       completedStepIds: completedStepIds,
       profile: profile,
@@ -116,6 +125,24 @@ class OnboardingDraftSnapshotDtoMapper {
       schemaVersion: schemaVersion,
       draft: draft,
       updatedAt: updatedAt,
+    );
+  }
+
+  Map<String, dynamic> _goalSelectionToJson(GoalIntentSelection selection) => {
+        'primary_goal': selection.primaryGoal?.name,
+        'supporting_goal': selection.supportingGoal?.name,
+      };
+
+  GoalIntentSelection _goalSelectionFromJson(Map<String, dynamic> j) {
+    final primaryStr = j['primary_goal'] as String?;
+    final supportingStr = j['supporting_goal'] as String?;
+    return GoalIntentSelection(
+      primaryGoal: GoalIntent.values
+          .where((goal) => goal.name == primaryStr)
+          .firstOrNull,
+      supportingGoal: GoalIntent.values
+          .where((goal) => goal.name == supportingStr)
+          .firstOrNull,
     );
   }
 
