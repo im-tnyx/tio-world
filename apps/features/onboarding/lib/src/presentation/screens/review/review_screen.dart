@@ -23,6 +23,7 @@ class ReviewScreen extends StatelessWidget {
     final profile = draft.profile;
     final workout = draft.workout;
     final blockers = completionEligibility.blockingSteps;
+    final goalSummary = draft.goalSelection.goals.map(_goalIntentLabel).join(', ');
     final weightGoalDirection = const WeightGoalFlowPolicy().directionFor(
       mode: draft.selectedMode,
       selection: draft.goalSelection,
@@ -69,9 +70,7 @@ class ReviewScreen extends StatelessWidget {
             const SizedBox(height: TioSize.dp10),
             _SummaryRow(
               label: 'Goals',
-              value: profile.goals.isEmpty
-                  ? 'Not selected'
-                  : profile.goals.map(_goalLabel).join(', '),
+              value: goalSummary.isEmpty ? 'Not selected' : goalSummary,
             ),
             const SizedBox(height: TioSize.dp10),
             _SummaryRow(
@@ -357,13 +356,16 @@ String _genderLabel(ProfileGender gender) {
   };
 }
 
-String _goalLabel(ProfileGoal goal) {
+String _goalIntentLabel(GoalIntent goal) {
   return switch (goal) {
-    ProfileGoal.loseWeight => 'Lose weight',
-    ProfileGoal.buildMuscle => 'Build muscle',
-    ProfileGoal.keepFit => 'Keep fit',
-    ProfileGoal.boostStrength => 'Boost strength',
-    ProfileGoal.manageStress => 'Manage stress',
+    GoalIntent.loseWeight => 'Lose weight',
+    GoalIntent.gainWeight => 'Gain weight',
+    GoalIntent.maintainWeight => 'Maintain weight',
+    GoalIntent.recomposition => 'Recomposition',
+    GoalIntent.buildMuscle => 'Build muscle',
+    GoalIntent.getStronger => 'Get stronger',
+    GoalIntent.improveEndurance => 'Improve endurance',
+    GoalIntent.stayFit => 'Stay fit',
   };
 }
 
