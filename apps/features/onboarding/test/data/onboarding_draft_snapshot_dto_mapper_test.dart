@@ -12,6 +12,10 @@ void main() {
         status: OnboardingStatus.inProgress,
         selectedMode: AppMode.hybrid,
         workoutIntroChoice: WorkoutIntroChoice.setupNow,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.buildMuscle,
+          supportingGoal: GoalIntent.getStronger,
+        ),
         currentStepId: OnboardingStepId.profileBasics,
         completedStepIds: {OnboardingStepId.mode},
         profile: ProfileOnboardingDraft(
@@ -73,6 +77,13 @@ void main() {
       expect(json['selected_mode'], 'hybrid');
       expect(json['workout_intro_choice'], 'setupNow');
       expect(json['current_step_id'], 'profileBasics');
+      expect(
+        json['goal_selection'],
+        {
+          'primary_goal': 'buildMuscle',
+          'supporting_goal': 'getStronger',
+        },
+      );
       final profileJson = json['profile'] as Map<String, dynamic>;
       expect(profileJson['weight_unit'], 'kg');
       expect(profileJson['height_unit'], 'ft_in');
@@ -89,6 +100,13 @@ void main() {
       expect(
         deserialized.draft.workoutIntroChoice,
         equals(WorkoutIntroChoice.setupNow),
+      );
+      expect(
+        deserialized.draft.goalSelection,
+        const GoalIntentSelection(
+          primaryGoal: GoalIntent.buildMuscle,
+          supportingGoal: GoalIntent.getStronger,
+        ),
       );
       expect(
         deserialized.draft.currentStepId,
@@ -147,7 +165,7 @@ void main() {
       expect(deserialized.draft.targets.goalPaceKgPerWeek, equals(0.75));
     });
 
-    test('legacy schema v1 draft defaults missing units to metric', () {
+    test('legacy schema v1 draft defaults missing units and goal selection', () {
       final legacy = <String, dynamic>{
         'schema_version': 1,
         'status': 'inProgress',
@@ -166,6 +184,7 @@ void main() {
         snapshot.draft.profile.unitPreferences,
         MeasurementUnitPreferences.metric,
       );
+      expect(snapshot.draft.goalSelection, const GoalIntentSelection());
     });
 
     test('legacy aliases normalize to typed storage values', () {
@@ -186,7 +205,7 @@ void main() {
       );
     });
 
-    test('round-trips future top-level ids without changing schema version', () {
+    test('round-trips future top-level ids with current schema version', () {
       final snapshot = OnboardingDraftSnapshot(
         draft: OnboardingDraft(
           currentStepId: OnboardingStepId.bodyGoal,
@@ -200,7 +219,7 @@ void main() {
 
       final json = mapper.toJson(snapshot);
 
-      expect(json['schema_version'], 2);
+      expect(json['schema_version'], OnboardingDraftSnapshot.currentSchemaVersion);
       expect(json['current_step_id'], 'bodyGoal');
       expect(
         json['completed_step_ids'],
@@ -209,7 +228,10 @@ void main() {
 
       final restored = mapper.fromJson(json);
 
-      expect(restored.schemaVersion, 2);
+      expect(
+        restored.schemaVersion,
+        OnboardingDraftSnapshot.currentSchemaVersion,
+      );
       expect(restored.draft.currentStepId, OnboardingStepId.bodyGoal);
       expect(
         restored.draft.completedStepIds,
