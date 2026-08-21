@@ -1,13 +1,15 @@
 import '../models/models.dart';
 
 /// Pure use case to construct the flattened, continuous [OnboardingProgressPlan]
-/// dynamically derived from the active [OnboardingFlowPlan] and [WorkoutFlowPlan].
+/// dynamically derived from the active nested flow plans.
 class BuildOnboardingProgressPlanUseCase {
   const BuildOnboardingProgressPlanUseCase();
 
   OnboardingProgressPlan call({
     required OnboardingFlowPlan flowPlan,
     required WorkoutFlowPlan workoutFlowPlan,
+    ProfileFlowPlan profileFlowPlan = const ProfileFlowPlan(),
+    TargetsFlowPlan targetsFlowPlan = const TargetsFlowPlan(),
   }) {
     final items = <OnboardingProgressItem>[];
 
@@ -18,7 +20,7 @@ class BuildOnboardingProgressPlanUseCase {
           break;
 
         case OnboardingStepId.profileBasics:
-          for (final profileStep in ProfileStepId.values) {
+          for (final profileStep in profileFlowPlan.steps) {
             items.add(ProfileProgressItem(profileStep));
           }
           break;
@@ -46,7 +48,7 @@ class BuildOnboardingProgressPlanUseCase {
           break;
 
         case OnboardingStepId.targets:
-          for (final targetStep in TargetsFlowPlan.orderedSteps) {
+          for (final targetStep in targetsFlowPlan.steps) {
             items.add(TargetsProgressItem(targetStep));
           }
           break;
