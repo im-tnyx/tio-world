@@ -155,6 +155,9 @@ void main() {
       tester,
       draft: OnboardingDraft(
         selectedMode: AppMode.nutrition,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.maintainWeight,
+        ),
         currentStepId: OnboardingStepId.targets,
         profile: _validProfile(),
       ),
