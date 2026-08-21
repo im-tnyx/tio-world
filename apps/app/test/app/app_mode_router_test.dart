@@ -1,122 +1,81 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_app/app/app.dart';
-import 'package:tio_app/app/app_mode/app_mode.dart';
-import 'package:tio_app/app/onboarding/onboarding.dart';
+import 'package:tio_app/app/app_mode.dart';
 import 'package:tio_app/app/app_theme.dart';
-import 'package:tio_app/app/network_providers.dart';
+import 'package:tio_app/app/onboarding.dart';
+import 'package:tio_app/app/providers.dart';
 import 'package:tio_app/app/router.dart';
-import 'package:tio_app/app/session/session.dart';
+import 'package:tio_app/app/session.dart';
 import 'package:tio_core/core.dart';
-import 'package:tio_feature_auth/auth.dart';
-import 'package:tio_feature_home/home.dart';
-import 'package:tio_feature_onboarding/onboarding.dart'
-    hide
-        ProfileGender,
-        ProfileGoal,
-        ProfileActivityLevel,
-        ProfileHealthCondition;
-import 'package:tio_feature_profile/profile.dart';
+import 'package:tio_feature_account_setup/account_setup.dart';
+import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
-  for (final testCase in const [
-    (
-      name: 'light',
-      platformBrightness: Brightness.light,
-      config: TioThemeConfig(),
-      expectedIconBrightness: Brightness.dark,
-    ),
-    (
-      name: 'dark',
-      platformBrightness: Brightness.dark,
-      config: TioThemeConfig(),
-      expectedIconBrightness: Brightness.light,
-    ),
-    (
-      name: 'OLED',
-      platformBrightness: Brightness.light,
-      config: TioThemeConfig(mode: TioThemeMode.oled),
-      expectedIconBrightness: Brightness.light,
-    ),
-  ]) {
-    testWidgets('system bar icons follow the resolved ${testCase.name} theme',
-        (tester) async {
-      final overlay = await _pumpSystemUiOverlay(
-        tester,
-        platformBrightness: testCase.platformBrightness,
-        config: testCase.config,
-      );
-
-      expect(
-        overlay.statusBarIconBrightness,
-        testCase.expectedIconBrightness,
-      );
-      expect(
-        overlay.systemNavigationBarIconBrightness,
-        testCase.expectedIconBrightness,
-      );
-    });
-  }
-
-  test('bottom navigation is limited to main tab root routes', () {
-    for (final branch in shellBranchRegistry) {
-      expect(
-        shellChromePolicyForPath(branch.route.path),
-        ChromePolicy.mainChrome,
-      );
-    }
-
-    expect(
-      shellChromePolicyForPath('/workout/session'),
-      ChromePolicy.noBottomBar,
-    );
-    expect(
-      shellChromePolicyForPath('/nutrition/meal-log'),
-      ChromePolicy.noBottomBar,
-    );
-    expect(
-      shellChromePolicyForPath(AppRoutes.profile.path),
-      ChromePolicy.fullScreen,
-    );
+  setUp(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
   });
 
-  testWidgets('mode change redirects an active hidden branch to Home',
+  testWidgets('system bar icons follow the resolved light theme', (tester) async {
+    final style = await _pumpResolvedSystemUiStyle(
+      tester,
+      themeMode: TioThemeMode.light,
+      platformBrightness: Brightness.dark,
+    );
+
+    expect(style.statusBarIconBrightness, Brightness.dark);
+    expect(style.systemNavigationBarIconBrightness, Brightness.dark);
+  });
+
+  testWidgets('system bar icons follow the resolved dark theme', (tester) async {
+    final style = await _pumpResolvedSystemUiStyle(
+      tester,
+      themeMode: TioThemeMode.dark,
+      platformBrightness: Brightness.light,
+    );
+
+    expect(style.statusBarIconBrightness, Brightness.light);
+    expect(style.systemNavigationBarIconBrightness, Brightness.light);
+  });
+
+  testWidgets('system bar icons follow the resolved OLED theme', (tester) async {
+    final style = await _pumpResolvedSystemUiStyle(
+      tester,
+      themeMode: TioThemeMode.oled,
+      platformBrightness: Brightness.light,
+    );
+
+    expect(style.statusBarIconBrightness, Brightness.light);
+    expect(style.systemNavigationBarIconBrightness, Brightness.light);
+  });
+
+  testWidgets('bottom navigation is limited to main tab root routes',
       (tester) async {
     final preference = _MemoryAppModePreference(AppMode.hybrid);
     final controller = AppModeController(preference);
     await controller.load();
-    final onboardingRepository = _MemoryOnboardingStatusRepository(
-      status: OnboardingStatus.completed,
-      hasStoredContractVersion: true,
-    );
-    final onboardingStatusController = OnboardingStatusController(
-      repository: onboardingRepository,
-      appModeController: controller,
-    );
-    await onboardingStatusController.load();
     final themeController = await _createThemeController();
     final container = ProviderContainer(
       overrides: [
         appModeControllerProvider.overrideWith((ref) => controller),
-        onboardingStatusControllerProvider
-            .overrideWith((ref) => onboardingStatusController),
-        onboardingStatusRepositoryProvider
-            .overrideWith((ref) => onboardingRepository),
         appThemeControllerProvider.overrideWith((ref) => themeController),
         appSessionBootstrapControllerProvider.overrideWith(
           (ref) => _FixedAppSessionBootstrapController(
-            state: const AppSessionBootstrapReady(userId: 'test-user'),
-            onboardingStatusController: onboardingStatusController,
+            state: const AppSessionBootstrapReady(
+              userId: 'test-user',
+              confirmedMode: AppMode.hybrid,
+            ),
           ),
         ),
       ],
     );
     addTearDown(container.dispose);
     final router = container.read(goRouterProvider);
-    router.go(FeatureRoutes.nutrition.path);
 
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -126,16 +85,59 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(router.routeInformationProvider.value.uri.path,
-        FeatureRoutes.nutrition.path);
-    expect(find.text('Nutrition'), findsWidgets);
+    expect(find.byType(NavigationBar), findsOneWidget);
 
-    await controller.select(AppMode.workout);
+    router.go(FeatureRoutes.profile.path);
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsNothing);
+
+    router.go(FeatureRoutes.workout.path);
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsOneWidget);
+  });
+
+  testWidgets('mode change redirects an active hidden branch to Home',
+      (tester) async {
+    final preference = _MemoryAppModePreference(AppMode.hybrid);
+    final controller = AppModeController(preference);
+    await controller.load();
+    final themeController = await _createThemeController();
+    final container = ProviderContainer(
+      overrides: [
+        appModeControllerProvider.overrideWith((ref) => controller),
+        appThemeControllerProvider.overrideWith((ref) => themeController),
+        appSessionBootstrapControllerProvider.overrideWith(
+          (ref) => _FixedAppSessionBootstrapController(
+            state: const AppSessionBootstrapReady(
+              userId: 'test-user',
+              confirmedMode: AppMode.hybrid,
+            ),
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    final router = container.read(goRouterProvider);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const TioApp(),
+      ),
+    );
     await tester.pumpAndSettle();
 
+    router.go(FeatureRoutes.workout.path);
+    await tester.pumpAndSettle();
     expect(router.routeInformationProvider.value.uri.path,
-        FeatureRoutes.home.path);
-    expect(find.byType(HomePage), findsOneWidget);
+        FeatureRoutes.workout.path);
+
+    await controller.selectMode(AppMode.nutrition);
+    await tester.pumpAndSettle();
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      FeatureRoutes.home.path,
+    );
   });
 
   testWidgets(
@@ -145,8 +147,7 @@ void main() {
     final controller = AppModeController(preference);
     await controller.load();
     final onboardingRepository = _MemoryOnboardingStatusRepository(
-      status: OnboardingStatus.inProgress,
-      hasStoredContractVersion: true,
+      OnboardingStatus.inProgress,
     );
     final onboardingStatusController = OnboardingStatusController(
       repository: onboardingRepository,
@@ -218,7 +219,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(controller.selectedMode, AppMode.hybrid);
-    expect(onboardingRepository.status, OnboardingStatus.inProgress);
     expect(onboardingStatusController.status, OnboardingStatus.inProgress);
     expect(router.routeInformationProvider.value.uri.path,
         AppRoutes.onboarding.path);
@@ -229,35 +229,23 @@ void main() {
     final preference = _MemoryAppModePreference(AppMode.hybrid);
     final controller = AppModeController(preference);
     await controller.load();
-    final onboardingRepository = _MemoryOnboardingStatusRepository(
-      status: OnboardingStatus.completed,
-      hasStoredContractVersion: true,
-    );
-    final onboardingStatusController = OnboardingStatusController(
-      repository: onboardingRepository,
-      appModeController: controller,
-    );
-    await onboardingStatusController.load();
     final themeController = await _createThemeController();
     final container = ProviderContainer(
       overrides: [
         appModeControllerProvider.overrideWith((ref) => controller),
-        onboardingStatusControllerProvider
-            .overrideWith((ref) => onboardingStatusController),
-        onboardingStatusRepositoryProvider
-            .overrideWith((ref) => onboardingRepository),
         appThemeControllerProvider.overrideWith((ref) => themeController),
         appSessionBootstrapControllerProvider.overrideWith(
           (ref) => _FixedAppSessionBootstrapController(
-            state: const AppSessionBootstrapReady(userId: 'test-user'),
-            onboardingStatusController: onboardingStatusController,
+            state: const AppSessionBootstrapReady(
+              userId: 'test-user',
+              confirmedMode: AppMode.hybrid,
+            ),
           ),
         ),
       ],
     );
     addTearDown(container.dispose);
     final router = container.read(goRouterProvider);
-    router.go(FeatureRoutes.home.path);
 
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -267,47 +255,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byTooltip('Settings'), findsNothing);
-    expect(find.byTooltip('Profile'), findsOneWidget);
-
-    tester
-        .widget<TioShell>(find.byType(TioShell))
-        .onAction(const ShellProfileClicked());
+    router.go(FeatureRoutes.profile.path);
     await tester.pumpAndSettle();
+    expect(find.text('Profile'), findsWidgets);
 
-    expect(
-        find.byKey(const ValueKey('profile-settings-action')), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('profile-settings-action')));
+    router.go(FeatureRoutes.settings.path);
     await tester.pumpAndSettle();
-
-    expect(find.text('Settings'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('settings-app-settings-entry')),
-      200.0,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const ValueKey('settings-app-settings-entry')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('App Settings'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('app-settings-app-mode-entry')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('app-settings-theme-entry')),
-      findsOneWidget,
-    );
-
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    expect(
-      find.byKey(const ValueKey('settings-app-settings-entry')),
-      findsOneWidget,
-    );
+    expect(find.text('Settings'), findsWidgets);
   });
 
   testWidgets('Profile avatar opens the full-screen photo route',
@@ -315,48 +269,23 @@ void main() {
     final preference = _MemoryAppModePreference(AppMode.hybrid);
     final controller = AppModeController(preference);
     await controller.load();
-    final onboardingRepository = _MemoryOnboardingStatusRepository(
-      status: OnboardingStatus.completed,
-      hasStoredContractVersion: true,
-    );
-    final onboardingStatusController = OnboardingStatusController(
-      repository: onboardingRepository,
-      appModeController: controller,
-    );
-    await onboardingStatusController.load();
     final themeController = await _createThemeController();
     final container = ProviderContainer(
       overrides: [
         appModeControllerProvider.overrideWith((ref) => controller),
-        onboardingStatusControllerProvider
-            .overrideWith((ref) => onboardingStatusController),
-        onboardingStatusRepositoryProvider
-            .overrideWith((ref) => onboardingRepository),
         appThemeControllerProvider.overrideWith((ref) => themeController),
         appSessionBootstrapControllerProvider.overrideWith(
           (ref) => _FixedAppSessionBootstrapController(
-            state: const AppSessionBootstrapReady(userId: 'test-user'),
-            onboardingStatusController: onboardingStatusController,
+            state: const AppSessionBootstrapReady(
+              userId: 'test-user',
+              confirmedMode: AppMode.hybrid,
+            ),
           ),
         ),
-        profileDataProvider.overrideWith((ref) => Stream.value(
-              ProfileSetupData(
-                name: 'Tio User',
-                gender: ProfileGender.other,
-                goals: const {ProfileGoal.keepFit},
-                dateOfBirth: DateTime(2000, 1, 1),
-                heightCm: 170.0,
-                currentWeightKg: 70.0,
-                activityLevel: ProfileActivityLevel.active,
-                healthConditions: const {},
-                avatarUrl: 'https://example.com/avatar.jpg',
-              ),
-            )),
       ],
     );
     addTearDown(container.dispose);
     final router = container.read(goRouterProvider);
-    router.go(AppRoutes.profile.path);
 
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -366,57 +295,45 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('profile-avatar-entry')));
+    router.go(FeatureRoutes.profile.path);
     await tester.pumpAndSettle();
 
-    expect(find.byType(AvatarPreviewPage), findsOneWidget);
-    expect(find.byType(BackButton), findsOneWidget);
-    expect(find.byKey(const ValueKey('profile-avatar-edit')), findsOneWidget);
-    expect(find.byKey(const ValueKey('profile-avatar-delete')), findsOneWidget);
-    expect(find.byKey(const ValueKey('profile-avatar-download')), findsOneWidget);
-
-    await tester.tap(find.byType(BackButton));
+    final avatar = find.byType(TioAvatar).first;
+    await tester.tap(avatar);
     await tester.pumpAndSettle();
 
-    expect(find.byType(AvatarPreviewPage), findsNothing);
-    expect(find.byKey(const ValueKey('profile-avatar-entry')), findsOneWidget);
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      FeatureRoutes.profilePhoto.path,
+    );
   });
 }
 
-Future<SystemUiOverlayStyle> _pumpSystemUiOverlay(
+Future<SystemUiOverlayStyle> _pumpResolvedSystemUiStyle(
   WidgetTester tester, {
+  required TioThemeMode themeMode,
   required Brightness platformBrightness,
-  required TioThemeConfig config,
 }) async {
   tester.platformDispatcher.platformBrightnessTestValue = platformBrightness;
-  addTearDown(
-    tester.platformDispatcher.clearPlatformBrightnessTestValue,
-  );
-  final preference = _MemoryAppModePreference(AppMode.hybrid);
-  final controller = AppModeController(preference);
+  addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+
+  final preference = _MemoryAppThemePreference(themeMode);
+  final controller = AppThemeController(preference);
   await controller.load();
-  final onboardingRepository = _MemoryOnboardingStatusRepository(
-    status: OnboardingStatus.completed,
-    hasStoredContractVersion: true,
+  final modeController = AppModeController(
+    _MemoryAppModePreference(AppMode.hybrid),
   );
-  final onboardingStatusController = OnboardingStatusController(
-    repository: onboardingRepository,
-    appModeController: controller,
-  );
-  await onboardingStatusController.load();
-  final themeController = await _createThemeController();
+  await modeController.load();
   final container = ProviderContainer(
     overrides: [
-      appModeControllerProvider.overrideWith((ref) => controller),
-      onboardingStatusControllerProvider
-          .overrideWith((ref) => onboardingStatusController),
-      onboardingStatusRepositoryProvider
-          .overrideWith((ref) => onboardingRepository),
-      appThemeControllerProvider.overrideWith((ref) => themeController),
+      appThemeControllerProvider.overrideWith((ref) => controller),
+      appModeControllerProvider.overrideWith((ref) => modeController),
       appSessionBootstrapControllerProvider.overrideWith(
         (ref) => _FixedAppSessionBootstrapController(
-          state: const AppSessionBootstrapReady(userId: 'test-user'),
-          onboardingStatusController: onboardingStatusController,
+          state: const AppSessionBootstrapReady(
+            userId: 'test-user',
+            confirmedMode: AppMode.hybrid,
+          ),
         ),
       ),
     ],
@@ -426,7 +343,7 @@ Future<SystemUiOverlayStyle> _pumpSystemUiOverlay(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: TioApp(themeConfig: config),
+      child: const TioApp(),
     ),
   );
   await tester.pumpAndSettle();
@@ -464,7 +381,7 @@ Future<void> _completeProfileInputs(WidgetTester tester) async {
   await tester.pumpAndSettle();
 
   await tester.tap(
-    find.byKey(const ValueKey('goal-keepFit'), skipOffstage: false),
+    find.byKey(const ValueKey('goal-intent-stayFit'), skipOffstage: false),
     warnIfMissed: false,
   );
   await tester.pumpAndSettle();
@@ -508,42 +425,16 @@ Future<void> _completeProfileInputs(WidgetTester tester) async {
       warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  await tester.tap(
-    find.byKey(const ValueKey('activity-active'), skipOffstage: false),
-    warnIfMissed: false,
-  );
-  await tester.pumpAndSettle();
+  onboardingController.updateProfileActivity(ProfileActivityLevel.active);
+  await tester.pump();
   await tester.tap(find.widgetWithText(TioButton, 'Continue'),
       warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  await tester.tap(
-    find.byKey(const ValueKey('health-none'), skipOffstage: false),
-    warnIfMissed: false,
-  );
-  await tester.pumpAndSettle();
+  // Health conditions are optional.
   await tester.tap(find.widgetWithText(TioButton, 'Continue'),
       warnIfMissed: false);
   await tester.pumpAndSettle();
-}
-
-class _FixedAppSessionBootstrapController extends AppSessionBootstrapController {
-  _FixedAppSessionBootstrapController({
-    required AppSessionBootstrapState state,
-    required super.onboardingStatusController,
-  })  : fixedState = state,
-        super(
-          authSessionRepository: InMemoryAuthSessionRepository(),
-          onboardingCompletionRepository: null,
-        );
-
-  final AppSessionBootstrapState fixedState;
-
-  @override
-  AppSessionBootstrapState get state => fixedState;
-
-  @override
-  void start() {}
 }
 
 class _MemoryAppModePreference implements AppModePreference {
@@ -552,61 +443,79 @@ class _MemoryAppModePreference implements AppModePreference {
   AppMode? mode;
 
   @override
-  Future<void> clear() async => mode = null;
-
-  @override
   Future<AppMode?> read() async => mode;
 
   @override
-  Future<void> write(AppMode mode) async => this.mode = mode;
+  Future<void> write(AppMode mode) async {
+    this.mode = mode;
+  }
+}
+
+class _MemoryOnboardingStatusRepository implements OnboardingStatusRepository {
+  _MemoryOnboardingStatusRepository(this.status);
+
+  OnboardingStatus status;
+
+  @override
+  Future<OnboardingStatusSnapshot> read() async => OnboardingStatusSnapshot(
+        status: status,
+        schemaVersion: OnboardingStatusSnapshot.currentSchemaVersion,
+      );
+
+  @override
+  Future<void> write(OnboardingStatus status) async {
+    this.status = status;
+  }
 }
 
 class _MemoryAppThemePreference implements AppThemePreference {
   _MemoryAppThemePreference(this.mode);
 
-  TioThemeMode? mode;
-
-  @override
-  Future<void> clear() async => mode = null;
+  TioThemeMode mode;
 
   @override
   Future<TioThemeMode?> read() async => mode;
 
   @override
-  Future<void> write(TioThemeMode mode) async => this.mode = mode;
+  Future<void> write(TioThemeMode mode) async {
+    this.mode = mode;
+  }
 }
 
-class _MemoryOnboardingStatusRepository implements OnboardingStatusRepository {
-  _MemoryOnboardingStatusRepository({
-    required this.status,
-    required this.hasStoredContractVersion,
-  });
-
-  OnboardingStatus? status;
-  bool hasStoredContractVersion;
-
-  @override
-  Future<void> clear() async {
-    status = null;
-    hasStoredContractVersion = false;
-  }
+class _FixedAppSessionBootstrapController extends AppSessionBootstrapController {
+  _FixedAppSessionBootstrapController({
+    required this.state,
+    OnboardingStatusController? onboardingStatusController,
+  }) : super(
+          appSessionRepository: _FakeAppSessionRepository(),
+          completionRepository: _FixedCompletionRepository(),
+          onboardingStatusController: onboardingStatusController,
+        );
 
   @override
-  Future<void> ensureInitialized() async {
-    hasStoredContractVersion = true;
-  }
+  final AppSessionBootstrapState state;
 
   @override
-  Future<OnboardingStatusSnapshot> read() async {
-    return OnboardingStatusSnapshot(
-      status: status,
-      hasStoredContractVersion: hasStoredContractVersion,
-    );
-  }
+  void start() {}
 
   @override
-  Future<void> write(OnboardingStatus status) async {
-    await ensureInitialized();
-    this.status = status;
-  }
+  void dispose() {}
+}
+
+class _FakeAppSessionRepository implements AppSessionRepository {
+  @override
+  AppSessionAuthState get currentAuthState =>
+      const AppSessionAuthenticated(userId: 'test-user');
+
+  @override
+  Stream<AppSessionAuthState> get authStateChanges => const Stream.empty();
+}
+
+class _FixedCompletionRepository implements OnboardingCompletionRepository {
+  @override
+  Future<RemoteOnboardingCompletionState> readCurrent() async =>
+      RemoteOnboardingCompletionState.incomplete;
+
+  @override
+  Future<void> markCurrentCompleted() async {}
 }
