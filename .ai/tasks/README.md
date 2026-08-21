@@ -20,11 +20,12 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 | [App Mode foundation](app-mode-foundation.md) | In progress | `apps/shared`, onboarding, Settings, `apps/app`, `apps/core` | Changing phone navigation, onboarding, or Settings |
 | [Mode-conditional onboarding flow](onboarding-flow.md) | Ready | onboarding with Profile, Workout, Nutrition, `apps/shared`, `apps/app` contracts | Building onboarding steps, draft/resume, completion, or router gating |
 | [Product Onboarding Slice 1 — identities](product-onboarding-slice-1-identities.md) | In progress | `apps/features/onboarding` | Changing Product Onboarding section/step identity, draft serialization, resume, or progress compatibility |
-| [Product Onboarding Slice 2B — Target Weight + Goal Pace](product-onboarding-slice-2b-target-weight-goal-pace.md) | In progress | `apps/features/onboarding` | Canonical PR #50; local behavior validated through CI #1095; #44 owner contract approved; next is forward Supabase migration + backfill design |
+| [Product Onboarding Slice 2B — Target Weight + Goal Pace](product-onboarding-slice-2b-target-weight-goal-pace.md) | In progress | `apps/features/onboarding` | Canonical PR #50; local behavior validated through CI #1095; canonical Supabase schema/backfill live; next is repository/model owner cutover |
+| [Canonical Supabase Owner Migration](canonical-supabase-owner-migration.md) | In progress | Supabase + domain repositories | #44 owner schema/backfill applied; read before changing Profile/Body/Wellness/Nutrition/Workout persistence; next is repository cutover |
 | [Adaptive navigation and action entry](adaptive-navigation-and-actions.md) | Ready | `apps/shared`, `apps/core`, `apps/app`, Settings, affected features | Designing custom tabs, Home composition, or feature action placement |
 | [Material 3 Expressive foundation](material-3-expressive.md) | In progress | `apps/core`, `apps/app` | Changing shared theme, navigation, buttons, motion, or accessibility behavior |
 | [Screen catalog and module plan](screen-catalog-and-module-plan.md) | Ready | `apps/app`, `apps/core`, `apps/shared`, affected features | Starting a screen or module vertical slice |
-| [Supabase foundation](supabase-foundation.md) | Needs decision | future `supabase/`, `apps/shared`, affected feature | Starting Auth, data, RLS, Storage, or protected AI work |
+| [Supabase foundation](supabase-foundation.md) | Needs decision | `supabase/`, `apps/shared`, affected features | Starting Auth, data, RLS, Storage, or protected AI work |
 
 ## Design-System Execution Order
 
