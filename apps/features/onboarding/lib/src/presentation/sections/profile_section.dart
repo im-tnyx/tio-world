@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../domain/domain.dart';
 import '../controllers/controllers.dart';
 import '../renderer/profile_step_renderer.dart';
+import '../screens/profile/profile_screen_components.dart';
 import '../state/state.dart';
 
 class ProfileSection extends StatelessWidget {
@@ -19,6 +20,9 @@ class ProfileSection extends StatelessWidget {
       throw StateError('ProfileSection can only render the profile step.');
     }
 
-    return ProfileStepRenderer(state: state, controller: controller);
+    return ProfileFlowPlanScope(
+      flowPlan: state.profileFlowPlan,
+      child: ProfileStepRenderer(state: state, controller: controller),
+    );
   }
 }
