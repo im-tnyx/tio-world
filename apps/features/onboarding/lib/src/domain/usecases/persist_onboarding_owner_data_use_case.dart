@@ -1,46 +1,45 @@
 import 'package:tio_feature_nutrition/nutrition.dart' as nutrition_owner;
 import 'package:tio_feature_profile/profile.dart' as profile_owner;
+import 'package:tio_feature_progress/progress.dart' as body_owner;
 import 'package:tio_feature_workout/workout.dart' as workout_owner;
 
 import '../models/models.dart';
+import 'body_setup_mapper.dart';
 import 'profile_setup_mapper.dart';
 import 'targets_setup_mapper.dart';
 import 'weight_goal_flow_policy.dart';
 import 'workout_preferences_mapper.dart';
 
-/// Dedicated completion coordinator that validates and persists active onboarding answers
-/// atomically across canonical owner repositories (Profile, Workout, Targets).
+/// Completion coordinator that maps onboarding answers into durable owner
+/// repositories. Onboarding remains orchestration-only; each feature owns its
+/// persisted data contract.
 class PersistOnboardingOwnerDataUseCase {
   const PersistOnboardingOwnerDataUseCase({
     required profile_owner.ProfileSetupRepository profileRepository,
+    required body_owner.BodySetupRepository bodyRepository,
     required workout_owner.WorkoutPreferencesRepository workoutRepository,
     required nutrition_owner.TargetsSetupRepository targetsRepository,
     this.profileMapper = const ProfileSetupMapper(),
+    this.bodyMapper = const BodySetupMapper(),
     this.workoutMapper = const WorkoutPreferencesMapper(),
     this.targetsMapper = const TargetsSetupMapper(),
     this.weightGoalPolicy = const WeightGoalFlowPolicy(),
   })  : _profileRepository = profileRepository,
+        _bodyRepository = bodyRepository,
         _workoutRepository = workoutRepository,
         _targetsRepository = targetsRepository;
 
   final profile_owner.ProfileSetupRepository _profileRepository;
+  final body_owner.BodySetupRepository _bodyRepository;
   final workout_owner.WorkoutPreferencesRepository _workoutRepository;
   final nutrition_owner.TargetsSetupRepository _targetsRepository;
 
   final ProfileSetupMapper profileMapper;
+  final BodySetupMapper bodyMapper;
   final WorkoutPreferencesMapper workoutMapper;
   final TargetsSetupMapper targetsMapper;
   final WeightGoalFlowPolicy weightGoalPolicy;
 
-  /// Persists owner data according to the active mode and flow plan.
-  ///
-  /// Invariant:
-  /// - Profile data is always persisted.
-  /// - Workout data is persisted ONLY IF [flowPlan] contains [OnboardingStepId.workoutPreferences].
-  /// - Targets data is always persisted.
-  /// - dormant/ineligible Target Weight is not consumed by owner mappings.
-  ///
-  /// Throws [OwnerPersistenceException] if mapping or writing to any owner fails.
   Future<void> call({
     required OnboardingDraft draft,
     required OnboardingFlowPlan flowPlan,
@@ -50,7 +49,6 @@ class PersistOnboardingOwnerDataUseCase {
       selection: draft.goalSelection,
     );
 
-    // 1. Map and persist Profile owner data
     final profile_owner.ProfileSetupData profileData;
     try {
       profileData = profileMapper.map(
@@ -77,7 +75,29 @@ class PersistOnboardingOwnerDataUseCase {
       );
     }
 
-    // 2. Map and persist Workout owner data (Mode-Aware: only if active in flowPlan)
+    final body_owner.BodySetupData bodyData;
+    try {
+      bodyData = bodyMapper.map(draft);
+    } catch (e, st) {
+      throw OwnerPersistenceException(
+        owner: OwnerPersistenceTarget.body,
+        message: 'Failed to map Body setup data: $e',
+        cause: e,
+        stackTrace: st,
+      );
+    }
+
+    try {
+      await _bodyRepository.saveBodySetup(bodyData);
+    } catch (e, st) {
+      throw OwnerPersistenceException(
+        owner: OwnerPersistenceTarget.body,
+        message: 'Failed to persist Body setup data: $e',
+        cause: e,
+        stackTrace: st,
+      );
+    }
+
     final requiresWorkout =
         flowPlan.stepIds.contains(OnboardingStepId.workoutPreferences);
     if (requiresWorkout) {
@@ -105,7 +125,6 @@ class PersistOnboardingOwnerDataUseCase {
       }
     }
 
-    // 3. Map and persist Targets & Nutrition owner data
     final nutrition_owner.TargetsSetupData targetsData;
     try {
       targetsData = targetsMapper.map(
@@ -137,6 +156,7 @@ class PersistOnboardingOwnerDataUseCase {
 
 enum OwnerPersistenceTarget {
   profile,
+  body,
   workout,
   targets,
 }
