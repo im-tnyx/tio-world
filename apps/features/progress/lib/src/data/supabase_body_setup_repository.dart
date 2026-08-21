@@ -1,24 +1,29 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../domain/body_setup.dart';
+import 'body_state_row_mapper.dart';
 
 /// Supabase implementation of the canonical Body owner.
 ///
 /// `body_weight_logs` owns current-weight history and `user_body_goals` owns
 /// active/historical Body Goal plans. Legacy Profile/Nutrition mirrors are not
 /// touched here.
-class SupabaseBodySetupRepository implements BodySetupRepository {
-  const SupabaseBodySetupRepository({required SupabaseClient client})
-      : _client = client;
+class SupabaseBodySetupRepository implements BodyRepository {
+  const SupabaseBodySetupRepository({
+    required SupabaseClient client,
+    BodyStateRowMapper stateMapper = const BodyStateRowMapper(),
+  })  : _client = client,
+        _stateMapper = stateMapper;
 
   static const _onboardingWeightSource = 'onboarding_setup';
 
   final SupabaseClient _client;
+  final BodyStateRowMapper _stateMapper;
 
   String _requireUserId() {
     final userId = _client.auth.currentUser?.id;
     if (userId == null || userId.isEmpty) {
-      throw StateError('Please sign in to save Body setup data.');
+      throw StateError('Please sign in to access Body data.');
     }
     return userId;
   }
@@ -43,6 +48,50 @@ class SupabaseBodySetupRepository implements BodySetupRepository {
       data: data,
       nowIso: nowIso,
     );
+  }
+
+  @override
+  Future<BodyState> getBodyState() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null || userId.isEmpty) {
+      return const BodyState();
+    }
+
+    final latestWeightRow = await _client
+        .from('body_weight_logs')
+        .select('weight_kg, measured_at, source')
+        .eq('user_id', userId)
+        .order('measured_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+
+    final activeGoalRow = await _client
+        .from('user_body_goals')
+        .select(
+          'goal_type, starting_weight_kg, target_weight_kg, '
+          'weekly_weight_change_kg, intent_rank, started_at',
+        )
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .maybeSingle();
+
+    return _stateMapper.map(
+      latestWeightRow: latestWeightRow,
+      activeGoalRow: activeGoalRow,
+    );
+  }
+
+  @override
+  Future<void> recordCurrentWeight(BodyWeightRecord record) async {
+    final userId = _requireUserId();
+    _validateWeightRecord(record);
+
+    await _client.from('body_weight_logs').insert({
+      'user_id': userId,
+      'weight_kg': record.weightKg,
+      'measured_at': record.measuredAt.toUtc().toIso8601String(),
+      'source': record.source.trim(),
+    });
   }
 
   void _validate(BodySetupData data) {
@@ -179,6 +228,23 @@ class SupabaseBodySetupRepository implements BodySetupRepository {
     if (!isDirectional && (target != null || pace != null)) {
       throw ArgumentError(
         'Maintain/Recomposition cannot persist Target Weight or Goal Pace.',
+      );
+    }
+  }
+
+  void _validateWeightRecord(BodyWeightRecord record) {
+    if (record.weightKg <= 0) {
+      throw ArgumentError.value(
+        record.weightKg,
+        'weightKg',
+        'Current weight must be greater than zero.',
+      );
+    }
+    if (record.source.trim().isEmpty) {
+      throw ArgumentError.value(
+        record.source,
+        'source',
+        'Weight provenance source is required.',
       );
     }
   }
