@@ -42,6 +42,121 @@ void main() {
       expect(controller.state.draft.profile.currentStepId, ProfileStepId.height);
     });
 
+    test('legacy target without direction associates from explicit eligible goal', () {
+      final controller = OnboardingController(
+        entryPath: OnboardingEntryPath.resumeDraft,
+        initialDraft: OnboardingDraft(
+          selectedMode: AppMode.nutrition,
+          goalSelection: const GoalIntentSelection(
+            primaryGoal: GoalIntent.loseWeight,
+          ),
+          currentStepId: OnboardingStepId.profileBasics,
+          profile: ProfileOnboardingDraft(
+            currentStepId: ProfileStepId.targetWeight,
+            currentWeightKg: 70,
+            targetWeightKg: 64,
+          ),
+        ),
+      );
+
+      expect(controller.state.draft.profile.targetWeightKg, 64);
+      expect(
+        controller.state.draft.profile.targetWeightDirection,
+        GoalWeightDirection.loss,
+      );
+    });
+
+    test('Target Weight survives eligible to ineligible to same direction', () {
+      final controller = OnboardingController(
+        entryPath: OnboardingEntryPath.resumeDraft,
+        initialDraft: OnboardingDraft(
+          selectedMode: AppMode.nutrition,
+          goalSelection: const GoalIntentSelection(
+            primaryGoal: GoalIntent.loseWeight,
+          ),
+          currentStepId: OnboardingStepId.profileBasics,
+          profile: ProfileOnboardingDraft(
+            currentStepId: ProfileStepId.goal,
+            currentWeightKg: 70,
+            targetWeightKg: 64,
+            targetWeightDirection: GoalWeightDirection.loss,
+          ),
+        ),
+      );
+
+      controller.tapGoalIntent(GoalIntent.maintainWeight);
+      expect(controller.state.draft.profile.targetWeightKg, 64);
+      expect(
+        controller.state.draft.profile.targetWeightDirection,
+        GoalWeightDirection.loss,
+      );
+
+      controller.tapGoalIntent(GoalIntent.loseWeight);
+      expect(controller.state.draft.profile.targetWeightKg, 64);
+      expect(
+        controller.state.draft.profile.targetWeightDirection,
+        GoalWeightDirection.loss,
+      );
+    });
+
+    test('opposite weight direction explicitly clears incompatible target', () {
+      final controller = OnboardingController(
+        entryPath: OnboardingEntryPath.resumeDraft,
+        initialDraft: OnboardingDraft(
+          selectedMode: AppMode.nutrition,
+          goalSelection: const GoalIntentSelection(
+            primaryGoal: GoalIntent.loseWeight,
+          ),
+          currentStepId: OnboardingStepId.profileBasics,
+          profile: ProfileOnboardingDraft(
+            currentStepId: ProfileStepId.goal,
+            currentWeightKg: 70,
+            targetWeightKg: 64,
+            targetWeightDirection: GoalWeightDirection.loss,
+          ),
+        ),
+      );
+
+      controller.tapGoalIntent(GoalIntent.gainWeight);
+
+      expect(controller.state.draft.profile.targetWeightKg, isNull);
+      expect(controller.state.draft.profile.targetWeightDirection, isNull);
+    });
+
+    test('hydrated dormant Target Weight restores when same direction returns', () async {
+      final savedDraft = OnboardingDraft(
+        selectedMode: AppMode.nutrition,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.maintainWeight,
+        ),
+        currentStepId: OnboardingStepId.profileBasics,
+        profile: ProfileOnboardingDraft(
+          currentStepId: ProfileStepId.goal,
+          currentWeightKg: 70,
+          targetWeightKg: 64,
+          targetWeightDirection: GoalWeightDirection.loss,
+        ),
+      );
+      final draftRepo = InMemoryOnboardingDraftRepository(
+        initialSnapshot: OnboardingDraftSnapshot(draft: savedDraft),
+      );
+      final controller = OnboardingController(
+        entryPath: OnboardingEntryPath.resumeDraft,
+        draftRepository: draftRepo,
+      );
+
+      await controller.hydrateDraft();
+      expect(controller.state.draft.profile.targetWeightKg, 64);
+
+      controller.tapGoalIntent(GoalIntent.loseWeight);
+
+      expect(controller.state.draft.profile.targetWeightKg, 64);
+      expect(
+        controller.state.draft.profile.targetWeightDirection,
+        GoalWeightDirection.loss,
+      );
+    });
+
     test('hydration race protection: autosave does not fire before hydration completes', () async {
       final savedDraft = OnboardingDraft(
         selectedMode: AppMode.workout,
@@ -57,7 +172,6 @@ void main() {
         draftRepository: draftRepo,
       );
 
-      // Mutating before hydration is blocked/does not overwrite repository
       expect(controller.isHydrated, isFalse);
       expect((await draftRepo.loadDraft())?.draft.profile.name, 'Existing User');
 
@@ -77,7 +191,6 @@ void main() {
 
       controller.selectMode(AppMode.nutrition);
 
-      // Immediate save
       final savedSnapshot = await draftRepo.loadDraft();
       expect(savedSnapshot, isNotNull);
       expect(savedSnapshot!.draft.selectedMode, AppMode.nutrition);
