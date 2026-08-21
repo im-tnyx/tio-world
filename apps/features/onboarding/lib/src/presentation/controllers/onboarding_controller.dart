@@ -215,6 +215,20 @@ class OnboardingController extends ChangeNotifier {
     var targets = draft.targets;
     final goalSelection = _resolvedGoalSelection(draft);
     final mode = draft.selectedMode;
+    final resolvedDirection = _weightGoalPolicy.directionFor(
+      mode: mode,
+      selection: goalSelection,
+    );
+    if (profile.targetWeightKg != null &&
+        profile.targetWeightDirection == null &&
+        resolvedDirection != null) {
+      profile = profile.copyWith(targetWeightDirection: resolvedDirection);
+    }
+    profile = _reconcileTargetWeightForDirection(
+      profile: profile,
+      nextDirection: resolvedDirection,
+    );
+
     var profileFlowPlan = _profilePlanner(
       mode: mode,
       goalSelection: goalSelection,
@@ -345,10 +359,6 @@ class OnboardingController extends ChangeNotifier {
     if (state.isBusy) return;
     _markInProgress();
 
-    final previousDirection = _weightGoalPolicy.directionFor(
-      mode: state.draft.selectedMode,
-      selection: state.draft.goalSelection,
-    );
     final nextWorkoutIntroChoice =
         state.draft.selectedMode == AppMode.hybrid && mode == AppMode.hybrid
             ? state.draft.workoutIntroChoice
@@ -378,11 +388,10 @@ class OnboardingController extends ChangeNotifier {
     final goalChanged = nextGoalSelection != state.draft.goalSelection;
     final eligibleCompleted =
         state.completedStepIds.where(nextPlan.contains).toSet();
-    var nextProfile = state.draft.profile;
-
-    if (previousDirection != nextDirection) {
-      nextProfile = nextProfile.copyWith(clearTargetWeightKg: true);
-    }
+    var nextProfile = _reconcileTargetWeightForDirection(
+      profile: state.draft.profile,
+      nextDirection: nextDirection,
+    );
 
     if (goalChanged &&
         _isPastGoalCheckpoint(
@@ -553,11 +562,15 @@ class OnboardingController extends ChangeNotifier {
   }
 
   void updateProfileTargetWeight(double? value) {
+    final direction = state.weightGoalDirection;
+    if (value != null && direction == null) return;
     _markInProgress();
     _updateProfile(
       state.draft.profile.copyWith(
         targetWeightKg: value,
+        targetWeightDirection: direction,
         clearTargetWeightKg: value == null,
+        clearTargetWeightDirection: value == null,
       ),
     );
   }
@@ -862,7 +875,6 @@ class OnboardingController extends ChangeNotifier {
         return;
       }
 
-      // Profile completed -> Trigger Sign Up authentication checkpoint
       if (onAuthRequired != null) {
         final authenticated = await onAuthRequired();
         if (!authenticated) return;
@@ -950,20 +962,16 @@ class OnboardingController extends ChangeNotifier {
   void _updateGoalSelection(GoalIntentSelection selection) {
     if (state.isBusy) return;
 
-    final previousDirection = _weightGoalPolicy.directionFor(
-      mode: state.draft.selectedMode,
-      selection: state.draft.goalSelection,
-    );
     final nextDirection = _weightGoalPolicy.directionFor(
       mode: state.draft.selectedMode,
       selection: selection,
     );
     final completed = {...state.completedStepIds}
       ..remove(OnboardingStepId.profileBasics);
-    var profile = state.draft.profile;
-    if (previousDirection != nextDirection) {
-      profile = profile.copyWith(clearTargetWeightKg: true);
-    }
+    final profile = _reconcileTargetWeightForDirection(
+      profile: state.draft.profile,
+      nextDirection: nextDirection,
+    );
     final nextDraft = state.draft.copyWith(
       status: OnboardingStatus.inProgress,
       goalSelection: selection,
@@ -978,6 +986,19 @@ class OnboardingController extends ChangeNotifier {
     );
     notifyListeners();
     _scheduleDraftSave();
+  }
+
+  ProfileOnboardingDraft _reconcileTargetWeightForDirection({
+    required ProfileOnboardingDraft profile,
+    required GoalWeightDirection? nextDirection,
+  }) {
+    if (nextDirection == null || profile.targetWeightKg == null) {
+      return profile;
+    }
+    if (profile.targetWeightDirection == nextDirection) {
+      return profile;
+    }
+    return profile.copyWith(clearTargetWeightKg: true);
   }
 
   void _updateProfile(ProfileOnboardingDraft profile) {
@@ -1070,20 +1091,30 @@ class OnboardingController extends ChangeNotifier {
         profile.currentWeightKg == null) {
       return profile.copyWith(currentWeightKg: _defaultCurrentWeightKg);
     }
-    if (stepId == ProfileStepId.targetWeight &&
-        profile.targetWeightKg == null) {
+    if (stepId == ProfileStepId.targetWeight) {
       final direction = _weightGoalPolicy.directionFor(
         mode: mode,
         selection: goalSelection,
       );
+      var reconciled = _reconcileTargetWeightForDirection(
+        profile: profile,
+        nextDirection: direction,
+      );
+      if (direction == null || reconciled.targetWeightKg != null) {
+        return reconciled;
+      }
       final recommendation = _targetWeightRecommendationResolver.resolve(
         direction: direction,
-        currentWeightKg: profile.currentWeightKg,
-        heightCm: profile.heightCm,
+        currentWeightKg: reconciled.currentWeightKg,
+        heightCm: reconciled.heightCm,
       );
       if (recommendation != null) {
-        return profile.copyWith(targetWeightKg: recommendation);
+        reconciled = reconciled.copyWith(
+          targetWeightKg: recommendation,
+          targetWeightDirection: direction,
+        );
       }
+      return reconciled;
     }
     return profile;
   }
