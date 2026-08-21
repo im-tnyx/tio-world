@@ -22,28 +22,28 @@ class ProfileStepValidator {
 
   Map<ProfileStepId, String> validate(
     ProfileOnboardingDraft draft, {
-    GoalWeightDirection? goalWeightDirection,
+    GoalWeightDirection? weightGoalDirection,
   }) {
     final error = _validateCurrentStep(
       draft,
-      goalWeightDirection: goalWeightDirection,
+      weightGoalDirection: weightGoalDirection,
     );
     return error == null ? const {} : {draft.currentStepId: error};
   }
 
   bool isCurrentStepValid(
     ProfileOnboardingDraft draft, {
-    GoalWeightDirection? goalWeightDirection,
+    GoalWeightDirection? weightGoalDirection,
   }) =>
       _validateCurrentStep(
         draft,
-        goalWeightDirection: goalWeightDirection,
+        weightGoalDirection: weightGoalDirection,
       ) ==
       null;
 
   String? _validateCurrentStep(
     ProfileOnboardingDraft draft, {
-    GoalWeightDirection? goalWeightDirection,
+    GoalWeightDirection? weightGoalDirection,
   }) {
     return switch (draft.currentStepId) {
       ProfileStepId.name => draft.name.trim().length >= minimumNameLength
@@ -71,7 +71,7 @@ class ProfileStepValidator {
         ),
       ProfileStepId.targetWeight => _validateTargetWeight(
           draft,
-          goalWeightDirection,
+          weightGoalDirection,
         ),
       ProfileStepId.activity =>
         draft.activityLevel == null ? 'Choose an activity level.' : null,
