@@ -189,7 +189,7 @@ void main() {
     const titles = {
       ProfileStepId.name: 'What should Tio call you?',
       ProfileStepId.gender: 'How do you describe your gender?',
-      ProfileStepId.goal: "What's your main goal?",
+      ProfileStepId.goal: 'What do you want to achieve?',
       ProfileStepId.age: 'When were you born?',
       ProfileStepId.measurementUnits: 'Choose your units',
       ProfileStepId.height: 'What is your height?',
@@ -218,22 +218,26 @@ void main() {
     }
   });
 
-  testWidgets('selected goals render and update the typed draft',
+  testWidgets('unified goals render and update ordered selection',
       (tester) async {
     final harness = await _pumpProfile(
       tester,
       profile: _validProfile(currentStepId: ProfileStepId.goal),
+      goalSelection: const GoalIntentSelection(
+        primaryGoal: GoalIntent.buildMuscle,
+      ),
     );
-    final keepFit = find.byKey(
-      const ValueKey('goal-keepFit'),
+
+    final primary = find.byKey(
+      const ValueKey('goal-intent-buildMuscle'),
     );
     expect(
-      find.descendant(of: keepFit, matching: find.byIcon(Icons.check_circle)),
+      find.descendant(of: primary, matching: find.byIcon(Icons.check_circle)),
       findsOneWidget,
     );
 
     final supporting = find.byKey(
-      const ValueKey('goal-boostStrength'),
+      const ValueKey('goal-intent-getStronger'),
     );
     await tester.ensureVisible(supporting);
     await tester.pumpAndSettle();
@@ -241,8 +245,11 @@ void main() {
     await tester.pump();
 
     expect(
-      harness.controller.state.draft.profile.goals,
-      {ProfileGoal.keepFit, ProfileGoal.boostStrength},
+      harness.controller.state.draft.goalSelection,
+      const GoalIntentSelection(
+        primaryGoal: GoalIntent.buildMuscle,
+        supportingGoal: GoalIntent.getStronger,
+      ),
     );
   });
 }
@@ -282,6 +289,7 @@ Future<void> _pumpDirectProfileSection(
 Future<_ProfileHarness> _pumpProfile(
   WidgetTester tester, {
   ProfileOnboardingDraft? profile,
+  GoalIntentSelection goalSelection = const GoalIntentSelection(),
   Future<void> Function()? onExitRequested,
 }) async {
   final container = ProviderContainer();
@@ -290,6 +298,7 @@ Future<_ProfileHarness> _pumpProfile(
     entryPath: OnboardingEntryPath.firstRun,
     draft: OnboardingDraft(
       selectedMode: AppMode.workout,
+      goalSelection: goalSelection,
       currentStepId: OnboardingStepId.profileBasics,
       profile: profile ?? ProfileOnboardingDraft(),
     ),
