@@ -1,5 +1,6 @@
 import 'package:tio_shared/shared.dart';
 
+import 'goal_intent.dart';
 import 'onboarding_status.dart';
 import 'onboarding_step_id.dart';
 import 'nutrition_onboarding_draft.dart';
@@ -7,7 +8,6 @@ import 'profile_onboarding_draft.dart';
 import 'targets_onboarding_draft.dart';
 import 'workout_intro_choice.dart';
 import 'workout_onboarding_draft.dart';
-
 
 const _onboardingDraftUnchanged = Object();
 
@@ -17,6 +17,7 @@ class OnboardingDraft {
     this.status = OnboardingStatus.notStarted,
     this.selectedMode,
     this.workoutIntroChoice,
+    this.goalSelection = const GoalIntentSelection(),
     this.currentStepId = OnboardingStepId.mode,
     ProfileOnboardingDraft? profile,
     NutritionOnboardingDraft? nutrition,
@@ -29,20 +30,19 @@ class OnboardingDraft {
         targets = targets ?? const TargetsOnboardingDraft(),
         completedStepIds = Set.unmodifiable(completedStepIds);
 
-
   static const currentSchemaVersion = 3;
 
   final int schemaVersion;
   final OnboardingStatus status;
   final AppMode? selectedMode;
   final WorkoutIntroChoice? workoutIntroChoice;
+  final GoalIntentSelection goalSelection;
   final OnboardingStepId currentStepId;
   final ProfileOnboardingDraft profile;
   final NutritionOnboardingDraft nutrition;
   final WorkoutOnboardingDraft workout;
   final TargetsOnboardingDraft targets;
   final Set<OnboardingStepId> completedStepIds;
-
 
   @override
   bool operator ==(Object other) {
@@ -52,13 +52,13 @@ class OnboardingDraft {
             status == other.status &&
             selectedMode == other.selectedMode &&
             workoutIntroChoice == other.workoutIntroChoice &&
+            goalSelection == other.goalSelection &&
             currentStepId == other.currentStepId &&
             profile == other.profile &&
             nutrition == other.nutrition &&
             workout == other.workout &&
             targets == other.targets &&
             completedStepIds.length == other.completedStepIds.length &&
-
             completedStepIds.every(other.completedStepIds.contains);
   }
 
@@ -68,6 +68,7 @@ class OnboardingDraft {
         status,
         selectedMode,
         workoutIntroChoice,
+        goalSelection,
         currentStepId,
         profile,
         nutrition,
@@ -81,6 +82,7 @@ class OnboardingDraft {
     OnboardingStatus? status,
     Object? selectedMode = _onboardingDraftUnchanged,
     Object? workoutIntroChoice = _onboardingDraftUnchanged,
+    GoalIntentSelection? goalSelection,
     OnboardingStepId? currentStepId,
     ProfileOnboardingDraft? profile,
     NutritionOnboardingDraft? nutrition,
@@ -88,7 +90,6 @@ class OnboardingDraft {
     TargetsOnboardingDraft? targets,
     Set<OnboardingStepId>? completedStepIds,
   }) {
-
     return OnboardingDraft(
       schemaVersion: schemaVersion ?? this.schemaVersion,
       status: status ?? this.status,
@@ -99,6 +100,7 @@ class OnboardingDraft {
           identical(workoutIntroChoice, _onboardingDraftUnchanged)
               ? this.workoutIntroChoice
               : workoutIntroChoice as WorkoutIntroChoice?,
+      goalSelection: goalSelection ?? this.goalSelection,
       currentStepId: currentStepId ?? this.currentStepId,
       profile: profile ?? this.profile,
       nutrition: nutrition ?? this.nutrition,
