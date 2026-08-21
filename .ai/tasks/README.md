@@ -17,44 +17,57 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 | [Design-system Slice H — Final Enforcement](design-system-slice-h-final-enforcement.md) | Validated | repository-wide design-system audit | Final enforcement validated by Flutter CI #865 |
 | [Design-system hardcoded color audit](design-system-hardcoded-color-audit.md) | Cross-cutting | `apps/core` design-system ownership | Any work touching colors, gradients, shadows, alpha/state colors, or feature color helpers |
 | [Flutter UI reusable-first governance](flutter-ui-reusable-governance.md) | In progress | repository AI governance + `apps/core` | Any change to repository-wide Flutter UI agent/workflow rules |
-| [App Mode foundation](app-mode-foundation.md) | In progress | `apps/shared`, `apps/app`, onboarding, Settings, `user_app_preferences` | P1 canonical table is live; durable runtime persistence is P2 after P1A account verification |
-| [Mode-conditional onboarding flow](onboarding-flow.md) | Ready | onboarding with Profile, Workout, Nutrition, `apps/shared`, `apps/app` contracts | Building onboarding steps, draft/resume, completion, or router gating |
-| [Product Onboarding Slice 1 — identities](product-onboarding-slice-1-identities.md) | In progress | `apps/features/onboarding` | Changing Product Onboarding section/step identity, draft serialization, resume, or progress compatibility |
-| [Product Onboarding Slice 2B — Target Weight + Goal Pace](product-onboarding-slice-2b-target-weight-goal-pace.md) | In progress | `apps/features/onboarding` | PR #50; Body B1 #1153 + P1 schema validated; P1A account verification is next before P2/P3/P4 |
-| [Canonical Supabase Owner Migration](canonical-supabase-owner-migration.md) | In progress | Supabase + domain repositories | Body foundation + P1 `user_profiles`/`user_app_preferences`/`email_verified_at` are live; P1A next |
-| [Account / Profile / App Preferences Canonical Split](account-profile-app-preferences-canonical-split.md) | In progress | Supabase + Account/Profile/App Mode composition | **Canonical sequence source:** P1 ✅ → P1A NEXT → P2 App Mode → P3 Profile → P4 Body/Profile → P5/P6 → P7 |
-| [Profile & Account Data Persistence](profile-account-data-persistence.md) | In progress | `users` account root + Profile/Settings/Auth adapter | P1 schema dependency validated; **P1A real email/mobile add/change/verify is NEXT** |
-| [Canonical Body Owner Repository Cutover](canonical-body-owner-repository-cutover.md) | In progress | `apps/features/progress` + onboarding/Profile/Settings composition | Body A + B1 validated (#1135/#1153); B2/B3 waits for P3 so Profile uses `user_profiles`, not legacy `users` mirrors |
+| [Product Onboarding — Canonical Execution Plan](product-onboarding-canonical-execution.md) | Ready | `apps/features/onboarding` + canonical owner repositories | **Single current sequencing source for finishing Product Onboarding; next O1 durable App Mode (#11)** |
+| [App Mode foundation](app-mode-foundation.md) | In progress | `apps/shared`, `apps/app`, onboarding, Settings, `user_app_preferences` | P1 canonical table is live; durable runtime persistence is O1/P2 and is no longer blocked by account-contact verification |
+| [Mode-conditional onboarding flow](onboarding-flow.md) | Ready | onboarding with Profile, Workout, Nutrition, `apps/shared`, `apps/app` contracts | Historical/detail reference for flow/controller architecture; use canonical execution task for current sequence |
+| [Product Onboarding Slice 1 — identities](product-onboarding-slice-1-identities.md) | Validated | `apps/features/onboarding` | Stable future section/step identity + draft codec foundation validated by CI #945 |
+| [Product Onboarding Slice 2B — Target Weight + Goal Pace](product-onboarding-slice-2b-target-weight-goal-pace.md) | In progress | `apps/features/onboarding` | Goal/Target Weight/Goal Pace local + Body foundations validated; remaining picker/recommendation gates are tracked, while onboarding sequence continues from O1 |
+| [Canonical Supabase Owner Migration](canonical-supabase-owner-migration.md) | In progress | Supabase + domain repositories | Body foundation + P1 `user_profiles`/`user_app_preferences`/`email_verified_at` are live |
+| [Account / Profile / App Preferences Canonical Split](account-profile-app-preferences-canonical-split.md) | In progress | Supabase + Account/Profile/App Mode composition | P1 schema is live; Product Onboarding lane starts with App Mode, while account contact verification is a parallel lane |
+| [Profile & Account Data Persistence](profile-account-data-persistence.md) | In progress | `users` account root + Profile/Settings/Auth adapter | Independent A1: real email/mobile add/change/verify; required for account/settings acceptance but not an O1 onboarding blocker |
+| [Canonical Body Owner Repository Cutover](canonical-body-owner-repository-cutover.md) | In progress | `apps/features/progress` + onboarding/Profile/Settings composition | Body A + B1 validated (#1135/#1153); final Profile/Settings mirror shutdown follows canonical Profile cutover |
 | [Adaptive navigation and action entry](adaptive-navigation-and-actions.md) | Ready | `apps/shared`, `apps/core`, `apps/app`, Settings, affected features | Designing custom tabs, Home composition, or feature action placement |
 | [Material 3 Expressive foundation](material-3-expressive.md) | In progress | `apps/core`, `apps/app` | Changing shared theme, navigation, buttons, motion, or accessibility behavior |
 | [Screen catalog and module plan](screen-catalog-and-module-plan.md) | Ready | `apps/app`, `apps/core`, `apps/shared`, affected features | Starting a screen or module vertical slice |
 | [Supabase foundation](supabase-foundation.md) | Needs decision | `supabase/`, `apps/shared`, affected features | Starting Auth, data, RLS, Storage, or protected AI work |
 
-## Canonical persistence execution order
+## Product Onboarding execution order
 
 ```text
-Body B1 canonical read/history contract        VALIDATED (#1153)
+Foundation: Body B1 + P1 canonical schema          VALIDATED / LIVE
         ↓
-P1 account/Profile/App Preferences schema      VALIDATED / LIVE
+O1 durable App Mode / active_tabs                  NEXT (#11)
         ↓
-P1A account contact verification               NEXT (#8)
+O2 common User Profile owner + section activation
         ↓
-P2 durable App Mode / active_tabs              (#11)
+O3 Body Goal section + Body/Profile parity
         ↓
-P3 common Profile repository cutover
+O4 Wellness placement + canonical owner
         ↓
-P4 Body B2/B3 Profile/Settings composition
+O5 Nutrition Profile + Nutrition Targets split
         ↓
-P5 Wellness/Nutrition split
+O6 Workout Intro/Profile/Targets split
         ↓
-P6 Workout Profile/Targets split
+O7 Health Connections decision/integration
         ↓
-P7 integrated persistence acceptance
+O8 Review + edit-back + draft/resume reconciliation
+        ↓
+O9 truthful Plan Building/finalization + existing Congratulations
+        ↓
+O10 full mode/device/persistence acceptance
         ↓
 later legacy-column cleanup migration
 ```
 
-Do not skip a slice before its validation evidence is recorded in the focused task and relevant GitHub issue.
+Independent account lane:
+
+```text
+A1 real email/mobile contact verification (#8)
+```
+
+A1 is required before final account/settings acceptance but does not block O1–O3 Product Onboarding persistence.
+
+Do not skip a Product Onboarding slice before its validation evidence is recorded in `product-onboarding-canonical-execution.md` and Issue #40.
 
 ## Design-System Execution Order
 
