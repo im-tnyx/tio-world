@@ -3,6 +3,7 @@ export 'build_onboarding_progress_plan_use_case.dart';
 export 'build_workout_flow_plan_use_case.dart';
 export 'calculate_nutrition_target_recommendation_use_case.dart';
 export 'complete_onboarding_use_case.dart';
+export 'goal_intent_selection_policy.dart';
 export 'goal_pace_resolver.dart';
 export 'goal_pace_target_date_calculator.dart';
 export 'onboarding_completion_validator.dart';
