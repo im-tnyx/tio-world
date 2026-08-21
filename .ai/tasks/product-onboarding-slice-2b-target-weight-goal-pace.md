@@ -5,7 +5,7 @@
 **GitHub tracker:** #40  
 **Canonical implementation PR:** #50 `feat(onboarding): activate unified mode-aware Goal screen`  
 **Canonical branch:** `agent/onboarding-slice-2-step-1-body-goal-ui`  
-**Execution decision:** keep one active implementation PR (#50) until the approved Goal + Target Weight + Goal Pace contract is complete and validated. Do not merge #50 to `main` yet.
+**Execution decision:** keep one active implementation PR (#50). Do not merge to `main` until the remaining Product + technical gates are satisfied.
 
 ---
 
@@ -15,55 +15,43 @@ This file is the durable handoff. Continue from repository state here instead of
 
 ### PR topology
 
-- **PR #50** is the only active implementation PR. It stays Draft and unmerged until the remaining exit criteria are satisfied.
-- **PR #51** is closed/unmerged as superseded. Its two useful eligibility/reconciliation tests were copied into #50 and blob-verified.
+- **PR #50** is the only active implementation PR. It remains Draft/unmerged.
+- **PR #51** is closed/unmerged as superseded. Its two useful eligibility/reconciliation tests were consolidated into #50.
 - **PR #52** is closed/unmerged validation-only. Do not reopen or merge it.
 
-### Latest validated production checkpoint
+### Latest validated checkpoints
 
 ```text
-head: 0109839f0b5e940815709aa8444142a79828e391
-Flutter CI: #1090
-run id: 32494752657
+Goal + eligibility baseline                     ✅
+2B-B1 Target Weight state/domain persistence    ✅ CI #1079
+2B-C Goal Pace ownership/default semantics      ✅ CI #1090
+2B-D1 local acceptance + Review Goal source     ✅ CI #1095
+```
+
+Latest D1 source/test head:
+
+```text
+6c3dcb527bc92b3a6b46755d2d8c569682d090f4
+Flutter CI #1095
+run id: 32497930346
 conclusion: SUCCESS
 ```
 
-Validated gates:
+CI #1095 gates:
 
 - Flutter analyze ✅
 - Dart analyze ✅
 - full Flutter tests ✅
 - full Dart tests ✅
 
-This proves the implemented Goal + eligibility + Target Weight B1 + Goal Pace 2B-C checkpoint is technically green. It does **not** mean the full Slice 2B Product contract is ready to merge.
-
-### Single-PR execution state
-
-```text
-PR #50 Draft
-├─ Dynamic Goal activation                         ✅
-├─ Weight-follow-up eligibility / reconciliation   ✅
-├─ 2B-B1 Target Weight state/persistence            ✅ CI #1079
-├─ 2B-C Goal Pace ownership/default semantics       ✅ CI #1090
-├─ 2B-B2 measurement input restoration             BLOCKED on approved picker/reference
-├─ Target Weight numeric recommendation policy      NEEDS PRODUCT RULE / canonical source
-└─ 2B-D full acceptance matrix                      NEXT UNBLOCKED AUDIT/VALIDATION
-        ↓
-final CI green
-        ↓
-Ready/Merge decision
-```
-
-Do not create another 2B PR unless the owner explicitly changes this strategy.
+This does **not** make PR #50 Ready. Remote Target Weight transport, canonical Goal owner persistence, measurement input restoration, and final Target Weight recommendation policy remain unresolved.
 
 ---
 
-## 1. Issue #40 product / ownership contract
-
-Issue #40 is canonical for Product Onboarding structure.
+## 1. Issue #40 ownership contract
 
 ```text
-Onboarding
+Product Onboarding
 = flow/order/step identity/draft-resume/review/finalization orchestration
 
 Profile
@@ -79,9 +67,9 @@ Workout
 = Workout Profile + Workout Goals/Targets
 ```
 
-The unified user-facing Goal screen is an onboarding presentation/orchestration contract. It must not create a mixed canonical persistence owner.
+The unified Goal screen is an onboarding presentation/orchestration contract. It must not create a mixed canonical owner or invent semantic mappings.
 
-### Dynamic Goal screen — implemented
+### Approved unified Goal contract
 
 Nutrition, single-select:
 
@@ -103,16 +91,17 @@ Stay fit
 Recomposition
 ```
 
-Rules:
+Mandatory semantics:
 
-- first selection = primary;
-- optional compatible second = supporting;
-- max 2;
-- `Build muscle` never means `Gain weight`;
-- no BODY GOAL / WORKOUT GOAL subgroup headings;
-- preserve existing Goal card visual/interaction language.
+- Nutrition is single-select.
+- Workout/Hybrid may have one compatible supporting goal.
+- `Build muscle != Gain weight`.
+- Never infer Goal intent from BMI or current/target numeric difference.
+- Do not map unsupported new Goal intents into legacy owner enums just to make persistence compile.
 
-### Target Weight / Goal Pace eligibility — implemented
+---
+
+## 2. Weight follow-up eligibility — implemented
 
 `GoalIntentSelection` is semantic authority.
 
@@ -129,280 +118,230 @@ Workout / Hybrid:
 
 ```text
 Lose weight primary OR supporting → Target Weight + Goal Pace
-all training-only goals alone     → skip both
+training-only goals alone         → skip both
 ```
 
-Never infer semantic goal/direction from BMI or `targetWeight - currentWeight`.
-
-Eligibility lives at child-flow-plan level so navigation, resume reconciliation, progress, validation, rendering, Review and owner consumption can use one explicit source of truth.
+Eligibility is consumed by dynamic `ProfileFlowPlan` and `TargetsFlowPlan`, so Next/Back/resume/progress/validation/reconciliation use the same source of truth.
 
 ---
 
-## 2. Completed foundation
+## 3. 2B-B1 Target Weight state/domain persistence — validated
 
-### Goal activation
-
-- `GoalIntent`
-- ordered `GoalIntentSelection(primaryGoal, supportingGoal)`
-- mode-aware `GoalIntentSelectionPolicy`
-- active `GoalIntentScreen`
-- Nutrition single-select
-- Workout/Hybrid compatible max-two behavior
-- migration-safe Goal selection persistence
-- unsupported legacy mappings do not invent intent
-- `Build muscle != Gain weight`.
-
-### Weight-follow-up foundation
-
-- `GoalWeightDirection`
-- `GoalWeightFollowUpPolicy`
-- `WeightGoalFlowPolicy` compatibility surface
-- conditional Profile Target Weight plan
-- conditional Targets Goal Pace plan
-- current-step reconciliation
-- active child plans drive navigation/progress
-- direction-aware Target Weight validation
-- explicit-direction Goal Pace runtime path
-- consolidated policy/flow-plan tests from former PR #51.
-
----
-
-## 3. Slice 2B-B1 — Target Weight state/persistence
-
-### Status: implemented and validated
-
-Local onboarding draft now stores:
+Local onboarding draft stores:
 
 ```text
 targetWeightKg: double?
 targetWeightDirection: loss | gain | null
 ```
 
-`targetWeightDirection` is onboarding compatibility metadata only. It is not inferred from BMI or numeric target/current delta and is not a new canonical Profile ownership rule.
+Local snapshot schema is v4 with `target_weight_direction`.
 
-Local onboarding snapshot schema is **v4** with persisted profile field:
+Runtime contract:
 
-```text
-target_weight_direction
-```
+- eligible → ineligible: preserve Target Weight dormant in onboarding draft;
+- ineligible → same direction: restore exact value;
+- explicit loss ↔ gain: clear incompatible old scalar Target Weight;
+- legacy v1-v3 target direction associates only from explicit restored Goal intent;
+- recommendation does not overwrite an existing preserved target;
+- no BMI/numeric-delta semantic inference.
 
-No Supabase schema change was required.
+Onboarding-domain owner mappers consume Target Weight only when stored direction matches the current active explicit direction.
 
-### Runtime contract
+Validated by CI #1079.
 
-Eligible → ineligible:
+### Important D audit correction
 
-- preserve Target Weight dormant in draft;
-- skip Target Weight screen;
-- do not consume dormant value downstream.
-
-Ineligible → same direction:
-
-- restore exact dormant Target Weight;
-- recommendation does not overwrite the non-null preserved value.
-
-Explicit loss ↔ gain switch:
-
-- old incompatible scalar Target Weight is deliberately cleared;
-- new direction can establish a new target.
-
-Legacy v1-v3 draft:
-
-- DTO can decode target without direction;
-- controller associates direction only from restored **explicit eligible Goal intent**;
-- never infer from BMI or numeric delta.
-
-### Owner persistence boundary
-
-`ProfileSetupMapper` and `TargetsSetupMapper` consume Target Weight only when:
-
-```text
-activeWeightDirection != null
-AND
-draft.targetWeightDirection == activeWeightDirection
-```
-
-Otherwise owner payload receives no Target Weight. Dormant Target Weight is also removed from nutrition recommendation inputs.
-
-### B1 validation evidence
-
-CI #1079, run `32489469386`, source/test head `029f1c7be5482bb77c4be88d2469f4c53ceb994`:
-
-- Flutter analyze ✅
-- Dart analyze ✅
-- Flutter tests ✅
-- Dart tests ✅
-
-Focused tests cover v4 round-trip, v3 migration, same-direction restore, ineligible detour, opposite-direction clear, hydration/resume and owner persistence gating.
+The B1 guarantee is currently safe at the onboarding-domain mapper boundary and Supabase owner path, but **not yet safe through the legacy HTTP Targets transport**. See 2B-D2 below.
 
 ---
 
-## 4. Measurement input / picker audit — 2B-B2
+## 4. 2B-C Goal Pace ownership/default semantics — validated
 
-### Status: blocked on approved visual/reference evidence
+Goal Pace owns weekly body-weight change only.
 
-Current PR #50 source audit confirmed:
-
-- `HeightScreen` renders formatted height + information card;
-- `CurrentWeightScreen` renders formatted weight + BMI card;
-- `TargetWeightScreen` renders formatted target + analysis card;
-- all three accept `onChanged` but do not invoke it in current screen bodies;
-- `ProfileStepRenderer` only passes callbacks;
-- `ProfileScreenScaffold` does not inject an input control.
-
-Current indexed repository search found no active implementation for:
-
-```text
-ListWheelScrollView
-CupertinoPicker
-FixedExtentScrollController
-MeasurementPicker
-```
-
-Issue #40 requires preserving the existing measurement wheel/picker language. Therefore:
-
-- do not invent a new picker design;
-- do not assume text-only current source means picker removal was intended;
-- obtain approved historical/design/reusable reference before visual restoration;
-- then enforce:
-
-```text
-visible value == selected input value == canonical draft value
-```
-
-Also verify kg/lb, height units, Back/Forward and resume exact positioning.
-
----
-
-## 5. Slice 2B-C — Goal Pace ownership/default semantics
-
-### Status: implemented and validated
-
-Approved ownership:
-
-```text
-Goal Pace = weekly body-weight change only
-```
-
-Direction comes only from explicit `GoalWeightDirection` derived from `GoalIntentSelection`.
-
-### Goal Pace screen cleanup
-
-`GoalPaceScreen` no longer owns or displays:
+Removed from `GoalPaceScreen`:
 
 - BMR calculation;
 - TDEE calculation;
 - calorie deficit/surplus math;
 - target-kcal chip;
-- Target Calories info sheet.
+- calorie info sheet.
 
 Preserved:
 
-- 0.1..1.5 kg/week slider;
-- haptic selection feedback;
-- pace classification tag;
-- aggressive loss/gain warning chip and Attention sheet;
-- target-date projection;
-- projection graph;
-- current/target weight badges;
-- existing screen/card/slider/projection keys and visual language.
+- slider 0.1..1.5 kg/week;
+- haptics;
+- pace tags/warnings;
+- target-date projection + graph;
+- existing visual language.
 
-Nutrition Targets remains the owner of calories/BMR/TDEE/macros.
+Draft compatibility value remains `0.5`, but it is semantic user intent only when explicit weight direction is active.
 
-### Skipped/default `0.5` semantics
+Ineligible/skipped Goal Pace maps to neutral owner/transport value `0.0`, not fake selected `0.5`.
 
-`TargetsOnboardingDraft.goalPaceKgPerWeek` intentionally remains the non-null compatibility/UI starting value `0.5`.
+Review hides skipped Goal Pace and dormant Target Weight using explicit Goal direction.
 
-No new answer-marker and no schema v5 were needed.
-
-Semantic rule:
-
-```text
-draft 0.5 + active explicit weight direction   → active Goal Pace value
-draft 0.5 + no active weight direction         → compatibility value only, NOT user intent
-```
-
-`TargetsSetupMapper` now consumes:
-
-```text
-active direction   → draft.goalPaceKgPerWeek
-no direction       → 0.0
-```
-
-The verified target API accepts `goalPaceKgPerWeek` from `0` through `2`, so `0.0` is the transport-compatible no-pace value. This prevents a skipped `0.5` from being persisted as an explicit user-selected pace without widening the owner schema.
-
-`TargetStepRenderer` also passes an effective `0.0` pace into `NutritionTargetScreen` when Goal Pace is not active.
-
-### Review boundary fixed
-
-`ReviewScreen` previously used target/current numeric difference to decide whether to show Goal Pace. That violated the explicit-goal contract.
-
-Review now derives active weight direction from:
-
-```text
-selectedMode + GoalIntentSelection
-```
-
-and:
-
-- hides dormant Target Weight when the current goal is ineligible;
-- hides skipped/default Goal Pace `0.5`;
-- shows Target Weight only when stored target direction matches active direction;
-- shows Goal Pace only when explicit weight direction is active;
-- gives Nutrition Target calculation an eligibility-filtered Profile/Targets view.
-
-No numeric delta is used as semantic goal authority.
-
-### 2B-C files changed
-
-Production:
-
-- `apps/features/onboarding/lib/src/domain/usecases/targets_setup_mapper.dart`
-- `apps/features/onboarding/lib/src/presentation/renderer/target_step_renderer.dart`
-- `apps/features/onboarding/lib/src/presentation/screens/targets/goal_pace_screen.dart`
-- `apps/features/onboarding/lib/src/presentation/screens/review/review_screen.dart`
-
-Tests:
-
-- `apps/features/onboarding/test/domain/targets_setup_mapper_test.dart`
-- `apps/features/onboarding/test/domain/persist_onboarding_owner_data_use_case_test.dart`
-- `apps/features/onboarding/test/presentation/targets_section_test.dart`
-- `apps/features/onboarding/test/presentation/review_section_test.dart`
-
-### 2B-C validation evidence
-
-Final source/test head:
-
-```text
-0109839f0b5e940815709aa8444142a79828e391
-```
-
-Flutter CI #1090, run `32494752657`:
-
-- Flutter analyze ✅
-- Dart analyze ✅
-- full Flutter tests ✅
-- full Dart tests ✅
-
-A preceding CI #1089 found one test-fixture-only error (`WorkoutFlowPlan.steps` required); production code was not implicated. The fixture was corrected and #1090 is fully green.
-
-### Known separate compatibility gap — do not silently expand 2B-C
-
-The existing Nutrition target calculator still consumes legacy `ProfileGoal` strings and contains its own internal pace fallbacks when pace is `<= 0`.
-
-That calculator ownership/migration is separate from the approved Goal Pace cleanup and is explicitly outside this task's Nutrition macro-target implementation scope, except that this slice prevents skipped Goal Pace from being presented/persisted as user intent.
-
-Do not rewrite the Nutrition calculator incidentally while finishing Slice 2B-D.
+Validated by CI #1090.
 
 ---
 
-## 6. Target Weight recommendation formula decision gate
+## 5. 2B-D1 local acceptance + Review Goal source — implemented and validated
 
-The concept of a fresh eligible Target Weight recommendation is approved.
+### Production correction
 
-The exact numeric formula is not independently approved.
+`ReviewScreen` previously displayed legacy `profile.goals` even though the active Goal screen writes `draft.goalSelection`.
 
-Current scaffold includes:
+Review now renders `GoalIntentSelection` directly, preserving ordered primary/supporting semantics.
+
+Examples:
+
+```text
+Lose weight + Improve endurance
+→ Review: "Lose weight, Improve endurance"
+
+Nutrition Maintain weight
+→ Review: "Maintain weight"
+```
+
+A stale legacy `profile.goals = {keepFit}` no longer overrides what the user actually selected in the unified Goal screen.
+
+No canonical Goal persistence mapping was added.
+
+### Integrated acceptance matrix
+
+New table-driven test:
+
+`apps/features/onboarding/test/domain/goal_weight_follow_up_acceptance_matrix_test.dart`
+
+It covers:
+
+- Nutrition Lose / Gain / Maintain / Recomposition;
+- Workout Lose primary;
+- Workout Lose supporting;
+- every Workout training-only goal;
+- Hybrid setup-now with Lose primary/supporting + all training-only goals;
+- Hybrid later with Lose primary/supporting + all training-only goals.
+
+For every case it verifies:
+
+- Target Weight plan eligibility;
+- Goal Pace plan eligibility;
+- restored draft parked on Target Weight / Goal Pace reconciles correctly when ineligible;
+- dynamic progress denominator;
+- Targets Next after Water Target;
+- Targets Back returns consistently through the active plan.
+
+Validated expected progress totals:
+
+```text
+Nutrition Lose/Gain                 17
+Nutrition Maintain/Recomposition    15
+Workout Lose (gym)                  25
+Workout training-only (gym)         23
+Hybrid setupNow Lose (gym)          26
+Hybrid setupNow training-only       24
+Hybrid later Lose                   18
+Hybrid later training-only          16
+```
+
+Widget coverage verifies Review uses unified Goal data rather than stale legacy `ProfileGoal` data.
+
+### D1 validation evidence
+
+```text
+head: 6c3dcb527bc92b3a6b46755d2d8c569682d090f4
+Flutter CI: #1095
+run id: 32497930346
+```
+
+All analyzer/test gates green.
+
+---
+
+## 6. 2B-D2 remote Target Weight transport — NEXT IMPLEMENTATION GATE
+
+### Current defect
+
+Onboarding `TargetsSetupMapper` can correctly produce:
+
+```text
+targetWeightKg = null
+```
+
+for skipped/dormant Target Weight.
+
+But legacy HTTP `TargetsSetupDtoMapper` currently emits:
+
+```text
+'ttargetWeight': fallbackTargetWeightKg ?? 60.0
+```
+
+and app wiring constructs `RemoteTargetsSetupRepository` without a target-weight resolver.
+
+Therefore a skipped/ineligible Target Weight can become fabricated `60.0` at the HTTP boundary. Backend finalization can then persist that as canonical `target_weight_kg`.
+
+### Required D2 contract
+
+- active Target Weight transport must use `TargetsSetupData.targetWeightKg`;
+- skipped/ineligible Target Weight must not fabricate a numeric value;
+- HTTP/backend draft boundary must support omitted/null Target Weight, or completion must safely avoid that incompatible path;
+- add active + skipped remote payload tests;
+- do not choose a fallback number.
+
+Backend validator/finalizer compatibility must be audited before changing the client transport because the legacy `targetSchema` currently requires numeric `targetWeight`.
+
+---
+
+## 7. Canonical Goal owner persistence — separate decision gate
+
+This remains unresolved and must not be hidden by compatibility mappings.
+
+Current facts:
+
+- active onboarding Goal lives in `GoalIntentSelection`;
+- `ProfileSetupMapper` still maps legacy `ProfileOnboardingDraft.goals`;
+- canonical `ProfileGoal` vocabulary cannot represent all new Goal intents;
+- backend Profile validation requires at least one `goals` item;
+- client Nutrition recommendation still reads legacy `profile.goals.firstOrNull`;
+- backend finalizer derives metabolic behavior from legacy Profile goal strings and has no authoritative unified `gain_weight` path.
+
+Do not invent mappings such as:
+
+```text
+Gain weight      = Build muscle   ❌
+Recomposition    = Keep fit       ❌
+Improve endurance = Boost strength ❌
+```
+
+Canonical Body/Workout/Nutrition Goal persistence needs an explicit owner contract, or completion must remain gated until that contract exists.
+
+---
+
+## 8. Measurement input / picker — blocked
+
+Current source has no active Height/Current Weight/Target Weight input control. The screens display values/cards and accept callbacks, but no wheel/picker implementation was found in current indexed source.
+
+Issue #40 requires preserving the historical measurement wheel/picker language.
+
+Therefore:
+
+- do not invent a new picker;
+- obtain approved historical/design/reusable reference first;
+- then guarantee:
+
+```text
+visible value == selected input position == canonical draft value
+```
+
+including Back/Forward/resume and units.
+
+---
+
+## 9. Target Weight recommendation numeric policy — needs product/canonical source
+
+The concept of a deterministic starting recommendation is approved. Exact numeric policy is not.
+
+Current scaffold uses:
 
 ```text
 ±5% directional change
@@ -411,158 +350,94 @@ BMI gain guard 30.0
 weight clamp 30..200 kg
 ```
 
-These are implementation scaffold, not automatically approved product/medical authority.
+Treat these as scaffold, not final medical/product authority.
 
-Before finalizing recommendation behavior:
+Rules:
 
-- search for canonical repository/product policy owning the numeric rule;
-- if none exists, propose an explicit deterministic rule for owner approval;
-- BMI may suppress/restrict a recommendation but cannot choose semantic goal;
+- Goal intent is explicit semantic authority;
+- BMI may only be a safety input;
 - recommendation must never reverse explicit direction;
-- insufficient authoritative input must not fabricate personalized certainty.
-
-Do not change recommendation constants incidentally during acceptance work.
+- user override must survive Back/Forward/resume;
+- no invented personalization when authoritative input is insufficient.
 
 ---
 
-## 7. Next execution order on PR #50
-
-### 2B-D — full acceptance matrix — next unblocked work
-
-Modes/goals:
+## 10. Next execution order on PR #50
 
 ```text
-Nutrition: Lose / Gain / Maintain / Recomposition
-Workout: Lose primary / Lose supporting / every training-only goal alone
-Hybrid: same goal matrix + Workout Intro setup-now/later compatibility
+2B-D1 local acceptance / Review             ✅ CI #1095
+        ↓
+2B-D2 remote Target Weight transport        NEXT
+        ↓
+canonical Goal owner / completion decision  REQUIRED
+        ↓
+measurement picker/reference                BLOCKED
+        ↓
+Target Weight numeric policy                NEEDS RULE
+        ↓
+final integrated acceptance + full CI
+        ↓
+Ready/Merge decision
 ```
 
-Verify one integrated truth across:
-
-- Next;
-- Back;
-- resume;
-- restored drafts;
-- progress + accessibility semantics;
-- validation;
-- current-step reconciliation;
-- Review visibility;
-- Target Weight dormant/same/opposite behavior;
-- user override preservation;
-- Goal Pace active/skipped semantics;
-- owner persistence consumption boundaries.
-
-Then rerun full workspace CI.
-
-### 2B-B2 — measurement input restoration
-
-Still blocked on approved picker/reference evidence.
-
-### Recommendation rule finalization
-
-Still requires a canonical policy source or explicit product rule approval.
+Do not create another 2B PR unless the owner explicitly changes the single-PR strategy.
 
 ---
 
-## 8. UI / design-system guardrails
+## 11. Non-goals
 
-Before any Flutter visual implementation read:
+Not authorized incidentally:
 
-1. root `AGENTS.md`;
-2. `apps/features/AGENTS.md`;
-3. `.ai/tasks/design-system-token-consolidation.md`;
-4. `apps/core/lib/src/theme/README.md`;
-5. more specific nested `AGENTS.md` if present.
-
-Use existing `package:tio_core/core.dart` reusable surface first.
-
-Mandatory:
-
-- no Goal card redesign;
-- no invented Height/Current Weight/Target Weight picker;
-- no unrelated measurement-screen redesign;
-- preserve Goal Pace slider/projection language;
-- preserve spacing, typography, unit treatment, motion and accessibility unless separately approved.
-
----
-
-## 9. Non-goals
-
-Not authorized by this task:
-
-- canonical Body Goal / Body Measurement owner migration;
-- canonical Workout Goal owner migration;
-- Supabase schema migration solely for this slice;
-- Health Concerns / Injuries & Limitations implementation;
+- fake GoalIntent → legacy ProfileGoal mappings;
+- canonical Body/Workout Goal schema migration without explicit decision;
+- unrelated Supabase schema redesign;
+- Injuries & Limitations / Health Concerns changes;
 - Special Event changes;
-- Workout Profile / Equipment taxonomy;
-- Nutrition macro-target implementation beyond removing misplaced Goal Pace calorie ownership and eligibility-filtering the compatibility input;
-- Health Connections;
-- Plan Building / Congratulations changes;
-- unrelated onboarding redesign.
+- Equipment taxonomy changes;
+- unrelated onboarding redesign;
+- changing the Target Weight recommendation constants without approval;
+- inventing a replacement measurement picker.
 
 ---
 
-## 10. Exit criteria before PR #50 Ready/Merge
+## 12. Exit criteria before PR #50 Ready/Merge
 
-### PR topology
+### Completed
 
-- [x] #51 useful tests consolidated into #50.
-- [x] #51 closed unmerged.
+- [x] #51 tests consolidated; #51 closed unmerged.
 - [x] #52 closed unmerged.
 - [x] #50 only active implementation PR.
+- [x] unified mode-aware Goal screen.
+- [x] approved weight-follow-up eligibility.
+- [x] Target Weight direction association / dormant restore / opposite clear.
+- [x] v4 local draft migration.
+- [x] Goal Pace calorie ownership cleanup.
+- [x] skipped Goal Pace neutral semantics.
+- [x] Review Target Weight/Goal Pace explicit-direction visibility.
+- [x] Review unified Goal source correction.
+- [x] table-driven local mode/goal acceptance matrix.
+- [x] D1 full workspace validation CI #1095.
 
-### Goal / eligibility
+### Remaining blockers
 
-- [x] dynamic mode-aware Goal screen.
-- [x] migration-safe ordered Goal selection.
-- [x] `Build muscle != Gain weight`.
-- [x] approved weight-follow-up eligibility matrix.
-- [x] flow-plan reconciliation coverage.
-- [ ] final integrated 2B-D navigation/progress/resume matrix.
-
-### Target Weight B1
-
-- [x] direction association architecture.
-- [x] same-direction dormant restoration.
-- [x] opposite-direction incompatible target clear.
-- [x] old v1-v3 safe direction reconciliation from explicit goal.
-- [x] recommendation does not overwrite existing non-null preserved target.
-- [x] dormant Target Weight excluded from Profile and Nutrition/Targets consumption.
-- [x] full analyzer/tests green at CI #1079.
-
-### Goal Pace 2B-C
-
-- [x] no Calories/BMR/TDEE/kcal ownership in Goal Pace screen.
-- [x] explicit Goal direction is runtime semantic authority.
-- [x] slider/haptics/warnings/projection preserved.
-- [x] skipped/default `0.5` is not persisted as user-selected pace.
-- [x] ineligible transport/owner pace is neutral `0.0`.
-- [x] Review hides skipped/dormant pace and Target Weight.
-- [x] no schema v5 required.
-- [x] full analyzer/tests green at CI #1090.
-
-### Measurement / recommendation
-
-- [x] current-source picker audit complete.
-- [ ] approved picker/reference identified.
-- [ ] display = input = draft after restoration.
-- [ ] exact recommendation numeric policy approved/sourced.
-- [ ] focused recommendation acceptance green after final rule.
-
-### Final technical validation
-
-- [ ] full 2B-D acceptance matrix complete.
-- [ ] final Flutter analyze green after all remaining implementation.
-- [ ] final Dart analyze green after all remaining implementation.
-- [ ] final Flutter tests green after all remaining implementation.
-- [ ] final Dart tests green after all remaining implementation.
-- [ ] PR body reflects final actual scope/evidence.
-- [ ] PR remains Draft until all Product + technical gates are satisfied.
+- [ ] remote HTTP Target Weight transport cannot fabricate `60.0`.
+- [ ] backend/client nullability contract for skipped Target Weight resolved.
+- [ ] canonical Goal owner/persistence or safe completion-gating decision.
+- [ ] client/backend Nutrition Goal semantics no longer silently depend on incompatible legacy goal meaning.
+- [ ] approved measurement picker/reference found and restored.
+- [ ] display/input/draft measurement synchronization validated.
+- [ ] Target Weight numeric recommendation policy explicitly approved/sourced.
+- [ ] final full integrated acceptance after remaining fixes.
+- [ ] final Flutter analyze green.
+- [ ] final Dart analyze green.
+- [ ] final Flutter tests green.
+- [ ] final Dart tests green.
+- [ ] PR body reflects final truth.
 
 ### Final status
 
 `IN PROGRESS` on PR #50.  
-**Next unblocked target:** Slice 2B-D integrated acceptance audit/coverage.  
-**Blocked visual target:** 2B-B2 measurement input restoration until approved picker/reference evidence exists.  
-**Product decision gate:** exact Target Weight recommendation numeric policy.
+**Next unblocked technical target:** 2B-D2 remote Target Weight transport/backend compatibility audit + fix.  
+**Separate architecture gate:** canonical unified Goal persistence ownership.  
+**Blocked visual target:** measurement picker restoration.  
+**Product rule gate:** exact Target Weight recommendation policy.
