@@ -11,6 +11,7 @@ import '../screens/profile/health_conditions_screen.dart';
 import '../screens/profile/height_screen.dart';
 import '../screens/profile/measurement_units_screen.dart';
 import '../screens/profile/name_screen.dart';
+import '../screens/profile/profile_screen_components.dart';
 import '../screens/profile/target_weight_screen.dart';
 import '../state/state.dart';
 
@@ -26,7 +27,7 @@ class ProfileStepRenderer extends StatelessWidget {
     final draft = state.draft.profile;
     final errorText = state.validationErrors[draft.currentStepId.name];
 
-    return switch (draft.currentStepId) {
+    final screen = switch (draft.currentStepId) {
       ProfileStepId.name => NameScreen(
           value: draft.name,
           onChanged: controller.updateProfileName,
@@ -88,5 +89,10 @@ class ProfileStepRenderer extends StatelessWidget {
           errorText: errorText,
         ),
     };
+
+    return ProfileFlowPlanScope(
+      flowPlan: state.profileFlowPlan,
+      child: screen,
+    );
   }
 }
