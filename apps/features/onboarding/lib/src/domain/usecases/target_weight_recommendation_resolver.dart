@@ -38,10 +38,20 @@ class TargetWeightRecommendationResolver {
 
       switch (direction) {
         case GoalWeightDirection.loss:
-          if (target < minimumWeightForBmi) target = minimumWeightForBmi;
+          // Only apply the lower-BMI guardrail when it still preserves a
+          // downward target. Goal direction is never reversed by the guardrail.
+          if (minimumWeightForBmi < currentWeightKg &&
+              target < minimumWeightForBmi) {
+            target = minimumWeightForBmi;
+          }
           break;
         case GoalWeightDirection.gain:
-          if (target > maximumWeightForGain) target = maximumWeightForGain;
+          // Likewise, only cap an upward recommendation when the cap remains
+          // above the current weight.
+          if (maximumWeightForGain > currentWeightKg &&
+              target > maximumWeightForGain) {
+            target = maximumWeightForGain;
+          }
           break;
       }
     }
