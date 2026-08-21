@@ -5,7 +5,7 @@
 **GitHub tracker:** #40  
 **Canonical implementation PR:** #50 `feat(onboarding): activate unified mode-aware Goal screen`  
 **Canonical branch:** `agent/onboarding-slice-2-step-1-body-goal-ui`  
-**Execution decision:** keep one active implementation PR (#50). Do not merge to `main` until the remaining Product + technical gates are satisfied.
+**Execution decision:** keep one active implementation PR (#50) in `tio-world`. Do not merge to `main` until the remaining Product + technical gates are satisfied. A separate backend PR in `tnyx-hub` is allowed/required only when an API contract change cannot live in the app repository.
 
 ---
 
@@ -15,7 +15,7 @@ This file is the durable handoff. Continue from repository state here instead of
 
 ### PR topology
 
-- **PR #50** is the only active implementation PR. It remains Draft/unmerged.
+- **PR #50** is the only active `tio-world` implementation PR. It remains Draft/unmerged.
 - **PR #51** is closed/unmerged as superseded. Its two useful eligibility/reconciliation tests were consolidated into #50.
 - **PR #52** is closed/unmerged validation-only. Do not reopen or merge it.
 
@@ -26,6 +26,7 @@ Goal + eligibility baseline                     ✅
 2B-B1 Target Weight state/domain persistence    ✅ CI #1079
 2B-C Goal Pace ownership/default semantics      ✅ CI #1090
 2B-D1 local acceptance + Review Goal source     ✅ CI #1095
+2B-D2 transport contract audit                  ✅ audit complete, implementation pending
 ```
 
 Latest D1 source/test head:
@@ -44,7 +45,7 @@ CI #1095 gates:
 - full Flutter tests ✅
 - full Dart tests ✅
 
-This does **not** make PR #50 Ready. Remote Target Weight transport, canonical Goal owner persistence, measurement input restoration, and final Target Weight recommendation policy remain unresolved.
+This does **not** make PR #50 Ready. D2 transport implementation, canonical Goal owner persistence, measurement input restoration, and final Target Weight recommendation policy remain unresolved.
 
 ---
 
@@ -149,9 +150,9 @@ Onboarding-domain owner mappers consume Target Weight only when stored direction
 
 Validated by CI #1079.
 
-### Important D audit correction
+### Important D2 audit correction
 
-The B1 guarantee is currently safe at the onboarding-domain mapper boundary and Supabase owner path, but **not yet safe through the legacy HTTP Targets transport**. See 2B-D2 below.
+The B1 guarantee is safe at the onboarding-domain mapper boundary, but repeat owner writes need explicit clear semantics in both HTTP and Supabase persistence paths. Omitting an inactive target can retain stale previously persisted state. See 2B-D2 below.
 
 ---
 
@@ -258,37 +259,223 @@ All analyzer/test gates green.
 
 ---
 
-## 6. 2B-D2 remote Target Weight transport — NEXT IMPLEMENTATION GATE
+## 6. 2B-D2 Target Weight owner transport — AUDIT COMPLETE, IMPLEMENTATION PENDING
 
-### Current defect
+### Audit scope
 
-Onboarding `TargetsSetupMapper` can correctly produce:
+Audited end-to-end Target Weight transport across:
+
+- onboarding `TargetsSetupMapper` output;
+- Nutrition `TargetsSetupData`;
+- HTTP `TargetsSetupDtoMapper`;
+- `RemoteTargetsSetupRepository`;
+- `HttpTargetsSetupRemoteDataSource`;
+- app repository wiring;
+- backend onboarding `targetSchema`;
+- backend `saveDraft()` merge/validation semantics;
+- backend finalization payload;
+- atomic finalization RPC;
+- Supabase `TargetsSetupRepository` parity;
+- current remote tests.
+
+No production source was changed in this audit.
+
+### Confirmed client defect
+
+Nutrition domain already has the correct authority:
 
 ```text
-targetWeightKg = null
+TargetsSetupData.targetWeightKg: double?
 ```
 
-for skipped/dormant Target Weight.
-
-But legacy HTTP `TargetsSetupDtoMapper` currently emits:
+But HTTP DTO currently ignores it and emits:
 
 ```text
 'ttargetWeight': fallbackTargetWeightKg ?? 60.0
 ```
 
-and app wiring constructs `RemoteTargetsSetupRepository` without a target-weight resolver.
+`RemoteTargetsSetupRepository` separately calls an optional `targetWeightResolver`, and app wiring constructs that repository without a resolver.
 
-Therefore a skipped/ineligible Target Weight can become fabricated `60.0` at the HTTP boundary. Backend finalization can then persist that as canonical `target_weight_kg`.
+Result today:
 
-### Required D2 contract
+```text
+skipped Target Weight
+→ onboarding mapper: null        ✅
+→ TargetsSetupData: null         ✅
+→ HTTP DTO: 60.0                 ❌ fabricated intent
+```
 
-- active Target Weight transport must use `TargetsSetupData.targetWeightKg`;
-- skipped/ineligible Target Weight must not fabricate a numeric value;
-- HTTP/backend draft boundary must support omitted/null Target Weight, or completion must safely avoid that incompatible path;
-- add active + skipped remote payload tests;
-- do not choose a fallback number.
+Existing remote tests encode this compatibility path by injecting resolver values instead of testing domain-authoritative active/null cases.
 
-Backend validator/finalizer compatibility must be audited before changing the client transport because the legacy `targetSchema` currently requires numeric `targetWeight`.
+### Confirmed backend constraint
+
+`/api/v1/onboarding/target` sends:
+
+```text
+{ data: <target payload>, isCompleted: true }
+```
+
+Current backend `targetSchema` requires:
+
+```text
+targetWeight: number 20..300
+```
+
+Backend `saveDraft()` performs strict section validation when `isCompleted == true`.
+
+Therefore changing the client to send `null` before the backend contract changes would produce HTTP 400.
+
+### Omission is NOT safe
+
+Backend `saveDraft()` shallow-merges new target payload over existing `target_data`:
+
+```text
+mergedData = { ...currentSectionData, ...payloadData }
+```
+
+Therefore this sequence is unsafe:
+
+```text
+Lose weight
+→ backend targetWeight = 64
+→ user changes to Maintain
+→ client omits targetWeight
+→ merged backend target_data still contains 64   ❌ stale hidden intent
+```
+
+The inactive state must explicitly overwrite old backend draft state.
+
+### Required backend contract
+
+For completed Target sections, the clean transport contract is:
+
+```text
+targetWeight: number | null
+```
+
+Recommended validator shape:
+
+```text
+targetWeight: z.number().min(20).max(300).nullable()
+```
+
+Keep the key required, but allow `null`.
+
+Why required-nullable instead of optional:
+
+- active flow explicitly sends a number;
+- inactive/skipped flow explicitly sends null;
+- a missing key cannot silently preserve stale backend Target Weight during merge;
+- existing released clients already send a number, so backend-first deployment remains backward-compatible.
+
+### Backend finalization is already null-capable
+
+`FinalizeTargetData.targetWeight` is already optional.
+
+Finalization uses:
+
+```text
+target_weight_kg: toNullableNumber(targetData.targetWeight)
+```
+
+and `toNullableNumber(null/undefined)` returns null.
+
+The atomic finalization RPC reads the target field into nullable numeric form and writes `target_weight_kg` accordingly.
+
+Repository database baseline also declares `user_nutrition_profiles.target_weight_kg` nullable. That baseline explicitly says it is inferred rather than a verified live export, so live DB nullability must still be verified before deployment; do not claim production schema proof from that file alone.
+
+### Supabase parity defect
+
+`SupabaseTargetsSetupRepository` currently builds canonical payload with:
+
+```text
+if (data.targetWeightKg != null)
+  'target_weight_kg': data.targetWeightKg
+```
+
+This is safe for a fresh null insert, but not necessarily for an existing row that already has a Target Weight. An omitted key on a later upsert can leave the previous canonical value unchanged.
+
+Required current-intent semantics:
+
+```text
+active target   → target_weight_kg = actual number
+inactive target → target_weight_kg = null
+```
+
+Therefore canonical Supabase payload should explicitly carry the nullable field rather than conditionally omitting it, subject to live schema verification.
+
+### Required D2 implementation split
+
+#### D2-A backend first — `tnyx-hub`
+
+A small backend PR is required because #50 cannot change another repository.
+
+Change:
+
+- onboarding `targetSchema.targetWeight` from required number to required nullable number;
+- add validator/service tests for:
+  - active number accepted;
+  - null accepted;
+  - missing key rejected on completed target payload;
+  - out-of-range number rejected;
+  - existing target overwritten by explicit null during merge if service-level test infrastructure supports it;
+- add/extend finalizer coverage proving null produces `target_weight_kg = null`.
+
+Deployment order:
+
+```text
+backend nullable contract first
+↓
+client D2-B second
+```
+
+Do not ship the client-null behavior before backend support exists.
+
+#### D2-B client — PR #50 in `tio-world`
+
+After backend contract exists:
+
+- `TargetsSetupDtoMapper` must use `data.targetWeightKg` directly;
+- payload must include `targetWeight` even when the value is null;
+- remove fabricated `60.0` fallback;
+- remove `fallbackTargetWeightKg` mapper parameter if no longer needed;
+- remove `targetWeightResolver` compatibility path from `RemoteTargetsSetupRepository` if no remaining caller requires it;
+- app repository wiring remains straightforward, with no Target Weight resolver;
+- update remote tests:
+  - active `targetWeightKg = 58.5` → `targetWeight: 58.5`;
+  - skipped `targetWeightKg = null` → `targetWeight: null`;
+  - no resolver/fallback number exists.
+
+#### D2-C Supabase parity — PR #50
+
+- canonical `user_nutrition_profiles` upsert must explicitly send nullable `target_weight_kg`;
+- add coverage for active number and inactive null/clear behavior where repository test infrastructure allows;
+- do not add a schema migration solely for this code change unless live schema verification proves null is disallowed.
+
+### D2 acceptance contract
+
+```text
+Active Lose/Gain
+onboarding active target
+→ TargetsSetupData.targetWeightKg = number
+→ HTTP targetWeight = same number
+→ Supabase target_weight_kg = same number
+→ final canonical target = same number
+
+Maintain/Recomposition/training-only
+onboarding target dormant in local draft
+→ TargetsSetupData.targetWeightKg = null
+→ HTTP targetWeight = null
+→ backend target_data.targetWeight = null
+→ Supabase target_weight_kg = null
+→ final canonical target = null
+```
+
+Local onboarding draft may retain the dormant user value for reversible goal changes. Owner transports must consume only current eligible intent.
+
+### Cross-repository PR rule
+
+The single-PR strategy still means one active implementation PR in `tio-world` (#50). D2 requires a separate, narrowly scoped `tnyx-hub` backend PR because the API validator lives in another repository. Do not create another `tio-world` 2B PR.
 
 ---
 
@@ -308,9 +495,9 @@ Current facts:
 Do not invent mappings such as:
 
 ```text
-Gain weight      = Build muscle   ❌
-Recomposition    = Keep fit       ❌
-Improve endurance = Boost strength ❌
+Gain weight       = Build muscle    ❌
+Recomposition     = Keep fit        ❌
+Improve endurance = Boost strength  ❌
 ```
 
 Canonical Body/Workout/Nutrition Goal persistence needs an explicit owner contract, or completion must remain gated until that contract exists.
@@ -362,25 +549,32 @@ Rules:
 
 ---
 
-## 10. Next execution order on PR #50
+## 10. Next execution order
 
 ```text
-2B-D1 local acceptance / Review             ✅ CI #1095
+2B-D1 local acceptance / Review                 ✅ CI #1095
         ↓
-2B-D2 remote Target Weight transport        NEXT
+2B-D2 transport audit                            ✅
         ↓
-canonical Goal owner / completion decision  REQUIRED
+D2-A tnyx-hub backend nullable contract          NEXT
+        ↓ deploy backend contract
+D2-B tio-world HTTP transport on PR #50          THEN
+D2-C tio-world Supabase explicit-null parity      THEN
         ↓
-measurement picker/reference                BLOCKED
+D2 active/null transport acceptance              REQUIRED
         ↓
-Target Weight numeric policy                NEEDS RULE
+canonical Goal owner / completion decision       REQUIRED
+        ↓
+measurement picker/reference                     BLOCKED
+        ↓
+Target Weight numeric policy                     NEEDS RULE
         ↓
 final integrated acceptance + full CI
         ↓
 Ready/Merge decision
 ```
 
-Do not create another 2B PR unless the owner explicitly changes the single-PR strategy.
+Do not create another `tio-world` 2B PR unless the owner explicitly changes the single-PR strategy.
 
 ---
 
@@ -406,7 +600,7 @@ Not authorized incidentally:
 
 - [x] #51 tests consolidated; #51 closed unmerged.
 - [x] #52 closed unmerged.
-- [x] #50 only active implementation PR.
+- [x] #50 only active `tio-world` implementation PR.
 - [x] unified mode-aware Goal screen.
 - [x] approved weight-follow-up eligibility.
 - [x] Target Weight direction association / dormant restore / opposite clear.
@@ -417,11 +611,19 @@ Not authorized incidentally:
 - [x] Review unified Goal source correction.
 - [x] table-driven local mode/goal acceptance matrix.
 - [x] D1 full workspace validation CI #1095.
+- [x] D2 HTTP/backend/Supabase transport audit.
+- [x] explicit-null requirement identified from backend merge semantics.
+- [x] backend-first rollout order identified.
 
 ### Remaining blockers
 
-- [ ] remote HTTP Target Weight transport cannot fabricate `60.0`.
-- [ ] backend/client nullability contract for skipped Target Weight resolved.
+- [ ] `tnyx-hub` target completion validator accepts required `number | null` Target Weight.
+- [ ] backend active/null contract tests green.
+- [ ] PR #50 HTTP transport uses `TargetsSetupData.targetWeightKg` directly.
+- [ ] fabricated `60.0` and resolver fallback removed.
+- [ ] PR #50 Supabase owner write explicitly clears inactive Target Weight with null.
+- [ ] active + skipped Target Weight transport tests green across supported paths.
+- [ ] live DB nullability verified before rollout or migration supplied if verification disproves it.
 - [ ] canonical Goal owner/persistence or safe completion-gating decision.
 - [ ] client/backend Nutrition Goal semantics no longer silently depend on incompatible legacy goal meaning.
 - [ ] approved measurement picker/reference found and restored.
@@ -437,7 +639,8 @@ Not authorized incidentally:
 ### Final status
 
 `IN PROGRESS` on PR #50.  
-**Next unblocked technical target:** 2B-D2 remote Target Weight transport/backend compatibility audit + fix.  
+**Next technical target:** D2-A backend required-nullable Target Weight contract in `tnyx-hub`.  
+**Then:** D2-B/D2-C client transport parity on PR #50.  
 **Separate architecture gate:** canonical unified Goal persistence ownership.  
 **Blocked visual target:** measurement picker restoration.  
 **Product rule gate:** exact Target Weight recommendation policy.
