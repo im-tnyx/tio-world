@@ -13,7 +13,7 @@ void main() {
         selectedMode: AppMode.hybrid,
         workoutIntroChoice: WorkoutIntroChoice.setupNow,
         goalSelection: const GoalIntentSelection(
-          primaryGoal: GoalIntent.buildMuscle,
+          primaryGoal: GoalIntent.loseWeight,
           supportingGoal: GoalIntent.getStronger,
         ),
         currentStepId: OnboardingStepId.profileBasics,
@@ -33,6 +33,7 @@ void main() {
           ),
           currentWeightKg: 64.2,
           targetWeightKg: 58.0,
+          targetWeightDirection: GoalWeightDirection.loss,
           activityLevel: ProfileActivityLevel.active,
           healthConditions: {ProfileHealthCondition.lowBloodPressure},
           otherHealthCondition: 'Asthma',
@@ -80,7 +81,7 @@ void main() {
       expect(
         json['goal_selection'],
         {
-          'primary_goal': 'buildMuscle',
+          'primary_goal': 'loseWeight',
           'supporting_goal': 'getStronger',
         },
       );
@@ -89,6 +90,7 @@ void main() {
       expect(profileJson['height_unit'], 'ft_in');
       expect(profileJson['distance_unit'], 'mi');
       expect(profileJson['volume_unit'], 'fl_oz');
+      expect(profileJson['target_weight_direction'], 'loss');
 
       final deserialized = mapper.fromJson(json);
 
@@ -104,7 +106,7 @@ void main() {
       expect(
         deserialized.draft.goalSelection,
         const GoalIntentSelection(
-          primaryGoal: GoalIntent.buildMuscle,
+          primaryGoal: GoalIntent.loseWeight,
           supportingGoal: GoalIntent.getStronger,
         ),
       );
@@ -126,6 +128,10 @@ void main() {
       expect(deserialized.draft.profile.heightCm, equals(168.5));
       expect(deserialized.draft.profile.currentWeightKg, equals(64.2));
       expect(deserialized.draft.profile.targetWeightKg, equals(58.0));
+      expect(
+        deserialized.draft.profile.targetWeightDirection,
+        GoalWeightDirection.loss,
+      );
       expect(
         deserialized.draft.profile.unitPreferences,
         const MeasurementUnitPreferences(
@@ -163,6 +169,28 @@ void main() {
       expect(deserialized.draft.targets.wakeTimeMinutes, equals(450));
       expect(deserialized.draft.targets.waterMl, equals(3200));
       expect(deserialized.draft.targets.goalPaceKgPerWeek, equals(0.75));
+    });
+
+    test('schema v3 target restores without inventing direction in DTO layer', () {
+      final legacy = <String, dynamic>{
+        'schema_version': 3,
+        'selected_mode': 'nutrition',
+        'goal_selection': <String, dynamic>{
+          'primary_goal': 'loseWeight',
+          'supporting_goal': null,
+        },
+        'profile': <String, dynamic>{
+          'current_step_id': 'targetWeight',
+          'current_weight_kg': 70.0,
+          'target_weight_kg': 64.0,
+        },
+      };
+
+      final snapshot = mapper.fromJson(legacy);
+
+      expect(snapshot.schemaVersion, 3);
+      expect(snapshot.draft.profile.targetWeightKg, 64.0);
+      expect(snapshot.draft.profile.targetWeightDirection, isNull);
     });
 
     test('legacy schema v1 draft defaults missing units and goal selection', () {
