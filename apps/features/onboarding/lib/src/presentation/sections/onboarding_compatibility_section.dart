@@ -51,6 +51,21 @@ class OnboardingCompatibilitySection extends StatelessWidget {
         ),
       OnboardingStepId.review =>
         CompatibilityReviewScreen(mode: state.draft.selectedMode),
+      OnboardingStepId.userProfile => _futureStepNotActive(state.stepId),
+      OnboardingStepId.bodyGoal => _futureStepNotActive(state.stepId),
+      OnboardingStepId.wellnessGoals => _futureStepNotActive(state.stepId),
+      OnboardingStepId.nutritionProfile => _futureStepNotActive(state.stepId),
+      OnboardingStepId.workoutProfile => _futureStepNotActive(state.stepId),
+      OnboardingStepId.nutritionGoals => _futureStepNotActive(state.stepId),
+      OnboardingStepId.workoutTargets => _futureStepNotActive(state.stepId),
+      OnboardingStepId.healthConnections => _futureStepNotActive(state.stepId),
+      OnboardingStepId.planBuilding => _futureStepNotActive(state.stepId),
     };
   }
+}
+
+Never _futureStepNotActive(OnboardingStepId stepId) {
+  throw StateError(
+    'Future onboarding step ${stepId.name} is not active in Slice 1.',
+  );
 }

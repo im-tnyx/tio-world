@@ -21,6 +21,7 @@ export 'onboarding_status.dart';
 export 'onboarding_status_snapshot.dart';
 export 'onboarding_step_definition.dart';
 export 'onboarding_step_id.dart';
+export 'onboarding_step_id_codec.dart';
 export 'profile_flow_plan.dart';
 export 'profile_onboarding_draft.dart';
 export 'profile_step_id.dart';

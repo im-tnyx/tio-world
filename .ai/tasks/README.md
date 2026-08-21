@@ -19,6 +19,7 @@ Task files are compact, durable briefs for work that is active, blocked on one d
 | [Flutter UI reusable-first governance](flutter-ui-reusable-governance.md) | In progress | repository AI governance + `apps/core` | Any change to repository-wide Flutter UI agent/workflow rules |
 | [App Mode foundation](app-mode-foundation.md) | In progress | `apps/shared`, onboarding, Settings, `apps/app`, `apps/core` | Changing phone navigation, onboarding, or Settings |
 | [Mode-conditional onboarding flow](onboarding-flow.md) | Ready | onboarding with Profile, Workout, Nutrition, `apps/shared`, `apps/app` contracts | Building onboarding steps, draft/resume, completion, or router gating |
+| [Product Onboarding Slice 1 — identities](product-onboarding-slice-1-identities.md) | In progress | `apps/features/onboarding` | Changing Product Onboarding section/step identity, draft serialization, resume, or progress compatibility |
 | [Adaptive navigation and action entry](adaptive-navigation-and-actions.md) | Ready | `apps/shared`, `apps/core`, `apps/app`, Settings, affected features | Designing custom tabs, Home composition, or feature action placement |
 | [Material 3 Expressive foundation](material-3-expressive.md) | In progress | `apps/core`, `apps/app` | Changing shared theme, navigation, buttons, motion, or accessibility behavior |
 | [Screen catalog and module plan](screen-catalog-and-module-plan.md) | Ready | `apps/app`, `apps/core`, `apps/shared`, affected features | Starting a screen or module vertical slice |

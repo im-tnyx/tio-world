@@ -186,6 +186,56 @@ void main() {
       );
     });
 
+    test('round-trips future top-level ids without changing schema version', () {
+      final snapshot = OnboardingDraftSnapshot(
+        draft: OnboardingDraft(
+          currentStepId: OnboardingStepId.bodyGoal,
+          completedStepIds: const {
+            OnboardingStepId.userProfile,
+            OnboardingStepId.workoutIntro,
+          },
+        ),
+        updatedAt: DateTime.utc(2026, 8, 20, 12),
+      );
+
+      final json = mapper.toJson(snapshot);
+
+      expect(json['schema_version'], 2);
+      expect(json['current_step_id'], 'bodyGoal');
+      expect(
+        json['completed_step_ids'],
+        containsAll(<String>['userProfile', 'workoutIntro']),
+      );
+
+      final restored = mapper.fromJson(json);
+
+      expect(restored.schemaVersion, 2);
+      expect(restored.draft.currentStepId, OnboardingStepId.bodyGoal);
+      expect(
+        restored.draft.completedStepIds,
+        containsAll(<OnboardingStepId>[
+          OnboardingStepId.userProfile,
+          OnboardingStepId.workoutIntro,
+        ]),
+      );
+    });
+
+    test('ignores unknown completed ids and falls back for unknown current id', () {
+      final json = <String, dynamic>{
+        'schema_version': 2,
+        'current_step_id': 'unknownFutureStep',
+        'completed_step_ids': <String>['profileBasics', 'unknownFutureStep'],
+      };
+
+      final restored = mapper.fromJson(json);
+
+      expect(restored.draft.currentStepId, OnboardingStepId.mode);
+      expect(
+        restored.draft.completedStepIds,
+        const {OnboardingStepId.profileBasics},
+      );
+    });
+
     test('throws UnsupportedError for unknown future schema version', () {
       final futureJson = {
         'schema_version': 99,
