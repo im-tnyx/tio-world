@@ -102,45 +102,55 @@ Test Dart packages        ✅
 
 The Body repository only maps explicit Body semantics, preserves Target Weight direction association, rejects invalid Maintain/Recomposition follow-ups before DB mutation, and does not infer Body goals from BMI/delta/training-only intent.
 
-### Body Cutover B — NEXT
+### Body Cutover B audit — complete
 
-Canonical read/write parity must be proven before legacy mirrors are stopped:
+The mixed `TargetsSetupRepository` still couples Body, Wellness and Nutrition and requires legacy Wellness/Goal Pace fields on read. Therefore its Body mirrors must not be removed in isolation.
+
+Body B is narrowed to:
 
 ```text
-1. canonical Body read API
-   → latest current weight from body_weight_logs
-   → active Body Goal from user_body_goals
+1. canonical Body read/command API
 2. Profile/Profile Settings read canonical Body state
-3. Profile Settings current-weight save writes canonical Body owner
-4. canonical provider refresh/invalidation
-5. prove no stale/default reads
-6. stop users/Profile Body mirror writes
-7. stop Nutrition Body mirror writes
-8. full Flutter/Dart CI
+3. Profile Settings weight save records a new body_weight_logs row
+4. narrow Profile domain/persistence to common Profile only
+5. stop users/Profile Body mirror writes
+6. prove no fabricated/stale current-weight reads
+7. full Flutter/Dart CI
 ```
+
+Canonical Body data wins over stale legacy values. Missing canonical weight must not silently become a fabricated `70 kg` canonical value.
+
+Profile Settings post-onboarding weight edits create history rows with their own provenance/timestamp; they do not overwrite the onboarding setup snapshot.
+
+### Nutrition-side Body mirrors — dependent cleanup
+
+Current Nutrition persistence still mirrors current/target weight, Goal Pace and Profile inputs because its legacy repository also owns Wellness and Nutrition targets.
+
+Remove those mirrors with the next structurally complete split:
+
+```text
+Wellness → user_wellness_targets
+Nutrition context → user_nutrition_profiles
+Nutrition numeric targets → user_nutrition_targets
+```
+
+Nutrition calculations then read true Profile/Body owners rather than persisting duplicate inputs.
 
 ## Remaining owner cutover order
 
-After Body Cutover B:
-
 ```text
-Wellness
-→ user_wellness_targets
-
-Nutrition
-→ user_nutrition_profiles context
-→ user_nutrition_targets numeric targets
-
-Workout
-→ user_workout_profiles capability/context
-→ user_workout_targets goals/plan constraints
-
-Then
-→ Onboarding + Settings same owner contracts
-→ stop all remaining legacy mirrored writes
-→ integrated persistence acceptance
-→ later cleanup migration removes obsolete columns only after proof
+1. Body Cutover B — Profile/Settings parity + Profile mirror shutdown
+2. Wellness/Nutrition split — also remove Nutrition-side Body mirrors
+3. Workout Profile/Targets split
+4. Onboarding + Settings consume the same canonical owner contracts
+5. stop any remaining legacy mirrored writes
+6. integrated persistence/data-integrity acceptance
+7. later forward migration removes obsolete columns only after proof
 ```
+
+## Future backend rule
+
+The domain contracts must remain transport-neutral. A future protected backend should add adapters for these same owner contracts/tables, not a second schema. In-memory fallbacks are test/local compatibility only and must not be treated as durable production persistence during final completion acceptance.
 
 ## Guardrails
 
