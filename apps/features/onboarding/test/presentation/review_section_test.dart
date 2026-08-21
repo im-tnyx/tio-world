@@ -110,7 +110,7 @@ void main() {
     final state = OnboardingState(
       draft: draft,
       flowPlan: flowPlan,
-      workoutFlowPlan: const WorkoutFlowPlan(),
+      workoutFlowPlan: const WorkoutFlowPlan(steps: []),
       stepId: OnboardingStepId.review,
       completionEligibility: const OnboardingCompletionValidator().evaluate(
         draft: draft,
