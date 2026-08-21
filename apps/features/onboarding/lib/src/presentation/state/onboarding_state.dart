@@ -44,7 +44,7 @@ class OnboardingState {
       );
 
   GoalWeightDirection? get weightGoalDirection =>
-      const GoalWeightFollowUpPolicy().directionFor(
+      const WeightGoalFlowPolicy().directionFor(
         mode: draft.selectedMode,
         selection: draft.goalSelection,
       );
