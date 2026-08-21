@@ -22,6 +22,11 @@ class TargetWeightRecommendationResolver {
       return null;
     }
 
+    if (direction == GoalWeightDirection.gain &&
+        currentWeightKg >= _maximumWeightKg) {
+      return null;
+    }
+
     var target = switch (direction) {
       GoalWeightDirection.loss =>
         currentWeightKg * (1.0 - _defaultDirectionalChange),
@@ -32,22 +37,19 @@ class TargetWeightRecommendationResolver {
     if (heightCm != null && heightCm > 0) {
       final heightM = heightCm / 100.0;
       final heightSquared = heightM * heightM;
+      final currentBmi = currentWeightKg / heightSquared;
       final minimumWeightForBmi = _minimumBmi * heightSquared;
       final maximumWeightForGain =
           _maximumBmiForGainRecommendation * heightSquared;
 
       switch (direction) {
         case GoalWeightDirection.loss:
-          // Only apply the lower-BMI guardrail when it still preserves a
-          // downward target. Goal direction is never reversed by the guardrail.
-          if (minimumWeightForBmi < currentWeightKg &&
-              target < minimumWeightForBmi) {
-            target = minimumWeightForBmi;
-          }
+          if (currentBmi <= _minimumBmi) return null;
+          if (target < minimumWeightForBmi) target = minimumWeightForBmi;
           break;
         case GoalWeightDirection.gain:
-          // Likewise, only cap an upward recommendation when the cap remains
-          // above the current weight.
+          // A BMI guard may reduce the size of an upward recommendation, but it
+          // must never reverse the user's explicit weight-gain direction.
           if (maximumWeightForGain > currentWeightKg &&
               target > maximumWeightForGain) {
             target = maximumWeightForGain;
@@ -57,6 +59,12 @@ class TargetWeightRecommendationResolver {
     }
 
     target = target.clamp(_minimumWeightKg, _maximumWeightKg);
+    if (direction == GoalWeightDirection.loss && target >= currentWeightKg) {
+      return null;
+    }
+    if (direction == GoalWeightDirection.gain && target <= currentWeightKg) {
+      return null;
+    }
     return (target * 10).round() / 10.0;
   }
 }
