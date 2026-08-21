@@ -272,6 +272,9 @@ void main() {
         entryPath: OnboardingEntryPath.firstRun,
         initialDraft: OnboardingDraft(
           selectedMode: AppMode.nutrition,
+          goalSelection: const GoalIntentSelection(
+            primaryGoal: GoalIntent.maintainWeight,
+          ),
           currentStepId: OnboardingStepId.profileBasics,
           completedStepIds: const {OnboardingStepId.mode},
           profile: _validProfile(),
