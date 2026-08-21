@@ -8,6 +8,7 @@ export 'complete_onboarding_use_case.dart';
 export 'goal_intent_selection_policy.dart';
 export 'goal_pace_resolver.dart';
 export 'goal_pace_target_date_calculator.dart';
+export 'goal_weight_follow_up_policy.dart';
 export 'legacy_profile_goal_intent_migration.dart';
 export 'onboarding_completion_validator.dart';
 export 'persist_onboarding_owner_data_use_case.dart';
