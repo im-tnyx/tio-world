@@ -38,6 +38,7 @@ create table public.body_weight_logs (
   source text,
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default timezone('utc'::text, now()),
+  updated_at timestamptz not null default timezone('utc'::text, now()),
   constraint body_weight_logs_weight_positive
     check (weight_kg > 0),
   constraint body_weight_logs_metadata_object
@@ -46,6 +47,10 @@ create table public.body_weight_logs (
 
 create index idx_body_weight_logs_user_measured_at
   on public.body_weight_logs (user_id, measured_at desc);
+
+create trigger trg_body_weight_logs_updated_at
+before update on public.body_weight_logs
+for each row execute function public.set_row_updated_at();
 
 alter table public.body_weight_logs enable row level security;
 
@@ -101,6 +106,11 @@ create table public.user_body_goals (
     check (target_weight_kg is null or target_weight_kg > 0),
   constraint user_body_goals_weekly_change_nonnegative
     check (weekly_weight_change_kg is null or weekly_weight_change_kg >= 0),
+  constraint user_body_goals_nondirectional_followups_null
+    check (
+      goal_type in ('lose_weight', 'gain_weight')
+      or (target_weight_kg is null and weekly_weight_change_kg is null)
+    ),
   constraint user_body_goals_intent_rank_check
     check (intent_rank is null or intent_rank in (1, 2)),
   constraint user_body_goals_status_check
@@ -301,6 +311,10 @@ create table public.user_workout_targets (
     check (primary_goal_rank is null or primary_goal_rank in (1, 2)),
   constraint user_workout_targets_supporting_rank_check
     check (supporting_goal_rank is null or supporting_goal_rank in (1, 2)),
+  constraint user_workout_targets_primary_rank_requires_goal
+    check (primary_goal_rank is null or primary_workout_goal is not null),
+  constraint user_workout_targets_supporting_rank_requires_goal
+    check (supporting_goal_rank is null or supporting_workout_goal is not null),
   constraint user_workout_targets_distinct_goals
     check (
       supporting_workout_goal is null or
