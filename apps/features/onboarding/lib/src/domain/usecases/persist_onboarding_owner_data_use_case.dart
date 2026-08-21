@@ -5,6 +5,7 @@ import 'package:tio_feature_workout/workout.dart' as workout_owner;
 import '../models/models.dart';
 import 'profile_setup_mapper.dart';
 import 'targets_setup_mapper.dart';
+import 'weight_goal_flow_policy.dart';
 import 'workout_preferences_mapper.dart';
 
 /// Dedicated completion coordinator that validates and persists active onboarding answers
@@ -17,6 +18,7 @@ class PersistOnboardingOwnerDataUseCase {
     this.profileMapper = const ProfileSetupMapper(),
     this.workoutMapper = const WorkoutPreferencesMapper(),
     this.targetsMapper = const TargetsSetupMapper(),
+    this.weightGoalPolicy = const WeightGoalFlowPolicy(),
   })  : _profileRepository = profileRepository,
         _workoutRepository = workoutRepository,
         _targetsRepository = targetsRepository;
@@ -28,6 +30,7 @@ class PersistOnboardingOwnerDataUseCase {
   final ProfileSetupMapper profileMapper;
   final WorkoutPreferencesMapper workoutMapper;
   final TargetsSetupMapper targetsMapper;
+  final WeightGoalFlowPolicy weightGoalPolicy;
 
   /// Persists owner data according to the active mode and flow plan.
   ///
@@ -35,16 +38,25 @@ class PersistOnboardingOwnerDataUseCase {
   /// - Profile data is always persisted.
   /// - Workout data is persisted ONLY IF [flowPlan] contains [OnboardingStepId.workoutPreferences].
   /// - Targets data is always persisted.
+  /// - dormant/ineligible Target Weight is not consumed by owner mappings.
   ///
   /// Throws [OwnerPersistenceException] if mapping or writing to any owner fails.
   Future<void> call({
     required OnboardingDraft draft,
     required OnboardingFlowPlan flowPlan,
   }) async {
+    final activeWeightDirection = weightGoalPolicy.directionFor(
+      mode: draft.selectedMode,
+      selection: draft.goalSelection,
+    );
+
     // 1. Map and persist Profile owner data
     final profile_owner.ProfileSetupData profileData;
     try {
-      profileData = profileMapper.map(draft.profile);
+      profileData = profileMapper.map(
+        draft.profile,
+        activeWeightDirection: activeWeightDirection,
+      );
     } catch (e, st) {
       throw OwnerPersistenceException(
         owner: OwnerPersistenceTarget.profile,
@@ -99,6 +111,7 @@ class PersistOnboardingOwnerDataUseCase {
       targetsData = targetsMapper.map(
         targetsDraft: draft.targets,
         profileDraft: draft.profile,
+        activeWeightDirection: activeWeightDirection,
       );
     } catch (e, st) {
       throw OwnerPersistenceException(
