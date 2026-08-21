@@ -36,7 +36,6 @@ class ProfileStepRenderer extends StatelessWidget {
           onSelected: controller.updateProfileGender,
           errorText: errorText),
       ProfileStepId.goal => GoalScreen(
-          userName: draft.name,
           selectedGoals: draft.goals,
           onToggled: controller.toggleProfileGoal,
           errorText: errorText),
