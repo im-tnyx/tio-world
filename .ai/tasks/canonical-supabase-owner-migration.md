@@ -1,8 +1,9 @@
 # Canonical Supabase Owner Migration
 
-**Status:** Body foundation + account/Profile/App Preferences P1 schema applied and validated; P1A runtime verification is NEXT  
+**Status:** Canonical owner schema + P1 Account/Profile/App Preferences foundation are LIVE and validated  
 **Canonical owner tracker:** #44  
-**Related trackers:** #8, #11, #40 / PR #50
+**Product Onboarding sequence:** `.ai/tasks/product-onboarding-canonical-execution.md`  
+**Related trackers:** #11, #8, #40 / PR #50
 
 ## Outcome
 
@@ -11,42 +12,32 @@ Keep one durable owner per concept in live `tio-world` Supabase while preserving
 ## Approved durable owners
 
 ```text
-users
-→ account/domain root + contacts/verification
-
-user_profiles
-→ 1:1 common Profile
-
-user_app_preferences
-→ 1:1 App Mode + active navigation preferences
-
-user_devices
-→ 1:N device owner
-
-body_weight_logs
-user_body_goals
-user_wellness_targets
-user_nutrition_profiles
-user_nutrition_targets
-user_workout_profiles
-user_workout_targets
-
-onboarding_drafts
-→ draft/resume orchestration only
+users                      → account/domain root + contacts/status
+user_profiles              → common Profile
+user_app_preferences       → App Mode + active_tabs
+user_devices               → devices
+body_weight_logs           → current/history weight
+user_body_goals            → Body Goal + Target Weight + Goal Pace
+user_wellness_targets      → steps/water/sleep
+user_nutrition_profiles    → diet/allergy/food context
+user_nutrition_targets     → calories/macros/fiber + recommended/custom state
+user_workout_profiles      → workout context/capability
+user_workout_targets       → workout goals/schedule/plan constraints
+onboarding_drafts          → draft/resume orchestration only
 ```
 
-Do not rename/replace `users`. Existing and new canonical domain FKs continue to reference `public.users(id)`.
+Do not rename or replace `users`. Canonical domain FKs continue to target `public.users(id)`.
 
 ## Applied canonical migrations
 
-Body/Wellness/Nutrition/Workout foundation:
+Body / Wellness / Nutrition / Workout foundation:
 
 ```text
 20260821161923_create_canonical_owner_tables
 20260821162207_backfill_canonical_owner_data
 ```
 
-Account/Profile/App Preferences P1:
+Account / Profile / App Preferences foundation:
 
 ```text
 20260821180908_split_account_profile_app_preferences
@@ -64,32 +55,20 @@ supabase/migrations/20260821181005_harden_profile_app_preference_grants.sql
 
 Never edit applied migrations in place.
 
-## P1 live result — VALIDATED ✅
+## Live P1 result — VALIDATED ✅
 
-### `users`
-
-P1 added:
+### Account root
 
 ```text
-email_verified_at timestamptz null
+users.email
+users.email_verified_at
+users.mobile
+users.mobile_verified_at
 ```
 
-Account contact projection is now:
-
-```text
-email
-email_verified_at
-mobile
-mobile_verified_at
-```
-
-Normal client roles cannot directly promote verified timestamps. Contact changes invalidate the corresponding verification timestamp. Trusted backend/service reconciliation may set verification after real provider confirmation.
-
-P1 backfill copied Supabase Auth confirmation timestamps only for exact current contact matches. It did not infer verification from a non-null contact string.
+Normal client roles cannot directly promote verification timestamps. Contact change invalidates only that contact's verification state. Trusted backend/auth-provider reconciliation marks verified state after real confirmation.
 
 ### `user_profiles`
-
-Live canonical 1:1 Profile owner:
 
 ```text
 user_id PK/FK → public.users(id) ON DELETE CASCADE
@@ -105,11 +84,9 @@ created_at
 updated_at
 ```
 
-Constraints reflect the current app storage vocabulary and positive height. No duplicate `dob` column exists in `user_profiles`.
+No duplicate `dob` exists in the new canonical Profile table.
 
 ### `user_app_preferences`
-
-Live canonical 1:1 App Preferences owner:
 
 ```text
 user_id PK/FK → public.users(id) ON DELETE CASCADE
@@ -119,54 +96,31 @@ created_at
 updated_at
 ```
 
-No row was fabricated from onboarding draft `selected_mode`; drafts are not final preference authority.
+No final preference was fabricated from `onboarding_drafts.payload.selected_mode`.
 
 ### RLS / grants
 
 Both P1 tables:
-
 - RLS enabled;
-- authenticated SELECT/INSERT/UPDATE ownership policies use `(select auth.uid()) = user_id`;
-- UPDATE includes `USING` + `WITH CHECK`;
-- FKs target `public.users(id)`.
+- own-row policies use `(select auth.uid()) = user_id`;
+- UPDATE has `USING` + `WITH CHECK`;
+- authenticated final privileges are SELECT/INSERT/UPDATE;
+- anon has no table privileges.
 
-Validation detected this existing project's automatic broad grants for new tables, including `TRUNCATE` on `anon/authenticated`. Because TRUNCATE bypasses RLS, the second P1 migration hardened grants immediately.
+Validation discovered existing-project automatic broad new-table grants including TRUNCATE. The hardening migration removed them because TRUNCATE bypasses RLS.
 
-Final privileges:
+Live affected rows were zero, so current backfill was a no-op. Migration logic remains conflict-first/deterministic for non-empty environments.
 
-```text
-anon          → none
-authenticated → SELECT, INSERT, UPDATE
-service_role  → backend/service privileges
-```
+No new advisor warning was introduced by P1. Existing unrelated username SECURITY DEFINER, leaked-password protection, old RLS init-plan and unused-index notices remain separate work.
 
-### P1 data/advisor validation
-
-Live rows at migration time:
-
-```text
-users                 0
-user_profiles         0
-user_app_preferences  0
-```
-
-Current live backfill was therefore a no-op. Migration SQL still contains conflict-first validation and deterministic non-empty-environment Profile backfill.
-
-No new security/performance advisor warning was introduced by P1 objects. Existing unrelated warnings remain:
-
-- username SECURITY DEFINER RPC exposure;
-- leaked-password protection disabled;
-- older-table `auth.uid()` init-plan warnings;
-- unused-index INFO notices.
-
-## Existing Body repository evidence
+## Body repository evidence
 
 ```text
 Body Cutover A  → CI #1135 ✅
 Body Cutover B1 → CI #1153 ✅
 ```
 
-B1 established canonical Body reads/history commands and removed fabricated current-weight fallback semantics at the Body boundary.
+Current Weight canonical owner is `body_weight_logs`; Body Goal/Target Weight/Goal Pace canonical owner is `user_body_goals`.
 
 ## Transitional legacy columns
 
@@ -187,59 +141,67 @@ users.goals
 users.primary_goal
 ```
 
-Mixed legacy fields also remain in Nutrition/Workout profiles until their own cutovers.
+Mixed legacy fields also remain in Nutrition/Workout profiles until their owning slices migrate them.
 
 No permanent bidirectional synchronization may be introduced.
 
-## Canonical execution order
+## Current execution model — two lanes
 
-Authoritative sequencing task:
+### Product Onboarding lane
 
-`.ai/tasks/account-profile-app-preferences-canonical-split.md`
+Authoritative task:
+
+`.ai/tasks/product-onboarding-canonical-execution.md`
 
 ```text
-Body B1 canonical read/history contract        ✅ #1153
-P1 schema foundation                           ✅ LIVE / VALIDATED
+Foundation / P1 schema                         ✅ LIVE
         ↓
-P1A account contact verification               NEXT (#8)
+O1 durable App Mode / active_tabs              NEXT (#11)
         ↓
-P2 durable App Mode / active_tabs              (#11)
+O2 common Profile owner + section
         ↓
-P3 common Profile repository cutover
+O3 Body Goal section + Profile/Body parity
         ↓
-P4 Body B2/B3 Profile/Settings composition
+O4 Wellness
         ↓
-P5 Wellness/Nutrition split
+O5 Nutrition Profile/Targets
         ↓
-P6 Workout Profile/Targets split
+O6 Workout Intro/Profile/Targets
         ↓
-P7 integrated persistence acceptance
+O7 Health Connections
         ↓
-later legacy-column cleanup migration
+O8 Review + draft/resume
+        ↓
+O9 truthful finalization + existing Congratulations
+        ↓
+O10 integrated mode/device/persistence acceptance
+        ↓
+later legacy-column cleanup
 ```
 
-## Next slices
+### Account / Settings lane
 
-### P1A — Account contact verification
+```text
+A1 real email/mobile verification (#8)
+```
 
-- real phone-first→email and email-first→phone add/change/verify flows;
-- no fake OTP verification success;
-- remove default `isEmailVerified = true` assumption;
-- trusted Auth/provider evidence reconciles provider-neutral `users.*_verified_at`;
-- bootstrap/sign-in can repair stale contact projection;
-- focused tests + full relevant CI.
+A1 is required for final account/settings acceptance but is not a technical prerequisite for O1 Product Onboarding App Mode persistence.
 
-### P2 — App Mode
+## Immediate next schema/repository work
 
-`user_app_preferences` is live, but Flutter still uses SharedPreferences as current authority. P2 moves onboarding completion, Settings writes and authenticated bootstrap reads to the canonical remote owner; local storage becomes cache/staging only.
+No new table is required before O1. `user_app_preferences` already exists live.
 
-### P3 — Profile
+O1 is primarily repository/runtime cutover:
+- backend-neutral App Preferences contract;
+- Supabase reads/writes of `user_app_preferences`;
+- onboarding completion persists mode/tabs before completion publishes;
+- Settings writes same owner;
+- authenticated bootstrap restores remote state;
+- SharedPreferences becomes cache/pre-auth staging;
+- remote canonical state wins stale local cache;
+- second-device/fresh-install tests.
 
-Onboarding/Profile Settings common Profile reads/writes move to `user_profiles`; account fields stay on `users`.
-
-### P4 — Body/Profile composition
-
-After P3, remove Body fields from Profile models/writes and compose `user_profiles` + Body owner at app boundary.
+After O1, O2 cuts common Profile persistence to existing live `user_profiles`; no new Profile table migration is needed.
 
 ## Future backend rule
 
@@ -257,8 +219,10 @@ Auth providers may change, but provider-neutral application verification fields 
 - no fabricated defaults or semantic guessing;
 - Onboarding/Settings are entry points, not owners;
 - no legacy column drop before verified repository cutover;
-- no UI redesign/picker/recommendation-formula change in persistence work.
+- no UI redesign/picker/recommendation-formula change as a side effect of persistence work.
 
-## Current next step
+## Handoff
 
-**P1A — implement real account contact verification and trusted reconciliation (#8).**
+**Product Onboarding next:** O1 durable App Mode / active-tabs (#11).  
+**Parallel account work:** A1 contact verification (#8).  
+**Read `product-onboarding-canonical-execution.md` before implementing any later onboarding owner slice.**
