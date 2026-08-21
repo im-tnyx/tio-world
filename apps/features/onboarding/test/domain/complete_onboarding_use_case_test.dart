@@ -4,21 +4,25 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_feature_nutrition/nutrition.dart' as nutrition_owner;
 import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_feature_profile/profile.dart' as profile_owner;
+import 'package:tio_feature_progress/progress.dart' as body_owner;
 import 'package:tio_feature_workout/workout.dart' as workout_owner;
 import 'package:tio_shared/shared.dart';
 
 void main() {
   late profile_owner.InMemoryProfileSetupRepository profileRepo;
+  late body_owner.InMemoryBodySetupRepository bodyRepo;
   late workout_owner.InMemoryWorkoutPreferencesRepository workoutRepo;
   late nutrition_owner.InMemoryTargetsSetupRepository targetsRepo;
   late PersistOnboardingOwnerDataUseCase persistUseCase;
 
   setUp(() {
     profileRepo = profile_owner.InMemoryProfileSetupRepository();
+    bodyRepo = body_owner.InMemoryBodySetupRepository();
     workoutRepo = workout_owner.InMemoryWorkoutPreferencesRepository();
     targetsRepo = nutrition_owner.InMemoryTargetsSetupRepository();
     persistUseCase = PersistOnboardingOwnerDataUseCase(
       profileRepository: profileRepo,
+      bodyRepository: bodyRepo,
       workoutRepository: workoutRepo,
       targetsRepository: targetsRepo,
     );
@@ -87,6 +91,7 @@ void main() {
     expect(preference.storedMode, isNull);
     expect(repository.status, isNull);
     expect(await profileRepo.getProfileSetup(), isNull);
+    expect(bodyRepo.data, isNull);
     expect(await workoutRepo.getWorkoutPreferences(), isNull);
     expect(await targetsRepo.getTargetsSetup(), isNull);
   });
@@ -170,6 +175,7 @@ void main() {
     );
 
     expect(await profileRepo.getProfileSetup(), isNotNull);
+    expect(bodyRepo.data, isNotNull);
     expect(await workoutRepo.getWorkoutPreferences(), isNotNull);
     expect(await targetsRepo.getTargetsSetup(), isNotNull);
     expect(preference.storedMode, AppMode.workout);
@@ -195,6 +201,7 @@ void main() {
       statusRepository: repository,
       persistOwnerDataUseCase: PersistOnboardingOwnerDataUseCase(
         profileRepository: failingProfileRepo,
+        bodyRepository: bodyRepo,
         workoutRepository: workoutRepo,
         targetsRepository: targetsRepo,
       ),
@@ -497,7 +504,6 @@ void main() {
         backendUserReady: false,
       ),
     );
-
     final draft = OnboardingDraft(
       selectedMode: AppMode.workout,
       profile: _validProfile(),
