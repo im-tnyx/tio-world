@@ -1,3 +1,4 @@
+export 'body_setup_mapper.dart';
 export 'build_onboarding_flow_use_case.dart';
 export 'build_onboarding_progress_plan_use_case.dart';
 export 'build_profile_flow_plan_use_case.dart';
