@@ -1,35 +1,26 @@
 # Product Onboarding Slice 2B — Target Weight and Goal Pace
 
-**Status:** In progress  
+**Status:** In progress — core Goal/Target/Pace behavior + Body owner foundation validated; remaining picker/recommendation gates tracked  
 **Primary owner:** `apps/features/onboarding`  
 **GitHub tracker:** #40  
-**Canonical ownership tracker:** #44  
+**Canonical ownership:** #44  
 **Canonical implementation PR:** #50  
-**Canonical branch:** `agent/onboarding-slice-2-step-1-body-goal-ui`
+**Current onboarding sequence:** `.ai/tasks/product-onboarding-canonical-execution.md`
 
 PR #50 remains Draft/unmerged.
 
-## Current validated/product truth
+## Validated checkpoints
 
 ```text
-Unified Goal activation                         ✅
-Weight-follow-up eligibility                    ✅
-2B-B1 Target Weight draft semantics             ✅ CI #1079
-2B-C Goal Pace ownership/UI cleanup             ✅ CI #1090
-2B-D1 integrated local acceptance + Review      ✅ CI #1095
-Canonical Body/Wellness/Nutrition/Workout schema ✅ LIVE
-Conflict-safe legacy backfill                   ✅ LIVE
-Body Cutover A canonical write foundation       ✅ CI #1135
-Body Cutover B1 canonical read/history contract ✅ CI #1153
-P1 user_profiles + user_app_preferences          ✅ LIVE / VALIDATED
-P1 users.email_verified_at + grant hardening     ✅ LIVE / VALIDATED
-P1A account contact verification                 ⏳ NEXT
-P2 App Mode durable account preference           ⏳ AFTER P1A
-P3 common Profile repository cutover             ⏳ AFTER P2
-P4 Body B2/B3 Profile/Settings composition       ⏳ AFTER P3
+Target Weight draft/direction semantics       CI #1079 ✅
+Goal Pace ownership/skipped-intent cleanup    CI #1090 ✅
+Integrated mode/goal local acceptance         CI #1095 ✅
+Canonical Body onboarding writes              CI #1135 ✅
+Canonical Body read/history contract          CI #1153 ✅
+P1 Profile/App Preferences schema             LIVE ✅
 ```
 
-Latest validated Flutter source/test checkpoint before schema-only P1 work:
+Latest validated Flutter Body source checkpoint before schema-only P1 work:
 
 ```text
 e3822b81d2c8793191cfb8a208257fd2bc8bc7dd
@@ -42,7 +33,7 @@ Dart tests      ✅
 
 ## Approved Goal contract
 
-`GoalIntentSelection` remains onboarding semantic authority.
+`GoalIntentSelection` is semantic authority.
 
 Nutrition:
 
@@ -60,185 +51,134 @@ Lose weight primary/supporting → Target Weight + Goal Pace
 training-only goals            → skip both
 ```
 
-Maintain/Recomposition do not auto-fill Target Weight with Current Weight. Current weight is already stored canonically in `body_weight_logs`, and `user_body_goals.starting_weight_kg` captures the goal-start baseline. A fake `target_weight=current_weight` would create misleading duplicate intent.
+Rules:
+- Nutrition single-select;
+- Workout/Hybrid max two compatible intents;
+- `Build muscle != Gain weight`;
+- no Goal inference from BMI/current-target delta;
+- no fake GoalIntent → legacy ProfileGoal mappings.
+
+## Maintain/Recomposition semantic rule
+
+Do not auto-fill Target Weight with Current Weight.
+
+Canonical representation:
+
+```text
+body_weight_logs
+→ current/history weight
+
+user_body_goals.starting_weight_kg
+→ goal-start baseline
+
+Maintain / Recomposition
+→ target_weight_kg = null
+→ weekly_weight_change_kg = null
+```
+
+A fake `target_weight=current_weight` would duplicate state and can later misrepresent normal weight fluctuation as a desired destination.
+
+## Target Weight draft behavior — validated
+
+- local draft schema v4 stores Target Weight plus loss/gain direction association;
+- eligibility comes only from explicit Goal intent;
+- eligible → temporarily ineligible preserves dormant Target Weight in draft state;
+- returning to the same direction restores the exact user value;
+- explicit loss ↔ gain switch clears incompatible old scalar target;
+- recommendation seeding never overwrites an existing user target;
+- dormant/ineligible Target Weight is not consumed as canonical Body intent.
+
+## Goal Pace behavior — validated
+
+- Goal Pace owns weekly body-weight change only;
+- BMR/TDEE/calorie deficit/surplus logic was removed from Goal Pace ownership;
+- ineligible default pace is not consumed/persisted as user-selected intent;
+- Review shows pace/target only when explicit current Goal eligibility allows it.
+
+## Canonical Body persistence — validated foundation
+
+```text
+Current Weight
+→ body_weight_logs
+
+Body Goal / Target Weight / Goal Pace
+→ user_body_goals
+```
+
+Maintain/Recomposition follow-ups are rejected by both repository semantics and DB constraints.
+
+Training-only Goal intents never create fake Body Goal semantics.
+
+## Current remaining Slice 2B product gates
+
+These remain tracked but do **not** block unrelated onboarding persistence work such as O1 App Mode or O2 Profile owner cutover.
+
+### Measurement picker/reference
+
+Current task history found a mismatch/absence risk around the approved Height/Current Weight/Target Weight input reference. Guardrail remains:
+
+```text
+visible value == selected wheel position == canonical draft value
+```
+
+Do not invent a replacement picker or redesign. Preserve the approved wheel/picker UI if/when the reference is restored/confirmed.
+
+### Exact Target Weight recommendation numeric policy
+
+Concept is approved; exact numeric policy is not yet final.
 
 Rules:
+- explicit Goal intent is semantic authority;
+- recommendation is deterministic;
+- BMI/current measurements may be safety inputs, not Goal inference;
+- recommendation never overwrites a user-selected target;
+- no arbitrary fallback target becomes persisted intent.
 
-- Nutrition single-select.
-- Workout/Hybrid max two compatible goals.
-- `Build muscle != Gain weight`.
-- No Goal inference from BMI/current-target delta.
-- No fake GoalIntent → legacy ProfileGoal mappings.
+## Relationship to current onboarding execution
 
-Local draft schema v4 stores Target Weight + loss/gain association. Eligible→ineligible preserves dormant draft value; same direction restores; opposite loss↔gain clears incompatible scalar Target Weight.
+This focused slice is **not the global next-step sequencer anymore**.
 
-Goal Pace owns weekly body-weight change only. BMR/TDEE/calorie math is not Goal Pace ownership.
+Use:
 
-## Canonical owner architecture
+`.ai/tasks/product-onboarding-canonical-execution.md`
 
-```text
-users
-→ account/domain root + contacts/verification
-
-user_profiles
-→ common Profile
-
-user_app_preferences
-→ App Mode + ordered active navigation preferences
-
-user_devices
-→ devices
-
-body_weight_logs
-→ weight history/current weight
-
-user_body_goals
-→ Body Goal + Target Weight + Goal Pace + lifecycle
-
-user_wellness_targets
-→ steps/water/sleep
-
-user_nutrition_profiles
-→ diet/allergy/food context
-
-user_nutrition_targets
-→ calories/macros/fiber + recommended/custom state
-
-user_workout_profiles
-→ Workout context/capability
-
-user_workout_targets
-→ Workout goals/plan constraints
-
-onboarding_drafts
-→ draft/resume only
-```
-
-The earlier `users = account + common Profile` decision is superseded. Do not rename `users`; it remains the stable root for canonical owner FKs and future backend adapters.
-
-## Live migrations
-
-Body/domain foundation:
+Current Product Onboarding order:
 
 ```text
-20260821161923_create_canonical_owner_tables
-20260821162207_backfill_canonical_owner_data
+O1 durable App Mode / active_tabs        NEXT
+→ O2 common Profile owner/section
+→ O3 Body Goal section + Body/Profile parity
+→ O4 Wellness
+→ O5 Nutrition
+→ O6 Workout
+→ O7–O10 final onboarding sections/acceptance
 ```
 
-P1 account/Profile/App Preferences foundation:
+O3 will complete structural Body/Profile parity and activate the prepared Body Goal section identity while preserving this task's validated Goal/Target/Pace behavior.
 
-```text
-20260821180908_split_account_profile_app_preferences
-20260821181005_harden_profile_app_preference_grants
-```
+## UI preservation
 
-P1 created `user_profiles`, `user_app_preferences`, and added `users.email_verified_at`. It also hardened automatic broad grants discovered on this existing Supabase project. No legacy columns were dropped.
+- keep existing Goal card visual language;
+- keep Height/Current Weight/Target Weight/DOB wheel/picker contracts;
+- preserve Goal Pace slider/projection UI;
+- persistence/ownership changes do not authorize redesign;
+- user-visible option changes require focused product approval.
 
-## Body Cutover evidence
+## Exit criteria for this focused task
 
-### Body A — validated ✅
+- [x] Goal-aware Target Weight/Goal Pace eligibility
+- [x] reversible Target Weight draft semantics
+- [x] Goal Pace ownership cleanup
+- [x] Review uses unified Goal source
+- [x] integrated local mode/goal acceptance
+- [x] canonical Body write foundation
+- [x] canonical Body read/history foundation
+- [ ] approved/confirmed measurement picker/reference or explicit deferral
+- [ ] exact Target Weight recommendation numeric policy approved or explicitly deferred
+- [ ] O3 proves no active legacy Profile Body ownership remains
+- [ ] final O10 acceptance covers all active Goal/weight flows
 
-```text
-9031dc5e51a71b1bcef905bd93088f36396d3c01
-Flutter CI #1135 / run 32505095642 ✅
-```
+## Handoff
 
-### Body B1 — validated ✅
-
-```text
-e3822b81d2c8793191cfb8a208257fd2bc8bc7dd
-Flutter CI #1153 / run 32508150413 ✅
-```
-
-B1 provides backend-neutral canonical Body reads/history commands, latest-weight reads, active Body Goal reads, no fabricated `70 kg`, and separate onboarding-retry vs post-onboarding history semantics.
-
-## Canonical next sequence
-
-Authoritative task:
-
-`.ai/tasks/account-profile-app-preferences-canonical-split.md`
-
-```text
-P1 schema foundation                         ✅ LIVE / VALIDATED
-        ↓
-P1A account contact verification             NEXT (#8)
-        ↓
-P2 durable App Mode/navigation               (#11)
-        ↓
-P3 common Profile cutover
-        ↓
-P4 resume Body B2/B3
-        ↓
-P5 Wellness/Nutrition split
-        ↓
-P6 Workout Profile/Targets split
-        ↓
-P7 integrated persistence acceptance
-        ↓
-later legacy-column cleanup migration
-```
-
-Only one implementation slice should be active at a time.
-
-## P1A contact-verification gate — NEXT
-
-Account Settings must support truthful symmetric contact verification:
-
-```text
-phone-first → later add/change + verify email
-email-first → later add/change + verify mobile
-```
-
-P1A removes the false `isEmailVerified = true` default, uses real Supabase Auth verification, and reconciles `users.email_verified_at` / `mobile_verified_at` only from trusted confirmed Auth state.
-
-## App Mode gate — P2
-
-`user_app_preferences` now exists live, but App Mode runtime remains local-only through `SharedPreferencesAppModePreference` until P2.
-
-P2 will make onboarding completion + Settings write `app_mode` and derived ordered `active_tabs` to the canonical remote row, and authenticated bootstrap will restore remote state before configuring guided navigation.
-
-## Common Profile gate — P3
-
-Common Profile is now schema-owned by `user_profiles`, but Flutter repositories still need cutover after P2:
-
-- name;
-- gender;
-- `date_of_birth`;
-- height;
-- activity level;
-- general health conditions;
-- unit preferences.
-
-Body fields never move into `user_profiles`.
-
-## Remaining Product/technical gates
-
-```text
-P1A real contact verification                  NEXT
-P2 durable App Mode                            after P1A
-P3 common Profile repository cutover           after P2
-P4 Body/Profile Settings parity + mirror stop   after P3
-P5 Wellness/Nutrition split                    after P4
-P6 Workout owner cutover                       after P5
-integrated persistence acceptance              after owner cutovers
-measurement picker/reference                   blocked on approved reference
-Target Weight recommendation numeric policy    needs explicit product rule
-legacy duplicate-column cleanup migration      only after verified cutover
-final full workspace CI                        last
-```
-
-## Guardrails
-
-- one canonical durable owner per concept;
-- no permanent mirrored canonical values;
-- `users` remains account/root; no destructive rename;
-- `user_profiles` owns common Profile only;
-- `user_app_preferences` owns App Mode/navigation only;
-- no client-authoritative contact verification timestamp;
-- App Mode visibility never deletes hidden owner data;
-- Onboarding/Settings are entry points, not owners;
-- no fake Goal mapping or BMI/delta semantic inference;
-- do not edit applied migrations in place;
-- no old-column drop before verified repository cutover;
-- no Target Weight recommendation-formula change without approval;
-- no UI redesign or invented picker in this persistence phase.
+**Global next onboarding slice:** O1 App Mode (#11), not account verification.  
+**This task resumes directly during O3 for final Body/Profile structural parity and during final acceptance for picker/recommendation gates.**
