@@ -10,6 +10,7 @@ class GoalPaceScreen extends StatefulWidget {
     required this.goalPaceKgPerWeek,
     required this.onPaceChanged,
     required this.profile,
+    required this.weightGoalDirection,
     super.key,
     this.stepTarget = 10000,
     this.errorText,
@@ -19,6 +20,7 @@ class GoalPaceScreen extends StatefulWidget {
   final double goalPaceKgPerWeek;
   final ValueChanged<double> onPaceChanged;
   final ProfileOnboardingDraft profile;
+  final GoalWeightDirection weightGoalDirection;
   final int stepTarget;
   final String? errorText;
   final DateTime? currentDate;
@@ -61,14 +63,9 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
     final textTheme = Theme.of(context).textTheme;
 
     final currentWeightKg = widget.profile.currentWeightKg ?? 70.0;
-    final targetWeightKg = widget.profile.targetWeightKg ?? 63.6;
-    final primaryGoal = widget.profile.goals.isNotEmpty
-        ? widget.profile.goals.first
-        : ProfileGoal.loseWeight;
-
-    final mode = GoalPaceResolver.resolveMode(
-      currentWeightKg: widget.profile.currentWeightKg,
-      targetWeightKg: widget.profile.targetWeightKg,
+    final targetWeightKg = widget.profile.targetWeightKg ?? currentWeightKg;
+    final mode = GoalPaceResolver.resolveModeForDirection(
+      widget.weightGoalDirection,
     );
 
     final isLoss = mode == GoalPaceMode.loss;
@@ -115,11 +112,12 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
     final targetYear = targetDate.year.toString();
 
     final paceTag = GoalPaceResolver.paceTag(_paceValue);
-    final titleText = GoalPaceResolver.screenTitle(
-      primaryGoal: primaryGoal,
-      mode: mode,
+    final titleText = GoalPaceResolver.screenTitleForDirection(
+      widget.weightGoalDirection,
     );
-    final headerLabel = _resolveHeader(primaryGoal, mode, isLoss, isMaintenance);
+    final headerLabel = GoalPaceResolver.cardHeaderForDirection(
+      widget.weightGoalDirection,
+    );
 
     return TargetsScreenScaffold(
       stepId: TargetStepId.goalPace,
@@ -671,29 +669,6 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
         );
       },
     );
-  }
-
-  String _resolveHeader(
-    ProfileGoal primaryGoal,
-    GoalPaceMode mode,
-    bool isLoss,
-    bool isMaintenance,
-  ) {
-    if (primaryGoal == ProfileGoal.buildMuscle) {
-      return mode == GoalPaceMode.loss
-          ? 'Recomposition'
-          : mode == GoalPaceMode.maintenance
-              ? 'Body Recomposition'
-              : 'Muscle Gain';
-    }
-    if (primaryGoal == ProfileGoal.loseWeight) {
-      return mode == GoalPaceMode.loss ? 'Fat Loss' : 'Healthy Target';
-    }
-    return isMaintenance
-        ? 'Maintenance'
-        : isLoss
-            ? 'Fat Loss'
-            : 'Muscle Gain';
   }
 }
 
