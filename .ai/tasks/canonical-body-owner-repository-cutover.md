@@ -1,183 +1,252 @@
 # Canonical Body Owner Repository Cutover
 
 **Status:** In progress  
-**Primary owner:** `apps/features/progress` + onboarding composition  
+**Primary owner:** `apps/features/progress` + app composition with Profile/Settings  
 **Affected platforms:** Flutter phone app / Supabase persistence
 
-## 1. Discovery
+## Outcome
 
-### User Outcome
+Make `body_weight_logs` + `user_body_goals` the authoritative Body persistence path without changing UI or inventing goal semantics.
 
-Make the live canonical Body tables the authoritative persistence path without changing UI or inventing goal semantics.
+## Canonical ownership
 
-### Success Criteria
+```text
+body_weight_logs
+→ time-varying weight history
+→ latest applicable row = canonical current weight
 
-- `body_weight_logs` owns persisted current weight.
-- `user_body_goals` owns explicit Body Goal, Target Weight, Goal Pace and lifecycle.
-- onboarding completion writes Body data through a Progress-owned Body repository.
-- Maintain/Recomposition never persist Target Weight or Goal Pace in the canonical Body owner.
-- no BMI/delta inference and no `Build muscle = Gain weight` mapping.
-- Profile/Settings eventually read and mutate the same canonical Body owner.
-- mirrored legacy Body writes are stopped only after canonical read/write parity is proven; no permanent dual-write synchronization.
+user_body_goals
+→ lose/gain/maintain/recomposition
+→ starting weight
+→ Target Weight when applicable
+→ Goal Pace when applicable
+→ lifecycle/status
+```
 
-### Scope
+Profile and Nutrition may consume Body data but must not remain canonical Body owners.
 
-Current repository cutover sequence:
+## Body Cutover A — VALIDATED ✅
 
-**Body Cutover A — validated canonical write foundation**
-- Progress-owned Body domain/repository contract;
-- Supabase implementation over `body_weight_logs` + `user_body_goals`;
-- app provider and onboarding completion wiring;
-- explicit Goal-to-Body mapping;
-- focused mapper/repository/completion tests.
-
-**Body Cutover B — next**
-- canonical Body read API for current weight + active Body Goal;
-- Profile/Profile Settings consume latest canonical Body state;
-- Profile Settings current-weight mutation writes canonical Body owner;
-- then remove onboarding/Profile/Nutrition Body mirror writes after parity proof.
-
-### Non-Goals
-
-- UI changes;
-- Wellness/Nutrition/Workout target repository split;
-- legacy column drops;
-- recommendation formula changes;
-- measurement picker work;
-- protected backend implementation.
-
-## 2. Codebase Exploration
-
-### Verified Evidence
-
-Schema/live contract:
-- live migrations `20260821161923_create_canonical_owner_tables` and `20260821162207_backfill_canonical_owner_data` are applied.
-- `body_weight_logs` is the canonical current-weight/history table.
-- `user_body_goals` is the canonical Body Goal/Target Weight/Goal Pace lifecycle table.
-
-Pre-cutover legacy paths still present:
-- `SupabaseProfileSetupRepository` still contains `current_weight_kg`, `target_weight_kg`, `goals`, `primary_goal` compatibility writes to `users`.
-- `SupabaseTargetsSetupRepository` still contains Body mirrors in `user_nutrition_profiles`.
-- `ProfileSettingsWriteMapper` still writes `current_weight_kg` to `users`.
-
-Implemented Body Cutover A:
-- `apps/features/progress/lib/src/domain/body_setup.dart` defines `BodySetupRepository`, `BodySetupData`, `BodyGoalSetupData`, `BodyGoalType`.
-- `SupabaseBodySetupRepository` persists onboarding current-weight state to `body_weight_logs` and reconciles active Body Goal lifecycle in `user_body_goals`.
-- same-type active goal updates in place; changed Body goal supersedes the previous active row.
-- training-only/no-Body selection can retire an active Body Goal rather than inventing a Body direction.
-- Maintain/Recomposition follow-up Target Weight/Goal Pace are rejected before database writes.
-- onboarding `BodySetupMapper` maps only explicit Body intents; training intents are not inferred as Body goals.
-- Target Weight is consumed only when its stored direction matches the active explicit loss/gain direction.
-- `PersistOnboardingOwnerDataUseCase` now requires and persists the Body owner.
-- app composition injects `bodySetupRepositoryProvider` into onboarding completion.
-- router diff was verified to contain only the intended Body provider read + repository injection for this cutover.
-
-## 3. Clarification
-
-| Decision | Status | Rationale | Owner |
-|---|---|---|---|
-| Body repository lives in Progress | Approved + implemented | Weight/progress is canonical owner and avoids Profile/Nutrition ownership | #44 contract |
-| Onboarding uses canonical Body repository directly | Approved + implemented | Onboarding is orchestration, not owner | #40/#44 |
-| Unified Goal is split explicitly into Body semantics | Approved + implemented | Prevent mixed `ProfileGoal` ownership and semantic inference | #40/#44 |
-| Settings compatibility remains temporarily | Deferred to Cutover B | Removing legacy mutation/read paths before canonical read parity can produce stale/default UI state | next sub-slice |
-| Permanent dual-write synchronization | Rejected | Legacy mirrors are temporary compatibility only and must be removed after parity proof | #44 contract |
-
-## 4. Architecture Design
+Implemented:
 
 ```text
 Onboarding draft
-  -> BodySetupMapper
-  -> BodySetupRepository (Progress domain)
-  -> SupabaseBodySetupRepository
-  -> body_weight_logs + user_body_goals
+→ BodySetupMapper
+→ BodySetupRepository
+→ SupabaseBodySetupRepository
+→ body_weight_logs + user_body_goals
 ```
-
-Current transition state:
-
-```text
-Onboarding
-  -> canonical Body write                 VALIDATED
-  -> existing Profile/Nutrition mirrors   TEMPORARY compatibility
-
-Profile / Settings
-  -> legacy Body read/write               STILL PRESENT
-  -> canonical Body read/write            NEXT
-```
-
-The transition must end with one authoritative Body read/write path; the temporary mirrors are not the final architecture.
-
-## 5. Implementation Plan
-
-### Body Cutover A — canonical write foundation
-
-- [x] add Progress Body domain model/repository + Supabase implementation
-- [x] export public Progress contract and add Supabase dependency
-- [x] add onboarding dependency on Progress
-- [x] add Body mapper from explicit `GoalIntentSelection` + Profile/Targets draft
-- [x] persist Body owner in `PersistOnboardingOwnerDataUseCase`
-- [x] wire app provider/completion coordinator
-- [x] add Body mapper matrix tests
-- [x] add Body repository contract/validation tests
-- [x] migrate onboarding owner/completion tests to required Body repository dependency
-- [x] validate full Flutter/Dart CI
-
-### Body Cutover B — read/write parity + mirror removal
-
-- [ ] add canonical Body read model/repository API for latest weight + active goal
-- [ ] make Profile/Profile Settings display canonical current weight
-- [ ] make Profile Settings current-weight save mutate canonical Body owner
-- [ ] expose canonical active Target Weight/Body Goal wherever product UI needs it
-- [ ] invalidate/refresh canonical Body providers after Settings mutation
-- [ ] stop Profile onboarding persistence from writing Body Goal/Target Weight mirrors
-- [ ] stop Nutrition onboarding persistence from writing current/target weight/Goal Pace mirrors
-- [ ] stop Profile Settings from writing `users.current_weight_kg`
-- [ ] prove stale-read/default regressions are absent
-- [ ] run full Flutter/Dart CI again
-
-## 6. Quality Review
-
-### Validation Run
 
 Validated source/test checkpoint:
 
 ```text
 9031dc5e51a71b1bcef905bd93088f36396d3c01
-Flutter CI #1135
-run 32505095642
-
+Flutter CI #1135 / run 32505095642
 Analyze Flutter packages  ✅
 Analyze Dart packages     ✅
 Test Flutter packages     ✅
 Test Dart packages        ✅
 ```
 
-Earlier CI #1133 exposed only two stale onboarding test constructor calls missing the newly required `bodyRepository`; both were migrated without weakening the production dependency. CI #1135 then passed all four gates.
+Proven behavior:
 
-### Review Findings and Resolution
+- only explicit Body intents persist;
+- no BMI/delta inference and no `Build muscle = Gain weight` mapping;
+- Target Weight is consumed only for the matching explicit loss/gain direction;
+- Maintain/Recomposition cannot persist Target Weight/Goal Pace;
+- changed Body goal supersedes the old active goal;
+- training-only/no-Body intent does not invent a Body direction;
+- invalid Body payloads are rejected before Body DB mutation.
 
-- Repository validation was moved before Body database mutations so an invalid Maintain/Recomposition follow-up cannot write current weight first and fail afterward.
-- The canonical Body repository does not infer Body goals from BMI, target-current delta, or training-only intent.
-- Full multi-owner transactional finalization is not claimed by this slice; this task only validates the Body owner boundary and onboarding integration.
+## Body Cutover B audit — COMPLETE
 
-## 7. Final Handoff
+### Current read gap
 
-### Changed Ownership
+`BodySetupRepository` currently has only:
 
-Canonical Body persistence is now established under `apps/features/progress` and wired into Product Onboarding completion.
+```dart
+Future<void> saveBodySetup(BodySetupData data);
+```
 
-### Known Limitations
+There is no canonical read API for latest weight or active Body Goal yet.
 
-- Profile/Profile Settings still read current weight from legacy Profile state.
-- Profile Settings still writes `users.current_weight_kg`.
-- Profile/Nutrition compatibility repositories still contain mirrored Body fields.
-- Therefore Body Cutover A is a validated write foundation, not the final single-owner cutover.
+`profileDataProvider` still exposes `ProfileSetupRepository.watchProfileSetup()`, so Profile Settings gets current weight from legacy Profile state rather than the Body owner.
 
-### Next Unblocked Work
+### Current Profile ownership leaks
 
-**Body Cutover B — canonical read/write parity for Profile + Settings, then remove mirrored legacy Body writes.**
+`ProfileSetupData` still contains legacy/mixed Body fields:
 
-Do not change Target Weight recommendation constants or invent measurement-picker UI during this repository work.
+- `goals`
+- `currentWeightKg`
+- `targetWeightKg`
 
-### Final Status
+`SupabaseProfileSetupRepository` still writes to `users`:
 
-`PARTIAL` — Body Cutover A validated by CI #1135; full cutover remains in progress until Cutover B removes legacy read/write ownership.
+- `primary_goal`
+- `goals`
+- `current_weight_kg`
+- `target_weight_kg`
+
+It also reads current weight from `users.current_weight_kg` and fabricates `70.0` when missing. That default must not become canonical Body truth.
+
+`ProfileSetupMapper` still maps legacy Profile goals plus current/target weight into `ProfileSetupData`; it also has a `70.0` current-weight compatibility default. Once canonical Body read/write parity exists, these Body fields must leave the Profile persistence contract.
+
+### Current Profile Settings ownership leak
+
+`ProfileSettingsUpdate` currently describes current weight as a Profile-owned mutation.
+
+`ProfileSettingsWriteMapper` writes `current_weight_kg` into `users`.
+
+`SaveProfileSettingsUseCase` validates and forwards current weight through the Profile repository.
+
+`ProfileSettingsRoute` displays `profileData.currentWeightKg` and saves current weight through the Profile use case.
+
+This must become cross-owner app composition:
+
+```text
+username     → ProfileAccountRepository
+common Profile fields → ProfileSettingsRepository
+current weight → BodySetupRepository / Body weight command
+```
+
+Do not make the Profile feature depend on Progress merely to coordinate a screen. Cross-owner coordination belongs in app/composition.
+
+### Current Nutrition coupling — do NOT remove in isolation
+
+`TargetsSetupData` and `SupabaseTargetsSetupRepository` are still a mixed legacy contract containing:
+
+- Profile mirrors: height/activity;
+- Body mirrors: current weight/Target Weight/Goal Pace;
+- Wellness: steps/water/sleep;
+- Nutrition targets/recommendation.
+
+`getTargetsSetup()` currently requires legacy `weekly_weight_change_kg` and other Wellness fields. Therefore removing only the Nutrition Body columns during Body Cutover B would create a half-migrated repository contract.
+
+**Decision:** Nutrition Body mirror shutdown moves to the Wellness/Nutrition repository split. Temporary Nutrition mirror writes remain explicitly transitional; no new synchronization logic may be added.
+
+### Canonical read/fallback rule
+
+After migrations are applied, canonical Body tables win whenever data exists.
+
+Do not silently fall back to fabricated `70 kg` or infer a Body Goal from legacy numeric state.
+
+For true pre-cutover compatibility, only an explicit legacy-read fallback may be used when canonical Body data is absent and a real persisted legacy value exists. Canonical data must always take precedence, and the fallback must be removed after cutover verification.
+
+Current production rollout had no affected legacy rows at migration time, so a missing canonical value should normally be treated as unknown/incomplete rather than invented.
+
+### Weight-history write semantics
+
+Onboarding currently uses provenance source `onboarding_setup` and updates that setup snapshot on retry.
+
+Profile Settings must **not overwrite the onboarding snapshot**. A user changing current weight later should create a new weight-history entry with Settings provenance (for example `profile_settings`) and a new `measured_at` timestamp.
+
+Latest applicable `measured_at` wins for current weight.
+
+## Revised implementation order
+
+### B1 — canonical Body read/command contract
+
+- [ ] add backend-neutral Body read model for latest weight + active Body Goal;
+- [ ] add `get` and/or `watch` Body-state API to the Progress repository contract;
+- [ ] add explicit current-weight command that records a new history row for post-onboarding edits;
+- [ ] Supabase read: latest `body_weight_logs` by `measured_at DESC`;
+- [ ] Supabase read: `user_body_goals` where `status = active`;
+- [ ] keep onboarding retry semantics separate from post-onboarding weight-history inserts;
+- [ ] add in-memory parity for tests/local harnesses;
+- [ ] add focused canonical-first/no-fabricated-default tests.
+
+Recommended domain shape, naming may be adjusted during implementation:
+
+```text
+BodyState
+├─ latestWeight
+└─ activeGoal
+
+BodyWeightEntry
+├─ weightKg
+├─ measuredAt
+└─ source
+```
+
+### B2 — Profile domain boundary cleanup
+
+- [ ] narrow `ProfileSetupData` to common Profile data; remove Body Goal/current/target-weight ownership;
+- [ ] remove `goals/currentWeightKg/targetWeightKg` from Profile Supabase writes;
+- [ ] remove legacy Body parsing/defaults from Profile read mapping;
+- [ ] narrow onboarding `ProfileSetupMapper` to common Profile only;
+- [ ] update Profile repository/in-memory tests;
+- [ ] keep onboarding draft current weight because onboarding is allowed to collect it; only durable owner changes.
+
+Legacy `ProfileGoal` migration compatibility may remain temporarily if another compatibility path still needs the enum, but it must not remain canonical Profile persistence.
+
+### B3 — Profile Settings cross-owner composition
+
+- [ ] remove `currentWeightKg` from Profile-owned `ProfileSettingsUpdate`;
+- [ ] `ProfileSettingsWriteMapper` writes only Profile fields to `users`;
+- [ ] `SaveProfileSettingsUseCase` owns only account/common Profile mutations;
+- [ ] app-level Profile Settings composition watches both common Profile + canonical Body state;
+- [ ] screen current weight comes from canonical Body state;
+- [ ] Settings weight save records a new `body_weight_logs` entry;
+- [ ] invalidate/refresh both Profile and Body providers after successful save;
+- [ ] if canonical current weight is genuinely absent, do not silently persist a UI default as truth;
+- [ ] update route/use-case/repository tests.
+
+### B4 — Profile mirror shutdown verification
+
+Verify no active app write path still writes these Profile mirrors:
+
+```text
+users.current_weight_kg
+users.target_weight_kg
+users.goals
+users.primary_goal
+```
+
+Do not drop the DB columns yet. Column removal is a later forward migration after all owner cutovers and data-integrity acceptance.
+
+### B5 — full validation
+
+- [ ] Profile Settings current weight displays latest canonical log;
+- [ ] Settings weight edit creates a new history row;
+- [ ] onboarding retry does not create uncontrolled duplicate setup logs;
+- [ ] canonical row wins over stale legacy Profile value;
+- [ ] no `70 kg` fabricated canonical state;
+- [ ] active Target Weight/Goal Pace come from `user_body_goals` where consumed;
+- [ ] Profile save does not mutate Body columns;
+- [ ] full Flutter analyze;
+- [ ] full Dart analyze;
+- [ ] full Flutter tests;
+- [ ] full Dart tests.
+
+## Dependent cleanup after Body B
+
+Nutrition still contains transitional Body mirrors because its repository is structurally mixed with Wellness/Nutrition targets. Remove those mirrors during the next canonical split:
+
+```text
+Wellness → user_wellness_targets
+Nutrition context → user_nutrition_profiles
+Nutrition numeric targets → user_nutrition_targets
+```
+
+At that point remove Nutrition persistence of current weight, Target Weight, Goal Pace, height/activity mirrors and make Nutrition calculations read true Profile/Body owners.
+
+## Known finalization concern — later acceptance gate
+
+Current app composition uses an in-memory Body repository when Supabase is unavailable. A future protected backend needs its own Body adapter using this same backend-neutral domain contract; in-memory fallback must never be mistaken for durable production persistence during final completion acceptance.
+
+This is not a reason to create a parallel backend schema.
+
+## Guardrails
+
+- no UI redesign;
+- no Target Weight recommendation formula change;
+- no invented measurement picker;
+- no fake Goal mapping;
+- no BMI/current-target semantic inference;
+- no permanent dual-write synchronization;
+- no legacy DB column drop during B;
+- future backend uses the same canonical owner model.
+
+## Final status
+
+`PARTIAL` — Body Cutover A validated; Body Cutover B audit complete and implementation-ready. Next implementation starts at B1 canonical Body read/command contract.
