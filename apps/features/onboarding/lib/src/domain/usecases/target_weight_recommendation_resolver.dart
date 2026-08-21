@@ -48,10 +48,12 @@ class TargetWeightRecommendationResolver {
           if (target < minimumWeightForBmi) target = minimumWeightForBmi;
           break;
         case GoalWeightDirection.gain:
-          // A BMI guard may reduce the size of an upward recommendation, but it
-          // must never reverse the user's explicit weight-gain direction.
-          if (maximumWeightForGain > currentWeightKg &&
-              target > maximumWeightForGain) {
+          // If the user is already at/above the configured recommendation
+          // guardrail, do not fabricate a personalized upward target. A safety
+          // guard may suppress a recommendation, but it must never reverse the
+          // user's explicit weight-gain direction.
+          if (currentBmi >= _maximumBmiForGainRecommendation) return null;
+          if (target > maximumWeightForGain) {
             target = maximumWeightForGain;
           }
           break;
