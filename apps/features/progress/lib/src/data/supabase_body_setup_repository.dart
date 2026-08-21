@@ -15,8 +15,6 @@ class SupabaseBodySetupRepository implements BodyRepository {
   })  : _client = client,
         _stateMapper = stateMapper;
 
-  static const _onboardingWeightSource = 'onboarding_setup';
-
   final SupabaseClient _client;
   final BodyStateRowMapper _stateMapper;
 
@@ -118,7 +116,7 @@ class SupabaseBodySetupRepository implements BodyRepository {
         .from('body_weight_logs')
         .select('id')
         .eq('user_id', userId)
-        .eq('source', _onboardingWeightSource)
+        .eq('source', BodyWeightSources.onboardingSetup)
         .order('measured_at', ascending: false)
         .limit(1)
         .maybeSingle();
@@ -127,7 +125,7 @@ class SupabaseBodySetupRepository implements BodyRepository {
       'user_id': userId,
       'weight_kg': weightKg,
       'measured_at': nowIso,
-      'source': _onboardingWeightSource,
+      'source': BodyWeightSources.onboardingSetup,
       'metadata': const <String, dynamic>{'context': 'product_onboarding'},
     };
 
@@ -240,11 +238,19 @@ class SupabaseBodySetupRepository implements BodyRepository {
         'Current weight must be greater than zero.',
       );
     }
-    if (record.source.trim().isEmpty) {
+    final source = record.source.trim();
+    if (source.isEmpty) {
       throw ArgumentError.value(
         record.source,
         'source',
         'Weight provenance source is required.',
+      );
+    }
+    if (source == BodyWeightSources.onboardingSetup) {
+      throw ArgumentError.value(
+        record.source,
+        'source',
+        'onboarding_setup is reserved for saveBodySetup reconciliation.',
       );
     }
   }
