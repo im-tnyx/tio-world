@@ -189,7 +189,7 @@ void main() {
     const titles = {
       ProfileStepId.name: 'What should Tio call you?',
       ProfileStepId.gender: 'How do you describe your gender?',
-      ProfileStepId.goal: "Hi Tio User 👋, what's your main goal?",
+      ProfileStepId.goal: "What's your main goal?",
       ProfileStepId.age: 'When were you born?',
       ProfileStepId.measurementUnits: 'Choose your units',
       ProfileStepId.height: 'What is your height?',
