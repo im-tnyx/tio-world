@@ -10,6 +10,8 @@ class ProfileStepValidator {
   static const minimumWeightKg = 30.0;
   static const maximumWeightKg = 200.0;
 
+  /// Legacy ProfileGoal grouping retained only for compatibility callers while
+  /// the runtime Goal screen moves to GoalIntentSelectionPolicy.
   static const primaryGoals = <ProfileGoal>{
     ProfileGoal.buildMuscle,
     ProfileGoal.loseWeight,
@@ -33,9 +35,8 @@ class ProfileStepValidator {
           : 'Enter at least $minimumNameLength characters.',
       ProfileStepId.gender =>
         draft.gender == null ? 'Choose a gender option.' : null,
-      ProfileStepId.goal => draft.goals.where(primaryGoals.contains).length == 1
-          ? null
-          : 'Choose one primary goal.',
+      // Goal is validated by GoalIntentSelectionPolicy in OnboardingController.
+      ProfileStepId.goal => null,
       ProfileStepId.age => _validateDateOfBirth(draft.dateOfBirth),
       ProfileStepId.measurementUnits => null,
       ProfileStepId.height => _validateRange(
