@@ -70,7 +70,7 @@ class ProfileStepRenderer extends StatelessWidget {
           valueKg: draft.targetWeightKg,
           unit: draft.weightUnit,
           currentWeightKg: draft.currentWeightKg,
-          primaryGoalId: draft.goals.isNotEmpty ? draft.goals.first.name : null,
+          weightGoalDirection: state.weightGoalDirection,
           heightCm: draft.heightCm,
           onChanged: controller.updateProfileTargetWeight,
           onContinue: () => controller.next(onFinish: (_) async {}),
