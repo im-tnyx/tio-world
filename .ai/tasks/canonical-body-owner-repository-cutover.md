@@ -1,8 +1,36 @@
 # Canonical Body Owner Repository Cutover
 
-**Status:** In progress  
+**Status:** In progress — Body Cutover B1 ACTIVE  
 **Primary owner:** `apps/features/progress` + app composition with Profile/Settings  
 **Affected platforms:** Flutter phone app / Supabase persistence
+
+## Active execution checkpoint
+
+```text
+Canonical PR: #50 (Draft / unmerged)
+Branch: agent/onboarding-slice-2-step-1-body-goal-ui
+B1 start head: dfcf7368e8ae81e625ec362742ca2167e4d01f31
+Last fully validated source/test checkpoint: 9031dc5e51a71b1bcef905bd93088f36396d3c01
+Flutter CI #1135 / run 32505095642 ✅ all four gates
+```
+
+**Current implementation slice:** Body Cutover B1 only.
+
+B1 must deliver a backend-neutral canonical Body read/command contract before Profile ownership is narrowed:
+
+```text
+Body read
+→ latest body_weight_logs row by measured_at DESC
+→ active user_body_goals row
+→ unknown stays unknown; never fabricate 70 kg
+
+Post-onboarding weight command
+→ insert a NEW body_weight_logs history row
+→ explicit source/provenance (Profile Settings later uses profile_settings)
+→ never overwrite onboarding_setup snapshot
+```
+
+B1 does **not** yet remove Profile or Nutrition legacy fields. B2/B3 do that only after this read/command contract is validated.
 
 ## Outcome
 
@@ -104,9 +132,9 @@ It also reads current weight from `users.current_weight_kg` and fabricates `70.0
 This must become cross-owner app composition:
 
 ```text
-username     → ProfileAccountRepository
+username → ProfileAccountRepository
 common Profile fields → ProfileSettingsRepository
-current weight → BodySetupRepository / Body weight command
+current weight → Body repository/command
 ```
 
 Do not make the Profile feature depend on Progress merely to coordinate a screen. Cross-owner coordination belongs in app/composition.
@@ -138,13 +166,13 @@ Current production rollout had no affected legacy rows at migration time, so a m
 
 Onboarding currently uses provenance source `onboarding_setup` and updates that setup snapshot on retry.
 
-Profile Settings must **not overwrite the onboarding snapshot**. A user changing current weight later should create a new weight-history entry with Settings provenance (for example `profile_settings`) and a new `measured_at` timestamp.
+Profile Settings must **not overwrite the onboarding snapshot**. A user changing current weight later should create a new weight-history entry with Settings provenance (`profile_settings`) and a new `measured_at` timestamp.
 
 Latest applicable `measured_at` wins for current weight.
 
 ## Revised implementation order
 
-### B1 — canonical Body read/command contract
+### B1 — canonical Body read/command contract — ACTIVE
 
 - [ ] add backend-neutral Body read model for latest weight + active Body Goal;
 - [ ] add `get` and/or `watch` Body-state API to the Progress repository contract;
@@ -153,9 +181,10 @@ Latest applicable `measured_at` wins for current weight.
 - [ ] Supabase read: `user_body_goals` where `status = active`;
 - [ ] keep onboarding retry semantics separate from post-onboarding weight-history inserts;
 - [ ] add in-memory parity for tests/local harnesses;
-- [ ] add focused canonical-first/no-fabricated-default tests.
+- [ ] add focused canonical-first/no-fabricated-default tests;
+- [ ] update #44 / #40 / PR #50 handoff after validation.
 
-Recommended domain shape, naming may be adjusted during implementation:
+Domain direction:
 
 ```text
 BodyState
@@ -167,6 +196,15 @@ BodyWeightEntry
 ├─ measuredAt
 └─ source
 ```
+
+B1 constraints:
+
+- repository/domain API remains backend-neutral;
+- Supabase table names stay inside the Supabase adapter;
+- no Profile feature dependency on Progress is introduced in B1;
+- no UI change;
+- no legacy mirror removal yet;
+- no Supabase schema mutation unless an actual B1 blocker is proven.
 
 ### B2 — Profile domain boundary cleanup
 
@@ -249,4 +287,4 @@ This is not a reason to create a parallel backend schema.
 
 ## Final status
 
-`PARTIAL` — Body Cutover A validated; Body Cutover B audit complete and implementation-ready. Next implementation starts at B1 canonical Body read/command contract.
+`PARTIAL` — Body Cutover A validated; Body Cutover B audit complete; B1 canonical Body read/command contract is active.
