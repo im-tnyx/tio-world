@@ -1,142 +1,171 @@
 # Profile & Account Data Persistence
 
-**Status:** Paused — Slice B implementation is ready but local validation is deferred behind P0 auth issue #10
-**Primary owner:** `apps/features/profile` + `apps/features/settings` + `apps/features/onboarding` + `apps/app`
-**Affected platforms:** Flutter phone app + Supabase
-**Tracking:** GitHub issue #8
-**Source branch:** `codex/onboarding-mode-migration`
+**Status:** Ready — account/contact verification audit recorded; implementation sequenced after canonical P1 schema foundation  
+**Primary owner:** `users` account root + `apps/features/profile` / `apps/features/settings` / auth adapter  
+**Affected platforms:** Flutter phone app + Supabase  
+**Tracking:** GitHub issue #8  
+**Canonical sequencing task:** `account-profile-app-preferences-canonical-split.md`
 
-## 1. User Outcome
+## Outcome
 
-Data entered during onboarding or edited later from Profile/Account Settings must persist to the canonical Supabase owner records without silently losing fields owned by other screens.
+Account data entered during signup/onboarding or edited later from Account Settings must persist truthfully without treating unverified contacts as verified.
 
-### Frozen visual guardrail
-
-This is persistence/integrity work. Preserve current rendered Profile Settings and Account Settings layout, spacing, typography, colors, controls, assets, and interaction geometry unless a separate visual task is approved.
-
-## 2. Verified findings
-
-- `AccountSettingsPage` accepts `phoneNumber` and `onSave({username, phoneNumber})`.
-- The old router omitted persisted mobile and did not wire a real Account Settings save.
-- `ProfileSettingsPage` reconstructs `ProfileSetupData` and still risks dropping `mobile` / `isMobileVerified`.
-- `ProfileOnboardingDraft` and profile mappers already carry mobile fields.
-- Draft schema remains mismatched (`currentSchemaVersion == 3`, snapshot mapper support previously verified as `1`).
-- Canonical live tables remain `users`, `user_nutrition_profiles`, `user_workout_profiles`, and `onboarding_drafts`.
-
-### Live read-only verification
-
-`public.users` exposes the Account Settings columns required by this work:
+Canonical account contact contract:
 
 ```text
-id uuid NOT NULL
-username text NULL
-mobile varchar NULL
-mobile_verified_at timestamptz NULL
-updated_at timestamptz NOT NULL
+public.users.email
+public.users.email_verified_at      ← missing today, add in P1
+public.users.mobile
+public.users.mobile_verified_at     ← exists today
 ```
 
-RLS policies verified read-only:
+Common personal Profile fields move separately to `user_profiles`; contact identity and verification stay on the `users` account root.
+
+## Verified current state
+
+Live `tio-world` Supabase:
 
 ```text
-users_select_own  SELECT  TO authenticated  USING auth.uid() = id
-users_update_own  UPDATE  TO authenticated  USING auth.uid() = id
-                                      WITH CHECK auth.uid() = id
+public.users.email               nullable
+public.users.mobile              nullable
+public.users.mobile_verified_at  nullable timestamptz
+public.users.email_verified_at   ABSENT
+
+auth.users.email_confirmed_at    nullable timestamptz
+auth.users.phone_confirmed_at    nullable timestamptz
 ```
 
-No SQL write or migration is required for Account Settings persistence.
+No current trigger synchronizes Auth verification timestamps into `public.users`.
 
-## 3. Architecture decisions
+Current source findings:
 
-- Account Settings uses a field-specific profile-account repository instead of full `saveProfileSetup()`.
-- Account writes require an existing authenticated identity. No anonymous-auth fallback.
-- Account update owns only `username`, `mobile`, `updated_at`, and mobile verification invalidation when mobile changes.
-- Changing mobile clears `mobile_verified_at`; changing username only preserves mobile verification.
-- Missing current `public.users` row is a controlled failure, not implicit insert/provisioning.
-- DB-owned auth-user provisioning remains issue #5.
+- `SupabaseProfileAccountRepository.updateAccountSettings()` updates username/mobile and clears `mobile_verified_at` when the mobile changes.
+- Account Settings router passes persisted mobile and phone-verification state.
+- Account Settings reads email from `supabase.auth.currentUser.email`.
+- Router does **not** pass an actual email verification state.
+- `AccountSettingsPage` currently defaults `isEmailVerified = true`; this can display a false Verified state.
+- the built-in email/phone verify fallback dialogs are presentation stubs unless a real callback is supplied; they are not durable auth verification.
+- current Account Settings email is display-oriented; a phone-first account still needs a real add/change-email flow.
 
-## 4. Slice A — Account repository boundary
+## Canonical verification rule
 
-Implemented and locally validated:
-
-- [x] add `ProfileAccountRepository`
-- [x] add `SupabaseProfileAccountRepository`
-- [x] require authenticated current user
-- [x] read current mobile before patching
-- [x] update only Account Settings-owned columns
-- [x] clear `mobile_verified_at` only when mobile changes
-- [x] require the update to return the current row
-- [x] export repository contract + Supabase implementation
-- [x] unauthenticated writes fail without anonymous sign-in
-- [x] `supabase_profile_account_repository_test.dart`: 1 passed
-- [x] profile `flutter analyze`: No issues found
-- [x] final reported worktree clean and synchronized
-
-## 5. Slice B — Account Settings wiring
-
-Implemented, validation deferred until P0 auth issue #10 is stabilized:
-
-- [x] add app provider for `ProfileAccountRepository`
-- [x] pass persisted `profileData.mobile` into Account Settings
-- [x] pass persisted `profileData.isMobileVerified`
-- [x] wire `onSave` to `ProfileAccountRepository.updateAccountSettings()`
-- [x] invalidate `profileDataProvider` after successful save
-- [x] move Account Settings route watch calls into a `Consumer` boundary
-- [x] add widget coverage for persisted phone preload + Save callback values + success pop
-- [ ] settings focused test passes
-- [ ] settings analyzer passes
-- [ ] app analyzer passes
-
-### Slice B changed files
+Supabase Auth is the current trusted verification evidence source:
 
 ```text
-apps/app/lib/app/network_providers.dart
-apps/app/lib/app/router.dart
-apps/features/settings/test/presentation/account_settings_page_test.dart
-.ai/tasks/profile-account-data-persistence.md
+auth.users.email_confirmed_at
+→ current auth email has been verified
+
+auth.users.phone_confirmed_at
+→ current auth phone has been verified
 ```
 
-### Slice B follow-up after wiring validation
-
-Repository exceptions already prevent the existing success Snackbar/pop because the page awaits `onSave` before success handling. A focused follow-up will add explicit user-facing failure feedback instead of allowing the async error to surface only through the error boundary.
-
-## 6. Remaining slices
-
-### Slice C — Profile Settings safe merge
-
-- preserve `mobile`, `isMobileVerified`, and other non-owned fields
-- prefer safe partial-update/merge semantics
-- add field-loss regression tests
-
-### Slice D — Onboarding mobile persistence
-
-- prove mobile draft/controller → mapper → profile owner repository end to end
-- confirm persisted mobile/verification semantics
-
-### Slice E — Draft compatibility
-
-- reconcile schema version 3 serialization/loading
-- prevent recoverable draft progress from becoming silent `null`
-
-### Slice F — Canonical owner consistency
-
-- verify Profile/Workout/Nutrition canonical writes
-- remove/limit legacy fallbacks only where tests prove they mask canonical failures
-
-## 7. Current handoff
-
-### Slice A local evidence
+Tio-world application/domain state is provider-neutral:
 
 ```text
-apps/features/profile
-supabase_profile_account_repository_test.dart: 1 passed
-flutter analyze: No issues found
-final git status: clean
+users.email_verified_at
+users.mobile_verified_at
 ```
 
-### Why this task is paused
+Rules:
 
-A real-device Google login/bootstrap incident is now tracked as issue #10. Because Account/Profile persistence depends on a stable authenticated identity/session, no further #8 implementation or validation should proceed until the P0 auth loading path is stabilized.
+- never accept a client boolean/timestamp as proof of verification;
+- never set `*_verified_at` merely because a contact string exists;
+- changing a contact invalidates its old verification until the new contact is confirmed;
+- email and mobile verification are independent;
+- future auth/backend adapters must reconcile their trusted provider claims into the same account-root fields.
 
-### Final status
+## Phone-first account flow
 
-`PAUSED — WAITING ON #10`
+```text
+Phone signup / OTP verified
+→ auth phone identity confirmed
+→ users.mobile + mobile_verified_at reconciled
+→ users.email may remain null
+
+Later Account Settings
+→ Add email
+→ Supabase Auth sends email verification
+→ user completes verification
+→ trusted auth state confirms email
+→ users.email + email_verified_at reconciled
+```
+
+## Email-first account flow
+
+```text
+Email signup / verification completed
+→ auth email identity confirmed
+→ users.email + email_verified_at reconciled
+→ users.mobile may remain null
+
+Later Account Settings
+→ Add mobile
+→ Supabase Auth phone OTP verification
+→ trusted auth state confirms phone
+→ users.mobile + mobile_verified_at reconciled
+```
+
+Verification of the newly added contact must not clear the already verified other contact.
+
+## Execution slices
+
+### P1 dependency — schema foundation
+
+Owned by `account-profile-app-preferences-canonical-split.md`.
+
+Before this task's runtime verification slice:
+
+- [ ] add `public.users.email_verified_at timestamptz null` in a new forward migration;
+- [ ] preserve existing `mobile_verified_at`;
+- [ ] never edit applied migrations;
+- [ ] verify RLS/grants/security before runtime cutover.
+
+### P1A — Account contact verification
+
+- [ ] remove `isEmailVerified = true` as a production assumption;
+- [ ] add backend-neutral account contact/verification read state;
+- [ ] Account Settings renders email verified/unverified/missing from actual state;
+- [ ] Account Settings renders mobile verified/unverified/missing from actual state;
+- [ ] phone-first account can add/change email;
+- [ ] email-first account can add/change mobile;
+- [ ] use real Supabase Auth update/verification flow, not local OTP success simulation;
+- [ ] reconcile contact + verified timestamp only from trusted confirmed Auth identity;
+- [ ] reject/avoid arbitrary client promotion to verified state;
+- [ ] contact change invalidates previous verification until new confirmation;
+- [ ] bootstrap/sign-in reconciliation repairs stale application verification state from trusted Auth state;
+- [ ] add phone-first → email verified regression test;
+- [ ] add email-first → phone verified regression test;
+- [ ] failed/expired verification remains unverified;
+- [ ] account save failure never shows false success;
+- [ ] full relevant Flutter/Dart tests + analysis.
+
+## Related canonical ownership
+
+```text
+users
+→ account identity/status + contacts + verified timestamps
+
+user_profiles
+→ common personal Profile only
+
+user_app_preferences
+→ App Mode + active navigation preferences
+```
+
+Do not move email/mobile verification into `user_profiles`.
+
+## Guardrails
+
+- no anonymous-auth write fallback;
+- no client-authoritative verified flag/timestamp;
+- no false Verified badge;
+- no applied migration edits;
+- no unrelated Account Settings visual redesign in this persistence slice;
+- no permanent duplicate contact authority between `auth.users` and `public.users`: Auth supplies current trusted verification evidence, while `public.users` is the provider-neutral application account projection;
+- future backend must preserve the same provider-neutral application contract.
+
+## Handoff
+
+**Next schema step:** P1 adds `users.email_verified_at` together with `user_profiles` + `user_app_preferences`.  
+**Then:** P1A implements real Account Settings email/mobile verification and trusted reconciliation.  
+**Then:** P2 App Mode durability continues according to the master sequencing task.
