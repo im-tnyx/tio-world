@@ -15,13 +15,19 @@ class TargetsSetupMapper {
   nutrition_owner.TargetsSetupData map({
     required TargetsOnboardingDraft targetsDraft,
     required ProfileOnboardingDraft profileDraft,
+    GoalWeightDirection? activeWeightDirection,
   }) {
     final dailySteps = targetsDraft.dailySteps.clamp(1000, 50000);
     final sleepTargetMinutes = targetsDraft.sleepTargetMinutes.clamp(180, 840);
     final waterMl = targetsDraft.waterMl.clamp(500, 15000);
+    final targetIsActive = activeWeightDirection != null &&
+        profileDraft.targetWeightDirection == activeWeightDirection;
+    final effectiveProfile = targetIsActive
+        ? profileDraft
+        : profileDraft.copyWith(clearTargetWeightKg: true);
 
     final recommendationResult = calculator(
-      profile: profileDraft,
+      profile: effectiveProfile,
       targets: targetsDraft,
     );
 
@@ -39,7 +45,7 @@ class TargetsSetupMapper {
       goalPaceKgPerWeek: targetsDraft.goalPaceKgPerWeek,
       heightCm: profileDraft.heightCm,
       currentWeightKg: profileDraft.currentWeightKg,
-      targetWeightKg: profileDraft.targetWeightKg,
+      targetWeightKg: effectiveProfile.targetWeightKg,
       activityLevel: profileDraft.activityLevel?.name,
       recommendation: recommendation,
     );
