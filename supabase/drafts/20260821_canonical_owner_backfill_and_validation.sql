@@ -6,7 +6,7 @@
 begin;
 
 -- ---------------------------------------------------------------------------
--- 0. BLOCK ON DUPLICATE LEGACY CONFLICTS
+-- 0. BLOCK ON DUPLICATE / LOSSY LEGACY CONDITIONS
 -- ---------------------------------------------------------------------------
 
 do $$
@@ -34,6 +34,47 @@ begin
     raise exception
       'Canonical owner migration blocked: % user rows have conflicting duplicated Profile/Body values',
       conflict_count;
+  end if;
+end;
+$$;
+
+-- The canonical Wellness schema stores water millilitres as whole units.
+-- Refuse to round/truncate unexpected fractional legacy values.
+do $$
+declare
+  fractional_count bigint;
+begin
+  select count(*)
+  into fractional_count
+  from public.user_nutrition_profiles
+  where water_target_ml is not null
+    and water_target_ml <> trunc(water_target_ml);
+
+  if fractional_count > 0 then
+    raise exception
+      'Canonical owner migration blocked: % rows have fractional water_target_ml values',
+      fractional_count;
+  end if;
+end;
+$$;
+
+-- Calories are canonical whole-kcal targets. Refuse to round a fractional
+-- legacy JSON value if one exists.
+do $$
+declare
+  fractional_count bigint;
+begin
+  select count(*)
+  into fractional_count
+  from public.user_nutrition_profiles
+  where macro_targets is not null
+    and jsonb_typeof(macro_targets -> 'calories') = 'number'
+    and (macro_targets ->> 'calories')::numeric <> trunc((macro_targets ->> 'calories')::numeric);
+
+  if fractional_count > 0 then
+    raise exception
+      'Canonical owner migration blocked: % rows have fractional calorie target values',
+      fractional_count;
   end if;
 end;
 $$;
@@ -298,7 +339,10 @@ with exact_goals as (
     u.primary_goal,
     array(
       select distinct g
-      from unnest(coalesce(u.goals, '{}'::text[])) as g
+      from unnest(
+        coalesce(u.goals, '{}'::text[])
+        || array_remove(array[u.primary_goal]::text[], null)
+      ) as g
       where g in ('build_muscle', 'get_stronger', 'improve_endurance', 'stay_fit')
     ) as workout_goals
   from public.users u
@@ -418,11 +462,41 @@ left join public.users u on u.id = wt.user_id
 where u.id is null;
 
 -- Must return zero rows: hidden Target Weight/Pace on non-directional Body Goals.
--- This is stricter than the table constraint and protects onboarding semantics.
 select user_id, goal_type, target_weight_kg, weekly_weight_change_kg
 from public.user_body_goals
 where goal_type in ('maintain_weight', 'recomposition')
   and (target_weight_kg is not null or weekly_weight_change_kg is not null);
+
+-- Must return zero rows: canonical domain FKs that point directly to auth.users.
+-- New owners should depend on public.users; Supabase Auth remains an adapter layer.
+select
+  conrelid::regclass as child_table,
+  confrelid::regclass as referenced_table,
+  conname
+from pg_constraint
+where contype = 'f'
+  and conrelid in (
+    'public.body_weight_logs'::regclass,
+    'public.user_body_goals'::regclass,
+    'public.user_wellness_targets'::regclass,
+    'public.user_nutrition_targets'::regclass,
+    'public.user_workout_targets'::regclass
+  )
+  and confrelid <> 'public.users'::regclass;
+
+-- All new owner tables must have RLS enabled.
+select c.relname as table_name, c.relrowsecurity as rls_enabled
+from pg_class c
+join pg_namespace n on n.oid = c.relnamespace
+where n.nspname = 'public'
+  and c.relname in (
+    'body_weight_logs',
+    'user_body_goals',
+    'user_wellness_targets',
+    'user_nutrition_targets',
+    'user_workout_targets'
+  )
+order by c.relname;
 
 -- Check that typed Nutrition target backfill did not persist BMR/TDEE columns.
 select column_name
