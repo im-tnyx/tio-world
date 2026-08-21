@@ -26,9 +26,18 @@ class TargetsSetupMapper {
         ? profileDraft
         : profileDraft.copyWith(clearTargetWeightKg: true);
 
+    // The draft keeps 0.5 kg/week as a compatibility/UI starting value. It is
+    // only semantic user intent when Goal Pace is active in the current plan.
+    // The verified target API accepts 0 as the no-pace compatibility value.
+    final effectiveGoalPaceKgPerWeek =
+        activeWeightDirection == null ? 0.0 : targetsDraft.goalPaceKgPerWeek;
+    final effectiveTargets = targetsDraft.copyWith(
+      goalPaceKgPerWeek: effectiveGoalPaceKgPerWeek,
+    );
+
     final recommendationResult = calculator(
       profile: effectiveProfile,
-      targets: targetsDraft,
+      targets: effectiveTargets,
     );
 
     final recommendation =
@@ -42,7 +51,7 @@ class TargetsSetupMapper {
       sleepTimeMinutes: targetsDraft.sleepTimeMinutes,
       wakeTimeMinutes: targetsDraft.wakeTimeMinutes,
       waterMl: waterMl,
-      goalPaceKgPerWeek: targetsDraft.goalPaceKgPerWeek,
+      goalPaceKgPerWeek: effectiveGoalPaceKgPerWeek,
       heightCm: profileDraft.heightCm,
       currentWeightKg: profileDraft.currentWeightKg,
       targetWeightKg: effectiveProfile.targetWeightKg,
