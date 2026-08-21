@@ -23,6 +23,20 @@ class ReviewScreen extends StatelessWidget {
     final profile = draft.profile;
     final workout = draft.workout;
     final blockers = completionEligibility.blockingSteps;
+    final weightGoalDirection = const WeightGoalFlowPolicy().directionFor(
+      mode: draft.selectedMode,
+      selection: draft.goalSelection,
+    );
+    final targetWeightIsActive = weightGoalDirection != null &&
+        profile.targetWeightDirection == weightGoalDirection;
+    final activeTargetWeightKg =
+        targetWeightIsActive ? profile.targetWeightKg : null;
+    final effectiveProfile = targetWeightIsActive
+        ? profile
+        : profile.copyWith(clearTargetWeightKg: true);
+    final effectiveTargets = weightGoalDirection == null
+        ? draft.targets.copyWith(goalPaceKgPerWeek: 0.0)
+        : draft.targets;
 
     final hasWorkoutPreferences = draft.selectedMode != AppMode.nutrition &&
         draft.workoutIntroChoice != WorkoutIntroChoice.later &&
@@ -78,8 +92,8 @@ class ReviewScreen extends StatelessWidget {
               label: 'Weight plan',
               value: profile.currentWeightKg == null
                   ? 'Not selected'
-                  : profile.targetWeightKg != null
-                      ? '${profile.currentWeightKg!.toStringAsFixed(1)} kg ➔ ${profile.targetWeightKg!.toStringAsFixed(1)} kg'
+                  : activeTargetWeightKg != null
+                      ? '${profile.currentWeightKg!.toStringAsFixed(1)} kg ➔ ${activeTargetWeightKg.toStringAsFixed(1)} kg'
                       : '${profile.currentWeightKg!.toStringAsFixed(1)} kg',
             ),
             const SizedBox(height: TioSize.dp10),
@@ -119,11 +133,7 @@ class ReviewScreen extends StatelessWidget {
               value:
                   '${draft.targets.sleepTargetMinutes ~/ 60}h ${(draft.targets.sleepTargetMinutes % 60).toString().padLeft(2, '0')}m / night',
             ),
-            if (GoalPaceResolver.resolveMode(
-                  currentWeightKg: profile.currentWeightKg,
-                  targetWeightKg: profile.targetWeightKg,
-                ) !=
-                GoalPaceMode.maintenance) ...[
+            if (weightGoalDirection != null) ...[
               const SizedBox(height: TioSize.dp10),
               _SummaryRow(
                 label: 'Goal pace',
@@ -132,8 +142,8 @@ class ReviewScreen extends StatelessWidget {
               ),
             ],
             if (const CalculateNutritionTargetRecommendationUseCase()(
-                  profile: profile,
-                  targets: draft.targets,
+                  profile: effectiveProfile,
+                  targets: effectiveTargets,
                 )
                 case NutritionTargetRecommendationSuccess(:final recommendation)) ...[
               const SizedBox(height: TioSize.dp10),
