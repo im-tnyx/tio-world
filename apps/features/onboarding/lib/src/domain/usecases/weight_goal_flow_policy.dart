@@ -10,7 +10,7 @@ import '../models/models.dart';
 class WeightGoalFlowPolicy {
   const WeightGoalFlowPolicy();
 
-  GoalIntent? activeWeightGoal({
+  GoalWeightDirection? directionFor({
     required AppMode? mode,
     required GoalIntentSelection selection,
   }) {
@@ -18,14 +18,25 @@ class WeightGoalFlowPolicy {
 
     return switch (mode) {
       AppMode.nutrition => switch (selection.primaryGoal) {
-          GoalIntent.loseWeight => GoalIntent.loseWeight,
-          GoalIntent.gainWeight => GoalIntent.gainWeight,
+          GoalIntent.loseWeight => GoalWeightDirection.loss,
+          GoalIntent.gainWeight => GoalWeightDirection.gain,
           _ => null,
         },
       AppMode.workout || AppMode.hybrid =>
         selection.contains(GoalIntent.loseWeight)
-            ? GoalIntent.loseWeight
+            ? GoalWeightDirection.loss
             : null,
+    };
+  }
+
+  GoalIntent? activeWeightGoal({
+    required AppMode? mode,
+    required GoalIntentSelection selection,
+  }) {
+    return switch (directionFor(mode: mode, selection: selection)) {
+      GoalWeightDirection.loss => GoalIntent.loseWeight,
+      GoalWeightDirection.gain => GoalIntent.gainWeight,
+      null => null,
     };
   }
 
@@ -33,11 +44,11 @@ class WeightGoalFlowPolicy {
     required AppMode? mode,
     required GoalIntentSelection selection,
   }) =>
-      activeWeightGoal(mode: mode, selection: selection) != null;
+      directionFor(mode: mode, selection: selection) != null;
 
   bool requiresGoalPace({
     required AppMode? mode,
     required GoalIntentSelection selection,
   }) =>
-      activeWeightGoal(mode: mode, selection: selection) != null;
+      directionFor(mode: mode, selection: selection) != null;
 }
