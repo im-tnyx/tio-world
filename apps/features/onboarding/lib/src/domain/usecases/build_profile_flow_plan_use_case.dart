@@ -1,20 +1,20 @@
 import 'package:tio_shared/shared.dart';
 
 import '../models/models.dart';
-import 'weight_goal_flow_policy.dart';
+import 'goal_weight_follow_up_policy.dart';
 
 class BuildProfileFlowPlanUseCase {
   const BuildProfileFlowPlanUseCase({
-    this.weightGoalPolicy = const WeightGoalFlowPolicy(),
+    this.followUpPolicy = const GoalWeightFollowUpPolicy(),
   });
 
-  final WeightGoalFlowPolicy weightGoalPolicy;
+  final GoalWeightFollowUpPolicy followUpPolicy;
 
   ProfileFlowPlan call({
     required AppMode? mode,
     required GoalIntentSelection goalSelection,
   }) {
-    final includeTargetWeight = weightGoalPolicy.requiresTargetWeight(
+    final includeTargetWeight = followUpPolicy.shouldCollectTargetWeight(
       mode: mode,
       selection: goalSelection,
     );
