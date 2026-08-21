@@ -26,17 +26,11 @@ class SupabaseBodySetupRepository implements BodySetupRepository {
   @override
   Future<void> saveBodySetup(BodySetupData data) async {
     final userId = _requireUserId();
+    _validate(data);
     final nowIso = DateTime.now().toUtc().toIso8601String();
 
     final currentWeight = data.currentWeightKg;
     if (currentWeight != null) {
-      if (currentWeight <= 0) {
-        throw ArgumentError.value(
-          currentWeight,
-          'currentWeightKg',
-          'Current weight must be greater than zero.',
-        );
-      }
       await _saveOnboardingWeightSnapshot(
         userId: userId,
         weightKg: currentWeight,
@@ -49,6 +43,21 @@ class SupabaseBodySetupRepository implements BodySetupRepository {
       data: data,
       nowIso: nowIso,
     );
+  }
+
+  void _validate(BodySetupData data) {
+    final currentWeight = data.currentWeightKg;
+    if (currentWeight != null && currentWeight <= 0) {
+      throw ArgumentError.value(
+        currentWeight,
+        'currentWeightKg',
+        'Current weight must be greater than zero.',
+      );
+    }
+    final goal = data.activeGoal;
+    if (goal != null) {
+      _validateGoal(goal);
+    }
   }
 
   Future<void> _saveOnboardingWeightSnapshot({
@@ -91,10 +100,6 @@ class SupabaseBodySetupRepository implements BodySetupRepository {
     required String nowIso,
   }) async {
     final requested = data.activeGoal;
-    if (requested != null) {
-      _validateGoal(requested);
-    }
-
     final activeRow = await _client
         .from('user_body_goals')
         .select('id, goal_type, starting_weight_kg')
