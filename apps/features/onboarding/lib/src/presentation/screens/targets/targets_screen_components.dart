@@ -3,6 +3,26 @@ import 'package:tio_core/core.dart';
 
 import '../../../domain/domain.dart';
 
+class TargetsFlowPlanScope extends InheritedWidget {
+  const TargetsFlowPlanScope({
+    required this.flowPlan,
+    required super.child,
+    super.key,
+  });
+
+  final TargetsFlowPlan flowPlan;
+
+  static TargetsFlowPlan? maybeOf(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<TargetsFlowPlanScope>()
+        ?.flowPlan;
+  }
+
+  @override
+  bool updateShouldNotify(TargetsFlowPlanScope oldWidget) =>
+      oldWidget.flowPlan.steps != flowPlan.steps;
+}
+
 class TargetsScreenScaffold extends StatelessWidget {
   const TargetsScreenScaffold({
     required this.stepId,
@@ -21,7 +41,7 @@ class TargetsScreenScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const flow = TargetsFlowPlan();
+    final flow = TargetsFlowPlanScope.maybeOf(context) ?? const TargetsFlowPlan();
     final stepNumber = flow.indexOf(stepId) + 1;
     final stepCount = flow.stepCount;
 
