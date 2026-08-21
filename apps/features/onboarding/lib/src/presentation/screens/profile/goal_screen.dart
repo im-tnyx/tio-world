@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 
 import '../../../domain/domain.dart';
-import 'goal_choice_card.dart';
+import '../../widgets/goal_choice_card.dart';
 import 'profile_screen_components.dart';
 
 class GoalScreen extends StatelessWidget {
