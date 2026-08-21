@@ -2,6 +2,7 @@ import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../../domain/models/goal_intent.dart';
+import '../../domain/models/goal_weight_direction.dart';
 import '../../domain/models/onboarding_draft.dart';
 import '../../domain/models/onboarding_draft_snapshot.dart';
 import '../../domain/models/onboarding_status.dart';
@@ -159,6 +160,7 @@ class OnboardingDraftSnapshotDtoMapper {
         'volume_unit': p.unitPreferences.volumeUnit.storageValue,
         'current_weight_kg': p.currentWeightKg,
         'target_weight_kg': p.targetWeightKg,
+        'target_weight_direction': p.targetWeightDirection?.name,
         'activity_level': p.activityLevel?.name,
         'health_conditions': p.healthConditions.map((c) => c.name).toList(),
         'other_health_condition': p.otherHealthCondition,
@@ -192,6 +194,11 @@ class OnboardingDraftSnapshotDtoMapper {
         .where((a) => a.name == activityStr)
         .firstOrNull;
 
+    final targetDirectionStr = j['target_weight_direction'] as String?;
+    final targetWeightDirection = GoalWeightDirection.values
+        .where((direction) => direction.name == targetDirectionStr)
+        .firstOrNull;
+
     final conditionsList = (j['health_conditions'] as List<dynamic>?) ?? [];
     final healthConditions = conditionsList
         .map((c) => ProfileHealthCondition.values
@@ -217,6 +224,7 @@ class OnboardingDraftSnapshotDtoMapper {
       unitPreferences: unitPreferences,
       currentWeightKg: (j['current_weight_kg'] as num?)?.toDouble(),
       targetWeightKg: (j['target_weight_kg'] as num?)?.toDouble(),
+      targetWeightDirection: targetWeightDirection,
       activityLevel: activity,
       healthConditions: healthConditions,
       otherHealthCondition: j['other_health_condition'] as String? ?? '',
