@@ -5,12 +5,13 @@ import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
-  testWidgets('review section renders active weight intent and blockers',
+  testWidgets('review section renders active unified goals and weight intent',
       (tester) async {
     final draft = OnboardingDraft(
       selectedMode: AppMode.hybrid,
       goalSelection: const GoalIntentSelection(
         primaryGoal: GoalIntent.loseWeight,
+        supportingGoal: GoalIntent.improveEndurance,
       ),
       currentStepId: OnboardingStepId.review,
       workoutIntroChoice: WorkoutIntroChoice.later,
@@ -65,7 +66,8 @@ void main() {
     expect(find.text('Gender'), findsOneWidget);
     expect(find.text('Other'), findsOneWidget);
     expect(find.text('Goals'), findsOneWidget);
-    expect(find.text('Keep fit'), findsOneWidget);
+    expect(find.text('Lose weight, Improve endurance'), findsOneWidget);
+    expect(find.text('Keep fit'), findsNothing);
     expect(find.text('Date of birth'), findsOneWidget);
     expect(find.text('1 Jan 2000'), findsOneWidget);
     expect(find.text('Height'), findsOneWidget);
@@ -131,6 +133,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.text('Maintain weight'), findsOneWidget);
+    expect(find.text('Keep fit'), findsNothing);
     expect(find.text('70.0 kg'), findsOneWidget);
     expect(find.text('70.0 kg ➔ 68.0 kg'), findsNothing);
     expect(find.text('Goal pace'), findsNothing);
