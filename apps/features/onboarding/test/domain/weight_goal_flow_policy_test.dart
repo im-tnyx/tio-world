@@ -57,6 +57,30 @@ void main() {
         ),
         GoalWeightDirection.loss,
       );
+    }
+  });
+
+  test('training-only goals never invent body-weight direction', () {
+    const trainingOnlyGoals = [
+      GoalIntent.buildMuscle,
+      GoalIntent.getStronger,
+      GoalIntent.improveEndurance,
+      GoalIntent.stayFit,
+      GoalIntent.recomposition,
+    ];
+
+    for (final mode in [AppMode.workout, AppMode.hybrid]) {
+      for (final goal in trainingOnlyGoals) {
+        expect(
+          policy.directionFor(
+            mode: mode,
+            selection: GoalIntentSelection(primaryGoal: goal),
+          ),
+          isNull,
+          reason: '$goal must not imply weight change in $mode',
+        );
+      }
+
       expect(
         policy.directionFor(
           mode: mode,
@@ -70,21 +94,69 @@ void main() {
     }
   });
 
+  test('build muscle is never treated as gain weight', () {
+    for (final mode in [AppMode.workout, AppMode.hybrid]) {
+      expect(
+        policy.directionFor(
+          mode: mode,
+          selection: const GoalIntentSelection(
+            primaryGoal: GoalIntent.buildMuscle,
+          ),
+        ),
+        isNot(GoalWeightDirection.gain),
+      );
+    }
+  });
+
   test('target weight and goal pace share the same eligibility', () {
-    const selection = GoalIntentSelection(primaryGoal: GoalIntent.loseWeight);
+    const weightSelection = GoalIntentSelection(
+      primaryGoal: GoalIntent.loseWeight,
+    );
+    const nonWeightSelection = GoalIntentSelection(
+      primaryGoal: GoalIntent.getStronger,
+    );
+
     expect(
       policy.requiresTargetWeight(
         mode: AppMode.hybrid,
-        selection: selection,
+        selection: weightSelection,
       ),
       isTrue,
     );
     expect(
       policy.requiresGoalPace(
         mode: AppMode.hybrid,
-        selection: selection,
+        selection: weightSelection,
       ),
       isTrue,
+    );
+    expect(
+      policy.requiresTargetWeight(
+        mode: AppMode.hybrid,
+        selection: nonWeightSelection,
+      ),
+      isFalse,
+    );
+    expect(
+      policy.requiresGoalPace(
+        mode: AppMode.hybrid,
+        selection: nonWeightSelection,
+      ),
+      isFalse,
+    );
+  });
+
+  test('missing mode never activates weight follow-ups', () {
+    const selection = GoalIntentSelection(primaryGoal: GoalIntent.loseWeight);
+
+    expect(policy.directionFor(mode: null, selection: selection), isNull);
+    expect(
+      policy.shouldCollectTargetWeight(mode: null, selection: selection),
+      isFalse,
+    );
+    expect(
+      policy.shouldCollectGoalPace(mode: null, selection: selection),
+      isFalse,
     );
   });
 }
