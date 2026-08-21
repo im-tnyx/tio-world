@@ -3,8 +3,8 @@ import 'package:tio_core/core.dart';
 
 /// Shared visual contract for onboarding goal-choice cards.
 ///
-/// Keep this composition pixel-compatible with the existing Profile Goal cards
-/// so Body Goal can reuse the same interaction and visual language.
+/// Keep this composition pixel-compatible with the existing Goal cards while
+/// the underlying goal data and mode-specific behavior evolve independently.
 class GoalChoiceCard extends StatelessWidget {
   const GoalChoiceCard({
     required this.id,
