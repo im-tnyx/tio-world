@@ -78,6 +78,81 @@ class GoalIntentSelectionPolicy {
         false;
   }
 
+  /// Applies one card tap while preserving the screen's max-two contract.
+  ///
+  /// - Nutrition always keeps one primary selection.
+  /// - Workout/Hybrid add or replace one compatible supporting selection.
+  /// - Tapping an incompatible unselected goal starts a new primary selection.
+  GoalIntentSelection applyTap({
+    required AppMode mode,
+    required GoalIntentSelection current,
+    required GoalIntent tappedGoal,
+  }) {
+    if (!isVisible(mode, tappedGoal)) return current;
+
+    if (!allowsSupportingGoal(mode)) {
+      return GoalIntentSelection(primaryGoal: tappedGoal);
+    }
+
+    final primary = current.primaryGoal;
+    final supporting = current.supportingGoal;
+    if (primary == null) {
+      return GoalIntentSelection(primaryGoal: tappedGoal);
+    }
+
+    if (tappedGoal == primary) {
+      if (supporting == null) return current;
+      return GoalIntentSelection(primaryGoal: supporting);
+    }
+
+    if (tappedGoal == supporting) {
+      return GoalIntentSelection(primaryGoal: primary);
+    }
+
+    if (isCompatiblePair(
+      mode: mode,
+      primaryGoal: primary,
+      supportingGoal: tappedGoal,
+    )) {
+      return GoalIntentSelection(
+        primaryGoal: primary,
+        supportingGoal: tappedGoal,
+      );
+    }
+
+    return GoalIntentSelection(primaryGoal: tappedGoal);
+  }
+
+  /// Reconciles an existing selection after an App Mode change or draft restore.
+  GoalIntentSelection reconcileForMode({
+    required AppMode mode,
+    required GoalIntentSelection selection,
+  }) {
+    final primary = selection.primaryGoal;
+    final supporting = selection.supportingGoal;
+
+    if (primary != null && isVisible(mode, primary)) {
+      if (!allowsSupportingGoal(mode)) {
+        return GoalIntentSelection(primaryGoal: primary);
+      }
+      if (supporting != null &&
+          isCompatiblePair(
+            mode: mode,
+            primaryGoal: primary,
+            supportingGoal: supporting,
+          )) {
+        return selection;
+      }
+      return GoalIntentSelection(primaryGoal: primary);
+    }
+
+    if (supporting != null && isVisible(mode, supporting)) {
+      return GoalIntentSelection(primaryGoal: supporting);
+    }
+
+    return const GoalIntentSelection();
+  }
+
   String? validate({
     required AppMode mode,
     required GoalIntentSelection selection,
