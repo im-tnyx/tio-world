@@ -257,6 +257,9 @@ void main() {
 OnboardingDraft _profileOnboardingDraft(ProfileStepId stepId) {
   return OnboardingDraft(
     selectedMode: AppMode.workout,
+    goalSelection: const GoalIntentSelection(
+      primaryGoal: GoalIntent.loseWeight,
+    ),
     currentStepId: OnboardingStepId.profileBasics,
     profile: _validProfile(currentStepId: stepId),
   );
@@ -289,7 +292,9 @@ Future<void> _pumpDirectProfileSection(
 Future<_ProfileHarness> _pumpProfile(
   WidgetTester tester, {
   ProfileOnboardingDraft? profile,
-  GoalIntentSelection goalSelection = const GoalIntentSelection(),
+  GoalIntentSelection goalSelection = const GoalIntentSelection(
+    primaryGoal: GoalIntent.loseWeight,
+  ),
   Future<void> Function()? onExitRequested,
 }) async {
   final container = ProviderContainer();
