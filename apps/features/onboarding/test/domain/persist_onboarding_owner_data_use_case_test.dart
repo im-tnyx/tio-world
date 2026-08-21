@@ -111,7 +111,7 @@ void main() {
       expect(await targetsRepo.getTargetsSetup(), isNotNull);
     });
 
-    test('active weight goal persists matching Target Weight', () async {
+    test('active weight goal persists matching Target Weight and Goal Pace', () async {
       final draft = OnboardingDraft(
         selectedMode: AppMode.nutrition,
         goalSelection: const GoalIntentSelection(
@@ -130,9 +130,10 @@ void main() {
 
       expect((await profileRepo.getProfileSetup())?.targetWeightKg, 58);
       expect((await targetsRepo.getTargetsSetup())?.targetWeightKg, 58);
+      expect((await targetsRepo.getTargetsSetup())?.goalPaceKgPerWeek, 0.5);
     });
 
-    test('ineligible goal does not persist dormant Target Weight', () async {
+    test('ineligible goal excludes dormant Target Weight and default Goal Pace', () async {
       final draft = OnboardingDraft(
         selectedMode: AppMode.nutrition,
         goalSelection: const GoalIntentSelection(
@@ -151,6 +152,7 @@ void main() {
 
       expect((await profileRepo.getProfileSetup())?.targetWeightKg, isNull);
       expect((await targetsRepo.getTargetsSetup())?.targetWeightKg, isNull);
+      expect((await targetsRepo.getTargetsSetup())?.goalPaceKgPerWeek, 0.0);
     });
 
     test('re-throws OwnerPersistenceException when an owner repository fails', () async {
