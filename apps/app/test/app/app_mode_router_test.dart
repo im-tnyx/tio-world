@@ -464,7 +464,7 @@ Future<void> _completeProfileInputs(WidgetTester tester) async {
   await tester.pumpAndSettle();
 
   await tester.tap(
-    find.byKey(const ValueKey('goal-intent-stayFit'), skipOffstage: false),
+    find.byKey(const ValueKey('goal-intent-loseWeight'), skipOffstage: false),
     warnIfMissed: false,
   );
   await tester.pumpAndSettle();
