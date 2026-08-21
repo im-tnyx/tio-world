@@ -6,8 +6,6 @@ class InMemoryBodySetupRepository implements BodyRepository {
   InMemoryBodySetupRepository({DateTime Function()? now})
       : _now = now ?? DateTime.now;
 
-  static const _onboardingWeightSource = 'onboarding_setup';
-
   final DateTime Function() _now;
   final List<BodyWeightEntry> _weightEntries = <BodyWeightEntry>[];
 
@@ -26,12 +24,12 @@ class InMemoryBodySetupRepository implements BodyRepository {
     final currentWeight = data.currentWeightKg;
     if (currentWeight != null) {
       final onboardingIndex = _weightEntries.lastIndexWhere(
-        (entry) => entry.source == _onboardingWeightSource,
+        (entry) => entry.source == BodyWeightSources.onboardingSetup,
       );
       final entry = BodyWeightEntry(
         weightKg: currentWeight,
         measuredAt: now,
-        source: _onboardingWeightSource,
+        source: BodyWeightSources.onboardingSetup,
       );
       if (onboardingIndex == -1) {
         _weightEntries.add(entry);
@@ -136,11 +134,19 @@ class InMemoryBodySetupRepository implements BodyRepository {
         'Current weight must be greater than zero.',
       );
     }
-    if (record.source.trim().isEmpty) {
+    final source = record.source.trim();
+    if (source.isEmpty) {
       throw ArgumentError.value(
         record.source,
         'source',
         'Weight provenance source is required.',
+      );
+    }
+    if (source == BodyWeightSources.onboardingSetup) {
+      throw ArgumentError.value(
+        record.source,
+        'source',
+        'onboarding_setup is reserved for saveBodySetup reconciliation.',
       );
     }
   }
