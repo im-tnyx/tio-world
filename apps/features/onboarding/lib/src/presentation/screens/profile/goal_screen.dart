@@ -11,13 +11,11 @@ class GoalScreen extends StatelessWidget {
     required this.selectedGoals,
     required this.onToggled,
     super.key,
-    this.userName = '',
     this.errorText,
   });
 
   final Set<ProfileGoal> selectedGoals;
   final ValueChanged<ProfileGoal> onToggled;
-  final String userName;
   final String? errorText;
 
   static const _goals = [
@@ -65,12 +63,9 @@ class GoalScreen extends StatelessWidget {
         .where((item) => item.isMainGoal)
         .any((item) => selectedGoals.contains(item.goal));
 
-    final displayName = userName.trim().isNotEmpty ? userName.trim() : 'there';
-    final titleText = "Hi $displayName 👋, what's your main goal?";
-
     return ProfileScreenScaffold(
       stepId: ProfileStepId.goal,
-      title: titleText,
+      title: "What's your main goal?",
       description:
           'Select your primary fitness objective. You can also pick supporting goals.',
       errorText: errorText,
