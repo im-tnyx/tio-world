@@ -54,6 +54,7 @@ class TargetStepRenderer extends StatelessWidget {
           goalPaceKgPerWeek: draft.goalPaceKgPerWeek,
           onPaceChanged: controller.updateGoalPaceKgPerWeek,
           profile: profile,
+          weightGoalDirection: state.weightGoalDirection!,
           stepTarget: draft.dailySteps,
           errorText: errorText,
         ),
