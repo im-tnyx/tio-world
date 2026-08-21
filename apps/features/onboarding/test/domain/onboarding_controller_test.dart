@@ -123,6 +123,91 @@ void main() {
     expect(controller.state.stepId, OnboardingStepId.profileBasics);
   });
 
+  test('legacy profile goals migrate only through meaning-preserving mappings', () {
+    final workout = OnboardingController(
+      entryPath: OnboardingEntryPath.resumeDraft,
+      initialDraft: OnboardingDraft(
+        selectedMode: AppMode.workout,
+        currentStepId: OnboardingStepId.profileBasics,
+        profile: _validProfile(currentStepId: ProfileStepId.healthConditions),
+      ),
+    );
+    expect(
+      workout.state.draft.goalSelection,
+      const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
+    );
+    expect(
+      workout.state.draft.profile.currentStepId,
+      ProfileStepId.healthConditions,
+    );
+
+    final nutrition = OnboardingController(
+      entryPath: OnboardingEntryPath.resumeDraft,
+      initialDraft: OnboardingDraft(
+        selectedMode: AppMode.nutrition,
+        currentStepId: OnboardingStepId.targets,
+        completedStepIds: const {OnboardingStepId.profileBasics},
+        profile: _validProfile(
+          currentStepId: ProfileStepId.healthConditions,
+          goals: const {ProfileGoal.buildMuscle},
+        ),
+      ),
+    );
+    expect(nutrition.state.stepId, OnboardingStepId.profileBasics);
+    expect(nutrition.state.draft.profile.currentStepId, ProfileStepId.goal);
+    expect(nutrition.state.draft.goalSelection, const GoalIntentSelection());
+  });
+
+  test('goal step validates ordered mode-aware selection', () async {
+    final controller = OnboardingController(
+      entryPath: OnboardingEntryPath.firstRun,
+      initialDraft: OnboardingDraft(
+        selectedMode: AppMode.workout,
+        currentStepId: OnboardingStepId.profileBasics,
+        profile: ProfileOnboardingDraft(
+          currentStepId: ProfileStepId.goal,
+          name: 'Tio User',
+          gender: ProfileGender.other,
+        ),
+      ),
+    );
+
+    await controller.next(onFinish: _completeImmediately);
+    expect(controller.state.validationErrors['goal'], 'Choose your main goal.');
+
+    controller.tapGoalIntent(GoalIntent.buildMuscle);
+    controller.tapGoalIntent(GoalIntent.getStronger);
+    expect(
+      controller.state.draft.goalSelection,
+      const GoalIntentSelection(
+        primaryGoal: GoalIntent.buildMuscle,
+        supportingGoal: GoalIntent.getStronger,
+      ),
+    );
+
+    await controller.next(onFinish: _completeImmediately);
+    expect(controller.state.draft.profile.currentStepId, ProfileStepId.age);
+  });
+
+  test('nutrition goal taps remain single-select', () {
+    final controller = OnboardingController(
+      entryPath: OnboardingEntryPath.firstRun,
+      initialDraft: OnboardingDraft(
+        selectedMode: AppMode.nutrition,
+        currentStepId: OnboardingStepId.profileBasics,
+        profile: ProfileOnboardingDraft(currentStepId: ProfileStepId.goal),
+      ),
+    );
+
+    controller.tapGoalIntent(GoalIntent.loseWeight);
+    controller.tapGoalIntent(GoalIntent.gainWeight);
+
+    expect(
+      controller.state.draft.goalSelection,
+      const GoalIntentSelection(primaryGoal: GoalIntent.gainWeight),
+    );
+  });
+
   test('validation errors disable continue until cleared', () {
     final controller = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
@@ -223,7 +308,7 @@ void main() {
 
     controller.updateProfileGender(ProfileGender.other);
     await controller.next(onFinish: _completeImmediately);
-    controller.toggleProfileGoal(ProfileGoal.keepFit);
+    controller.tapGoalIntent(GoalIntent.stayFit);
     await controller.next(onFinish: _completeImmediately);
     controller.updateProfileDateOfBirth(DateTime(2000, 1, 1));
     await controller.next(onFinish: _completeImmediately);
@@ -315,6 +400,7 @@ void main() {
     expect(controller.state.draft.profile.name, 'Tio User');
     expect(controller.state.draft.profile.heightCm, 171);
     expect(controller.state.draft.profile.goals, {ProfileGoal.keepFit});
+    expect(controller.state.draft.goalSelection, const GoalIntentSelection());
   });
 
   test('progress reflects Product Onboarding screens and reaches 1.0 on review',
@@ -559,12 +645,13 @@ Future<void> _completeImmediately(OnboardingDraft _) async {}
 
 ProfileOnboardingDraft _validProfile({
   ProfileStepId currentStepId = ProfileStepId.healthConditions,
+  Set<ProfileGoal> goals = const {ProfileGoal.keepFit},
 }) {
   return ProfileOnboardingDraft(
     currentStepId: currentStepId,
     name: 'Tio User',
     gender: ProfileGender.other,
-    goals: const {ProfileGoal.keepFit},
+    goals: goals,
     dateOfBirth: DateTime(2000, 1, 1),
     heightCm: 171,
     currentWeightKg: 70,
