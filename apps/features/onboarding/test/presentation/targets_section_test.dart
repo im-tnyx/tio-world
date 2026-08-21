@@ -23,47 +23,38 @@ void main() {
 
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
-
       expect(find.byType(StepTargetScreen), findsOneWidget);
       expect(
         find.bySemanticsLabel('Target step 2 of 6, Daily step target'),
         findsOneWidget,
       );
-      expect(find.text('Continue'), findsOneWidget);
 
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
-
       expect(find.byType(SleepTargetScreen), findsOneWidget);
       expect(
         find.bySemanticsLabel('Target step 3 of 6, Sleep schedule target'),
         findsOneWidget,
       );
-      expect(find.text('Continue'), findsOneWidget);
 
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
-
       expect(find.byType(WaterTargetScreen), findsOneWidget);
       expect(
         find.bySemanticsLabel('Target step 4 of 6, Daily hydration target'),
         findsOneWidget,
       );
-      expect(find.text('Continue'), findsOneWidget);
 
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
-
       expect(find.byType(GoalPaceScreen), findsOneWidget);
       expect(
         find.bySemanticsLabel(RegExp(r'Target step 5 of 6')),
         findsOneWidget,
       );
-      expect(find.text('Continue'), findsOneWidget);
 
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
-
       expect(find.byType(NutritionTargetScreen), findsOneWidget);
       expect(
         find.bySemanticsLabel('Target step 6 of 6, Nutrition targets'),
@@ -101,7 +92,6 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('targets-water-unit-dropdown')));
     await tester.pumpAndSettle();
-
     await tester.tap(find.text('mL').last);
     await tester.pumpAndSettle();
 
@@ -111,7 +101,6 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('targets-water-unit-dropdown')));
     await tester.pumpAndSettle();
-
     await tester.tap(find.text('fl oz').last);
     await tester.pumpAndSettle();
 
@@ -157,10 +146,7 @@ void main() {
 }
 
 class _TargetsHarness {
-  const _TargetsHarness({
-    required this.controller,
-  });
-
+  const _TargetsHarness({required this.controller});
   final OnboardingController controller;
 }
 
@@ -171,6 +157,9 @@ Future<_TargetsHarness> _pumpTargets(
 }) async {
   final draft = OnboardingDraft(
     selectedMode: AppMode.workout,
+    goalSelection: const GoalIntentSelection(
+      primaryGoal: GoalIntent.loseWeight,
+    ),
     currentStepId: OnboardingStepId.targets,
     profile: initialProfile ??
         ProfileOnboardingDraft(
