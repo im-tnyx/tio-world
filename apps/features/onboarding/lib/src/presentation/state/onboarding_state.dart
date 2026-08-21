@@ -33,6 +33,22 @@ class OnboardingState {
   int get currentIndex => flowPlan.indexOf(stepId);
   bool get isBusy => isInitializing || isSaving || isCompleting;
 
+  ProfileFlowPlan get profileFlowPlan => const BuildProfileFlowPlanUseCase()(
+        mode: draft.selectedMode,
+        goalSelection: draft.goalSelection,
+      );
+
+  TargetsFlowPlan get targetsFlowPlan => const BuildTargetsFlowPlanUseCase()(
+        mode: draft.selectedMode,
+        goalSelection: draft.goalSelection,
+      );
+
+  GoalWeightDirection? get weightGoalDirection =>
+      const GoalWeightFollowUpPolicy().directionFor(
+        mode: draft.selectedMode,
+        selection: draft.goalSelection,
+      );
+
   /// Whether the current user-facing onboarding screen has an internal
   /// previous screen, including nested Profile, Workout, and Targets flows.
   ///
@@ -40,7 +56,7 @@ class OnboardingState {
   /// callers that specifically need section-level position.
   bool get hasPreviousScreen {
     if (stepId == OnboardingStepId.profileBasics &&
-        const ProfileFlowPlan().previous(draft.profile.currentStepId) != null) {
+        profileFlowPlan.previous(draft.profile.currentStepId) != null) {
       return true;
     }
 
@@ -50,7 +66,7 @@ class OnboardingState {
     }
 
     if (stepId == OnboardingStepId.targets &&
-        const TargetsFlowPlan().previous(draft.targets.currentStepId) != null) {
+        targetsFlowPlan.previous(draft.targets.currentStepId) != null) {
       return true;
     }
 
@@ -72,7 +88,7 @@ class OnboardingState {
   String get primaryActionLabel {
     if (stepId == OnboardingStepId.review) return 'Finish';
     if (stepId == OnboardingStepId.targets) {
-      return const TargetsFlowPlan().primaryActionLabel(draft.targets.currentStepId);
+      return targetsFlowPlan.primaryActionLabel(draft.targets.currentStepId);
     }
     return 'Continue';
   }
@@ -80,7 +96,9 @@ class OnboardingState {
   OnboardingProgressPlan get progressPlan {
     return const BuildOnboardingProgressPlanUseCase()(
       flowPlan: flowPlan,
+      profileFlowPlan: profileFlowPlan,
       workoutFlowPlan: workoutFlowPlan,
+      targetsFlowPlan: targetsFlowPlan,
     );
   }
 
