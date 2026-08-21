@@ -1,94 +1,157 @@
 # App Mode Foundation
 
-**Status:** In progress
-**Primary owners:** `apps/shared`, onboarding, Settings, `apps/app`, `apps/core`
+**Status:** In progress — local foundation validated; durable account preference slice approved  
+**Primary owners:** `apps/shared`, `apps/app`, onboarding, Settings, `user_app_preferences`
 
 ## Outcome
 
-Give each user one selected phone mode: `workout`, `nutrition`, or `hybrid`. The selected mode determines the guided default tabs and can be chosen in onboarding then changed from Settings.
+Give each user one selected phone mode (`workout`, `nutrition`, or `hybrid`) that drives guided navigation and survives restart, fresh install, cleared local storage, and cross-device login.
 
-## Verified Starting Point Before This Slice
+## Historical local-first foundation
 
-- `apps/app/lib/app/router.dart` had a fixed five-branch `StatefulShellRoute.indexedStack`: Home, Nutrition, Tio/AI, Workout, and Progress.
-- `apps/shared` had no `AppMode` enum.
-- Onboarding and Settings routes rendered placeholders.
-- The documented target is Home/Workout/Progress for workout, Home/Nutrition/Progress for nutrition, and Home/Workout/Nutrition/Progress for hybrid. Coach is deferred to Phase 7.
+The first App Mode slice intentionally persisted confirmed mode device-locally through `SharedPreferencesAppModePreference` while account/profile persistence architecture was still unresolved.
 
-## Approved Persistence Decision
+That decision was valid for the first slice but is **not the final durability contract**.
 
-- Persist the confirmed selection device-locally for the first slice.
-- Keep the pure-Dart mode preference contract in `apps/shared`; wire the platform storage adapter from the `apps/app` composition boundary.
-- If the stored value is missing or invalid, route to mode selection rather than silently choosing a mode.
-- Defer Supabase/account sync until an approved profile contract exists.
-- Do not add a Supabase schema, Storage bucket, backend endpoint, or cross-device merge behavior in this slice.
-
-## In Scope
-
-1. Add the pure-Dart `AppMode` contract in `apps/shared`.
-2. Add a mode preference boundary and state owner without placing business logic in widgets.
-3. Make onboarding's first real step select the mode; condition later onboarding steps from that value.
-4. Make Settings read and change the selected mode.
-5. Compose the guided `StatefulShellRoute` layout from the active mode and map the visible destination order safely.
-6. Keep Workout Library and Meal Plan outside the guided default list; future custom promotion belongs to the separate adaptive-navigation task.
-7. Add focused tests for enum/state mapping and navigation branch selection.
-
-## Out of Scope
-
-- Coach tab before Phase 7.
-- Meal Plan, nutrition diary, workout execution, health data, or watch synchronization.
-- Supabase profile storage, account sync, migrations, Storage buckets, or protected backend changes unless separately approved.
-- Avatar extraction; track it as its own UI component slice.
-- Three-to-six custom destination selection, promoted shortcuts, adaptive Home sections, and action-entry placement; track them in [adaptive-navigation-and-actions.md](adaptive-navigation-and-actions.md).
-
-## Acceptance Criteria
-
-- Each mode produces exactly the documented guided default tabs with Home as the first tab.
-- Changing the mode updates the primary-tab configuration without leaving an invalid selected tab.
-- Onboarding and Settings use the same mode contract and preference boundary.
-- The confirmed selection survives an app restart, and missing/invalid local data returns safely to mode selection.
-- No feature package imports another feature's private UI/state implementation.
-- Relevant Dart tests and static analysis pass, and documentation status is updated from the observed source.
-
-## Implementation Evidence
-
-- [x] `apps/shared` owns `AppMode`, `AppDestination`, guided destination mappings, and the pure-Dart `AppModePreference` boundary.
-- [x] `apps/app` wires `SharedPreferencesAsync`, renders Splash before starting the stored-mode read, refreshes routing after load, and owns one `AppModeController` through Riverpod.
-- [x] Onboarding's first routed child selects draft mode; the temporary Finish
-  boundary persists the confirmed selection. Missing or invalid local data returns
-  to onboarding.
-- [x] Settings reads and changes the same mode from the Profile launcher; Home chrome keeps only the Profile avatar entry.
-- [x] Visible shell tabs and route eligibility are derived from stable destination identity. `shellBranchRegistry` owns branch order, route identity, and index mapping; visible-tab positions are not treated as registered branch indexes.
-- [x] Unavailable mode routes and deferred Coach routes reconcile to Home.
-- [x] Focused controller, route-policy, and bottom-navigation tests cover all three modes and persistence failure behavior.
-  - [ ] Build the later common-profile, Workout, Nutrition, Targets, Review, and
-    finish steps tracked in [onboarding-flow.md](onboarding-flow.md).
-- [ ] Manually verify persistence across a real device/emulator process restart.
-
-## Validation Run
+Current runtime still constructs:
 
 ```text
-apps/app: flutter analyze -> PASS, no issues
-apps/app: flutter test -> PASS, 13 tests
-apps/app: flutter build apk --debug -> NOT VERIFIED; Gradle distribution download timed out before compilation
-repository: git diff --check -> PASS
+AppModeController
+→ SharedPreferencesAppModePreference
+→ local key app_mode
 ```
 
-## Known Limitations
+`onboarding_drafts.payload.selected_mode` is draft/resume state only and must not become final App Mode authority.
 
-- Home, Workout, Nutrition, and Progress still use placeholder content; this slice changes reachability, not feature implementation.
-- The routed onboarding flow now keeps App Mode selection as the first child and
-  defers profile or feature configuration to later onboarding slices.
-- Account sync, Supabase schema, backend behavior, and watch synchronization remain out of scope.
+## Approved final persistence decision
 
-## Final Status
+Canonical owner:
 
-`PARTIAL` — the mode contract, local preference, guided shell, first onboarding step, and Settings editor are implemented and automatically validated. Full mode-conditional onboarding and manual restart verification remain.
+```text
+user_app_preferences
+├─ user_id → public.users(id)
+├─ app_mode
+└─ active_tabs
+```
 
-## Canonical Links
+`users` remains the account/domain root. App Mode/navigation preferences do not belong in `users` or `user_profiles`.
 
-- [Architecture](../../docs/ARCHITECTURE.md)
-- [Onboarding flow architecture](../../docs/ONBOARDING_ARCHITECTURE.md)
-- [Mode-conditional onboarding task](onboarding-flow.md)
-- [Roadmap](../../docs/ROADMAP.md)
-- [Module ownership](../../docs/MODULE_OWNERSHIP.md)
-- [Current state](../CURRENT.md)
+SharedPreferences becomes cache/pre-auth staging only after durable cutover.
+
+See:
+
+- `.ai/tasks/account-profile-app-preferences-canonical-split.md`;
+- Issue #11;
+- Issue #44.
+
+## Canonical semantics
+
+### `app_mode`
+
+Semantic product experience:
+
+```text
+workout
+nutrition
+hybrid
+```
+
+It derives the default guided destinations.
+
+### `active_tabs`
+
+Ordered stable destination IDs representing the user's effective navigation preference.
+
+Initial defaults:
+
+```text
+workout   → [home, workout, progress]
+nutrition → [home, nutrition, progress]
+hybrid    → [home, workout, nutrition, progress]
+```
+
+`active_tabs` is distinct from `app_mode`: mode is semantic intent; tabs are effective navigation configuration.
+
+Custom 3–6 tab editing remains a separate product slice and must not be pulled into the durability migration.
+
+## Existing validated foundation
+
+- [x] `apps/shared` owns `AppMode`, `AppDestination`, guided destination mappings, and the pure-Dart preference boundary;
+- [x] app shell derives visible guided tabs from mode;
+- [x] onboarding selects mode;
+- [x] Settings can change mode;
+- [x] local mode survives device-local app restart;
+- [x] routing safely handles missing/invalid local mode without inventing a semantic mode;
+- [x] focused controller/route/navigation tests exist.
+
+## Current verified durability gap
+
+Live `tio-world` Supabase audit confirms:
+
+```text
+public app_mode column     absent
+public active_tabs column  absent
+```
+
+Therefore a completed account can restore durable onboarding completion while losing App Mode after local data loss or on another device.
+
+Issue #11 tracks this exact gap.
+
+## Durable App Mode slice — execute after schema P1
+
+Dependency:
+
+```text
+P1 create user_app_preferences
+        ↓
+P2 App Mode / navigation repository cutover
+```
+
+P2 requirements:
+
+- [ ] backend-neutral App Preferences repository/domain contract;
+- [ ] Supabase adapter for `user_app_preferences`;
+- [ ] onboarding completion writes `app_mode` + derived `active_tabs` before publishing completion;
+- [ ] Settings App Mode save writes the same canonical row;
+- [ ] authenticated bootstrap restores remote preferences before final shell configuration;
+- [ ] valid remote canonical state wins over stale local cache;
+- [ ] SharedPreferences remains cache/fast-path and pre-auth staging only;
+- [ ] completed legacy user with no canonical mode uses safe compatibility behavior; never silently invent Hybrid;
+- [ ] reject unsupported mode/tab IDs at domain boundary;
+- [ ] preserve active tab order;
+- [ ] fresh-install / cleared-cache / second-device tests;
+- [ ] full Flutter/Dart validation.
+
+## Out of scope for P2
+
+- custom 3–6 tab editor implementation;
+- enabling reserved Meal Plan/Library/Social/Tio AI destinations;
+- watch synchronization policy;
+- UI redesign;
+- Profile/Body migration except dependencies needed to access `user_app_preferences`.
+
+## Source-of-truth precedence after cutover
+
+```text
+authenticated account
+→ read user_app_preferences
+→ valid active_tabs: restore effective navigation
+→ app_mode present but active_tabs absent: derive defaults
+→ both absent for completed legacy account: compatibility nav / explicit recovery; no invented mode
+→ update local cache after canonical read
+```
+
+Before authentication, pending App Mode may remain device-local staging and must not mutate another signed-in account's canonical preference.
+
+## Guardrails
+
+- `user_app_preferences`, not `users`, owns final App Mode/navigation preferences;
+- `user_profiles` owns common Profile only;
+- mode visibility never deletes hidden Workout/Nutrition/Body data;
+- no permanent local/remote competing authorities;
+- no silent mode inference;
+- future backend consumes the same backend-neutral preference contract/table.
+
+## Final status
+
+`PARTIAL` — local mode/navigation foundation is implemented. Durable account-level persistence is approved and queued as P2 after the additive P1 schema foundation.
