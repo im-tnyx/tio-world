@@ -1,26 +1,14 @@
 # Canonical Supabase Owner Migration
 
-**Status:** SQL drafts authored; review pending; live schema NOT mutated  
+**Status:** Schema + conflict-safe backfill applied and verified; repository cutover NEXT  
 **Canonical owner tracker:** #44  
 **Related onboarding tracker:** #40 / PR #50
 
 ## Outcome
 
-Move Tio-world from mixed/mirrored durable ownership to one canonical owner per concept while keeping the schema usable directly from Supabase today and from a protected backend later.
+Tio-world now has the approved canonical owner tables in the live `tio-world` Supabase project. The rollout is additive and future-backend-safe: new domain tables reference `public.users(id)`, while Supabase Auth/RLS remains the current access adapter.
 
-## Backend-safe database rule
-
-`public.users` is the application/domain user root. New domain tables reference:
-
-```sql
-REFERENCES public.users(id) ON DELETE CASCADE
-```
-
-not `auth.users(id)` directly.
-
-Supabase Auth remains the current authentication adapter. RLS is an access layer, not the domain model. A future protected backend can read/write the same canonical tables using a server role/connection without changing ownership or table semantics.
-
-## Approved owners
+## Approved durable owners
 
 ```text
 users
@@ -35,139 +23,68 @@ user_workout_targets
 onboarding_drafts
 ```
 
-`onboarding_drafts` remains temporary/versioned onboarding state only.
+Key ownership:
 
-## Live audit facts
+- `users` = account + common Profile; no `user_profiles` table.
+- `user_devices` = separate 1:N device owner.
+- `body_weight_logs` = weight history/current-weight source.
+- `user_body_goals` = lose/gain/maintain/recomposition + Target Weight + Goal Pace + lifecycle.
+- `user_wellness_targets` = steps/water/sleep common targets.
+- `user_nutrition_profiles` = diet/allergy/preference context only after cutover.
+- `user_nutrition_targets` = typed calories/macros/fiber + recommendation/custom metadata.
+- `user_workout_profiles` = location/equipment/experience/focus/injuries.
+- `user_workout_targets` = Workout goal priority + days/duration/split/special-event constraints.
+- `onboarding_drafts` = draft/resume only, never canonical intent.
 
-Latest live `tio-world` Supabase audit:
+## Live migrations applied
 
-- affected owner tables currently contain 0 rows;
-- `user_nutrition_profiles.target_weight_kg` is nullable;
-- existing RLS is enabled but current direct `auth.uid()` expressions are flagged by Supabase performance advisor;
-- existing historical owner tables reference `auth.users(id)` directly;
-- historical migrations created mixed Profile/Body/Wellness/Nutrition/Workout ownership;
-- no applied migration will be edited in place.
-
-The zero-row state lowers current rollout risk, but all draft backfill logic remains conflict-safe for non-empty environments.
-
-## Review artifacts
-
-Drafts are deliberately outside `supabase/migrations/` so they cannot be mistaken for approved live migrations:
+Database migration history and repository filenames are aligned exactly:
 
 ```text
-supabase/drafts/20260821_canonical_owner_tables.sql
-supabase/drafts/20260821_canonical_owner_backfill_and_validation.sql
+20260821161923_create_canonical_owner_tables.sql
+20260821162207_backfill_canonical_owner_data.sql
 ```
 
-They must be reviewed before an approved version is moved into `supabase/migrations/`.
+Repository paths:
 
-## Proposed additive schema
+```text
+supabase/migrations/20260821161923_create_canonical_owner_tables.sql
+supabase/migrations/20260821162207_backfill_canonical_owner_data.sql
+```
+
+Do not edit these applied migrations in place. Any future change must be a new forward migration.
+
+## Schema contract now live
 
 ### `body_weight_logs`
 
-Canonical weight history/current-weight source.
-
-```text
-id UUID PK
-user_id UUID FK public.users(id)
-weight_kg NUMERIC > 0
-measured_at TIMESTAMPTZ
-source TEXT
-metadata JSONB object
-created_at / updated_at
-```
-
-Index:
-
-```text
-(user_id, measured_at DESC)
-```
-
-No second canonical current-weight column is introduced.
+- UUID row id
+- FK `user_id → public.users(id) ON DELETE CASCADE`
+- positive `weight_kg`
+- `measured_at`, source/provenance metadata
+- `(user_id, measured_at DESC)` index
+- updated-at trigger
 
 ### `user_body_goals`
 
-Active/historical Body Goal plans across modes.
-
-```text
-id UUID PK
-user_id UUID FK public.users(id)
-goal_type:
-  lose_weight | gain_weight | maintain_weight | recomposition
-starting_weight_kg nullable
-target_weight_kg nullable
-weekly_weight_change_kg nullable
-intent_rank nullable 1|2
-status:
-  active | completed | cancelled | superseded
-started_at nullable
-ended_at nullable
-created_at / updated_at
-```
-
-Constraints:
-
-- one active Body Goal per user via partial unique index;
-- positive stored weights;
-- nonnegative weekly pace;
-- Maintain/Recomposition cannot carry canonical Target Weight or Goal Pace;
-- `started_at` remains nullable for legacy migration because an unknown historical start date must not be fabricated.
+- historical rows + one active goal per user via partial unique index
+- goal type restricted to `lose_weight | gain_weight | maintain_weight | recomposition`
+- Target Weight / weekly pace nullable
+- **Maintain/Recomposition are DB-constrained to null Target Weight + pace**
+- optional `intent_rank` 1/2 preserves unified Goal priority across Body/Workout owners
+- lifecycle/status timestamps
 
 ### `user_wellness_targets`
 
-Common cross-mode daily targets:
-
-```text
-user_id UUID PK FK public.users(id)
-steps_target
-water_target_ml
-sleep_target_minutes
-bed_time
-wake_up_time
-created_at / updated_at
-```
-
-Only nonnegative structural checks are proposed; tighter medical/product ranges remain domain/input policy.
+1:1 owner for steps, water, sleep duration, optional bed/wake targets.
 
 ### `user_nutrition_targets`
 
-Typed Nutrition goals only:
-
-```text
-user_id UUID PK FK public.users(id)
-calories_kcal
-protein_grams
-carbohydrate_grams
-fat_grams
-fiber_grams
-customization_state:
-  unknown | recommended | custom | mixed
-customized_fields TEXT[]
-recommendation_metadata JSONB
-created_at / updated_at
-```
-
-BMR/TDEE are not editable canonical targets and are not typed columns here.
+1:1 typed numeric Nutrition targets. BMR/TDEE are deliberately not columns.
 
 ### `user_workout_targets`
 
-Workout-specific goal + plan constraints. Body Goal values are not mirrored here.
-
-```text
-user_id UUID PK FK public.users(id)
-primary_workout_goal nullable
-primary_goal_rank nullable 1|2
-supporting_workout_goal nullable
-supporting_goal_rank nullable 1|2
-training_days
-preferred_duration_mins
-split_program
-special_event
-special_event_date
-created_at / updated_at
-```
-
-Allowed Workout-specific goals:
+1:1 current Workout target/plan-constraint owner. Workout-specific goals are restricted to:
 
 ```text
 build_muscle
@@ -176,185 +93,99 @@ improve_endurance
 stay_fit
 ```
 
-`lose_weight`, `gain_weight`, `maintain_weight`, `recomposition` remain Body ownership. The optional rank fields preserve overall unified Goal priority across Body/Workout owners when the source semantics are known.
+Body goals are not mirrored here. Goal rank fields preserve primary/supporting ordering when known.
 
-## Existing tables retained during cutover
+## Security / backend-safe rules verified
 
-### `users`
+All new owner tables:
 
-Keep as account + common Profile owner. No `user_profiles` table.
+- reference `public.users`, not `auth.users`, as the domain FK boundary;
+- have RLS enabled;
+- explicitly grant authenticated CRUD required by the current app;
+- use optimized owner policies with `(select auth.uid()) = user_id`;
+- remain usable by a future protected backend through server credentials without changing table semantics.
 
-Legacy Body/Goal columns remain physically present temporarily but stop being canonical after repository cutover:
+Post-migration Supabase advisors show **no new RLS-init-plan warnings for the new tables**. Fresh-table unused-index INFO is expected before production query traffic.
 
-```text
-current_weight_kg
-target_weight_kg
-goals
-primary_goal
-```
+Pre-existing unrelated advisor items remain on older tables/functions (legacy direct `auth.uid()` policies, username SECURITY DEFINER RPC warnings, leaked-password protection setting) and are not caused by this migration.
 
-### `user_devices`
+## Backfill contract applied
 
-Keep separate 1:N device owner.
+The backfill is conflict-first and non-destructive:
 
-### `user_nutrition_profiles`
+- conflicting duplicate Profile/Body values block migration;
+- fractional Water/Calories that would require lossy casts block migration;
+- multiple recognized Body Goal candidates block migration;
+- missing `users.height_cm` / `activity_level` may be filled from legacy Nutrition only after conflict checks;
+- current weight migrates to one provenance-marked `body_weight_logs` snapshot;
+- Body Goal migrates only from exact explicit semantics; never BMI/delta/Target-Weight inference;
+- Target Weight + pace migrate only for explicit Lose/Gain;
+- Wellness fields migrate to `user_wellness_targets`;
+- numeric macro targets migrate to typed `user_nutrition_targets`, customization semantics marked `unknown`;
+- Workout plan fields migrate to `user_workout_targets`;
+- legacy Goal synonyms are not guessed/remapped.
 
-Keep for Nutrition context only after cutover. Existing Body/Wellness/Nutrition-target columns become compatibility-only until later cleanup.
+At rollout time the affected live legacy tables had **0 rows**, so the applied backfill was a clean no-op. The migration remains deterministic for other/non-empty environments.
 
-### `user_workout_profiles`
+## Post-migration validation evidence
 
-Keep capability/context: location, equipment, experience, focus, injuries/limitations. Training days/duration/split/special event move to `user_workout_targets`.
-
-## RLS + Data API design
-
-All new public tables:
-
-- enable RLS;
-- explicitly grant required privileges to `authenticated` and server `service_role` because new Supabase table grants must not be assumed;
-- no anon grants;
-- use indexed ownership;
-- optimized policies use:
-
-```sql
-USING ((select auth.uid()) = user_id)
-WITH CHECK ((select auth.uid()) = user_id)
-```
-
-instead of the existing advisor-flagged direct per-row `auth.uid()` pattern.
-
-No `SECURITY DEFINER` helper is needed for ordinary owner CRUD.
-
-## Backfill rules
-
-### Conflict-first invariant
-
-Never silently choose between conflicting duplicated values.
+Verified live:
 
 ```text
-one source non-null  → use it
-both equal           → safe
-both differ          → raise/block migration
+canonical row counts                 0 (expected: no existing users/data)
+duplicate active Body Goal groups    0
+invalid Maintain/Recomp follow-ups   0
+FKs bypassing public.users           0
+RLS enabled on all new tables        yes
+authenticated CRUD grants            yes
+migration history ↔ repo versions    aligned
 ```
 
-The draft also blocks lossy fractional Water/Calories casts instead of silently rounding.
+## Legacy compatibility state
 
-### Common Profile
+Old mixed columns/tables are intentionally still present. They are **not yet removed** because app repositories still write/read them.
 
-`users` remains authority. Only missing `height_cm` / `activity_level` may be filled from Nutrition after conflict checks.
-
-General health-condition copy is intentionally NOT automatic yet because legacy Nutrition medical conditions may not be semantically identical to common Profile health conditions.
-
-### Current weight
-
-Resolve `users.current_weight_kg` vs Nutrition current weight only when lossless, then create one `body_weight_logs` migration snapshot. Legacy `updated_at` is explicitly marked as a proxy, not a fabricated measurement timestamp.
-
-### Body Goal
-
-Create a Body Goal only when an exact explicit legacy body goal maps to:
+Do not drop yet:
 
 ```text
-lose_weight
-gain_weight
-maintain_weight
-recomposition
+users.current_weight_kg
+users.target_weight_kg
+users.goals
+users.primary_goal
+mixed Body/Wellness/target columns in user_nutrition_profiles
+plan-target fields still present in user_workout_profiles
 ```
 
-No inference from BMI, current/target delta, target presence, or Workout meaning.
+No permanent bidirectional sync should be introduced.
 
-Only explicit Lose/Gain may receive backfilled Target Weight / weekly pace. Maintain/Recomposition canonical follow-ups stay null.
+## Next implementation phase — repository/model cutover
 
-### Wellness
-
-Lossless move from old Nutrition columns:
+Work in this order:
 
 ```text
-steps_target
-water_target_ml
-sleep_target_minutes
-bed_time
-wake_up_time
+1. define canonical repository/domain contracts per owner
+2. cut Body/current-weight persistence to body_weight_logs + user_body_goals
+3. cut Wellness persistence to user_wellness_targets
+4. split Nutrition Profile vs user_nutrition_targets writes
+5. split Workout Profile vs user_workout_targets writes
+6. make Onboarding + Settings consume the same owner repositories
+7. remove legacy Target Weight 60kg/fallback adapter behavior where still reachable
+8. stop all writes to legacy mirrored columns
+9. verify reads/backward compatibility
+10. run full onboarding persistence acceptance + Flutter/Dart CI
+11. later forward migration removes obsolete columns only after cutover proof
 ```
 
-### Nutrition targets
+PR #50 remains Draft/unmerged until repository cutover + onboarding persistence acceptance are green.
 
-Extract only numeric macro goal values:
+## Guardrails
 
-```text
-calories
-protein
-carbs/carbohydrates
-fat
-fiber
-```
-
-Backfilled customization state is `unknown`; do not invent recommended/custom intent. BMR/TDEE are excluded.
-
-### Workout
-
-Stay in Workout Profile:
-
-```text
-workout_location
-available_equipment
-experience_level
-focus_areas
-injuries/limitations-compatible legacy context
-```
-
-Move losslessly to Workout Targets:
-
-```text
-training_days
-workout_duration_mins
-split_program
-special_event_goal
-```
-
-Only exact new Workout goal strings are eligible for goal backfill. Legacy synonyms such as `keep_fit` and `boost_strength` are not remapped.
-
-## Validation encoded in draft
-
-The backfill/validation draft checks:
-
-- canonical row counts;
-- one active Body Goal per user;
-- no orphan canonical rows;
-- no Target Weight/pace on Maintain/Recomposition;
-- new owner FKs point to `public.users`, not directly to `auth.users`;
-- RLS is enabled on every new table;
-- `user_nutrition_targets` contains no BMR/TDEE columns.
-
-After any live DDL, also run Supabase security + performance advisors and authenticated RLS isolation tests.
-
-## Rollout order
-
-```text
-1. owner contract #44                         ✅
-2. live schema/RLS/index audit                ✅
-3. backend-safe migration/backfill design     ✅
-4. review SQL drafts                          NEXT
-5. move approved DDL into forward migration
-6. apply additive schema
-7. validate RLS/grants/advisors
-8. run conflict checks + backfill
-9. verify counts/null semantics
-10. cut repositories/models to owners
-11. Onboarding + Settings use same owners
-12. stop writes to mirrored legacy columns
-13. later cleanup migration drops duplicates
-14. rerun PR #50 persistence acceptance/CI
-```
-
-## Explicit non-goals before cutover
-
-- no live schema apply before SQL review;
-- no legacy column drop;
-- no Goal synonym mapping;
-- no Target Weight formula change;
-- no UI changes;
-- no runtime Workout-setting migration;
-- no protected backend implementation yet.
-
-## Current next step
-
-**Review the two SQL drafts.** If approved, convert the table draft into the actual forward-only migration, apply the additive schema to `tio-world` Supabase, run RLS/grant/advisor verification, then execute the conflict-safe backfill.
+- one durable owner per concept;
+- no fake Goal mappings;
+- no numeric/BMI semantic inference;
+- App Mode visibility must not delete hidden owner data;
+- Settings and Onboarding are entry points, not owners;
+- future backend must use the same canonical tables, not a parallel schema;
+- no legacy column drop before verified repository cutover;
+- no Target Weight recommendation-formula change in this migration work;
+- no UI redesign/picker invention here.
