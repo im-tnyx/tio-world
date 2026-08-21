@@ -15,6 +15,15 @@ extension BodyGoalTypeStorage on BodyGoalType {
       };
 }
 
+/// Stable semantic provenance values for canonical Body weight history.
+///
+/// These values are part of the Body domain contract and can be reused by a
+/// future backend adapter; they are not Supabase table names.
+abstract final class BodyWeightSources {
+  static const onboardingSetup = 'onboarding_setup';
+  static const profileSettings = 'profile_settings';
+}
+
 /// Active Body Goal data used during onboarding setup persistence.
 class BodyGoalSetupData {
   const BodyGoalSetupData({
@@ -122,8 +131,8 @@ abstract interface class BodySetupRepository {
 abstract interface class BodyRepository implements BodySetupRepository {
   Future<BodyState> getBodyState();
 
-  /// Records a new history row. This is intentionally separate from
-  /// [saveBodySetup], whose onboarding retry semantics may reconcile a single
-  /// onboarding snapshot instead of appending uncontrolled duplicates.
+  /// Records a new post-onboarding history row. `onboarding_setup` is reserved
+  /// for [saveBodySetup] retry/reconciliation semantics and must be rejected by
+  /// this command.
   Future<void> recordCurrentWeight(BodyWeightRecord record);
 }
