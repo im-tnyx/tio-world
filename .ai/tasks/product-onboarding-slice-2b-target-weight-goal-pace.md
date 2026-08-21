@@ -22,6 +22,7 @@ Persistence/owner audit                          ✅
 Canonical Supabase schema migration              ✅ LIVE
 Conflict-safe legacy backfill                    ✅ LIVE
 Body Cutover A canonical write foundation        ✅ CI #1135
+Body Cutover B audit                             ✅
 Body Cutover B Profile/Settings parity            ⏳ NEXT
 Wellness/Nutrition/Workout repository cutover    ⏳ AFTER BODY B
 ```
@@ -119,7 +120,7 @@ The migration is additive and conflict-first. Applied migration files must never
 
 ## Body Cutover A — validated
 
-Canonical Body persistence is now established under `apps/features/progress`:
+Canonical Body persistence is established under `apps/features/progress`:
 
 ```text
 Onboarding draft
@@ -140,48 +141,71 @@ Validated behavior:
 - invalid Body payloads are rejected before Body DB mutation;
 - full Flutter/Dart CI #1135 passed.
 
-This is a canonical write foundation, not the final single-owner cutover, because Profile/Settings and compatibility repositories still contain legacy Body reads/writes.
+This is a canonical write foundation, not the final single-owner cutover, because Profile/Settings and the mixed legacy Targets repository still contain Body mirrors.
+
+## Body Cutover B audit decision
+
+The current `TargetsSetupRepository` mixes Body + Wellness + Nutrition and its read contract still requires legacy `weekly_weight_change_kg`/Wellness columns. Removing only its Body columns during Body B would create a half-migrated repository.
+
+Therefore Body B is intentionally narrowed to **canonical Body read/command + Profile/Settings parity + Profile mirror shutdown**. Nutrition-side Body mirrors are removed with the Wellness/Nutrition repository split immediately afterward.
 
 ## Next phase — Body Cutover B
 
-Do this before Wellness/Nutrition/Workout cutover:
-
 ```text
-1. add canonical Body read API
-   → latest current weight from body_weight_logs
-   → active Body Goal from user_body_goals
+B1. canonical Body read/command contract
+    → latest current weight from body_weight_logs
+    → active Body Goal from user_body_goals
+    → post-onboarding weight edits create new history rows
 
-2. make Profile/Profile Settings display canonical Body state
+B2. Profile owner cleanup
+    → ProfileSetupData/common Profile no longer owns goals/current/target weight
+    → SupabaseProfileSetupRepository stops users Body mirror reads/writes
+    → onboarding ProfileSetupMapper maps common Profile only
 
-3. make Profile Settings current-weight mutation write body_weight_logs
+B3. Profile Settings cross-owner composition
+    → Profile fields stay Profile-owned
+    → current weight saves through Body repository
+    → screen reads canonical Body state
+    → refresh Profile + Body providers
 
-4. expose active Body Goal/Target Weight from user_body_goals where needed
+B4. verify Profile-side mirror shutdown
+    → no active writes to users.current_weight_kg
+    → no active writes to users.target_weight_kg
+    → no active writes to users.goals / users.primary_goal
 
-5. refresh/invalidate canonical Body state after Settings mutation
-
-6. prove stale/default read regressions are absent
-
-7. stop Profile onboarding Body mirror writes
-
-8. stop Nutrition Body mirror writes
-
-9. stop Profile Settings users.current_weight_kg write
-
-10. full Flutter/Dart CI
+B5. full Flutter/Dart CI
 ```
 
-No permanent dual-write synchronization.
+Canonical Body data wins over stale legacy values. Do not fabricate `70 kg` as canonical truth. If a true pre-cutover compatibility read is needed, it must be explicit, persisted-value-only, canonical-first, and temporary.
 
-## After Body Cutover B
+Profile Settings weight edits must create a new `body_weight_logs` history row with post-onboarding provenance; they must not overwrite the onboarding setup snapshot.
+
+## Immediately after Body Cutover B
+
+The next split removes the remaining Nutrition-side Body mirrors together with the structurally mixed Wellness/Nutrition contract:
 
 ```text
 Wellness
 → user_wellness_targets
 
-Nutrition
-→ user_nutrition_profiles context only
-→ user_nutrition_targets numeric targets
+Nutrition context
+→ user_nutrition_profiles
 
+Nutrition numeric targets
+→ user_nutrition_targets
+
+Then remove from Nutrition persistence:
+→ current weight mirror
+→ Target Weight mirror
+→ Goal Pace mirror
+→ height/activity mirrors
+```
+
+Nutrition calculations should read true Profile/Body owners rather than persisting duplicate inputs.
+
+After that:
+
+```text
 Workout
 → user_workout_profiles context/capability
 → user_workout_targets plan/goal constraints
@@ -198,8 +222,8 @@ Then
 
 ```text
 Body Cutover B Profile/Settings parity          NEXT
-Wellness/Nutrition/Workout cutover              after Body B
-legacy mirrored write shutdown                  during owner cutover
+Wellness/Nutrition split + Nutrition mirrors    immediately after Body B
+Workout owner cutover                           after Nutrition
 integrated persistence acceptance               after owner cutover
 measurement picker/reference                    blocked on approved reference
 Target Weight recommendation numeric policy     needs explicit product rule
