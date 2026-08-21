@@ -98,6 +98,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   final onboardingStatusRepository =
       ref.read(onboardingStatusRepositoryProvider);
   final profileRepository = ref.read(profileSetupRepositoryProvider);
+  final bodyRepository = ref.read(bodySetupRepositoryProvider);
   final workoutRepository = ref.read(workoutPreferencesRepositoryProvider);
   final targetsRepository = ref.read(targetsSetupRepositoryProvider);
   final onboardingDraftRepository =
@@ -429,6 +430,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   draftRepository: onboardingDraftRepository,
                   persistOwnerDataUseCase: PersistOnboardingOwnerDataUseCase(
                     profileRepository: profileRepository,
+                    bodyRepository: bodyRepository,
                     workoutRepository: workoutRepository,
                     targetsRepository: targetsRepository,
                   ),
