@@ -377,6 +377,11 @@ void main() {
         entryPath: OnboardingEntryPath.firstRun,
         initialDraft: OnboardingDraft(
           selectedMode: entry.key,
+          goalSelection: GoalIntentSelection(
+            primaryGoal: entry.key == AppMode.nutrition
+                ? GoalIntent.maintainWeight
+                : GoalIntent.stayFit,
+          ),
           currentStepId: OnboardingStepId.profileBasics,
           profile: _validProfile(),
         ),
@@ -578,6 +583,9 @@ void main() {
       entryPath: OnboardingEntryPath.firstRun,
       initialDraft: OnboardingDraft(
         selectedMode: AppMode.workout,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.stayFit,
+        ),
         currentStepId: OnboardingStepId.targets,
         targets: const TargetsOnboardingDraft(
           currentStepId: TargetStepId.waterTarget,
