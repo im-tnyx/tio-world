@@ -109,7 +109,8 @@ void main() {
     expect(harness.controller.state.draft.targets.waterMl, 2500);
   });
 
-  testWidgets('goal pace screen shows pace slider and warnings in weight loss mode',
+  testWidgets(
+      'goal pace screen owns weekly pace and projection but no calorie target UI',
       (tester) async {
     final harness = await _pumpTargets(
       tester,
@@ -122,6 +123,7 @@ void main() {
         heightCm: 170,
         currentWeightKg: 85,
         targetWeightKg: 75,
+        targetWeightDirection: GoalWeightDirection.loss,
         activityLevel: ProfileActivityLevel.active,
         healthConditions: const {ProfileHealthCondition.none},
       ),
@@ -136,12 +138,16 @@ void main() {
     expect(find.textContaining('0.5 kg'), findsWidgets);
     expect(find.text('Medium'), findsOneWidget);
     expect(find.byKey(const ValueKey('targets-goal-pace-slider')), findsOneWidget);
+    expect(find.byKey(const ValueKey('targets-projection-card')), findsOneWidget);
+    expect(find.textContaining('kcal'), findsNothing);
+    expect(find.text('Target Calories'), findsNothing);
 
     harness.controller.updateGoalPaceKgPerWeek(1.2);
     await tester.pumpAndSettle();
 
     expect(find.textContaining('1.2 kg'), findsWidgets);
     expect(find.text('Aggressive Loss Pace'), findsOneWidget);
+    expect(find.textContaining('kcal'), findsNothing);
   });
 }
 
@@ -170,7 +176,8 @@ Future<_TargetsHarness> _pumpTargets(
           dateOfBirth: DateTime(2000, 1, 1),
           heightCm: 170,
           currentWeightKg: 70,
-          targetWeightKg: 70,
+          targetWeightKg: 66,
+          targetWeightDirection: GoalWeightDirection.loss,
           activityLevel: ProfileActivityLevel.active,
           healthConditions: const {ProfileHealthCondition.none},
         ),
