@@ -406,6 +406,9 @@ void main() {
       tester,
       draft: OnboardingDraft(
         selectedMode: AppMode.workout,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.loseWeight,
+        ),
         currentStepId: OnboardingStepId.profileBasics,
         profile: _validProfile(),
       ),
@@ -509,7 +512,13 @@ Future<void> _pumpFlow(
         home: OnboardingFlowPage(
           seed: OnboardingControllerSeed(
             entryPath: OnboardingEntryPath.firstRun,
-            draft: draft ?? OnboardingDraft(selectedMode: AppMode.workout),
+            draft: draft ??
+                OnboardingDraft(
+                  selectedMode: AppMode.workout,
+                  goalSelection: const GoalIntentSelection(
+                    primaryGoal: GoalIntent.loseWeight,
+                  ),
+                ),
           ),
           onExitRequested: onExitRequested,
           onFinishRequested: onFinishRequested ?? (_) async {},
