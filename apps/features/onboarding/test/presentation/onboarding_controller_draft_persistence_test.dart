@@ -8,6 +8,9 @@ void main() {
       final savedDraft = OnboardingDraft(
         status: OnboardingStatus.inProgress,
         selectedMode: AppMode.hybrid,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.stayFit,
+        ),
         workoutIntroChoice: WorkoutIntroChoice.setupNow,
         currentStepId: OnboardingStepId.profileBasics,
         completedStepIds: {OnboardingStepId.mode},
