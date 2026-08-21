@@ -21,19 +21,23 @@ Persistence/owner audit                          ✅
 #44 canonical owner contract                     ✅
 Canonical Supabase schema migration              ✅ LIVE
 Conflict-safe legacy backfill                    ✅ LIVE
-Repository/model owner cutover                   ⏳ NEXT
+Body Cutover A canonical write foundation        ✅ CI #1135
+Body Cutover B Profile/Settings parity            ⏳ NEXT
+Wellness/Nutrition/Workout repository cutover    ⏳ AFTER BODY B
 ```
 
-Latest validated Flutter source/test checkpoint before schema/docs work:
+Latest validated production/source/test checkpoint:
 
 ```text
-6c3dcb527bc92b3a6b46755d2d8c569682d090f4
-Flutter CI #1095 / run 32497930346
+9031dc5e51a71b1bcef905bd93088f36396d3c01
+Flutter CI #1135 / run 32505095642
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
 Dart tests      ✅
 ```
+
+Later task/docs-only commits do not replace this source/test checkpoint unless a newer full CI run validates source changes.
 
 ## Approved Goal contract
 
@@ -67,7 +71,7 @@ Local draft schema v4 stores Target Weight + loss/gain association. Eligible→i
 
 Goal Pace owns weekly body-weight change only. BMR/TDEE/calorie math was removed from Goal Pace; slider/haptics/warnings/projection remain.
 
-## Canonical Supabase owner contract — now live
+## Canonical Supabase owner contract — live
 
 ```text
 users
@@ -111,71 +115,92 @@ New domain owner FKs point to `public.users(id)`, not directly to `auth.users`, 
 20260821162207_backfill_canonical_owner_data
 ```
 
-Repository filenames match the live migration versions exactly.
+The migration is additive and conflict-first. Applied migration files must never be edited in place. Legacy mixed columns remain physically present until repository cutover proves they are no longer read/written.
 
-The first migration is additive only; no legacy columns were dropped.
+## Body Cutover A — validated
 
-The second migration is conflict-first/non-destructive and refuses ambiguous/lossy data instead of guessing intent. At rollout time the affected live legacy tables contained 0 rows, so the backfill was a clean no-op.
-
-## Live DB invariants verified
-
-- all five new tables created;
-- FKs reference `public.users`;
-- one active Body Goal per user enforced;
-- Maintain/Recomposition cannot store Target Weight/Goal Pace;
-- RLS enabled on all new tables;
-- authenticated CRUD grants present;
-- optimized `(select auth.uid()) = user_id` policies present;
-- no new RLS-init-plan advisor warning for the new tables;
-- no invalid/orphan canonical rows;
-- new canonical row counts currently 0 as expected.
-
-## Next phase — repository/model cutover
-
-Do **not** add permanent dual-write synchronization. Cut each owner deliberately:
+Canonical Body persistence is now established under `apps/features/progress`:
 
 ```text
-1. Body/current-weight repositories
-   → body_weight_logs + user_body_goals
-
-2. Wellness repository
-   → user_wellness_targets
-
-3. Nutrition persistence split
-   → user_nutrition_profiles context
-   → user_nutrition_targets numeric goals
-
-4. Workout persistence split
-   → user_workout_profiles capability/context
-   → user_workout_targets goals/plan constraints
-
-5. Onboarding + Settings
-   → same canonical repository contracts
-
-6. Stop writes to legacy mirrored columns
-
-7. Remove legacy HTTP Target Weight 60kg fallback if adapter remains reachable
-
-8. Re-run persistence acceptance + full Flutter/Dart CI
+Onboarding draft
+  → BodySetupMapper
+  → BodySetupRepository
+  → SupabaseBodySetupRepository
+  → body_weight_logs + user_body_goals
 ```
 
-## PR #50 persistence semantics after cutover
+Validated behavior:
 
-- active eligible Target Weight → active `user_body_goals.target_weight_kg`;
-- active Goal Pace → active Body Goal weekly pace;
-- skipped/ineligible Target Weight stays dormant in onboarding draft and is not canonical intent;
-- Maintain/Recomposition canonical Target Weight/pace are structurally null;
-- current weight comes from `body_weight_logs`;
-- Nutrition reads common Profile/Body owners instead of mirrored Nutrition copies;
-- unified Workout training goals persist to `user_workout_targets`, Body goals to `user_body_goals`, with rank preserving primary/supporting order where applicable.
+- onboarding completion writes current-weight state to `body_weight_logs`;
+- explicit Body Goal state writes/reconciles `user_body_goals`;
+- same goal type updates the active plan; changed goal type supersedes the previous active plan;
+- training-only/no-Body selection does not invent Body direction;
+- Maintain/Recomposition cannot persist Target Weight/Goal Pace;
+- Target Weight is consumed only when its stored direction matches the explicit active loss/gain direction;
+- invalid Body payloads are rejected before Body DB mutation;
+- full Flutter/Dart CI #1135 passed.
+
+This is a canonical write foundation, not the final single-owner cutover, because Profile/Settings and compatibility repositories still contain legacy Body reads/writes.
+
+## Next phase — Body Cutover B
+
+Do this before Wellness/Nutrition/Workout cutover:
+
+```text
+1. add canonical Body read API
+   → latest current weight from body_weight_logs
+   → active Body Goal from user_body_goals
+
+2. make Profile/Profile Settings display canonical Body state
+
+3. make Profile Settings current-weight mutation write body_weight_logs
+
+4. expose active Body Goal/Target Weight from user_body_goals where needed
+
+5. refresh/invalidate canonical Body state after Settings mutation
+
+6. prove stale/default read regressions are absent
+
+7. stop Profile onboarding Body mirror writes
+
+8. stop Nutrition Body mirror writes
+
+9. stop Profile Settings users.current_weight_kg write
+
+10. full Flutter/Dart CI
+```
+
+No permanent dual-write synchronization.
+
+## After Body Cutover B
+
+```text
+Wellness
+→ user_wellness_targets
+
+Nutrition
+→ user_nutrition_profiles context only
+→ user_nutrition_targets numeric targets
+
+Workout
+→ user_workout_profiles context/capability
+→ user_workout_targets plan/goal constraints
+
+Onboarding + Settings
+→ same canonical repositories
+
+Then
+→ integrated persistence acceptance
+→ legacy duplicate-column cleanup only after proof
+```
 
 ## Remaining Product/technical gates
 
 ```text
-repository/model owner cutover                  NEXT
-Onboarding + Settings owner parity              NEXT
-legacy mirrored write shutdown                  after cutover
-integrated persistence acceptance               after cutover
+Body Cutover B Profile/Settings parity          NEXT
+Wellness/Nutrition/Workout cutover              after Body B
+legacy mirrored write shutdown                  during owner cutover
+integrated persistence acceptance               after owner cutover
 measurement picker/reference                    blocked on approved reference
 Target Weight recommendation numeric policy     needs explicit product rule
 legacy duplicate-column cleanup migration       only after verified cutover
