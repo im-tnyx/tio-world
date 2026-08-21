@@ -90,6 +90,11 @@ class SupabaseBodySetupRepository implements BodySetupRepository {
     required BodySetupData data,
     required String nowIso,
   }) async {
+    final requested = data.activeGoal;
+    if (requested != null) {
+      _validateGoal(requested);
+    }
+
     final activeRow = await _client
         .from('user_body_goals')
         .select('id, goal_type, starting_weight_kg')
@@ -97,7 +102,6 @@ class SupabaseBodySetupRepository implements BodySetupRepository {
         .eq('status', 'active')
         .maybeSingle();
 
-    final requested = data.activeGoal;
     if (requested == null) {
       final activeId = activeRow?['id'] as String?;
       if (activeId != null && activeId.isNotEmpty) {
@@ -108,8 +112,6 @@ class SupabaseBodySetupRepository implements BodySetupRepository {
       }
       return;
     }
-
-    _validateGoal(requested);
 
     final goalStorage = requested.goalType.storageValue;
     final activeId = activeRow?['id'] as String?;
