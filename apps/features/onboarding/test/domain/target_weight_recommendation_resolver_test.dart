@@ -23,24 +23,24 @@ void main() {
     );
   });
 
-  test('does not recommend loss below BMI safety floor', () {
+  test('suppresses loss recommendation at or below BMI safety floor', () {
     final result = resolver.resolve(
       direction: GoalWeightDirection.loss,
       currentWeightKg: 54,
       heightCm: 175,
     );
 
-    expect(result, closeTo(56.7, 0.05));
+    expect(result, isNull);
   });
 
-  test('does not recommend gain above configured BMI guardrail', () {
+  test('suppresses gain recommendation above configured BMI guardrail', () {
     final result = resolver.resolve(
       direction: GoalWeightDirection.gain,
       currentWeightKg: 92,
       heightCm: 175,
     );
 
-    expect(result, closeTo(91.9, 0.05));
+    expect(result, isNull);
   });
 
   test('returns no recommendation without explicit direction or current weight', () {
