@@ -6,7 +6,7 @@ export 'package:tio_feature_nutrition/nutrition.dart'
         NutritionTargetRecommendationInvalidInput,
         NutritionTargetRecommendationInsufficientInput;
 
-export 'body_goal.dart';
+export 'goal_intent.dart';
 export 'goal_pace_mode.dart';
 export 'goal_pace_warning.dart';
 export 'nutrition_onboarding_draft.dart';
