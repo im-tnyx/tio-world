@@ -230,6 +230,9 @@ void main() {
       entryPath: OnboardingEntryPath.firstRun,
       initialDraft: OnboardingDraft(
         selectedMode: AppMode.hybrid,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.loseWeight,
+        ),
         currentStepId: OnboardingStepId.workoutIntro,
         profile: _validProfile(),
       ),
@@ -420,15 +423,19 @@ void main() {
     expect(controller.state.progressValue, 0);
 
     controller.selectMode(AppMode.hybrid);
+    controller.tapGoalIntent(GoalIntent.loseWeight);
     controller.selectWorkoutIntroChoice(WorkoutIntroChoice.setupNow);
     expect(controller.state.progressStepCount, 26);
-    expect(controller.state.progressStepNumber, 1); // Profile name
+    expect(controller.state.progressStepNumber, 1);
     expect(controller.state.progressValue, closeTo(1 / 26, 0.0001));
 
     final reviewController = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
       initialDraft: OnboardingDraft(
         selectedMode: AppMode.hybrid,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.loseWeight,
+        ),
         workoutIntroChoice: WorkoutIntroChoice.setupNow,
         currentStepId: OnboardingStepId.review,
         profile: _validProfile(),
@@ -439,11 +446,16 @@ void main() {
     expect(reviewController.state.progressValue, 1.0);
   });
 
-  test('child movement inside Profile, Workout, and Targets increases global progress monotonically', () async {
+  test(
+      'child movement inside Profile, Workout, and Targets increases global progress monotonically',
+      () async {
     final controller = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
       initialDraft: OnboardingDraft(
         selectedMode: AppMode.workout,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.loseWeight,
+        ),
         currentStepId: OnboardingStepId.profileBasics,
         profile: ProfileOnboardingDraft(
           currentStepId: ProfileStepId.name,
@@ -453,14 +465,12 @@ void main() {
       ),
     );
 
-    // Workout mode with gym: 10 (profile) + 8 (workout) + 6 (targets) + 1 (review) = 25
     expect(controller.state.progressStepCount, 25);
     expect(controller.state.progressStepNumber, 1);
     expect(controller.state.progressValue, closeTo(1 / 25, 0.0001));
 
     await controller.next(onFinish: _completeImmediately);
 
-    // Moves to gender inside Profile, global progress increases to step 2 of 25
     expect(controller.state.draft.profile.currentStepId, ProfileStepId.gender);
     expect(controller.state.progressStepCount, 25);
     expect(controller.state.progressStepNumber, 2);
@@ -530,6 +540,9 @@ void main() {
       entryPath: OnboardingEntryPath.firstRun,
       initialDraft: OnboardingDraft(
         selectedMode: AppMode.workout,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.loseWeight,
+        ),
         currentStepId: OnboardingStepId.targets,
         profile: _validProfile(),
         workout: _validWorkout(),
@@ -589,7 +602,7 @@ void main() {
         currentStepId: OnboardingStepId.targets,
         targets: const TargetsOnboardingDraft(
           currentStepId: TargetStepId.waterTarget,
-          waterMl: 500, // Invalid (min is 1000)
+          waterMl: 500,
         ),
       ),
     );
