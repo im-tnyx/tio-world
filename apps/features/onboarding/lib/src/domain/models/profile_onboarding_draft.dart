@@ -1,5 +1,6 @@
 import 'package:tio_core/core.dart';
 
+import 'goal_weight_direction.dart';
 import 'profile_step_id.dart';
 
 enum ProfileGender { male, female, other }
@@ -35,6 +36,7 @@ class ProfileOnboardingDraft {
     this.currentWeightKg,
     String? weightUnit,
     this.targetWeightKg,
+    this.targetWeightDirection,
     this.activityLevel,
     Set<ProfileHealthCondition> healthConditions = const {},
     this.otherHealthCondition = '',
@@ -57,6 +59,13 @@ class ProfileOnboardingDraft {
   final MeasurementUnitPreferences unitPreferences;
   final double? currentWeightKg;
   final double? targetWeightKg;
+
+  /// Direction that semantically owns [targetWeightKg].
+  ///
+  /// This is onboarding-draft compatibility metadata. It is derived only from
+  /// explicit Goal intent, never from current/target weight deltas or BMI.
+  final GoalWeightDirection? targetWeightDirection;
+
   final ProfileActivityLevel? activityLevel;
   final Set<ProfileHealthCondition> healthConditions;
   final String otherHealthCondition;
@@ -84,12 +93,15 @@ class ProfileOnboardingDraft {
     bool clearCurrentWeightKg = false,
     double? targetWeightKg,
     bool clearTargetWeightKg = false,
+    GoalWeightDirection? targetWeightDirection,
+    bool clearTargetWeightDirection = false,
     ProfileActivityLevel? activityLevel,
     Set<ProfileHealthCondition>? healthConditions,
     String? otherHealthCondition,
     String? mobile,
     bool? isMobileVerified,
   }) {
+    final clearTarget = clearTargetWeightKg;
     return ProfileOnboardingDraft(
       currentStepId: currentStepId ?? this.currentStepId,
       name: name ?? this.name,
@@ -102,8 +114,10 @@ class ProfileOnboardingDraft {
       currentWeightKg:
           clearCurrentWeightKg ? null : currentWeightKg ?? this.currentWeightKg,
       weightUnit: weightUnit,
-      targetWeightKg:
-          clearTargetWeightKg ? null : targetWeightKg ?? this.targetWeightKg,
+      targetWeightKg: clearTarget ? null : targetWeightKg ?? this.targetWeightKg,
+      targetWeightDirection: clearTarget || clearTargetWeightDirection
+          ? null
+          : targetWeightDirection ?? this.targetWeightDirection,
       activityLevel: activityLevel ?? this.activityLevel,
       healthConditions: healthConditions ?? this.healthConditions,
       otherHealthCondition: otherHealthCondition ?? this.otherHealthCondition,
@@ -125,6 +139,7 @@ class ProfileOnboardingDraft {
             unitPreferences == other.unitPreferences &&
             currentWeightKg == other.currentWeightKg &&
             targetWeightKg == other.targetWeightKg &&
+            targetWeightDirection == other.targetWeightDirection &&
             activityLevel == other.activityLevel &&
             _sameSet(healthConditions, other.healthConditions) &&
             otherHealthCondition == other.otherHealthCondition &&
@@ -143,6 +158,7 @@ class ProfileOnboardingDraft {
         unitPreferences,
         currentWeightKg,
         targetWeightKg,
+        targetWeightDirection,
         activityLevel,
         Object.hashAllUnordered(healthConditions),
         otherHealthCondition,
