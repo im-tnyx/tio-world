@@ -281,6 +281,9 @@ Future<_WorkoutHarness> _pumpWorkout(
     entryPath: OnboardingEntryPath.firstRun,
     draft: OnboardingDraft(
       selectedMode: AppMode.workout,
+      goalSelection: const GoalIntentSelection(
+        primaryGoal: GoalIntent.loseWeight,
+      ),
       currentStepId: OnboardingStepId.workoutPreferences,
       profile: _validProfile(),
       workout: workout ?? const WorkoutOnboardingDraft(),
