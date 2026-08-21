@@ -20,15 +20,31 @@ class ProfileStepValidator {
 
   final DateTime Function()? _now;
 
-  Map<ProfileStepId, String> validate(ProfileOnboardingDraft draft) {
-    final error = _validateCurrentStep(draft);
+  Map<ProfileStepId, String> validate(
+    ProfileOnboardingDraft draft, {
+    GoalWeightDirection? goalWeightDirection,
+  }) {
+    final error = _validateCurrentStep(
+      draft,
+      goalWeightDirection: goalWeightDirection,
+    );
     return error == null ? const {} : {draft.currentStepId: error};
   }
 
-  bool isCurrentStepValid(ProfileOnboardingDraft draft) =>
-      _validateCurrentStep(draft) == null;
+  bool isCurrentStepValid(
+    ProfileOnboardingDraft draft, {
+    GoalWeightDirection? goalWeightDirection,
+  }) =>
+      _validateCurrentStep(
+        draft,
+        goalWeightDirection: goalWeightDirection,
+      ) ==
+      null;
 
-  String? _validateCurrentStep(ProfileOnboardingDraft draft) {
+  String? _validateCurrentStep(
+    ProfileOnboardingDraft draft, {
+    GoalWeightDirection? goalWeightDirection,
+  }) {
     return switch (draft.currentStepId) {
       ProfileStepId.name => draft.name.trim().length >= minimumNameLength
           ? null
@@ -53,16 +69,40 @@ class ProfileStepValidator {
           'current weight',
           'kg',
         ),
-      ProfileStepId.targetWeight => _validateRange(
-          draft.targetWeightKg,
-          minimumWeightKg,
-          maximumWeightKg,
-          'target weight',
-          'kg',
+      ProfileStepId.targetWeight => _validateTargetWeight(
+          draft,
+          goalWeightDirection,
         ),
       ProfileStepId.activity =>
         draft.activityLevel == null ? 'Choose an activity level.' : null,
       ProfileStepId.healthConditions => null,
+    };
+  }
+
+  String? _validateTargetWeight(
+    ProfileOnboardingDraft draft,
+    GoalWeightDirection? direction,
+  ) {
+    final rangeError = _validateRange(
+      draft.targetWeightKg,
+      minimumWeightKg,
+      maximumWeightKg,
+      'target weight',
+      'kg',
+    );
+    if (rangeError != null) return rangeError;
+
+    final current = draft.currentWeightKg;
+    final target = draft.targetWeightKg;
+    if (current == null || target == null || direction == null) return null;
+
+    return switch (direction) {
+      GoalWeightDirection.loss => target < current
+          ? null
+          : 'Choose a target below your current weight for this goal.',
+      GoalWeightDirection.gain => target > current
+          ? null
+          : 'Choose a target above your current weight for this goal.',
     };
   }
 
