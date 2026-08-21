@@ -65,13 +65,20 @@ class OnboardingController extends ChangeNotifier {
     OnboardingDraft? initialDraft,
     this.includeMobile = false,
     BuildOnboardingFlowUseCase planner = const BuildOnboardingFlowUseCase(),
+    BuildProfileFlowPlanUseCase profilePlanner =
+        const BuildProfileFlowPlanUseCase(),
     BuildWorkoutFlowPlanUseCase workoutPlanner =
         const BuildWorkoutFlowPlanUseCase(),
+    BuildTargetsFlowPlanUseCase targetsPlanner =
+        const BuildTargetsFlowPlanUseCase(),
     ProfileStepValidator profileValidator = const ProfileStepValidator(),
     WorkoutStepValidator workoutValidator = const WorkoutStepValidator(),
     TargetStepValidator targetValidator = const TargetStepValidator(),
     GoalIntentSelectionPolicy goalSelectionPolicy =
         const GoalIntentSelectionPolicy(),
+    WeightGoalFlowPolicy weightGoalPolicy = const WeightGoalFlowPolicy(),
+    TargetWeightRecommendationResolver targetWeightRecommendationResolver =
+        const TargetWeightRecommendationResolver(),
     LegacyProfileGoalIntentMigration legacyGoalMigration =
         const LegacyProfileGoalIntentMigration(),
     OnboardingCompletionValidator completionValidator =
@@ -81,11 +88,15 @@ class OnboardingController extends ChangeNotifier {
     OnboardingDraftRepository? draftRepository,
   })  : _entryPath = entryPath,
         _planner = planner,
+        _profilePlanner = profilePlanner,
         _workoutPlanner = workoutPlanner,
+        _targetsPlanner = targetsPlanner,
         _profileValidator = profileValidator,
         _workoutValidator = workoutValidator,
         _targetValidator = targetValidator,
         _goalSelectionPolicy = goalSelectionPolicy,
+        _weightGoalPolicy = weightGoalPolicy,
+        _targetWeightRecommendationResolver = targetWeightRecommendationResolver,
         _legacyGoalMigration = legacyGoalMigration,
         _completionValidator = completionValidator,
         _statusRepository = statusRepository,
@@ -96,17 +107,22 @@ class OnboardingController extends ChangeNotifier {
   final OnboardingEntryPath _entryPath;
   final bool includeMobile;
   final BuildOnboardingFlowUseCase _planner;
+  final BuildProfileFlowPlanUseCase _profilePlanner;
   final BuildWorkoutFlowPlanUseCase _workoutPlanner;
+  final BuildTargetsFlowPlanUseCase _targetsPlanner;
   final ProfileStepValidator _profileValidator;
   final WorkoutStepValidator _workoutValidator;
   final TargetStepValidator _targetValidator;
   final GoalIntentSelectionPolicy _goalSelectionPolicy;
+  final WeightGoalFlowPolicy _weightGoalPolicy;
+  final TargetWeightRecommendationResolver _targetWeightRecommendationResolver;
   final LegacyProfileGoalIntentMigration _legacyGoalMigration;
   final OnboardingCompletionValidator _completionValidator;
   final OnboardingStatusRepository _statusRepository;
   final OnboardingDraftRepository? _draftRepository;
-  static const _profileFlow = ProfileFlowPlan();
-  static const _targetsFlow = TargetsFlowPlan();
+
+  static const double _defaultHeightCm = 170.0;
+  static const double _defaultCurrentWeightKg = 75.0;
 
   bool _isHydrated = false;
   int _currentRevision = 0;
@@ -196,8 +212,37 @@ class OnboardingController extends ChangeNotifier {
         : workoutFlowPlan.steps.first;
 
     var profile = draft.profile;
+    var targets = draft.targets;
     final goalSelection = _resolvedGoalSelection(draft);
     final mode = draft.selectedMode;
+    var profileFlowPlan = _profilePlanner(
+      mode: mode,
+      goalSelection: goalSelection,
+    );
+    var targetsFlowPlan = _targetsPlanner(
+      mode: mode,
+      goalSelection: goalSelection,
+    );
+
+    if (!profileFlowPlan.contains(profile.currentStepId)) {
+      profile = profile.copyWith(
+        currentStepId: _profilePlanner.reconcileCurrentStep(
+          currentStepId: profile.currentStepId,
+          previousPlan: const ProfileFlowPlan(),
+          nextPlan: profileFlowPlan,
+        ),
+      );
+    }
+    if (!targetsFlowPlan.contains(targets.currentStepId)) {
+      targets = targets.copyWith(
+        currentStepId: _targetsPlanner.reconcileCurrentStep(
+          currentStepId: targets.currentStepId,
+          previousPlan: const TargetsFlowPlan(),
+          nextPlan: targetsFlowPlan,
+        ),
+      );
+    }
+
     if (mode != null &&
         _goalSelectionPolicy.validate(
               mode: mode,
@@ -209,17 +254,34 @@ class OnboardingController extends ChangeNotifier {
           profileStepId: profile.currentStepId,
           flowPlan: plan,
           completedStepIds: eligibleCompleted,
+          profileFlowPlan: profileFlowPlan,
         )) {
       stepId = OnboardingStepId.profileBasics;
       profile = profile.copyWith(currentStepId: ProfileStepId.goal);
       eligibleCompleted.remove(OnboardingStepId.profileBasics);
+      profileFlowPlan = _profilePlanner(
+        mode: mode,
+        goalSelection: goalSelection,
+      );
+      targetsFlowPlan = _targetsPlanner(
+        mode: mode,
+        goalSelection: goalSelection,
+      );
     }
+
+    profile = _prepareProfileForStep(
+      profile: profile,
+      stepId: profile.currentStepId,
+      mode: mode,
+      goalSelection: goalSelection,
+    );
 
     final reconciledDraft = draft.copyWith(
       goalSelection: goalSelection,
       currentStepId: stepId,
       profile: profile,
       workout: draft.workout.copyWith(currentStepId: workoutStepId),
+      targets: targets,
       completedStepIds: eligibleCompleted,
     );
 
@@ -258,12 +320,13 @@ class OnboardingController extends ChangeNotifier {
     required ProfileStepId profileStepId,
     required OnboardingFlowPlan flowPlan,
     required Set<OnboardingStepId> completedStepIds,
+    required ProfileFlowPlan profileFlowPlan,
   }) {
     if (completedStepIds.contains(OnboardingStepId.profileBasics)) return true;
 
     if (stepId == OnboardingStepId.profileBasics) {
-      return _profileFlow.indexOf(profileStepId) >
-          _profileFlow.indexOf(ProfileStepId.goal);
+      return profileFlowPlan.indexOf(profileStepId) >
+          profileFlowPlan.indexOf(ProfileStepId.goal);
     }
 
     final profileIndex =
@@ -282,6 +345,10 @@ class OnboardingController extends ChangeNotifier {
     if (state.isBusy) return;
     _markInProgress();
 
+    final previousDirection = _weightGoalPolicy.directionFor(
+      mode: state.draft.selectedMode,
+      selection: state.draft.goalSelection,
+    );
     final nextWorkoutIntroChoice =
         state.draft.selectedMode == AppMode.hybrid && mode == AppMode.hybrid
             ? state.draft.workoutIntroChoice
@@ -304,10 +371,18 @@ class OnboardingController extends ChangeNotifier {
       mode: mode,
       selection: state.draft.goalSelection,
     );
+    final nextDirection = _weightGoalPolicy.directionFor(
+      mode: mode,
+      selection: nextGoalSelection,
+    );
     final goalChanged = nextGoalSelection != state.draft.goalSelection;
     final eligibleCompleted =
         state.completedStepIds.where(nextPlan.contains).toSet();
     var nextProfile = state.draft.profile;
+
+    if (previousDirection != nextDirection) {
+      nextProfile = nextProfile.copyWith(clearTargetWeightKg: true);
+    }
 
     if (goalChanged &&
         _isPastGoalCheckpoint(
@@ -315,6 +390,10 @@ class OnboardingController extends ChangeNotifier {
           profileStepId: nextProfile.currentStepId,
           flowPlan: nextPlan,
           completedStepIds: eligibleCompleted,
+          profileFlowPlan: _profilePlanner(
+            mode: mode,
+            goalSelection: nextGoalSelection,
+          ),
         )) {
       nextStepId = OnboardingStepId.profileBasics;
       nextProfile = nextProfile.copyWith(currentStepId: ProfileStepId.goal);
@@ -705,7 +784,7 @@ class OnboardingController extends ChangeNotifier {
 
     if (state.stepId == OnboardingStepId.profileBasics) {
       final previousProfileStep =
-          _profileFlow.previous(state.draft.profile.currentStepId);
+          state.profileFlowPlan.previous(state.draft.profile.currentStepId);
       if (previousProfileStep != null) {
         _moveToProfileStep(previousProfileStep);
         return;
@@ -724,7 +803,7 @@ class OnboardingController extends ChangeNotifier {
 
     if (state.stepId == OnboardingStepId.targets) {
       final previousTargetStep =
-          _targetsFlow.previous(state.draft.targets.currentStepId);
+          state.targetsFlowPlan.previous(state.draft.targets.currentStepId);
       if (previousTargetStep != null) {
         _moveToTargetStep(previousTargetStep);
         return;
@@ -761,7 +840,10 @@ class OnboardingController extends ChangeNotifier {
           return;
         }
       } else {
-        final errors = _profileValidator.validate(state.draft.profile);
+        final errors = _profileValidator.validate(
+          state.draft.profile,
+          weightGoalDirection: state.weightGoalDirection,
+        );
         if (errors.isNotEmpty) {
           _state = _copyState(
             validationErrors: {
@@ -773,7 +855,8 @@ class OnboardingController extends ChangeNotifier {
         }
       }
 
-      final nextProfileStep = _profileFlow.next(currentProfileStep);
+      final nextProfileStep =
+          state.profileFlowPlan.next(currentProfileStep);
       if (nextProfileStep != null) {
         _moveToProfileStep(nextProfileStep);
         return;
@@ -814,6 +897,7 @@ class OnboardingController extends ChangeNotifier {
       final error = _targetValidator.validateCurrentStep(
         state.draft.targets,
         profile: state.draft.profile,
+        weightGoalDirection: state.weightGoalDirection,
       );
       if (error != null) {
         _state = _copyState(
@@ -826,7 +910,7 @@ class OnboardingController extends ChangeNotifier {
       }
 
       final nextTargetStep =
-          _targetsFlow.next(state.draft.targets.currentStepId);
+          state.targetsFlowPlan.next(state.draft.targets.currentStepId);
       if (nextTargetStep != null) {
         _moveToTargetStep(nextTargetStep);
         return;
@@ -866,11 +950,24 @@ class OnboardingController extends ChangeNotifier {
   void _updateGoalSelection(GoalIntentSelection selection) {
     if (state.isBusy) return;
 
+    final previousDirection = _weightGoalPolicy.directionFor(
+      mode: state.draft.selectedMode,
+      selection: state.draft.goalSelection,
+    );
+    final nextDirection = _weightGoalPolicy.directionFor(
+      mode: state.draft.selectedMode,
+      selection: selection,
+    );
     final completed = {...state.completedStepIds}
       ..remove(OnboardingStepId.profileBasics);
+    var profile = state.draft.profile;
+    if (previousDirection != nextDirection) {
+      profile = profile.copyWith(clearTargetWeightKg: true);
+    }
     final nextDraft = state.draft.copyWith(
       status: OnboardingStatus.inProgress,
       goalSelection: selection,
+      profile: profile,
       completedStepIds: completed,
     );
     _state = _copyState(
@@ -944,7 +1041,12 @@ class OnboardingController extends ChangeNotifier {
   }
 
   void _moveToProfileStep(ProfileStepId stepId) {
-    final nextProfile = state.draft.profile.copyWith(currentStepId: stepId);
+    final nextProfile = _prepareProfileForStep(
+      profile: state.draft.profile.copyWith(currentStepId: stepId),
+      stepId: stepId,
+      mode: state.draft.selectedMode,
+      goalSelection: state.draft.goalSelection,
+    );
     final nextDraft = state.draft.copyWith(profile: nextProfile);
     _state = _copyState(
       draft: nextDraft,
@@ -953,6 +1055,37 @@ class OnboardingController extends ChangeNotifier {
     );
     notifyListeners();
     _scheduleDraftSave(immediate: true);
+  }
+
+  ProfileOnboardingDraft _prepareProfileForStep({
+    required ProfileOnboardingDraft profile,
+    required ProfileStepId stepId,
+    required AppMode? mode,
+    required GoalIntentSelection goalSelection,
+  }) {
+    if (stepId == ProfileStepId.height && profile.heightCm == null) {
+      return profile.copyWith(heightCm: _defaultHeightCm);
+    }
+    if (stepId == ProfileStepId.currentWeight &&
+        profile.currentWeightKg == null) {
+      return profile.copyWith(currentWeightKg: _defaultCurrentWeightKg);
+    }
+    if (stepId == ProfileStepId.targetWeight &&
+        profile.targetWeightKg == null) {
+      final direction = _weightGoalPolicy.directionFor(
+        mode: mode,
+        selection: goalSelection,
+      );
+      final recommendation = _targetWeightRecommendationResolver.resolve(
+        direction: direction,
+        currentWeightKg: profile.currentWeightKg,
+        heightCm: profile.heightCm,
+      );
+      if (recommendation != null) {
+        return profile.copyWith(targetWeightKg: recommendation);
+      }
+    }
+    return profile;
   }
 
   void _moveTo(OnboardingStepId stepId) {
@@ -1033,6 +1166,38 @@ class OnboardingController extends ChangeNotifier {
       nextDraft = nextDraft.copyWith(
         workout: nextDraft.workout.copyWith(
           currentStepId: nextWorkoutFlowPlan.steps.first,
+        ),
+      );
+    }
+
+    final nextProfileFlowPlan = _profilePlanner(
+      mode: nextDraft.selectedMode,
+      goalSelection: nextDraft.goalSelection,
+    );
+    if (!nextProfileFlowPlan.contains(nextDraft.profile.currentStepId)) {
+      nextDraft = nextDraft.copyWith(
+        profile: nextDraft.profile.copyWith(
+          currentStepId: _profilePlanner.reconcileCurrentStep(
+            currentStepId: nextDraft.profile.currentStepId,
+            previousPlan: state.profileFlowPlan,
+            nextPlan: nextProfileFlowPlan,
+          ),
+        ),
+      );
+    }
+
+    final nextTargetsFlowPlan = _targetsPlanner(
+      mode: nextDraft.selectedMode,
+      goalSelection: nextDraft.goalSelection,
+    );
+    if (!nextTargetsFlowPlan.contains(nextDraft.targets.currentStepId)) {
+      nextDraft = nextDraft.copyWith(
+        targets: nextDraft.targets.copyWith(
+          currentStepId: _targetsPlanner.reconcileCurrentStep(
+            currentStepId: nextDraft.targets.currentStepId,
+            previousPlan: state.targetsFlowPlan,
+            nextPlan: nextTargetsFlowPlan,
+          ),
         ),
       );
     }
