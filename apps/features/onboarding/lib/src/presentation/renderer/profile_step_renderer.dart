@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../domain/domain.dart';
 import '../controllers/controllers.dart';
+import '../screens/goal/goal_intent_screen.dart';
 import '../screens/profile/activity_screen.dart';
 import '../screens/profile/age_screen.dart';
 import '../screens/profile/current_weight_screen.dart';
 import '../screens/profile/gender_screen.dart';
-import '../screens/profile/goal_screen.dart';
 import '../screens/profile/health_conditions_screen.dart';
 import '../screens/profile/height_screen.dart';
 import '../screens/profile/measurement_units_screen.dart';
@@ -35,10 +35,12 @@ class ProfileStepRenderer extends StatelessWidget {
           selectedGender: draft.gender,
           onSelected: controller.updateProfileGender,
           errorText: errorText),
-      ProfileStepId.goal => GoalScreen(
-          selectedGoals: draft.goals,
-          onToggled: controller.toggleProfileGoal,
-          errorText: errorText),
+      ProfileStepId.goal => GoalIntentScreen(
+          mode: state.draft.selectedMode!,
+          selection: state.draft.goalSelection,
+          onGoalTapped: controller.tapGoalIntent,
+          errorText: errorText,
+        ),
       ProfileStepId.age => AgeScreen(
           value: draft.dateOfBirth,
           onChanged: controller.updateProfileDateOfBirth,
