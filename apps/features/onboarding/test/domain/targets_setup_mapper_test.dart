@@ -5,7 +5,7 @@ void main() {
   const mapper = TargetsSetupMapper();
 
   group('TargetsSetupMapper', () {
-    test('maps active Target Weight into TargetsSetupData', () {
+    test('maps active Target Weight and Goal Pace into TargetsSetupData', () {
       const targetsDraft = TargetsOnboardingDraft(
         dailySteps: 10000,
         sleepTargetMinutes: 480,
@@ -45,7 +45,7 @@ void main() {
       expect(result.recommendation?.caloriesKcal, greaterThan(0));
     });
 
-    test('dormant Target Weight is excluded from owner payload and calculator input', () {
+    test('dormant Target Weight and skipped Goal Pace are excluded from intent consumption', () {
       const targetsDraft = TargetsOnboardingDraft(goalPaceKgPerWeek: 0.5);
       final profileDraft = ProfileOnboardingDraft(
         heightCm: 175,
@@ -61,9 +61,10 @@ void main() {
       );
 
       expect(result.targetWeightKg, isNull);
+      expect(result.goalPaceKgPerWeek, 0.0);
     });
 
-    test('keeps uncollected optional profile metrics null', () {
+    test('keeps uncollected optional profile metrics null and skipped pace neutral', () {
       const targetsDraft = TargetsOnboardingDraft();
       final profileDraft = ProfileOnboardingDraft();
 
@@ -76,6 +77,7 @@ void main() {
       expect(result.currentWeightKg, isNull);
       expect(result.targetWeightKg, isNull);
       expect(result.activityLevel, isNull);
+      expect(result.goalPaceKgPerWeek, 0.0);
     });
 
     test('safely clamps steps and water to bounds', () {
