@@ -111,6 +111,48 @@ void main() {
       expect(await targetsRepo.getTargetsSetup(), isNotNull);
     });
 
+    test('active weight goal persists matching Target Weight', () async {
+      final draft = OnboardingDraft(
+        selectedMode: AppMode.nutrition,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.loseWeight,
+        ),
+        profile: _validProfile(),
+        targets: _validTargets(),
+      );
+      final flowPlan = const BuildOnboardingFlowUseCase()(
+        entryPath: OnboardingEntryPath.firstRun,
+        mode: AppMode.nutrition,
+        workoutIntroChoice: null,
+      );
+
+      await useCase(draft: draft, flowPlan: flowPlan);
+
+      expect((await profileRepo.getProfileSetup())?.targetWeightKg, 58);
+      expect((await targetsRepo.getTargetsSetup())?.targetWeightKg, 58);
+    });
+
+    test('ineligible goal does not persist dormant Target Weight', () async {
+      final draft = OnboardingDraft(
+        selectedMode: AppMode.nutrition,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.maintainWeight,
+        ),
+        profile: _validProfile(),
+        targets: _validTargets(),
+      );
+      final flowPlan = const BuildOnboardingFlowUseCase()(
+        entryPath: OnboardingEntryPath.firstRun,
+        mode: AppMode.nutrition,
+        workoutIntroChoice: null,
+      );
+
+      await useCase(draft: draft, flowPlan: flowPlan);
+
+      expect((await profileRepo.getProfileSetup())?.targetWeightKg, isNull);
+      expect((await targetsRepo.getTargetsSetup())?.targetWeightKg, isNull);
+    });
+
     test('re-throws OwnerPersistenceException when an owner repository fails', () async {
       final failingProfileRepo = _FailingProfileSetupRepository();
       final failingUseCase = PersistOnboardingOwnerDataUseCase(
@@ -183,6 +225,7 @@ ProfileOnboardingDraft _validProfile() {
     heightCm: 165,
     currentWeightKg: 60,
     targetWeightKg: 58,
+    targetWeightDirection: GoalWeightDirection.loss,
     activityLevel: ProfileActivityLevel.active,
     healthConditions: const {ProfileHealthCondition.none},
   );
