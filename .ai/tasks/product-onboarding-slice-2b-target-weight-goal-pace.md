@@ -5,34 +5,28 @@
 **GitHub tracker:** #40  
 **Canonical ownership tracker:** #44  
 **Canonical implementation PR:** #50 `feat(onboarding): activate unified mode-aware Goal screen`  
-**Canonical branch:** `agent/onboarding-slice-2-step-1-body-goal-ui`  
-**Execution decision:** keep PR #50 Draft/unmerged until canonical Supabase owner boundaries are approved and the remaining Product/technical gates are satisfied.
+**Canonical branch:** `agent/onboarding-slice-2-step-1-body-goal-ui`
+
+PR #50 stays Draft/unmerged until the approved Supabase owner migration/cutover and remaining Product gates are complete.
 
 ---
 
-## 0. Read first — current truth
+## 0. Current truth
 
-This file is the durable continuation handoff. Do not rely on chat history.
-
-### PR topology
-
-- PR #50 is the only active `tio-world` implementation PR.
-- PR #51 is closed/unmerged as superseded; its useful tests were consolidated into #50.
-- PR #52 is closed/unmerged validation-only.
-
-### Validated checkpoints
+Validated checkpoints:
 
 ```text
 Goal + eligibility baseline                     ✅
 2B-B1 Target Weight state/domain semantics      ✅ CI #1079
 2B-C Goal Pace ownership/default semantics      ✅ CI #1090
 2B-D1 local acceptance + Review Goal source     ✅ CI #1095
-2B-D2 persistence transport audit               ✅ audit complete
-Live Supabase owner-table audit                 ✅ audit complete
-Canonical owner/schema decision                 ⏳ NEXT GATE (#44)
+Persistence transport audit                     ✅
+Live tio-world Supabase ownership audit          ✅
+#44 canonical owner contract                     ✅ APPROVED
+Forward Supabase migration/backfill design       ⏳ NEXT
 ```
 
-Latest validated D1 source/test checkpoint:
+Latest validated source/test checkpoint:
 
 ```text
 6c3dcb527bc92b3a6b46755d2d8c569682d090f4
@@ -43,362 +37,142 @@ Flutter tests   ✅
 Dart tests      ✅
 ```
 
-PR #50 is **not Ready**.
+The current persistence authority is the live **`tio-world` Supabase project**, not the legacy `tnyx-hub` onboarding HTTP contract.
 
 ---
 
-## 1. Approved Goal contract
+## 1. Approved Goal + weight-follow-up contract
 
 `GoalIntentSelection` is onboarding semantic authority.
 
-Nutrition, single-select:
+Nutrition:
 
 ```text
-Lose weight
-Gain weight
-Maintain weight
-Recomposition
+Lose weight      → Target Weight + Goal Pace
+Gain weight      → Target Weight + Goal Pace
+Maintain weight  → skip both
+Recomposition    → skip both
 ```
 
-Workout / Hybrid, max two compatible:
+Workout / Hybrid:
 
 ```text
-Lose weight
-Build muscle
-Get stronger
-Improve endurance
-Stay fit
-Recomposition
+Lose weight primary/supporting → Target Weight + Goal Pace
+training-only goals            → skip both
 ```
 
 Rules:
 
+- Nutrition is single-select.
+- Workout/Hybrid may use one compatible supporting goal.
 - `Build muscle != Gain weight`.
-- never infer Goal intent from BMI or current/target numeric delta;
-- do not invent unsupported GoalIntent → legacy ProfileGoal mappings.
+- Never infer Goal intent from BMI or current/target numeric difference.
+- Do not invent unsupported GoalIntent → legacy ProfileGoal mappings.
 
-Weight follow-up eligibility:
+Local draft schema v4 stores Target Weight value + associated loss/gain direction. Temporary ineligible detours preserve dormant values; same direction restores; explicit opposite direction clears the incompatible scalar target.
 
-```text
-Nutrition Lose/Gain                  → Target Weight + Goal Pace
-Nutrition Maintain/Recomposition     → skip both
-Workout/Hybrid Lose primary/support  → Target Weight + Goal Pace
-training-only goals                  → skip both
-```
-
-Dynamic Profile/Targets plans use this authority for Next/Back/resume/progress/validation/reconciliation.
+Goal Pace owns weekly body-weight change only. Calories/BMR/TDEE were removed from the Goal Pace screen; slider/haptics/warnings/projection remain.
 
 ---
 
-## 2. 2B-B1 Target Weight state semantics — implemented
+## 2. Approved canonical Supabase owner contract (#44)
 
-Local draft schema v4 stores:
+This owner map is final for the next migration design.
 
-```text
-targetWeightKg: double?
-targetWeightDirection: loss | gain | null
-```
+### `users` — Account + Common User Profile
 
-Contract:
+Keep `users`; do **not** create `user_profiles`.
 
-- eligible → ineligible preserves Target Weight dormant in onboarding draft;
-- ineligible → same direction restores exact value;
-- explicit loss ↔ gain clears incompatible old scalar Target Weight;
-- legacy target direction associates only from explicit restored Goal;
-- recommendation does not overwrite a preserved value;
-- no numeric/BMI semantic inference.
-
-Validated CI #1079.
-
----
-
-## 3. 2B-C Goal Pace semantics — implemented
-
-Goal Pace owns weekly body-weight change only.
-
-Removed from Goal Pace screen:
-
-- BMR/TDEE calculation;
-- calorie deficit/surplus math;
-- target-kcal UI/info sheet.
-
-Preserved:
-
-- slider;
-- haptics;
-- pace tags/warnings;
-- target-date projection/graph.
-
-Compatibility draft default `0.5` is not user intent when Goal Pace is skipped. Ineligible consumption is neutral `0.0`.
-
-Review hides dormant Target Weight and skipped Goal Pace from explicit Goal direction.
-
-Validated CI #1090.
-
----
-
-## 4. 2B-D1 local acceptance — implemented
-
-`ReviewScreen` now renders ordered `draft.goalSelection` instead of stale legacy `profile.goals`.
-
-Table-driven acceptance covers:
-
-- Nutrition Lose/Gain/Maintain/Recomposition;
-- Workout Lose primary/supporting + all training-only goals;
-- Hybrid setup-now and Later with the same matrix;
-- restored Target Weight/Goal Pace reconciliation;
-- dynamic progress totals;
-- Targets Next/Back.
-
-Validated CI #1095.
-
----
-
-## 5. Persistence architecture correction — `tio-world` Supabase is current authority
-
-Do **not** treat the legacy `tnyx-hub` onboarding HTTP validator as the current schema authority for this work.
-
-The current `tio-world` app repository provider uses:
+Canonical common fields include:
 
 ```text
-Supabase configured
-→ SupabaseTargetsSetupRepository
-
-otherwise
-→ legacy RemoteTargetsSetupRepository
-```
-
-The live Supabase project named `tio-world` is active and is the persistence environment that must drive the owner/schema decision.
-
-The legacy HTTP path may be retained as a compatibility/future adapter, but it must not dictate canonical Tio-world ownership.
-
----
-
-## 6. Live `tio-world` Supabase audit — confirmed mixed ownership
-
-Live public tables observed:
-
-```text
-users
-onboarding_drafts
-user_nutrition_profiles
-user_workout_profiles
-user_devices
-```
-
-### `onboarding_drafts`
-
-Columns:
-
-```text
-user_id
-schema_version
-payload jsonb
-created_at
-updated_at
-```
-
-This is appropriate as onboarding orchestration/resume storage. It is **not** a canonical Profile/Body/Nutrition/Workout owner.
-
-### `users` currently mixes
-
-Account/identity:
-
-```text
-id
-username
-email
-mobile
-avatar/profile image
-timezone
-plan/status/account flags
-```
-
-Shared profile:
-
-```text
+account/auth/status identity
 name
-gender
-date_of_birth + legacy dob
-height_cm
-activity_level
-health_conditions
-other_health_condition
-unit_preferences
-```
-
-Body/goal fields that should not remain casually mixed/mirrored:
-
-```text
-current_weight_kg
-target_weight_kg
-goals
-primary_goal
-```
-
-### `user_nutrition_profiles` currently mixes
-
-Duplicated Profile/Body:
-
-```text
-height_cm
-current_weight_kg
-target_weight_kg
-activity_level
-```
-
-Body Goal:
-
-```text
-weekly_weight_change_kg
-```
-
-Common Wellness:
-
-```text
-steps_target
-water_target_ml
-sleep_target_minutes
-bed_time
-wake_up_time
-```
-
-Nutrition Profile:
-
-```text
-preferred_diet
-allergies
-disliked_foods
-```
-
-Other/mixed:
-
-```text
-medical_conditions
-macro_targets
-```
-
-### `user_workout_profiles` currently mixes
-
-Workout Profile/capability:
-
-```text
-workout_location
-available_equipment
-experience_level
-focus_areas
-health_concerns
-```
-
-Workout Targets/plan constraints:
-
-```text
-training_days
-workout_duration_mins
-split_program
-special_event_goal
-```
-
-### Live Target Weight fact
-
-`public.user_nutrition_profiles.target_weight_kg` is already:
-
-```text
-numeric NULLABLE
-```
-
-and the live audit found no Target Weight database constraint.
-
-Therefore **no Target Weight nullability migration is currently needed**.
-
-### Duplicate conflict sample
-
-Aggregate live check at audit time:
-
-```text
-users total                         2
-users with nutrition profile data  1
-height conflicts                    0
-current-weight conflicts            0
-target-weight conflicts             0
-activity conflicts                  0
-```
-
-This lowers current backfill risk but does not justify duplicate canonical ownership.
-
----
-
-## 7. Canonical owner decision — NEXT GATE (#44)
-
-Before more persistence implementation in PR #50, approve one durable owner per concept.
-
-Recommended logical owner map for review:
-
-### User / Profile
-
-Shared identity + baseline only:
-
-```text
-name
+username where applicable
 gender
 DOB
 height
 activity level
 general health conditions
 unit preferences
+timezone/profile image/common profile metadata
 ```
 
-Account/auth fields may stay on `users`; whether shared profile stays on `users` or moves to a dedicated `user_profiles` table must be decided once, then used by both Onboarding and Settings.
-
-### Body / Body Goal
-
-Common across all modes:
+The following must migrate away from `users` canonical ownership:
 
 ```text
-current weight
-weight history
-active body-goal type: lose/gain/maintain/recomposition
-active-goal start/starting weight
-target weight
-weekly weight-change target
+current_weight_kg
+target_weight_kg
+goals / primary_goal mixed body/workout intent
 ```
 
-Preferred clean design to review:
+### `user_devices` — Device owner
+
+Retain as separate 1:N owner:
 
 ```text
-body weight history table
-+
-active body-goal/plan table
+users 1 ─── N user_devices
 ```
 
-Do not make Nutrition the owner of body-weight intent.
+Own device identity/fingerprint, platform/OS, app build/version, push token, last device activity and device-specific runtime/capability metadata.
 
-### Wellness
+No Body/Nutrition/Workout/common Profile data belongs here.
 
-Common targets:
+### `body_weight_logs` — Weight history / current-weight source
+
+Canonical owner for time-varying body weight.
+
+Latest applicable log is the canonical current-weight source. Do not retain `current_weight_kg` as a second canonical value in `users` or Nutrition.
+
+### `user_body_goals` — Body Goal plans
+
+Common across Workout/Nutrition/Hybrid.
+
+Owns:
 
 ```text
-steps
-water
-sleep duration
-bedtime/wake time if retained
+goal_type = lose | gain | maintain | recomposition
+starting_weight
+target_weight when applicable
+weekly_weight_change when applicable
+started_at
+ended/completed timestamp
+active/status
 ```
 
-These need a common Wellness owner, not Nutrition ownership.
+Target Weight + Goal Pace belong here, not in Nutrition Profile and not in `users`.
 
-### Nutrition Profile
+Implementation should enforce at most one active plan per user while retaining history.
 
-Food context only:
+### `user_wellness_targets` — Common Wellness
+
+Owns:
 
 ```text
-diet type/style
+steps target
+water target
+sleep duration target
+bedtime/wake time if retained by product
+```
+
+These are cross-mode Wellness values, not Nutrition-owned values.
+
+### `user_nutrition_profiles` — Nutrition context only
+
+Owns food/diet context:
+
+```text
+diet/preferred diet
 allergies/restrictions
 preferred/disliked foods
+future nutrition-context fields
 ```
 
-### Nutrition Targets
+Must stop canonically owning mirrored Profile/Body/Wellness fields such as height, current/target weight, activity, weekly body pace, steps/water/sleep.
 
-Numeric nutrition goals only:
+### `user_nutrition_targets` — Numeric Nutrition targets
+
+Owns:
 
 ```text
 calories
@@ -406,132 +180,190 @@ protein
 carbohydrates
 fat
 fiber
-recommended-vs-custom metadata
+recommended-vs-custom state/metadata
+future approved nutrient/meal targets
 ```
 
 BMR/TDEE are calculated context, not editable canonical goals.
 
-### Workout Profile
+### `user_workout_profiles` — Workout capability/context
 
-Training capability/context:
+Owns:
 
 ```text
 location/environment
-equipment
-experience
+available equipment
+experience level
 focus areas
-injuries/limitations
+injuries / physical limitations
 ```
 
-### Workout Targets
+### `user_workout_targets` — Workout objective/plan constraints
 
-Training objective/plan constraints:
+Owns:
 
 ```text
-workout goal(s)
+workout goal
 training days
-duration
-split/preference
-special event
+preferred duration
+split/training preference
+special event/date when applicable
+other approved training target constraints
 ```
 
-### Onboarding Draft
+### Workout Runtime Settings — separate owner
+
+Rest timers, RPE/RIR runtime behavior, keep-awake, graph/display rules, music, PR notifications, Wear/device runtime behavior, etc. are not Workout Profile/Targets.
+
+### `onboarding_drafts` — orchestration only
+
+Keep `schema_version + payload` for flow/current-step/draft/resume/compatibility metadata.
+
+It is not a canonical health/profile owner. Dormant/skipped values must never become canonical intent merely because they exist in the draft.
+
+---
+
+## 3. Live Supabase facts verified before approval
+
+Live public owner-related tables include:
 
 ```text
-flow/order/current step/draft/resume only
+users
+user_devices
+onboarding_drafts
+user_nutrition_profiles
+user_workout_profiles
 ```
 
-It never becomes a canonical owner.
+Current live schema is mixed:
+
+- `users` duplicates Body Goal/measurement fields;
+- `user_nutrition_profiles` duplicates Profile/Body fields and mixes Wellness + Nutrition targets;
+- `user_workout_profiles` mixes Profile + Workout Targets.
+
+Live `user_nutrition_profiles.target_weight_kg` is already nullable numeric.
+
+Aggregate duplicate audit at approval time found zero conflicts for overlapping height/current-weight/target-weight/activity values. This lowers current migration risk but does not justify keeping duplicate canonical writes.
 
 ---
 
-## 8. Correct schema migration order
+## 4. Approved migration order
 
-Do not patch duplicate tables one field at a time.
-
-Correct order:
+Do not patch current mixed tables field-by-field and do not drop old columns in the first migration.
 
 ```text
-1. #44 full field trace + canonical owner approval
-2. inspect live RLS/constraints/indexes for affected tables
-3. define forward-only Supabase schema additions
-4. define deterministic backfill precedence for duplicated fields
-5. create new owner tables/columns + RLS + constraints
-6. backfill existing rows
-7. update Tio-world domain repositories/models to new owners
-8. dual-read/compatibility period if required
-9. verify Onboarding + Settings against same owner repositories
-10. stop writes to old duplicate columns
-11. only after verification, deprecate/drop old duplicate columns in a later migration
-12. rerun PR #50 integrated persistence acceptance
+1. Canonical owner contract                         ✅
+2. Design forward-only Supabase migration           NEXT
+3. Define exact legacy → canonical backfill matrix
+4. Review constraints, indexes and RLS
+5. Create missing canonical tables
+6. Backfill existing rows with explicit precedence
+7. Validate counts/conflicts/null semantics
+8. Cut Tio-world repositories/models to new owners
+9. Make Onboarding + Settings use same repositories
+10. Stop writes to old mirrored columns
+11. Compatibility/dual-read only where intentional
+12. Verify production/app behavior
+13. Remove legacy duplicate columns in later cleanup
+14. Re-run PR #50 integrated persistence acceptance
 ```
 
-No destructive drop in the first migration.
+No blind bidirectional synchronization.
 
 ---
 
-## 9. Target Weight transport after owner decision
+## 5. Backfill rules that must be designed next
 
-The earlier D2 audit remains useful, but implementation order changes.
-
-Current Supabase repository conditionally emits:
-
-```dart
-if (data.targetWeightKg != null)
-  'target_weight_kg': data.targetWeightKg
-```
-
-If the final Body owner still uses a nullable active Target Weight field, inactive state must be able to explicitly clear stale canonical state instead of omission.
-
-But **do not implement this into the current mixed Nutrition table as the final architecture before #44 owner approval**.
-
-The legacy HTTP `60.0` fallback remains a defect in that adapter and must eventually be removed, but it is no longer the next blocking migration step.
-
----
-
-## 10. Remaining PR #50 gates
+Migration plan must explicitly resolve:
 
 ```text
-#44 canonical owner/schema contract          NEXT
-Supabase forward migration/backfill          AFTER APPROVAL
-repository cutover + persistence acceptance  AFTER SCHEMA
-canonical Goal persistence                   WITH OWNER CONTRACT
-measurement picker/reference                 BLOCKED ON REFERENCE
-Target Weight numeric recommendation policy  NEEDS PRODUCT RULE
-final full integrated CI                     LAST
+users.current_weight_kg / nutrition current weight
+→ body_weight_logs
+
+users.target_weight_kg / nutrition target weight
+→ user_body_goals.target_weight only with valid body-goal semantics
+
+legacy goals / primary_goal
+→ user_body_goals or user_workout_targets only when meaning is lossless
+
+nutrition weekly_weight_change_kg
+→ user_body_goals only with eligible explicit body-goal semantics
+
+nutrition steps/water/sleep
+→ user_wellness_targets
+
+nutrition food context
+→ user_nutrition_profiles
+
+nutrition macro targets
+→ user_nutrition_targets
+
+workout location/equipment/experience/focus/limitations
+→ user_workout_profiles
+
+workout training days/duration/split/special event
+→ user_workout_targets
 ```
 
-PR #50 stays Draft/unmerged.
+Ambiguous legacy values must not be guessed or fabricated.
 
 ---
 
-## 11. Guardrails
+## 6. PR #50 persistence implications
+
+Do not make the current mixed `user_nutrition_profiles` table the final Target Weight owner just to fix nullable transport.
+
+After `user_body_goals` exists and repositories cut over:
+
+- active eligible Target Weight persists to active Body Goal;
+- skipped/ineligible Target Weight remains dormant only in onboarding draft and must not overwrite canonical active intent incorrectly;
+- Goal Pace persists with the Body Goal plan, not Nutrition;
+- Nutrition calculation reads Body/Profile owners rather than mirroring those inputs into Nutrition tables.
+
+The legacy HTTP `60.0` fallback remains a defect in the fallback adapter and should eventually be removed, but it is not the current schema authority or the next migration step.
+
+---
+
+## 7. App Mode invariant
+
+```text
+Workout mode   → common + Body/Wellness + Workout owners eligible
+Nutrition mode → common + Body/Wellness + Nutrition owners eligible
+Hybrid mode    → common + Body/Wellness + Nutrition + Workout owners eligible
+```
+
+Changing mode changes visibility, not durable data ownership. Hidden Nutrition/Workout data is not deleted merely because a mode hides it.
+
+---
+
+## 8. Remaining gates before PR #50 Ready
+
+```text
+forward Supabase migration/backfill design       NEXT
+migration + RLS/constraints/indexes              after review
+repository/model cutover                         after schema
+Onboarding + Settings owner parity               after cutover
+canonical unified Goal persistence               with new owners
+measurement picker/reference                     blocked on reference
+Target Weight recommendation numeric policy      needs explicit rule
+final integrated acceptance + full CI            last
+```
+
+Guardrails:
 
 - one canonical owner per durable concept;
-- do not synchronize duplicate canonical columns as a permanent design;
+- no permanent mirrored canonical values;
 - Onboarding and Settings are entry points, not owners;
-- App Mode visibility must not delete hidden domain data;
-- no fake GoalIntent → legacy ProfileGoal mappings;
-- no destructive Supabase migration before backfill/cutover verification;
+- `users` remains common Profile owner;
+- `user_devices` stays separate device-only owner;
+- current weight belongs to weight history;
+- Body Goal is common across modes;
+- no fake Goal mappings;
+- no destructive first migration;
 - no unrelated UI redesign;
-- no recommendation formula change without approval;
+- no recommendation formula changes without approval;
 - do not invent the missing measurement picker.
 
----
+## Immediate next task
 
-## 12. Immediate next task
-
-**Audit/approve #44 canonical Supabase owner model.**
-
-Specifically resolve:
-
-1. whether shared User Profile remains on `users` or moves to `user_profiles`;
-2. current-weight/history model;
-3. active Body Goal table/model;
-4. Wellness target table/model;
-5. Nutrition Profile vs Nutrition Target split;
-6. Workout Profile vs Workout Target split;
-7. exact backfill source precedence for every duplicated field;
-8. RLS and Settings/Onboarding repository ownership.
-
-Only after that approval should schema migrations or PR #50 persistence rewiring start.
+**Design the forward-only Supabase migration and exact backfill matrix for the approved #44 owner contract. Do not mutate the live schema until that migration plan is reviewed.**
