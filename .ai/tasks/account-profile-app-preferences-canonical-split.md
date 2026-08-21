@@ -63,6 +63,13 @@ supabase/migrations/20260821180908_split_account_profile_app_preferences.sql
 supabase/migrations/20260821181005_harden_profile_app_preference_grants.sql
 ```
 
+Repo commits recording those exact migrations:
+
+```text
+356e321382fa9d431724633e5268842faa4241f3
+7107987154b26129e4674906bddfce99a590a7cf
+```
+
 ### P1 live result
 
 ```text
@@ -72,7 +79,7 @@ public.users
 ├─ mobile
 └─ mobile_verified_at     ✅ existing
 
-public.user_profiles      ✅ created
+public.user_profiles        ✅ created
 public.user_app_preferences ✅ created
 ```
 
