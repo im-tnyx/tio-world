@@ -32,8 +32,10 @@ class GoalIntentSelection {
       primaryGoal == goal || supportingGoal == goal;
 
   Iterable<GoalIntent> get goals sync* {
-    if (primaryGoal case final goal?) yield goal;
-    if (supportingGoal case final goal?) yield goal;
+    final primary = primaryGoal;
+    if (primary != null) yield primary;
+    final supporting = supportingGoal;
+    if (supporting != null) yield supporting;
   }
 
   @override
