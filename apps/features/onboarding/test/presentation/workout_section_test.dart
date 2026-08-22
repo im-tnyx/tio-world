@@ -30,7 +30,7 @@ void main() {
         harness.controller.state.draft.workout.gymAccess,
         WorkoutGymAccess.home,
       );
-      expect(harness.controller.state.progressStepCount, 26);
+      expect(harness.controller.state.progressStepCount, 27);
       expect(harness.controller.state.workoutFlowPlan.stepCount, 9);
 
       await tester.tap(find.text('Continue'));
