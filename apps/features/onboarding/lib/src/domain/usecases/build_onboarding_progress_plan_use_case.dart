@@ -58,6 +58,11 @@ class BuildOnboardingProgressPlanUseCase {
         case OnboardingStepId.nutritionPreferences:
           items.add(const NutritionPreferencesProgressItem());
           break;
+        case OnboardingStepId.nutritionGoals:
+          for (final targetStep in targetsFlowPlan.steps) {
+            items.add(NutritionGoalsProgressItem(targetStep));
+          }
+          break;
         case OnboardingStepId.targets:
           for (final targetStep in targetsFlowPlan.steps) {
             items.add(TargetsProgressItem(targetStep));
@@ -68,7 +73,6 @@ class BuildOnboardingProgressPlanUseCase {
           break;
         case OnboardingStepId.userProfile:
         case OnboardingStepId.workoutProfile:
-        case OnboardingStepId.nutritionGoals:
         case OnboardingStepId.workoutTargets:
         case OnboardingStepId.healthConnections:
         case OnboardingStepId.planBuilding:
