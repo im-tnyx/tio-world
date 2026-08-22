@@ -4,6 +4,7 @@ export 'build_onboarding_flow_use_case.dart';
 export 'build_onboarding_progress_plan_use_case.dart';
 export 'build_profile_flow_plan_use_case.dart';
 export 'build_targets_flow_plan_use_case.dart';
+export 'build_wellness_flow_plan_use_case.dart';
 export 'build_workout_flow_plan_use_case.dart';
 export 'calculate_nutrition_target_recommendation_use_case.dart';
 export 'complete_onboarding_use_case.dart';
