@@ -1,89 +1,112 @@
 # Product Onboarding O2E — Integrated Canonical Profile Acceptance
 
-**Status:** In progress  
+**Status:** Validated  
 **Tracker:** GitHub Issue #53  
 **Parent tracker:** #40  
 **Canonical ownership:** #44  
 **Implementation PR:** #50 Draft/open/unmerged  
 **Branch:** `agent/onboarding-slice-2-step-1-body-goal-ui`
 
-## Starting checkpoint
+## Final checkpoint
 
-O2D is validated:
+O2E and the complete O2 common Profile lifecycle are validated on:
 
 ```text
-6843a14b89f0c0bb7d62b1466eb3855ddbef0f64
-Flutter CI #1275 / run 32555015103
+7e7119aa4dfe9cb53b1078376aa93e950f987adb
+Flutter CI #1279 / run 32555540391
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
 Dart tests      ✅
 ```
 
-O2 foundation entering O2E:
+O2D predecessor:
+
+```text
+6843a14b89f0c0bb7d62b1466eb3855ddbef0f64
+Flutter CI #1275 / run 32555015103 ✅
+```
+
+## Validated O2 sequence
 
 ```text
 O2A UserProfileData + UserProfileRepository               ✅ #1252
 O2B SupabaseUserProfileRepository → public.user_profiles   ✅ #1252
 O2C Product Onboarding canonical Profile write cutover     ✅ #1268
 O2D active userProfile section + legacy resume             ✅ #1275
-O2E integrated canonical Profile acceptance                ACTIVE
+O2E integrated canonical Profile acceptance                ✅ #1279
 ```
 
-## Outcome
-
-Prove the complete O2 common Profile lifecycle across canonical read/write boundaries, Product Onboarding persistence, active section identity and legacy draft compatibility. Production behavior should change only if integrated acceptance exposes a real O2 contract gap.
-
-O2E is the final O2 validation gate before O3.
-
-## Canonical lifecycle to prove
+## Canonical lifecycle proved
 
 ```text
-legacy/existing account context
-→ canonical user_profiles read is authoritative for common Profile
+stale legacy users Profile mirror
+→ canonical UserProfileRepository.read remains authoritative
 → Product Onboarding draft / userProfile section
-→ strict common Profile mapping
+→ strict UserProfileData mapping
 → canonical user_profiles upsert
 → Body owner remains separate
-→ persisted/resumed profileBasics checkpoint keeps userProfile identity
-→ fresh repository read returns the accepted canonical Profile exactly
+→ onboarding completion publishes only after owner persistence
+→ serialized profileBasics resume resolves to userProfile
+→ fresh canonical read returns accepted Profile truth
 ```
 
-## Acceptance matrix
+Integrated harness:
 
-- [ ] canonical `UserProfileRepository.read` returns `user_profiles` truth independently of stale legacy `users` Profile mirrors;
-- [ ] canonical common Profile write/read round-trip preserves name, gender, DOB, units, height, activity and health fields exactly;
-- [ ] Product Onboarding completion path uses canonical Profile upsert before completion publication;
-- [ ] canonical Profile write excludes Account/avatar/plan/App Mode/Goal/current/target weight concepts;
-- [ ] Body current weight/Goal persistence remains separate and unchanged;
-- [ ] active Product Onboarding Profile section is `userProfile` using existing `ProfileSection`;
-- [ ] serialized legacy `profileBasics` snapshot resumes to active `userProfile` without losing answers/nested Profile step;
-- [ ] canonical Profile failure prevents downstream false completion;
-- [ ] unauthenticated canonical Profile access fails closed with no anonymous auth side effect;
-- [ ] malformed canonical Profile state fails safely rather than fabricating semantic defaults;
-- [ ] no legacy column drop/schema migration;
-- [ ] no O3/bodyGoal activation;
-- [ ] full Flutter analyze + Dart analyze + Flutter tests + Dart tests green on exact final O2 checkpoint;
-- [ ] exact final O2 evidence recorded in #53/#40/#44/PR #50 and repo handoff tasks before O3.
+`apps/features/onboarding/test/domain/o2e_integrated_profile_acceptance_test.dart`
 
-## Read precedence rule
+It proves:
+- canonical read is independent of a stale legacy broad Profile mirror;
+- common Profile write/read round-trip preserves canonical fields;
+- Product Onboarding calls canonical Profile persistence before mode/completion publication;
+- Current Weight remains Body-owned;
+- legacy broad `saveProfileSetup` is not called by canonical onboarding persistence;
+- serialized `profileBasics` keeps nested Profile answers and resumes through active `userProfile`;
+- canonical Profile failure blocks Body/downstream completion publication.
 
-`public.user_profiles` is the canonical common Profile owner. Legacy broad `users` Profile mirrors may remain for compatibility surfaces, but they must never override canonical common Profile reads through `UserProfileRepository`.
+Focused O2A/O2B coverage remains authoritative for authenticated Supabase access and strict malformed-state parsing. Full CI #1279 re-runs those focused suites together with O2E.
 
-An unfinished onboarding draft remains orchestration state, not a competing durable owner. O2E must not invent a permanent `users` ↔ `user_profiles` synchronization layer.
+## Acceptance
 
-## Guardrails
+- [x] canonical `UserProfileRepository.read` returns `user_profiles` truth independently of stale legacy `users` Profile mirrors;
+- [x] canonical common Profile write/read round-trip preserves name, gender, DOB, units, height, activity and health fields exactly;
+- [x] Product Onboarding completion path uses canonical Profile upsert before completion publication;
+- [x] canonical Profile contract excludes Account/avatar/plan/App Mode/Goal/current/target weight concepts;
+- [x] Body current weight/Goal persistence remains separate and unchanged;
+- [x] active Product Onboarding Profile section is `userProfile` using existing `ProfileSection`;
+- [x] serialized legacy `profileBasics` snapshot resumes to active `userProfile` without losing answers/nested Profile step;
+- [x] canonical Profile failure prevents downstream false completion;
+- [x] unauthenticated canonical Profile access fails closed with no anonymous auth side effect;
+- [x] malformed canonical Profile state fails safely rather than fabricating semantic defaults;
+- [x] no legacy column drop/schema migration;
+- [x] no O3/bodyGoal activation occurred before O2 validation;
+- [x] full Flutter analyze + Dart analyze + Flutter tests + Dart tests green on exact final O2 checkpoint;
+- [x] exact final O2 evidence is ready to freeze into #53/#40/#44/PR #50 and repo handoff before O3 implementation.
 
-- preserve existing Profile onboarding UI and picker contracts;
-- preserve stable `OnboardingStepId.profileBasics`;
-- preserve legacy `OnboardingSectionId.profile` compatibility only; active flow remains `userProfile`;
-- Current Weight stays Body-owned;
-- no applied migration edits or legacy-column drops;
-- no permanent dual-write synchronization;
-- no anonymous-auth fallback;
-- no fabricated semantic defaults;
-- do not start O3 until this task is validated and all canonical trackers are synced.
+## Ownership frozen by O2
 
-## Current work
+```text
+public.user_profiles
+├─ name
+├─ gender
+├─ date_of_birth
+├─ unit_preferences
+├─ height_cm
+├─ activity_level
+├─ health_conditions
+└─ other_health_condition
+```
 
-**Add a bounded integrated O2 acceptance harness around the canonical Profile repository/bridge + Product Onboarding owner persistence + serialized resume path. Change production code only if the harness exposes a real gap.**
+Explicitly outside common Profile:
+
+```text
+current weight             → body_weight_logs
+Body Goal / target / pace  → user_body_goals
+App Mode / active tabs     → user_app_preferences
+Account/contact/avatar     → account/legacy compatibility surfaces
+Wellness/Nutrition/Workout → dedicated owners
+```
+
+## Exit
+
+**O2E is validated. O2 common User Profile owner is complete. O3 Body Goal section + Profile/Body parity may start only from the exact O2 evidence above.**
