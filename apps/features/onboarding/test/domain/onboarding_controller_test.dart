@@ -18,7 +18,7 @@ void main() {
     expect(controller.state.draft.status, isNot(OnboardingStatus.completed));
     expect(controller.state.stepId, OnboardingStepId.profileBasics);
     expect(controller.state.currentSection, OnboardingSectionId.userProfile);
-    expect(controller.state.flowPlan.steps, hasLength(8));
+    expect(controller.state.flowPlan.steps, hasLength(9));
     expect(
       controller.state.flowPlan.stepIds,
       containsAllInOrder(const [
@@ -41,7 +41,8 @@ void main() {
         OnboardingStepId.profileBasics,
         OnboardingStepId.bodyGoal,
         OnboardingStepId.wellnessGoals,
-        OnboardingStepId.workoutPreferences,
+        OnboardingStepId.workoutProfile,
+        OnboardingStepId.workoutTargets,
         OnboardingStepId.nutritionGoals,
         OnboardingStepId.review,
       ],
@@ -59,7 +60,8 @@ void main() {
         OnboardingStepId.wellnessGoals,
         OnboardingStepId.nutritionProfile,
         OnboardingStepId.workoutIntro,
-        OnboardingStepId.workoutPreferences,
+        OnboardingStepId.workoutProfile,
+        OnboardingStepId.workoutTargets,
         OnboardingStepId.nutritionGoals,
         OnboardingStepId.review,
       ],
