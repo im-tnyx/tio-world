@@ -28,6 +28,25 @@ class ProfileProgressItem extends OnboardingProgressItem {
   int get hashCode => stepId.hashCode;
 }
 
+class BodyGoalProgressItem extends OnboardingProgressItem {
+  const BodyGoalProgressItem(this.stepId);
+
+  final ProfileStepId stepId;
+
+  @override
+  String get title => 'Body goal';
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BodyGoalProgressItem &&
+          runtimeType == other.runtimeType &&
+          stepId == other.stepId;
+
+  @override
+  int get hashCode => Object.hash(runtimeType, stepId);
+}
+
 class MobileProgressItem extends OnboardingProgressItem {
   const MobileProgressItem();
 
