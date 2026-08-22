@@ -74,7 +74,8 @@ void main() {
       expect(draft.targets.waterMl, 3100);
     });
 
-    test('controller exposes Review action and navigates Nutrition Goals to Review',
+    test(
+        'controller exposes Continue action and navigates Nutrition Goals to Health Connections',
         () async {
       final controller = OnboardingController(
         entryPath: OnboardingEntryPath.resumeDraft,
@@ -94,12 +95,12 @@ void main() {
 
       expect(controller.state.stepId, OnboardingStepId.nutritionGoals);
       expect(controller.state.currentSection, OnboardingSectionId.nutritionGoals);
-      expect(controller.state.primaryActionLabel, 'Review');
+      expect(controller.state.primaryActionLabel, 'Continue');
       expect(controller.state.progressStepNumber, greaterThan(0));
 
       await controller.next(onFinish: (_) async {});
 
-      expect(controller.state.stepId, OnboardingStepId.review);
+      expect(controller.state.stepId, OnboardingStepId.healthConnections);
       expect(
         controller.state.completedStepIds,
         contains(OnboardingStepId.nutritionGoals),
