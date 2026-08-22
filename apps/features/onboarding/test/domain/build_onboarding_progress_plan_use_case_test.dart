@@ -19,14 +19,18 @@ void main() {
         workoutFlowPlan: workoutPlan,
       );
 
-      // O4B preserves the visible denominator while moving Bridge/Steps/Sleep/
-      // Water from Targets progress ownership into the Wellness boundary.
+      // O5C preserves the visible denominator while moving the calculated
+      // Nutrition Target from legacy Targets ownership to Nutrition Goals.
       expect(progressPlan.totalSteps, 25);
       expect(progressPlan.items.first, isA<ProfileProgressItem>());
       expect(progressPlan.items.whereType<BodyGoalProgressItem>(), hasLength(4));
       expect(progressPlan.items.whereType<WellnessProgressItem>(), hasLength(4));
       expect(progressPlan.items.whereType<NutritionProfileProgressItem>(), isEmpty);
-      expect(progressPlan.items.whereType<TargetsProgressItem>(), hasLength(1));
+      expect(
+        progressPlan.items.whereType<NutritionGoalsProgressItem>(),
+        hasLength(1),
+      );
+      expect(progressPlan.items.whereType<TargetsProgressItem>(), isEmpty);
       expect(
         progressPlan.items.whereType<WellnessProgressItem>().map((e) => e.stepId),
         const [
@@ -37,7 +41,9 @@ void main() {
         ],
       );
       expect(
-        progressPlan.items.whereType<TargetsProgressItem>().map((e) => e.stepId),
+        progressPlan.items
+            .whereType<NutritionGoalsProgressItem>()
+            .map((e) => e.stepId),
         const [TargetStepId.nutritionTarget],
       );
       expect(progressPlan.items.last, isA<ReviewProgressItem>());
@@ -93,7 +99,11 @@ void main() {
           NutritionProfileStepId.allergiesRestrictions,
         ],
       );
-      expect(progressPlan.items.whereType<TargetsProgressItem>(), hasLength(1));
+      expect(
+        progressPlan.items.whereType<NutritionGoalsProgressItem>(),
+        hasLength(1),
+      );
+      expect(progressPlan.items.whereType<TargetsProgressItem>(), isEmpty);
     });
 
     test('hybrid setupNow derives 28 (gym) / 29 (home) screens', () {
@@ -292,7 +302,7 @@ void main() {
       }
     });
 
-    test('active Nutrition Target follows the preceding mode-specific section', () {
+    test('active Nutrition Goals follows the preceding mode-specific section', () {
       final flowPlan = buildFlowPlan(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
@@ -310,7 +320,7 @@ void main() {
         targetStepId: TargetStepId.waterTarget,
       );
       final targetProgress = progressPlan.progressFor(
-        stepId: OnboardingStepId.targets,
+        stepId: OnboardingStepId.nutritionGoals,
         profileStepId: ProfileStepId.goalPace,
         workoutStepId: workoutPlan.steps.last,
         targetStepId: TargetStepId.nutritionTarget,
