@@ -9,6 +9,7 @@ class BuildOnboardingProgressPlanUseCase {
     required OnboardingFlowPlan flowPlan,
     required WorkoutFlowPlan workoutFlowPlan,
     ProfileFlowPlan profileFlowPlan = const ProfileFlowPlan(),
+    BodyGoalFlowPlan bodyGoalFlowPlan = const BodyGoalFlowPlan(),
     TargetsFlowPlan targetsFlowPlan = const TargetsFlowPlan(),
   }) {
     final items = <OnboardingProgressItem>[];
@@ -22,6 +23,12 @@ class BuildOnboardingProgressPlanUseCase {
         case OnboardingStepId.profileBasics:
           for (final profileStep in profileFlowPlan.steps) {
             items.add(ProfileProgressItem(profileStep));
+          }
+          break;
+
+        case OnboardingStepId.bodyGoal:
+          for (final bodyGoalStep in bodyGoalFlowPlan.steps) {
+            items.add(BodyGoalProgressItem(bodyGoalStep));
           }
           break;
 
@@ -58,7 +65,6 @@ class BuildOnboardingProgressPlanUseCase {
           break;
 
         case OnboardingStepId.userProfile:
-        case OnboardingStepId.bodyGoal:
         case OnboardingStepId.wellnessGoals:
         case OnboardingStepId.nutritionProfile:
         case OnboardingStepId.workoutProfile:
@@ -67,7 +73,7 @@ class BuildOnboardingProgressPlanUseCase {
         case OnboardingStepId.healthConnections:
         case OnboardingStepId.planBuilding:
           throw StateError(
-            'Future onboarding step ${step.id.name} is not active in Slice 1.',
+            'Future onboarding step ${step.id.name} is not active in the current flow.',
           );
       }
     }
