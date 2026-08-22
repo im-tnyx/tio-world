@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_app/app/network_providers.dart';
 import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
@@ -48,6 +49,20 @@ void main() {
 
       final finalizer = container.read(onboardingRemoteFinalizerProvider);
       expect(finalizer, isA<OnboardingRemoteFinalizer>());
+    });
+
+    test('Supabase availability selects the canonical Wellness adapter', () {
+      final container = ProviderContainer(
+        overrides: [
+          supabaseClientProvider.overrideWithValue(_FakeSupabaseClient()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      expect(
+        container.read(wellnessTargetsRepositoryProvider),
+        isA<SupabaseWellnessTargetsRepository>(),
+      );
     });
 
     test('Body onboarding composition delegates Wellness to the canonical provider',
@@ -110,6 +125,8 @@ void main() {
     });
   });
 }
+
+class _FakeSupabaseClient extends Fake implements SupabaseClient {}
 
 class _CustomTokenProvider implements AuthTokenProvider {
   _CustomTokenProvider(this.token);
