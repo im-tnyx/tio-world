@@ -78,7 +78,8 @@ class OnboardingState {
         workoutFlowPlan.indexOf(draft.workout.currentStepId) > 0) {
       return true;
     }
-    if (stepId == OnboardingStepId.targets &&
+    if ((stepId == OnboardingStepId.nutritionGoals ||
+            stepId == OnboardingStepId.targets) &&
         targetsFlowPlan.previous(draft.targets.currentStepId) != null) {
       return true;
     }
@@ -113,7 +114,8 @@ class OnboardingState {
 
   String get primaryActionLabel {
     if (stepId == OnboardingStepId.review) return 'Finish';
-    if (stepId == OnboardingStepId.targets) {
+    if (stepId == OnboardingStepId.nutritionGoals ||
+        stepId == OnboardingStepId.targets) {
       return targetsFlowPlan.primaryActionLabel(draft.targets.currentStepId);
     }
     return 'Continue';
