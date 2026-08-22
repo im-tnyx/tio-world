@@ -1,11 +1,11 @@
 # Product Onboarding — Canonical Execution Plan
 
-**Status:** In progress — O1/O2/O3/O4/O5A/O5B/O5C/O5D complete; O5E integrated Nutrition acceptance ACTIVE  
+**Status:** In progress — O1/O2/O3/O4/O5 complete; O6 Workout ACTIVE  
 **Primary tracker:** #40  
 **Canonical ownership:** #44  
-**O5 Nutrition:** #63 ACTIVE  
-**O5D:** #67 ✅ / CI #1505  
-**O5E:** #68 ACTIVE  
+**O5 Nutrition:** #63 ✅ / CI #1507  
+**O6 Workout:** #69 ACTIVE  
+**O6A:** #70 ACTIVE  
 **Account verification:** #8 parallel lane  
 **O11 cleanup:** #54 BLOCKED until O10  
 **PR:** #50 Draft/open/unmerged  
@@ -14,15 +14,15 @@
 ## Latest exact validated source checkpoint
 
 ```text
-7af5ab0cb1bc37a84af568763a2214977dd57c0c
-Flutter CI #1505 / run 32582725736
+b017f6c31c9c89a6df1ba6b670ea0ea04d635941
+Flutter CI #1507 / run 32583620248
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
 Dart tests      ✅
 ```
 
-This is the frozen O5D runtime/source checkpoint. Later docs/tracker commits do not replace it unless changed runtime source is rerun through full CI.
+This is the frozen O5E runtime/source checkpoint. Later docs/tracker commits do not replace it unless changed runtime source is rerun through full CI.
 
 ## Canonical owners
 
@@ -36,8 +36,8 @@ user_body_goals            → Body Goal + Target Weight + Goal Pace
 user_wellness_targets      → steps/water/sleep/bed/wake targets
 user_nutrition_profiles    → nutrition context only
 user_nutrition_targets     → calories/macros/fiber + customization state
-user_workout_profiles      → workout context
-user_workout_targets       → workout targets
+user_workout_profiles      → workout context/capability
+user_workout_targets       → workout goals/schedule/plan constraints
 onboarding_drafts          → draft/resume orchestration only
 ```
 
@@ -50,13 +50,18 @@ O1 App Mode durability                           ✅ #11 / CI #1240
 O2 common User Profile owner + section           ✅ #53 / CI #1279
 O3 Body Goal section + Body/Profile parity       ✅ #55 / CI #1354
 O4 Wellness placement + canonical owner          ✅ #58 / CI #1441
-→ O5 Nutrition Profile + Targets                 ACTIVE #63
+O5 Nutrition Profile + Targets                   ✅ #63 / CI #1507
    O5A canonical owner contracts                 ✅ #64 / CI #1449
    O5B nutritionProfile runtime/draft/resume     ✅ #65 / CI #1460
    O5C nutritionGoals runtime + legacy Targets   ✅ #66 / CI #1481
    O5D canonical persistence cutover             ✅ #67 / CI #1505
-   → O5E integrated acceptance                   ACTIVE #68
-→ O6 Workout Intro/Profile/Targets
+   O5E integrated acceptance                     ✅ #68 / CI #1507
+→ O6 Workout Profile + Targets                   ACTIVE #69
+   → O6A canonical Workout owner contracts       ACTIVE #70
+   O6B workoutProfile runtime/draft/resume
+   O6C workoutTargets runtime + ordered goals/legacy resume
+   O6D canonical persistence cutover
+   O6E integrated acceptance
 → O7 Health Connections
 → O8 Review + edit-back + resume
 → O9 Plan Building/finalization
@@ -66,7 +71,7 @@ O4 Wellness placement + canonical owner          ✅ #58 / CI #1441
 
 Only one Product Onboarding sub-slice is active at a time.
 
-## Validated through O5D
+## Validated through O5
 
 ```text
 Workout:
@@ -80,49 +85,59 @@ userProfile → bodyGoal → wellnessGoals → nutritionProfile → workoutIntro
 → optional workoutPreferences → nutritionGoals → review
 ```
 
-`nutritionProfile` is Nutrition/Hybrid only. `nutritionGoals` is all-mode. Legacy `targets + nutritionTarget` resumes under stable `nutritionGoals` without changing UI/calculation behavior.
+O5E validates canonical Nutrition ownership across all active branches, exact allergy provenance, recommendation/customization state, legacy Nutrition resume, failure/retry ordering and idempotence on source `b017f6c3...` / CI #1507.
 
-O5D validated direct canonical completion writes:
+## O6 — ACTIVE #69
 
-```text
-NutritionProfileRepository → user_nutrition_profiles
-NutritionTargetsRepository → user_nutrition_targets
-```
-
-Product Onboarding completion no longer depends on `TargetsSetupRepository`. The legacy mixed repository may remain compatibility-only for other consumers until later cleanup.
-
-Target fail-closed owner order:
+The current Workout runtime still uses one broad `workoutPreferences` section/repository. Source/schema audit shows it mixes two durable concepts:
 
 ```text
-Profile → Body → Wellness → Nutrition Profile(if active)
-→ Workout(if active) → Nutrition Targets → App preferences → completion
+user_workout_profiles
+  workout_location
+  available_equipment
+  experience_level
+  focus_areas
+  health_concerns
+
+user_workout_targets
+  primary_workout_goal + rank
+  supporting_workout_goal + rank
+  training_days
+  preferred_duration_mins
+  split_program
+  special_event
+  special_event_date
 ```
 
-## O5E — ACTIVE #68
+Unified Goal selection remains the source for ordered Workout goal intent. Only training intents map to Workout Targets; Body-direction intents remain Body-owned.
 
-Focused task: `.ai/tasks/product-onboarding-o5e-integrated-nutrition-acceptance.md`.
+Mode/branch rule:
 
-O5E freezes the integrated Nutrition contract before O6:
+```text
+Workout          → Workout Profile + Targets
+Nutrition        → neither
+Hybrid setupNow  → Workout Profile + Targets
+Hybrid later     → neither; preserve stored Workout data
+```
 
-- mode matrix for canonical Nutrition Profile/Targets ownership;
-- canonical read/write round-trip and exact provenance semantics;
-- legacy draft/resume compatibility without legacy completion writes;
-- failure/retry ordering and idempotence;
-- recommendation/customization state preservation;
-- production canonical repository composition;
-- exact four-gate CI acceptance.
+## O6A — ACTIVE #70
+
+Focused task: `.ai/tasks/product-onboarding-o6a-canonical-workout-contracts.md`.
+
+O6A adds explicit canonical domain/repository boundaries and adapters only. It must not change onboarding runtime identity, UI, completion composition or schema. The broad `WorkoutPreferencesRepository` remains compatibility-only until later O6 cutover.
 
 ## Guardrails
 
-- no UI/navigation/formula/mode-eligibility change;
-- no fabricated semantic defaults;
+- no UI/navigation/runtime step change in O6A;
+- no fabricated semantic defaults, Workout goals or event dates;
 - no applied migration edits or legacy-column drops;
 - no permanent dual write;
-- no Nutrition recreation of Body/Wellness/Profile mirrors;
-- O6 does not start until #68 exact full CI green;
+- Body goals remain Body-owned;
+- Hybrid `Later` preserves stored Workout rows;
+- O6B does not start until #70 exact full CI green;
 - O11/#54 stays blocked until O10;
 - PR #50 remains Draft/open/unmerged.
 
 ## Handoff
 
-**Execute O5E #68 only. Frozen predecessor checkpoint: `7af5ab0cb1bc37a84af568763a2214977dd57c0c` / Flutter CI #1505.**
+**Execute O6A #70 only. Frozen predecessor checkpoint: `b017f6c31c9c89a6df1ba6b670ea0ea04d635941` / Flutter CI #1507.**

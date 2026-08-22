@@ -20,16 +20,17 @@ Use this file to distinguish validated runtime from remaining Product Onboarding
 | Nutrition canonical repository contracts | Validated | Nutrition | O5A #64 / Flutter CI #1449. |
 | Nutrition Profile runtime/draft/resume | Validated | Nutrition + onboarding | O5B #65 / Flutter CI #1460. |
 | Nutrition Goals runtime + legacy resume identity | Validated | Nutrition + onboarding | O5C #66 / Flutter CI #1481. |
-| Canonical Nutrition persistence cutover | Validated | Nutrition + onboarding + app composition | O5D #67 / source `7af5ab0cb1bc37a84af568763a2214977dd57c0c` / Flutter CI #1505. Product Onboarding completion now injects `NutritionProfileRepository` + `NutritionTargetsRepository` directly and no longer depends on `TargetsSetupRepository`. |
-| Integrated Nutrition acceptance | Active | Nutrition + onboarding | O5E #68. Must prove mode matrix, canonical round-trip, legacy resume compatibility, failure/retry ordering and customization-state preservation. |
-| Workout Intro/Profile/Targets canonical onboarding | Pending | Workout + onboarding | O6 begins only after O5E exact full CI green. |
+| Canonical Nutrition persistence cutover | Validated | Nutrition + onboarding + app composition | O5D #67 / Flutter CI #1505. Product Onboarding completion injects `NutritionProfileRepository` + `NutritionTargetsRepository` directly. |
+| Integrated Nutrition acceptance | Validated | Nutrition + onboarding | O5E #68 / source `b017f6c31c9c89a6df1ba6b670ea0ea04d635941` / Flutter CI #1507. Mode matrix, provenance, recommendation/customization round-trip, legacy resume and failure/retry/idempotence are covered. |
+| Canonical Workout Profile + Targets contracts | Active | Workout | O6A #70. Split broad Workout preferences into explicit canonical owner contracts/adapters; no runtime cutover yet. |
+| Workout Intro/Profile/Targets canonical onboarding | Active | Workout + onboarding | O6 #69. O6B-E follow O6A validation. |
 | Health Connections onboarding | Documented / undecided | health integration + onboarding | O7 requires provider/privacy/permission/release decisions; no fake connection success. |
-| Review + edit-back + draft/resume final reconciliation | Partial | onboarding | O8 follows O7. Existing Review foundation remains, final canonical cross-owner acceptance is pending. |
+| Review + edit-back + draft/resume final reconciliation | Partial | onboarding | O8 follows O7. Existing Review foundation remains; final canonical cross-owner acceptance is pending. |
 | Plan Building / finalization | Pending | onboarding orchestration | O9 must remain idempotent and truthfully publish completion only after required success. |
 | Full Product Onboarding acceptance | Pending | onboarding + all owners | O10 covers all modes, navigation/back/progress/resume, canonical persistence, failure/retry, fresh install/second device and real-device acceptance. |
 | Canonical Schema Cleanup | Blocked | Supabase + domain owners | O11/#54 destructive cleanup remains blocked until O10. |
 | Account email/mobile verification | Pending parallel lane | Account/Settings/Auth | #8 remains parallel and does not redefine Product Onboarding owner sequencing. |
-| PR #50 | Draft/open/unmerged | Product Onboarding | O5D exact source checkpoint is CI #1505 green. Keep Draft until remaining O5E→O10 gates are validated. |
+| PR #50 | Draft/open/unmerged | Product Onboarding | Latest exact validated Product Onboarding source is O5E CI #1507. Keep Draft until remaining O6→O10 gates are validated. |
 
 ## Current Product Onboarding execution
 
@@ -38,13 +39,13 @@ O1 App Mode                                      ✅ #11 / CI #1240
 O2 User Profile                                  ✅ #53 / CI #1279
 O3 Body Goal                                     ✅ #55 / CI #1354
 O4 Wellness                                      ✅ #58 / CI #1441
-→ O5 Nutrition                                   ACTIVE #63
-   O5A contracts                                 ✅ #64 / CI #1449
-   O5B Nutrition Profile runtime                 ✅ #65 / CI #1460
-   O5C Nutrition Goals runtime                   ✅ #66 / CI #1481
-   O5D canonical persistence                     ✅ #67 / CI #1505
-   → O5E integrated acceptance                   ACTIVE #68
-→ O6 Workout
+O5 Nutrition                                     ✅ #63 / CI #1507
+→ O6 Workout                                     ACTIVE #69
+   → O6A canonical owner contracts               ACTIVE #70
+   O6B workoutProfile runtime/draft/resume
+   O6C workoutTargets runtime + ordered goals
+   O6D canonical persistence cutover
+   O6E integrated acceptance
 → O7 Health Connections
 → O8 Review/resume/edit-back
 → O9 finalization
@@ -57,25 +58,25 @@ Only one Product Onboarding implementation sub-slice is active at a time.
 ## Latest exact validated source checkpoint
 
 ```text
-7af5ab0cb1bc37a84af568763a2214977dd57c0c
-Flutter CI #1505 / run 32582725736
+b017f6c31c9c89a6df1ba6b670ea0ea04d635941
+Flutter CI #1507 / run 32583620248
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
 Dart tests      ✅
 ```
 
-This is the O5D runtime/source checkpoint. Tracker/docs commits after it do not replace source validation.
+This is the O5E runtime/source checkpoint. Tracker/docs commits after it do not replace source validation.
 
 ## Important current-source facts
 
-- `PersistOnboardingOwnerDataUseCase` persists Profile → Body → Wellness → Nutrition Profile when active → Workout when active → Nutrition Targets.
-- Product Onboarding completion requires canonical `NutritionProfileRepository` and `NutritionTargetsRepository` directly.
-- App router composition injects `nutritionProfileRepositoryProvider` and `nutritionTargetsRepositoryProvider` directly.
-- `TargetsSetupRepository` remains compatibility-only outside Product Onboarding completion; O5D does not delete it or its legacy schema.
-- `nutritionProfile` is active only for Nutrition/Hybrid; `nutritionGoals` remains active for Workout/Nutrition/Hybrid.
-- Unanswered Nutrition allergies remain canonical `null`; explicit None remains canonical empty set.
-- Applied migrations are immutable; legacy physical cleanup belongs only to O11 after O10.
+- O5 canonical Nutrition is complete and validated on CI #1507.
+- Current Workout persistence still uses broad `WorkoutPreferencesRepository`/`WorkoutPreferencesData`.
+- Broad Workout data mixes context (`workout_location`, equipment, experience, focus, health concerns) with target/planning fields (training days, duration, split, special event).
+- `user_workout_targets` is already live and owns ordered Workout goals, training days, duration, split and special-event target fields.
+- Current broad `SupabaseWorkoutPreferencesRepository` may attempt anonymous auth and legacy fallback; new canonical O6 adapters must not copy that behavior.
+- Hybrid Workout Intro `Later` skips Workout Profile/Targets for the run and preserves stored Workout data.
+- Applied migrations are immutable; physical duplicate cleanup belongs only to O11 after O10.
 
 ## Product rules already resolved
 
@@ -84,6 +85,7 @@ This is the O5D runtime/source checkpoint. Tracker/docs commits after it do not 
 - Lose/Gain → Target Weight + Goal Pace.
 - Maintain/Recomposition → skip Target Weight + Goal Pace; never auto-fill target=current weight.
 - Current Weight is Body-owned.
+- Workout Targets may persist only training intents: Build Muscle, Get Stronger, Improve Endurance, Stay Fit, preserving original rank.
 - Hybrid Workout Intro `Later` skips Workout Profile/Targets for that run and preserves stored Workout data.
 - App Mode visibility never deletes hidden owner data.
 
