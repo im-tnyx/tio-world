@@ -18,7 +18,7 @@ void main() {
     expect(controller.state.draft.status, isNot(OnboardingStatus.completed));
     expect(controller.state.stepId, OnboardingStepId.profileBasics);
     expect(controller.state.currentSection, OnboardingSectionId.userProfile);
-    expect(controller.state.flowPlan.steps, hasLength(9));
+    expect(controller.state.flowPlan.steps, hasLength(10));
     expect(
       controller.state.flowPlan.stepIds,
       containsAllInOrder(const [
@@ -44,6 +44,7 @@ void main() {
         OnboardingStepId.workoutProfile,
         OnboardingStepId.workoutTargets,
         OnboardingStepId.nutritionGoals,
+        OnboardingStepId.healthConnections,
         OnboardingStepId.review,
       ],
       AppMode.nutrition: const [
@@ -52,6 +53,7 @@ void main() {
         OnboardingStepId.wellnessGoals,
         OnboardingStepId.nutritionProfile,
         OnboardingStepId.nutritionGoals,
+        OnboardingStepId.healthConnections,
         OnboardingStepId.review,
       ],
       AppMode.hybrid: const [
@@ -63,6 +65,7 @@ void main() {
         OnboardingStepId.workoutProfile,
         OnboardingStepId.workoutTargets,
         OnboardingStepId.nutritionGoals,
+        OnboardingStepId.healthConnections,
         OnboardingStepId.review,
       ],
     };
@@ -423,7 +426,7 @@ void main() {
     );
 
     expect(controller.state.canContinue, isFalse);
-    expect(controller.state.progressStepCount, 28);
+    expect(controller.state.progressStepCount, 29);
 
     controller.selectWorkoutIntroChoice(WorkoutIntroChoice.later);
 
@@ -433,7 +436,7 @@ void main() {
       controller.state.flowPlan.stepIds,
       isNot(contains(OnboardingStepId.workoutPreferences)),
     );
-    expect(controller.state.progressStepCount, 20);
+    expect(controller.state.progressStepCount, 21);
 
     await controller.next(onFinish: _completeImmediately);
     expect(controller.state.stepId, OnboardingStepId.nutritionGoals);
@@ -447,7 +450,7 @@ void main() {
       controller.state.flowPlan.stepIds,
       contains(OnboardingStepId.workoutPreferences),
     );
-    expect(controller.state.progressStepCount, 28);
+    expect(controller.state.progressStepCount, 29);
 
     await controller.next(onFinish: _completeImmediately);
     expect(controller.state.stepId, OnboardingStepId.workoutPreferences);
@@ -632,9 +635,9 @@ void main() {
     controller.selectMode(AppMode.hybrid);
     controller.tapGoalIntent(GoalIntent.loseWeight);
     controller.selectWorkoutIntroChoice(WorkoutIntroChoice.setupNow);
-    expect(controller.state.progressStepCount, 28);
+    expect(controller.state.progressStepCount, 29);
     expect(controller.state.progressStepNumber, 1);
-    expect(controller.state.progressValue, closeTo(1 / 28, 0.0001));
+    expect(controller.state.progressValue, closeTo(1 / 29, 0.0001));
 
     final reviewController = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
@@ -649,7 +652,7 @@ void main() {
         workout: _validWorkout(),
       ),
     );
-    expect(reviewController.state.progressStepNumber, 28);
+    expect(reviewController.state.progressStepNumber, 29);
     expect(reviewController.state.progressValue, 1.0);
   });
 
@@ -672,16 +675,16 @@ void main() {
       ),
     );
 
-    expect(controller.state.progressStepCount, 25);
+    expect(controller.state.progressStepCount, 26);
     expect(controller.state.progressStepNumber, 1);
-    expect(controller.state.progressValue, closeTo(1 / 25, 0.0001));
+    expect(controller.state.progressValue, closeTo(1 / 26, 0.0001));
 
     await controller.next(onFinish: _completeImmediately);
 
     expect(controller.state.draft.profile.currentStepId, ProfileStepId.gender);
-    expect(controller.state.progressStepCount, 25);
+    expect(controller.state.progressStepCount, 26);
     expect(controller.state.progressStepNumber, 2);
-    expect(controller.state.progressValue, closeTo(2 / 25, 0.0001));
+    expect(controller.state.progressValue, closeTo(2 / 26, 0.0001));
   });
 
   test('updateDailyStepTarget updates target in draft', () {
