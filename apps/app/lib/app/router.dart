@@ -101,7 +101,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   final bodyRepository = ref.read(bodySetupRepositoryProvider);
   final nutritionProfileRepository =
       ref.read(nutritionProfileRepositoryProvider);
-  final workoutRepository = ref.read(workoutPreferencesRepositoryProvider);
+  final workoutProfileRepository = ref.read(workoutProfileRepositoryProvider);
+  final workoutTargetsRepository = ref.read(workoutTargetsRepositoryProvider);
   final nutritionTargetsRepository =
       ref.read(nutritionTargetsRepositoryProvider);
   final onboardingDraftRepository =
@@ -443,7 +444,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                     profileRepository: profileRepository,
                     bodyRepository: bodyRepository,
                     nutritionProfileRepository: nutritionProfileRepository,
-                    workoutRepository: workoutRepository,
+                    workoutProfileRepository: workoutProfileRepository,
+                    workoutTargetsRepository: workoutTargetsRepository,
                     nutritionTargetsRepository: nutritionTargetsRepository,
                   ),
                   validator: OnboardingCompletionValidator(
