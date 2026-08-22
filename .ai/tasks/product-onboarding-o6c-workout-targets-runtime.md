@@ -71,17 +71,24 @@ specialEvent: trim; empty → null
 specialEventDate: null (no onboarding source)
 ```
 
-## Draft schema v4 migration
+## Persisted draft schema v6 migration
 
-O6B already emits `workoutProfile`, so O6C advances `OnboardingDraft.currentSchemaVersion` to 4.
+Source audit corrected the initial task assumption: the durable `schema_version` is owned by `OnboardingDraftSnapshot`, whose current version is already **5**. `OnboardingDraft.currentSchemaVersion` is not the persisted snapshot boundary used by the DTO mapper.
 
-For schema v2/v3 only:
+O6B already emits canonical `workoutProfile` while snapshot schema v5 is live, so O6C advances:
+
+```text
+OnboardingDraftSnapshot.currentSchemaVersion
+5 → 6
+```
+
+For persisted snapshot schema v1–v5 only:
 
 - broad current `workoutPreferences`/`workoutProfile` with a Targets-owned child cursor → `workoutTargets`;
 - broad completed `workoutPreferences`/`workoutProfile` → completed `workoutProfile` + `workoutTargets`;
 - Profile-owned cursors remain `workoutProfile`.
 
-New v4 partial completion must remain exact: completed `workoutProfile` must not auto-complete `workoutTargets`.
+New v6 partial completion must remain exact: completed `workoutProfile` must not auto-complete `workoutTargets`.
 
 Historical `workoutPreferences` stays decode-only; new saves remain canonical.
 
@@ -89,7 +96,7 @@ Historical `workoutPreferences` stays decode-only; new saves remain canonical.
 
 1. Extend Workout flow ownership helpers with canonical Profile/Targets child subsets.
 2. Activate `workoutTargets` in eligible top-level flows.
-3. Advance draft schema to v4 and add v2/v3 broad-Workout migration.
+3. Advance persisted snapshot schema to v6 and add pre-v6 broad-Workout migration.
 4. Split progress/next/back/completed invalidation/resume checkpoint behavior by active Workout subsection.
 5. Render existing Workout screens for both canonical Workout sections.
 6. Add `WorkoutTargetsMapper` with strict ordered-goal mapping and no fabricated defaults.
@@ -115,8 +122,8 @@ Historical `workoutPreferences` stays decode-only; new saves remain canonical.
 - [ ] Workout + Hybrid setupNow use `workoutProfile → workoutTargets`;
 - [ ] Nutrition + Hybrid later exclude both Workout sections;
 - [ ] child ownership/order matches the canonical split above;
-- [ ] schema v2/v3 broad Workout cursors/completion migrate losslessly;
-- [ ] schema v4 partial completion stays partial;
+- [ ] pre-v6 broad Workout cursors/completion migrate losslessly;
+- [ ] schema v6 partial completion stays partial;
 - [ ] ordered training goals preserve original rank and omit Body intents;
 - [ ] no Workout goal/default/event date is fabricated;
 - [ ] progress/back/next/resume remain continuous;
