@@ -6,8 +6,11 @@ import '../../domain/repositories/targets_setup_repository.dart';
 
 /// Supabase-backed implementation of [TargetsSetupRepository].
 ///
-/// Directly manages canonical RLS-protected user daily targets and nutritional setup
-/// records in Postgres (`public.user_nutrition_profiles`).
+/// Persists the current compatibility Wellness/Nutrition target record in
+/// `public.user_nutrition_profiles`. Body-owned current weight, target weight,
+/// and goal pace are intentionally not written here; their canonical owners are
+/// `body_weight_logs` and `user_body_goals`. Legacy mirror columns remain
+/// readable until the later owner-specific cleanup slices remove them.
 class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
   const SupabaseTargetsSetupRepository({
     required SupabaseClient client,
@@ -35,15 +38,11 @@ class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
     final canonicalNutritionPayload = {
       'user_id': userId,
       if (data.heightCm != null) 'height_cm': data.heightCm,
-      if (data.currentWeightKg != null)
-        'current_weight_kg': data.currentWeightKg,
-      if (data.targetWeightKg != null) 'target_weight_kg': data.targetWeightKg,
       if (data.activityLevel != null && data.activityLevel!.isNotEmpty)
         'activity_level': data.activityLevel,
       'steps_target': data.dailySteps,
       'sleep_target_minutes': data.sleepTargetMinutes,
       'water_target_ml': data.waterMl,
-      'weekly_weight_change_kg': data.goalPaceKgPerWeek,
       'bed_time': bedTimeStr,
       'wake_up_time': wakeTimeStr,
       'macro_targets': {
@@ -78,7 +77,6 @@ class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
           'sleep_time_minutes': data.sleepTimeMinutes,
           'wake_time_minutes': data.wakeTimeMinutes,
           'water_ml': data.waterMl,
-          'goal_pace_kg_per_week': data.goalPaceKgPerWeek,
           'target_calories': data.recommendation?.caloriesKcal,
           'target_protein_grams': data.recommendation?.proteinGrams,
           'target_carbs_grams': data.recommendation?.carbsGrams,
@@ -142,13 +140,14 @@ class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
     }
     final waterMl = rawWater.toInt();
 
+    // Legacy rows may still contain the old Body-owned pace mirror. New writes
+    // intentionally omit it, so 0.0 is only the Targets compatibility sentinel
+    // for "no mirrored pace", never a canonical Body Goal value.
     final rawPace = canonicalRow['weekly_weight_change_kg'];
-    if (rawPace is! num) {
-      throw const FormatException(
-          'Missing or invalid required field: weekly_weight_change_kg');
-    }
-    final weeklyPace = rawPace.toDouble();
+    final weeklyPace = rawPace is num ? rawPace.toDouble() : 0.0;
 
+    // These legacy mirrors remain readable during the additive migration. New
+    // O3+ writes no longer populate the Body-owned current/target weight fields.
     final rawHeight = canonicalRow['height_cm'];
     final rawCurrentWeight = canonicalRow['current_weight_kg'];
     final rawTargetWeight = canonicalRow['target_weight_kg'];
