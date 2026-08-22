@@ -111,7 +111,7 @@ void main() {
       );
       expect(
         bodyGoalController.state.completedStepIds,
-        contains(OnboardingStepId.targets),
+        contains(OnboardingStepId.nutritionGoals),
       );
       expect(
         bodyGoalController.state.draft.completedStepIds,
@@ -119,7 +119,7 @@ void main() {
       );
       expect(
         bodyGoalController.state.draft.completedStepIds,
-        contains(OnboardingStepId.targets),
+        contains(OnboardingStepId.nutritionGoals),
       );
 
       final wellnessController = OnboardingController(
@@ -162,7 +162,7 @@ void main() {
       );
       expect(
         wellnessController.state.completedStepIds,
-        contains(OnboardingStepId.targets),
+        contains(OnboardingStepId.nutritionGoals),
       );
       expect(
         wellnessController.state.draft.completedStepIds,
@@ -170,7 +170,7 @@ void main() {
       );
       expect(
         wellnessController.state.draft.completedStepIds,
-        contains(OnboardingStepId.targets),
+        contains(OnboardingStepId.nutritionGoals),
       );
     });
   });
