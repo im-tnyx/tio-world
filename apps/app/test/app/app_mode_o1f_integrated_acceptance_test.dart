@@ -143,7 +143,8 @@ void main() {
       );
     });
 
-    test('mode-only and missing legacy canonical states recover without Hybrid inference',
+    test(
+        'mode-only and missing legacy canonical states recover without Hybrid inference',
         () async {
       final modeOnlyAccount = _FakeCanonicalAccountStore(
         completionState: RemoteOnboardingCompletionState.completed,
@@ -305,7 +306,6 @@ class _FakeCanonicalAccountStore
     this.completionState = RemoteOnboardingCompletionState.incomplete,
     this.preferencesState = const AppPreferencesState.missing(),
     this.readError,
-    this.writeError,
   });
 
   RemoteOnboardingCompletionState completionState;
