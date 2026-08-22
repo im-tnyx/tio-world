@@ -294,7 +294,7 @@ void main() {
       expect(record.draft.draft.profile.name, 'Tio User');
       expect(record.draft.draft.profile.heightCm, 171);
       expect(record.draft.draft.profile.currentWeightKg, 70);
-      expect(record.resumeAfterAuth?.draft.currentStepId, OnboardingStepId.targets);
+      expect(record.resumeAfterAuth?.draft.currentStepId, OnboardingStepId.bodyGoal);
       expect(
         record.resumeAfterAuth?.draft.completedStepIds,
         contains(OnboardingStepId.profileBasics),
