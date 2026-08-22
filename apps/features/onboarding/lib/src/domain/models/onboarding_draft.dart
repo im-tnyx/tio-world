@@ -34,8 +34,13 @@ class OnboardingDraft {
         ),
         nutrition = nutrition ?? const NutritionOnboardingDraft(),
         workout = workout ?? const WorkoutOnboardingDraft(),
-        targets = targets ?? const TargetsOnboardingDraft(),
-        completedStepIds = Set.unmodifiable(completedStepIds);
+        targets = _normalizeTargetsCursor(
+          currentStepId: currentStepId,
+          targets: targets,
+        ),
+        completedStepIds = Set.unmodifiable(
+          _normalizeCompletedStepIds(completedStepIds),
+        );
 
   static const currentSchemaVersion = 3;
 
@@ -140,6 +145,14 @@ bool _isLegacyTargetsWellnessCursor(
   };
 }
 
+bool _isLegacyTargetsNutritionCursor(
+  OnboardingStepId currentStepId,
+  TargetsOnboardingDraft? targets,
+) {
+  return currentStepId == OnboardingStepId.targets &&
+      targets?.currentStepId == TargetStepId.nutritionTarget;
+}
+
 OnboardingStepId _normalizeCurrentStepId(
   OnboardingStepId currentStepId,
   TargetsOnboardingDraft? targets,
@@ -149,6 +162,9 @@ OnboardingStepId _normalizeCurrentStepId(
   }
   if (_isLegacyTargetsWellnessCursor(currentStepId, targets)) {
     return OnboardingStepId.wellnessGoals;
+  }
+  if (_isLegacyTargetsNutritionCursor(currentStepId, targets)) {
+    return OnboardingStepId.nutritionGoals;
   }
   return currentStepId;
 }
@@ -163,4 +179,28 @@ ProfileOnboardingDraft _normalizeProfileCursor({
     return resolvedProfile;
   }
   return resolvedProfile.copyWith(currentStepId: ProfileStepId.goalPace);
+}
+
+TargetsOnboardingDraft _normalizeTargetsCursor({
+  required OnboardingStepId currentStepId,
+  required TargetsOnboardingDraft? targets,
+}) {
+  final resolvedTargets = targets ?? const TargetsOnboardingDraft();
+  if (currentStepId == OnboardingStepId.nutritionGoals ||
+      _isLegacyTargetsNutritionCursor(currentStepId, targets)) {
+    return resolvedTargets.copyWith(
+      currentStepId: TargetStepId.nutritionTarget,
+    );
+  }
+  return resolvedTargets;
+}
+
+Set<OnboardingStepId> _normalizeCompletedStepIds(
+  Set<OnboardingStepId> completedStepIds,
+) {
+  final normalized = {...completedStepIds};
+  if (normalized.remove(OnboardingStepId.targets)) {
+    normalized.add(OnboardingStepId.nutritionGoals);
+  }
+  return normalized;
 }
