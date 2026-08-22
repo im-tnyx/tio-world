@@ -164,11 +164,20 @@ class PreserveOnboardingResumeCheckpointUseCase {
           : bodyGoalFlowPlan.steps.first;
     }
 
-    final workoutStepId = workoutFlowPlan.contains(cursor.workoutStepId)
-        ? cursor.workoutStepId
-        : workoutFlowPlan.contains(fallback.workoutStepId)
+    var workoutStepId = cursor.workoutStepId;
+    final activeWorkoutSteps = workoutFlowPlan.stepsFor(stepId);
+    if (activeWorkoutSteps.isNotEmpty) {
+      if (!activeWorkoutSteps.contains(workoutStepId)) {
+        workoutStepId = fallback.stepId == stepId &&
+                activeWorkoutSteps.contains(fallback.workoutStepId)
             ? fallback.workoutStepId
-            : workoutFlowPlan.steps.first;
+            : activeWorkoutSteps.first;
+      }
+    } else if (!workoutFlowPlan.contains(workoutStepId)) {
+      workoutStepId = workoutFlowPlan.contains(fallback.workoutStepId)
+          ? fallback.workoutStepId
+          : workoutFlowPlan.steps.first;
+    }
 
     var targetStepId = cursor.targetStepId;
     if (stepId == OnboardingStepId.wellnessGoals &&
@@ -215,9 +224,16 @@ class PreserveOnboardingResumeCheckpointUseCase {
       OnboardingStepId.wellnessGoals => wellnessFlowPlan
           .indexOf(left.targetStepId)
           .compareTo(wellnessFlowPlan.indexOf(right.targetStepId)),
-      OnboardingStepId.workoutPreferences => workoutFlowPlan
-          .indexOf(left.workoutStepId)
-          .compareTo(workoutFlowPlan.indexOf(right.workoutStepId)),
+      OnboardingStepId.workoutProfile || OnboardingStepId.workoutTargets =>
+        _workoutIndex(
+          left.workoutStepId,
+          workoutFlowPlan.stepsFor(left.stepId),
+        ).compareTo(
+          _workoutIndex(
+            right.workoutStepId,
+            workoutFlowPlan.stepsFor(right.stepId),
+          ),
+        ),
       OnboardingStepId.targets => _targetIndex(left.targetStepId)
           .compareTo(_targetIndex(right.targetStepId)),
       _ => 0,
@@ -301,10 +317,13 @@ class PreserveOnboardingResumeCheckpointUseCase {
               stepId: OnboardingStepId.workoutIntro,
             )
           : null,
-      OnboardingStepId.workoutPreferences => _firstInvalidWorkoutCursor(
+      OnboardingStepId.workoutProfile || OnboardingStepId.workoutTargets =>
+        _firstInvalidWorkoutCursor(
           draft,
+          topLevelStepId: stepId,
           workoutFlowPlan: workoutFlowPlan,
-          beforeExclusive: workoutFlowPlan.stepCount,
+          steps: workoutFlowPlan.stepsFor(stepId),
+          beforeExclusive: workoutFlowPlan.stepsFor(stepId).length,
         ),
       OnboardingStepId.targets => _firstInvalidTargetCursor(
           draft,
@@ -339,10 +358,16 @@ class PreserveOnboardingResumeCheckpointUseCase {
           wellnessFlowPlan: wellnessFlowPlan,
           beforeExclusive: wellnessFlowPlan.indexOf(desired.targetStepId),
         ),
-      OnboardingStepId.workoutPreferences => _firstInvalidWorkoutCursor(
+      OnboardingStepId.workoutProfile || OnboardingStepId.workoutTargets =>
+        _firstInvalidWorkoutCursor(
           draft,
+          topLevelStepId: desired.stepId,
           workoutFlowPlan: workoutFlowPlan,
-          beforeExclusive: workoutFlowPlan.indexOf(desired.workoutStepId),
+          steps: workoutFlowPlan.stepsFor(desired.stepId),
+          beforeExclusive: _workoutIndex(
+            desired.workoutStepId,
+            workoutFlowPlan.stepsFor(desired.stepId),
+          ),
         ),
       OnboardingStepId.targets => _firstInvalidTargetCursor(
           draft,
@@ -447,19 +472,21 @@ class PreserveOnboardingResumeCheckpointUseCase {
 
   _ResumeCursor? _firstInvalidWorkoutCursor(
     OnboardingDraft draft, {
+    required OnboardingStepId topLevelStepId,
     required WorkoutFlowPlan workoutFlowPlan,
+    required List<WorkoutStepId> steps,
     required int beforeExclusive,
   }) {
-    final limit = beforeExclusive.clamp(0, workoutFlowPlan.stepCount);
+    final limit = beforeExclusive.clamp(0, steps.length);
     for (var index = 0; index < limit; index++) {
-      final stepId = workoutFlowPlan.steps[index];
+      final stepId = steps[index];
       final candidate = draft.workout.copyWith(currentStepId: stepId);
       if (_workoutValidator
           .validate(draft: candidate, flowPlan: workoutFlowPlan)
           .isNotEmpty) {
         return _ResumeCursor.fromDraft(
           draft,
-          stepId: OnboardingStepId.workoutPreferences,
+          stepId: topLevelStepId,
           workoutStepId: stepId,
         );
       }
@@ -499,6 +526,11 @@ class PreserveOnboardingResumeCheckpointUseCase {
     BodyGoalFlowPlan bodyGoalFlowPlan,
   ) {
     final index = bodyGoalFlowPlan.indexOf(stepId);
+    return index < 0 ? 0 : index;
+  }
+
+  int _workoutIndex(WorkoutStepId stepId, List<WorkoutStepId> steps) {
+    final index = steps.indexOf(stepId);
     return index < 0 ? 0 : index;
   }
 
