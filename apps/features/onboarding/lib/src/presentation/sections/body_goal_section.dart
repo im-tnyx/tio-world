@@ -6,13 +6,14 @@ import '../screens/goal/goal_intent_screen.dart';
 import '../screens/profile/current_weight_screen.dart';
 import '../screens/profile/profile_screen_components.dart';
 import '../screens/profile/target_weight_screen.dart';
+import '../screens/targets/goal_pace_screen.dart';
 import '../state/state.dart';
 
 /// Canonical Body Goal onboarding section.
 ///
-/// It deliberately reuses the existing Goal/current/target weight screens and
-/// the existing persisted Profile draft fields while the top-level ownership
-/// boundary moves out of common `userProfile` navigation.
+/// It deliberately reuses the existing Goal/current/target/pace screens and
+/// existing draft value containers while runtime ownership moves out of common
+/// Profile and Targets navigation. Durable Body ownership remains unchanged.
 class BodyGoalSection extends StatelessWidget {
   const BodyGoalSection({
     required this.state,
@@ -67,6 +68,13 @@ class BodyGoalSection extends StatelessWidget {
           onChanged: controller.updateProfileTargetWeight,
           onContinue: () => controller.next(onFinish: (_) async {}),
           isBusy: state.isBusy,
+          errorText: errorText,
+        ),
+      ProfileStepId.goalPace => GoalPaceScreen(
+          goalPaceKgPerWeek: state.draft.targets.goalPaceKgPerWeek,
+          onPaceChanged: controller.updateGoalPaceKgPerWeek,
+          profile: profile,
+          weightGoalDirection: state.weightGoalDirection!,
           errorText: errorText,
         ),
       _ => throw StateError('Unsupported Body Goal child step: ${stepId.name}.'),
