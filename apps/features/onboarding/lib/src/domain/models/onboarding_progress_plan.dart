@@ -38,6 +38,11 @@ class OnboardingProgressPlan {
           (item) =>
               item is BodyGoalProgressItem && item.stepId == profileStepId,
         );
+      case OnboardingStepId.wellnessGoals:
+        return items.indexWhere(
+          (item) =>
+              item is WellnessProgressItem && item.stepId == targetStepId,
+        );
       case OnboardingStepId.mobile:
         return items.indexWhere((item) => item is MobileProgressItem);
       case OnboardingStepId.workoutIntro:
@@ -57,7 +62,6 @@ class OnboardingProgressPlan {
       case OnboardingStepId.review:
         return items.indexWhere((item) => item is ReviewProgressItem);
       case OnboardingStepId.userProfile:
-      case OnboardingStepId.wellnessGoals:
       case OnboardingStepId.nutritionProfile:
       case OnboardingStepId.workoutProfile:
       case OnboardingStepId.nutritionGoals:
@@ -71,9 +75,6 @@ class OnboardingProgressPlan {
   }
 
   /// Calculates the normalized 0.0..1.0 progress fraction for the current screen.
-  ///
-  /// For the first visible screen (index 0), progress is 1 / totalSteps (> 0.0).
-  /// For the final Review screen (index totalSteps - 1), progress is exactly 1.0.
   double progressFor({
     required OnboardingStepId stepId,
     required ProfileStepId profileStepId,
