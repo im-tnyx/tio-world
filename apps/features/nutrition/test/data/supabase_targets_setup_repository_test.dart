@@ -52,10 +52,15 @@ void main() {
       expect(result, isNull);
     });
 
-    test('saveTargetsSetup writes to canonical user_nutrition_profiles with exact keys', () async {
+    test(
+        'saveTargetsSetup writes Nutrition targets without Body-owned mirrors',
+        () async {
       final fakePostgrest = FakePostgrestClient();
       final repository = SupabaseTargetsSetupRepository(
-        client: FakeSupabaseClient(currentUser: fakeUser, postgrestClient: fakePostgrest),
+        client: FakeSupabaseClient(
+          currentUser: fakeUser,
+          postgrestClient: fakePostgrest,
+        ),
       );
 
       const recommendation = NutritionTargetRecommendation(
@@ -70,11 +75,15 @@ void main() {
 
       const data = TargetsSetupData(
         dailySteps: 12000,
-        sleepTargetMinutes: 450, // 7.5 hours
-        sleepTimeMinutes: 1380, // 23:00
-        wakeTimeMinutes: 420, // 07:00 (8 hours span, but sleep target is 450)
+        sleepTargetMinutes: 450,
+        sleepTimeMinutes: 1380,
+        wakeTimeMinutes: 420,
         waterMl: 3200,
         goalPaceKgPerWeek: 0.75,
+        heightCm: 171,
+        currentWeightKg: 80,
+        targetWeightKg: 74,
+        activityLevel: 'active',
         recommendation: recommendation,
       );
 
@@ -90,7 +99,11 @@ void main() {
       expect(payload['bed_time'], '23:00:00');
       expect(payload['wake_up_time'], '07:00:00');
       expect(payload['water_target_ml'], 3200);
-      expect(payload['weekly_weight_change_kg'], 0.75);
+      expect(payload['height_cm'], 171);
+      expect(payload['activity_level'], 'active');
+      expect(payload.containsKey('current_weight_kg'), isFalse);
+      expect(payload.containsKey('target_weight_kg'), isFalse);
+      expect(payload.containsKey('weekly_weight_change_kg'), isFalse);
 
       final macros = payload['macro_targets'] as Map<String, dynamic>;
       expect(macros['calories'], 2450);
@@ -103,17 +116,21 @@ void main() {
       expect(payload['updated_at'], isNotNull);
     });
 
-    test('saveTargetsSetup handles null recommendation with empty macro_targets map', () async {
+    test('saveTargetsSetup handles null recommendation with empty macro_targets map',
+        () async {
       final fakePostgrest = FakePostgrestClient();
       final repository = SupabaseTargetsSetupRepository(
-        client: FakeSupabaseClient(currentUser: fakeUser, postgrestClient: fakePostgrest),
+        client: FakeSupabaseClient(
+          currentUser: fakeUser,
+          postgrestClient: fakePostgrest,
+        ),
       );
 
       const data = TargetsSetupData(
         dailySteps: 8000,
         sleepTargetMinutes: 480,
-        sleepTimeMinutes: 1320, // 22:00
-        wakeTimeMinutes: 360, // 06:00
+        sleepTimeMinutes: 1320,
+        wakeTimeMinutes: 360,
         waterMl: 2500,
         goalPaceKgPerWeek: 0.0,
         recommendation: null,
@@ -125,12 +142,18 @@ void main() {
       expect(payload['macro_targets'], isEmpty);
       expect(payload['bed_time'], '22:00:00');
       expect(payload['wake_up_time'], '06:00:00');
+      expect(payload.containsKey('weekly_weight_change_kg'), isFalse);
     });
 
-    test('saveTargetsSetup propagates PostgrestException on failure without faking success', () async {
+    test(
+        'saveTargetsSetup propagates PostgrestException on failure without faking success',
+        () async {
       final throwingPostgrest = ThrowingFakePostgrestClient();
       final repository = SupabaseTargetsSetupRepository(
-        client: FakeSupabaseClient(currentUser: fakeUser, postgrestClient: throwingPostgrest),
+        client: FakeSupabaseClient(
+          currentUser: fakeUser,
+          postgrestClient: throwingPostgrest,
+        ),
       );
 
       const data = TargetsSetupData(
@@ -151,7 +174,10 @@ void main() {
     test('getTargetsSetup returns null when no row is found in database', () async {
       final fakePostgrest = FakePostgrestClient(rowToReturn: null);
       final repository = SupabaseTargetsSetupRepository(
-        client: FakeSupabaseClient(currentUser: fakeUser, postgrestClient: fakePostgrest),
+        client: FakeSupabaseClient(
+          currentUser: fakeUser,
+          postgrestClient: fakePostgrest,
+        ),
       );
 
       final result = await repository.getTargetsSetup();
@@ -159,12 +185,14 @@ void main() {
       expect(fakePostgrest.lastTable, 'user_nutrition_profiles');
     });
 
-    test('getTargetsSetup reads exact persisted sleep_target_minutes without deriving from bed/wake', () async {
+    test(
+        'getTargetsSetup reads exact persisted sleep_target_minutes without deriving from bed/wake',
+        () async {
       final canonicalRow = {
         'user_id': 'usr-456',
         'steps_target': 10000,
-        'sleep_target_minutes': 450, // 7.5 hours explicitly
-        'bed_time': '23:00:00', // 23:00 to 07:00 is 8 hours (480 mins)
+        'sleep_target_minutes': 450,
+        'bed_time': '23:00:00',
         'wake_up_time': '07:00:00',
         'water_target_ml': 3000,
         'weekly_weight_change_kg': 0.5,
@@ -174,13 +202,16 @@ void main() {
 
       final fakePostgrest = FakePostgrestClient(rowToReturn: canonicalRow);
       final repository = SupabaseTargetsSetupRepository(
-        client: FakeSupabaseClient(currentUser: fakeUser, postgrestClient: fakePostgrest),
+        client: FakeSupabaseClient(
+          currentUser: fakeUser,
+          postgrestClient: fakePostgrest,
+        ),
       );
 
       final result = await repository.getTargetsSetup();
       expect(result, isNotNull);
       expect(result!.dailySteps, 10000);
-      expect(result.sleepTargetMinutes, 450); // Exactly 450, NOT 480!
+      expect(result.sleepTargetMinutes, 450);
       expect(result.sleepTimeMinutes, 1380);
       expect(result.wakeTimeMinutes, 420);
       expect(result.waterMl, 3000);
@@ -188,7 +219,64 @@ void main() {
       expect(result.recommendation, isNull);
     });
 
-    test('getTargetsSetup parses macro_targets JSONB completely and accurately', () async {
+    test('getTargetsSetup keeps old Body mirrors read-compatible', () async {
+      final canonicalRow = {
+        'user_id': 'usr-456',
+        'steps_target': 10000,
+        'sleep_target_minutes': 480,
+        'bed_time': '23:00:00',
+        'wake_up_time': '07:00:00',
+        'water_target_ml': 3000,
+        'weekly_weight_change_kg': 0.6,
+        'current_weight_kg': 80,
+        'target_weight_kg': 74,
+        'macro_targets': <String, dynamic>{},
+      };
+
+      final repository = SupabaseTargetsSetupRepository(
+        client: FakeSupabaseClient(
+          currentUser: fakeUser,
+          postgrestClient: FakePostgrestClient(rowToReturn: canonicalRow),
+        ),
+      );
+
+      final result = await repository.getTargetsSetup();
+
+      expect(result, isNotNull);
+      expect(result!.goalPaceKgPerWeek, 0.6);
+      expect(result.currentWeightKg, 80);
+      expect(result.targetWeightKg, 74);
+    });
+
+    test('getTargetsSetup uses neutral compatibility pace when mirror is absent',
+        () async {
+      final canonicalRow = {
+        'user_id': 'usr-456',
+        'steps_target': 9000,
+        'sleep_target_minutes': 480,
+        'bed_time': '22:00:00',
+        'wake_up_time': '06:00:00',
+        'water_target_ml': 2600,
+        'macro_targets': <String, dynamic>{},
+      };
+
+      final repository = SupabaseTargetsSetupRepository(
+        client: FakeSupabaseClient(
+          currentUser: fakeUser,
+          postgrestClient: FakePostgrestClient(rowToReturn: canonicalRow),
+        ),
+      );
+
+      final result = await repository.getTargetsSetup();
+
+      expect(result, isNotNull);
+      expect(result!.goalPaceKgPerWeek, 0.0);
+      expect(result.currentWeightKg, isNull);
+      expect(result.targetWeightKg, isNull);
+    });
+
+    test('getTargetsSetup parses macro_targets JSONB completely and accurately',
+        () async {
       final canonicalRow = {
         'user_id': 'usr-456',
         'steps_target': 11000,
@@ -210,7 +298,10 @@ void main() {
 
       final fakePostgrest = FakePostgrestClient(rowToReturn: canonicalRow);
       final repository = SupabaseTargetsSetupRepository(
-        client: FakeSupabaseClient(currentUser: fakeUser, postgrestClient: fakePostgrest),
+        client: FakeSupabaseClient(
+          currentUser: fakeUser,
+          postgrestClient: fakePostgrest,
+        ),
       );
 
       final result = await repository.getTargetsSetup();
@@ -226,10 +317,11 @@ void main() {
       expect(result.recommendation!.tdee, 2400);
     });
 
-    test('getTargetsSetup throws FormatException on missing required steps_target', () async {
+    test('getTargetsSetup throws FormatException on missing required steps_target',
+        () async {
       final invalidRow = {
         'user_id': 'usr-456',
-        'steps_target': null, // Missing required field
+        'steps_target': null,
         'sleep_target_minutes': 480,
         'bed_time': '23:00:00',
         'wake_up_time': '07:00:00',
@@ -239,7 +331,10 @@ void main() {
 
       final fakePostgrest = FakePostgrestClient(rowToReturn: invalidRow);
       final repository = SupabaseTargetsSetupRepository(
-        client: FakeSupabaseClient(currentUser: fakeUser, postgrestClient: fakePostgrest),
+        client: FakeSupabaseClient(
+          currentUser: fakeUser,
+          postgrestClient: fakePostgrest,
+        ),
       );
 
       await expectLater(
@@ -248,11 +343,13 @@ void main() {
       );
     });
 
-    test('getTargetsSetup throws FormatException on missing required sleep_target_minutes', () async {
+    test(
+        'getTargetsSetup throws FormatException on missing required sleep_target_minutes',
+        () async {
       final invalidRow = {
         'user_id': 'usr-456',
         'steps_target': 8000,
-        'sleep_target_minutes': null, // Missing required field
+        'sleep_target_minutes': null,
         'bed_time': '23:00:00',
         'wake_up_time': '07:00:00',
         'water_target_ml': 2500,
@@ -261,7 +358,10 @@ void main() {
 
       final fakePostgrest = FakePostgrestClient(rowToReturn: invalidRow);
       final repository = SupabaseTargetsSetupRepository(
-        client: FakeSupabaseClient(currentUser: fakeUser, postgrestClient: fakePostgrest),
+        client: FakeSupabaseClient(
+          currentUser: fakeUser,
+          postgrestClient: fakePostgrest,
+        ),
       );
 
       await expectLater(
@@ -270,12 +370,14 @@ void main() {
       );
     });
 
-    test('getTargetsSetup throws FormatException on invalid SQL TIME format in bed_time', () async {
+    test(
+        'getTargetsSetup throws FormatException on invalid SQL TIME format in bed_time',
+        () async {
       final invalidRow = {
         'user_id': 'usr-456',
         'steps_target': 8000,
         'sleep_target_minutes': 480,
-        'bed_time': 'eleven_pm', // Invalid TIME
+        'bed_time': 'eleven_pm',
         'wake_up_time': '07:00:00',
         'water_target_ml': 2500,
         'weekly_weight_change_kg': 0.5,
@@ -283,7 +385,10 @@ void main() {
 
       final fakePostgrest = FakePostgrestClient(rowToReturn: invalidRow);
       final repository = SupabaseTargetsSetupRepository(
-        client: FakeSupabaseClient(currentUser: fakeUser, postgrestClient: fakePostgrest),
+        client: FakeSupabaseClient(
+          currentUser: fakeUser,
+          postgrestClient: fakePostgrest,
+        ),
       );
 
       await expectLater(
@@ -292,10 +397,15 @@ void main() {
       );
     });
 
-    test('getTargetsSetup propagates query failure and does NOT return fabricated defaults', () async {
+    test(
+        'getTargetsSetup propagates query failure and does NOT return fabricated defaults',
+        () async {
       final throwingPostgrest = ThrowingFakePostgrestClient();
       final repository = SupabaseTargetsSetupRepository(
-        client: FakeSupabaseClient(currentUser: fakeUser, postgrestClient: throwingPostgrest),
+        client: FakeSupabaseClient(
+          currentUser: fakeUser,
+          postgrestClient: throwingPostgrest,
+        ),
       );
 
       await expectLater(
@@ -304,19 +414,26 @@ void main() {
       );
     });
 
-    test('canonical save and read roundtrip preserves all supported targets and recommendations', () async {
+    test(
+        'canonical save/read preserves owner-backed targets without recreating Body mirrors',
+        () async {
       final memoryPostgrest = MemoryFakePostgrestClient();
       final repository = SupabaseTargetsSetupRepository(
-        client: FakeSupabaseClient(currentUser: fakeUser, postgrestClient: memoryPostgrest),
+        client: FakeSupabaseClient(
+          currentUser: fakeUser,
+          postgrestClient: memoryPostgrest,
+        ),
       );
 
       const originalData = TargetsSetupData(
         dailySteps: 12500,
         sleepTargetMinutes: 450,
-        sleepTimeMinutes: 1395, // 23:15
-        wakeTimeMinutes: 405, // 06:45
+        sleepTimeMinutes: 1395,
+        wakeTimeMinutes: 405,
         waterMl: 3400,
         goalPaceKgPerWeek: 0.6,
+        currentWeightKg: 80,
+        targetWeightKg: 74,
         recommendation: NutritionTargetRecommendation(
           caloriesKcal: 2300,
           proteinGrams: 170,
@@ -332,7 +449,19 @@ void main() {
       final loadedData = await repository.getTargetsSetup();
 
       expect(loadedData, isNotNull);
-      expect(loadedData, equals(originalData));
+      expect(loadedData!.dailySteps, originalData.dailySteps);
+      expect(loadedData.sleepTargetMinutes, originalData.sleepTargetMinutes);
+      expect(loadedData.sleepTimeMinutes, originalData.sleepTimeMinutes);
+      expect(loadedData.wakeTimeMinutes, originalData.wakeTimeMinutes);
+      expect(loadedData.waterMl, originalData.waterMl);
+      expect(loadedData.recommendation, originalData.recommendation);
+      expect(loadedData.goalPaceKgPerWeek, 0.0);
+      expect(loadedData.currentWeightKg, isNull);
+      expect(loadedData.targetWeightKg, isNull);
+      expect(
+        memoryPostgrest.lastPayload!.containsKey('weekly_weight_change_kg'),
+        isFalse,
+      );
     });
   });
 }
@@ -390,7 +519,9 @@ class MemoryFakePostgrestClient extends FakePostgrestClient {
 class ThrowingFakePostgrestClient extends FakePostgrestClient {
   @override
   SupabaseQueryBuilder from(String table) {
-    throw const PostgrestException(message: 'Simulated network connection failure');
+    throw const PostgrestException(
+      message: 'Simulated network connection failure',
+    );
   }
 }
 
@@ -416,12 +547,14 @@ class FakeSupabaseQueryBuilder extends Fake implements SupabaseQueryBuilder {
   }
 
   @override
-  PostgrestFilterBuilder<List<Map<String, dynamic>>> select([String columns = '*']) {
+  PostgrestFilterBuilder<List<Map<String, dynamic>>> select(
+      [String columns = '*']) {
     return FakePostgrestSelectFilterBuilder(rowToReturn);
   }
 }
 
-class MemoryFakeSupabaseQueryBuilder extends Fake implements SupabaseQueryBuilder {
+class MemoryFakeSupabaseQueryBuilder extends Fake
+    implements SupabaseQueryBuilder {
   MemoryFakeSupabaseQueryBuilder(this._client, this._table, this._storage);
   final FakePostgrestClient _client;
   final String _table;
@@ -445,7 +578,8 @@ class MemoryFakeSupabaseQueryBuilder extends Fake implements SupabaseQueryBuilde
   }
 
   @override
-  PostgrestFilterBuilder<List<Map<String, dynamic>>> select([String columns = '*']) {
+  PostgrestFilterBuilder<List<Map<String, dynamic>>> select(
+      [String columns = '*']) {
     return MemoryFakePostgrestSelectFilterBuilder(_storage);
   }
 }
@@ -481,7 +615,8 @@ class FakePostgrestSelectFilterBuilder extends Fake
   final Map<String, dynamic>? _row;
 
   @override
-  PostgrestFilterBuilder<List<Map<String, dynamic>>> eq(String column, Object value) {
+  PostgrestFilterBuilder<List<Map<String, dynamic>>> eq(
+      String column, Object value) {
     return this;
   }
 
@@ -498,7 +633,8 @@ class MemoryFakePostgrestSelectFilterBuilder extends Fake
   final List<String> _targetUserId = [];
 
   @override
-  PostgrestFilterBuilder<List<Map<String, dynamic>>> eq(String column, Object value) {
+  PostgrestFilterBuilder<List<Map<String, dynamic>>> eq(
+      String column, Object value) {
     if (column == 'user_id') {
       _targetUserId.add(value as String);
     }
