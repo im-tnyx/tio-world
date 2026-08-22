@@ -1,6 +1,6 @@
 # App Mode Foundation — O1 Durable Account Preference
 
-**Status:** Ready — O1A is the next Product Onboarding implementation slice  
+**Status:** In progress — O1A validated; O1B Supabase adapter is NEXT  
 **Primary owners:** `apps/shared`, `apps/app`, onboarding, Settings, `user_app_preferences`  
 **Tracker:** #11  
 **Product Onboarding tracker:** #40  
@@ -74,23 +74,50 @@ Never silently invent Hybrid.
 
 Only one O1 sub-slice is active at a time. Each sub-slice must land focused tests before the next begins. Full workspace CI is required at O1F before O2 starts.
 
-### O1A — domain/repository contract — NEXT
+## O1A validated checkpoint ✅
+
+```text
+3889e7f0aae597d98908735c8f1b7fea6a6aebf0
+Flutter CI #1183 / run 32547109579
+Analyze Flutter packages  ✅
+Analyze Dart packages     ✅
+Test Flutter packages     ✅
+Test Dart packages        ✅
+```
+
+O1A landed only backend-neutral shared-domain contracts; runtime authority did not change.
+
+Implemented:
+
+- `AppPreferencesState` with explicit missing-vs-present canonical state;
+- nullable read-side `appMode` / `activeTabs` for legacy/recovery representation;
+- validated `AppPreferencesUpdate` for canonical writes;
+- `AppPreferencesUpdate.guided(AppMode)` for current guided defaults;
+- backend-neutral `AppPreferencesRepository.read/upsert` contract;
+- stable `AppDestination.storageValue` + parser for `active_tabs` IDs;
+- non-empty/duplicate validation, order preservation and defensive copies;
+- focused pure-Dart tests.
+
+Existing `AppModePreference` remains the local cache/staging boundary until later O1 slices.
+
+### O1A — domain/repository contract — VALIDATED ✅
 
 Goal: introduce the backend-neutral account preference model without changing runtime authority yet.
 
-- [ ] define `AppPreferencesState` (or equivalent) with nullable `appMode` and ordered `activeTabs`;
-- [ ] define backend-neutral `AppPreferencesRepository` read/upsert contract;
-- [ ] keep existing `AppModePreference` as local cache/staging boundary during migration rather than making Supabase concerns leak into shared domain;
-- [ ] validate mode IDs through existing `AppMode` contract;
-- [ ] validate stable destination IDs;
-- [ ] reject duplicate/unsupported `active_tabs`;
-- [ ] preserve array order;
-- [ ] represent missing canonical preference explicitly;
-- [ ] focused pure-Dart tests.
+- [x] define `AppPreferencesState` with nullable `appMode` and ordered `activeTabs`;
+- [x] define backend-neutral `AppPreferencesRepository` read/upsert contract;
+- [x] keep existing `AppModePreference` as local cache/staging boundary during migration rather than making Supabase concerns leak into shared domain;
+- [x] validate mode IDs through existing `AppMode` contract;
+- [x] define stable destination storage IDs + parsing;
+- [x] reject duplicate/empty canonical `active_tabs` payloads and surface unsupported IDs through parsing failure;
+- [x] preserve array order;
+- [x] represent missing canonical preference explicitly;
+- [x] focused pure-Dart tests;
+- [x] full CI validation #1183.
 
-Exit: domain contract is compile-safe and tested; no onboarding completion/bootstrap behavior changed yet.
+Exit met: domain contract is compile-safe and tested; no onboarding completion/bootstrap behavior changed.
 
-### O1B — Supabase adapter
+### O1B — Supabase adapter — NEXT
 
 Goal: make `user_app_preferences` usable through the new repository.
 
@@ -98,6 +125,7 @@ Goal: make `user_app_preferences` usable through the new repository.
 - [ ] upsert `app_mode` + `active_tabs` as one logical preference write;
 - [ ] `app_mode` present + `active_tabs` null remains a valid legacy/recovery state;
 - [ ] missing row returns explicit no-preference state;
+- [ ] unsupported mode/tab IDs and duplicate/empty tab arrays are rejected as invalid canonical data;
 - [ ] RLS/auth failures are surfaced, never converted into local success;
 - [ ] no row is fabricated from `onboarding_drafts.payload.selected_mode`;
 - [ ] focused repository tests.
@@ -227,6 +255,7 @@ Account contact verification (#8) is required product work but does not technica
 
 ## Handoff
 
-**Start O1A domain/repository contract.**  
-Then O1B → O1C → O1D → O1E → O1F.  
+**Next: O1B Supabase `user_app_preferences` repository adapter.**  
+Then O1C → O1D → O1E → O1F.  
+Do not start O1C until O1B focused repository tests and validation are green.  
 After O1F validation, update trackers and start O2 common Profile owner/section.
