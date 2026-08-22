@@ -74,5 +74,97 @@ void main() {
         isFalse,
       );
     });
+
+    test('pace edits invalidate Body Goal while Targets edits invalidate Targets', () {
+      final bodyGoalController = OnboardingController(
+        entryPath: OnboardingEntryPath.resumeDraft,
+        initialDraft: OnboardingDraft(
+          selectedMode: AppMode.nutrition,
+          goalSelection: const GoalIntentSelection(
+            primaryGoal: GoalIntent.loseWeight,
+          ),
+          currentStepId: OnboardingStepId.bodyGoal,
+          profile: ProfileOnboardingDraft(
+            currentStepId: ProfileStepId.goalPace,
+            currentWeightKg: 70,
+            targetWeightKg: 64,
+            targetWeightDirection: GoalWeightDirection.loss,
+          ),
+          targets: const TargetsOnboardingDraft(
+            currentStepId: TargetStepId.bridge,
+            goalPaceKgPerWeek: 0.5,
+          ),
+          completedStepIds: const {
+            OnboardingStepId.profileBasics,
+            OnboardingStepId.bodyGoal,
+            OnboardingStepId.targets,
+          },
+        ),
+      );
+
+      bodyGoalController.updateGoalPaceKgPerWeek(0.7);
+
+      expect(
+        bodyGoalController.state.completedStepIds,
+        isNot(contains(OnboardingStepId.bodyGoal)),
+      );
+      expect(
+        bodyGoalController.state.completedStepIds,
+        contains(OnboardingStepId.targets),
+      );
+      expect(
+        bodyGoalController.state.draft.completedStepIds,
+        isNot(contains(OnboardingStepId.bodyGoal)),
+      );
+      expect(
+        bodyGoalController.state.draft.completedStepIds,
+        contains(OnboardingStepId.targets),
+      );
+
+      final targetsController = OnboardingController(
+        entryPath: OnboardingEntryPath.resumeDraft,
+        initialDraft: OnboardingDraft(
+          selectedMode: AppMode.nutrition,
+          goalSelection: const GoalIntentSelection(
+            primaryGoal: GoalIntent.loseWeight,
+          ),
+          currentStepId: OnboardingStepId.targets,
+          profile: ProfileOnboardingDraft(
+            currentStepId: ProfileStepId.goalPace,
+            currentWeightKg: 70,
+            targetWeightKg: 64,
+            targetWeightDirection: GoalWeightDirection.loss,
+          ),
+          targets: const TargetsOnboardingDraft(
+            currentStepId: TargetStepId.waterTarget,
+            goalPaceKgPerWeek: 0.5,
+          ),
+          completedStepIds: const {
+            OnboardingStepId.profileBasics,
+            OnboardingStepId.bodyGoal,
+            OnboardingStepId.targets,
+          },
+        ),
+      );
+
+      targetsController.updateWaterTargetMl(2800);
+
+      expect(
+        targetsController.state.completedStepIds,
+        contains(OnboardingStepId.bodyGoal),
+      );
+      expect(
+        targetsController.state.completedStepIds,
+        isNot(contains(OnboardingStepId.targets)),
+      );
+      expect(
+        targetsController.state.draft.completedStepIds,
+        contains(OnboardingStepId.bodyGoal),
+      );
+      expect(
+        targetsController.state.draft.completedStepIds,
+        isNot(contains(OnboardingStepId.targets)),
+      );
+    });
   });
 }
