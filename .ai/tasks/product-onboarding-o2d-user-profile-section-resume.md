@@ -1,81 +1,87 @@
 # Product Onboarding O2D — `userProfile` Section + Resume Compatibility
 
-**Status:** In progress  
+**Status:** Validated  
 **Tracker:** GitHub Issue #53  
 **Parent tracker:** #40  
 **Canonical ownership:** #44  
 **Implementation PR:** #50 Draft/open/unmerged  
 **Branch:** `agent/onboarding-slice-2-step-1-body-goal-ui`
 
-## Starting checkpoint
-
-O2C canonical common Profile write cutover is validated:
+## Validated checkpoint
 
 ```text
-75bcdc487a67b79128d41fb42547c0a50c8520ce
-Flutter CI #1268 / run 32554015902
+6843a14b89f0c0bb7d62b1466eb3855ddbef0f64
+Flutter CI #1275 / run 32555015103
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
 Dart tests      ✅
 ```
 
-Validated O2C behavior:
-- Product Onboarding maps common Profile answers through strict `UserProfileMapper`;
-- persistence calls `UserProfileRepository.upsert`;
-- Supabase canonical path writes `public.user_profiles`;
-- Body remains a separate canonical owner;
-- broad legacy Profile/avatar/settings APIs remain compatibility-only through `CanonicalUserProfileBridgeRepository`;
-- canonical onboarding upsert does not call legacy broad `saveProfileSetup`.
-
 ## Outcome
 
-Activate prepared `OnboardingSectionId.userProfile` for the existing Profile onboarding section without changing visual design, while preserving old persisted `profileBasics`/legacy `profile` resume checkpoints.
+The existing Profile onboarding UI now uses the prepared `OnboardingSectionId.userProfile` identity without changing its persisted top-level step id or visual contract. Old persisted `profileBasics` snapshots resume through the new active section while retaining Profile answers and nested Profile step state.
 
-O2D is a section identity/resume migration slice, not a new Profile UI or ownership slice.
-
-## Scope
+## Validated behavior
 
 ```text
-existing ProfileSection UI
-+ existing profileBasics step id
-+ new active section identity: OnboardingSectionId.userProfile
-+ compatibility for legacy persisted section/checkpoint identity
+persisted top-level identity: OnboardingStepId.profileBasics   unchanged
+active section identity:      OnboardingSectionId.userProfile
+active renderer:              existing ProfileSection
+legacy renderer identity:     OnboardingSectionId.profile remains supported
 ```
 
-Required behavior:
-- active flow emits `OnboardingSectionId.userProfile` for Profile basics;
-- renderer maps `userProfile` to the existing `ProfileSection` widget;
-- legacy `OnboardingSectionId.profile` remains readable/reconcilable for old drafts/checkpoints but is not emitted by the new active flow;
-- existing `OnboardingStepId.profileBasics` remains stable unless evidence requires otherwise;
-- Back/Next/progress semantics remain unchanged;
-- no Profile UI redesign;
-- no O3 `bodyGoal` activation;
-- no persistence/schema changes.
+Persisted onboarding snapshots do not serialize section identity. They serialize the stable top-level `current_step_id`, completed step ids and nested Profile draft/step data. Therefore O2D required no draft schema/version bump.
+
+### Active flow
+- `BuildOnboardingFlowUseCase` emits `userProfile` for `profileBasics`;
+- new active plans no longer emit legacy `profile`;
+- Back/Next/progress ordering and stable step IDs are unchanged.
+
+### Renderer compatibility
+- `OnboardingSectionRenderer` maps both active `userProfile` and legacy `profile` to the existing `ProfileSection`;
+- `ProfileSection` keeps its strict `profileBasics` guard and accepts only those two Profile section identities;
+- no router or visual redesign was required.
+
+### Resume compatibility
+A serialized legacy schema-v4 snapshot with `current_step_id: profileBasics` restores into active `userProfile` and preserves:
+- common Profile answers;
+- nested `ProfileStepId`;
+- canonical metric values;
+- stable top-level resume location.
+
+## CI learning / corrections
+
+O2D intentionally remained unvalidated through two intermediate failures:
+
+1. CI #1273: analyze gates passed, but app router regressions exposed that `ProfileSection` still enforced the legacy-only `profile` section guard. Fixed by allowing exactly `profile` or `userProfile` while retaining the `profileBasics` guard.
+2. CI #1274: analyze gates passed and the router regressions/new O2D migration tests passed; one legacy controller test still expected the old active `profile` identity. The assertion was updated to the canonical `userProfile` identity.
+3. CI #1275: exact final O2D source passed the complete Flutter/Dart analyze and test suite.
 
 ## Acceptance
 
-- [ ] active flow plan uses `OnboardingSectionId.userProfile` for `profileBasics`;
-- [ ] renderer reuses existing `ProfileSection` for `userProfile`;
-- [ ] legacy `profile` checkpoint resumes into the active Profile section safely;
-- [ ] `profileBasics` persisted step compatibility is preserved;
-- [ ] controller resume clamps/reconciles stale legacy section identity without losing Profile answers;
-- [ ] progress denominator/order unchanged except identity label migration;
-- [ ] no new screen or visual redesign;
-- [ ] no O3/bodyGoal activation;
-- [ ] focused flow/renderer/resume tests;
-- [ ] Flutter analyze + Dart analyze + Flutter tests + Dart tests green on exact O2D checkpoint.
+- [x] active flow plan uses `OnboardingSectionId.userProfile` for `profileBasics`;
+- [x] renderer reuses existing `ProfileSection` for `userProfile`;
+- [x] legacy `profile` states remain renderable for compatibility;
+- [x] `profileBasics` persisted step compatibility is preserved;
+- [x] serialized legacy checkpoint resumes without losing Profile answers/nested step;
+- [x] progress denominator/order remains unchanged apart from section identity;
+- [x] no new screen or visual redesign;
+- [x] no persistence/schema changes;
+- [x] no O3/bodyGoal activation;
+- [x] focused flow/renderer/resume tests;
+- [x] Flutter analyze + Dart analyze + Flutter tests + Dart tests green on exact O2D checkpoint.
 
-## Guardrails
+## Scope proof
 
-- preserve Name/Gender/DOB/Units/Height/Activity/Health UI exactly;
-- preserve DOB/Height picker contracts;
-- Current Weight remains Body-owned;
-- no applied migration edits or legacy-column drops;
-- no owner semantics change in O2D;
-- O2E integrated read/write/resume acceptance follows only after O2D validation;
-- O3 must not start before O2E.
+O2D did not change:
+- canonical Profile persistence semantics validated in O2C;
+- Body/Goal owner semantics;
+- database schema/RLS/migrations;
+- app router behavior;
+- Profile visual design;
+- O3 `bodyGoal` activation.
 
-## Current work
+## Handoff
 
-**Audit the active flow definition, section renderer, persisted draft decoding and resume reconciliation; then activate `userProfile` with explicit legacy compatibility tests.**
+**O2D is validated. Start O2E integrated canonical Profile read/write/resume acceptance only. O3 remains blocked until O2E validates the complete O2 slice.**
