@@ -1,6 +1,6 @@
 # Product Onboarding — Canonical Execution Plan
 
-**Status:** In progress — O1 validated; O2 common User Profile owner is ACTIVE  
+**Status:** In progress — O1 validated; O2C common User Profile write cutover ACTIVE  
 **Primary tracker:** #40  
 **Canonical ownership:** #44  
 **O1 App Mode:** #11 ✅ closed  
@@ -20,16 +20,27 @@ Canonical Body onboarding writes                 ✅ CI #1135
 Canonical Body read/history                      ✅ CI #1153
 Canonical owner schema + P1 Profile/App Prefs    ✅ LIVE
 O1 durable App Mode / active_tabs                ✅ CI #1240
+O2A narrow UserProfile contract                  ✅ CI #1252
+O2B Supabase user_profiles adapter               ✅ CI #1252
 ```
 
-O1 final source:
+O1 final:
 
 ```text
 c7925b77e9ccdc1dcd0b6ac1d9554f05972d13a7
 Flutter CI #1240 / run 32552460378 ✅
 ```
 
-O1 evidence: `.ai/tasks/app-mode-o1f-integrated-acceptance.md`. Issue #11 is closed completed.
+O2A/O2B final:
+
+```text
+a263e32e2aeb64706820260c1f9eaf4c13399a3c
+Flutter CI #1252 / run 32553301222
+Flutter analyze ✅
+Dart analyze    ✅
+Flutter tests   ✅
+Dart tests      ✅
+```
 
 ## Canonical owners
 
@@ -47,31 +58,36 @@ user_workout_targets       → workout targets
 onboarding_drafts          → draft/resume orchestration only
 ```
 
-Onboarding is an orchestrator, never a durable domain owner. Applied migrations are immutable; legacy columns stay until cutover proof.
+Onboarding orchestrates; it does not own durable domain data. Applied migrations are immutable and legacy columns remain until verified cleanup.
 
 ## Execution order
 
 ```text
 O1 App Mode durability                         ✅ #11 / CI #1240
 → O2 common User Profile owner + section       ACTIVE #53
+   O2A narrow contract                        ✅ #1252
+   O2B Supabase adapter                       ✅ #1252
+   O2C onboarding Profile write cutover       ACTIVE
+   O2D userProfile section + resume           NEXT after O2C
+   O2E integrated acceptance
 → O3 Body Goal section + Profile/Body parity
 → O4 Wellness placement + owner
 → O5 Nutrition Profile + Targets
 → O6 Workout Intro/Profile/Targets
-→ O7 Health Connections decision/integration
+→ O7 Health Connections
 → O8 Review + edit-back + resume
-→ O9 truthful Plan Building/finalization
-→ O10 full mode/device/persistence acceptance
+→ O9 Plan Building/finalization
+→ O10 final acceptance
 ```
 
-Only one Product Onboarding slice is active at a time. Do not start the next slice before exact validation is recorded.
+Only one Product Onboarding slice is active at a time.
 
-## O2 — ACTIVE
+## O2 — Common User Profile owner
 
-Focused task: `.ai/tasks/product-onboarding-o2-user-profile-owner.md`  
+Parent task: `.ai/tasks/product-onboarding-o2-user-profile-owner.md`  
 Tracker: #53.
 
-Canonical common Profile fields:
+Canonical fields:
 
 ```text
 name
@@ -84,32 +100,46 @@ health_conditions
 other_health_condition
 ```
 
-Current Weight is Body-owned. Goal/Target Weight/Goal Pace and Account/contact data are not common Profile-owned.
+Not common Profile-owned: Account/contact, App Mode, current weight, Body Goal/Target/Pace, Wellness, Nutrition or Workout data.
 
-Verified gap: current broad `ProfileSetupData` / `SupabaseProfileSetupRepository` still mix Profile with Account/avatar/plan, Goal and Body weight concepts and use legacy `users`. Do not repoint that broad contract wholesale.
+### O2C — ACTIVE
 
-O2 execution:
+Focused task: `.ai/tasks/product-onboarding-o2c-profile-write-cutover.md`.
 
-```text
-O2A UserProfileData + UserProfileRepository
-→ O2B SupabaseUserProfileRepository → public.user_profiles only
-→ O2C Product Onboarding common Profile persistence cutover
-→ O2D activate prepared userProfile identity using existing ProfileSection UI
-→ O2E integrated read/write/resume acceptance + full CI
-```
-
-Current O2A/O2B source:
+Target path:
 
 ```text
-6b79a8b9bae0baa71146fd7139bd9574c99bc0fd
-Flutter CI #1251 / run 32553012219 — running
+ProfileOnboardingDraft
+→ strict UserProfileMapper
+→ UserProfileData
+→ UserProfileRepository.upsert
+→ SupabaseUserProfileRepository
+→ public.user_profiles
+
+Body answers
+→ existing BodySetupMapper
+→ existing canonical Body repository
 ```
 
-O2A/O2B source adds a narrow backend-neutral owner contract, authenticated strict Supabase adapter, canonical-only payload and focused tests. O2C waits for this checkpoint to be green.
+Current source includes:
+- strict mapper with no fabricated name/gender/DOB/height/activity defaults;
+- Product Onboarding owner coordinator calling canonical `UserProfileRepository.upsert`;
+- separate Body/Workout/Targets writes preserved;
+- `CanonicalUserProfileBridgeRepository` so legacy Profile/avatar/settings APIs remain available while canonical common Profile methods route to `SupabaseUserProfileRepository`;
+- focused mapper/use-case/bridge tests;
+- no `userProfile` section activation yet.
+
+Latest source at this handoff:
+
+```text
+df611158b28f5ded0ef924e45d7d5798803bbfd9
+```
+
+Take one exact full-CI checkpoint after context-sync commits settle. If green, record O2C and move to O2D.
 
 ## Later slices
 
-O3 activates `bodyGoal` while keeping Body data in Body owners. O4 resolves Wellness placement. O5 separates Nutrition Profile/Targets. O6 separates Workout Profile/Targets with Hybrid Later preserving stored data. O7 is consent-first Health Connections. O8 makes Review/resume canonical. O9 performs truthful finalization before existing Congratulations. O10 runs final cross-mode/device/persistence acceptance.
+O2D activates `userProfile` using the existing `ProfileSection` UI and proves old `profileBasics` draft/resume compatibility. O2E integrates canonical read/write/section acceptance. O3 then activates Body Goal parity. O4–O10 remain in the established sequence.
 
 ## Guardrails
 
@@ -120,9 +150,9 @@ O3 activates `bodyGoal` while keeping Body data in Body owners. O4 resolves Well
 - no anonymous-auth side effects for canonical writes;
 - no permanent dual-write synchronization;
 - no applied migration edits;
-- no legacy-column drop before repository cutover proof;
-- future backend consumes the same canonical Postgres owners and backend-neutral contracts.
+- no legacy-column drop before proof;
+- do not start O3 before O2 exact validation.
 
 ## Handoff
 
-**O2 #53 is ACTIVE. Validate O2A/O2B CI #1251, then begin O2C. Do not start O3 before O2 validation.**
+**O2C is ACTIVE on #53. Validate the latest branch head, record exact CI, then start O2D.**
