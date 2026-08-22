@@ -31,7 +31,7 @@ class PersistOnboardingOwnerDataUseCase {
         _bodyRepository = bodyRepository,
         _wellnessRepository = wellnessRepository ??
             (bodyRepository is body_owner.WellnessTargetsRepository
-                ? bodyRepository
+                ? bodyRepository as body_owner.WellnessTargetsRepository
                 : null),
         _workoutRepository = workoutRepository,
         _targetsRepository = targetsRepository;
