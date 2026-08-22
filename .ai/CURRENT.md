@@ -9,9 +9,9 @@ Runtime source remains behavior truth. Product Onboarding sequencing is owned by
 1. `.ai/CURRENT.md`
 2. `.ai/tasks/product-onboarding-canonical-execution.md`
 3. `.ai/tasks/product-onboarding-o6-workout.md`
-4. `.ai/tasks/product-onboarding-o6a-canonical-workout-contracts.md`
-5. GitHub Issues #70/#69/#40/#44 and Draft PR #50
-6. `.ai/tasks/product-onboarding-o5e-integrated-nutrition-acceptance.md` for the validated predecessor
+4. `.ai/tasks/product-onboarding-o6c-workout-targets-runtime.md`
+5. GitHub Issues #72/#69/#40/#44 and Draft PR #50
+6. `.ai/tasks/product-onboarding-o6b-workout-profile-runtime.md` for validated predecessor evidence
 
 ## Canonical persistence owners
 
@@ -35,15 +35,15 @@ Legacy mixed columns remain temporarily. Destructive cleanup is O11/#54 and stay
 ## Latest exact validated Product Onboarding checkpoint
 
 ```text
-b017f6c31c9c89a6df1ba6b670ea0ea04d635941
-Flutter CI #1507 / run 32583620248
+48f0d1ff562fee7dda5647476ff706d1886dde11
+Flutter CI #1511 / run 32585811984
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
 Dart tests      ✅
 ```
 
-This is the frozen O5E source/runtime checkpoint. Later docs/tracker-only commits do not replace it.
+This is the frozen O6B source/runtime checkpoint. Tracker-only commits after it do not replace exact runtime validation.
 
 ## Current sequence
 
@@ -53,15 +53,10 @@ O2 User Profile                                  ✅ #53 / CI #1279
 O3 Body Goal                                     ✅ #55 / CI #1354
 O4 Wellness                                      ✅ #58 / CI #1441
 O5 Nutrition Profile + Targets                   ✅ #63 / CI #1507
-   O5A canonical owner contracts                 ✅ #64 / CI #1449
-   O5B nutritionProfile runtime/draft/resume     ✅ #65 / CI #1460
-   O5C nutritionGoals runtime + legacy resume    ✅ #66 / CI #1481
-   O5D canonical persistence cutover             ✅ #67 / CI #1505
-   O5E integrated acceptance                     ✅ #68 / CI #1507
 → O6 Workout Profile + Targets                   ACTIVE #69
-   → O6A canonical owner contracts               ACTIVE #70
-   O6B workoutProfile runtime/draft/resume
-   O6C workoutTargets runtime + legacy resume
+   O6A canonical owner contracts                 ✅ #70 / CI #1509
+   O6B workoutProfile runtime + legacy resume    ✅ #71 / CI #1511
+   → O6C workoutTargets runtime + ordered goals  ACTIVE #72
    O6D canonical persistence cutover
    O6E integrated acceptance
 → O7 Health Connections
@@ -73,56 +68,42 @@ O5 Nutrition Profile + Targets                   ✅ #63 / CI #1507
 
 Only one Product Onboarding sub-slice is active at a time.
 
-## O5 validated result
+## Validated through O6B
 
-O5E freezes the integrated canonical Nutrition contract across Workout, Nutrition, Hybrid setupNow and Hybrid later. Canonical Nutrition Profile provenance, Nutrition Targets recommendation/customization state, legacy `targets + nutritionTarget` resume, fail-closed ordering, retry/idempotence and direct production canonical providers are covered on CI #1507.
+O6A established direct canonical Workout Profile/Targets repository contracts. O6B activated canonical top-level `workoutProfile`, migrated historical `workoutPreferences` storage forward, preserved Hybrid `Later` data, and kept the existing child screens/behavior unchanged on CI #1511.
 
-Product Onboarding completion remains independent of `TargetsSetupRepository`; that repository is compatibility-only outside completion.
+## Current O6C objective
 
-## Current O6A objective
-
-The current broad `WorkoutPreferencesRepository` mixes Profile context with Target planning. O6 splits the already-live owners:
+Activate `workoutTargets` as the second canonical Workout runtime section:
 
 ```text
-WorkoutProfileRepository → user_workout_profiles
-WorkoutTargetsRepository → user_workout_targets
+workoutProfile
+  gymAccess → equipment(home) → experienceLevel → focusAreas → healthConcerns
+→ workoutTargets
+  trainingDays → workoutDuration → workoutSplit → specialEvent
 ```
 
-Workout Profile initially owns current source/schema context:
+`healthConcerns` moves next to Profile-owned context; the screen itself does not change.
 
-```text
-workout_location
-available_equipment
-experience_level
-focus_areas
-health_concerns
-```
+O6C also:
 
-Workout Targets owns:
+- advances onboarding draft schema to v4 so O6B broad drafts migrate safely;
+- maps only training intents from ordered unified Goal selection into Workout Targets while preserving original rank 1/2;
+- leaves Body-direction goals Body-owned;
+- never fabricates Workout goals, durations, or special-event dates;
+- keeps the broad completion writer until O6D.
 
-```text
-primary/supporting workout goals + original ranks
-training_days
-preferred_duration_mins
-split_program
-special_event
-special_event_date
-```
-
-Training goal values are only `build_muscle`, `get_stronger`, `improve_endurance`, and `stay_fit`. Body-direction goals remain Body-owned. `special_event_date` stays null until a real source exists.
-
-O6A is domain/repository/adapters/tests only. No onboarding runtime, UI, completion cutover or schema change belongs in O6A.
+Focused task: `.ai/tasks/product-onboarding-o6c-workout-targets-runtime.md` / Issue #72.
 
 ## Guardrails
 
-- follow `.ai/tasks/product-onboarding-o6a-canonical-workout-contracts.md`;
-- no UI/navigation/runtime step change in O6A;
-- no `PersistOnboardingOwnerDataUseCase` cutover in O6A;
-- no migration/schema change or applied migration edit;
+- no visual redesign/copy/field/value change;
+- only documented owner-driven `healthConcerns` ordering adjustment;
+- no canonical Workout completion persistence cutover in O6C;
+- no schema/database migration or applied migration edit;
 - no legacy-column drop;
 - no permanent dual write;
-- no fabricated workout goals/event dates/defaults;
-- Hybrid `Later` remains preserve/skip, never delete/reset;
-- O6B stays blocked until O6A exact full CI green;
+- Hybrid `Later` preserves stored Workout data;
+- O6D waits for O6C exact full CI green;
 - O11 remains blocked until O10;
 - PR #50 remains Draft/open/unmerged.
