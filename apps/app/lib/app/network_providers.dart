@@ -117,6 +117,17 @@ final bodySetupRepositoryProvider = Provider<BodySetupRepository>((ref) {
   return InMemoryBodySetupRepository();
 });
 
+/// Canonical Wellness owner. Production writes only `user_wellness_targets`;
+/// an in-memory fallback keeps non-Supabase test/local harnesses constructible.
+final wellnessTargetsRepositoryProvider =
+    Provider<WellnessTargetsRepository>((ref) {
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  if (supabaseClient != null) {
+    return SupabaseWellnessTargetsRepository(client: supabaseClient);
+  }
+  return InMemoryWellnessTargetsRepository();
+});
+
 final profileAccountRepositoryProvider =
     Provider<ProfileAccountRepository?>((ref) {
   final supabaseClient = ref.watch(supabaseClientProvider);
