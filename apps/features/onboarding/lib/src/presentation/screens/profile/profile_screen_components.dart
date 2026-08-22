@@ -3,6 +3,26 @@ import 'package:tio_core/core.dart';
 
 import '../../../domain/domain.dart';
 
+class ProfileFlowPlanScope extends InheritedWidget {
+  const ProfileFlowPlanScope({
+    required this.flowPlan,
+    required super.child,
+    super.key,
+  });
+
+  final ProfileFlowPlan flowPlan;
+
+  static ProfileFlowPlan? maybeOf(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<ProfileFlowPlanScope>()
+        ?.flowPlan;
+  }
+
+  @override
+  bool updateShouldNotify(ProfileFlowPlanScope oldWidget) =>
+      oldWidget.flowPlan.steps != flowPlan.steps;
+}
+
 class ProfileScreenScaffold extends StatelessWidget {
   const ProfileScreenScaffold({
     required this.stepId,
@@ -23,9 +43,9 @@ class ProfileScreenScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const flow = ProfileFlowPlan();
+    final flow = ProfileFlowPlanScope.maybeOf(context) ?? const ProfileFlowPlan();
     final stepNumber = flow.indexOf(stepId) + 1;
-    final stepCount = ProfileFlowPlan.orderedSteps.length;
+    final stepCount = flow.stepCount;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

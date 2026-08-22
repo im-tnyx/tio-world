@@ -17,8 +17,18 @@ void main() {
     expect(controller.state.draft.status, OnboardingStatus.inProgress);
     expect(controller.state.draft.status, isNot(OnboardingStatus.completed));
     expect(controller.state.stepId, OnboardingStepId.profileBasics);
-    expect(controller.state.currentSection, OnboardingSectionId.profile);
-    expect(controller.state.flowPlan.steps, hasLength(5));
+    expect(controller.state.currentSection, OnboardingSectionId.userProfile);
+    expect(controller.state.flowPlan.steps, hasLength(9));
+    expect(
+      controller.state.flowPlan.stepIds,
+      containsAllInOrder(const [
+        OnboardingStepId.profileBasics,
+        OnboardingStepId.bodyGoal,
+        OnboardingStepId.wellnessGoals,
+        OnboardingStepId.nutritionProfile,
+        OnboardingStepId.workoutIntro,
+      ]),
+    );
     expect(
       controller.state.flowPlan.stepIds,
       isNot(contains(OnboardingStepId.mode)),
@@ -29,20 +39,30 @@ void main() {
     final expectedSteps = {
       AppMode.workout: const [
         OnboardingStepId.profileBasics,
-        OnboardingStepId.workoutPreferences,
-        OnboardingStepId.targets,
+        OnboardingStepId.bodyGoal,
+        OnboardingStepId.wellnessGoals,
+        OnboardingStepId.workoutProfile,
+        OnboardingStepId.workoutTargets,
+        OnboardingStepId.nutritionGoals,
         OnboardingStepId.review,
       ],
       AppMode.nutrition: const [
         OnboardingStepId.profileBasics,
-        OnboardingStepId.targets,
+        OnboardingStepId.bodyGoal,
+        OnboardingStepId.wellnessGoals,
+        OnboardingStepId.nutritionProfile,
+        OnboardingStepId.nutritionGoals,
         OnboardingStepId.review,
       ],
       AppMode.hybrid: const [
         OnboardingStepId.profileBasics,
+        OnboardingStepId.bodyGoal,
+        OnboardingStepId.wellnessGoals,
+        OnboardingStepId.nutritionProfile,
         OnboardingStepId.workoutIntro,
-        OnboardingStepId.workoutPreferences,
-        OnboardingStepId.targets,
+        OnboardingStepId.workoutProfile,
+        OnboardingStepId.workoutTargets,
+        OnboardingStepId.nutritionGoals,
         OnboardingStepId.review,
       ],
     };
@@ -58,7 +78,7 @@ void main() {
     }
   });
 
-  test('next and previous update stable Product Onboarding step identity',
+  test('common Profile completes into Body Goal and Back restores final Profile child',
       () async {
     final controller = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
@@ -71,8 +91,9 @@ void main() {
 
     await controller.next(onFinish: _completeImmediately);
 
-    expect(controller.state.stepId, OnboardingStepId.workoutPreferences);
-    expect(controller.state.currentSection, OnboardingSectionId.workout);
+    expect(controller.state.stepId, OnboardingStepId.bodyGoal);
+    expect(controller.state.currentSection, OnboardingSectionId.bodyGoal);
+    expect(controller.state.draft.profile.currentStepId, ProfileStepId.goal);
     expect(
       controller.state.completedStepIds,
       contains(OnboardingStepId.profileBasics),
@@ -81,6 +102,10 @@ void main() {
 
     controller.previous();
     expect(controller.state.stepId, OnboardingStepId.profileBasics);
+    expect(
+      controller.state.draft.profile.currentStepId,
+      ProfileStepId.healthConditions,
+    );
   });
 
   test('mode change reconciles an ineligible step to nearest previous step',
@@ -96,6 +121,7 @@ void main() {
         completedStepIds: const {
           OnboardingStepId.mode,
           OnboardingStepId.profileBasics,
+          OnboardingStepId.bodyGoal,
         },
       ),
     );
@@ -104,7 +130,11 @@ void main() {
 
     controller.selectMode(AppMode.workout);
 
-    expect(controller.state.stepId, OnboardingStepId.profileBasics);
+    expect(controller.state.stepId, OnboardingStepId.wellnessGoals);
+    expect(
+      controller.state.draft.targets.currentStepId,
+      TargetStepId.bridge,
+    );
     expect(
       controller.state.completedStepIds,
       isNot(contains(OnboardingStepId.workoutIntro)),
@@ -121,6 +151,245 @@ void main() {
     );
 
     expect(controller.state.stepId, OnboardingStepId.profileBasics);
+  });
+
+  test('legacy profileBasics Goal child resumes in canonical Body Goal', () {
+    final controller = OnboardingController(
+      entryPath: OnboardingEntryPath.resumeDraft,
+      initialDraft: OnboardingDraft(
+        selectedMode: AppMode.workout,
+        currentStepId: OnboardingStepId.profileBasics,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.stayFit,
+        ),
+        profile: _validProfile(currentStepId: ProfileStepId.goal),
+      ),
+    );
+
+    expect(controller.state.stepId, OnboardingStepId.bodyGoal);
+    expect(controller.state.currentSection, OnboardingSectionId.bodyGoal);
+    expect(controller.state.draft.profile.currentStepId, ProfileStepId.goal);
+    expect(controller.state.draft.profile.currentWeightKg, 70);
+    expect(controller.state.draft.profile.targetWeightKg, 70);
+  });
+
+  test('legacy profileBasics Current Weight child resumes without data loss', () {
+    final controller = OnboardingController(
+      entryPath: OnboardingEntryPath.resumeDraft,
+      initialDraft: OnboardingDraft(
+        selectedMode: AppMode.workout,
+        currentStepId: OnboardingStepId.profileBasics,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.stayFit,
+        ),
+        profile: _validProfile(currentStepId: ProfileStepId.currentWeight),
+      ),
+    );
+
+    expect(controller.state.stepId, OnboardingStepId.bodyGoal);
+    expect(
+      controller.state.draft.profile.currentStepId,
+      ProfileStepId.currentWeight,
+    );
+    expect(controller.state.draft.profile.currentWeightKg, 70);
+  });
+
+  test('legacy eligible Target Weight child resumes in Body Goal', () {
+    final controller = OnboardingController(
+      entryPath: OnboardingEntryPath.resumeDraft,
+      initialDraft: OnboardingDraft(
+        selectedMode: AppMode.workout,
+        currentStepId: OnboardingStepId.profileBasics,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.loseWeight,
+        ),
+        profile: ProfileOnboardingDraft(
+          currentStepId: ProfileStepId.targetWeight,
+          name: 'Tio User',
+          gender: ProfileGender.other,
+          dateOfBirth: DateTime(2000, 1, 1),
+          heightCm: 171,
+          currentWeightKg: 70,
+          targetWeightKg: 65,
+          targetWeightDirection: GoalWeightDirection.loss,
+          activityLevel: ProfileActivityLevel.active,
+          healthConditions: const {ProfileHealthCondition.none},
+        ),
+      ),
+    );
+
+    expect(controller.state.stepId, OnboardingStepId.bodyGoal);
+    expect(controller.state.draft.profile.currentStepId, ProfileStepId.targetWeight);
+    expect(controller.state.draft.profile.targetWeightKg, 65);
+    expect(
+      controller.state.draft.profile.targetWeightDirection,
+      GoalWeightDirection.loss,
+    );
+  });
+
+  test('legacy ineligible Target Weight child clamps to Current Weight', () {
+    final controller = OnboardingController(
+      entryPath: OnboardingEntryPath.resumeDraft,
+      initialDraft: OnboardingDraft(
+        selectedMode: AppMode.workout,
+        currentStepId: OnboardingStepId.profileBasics,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.stayFit,
+        ),
+        profile: _validProfile(currentStepId: ProfileStepId.targetWeight),
+      ),
+    );
+
+    expect(controller.state.stepId, OnboardingStepId.bodyGoal);
+    expect(
+      controller.state.draft.profile.currentStepId,
+      ProfileStepId.currentWeight,
+    );
+    expect(controller.state.draft.profile.currentWeightKg, 70);
+  });
+
+  test('legacy common Profile child stays in userProfile section', () {
+    final controller = OnboardingController(
+      entryPath: OnboardingEntryPath.resumeDraft,
+      initialDraft: OnboardingDraft(
+        selectedMode: AppMode.workout,
+        currentStepId: OnboardingStepId.profileBasics,
+        profile: _validProfile(currentStepId: ProfileStepId.healthConditions),
+      ),
+    );
+
+    expect(controller.state.stepId, OnboardingStepId.profileBasics);
+    expect(controller.state.currentSection, OnboardingSectionId.userProfile);
+    expect(
+      controller.state.draft.profile.currentStepId,
+      ProfileStepId.healthConditions,
+    );
+  });
+
+  test('legacy empty Targets checkpoint resumes at Wellness without losing Body answers', () {
+    final controller = OnboardingController(
+      entryPath: OnboardingEntryPath.resumeDraft,
+      initialDraft: OnboardingDraft(
+        selectedMode: AppMode.workout,
+        currentStepId: OnboardingStepId.targets,
+        completedStepIds: const {OnboardingStepId.profileBasics},
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.loseWeight,
+        ),
+        profile: ProfileOnboardingDraft(
+          currentStepId: ProfileStepId.healthConditions,
+          name: 'Tio User',
+          gender: ProfileGender.other,
+          dateOfBirth: DateTime(2000, 1, 1),
+          heightCm: 171,
+          currentWeightKg: 70,
+          targetWeightKg: 65,
+          targetWeightDirection: GoalWeightDirection.loss,
+          activityLevel: ProfileActivityLevel.active,
+          healthConditions: const {ProfileHealthCondition.none},
+        ),
+      ),
+    );
+
+    expect(controller.state.stepId, OnboardingStepId.wellnessGoals);
+    expect(controller.state.draft.targets.currentStepId, TargetStepId.bridge);
+    expect(controller.state.draft.profile.currentWeightKg, 70);
+    expect(controller.state.draft.profile.targetWeightKg, 65);
+    expect(
+      controller.state.draft.goalSelection.primaryGoal,
+      GoalIntent.loseWeight,
+    );
+  });
+
+  test('legacy profile goals migrate only through meaning-preserving mappings', () {
+    final workout = OnboardingController(
+      entryPath: OnboardingEntryPath.resumeDraft,
+      initialDraft: OnboardingDraft(
+        selectedMode: AppMode.workout,
+        currentStepId: OnboardingStepId.profileBasics,
+        profile: _validProfile(currentStepId: ProfileStepId.healthConditions),
+      ),
+    );
+    expect(
+      workout.state.draft.goalSelection,
+      const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
+    );
+    expect(
+      workout.state.draft.profile.currentStepId,
+      ProfileStepId.healthConditions,
+    );
+
+    final nutrition = OnboardingController(
+      entryPath: OnboardingEntryPath.resumeDraft,
+      initialDraft: OnboardingDraft(
+        selectedMode: AppMode.nutrition,
+        currentStepId: OnboardingStepId.targets,
+        completedStepIds: const {OnboardingStepId.profileBasics},
+        profile: _validProfile(
+          currentStepId: ProfileStepId.healthConditions,
+          goals: const {ProfileGoal.buildMuscle},
+        ),
+      ),
+    );
+    expect(nutrition.state.stepId, OnboardingStepId.bodyGoal);
+    expect(nutrition.state.draft.profile.currentStepId, ProfileStepId.goal);
+    expect(nutrition.state.draft.goalSelection, const GoalIntentSelection());
+  });
+
+  test('Body Goal validates ordered mode-aware Goal selection', () async {
+    final controller = OnboardingController(
+      entryPath: OnboardingEntryPath.firstRun,
+      initialDraft: OnboardingDraft(
+        selectedMode: AppMode.workout,
+        currentStepId: OnboardingStepId.profileBasics,
+        profile: ProfileOnboardingDraft(
+          currentStepId: ProfileStepId.goal,
+          name: 'Tio User',
+          gender: ProfileGender.other,
+        ),
+      ),
+    );
+
+    expect(controller.state.stepId, OnboardingStepId.bodyGoal);
+    await controller.next(onFinish: _completeImmediately);
+    expect(controller.state.validationErrors['goal'], 'Choose your main goal.');
+
+    controller.tapGoalIntent(GoalIntent.buildMuscle);
+    controller.tapGoalIntent(GoalIntent.getStronger);
+    expect(
+      controller.state.draft.goalSelection,
+      const GoalIntentSelection(
+        primaryGoal: GoalIntent.buildMuscle,
+        supportingGoal: GoalIntent.getStronger,
+      ),
+    );
+
+    await controller.next(onFinish: _completeImmediately);
+    expect(controller.state.stepId, OnboardingStepId.bodyGoal);
+    expect(
+      controller.state.draft.profile.currentStepId,
+      ProfileStepId.currentWeight,
+    );
+  });
+
+  test('nutrition goal taps remain single-select', () {
+    final controller = OnboardingController(
+      entryPath: OnboardingEntryPath.firstRun,
+      initialDraft: OnboardingDraft(
+        selectedMode: AppMode.nutrition,
+        currentStepId: OnboardingStepId.profileBasics,
+        profile: ProfileOnboardingDraft(currentStepId: ProfileStepId.goal),
+      ),
+    );
+
+    expect(controller.state.stepId, OnboardingStepId.bodyGoal);
+    controller.tapGoalIntent(GoalIntent.loseWeight);
+    controller.tapGoalIntent(GoalIntent.gainWeight);
+
+    expect(
+      controller.state.draft.goalSelection,
+      const GoalIntentSelection(primaryGoal: GoalIntent.gainWeight),
+    );
   });
 
   test('validation errors disable continue until cleared', () {
@@ -145,13 +414,16 @@ void main() {
       entryPath: OnboardingEntryPath.firstRun,
       initialDraft: OnboardingDraft(
         selectedMode: AppMode.hybrid,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.loseWeight,
+        ),
         currentStepId: OnboardingStepId.workoutIntro,
         profile: _validProfile(),
       ),
     );
 
     expect(controller.state.canContinue, isFalse);
-    expect(controller.state.progressStepCount, 26);
+    expect(controller.state.progressStepCount, 28);
 
     controller.selectWorkoutIntroChoice(WorkoutIntroChoice.later);
 
@@ -161,10 +433,10 @@ void main() {
       controller.state.flowPlan.stepIds,
       isNot(contains(OnboardingStepId.workoutPreferences)),
     );
-    expect(controller.state.progressStepCount, 18);
+    expect(controller.state.progressStepCount, 20);
 
     await controller.next(onFinish: _completeImmediately);
-    expect(controller.state.stepId, OnboardingStepId.targets);
+    expect(controller.state.stepId, OnboardingStepId.nutritionGoals);
 
     controller.previous();
     expect(controller.state.stepId, OnboardingStepId.workoutIntro);
@@ -175,7 +447,7 @@ void main() {
       controller.state.flowPlan.stepIds,
       contains(OnboardingStepId.workoutPreferences),
     );
-    expect(controller.state.progressStepCount, 26);
+    expect(controller.state.progressStepCount, 28);
 
     await controller.next(onFinish: _completeImmediately);
     expect(controller.state.stepId, OnboardingStepId.workoutPreferences);
@@ -195,10 +467,14 @@ void main() {
     controller.selectMode(AppMode.workout);
 
     expect(controller.state.draft.workoutIntroChoice, isNull);
-    expect(controller.state.stepId, OnboardingStepId.profileBasics);
+    expect(controller.state.stepId, OnboardingStepId.wellnessGoals);
+    expect(
+      controller.state.draft.targets.currentStepId,
+      TargetStepId.bridge,
+    );
   });
 
-  test('profile child navigation validates and completes only at the end',
+  test('common Profile and Body Goal complete as separate top-level owners',
       () async {
     final controller = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
@@ -212,10 +488,6 @@ void main() {
     expect(controller.state.stepId, OnboardingStepId.profileBasics);
     expect(controller.state.draft.profile.currentStepId, ProfileStepId.name);
     expect(controller.state.validationErrors, contains('name'));
-    expect(
-      controller.state.completedStepIds,
-      isNot(contains(OnboardingStepId.profileBasics)),
-    );
 
     controller.updateProfileName('Tio User');
     await controller.next(onFinish: _completeImmediately);
@@ -223,38 +495,64 @@ void main() {
 
     controller.updateProfileGender(ProfileGender.other);
     await controller.next(onFinish: _completeImmediately);
-    controller.toggleProfileGoal(ProfileGoal.keepFit);
-    await controller.next(onFinish: _completeImmediately);
+    expect(controller.state.draft.profile.currentStepId, ProfileStepId.age);
+
     controller.updateProfileDateOfBirth(DateTime(2000, 1, 1));
     await controller.next(onFinish: _completeImmediately);
     expect(
       controller.state.draft.profile.currentStepId,
       ProfileStepId.measurementUnits,
     );
+
     await controller.next(onFinish: _completeImmediately);
     controller.updateProfileHeight(171);
     await controller.next(onFinish: _completeImmediately);
-    controller.updateProfileCurrentWeight(70);
-    await controller.next(onFinish: _completeImmediately);
-    controller.updateProfileTargetWeight(68);
-    await controller.next(onFinish: _completeImmediately);
+    expect(controller.state.draft.profile.currentStepId, ProfileStepId.activity);
+
     controller.updateProfileActivity(ProfileActivityLevel.active);
     await controller.next(onFinish: _completeImmediately);
-
     expect(
       controller.state.draft.profile.currentStepId,
       ProfileStepId.healthConditions,
     );
-    expect(
-      controller.state.completedStepIds,
-      isNot(contains(OnboardingStepId.profileBasics)),
-    );
 
     await controller.next(onFinish: _completeImmediately);
-    expect(controller.state.stepId, OnboardingStepId.workoutPreferences);
+    expect(controller.state.stepId, OnboardingStepId.bodyGoal);
+    expect(controller.state.draft.profile.currentStepId, ProfileStepId.goal);
     expect(
       controller.state.completedStepIds,
       contains(OnboardingStepId.profileBasics),
+    );
+    expect(
+      controller.state.completedStepIds,
+      isNot(contains(OnboardingStepId.bodyGoal)),
+    );
+
+    controller.tapGoalIntent(GoalIntent.stayFit);
+    await controller.next(onFinish: _completeImmediately);
+    expect(
+      controller.state.draft.profile.currentStepId,
+      ProfileStepId.currentWeight,
+    );
+
+    controller.updateProfileCurrentWeight(70);
+    await controller.next(onFinish: _completeImmediately);
+
+    expect(controller.state.stepId, OnboardingStepId.wellnessGoals);
+    expect(
+      controller.state.draft.targets.currentStepId,
+      TargetStepId.bridge,
+    );
+    expect(
+      controller.state.completedStepIds,
+      containsAll(const [
+        OnboardingStepId.profileBasics,
+        OnboardingStepId.bodyGoal,
+      ]),
+    );
+    expect(
+      controller.state.completedStepIds,
+      isNot(contains(OnboardingStepId.wellnessGoals)),
     );
   });
 
@@ -281,24 +579,26 @@ void main() {
     expect(controller.state.canGoBack, isFalse);
   });
 
-  test('final profile child follows each mode plan and mode switch keeps data',
+  test('final common Profile child always enters Body Goal and mode switch keeps data',
       () async {
-    for (final entry in {
-      AppMode.workout: OnboardingStepId.workoutPreferences,
-      AppMode.hybrid: OnboardingStepId.workoutIntro,
-      AppMode.nutrition: OnboardingStepId.targets,
-    }.entries) {
+    for (final mode in AppMode.values) {
       final controller = OnboardingController(
         entryPath: OnboardingEntryPath.firstRun,
         initialDraft: OnboardingDraft(
-          selectedMode: entry.key,
+          selectedMode: mode,
+          goalSelection: GoalIntentSelection(
+            primaryGoal: mode == AppMode.nutrition
+                ? GoalIntent.maintainWeight
+                : GoalIntent.stayFit,
+          ),
           currentStepId: OnboardingStepId.profileBasics,
           profile: _validProfile(),
         ),
       );
 
       await controller.next(onFinish: _completeImmediately);
-      expect(controller.state.stepId, entry.value);
+      expect(controller.state.stepId, OnboardingStepId.bodyGoal);
+      expect(controller.state.draft.profile.currentStepId, ProfileStepId.goal);
     }
 
     final controller = OnboardingController(
@@ -315,6 +615,7 @@ void main() {
     expect(controller.state.draft.profile.name, 'Tio User');
     expect(controller.state.draft.profile.heightCm, 171);
     expect(controller.state.draft.profile.goals, {ProfileGoal.keepFit});
+    expect(controller.state.draft.goalSelection, const GoalIntentSelection());
   });
 
   test('progress reflects Product Onboarding screens and reaches 1.0 on review',
@@ -329,30 +630,39 @@ void main() {
     expect(controller.state.progressValue, 0);
 
     controller.selectMode(AppMode.hybrid);
+    controller.tapGoalIntent(GoalIntent.loseWeight);
     controller.selectWorkoutIntroChoice(WorkoutIntroChoice.setupNow);
-    expect(controller.state.progressStepCount, 26);
-    expect(controller.state.progressStepNumber, 1); // Profile name
-    expect(controller.state.progressValue, closeTo(1 / 26, 0.0001));
+    expect(controller.state.progressStepCount, 28);
+    expect(controller.state.progressStepNumber, 1);
+    expect(controller.state.progressValue, closeTo(1 / 28, 0.0001));
 
     final reviewController = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
       initialDraft: OnboardingDraft(
         selectedMode: AppMode.hybrid,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.loseWeight,
+        ),
         workoutIntroChoice: WorkoutIntroChoice.setupNow,
         currentStepId: OnboardingStepId.review,
         profile: _validProfile(),
         workout: _validWorkout(),
       ),
     );
-    expect(reviewController.state.progressStepNumber, 26);
+    expect(reviewController.state.progressStepNumber, 28);
     expect(reviewController.state.progressValue, 1.0);
   });
 
-  test('child movement inside Profile, Workout, and Targets increases global progress monotonically', () async {
+  test(
+      'child movement inside Profile, Body Goal, Workout, and Targets increases global progress',
+      () async {
     final controller = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
       initialDraft: OnboardingDraft(
         selectedMode: AppMode.workout,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.loseWeight,
+        ),
         currentStepId: OnboardingStepId.profileBasics,
         profile: ProfileOnboardingDraft(
           currentStepId: ProfileStepId.name,
@@ -362,14 +672,12 @@ void main() {
       ),
     );
 
-    // Workout mode with gym: 10 (profile) + 8 (workout) + 6 (targets) + 1 (review) = 25
     expect(controller.state.progressStepCount, 25);
     expect(controller.state.progressStepNumber, 1);
     expect(controller.state.progressValue, closeTo(1 / 25, 0.0001));
 
     await controller.next(onFinish: _completeImmediately);
 
-    // Moves to gender inside Profile, global progress increases to step 2 of 25
     expect(controller.state.draft.profile.currentStepId, ProfileStepId.gender);
     expect(controller.state.progressStepCount, 25);
     expect(controller.state.progressStepNumber, 2);
@@ -434,11 +742,15 @@ void main() {
     expect(controller.state.draft.targets.goalPaceKgPerWeek, 0.75);
   });
 
-  test('target child navigation moves cleanly through all target steps', () async {
+  test('Wellness child navigation moves cleanly through all Wellness steps',
+      () async {
     final controller = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
       initialDraft: OnboardingDraft(
         selectedMode: AppMode.workout,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.loseWeight,
+        ),
         currentStepId: OnboardingStepId.targets,
         profile: _validProfile(),
         workout: _validWorkout(),
@@ -448,6 +760,7 @@ void main() {
       ),
     );
 
+    expect(controller.state.stepId, OnboardingStepId.wellnessGoals);
     expect(controller.state.draft.targets.currentStepId, TargetStepId.bridge);
     await controller.next(onFinish: _completeImmediately);
     expect(controller.state.draft.targets.currentStepId, TargetStepId.stepTarget);
@@ -456,14 +769,14 @@ void main() {
     await controller.next(onFinish: _completeImmediately);
     expect(controller.state.draft.targets.currentStepId, TargetStepId.waterTarget);
     await controller.next(onFinish: _completeImmediately);
-    expect(controller.state.draft.targets.currentStepId, TargetStepId.goalPace);
-    await controller.next(onFinish: _completeImmediately);
-    expect(controller.state.draft.targets.currentStepId, TargetStepId.nutritionTarget);
-    await controller.next(onFinish: _completeImmediately);
-    expect(controller.state.stepId, OnboardingStepId.review);
+    expect(controller.state.stepId, OnboardingStepId.workoutPreferences);
+    expect(
+      controller.state.completedStepIds,
+      contains(OnboardingStepId.wellnessGoals),
+    );
   });
 
-  test('target back navigation moves backward through target children', () {
+  test('Wellness Back navigation moves backward through Wellness children', () {
     final controller = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
       initialDraft: OnboardingDraft(
@@ -477,6 +790,7 @@ void main() {
       ),
     );
 
+    expect(controller.state.stepId, OnboardingStepId.wellnessGoals);
     controller.previous();
     expect(controller.state.draft.targets.currentStepId, TargetStepId.sleepTarget);
     controller.previous();
@@ -484,7 +798,7 @@ void main() {
     controller.previous();
     expect(controller.state.draft.targets.currentStepId, TargetStepId.bridge);
     controller.previous();
-    expect(controller.state.stepId, OnboardingStepId.workoutPreferences);
+    expect(controller.state.stepId, OnboardingStepId.bodyGoal);
   });
 
   test('target validation errors block continue until resolved', () async {
@@ -492,10 +806,13 @@ void main() {
       entryPath: OnboardingEntryPath.firstRun,
       initialDraft: OnboardingDraft(
         selectedMode: AppMode.workout,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.stayFit,
+        ),
         currentStepId: OnboardingStepId.targets,
         targets: const TargetsOnboardingDraft(
           currentStepId: TargetStepId.waterTarget,
-          waterMl: 500, // Invalid (min is 1000)
+          waterMl: 500,
         ),
       ),
     );
@@ -513,11 +830,17 @@ void main() {
     final controller = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
       initialDraft: OnboardingDraft(
+        status: OnboardingStatus.inProgress,
+        selectedMode: AppMode.workout,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.stayFit,
+        ),
+        currentStepId: OnboardingStepId.profileBasics,
         profile: _validProfile(),
         workout: _validWorkout(),
       ),
       completionValidator: const _AlwaysEligibleValidator(),
-    )..selectMode(AppMode.workout);
+    );
     while (controller.state.stepId != OnboardingStepId.review) {
       await controller.next(onFinish: _completeImmediately);
     }
@@ -559,12 +882,13 @@ Future<void> _completeImmediately(OnboardingDraft _) async {}
 
 ProfileOnboardingDraft _validProfile({
   ProfileStepId currentStepId = ProfileStepId.healthConditions,
+  Set<ProfileGoal> goals = const {ProfileGoal.keepFit},
 }) {
   return ProfileOnboardingDraft(
     currentStepId: currentStepId,
     name: 'Tio User',
     gender: ProfileGender.other,
-    goals: const {ProfileGoal.keepFit},
+    goals: goals,
     dateOfBirth: DateTime(2000, 1, 1),
     heightCm: 171,
     currentWeightKg: 70,

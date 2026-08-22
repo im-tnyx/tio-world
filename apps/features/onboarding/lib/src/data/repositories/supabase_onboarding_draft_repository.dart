@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/models/onboarding_draft_snapshot.dart';
 import '../../domain/repositories/onboarding_draft_repository.dart';
+import '../mappers/nutrition_aware_onboarding_draft_snapshot_dto_mapper.dart';
 import '../mappers/onboarding_draft_snapshot_dto_mapper.dart';
 
 /// Supabase-backed implementation of [OnboardingDraftRepository].
@@ -12,7 +13,8 @@ class SupabaseOnboardingDraftRepository implements OnboardingDraftRepository {
     required SupabaseClient client,
     OnboardingDraftSnapshotDtoMapper? mapper,
   })  : _client = client,
-        _mapper = mapper ?? const OnboardingDraftSnapshotDtoMapper();
+        _mapper = mapper ??
+            const NutritionAwareOnboardingDraftSnapshotDtoMapper();
 
   final SupabaseClient _client;
   final OnboardingDraftSnapshotDtoMapper _mapper;
@@ -42,7 +44,9 @@ class SupabaseOnboardingDraftRepository implements OnboardingDraftRepository {
   Future<void> saveDraft(OnboardingDraftSnapshot snapshot) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null || userId.isEmpty) {
-      throw StateError('Cannot persist onboarding draft: user is not authenticated.');
+      throw StateError(
+        'Cannot persist onboarding draft: user is not authenticated.',
+      );
     }
 
     final payload = _mapper.toJson(snapshot);

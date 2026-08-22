@@ -68,32 +68,29 @@ void main() {
         validator.isCurrentStepValid(
           const TargetsOnboardingDraft(
             currentStepId: TargetStepId.sleepTarget,
-            sleepTargetMinutes: 480, // 8h
+            sleepTargetMinutes: 480,
           ),
         ),
         isTrue,
       );
-
       expect(
         validator.isCurrentStepValid(
           const TargetsOnboardingDraft(
             currentStepId: TargetStepId.sleepTarget,
-            sleepTargetMinutes: 240, // 4h
+            sleepTargetMinutes: 240,
           ),
         ),
         isTrue,
       );
-
       expect(
         validator.isCurrentStepValid(
           const TargetsOnboardingDraft(
             currentStepId: TargetStepId.sleepTarget,
-            sleepTargetMinutes: 720, // 12h
+            sleepTargetMinutes: 720,
           ),
         ),
         isTrue,
       );
-
       expect(
         validator.isCurrentStepValid(
           const TargetsOnboardingDraft(
@@ -103,7 +100,6 @@ void main() {
         ),
         isFalse,
       );
-
       expect(
         validator.isCurrentStepValid(
           const TargetsOnboardingDraft(
@@ -125,7 +121,6 @@ void main() {
         ),
         isTrue,
       );
-
       expect(
         validator.isCurrentStepValid(
           const TargetsOnboardingDraft(
@@ -135,7 +130,6 @@ void main() {
         ),
         isTrue,
       );
-
       expect(
         validator.isCurrentStepValid(
           const TargetsOnboardingDraft(
@@ -145,7 +139,6 @@ void main() {
         ),
         isTrue,
       );
-
       expect(
         validator.isCurrentStepValid(
           const TargetsOnboardingDraft(
@@ -155,7 +148,6 @@ void main() {
         ),
         isFalse,
       );
-
       expect(
         validator.isCurrentStepValid(
           const TargetsOnboardingDraft(
@@ -167,81 +159,72 @@ void main() {
       );
     });
 
-    test('goalPace validates 0.1..1.5 kg/week bounds in loss/gain mode', () {
-      final profileLoss = ProfileOnboardingDraft(
-        currentWeightKg: 80.0,
-        targetWeightKg: 75.0,
-      );
-
-      expect(
-        validator.isCurrentStepValid(
-          const TargetsOnboardingDraft(
-            currentStepId: TargetStepId.goalPace,
-            goalPaceKgPerWeek: 0.5,
+    test('goalPace validates 0.1..1.5 kg/week for explicit weight direction', () {
+      for (final direction in [
+        GoalWeightDirection.loss,
+        GoalWeightDirection.gain,
+      ]) {
+        expect(
+          validator.isCurrentStepValid(
+            const TargetsOnboardingDraft(
+              currentStepId: TargetStepId.goalPace,
+              goalPaceKgPerWeek: 0.5,
+            ),
+            weightGoalDirection: direction,
           ),
-          profile: profileLoss,
-        ),
-        isTrue,
-      );
-
-      expect(
-        validator.isCurrentStepValid(
-          const TargetsOnboardingDraft(
-            currentStepId: TargetStepId.goalPace,
-            goalPaceKgPerWeek: 0.1,
+          isTrue,
+        );
+        expect(
+          validator.isCurrentStepValid(
+            const TargetsOnboardingDraft(
+              currentStepId: TargetStepId.goalPace,
+              goalPaceKgPerWeek: 0.1,
+            ),
+            weightGoalDirection: direction,
           ),
-          profile: profileLoss,
-        ),
-        isTrue,
-      );
-
-      expect(
-        validator.isCurrentStepValid(
-          const TargetsOnboardingDraft(
-            currentStepId: TargetStepId.goalPace,
-            goalPaceKgPerWeek: 1.5,
+          isTrue,
+        );
+        expect(
+          validator.isCurrentStepValid(
+            const TargetsOnboardingDraft(
+              currentStepId: TargetStepId.goalPace,
+              goalPaceKgPerWeek: 1.5,
+            ),
+            weightGoalDirection: direction,
           ),
-          profile: profileLoss,
-        ),
-        isTrue,
-      );
-
-      expect(
-        validator.isCurrentStepValid(
-          const TargetsOnboardingDraft(
-            currentStepId: TargetStepId.goalPace,
-            goalPaceKgPerWeek: 0.05,
+          isTrue,
+        );
+        expect(
+          validator.isCurrentStepValid(
+            const TargetsOnboardingDraft(
+              currentStepId: TargetStepId.goalPace,
+              goalPaceKgPerWeek: 0.05,
+            ),
+            weightGoalDirection: direction,
           ),
-          profile: profileLoss,
-        ),
-        isFalse,
-      );
-
-      expect(
-        validator.isCurrentStepValid(
-          const TargetsOnboardingDraft(
-            currentStepId: TargetStepId.goalPace,
-            goalPaceKgPerWeek: 1.6,
+          isFalse,
+        );
+        expect(
+          validator.isCurrentStepValid(
+            const TargetsOnboardingDraft(
+              currentStepId: TargetStepId.goalPace,
+              goalPaceKgPerWeek: 1.6,
+            ),
+            weightGoalDirection: direction,
           ),
-          profile: profileLoss,
-        ),
-        isFalse,
-      );
+          isFalse,
+        );
+      }
     });
 
-    test('goalPace is valid in maintenance mode regardless of pace value', () {
-      final profileMaintenance = ProfileOnboardingDraft(
-        currentWeightKg: 70.0,
-        targetWeightKg: 70.0,
-      );
-
+    test('goalPace creates no validation obligation without weight direction', () {
       expect(
         validator.isCurrentStepValid(
           const TargetsOnboardingDraft(
             currentStepId: TargetStepId.goalPace,
             goalPaceKgPerWeek: 0.0,
           ),
-          profile: profileMaintenance,
+          weightGoalDirection: null,
         ),
         isTrue,
       );

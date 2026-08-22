@@ -23,6 +23,21 @@ class ReviewScreen extends StatelessWidget {
     final profile = draft.profile;
     final workout = draft.workout;
     final blockers = completionEligibility.blockingSteps;
+    final goalSummary = draft.goalSelection.goals.map(_goalIntentLabel).join(', ');
+    final weightGoalDirection = const WeightGoalFlowPolicy().directionFor(
+      mode: draft.selectedMode,
+      selection: draft.goalSelection,
+    );
+    final targetWeightIsActive = weightGoalDirection != null &&
+        profile.targetWeightDirection == weightGoalDirection;
+    final activeTargetWeightKg =
+        targetWeightIsActive ? profile.targetWeightKg : null;
+    final effectiveProfile = targetWeightIsActive
+        ? profile
+        : profile.copyWith(clearTargetWeightKg: true);
+    final effectiveTargets = weightGoalDirection == null
+        ? draft.targets.copyWith(goalPaceKgPerWeek: 0.0)
+        : draft.targets;
 
     final hasWorkoutPreferences = draft.selectedMode != AppMode.nutrition &&
         draft.workoutIntroChoice != WorkoutIntroChoice.later &&
@@ -55,9 +70,7 @@ class ReviewScreen extends StatelessWidget {
             const SizedBox(height: TioSize.dp10),
             _SummaryRow(
               label: 'Goals',
-              value: profile.goals.isEmpty
-                  ? 'Not selected'
-                  : profile.goals.map(_goalLabel).join(', '),
+              value: goalSummary.isEmpty ? 'Not selected' : goalSummary,
             ),
             const SizedBox(height: TioSize.dp10),
             _SummaryRow(
@@ -78,8 +91,8 @@ class ReviewScreen extends StatelessWidget {
               label: 'Weight plan',
               value: profile.currentWeightKg == null
                   ? 'Not selected'
-                  : profile.targetWeightKg != null
-                      ? '${profile.currentWeightKg!.toStringAsFixed(1)} kg ➔ ${profile.targetWeightKg!.toStringAsFixed(1)} kg'
+                  : activeTargetWeightKg != null
+                      ? '${profile.currentWeightKg!.toStringAsFixed(1)} kg ➔ ${activeTargetWeightKg.toStringAsFixed(1)} kg'
                       : '${profile.currentWeightKg!.toStringAsFixed(1)} kg',
             ),
             const SizedBox(height: TioSize.dp10),
@@ -119,11 +132,7 @@ class ReviewScreen extends StatelessWidget {
               value:
                   '${draft.targets.sleepTargetMinutes ~/ 60}h ${(draft.targets.sleepTargetMinutes % 60).toString().padLeft(2, '0')}m / night',
             ),
-            if (GoalPaceResolver.resolveMode(
-                  currentWeightKg: profile.currentWeightKg,
-                  targetWeightKg: profile.targetWeightKg,
-                ) !=
-                GoalPaceMode.maintenance) ...[
+            if (weightGoalDirection != null) ...[
               const SizedBox(height: TioSize.dp10),
               _SummaryRow(
                 label: 'Goal pace',
@@ -132,8 +141,8 @@ class ReviewScreen extends StatelessWidget {
               ),
             ],
             if (const CalculateNutritionTargetRecommendationUseCase()(
-                  profile: profile,
-                  targets: draft.targets,
+                  profile: effectiveProfile,
+                  targets: effectiveTargets,
                 )
                 case NutritionTargetRecommendationSuccess(:final recommendation)) ...[
               const SizedBox(height: TioSize.dp10),
@@ -347,13 +356,16 @@ String _genderLabel(ProfileGender gender) {
   };
 }
 
-String _goalLabel(ProfileGoal goal) {
+String _goalIntentLabel(GoalIntent goal) {
   return switch (goal) {
-    ProfileGoal.loseWeight => 'Lose weight',
-    ProfileGoal.buildMuscle => 'Build muscle',
-    ProfileGoal.keepFit => 'Keep fit',
-    ProfileGoal.boostStrength => 'Boost strength',
-    ProfileGoal.manageStress => 'Manage stress',
+    GoalIntent.loseWeight => 'Lose weight',
+    GoalIntent.gainWeight => 'Gain weight',
+    GoalIntent.maintainWeight => 'Maintain weight',
+    GoalIntent.recomposition => 'Recomposition',
+    GoalIntent.buildMuscle => 'Build muscle',
+    GoalIntent.getStronger => 'Get stronger',
+    GoalIntent.improveEndurance => 'Improve endurance',
+    GoalIntent.stayFit => 'Stay fit',
   };
 }
 

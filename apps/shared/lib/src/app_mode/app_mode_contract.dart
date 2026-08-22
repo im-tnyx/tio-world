@@ -64,7 +64,20 @@ enum AppDestination {
   home,
   workout,
   nutrition,
-  progress,
+  progress;
+
+  /// Stable storage identifier used by `user_app_preferences.active_tabs`.
+  String get storageValue => name;
+
+  static AppDestination? fromStorageValue(String? value) {
+    if (value == null) return null;
+
+    for (final destination in AppDestination.values) {
+      if (destination.storageValue == value) return destination;
+    }
+
+    return null;
+  }
 }
 
 enum WatchCardType {

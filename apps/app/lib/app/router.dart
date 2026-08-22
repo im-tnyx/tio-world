@@ -98,12 +98,18 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   final onboardingStatusRepository =
       ref.read(onboardingStatusRepositoryProvider);
   final profileRepository = ref.read(profileSetupRepositoryProvider);
-  final workoutRepository = ref.read(workoutPreferencesRepositoryProvider);
-  final targetsRepository = ref.read(targetsSetupRepositoryProvider);
+  final bodyRepository = ref.read(bodySetupRepositoryProvider);
+  final nutritionProfileRepository =
+      ref.read(nutritionProfileRepositoryProvider);
+  final workoutProfileRepository = ref.read(workoutProfileRepositoryProvider);
+  final workoutTargetsRepository = ref.read(workoutTargetsRepositoryProvider);
+  final nutritionTargetsRepository =
+      ref.read(nutritionTargetsRepositoryProvider);
   final onboardingDraftRepository =
       ref.read(appOnboardingDraftRepositoryProvider);
   final onboardingCompletionRepository =
       ref.read(onboardingCompletionRepositoryProvider);
+  final appPreferencesRepository = ref.read(appPreferencesRepositoryProvider);
   final supabaseClient = ref.read(supabaseClientProvider);
   final MeasurementUnitPreferencesRepository? unitPreferencesRepository =
       supabaseClient != null
@@ -138,6 +144,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       return appModeRedirect(
         path: state.uri.path,
         selectedMode: appModeController.selectedMode,
+        activeDestinations: appModeController.activeDestinations,
         onboardingStatus: onboardingStatusController.status,
       );
     },
@@ -148,11 +155,16 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
           return Consumer(
             builder: (context, ref, child) {
-              final selectedMode =
-                  ref.watch(appModeControllerProvider).selectedMode;
+              final modeState = ref.watch(appModeControllerProvider);
+              final selectedMode = modeState.selectedMode;
               final visibleTabs = selectedMode == null
-                  ? const [ShellTab.home]
-                  : guidedShellTabs(selectedMode);
+                  ? (onboardingStatusController.status == OnboardingStatus.completed
+                      ? missingModeCompatibilityShellTabs
+                      : const [ShellTab.home])
+                  : shellTabsForDestinations(
+                      modeState.activeDestinations ??
+                          selectedMode.guidedDestinations,
+                    );
 
               final profileAsync = ref.watch(profileDataProvider);
               final profileData = profileAsync.valueOrNull;
@@ -424,13 +436,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 final completeOnboarding = CompleteOnboardingUseCase(
                   confirmedModePreference:
                       _AppModeControllerPreferenceAdapter(appModeController),
+                  appPreferencesRepository: appPreferencesRepository,
                   statusRepository: onboardingStatusRepository,
                   completionRepository: onboardingCompletionRepository,
                   draftRepository: onboardingDraftRepository,
                   persistOwnerDataUseCase: PersistOnboardingOwnerDataUseCase(
                     profileRepository: profileRepository,
-                    workoutRepository: workoutRepository,
-                    targetsRepository: targetsRepository,
+                    bodyRepository: bodyRepository,
+                    nutritionProfileRepository: nutritionProfileRepository,
+                    workoutProfileRepository: workoutProfileRepository,
+                    workoutTargetsRepository: workoutTargetsRepository,
+                    nutritionTargetsRepository: nutritionTargetsRepository,
                   ),
                   validator: OnboardingCompletionValidator(
                     hasDurableOwnerPersistence: hasDurableStorage,

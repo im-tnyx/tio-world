@@ -7,7 +7,7 @@ void main() {
   const mapper = ProfileSetupMapper();
 
   group('ProfileSetupMapper', () {
-    test('maps valid ProfileOnboardingDraft to canonical ProfileSetupData', () {
+    test('maps active Target Weight to canonical ProfileSetupData', () {
       final draft = ProfileOnboardingDraft(
         name: '  Tio User  ',
         gender: ProfileGender.female,
@@ -16,6 +16,7 @@ void main() {
         heightCm: 168.5,
         currentWeightKg: 64.0,
         targetWeightKg: 58.0,
+        targetWeightDirection: GoalWeightDirection.loss,
         unitPreferences: const MeasurementUnitPreferences(
           weightUnit: WeightUnit.lb,
           heightUnit: HeightUnit.ftIn,
@@ -27,7 +28,10 @@ void main() {
         otherHealthCondition: '  Occasional stress  ',
       );
 
-      final result = mapper.map(draft);
+      final result = mapper.map(
+        draft,
+        activeWeightDirection: GoalWeightDirection.loss,
+      );
 
       expect(result.name, 'Tio User');
       expect(result.gender, profile_owner.ProfileGender.female);
@@ -54,6 +58,24 @@ void main() {
         {profile_owner.ProfileHealthCondition.hypertension},
       );
       expect(result.otherHealthCondition, 'Occasional stress');
+    });
+
+    test('does not consume dormant or opposite-direction Target Weight', () {
+      final draft = ProfileOnboardingDraft(
+        targetWeightKg: 58,
+        targetWeightDirection: GoalWeightDirection.loss,
+      );
+
+      expect(mapper.map(draft).targetWeightKg, isNull);
+      expect(
+        mapper
+            .map(
+              draft,
+              activeWeightDirection: GoalWeightDirection.gain,
+            )
+            .targetWeightKg,
+        isNull,
+      );
     });
 
     test('maps default fallback values when fields are blank or null', () {

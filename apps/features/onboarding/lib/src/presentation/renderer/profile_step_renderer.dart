@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 
 import '../../domain/domain.dart';
 import '../controllers/controllers.dart';
+import '../screens/goal/goal_intent_screen.dart';
 import '../screens/profile/activity_screen.dart';
 import '../screens/profile/age_screen.dart';
 import '../screens/profile/current_weight_screen.dart';
 import '../screens/profile/gender_screen.dart';
-import '../screens/profile/goal_screen.dart';
 import '../screens/profile/health_conditions_screen.dart';
 import '../screens/profile/height_screen.dart';
 import '../screens/profile/measurement_units_screen.dart';
 import '../screens/profile/name_screen.dart';
+import '../screens/profile/profile_screen_components.dart';
 import '../screens/profile/target_weight_screen.dart';
 import '../state/state.dart';
 
@@ -26,7 +27,7 @@ class ProfileStepRenderer extends StatelessWidget {
     final draft = state.draft.profile;
     final errorText = state.validationErrors[draft.currentStepId.name];
 
-    return switch (draft.currentStepId) {
+    final screen = switch (draft.currentStepId) {
       ProfileStepId.name => NameScreen(
           value: draft.name,
           onChanged: controller.updateProfileName,
@@ -35,11 +36,12 @@ class ProfileStepRenderer extends StatelessWidget {
           selectedGender: draft.gender,
           onSelected: controller.updateProfileGender,
           errorText: errorText),
-      ProfileStepId.goal => GoalScreen(
-          userName: draft.name,
-          selectedGoals: draft.goals,
-          onToggled: controller.toggleProfileGoal,
-          errorText: errorText),
+      ProfileStepId.goal => GoalIntentScreen(
+          mode: state.draft.selectedMode!,
+          selection: state.draft.goalSelection,
+          onGoalTapped: controller.tapGoalIntent,
+          errorText: errorText,
+        ),
       ProfileStepId.age => AgeScreen(
           value: draft.dateOfBirth,
           onChanged: controller.updateProfileDateOfBirth,
@@ -69,12 +71,15 @@ class ProfileStepRenderer extends StatelessWidget {
           valueKg: draft.targetWeightKg,
           unit: draft.weightUnit,
           currentWeightKg: draft.currentWeightKg,
-          primaryGoalId: draft.goals.isNotEmpty ? draft.goals.first.name : null,
+          weightGoalDirection: state.weightGoalDirection,
           heightCm: draft.heightCm,
           onChanged: controller.updateProfileTargetWeight,
           onContinue: () => controller.next(onFinish: (_) async {}),
           isBusy: state.isBusy,
           errorText: errorText),
+      ProfileStepId.goalPace => throw StateError(
+          'Goal Pace is Body Goal-owned and cannot render in ProfileSection.',
+        ),
       ProfileStepId.activity => ActivityScreen(
           selectedActivity: draft.activityLevel,
           onSelected: controller.updateProfileActivity,
@@ -87,5 +92,10 @@ class ProfileStepRenderer extends StatelessWidget {
           errorText: errorText,
         ),
     };
+
+    return ProfileFlowPlanScope(
+      flowPlan: state.profileFlowPlan,
+      child: screen,
+    );
   }
 }

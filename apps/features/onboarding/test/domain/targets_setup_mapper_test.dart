@@ -5,7 +5,7 @@ void main() {
   const mapper = TargetsSetupMapper();
 
   group('TargetsSetupMapper', () {
-    test('maps valid TargetsOnboardingDraft and profile to TargetsSetupData', () {
+    test('maps active Target Weight and Goal Pace into TargetsSetupData', () {
       const targetsDraft = TargetsOnboardingDraft(
         dailySteps: 10000,
         sleepTargetMinutes: 480,
@@ -23,12 +23,14 @@ void main() {
         heightCm: 175,
         currentWeightKg: 70,
         targetWeightKg: 66,
+        targetWeightDirection: GoalWeightDirection.loss,
         activityLevel: ProfileActivityLevel.active,
       );
 
       final result = mapper.map(
         targetsDraft: targetsDraft,
         profileDraft: profileDraft,
+        activeWeightDirection: GoalWeightDirection.loss,
       );
 
       expect(result.dailySteps, 10000);
@@ -43,7 +45,26 @@ void main() {
       expect(result.recommendation?.caloriesKcal, greaterThan(0));
     });
 
-    test('keeps uncollected optional profile metrics null', () {
+    test('dormant Target Weight and skipped Goal Pace are excluded from intent consumption', () {
+      const targetsDraft = TargetsOnboardingDraft(goalPaceKgPerWeek: 0.5);
+      final profileDraft = ProfileOnboardingDraft(
+        heightCm: 175,
+        currentWeightKg: 70,
+        targetWeightKg: 66,
+        targetWeightDirection: GoalWeightDirection.loss,
+        activityLevel: ProfileActivityLevel.active,
+      );
+
+      final result = mapper.map(
+        targetsDraft: targetsDraft,
+        profileDraft: profileDraft,
+      );
+
+      expect(result.targetWeightKg, isNull);
+      expect(result.goalPaceKgPerWeek, 0.0);
+    });
+
+    test('keeps uncollected optional profile metrics null and skipped pace neutral', () {
       const targetsDraft = TargetsOnboardingDraft();
       final profileDraft = ProfileOnboardingDraft();
 
@@ -56,12 +77,13 @@ void main() {
       expect(result.currentWeightKg, isNull);
       expect(result.targetWeightKg, isNull);
       expect(result.activityLevel, isNull);
+      expect(result.goalPaceKgPerWeek, 0.0);
     });
 
     test('safely clamps steps and water to bounds', () {
       const targetsDraft = TargetsOnboardingDraft(
-        dailySteps: 500, // below 1000
-        waterMl: 20000, // above 15000
+        dailySteps: 500,
+        waterMl: 20000,
       );
 
       final profileDraft = ProfileOnboardingDraft();

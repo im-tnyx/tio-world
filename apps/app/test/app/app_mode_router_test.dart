@@ -192,6 +192,16 @@ void main() {
 
     await _completeProfileInputs(tester);
 
+    // O5B inserts the canonical Nutrition Profile before Hybrid Workout setup.
+    await tester.tap(find.byKey(const ValueKey('nutrition-diet-vegetarian')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TioButton, 'Continue'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('nutrition-allergy-none')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TioButton, 'Continue'));
+    await tester.pumpAndSettle();
+
     await tester
         .ensureVisible(find.byKey(const ValueKey('workout-intro-later')));
     await tester.pumpAndSettle();
@@ -463,23 +473,12 @@ Future<void> _completeProfileInputs(WidgetTester tester) async {
       warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  await tester.tap(
-    find.byKey(const ValueKey('goal-keepFit'), skipOffstage: false),
-    warnIfMissed: false,
-  );
-  await tester.pumpAndSettle();
-  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
-      warnIfMissed: false);
-  await tester.pumpAndSettle();
-
   final onboardingController = tester
       .widget<ProfileStepRenderer>(find.byType(ProfileStepRenderer))
       .controller;
   onboardingController
     ..updateProfileDateOfBirth(DateTime(2000, 1, 1))
-    ..updateProfileHeight(170.0)
-    ..updateProfileCurrentWeight(70.0)
-    ..updateProfileTargetWeight(65.0);
+    ..updateProfileHeight(170.0);
   await tester.pump();
 
   // Age -> Measurement Units. Defaults are valid, so Continue advances.
@@ -493,17 +492,7 @@ Future<void> _completeProfileInputs(WidgetTester tester) async {
       warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  // Height -> Current Weight.
-  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
-      warnIfMissed: false);
-  await tester.pumpAndSettle();
-
-  // Current Weight -> Target Weight.
-  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
-      warnIfMissed: false);
-  await tester.pumpAndSettle();
-
-  // Target Weight -> Activity.
+  // Height -> Activity.
   await tester.tap(find.widgetWithText(TioButton, 'Continue'),
       warnIfMissed: false);
   await tester.pumpAndSettle();
@@ -525,6 +514,46 @@ Future<void> _completeProfileInputs(WidgetTester tester) async {
   await tester.tap(find.widgetWithText(TioButton, 'Continue'),
       warnIfMissed: false);
   await tester.pumpAndSettle();
+
+  // Canonical Body Goal section starts after common Profile.
+  await tester.tap(
+    find.byKey(const ValueKey('goal-intent-loseWeight'), skipOffstage: false),
+    warnIfMissed: false,
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
+      warnIfMissed: false);
+  await tester.pumpAndSettle();
+
+  onboardingController
+    ..updateProfileCurrentWeight(70.0)
+    ..updateProfileTargetWeight(65.0);
+  await tester.pump();
+
+  // Current Weight -> Target Weight.
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
+      warnIfMissed: false);
+  await tester.pumpAndSettle();
+
+  // Target Weight -> Goal Pace.
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
+      warnIfMissed: false);
+  await tester.pumpAndSettle();
+
+  onboardingController.updateGoalPaceKgPerWeek(0.5);
+  await tester.pump();
+
+  // Goal Pace -> Wellness Bridge.
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
+      warnIfMissed: false);
+  await tester.pumpAndSettle();
+
+  // Wellness Bridge -> Steps -> Sleep -> Water -> next active section.
+  for (var step = 0; step < 4; step++) {
+    await tester.tap(find.widgetWithText(TioButton, 'Continue'),
+        warnIfMissed: false);
+    await tester.pumpAndSettle();
+  }
 }
 
 class _FixedAppSessionBootstrapController extends AppSessionBootstrapController {

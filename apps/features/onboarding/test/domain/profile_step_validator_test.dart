@@ -4,7 +4,7 @@ import 'package:tio_feature_onboarding/onboarding.dart';
 void main() {
   final validator = ProfileStepValidator(now: () => DateTime(2026, 8, 13));
 
-  test('validates name and primary-goal rules', () {
+  test('validates name while Goal validation is delegated', () {
     expect(
       validator.validate(ProfileOnboardingDraft(name: 'Ti')),
       contains(ProfileStepId.name),
@@ -14,16 +14,12 @@ void main() {
       isEmpty,
     );
 
-    final noPrimary = ProfileOnboardingDraft(
-      currentStepId: ProfileStepId.goal,
-      goals: const {ProfileGoal.boostStrength},
+    expect(
+      validator.validate(ProfileOnboardingDraft(
+        currentStepId: ProfileStepId.goal,
+      )),
+      isEmpty,
     );
-    expect(validator.validate(noPrimary), contains(ProfileStepId.goal));
-
-    final onePrimary = noPrimary.copyWith(
-      goals: const {ProfileGoal.keepFit, ProfileGoal.boostStrength},
-    );
-    expect(validator.validate(onePrimary), isEmpty);
   });
 
   test('accepts source-defined date boundaries and rejects outside dates', () {

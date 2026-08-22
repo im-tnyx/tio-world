@@ -6,10 +6,13 @@ import '../models/models.dart';
 class ProfileSetupMapper {
   const ProfileSetupMapper();
 
-  profile_owner.ProfileSetupData map(ProfileOnboardingDraft draft) {
+  profile_owner.ProfileSetupData map(
+    ProfileOnboardingDraft draft, {
+    GoalWeightDirection? activeWeightDirection,
+  }) {
     final name = draft.name.trim().isEmpty ? 'User' : draft.name.trim();
     final gender = draft.gender ?? ProfileGender.male;
-    final goals = draft.goals.isEmpty ? const {ProfileGoal.keepFit} : draft.goals;
+    final goals = draft.goals;
     final dob = draft.dateOfBirth ?? DateTime(2000, 1, 1);
     final height = (draft.heightCm != null && draft.heightCm! > 0)
         ? draft.heightCm!
@@ -22,6 +25,10 @@ class ProfileSetupMapper {
     final rawHealth = draft.healthConditions.isEmpty
         ? const {ProfileHealthCondition.none}
         : draft.healthConditions;
+    final activeTargetWeight = activeWeightDirection != null &&
+            draft.targetWeightDirection == activeWeightDirection
+        ? draft.targetWeightKg
+        : null;
 
     return profile_owner.ProfileSetupData(
       name: name,
@@ -44,7 +51,7 @@ class ProfileSetupMapper {
       dateOfBirth: dob,
       heightCm: height,
       currentWeightKg: currentWeight,
-      targetWeightKg: draft.targetWeightKg,
+      targetWeightKg: activeTargetWeight,
       unitPreferences: draft.unitPreferences,
       activityLevel: switch (activity) {
         ProfileActivityLevel.sedentary =>

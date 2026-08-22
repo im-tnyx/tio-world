@@ -18,6 +18,8 @@ dependencies:
     path: ../account_setup
   tio_feature_profile:
     path: ../profile
+  tio_feature_progress:
+    path: ../progress
   tio_feature_workout:
     path: ../workout
   tio_feature_nutrition:

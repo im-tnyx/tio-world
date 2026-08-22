@@ -6,9 +6,16 @@ export 'package:tio_feature_nutrition/nutrition.dart'
         NutritionTargetRecommendationInvalidInput,
         NutritionTargetRecommendationInsufficientInput;
 
+export 'body_goal_flow_plan.dart';
+export 'goal_intent.dart';
 export 'goal_pace_mode.dart';
 export 'goal_pace_warning.dart';
+export 'goal_weight_direction.dart';
+export 'nutrition_allergy_restriction.dart';
+export 'nutrition_diet_type.dart';
 export 'nutrition_onboarding_draft.dart';
+export 'nutrition_profile_flow_plan.dart';
+export 'nutrition_profile_step_id.dart';
 export 'onboarding_completion_eligibility.dart';
 export 'onboarding_draft.dart';
 export 'onboarding_draft_snapshot.dart';
@@ -29,6 +36,7 @@ export 'remote_onboarding_completion_state.dart';
 export 'target_step_id.dart';
 export 'targets_flow_plan.dart';
 export 'targets_onboarding_draft.dart';
+export 'wellness_flow_plan.dart';
 export 'workout_duration.dart';
 export 'workout_equipment.dart';
 export 'workout_experience_level.dart';

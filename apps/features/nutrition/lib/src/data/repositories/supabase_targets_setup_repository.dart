@@ -2,18 +2,34 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/models/nutrition_target_recommendation.dart';
 import '../../domain/models/targets_setup_data.dart';
+import '../../domain/repositories/canonical_nutrition_owner_repositories.dart';
+import '../../domain/repositories/nutrition_profile_repository.dart';
+import '../../domain/repositories/nutrition_targets_repository.dart';
 import '../../domain/repositories/targets_setup_repository.dart';
+import 'supabase_nutrition_profile_repository.dart';
+import 'supabase_nutrition_targets_repository.dart';
 
-/// Supabase-backed implementation of [TargetsSetupRepository].
+/// Supabase-backed compatibility implementation of [TargetsSetupRepository].
 ///
-/// Directly manages canonical RLS-protected user daily targets and nutritional setup
-/// records in Postgres (`public.user_nutrition_profiles`).
-class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
+/// O5D keeps the legacy read/write API available for compatibility consumers,
+/// but Product Onboarding completion obtains the canonical Nutrition owners
+/// through [CanonicalNutritionOwnerRepositories] and never calls
+/// [saveTargetsSetup].
+class SupabaseTargetsSetupRepository
+    implements TargetsSetupRepository, CanonicalNutritionOwnerRepositories {
   const SupabaseTargetsSetupRepository({
     required SupabaseClient client,
   }) : _client = client;
 
   final SupabaseClient _client;
+
+  @override
+  NutritionProfileRepository get nutritionProfileRepository =>
+      SupabaseNutritionProfileRepository(client: _client);
+
+  @override
+  NutritionTargetsRepository get nutritionTargetsRepository =>
+      SupabaseNutritionTargetsRepository(client: _client);
 
   @override
   Future<void> saveTargetsSetup(TargetsSetupData data) async {
@@ -29,23 +45,11 @@ class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
           'Please sign in or create an account to save your targets.');
     }
 
-    final bedTimeStr = formatMinutesToTime(data.sleepTimeMinutes);
-    final wakeTimeStr = formatMinutesToTime(data.wakeTimeMinutes);
-
     final canonicalNutritionPayload = {
       'user_id': userId,
       if (data.heightCm != null) 'height_cm': data.heightCm,
-      if (data.currentWeightKg != null)
-        'current_weight_kg': data.currentWeightKg,
-      if (data.targetWeightKg != null) 'target_weight_kg': data.targetWeightKg,
       if (data.activityLevel != null && data.activityLevel!.isNotEmpty)
         'activity_level': data.activityLevel,
-      'steps_target': data.dailySteps,
-      'sleep_target_minutes': data.sleepTargetMinutes,
-      'water_target_ml': data.waterMl,
-      'weekly_weight_change_kg': data.goalPaceKgPerWeek,
-      'bed_time': bedTimeStr,
-      'wake_up_time': wakeTimeStr,
       'macro_targets': {
         if (data.recommendation?.caloriesKcal != null)
           'calories': data.recommendation!.caloriesKcal,
@@ -71,21 +75,18 @@ class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
           .upsert(canonicalNutritionPayload);
     } on PostgrestException catch (e) {
       if (e.code == '42P01' || e.code == 'PGRST204' || e.code == '42703') {
-        final legacyPayload = {
+        // Compatibility fallback remains Nutrition-only. Wellness values are
+        // canonically persisted before this repository is called and must never
+        // be recreated here as a fallback durable owner.
+        final legacyNutritionPayload = {
           'user_id': userId,
-          'daily_steps': data.dailySteps,
-          'sleep_target_minutes': data.sleepTargetMinutes,
-          'sleep_time_minutes': data.sleepTimeMinutes,
-          'wake_time_minutes': data.wakeTimeMinutes,
-          'water_ml': data.waterMl,
-          'goal_pace_kg_per_week': data.goalPaceKgPerWeek,
           'target_calories': data.recommendation?.caloriesKcal,
           'target_protein_grams': data.recommendation?.proteinGrams,
           'target_carbs_grams': data.recommendation?.carbsGrams,
           'target_fat_grams': data.recommendation?.fatGrams,
           'updated_at': DateTime.now().toUtc().toIso8601String(),
         };
-        await _client.from('user_targets').upsert(legacyPayload);
+        await _client.from('user_targets').upsert(legacyNutritionPayload);
       } else {
         rethrow;
       }
@@ -107,6 +108,9 @@ class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
 
     if (canonicalRow == null) return null;
 
+    // O4C cuts new Wellness mirror writes but intentionally preserves these
+    // legacy reads until downstream hydration/owner consumers move to the
+    // canonical Wellness repository in the integrated acceptance slice.
     final rawSteps = canonicalRow['steps_target'];
     if (rawSteps is! num) {
       throw const FormatException(
@@ -142,13 +146,14 @@ class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
     }
     final waterMl = rawWater.toInt();
 
+    // Legacy rows may still contain the old Body-owned pace mirror. New writes
+    // intentionally omit it, so 0.0 is only the Targets compatibility sentinel
+    // for "no mirrored pace", never a canonical Body Goal value.
     final rawPace = canonicalRow['weekly_weight_change_kg'];
-    if (rawPace is! num) {
-      throw const FormatException(
-          'Missing or invalid required field: weekly_weight_change_kg');
-    }
-    final weeklyPace = rawPace.toDouble();
+    final weeklyPace = rawPace is num ? rawPace.toDouble() : 0.0;
 
+    // These legacy mirrors remain readable during the additive migration. New
+    // O3+ writes no longer populate the Body-owned current/target weight fields.
     final rawHeight = canonicalRow['height_cm'];
     final rawCurrentWeight = canonicalRow['current_weight_kg'];
     final rawTargetWeight = canonicalRow['target_weight_kg'];
@@ -208,6 +213,7 @@ class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
   }
 
   /// Converts minutes from midnight into standard SQL TIME format `HH:mm:ss`.
+  /// Retained for compatibility tests/read helpers during the additive cutover.
   static String formatMinutesToTime(int minutesFromMidnight) {
     final normalized = minutesFromMidnight % 1440;
     final nonNegative = normalized < 0 ? normalized + 1440 : normalized;

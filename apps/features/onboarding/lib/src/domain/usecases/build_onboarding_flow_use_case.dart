@@ -15,9 +15,6 @@ class BuildOnboardingFlowUseCase {
     return OnboardingFlowPlan(
       entryPath: entryPath,
       mode: mode,
-      // A null mode is retained only as a legacy compatibility state so old
-      // drafts/tests can reconcile through the former mode step. Current app
-      // routing always seeds a selected mode before Product Onboarding.
       steps: mode == null
           ? const [_legacyMode]
           : _stepsByMode(
@@ -48,32 +45,41 @@ List<OnboardingStepDefinition> _stepsByMode(
   AppMode mode, {
   WorkoutIntroChoice? workoutIntroChoice,
 }) {
-  const profile = <OnboardingStepDefinition>[_profileBasics];
+  const commonFoundation = <OnboardingStepDefinition>[
+    _profileBasics,
+    _bodyGoal,
+    _wellnessGoals,
+  ];
 
   return switch (mode) {
     AppMode.workout => [
-        ...profile,
-        _workoutPreferences,
-        _targets,
+        ...commonFoundation,
+        _workoutProfile,
+        _workoutTargets,
+        _nutritionGoals,
         _review,
       ],
     AppMode.nutrition => [
-        ...profile,
-        _targets,
+        ...commonFoundation,
+        _nutritionProfile,
+        _nutritionGoals,
         _review,
       ],
     AppMode.hybrid => workoutIntroChoice == WorkoutIntroChoice.later
         ? [
-            ...profile,
+            ...commonFoundation,
+            _nutritionProfile,
             _workoutIntro,
-            _targets,
+            _nutritionGoals,
             _review,
           ]
         : [
-            ...profile,
+            ...commonFoundation,
+            _nutritionProfile,
             _workoutIntro,
-            _workoutPreferences,
-            _targets,
+            _workoutProfile,
+            _workoutTargets,
+            _nutritionGoals,
             _review,
           ],
   };
@@ -87,9 +93,27 @@ const _legacyMode = OnboardingStepDefinition(
 );
 const _profileBasics = OnboardingStepDefinition(
   id: OnboardingStepId.profileBasics,
-  section: OnboardingSectionId.profile,
+  section: OnboardingSectionId.userProfile,
   owner: OnboardingStepOwner.profile,
   progressTitle: 'About you',
+);
+const _bodyGoal = OnboardingStepDefinition(
+  id: OnboardingStepId.bodyGoal,
+  section: OnboardingSectionId.bodyGoal,
+  owner: OnboardingStepOwner.crossFeature,
+  progressTitle: 'Body goal',
+);
+const _wellnessGoals = OnboardingStepDefinition(
+  id: OnboardingStepId.wellnessGoals,
+  section: OnboardingSectionId.wellnessGoals,
+  owner: OnboardingStepOwner.crossFeature,
+  progressTitle: 'Wellness',
+);
+const _nutritionProfile = OnboardingStepDefinition(
+  id: OnboardingStepId.nutritionProfile,
+  section: OnboardingSectionId.nutritionProfile,
+  owner: OnboardingStepOwner.nutrition,
+  progressTitle: 'Nutrition profile',
 );
 const _workoutIntro = OnboardingStepDefinition(
   id: OnboardingStepId.workoutIntro,
@@ -97,17 +121,23 @@ const _workoutIntro = OnboardingStepDefinition(
   owner: OnboardingStepOwner.workout,
   progressTitle: 'Workout setup',
 );
-const _workoutPreferences = OnboardingStepDefinition(
-  id: OnboardingStepId.workoutPreferences,
-  section: OnboardingSectionId.workout,
+const _workoutProfile = OnboardingStepDefinition(
+  id: OnboardingStepId.workoutProfile,
+  section: OnboardingSectionId.workoutProfile,
   owner: OnboardingStepOwner.workout,
   progressTitle: 'Training preferences',
 );
-const _targets = OnboardingStepDefinition(
-  id: OnboardingStepId.targets,
-  section: OnboardingSectionId.targets,
-  owner: OnboardingStepOwner.crossFeature,
-  progressTitle: 'Your targets',
+const _workoutTargets = OnboardingStepDefinition(
+  id: OnboardingStepId.workoutTargets,
+  section: OnboardingSectionId.workoutTargets,
+  owner: OnboardingStepOwner.workout,
+  progressTitle: 'Workout targets',
+);
+const _nutritionGoals = OnboardingStepDefinition(
+  id: OnboardingStepId.nutritionGoals,
+  section: OnboardingSectionId.nutritionGoals,
+  owner: OnboardingStepOwner.nutrition,
+  progressTitle: 'Nutrition target',
 );
 const _review = OnboardingStepDefinition(
   id: OnboardingStepId.review,

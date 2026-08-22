@@ -2,9 +2,9 @@ import 'onboarding_step_id.dart';
 
 /// Stable persistence boundary for top-level Product Onboarding step identity.
 ///
-/// Existing storage keys intentionally match the historical enum names so
-/// schema-v2 drafts remain byte-compatible. New identities also receive
-/// explicit keys here instead of relying on enum `.name` as persistence API.
+/// Historical storage keys remain readable. Once a canonical identity is
+/// activated, new writes use its canonical key instead of re-emitting the
+/// legacy alias.
 class OnboardingStepIdCodec {
   const OnboardingStepIdCodec();
 
@@ -13,7 +13,6 @@ class OnboardingStepIdCodec {
         OnboardingStepId.profileBasics => 'profileBasics',
         OnboardingStepId.mobile => 'mobile',
         OnboardingStepId.workoutIntro => 'workoutIntro',
-        OnboardingStepId.workoutPreferences => 'workoutPreferences',
         OnboardingStepId.nutritionIntro => 'nutritionIntro',
         OnboardingStepId.nutritionPreferences => 'nutritionPreferences',
         OnboardingStepId.targets => 'targets',
@@ -37,7 +36,7 @@ class OnboardingStepIdCodec {
       'profileBasics' => OnboardingStepId.profileBasics,
       'mobile' => OnboardingStepId.mobile,
       'workoutIntro' => OnboardingStepId.workoutIntro,
-      'workoutPreferences' => OnboardingStepId.workoutPreferences,
+      'workoutPreferences' => OnboardingStepId.workoutProfile,
       'nutritionIntro' => OnboardingStepId.nutritionIntro,
       'nutritionPreferences' => OnboardingStepId.nutritionPreferences,
       'targets' => OnboardingStepId.targets,

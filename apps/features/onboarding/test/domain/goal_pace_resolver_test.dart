@@ -135,12 +135,12 @@ void main() {
       expect(title, equals('How fast do you want to \nlose weight?'));
     });
 
-    test('returns meaningful title for build muscle goal', () {
+    test('legacy primary goal cannot override explicit gain mode', () {
       final title = GoalPaceResolver.screenTitle(
         primaryGoal: ProfileGoal.buildMuscle,
         mode: GoalPaceMode.gain,
       );
-      expect(title, equals('How fast do you want to \nbuild muscle?'));
+      expect(title, equals('How fast do you want to \ngain weight?'));
     });
 
     test('returns maintenance title for maintenance mode', () {

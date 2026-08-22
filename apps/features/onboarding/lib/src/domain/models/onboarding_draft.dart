@@ -1,13 +1,15 @@
 import 'package:tio_shared/shared.dart';
 
+import 'goal_intent.dart';
 import 'onboarding_status.dart';
 import 'onboarding_step_id.dart';
 import 'nutrition_onboarding_draft.dart';
 import 'profile_onboarding_draft.dart';
+import 'profile_step_id.dart';
+import 'target_step_id.dart';
 import 'targets_onboarding_draft.dart';
 import 'workout_intro_choice.dart';
 import 'workout_onboarding_draft.dart';
-
 
 const _onboardingDraftUnchanged = Object();
 
@@ -17,18 +19,28 @@ class OnboardingDraft {
     this.status = OnboardingStatus.notStarted,
     this.selectedMode,
     this.workoutIntroChoice,
-    this.currentStepId = OnboardingStepId.mode,
+    this.goalSelection = const GoalIntentSelection(),
+    OnboardingStepId currentStepId = OnboardingStepId.mode,
     ProfileOnboardingDraft? profile,
     NutritionOnboardingDraft? nutrition,
     WorkoutOnboardingDraft? workout,
     TargetsOnboardingDraft? targets,
     Set<OnboardingStepId> completedStepIds = const {},
-  })  : profile = profile ?? ProfileOnboardingDraft(),
+  })  : currentStepId = _normalizeCurrentStepId(currentStepId, targets),
+        profile = _normalizeProfileCursor(
+          profile: profile,
+          currentStepId: currentStepId,
+          targets: targets,
+        ),
         nutrition = nutrition ?? const NutritionOnboardingDraft(),
         workout = workout ?? const WorkoutOnboardingDraft(),
-        targets = targets ?? const TargetsOnboardingDraft(),
-        completedStepIds = Set.unmodifiable(completedStepIds);
-
+        targets = _normalizeTargetsCursor(
+          currentStepId: currentStepId,
+          targets: targets,
+        ),
+        completedStepIds = Set.unmodifiable(
+          _normalizeCompletedStepIds(completedStepIds),
+        );
 
   static const currentSchemaVersion = 3;
 
@@ -36,13 +48,13 @@ class OnboardingDraft {
   final OnboardingStatus status;
   final AppMode? selectedMode;
   final WorkoutIntroChoice? workoutIntroChoice;
+  final GoalIntentSelection goalSelection;
   final OnboardingStepId currentStepId;
   final ProfileOnboardingDraft profile;
   final NutritionOnboardingDraft nutrition;
   final WorkoutOnboardingDraft workout;
   final TargetsOnboardingDraft targets;
   final Set<OnboardingStepId> completedStepIds;
-
 
   @override
   bool operator ==(Object other) {
@@ -52,13 +64,13 @@ class OnboardingDraft {
             status == other.status &&
             selectedMode == other.selectedMode &&
             workoutIntroChoice == other.workoutIntroChoice &&
+            goalSelection == other.goalSelection &&
             currentStepId == other.currentStepId &&
             profile == other.profile &&
             nutrition == other.nutrition &&
             workout == other.workout &&
             targets == other.targets &&
             completedStepIds.length == other.completedStepIds.length &&
-
             completedStepIds.every(other.completedStepIds.contains);
   }
 
@@ -68,6 +80,7 @@ class OnboardingDraft {
         status,
         selectedMode,
         workoutIntroChoice,
+        goalSelection,
         currentStepId,
         profile,
         nutrition,
@@ -81,6 +94,7 @@ class OnboardingDraft {
     OnboardingStatus? status,
     Object? selectedMode = _onboardingDraftUnchanged,
     Object? workoutIntroChoice = _onboardingDraftUnchanged,
+    GoalIntentSelection? goalSelection,
     OnboardingStepId? currentStepId,
     ProfileOnboardingDraft? profile,
     NutritionOnboardingDraft? nutrition,
@@ -88,7 +102,6 @@ class OnboardingDraft {
     TargetsOnboardingDraft? targets,
     Set<OnboardingStepId>? completedStepIds,
   }) {
-
     return OnboardingDraft(
       schemaVersion: schemaVersion ?? this.schemaVersion,
       status: status ?? this.status,
@@ -99,6 +112,7 @@ class OnboardingDraft {
           identical(workoutIntroChoice, _onboardingDraftUnchanged)
               ? this.workoutIntroChoice
               : workoutIntroChoice as WorkoutIntroChoice?,
+      goalSelection: goalSelection ?? this.goalSelection,
       currentStepId: currentStepId ?? this.currentStepId,
       profile: profile ?? this.profile,
       nutrition: nutrition ?? this.nutrition,
@@ -107,4 +121,89 @@ class OnboardingDraft {
       completedStepIds: completedStepIds ?? this.completedStepIds,
     );
   }
+}
+
+TargetStepId _resolvedLegacyTargetStep(TargetsOnboardingDraft? targets) =>
+    (targets ?? const TargetsOnboardingDraft()).currentStepId;
+
+bool _isLegacyTargetsGoalPaceCursor(
+  OnboardingStepId currentStepId,
+  TargetsOnboardingDraft? targets,
+) {
+  return currentStepId == OnboardingStepId.targets &&
+      _resolvedLegacyTargetStep(targets) == TargetStepId.goalPace;
+}
+
+bool _isLegacyTargetsWellnessCursor(
+  OnboardingStepId currentStepId,
+  TargetsOnboardingDraft? targets,
+) {
+  if (currentStepId != OnboardingStepId.targets) return false;
+  return switch (_resolvedLegacyTargetStep(targets)) {
+    TargetStepId.bridge ||
+    TargetStepId.stepTarget ||
+    TargetStepId.sleepTarget ||
+    TargetStepId.waterTarget => true,
+    _ => false,
+  };
+}
+
+bool _isLegacyTargetsNutritionCursor(
+  OnboardingStepId currentStepId,
+  TargetsOnboardingDraft? targets,
+) {
+  return currentStepId == OnboardingStepId.targets &&
+      _resolvedLegacyTargetStep(targets) == TargetStepId.nutritionTarget;
+}
+
+OnboardingStepId _normalizeCurrentStepId(
+  OnboardingStepId currentStepId,
+  TargetsOnboardingDraft? targets,
+) {
+  if (_isLegacyTargetsGoalPaceCursor(currentStepId, targets)) {
+    return OnboardingStepId.bodyGoal;
+  }
+  if (_isLegacyTargetsWellnessCursor(currentStepId, targets)) {
+    return OnboardingStepId.wellnessGoals;
+  }
+  if (_isLegacyTargetsNutritionCursor(currentStepId, targets)) {
+    return OnboardingStepId.nutritionGoals;
+  }
+  return currentStepId;
+}
+
+ProfileOnboardingDraft _normalizeProfileCursor({
+  required ProfileOnboardingDraft? profile,
+  required OnboardingStepId currentStepId,
+  required TargetsOnboardingDraft? targets,
+}) {
+  final resolvedProfile = profile ?? ProfileOnboardingDraft();
+  if (!_isLegacyTargetsGoalPaceCursor(currentStepId, targets)) {
+    return resolvedProfile;
+  }
+  return resolvedProfile.copyWith(currentStepId: ProfileStepId.goalPace);
+}
+
+TargetsOnboardingDraft _normalizeTargetsCursor({
+  required OnboardingStepId currentStepId,
+  required TargetsOnboardingDraft? targets,
+}) {
+  final resolvedTargets = targets ?? const TargetsOnboardingDraft();
+  if (currentStepId == OnboardingStepId.nutritionGoals ||
+      _isLegacyTargetsNutritionCursor(currentStepId, targets)) {
+    return resolvedTargets.copyWith(
+      currentStepId: TargetStepId.nutritionTarget,
+    );
+  }
+  return resolvedTargets;
+}
+
+Set<OnboardingStepId> _normalizeCompletedStepIds(
+  Set<OnboardingStepId> completedStepIds,
+) {
+  final normalized = {...completedStepIds};
+  if (normalized.remove(OnboardingStepId.targets)) {
+    normalized.add(OnboardingStepId.nutritionGoals);
+  }
+  return normalized;
 }

@@ -4,23 +4,36 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_feature_nutrition/nutrition.dart' as nutrition_owner;
 import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_feature_profile/profile.dart' as profile_owner;
+import 'package:tio_feature_progress/progress.dart' as body_owner;
 import 'package:tio_feature_workout/workout.dart' as workout_owner;
 import 'package:tio_shared/shared.dart';
 
 void main() {
   late profile_owner.InMemoryProfileSetupRepository profileRepo;
-  late workout_owner.InMemoryWorkoutPreferencesRepository workoutRepo;
-  late nutrition_owner.InMemoryTargetsSetupRepository targetsRepo;
+  late body_owner.InMemoryBodySetupRepository bodyRepo;
+  late body_owner.InMemoryWellnessTargetsRepository wellnessRepo;
+  late nutrition_owner.InMemoryNutritionProfileRepository nutritionProfileRepo;
+  late workout_owner.InMemoryWorkoutProfileRepository workoutProfileRepo;
+  late workout_owner.InMemoryWorkoutTargetsRepository workoutTargetsRepo;
+  late nutrition_owner.InMemoryNutritionTargetsRepository nutritionTargetsRepo;
   late PersistOnboardingOwnerDataUseCase persistUseCase;
 
   setUp(() {
     profileRepo = profile_owner.InMemoryProfileSetupRepository();
-    workoutRepo = workout_owner.InMemoryWorkoutPreferencesRepository();
-    targetsRepo = nutrition_owner.InMemoryTargetsSetupRepository();
+    bodyRepo = body_owner.InMemoryBodySetupRepository();
+    wellnessRepo = body_owner.InMemoryWellnessTargetsRepository();
+    nutritionProfileRepo = nutrition_owner.InMemoryNutritionProfileRepository();
+    workoutProfileRepo = workout_owner.InMemoryWorkoutProfileRepository();
+    workoutTargetsRepo = workout_owner.InMemoryWorkoutTargetsRepository();
+    nutritionTargetsRepo = nutrition_owner.InMemoryNutritionTargetsRepository();
     persistUseCase = PersistOnboardingOwnerDataUseCase(
       profileRepository: profileRepo,
-      workoutRepository: workoutRepo,
-      targetsRepository: targetsRepo,
+      bodyRepository: bodyRepo,
+      wellnessRepository: wellnessRepo,
+      nutritionProfileRepository: nutritionProfileRepo,
+      workoutProfileRepository: workoutProfileRepo,
+      workoutTargetsRepository: workoutTargetsRepo,
+      nutritionTargetsRepository: nutritionTargetsRepo,
     );
   });
 
@@ -87,8 +100,12 @@ void main() {
     expect(preference.storedMode, isNull);
     expect(repository.status, isNull);
     expect(await profileRepo.getProfileSetup(), isNull);
-    expect(await workoutRepo.getWorkoutPreferences(), isNull);
-    expect(await targetsRepo.getTargetsSetup(), isNull);
+    expect(bodyRepo.data, isNull);
+    expect(wellnessRepo.data, isNull);
+    expect(await nutritionProfileRepo.read(), isNull);
+    expect(await workoutProfileRepo.read(), isNull);
+    expect(await workoutTargetsRepo.read(), isNull);
+    expect(await nutritionTargetsRepo.read(), isNull);
   });
 
   test(
@@ -153,6 +170,7 @@ void main() {
 
     final draft = OnboardingDraft(
       selectedMode: AppMode.workout,
+      goalSelection: const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
       profile: _validProfile(),
       workout: _validWorkout(),
       targets: _validTargets(),
@@ -170,8 +188,13 @@ void main() {
     );
 
     expect(await profileRepo.getProfileSetup(), isNotNull);
-    expect(await workoutRepo.getWorkoutPreferences(), isNotNull);
-    expect(await targetsRepo.getTargetsSetup(), isNotNull);
+    expect(bodyRepo.data, isNotNull);
+    expect(wellnessRepo.data, isNotNull);
+    expect(wellnessRepo.data?.dailySteps, 10000);
+    expect(await nutritionProfileRepo.read(), isNull);
+    expect(await workoutProfileRepo.read(), isNotNull);
+    expect(await workoutTargetsRepo.read(), isNotNull);
+    expect(await nutritionTargetsRepo.read(), isNotNull);
     expect(preference.storedMode, AppMode.workout);
     expect(repository.status, OnboardingStatus.completed);
     expect(
@@ -195,8 +218,12 @@ void main() {
       statusRepository: repository,
       persistOwnerDataUseCase: PersistOnboardingOwnerDataUseCase(
         profileRepository: failingProfileRepo,
-        workoutRepository: workoutRepo,
-        targetsRepository: targetsRepo,
+        bodyRepository: bodyRepo,
+        wellnessRepository: wellnessRepo,
+        nutritionProfileRepository: nutritionProfileRepo,
+        workoutProfileRepository: workoutProfileRepo,
+        workoutTargetsRepository: workoutTargetsRepo,
+        nutritionTargetsRepository: nutritionTargetsRepo,
       ),
       validator: const OnboardingCompletionValidator(
         hasDurableOwnerPersistence: true,
@@ -497,7 +524,6 @@ void main() {
         backendUserReady: false,
       ),
     );
-
     final draft = OnboardingDraft(
       selectedMode: AppMode.workout,
       profile: _validProfile(),

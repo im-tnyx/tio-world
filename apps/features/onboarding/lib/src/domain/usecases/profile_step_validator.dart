@@ -10,6 +10,8 @@ class ProfileStepValidator {
   static const minimumWeightKg = 30.0;
   static const maximumWeightKg = 200.0;
 
+  /// Legacy ProfileGoal grouping retained only for compatibility callers while
+  /// the runtime Goal screen moves to GoalIntentSelectionPolicy.
   static const primaryGoals = <ProfileGoal>{
     ProfileGoal.buildMuscle,
     ProfileGoal.loseWeight,
@@ -18,24 +20,39 @@ class ProfileStepValidator {
 
   final DateTime Function()? _now;
 
-  Map<ProfileStepId, String> validate(ProfileOnboardingDraft draft) {
-    final error = _validateCurrentStep(draft);
+  Map<ProfileStepId, String> validate(
+    ProfileOnboardingDraft draft, {
+    GoalWeightDirection? weightGoalDirection,
+  }) {
+    final error = _validateCurrentStep(
+      draft,
+      weightGoalDirection: weightGoalDirection,
+    );
     return error == null ? const {} : {draft.currentStepId: error};
   }
 
-  bool isCurrentStepValid(ProfileOnboardingDraft draft) =>
-      _validateCurrentStep(draft) == null;
+  bool isCurrentStepValid(
+    ProfileOnboardingDraft draft, {
+    GoalWeightDirection? weightGoalDirection,
+  }) =>
+      _validateCurrentStep(
+        draft,
+        weightGoalDirection: weightGoalDirection,
+      ) ==
+      null;
 
-  String? _validateCurrentStep(ProfileOnboardingDraft draft) {
+  String? _validateCurrentStep(
+    ProfileOnboardingDraft draft, {
+    GoalWeightDirection? weightGoalDirection,
+  }) {
     return switch (draft.currentStepId) {
       ProfileStepId.name => draft.name.trim().length >= minimumNameLength
           ? null
           : 'Enter at least $minimumNameLength characters.',
       ProfileStepId.gender =>
         draft.gender == null ? 'Choose a gender option.' : null,
-      ProfileStepId.goal => draft.goals.where(primaryGoals.contains).length == 1
-          ? null
-          : 'Choose one primary goal.',
+      // Goal is validated by GoalIntentSelectionPolicy in OnboardingController.
+      ProfileStepId.goal => null,
       ProfileStepId.age => _validateDateOfBirth(draft.dateOfBirth),
       ProfileStepId.measurementUnits => null,
       ProfileStepId.height => _validateRange(
@@ -52,16 +69,43 @@ class ProfileStepValidator {
           'current weight',
           'kg',
         ),
-      ProfileStepId.targetWeight => _validateRange(
-          draft.targetWeightKg,
-          minimumWeightKg,
-          maximumWeightKg,
-          'target weight',
-          'kg',
+      ProfileStepId.targetWeight => _validateTargetWeight(
+          draft,
+          weightGoalDirection,
         ),
+      // O3C reuses ProfileStepId as a draft cursor identity only. Pace value
+      // validation stays with TargetStepValidator and the Body Goal controller.
+      ProfileStepId.goalPace => null,
       ProfileStepId.activity =>
         draft.activityLevel == null ? 'Choose an activity level.' : null,
       ProfileStepId.healthConditions => null,
+    };
+  }
+
+  String? _validateTargetWeight(
+    ProfileOnboardingDraft draft,
+    GoalWeightDirection? direction,
+  ) {
+    final rangeError = _validateRange(
+      draft.targetWeightKg,
+      minimumWeightKg,
+      maximumWeightKg,
+      'target weight',
+      'kg',
+    );
+    if (rangeError != null) return rangeError;
+
+    final current = draft.currentWeightKg;
+    final target = draft.targetWeightKg;
+    if (current == null || target == null || direction == null) return null;
+
+    return switch (direction) {
+      GoalWeightDirection.loss => target < current
+          ? null
+          : 'Choose a target below your current weight for this goal.',
+      GoalWeightDirection.gain => target > current
+          ? null
+          : 'Choose a target above your current weight for this goal.',
     };
   }
 

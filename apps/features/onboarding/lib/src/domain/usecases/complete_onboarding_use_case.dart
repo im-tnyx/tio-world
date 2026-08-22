@@ -9,6 +9,7 @@ class CompleteOnboardingUseCase {
   const CompleteOnboardingUseCase({
     required AppModePreference confirmedModePreference,
     required OnboardingStatusRepository statusRepository,
+    AppPreferencesRepository? appPreferencesRepository,
     PersistOnboardingOwnerDataUseCase? persistOwnerDataUseCase,
     OnboardingRemoteFinalizer? finalizer,
     OnboardingCompletionRepository? completionRepository,
@@ -17,6 +18,7 @@ class CompleteOnboardingUseCase {
         const OnboardingCompletionValidator(),
   })  : _confirmedModePreference = confirmedModePreference,
         _statusRepository = statusRepository,
+        _appPreferencesRepository = appPreferencesRepository,
         _persistOwnerDataUseCase = persistOwnerDataUseCase,
         _finalizer = finalizer,
         _completionRepository = completionRepository,
@@ -25,6 +27,7 @@ class CompleteOnboardingUseCase {
 
   final AppModePreference _confirmedModePreference;
   final OnboardingStatusRepository _statusRepository;
+  final AppPreferencesRepository? _appPreferencesRepository;
   final PersistOnboardingOwnerDataUseCase? _persistOwnerDataUseCase;
   final OnboardingRemoteFinalizer? _finalizer;
   final OnboardingCompletionRepository? _completionRepository;
@@ -51,7 +54,8 @@ class CompleteOnboardingUseCase {
     final persistedSnapshot = await _statusRepository.read();
     final persistedMode = await _confirmedModePreference.read();
     if (persistedSnapshot.status == OnboardingStatus.completed &&
-        persistedMode != null) {
+        persistedMode == selectedMode &&
+        await _hasCanonicalPreferenceFor(selectedMode)) {
       if (_completionRepository == null) {
         return;
       }
@@ -76,18 +80,26 @@ class CompleteOnboardingUseCase {
       await _finalizer.finalize();
     }
 
-    // 3. Persist confirmed AppMode. AppMode is not itself completion authority.
+    // 3. Persist canonical account-level App Mode/navigation before publishing
+    // any local confirmed mode or onboarding completion signal.
+    if (_appPreferencesRepository != null) {
+      await _appPreferencesRepository.upsert(
+        AppPreferencesUpdate.guided(selectedMode),
+      );
+    }
+
+    // 4. Refresh the local App Mode cache only after canonical persistence.
     await _confirmedModePreference.write(selectedMode);
 
-    // 4. Publish durable backend completion before the local completion cache.
+    // 5. Publish durable backend completion before the local completion cache.
     if (_completionRepository != null) {
       await _completionRepository.markCurrentCompleted();
     }
 
-    // 5. Update the local onboarding completion cache only after backend success.
+    // 6. Update the local onboarding completion cache only after backend success.
     await _statusRepository.write(OnboardingStatus.completed);
 
-    // 6. Best-effort clear obsolete unfinished draft.
+    // 7. Best-effort clear obsolete unfinished draft.
     if (_draftRepository != null) {
       try {
         await _draftRepository.clearDraft();
@@ -95,6 +107,21 @@ class CompleteOnboardingUseCase {
         // Safe best-effort: failure to clear draft does not invalidate completion.
       }
     }
+  }
+
+  Future<bool> _hasCanonicalPreferenceFor(AppMode selectedMode) async {
+    final repository = _appPreferencesRepository;
+    if (repository == null) {
+      // Compatibility for local/test callers while O1 migrates app composition.
+      return true;
+    }
+
+    final state = await repository.read();
+    final activeTabs = state.activeTabs;
+    return state.isPresent &&
+        state.appMode == selectedMode &&
+        activeTabs != null &&
+        activeTabs.isNotEmpty;
   }
 }
 

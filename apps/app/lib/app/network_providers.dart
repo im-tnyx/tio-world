@@ -4,6 +4,7 @@ import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_feature_profile/profile.dart';
+import 'package:tio_feature_progress/progress.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
@@ -50,7 +51,6 @@ final apiConfigProvider = Provider<ApiConfig>((ref) {
 });
 
 /// Provider for explicit authentication capability status.
-/// Defaults to [AuthCapabilityUnavailable] until live Firebase credentials/options are provided.
 final authCapabilityProvider = Provider<AuthCapability>((ref) {
   return const AuthCapabilityUnavailable(
     'Firebase client options are not configured in this environment.',
@@ -71,7 +71,6 @@ final authSessionRepositoryProvider = Provider<AuthSessionRepository>((ref) {
 });
 
 /// Provider for retrieving bearer ID tokens for protected HTTP requests.
-/// Defaults to [UnavailableAuthTokenProvider] while Firebase client config is pending.
 final authTokenProvider = Provider<AuthTokenProvider>((ref) {
   final capability = ref.watch(authCapabilityProvider);
   if (capability.isAvailable) {
@@ -80,7 +79,6 @@ final authTokenProvider = Provider<AuthTokenProvider>((ref) {
   return const UnavailableAuthTokenProvider();
 });
 
-/// Provider for the authenticated API client attaching Firebase Bearer ID tokens.
 final authenticatedApiClientProvider = Provider<ApiClient>((ref) {
   final config = ref.watch(apiConfigProvider);
   final tokenProvider = ref.watch(authTokenProvider);
@@ -90,18 +88,18 @@ final authenticatedApiClientProvider = Provider<ApiClient>((ref) {
   );
 });
 
-/// Provider for public, unauthenticated API calls (signup, login, ping).
 final publicApiClientProvider = Provider<ApiClient>((ref) {
   final config = ref.watch(apiConfigProvider);
   return DioApiClient.public(config: config);
 });
 
-/// Provider for the [ProfileSetupRepository].
-/// Uses Supabase when configured, otherwise falls back to remote HTTP adapter.
 final profileSetupRepositoryProvider = Provider<ProfileSetupRepository>((ref) {
   final supabaseClient = ref.watch(supabaseClientProvider);
   if (supabaseClient != null) {
-    return SupabaseProfileSetupRepository(client: supabaseClient);
+    return CanonicalUserProfileBridgeRepository(
+      legacyRepository: SupabaseProfileSetupRepository(client: supabaseClient),
+      canonicalRepository: SupabaseUserProfileRepository(client: supabaseClient),
+    );
   }
   final apiClient = ref.watch(authenticatedApiClientProvider);
   return RemoteProfileSetupRepository(
@@ -109,8 +107,60 @@ final profileSetupRepositoryProvider = Provider<ProfileSetupRepository>((ref) {
   );
 });
 
-/// Provider for field-specific Account Settings persistence.
-/// The current HTTP profile API does not expose this partial-update contract.
+/// Canonical Wellness owner. Production writes only `user_wellness_targets`;
+/// an in-memory fallback keeps non-Supabase test/local harnesses constructible.
+final wellnessTargetsRepositoryProvider =
+    Provider<WellnessTargetsRepository>((ref) {
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  if (supabaseClient != null) {
+    return SupabaseWellnessTargetsRepository(client: supabaseClient);
+  }
+  return InMemoryWellnessTargetsRepository();
+});
+
+/// Canonical Body owner. The returned object also exposes the canonical
+/// Wellness owner boundary so existing onboarding composition can advance O4C
+/// without widening router glue. The two owners still delegate to independent
+/// repositories/tables.
+final bodySetupRepositoryProvider = Provider<BodySetupRepository>((ref) {
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  final BodySetupRepository bodyRepository = supabaseClient != null
+      ? SupabaseBodySetupRepository(client: supabaseClient)
+      : InMemoryBodySetupRepository();
+
+  return _BodyAndWellnessSetupRepository(
+    bodyRepository: bodyRepository,
+    wellnessRepository: ref.watch(wellnessTargetsRepositoryProvider),
+  );
+});
+
+final class _BodyAndWellnessSetupRepository
+    implements BodySetupRepository, WellnessTargetsRepository {
+  const _BodyAndWellnessSetupRepository({
+    required BodySetupRepository bodyRepository,
+    required WellnessTargetsRepository wellnessRepository,
+  })  : _bodyRepository = bodyRepository,
+        _wellnessRepository = wellnessRepository;
+
+  final BodySetupRepository _bodyRepository;
+  final WellnessTargetsRepository _wellnessRepository;
+
+  @override
+  Future<void> saveBodySetup(BodySetupData data) {
+    return _bodyRepository.saveBodySetup(data);
+  }
+
+  @override
+  Future<WellnessTargetsData?> read() {
+    return _wellnessRepository.read();
+  }
+
+  @override
+  Future<void> upsert(WellnessTargetsData targets) {
+    return _wellnessRepository.upsert(targets);
+  }
+}
+
 final profileAccountRepositoryProvider =
     Provider<ProfileAccountRepository?>((ref) {
   final supabaseClient = ref.watch(supabaseClientProvider);
@@ -120,8 +170,8 @@ final profileAccountRepositoryProvider =
   return null;
 });
 
-/// Provider for the [WorkoutPreferencesRepository].
-/// Uses Supabase when configured, otherwise falls back to remote HTTP adapter.
+/// Legacy broad Workout repository retained for compatibility consumers only.
+/// Product Onboarding completion uses the canonical providers below.
 final workoutPreferencesRepositoryProvider =
     Provider<WorkoutPreferencesRepository>((ref) {
   final supabaseClient = ref.watch(supabaseClientProvider);
@@ -134,8 +184,48 @@ final workoutPreferencesRepositoryProvider =
   );
 });
 
-/// Provider for the [TargetsSetupRepository].
-/// Uses Supabase when configured, otherwise falls back to remote HTTP adapter.
+/// Canonical Workout Profile owner used by Product Onboarding completion.
+final workoutProfileRepositoryProvider =
+    Provider<WorkoutProfileRepository>((ref) {
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  if (supabaseClient != null) {
+    return SupabaseWorkoutProfileRepository(client: supabaseClient);
+  }
+  return InMemoryWorkoutProfileRepository();
+});
+
+/// Canonical Workout Targets owner used by Product Onboarding completion.
+final workoutTargetsRepositoryProvider =
+    Provider<WorkoutTargetsRepository>((ref) {
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  if (supabaseClient != null) {
+    return SupabaseWorkoutTargetsRepository(client: supabaseClient);
+  }
+  return InMemoryWorkoutTargetsRepository();
+});
+
+/// Canonical Nutrition Profile owner used by Product Onboarding completion.
+final nutritionProfileRepositoryProvider =
+    Provider<NutritionProfileRepository>((ref) {
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  if (supabaseClient != null) {
+    return SupabaseNutritionProfileRepository(client: supabaseClient);
+  }
+  return InMemoryNutritionProfileRepository();
+});
+
+/// Canonical Nutrition Targets owner used by Product Onboarding completion.
+final nutritionTargetsRepositoryProvider =
+    Provider<NutritionTargetsRepository>((ref) {
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  if (supabaseClient != null) {
+    return SupabaseNutritionTargetsRepository(client: supabaseClient);
+  }
+  return InMemoryNutritionTargetsRepository();
+});
+
+/// Legacy mixed Targets repository retained for compatibility consumers only.
+/// Product Onboarding completion must use the two canonical providers above.
 final targetsSetupRepositoryProvider = Provider<TargetsSetupRepository>((ref) {
   final supabaseClient = ref.watch(supabaseClientProvider);
   if (supabaseClient != null) {
@@ -147,15 +237,12 @@ final targetsSetupRepositoryProvider = Provider<TargetsSetupRepository>((ref) {
   );
 });
 
-/// Provider for the remote [OnboardingRemoteFinalizer].
 final onboardingRemoteFinalizerProvider =
     Provider<OnboardingRemoteFinalizer>((ref) {
   final apiClient = ref.watch(authenticatedApiClientProvider);
   return RemoteOnboardingFinalizer(apiClient);
 });
 
-/// Provider for the [OnboardingDraftRepository].
-/// Uses Supabase when configured, otherwise returns null.
 final appOnboardingDraftRepositoryProvider =
     Provider<OnboardingDraftRepository?>((ref) {
   final supabaseClient = ref.watch(supabaseClientProvider);
@@ -165,7 +252,6 @@ final appOnboardingDraftRepositoryProvider =
   return null;
 });
 
-/// Provider for [OnboardingCompletionValidator] with live persistence state.
 final appOnboardingCompletionValidatorProvider =
     Provider<OnboardingCompletionValidator>((ref) {
   final authProductState = ref.watch(authProductStateProvider);
@@ -183,12 +269,10 @@ final appOnboardingCompletionValidatorProvider =
   );
 });
 
-/// Provider for device identity.
 final deviceIdentityProviderProvider = Provider<DeviceIdentityProvider>((ref) {
   return FlutterDeviceIdentityProvider();
 });
 
-/// Provider for synchronizing user to backend.
 final backendUserSyncRepositoryProvider = Provider<BackendUserSyncRepository>((ref) {
   final apiClient = ref.watch(publicApiClientProvider);
   return RemoteBackendUserSyncRepository(
@@ -196,23 +280,19 @@ final backendUserSyncRepositoryProvider = Provider<BackendUserSyncRepository>((r
   );
 });
 
-/// Provider for Google Sign-In SDK.
 final googleSignInProviderProvider = Provider<GoogleSignInProvider>((ref) {
   return GoogleSignInProvider();
 });
 
-/// State provider for tracking backend user sync state.
 final backendUserStateProvider = StateProvider<BackendUserState>((ref) {
   return const BackendUserUnknown();
 });
 
-/// Stream provider for auth session state.
 final authSessionStateProvider = StreamProvider<AuthSessionState>((ref) {
   final repo = ref.watch(authSessionRepositoryProvider);
   return repo.sessionState;
 });
 
-/// Composite auth readiness provider.
 final authProductStateProvider = Provider<AuthProductState>((ref) {
   final capability = ref.watch(authCapabilityProvider);
   final sessionAsync = ref.watch(authSessionStateProvider);
@@ -225,7 +305,6 @@ final authProductStateProvider = Provider<AuthProductState>((ref) {
   );
 });
 
-/// Provider for user device repository to sync device identity with Supabase.
 final userDeviceRepositoryProvider = Provider<UserDeviceRepository>((ref) {
   final supabaseClient = ref.watch(supabaseClientProvider);
   if (supabaseClient != null) {
@@ -237,8 +316,6 @@ final userDeviceRepositoryProvider = Provider<UserDeviceRepository>((ref) {
   return const NoOpUserDeviceRepository();
 });
 
-/// Provider for auth sign-in repository.
-/// Uses Supabase in current production path.
 final authSignInRepositoryProvider = Provider<AuthSignInRepository?>((ref) {
   final supabaseClient = ref.watch(supabaseClientProvider);
   if (supabaseClient != null) {
@@ -251,8 +328,6 @@ final authSignInRepositoryProvider = Provider<AuthSignInRepository?>((ref) {
   return null;
 });
 
-
-/// Provider for current Supabase Google sign-in use case.
 final signInWithGoogleUseCaseProvider = Provider<SignInWithGoogleUseCase?>((ref) {
   final repo = ref.watch(authSignInRepositoryProvider);
   if (repo != null) {
@@ -261,7 +336,6 @@ final signInWithGoogleUseCaseProvider = Provider<SignInWithGoogleUseCase?>((ref)
   return null;
 });
 
-/// Provider for email + password sign-in use case.
 final signInWithEmailUseCaseProvider = Provider<SignInWithEmailUseCase?>((ref) {
   final repo = ref.watch(authSignInRepositoryProvider);
   if (repo != null) {
@@ -270,7 +344,6 @@ final signInWithEmailUseCaseProvider = Provider<SignInWithEmailUseCase?>((ref) {
   return null;
 });
 
-/// Provider for email + password sign-up use case.
 final signUpWithEmailUseCaseProvider = Provider<SignUpWithEmailUseCase?>((ref) {
   final repo = ref.watch(authSignInRepositoryProvider);
   if (repo != null) {
@@ -279,7 +352,6 @@ final signUpWithEmailUseCaseProvider = Provider<SignUpWithEmailUseCase?>((ref) {
   return null;
 });
 
-/// Provider for sending password reset emails.
 final sendPasswordResetEmailUseCaseProvider =
     Provider<SendPasswordResetEmailUseCase?>((ref) {
   final repo = ref.watch(authSignInRepositoryProvider);
@@ -289,16 +361,12 @@ final sendPasswordResetEmailUseCaseProvider =
   return null;
 });
 
-/// Provider for watching real-time updates to the current user's profile setup data.
 final profileDataProvider = StreamProvider<ProfileSetupData?>((ref) {
-  // Watching authSessionState ensures the stream provider automatically re-subscribes whenever auth state changes.
   ref.watch(authSessionStateProvider);
   final repository = ref.watch(profileSetupRepositoryProvider);
   return repository.watchProfileSetup();
 });
 
-
-/// Provider for future Firebase+backend Google authentication use case.
 final googleAuthUseCaseProvider = Provider<GoogleAuthUseCase>((ref) {
   return GoogleAuthUseCase(
     googleSignInProvider: ref.watch(googleSignInProviderProvider),

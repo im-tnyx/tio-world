@@ -11,7 +11,34 @@ void main() {
       expect(plan.stepIds, const [OnboardingStepId.mode]);
     });
 
-    test('workout product onboarding starts at profile and never includes mobile', () {
+    test('active common sections use canonical section identities', () {
+      final plan = buildFlow(
+        entryPath: OnboardingEntryPath.firstRun,
+        mode: AppMode.nutrition,
+      );
+      expect(
+        plan.definitionFor(OnboardingStepId.profileBasics).section,
+        OnboardingSectionId.userProfile,
+      );
+      expect(
+        plan.definitionFor(OnboardingStepId.bodyGoal).section,
+        OnboardingSectionId.bodyGoal,
+      );
+      expect(
+        plan.definitionFor(OnboardingStepId.wellnessGoals).section,
+        OnboardingSectionId.wellnessGoals,
+      );
+      expect(
+        plan.definitionFor(OnboardingStepId.nutritionProfile).section,
+        OnboardingSectionId.nutritionProfile,
+      );
+      expect(
+        plan.definitionFor(OnboardingStepId.nutritionGoals).section,
+        OnboardingSectionId.nutritionGoals,
+      );
+    });
+
+    test('workout mode activates canonical Profile then Targets', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
@@ -21,16 +48,27 @@ void main() {
         plan.stepIds,
         const [
           OnboardingStepId.profileBasics,
-          OnboardingStepId.workoutPreferences,
-          OnboardingStepId.targets,
+          OnboardingStepId.bodyGoal,
+          OnboardingStepId.wellnessGoals,
+          OnboardingStepId.workoutProfile,
+          OnboardingStepId.workoutTargets,
+          OnboardingStepId.nutritionGoals,
           OnboardingStepId.review,
         ],
       );
-      expect(plan.stepIds, isNot(contains(OnboardingStepId.mode)));
-      expect(plan.stepIds, isNot(contains(OnboardingStepId.mobile)));
+      expect(
+        plan.definitionFor(OnboardingStepId.workoutProfile).section,
+        OnboardingSectionId.workoutProfile,
+      );
+      expect(
+        plan.definitionFor(OnboardingStepId.workoutTargets).section,
+        OnboardingSectionId.workoutTargets,
+      );
+      expect(plan.stepIds, isNot(contains(OnboardingStepId.nutritionProfile)));
+      expect(plan.stepIds, isNot(contains(OnboardingStepId.targets)));
     });
 
-    test('nutrition product onboarding starts at profile and never includes mobile', () {
+    test('nutrition mode inserts Nutrition Profile then Nutrition Goals', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.resumeDraft,
         mode: AppMode.nutrition,
@@ -40,14 +78,18 @@ void main() {
         plan.stepIds,
         const [
           OnboardingStepId.profileBasics,
-          OnboardingStepId.targets,
+          OnboardingStepId.bodyGoal,
+          OnboardingStepId.wellnessGoals,
+          OnboardingStepId.nutritionProfile,
+          OnboardingStepId.nutritionGoals,
           OnboardingStepId.review,
         ],
       );
-      expect(plan.stepIds, isNot(contains(OnboardingStepId.mode)));
+      expect(plan.stepIds, isNot(contains(OnboardingStepId.workoutProfile)));
+      expect(plan.stepIds, isNot(contains(OnboardingStepId.workoutTargets)));
     });
 
-    test('hybrid product onboarding starts at profile and never includes mobile', () {
+    test('hybrid setup now inserts canonical Workout owner sections', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.hybrid,
@@ -57,16 +99,19 @@ void main() {
         plan.stepIds,
         const [
           OnboardingStepId.profileBasics,
+          OnboardingStepId.bodyGoal,
+          OnboardingStepId.wellnessGoals,
+          OnboardingStepId.nutritionProfile,
           OnboardingStepId.workoutIntro,
-          OnboardingStepId.workoutPreferences,
-          OnboardingStepId.targets,
+          OnboardingStepId.workoutProfile,
+          OnboardingStepId.workoutTargets,
+          OnboardingStepId.nutritionGoals,
           OnboardingStepId.review,
         ],
       );
-      expect(plan.stepIds, isNot(contains(OnboardingStepId.mode)));
     });
 
-    test('hybrid later still skips workout preferences', () {
+    test('hybrid later keeps Nutrition and skips both Workout sections', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.hybrid,
@@ -76,11 +121,16 @@ void main() {
         plan.stepIds,
         const [
           OnboardingStepId.profileBasics,
+          OnboardingStepId.bodyGoal,
+          OnboardingStepId.wellnessGoals,
+          OnboardingStepId.nutritionProfile,
           OnboardingStepId.workoutIntro,
-          OnboardingStepId.targets,
+          OnboardingStepId.nutritionGoals,
           OnboardingStepId.review,
         ],
       );
+      expect(plan.stepIds, isNot(contains(OnboardingStepId.workoutProfile)));
+      expect(plan.stepIds, isNot(contains(OnboardingStepId.workoutTargets)));
     });
 
     test('active sections contain no account-setup mobile section', () {
@@ -97,7 +147,7 @@ void main() {
   });
 
   group('reconciliation', () {
-    test('keeps current eligible step after mode change', () {
+    test('keeps current eligible Nutrition Goals after mode change', () {
       final workoutPlan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
@@ -106,34 +156,32 @@ void main() {
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.hybrid,
       );
-
       expect(
         buildFlow.reconcileCurrentStep(
-          currentStepId: OnboardingStepId.targets,
+          currentStepId: OnboardingStepId.nutritionGoals,
           previousPlan: workoutPlan,
           nextPlan: hybridPlan,
         ),
-        OnboardingStepId.targets,
+        OnboardingStepId.nutritionGoals,
       );
     });
 
-    test('falls back to nearest previous eligible step', () {
-      final hybridPlan = buildFlow(
+    test('hiding Nutrition Profile falls back to Wellness', () {
+      final nutritionPlan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
-        mode: AppMode.hybrid,
+        mode: AppMode.nutrition,
       );
       final workoutPlan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
       );
-
       expect(
         buildFlow.reconcileCurrentStep(
-          currentStepId: OnboardingStepId.workoutIntro,
-          previousPlan: hybridPlan,
+          currentStepId: OnboardingStepId.nutritionProfile,
+          previousPlan: nutritionPlan,
           nextPlan: workoutPlan,
         ),
-        OnboardingStepId.profileBasics,
+        OnboardingStepId.wellnessGoals,
       );
     });
   });

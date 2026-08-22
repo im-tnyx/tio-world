@@ -4,7 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_feature_profile/profile.dart';
+import 'package:tio_shared/shared.dart';
 
+import '../app_mode/app_mode_controller.dart';
 import '../onboarding/onboarding_status_controller.dart';
 import 'app_session_bootstrap_state.dart';
 
@@ -16,6 +18,8 @@ class AppSessionBootstrapController extends ChangeNotifier {
     AccountSetupRepository? accountSetupRepository,
     ProfileAccountRepository? profileAccountRepository,
     OnboardingDraftRepository? onboardingDraftRepository,
+    AppPreferencesRepository? appPreferencesRepository,
+    AppModeController? appModeController,
     Duration completionLookupTimeout = const Duration(seconds: 8),
   })  : _authSessionRepository = authSessionRepository,
         _onboardingCompletionRepository = onboardingCompletionRepository,
@@ -23,6 +27,8 @@ class AppSessionBootstrapController extends ChangeNotifier {
         _accountSetupRepository = accountSetupRepository,
         _profileAccountRepository = profileAccountRepository,
         _onboardingDraftRepository = onboardingDraftRepository,
+        _appPreferencesRepository = appPreferencesRepository,
+        _appModeController = appModeController,
         _completionLookupTimeout = completionLookupTimeout;
 
   final AuthSessionRepository _authSessionRepository;
@@ -31,6 +37,8 @@ class AppSessionBootstrapController extends ChangeNotifier {
   final AccountSetupRepository? _accountSetupRepository;
   final ProfileAccountRepository? _profileAccountRepository;
   final OnboardingDraftRepository? _onboardingDraftRepository;
+  final AppPreferencesRepository? _appPreferencesRepository;
+  final AppModeController? _appModeController;
   final Duration _completionLookupTimeout;
 
   AppSessionBootstrapState _state = const AppSessionBootstrapLoading();
@@ -54,6 +62,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
       onError: (Object error, StackTrace _) {
         if (_disposed) return;
         _resolutionGeneration++;
+        _configureAuthenticatedAppModeWrites(false);
         _debug('auth stream error: ${error.runtimeType}');
         _setState(AppSessionBootstrapFailure(error));
       },
@@ -77,6 +86,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
     }
     _activeAuthenticatedUserId = userId;
     _resolutionGeneration++;
+    _configureAuthenticatedAppModeWrites(true);
     _debug('mark ready after onboarding completion');
     _setState(AppSessionBootstrapReady(userId: userId));
   }
@@ -104,14 +114,17 @@ class AppSessionBootstrapController extends ChangeNotifier {
 
     switch (authState) {
       case AuthSessionUnknown():
+        _configureAuthenticatedAppModeWrites(false);
         _setState(const AppSessionBootstrapLoading());
         break;
       case AuthSessionUnauthenticated():
         _activeAuthenticatedUserId = null;
+        _configureAuthenticatedAppModeWrites(false);
         _setState(const AppSessionBootstrapUnauthenticated());
         break;
       case AuthSessionAuthenticated(:final session):
         _activeAuthenticatedUserId = session.userId;
+        _configureAuthenticatedAppModeWrites(false);
         if (emitLoading) {
           _setState(const AppSessionBootstrapLoading());
         }
@@ -137,6 +150,10 @@ class AppSessionBootstrapController extends ChangeNotifier {
 
           switch (remoteState) {
             case RemoteOnboardingCompletionState.completed:
+              await _restoreAuthenticatedAppPreferences(generation);
+              if (_disposed || generation != _resolutionGeneration) return;
+
+              _configureAuthenticatedAppModeWrites(true);
               // Legacy completed accounts remain ready even if their historical
               // profile predates the Account Setup completion marker.
               _setState(AppSessionBootstrapReady(userId: session.userId));
@@ -192,11 +209,56 @@ class AppSessionBootstrapController extends ChangeNotifier {
           }
         } catch (error) {
           if (_disposed || generation != _resolutionGeneration) return;
+          _configureAuthenticatedAppModeWrites(false);
           _debug('bootstrap lookup failed: ${error.runtimeType}');
           _setState(AppSessionBootstrapFailure(error));
         }
         break;
     }
+  }
+
+  Future<void> _restoreAuthenticatedAppPreferences(int generation) async {
+    final repository = _appPreferencesRepository;
+    final modeController = _appModeController;
+
+    // Non-Supabase/test compositions may intentionally omit this capability.
+    // Production injects both dependencies. Do not invent remote semantics when
+    // the backend-neutral owner is unavailable.
+    if (repository == null || modeController == null) {
+      _debug('canonical app preferences restore unavailable in composition');
+      return;
+    }
+
+    _debug('app preferences lookup started generation=$generation');
+    final preferences =
+        await repository.read().timeout(_completionLookupTimeout);
+    if (_disposed || generation != _resolutionGeneration) return;
+
+    if (preferences.isMissing) {
+      _debug('canonical app preferences missing; using compatibility state');
+      await modeController.restoreMissingCanonical();
+      return;
+    }
+
+    await modeController.restoreCanonical(preferences);
+  }
+
+  void _configureAuthenticatedAppModeWrites(bool enabled) {
+    final modeController = _appModeController;
+    if (modeController == null) return;
+
+    if (enabled) {
+      modeController.setAuthenticatedWriteRepository(
+        _appPreferencesRepository,
+        requireCanonical: true,
+      );
+      return;
+    }
+
+    modeController.setAuthenticatedWriteRepository(
+      null,
+      requireCanonical: false,
+    );
   }
 
   Future<void> _clearObsoleteDraft() async {
@@ -230,6 +292,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
     _debug('dispose');
     _disposed = true;
     _resolutionGeneration++;
+    _configureAuthenticatedAppModeWrites(false);
     _authSubscription?.cancel();
     super.dispose();
   }

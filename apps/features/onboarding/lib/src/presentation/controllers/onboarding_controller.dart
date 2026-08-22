@@ -65,11 +65,24 @@ class OnboardingController extends ChangeNotifier {
     OnboardingDraft? initialDraft,
     this.includeMobile = false,
     BuildOnboardingFlowUseCase planner = const BuildOnboardingFlowUseCase(),
+    BuildProfileFlowPlanUseCase profilePlanner =
+        const BuildProfileFlowPlanUseCase(),
+    BuildBodyGoalFlowPlanUseCase bodyGoalPlanner =
+        const BuildBodyGoalFlowPlanUseCase(),
     BuildWorkoutFlowPlanUseCase workoutPlanner =
         const BuildWorkoutFlowPlanUseCase(),
+    BuildTargetsFlowPlanUseCase targetsPlanner =
+        const BuildTargetsFlowPlanUseCase(),
     ProfileStepValidator profileValidator = const ProfileStepValidator(),
     WorkoutStepValidator workoutValidator = const WorkoutStepValidator(),
     TargetStepValidator targetValidator = const TargetStepValidator(),
+    GoalIntentSelectionPolicy goalSelectionPolicy =
+        const GoalIntentSelectionPolicy(),
+    WeightGoalFlowPolicy weightGoalPolicy = const WeightGoalFlowPolicy(),
+    TargetWeightRecommendationResolver targetWeightRecommendationResolver =
+        const TargetWeightRecommendationResolver(),
+    LegacyProfileGoalIntentMigration legacyGoalMigration =
+        const LegacyProfileGoalIntentMigration(),
     OnboardingCompletionValidator completionValidator =
         const OnboardingCompletionValidator(),
     OnboardingStatusRepository statusRepository =
@@ -77,10 +90,17 @@ class OnboardingController extends ChangeNotifier {
     OnboardingDraftRepository? draftRepository,
   })  : _entryPath = entryPath,
         _planner = planner,
+        _profilePlanner = profilePlanner,
+        _bodyGoalPlanner = bodyGoalPlanner,
         _workoutPlanner = workoutPlanner,
+        _targetsPlanner = targetsPlanner,
         _profileValidator = profileValidator,
         _workoutValidator = workoutValidator,
         _targetValidator = targetValidator,
+        _goalSelectionPolicy = goalSelectionPolicy,
+        _weightGoalPolicy = weightGoalPolicy,
+        _targetWeightRecommendationResolver = targetWeightRecommendationResolver,
+        _legacyGoalMigration = legacyGoalMigration,
         _completionValidator = completionValidator,
         _statusRepository = statusRepository,
         _draftRepository = draftRepository {
@@ -90,15 +110,23 @@ class OnboardingController extends ChangeNotifier {
   final OnboardingEntryPath _entryPath;
   final bool includeMobile;
   final BuildOnboardingFlowUseCase _planner;
+  final BuildProfileFlowPlanUseCase _profilePlanner;
+  final BuildBodyGoalFlowPlanUseCase _bodyGoalPlanner;
   final BuildWorkoutFlowPlanUseCase _workoutPlanner;
+  final BuildTargetsFlowPlanUseCase _targetsPlanner;
   final ProfileStepValidator _profileValidator;
   final WorkoutStepValidator _workoutValidator;
   final TargetStepValidator _targetValidator;
+  final GoalIntentSelectionPolicy _goalSelectionPolicy;
+  final WeightGoalFlowPolicy _weightGoalPolicy;
+  final TargetWeightRecommendationResolver _targetWeightRecommendationResolver;
+  final LegacyProfileGoalIntentMigration _legacyGoalMigration;
   final OnboardingCompletionValidator _completionValidator;
   final OnboardingStatusRepository _statusRepository;
   final OnboardingDraftRepository? _draftRepository;
-  static const _profileFlow = ProfileFlowPlan();
-  static const _targetsFlow = TargetsFlowPlan();
+
+  static const double _defaultHeightCm = 170.0;
+  static const double _defaultCurrentWeightKg = 75.0;
 
   bool _isHydrated = false;
   int _currentRevision = 0;
@@ -178,17 +206,145 @@ class OnboardingController extends ChangeNotifier {
     final workoutFlowPlan = _workoutPlanner(
       gymAccess: draft.workout.gymAccess,
     );
-    final stepId = plan.contains(draft.currentStepId)
+    var stepId = plan.contains(draft.currentStepId)
         ? draft.currentStepId
         : plan.steps.first.id;
     final eligibleCompleted =
         draft.completedStepIds.where(plan.contains).toSet();
-    final workoutStepId = workoutFlowPlan.contains(draft.workout.currentStepId)
-        ? draft.workout.currentStepId
-        : workoutFlowPlan.steps.first;
+    final activeWorkoutSteps = workoutFlowPlan.stepsFor(stepId);
+    final workoutStepId = activeWorkoutSteps.isNotEmpty
+        ? activeWorkoutSteps.contains(draft.workout.currentStepId)
+            ? draft.workout.currentStepId
+            : activeWorkoutSteps.first
+        : workoutFlowPlan.contains(draft.workout.currentStepId)
+            ? draft.workout.currentStepId
+            : workoutFlowPlan.steps.first;
+
+    var profile = draft.profile;
+    var targets = draft.targets;
+    final goalSelection = _resolvedGoalSelection(draft);
+    final mode = draft.selectedMode;
+    final resolvedDirection = _weightGoalPolicy.directionFor(
+      mode: mode,
+      selection: goalSelection,
+    );
+    if (profile.targetWeightKg != null &&
+        profile.targetWeightDirection == null &&
+        resolvedDirection != null) {
+      profile = profile.copyWith(targetWeightDirection: resolvedDirection);
+    }
+    profile = _reconcileTargetWeightForDirection(
+      profile: profile,
+      nextDirection: resolvedDirection,
+    );
+
+    var profileFlowPlan = _profilePlanner(
+      mode: mode,
+      goalSelection: goalSelection,
+    );
+    var bodyGoalFlowPlan = _bodyGoalPlanner(
+      mode: mode,
+      goalSelection: goalSelection,
+    );
+    final wellnessFlowPlan = const BuildWellnessFlowPlanUseCase()();
+    var targetsFlowPlan = _targetsPlanner(
+      mode: mode,
+      goalSelection: goalSelection,
+    );
+
+    // Pre-O3 snapshots stored Body-owned children under the top-level
+    // `profileBasics` checkpoint. Section identity is not serialized, so move
+    // only those known Body children to the new top-level `bodyGoal` step.
+    if (stepId == OnboardingStepId.profileBasics &&
+        BodyGoalFlowPlan.orderedSteps.contains(profile.currentStepId) &&
+        plan.contains(OnboardingStepId.bodyGoal)) {
+      stepId = OnboardingStepId.bodyGoal;
+    }
+
+    if (stepId == OnboardingStepId.profileBasics &&
+        !profileFlowPlan.contains(profile.currentStepId)) {
+      profile = profile.copyWith(
+        currentStepId: _profilePlanner.reconcileCurrentStep(
+          currentStepId: profile.currentStepId,
+          previousPlan: const ProfileFlowPlan(
+            steps: ProfileFlowPlan.legacyOrderedSteps,
+          ),
+          nextPlan: profileFlowPlan,
+        ),
+      );
+    } else if (stepId == OnboardingStepId.bodyGoal &&
+        !bodyGoalFlowPlan.contains(profile.currentStepId)) {
+      profile = profile.copyWith(
+        currentStepId: _bodyGoalPlanner.reconcileCurrentStep(
+          currentStepId: profile.currentStepId,
+          previousPlan: const BodyGoalFlowPlan(),
+          nextPlan: bodyGoalFlowPlan,
+        ),
+      );
+    }
+
+    if (stepId == OnboardingStepId.wellnessGoals &&
+        !wellnessFlowPlan.contains(targets.currentStepId)) {
+      targets = targets.copyWith(
+        currentStepId: const BuildWellnessFlowPlanUseCase().reconcileCurrentStep(
+          currentStepId: targets.currentStepId,
+          previousPlan: const WellnessFlowPlan(),
+          nextPlan: wellnessFlowPlan,
+        ),
+      );
+    } else if (stepId == OnboardingStepId.targets &&
+        !targetsFlowPlan.contains(targets.currentStepId)) {
+      targets = targets.copyWith(
+        currentStepId: _targetsPlanner.reconcileCurrentStep(
+          currentStepId: targets.currentStepId,
+          previousPlan: const TargetsFlowPlan(
+            steps: TargetsFlowPlan.legacyOrderedSteps,
+          ),
+          nextPlan: targetsFlowPlan,
+        ),
+      );
+    }
+
+    if (mode != null &&
+        _goalSelectionPolicy.validate(
+              mode: mode,
+              selection: goalSelection,
+            ) !=
+            null &&
+        _isPastGoalCheckpoint(
+          stepId: stepId,
+          profileStepId: profile.currentStepId,
+          flowPlan: plan,
+          bodyGoalFlowPlan: bodyGoalFlowPlan,
+        )) {
+      stepId = OnboardingStepId.bodyGoal;
+      profile = profile.copyWith(currentStepId: ProfileStepId.goal);
+      eligibleCompleted
+        ..remove(OnboardingStepId.bodyGoal)
+        ..remove(OnboardingStepId.workoutTargets);
+      bodyGoalFlowPlan = _bodyGoalPlanner(
+        mode: mode,
+        goalSelection: goalSelection,
+      );
+      targetsFlowPlan = _targetsPlanner(
+        mode: mode,
+        goalSelection: goalSelection,
+      );
+    }
+
+    profile = _prepareProfileForStep(
+      profile: profile,
+      stepId: profile.currentStepId,
+      mode: mode,
+      goalSelection: goalSelection,
+    );
+
     final reconciledDraft = draft.copyWith(
+      goalSelection: goalSelection,
       currentStepId: stepId,
+      profile: profile,
       workout: draft.workout.copyWith(currentStepId: workoutStepId),
+      targets: targets,
       completedStepIds: eligibleCompleted,
     );
 
@@ -203,6 +359,39 @@ class OnboardingController extends ChangeNotifier {
       ),
       completedStepIds: eligibleCompleted,
     );
+  }
+
+  GoalIntentSelection _resolvedGoalSelection(OnboardingDraft draft) {
+    final mode = draft.selectedMode;
+    if (mode == null) return draft.goalSelection;
+
+    var selection = draft.goalSelection;
+    if (selection.primaryGoal == null && draft.profile.goals.isNotEmpty) {
+      selection = _legacyGoalMigration(
+        mode: mode,
+        legacyGoals: draft.profile.goals,
+      );
+    }
+    return _goalSelectionPolicy.reconcileForMode(
+      mode: mode,
+      selection: selection,
+    );
+  }
+
+  bool _isPastGoalCheckpoint({
+    required OnboardingStepId stepId,
+    required ProfileStepId profileStepId,
+    required OnboardingFlowPlan flowPlan,
+    required BodyGoalFlowPlan bodyGoalFlowPlan,
+  }) {
+    if (stepId == OnboardingStepId.bodyGoal) {
+      return bodyGoalFlowPlan.indexOf(profileStepId) >
+          bodyGoalFlowPlan.indexOf(ProfileStepId.goal);
+    }
+
+    final bodyGoalIndex = flowPlan.stepIds.indexOf(OnboardingStepId.bodyGoal);
+    final currentIndex = flowPlan.stepIds.indexOf(stepId);
+    return bodyGoalIndex >= 0 && currentIndex > bodyGoalIndex;
   }
 
   void initialize(OnboardingDraft draft) {
@@ -228,18 +417,79 @@ class OnboardingController extends ChangeNotifier {
     final nextWorkoutFlowPlan = _workoutPlanner(
       gymAccess: state.draft.workout.gymAccess,
     );
-    final nextStepId = _planner.reconcileCurrentStep(
+    var nextStepId = _planner.reconcileCurrentStep(
       currentStepId: state.stepId,
       previousPlan: state.flowPlan,
       nextPlan: nextPlan,
     );
+    final nextGoalSelection = _goalSelectionPolicy.reconcileForMode(
+      mode: mode,
+      selection: state.draft.goalSelection,
+    );
+    final nextDirection = _weightGoalPolicy.directionFor(
+      mode: mode,
+      selection: nextGoalSelection,
+    );
+    final nextProfileFlowPlan = _profilePlanner(
+      mode: mode,
+      goalSelection: nextGoalSelection,
+    );
+    final nextBodyGoalFlowPlan = _bodyGoalPlanner(
+      mode: mode,
+      goalSelection: nextGoalSelection,
+    );
+    final goalChanged = nextGoalSelection != state.draft.goalSelection;
     final eligibleCompleted =
         state.completedStepIds.where(nextPlan.contains).toSet();
+    var nextProfile = _reconcileTargetWeightForDirection(
+      profile: state.draft.profile,
+      nextDirection: nextDirection,
+    );
+
+    if (nextStepId == OnboardingStepId.profileBasics &&
+        BodyGoalFlowPlan.orderedSteps.contains(nextProfile.currentStepId)) {
+      nextStepId = OnboardingStepId.bodyGoal;
+    }
+
+    if (nextStepId == OnboardingStepId.profileBasics &&
+        !nextProfileFlowPlan.contains(nextProfile.currentStepId)) {
+      nextProfile = nextProfile.copyWith(
+        currentStepId: nextProfileFlowPlan.steps.first,
+      );
+    } else if (nextStepId == OnboardingStepId.bodyGoal &&
+        !nextBodyGoalFlowPlan.contains(nextProfile.currentStepId)) {
+      nextProfile = nextProfile.copyWith(
+        currentStepId: _bodyGoalPlanner.reconcileCurrentStep(
+          currentStepId: nextProfile.currentStepId,
+          previousPlan: const BodyGoalFlowPlan(),
+          nextPlan: nextBodyGoalFlowPlan,
+        ),
+      );
+    }
+
+    if (goalChanged) {
+      eligibleCompleted
+        ..remove(OnboardingStepId.bodyGoal)
+        ..remove(OnboardingStepId.workoutTargets);
+    }
+    if (goalChanged &&
+        _isPastGoalCheckpoint(
+          stepId: nextStepId,
+          profileStepId: nextProfile.currentStepId,
+          flowPlan: nextPlan,
+          bodyGoalFlowPlan: nextBodyGoalFlowPlan,
+        )) {
+      nextStepId = OnboardingStepId.bodyGoal;
+      nextProfile = nextProfile.copyWith(currentStepId: ProfileStepId.goal);
+    }
+
     final nextDraft = state.draft.copyWith(
       status: OnboardingStatus.inProgress,
       selectedMode: mode,
       workoutIntroChoice: nextWorkoutIntroChoice,
+      goalSelection: nextGoalSelection,
       currentStepId: nextStepId,
+      profile: nextProfile,
       completedStepIds: eligibleCompleted,
     );
 
@@ -304,6 +554,20 @@ class OnboardingController extends ChangeNotifier {
   void updateProfileGender(ProfileGender value) {
     _markInProgress();
     _updateProfile(state.draft.profile.copyWith(gender: value));
+  }
+
+  void tapGoalIntent(GoalIntent goal) {
+    if (state.isBusy) return;
+    final mode = state.draft.selectedMode;
+    if (mode == null) return;
+
+    _markInProgress();
+    final nextSelection = _goalSelectionPolicy.applyTap(
+      mode: mode,
+      current: state.draft.goalSelection,
+      tappedGoal: goal,
+    );
+    _updateGoalSelection(nextSelection);
   }
 
   void toggleProfileGoal(ProfileGoal goal) {
@@ -372,11 +636,15 @@ class OnboardingController extends ChangeNotifier {
   }
 
   void updateProfileTargetWeight(double? value) {
+    final direction = state.weightGoalDirection;
+    if (value != null && direction == null) return;
     _markInProgress();
     _updateProfile(
       state.draft.profile.copyWith(
         targetWeightKg: value,
+        targetWeightDirection: direction,
         clearTargetWeightKg: value == null,
+        clearTargetWeightDirection: value == null,
       ),
     );
   }
@@ -400,17 +668,22 @@ class OnboardingController extends ChangeNotifier {
       gymAccess: value,
       currentStepId: nextWorkoutStepId,
     );
+    final completed = {...state.completedStepIds}
+      ..remove(OnboardingStepId.workoutProfile);
 
     _state = _copyState(
       draft: state.draft.copyWith(
         status: OnboardingStatus.inProgress,
         workout: nextWorkout,
+        completedStepIds: completed,
       ),
       workoutFlowPlan: nextWorkoutFlowPlan,
+      completedStepIds: completed,
       validationErrors: const {},
       clearRetryableError: true,
     );
     notifyListeners();
+    _scheduleDraftSave();
   }
 
   void toggleEquipment(WorkoutEquipment value) {
@@ -603,26 +876,45 @@ class OnboardingController extends ChangeNotifier {
 
     if (state.stepId == OnboardingStepId.profileBasics) {
       final previousProfileStep =
-          _profileFlow.previous(state.draft.profile.currentStepId);
+          state.profileFlowPlan.previous(state.draft.profile.currentStepId);
       if (previousProfileStep != null) {
         _moveToProfileStep(previousProfileStep);
         return;
       }
     }
 
-    if (state.stepId == OnboardingStepId.workoutPreferences) {
+    if (state.stepId == OnboardingStepId.bodyGoal) {
+      final previousBodyGoalStep =
+          state.bodyGoalFlowPlan.previous(state.draft.profile.currentStepId);
+      if (previousBodyGoalStep != null) {
+        _moveToProfileStep(previousBodyGoalStep);
+        return;
+      }
+    }
+
+    if (state.stepId == OnboardingStepId.wellnessGoals) {
+      final previousWellnessStep =
+          state.wellnessFlowPlan.previous(state.draft.targets.currentStepId);
+      if (previousWellnessStep != null) {
+        _moveToTargetStep(previousWellnessStep);
+        return;
+      }
+    }
+
+    if (state.stepId == OnboardingStepId.workoutProfile ||
+        state.stepId == OnboardingStepId.workoutTargets) {
+      final steps = state.workoutFlowPlan.stepsFor(state.stepId);
       final currentWorkoutIndex =
-          state.workoutFlowPlan.indexOf(state.draft.workout.currentStepId);
+          steps.indexOf(state.draft.workout.currentStepId);
       if (currentWorkoutIndex > 0) {
-        _moveToWorkoutStep(
-            state.workoutFlowPlan.steps[currentWorkoutIndex - 1]);
+        _moveToWorkoutStep(steps[currentWorkoutIndex - 1]);
         return;
       }
     }
 
     if (state.stepId == OnboardingStepId.targets) {
       final previousTargetStep =
-          _targetsFlow.previous(state.draft.targets.currentStepId);
+          state.targetsFlowPlan.previous(state.draft.targets.currentStepId);
       if (previousTargetStep != null) {
         _moveToTargetStep(previousTargetStep);
         return;
@@ -632,6 +924,38 @@ class OnboardingController extends ChangeNotifier {
     if (!state.canGoBack) return;
 
     final previousStepId = state.flowPlan.steps[state.currentIndex - 1].id;
+    if (previousStepId == OnboardingStepId.profileBasics) {
+      _moveToProfileOwnedTopLevelStep(
+        topLevelStepId: previousStepId,
+        childStepId: state.profileFlowPlan.steps.last,
+      );
+      return;
+    }
+    if (previousStepId == OnboardingStepId.bodyGoal) {
+      _moveToProfileOwnedTopLevelStep(
+        topLevelStepId: previousStepId,
+        childStepId: state.bodyGoalFlowPlan.steps.last,
+      );
+      return;
+    }
+    if (previousStepId == OnboardingStepId.wellnessGoals) {
+      _moveToTargetOwnedTopLevelStep(
+        topLevelStepId: previousStepId,
+        childStepId: state.wellnessFlowPlan.steps.last,
+      );
+      return;
+    }
+    if (previousStepId == OnboardingStepId.workoutProfile ||
+        previousStepId == OnboardingStepId.workoutTargets) {
+      final steps = state.workoutFlowPlan.stepsFor(previousStepId);
+      if (steps.isNotEmpty) {
+        _moveToWorkoutOwnedTopLevelStep(
+          topLevelStepId: previousStepId,
+          childStepId: steps.last,
+        );
+        return;
+      }
+    }
     _moveTo(previousStepId);
   }
 
@@ -642,7 +966,11 @@ class OnboardingController extends ChangeNotifier {
     if (state.isBusy) return;
 
     if (state.stepId == OnboardingStepId.profileBasics) {
-      final errors = _profileValidator.validate(state.draft.profile);
+      final currentProfileStep = state.draft.profile.currentStepId;
+      final errors = _profileValidator.validate(
+        state.draft.profile,
+        weightGoalDirection: state.weightGoalDirection,
+      );
       if (errors.isNotEmpty) {
         _state = _copyState(
           validationErrors: {
@@ -653,21 +981,85 @@ class OnboardingController extends ChangeNotifier {
         return;
       }
 
-      final nextProfileStep =
-          _profileFlow.next(state.draft.profile.currentStepId);
+      final nextProfileStep = state.profileFlowPlan.next(currentProfileStep);
       if (nextProfileStep != null) {
         _moveToProfileStep(nextProfileStep);
         return;
       }
 
-      // Profile completed -> Trigger Sign Up authentication checkpoint
       if (onAuthRequired != null) {
         final authenticated = await onAuthRequired();
         if (!authenticated) return;
       }
     }
 
-    if (state.stepId == OnboardingStepId.workoutPreferences) {
+    if (state.stepId == OnboardingStepId.bodyGoal) {
+      final currentBodyGoalStep = state.draft.profile.currentStepId;
+      if (currentBodyGoalStep == ProfileStepId.goal) {
+        final mode = state.draft.selectedMode;
+        final error = mode == null
+            ? 'Choose an App Mode before selecting goals.'
+            : _goalSelectionPolicy.validate(
+                mode: mode,
+                selection: state.draft.goalSelection,
+              );
+        if (error != null) {
+          _state = _copyState(
+            validationErrors: {ProfileStepId.goal.name: error},
+          );
+          notifyListeners();
+          return;
+        }
+      } else {
+        final errors = _profileValidator.validate(
+          state.draft.profile,
+          weightGoalDirection: state.weightGoalDirection,
+        );
+        if (errors.isNotEmpty) {
+          _state = _copyState(
+            validationErrors: {
+              for (final entry in errors.entries) entry.key.name: entry.value,
+            },
+          );
+          notifyListeners();
+          return;
+        }
+      }
+
+      final nextBodyGoalStep =
+          state.bodyGoalFlowPlan.next(currentBodyGoalStep);
+      if (nextBodyGoalStep != null) {
+        _moveToProfileStep(nextBodyGoalStep);
+        return;
+      }
+    }
+
+    if (state.stepId == OnboardingStepId.wellnessGoals) {
+      final error = _targetValidator.validateCurrentStep(
+        state.draft.targets,
+        profile: state.draft.profile,
+        weightGoalDirection: state.weightGoalDirection,
+      );
+      if (error != null) {
+        _state = _copyState(
+          validationErrors: {
+            state.draft.targets.currentStepId.name: error,
+          },
+        );
+        notifyListeners();
+        return;
+      }
+
+      final nextWellnessStep =
+          state.wellnessFlowPlan.next(state.draft.targets.currentStepId);
+      if (nextWellnessStep != null) {
+        _moveToTargetStep(nextWellnessStep);
+        return;
+      }
+    }
+
+    if (state.stepId == OnboardingStepId.workoutProfile ||
+        state.stepId == OnboardingStepId.workoutTargets) {
       final errors = _workoutValidator.validate(
         draft: state.draft.workout,
         flowPlan: state.workoutFlowPlan,
@@ -682,11 +1074,12 @@ class OnboardingController extends ChangeNotifier {
         return;
       }
 
+      final steps = state.workoutFlowPlan.stepsFor(state.stepId);
       final currentWorkoutIndex =
-          state.workoutFlowPlan.indexOf(state.draft.workout.currentStepId);
-      if (currentWorkoutIndex < state.workoutFlowPlan.stepCount - 1) {
-        _moveToWorkoutStep(
-            state.workoutFlowPlan.steps[currentWorkoutIndex + 1]);
+          steps.indexOf(state.draft.workout.currentStepId);
+      if (currentWorkoutIndex >= 0 &&
+          currentWorkoutIndex < steps.length - 1) {
+        _moveToWorkoutStep(steps[currentWorkoutIndex + 1]);
         return;
       }
     }
@@ -695,6 +1088,7 @@ class OnboardingController extends ChangeNotifier {
       final error = _targetValidator.validateCurrentStep(
         state.draft.targets,
         profile: state.draft.profile,
+        weightGoalDirection: state.weightGoalDirection,
       );
       if (error != null) {
         _state = _copyState(
@@ -707,7 +1101,7 @@ class OnboardingController extends ChangeNotifier {
       }
 
       final nextTargetStep =
-          _targetsFlow.next(state.draft.targets.currentStepId);
+          state.targetsFlowPlan.next(state.draft.targets.currentStepId);
       if (nextTargetStep != null) {
         _moveToTargetStep(nextTargetStep);
         return;
@@ -723,8 +1117,47 @@ class OnboardingController extends ChangeNotifier {
 
     final nextStepId = state.flowPlan.steps[state.currentIndex + 1].id;
     final completed = {...state.completedStepIds, state.stepId};
+    var nextProfile = state.draft.profile;
+    var nextWorkout = state.draft.workout;
+    var nextTargets = state.draft.targets;
+    if (nextStepId == OnboardingStepId.profileBasics) {
+      nextProfile = _prepareProfileForStep(
+        profile: nextProfile.copyWith(
+          currentStepId: state.profileFlowPlan.steps.first,
+        ),
+        stepId: state.profileFlowPlan.steps.first,
+        mode: state.draft.selectedMode,
+        goalSelection: state.draft.goalSelection,
+      );
+    } else if (nextStepId == OnboardingStepId.bodyGoal) {
+      nextProfile = _prepareProfileForStep(
+        profile: nextProfile.copyWith(
+          currentStepId: state.bodyGoalFlowPlan.steps.first,
+        ),
+        stepId: state.bodyGoalFlowPlan.steps.first,
+        mode: state.draft.selectedMode,
+        goalSelection: state.draft.goalSelection,
+      );
+    } else if (nextStepId == OnboardingStepId.wellnessGoals) {
+      nextTargets = nextTargets.copyWith(
+        currentStepId: state.wellnessFlowPlan.steps.first,
+      );
+    } else if (nextStepId == OnboardingStepId.workoutProfile ||
+        nextStepId == OnboardingStepId.workoutTargets) {
+      final steps = state.workoutFlowPlan.stepsFor(nextStepId);
+      if (steps.isNotEmpty) {
+        nextWorkout = nextWorkout.copyWith(currentStepId: steps.first);
+      }
+    } else if (nextStepId == OnboardingStepId.targets) {
+      nextTargets = nextTargets.copyWith(
+        currentStepId: state.targetsFlowPlan.steps.first,
+      );
+    }
     final nextDraft = state.draft.copyWith(
       currentStepId: nextStepId,
+      profile: nextProfile,
+      workout: nextWorkout,
+      targets: nextTargets,
       completedStepIds: completed,
     );
     _state = _copyState(
@@ -744,11 +1177,56 @@ class OnboardingController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _updateGoalSelection(GoalIntentSelection selection) {
+    if (state.isBusy) return;
+
+    final nextDirection = _weightGoalPolicy.directionFor(
+      mode: state.draft.selectedMode,
+      selection: selection,
+    );
+    final completed = {...state.completedStepIds}
+      ..remove(OnboardingStepId.bodyGoal)
+      ..remove(OnboardingStepId.workoutTargets);
+    final profile = _reconcileTargetWeightForDirection(
+      profile: state.draft.profile,
+      nextDirection: nextDirection,
+    );
+    final nextDraft = state.draft.copyWith(
+      status: OnboardingStatus.inProgress,
+      goalSelection: selection,
+      profile: profile,
+      completedStepIds: completed,
+    );
+    _state = _copyState(
+      draft: nextDraft,
+      completedStepIds: completed,
+      validationErrors: const {},
+      clearRetryableError: true,
+    );
+    notifyListeners();
+    _scheduleDraftSave();
+  }
+
+  ProfileOnboardingDraft _reconcileTargetWeightForDirection({
+    required ProfileOnboardingDraft profile,
+    required GoalWeightDirection? nextDirection,
+  }) {
+    if (nextDirection == null || profile.targetWeightKg == null) {
+      return profile;
+    }
+    if (profile.targetWeightDirection == nextDirection) {
+      return profile;
+    }
+    return profile.copyWith(clearTargetWeightKg: true);
+  }
+
   void _updateProfile(ProfileOnboardingDraft profile) {
     if (state.isBusy) return;
 
-    final completed = {...state.completedStepIds}
-      ..remove(OnboardingStepId.profileBasics);
+    final ownerStepId = state.stepId == OnboardingStepId.bodyGoal
+        ? OnboardingStepId.bodyGoal
+        : OnboardingStepId.profileBasics;
+    final completed = {...state.completedStepIds}..remove(ownerStepId);
     final nextDraft = state.draft.copyWith(
       status: OnboardingStatus.inProgress,
       profile: profile,
@@ -767,8 +1245,10 @@ class OnboardingController extends ChangeNotifier {
   void _updateWorkout(WorkoutOnboardingDraft workout) {
     if (state.isBusy) return;
 
-    final completed = {...state.completedStepIds}
-      ..remove(OnboardingStepId.workoutPreferences);
+    final ownerStepId = state.stepId == OnboardingStepId.workoutTargets
+        ? OnboardingStepId.workoutTargets
+        : OnboardingStepId.workoutProfile;
+    final completed = {...state.completedStepIds}..remove(ownerStepId);
     final nextDraft = state.draft.copyWith(
       status: OnboardingStatus.inProgress,
       workout: workout,
@@ -787,8 +1267,12 @@ class OnboardingController extends ChangeNotifier {
   void _updateTargets(TargetsOnboardingDraft targets) {
     if (state.isBusy) return;
 
-    final completed = {...state.completedStepIds}
-      ..remove(OnboardingStepId.targets);
+    final ownerStepId = switch (state.stepId) {
+      OnboardingStepId.bodyGoal => OnboardingStepId.bodyGoal,
+      OnboardingStepId.wellnessGoals => OnboardingStepId.wellnessGoals,
+      _ => OnboardingStepId.targets,
+    };
+    final completed = {...state.completedStepIds}..remove(ownerStepId);
     final nextDraft = state.draft.copyWith(
       status: OnboardingStatus.inProgress,
       targets: targets,
@@ -805,7 +1289,12 @@ class OnboardingController extends ChangeNotifier {
   }
 
   void _moveToProfileStep(ProfileStepId stepId) {
-    final nextProfile = state.draft.profile.copyWith(currentStepId: stepId);
+    final nextProfile = _prepareProfileForStep(
+      profile: state.draft.profile.copyWith(currentStepId: stepId),
+      stepId: stepId,
+      mode: state.draft.selectedMode,
+      goalSelection: state.draft.goalSelection,
+    );
     final nextDraft = state.draft.copyWith(profile: nextProfile);
     _state = _copyState(
       draft: nextDraft,
@@ -814,6 +1303,107 @@ class OnboardingController extends ChangeNotifier {
     );
     notifyListeners();
     _scheduleDraftSave(immediate: true);
+  }
+
+  void _moveToProfileOwnedTopLevelStep({
+    required OnboardingStepId topLevelStepId,
+    required ProfileStepId childStepId,
+  }) {
+    final nextProfile = _prepareProfileForStep(
+      profile: state.draft.profile.copyWith(currentStepId: childStepId),
+      stepId: childStepId,
+      mode: state.draft.selectedMode,
+      goalSelection: state.draft.goalSelection,
+    );
+    final nextDraft = state.draft.copyWith(
+      currentStepId: topLevelStepId,
+      profile: nextProfile,
+    );
+    _state = _copyState(
+      draft: nextDraft,
+      stepId: topLevelStepId,
+      validationErrors: const {},
+      clearRetryableError: true,
+    );
+    notifyListeners();
+    _scheduleDraftSave(immediate: true);
+  }
+
+  void _moveToTargetOwnedTopLevelStep({
+    required OnboardingStepId topLevelStepId,
+    required TargetStepId childStepId,
+  }) {
+    final nextDraft = state.draft.copyWith(
+      currentStepId: topLevelStepId,
+      targets: state.draft.targets.copyWith(currentStepId: childStepId),
+    );
+    _state = _copyState(
+      draft: nextDraft,
+      stepId: topLevelStepId,
+      validationErrors: const {},
+      clearRetryableError: true,
+    );
+    notifyListeners();
+    _scheduleDraftSave(immediate: true);
+  }
+
+  void _moveToWorkoutOwnedTopLevelStep({
+    required OnboardingStepId topLevelStepId,
+    required WorkoutStepId childStepId,
+  }) {
+    final nextDraft = state.draft.copyWith(
+      currentStepId: topLevelStepId,
+      workout: state.draft.workout.copyWith(currentStepId: childStepId),
+    );
+    _state = _copyState(
+      draft: nextDraft,
+      stepId: topLevelStepId,
+      validationErrors: const {},
+      clearRetryableError: true,
+    );
+    notifyListeners();
+    _scheduleDraftSave(immediate: true);
+  }
+
+  ProfileOnboardingDraft _prepareProfileForStep({
+    required ProfileOnboardingDraft profile,
+    required ProfileStepId stepId,
+    required AppMode? mode,
+    required GoalIntentSelection goalSelection,
+  }) {
+    if (stepId == ProfileStepId.height && profile.heightCm == null) {
+      return profile.copyWith(heightCm: _defaultHeightCm);
+    }
+    if (stepId == ProfileStepId.currentWeight &&
+        profile.currentWeightKg == null) {
+      return profile.copyWith(currentWeightKg: _defaultCurrentWeightKg);
+    }
+    if (stepId == ProfileStepId.targetWeight) {
+      final direction = _weightGoalPolicy.directionFor(
+        mode: mode,
+        selection: goalSelection,
+      );
+      var reconciled = _reconcileTargetWeightForDirection(
+        profile: profile,
+        nextDirection: direction,
+      );
+      if (direction == null || reconciled.targetWeightKg != null) {
+        return reconciled;
+      }
+      final recommendation = _targetWeightRecommendationResolver.resolve(
+        direction: direction,
+        currentWeightKg: reconciled.currentWeightKg,
+        heightCm: reconciled.heightCm,
+      );
+      if (recommendation != null) {
+        reconciled = reconciled.copyWith(
+          targetWeightKg: recommendation,
+          targetWeightDirection: direction,
+        );
+      }
+      return reconciled;
+    }
+    return profile;
   }
 
   void _moveTo(OnboardingStepId stepId) {
@@ -888,6 +1478,7 @@ class OnboardingController extends ChangeNotifier {
   }) {
     var nextDraft = draft ?? state.draft;
     final nextFlowPlan = flowPlan ?? state.flowPlan;
+    final effectiveStepId = stepId ?? state.stepId;
     final nextWorkoutFlowPlan = workoutFlowPlan ??
         _workoutPlanner(gymAccess: nextDraft.workout.gymAccess);
     if (!nextWorkoutFlowPlan.contains(nextDraft.workout.currentStepId)) {
@@ -896,6 +1487,97 @@ class OnboardingController extends ChangeNotifier {
           currentStepId: nextWorkoutFlowPlan.steps.first,
         ),
       );
+    }
+    final activeWorkoutSteps = nextWorkoutFlowPlan.stepsFor(effectiveStepId);
+    if (activeWorkoutSteps.isNotEmpty &&
+        !activeWorkoutSteps.contains(nextDraft.workout.currentStepId)) {
+      nextDraft = nextDraft.copyWith(
+        workout: nextDraft.workout.copyWith(
+          currentStepId: activeWorkoutSteps.first,
+        ),
+      );
+    }
+
+    if (effectiveStepId == OnboardingStepId.profileBasics) {
+      final nextProfileFlowPlan = _profilePlanner(
+        mode: nextDraft.selectedMode,
+        goalSelection: nextDraft.goalSelection,
+      );
+      if (!nextProfileFlowPlan.contains(nextDraft.profile.currentStepId)) {
+        final previousPlan = state.stepId == OnboardingStepId.profileBasics
+            ? state.profileFlowPlan
+            : const ProfileFlowPlan(
+                steps: ProfileFlowPlan.legacyOrderedSteps,
+              );
+        nextDraft = nextDraft.copyWith(
+          profile: nextDraft.profile.copyWith(
+            currentStepId: _profilePlanner.reconcileCurrentStep(
+              currentStepId: nextDraft.profile.currentStepId,
+              previousPlan: previousPlan,
+              nextPlan: nextProfileFlowPlan,
+            ),
+          ),
+        );
+      }
+    } else if (effectiveStepId == OnboardingStepId.bodyGoal) {
+      final nextBodyGoalFlowPlan = _bodyGoalPlanner(
+        mode: nextDraft.selectedMode,
+        goalSelection: nextDraft.goalSelection,
+      );
+      if (!nextBodyGoalFlowPlan.contains(nextDraft.profile.currentStepId)) {
+        final previousPlan = state.stepId == OnboardingStepId.bodyGoal
+            ? state.bodyGoalFlowPlan
+            : const BodyGoalFlowPlan();
+        nextDraft = nextDraft.copyWith(
+          profile: nextDraft.profile.copyWith(
+            currentStepId: _bodyGoalPlanner.reconcileCurrentStep(
+              currentStepId: nextDraft.profile.currentStepId,
+              previousPlan: previousPlan,
+              nextPlan: nextBodyGoalFlowPlan,
+            ),
+          ),
+        );
+      }
+    }
+
+    if (effectiveStepId == OnboardingStepId.wellnessGoals) {
+      final nextWellnessFlowPlan = const BuildWellnessFlowPlanUseCase()();
+      if (!nextWellnessFlowPlan.contains(nextDraft.targets.currentStepId)) {
+        final previousPlan = state.stepId == OnboardingStepId.wellnessGoals
+            ? state.wellnessFlowPlan
+            : const WellnessFlowPlan();
+        nextDraft = nextDraft.copyWith(
+          targets: nextDraft.targets.copyWith(
+            currentStepId:
+                const BuildWellnessFlowPlanUseCase().reconcileCurrentStep(
+              currentStepId: nextDraft.targets.currentStepId,
+              previousPlan: previousPlan,
+              nextPlan: nextWellnessFlowPlan,
+            ),
+          ),
+        );
+      }
+    } else if (effectiveStepId == OnboardingStepId.targets) {
+      final nextTargetsFlowPlan = _targetsPlanner(
+        mode: nextDraft.selectedMode,
+        goalSelection: nextDraft.goalSelection,
+      );
+      if (!nextTargetsFlowPlan.contains(nextDraft.targets.currentStepId)) {
+        final previousPlan = state.stepId == OnboardingStepId.targets
+            ? state.targetsFlowPlan
+            : const TargetsFlowPlan(
+                steps: TargetsFlowPlan.legacyOrderedSteps,
+              );
+        nextDraft = nextDraft.copyWith(
+          targets: nextDraft.targets.copyWith(
+            currentStepId: _targetsPlanner.reconcileCurrentStep(
+              currentStepId: nextDraft.targets.currentStepId,
+              previousPlan: previousPlan,
+              nextPlan: nextTargetsFlowPlan,
+            ),
+          ),
+        );
+      }
     }
 
     return state.copyWith(

@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import '../../domain/domain.dart';
 import '../controllers/controllers.dart';
 import '../sections/app_mode_section.dart';
+import '../sections/body_goal_section.dart';
 import '../sections/mobile_section.dart';
+import '../sections/nutrition_goals_section.dart';
 import '../sections/nutrition_intro_section.dart';
+import '../sections/nutrition_profile_section.dart';
 import '../sections/nutrition_section.dart';
 import '../sections/profile_section.dart';
 import '../sections/review_section.dart';
 import '../sections/targets_section.dart';
+import '../sections/wellness_section.dart';
 import '../sections/workout_intro_section.dart';
 import '../sections/workout_section.dart';
 import '../state/state.dart';
@@ -30,49 +34,31 @@ class OnboardingSectionRenderer extends StatelessWidget {
           state: state,
           controller: controller,
         ),
-      OnboardingSectionId.profile => ProfileSection(
-          state: state,
-          controller: controller,
-        ),
-      OnboardingSectionId.mobile => MobileSection(
-          state: state,
-          controller: controller,
-        ),
-      OnboardingSectionId.workoutIntro => WorkoutIntroSection(
-          state: state,
-          controller: controller,
-        ),
-      OnboardingSectionId.workout => WorkoutSection(
-          state: state,
-          controller: controller,
-        ),
-      OnboardingSectionId.nutritionIntro => NutritionIntroSection(
-          state: state,
-          controller: controller,
-        ),
-      OnboardingSectionId.nutrition => NutritionSection(
-          state: state,
-          controller: controller,
-        ),
-      OnboardingSectionId.targets => TargetsSection(
-          state: state,
-          controller: controller,
-        ),
-      OnboardingSectionId.review => ReviewSection(state: state),
-      OnboardingSectionId.userProfile =>
-        _futureSectionNotActive(OnboardingSectionId.userProfile),
+      OnboardingSectionId.profile || OnboardingSectionId.userProfile =>
+        ProfileSection(state: state, controller: controller),
       OnboardingSectionId.bodyGoal =>
-        _futureSectionNotActive(OnboardingSectionId.bodyGoal),
+        BodyGoalSection(state: state, controller: controller),
       OnboardingSectionId.wellnessGoals =>
-        _futureSectionNotActive(OnboardingSectionId.wellnessGoals),
+        WellnessSection(state: state, controller: controller),
       OnboardingSectionId.nutritionProfile =>
-        _futureSectionNotActive(OnboardingSectionId.nutritionProfile),
-      OnboardingSectionId.workoutProfile =>
-        _futureSectionNotActive(OnboardingSectionId.workoutProfile),
+        NutritionProfileSection(state: state, controller: controller),
       OnboardingSectionId.nutritionGoals =>
-        _futureSectionNotActive(OnboardingSectionId.nutritionGoals),
+        NutritionGoalsSection(state: state, controller: controller),
+      OnboardingSectionId.mobile =>
+        MobileSection(state: state, controller: controller),
+      OnboardingSectionId.workoutIntro =>
+        WorkoutIntroSection(state: state, controller: controller),
+      OnboardingSectionId.workout ||
+      OnboardingSectionId.workoutProfile ||
       OnboardingSectionId.workoutTargets =>
-        _futureSectionNotActive(OnboardingSectionId.workoutTargets),
+        WorkoutSection(state: state, controller: controller),
+      OnboardingSectionId.nutritionIntro =>
+        NutritionIntroSection(state: state, controller: controller),
+      OnboardingSectionId.nutrition =>
+        NutritionSection(state: state, controller: controller),
+      OnboardingSectionId.targets =>
+        TargetsSection(state: state, controller: controller),
+      OnboardingSectionId.review => ReviewSection(state: state),
       OnboardingSectionId.healthConnections =>
         _futureSectionNotActive(OnboardingSectionId.healthConnections),
       OnboardingSectionId.planBuilding =>
@@ -83,6 +69,6 @@ class OnboardingSectionRenderer extends StatelessWidget {
 
 Never _futureSectionNotActive(OnboardingSectionId section) {
   throw StateError(
-    'Future onboarding section ${section.name} is not active in Slice 1.',
+    'Future onboarding section ${section.name} is not active in the current Product Onboarding slice.',
   );
 }
