@@ -57,13 +57,18 @@ O1A App Preferences contract                    ✅ CI #1183
 O1B Supabase App Preferences adapter            ✅ CI #1187
 O1C onboarding completion cutover               ✅ CI #1199
 O1D authenticated bootstrap/restore             ✅ CI #1210
+O1E Settings canonical write parity             ✅ CI #1231
 ```
 
-O1D authoritative runtime/test source:
+Latest authoritative O1 runtime/test source:
 
 ```text
-d5f03847d8c3e0216aa1acf864b44e31abbc251a
-Flutter CI #1210 / run 32550641153 ✅
+7210fe7409af9f41f7478096e19d56853e8060d4
+Flutter CI #1231 / run 32551614514
+Flutter analyze ✅
+Dart analyze    ✅
+Flutter tests   ✅
+Dart tests      ✅
 ```
 
 PR #50 remains Draft/open/unmerged.
@@ -78,8 +83,8 @@ O1 durable App Mode / active_tabs               IN PROGRESS (#11)
    O1B ✅
    O1C ✅
    O1D ✅
-   O1E Settings mode-change parity              NEXT
-   O1F integrated acceptance/full CI
+   O1E ✅
+   O1F integrated acceptance/full CI            NEXT
 → O2 common User Profile owner + section
 → O3 Body Goal section + Body/Profile parity
 → O4 Wellness placement + owner
@@ -100,7 +105,7 @@ A1 real email/mobile add-change-verify (#8)
 
 A1 is required before final Account/Settings acceptance but does not technically block O1–O3.
 
-## Active next slice — O1E Settings App Mode parity
+## Active next slice — O1F integrated App Mode acceptance
 
 Current durable behavior:
 
@@ -108,17 +113,20 @@ Current durable behavior:
 Onboarding completion → canonical user_app_preferences ✅
 Authenticated restore → canonical remote wins before Ready ✅
 Exact ordered active_tabs → shell/route configuration ✅
-SharedPreferences → cache/pre-auth staging on restore path ✅
-Settings mode change → still local-only ❌
+SharedPreferences → cache/pre-auth staging ✅
+Authenticated Ready Settings change → canonical-first ✅
+Canonical Settings failure → current mode preserved ✅
 ```
 
 Focused parent task: `.ai/tasks/app-mode-foundation.md`
 
-O1D evidence: `.ai/tasks/app-mode-o1d-authenticated-bootstrap-restore.md`
+Evidence:
+- `.ai/tasks/app-mode-o1d-authenticated-bootstrap-restore.md`
+- `.ai/tasks/app-mode-o1e-settings-write-parity.md`
 
-O1E must make Settings write canonical `app_mode` + guided `active_tabs` before publishing the new local mode. Remote failure must preserve the existing effective mode and must not show false success/navigation. Preserve current Settings/App Mode UI and do not delete hidden Body/Nutrition/Workout data.
+O1F is an integrated acceptance slice, not a new owner redesign. It must verify first-device completion, cleared-local/fresh-install/second-device-equivalent restore, stale-local precedence, mode-only and missing-legacy recovery, invalid canonical state failure, Settings canonical change followed by restore, fail-closed Settings errors, and hidden-domain preservation. Run full Flutter/Dart CI and record the exact final O1 checkpoint.
 
-Do not start O2 until O1F validation evidence is recorded in #11/#40/#44 and the canonical onboarding task.
+Do not start O2 until O1F validation evidence is recorded in #11/#40/#44, PR #50 and the canonical onboarding task.
 
 ## Important onboarding product rules
 
