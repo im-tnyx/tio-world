@@ -1,6 +1,7 @@
 import '../models/models.dart';
 import 'build_body_goal_flow_plan_use_case.dart';
 import 'build_onboarding_flow_use_case.dart';
+import 'build_wellness_flow_plan_use_case.dart';
 import 'build_workout_flow_plan_use_case.dart';
 import 'goal_intent_selection_policy.dart';
 import 'profile_step_validator.dart';
@@ -19,6 +20,8 @@ class PreserveOnboardingResumeCheckpointUseCase {
     BuildOnboardingFlowUseCase flowPlanner = const BuildOnboardingFlowUseCase(),
     BuildBodyGoalFlowPlanUseCase bodyGoalPlanner =
         const BuildBodyGoalFlowPlanUseCase(),
+    BuildWellnessFlowPlanUseCase wellnessPlanner =
+        const BuildWellnessFlowPlanUseCase(),
     BuildWorkoutFlowPlanUseCase workoutPlanner =
         const BuildWorkoutFlowPlanUseCase(),
     ProfileStepValidator profileValidator = const ProfileStepValidator(),
@@ -29,6 +32,7 @@ class PreserveOnboardingResumeCheckpointUseCase {
     TargetStepValidator targetValidator = const TargetStepValidator(),
   })  : _flowPlanner = flowPlanner,
         _bodyGoalPlanner = bodyGoalPlanner,
+        _wellnessPlanner = wellnessPlanner,
         _workoutPlanner = workoutPlanner,
         _profileValidator = profileValidator,
         _goalSelectionPolicy = goalSelectionPolicy,
@@ -38,6 +42,7 @@ class PreserveOnboardingResumeCheckpointUseCase {
 
   final BuildOnboardingFlowUseCase _flowPlanner;
   final BuildBodyGoalFlowPlanUseCase _bodyGoalPlanner;
+  final BuildWellnessFlowPlanUseCase _wellnessPlanner;
   final BuildWorkoutFlowPlanUseCase _workoutPlanner;
   final ProfileStepValidator _profileValidator;
   final GoalIntentSelectionPolicy _goalSelectionPolicy;
@@ -62,6 +67,7 @@ class PreserveOnboardingResumeCheckpointUseCase {
       mode: visibleDraft.selectedMode,
       goalSelection: visibleDraft.goalSelection,
     );
+    final wellnessFlowPlan = _wellnessPlanner();
     final workoutFlowPlan = _workoutPlanner(
       gymAccess: visibleDraft.workout.gymAccess,
     );
@@ -72,6 +78,7 @@ class PreserveOnboardingResumeCheckpointUseCase {
       fallback: visibleCursor,
       flowPlan: flowPlan,
       bodyGoalFlowPlan: bodyGoalFlowPlan,
+      wellnessFlowPlan: wellnessFlowPlan,
       workoutFlowPlan: workoutFlowPlan,
     );
     final previousCursor = previousPersistedDraft == null
@@ -81,6 +88,7 @@ class PreserveOnboardingResumeCheckpointUseCase {
             fallback: fallbackCursor,
             flowPlan: flowPlan,
             bodyGoalFlowPlan: bodyGoalFlowPlan,
+            wellnessFlowPlan: wellnessFlowPlan,
             workoutFlowPlan: workoutFlowPlan,
           );
 
@@ -89,6 +97,7 @@ class PreserveOnboardingResumeCheckpointUseCase {
               previousCursor,
               flowPlan: flowPlan,
               bodyGoalFlowPlan: bodyGoalFlowPlan,
+              wellnessFlowPlan: wellnessFlowPlan,
               workoutFlowPlan: workoutFlowPlan,
             ) >=
             0
@@ -100,6 +109,7 @@ class PreserveOnboardingResumeCheckpointUseCase {
       draft: visibleDraft,
       flowPlan: flowPlan,
       bodyGoalFlowPlan: bodyGoalFlowPlan,
+      wellnessFlowPlan: wellnessFlowPlan,
       workoutFlowPlan: workoutFlowPlan,
     );
 
@@ -123,6 +133,7 @@ class PreserveOnboardingResumeCheckpointUseCase {
     required _ResumeCursor fallback,
     required OnboardingFlowPlan flowPlan,
     required BodyGoalFlowPlan bodyGoalFlowPlan,
+    required WellnessFlowPlan wellnessFlowPlan,
     required WorkoutFlowPlan workoutFlowPlan,
   }) {
     var stepId = cursor.stepId;
@@ -159,11 +170,24 @@ class PreserveOnboardingResumeCheckpointUseCase {
             ? fallback.workoutStepId
             : workoutFlowPlan.steps.first;
 
+    var targetStepId = cursor.targetStepId;
+    if (stepId == OnboardingStepId.wellnessGoals &&
+        !wellnessFlowPlan.contains(targetStepId)) {
+      targetStepId = wellnessFlowPlan.contains(fallback.targetStepId)
+          ? fallback.targetStepId
+          : wellnessFlowPlan.steps.first;
+    } else if (stepId == OnboardingStepId.targets &&
+        !TargetsFlowPlan.orderedSteps.contains(targetStepId)) {
+      targetStepId = TargetsFlowPlan.orderedSteps.contains(fallback.targetStepId)
+          ? fallback.targetStepId
+          : TargetsFlowPlan.orderedSteps.first;
+    }
+
     return _ResumeCursor(
       stepId: stepId,
       profileStepId: profileStepId,
       workoutStepId: workoutStepId,
-      targetStepId: cursor.targetStepId,
+      targetStepId: targetStepId,
     );
   }
 
@@ -172,6 +196,7 @@ class PreserveOnboardingResumeCheckpointUseCase {
     _ResumeCursor right, {
     required OnboardingFlowPlan flowPlan,
     required BodyGoalFlowPlan bodyGoalFlowPlan,
+    required WellnessFlowPlan wellnessFlowPlan,
     required WorkoutFlowPlan workoutFlowPlan,
   }) {
     final leftTop = flowPlan.indexOf(left.stepId);
@@ -187,6 +212,9 @@ class PreserveOnboardingResumeCheckpointUseCase {
         ).compareTo(
           _bodyGoalIndex(right.profileStepId, bodyGoalFlowPlan),
         ),
+      OnboardingStepId.wellnessGoals => wellnessFlowPlan
+          .indexOf(left.targetStepId)
+          .compareTo(wellnessFlowPlan.indexOf(right.targetStepId)),
       OnboardingStepId.workoutPreferences => workoutFlowPlan
           .indexOf(left.workoutStepId)
           .compareTo(workoutFlowPlan.indexOf(right.workoutStepId)),
@@ -201,6 +229,7 @@ class PreserveOnboardingResumeCheckpointUseCase {
     required OnboardingDraft draft,
     required OnboardingFlowPlan flowPlan,
     required BodyGoalFlowPlan bodyGoalFlowPlan,
+    required WellnessFlowPlan wellnessFlowPlan,
     required WorkoutFlowPlan workoutFlowPlan,
   }) {
     final desiredTopIndex = flowPlan.indexOf(desired.stepId);
@@ -212,6 +241,7 @@ class PreserveOnboardingResumeCheckpointUseCase {
         stepId,
         draft: draft,
         bodyGoalFlowPlan: bodyGoalFlowPlan,
+        wellnessFlowPlan: wellnessFlowPlan,
         workoutFlowPlan: workoutFlowPlan,
       );
       if (invalid != null) {
@@ -227,6 +257,7 @@ class PreserveOnboardingResumeCheckpointUseCase {
       desired,
       draft: draft,
       bodyGoalFlowPlan: bodyGoalFlowPlan,
+      wellnessFlowPlan: wellnessFlowPlan,
       workoutFlowPlan: workoutFlowPlan,
     );
     if (invalidBeforeDesired != null) {
@@ -246,6 +277,7 @@ class PreserveOnboardingResumeCheckpointUseCase {
     OnboardingStepId stepId, {
     required OnboardingDraft draft,
     required BodyGoalFlowPlan bodyGoalFlowPlan,
+    required WellnessFlowPlan wellnessFlowPlan,
     required WorkoutFlowPlan workoutFlowPlan,
   }) {
     return switch (stepId) {
@@ -257,6 +289,11 @@ class PreserveOnboardingResumeCheckpointUseCase {
           draft,
           bodyGoalFlowPlan: bodyGoalFlowPlan,
           beforeExclusive: bodyGoalFlowPlan.stepCount,
+        ),
+      OnboardingStepId.wellnessGoals => _firstInvalidWellnessCursor(
+          draft,
+          wellnessFlowPlan: wellnessFlowPlan,
+          beforeExclusive: wellnessFlowPlan.stepCount,
         ),
       OnboardingStepId.workoutIntro => draft.workoutIntroChoice == null
           ? _ResumeCursor.fromDraft(
@@ -281,6 +318,7 @@ class PreserveOnboardingResumeCheckpointUseCase {
     _ResumeCursor desired, {
     required OnboardingDraft draft,
     required BodyGoalFlowPlan bodyGoalFlowPlan,
+    required WellnessFlowPlan wellnessFlowPlan,
     required WorkoutFlowPlan workoutFlowPlan,
   }) {
     return switch (desired.stepId) {
@@ -295,6 +333,11 @@ class PreserveOnboardingResumeCheckpointUseCase {
             desired.profileStepId,
             bodyGoalFlowPlan,
           ),
+        ),
+      OnboardingStepId.wellnessGoals => _firstInvalidWellnessCursor(
+          draft,
+          wellnessFlowPlan: wellnessFlowPlan,
+          beforeExclusive: wellnessFlowPlan.indexOf(desired.targetStepId),
         ),
       OnboardingStepId.workoutPreferences => _firstInvalidWorkoutCursor(
           draft,
@@ -373,6 +416,29 @@ class PreserveOnboardingResumeCheckpointUseCase {
           draft,
           stepId: OnboardingStepId.bodyGoal,
           profileStepId: stepId,
+        );
+      }
+    }
+    return null;
+  }
+
+  _ResumeCursor? _firstInvalidWellnessCursor(
+    OnboardingDraft draft, {
+    required WellnessFlowPlan wellnessFlowPlan,
+    required int beforeExclusive,
+  }) {
+    final limit = beforeExclusive.clamp(0, wellnessFlowPlan.stepCount);
+    for (var index = 0; index < limit; index++) {
+      final stepId = wellnessFlowPlan.steps[index];
+      final candidate = draft.targets.copyWith(currentStepId: stepId);
+      if (!_targetValidator.isCurrentStepValid(
+        candidate,
+        profile: draft.profile,
+      )) {
+        return _ResumeCursor.fromDraft(
+          draft,
+          stepId: OnboardingStepId.wellnessGoals,
+          targetStepId: stepId,
         );
       }
     }
