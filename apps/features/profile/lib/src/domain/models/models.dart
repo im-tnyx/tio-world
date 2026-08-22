@@ -5,3 +5,4 @@ export 'profile_goal.dart';
 export 'profile_health_condition.dart';
 export 'profile_settings_update.dart';
 export 'profile_setup_data.dart';
+export 'user_profile_data.dart';
