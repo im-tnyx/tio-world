@@ -1,111 +1,35 @@
 # Product Onboarding — Canonical Execution Plan
 
-**Status:** In progress — O1 App Mode durability; O1A/O1B/O1C/O1D/O1E validated, O1F integrated acceptance is NEXT  
-**Primary tracker:** GitHub Issue #40  
+**Status:** In progress — O1 validated; O2 common User Profile owner is ACTIVE  
+**Primary tracker:** #40  
 **Canonical ownership:** #44  
-**App Mode:** #11  
-**Account contact verification:** #8 (parallel account lane; not an onboarding blocker)  
-**Settings parity:** #45 / #46 / #47  
-**Canonical implementation PR:** #50  
+**O1 App Mode:** #11 ✅ closed  
+**O2 User Profile:** #53 ACTIVE  
+**Account verification:** #8 parallel lane  
+**PR:** #50 Draft/open/unmerged  
 **Branch:** `agent/onboarding-slice-2-step-1-body-goal-ui`
 
-## Purpose
-
-This file is the single current sequencing source for finishing post-signup Product Onboarding. It supersedes stale execution-order language in older onboarding planning tasks while preserving their validated implementation evidence and product/UI guardrails.
-
-Only one Product Onboarding implementation slice is active at a time. Each slice must be validated and recorded here + #40 before the next begins.
-
-## Current verified foundation
-
-Validated / live:
+## Current validated foundation
 
 ```text
-Section/step identity compatibility foundation      ✅ CI #945
-Unified mode-aware Goal behavior                    ✅
-Target Weight draft/eligibility semantics           ✅ CI #1079
-Goal Pace ownership + skipped-intent cleanup         ✅ CI #1090
-Integrated Goal/weight local acceptance + Review    ✅ CI #1095
-Canonical Body onboarding writes                    ✅ CI #1135
-Canonical Body read/history contract                 ✅ CI #1153
-Canonical Body/Wellness/Nutrition/Workout tables    ✅ LIVE
-user_profiles + user_app_preferences schema          ✅ LIVE
-users.email_verified_at                              ✅ LIVE
-P1 schema RLS/grants/hardening                       ✅ LIVE
-O1A App Preferences domain/repository contract       ✅ CI #1183
-O1B Supabase App Preferences adapter                 ✅ CI #1187
-O1C onboarding completion canonical preference write ✅ CI #1199
-O1D authenticated App Preferences restore            ✅ CI #1210
-O1E Settings canonical App Mode write parity         ✅ CI #1231
+Section/step identity foundation                 ✅ CI #945
+Target Weight eligibility/draft                  ✅ CI #1079
+Goal Pace ownership/skipped cleanup              ✅ CI #1090
+Integrated Goal/weight acceptance                ✅ CI #1095
+Canonical Body onboarding writes                 ✅ CI #1135
+Canonical Body read/history                      ✅ CI #1153
+Canonical owner schema + P1 Profile/App Prefs    ✅ LIVE
+O1 durable App Mode / active_tabs                ✅ CI #1240
 ```
 
-Latest O1 checkpoint:
+O1 final source:
 
 ```text
-O1E source: 7210fe7409af9f41f7478096e19d56853e8060d4
-Flutter CI #1231 / run 32551614514
-Bootstrap workspace        ✅
-Analyze Flutter packages   ✅
-Analyze Dart packages      ✅
-Test Flutter packages      ✅
-Test Dart packages         ✅
+c7925b77e9ccdc1dcd0b6ac1d9554f05972d13a7
+Flutter CI #1240 / run 32552460378 ✅
 ```
 
-Applied P1 migrations:
-
-```text
-20260821180908_split_account_profile_app_preferences
-20260821181005_harden_profile_app_preference_grants
-```
-
-PR #50 remains Draft/unmerged.
-
-## Important sequencing correction
-
-Account contact verification (#8) is important but is **not a technical prerequisite for Product Onboarding App Mode/Profile/domain persistence**.
-
-Two tracks now exist:
-
-```text
-PRODUCT ONBOARDING LANE
-O1 App Mode durability
-→ O2 common Profile owner/section
-→ O3 Body Goal section/canonical parity
-→ O4 Wellness
-→ O5 Nutrition
-→ O6 Workout
-→ O7 Health Connections
-→ O8 Review + resume/edit-back
-→ O9 Plan Building/finalization + Congratulations
-→ O10 mode/device/persistence acceptance
-
-ACCOUNT / SETTINGS LANE
-A1 real email/mobile verification (#8)
-→ later Settings parity consumes the same canonical owners
-```
-
-A1 may be implemented before or between onboarding slices when explicitly prioritized, but it must not block O1 solely for sequencing convenience.
-
-## Final onboarding section target
-
-```text
-App Mode
-→ User Profile
-→ Body Goal
-→ Wellness Goals                  if product-approved for onboarding
-→ Nutrition Profile              Nutrition + Hybrid
-→ Workout Intro                  Hybrid only
-   ├─ Set up now → Workout Profile + Workout Targets
-   └─ Later      → skip both for this run; preserve saved Workout data
-→ Nutrition Targets              Nutrition + Hybrid
-→ Workout Targets                Workout + configured Hybrid
-→ Health Connections             optional, if approved
-→ Review
-→ Plan Building / Finalization
-→ existing CongratulationsScreen
-→ App
-```
-
-Exact Hybrid ordering between eligible Nutrition/Workout blocks remains controlled by the flow-plan tests. `Later` semantics are fixed: skip both Workout Profile and Workout Targets without deleting owner data.
+O1 evidence: `.ai/tasks/app-mode-o1f-integrated-acceptance.md`. Issue #11 is closed completed.
 
 ## Canonical owners
 
@@ -116,103 +40,38 @@ user_app_preferences       → App Mode + ordered active_tabs
 body_weight_logs           → current/history weight
 user_body_goals            → Body Goal + Target Weight + Goal Pace
 user_wellness_targets      → steps/water/sleep
-user_nutrition_profiles    → diet/allergy/food context
-user_nutrition_targets     → calories/macros/fiber + recommendation/custom state
-user_workout_profiles      → workout capability/context
-user_workout_targets       → workout goals/schedule/plan constraints
+user_nutrition_profiles    → nutrition context
+user_nutrition_targets     → nutrition targets
+user_workout_profiles      → workout context
+user_workout_targets       → workout targets
 onboarding_drafts          → draft/resume orchestration only
 ```
 
-Onboarding is an orchestrator, never the durable owner.
+Onboarding is an orchestrator, never a durable domain owner. Applied migrations are immutable; legacy columns stay until cutover proof.
 
-## O1 — Durable App Mode / active navigation — IN PROGRESS
-
-**Tracker:** #11  
-**Focused task:** `.ai/tasks/app-mode-foundation.md`
-
-Validated sub-slices:
+## Execution order
 
 ```text
-O1A backend-neutral App Preferences contract     ✅ #1183
-O1B Supabase user_app_preferences adapter        ✅ #1187
-O1C onboarding completion cutover                ✅ #1199
-O1D authenticated bootstrap/restore              ✅ #1210
-O1E Settings mode-change parity                  ✅ #1231
-O1F integrated acceptance/full CI                NEXT
+O1 App Mode durability                         ✅ #11 / CI #1240
+→ O2 common User Profile owner + section       ACTIVE #53
+→ O3 Body Goal section + Profile/Body parity
+→ O4 Wellness placement + owner
+→ O5 Nutrition Profile + Targets
+→ O6 Workout Intro/Profile/Targets
+→ O7 Health Connections decision/integration
+→ O8 Review + edit-back + resume
+→ O9 truthful Plan Building/finalization
+→ O10 full mode/device/persistence acceptance
 ```
 
-Current behavior after O1E:
+Only one Product Onboarding slice is active at a time. Do not start the next slice before exact validation is recorded.
 
-```text
-Onboarding completion
-→ owner writes
-→ optional finalizer
-→ canonical user_app_preferences(app_mode + guided active_tabs)
-→ local App Mode cache
-→ remote onboarding completion
-→ local completion cache
-→ best-effort draft clear
+## O2 — ACTIVE
 
-Returning completed authenticated bootstrap
-→ read canonical user_app_preferences before Ready
-→ valid active_tabs: restore exact order
-→ app_mode + null active_tabs: derive guided defaults
-→ missing legacy row: clear stale local semantic mode + compatibility navigation
-→ best-effort refresh local cache
-→ final routing/shell configuration
+Focused task: `.ai/tasks/product-onboarding-o2-user-profile-owner.md`  
+Tracker: #53.
 
-Completed authenticated Settings change
-→ require canonical AppPreferencesRepository
-→ upsert AppPreferencesUpdate.guided(mode)
-→ canonical success
-→ best-effort local cache refresh
-→ runtime mode + guided destinations publish
-→ existing success navigation
-```
-
-O1C failure semantics remain locked: canonical App Preferences failure keeps onboarding incomplete/retryable, and a completed retry with a missing canonical preference repairs that preference instead of silently returning.
-
-O1D locks authenticated precedence: valid remote canonical state wins over stale/missing local state; malformed/unusable canonical state keeps bootstrap out of `Ready`; missing completed-legacy preference never silently invents Hybrid. Exact ordered `active_tabs` reaches shell visibility and the route allow-list. Focused evidence is `.ai/tasks/app-mode-o1d-authenticated-bootstrap-restore.md`.
-
-O1E locks Settings parity: completed authenticated `Ready` sessions write the canonical owner before local/runtime publication; canonical failure leaves the current mode unchanged; missing canonical writer fails closed; local cache failure after canonical success cannot override accepted remote truth. Pre-auth/onboarding/signed-out/account-switch states do not get the authenticated canonical writer. Existing Settings production UI and router production source remain unchanged. Focused evidence is `.ai/tasks/app-mode-o1e-settings-write-parity.md`.
-
-### O1F — NEXT
-
-Run integrated acceptance across the complete O1 lifecycle rather than introducing another owner abstraction:
-
-```text
-first-device onboarding completion
-→ canonical preference
-→ restart / cleared-local / second-device-equivalent restore
-→ route + shell exact destinations
-→ Settings canonical change
-→ subsequent restore of changed mode
-```
-
-O1F acceptance:
-- [ ] first-device onboarding completion writes canonical App preference before completion publication;
-- [ ] fresh install / cleared local storage restores remote truth;
-- [ ] second-device-equivalent login restores remote truth;
-- [ ] stale local cache loses to valid canonical state;
-- [ ] exact ordered `active_tabs` reaches shell visibility + route allow-list;
-- [ ] app-mode-only canonical row derives current guided defaults;
-- [ ] completed legacy account with no canonical row uses controlled compatibility recovery without Hybrid inference;
-- [ ] malformed/duplicate/empty canonical tabs fail safely;
-- [ ] Settings mode change writes canonical mode + guided tabs and survives subsequent restore;
-- [ ] canonical Settings failure never becomes false local success/navigation;
-- [ ] completed authenticated Ready state fails closed without canonical repository;
-- [ ] pre-auth/onboarding/signed-out/account switch cannot overwrite another account preference;
-- [ ] hidden Body/Nutrition/Workout data is untouched by mode changes;
-- [ ] full Flutter analyze + Dart analyze + Flutter tests + Dart tests;
-- [ ] exact final O1 checkpoint recorded in #11, #40, #44, PR #50 and this task before O2.
-
-No custom-tab redesign in O1.
-
-## O2 — Common User Profile owner + section activation
-
-**Depends on:** O1 validated.
-
-Canonical Profile fields:
+Canonical common Profile fields:
 
 ```text
 name
@@ -225,229 +84,45 @@ health_conditions
 other_health_condition
 ```
 
-Current Weight is Body, not Profile.
+Current Weight is Body-owned. Goal/Target Weight/Goal Pace and Account/contact data are not common Profile-owned.
 
-Scope:
-- [ ] cut onboarding common Profile persistence to `user_profiles`;
-- [ ] activate/migrate the prepared `userProfile` section identity without breaking old drafts;
-- [ ] preserve existing Name/Gender/DOB/Units/Height/Activity/Health UI and wheel contracts;
-- [ ] remove Profile ownership of Goal/Target Weight/current weight from active canonical mapping;
-- [ ] canonical Profile values win over stale `users` mirrors;
-- [ ] no legacy-column drop yet;
-- [ ] Settings common Profile parity can follow through the same repository contract;
-- [ ] migration/resume tests + CI.
+Verified gap: current broad `ProfileSetupData` / `SupabaseProfileSetupRepository` still mix Profile with Account/avatar/plan, Goal and Body weight concepts and use legacy `users`. Do not repoint that broad contract wholesale.
 
-## O3 — Body Goal section + Body parity completion
-
-**Depends on:** O2 validated.
-
-Already validated foundations:
-- unified Goal screen;
-- Target Weight/Goal Pace flow semantics;
-- Body canonical write/read repository.
-
-Scope still required:
-- [ ] activate/migrate prepared `bodyGoal` section identity while preserving existing Goal/Target Weight/Goal Pace UI;
-- [ ] Current Weight stays in the user measurement flow but persists through Body owner;
-- [ ] Profile models/mappers stop owning Body fields;
-- [ ] no `users.current_weight_kg`, `users.target_weight_kg`, `users.goals`, `users.primary_goal` canonical writes;
-- [ ] Profile Settings current-weight edits append `body_weight_logs` history rows;
-- [ ] canonical Body values win over stale legacy mirrors;
-- [ ] integrated onboarding/Settings read/write tests.
-
-Final Body follow-up contract:
+O2 execution:
 
 ```text
-Lose weight       → Target Weight + Goal Pace
-Gain weight       → Target Weight + Goal Pace
-Maintain weight   → skip both
-Recomposition     → skip both
-Workout/Hybrid Lose as primary/supporting → Target Weight + Goal Pace
-training-only goals → skip both
+O2A UserProfileData + UserProfileRepository
+→ O2B SupabaseUserProfileRepository → public.user_profiles only
+→ O2C Product Onboarding common Profile persistence cutover
+→ O2D activate prepared userProfile identity using existing ProfileSection UI
+→ O2E integrated read/write/resume acceptance + full CI
 ```
 
-Maintain/Recomposition do not auto-fill Target Weight with Current Weight. The maintenance/recomposition baseline is already represented by `starting_weight_kg` + weight history.
-
-Remaining product gates, not permission to block unrelated persistence:
-- measurement-picker/reference restoration if current active UI still lacks the approved reference;
-- exact Target Weight recommendation numeric policy.
-
-## O4 — Wellness placement + canonical owner
-
-**Owner:** `user_wellness_targets`; Settings counterpart #45.
-
-First action is a focused product/audit decision because #40 still leaves placement open.
-
-Decide one of:
-- required first-run onboarding;
-- optional/skippable onboarding;
-- Settings-only.
-
-Candidate fields:
-- steps;
-- water;
-- sleep duration;
-- bedtime/wake time only if separately approved.
-
-If onboarding-active:
-- [ ] activate `wellnessGoals` identity;
-- [ ] reuse existing target controls where valid;
-- [ ] persist only to `user_wellness_targets`;
-- [ ] remove Wellness ownership from mixed Nutrition targets repository;
-- [ ] preserve mode independence.
-
-## O5 — Nutrition Profile + Nutrition Targets split
-
-**Eligible:** Nutrition + Hybrid  
-**Settings counterpart:** #46
-
-### Nutrition Profile
-- diet type/style;
-- allergies/restrictions;
-- preferred/disliked foods where approved.
-
-### Nutrition Targets
-- calories;
-- protein;
-- carbs;
-- fat;
-- fiber;
-- BMR/TDEE calculated context only.
-
-Scope:
-- [ ] activate `nutritionProfile` + `nutritionGoals` identities;
-- [ ] cut persistence to `user_nutrition_profiles` + `user_nutrition_targets`;
-- [ ] define and test recommended/custom/mixed state behavior;
-- [ ] remove Body/Wellness/Profile mirrors from active Nutrition repository path only when true-owner reads are wired;
-- [ ] mode changes hide but never delete Nutrition state;
-- [ ] Review/resume parity + CI.
-
-Open product decision before UI activation: exact Nutrition Profile requiredness and recommended-vs-custom behavior.
-
-## O6 — Workout Intro + Workout Profile + Workout Targets split
-
-**Eligible:** Workout + configured Hybrid  
-**Settings counterpart:** #47
-
-Fixed Hybrid rule:
+Current O2A/O2B source:
 
 ```text
-Workout Intro
-├─ Set up now → Workout Profile + Workout Targets
-└─ Later      → skip both, preserve existing data
+6b79a8b9bae0baa71146fd7139bd9574c99bc0fd
+Flutter CI #1251 / run 32553012219 — running
 ```
 
-Profile capability concepts:
-- training location/environment;
-- Home/Gym setup/facility type if approved;
-- explicit Available Equipment for both Home and Gym;
-- experience;
-- focus areas;
-- injuries/limitations.
+O2A/O2B source adds a narrow backend-neutral owner contract, authenticated strict Supabase adapter, canonical-only payload and focused tests. O2C waits for this checkpoint to be green.
 
-Targets:
-- Workout-specific Goal(s);
-- training days;
-- preferred duration;
-- split;
-- optional special event/date.
+## Later slices
 
-Before activation resolve:
-- final Training Location options (`Both` decision);
-- Home/Gym setup labels;
-- equipment taxonomy/default suggestions;
-- location/setup changes vs preserved equipment;
-- split/event lifecycle.
+O3 activates `bodyGoal` while keeping Body data in Body owners. O4 resolves Wellness placement. O5 separates Nutrition Profile/Targets. O6 separates Workout Profile/Targets with Hybrid Later preserving stored data. O7 is consent-first Health Connections. O8 makes Review/resume canonical. O9 performs truthful finalization before existing Congratulations. O10 runs final cross-mode/device/persistence acceptance.
 
-Then:
-- [ ] activate `workoutProfile` + `workoutTargets` identities;
-- [ ] persist to `user_workout_profiles` + `user_workout_targets`;
-- [ ] no Body Goal mirroring into Workout;
-- [ ] Hybrid Later regression tests;
-- [ ] Review/resume parity + CI.
+## Guardrails
 
-## O7 — Health Connections
-
-Health/device integration is separately owned; onboarding only offers optional consent-first entry.
-
-Before implementation:
-- [ ] create/identify focused health-integration tracker;
-- [ ] audit Android Health Connect / Samsung Health availability and permission semantics;
-- [ ] decide whether this section ships now or is deferred from first complete onboarding release;
-- [ ] define connected/not-connected Review state;
-- [ ] no fake connection success.
-
-If approved, activate `healthConnections` identity and keep Skip/Not now available.
-
-## O8 — Review + edit-back + draft/resume reconciliation
-
-Scope:
-- [ ] Review renders canonical section data, not legacy mixed mirrors;
-- [ ] only eligible/configured sections appear;
-- [ ] Hybrid Later never claims Workout configured;
-- [ ] edit-back returns to correct owner section and preserves other answers;
-- [ ] `onboarding_drafts` schema/version and prepared future step IDs migrate safely;
-- [ ] mode/goal changes reconcile completed/current steps without deleting dormant values;
-- [ ] process restart, corrupt draft, account switch, retry, and resume tests.
-
-## O9 — Plan Building / truthful finalization
-
-Scope:
-- [ ] activate `planBuilding` identity;
-- [ ] define real finalization operations that drive progress;
-- [ ] idempotent cross-owner finalization;
-- [ ] required writes succeed before 100%;
-- [ ] failure stays in controlled retry and never shows Congratulations;
-- [ ] publish canonical App Mode/completion only at the correct success boundary;
-- [ ] clear only safely committed draft data;
-- [ ] reuse existing `CongratulationsScreen` exactly as the final handoff surface.
-
-Do not create a duplicate congratulations screen.
-
-## O10 — Final acceptance
-
-Table-driven acceptance across Workout/Nutrition/Hybrid:
-- [ ] exact ordered flow;
-- [ ] Hybrid Later/setup-now;
-- [ ] Next/Back/system Back;
-- [ ] progress denominators;
-- [ ] draft resume and mode/goal changes;
-- [ ] all canonical owner writes;
-- [ ] fresh install / second device;
-- [ ] failed partial writes/retry;
-- [ ] Review correctness;
-- [ ] Plan Building → Congratulations → App;
-- [ ] no active legacy mirror writes;
-- [ ] full Flutter/Dart CI;
-- [ ] real-device acceptance.
-
-Only after this should PR #50 become a candidate for Ready/merge. Legacy database columns are cleaned up later by a separate forward migration after proof they are unused.
-
-## Independent A1 — Account contact verification (#8)
-
-This remains required product work but is not a prerequisite for O1–O3 Product Onboarding persistence.
-
-Scope:
-- real phone-first → add/verify email;
-- real email-first → add/verify mobile;
-- remove false `isEmailVerified = true` default;
-- reconcile provider-neutral `email_verified_at` / `mobile_verified_at` from trusted Auth evidence;
-- no client-authoritative verified timestamps.
-
-A1 must be completed before final account/settings acceptance, but it may be scheduled independently from the onboarding lane.
-
-## UI guardrails
-
-- preserve existing onboarding screen designs by default;
-- preserve existing Height / Current Weight / Target Weight / DOB wheel/picker contracts;
-- preserve existing Goal card visual language;
-- no persistence/ownership slice authorizes a visual redesign;
-- new visual contracts require separate explicit product approval;
-- use `tio_core` reusable components/tokens before creating local equivalents.
+- preserve existing onboarding UI by default;
+- preserve DOB/Height/weight picker contracts;
+- one canonical owner per concept;
+- no fabricated semantic defaults;
+- no anonymous-auth side effects for canonical writes;
+- no permanent dual-write synchronization;
+- no applied migration edits;
+- no legacy-column drop before repository cutover proof;
+- future backend consumes the same canonical Postgres owners and backend-neutral contracts.
 
 ## Handoff
 
-**Current Product Onboarding next slice:** O1F integrated App Mode acceptance/full CI (#11).  
-**Current parallel account slice:** A1 contact verification (#8), not blocking O1.  
-**After O1F validation:** O2 common Profile owner + section activation.  
-**Do not start O2 before final O1 validation evidence is recorded.**
+**O2 #53 is ACTIVE. Validate O2A/O2B CI #1251, then begin O2C. Do not start O3 before O2 validation.**
