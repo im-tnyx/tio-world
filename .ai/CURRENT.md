@@ -60,7 +60,7 @@ O1D authenticated bootstrap/restore             ✅ CI #1210
 O1E Settings canonical write parity             ✅ CI #1231
 ```
 
-Latest authoritative O1 runtime/test source:
+Latest validated O1 checkpoint before active O1F:
 
 ```text
 7210fe7409af9f41f7478096e19d56853e8060d4
@@ -84,7 +84,7 @@ O1 durable App Mode / active_tabs               IN PROGRESS (#11)
    O1C ✅
    O1D ✅
    O1E ✅
-   O1F integrated acceptance/full CI            NEXT
+   O1F integrated acceptance/full CI            ACTIVE
 → O2 common User Profile owner + section
 → O3 Body Goal section + Body/Profile parity
 → O4 Wellness placement + owner
@@ -105,7 +105,11 @@ A1 real email/mobile add-change-verify (#8)
 
 A1 is required before final Account/Settings acceptance but does not technically block O1–O3.
 
-## Active next slice — O1F integrated App Mode acceptance
+## Active slice — O1F integrated App Mode acceptance
+
+Focused task: `.ai/tasks/app-mode-o1f-integrated-acceptance.md`
+
+Tracker: GitHub Issue #11.
 
 Current durable behavior:
 
@@ -118,13 +122,21 @@ Authenticated Ready Settings change → canonical-first ✅
 Canonical Settings failure → current mode preserved ✅
 ```
 
-Focused parent task: `.ai/tasks/app-mode-foundation.md`
+O1F adds cross-boundary acceptance rather than a new persistence owner:
 
-Evidence:
-- `.ai/tasks/app-mode-o1d-authenticated-bootstrap-restore.md`
-- `.ai/tasks/app-mode-o1e-settings-write-parity.md`
+```text
+CompleteOnboardingUseCase
+→ canonical App preferences + remote completion
+→ local cache
+→ cleared/stale/second-device bootstrap restore
+→ exact shell/route destinations
+→ Ready Settings canonical mode change
+→ another fresh-device restore of changed canonical state
+```
 
-O1F is an integrated acceptance slice, not a new owner redesign. It must verify first-device completion, cleared-local/fresh-install/second-device-equivalent restore, stale-local precedence, mode-only and missing-legacy recovery, invalid canonical state failure, Settings canonical change followed by restore, fail-closed Settings errors, and hidden-domain preservation. Run full Flutter/Dart CI and record the exact final O1 checkpoint.
+Additional scenarios lock mode-only recovery, missing completed-legacy recovery without Hybrid inference, malformed canonical bootstrap failure, Settings failure preservation, authenticated fail-closed behavior, and hidden-domain preservation.
+
+Production behavior should change in O1F only if this integrated matrix exposes a real contract gap.
 
 Do not start O2 until O1F validation evidence is recorded in #11/#40/#44, PR #50 and the canonical onboarding task.
 
