@@ -10,6 +10,9 @@ void main() {
       entryPath: OnboardingEntryPath.firstRun,
       initialDraft: OnboardingDraft(
         selectedMode: AppMode.nutrition,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.maintainWeight,
+        ),
         currentStepId: OnboardingStepId.nutritionProfile,
       ),
       statusRepository: const NoOpOnboardingStatusRepository(),
@@ -46,6 +49,9 @@ void main() {
       entryPath: OnboardingEntryPath.firstRun,
       initialDraft: OnboardingDraft(
         selectedMode: AppMode.nutrition,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.maintainWeight,
+        ),
         currentStepId: OnboardingStepId.nutritionProfile,
         nutrition: const NutritionOnboardingDraft(
           currentStepId: NutritionProfileStepId.allergiesRestrictions,
