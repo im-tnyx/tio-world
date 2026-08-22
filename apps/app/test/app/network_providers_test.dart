@@ -5,6 +5,7 @@ import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_feature_profile/profile.dart';
+import 'package:tio_feature_progress/progress.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
@@ -36,6 +37,9 @@ void main() {
       final profileRepo = container.read(profileSetupRepositoryProvider);
       expect(profileRepo, isA<ProfileSetupRepository>());
 
+      final wellnessRepo = container.read(wellnessTargetsRepositoryProvider);
+      expect(wellnessRepo, isA<WellnessTargetsRepository>());
+
       final workoutRepo = container.read(workoutPreferencesRepositoryProvider);
       expect(workoutRepo, isA<WorkoutPreferencesRepository>());
 
@@ -44,6 +48,37 @@ void main() {
 
       final finalizer = container.read(onboardingRemoteFinalizerProvider);
       expect(finalizer, isA<OnboardingRemoteFinalizer>());
+    });
+
+    test('Body onboarding composition delegates Wellness to the canonical provider',
+        () async {
+      final canonicalWellness = InMemoryWellnessTargetsRepository();
+      final container = ProviderContainer(
+        overrides: [
+          wellnessTargetsRepositoryProvider.overrideWithValue(canonicalWellness),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final bodyRepository = container.read(bodySetupRepositoryProvider);
+      expect(bodyRepository, isA<WellnessTargetsRepository>());
+
+      final onboardingWellness = bodyRepository as WellnessTargetsRepository;
+      const expected = WellnessTargetsData(
+        dailySteps: 11111,
+        waterMl: 2777,
+        sleepTargetMinutes: 455,
+        bedTimeMinutes: 1390,
+        wakeTimeMinutes: 410,
+      );
+
+      await onboardingWellness.upsert(expected);
+
+      expect(await canonicalWellness.read(), expected);
+      expect(
+        await container.read(wellnessTargetsRepositoryProvider).read(),
+        expected,
+      );
     });
 
     test('overriding authCapabilityProvider to available selects FirebaseAuth adapters', () {
