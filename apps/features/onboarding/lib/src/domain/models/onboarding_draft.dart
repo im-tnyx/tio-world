@@ -5,6 +5,8 @@ import 'onboarding_status.dart';
 import 'onboarding_step_id.dart';
 import 'nutrition_onboarding_draft.dart';
 import 'profile_onboarding_draft.dart';
+import 'profile_step_id.dart';
+import 'target_step_id.dart';
 import 'targets_onboarding_draft.dart';
 import 'workout_intro_choice.dart';
 import 'workout_onboarding_draft.dart';
@@ -18,13 +20,18 @@ class OnboardingDraft {
     this.selectedMode,
     this.workoutIntroChoice,
     this.goalSelection = const GoalIntentSelection(),
-    this.currentStepId = OnboardingStepId.mode,
+    OnboardingStepId currentStepId = OnboardingStepId.mode,
     ProfileOnboardingDraft? profile,
     NutritionOnboardingDraft? nutrition,
     WorkoutOnboardingDraft? workout,
     TargetsOnboardingDraft? targets,
     Set<OnboardingStepId> completedStepIds = const {},
-  })  : profile = profile ?? ProfileOnboardingDraft(),
+  })  : currentStepId = _normalizeCurrentStepId(currentStepId, targets),
+        profile = _normalizeProfileCursor(
+          profile: profile,
+          currentStepId: currentStepId,
+          targets: targets,
+        ),
         nutrition = nutrition ?? const NutritionOnboardingDraft(),
         workout = workout ?? const WorkoutOnboardingDraft(),
         targets = targets ?? const TargetsOnboardingDraft(),
@@ -109,4 +116,33 @@ class OnboardingDraft {
       completedStepIds: completedStepIds ?? this.completedStepIds,
     );
   }
+}
+
+bool _isLegacyTargetsGoalPaceCursor(
+  OnboardingStepId currentStepId,
+  TargetsOnboardingDraft? targets,
+) {
+  return currentStepId == OnboardingStepId.targets &&
+      targets?.currentStepId == TargetStepId.goalPace;
+}
+
+OnboardingStepId _normalizeCurrentStepId(
+  OnboardingStepId currentStepId,
+  TargetsOnboardingDraft? targets,
+) {
+  return _isLegacyTargetsGoalPaceCursor(currentStepId, targets)
+      ? OnboardingStepId.bodyGoal
+      : currentStepId;
+}
+
+ProfileOnboardingDraft _normalizeProfileCursor({
+  required ProfileOnboardingDraft? profile,
+  required OnboardingStepId currentStepId,
+  required TargetsOnboardingDraft? targets,
+}) {
+  final resolvedProfile = profile ?? ProfileOnboardingDraft();
+  if (!_isLegacyTargetsGoalPaceCursor(currentStepId, targets)) {
+    return resolvedProfile;
+  }
+  return resolvedProfile.copyWith(currentStepId: ProfileStepId.goalPace);
 }
