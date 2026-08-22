@@ -140,6 +140,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       return appModeRedirect(
         path: state.uri.path,
         selectedMode: appModeController.selectedMode,
+        activeDestinations: appModeController.activeDestinations,
         onboardingStatus: onboardingStatusController.status,
       );
     },
@@ -150,11 +151,16 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
           return Consumer(
             builder: (context, ref, child) {
-              final selectedMode =
-                  ref.watch(appModeControllerProvider).selectedMode;
+              final modeState = ref.watch(appModeControllerProvider);
+              final selectedMode = modeState.selectedMode;
               final visibleTabs = selectedMode == null
-                  ? const [ShellTab.home]
-                  : guidedShellTabs(selectedMode);
+                  ? (onboardingStatusController.status == OnboardingStatus.completed
+                      ? missingModeCompatibilityShellTabs
+                      : const [ShellTab.home])
+                  : shellTabsForDestinations(
+                      modeState.activeDestinations ??
+                          selectedMode.guidedDestinations,
+                    );
 
               final profileAsync = ref.watch(profileDataProvider);
               final profileData = profileAsync.valueOrNull;
