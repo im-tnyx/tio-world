@@ -42,7 +42,7 @@ void main() {
         OnboardingStepId.bodyGoal,
         OnboardingStepId.wellnessGoals,
         OnboardingStepId.workoutPreferences,
-        OnboardingStepId.targets,
+        OnboardingStepId.nutritionGoals,
         OnboardingStepId.review,
       ],
       AppMode.nutrition: const [
@@ -50,7 +50,7 @@ void main() {
         OnboardingStepId.bodyGoal,
         OnboardingStepId.wellnessGoals,
         OnboardingStepId.nutritionProfile,
-        OnboardingStepId.targets,
+        OnboardingStepId.nutritionGoals,
         OnboardingStepId.review,
       ],
       AppMode.hybrid: const [
@@ -60,7 +60,7 @@ void main() {
         OnboardingStepId.nutritionProfile,
         OnboardingStepId.workoutIntro,
         OnboardingStepId.workoutPreferences,
-        OnboardingStepId.targets,
+        OnboardingStepId.nutritionGoals,
         OnboardingStepId.review,
       ],
     };
@@ -264,7 +264,7 @@ void main() {
     );
   });
 
-  test('later legacy checkpoint preserves Body answers while staying later', () {
+  test('legacy empty Targets checkpoint resumes at Wellness without losing Body answers', () {
     final controller = OnboardingController(
       entryPath: OnboardingEntryPath.resumeDraft,
       initialDraft: OnboardingDraft(
@@ -289,7 +289,8 @@ void main() {
       ),
     );
 
-    expect(controller.state.stepId, OnboardingStepId.targets);
+    expect(controller.state.stepId, OnboardingStepId.wellnessGoals);
+    expect(controller.state.draft.targets.currentStepId, TargetStepId.bridge);
     expect(controller.state.draft.profile.currentWeightKg, 70);
     expect(controller.state.draft.profile.targetWeightKg, 65);
     expect(
@@ -433,7 +434,7 @@ void main() {
     expect(controller.state.progressStepCount, 20);
 
     await controller.next(onFinish: _completeImmediately);
-    expect(controller.state.stepId, OnboardingStepId.targets);
+    expect(controller.state.stepId, OnboardingStepId.nutritionGoals);
 
     controller.previous();
     expect(controller.state.stepId, OnboardingStepId.workoutIntro);
