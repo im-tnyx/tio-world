@@ -18,7 +18,10 @@ class CompleteOnboardingUseCase {
         const OnboardingCompletionValidator(),
   })  : _confirmedModePreference = confirmedModePreference,
         _statusRepository = statusRepository,
-        _appPreferencesRepository = appPreferencesRepository,
+        _appPreferencesRepository = appPreferencesRepository ??
+            (completionRepository is AppPreferencesRepository
+                ? completionRepository as AppPreferencesRepository
+                : null),
         _persistOwnerDataUseCase = persistOwnerDataUseCase,
         _finalizer = finalizer,
         _completionRepository = completionRepository,
