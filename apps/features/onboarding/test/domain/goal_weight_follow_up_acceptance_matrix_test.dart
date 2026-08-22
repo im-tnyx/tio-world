@@ -47,6 +47,11 @@ void main() {
         reason: '${testCase.name}: active Targets must stay pace-free',
       );
       expect(
+        controller.state.targetsFlowPlan.steps,
+        const [TargetStepId.nutritionTarget],
+        reason: '${testCase.name}: active Targets is Nutrition-only in O4B',
+      );
+      expect(
         controller.state.stepId,
         OnboardingStepId.bodyGoal,
         reason: '${testCase.name}: legacy Targets Goal Pace cursor migrates',
@@ -57,11 +62,6 @@ void main() {
             ? ProfileStepId.goalPace
             : ProfileStepId.currentWeight,
         reason: '${testCase.name}: Body Goal cursor follows active eligibility',
-      );
-      expect(
-        controller.state.draft.targets.currentStepId,
-        TargetStepId.bridge,
-        reason: '${testCase.name}: obsolete Targets cursor is no longer active',
       );
       expect(
         controller.state.draft.targets.goalPaceKgPerWeek,
@@ -76,7 +76,8 @@ void main() {
     }
   });
 
-  test('Targets Next and Back stay pace-free across the eligibility matrix', () async {
+  test('legacy Wellness cursors migrate losslessly across the mode matrix',
+      () async {
     for (final testCase in cases) {
       final direction = policy.directionFor(
         mode: testCase.mode,
@@ -93,24 +94,44 @@ void main() {
           workout: _validWorkout(),
           targets: const TargetsOnboardingDraft(
             currentStepId: TargetStepId.waterTarget,
+            waterMl: 2500,
           ),
         ),
       );
 
-      await controller.next(onFinish: _completeImmediately);
-
       expect(
-        controller.state.draft.targets.currentStepId,
-        TargetStepId.nutritionTarget,
-        reason: '${testCase.name}: Water Target advances directly to Nutrition',
+        controller.state.stepId,
+        OnboardingStepId.wellnessGoals,
+        reason: '${testCase.name}: legacy Water cursor moves under Wellness',
       );
-
-      controller.previous();
-
       expect(
         controller.state.draft.targets.currentStepId,
         TargetStepId.waterTarget,
-        reason: '${testCase.name}: Back returns to Water Target',
+        reason: '${testCase.name}: Wellness child identity stays lossless',
+      );
+      expect(
+        controller.state.draft.targets.waterMl,
+        2500,
+        reason: '${testCase.name}: Wellness value stays lossless',
+      );
+      expect(
+        controller.state.targetsFlowPlan.steps,
+        const [TargetStepId.nutritionTarget],
+        reason: '${testCase.name}: active Targets remains Nutrition-only',
+      );
+
+      controller.previous();
+      expect(
+        controller.state.draft.targets.currentStepId,
+        TargetStepId.sleepTarget,
+        reason: '${testCase.name}: Wellness Back reaches Sleep',
+      );
+
+      await controller.next(onFinish: _completeImmediately);
+      expect(
+        controller.state.draft.targets.currentStepId,
+        TargetStepId.waterTarget,
+        reason: '${testCase.name}: Wellness Next returns to Water',
       );
     }
   });
