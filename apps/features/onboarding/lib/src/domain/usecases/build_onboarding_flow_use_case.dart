@@ -54,7 +54,7 @@ List<OnboardingStepDefinition> _stepsByMode(
   return switch (mode) {
     AppMode.workout => [
         ...commonFoundation,
-        _workoutPreferences,
+        _workoutProfile,
         _nutritionGoals,
         _review,
       ],
@@ -76,7 +76,7 @@ List<OnboardingStepDefinition> _stepsByMode(
             ...commonFoundation,
             _nutritionProfile,
             _workoutIntro,
-            _workoutPreferences,
+            _workoutProfile,
             _nutritionGoals,
             _review,
           ],
@@ -119,9 +119,9 @@ const _workoutIntro = OnboardingStepDefinition(
   owner: OnboardingStepOwner.workout,
   progressTitle: 'Workout setup',
 );
-const _workoutPreferences = OnboardingStepDefinition(
-  id: OnboardingStepId.workoutPreferences,
-  section: OnboardingSectionId.workout,
+const _workoutProfile = OnboardingStepDefinition(
+  id: OnboardingStepId.workoutProfile,
+  section: OnboardingSectionId.workoutProfile,
   owner: OnboardingStepOwner.workout,
   progressTitle: 'Training preferences',
 );

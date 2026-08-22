@@ -17,10 +17,12 @@ class WorkoutSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (state.stepId != OnboardingStepId.workoutPreferences ||
-        state.currentSection != OnboardingSectionId.workout) {
+    final isWorkoutSection =
+        state.currentSection == OnboardingSectionId.workoutProfile ||
+            state.currentSection == OnboardingSectionId.workout;
+    if (state.stepId != OnboardingStepId.workoutProfile || !isWorkoutSection) {
       throw StateError(
-        'WorkoutSection can only render the workout preferences step.',
+        'WorkoutSection can only render the active workoutProfile step.',
       );
     }
 

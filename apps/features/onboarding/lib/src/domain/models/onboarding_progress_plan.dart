@@ -48,7 +48,7 @@ class OnboardingProgressPlan {
         return items.indexWhere((item) => item is MobileProgressItem);
       case OnboardingStepId.workoutIntro:
         return items.indexWhere((item) => item is WorkoutIntroProgressItem);
-      case OnboardingStepId.workoutPreferences:
+      case OnboardingStepId.workoutProfile:
         return items.indexWhere(
           (item) => item is WorkoutProgressItem && item.stepId == workoutStepId,
         );
@@ -70,7 +70,6 @@ class OnboardingProgressPlan {
       case OnboardingStepId.review:
         return items.indexWhere((item) => item is ReviewProgressItem);
       case OnboardingStepId.userProfile:
-      case OnboardingStepId.workoutProfile:
       case OnboardingStepId.workoutTargets:
       case OnboardingStepId.healthConnections:
       case OnboardingStepId.planBuilding:

@@ -5,13 +5,12 @@ void main() {
   const codec = OnboardingStepIdCodec();
 
   group('OnboardingStepIdCodec', () {
-    test('preserves every legacy schema-v2 storage key exactly', () {
+    test('preserves legacy storage keys that have not migrated', () {
       const legacyKeys = <OnboardingStepId, String>{
         OnboardingStepId.mode: 'mode',
         OnboardingStepId.profileBasics: 'profileBasics',
         OnboardingStepId.mobile: 'mobile',
         OnboardingStepId.workoutIntro: 'workoutIntro',
-        OnboardingStepId.workoutPreferences: 'workoutPreferences',
         OnboardingStepId.nutritionIntro: 'nutritionIntro',
         OnboardingStepId.nutritionPreferences: 'nutritionPreferences',
         OnboardingStepId.targets: 'targets',
@@ -24,8 +23,27 @@ void main() {
       }
     });
 
-    test('round-trips future identities without activating them', () {
-      const futureIds = <OnboardingStepId>[
+    test('legacy workoutPreferences reads as canonical workoutProfile', () {
+      expect(
+        codec.tryDecode('workoutPreferences'),
+        OnboardingStepId.workoutProfile,
+      );
+      expect(
+        codec.tryDecode('workoutProfile'),
+        OnboardingStepId.workoutProfile,
+      );
+      expect(
+        codec.encode(OnboardingStepId.workoutPreferences),
+        'workoutProfile',
+      );
+      expect(
+        OnboardingStepId.workoutPreferences,
+        OnboardingStepId.workoutProfile,
+      );
+    });
+
+    test('round-trips canonical identities without fabricating aliases', () {
+      const canonicalIds = <OnboardingStepId>[
         OnboardingStepId.userProfile,
         OnboardingStepId.bodyGoal,
         OnboardingStepId.wellnessGoals,
@@ -37,7 +55,7 @@ void main() {
         OnboardingStepId.planBuilding,
       ];
 
-      for (final stepId in futureIds) {
+      for (final stepId in canonicalIds) {
         expect(codec.tryDecode(codec.encode(stepId)), stepId);
       }
     });
