@@ -1,17 +1,14 @@
 import 'target_step_id.dart';
 
-/// Ordered flow plan for the active Targets onboarding section.
+/// Ordered flow plan for the active legacy Targets top-level section.
 ///
-/// Goal Pace is retained only in [legacyOrderedSteps] for draft/resume
-/// compatibility. Canonical runtime ownership moved to Body Goal in O3C.
+/// O3C moved Goal Pace to Body Goal. O4B moves Bridge/Steps/Sleep/Water to the
+/// canonical Wellness section. [legacyOrderedSteps] retains the historical
+/// child ordering exclusively for draft/resume migration.
 class TargetsFlowPlan {
   const TargetsFlowPlan({this.steps = orderedSteps});
 
   static const orderedSteps = <TargetStepId>[
-    TargetStepId.bridge,
-    TargetStepId.stepTarget,
-    TargetStepId.sleepTarget,
-    TargetStepId.waterTarget,
     TargetStepId.nutritionTarget,
   ];
 
@@ -48,7 +45,6 @@ class TargetsFlowPlan {
     return steps[index - 1];
   }
 
-  /// [nutritionTarget] remains the final active child before Review.
   String primaryActionLabel(TargetStepId stepId) {
     return stepId == TargetStepId.nutritionTarget ? 'Review' : 'Continue';
   }
