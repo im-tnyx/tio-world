@@ -35,6 +35,7 @@ export 'sections/nutrition_section.dart';
 export 'sections/profile_section.dart';
 export 'sections/review_section.dart';
 export 'sections/targets_section.dart';
+export 'sections/wellness_section.dart';
 export 'sections/workout_section.dart';
 export 'sections/workout_intro_section.dart';
 export 'state/state.dart';
