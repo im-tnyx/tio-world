@@ -6,11 +6,11 @@ import '../../domain/repositories/targets_setup_repository.dart';
 
 /// Supabase-backed implementation of [TargetsSetupRepository].
 ///
-/// Persists the current compatibility Wellness/Nutrition target record in
-/// `public.user_nutrition_profiles`. Body-owned current weight, target weight,
-/// and goal pace are intentionally not written here; their canonical owners are
-/// `body_weight_logs` and `user_body_goals`. Legacy mirror columns remain
-/// readable until the later owner-specific cleanup slices remove them.
+/// O4C keeps this repository responsible only for the current Nutrition
+/// compatibility payload. Wellness-owned Steps/Water/Sleep/Bed/Wake values may
+/// still be present in [TargetsSetupData] as calculation inputs, but new writes
+/// do not mirror them into Nutrition storage. Legacy Wellness columns remain
+/// readable until later owner-specific cleanup/consumer cutovers.
 class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
   const SupabaseTargetsSetupRepository({
     required SupabaseClient client,
@@ -32,19 +32,11 @@ class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
           'Please sign in or create an account to save your targets.');
     }
 
-    final bedTimeStr = formatMinutesToTime(data.sleepTimeMinutes);
-    final wakeTimeStr = formatMinutesToTime(data.wakeTimeMinutes);
-
     final canonicalNutritionPayload = {
       'user_id': userId,
       if (data.heightCm != null) 'height_cm': data.heightCm,
       if (data.activityLevel != null && data.activityLevel!.isNotEmpty)
         'activity_level': data.activityLevel,
-      'steps_target': data.dailySteps,
-      'sleep_target_minutes': data.sleepTargetMinutes,
-      'water_target_ml': data.waterMl,
-      'bed_time': bedTimeStr,
-      'wake_up_time': wakeTimeStr,
       'macro_targets': {
         if (data.recommendation?.caloriesKcal != null)
           'calories': data.recommendation!.caloriesKcal,
@@ -70,20 +62,18 @@ class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
           .upsert(canonicalNutritionPayload);
     } on PostgrestException catch (e) {
       if (e.code == '42P01' || e.code == 'PGRST204' || e.code == '42703') {
-        final legacyPayload = {
+        // Compatibility fallback remains Nutrition-only. Wellness values are
+        // canonically persisted before this repository is called and must never
+        // be recreated here as a fallback durable owner.
+        final legacyNutritionPayload = {
           'user_id': userId,
-          'daily_steps': data.dailySteps,
-          'sleep_target_minutes': data.sleepTargetMinutes,
-          'sleep_time_minutes': data.sleepTimeMinutes,
-          'wake_time_minutes': data.wakeTimeMinutes,
-          'water_ml': data.waterMl,
           'target_calories': data.recommendation?.caloriesKcal,
           'target_protein_grams': data.recommendation?.proteinGrams,
           'target_carbs_grams': data.recommendation?.carbsGrams,
           'target_fat_grams': data.recommendation?.fatGrams,
           'updated_at': DateTime.now().toUtc().toIso8601String(),
         };
-        await _client.from('user_targets').upsert(legacyPayload);
+        await _client.from('user_targets').upsert(legacyNutritionPayload);
       } else {
         rethrow;
       }
@@ -105,6 +95,9 @@ class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
 
     if (canonicalRow == null) return null;
 
+    // O4C cuts new Wellness mirror writes but intentionally preserves these
+    // legacy reads until downstream hydration/owner consumers move to the
+    // canonical Wellness repository in the integrated acceptance slice.
     final rawSteps = canonicalRow['steps_target'];
     if (rawSteps is! num) {
       throw const FormatException(
@@ -207,6 +200,7 @@ class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
   }
 
   /// Converts minutes from midnight into standard SQL TIME format `HH:mm:ss`.
+  /// Retained for compatibility tests/read helpers during the additive cutover.
   static String formatMinutesToTime(int minutesFromMidnight) {
     final normalized = minutesFromMidnight % 1440;
     final nonNegative = normalized < 0 ? normalized + 1440 : normalized;
