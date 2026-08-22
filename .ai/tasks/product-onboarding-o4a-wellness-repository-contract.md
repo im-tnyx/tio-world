@@ -1,20 +1,36 @@
 # Product Onboarding O4A — Canonical Wellness Repository Contract
 
-**Status:** In progress  
-**Tracker:** #59  
+**Status:** Validated  
+**Tracker:** #59 ✅ closed  
 **Parent O4:** #58  
 **Parent Product Onboarding:** #40  
 **Canonical ownership:** #44  
-**Starting checkpoint:** O3 final `75237e6c…` / CI #1354 ✅  
+**Successor:** #60 O4B ACTIVE  
 **Implementation PR:** #50 Draft/open/unmerged
 
-## Outcome
+## Final checkpoint
 
-Create a backend-neutral canonical Wellness target contract and repository adapter for `public.user_wellness_targets` before moving onboarding runtime children.
+```text
+f244b4913143ba8f76439a8b2554fd095d7e1973
+Flutter CI #1365 / run 32563623833
+Flutter analyze ✅
+Dart analyze    ✅
+Flutter tests   ✅
+Dart tests      ✅
+```
 
-## Domain contract
+## Validated outcome
 
-Represent only canonical Wellness target concepts:
+`tio_feature_progress` now owns a backend-neutral canonical Wellness boundary:
+
+```text
+WellnessTargetsData
+WellnessTargetsRepository
+InMemoryWellnessTargetsRepository
+SupabaseWellnessTargetsRepository
+```
+
+Canonical values remain nullable/unknown-safe:
 
 ```text
 dailySteps?
@@ -24,73 +40,26 @@ bedTimeMinutes?
 wakeTimeMinutes?
 ```
 
-Null is unknown/unset. Canonical reads must not substitute onboarding UI defaults.
+The Supabase adapter targets only `public.user_wellness_targets`, fails closed on unauthenticated writes, performs no anonymous-auth side effect, strictly parses malformed non-null state, preserves nulls without onboarding defaults, and converts minute-of-day values to/from SQL TIME deterministically.
 
-## Repository contract
+## Scope preserved
 
-```text
-WellnessTargetsRepository
-  read() -> WellnessTargetsData?
-  upsert(WellnessTargetsData)
-```
-
-Production Supabase adapter:
-- requires authenticated user for write;
-- returns null for unauthenticated read;
-- targets only `user_wellness_targets`;
-- sends the complete canonical field set, including nulls when clearing unknown fields;
-- strictly parses non-null numeric/time values;
-- converts domain minutes-since-midnight ↔ SQL TIME inside the adapter.
-
-## Owning package
-
-Use `tio_feature_progress` as the existing canonical health/progress owner package, alongside Body ownership. Do not create a new feature package only for this persistence slice.
-
-## Scope
-
-- add `WellnessTargetsData` + `WellnessTargetsRepository`;
-- add deterministic in-memory repository;
-- add Supabase repository;
-- export through `tio_feature_progress/progress.dart`;
-- add focused domain/in-memory/Supabase contract tests;
-- no Product Onboarding runtime placement edits;
-- no Nutrition mirror cutoff in this slice.
+O4A did not change onboarding runtime placement, Nutrition persistence, migrations, or UI. Existing Step/Sleep/Water screens remain under the legacy Targets runtime until O4B.
 
 ## Acceptance
 
-- [ ] backend-neutral nullable model;
-- [ ] exact canonical table/payload contract;
-- [ ] write authentication fails closed;
-- [ ] read unauthenticated returns null;
-- [ ] malformed values fail rather than fabricate;
-- [ ] time conversion round-trips deterministically;
-- [ ] complete null values can clear canonical columns;
-- [ ] in-memory read/write deterministic;
-- [ ] public export available;
-- [ ] existing onboarding flow unchanged;
-- [ ] full four-gate CI green on one exact source SHA.
+- [x] backend-neutral nullable model;
+- [x] exact canonical table/payload contract;
+- [x] write authentication fails closed;
+- [x] signed-out read returns null without DB access;
+- [x] malformed values fail rather than fabricate;
+- [x] time conversion round-trips deterministically;
+- [x] null values can intentionally clear canonical columns;
+- [x] in-memory read/write deterministic;
+- [x] public export available;
+- [x] existing onboarding runtime unchanged;
+- [x] full four-gate CI green on exact source SHA.
 
-## Guardrails
+## Exit
 
-- no UI changes;
-- no onboarding navigation changes;
-- no migration edits;
-- no legacy-column drops;
-- no permanent dual-write;
-- no anonymous-auth fallback;
-- O4B blocked until O4A exact full CI green.
-
-## Validation
-
-Run full workspace CI after focused tests land:
-
-```text
-Flutter analyze
-Dart analyze
-Flutter tests
-Dart tests
-```
-
-## Current work
-
-**Implement only the canonical Wellness repository contract and focused tests.**
+**O4A is complete. O4B runtime Wellness section/navigation/resume is active on #60.**
