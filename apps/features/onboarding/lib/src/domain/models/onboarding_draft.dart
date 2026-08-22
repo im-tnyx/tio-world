@@ -123,12 +123,15 @@ class OnboardingDraft {
   }
 }
 
+TargetStepId _resolvedLegacyTargetStep(TargetsOnboardingDraft? targets) =>
+    (targets ?? const TargetsOnboardingDraft()).currentStepId;
+
 bool _isLegacyTargetsGoalPaceCursor(
   OnboardingStepId currentStepId,
   TargetsOnboardingDraft? targets,
 ) {
   return currentStepId == OnboardingStepId.targets &&
-      targets?.currentStepId == TargetStepId.goalPace;
+      _resolvedLegacyTargetStep(targets) == TargetStepId.goalPace;
 }
 
 bool _isLegacyTargetsWellnessCursor(
@@ -136,7 +139,7 @@ bool _isLegacyTargetsWellnessCursor(
   TargetsOnboardingDraft? targets,
 ) {
   if (currentStepId != OnboardingStepId.targets) return false;
-  return switch (targets?.currentStepId) {
+  return switch (_resolvedLegacyTargetStep(targets)) {
     TargetStepId.bridge ||
     TargetStepId.stepTarget ||
     TargetStepId.sleepTarget ||
@@ -150,7 +153,7 @@ bool _isLegacyTargetsNutritionCursor(
   TargetsOnboardingDraft? targets,
 ) {
   return currentStepId == OnboardingStepId.targets &&
-      targets?.currentStepId == TargetStepId.nutritionTarget;
+      _resolvedLegacyTargetStep(targets) == TargetStepId.nutritionTarget;
 }
 
 OnboardingStepId _normalizeCurrentStepId(
