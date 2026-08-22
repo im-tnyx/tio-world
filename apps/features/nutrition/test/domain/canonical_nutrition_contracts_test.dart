@@ -63,8 +63,8 @@ void main() {
       for (final targets in <NutritionTargetsData>[
         const NutritionTargetsData(caloriesKcal: 0),
         const NutritionTargetsData(proteinGrams: -1),
-        NutritionTargetsData(carbohydrateGrams: double.nan),
-        NutritionTargetsData(fatGrams: double.infinity),
+        const NutritionTargetsData(carbohydrateGrams: double.nan),
+        const NutritionTargetsData(fatGrams: double.infinity),
         const NutritionTargetsData(fiberGrams: -0.1),
       ]) {
         await expectLater(() => repository.upsert(targets), throwsArgumentError);
