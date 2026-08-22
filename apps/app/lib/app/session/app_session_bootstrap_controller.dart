@@ -246,8 +246,18 @@ class AppSessionBootstrapController extends ChangeNotifier {
   void _configureAuthenticatedAppModeWrites(bool enabled) {
     final modeController = _appModeController;
     if (modeController == null) return;
+
+    if (enabled) {
+      modeController.setAuthenticatedWriteRepository(
+        _appPreferencesRepository,
+        requireCanonical: true,
+      );
+      return;
+    }
+
     modeController.setAuthenticatedWriteRepository(
-      enabled ? _appPreferencesRepository : null,
+      null,
+      requireCanonical: false,
     );
   }
 
