@@ -803,6 +803,7 @@ void main() {
     final controller = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
       initialDraft: OnboardingDraft(
+        status: OnboardingStatus.inProgress,
         selectedMode: AppMode.workout,
         goalSelection: const GoalIntentSelection(
           primaryGoal: GoalIntent.stayFit,
