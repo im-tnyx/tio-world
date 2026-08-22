@@ -11,6 +11,7 @@ import 'package:tio_shared/shared.dart';
 void main() {
   late profile_owner.InMemoryProfileSetupRepository profileRepo;
   late body_owner.InMemoryBodySetupRepository bodyRepo;
+  late body_owner.InMemoryWellnessTargetsRepository wellnessRepo;
   late workout_owner.InMemoryWorkoutPreferencesRepository workoutRepo;
   late nutrition_owner.InMemoryTargetsSetupRepository targetsRepo;
   late PersistOnboardingOwnerDataUseCase persistUseCase;
@@ -18,11 +19,13 @@ void main() {
   setUp(() {
     profileRepo = profile_owner.InMemoryProfileSetupRepository();
     bodyRepo = body_owner.InMemoryBodySetupRepository();
+    wellnessRepo = body_owner.InMemoryWellnessTargetsRepository();
     workoutRepo = workout_owner.InMemoryWorkoutPreferencesRepository();
     targetsRepo = nutrition_owner.InMemoryTargetsSetupRepository();
     persistUseCase = PersistOnboardingOwnerDataUseCase(
       profileRepository: profileRepo,
       bodyRepository: bodyRepo,
+      wellnessRepository: wellnessRepo,
       workoutRepository: workoutRepo,
       targetsRepository: targetsRepo,
     );
@@ -92,6 +95,7 @@ void main() {
     expect(repository.status, isNull);
     expect(await profileRepo.getProfileSetup(), isNull);
     expect(bodyRepo.data, isNull);
+    expect(wellnessRepo.data, isNull);
     expect(await workoutRepo.getWorkoutPreferences(), isNull);
     expect(await targetsRepo.getTargetsSetup(), isNull);
   });
@@ -176,6 +180,8 @@ void main() {
 
     expect(await profileRepo.getProfileSetup(), isNotNull);
     expect(bodyRepo.data, isNotNull);
+    expect(wellnessRepo.data, isNotNull);
+    expect(wellnessRepo.data?.dailySteps, 10000);
     expect(await workoutRepo.getWorkoutPreferences(), isNotNull);
     expect(await targetsRepo.getTargetsSetup(), isNotNull);
     expect(preference.storedMode, AppMode.workout);
@@ -202,6 +208,7 @@ void main() {
       persistOwnerDataUseCase: PersistOnboardingOwnerDataUseCase(
         profileRepository: failingProfileRepo,
         bodyRepository: bodyRepo,
+        wellnessRepository: wellnessRepo,
         workoutRepository: workoutRepo,
         targetsRepository: targetsRepo,
       ),
