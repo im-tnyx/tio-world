@@ -7,3 +7,4 @@ export 'repositories/supabase_measurement_unit_preferences_repository.dart';
 export 'repositories/supabase_profile_account_repository.dart';
 export 'repositories/supabase_profile_settings_repository.dart';
 export 'repositories/supabase_profile_setup_repository.dart';
+export 'repositories/supabase_user_profile_repository.dart';
