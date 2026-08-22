@@ -58,6 +58,11 @@ class OnboardingProgressPlan {
         return items.indexWhere(
           (item) => item is NutritionPreferencesProgressItem,
         );
+      case OnboardingStepId.nutritionGoals:
+        return items.indexWhere(
+          (item) =>
+              item is NutritionGoalsProgressItem && item.stepId == targetStepId,
+        );
       case OnboardingStepId.targets:
         return items.indexWhere(
           (item) => item is TargetsProgressItem && item.stepId == targetStepId,
@@ -66,7 +71,6 @@ class OnboardingProgressPlan {
         return items.indexWhere((item) => item is ReviewProgressItem);
       case OnboardingStepId.userProfile:
       case OnboardingStepId.workoutProfile:
-      case OnboardingStepId.nutritionGoals:
       case OnboardingStepId.workoutTargets:
       case OnboardingStepId.healthConnections:
       case OnboardingStepId.planBuilding:
