@@ -11,7 +11,7 @@ class OnboardingDraftSnapshot {
     this.updatedAt,
   });
 
-  static const int currentSchemaVersion = 5;
+  static const int currentSchemaVersion = 6;
 
   final int schemaVersion;
   final OnboardingDraft draft;
