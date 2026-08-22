@@ -1,67 +1,81 @@
 # Implementation Status
 
-Use this file to distinguish validated foundation from remaining Product Onboarding work. Runtime source is behavior truth; current sequencing is `.ai/tasks/product-onboarding-canonical-execution.md`.
+Use this file to distinguish validated runtime from remaining Product Onboarding work. Runtime source is behavior truth; current sequencing is `.ai/tasks/product-onboarding-canonical-execution.md`.
 
 ## Status terms
 
 - **Documented**: approved direction only.
 - **Scaffolded**: source/UI contract exists but end-to-end behavior is incomplete.
 - **Implemented**: intended source exists but final validation may remain.
-- **Validated**: applicable checks/evidence are recorded.
+- **Validated**: applicable checks/evidence are recorded on an exact source SHA.
 - **Live**: production Supabase schema/migration is applied and verified.
 
 | Capability | Status | Owner | Current boundary / evidence |
 |---|---|---|---|
-| Product Onboarding section/step identity foundation | Validated | `apps/features/onboarding` | Future migration-safe section IDs + draft codec validated by Flutter CI #945. |
-| Unified Goal + Target Weight eligibility | Validated | onboarding + Body | Goal intent is semantic authority; Target Weight direction/dormant semantics validated by CI #1079. |
-| Goal Pace cleanup | Validated | onboarding + Body | Weekly body-weight change only; skipped-intent cleanup validated by CI #1090. |
-| Integrated Goal/weight local acceptance + Review | Validated | onboarding | Mode/Goal flow and Review source validated by CI #1095. |
-| Canonical Body onboarding writes | Validated | `apps/features/progress` + onboarding | Current Weight → `body_weight_logs`; Body Goal/Target/Pace → `user_body_goals`; CI #1135. |
-| Canonical Body read/history contract | Validated | `apps/features/progress` | Latest weight + active Body Goal reads/history commands; no fabricated 70kg; CI #1153. |
-| Canonical Body/Wellness/Nutrition/Workout schema | Live | Supabase | `20260821161923_create_canonical_owner_tables` + `20260821162207_backfill_canonical_owner_data`. |
-| Account/Profile/App Preferences P1 schema | Live | Supabase | `user_profiles`, `user_app_preferences`, `users.email_verified_at`; migrations `20260821180908` + `20260821181005`; RLS/grants verified. |
-| App Mode local contract/controller | Validated foundation | `apps/shared`, `apps/app` | `AppMode`, guided mappings, controller and SharedPreferences adapter exist. This is now cache/staging architecture, not final authenticated account authority. |
-| Durable App Mode / active_tabs | Not yet implemented | `user_app_preferences`, app, onboarding, Settings | **O1 NEXT.** Runtime still reads/writes confirmed mode through local `SharedPreferencesAppModePreference`; remote table is live but not wired. |
-| Common User Profile canonical runtime | Not yet cut over | `user_profiles`, Profile, onboarding, Settings | **O2 after O1.** Legacy `users` Profile mirrors remain active until canonical repository parity. |
-| Body/Profile parity + legacy Body mirror shutdown | Partial | Body + Profile + Settings | **O3 after O2.** Body repositories exist, but Profile models/writes still need structural cleanup and Settings weight composition. |
-| Wellness onboarding | Decision required | `user_wellness_targets` | **O4.** Decide required vs optional/skippable vs Settings-only before activation. |
-| Nutrition Profile + Targets canonical onboarding | Partial / pending cutover | Nutrition + onboarding | **O5.** Canonical tables exist; mixed legacy owner path and recommended/custom semantics remain. |
-| Workout Intro/Profile/Targets canonical onboarding | Partial / pending cutover | Workout + onboarding | **O6.** Hybrid Intro behavior exists; final location/equipment/split/event product decisions and true-owner cutover remain. |
-| Health Connections onboarding | Documented / undecided | health integration + onboarding entry | **O7.** Requires provider/privacy/permission/release decision; no fake connection success. |
-| Review + edit-back + draft/resume final reconciliation | Partial | onboarding | **O8.** Existing Review foundation exists; final canonical section/data and restart/corrupt/account-switch/edit-back acceptance remains. |
-| Plan Building / finalization | Not finalized | onboarding orchestration | **O9.** Must be driven by real idempotent finalization operations; 100% only after required success; reuse existing CongratulationsScreen. |
-| Full Product Onboarding acceptance | Pending | onboarding + all owners | **O10.** Workout/Nutrition/Hybrid, navigation/back/progress/resume, canonical persistence, failure/retry, fresh install/second device, real-device acceptance. |
-| Account email/mobile verification | Pending parallel lane | Account/Settings/Auth | **A1 / #8.** Phone-first→email and email-first→mobile real verification; not a technical blocker for O1–O3. |
-| PR #50 | Draft/open/unmerged | Product Onboarding | Latest audited branch validation CI #1175 succeeded. Do not mark Ready/merge until remaining onboarding gates are validated. |
+| Canonical Body/Wellness/Nutrition/Workout schema | Live | Supabase | Canonical owner tables are live; legacy duplicate/mixed columns remain until O11/#54 after O10. |
+| Durable App Mode / active_tabs | Validated | `user_app_preferences`, app, onboarding | O1 #11 / Flutter CI #1240. |
+| Common User Profile canonical runtime | Validated | `user_profiles`, Profile, onboarding | O2 #53 / Flutter CI #1279. |
+| Body Goal + Target Weight + Goal Pace ownership | Validated | Body + onboarding | O3 #55 / Flutter CI #1354. |
+| Wellness canonical onboarding | Validated | `user_wellness_targets`, onboarding | O4 #58 / Flutter CI #1441. |
+| Nutrition canonical repository contracts | Validated | Nutrition | O5A #64 / Flutter CI #1449. |
+| Nutrition Profile runtime/draft/resume | Validated | Nutrition + onboarding | O5B #65 / Flutter CI #1460. |
+| Nutrition Goals runtime + legacy resume identity | Validated | Nutrition + onboarding | O5C #66 / Flutter CI #1481. |
+| Canonical Nutrition persistence cutover | Validated | Nutrition + onboarding + app composition | O5D #67 / source `7af5ab0cb1bc37a84af568763a2214977dd57c0c` / Flutter CI #1505. Product Onboarding completion now injects `NutritionProfileRepository` + `NutritionTargetsRepository` directly and no longer depends on `TargetsSetupRepository`. |
+| Integrated Nutrition acceptance | Active | Nutrition + onboarding | O5E #68. Must prove mode matrix, canonical round-trip, legacy resume compatibility, failure/retry ordering and customization-state preservation. |
+| Workout Intro/Profile/Targets canonical onboarding | Pending | Workout + onboarding | O6 begins only after O5E exact full CI green. |
+| Health Connections onboarding | Documented / undecided | health integration + onboarding | O7 requires provider/privacy/permission/release decisions; no fake connection success. |
+| Review + edit-back + draft/resume final reconciliation | Partial | onboarding | O8 follows O7. Existing Review foundation remains, final canonical cross-owner acceptance is pending. |
+| Plan Building / finalization | Pending | onboarding orchestration | O9 must remain idempotent and truthfully publish completion only after required success. |
+| Full Product Onboarding acceptance | Pending | onboarding + all owners | O10 covers all modes, navigation/back/progress/resume, canonical persistence, failure/retry, fresh install/second device and real-device acceptance. |
+| Canonical Schema Cleanup | Blocked | Supabase + domain owners | O11/#54 destructive cleanup remains blocked until O10. |
+| Account email/mobile verification | Pending parallel lane | Account/Settings/Auth | #8 remains parallel and does not redefine Product Onboarding owner sequencing. |
+| PR #50 | Draft/open/unmerged | Product Onboarding | O5D exact source checkpoint is CI #1505 green. Keep Draft until remaining O5E→O10 gates are validated. |
 
 ## Current Product Onboarding execution
 
 ```text
-O1 durable App Mode / active_tabs               NEXT
-  O1A domain/repository contract                NEXT
-  O1B Supabase adapter
-  O1C onboarding completion cutover
-  O1D authenticated bootstrap/restore
-  O1E Settings mode-change parity
-  O1F integrated acceptance/full CI
-→ O2 common User Profile owner + section
-→ O3 Body Goal section + Body/Profile parity
-→ O4 Wellness
-→ O5 Nutrition
+O1 App Mode                                      ✅ #11 / CI #1240
+O2 User Profile                                  ✅ #53 / CI #1279
+O3 Body Goal                                     ✅ #55 / CI #1354
+O4 Wellness                                      ✅ #58 / CI #1441
+→ O5 Nutrition                                   ACTIVE #63
+   O5A contracts                                 ✅ #64 / CI #1449
+   O5B Nutrition Profile runtime                 ✅ #65 / CI #1460
+   O5C Nutrition Goals runtime                   ✅ #66 / CI #1481
+   O5D canonical persistence                     ✅ #67 / CI #1505
+   → O5E integrated acceptance                   ACTIVE #68
 → O6 Workout
 → O7 Health Connections
 → O8 Review/resume/edit-back
-→ O9 truthful finalization + Congratulations
+→ O9 finalization
 → O10 final acceptance
+→ O11 canonical schema cleanup                   BLOCKED #54
 ```
+
+Only one Product Onboarding implementation sub-slice is active at a time.
+
+## Latest exact validated source checkpoint
+
+```text
+7af5ab0cb1bc37a84af568763a2214977dd57c0c
+Flutter CI #1505 / run 32582725736
+Flutter analyze ✅
+Dart analyze    ✅
+Flutter tests   ✅
+Dart tests      ✅
+```
+
+This is the O5D runtime/source checkpoint. Tracker/docs commits after it do not replace source validation.
 
 ## Important current-source facts
 
-- `CompleteOnboardingUseCase` validates, persists owner data, optionally finalizes, then calls the injected `AppModePreference.write(selectedMode)` before completion publishing.
-- App composition currently injects `SharedPreferencesAppModePreference`, so confirmed App Mode remains local-only.
-- `AppModeBootstrap`/`main.dart` currently load the local controller; authenticated bootstrap does not yet restore `user_app_preferences`.
-- `onboarding_drafts.payload.selected_mode` remains draft/resume state, never final App Mode authority.
-- `user_app_preferences` already exists live and is the canonical owner to wire in O1.
+- `PersistOnboardingOwnerDataUseCase` persists Profile → Body → Wellness → Nutrition Profile when active → Workout when active → Nutrition Targets.
+- Product Onboarding completion requires canonical `NutritionProfileRepository` and `NutritionTargetsRepository` directly.
+- App router composition injects `nutritionProfileRepositoryProvider` and `nutritionTargetsRepositoryProvider` directly.
+- `TargetsSetupRepository` remains compatibility-only outside Product Onboarding completion; O5D does not delete it or its legacy schema.
+- `nutritionProfile` is active only for Nutrition/Hybrid; `nutritionGoals` remains active for Workout/Nutrition/Hybrid.
+- Unanswered Nutrition allergies remain canonical `null`; explicit None remains canonical empty set.
+- Applied migrations are immutable; legacy physical cleanup belongs only to O11 after O10.
 
 ## Product rules already resolved
 
@@ -75,8 +89,8 @@ O1 durable App Mode / active_tabs               NEXT
 
 ## Update rules
 
-- Move a capability forward only after inspecting affected source and recording validation.
+- Move a capability forward only after inspecting affected source and recording exact validation.
 - One Product Onboarding implementation slice is active at a time.
-- Do not let historical `.ai/tasks/onboarding-flow.md` Firebase/HTTP-blocked language override the current Supabase-backed canonical execution plan.
+- Do not let historical Firebase/HTTP-blocked task language override the current Supabase-backed canonical execution plan.
 - No UI redesign is implied by owner/persistence/section changes.
 - Do not merge PR #50 until O10-level acceptance and remaining required product gates are resolved.
