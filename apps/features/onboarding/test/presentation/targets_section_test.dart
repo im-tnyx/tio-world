@@ -64,7 +64,7 @@ void main() {
   });
 
   testWidgets(
-      'Nutrition Goals section renders Nutrition Target only and reaches review',
+      'Nutrition Goals section renders Nutrition Target only and reaches Health Connections',
       (tester) async {
     final harness = await _pumpTargets(
       tester,
@@ -98,13 +98,17 @@ void main() {
       expect(find.text('Protein'), findsOneWidget);
       expect(find.text('Carbohydrates'), findsOneWidget);
       expect(find.text('Fats'), findsOneWidget);
-      expect(find.text('Review'), findsOneWidget);
+      expect(find.text('Continue'), findsOneWidget);
 
-      await tester.tap(find.text('Review'));
+      await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
 
-      expect(harness.controller.state.stepId, OnboardingStepId.review);
-      expect(find.byType(ReviewSection), findsOneWidget);
+      expect(
+        harness.controller.state.stepId,
+        OnboardingStepId.healthConnections,
+      );
+      expect(find.byType(HealthConnectionsSection), findsOneWidget);
+      expect(find.byType(ReviewSection), findsNothing);
     } finally {
       semantics.dispose();
     }
