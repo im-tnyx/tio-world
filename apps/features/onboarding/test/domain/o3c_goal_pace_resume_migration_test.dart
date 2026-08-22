@@ -75,7 +75,8 @@ void main() {
       );
     });
 
-    test('pace edits invalidate Body Goal while Targets edits invalidate Targets', () {
+    test('pace edits invalidate Body Goal while Wellness edits invalidate Wellness',
+        () {
       final bodyGoalController = OnboardingController(
         entryPath: OnboardingEntryPath.resumeDraft,
         initialDraft: OnboardingDraft(
@@ -121,7 +122,7 @@ void main() {
         contains(OnboardingStepId.targets),
       );
 
-      final targetsController = OnboardingController(
+      final wellnessController = OnboardingController(
         entryPath: OnboardingEntryPath.resumeDraft,
         initialDraft: OnboardingDraft(
           selectedMode: AppMode.nutrition,
@@ -142,28 +143,34 @@ void main() {
           completedStepIds: const {
             OnboardingStepId.profileBasics,
             OnboardingStepId.bodyGoal,
+            OnboardingStepId.wellnessGoals,
             OnboardingStepId.targets,
           },
         ),
       );
 
-      targetsController.updateWaterTargetMl(2800);
+      expect(wellnessController.state.stepId, OnboardingStepId.wellnessGoals);
+      wellnessController.updateWaterTargetMl(2800);
 
       expect(
-        targetsController.state.completedStepIds,
+        wellnessController.state.completedStepIds,
         contains(OnboardingStepId.bodyGoal),
       );
       expect(
-        targetsController.state.completedStepIds,
-        isNot(contains(OnboardingStepId.targets)),
+        wellnessController.state.completedStepIds,
+        isNot(contains(OnboardingStepId.wellnessGoals)),
       );
       expect(
-        targetsController.state.draft.completedStepIds,
-        contains(OnboardingStepId.bodyGoal),
+        wellnessController.state.completedStepIds,
+        contains(OnboardingStepId.targets),
       );
       expect(
-        targetsController.state.draft.completedStepIds,
-        isNot(contains(OnboardingStepId.targets)),
+        wellnessController.state.draft.completedStepIds,
+        isNot(contains(OnboardingStepId.wellnessGoals)),
+      );
+      expect(
+        wellnessController.state.draft.completedStepIds,
+        contains(OnboardingStepId.targets),
       );
     });
   });
