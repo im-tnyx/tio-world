@@ -3,7 +3,20 @@ import 'profile_step_id.dart';
 class ProfileFlowPlan {
   const ProfileFlowPlan({this.steps = orderedSteps});
 
+  /// Active common Profile children owned by `userProfile`.
   static const orderedSteps = <ProfileStepId>[
+    ProfileStepId.name,
+    ProfileStepId.gender,
+    ProfileStepId.age,
+    ProfileStepId.measurementUnits,
+    ProfileStepId.height,
+    ProfileStepId.activity,
+    ProfileStepId.healthConditions,
+  ];
+
+  /// Pre-O3 mixed order retained only to interpret legacy `profileBasics`
+  /// resume checkpoints. Runtime navigation must use [orderedSteps].
+  static const legacyOrderedSteps = <ProfileStepId>[
     ProfileStepId.name,
     ProfileStepId.gender,
     ProfileStepId.goal,
