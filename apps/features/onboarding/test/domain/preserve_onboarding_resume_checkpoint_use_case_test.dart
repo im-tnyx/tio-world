@@ -165,7 +165,7 @@ void main() {
     expect(persisted.profile.targetWeightKg, 68);
   });
 
-  test('later section resume survives Back into Profile when prior data is valid',
+  test('legacy Wellness checkpoint survives Back into Profile when data is valid',
       () {
     final previous = OnboardingDraft(
       selectedMode: AppMode.workout,
@@ -184,6 +184,8 @@ void main() {
         OnboardingStepId.workoutPreferences,
       },
     );
+    expect(previous.currentStepId, OnboardingStepId.wellnessGoals);
+
     final visibleAfterBack = previous.copyWith(
       currentStepId: OnboardingStepId.profileBasics,
       profile: previous.profile.copyWith(currentStepId: ProfileStepId.name),
@@ -196,15 +198,18 @@ void main() {
       previousPersistedDraft: previous,
     );
 
-    expect(persisted.currentStepId, OnboardingStepId.targets);
+    expect(persisted.currentStepId, OnboardingStepId.wellnessGoals);
     expect(persisted.targets.currentStepId, TargetStepId.waterTarget);
     expect(
       persisted.completedStepIds,
       containsAll({
         OnboardingStepId.profileBasics,
         OnboardingStepId.bodyGoal,
-        OnboardingStepId.workoutPreferences,
       }),
+    );
+    expect(
+      persisted.completedStepIds,
+      isNot(contains(OnboardingStepId.workoutPreferences)),
     );
   });
 
