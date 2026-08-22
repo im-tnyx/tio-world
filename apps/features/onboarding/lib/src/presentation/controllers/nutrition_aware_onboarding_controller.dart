@@ -24,16 +24,11 @@ class NutritionAwareOnboardingController extends OnboardingController {
     required super.entryPath,
     super.initialDraft,
     super.includeMobile,
-    required OnboardingStatusRepository statusRepository,
-    required OnboardingCompletionValidator completionValidator,
-    OnboardingDraftRepository? draftRepository,
+    required super.statusRepository,
+    required super.completionValidator,
+    super.draftRepository,
   })  : _statusRepository = statusRepository,
-        _draftRepository = draftRepository,
-        super(
-          statusRepository: statusRepository,
-          completionValidator: completionValidator,
-          draftRepository: draftRepository,
-        );
+        _draftRepository = draftRepository;
 
   final OnboardingStatusRepository _statusRepository;
   final OnboardingDraftRepository? _draftRepository;
