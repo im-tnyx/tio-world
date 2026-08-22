@@ -6,7 +6,7 @@ void main() {
   group('BuildBodyGoalFlowPlanUseCase', () {
     const builder = BuildBodyGoalFlowPlanUseCase();
 
-    test('nutrition loss includes Goal, Current Weight, and Target Weight', () {
+    test('nutrition loss includes Target Weight and Goal Pace in Body Goal', () {
       final plan = builder(
         mode: AppMode.nutrition,
         goalSelection: const GoalIntentSelection(
@@ -20,11 +20,12 @@ void main() {
           ProfileStepId.goal,
           ProfileStepId.currentWeight,
           ProfileStepId.targetWeight,
+          ProfileStepId.goalPace,
         ],
       );
     });
 
-    test('non-directional nutrition goal skips Target Weight', () {
+    test('non-directional nutrition goal skips both weight follow-ups', () {
       final plan = builder(
         mode: AppMode.nutrition,
         goalSelection: const GoalIntentSelection(
@@ -41,7 +42,7 @@ void main() {
       );
     });
 
-    test('training-only workout goal does not invent Target Weight', () {
+    test('training-only workout goal invents neither Target Weight nor Goal Pace', () {
       final plan = builder(
         mode: AppMode.workout,
         goalSelection: const GoalIntentSelection(
@@ -51,9 +52,10 @@ void main() {
       );
 
       expect(plan.contains(ProfileStepId.targetWeight), isFalse);
+      expect(plan.contains(ProfileStepId.goalPace), isFalse);
     });
 
-    test('hybrid supporting loss keeps directional Target Weight', () {
+    test('hybrid supporting loss keeps both directional follow-ups', () {
       final plan = builder(
         mode: AppMode.hybrid,
         goalSelection: const GoalIntentSelection(
@@ -63,6 +65,7 @@ void main() {
       );
 
       expect(plan.contains(ProfileStepId.targetWeight), isTrue);
+      expect(plan.contains(ProfileStepId.goalPace), isTrue);
     });
 
     test('reconcile preserves an eligible current child', () {
@@ -81,11 +84,11 @@ void main() {
 
       expect(
         builder.reconcileCurrentStep(
-          currentStepId: ProfileStepId.currentWeight,
+          currentStepId: ProfileStepId.goalPace,
           previousPlan: previous,
           nextPlan: next,
         ),
-        ProfileStepId.currentWeight,
+        ProfileStepId.goalPace,
       );
     });
 
@@ -106,6 +109,30 @@ void main() {
       expect(
         builder.reconcileCurrentStep(
           currentStepId: ProfileStepId.targetWeight,
+          previousPlan: previous,
+          nextPlan: next,
+        ),
+        ProfileStepId.currentWeight,
+      );
+    });
+
+    test('reconcile clamps removed Goal Pace through removed Target Weight', () {
+      final previous = builder(
+        mode: AppMode.nutrition,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.loseWeight,
+        ),
+      );
+      final next = builder(
+        mode: AppMode.nutrition,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.maintainWeight,
+        ),
+      );
+
+      expect(
+        builder.reconcileCurrentStep(
+          currentStepId: ProfileStepId.goalPace,
           previousPlan: previous,
           nextPlan: next,
         ),
