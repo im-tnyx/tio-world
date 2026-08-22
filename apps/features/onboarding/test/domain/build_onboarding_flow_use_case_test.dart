@@ -11,6 +11,23 @@ void main() {
       expect(plan.stepIds, const [OnboardingStepId.mode]);
     });
 
+    test('active profileBasics step uses canonical userProfile section identity',
+        () {
+      final plan = buildFlow(
+        entryPath: OnboardingEntryPath.firstRun,
+        mode: AppMode.workout,
+      );
+
+      expect(
+        plan.definitionFor(OnboardingStepId.profileBasics).section,
+        OnboardingSectionId.userProfile,
+      );
+      expect(
+        plan.steps.map((step) => step.section),
+        isNot(contains(OnboardingSectionId.profile)),
+      );
+    });
+
     test('workout product onboarding starts at profile and never includes mobile', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
