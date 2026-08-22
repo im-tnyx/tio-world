@@ -90,7 +90,7 @@ void main() {
       expect(find.byType(OnboardingTopBar), findsOneWidget);
       expect(find.byType(OnboardingProgressIndicator), findsOneWidget);
       expect(
-        find.bySemanticsLabel('Step 1 of 25, About you'),
+        find.bySemanticsLabel('Step 1 of 26, About you'),
         findsOneWidget,
       );
       expect(find.byType(AppModeScreen), findsNothing);
@@ -236,6 +236,7 @@ void main() {
           OnboardingStepId.profileBasics,
           OnboardingStepId.workoutPreferences,
           OnboardingStepId.targets,
+          OnboardingStepId.healthConnections,
         },
       ),
       controllerFactory: (seed) => OnboardingController(
@@ -431,18 +432,18 @@ void main() {
         .value!;
 
     await tester.pumpAndSettle();
-    expect(progressValue(), 7 / 25);
+    expect(progressValue(), 7 / 26);
 
     await tester.tap(find.text('Continue'));
     await tester.pump();
-    expect(progressValue(), 7 / 25);
+    expect(progressValue(), 7 / 26);
 
     await tester.pump(const Duration(milliseconds: 125));
-    expect(progressValue(), greaterThan(7 / 25));
-    expect(progressValue(), lessThan(8 / 25));
+    expect(progressValue(), greaterThan(7 / 26));
+    expect(progressValue(), lessThan(8 / 26));
 
     await tester.pumpAndSettle();
-    expect(progressValue(), 8 / 25);
+    expect(progressValue(), 8 / 26);
   });
 
   testWidgets('completion failure is announced as a live region',
@@ -463,6 +464,7 @@ void main() {
             OnboardingStepId.profileBasics,
             OnboardingStepId.workoutPreferences,
             OnboardingStepId.targets,
+            OnboardingStepId.healthConnections,
           },
         ),
         controllerFactory: (seed) => OnboardingController(
