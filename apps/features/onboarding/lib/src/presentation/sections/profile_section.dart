@@ -21,6 +21,12 @@ class ProfileSection extends StatelessWidget {
     if (state.stepId != OnboardingStepId.profileBasics || !isProfileSection) {
       throw StateError('ProfileSection can only render the Profile section.');
     }
+    if (!state.profileFlowPlan.contains(state.draft.profile.currentStepId)) {
+      throw StateError(
+        'Common Profile cannot render Body-owned child '
+        '${state.draft.profile.currentStepId.name}.',
+      );
+    }
 
     return ProfileFlowPlanScope(
       flowPlan: state.profileFlowPlan,
