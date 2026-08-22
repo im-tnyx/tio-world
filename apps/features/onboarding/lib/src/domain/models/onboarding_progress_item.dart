@@ -47,6 +47,25 @@ class BodyGoalProgressItem extends OnboardingProgressItem {
   int get hashCode => Object.hash(runtimeType, stepId);
 }
 
+class WellnessProgressItem extends OnboardingProgressItem {
+  const WellnessProgressItem(this.stepId);
+
+  final TargetStepId stepId;
+
+  @override
+  String get title => 'Wellness';
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WellnessProgressItem &&
+          runtimeType == other.runtimeType &&
+          stepId == other.stepId;
+
+  @override
+  int get hashCode => Object.hash(runtimeType, stepId);
+}
+
 class MobileProgressItem extends OnboardingProgressItem {
   const MobileProgressItem();
 
@@ -133,7 +152,7 @@ class TargetsProgressItem extends OnboardingProgressItem {
   final TargetStepId stepId;
 
   @override
-  String get title => 'Your targets';
+  String get title => 'Nutrition target';
 
   @override
   bool operator ==(Object other) =>
