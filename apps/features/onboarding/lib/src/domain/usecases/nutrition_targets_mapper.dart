@@ -43,7 +43,7 @@ class NutritionTargetsMapper {
       targets: effectiveTargets,
     );
 
-    if (result is NutritionTargetRecommendationSuccess) {
+    if (result is nutrition_owner.NutritionTargetRecommendationSuccess) {
       final recommendation = result.recommendation;
       return nutrition_owner.NutritionTargetsData(
         caloriesKcal: recommendation.caloriesKcal,
