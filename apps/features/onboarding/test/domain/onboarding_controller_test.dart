@@ -17,7 +17,7 @@ void main() {
     expect(controller.state.draft.status, OnboardingStatus.inProgress);
     expect(controller.state.draft.status, isNot(OnboardingStatus.completed));
     expect(controller.state.stepId, OnboardingStepId.profileBasics);
-    expect(controller.state.currentSection, OnboardingSectionId.profile);
+    expect(controller.state.currentSection, OnboardingSectionId.userProfile);
     expect(controller.state.flowPlan.steps, hasLength(5));
     expect(
       controller.state.flowPlan.stepIds,
