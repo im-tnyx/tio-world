@@ -53,7 +53,17 @@ Integrated Goal/weight local acceptance         ✅ CI #1095
 Canonical Body onboarding writes                ✅ CI #1135
 Canonical Body read/history contract            ✅ CI #1153
 P1 Profile/App Preferences schema               ✅ LIVE
-Latest branch validation                         ✅ CI #1175
+O1A App Preferences contract                    ✅ CI #1183
+O1B Supabase App Preferences adapter            ✅ CI #1187
+O1C onboarding completion cutover               ✅ CI #1199
+O1D authenticated bootstrap/restore             ✅ CI #1210
+```
+
+O1D authoritative runtime/test source:
+
+```text
+d5f03847d8c3e0216aa1acf864b44e31abbc251a
+Flutter CI #1210 / run 32550641153 ✅
 ```
 
 PR #50 remains Draft/open/unmerged.
@@ -63,7 +73,13 @@ PR #50 remains Draft/open/unmerged.
 Authoritative task: `.ai/tasks/product-onboarding-canonical-execution.md`
 
 ```text
-O1 durable App Mode / active_tabs               NEXT (#11)
+O1 durable App Mode / active_tabs               IN PROGRESS (#11)
+   O1A ✅
+   O1B ✅
+   O1C ✅
+   O1D ✅
+   O1E Settings mode-change parity              NEXT
+   O1F integrated acceptance/full CI
 → O2 common User Profile owner + section
 → O3 Body Goal section + Body/Profile parity
 → O4 Wellness placement + owner
@@ -84,31 +100,23 @@ A1 real email/mobile add-change-verify (#8)
 
 A1 is required before final Account/Settings acceptance but does not technically block O1–O3.
 
-## Active next slice — O1 App Mode durability
+## Active next slice — O1E Settings App Mode parity
 
-Canonical table is live but runtime confirmed App Mode is still device-local:
-
-```text
-AppModeController
-→ AppModePreference
-→ SharedPreferencesAppModePreference
-→ local key `app_mode`
-```
-
-`CompleteOnboardingUseCase` still publishes confirmed mode through that local preference boundary, and authenticated bootstrap does not restore `user_app_preferences`.
-
-Focused task: `.ai/tasks/app-mode-foundation.md`
-
-Execution:
+Current durable behavior:
 
 ```text
-O1A domain/repository contract       NEXT
-→ O1B Supabase adapter
-→ O1C onboarding completion cutover
-→ O1D authenticated bootstrap/restore
-→ O1E Settings mode-change parity
-→ O1F integrated acceptance/full CI
+Onboarding completion → canonical user_app_preferences ✅
+Authenticated restore → canonical remote wins before Ready ✅
+Exact ordered active_tabs → shell/route configuration ✅
+SharedPreferences → cache/pre-auth staging on restore path ✅
+Settings mode change → still local-only ❌
 ```
+
+Focused parent task: `.ai/tasks/app-mode-foundation.md`
+
+O1D evidence: `.ai/tasks/app-mode-o1d-authenticated-bootstrap-restore.md`
+
+O1E must make Settings write canonical `app_mode` + guided `active_tabs` before publishing the new local mode. Remote failure must preserve the existing effective mode and must not show false success/navigation. Preserve current Settings/App Mode UI and do not delete hidden Body/Nutrition/Workout data.
 
 Do not start O2 until O1F validation evidence is recorded in #11/#40/#44 and the canonical onboarding task.
 
