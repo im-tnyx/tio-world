@@ -5,19 +5,20 @@ void main() {
   group('TargetsFlowPlan', () {
     const plan = TargetsFlowPlan();
 
-    test('defines 5 active ordered steps with Goal Pace removed', () {
-      expect(plan.stepCount, 5);
-      expect(TargetsFlowPlan.orderedSteps, const [
-        TargetStepId.bridge,
-        TargetStepId.stepTarget,
-        TargetStepId.sleepTarget,
-        TargetStepId.waterTarget,
-        TargetStepId.nutritionTarget,
-      ]);
+    test('defines Nutrition Target as the only active Targets child', () {
+      expect(plan.stepCount, 1);
+      expect(
+        TargetsFlowPlan.orderedSteps,
+        const [TargetStepId.nutritionTarget],
+      );
+      expect(plan.contains(TargetStepId.bridge), isFalse);
+      expect(plan.contains(TargetStepId.stepTarget), isFalse);
+      expect(plan.contains(TargetStepId.sleepTarget), isFalse);
+      expect(plan.contains(TargetStepId.waterTarget), isFalse);
       expect(plan.contains(TargetStepId.goalPace), isFalse);
     });
 
-    test('retains legacy Goal Pace order only for resume interpretation', () {
+    test('retains the full legacy order only for resume interpretation', () {
       expect(TargetsFlowPlan.legacyOrderedSteps, const [
         TargetStepId.bridge,
         TargetStepId.stepTarget,
@@ -28,36 +29,21 @@ void main() {
       ]);
     });
 
-    test('identifies first and last active steps correctly', () {
-      expect(plan.isFirst(TargetStepId.bridge), isTrue);
-      expect(plan.isFirst(TargetStepId.stepTarget), isFalse);
+    test('Nutrition Target is both first and last active child', () {
+      expect(plan.isFirst(TargetStepId.nutritionTarget), isTrue);
       expect(plan.isLast(TargetStepId.nutritionTarget), isTrue);
-      expect(plan.isLast(TargetStepId.goalPace), isFalse);
+      expect(plan.isFirst(TargetStepId.bridge), isFalse);
+      expect(plan.isLast(TargetStepId.waterTarget), isFalse);
     });
 
-    test('advances directly from Water Target to Nutrition Target', () {
-      expect(plan.next(TargetStepId.bridge), TargetStepId.stepTarget);
-      expect(plan.next(TargetStepId.stepTarget), TargetStepId.sleepTarget);
-      expect(plan.next(TargetStepId.sleepTarget), TargetStepId.waterTarget);
-      expect(plan.next(TargetStepId.waterTarget), TargetStepId.nutritionTarget);
+    test('active Targets has no nested next or previous child', () {
       expect(plan.next(TargetStepId.nutritionTarget), isNull);
-      expect(plan.next(TargetStepId.goalPace), isNull);
-    });
-
-    test('Back from Nutrition Target returns directly to Water Target', () {
+      expect(plan.previous(TargetStepId.nutritionTarget), isNull);
+      expect(plan.next(TargetStepId.waterTarget), isNull);
       expect(plan.previous(TargetStepId.bridge), isNull);
-      expect(plan.previous(TargetStepId.stepTarget), TargetStepId.bridge);
-      expect(plan.previous(TargetStepId.sleepTarget), TargetStepId.stepTarget);
-      expect(plan.previous(TargetStepId.waterTarget), TargetStepId.sleepTarget);
-      expect(plan.previous(TargetStepId.nutritionTarget), TargetStepId.waterTarget);
-      expect(plan.previous(TargetStepId.goalPace), isNull);
     });
 
-    test('derives correct primary action labels for active steps', () {
-      expect(plan.primaryActionLabel(TargetStepId.bridge), 'Continue');
-      expect(plan.primaryActionLabel(TargetStepId.stepTarget), 'Continue');
-      expect(plan.primaryActionLabel(TargetStepId.sleepTarget), 'Continue');
-      expect(plan.primaryActionLabel(TargetStepId.waterTarget), 'Continue');
+    test('Nutrition Target action advances to Review', () {
       expect(plan.primaryActionLabel(TargetStepId.nutritionTarget), 'Review');
     });
   });
