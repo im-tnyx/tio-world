@@ -150,7 +150,7 @@ void main() {
     );
   });
 
-  testWidgets('default renderer migrates legacy Wellness cursor in nutrition mode',
+  testWidgets('default renderer uses Nutrition-only Targets in nutrition mode',
       (tester) async {
     await _pumpFlow(
       tester,
@@ -166,10 +166,10 @@ void main() {
     );
 
     expect(find.byType(OnboardingSectionRenderer), findsOneWidget);
-    expect(find.byType(WellnessSection), findsOneWidget);
-    expect(find.byType(TargetsSection), findsNothing);
-    expect(find.byType(BridgeScreen), findsOneWidget);
-    expect(find.text('Building your targets'), findsOneWidget);
+    expect(find.byType(TargetsSection), findsOneWidget);
+    expect(find.byType(WellnessSection), findsNothing);
+    expect(find.byType(BridgeScreen), findsNothing);
+    expect(find.byType(NutritionTargetScreen), findsOneWidget);
   });
 
   testWidgets('system back uses the same nested Profile previous transition',
