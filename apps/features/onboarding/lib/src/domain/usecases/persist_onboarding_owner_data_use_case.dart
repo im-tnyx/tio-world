@@ -19,10 +19,10 @@ class PersistOnboardingOwnerDataUseCase {
     required Object profileRepository,
     required body_owner.BodySetupRepository bodyRepository,
     body_owner.WellnessTargetsRepository? wellnessRepository,
-    required nutrition_owner.NutritionProfileRepository
-        nutritionProfileRepository,
+    nutrition_owner.NutritionProfileRepository? nutritionProfileRepository,
     required workout_owner.WorkoutPreferencesRepository workoutRepository,
-    required nutrition_owner.NutritionTargetsRepository nutritionTargetsRepository,
+    nutrition_owner.NutritionTargetsRepository? nutritionTargetsRepository,
+    required nutrition_owner.TargetsSetupRepository targetsRepository,
     this.profileMapper = const UserProfileMapper(),
     this.bodyMapper = const BodySetupMapper(),
     this.wellnessMapper = const WellnessTargetsMapper(),
@@ -35,9 +35,15 @@ class PersistOnboardingOwnerDataUseCase {
             (bodyRepository is body_owner.WellnessTargetsRepository
                 ? bodyRepository as body_owner.WellnessTargetsRepository
                 : null),
-        _nutritionProfileRepository = nutritionProfileRepository,
+        _nutritionProfileRepository = nutritionProfileRepository ??
+            (targetsRepository is nutrition_owner.CanonicalNutritionOwnerRepositories
+                ? targetsRepository.nutritionProfileRepository
+                : null),
         _workoutRepository = workoutRepository,
-        _nutritionTargetsRepository = nutritionTargetsRepository;
+        _nutritionTargetsRepository = nutritionTargetsRepository ??
+            (targetsRepository is nutrition_owner.CanonicalNutritionOwnerRepositories
+                ? targetsRepository.nutritionTargetsRepository
+                : null);
 
   /// Kept as [Object] only so legacy composition/tests can fail closed at the
   /// owner boundary instead of forcing an unsafe broad-interface cast.
@@ -46,9 +52,9 @@ class PersistOnboardingOwnerDataUseCase {
   final Object _profileRepository;
   final body_owner.BodySetupRepository _bodyRepository;
   final body_owner.WellnessTargetsRepository? _wellnessRepository;
-  final nutrition_owner.NutritionProfileRepository _nutritionProfileRepository;
+  final nutrition_owner.NutritionProfileRepository? _nutritionProfileRepository;
   final workout_owner.WorkoutPreferencesRepository _workoutRepository;
-  final nutrition_owner.NutritionTargetsRepository _nutritionTargetsRepository;
+  final nutrition_owner.NutritionTargetsRepository? _nutritionTargetsRepository;
 
   final UserProfileMapper profileMapper;
   final BodySetupMapper bodyMapper;
@@ -158,7 +164,13 @@ class PersistOnboardingOwnerDataUseCase {
       }
 
       try {
-        await _nutritionProfileRepository.upsert(nutritionProfileData);
+        final repository = _nutritionProfileRepository;
+        if (repository == null) {
+          throw StateError(
+            'Product Onboarding requires the canonical NutritionProfileRepository.',
+          );
+        }
+        await repository.upsert(nutritionProfileData);
       } catch (e, st) {
         throw OwnerPersistenceException(
           owner: OwnerPersistenceTarget.nutritionProfile,
@@ -212,7 +224,13 @@ class PersistOnboardingOwnerDataUseCase {
       }
 
       try {
-        await _nutritionTargetsRepository.upsert(nutritionTargetsData);
+        final repository = _nutritionTargetsRepository;
+        if (repository == null) {
+          throw StateError(
+            'Product Onboarding requires the canonical NutritionTargetsRepository.',
+          );
+        }
+        await repository.upsert(nutritionTargetsData);
       } catch (e, st) {
         throw OwnerPersistenceException(
           owner: OwnerPersistenceTarget.nutritionTargets,
