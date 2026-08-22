@@ -34,7 +34,7 @@ void main() {
       expect(
         useCase.reconcileCurrentStep(
           currentStepId: TargetStepId.nutritionTarget,
-          previousPlan: WellnessFlowPlan(
+          previousPlan: const WellnessFlowPlan(
             steps: TargetsFlowPlan.legacyOrderedSteps,
           ),
           nextPlan: plan,
