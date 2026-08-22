@@ -99,7 +99,7 @@ void main() {
     }
   });
 
-  testWidgets('real workout intro screen skips to targets when deferred',
+  testWidgets('real workout intro skips directly to Nutrition Target when deferred',
       (tester) async {
     await _pumpFlow(
       tester,
@@ -133,8 +133,9 @@ void main() {
 
     expect(find.byType(WorkoutIntroSection), findsNothing);
     expect(find.byType(TargetsSection), findsOneWidget);
-    expect(find.byType(BridgeScreen), findsOneWidget);
-    expect(find.text('Building your targets'), findsOneWidget);
+    expect(find.byType(WellnessSection), findsNothing);
+    expect(find.byType(BridgeScreen), findsNothing);
+    expect(find.byType(NutritionTargetScreen), findsOneWidget);
 
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
@@ -149,7 +150,7 @@ void main() {
     );
   });
 
-  testWidgets('default renderer uses targets section for nutrition mode',
+  testWidgets('default renderer migrates legacy Wellness cursor in nutrition mode',
       (tester) async {
     await _pumpFlow(
       tester,
@@ -165,7 +166,8 @@ void main() {
     );
 
     expect(find.byType(OnboardingSectionRenderer), findsOneWidget);
-    expect(find.byType(TargetsSection), findsOneWidget);
+    expect(find.byType(WellnessSection), findsOneWidget);
+    expect(find.byType(TargetsSection), findsNothing);
     expect(find.byType(BridgeScreen), findsOneWidget);
     expect(find.text('Building your targets'), findsOneWidget);
   });
