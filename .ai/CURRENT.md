@@ -7,10 +7,9 @@ This is the concise handoff for the next agent. Runtime source remains behavior 
 ## Read order
 
 1. `.ai/CURRENT.md`
-2. `.ai/tasks/README.md`
-3. `.ai/tasks/product-onboarding-canonical-execution.md`
-4. focused task for the active slice
-5. relevant GitHub issue and runtime source
+2. `.ai/tasks/product-onboarding-canonical-execution.md`
+3. focused task for the active slice
+4. relevant GitHub issue and runtime source
 
 ## Canonical persistence owners
 
@@ -28,20 +27,7 @@ user_workout_targets       → workout goals/plan constraints
 onboarding_drafts          → draft/resume orchestration only
 ```
 
-`users` is not renamed. Canonical domain FKs continue to use `public.users(id)`.
-
-## Live Supabase foundation
-
-Applied and validated:
-
-```text
-20260821161923_create_canonical_owner_tables
-20260821162207_backfill_canonical_owner_data
-20260821180908_split_account_profile_app_preferences
-20260821181005_harden_profile_app_preference_grants
-```
-
-P1 created `user_profiles`, `user_app_preferences`, and `users.email_verified_at` with RLS/grant hardening. Existing legacy mixed columns remain temporarily; no destructive cleanup yet.
+`users` remains the stable account root. Existing legacy mixed columns remain temporarily; no destructive cleanup yet.
 
 ## Product Onboarding validated foundation
 
@@ -53,39 +39,29 @@ Integrated Goal/weight local acceptance         ✅ CI #1095
 Canonical Body onboarding writes                ✅ CI #1135
 Canonical Body read/history contract            ✅ CI #1153
 P1 Profile/App Preferences schema               ✅ LIVE
-O1A App Preferences contract                    ✅ CI #1183
-O1B Supabase App Preferences adapter            ✅ CI #1187
-O1C onboarding completion cutover               ✅ CI #1199
-O1D authenticated bootstrap/restore             ✅ CI #1210
-O1E Settings canonical write parity             ✅ CI #1231
+O1 durable App Mode / active_tabs               ✅ COMPLETE CI #1240
 ```
 
-Latest validated O1 checkpoint before active O1F:
+Final O1 checkpoint:
 
 ```text
-7210fe7409af9f41f7478096e19d56853e8060d4
-Flutter CI #1231 / run 32551614514
+c7925b77e9ccdc1dcd0b6ac1d9554f05972d13a7
+Flutter CI #1240 / run 32552460378
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
 Dart tests      ✅
 ```
 
-PR #50 remains Draft/open/unmerged.
+O1 evidence: `.ai/tasks/app-mode-o1f-integrated-acceptance.md`; Issue #11 is closed completed.
 
-## Product Onboarding current sequence
+PR #50 remains Draft/open/unmerged for the wider Product Onboarding program.
 
-Authoritative task: `.ai/tasks/product-onboarding-canonical-execution.md`
+## Current Product Onboarding sequence
 
 ```text
-O1 durable App Mode / active_tabs               IN PROGRESS (#11)
-   O1A ✅
-   O1B ✅
-   O1C ✅
-   O1D ✅
-   O1E ✅
-   O1F integrated acceptance/full CI            ACTIVE
-→ O2 common User Profile owner + section
+O1 durable App Mode / active_tabs               ✅ #11 / CI #1240
+→ O2 common User Profile owner + userProfile    ACTIVE #53
 → O3 Body Goal section + Body/Profile parity
 → O4 Wellness placement + owner
 → O5 Nutrition Profile + Nutrition Targets split
@@ -97,82 +73,56 @@ O1 durable App Mode / active_tabs               IN PROGRESS (#11)
 → later legacy-column cleanup
 ```
 
-Independent Account/Settings lane:
+Independent Account/Settings lane: A1 real email/mobile add-change-verify (#8). It does not block O2.
+
+## Active slice — O2 common User Profile owner
+
+Focused task: `.ai/tasks/product-onboarding-o2-user-profile-owner.md`  
+Focused tracker: GitHub Issue #53.
+
+Canonical `user_profiles` owns only:
 
 ```text
-A1 real email/mobile add-change-verify (#8)
+name
+gender
+date_of_birth
+unit_preferences
+height_cm
+activity_level
+health_conditions
+other_health_condition
 ```
 
-A1 is required before final Account/Settings acceptance but does not technically block O1–O3.
+Verified starting gap:
+- production `SupabaseProfileSetupRepository` still reads/writes mixed `users` data and contains an anonymous-sign-in save fallback;
+- legacy `ProfileSetupData` / `ProfileSetupRepository` mix common Profile with Account/avatar/plan, Goal and Body weight fields;
+- Product Onboarding persists that mixed Profile contract before its separate canonical Body write;
+- runtime still labels `profileBasics` with legacy `OnboardingSectionId.profile`; prepared `userProfile` is inactive in renderer.
 
-## Active slice — O1F integrated App Mode acceptance
-
-Focused task: `.ai/tasks/app-mode-o1f-integrated-acceptance.md`
-
-Tracker: GitHub Issue #11.
-
-Current durable behavior:
+O2 architecture direction:
 
 ```text
-Onboarding completion → canonical user_app_preferences ✅
-Authenticated restore → canonical remote wins before Ready ✅
-Exact ordered active_tabs → shell/route configuration ✅
-SharedPreferences → cache/pre-auth staging ✅
-Authenticated Ready Settings change → canonical-first ✅
-Canonical Settings failure → current mode preserved ✅
+O2A UserProfileData + UserProfileRepository
+→ O2B SupabaseUserProfileRepository → public.user_profiles only
+→ O2C Product Onboarding common Profile write cutover
+→ O2D activate userProfile identity using existing ProfileSection UI
+→ O2E integrated acceptance + full CI
 ```
 
-O1F adds cross-boundary acceptance rather than a new persistence owner:
+Do not repoint the broad legacy ProfileSetup contract at `user_profiles`. Introduce a narrow backend-neutral common Profile owner, require authenticated canonical writes, remove fabricated semantic defaults from the canonical path, and keep Body/Goal/Account concepts out.
 
-```text
-CompleteOnboardingUseCase
-→ canonical App preferences + remote completion
-→ local cache
-→ cleared/stale/second-device bootstrap restore
-→ exact shell/route destinations
-→ Ready Settings canonical mode change
-→ another fresh-device restore of changed canonical state
-```
+Do not start O3 until O2 exact validation is recorded in #53/#40/#44/PR #50 and canonical tasks.
 
-Additional scenarios lock mode-only recovery, missing completed-legacy recovery without Hybrid inference, malformed canonical bootstrap failure, Settings failure preservation, authenticated fail-closed behavior, and hidden-domain preservation.
+## Important product/UI rules
 
-Production behavior should change in O1F only if this integrated matrix exposes a real contract gap.
-
-Do not start O2 until O1F validation evidence is recorded in #11/#40/#44, PR #50 and the canonical onboarding task.
-
-## Important onboarding product rules
-
-- Existing onboarding screen designs are preserved by default.
-- Height / Current Weight / Target Weight / DOB wheel/picker contracts are preserved.
-- Existing Goal card visual language is preserved.
-- `GoalIntentSelection` is semantic authority; `Build muscle != Gain weight`.
-- Lose/Gain → Target Weight + Goal Pace.
-- Maintain/Recomposition → skip Target Weight + Goal Pace; do not auto-save target=current weight.
-- Current Weight is Body-owned through `body_weight_logs`.
-- Body Goal/Target/Pace are `user_body_goals`.
-- Hybrid Workout Intro `Later` skips Workout Profile + Targets for the current run without deleting stored Workout data.
-- App Mode visibility never deletes hidden domain data.
-
-## Later open product decisions
-
-- Wellness placement: required / optional / Settings-only.
-- Nutrition Profile requiredness and recommended/custom target semantics.
-- Workout Training Location including `Both`, setup/facility labels, equipment taxonomy, split/event lifecycle.
-- Health Connections provider/privacy/release inclusion.
-- real operations and retry semantics for Plan Building.
-- exact Target Weight recommendation numeric policy.
-- measurement picker/reference restoration if the active source still requires it.
-
-## Historical task note
-
-`.ai/tasks/onboarding-flow.md` contains useful historical architecture/detail but is no longer the sequencing authority. Its old Firebase/HTTP-blocked language must not override the current Supabase-backed canonical execution plan.
-
-## Guardrails
-
-- one canonical owner per concept;
+- Existing Name/Gender/DOB/Units/Height/Activity/Health UI is preserved.
+- Existing DOB/Height/weight picker contracts are preserved.
+- Current Weight remains Body-owned through `body_weight_logs`.
+- Body Goal/Target Weight/Goal Pace remain `user_body_goals`.
+- Existing Goal card visual language remains unchanged.
+- Maintain/Recomposition do not auto-save Target Weight=current weight.
+- Hybrid Workout Intro `Later` preserves stored Workout data.
 - no applied migration edits;
 - no permanent dual-write synchronization;
 - no fabricated defaults or semantic inference;
-- no legacy-column drop before repository cutover proof;
-- no UI redesign as a side effect of persistence/ownership work;
-- future backend consumes the same canonical Postgres owners and backend-neutral repository contracts.
+- no legacy-column drop before cutover proof.
