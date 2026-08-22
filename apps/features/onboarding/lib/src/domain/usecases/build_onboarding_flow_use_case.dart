@@ -48,29 +48,32 @@ List<OnboardingStepDefinition> _stepsByMode(
   AppMode mode, {
   WorkoutIntroChoice? workoutIntroChoice,
 }) {
-  const profile = <OnboardingStepDefinition>[_profileBasics];
+  const profileAndBody = <OnboardingStepDefinition>[
+    _profileBasics,
+    _bodyGoal,
+  ];
 
   return switch (mode) {
     AppMode.workout => [
-        ...profile,
+        ...profileAndBody,
         _workoutPreferences,
         _targets,
         _review,
       ],
     AppMode.nutrition => [
-        ...profile,
+        ...profileAndBody,
         _targets,
         _review,
       ],
     AppMode.hybrid => workoutIntroChoice == WorkoutIntroChoice.later
         ? [
-            ...profile,
+            ...profileAndBody,
             _workoutIntro,
             _targets,
             _review,
           ]
         : [
-            ...profile,
+            ...profileAndBody,
             _workoutIntro,
             _workoutPreferences,
             _targets,
@@ -90,6 +93,12 @@ const _profileBasics = OnboardingStepDefinition(
   section: OnboardingSectionId.userProfile,
   owner: OnboardingStepOwner.profile,
   progressTitle: 'About you',
+);
+const _bodyGoal = OnboardingStepDefinition(
+  id: OnboardingStepId.bodyGoal,
+  section: OnboardingSectionId.bodyGoal,
+  owner: OnboardingStepOwner.crossFeature,
+  progressTitle: 'Body goal',
 );
 const _workoutIntro = OnboardingStepDefinition(
   id: OnboardingStepId.workoutIntro,
