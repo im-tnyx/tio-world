@@ -104,7 +104,13 @@ class OnboardingDraftSnapshotDtoMapper {
 
     final targets = json['targets'] is Map<String, dynamic>
         ? _targetsFromJson(json['targets'] as Map<String, dynamic>)
-        : const TargetsOnboardingDraft();
+        : const TargetsOnboardingDraft(
+            hasDailyStepsValue: false,
+            hasSleepTargetMinutesValue: false,
+            hasSleepTimeMinutesValue: false,
+            hasWakeTimeMinutesValue: false,
+            hasWaterMlValue: false,
+          );
 
     final updatedAtStr = json['updated_at'] as String?;
     final updatedAt =
@@ -329,6 +335,11 @@ class OnboardingDraftSnapshotDtoMapper {
         'wake_time_minutes': t.wakeTimeMinutes,
         'water_ml': t.waterMl,
         'goal_pace_kg_per_week': t.goalPaceKgPerWeek,
+        'daily_steps_known': t.hasDailyStepsValue,
+        'sleep_target_minutes_known': t.hasSleepTargetMinutesValue,
+        'sleep_time_minutes_known': t.hasSleepTimeMinutesValue,
+        'wake_time_minutes_known': t.hasWakeTimeMinutesValue,
+        'water_ml_known': t.hasWaterMlValue,
       };
 
   TargetsOnboardingDraft _targetsFromJson(Map<String, dynamic> j) {
@@ -340,13 +351,24 @@ class OnboardingDraftSnapshotDtoMapper {
 
     return TargetsOnboardingDraft(
       currentStepId: currentStep,
-      dailySteps: j['daily_steps'] as int? ?? 10000,
-      sleepTargetMinutes: j['sleep_target_minutes'] as int? ?? 480,
-      sleepTimeMinutes: j['sleep_time_minutes'] as int? ?? 1320,
-      wakeTimeMinutes: j['wake_time_minutes'] as int? ?? 360,
-      waterMl: j['water_ml'] as int? ?? 2500,
+      dailySteps: (j['daily_steps'] as num?)?.toInt() ?? 10000,
+      sleepTargetMinutes:
+          (j['sleep_target_minutes'] as num?)?.toInt() ?? 480,
+      sleepTimeMinutes: (j['sleep_time_minutes'] as num?)?.toInt() ?? 1320,
+      wakeTimeMinutes: (j['wake_time_minutes'] as num?)?.toInt() ?? 360,
+      waterMl: (j['water_ml'] as num?)?.toInt() ?? 2500,
       goalPaceKgPerWeek:
           (j['goal_pace_kg_per_week'] as num?)?.toDouble() ?? 0.5,
+      hasDailyStepsValue:
+          j['daily_steps_known'] as bool? ?? j['daily_steps'] != null,
+      hasSleepTargetMinutesValue: j['sleep_target_minutes_known'] as bool? ??
+          j['sleep_target_minutes'] != null,
+      hasSleepTimeMinutesValue: j['sleep_time_minutes_known'] as bool? ??
+          j['sleep_time_minutes'] != null,
+      hasWakeTimeMinutesValue: j['wake_time_minutes_known'] as bool? ??
+          j['wake_time_minutes'] != null,
+      hasWaterMlValue:
+          j['water_ml_known'] as bool? ?? j['water_ml'] != null,
     );
   }
 }
