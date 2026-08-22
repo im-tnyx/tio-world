@@ -3,21 +3,63 @@ import 'dart:async';
 import 'package:tio_core/core.dart';
 
 import '../domain/models/profile_setup_data.dart';
+import '../domain/models/user_profile_data.dart';
 import '../domain/repositories/measurement_unit_preferences_repository.dart';
 import '../domain/repositories/profile_setup_repository.dart';
+import '../domain/repositories/user_profile_repository.dart';
 
-/// Thread-safe in-memory implementation of profile and unit-preference owners.
-class InMemoryProfileSetupRepository
-    implements ProfileSetupRepository, MeasurementUnitPreferencesRepository {
+/// Thread-safe in-memory implementation used by local/test compatibility
+/// surfaces. Canonical common Profile state is tracked separately from the
+/// legacy broad setup snapshot.
+class InMemoryProfileSetupRepository implements
+    ProfileSetupRepository,
+    MeasurementUnitPreferencesRepository,
+    UserProfileRepository {
   InMemoryProfileSetupRepository({ProfileSetupData? initialData})
-      : _data = initialData;
+      : _data = initialData,
+        _canonicalData = initialData == null ? null : _canonicalFromLegacy(initialData);
 
   ProfileSetupData? _data;
+  UserProfileData? _canonicalData;
   final _controller = StreamController<ProfileSetupData?>.broadcast();
 
   @override
   Future<void> saveProfileSetup(ProfileSetupData data) async {
     _data = data;
+    _canonicalData = _canonicalFromLegacy(data);
+    _controller.add(_data);
+  }
+
+  @override
+  Future<UserProfileData?> read() async => _canonicalData;
+
+  @override
+  Future<void> upsert(UserProfileData profile) async {
+    _canonicalData = profile;
+
+    // Compatibility projection for legacy tests/local readers only. Product
+    // Onboarding's canonical write boundary is [UserProfileRepository]; Body
+    // values are not persisted through this projection.
+    final current = _data;
+    _data = ProfileSetupData(
+      name: profile.name,
+      username: current?.username,
+      avatarUrl: current?.avatarUrl,
+      avatarFrame: current?.avatarFrame ?? 'none',
+      plan: current?.plan ?? 'free',
+      gender: profile.gender,
+      goals: current?.goals ?? const {},
+      dateOfBirth: profile.dateOfBirth,
+      heightCm: profile.heightCm,
+      currentWeightKg: current?.currentWeightKg ?? 0,
+      targetWeightKg: current?.targetWeightKg,
+      unitPreferences: profile.unitPreferences,
+      activityLevel: profile.activityLevel,
+      healthConditions: profile.healthConditions,
+      otherHealthCondition: profile.otherHealthCondition,
+      mobile: current?.mobile,
+      isMobileVerified: current?.isMobileVerified ?? false,
+    );
     _controller.add(_data);
   }
 
@@ -25,6 +67,20 @@ class InMemoryProfileSetupRepository
   Future<void> updateMeasurementUnitPreferences(
     MeasurementUnitPreferences preferences,
   ) async {
+    final canonical = _canonicalData;
+    if (canonical != null) {
+      _canonicalData = UserProfileData(
+        name: canonical.name,
+        gender: canonical.gender,
+        dateOfBirth: canonical.dateOfBirth,
+        unitPreferences: preferences,
+        heightCm: canonical.heightCm,
+        activityLevel: canonical.activityLevel,
+        healthConditions: canonical.healthConditions,
+        otherHealthCondition: canonical.otherHealthCondition,
+      );
+    }
+
     final current = _data;
     if (current == null) return;
     _data = _copyWith(
@@ -98,4 +154,17 @@ class InMemoryProfileSetupRepository
       isMobileVerified: data.isMobileVerified,
     );
   }
+}
+
+UserProfileData _canonicalFromLegacy(ProfileSetupData data) {
+  return UserProfileData(
+    name: data.name,
+    gender: data.gender,
+    dateOfBirth: data.dateOfBirth,
+    unitPreferences: data.unitPreferences,
+    heightCm: data.heightCm,
+    activityLevel: data.activityLevel,
+    healthConditions: data.healthConditions,
+    otherHealthCondition: data.otherHealthCondition,
+  );
 }
