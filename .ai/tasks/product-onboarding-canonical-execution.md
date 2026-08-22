@@ -1,15 +1,15 @@
 # Product Onboarding — Canonical Execution Plan
 
-**Status:** In progress — O1–O6 complete; O7 Health Connections ACTIVE  
+**Status:** In progress — O1–O6 complete; O7 ACTIVE with O7B blocked on explicit approval  
 **Primary tracker:** #40  
 **Canonical ownership:** #44  
 **O6 Workout:** #69 ✅ / CI #1555  
 **O7 Health Connections:** #75 ACTIVE  
-**O7A:** #76 ACTIVE  
+**O7A:** #76 ✅  
+**O7B:** #77 BLOCKED  
 **Account verification:** #8 parallel lane  
 **O11 cleanup:** #54 BLOCKED until O10  
-**PR:** #50 Draft/open/unmerged  
-**Branch:** `agent/onboarding-slice-2-step-1-body-goal-ui`
+**PR:** #50 Draft/open/unmerged
 
 ## Latest exact validated source checkpoint
 
@@ -22,7 +22,7 @@ Flutter tests   ✅
 Dart tests      ✅
 ```
 
-This is the frozen O6 source/runtime checkpoint. O7A docs/tracker commits do not replace it.
+O7A is contract/tracker-only; this remains the exact runtime checkpoint.
 
 ## Canonical owners
 
@@ -41,9 +41,7 @@ user_workout_targets       → workout goals/schedule/plan constraints
 onboarding_drafts          → draft/resume orchestration only
 ```
 
-Health Connections durable authorization/connection ownership is intentionally unresolved until O7A/O7D prove the correct boundary. Imported sensitive health records do not belong in `onboarding_drafts`.
-
-Applied migrations are immutable. Legacy duplicate/mixed columns remain until verified O11 cleanup.
+Health Connections authorization/connection ownership is intentionally unresolved until O7D proves the correct durable boundary. Imported sensitive health records do not belong in `onboarding_drafts`.
 
 ## Execution order
 
@@ -55,8 +53,8 @@ O4 Wellness placement + canonical owner           ✅ #58 / CI #1441
 O5 Nutrition Profile + Targets                    ✅ #63 / CI #1507
 O6 Workout Profile + Targets                      ✅ #69 / CI #1555
 → O7 Health Connections                           ACTIVE #75
-   → O7A capability + product contract readiness ACTIVE #76
-   O7B runtime section + approved UI/content
+   O7A capability + product contract readiness    ✅ #76
+   O7B runtime section + approved UI/content       BLOCKED #77
    O7C Android Health Connect adapter
    O7D persistence/resume/review integration
    O7E integrated acceptance
@@ -66,58 +64,24 @@ O6 Workout Profile + Targets                      ✅ #69 / CI #1555
 → O11 canonical schema cleanup                    BLOCKED #54
 ```
 
-Only one Product Onboarding sub-slice is active at a time.
+Only one Product Onboarding implementation slice may be active at a time. Because O7B is blocked, no later O7 slice starts early.
 
 ## Validated through O6
 
-Canonical Workout runtime:
+Canonical Workout runtime/persistence is frozen:
 
 ```text
-workoutProfile
-  gymAccess
-  equipment (home only)
-  experienceLevel
-  focusAreas
-  healthConcerns
-→ workoutTargets
-  trainingDays
-  workoutDuration
-  workoutSplit
-  specialEvent
+runtime:     workoutProfile → workoutTargets
+persistence: WorkoutProfileRepository → WorkoutTargetsRepository
 ```
 
-Canonical completion writes:
+O6E #74 / CI #1555 validated mode matrix, Hybrid later preservation, resume compatibility, fail-closed owner order, retry/idempotency and no broad Workout completion writes.
 
-```text
-WorkoutProfileRepository → user_workout_profiles
-WorkoutTargetsRepository → user_workout_targets
-```
+## O7A completed contract — #76
 
-O6E #74 / CI #1555 validated Workout/Hybrid setupNow, Hybrid later preservation, Nutrition exclusion, schema-v6/pre-v6 resume compatibility, fail-closed owner ordering, retry/idempotency, and no Product Onboarding broad Workout writer fallback.
+Current source only reserves Health Connections identity. No real Health Connect/HealthKit plugin, Android health permission configuration, Health Connections draft state, active adapter or iOS Runner scaffold exists in this branch.
 
-## O7 source readiness audit
-
-The reserved identities already exist:
-
-```text
-OnboardingStepId.healthConnections
-OnboardingSectionId.healthConnections
-```
-
-but runtime activation is intentionally absent:
-
-- `BuildOnboardingFlowUseCase` schedules no Health Connections step;
-- `OnboardingCompatibilitySection` rejects it through the future-step guard;
-- `OnboardingDraft` stores no Health Connections state;
-- `apps/app/pubspec.yaml` has no Health Connect/HealthKit integration package;
-- Android app manifest has no Health Connect health-data permission/configuration;
-- the current phone app tree on this branch has no iOS Runner scaffold for HealthKit.
-
-## O7A — ACTIVE #76
-
-Focused task: `.ai/tasks/product-onboarding-o7a-health-connections-contract.md`.
-
-O7A is non-visual and permission-side-effect free. Proposed minimum product-safe capability vocabulary:
+Minimum safe capability proposal:
 
 ```text
 unavailable
@@ -126,43 +90,45 @@ denied
 connected
 ```
 
-Only a real platform adapter result may establish `connected`. Onboarding orchestration choice must remain separate from live OS authorization truth.
+Only a live platform adapter may establish `connected`.
 
-Ownership proposal:
+Ownership:
 
 ```text
 Product Onboarding
-  → step eligibility / skip-or-attempt orchestration / resume checkpoint only
-
+  → orchestration only
 Platform health adapter
   → live capability + authorization truth
-
-Durable per-device connection metadata
-  → unresolved until O7D proves the correct owner
-
-Imported health / biometric records
-  → future dedicated health/sync domain, never onboarding draft payload
+Durable connection metadata
+  → unresolved until O7D
+Imported health records
+  → dedicated future health/sync domain
 ```
 
-## O7B blockers
+## O7B blocked contract — #77
 
-Do not activate `healthConnections` in the planner until all are resolved:
+Before planner/renderer/UI source changes, explicit approval is required for:
 
-- product confirms whether skip/denial/unavailable are completion-blocking or non-blocking;
-- visible screen content/actions/options are approved;
-- exact placement relative to Nutrition Targets / Review is confirmed;
-- platform-unavailable presentation is defined;
-- explicit Connect action semantics are defined;
-- real renderer/section exists before scheduling.
+- whether Skip / unavailable / denied-cancelled are non-blocking;
+- title/copy/actions and Connect/Skip behavior;
+- connected/unavailable/denied/retry presentation;
+- exact flow placement.
 
-Architecture recommendation: Health Connections should be optional/non-blocking because OS support or permission may be unavailable/denied. This remains a product decision and must not be silently encoded.
+Architecture recommendation:
+
+```text
+Health Connections = optional / non-blocking / retryable later
+Placement = Nutrition Targets → Health Connections → Review
+```
+
+These are recommendations only and are not encoded until approved.
 
 ## Guardrails
 
 - no fake health connection success;
-- no health permission request in O7A;
-- no new visible screen/copy/options without approval;
-- no health plugin/manifest/schema mutation in O7A;
+- no passive OS health permission request;
+- no new visible Health Connections screen/content without approval;
+- no plugin/manifest/schema mutation outside its focused slice;
 - no sensitive health-data duplication/logging;
 - no applied migration edits or legacy-column drops;
 - O11/#54 stays blocked until O10;
@@ -170,4 +136,4 @@ Architecture recommendation: Health Connections should be optional/non-blocking 
 
 ## Handoff
 
-**Execute/freeze O7A #76 only. Frozen predecessor source checkpoint: `d56e8226f8631bc81d3dd309cbb22c631ca636f5` / Flutter CI #1555. O7B remains blocked on the explicit product/UI decisions above.**
+**O7A #76 is complete. O7B #77 is the next implementation slice but remains blocked pending the explicit approvals above. Do not start O7C/O7D/O7E early.**
