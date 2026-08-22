@@ -1,6 +1,6 @@
 # App Mode O1D — Authenticated Bootstrap / Restore
 
-**Status:** In progress  
+**Status:** Validated  
 **Tracker:** GitHub Issue #11  
 **Parent task:** `.ai/tasks/app-mode-foundation.md`  
 **Canonical onboarding sequence:** `.ai/tasks/product-onboarding-canonical-execution.md`  
@@ -9,78 +9,73 @@
 
 ## Outcome
 
-Make authenticated session bootstrap resolve canonical `user_app_preferences` before publishing the signed-in app as ready, so remote App Mode/navigation wins over stale or missing device-local state.
+Authenticated session bootstrap now resolves canonical `user_app_preferences` before publishing a completed signed-in account as ready. Valid remote App Mode/navigation wins over stale or missing device-local state.
 
-## Verified starting point
-
-O1A/O1B/O1C are validated. O1C authoritative source is `74e45c9186aed8a6505ca8eef9cd5333de366308` with Flutter CI #1199 green.
-
-Current gap:
+## Validated checkpoint
 
 ```text
-onboarding completion → user_app_preferences ✅
-returning authenticated bootstrap → local AppMode cache can still win ❌
+Source: d5f03847d8c3e0216aa1acf864b44e31abbc251a
+Flutter CI #1210 / run 32550641153
+Bootstrap workspace        ✅
+Analyze Flutter packages   ✅
+Analyze Dart packages      ✅
+Test Flutter packages      ✅
+Test Dart packages         ✅
 ```
 
-`AppSessionBootstrapController` currently reconciles durable onboarding completion but does not read `AppPreferencesRepository` before `AppSessionBootstrapReady`.
-
-## In scope
-
-- wire backend-neutral `AppPreferencesRepository` into authenticated session bootstrap;
-- make valid canonical remote App Mode/navigation win over stale local state;
-- restore exact ordered `active_tabs` when present;
-- derive guided destinations when canonical `app_mode` exists but `active_tabs` is null;
-- refresh the existing local App Mode cache only after canonical remote state is accepted;
-- preserve a controlled completed-legacy path when no canonical preference exists without inventing Hybrid;
-- fail bootstrap safely for malformed/unusable canonical state;
-- keep pre-auth pending App Mode separate from authenticated restore;
-- focused controller/router tests for remote precedence, cleared-local/second-device equivalence, app-mode-only rows, missing rows, malformed state, and exact tab ordering;
-- relevant Flutter/Dart CI before O1E begins.
-
-## Out of scope
-
-- Settings App Mode canonical write cutover (O1E);
-- custom-tab UI or navigation redesign;
-- Product Onboarding O2 Profile work;
-- schema/RLS/migration changes;
-- hidden Body/Nutrition/Workout data deletion;
-- account email/mobile verification (#8).
-
-## Architecture decision
-
-`user_app_preferences` is authenticated account truth. `SharedPreferencesAppModePreference` remains cache/pre-auth staging only.
-
-Bootstrap ordering:
+## Implemented contract
 
 ```text
 authenticated session
 → read onboarding completion
-→ read canonical user_app_preferences before Ready
+→ completed: read canonical user_app_preferences before Ready
 → valid active_tabs: restore exact order
 → app_mode + null active_tabs: derive current guided defaults
-→ refresh local App Mode cache
+→ best-effort refresh local App Mode cache
 → publish final Ready/navigation
 ```
 
-A missing completed-legacy preference may use the existing compatibility navigation path, but must not fabricate a semantic App Mode. A malformed canonical row is a controlled bootstrap failure, not local success.
+Behavior:
+- valid canonical remote state overrides stale local mode;
+- cleared local storage / second-device-equivalent state restores from remote;
+- exact ordered `active_tabs` is carried through `AppModeController`, shell visibility and route allow-list;
+- app-mode-only canonical rows derive guided destinations without changing semantic mode;
+- a missing completed-legacy preference clears stale device semantic mode and keeps the existing compatibility navigation path without inventing Hybrid;
+- present canonical state without `app_mode`, malformed canonical rows and canonical read failures keep bootstrap out of `Ready`;
+- local cache write failure does not override accepted valid remote truth;
+- non-Supabase/test compositions may omit the remote capability without fabricating canonical semantics;
+- Settings mode writes remain unchanged for O1E.
+
+## Scope proof
+
+O1D diff from prior checkpoint `ad07ac018d2ed61e71d2f82bb9479bd3a4adb45a` is limited to:
+
+```text
+.ai/tasks/app-mode-o1d-authenticated-bootstrap-restore.md
+apps/app/lib/app/app_mode/app_mode_controller.dart
+apps/app/lib/app/app_mode/app_mode_route_policy.dart
+apps/app/lib/app/router.dart
+apps/app/lib/app/session/app_session_bootstrap_controller.dart
+apps/app/lib/app/session/app_session_bootstrap_providers.dart
+apps/app/test/app/app_mode_active_destinations_route_policy_test.dart
+apps/app/test/app/app_mode_controller_test.dart
+apps/app/test/app/session/app_session_app_preferences_restore_test.dart
+```
+
+No schema/RLS migration, Settings write cutover, Profile/Body work, hidden-domain deletion or UI redesign is included.
 
 ## Implementation checklist
 
-- [ ] extend runtime App Mode state to carry effective ordered destinations;
-- [ ] add canonical restore API that persists accepted semantic mode to local cache before publishing it;
-- [ ] inject `AppPreferencesRepository` + `AppModeController` into `AppSessionBootstrapController`;
-- [ ] resolve canonical preferences before completed-account `Ready`;
-- [ ] route/shell consumes effective canonical destinations instead of always deriving from mode;
-- [ ] retain missing-row compatibility without silent Hybrid;
-- [ ] add focused controller tests;
-- [ ] add route-policy/exact-order regression coverage;
-- [ ] run relevant CI and record exact source/checkpoint;
-- [ ] update #11, #40/#44 and parent/canonical tasks before O1E.
+- [x] extend runtime App Mode state to carry effective ordered destinations;
+- [x] add canonical restore behavior with local cache demoted to best-effort cache;
+- [x] inject `AppPreferencesRepository` + `AppModeController` into authenticated bootstrap;
+- [x] resolve canonical preferences before completed-account `Ready`;
+- [x] route/shell consumes effective canonical destinations;
+- [x] retain missing-row compatibility without silent Hybrid;
+- [x] cover stale local, cleared-local/second-device-equivalent, app-mode-only, missing, malformed and exact-order states;
+- [x] full Flutter/Dart CI green;
+- [x] exact source/checkpoint recorded.
 
-## Validation
+## Out of scope / next
 
-Not run yet. Do not mark Validated until CI completes on the implementation source.
-
-## Exit criteria
-
-Authenticated navigation no longer depends on stale/missing local App Mode when valid canonical preferences exist, and O1D focused/full relevant CI is green. Only then may O1E Settings parity start.
+O1E is next and owns Settings App Mode canonical write parity. Do not fold custom-tab UI, Product Onboarding O2 Profile work or schema changes into O1E.
