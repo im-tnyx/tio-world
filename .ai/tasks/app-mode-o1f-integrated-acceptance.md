@@ -1,6 +1,6 @@
 # App Mode O1F — Integrated Acceptance
 
-**Status:** In progress  
+**Status:** Validated  
 **Tracker:** GitHub Issue #11  
 **Parent task:** `.ai/tasks/app-mode-foundation.md`  
 **Canonical onboarding sequence:** `.ai/tasks/product-onboarding-canonical-execution.md`  
@@ -9,91 +9,76 @@
 
 ## Outcome
 
-Prove the complete durable App Mode lifecycle across onboarding completion, authenticated restore, Settings mode changes, compatibility recovery, routing visibility, and failure semantics before O1 is declared complete.
+The complete durable App Mode lifecycle is validated across onboarding completion, authenticated restore, Settings mode changes, compatibility recovery, routing visibility, and failure semantics. O1 is complete; Product Onboarding O2 common User Profile ownership is next.
 
-This slice is acceptance-first. Production behavior should change only if the integrated matrix exposes a real contract gap.
-
-## Starting checkpoint
-
-Latest validated implementation checkpoint before O1F:
+## Authoritative O1F checkpoint
 
 ```text
-O1E source: 7210fe7409af9f41f7478096e19d56853e8060d4
-Flutter CI #1231 / run 32551614514
-Flutter analyze ✅
-Dart analyze    ✅
-Flutter tests   ✅
-Dart tests      ✅
+Source: c7925b77e9ccdc1dcd0b6ac1d9554f05972d13a7
+Flutter CI #1240 / run 32552460378
+Bootstrap workspace        ✅
+Analyze Flutter packages   ✅
+Analyze Dart packages      ✅
+Test Flutter packages      ✅
+Test Dart packages         ✅
 ```
 
-O1F starts from current branch head after handoff/documentation sync:
+Earlier CI #1239 failed only an analyzer warning in the new acceptance-test helper because an optional `writeError` constructor parameter was never passed. Production code was unchanged. The helper was simplified and #1240 is the authoritative final O1 checkpoint.
+
+## Integrated proof
+
+`apps/app/test/app/app_mode_o1f_integrated_acceptance_test.dart` proves a shared canonical account lifecycle:
 
 ```text
-45b07f1f1abc07dc2c13d9bc77d01a061105eec5
+first-device CompleteOnboardingUseCase
+→ canonical app_mode + ordered active_tabs
+→ remote completion
+→ local cache
+
+cleared / stale / second-device-equivalent bootstrap
+→ canonical remote state wins before Ready
+→ exact destinations reach shell + route policy
+
+Ready Settings change
+→ canonical-first write
+→ runtime/local publication
+
+another fresh device
+→ restores the changed canonical state
 ```
+
+Additional integrated/focused O1 tests cover mode-only rows, missing completed-legacy rows without Hybrid inference, malformed canonical failure, canonical Settings failure, authenticated fail-closed behavior, cache failure after remote success, pre-auth/account-switch isolation, and hidden-domain preservation.
 
 ## Acceptance matrix
 
-- [ ] first-device Product Onboarding completion writes canonical `app_mode` + ordered `active_tabs` before local completion publication;
-- [ ] cleared local storage / fresh-install-equivalent restores canonical App Mode;
-- [ ] second-device-equivalent authenticated login restores the same canonical App Mode/navigation;
-- [ ] stale local App Mode loses to valid canonical remote state;
-- [ ] exact canonical `active_tabs` order reaches shell/routing policy unchanged;
-- [ ] `app_mode` + null `active_tabs` derives current guided defaults without semantic inference;
-- [ ] completed legacy account with missing canonical row clears stale local semantic mode and keeps controlled compatibility navigation;
-- [ ] malformed/invalid canonical state keeps bootstrap out of `Ready`;
-- [ ] Settings mode change writes canonical state first and survives a later fresh restore;
-- [ ] Settings canonical write failure preserves the previously effective mode/cache and cannot become false success navigation;
-- [ ] authenticated `Ready` mode change fails closed if canonical writer is unavailable;
-- [ ] App Mode changes do not delete or mutate hidden Body/Nutrition/Workout owner data;
-- [ ] full Flutter analyze + Dart analyze + Flutter tests + Dart tests are green on one exact final O1 checkpoint.
+- [x] first-device Product Onboarding completion writes canonical `app_mode` + ordered `active_tabs` before completion publication;
+- [x] cleared local storage / fresh-install-equivalent restores canonical App Mode;
+- [x] second-device-equivalent authenticated login restores canonical App Mode/navigation;
+- [x] stale local App Mode loses to valid canonical remote state;
+- [x] exact canonical `active_tabs` order reaches shell/routing policy unchanged;
+- [x] `app_mode` + null `active_tabs` derives guided defaults without semantic inference;
+- [x] completed legacy account with missing canonical row clears stale local semantic mode and keeps compatibility navigation;
+- [x] malformed/invalid canonical state keeps bootstrap out of `Ready`;
+- [x] Settings mode change writes canonical state first and survives a later fresh restore;
+- [x] Settings canonical failure preserves the previous effective mode/cache and cannot become false success;
+- [x] authenticated `Ready` mode change fails closed if canonical writer is unavailable;
+- [x] pre-auth/onboarding/signed-out/account-switch state cannot overwrite another account preference;
+- [x] App Mode changes do not mutate hidden Body/Nutrition/Workout owner data;
+- [x] full Flutter analyze + Dart analyze + Flutter tests + Dart tests green on one exact source checkpoint.
 
-## Integrated proof strategy
+## Guardrails retained
 
-Add a focused app-level lifecycle acceptance test using one fake canonical account store shared across boundaries:
-
-```text
-CompleteOnboardingUseCase
-→ canonical AppPreferences + remote completion
-→ device-local cache
-
-new / cleared / stale device controller
-→ AppSessionBootstrapController
-→ canonical restore before Ready
-→ shell/route destinations
-
-Ready Settings change
-→ canonical-first AppModeController.select
-→ new canonical state
-
-another fresh device
-→ bootstrap restores changed canonical state
-```
-
-Separate scenarios cover missing legacy rows, mode-only rows, malformed canonical reads, Settings write failure, fail-closed authenticated writes, and hidden-domain preservation.
-
-Existing focused O1A–O1E tests remain authoritative for low-level edge cases; O1F adds cross-boundary proof rather than duplicating every unit test.
-
-## Guardrails
-
-- no UI redesign;
-- no schema/RLS/migration change unless a real acceptance failure proves it is required;
-- `user_app_preferences` remains the only authenticated App Mode/navigation owner;
-- SharedPreferences remains cache/pre-auth staging only;
+- `user_app_preferences` is the only authenticated App Mode/navigation owner;
+- SharedPreferences is cache/pre-auth staging only;
 - no silent Hybrid fallback;
 - no local-vs-remote dual authority;
-- no hidden Body/Nutrition/Workout owner deletion on mode change;
-- do not start O2 common Profile until O1F is validated and final evidence is recorded in #11, #40, #44, PR #50, `.ai/CURRENT.md`, and canonical task docs.
-
-## Validation
-
-Not run yet. Do not mark O1 complete until the integrated matrix and full CI are green on the exact final O1 source checkpoint.
+- no custom-tab/UI redesign was introduced;
+- no hidden Body/Nutrition/Workout deletion;
+- no schema/RLS/migration change was required by O1F.
 
 ## Exit
 
-When validated:
-
 ```text
-O1 durable App Mode / active_tabs ✅ COMPLETE
+O1 durable App Mode / active_tabs ✅ COMPLETE — CI #1240
 → O2 common User Profile owner + section activation NEXT
 ```
