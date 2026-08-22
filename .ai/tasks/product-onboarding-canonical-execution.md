@@ -1,6 +1,6 @@
 # Product Onboarding — Canonical Execution Plan
 
-**Status:** In progress — O1 App Mode durability; O1A/O1B/O1C/O1D validated, O1E Settings parity is NEXT  
+**Status:** In progress — O1 App Mode durability; O1A/O1B/O1C/O1D/O1E validated, O1F integrated acceptance is NEXT  
 **Primary tracker:** GitHub Issue #40  
 **Canonical ownership:** #44  
 **App Mode:** #11  
@@ -35,13 +35,14 @@ O1A App Preferences domain/repository contract       ✅ CI #1183
 O1B Supabase App Preferences adapter                 ✅ CI #1187
 O1C onboarding completion canonical preference write ✅ CI #1199
 O1D authenticated App Preferences restore            ✅ CI #1210
+O1E Settings canonical App Mode write parity         ✅ CI #1231
 ```
 
 Latest O1 checkpoint:
 
 ```text
-O1D source: d5f03847d8c3e0216aa1acf864b44e31abbc251a
-Flutter CI #1210 / run 32550641153
+O1E source: 7210fe7409af9f41f7478096e19d56853e8060d4
+Flutter CI #1231 / run 32551614514
 Bootstrap workspace        ✅
 Analyze Flutter packages   ✅
 Analyze Dart packages      ✅
@@ -136,11 +137,11 @@ O1A backend-neutral App Preferences contract     ✅ #1183
 O1B Supabase user_app_preferences adapter        ✅ #1187
 O1C onboarding completion cutover                ✅ #1199
 O1D authenticated bootstrap/restore              ✅ #1210
-O1E Settings mode-change parity                  NEXT
-O1F integrated acceptance/full CI
+O1E Settings mode-change parity                  ✅ #1231
+O1F integrated acceptance/full CI                NEXT
 ```
 
-Current behavior after O1D:
+Current behavior after O1E:
 
 ```text
 Onboarding completion
@@ -159,38 +160,51 @@ Returning completed authenticated bootstrap
 → missing legacy row: clear stale local semantic mode + compatibility navigation
 → best-effort refresh local cache
 → final routing/shell configuration
+
+Completed authenticated Settings change
+→ require canonical AppPreferencesRepository
+→ upsert AppPreferencesUpdate.guided(mode)
+→ canonical success
+→ best-effort local cache refresh
+→ runtime mode + guided destinations publish
+→ existing success navigation
 ```
 
 O1C failure semantics remain locked: canonical App Preferences failure keeps onboarding incomplete/retryable, and a completed retry with a missing canonical preference repairs that preference instead of silently returning.
 
-O1D locks authenticated precedence: valid remote canonical state wins over stale/missing local state; malformed/unusable canonical state keeps bootstrap out of `Ready`; missing completed-legacy preference never silently invents Hybrid. Exact ordered `active_tabs` now reaches shell visibility and the route allow-list. Focused evidence is `.ai/tasks/app-mode-o1d-authenticated-bootstrap-restore.md`.
+O1D locks authenticated precedence: valid remote canonical state wins over stale/missing local state; malformed/unusable canonical state keeps bootstrap out of `Ready`; missing completed-legacy preference never silently invents Hybrid. Exact ordered `active_tabs` reaches shell visibility and the route allow-list. Focused evidence is `.ai/tasks/app-mode-o1d-authenticated-bootstrap-restore.md`.
 
-### O1E — NEXT
+O1E locks Settings parity: completed authenticated `Ready` sessions write the canonical owner before local/runtime publication; canonical failure leaves the current mode unchanged; missing canonical writer fails closed; local cache failure after canonical success cannot override accepted remote truth. Pre-auth/onboarding/signed-out/account-switch states do not get the authenticated canonical writer. Existing Settings production UI and router production source remain unchanged. Focused evidence is `.ai/tasks/app-mode-o1e-settings-write-parity.md`.
 
-Settings App Mode changes must write the same canonical owner before local publication:
+### O1F — NEXT
+
+Run integrated acceptance across the complete O1 lifecycle rather than introducing another owner abstraction:
 
 ```text
-Settings mode selection
-→ upsert user_app_preferences(app_mode + guided active_tabs)
-→ canonical success only
-→ update local AppModeController/cache
-→ route/shell reflects new mode
+first-device onboarding completion
+→ canonical preference
+→ restart / cleared-local / second-device-equivalent restore
+→ route + shell exact destinations
+→ Settings canonical change
+→ subsequent restore of changed mode
 ```
 
-O1E acceptance:
-- [ ] Settings writes canonical `app_mode` + derived ordered `active_tabs`;
-- [ ] local controller/cache publishes only after canonical success;
-- [ ] canonical write failure keeps the existing effective mode and surfaces controlled failure;
-- [ ] no false success/navigation on remote failure;
-- [ ] mode changes never delete hidden Body/Nutrition/Workout owner data;
-- [ ] preserve current Settings/App Mode UI;
-- [ ] focused Settings/controller/router tests + full relevant CI and exact checkpoint before O1F.
-
-Remaining O1:
-- [ ] O1E Settings mode change writes the same owner;
-- [ ] O1F integrated first-device/fresh-install/second-device/stale-cache/Settings acceptance;
-- [ ] no hidden Nutrition/Workout/Body data deletion on mode changes;
-- [ ] full Flutter/Dart CI and exact final O1 checkpoint.
+O1F acceptance:
+- [ ] first-device onboarding completion writes canonical App preference before completion publication;
+- [ ] fresh install / cleared local storage restores remote truth;
+- [ ] second-device-equivalent login restores remote truth;
+- [ ] stale local cache loses to valid canonical state;
+- [ ] exact ordered `active_tabs` reaches shell visibility + route allow-list;
+- [ ] app-mode-only canonical row derives current guided defaults;
+- [ ] completed legacy account with no canonical row uses controlled compatibility recovery without Hybrid inference;
+- [ ] malformed/duplicate/empty canonical tabs fail safely;
+- [ ] Settings mode change writes canonical mode + guided tabs and survives subsequent restore;
+- [ ] canonical Settings failure never becomes false local success/navigation;
+- [ ] completed authenticated Ready state fails closed without canonical repository;
+- [ ] pre-auth/onboarding/signed-out/account switch cannot overwrite another account preference;
+- [ ] hidden Body/Nutrition/Workout data is untouched by mode changes;
+- [ ] full Flutter analyze + Dart analyze + Flutter tests + Dart tests;
+- [ ] exact final O1 checkpoint recorded in #11, #40, #44, PR #50 and this task before O2.
 
 No custom-tab redesign in O1.
 
@@ -433,7 +447,7 @@ A1 must be completed before final account/settings acceptance, but it may be sch
 
 ## Handoff
 
-**Current Product Onboarding next slice:** O1E Settings App Mode canonical write parity (#11).  
+**Current Product Onboarding next slice:** O1F integrated App Mode acceptance/full CI (#11).  
 **Current parallel account slice:** A1 contact verification (#8), not blocking O1.  
 **After O1F validation:** O2 common Profile owner + section activation.  
-**Do not start O2 before O1 validation evidence is recorded.**
+**Do not start O2 before final O1 validation evidence is recorded.**
