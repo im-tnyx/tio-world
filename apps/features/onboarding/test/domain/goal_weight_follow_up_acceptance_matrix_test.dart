@@ -31,9 +31,9 @@ void main() {
       );
 
       expect(
-        controller.state.profileFlowPlan.contains(ProfileStepId.targetWeight),
+        controller.state.bodyGoalFlowPlan.contains(ProfileStepId.targetWeight),
         testCase.expectWeightFollowUps,
-        reason: '${testCase.name}: Target Weight plan eligibility',
+        reason: '${testCase.name}: Target Weight Body Goal eligibility',
       );
       expect(
         controller.state.targetsFlowPlan.contains(TargetStepId.goalPace),
@@ -45,7 +45,7 @@ void main() {
         testCase.expectWeightFollowUps
             ? ProfileStepId.targetWeight
             : ProfileStepId.currentWeight,
-        reason: '${testCase.name}: restored Profile child reconciliation',
+        reason: '${testCase.name}: restored Body Goal child reconciliation',
       );
       expect(
         controller.state.draft.targets.currentStepId,
