@@ -1,6 +1,6 @@
 # Product Onboarding O3B — `bodyGoal` Runtime Section + Legacy Resume
 
-**Status:** In progress  
+**Status:** Complete — validated  
 **Tracker:** GitHub Issue #55  
 **Parent tracker:** #40  
 **Canonical ownership:** #44  
@@ -9,7 +9,7 @@
 
 ## Starting checkpoint
 
-O3A typed Body Goal flow contract is validated:
+O3A typed Body Goal flow contract:
 
 ```text
 4878ebc0045be9c3d6921aafffcf9f4791df0fd9
@@ -20,20 +20,33 @@ Flutter tests   ✅
 Dart tests      ✅
 ```
 
+## Validated O3B checkpoint
+
+```text
+3df7dbd61a57340f7d6f767361d3ceaa49cc83fb
+Flutter CI #1319 / run 32558694870
+Flutter analyze ✅
+Dart analyze    ✅
+Flutter tests   ✅
+Dart tests      ✅
+```
+
+This is the authoritative O3B source checkpoint. Later `.ai` evidence commits do not redefine the validated source SHA.
+
 ## Outcome
 
-Activate `OnboardingStepId.bodyGoal` / `OnboardingSectionId.bodyGoal` in the Product Onboarding runtime, reuse the existing Goal/Current Weight/Target Weight screens, and migrate legacy `profileBasics` checkpoints without changing serialized answer fields or canonical Body persistence.
+Activated `OnboardingStepId.bodyGoal` / `OnboardingSectionId.bodyGoal` in Product Onboarding runtime, reused the existing Goal/Current Weight/Target Weight screens, and made legacy `profileBasics` Body-child checkpoints resume safely without changing serialized answer fields or canonical Body persistence.
 
-## Active order
+## Active order established
 
-For every selected App Mode, the first two Product Onboarding top-level sections become:
+For every selected App Mode, the first two Product Onboarding top-level sections are:
 
 ```text
 profileBasics → userProfile
 bodyGoal      → bodyGoal
 ```
 
-Then existing mode-specific Workout/Targets/Review ordering continues unchanged.
+Then existing mode-specific Workout/Targets/Review ordering continues.
 
 ## Child ownership split
 
@@ -49,7 +62,7 @@ activity
 healthConditions
 ```
 
-Active `bodyGoal` child plan:
+Active `bodyGoal` child plan in O3B:
 
 ```text
 goal
@@ -57,65 +70,49 @@ currentWeight
 targetWeight?  ← GoalWeightFollowUpPolicy
 ```
 
-Persisted answer fields stay where they are for migration safety; section ownership/navigation changes now, durable storage ownership was already canonical before O3.
+Persisted answer fields remain compatibility containers; runtime section ownership is now separate.
 
-## Legacy resume contract
+## Legacy resume behavior validated
 
-Old snapshots may have:
+Old snapshots with:
 
 ```text
 current_step_id = profileBasics
 profile.currentStepId = goal | currentWeight | targetWeight
 ```
 
-Those snapshots must resume at top-level `bodyGoal` with the same nested child and answers preserved.
+resume in top-level `bodyGoal` with Body answers preserved. Common Profile children stay in `userProfile`.
 
-Old `profileBasics` snapshots on common Profile children remain at `userProfile`.
+Later top-level checkpoints remain later. Dormant compatible Body values/cursors are preserved so a same-direction flow can restore them; the active `BodyGoalFlowPlan` owns whether Target Weight is traversable. An actually active invalid Target Weight checkpoint reconciles to the nearest valid Body child.
 
-Snapshots already on later top-level steps remain on their later step. Existing Body answers remain preserved; no destructive reset or schema/version bump.
-
-If an old/invalid Target Weight child is no longer eligible under the current explicit goal direction, reconcile to the nearest valid Body Goal child rather than retaining a semantically invalid target.
-
-## Scope
-
-- split active common Profile child plan from legacy mixed Profile order;
-- add `bodyGoal` to active top-level flow after `profileBasics`;
-- add Body Goal progress identity;
-- add Body Goal section renderer that reuses existing screens;
-- update controller next/back/goal validation for Body Goal child navigation;
-- migrate legacy `profileBasics + body child` snapshots to `bodyGoal`;
-- preserve existing draft serialization and canonical Body repositories;
-- add focused flow/controller/renderer/progress/resume tests;
-- no Goal Pace relocation yet (O3C);
-- no O4 activation.
+Durable resume preservation also understands Body Goal child ordering, including Back-navigation and pre-O3 `profileBasics` Body cursors.
 
 ## Acceptance
 
-- [ ] all active mode plans place `bodyGoal` immediately after `profileBasics`;
-- [ ] `profileBasics` remains `userProfile` and only traverses common Profile children;
-- [ ] `bodyGoal` traverses Goal → Current Weight → eligible Target Weight;
-- [ ] existing Goal/weight screens render under `bodyGoal` without redesign;
-- [ ] Back from first Body Goal child returns to final common Profile child;
-- [ ] completion of final common Profile child enters Body Goal at Goal;
-- [ ] completion of final Body Goal child enters the next mode-specific top-level section;
-- [ ] legacy `profileBasics + goal/currentWeight/targetWeight` resumes at `bodyGoal` preserving answers;
-- [ ] later legacy checkpoints preserve their later top-level location and Body answers;
-- [ ] invalid/removed Target Weight reconciles safely;
-- [ ] continuous progress denominator remains the same for equivalent eligibility, with Body Goal items typed separately;
-- [ ] Goal Pace stays in Targets until O3C;
-- [ ] no persistence/schema/UI changes;
-- [ ] full Flutter analyze + Dart analyze + Flutter tests + Dart tests green on exact O3B checkpoint.
+- [x] all active mode plans place `bodyGoal` immediately after `profileBasics`;
+- [x] `profileBasics` remains `userProfile` and only traverses common Profile children;
+- [x] `bodyGoal` traverses Goal → Current Weight → eligible Target Weight;
+- [x] existing Goal/weight screens render under `bodyGoal` without redesign;
+- [x] Back from first Body Goal child returns to final common Profile child;
+- [x] completion of final common Profile child enters Body Goal at Goal;
+- [x] completion of final Body Goal child enters the next mode-specific top-level section;
+- [x] legacy `profileBasics + goal/currentWeight/targetWeight` resumes at `bodyGoal` preserving answers;
+- [x] later legacy checkpoints preserve their later top-level location and Body answers;
+- [x] active invalid/removed Target Weight reconciles safely while dormant compatible data remains recoverable;
+- [x] continuous progress denominator remains equivalent, with Body Goal items typed separately;
+- [x] Goal Pace stays in Targets for O3B and is delegated to O3C;
+- [x] no persistence/schema/UI redesign introduced;
+- [x] full Flutter analyze + Dart analyze + Flutter tests + Dart tests green on exact O3B checkpoint.
 
-## Guardrails
+## Guardrails preserved
 
 - no Body direction inference from numbers/BMI/training-only goals;
 - no legacy-column drop or applied migration edit;
 - no permanent dual-write synchronization;
 - Current Weight remains canonical Body-owned;
 - Body Goal/Target/Pace remain canonical `user_body_goals` owned;
-- O3C starts only after O3B exact full CI is green;
-- O4 stays blocked until O3D.
+- no O4 activation.
 
-## Current work
+## Handoff
 
-**Implement the runtime section/navigation/resume split with focused tests, then validate the exact branch head.**
+O3B is frozen at CI #1319. O3C is active on GitHub Issue #56 with focused task `.ai/tasks/product-onboarding-o3c-goal-pace-parity.md`.
