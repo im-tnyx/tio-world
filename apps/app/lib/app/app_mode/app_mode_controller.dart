@@ -24,16 +24,17 @@ class AppModeController extends ChangeNotifier {
 
   /// Configures App Mode writes for the current session lifecycle.
   ///
-  /// When [requireCanonical] is true, selection must commit through
+  /// When [requireCanonical] resolves true, selection must commit through
   /// [repository] before runtime publication. A missing repository then fails
-  /// closed instead of falling back to local-only persistence. Pre-auth and
-  /// onboarding flows disable this requirement so local staging remains valid.
+  /// closed instead of falling back to local-only persistence. Passing a
+  /// repository enables canonical writes by default; passing null disables them
+  /// unless the session explicitly requires a canonical writer.
   void setAuthenticatedWriteRepository(
     AppPreferencesRepository? repository, {
-    bool requireCanonical = true,
+    bool? requireCanonical,
   }) {
     _authenticatedWriteRepository = repository;
-    _authenticatedWriteRequired = requireCanonical;
+    _authenticatedWriteRequired = requireCanonical ?? repository != null;
   }
 
   Future<void> load() async {
