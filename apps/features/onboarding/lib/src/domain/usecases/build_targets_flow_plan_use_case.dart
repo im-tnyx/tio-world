@@ -8,23 +8,15 @@ class BuildTargetsFlowPlanUseCase {
     this.followUpPolicy = const GoalWeightFollowUpPolicy(),
   });
 
+  /// Retained as source-compatible construction surface during O3C.
+  /// Goal Pace eligibility is now consumed by Body Goal, not Targets.
   final GoalWeightFollowUpPolicy followUpPolicy;
 
   TargetsFlowPlan call({
     required AppMode? mode,
     required GoalIntentSelection goalSelection,
   }) {
-    final includeGoalPace = followUpPolicy.shouldCollectGoalPace(
-      mode: mode,
-      selection: goalSelection,
-    );
-
-    return TargetsFlowPlan(
-      steps: [
-        for (final step in TargetsFlowPlan.orderedSteps)
-          if (step != TargetStepId.goalPace || includeGoalPace) step,
-      ],
-    );
+    return const TargetsFlowPlan();
   }
 
   TargetStepId reconcileCurrentStep({
