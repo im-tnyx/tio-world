@@ -48,7 +48,9 @@ class OnboardingSectionRenderer extends StatelessWidget {
         MobileSection(state: state, controller: controller),
       OnboardingSectionId.workoutIntro =>
         WorkoutIntroSection(state: state, controller: controller),
-      OnboardingSectionId.workout || OnboardingSectionId.workoutProfile =>
+      OnboardingSectionId.workout ||
+      OnboardingSectionId.workoutProfile ||
+      OnboardingSectionId.workoutTargets =>
         WorkoutSection(state: state, controller: controller),
       OnboardingSectionId.nutritionIntro =>
         NutritionIntroSection(state: state, controller: controller),
@@ -57,8 +59,6 @@ class OnboardingSectionRenderer extends StatelessWidget {
       OnboardingSectionId.targets =>
         TargetsSection(state: state, controller: controller),
       OnboardingSectionId.review => ReviewSection(state: state),
-      OnboardingSectionId.workoutTargets =>
-        _futureSectionNotActive(OnboardingSectionId.workoutTargets),
       OnboardingSectionId.healthConnections =>
         _futureSectionNotActive(OnboardingSectionId.healthConnections),
       OnboardingSectionId.planBuilding =>
