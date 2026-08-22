@@ -1,6 +1,6 @@
 # App Mode Foundation — O1 Durable Account Preference
 
-**Status:** In progress — O1A + O1B + O1C validated; O1D authenticated bootstrap/restore is NEXT  
+**Status:** In progress — O1A + O1B + O1C + O1D validated; O1E Settings mode-change parity is NEXT  
 **Primary owners:** `apps/shared`, `apps/app`, onboarding, Settings, `user_app_preferences`  
 **Tracker:** #11  
 **Product Onboarding tracker:** #40  
@@ -31,21 +31,23 @@ Applied schema foundation:
 
 RLS is enabled. Authenticated users have SELECT/INSERT/UPDATE on their own row; anon has no table privileges.
 
-## Current runtime gap
-
-Onboarding completion now writes canonical App Mode/navigation before completion, but authenticated bootstrap still does not restore `user_app_preferences` and Settings still writes through the local controller path.
+## Current runtime state
 
 ```text
-O1C completion
+Onboarding completion
 → canonical user_app_preferences ✅
-→ local AppMode cache ✅
+→ local App Mode cache ✅
 
-returning login/bootstrap
-→ still local-first ❌
+Returning login / fresh install / second device
+→ canonical user_app_preferences wins ✅
+→ exact active_tabs order restored ✅
+→ local cache refreshed best-effort ✅
 
 Settings mode change
-→ still local-only ❌
+→ still local-only ❌  ← O1E
 ```
+
+`user_app_preferences` is authenticated account truth. SharedPreferences is cache/pre-auth staging, not authenticated authority.
 
 ## Canonical semantics
 
@@ -86,11 +88,10 @@ Dart tests      ✅
 Implemented:
 - `AppPreferencesState` with explicit missing-vs-present state;
 - nullable read-side `appMode` / `activeTabs` for recovery;
-- validated `AppPreferencesUpdate`;
-- `AppPreferencesUpdate.guided(AppMode)`;
+- validated `AppPreferencesUpdate` and `AppPreferencesUpdate.guided(AppMode)`;
 - backend-neutral `AppPreferencesRepository.read/upsert`;
 - stable `AppDestination.storageValue` + parser;
-- duplicate/empty rejection, order preservation, defensive copies.
+- duplicate/empty rejection, order preservation and defensive copies.
 
 ### O1B — Supabase adapter ✅
 
@@ -103,19 +104,15 @@ Flutter tests   ✅
 Dart tests      ✅
 ```
 
-Implemented in `apps/app`:
-- `SupabaseAppPreferencesRepository` implements shared `AppPreferencesRepository`;
-- `SupabaseAppPreferencesTableGateway` targets only `user_app_preferences`;
+Implemented:
+- `SupabaseAppPreferencesRepository` targets only `user_app_preferences`;
 - authenticated-user requirement;
 - missing row → explicit missing state;
-- app-mode-only row + null `active_tabs` supported for legacy recovery;
-- strict parsing of canonical `app_mode` / `active_tabs`;
-- unsupported mode/tab IDs and duplicate/empty tab arrays rejected;
+- app-mode-only row + null `active_tabs` supported;
+- strict parsing, supported IDs only, duplicate/empty rejection;
 - ordered `active_tabs` preserved;
-- upsert sends `user_id`, `app_mode`, `active_tabs` as one logical preference payload;
-- query/RLS/auth/gateway failures surface rather than becoming local success;
-- no onboarding-draft inference;
-- focused repository tests.
+- one logical `user_id` + `app_mode` + `active_tabs` upsert;
+- query/RLS/auth/gateway failures surface rather than becoming local success.
 
 ### O1C — onboarding completion cutover ✅
 
@@ -129,17 +126,35 @@ Dart tests      ✅
 ```
 
 Implemented:
-- `CompleteOnboardingUseCase` accepts an explicit backend-neutral `AppPreferencesRepository` dependency;
-- app composition exposes the Supabase-backed `appPreferencesRepositoryProvider` and injects it explicitly into onboarding completion;
-- unrelated `OnboardingCompletionRepository` and `AppPreferencesRepository` remain separate contracts—no runtime-type fallback/coupling;
-- successful completion order is owner data → optional finalizer → canonical App Preferences → local App Mode cache → remote completion → local completion → best-effort draft clear;
-- canonical write uses `AppPreferencesUpdate.guided(selectedMode)`;
-- canonical preference failure prevents local mode/completion publication and keeps retry possible;
-- backend completion failure still prevents local completed cache;
-- completed retry only short-circuits when local selected mode matches and canonical preference is present/usable; a missing canonical row is repaired;
-- bootstrap and Settings behavior intentionally unchanged;
-- focused tests lock success/failure/order + missing-canonical repair + fully canonical idempotent retry;
-- final router diff for production composition is only the canonical repository read + explicit use-case injection.
+- `CompleteOnboardingUseCase` accepts explicit backend-neutral `AppPreferencesRepository`;
+- successful completion orders owner data → optional finalizer → canonical App Preferences → local App Mode cache → remote completion → local completion → best-effort draft clear;
+- canonical write failure prevents false local mode/completion publication;
+- missing canonical preference on completed retry is repaired;
+- `OnboardingCompletionRepository` and `AppPreferencesRepository` remain separate contracts.
+
+### O1D — authenticated bootstrap/restore ✅
+
+Focused evidence: `.ai/tasks/app-mode-o1d-authenticated-bootstrap-restore.md`
+
+```text
+d5f03847d8c3e0216aa1acf864b44e31abbc251a
+Flutter CI #1210 / run 32550641153
+Bootstrap workspace        ✅
+Analyze Flutter packages   ✅
+Analyze Dart packages      ✅
+Test Flutter packages      ✅
+Test Dart packages         ✅
+```
+
+Implemented:
+- completed authenticated bootstrap reads `AppPreferencesRepository` before `AppSessionBootstrapReady`;
+- valid canonical state overrides stale/missing local state;
+- exact ordered `active_tabs` is carried through controller, shell and route allow-list;
+- `app_mode` + null tabs derives guided defaults;
+- missing completed-legacy row clears stale device semantic mode and keeps compatibility navigation without semantic inference;
+- missing semantic mode in a present row, malformed rows and canonical read failures keep bootstrap out of `Ready`;
+- local cache write failure cannot override accepted remote truth;
+- focused controller/session/route tests cover cleared-local/second-device-equivalent, stale-local, app-mode-only, missing, malformed and exact-order states.
 
 ## O1 execution order
 
@@ -147,49 +162,23 @@ Implemented:
 O1A domain/repository contract          ✅ #1183
 → O1B Supabase adapter                  ✅ #1187
 → O1C onboarding completion cutover     ✅ #1199
-→ O1D authenticated bootstrap/restore   NEXT
-→ O1E Settings mode-change parity
+→ O1D authenticated bootstrap/restore   ✅ #1210
+→ O1E Settings mode-change parity       NEXT
 → O1F integrated acceptance/full CI
 ```
 
 Only one O1 sub-slice is active at a time. Do not start O2 common Profile until O1F is validated.
 
-## O1D — Authenticated bootstrap/restore — NEXT
-
-Goal: make canonical remote App Mode/navigation truth available before final signed-in shell/navigation resolution.
-
-Precedence:
-
-```text
-authenticated account
-→ read user_app_preferences
-→ valid active_tabs: restore exact order
-→ app_mode + null active_tabs: derive guided defaults
-→ no canonical preference on completed legacy account: controlled recovery
-→ refresh local SharedPreferences cache
-```
+## O1E — Settings mode-change parity — NEXT
 
 Required:
-- [ ] wire `AppPreferencesRepository` into authenticated app/session bootstrap;
-- [ ] valid remote state wins over stale local cache;
-- [ ] cleared local cache recovers from remote;
-- [ ] second device recovers from remote;
-- [ ] app_mode-only canonical row derives current guided defaults without silently changing semantic mode;
-- [ ] missing remote preference never silently becomes Hybrid;
-- [ ] malformed canonical row surfaces controlled bootstrap failure/recovery rather than local success;
-- [ ] pre-auth local staging cannot overwrite another authenticated account;
-- [ ] no Settings write cutover yet;
-- [ ] focused bootstrap/controller/router tests + full relevant CI before O1E.
-
-Exit: authenticated navigation no longer depends on a stale/missing device-local App Mode value.
-
-## O1E — Settings mode-change parity
-
-Required:
-- Settings writes canonical `app_mode` + derived `active_tabs`;
-- local controller/cache updates only with canonical-success semantics;
-- remote failure does not display/save a false mode change;
-- mode changes never delete Body/Nutrition/Workout owner data.
+- Settings writes canonical `app_mode` + derived ordered `active_tabs`;
+- local controller/cache publishes the new mode only after canonical-success semantics;
+- canonical write failure does not display/save a false mode change;
+- current effective mode remains intact on failure;
+- mode changes never delete Body/Nutrition/Workout owner data;
+- preserve current Settings/App Mode UI;
+- focused Settings/controller/router tests + full relevant CI before O1F.
 
 ## O1F — Integrated acceptance
 
@@ -211,7 +200,7 @@ Required:
 - `user_app_preferences` is canonical App Mode/navigation owner;
 - `users` remains account root;
 - `user_profiles` owns common Profile only;
-- SharedPreferences becomes cache/pre-auth staging, not authenticated account authority;
+- SharedPreferences is cache/pre-auth staging, not authenticated account authority;
 - no permanent local/remote competing authorities;
 - no silent semantic mode inference;
 - onboarding draft mode is temporary orchestration state only;
@@ -221,6 +210,6 @@ Required:
 
 ## Handoff
 
-**Start O1D authenticated bootstrap/restore.**  
-Do not start O1E until O1D focused tests + CI are green.  
+**Start O1E Settings App Mode canonical write parity.**  
+Do not start O1F until O1E focused tests + CI are green.  
 After O1F validation, update trackers and start O2 common Profile owner/section.
