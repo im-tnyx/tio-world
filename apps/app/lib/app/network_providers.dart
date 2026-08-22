@@ -182,6 +182,28 @@ final workoutPreferencesRepositoryProvider =
   );
 });
 
+/// Canonical Nutrition Profile owner used by Product Onboarding completion.
+final nutritionProfileRepositoryProvider =
+    Provider<NutritionProfileRepository>((ref) {
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  if (supabaseClient != null) {
+    return SupabaseNutritionProfileRepository(client: supabaseClient);
+  }
+  return InMemoryNutritionProfileRepository();
+});
+
+/// Canonical Nutrition Targets owner used by Product Onboarding completion.
+final nutritionTargetsRepositoryProvider =
+    Provider<NutritionTargetsRepository>((ref) {
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  if (supabaseClient != null) {
+    return SupabaseNutritionTargetsRepository(client: supabaseClient);
+  }
+  return InMemoryNutritionTargetsRepository();
+});
+
+/// Legacy mixed Targets repository retained for compatibility consumers only.
+/// Product Onboarding completion must use the two canonical providers above.
 final targetsSetupRepositoryProvider = Provider<TargetsSetupRepository>((ref) {
   final supabaseClient = ref.watch(supabaseClientProvider);
   if (supabaseClient != null) {
