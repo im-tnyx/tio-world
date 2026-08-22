@@ -19,10 +19,11 @@ class PersistOnboardingOwnerDataUseCase {
     required Object profileRepository,
     required body_owner.BodySetupRepository bodyRepository,
     body_owner.WellnessTargetsRepository? wellnessRepository,
-    nutrition_owner.NutritionProfileRepository? nutritionProfileRepository,
+    required nutrition_owner.NutritionProfileRepository
+        nutritionProfileRepository,
     required workout_owner.WorkoutPreferencesRepository workoutRepository,
-    nutrition_owner.NutritionTargetsRepository? nutritionTargetsRepository,
-    required nutrition_owner.TargetsSetupRepository targetsRepository,
+    required nutrition_owner.NutritionTargetsRepository
+        nutritionTargetsRepository,
     this.profileMapper = const UserProfileMapper(),
     this.bodyMapper = const BodySetupMapper(),
     this.wellnessMapper = const WellnessTargetsMapper(),
@@ -37,8 +38,7 @@ class PersistOnboardingOwnerDataUseCase {
                 : null),
         _nutritionProfileRepository = nutritionProfileRepository,
         _workoutRepository = workoutRepository,
-        _nutritionTargetsRepository = nutritionTargetsRepository,
-        _legacyTargetsRepository = targetsRepository;
+        _nutritionTargetsRepository = nutritionTargetsRepository;
 
   /// Kept as [Object] only so legacy composition/tests can fail closed at the
   /// owner boundary instead of forcing an unsafe broad-interface cast.
@@ -47,13 +47,9 @@ class PersistOnboardingOwnerDataUseCase {
   final Object _profileRepository;
   final body_owner.BodySetupRepository _bodyRepository;
   final body_owner.WellnessTargetsRepository? _wellnessRepository;
-  final nutrition_owner.NutritionProfileRepository? _nutritionProfileRepository;
+  final nutrition_owner.NutritionProfileRepository _nutritionProfileRepository;
   final workout_owner.WorkoutPreferencesRepository _workoutRepository;
-  final nutrition_owner.NutritionTargetsRepository? _nutritionTargetsRepository;
-
-  /// Compatibility composition handle only. O5D never calls
-  /// [nutrition_owner.TargetsSetupRepository.saveTargetsSetup].
-  final nutrition_owner.TargetsSetupRepository _legacyTargetsRepository;
+  final nutrition_owner.NutritionTargetsRepository _nutritionTargetsRepository;
 
   final UserProfileMapper profileMapper;
   final BodySetupMapper bodyMapper;
@@ -61,34 +57,6 @@ class PersistOnboardingOwnerDataUseCase {
   final NutritionProfileMapper nutritionProfileMapper;
   final WorkoutPreferencesMapper workoutMapper;
   final NutritionTargetsMapper nutritionTargetsMapper;
-
-  nutrition_owner.NutritionProfileRepository?
-      get _resolvedNutritionProfileRepository {
-    final explicit = _nutritionProfileRepository;
-    if (explicit != null) return explicit;
-
-    final compatibility = _legacyTargetsRepository;
-    if (compatibility is nutrition_owner.CanonicalNutritionOwnerRepositories) {
-      final bundle = compatibility
-          as nutrition_owner.CanonicalNutritionOwnerRepositories;
-      return bundle.nutritionProfileRepository;
-    }
-    return null;
-  }
-
-  nutrition_owner.NutritionTargetsRepository?
-      get _resolvedNutritionTargetsRepository {
-    final explicit = _nutritionTargetsRepository;
-    if (explicit != null) return explicit;
-
-    final compatibility = _legacyTargetsRepository;
-    if (compatibility is nutrition_owner.CanonicalNutritionOwnerRepositories) {
-      final bundle = compatibility
-          as nutrition_owner.CanonicalNutritionOwnerRepositories;
-      return bundle.nutritionTargetsRepository;
-    }
-    return null;
-  }
 
   Future<void> call({
     required OnboardingDraft draft,
@@ -191,13 +159,7 @@ class PersistOnboardingOwnerDataUseCase {
       }
 
       try {
-        final repository = _resolvedNutritionProfileRepository;
-        if (repository == null) {
-          throw StateError(
-            'Product Onboarding requires the canonical NutritionProfileRepository.',
-          );
-        }
-        await repository.upsert(nutritionProfileData);
+        await _nutritionProfileRepository.upsert(nutritionProfileData);
       } catch (e, st) {
         throw OwnerPersistenceException(
           owner: OwnerPersistenceTarget.nutritionProfile,
@@ -251,13 +213,7 @@ class PersistOnboardingOwnerDataUseCase {
       }
 
       try {
-        final repository = _resolvedNutritionTargetsRepository;
-        if (repository == null) {
-          throw StateError(
-            'Product Onboarding requires the canonical NutritionTargetsRepository.',
-          );
-        }
-        await repository.upsert(nutritionTargetsData);
+        await _nutritionTargetsRepository.upsert(nutritionTargetsData);
       } catch (e, st) {
         throw OwnerPersistenceException(
           owner: OwnerPersistenceTarget.nutritionTargets,

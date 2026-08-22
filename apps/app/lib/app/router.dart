@@ -99,8 +99,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ref.read(onboardingStatusRepositoryProvider);
   final profileRepository = ref.read(profileSetupRepositoryProvider);
   final bodyRepository = ref.read(bodySetupRepositoryProvider);
+  final nutritionProfileRepository =
+      ref.read(nutritionProfileRepositoryProvider);
   final workoutRepository = ref.read(workoutPreferencesRepositoryProvider);
-  final targetsRepository = ref.read(targetsSetupRepositoryProvider);
+  final nutritionTargetsRepository =
+      ref.read(nutritionTargetsRepositoryProvider);
   final onboardingDraftRepository =
       ref.read(appOnboardingDraftRepositoryProvider);
   final onboardingCompletionRepository =
@@ -439,8 +442,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   persistOwnerDataUseCase: PersistOnboardingOwnerDataUseCase(
                     profileRepository: profileRepository,
                     bodyRepository: bodyRepository,
+                    nutritionProfileRepository: nutritionProfileRepository,
                     workoutRepository: workoutRepository,
-                    targetsRepository: targetsRepository,
+                    nutritionTargetsRepository: nutritionTargetsRepository,
                   ),
                   validator: OnboardingCompletionValidator(
                     hasDurableOwnerPersistence: hasDurableStorage,

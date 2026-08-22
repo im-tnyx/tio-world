@@ -13,13 +13,16 @@ void main() {
         'fresh Wellness values persist losslessly while Nutrition only consumes calculation inputs',
         () async {
       final wellness = body_owner.InMemoryWellnessTargetsRepository();
-      final targets = nutrition_owner.InMemoryTargetsSetupRepository();
+      final nutritionTargets =
+          nutrition_owner.InMemoryNutritionTargetsRepository();
       final persist = PersistOnboardingOwnerDataUseCase(
         profileRepository: _MemoryUserProfileRepository(),
         bodyRepository: body_owner.InMemoryBodySetupRepository(),
         wellnessRepository: wellness,
+        nutritionProfileRepository:
+            nutrition_owner.InMemoryNutritionProfileRepository(),
         workoutRepository: workout_owner.InMemoryWorkoutPreferencesRepository(),
-        targetsRepository: targets,
+        nutritionTargetsRepository: nutritionTargets,
       );
       final draft = _draft(
         targets: const TargetsOnboardingDraft(
@@ -51,15 +54,13 @@ void main() {
         ),
       );
 
-      // Nutrition may still consume these compatibility values for target and
-      // recommendation calculations. O4C repository coverage separately proves
-      // they are not written as durable Nutrition Wellness mirrors.
-      final nutritionTargets = await targets.getTargetsSetup();
-      expect(nutritionTargets?.dailySteps, 12345);
-      expect(nutritionTargets?.waterMl, 2875);
-      expect(nutritionTargets?.sleepTargetMinutes, 465);
-      expect(nutritionTargets?.sleepTimeMinutes, 1375);
-      expect(nutritionTargets?.wakeTimeMinutes, 395);
+      // Nutrition can consume Wellness inputs for recommendation calculation,
+      // but the canonical Nutrition Targets owner stores outputs only and has
+      // no Wellness mirror fields.
+      final calculatedTargets = await nutritionTargets.read();
+      expect(calculatedTargets, isNotNull);
+      expect(calculatedTargets?.caloriesKcal, isNotNull);
+      expect(calculatedTargets?.recommendationMetadata['source'], 'onboarding');
     });
 
     test(
@@ -107,13 +108,16 @@ void main() {
       expect(controller.state.draft.targets.hasWaterMlValue, isFalse);
 
       final wellness = body_owner.InMemoryWellnessTargetsRepository();
-      final nutritionTargets = nutrition_owner.InMemoryTargetsSetupRepository();
+      final nutritionTargets =
+          nutrition_owner.InMemoryNutritionTargetsRepository();
       final persist = PersistOnboardingOwnerDataUseCase(
         profileRepository: _MemoryUserProfileRepository(),
         bodyRepository: body_owner.InMemoryBodySetupRepository(),
         wellnessRepository: wellness,
+        nutritionProfileRepository:
+            nutrition_owner.InMemoryNutritionProfileRepository(),
         workoutRepository: workout_owner.InMemoryWorkoutPreferencesRepository(),
-        targetsRepository: nutritionTargets,
+        nutritionTargetsRepository: nutritionTargets,
       );
       final flowPlan = const BuildOnboardingFlowUseCase()(
         entryPath: OnboardingEntryPath.resumeDraft,
@@ -128,14 +132,11 @@ void main() {
         const body_owner.WellnessTargetsData(),
       );
 
-      // Compatibility defaults remain usable by Nutrition calculation code,
-      // but are not promoted to canonical Wellness truth.
-      final targetsForCalculation = await nutritionTargets.getTargetsSetup();
-      expect(targetsForCalculation?.dailySteps, 10000);
-      expect(targetsForCalculation?.sleepTargetMinutes, 480);
-      expect(targetsForCalculation?.sleepTimeMinutes, 1320);
-      expect(targetsForCalculation?.wakeTimeMinutes, 360);
-      expect(targetsForCalculation?.waterMl, 2500);
+      // Compatibility UI defaults remain available to the recommendation
+      // calculation without being promoted to canonical Wellness truth.
+      final calculatedTargets = await nutritionTargets.read();
+      expect(calculatedTargets, isNotNull);
+      expect(calculatedTargets?.caloriesKcal, isNotNull);
 
       final autosaved = snapshotMapper.toJson(
         OnboardingDraftSnapshot(draft: controller.state.draft),
@@ -179,8 +180,11 @@ void main() {
         profileRepository: _MemoryUserProfileRepository(),
         bodyRepository: body_owner.InMemoryBodySetupRepository(),
         wellnessRepository: wellness,
+        nutritionProfileRepository:
+            nutrition_owner.InMemoryNutritionProfileRepository(),
         workoutRepository: workout_owner.InMemoryWorkoutPreferencesRepository(),
-        targetsRepository: nutrition_owner.InMemoryTargetsSetupRepository(),
+        nutritionTargetsRepository:
+            nutrition_owner.InMemoryNutritionTargetsRepository(),
       );
       final flowPlan = const BuildOnboardingFlowUseCase()(
         entryPath: OnboardingEntryPath.resumeDraft,
@@ -203,8 +207,9 @@ void main() {
         'Wellness owner failure blocks Workout, Nutrition, mode and completion publication',
         () async {
       final operations = <String>[];
+      final nutritionProfile = _RecordingNutritionProfileRepository(operations);
       final workout = _RecordingWorkoutRepository(operations);
-      final targets = _RecordingTargetsRepository(operations);
+      final nutritionTargets = _RecordingNutritionTargetsRepository(operations);
       final preference = _RecordingAppModePreference(operations);
       final status = _RecordingOnboardingStatusRepository(operations);
       final useCase = CompleteOnboardingUseCase(
@@ -214,8 +219,9 @@ void main() {
           profileRepository: _RecordingProfileRepository(operations),
           bodyRepository: _RecordingBodyRepository(operations),
           wellnessRepository: _FailingWellnessRepository(operations),
+          nutritionProfileRepository: nutritionProfile,
           workoutRepository: workout,
-          targetsRepository: targets,
+          nutritionTargetsRepository: nutritionTargets,
         ),
         validator: const OnboardingCompletionValidator(
           hasDurableOwnerPersistence: true,
@@ -245,8 +251,9 @@ void main() {
         ),
       );
 
+      expect(nutritionProfile.upsertCalls, 0);
       expect(workout.saveCalls, 0);
-      expect(targets.saveCalls, 0);
+      expect(nutritionTargets.upsertCalls, 0);
       expect(preference.storedMode, isNull);
       expect(status.status, isNull);
       expect(
@@ -354,6 +361,23 @@ class _FailingWellnessRepository
   }
 }
 
+class _RecordingNutritionProfileRepository
+    implements nutrition_owner.NutritionProfileRepository {
+  _RecordingNutritionProfileRepository(this.operations);
+
+  final List<String> operations;
+  int upsertCalls = 0;
+
+  @override
+  Future<nutrition_owner.NutritionProfileData?> read() async => null;
+
+  @override
+  Future<void> upsert(nutrition_owner.NutritionProfileData profile) async {
+    upsertCalls += 1;
+    operations.add('nutritionProfile.upsert');
+  }
+}
+
 class _RecordingWorkoutRepository
     implements workout_owner.WorkoutPreferencesRepository {
   _RecordingWorkoutRepository(this.operations);
@@ -376,22 +400,20 @@ class _RecordingWorkoutRepository
   }
 }
 
-class _RecordingTargetsRepository
-    implements nutrition_owner.TargetsSetupRepository {
-  _RecordingTargetsRepository(this.operations);
+class _RecordingNutritionTargetsRepository
+    implements nutrition_owner.NutritionTargetsRepository {
+  _RecordingNutritionTargetsRepository(this.operations);
 
   final List<String> operations;
-  int saveCalls = 0;
-  nutrition_owner.TargetsSetupData? data;
+  int upsertCalls = 0;
 
   @override
-  Future<nutrition_owner.TargetsSetupData?> getTargetsSetup() async => data;
+  Future<nutrition_owner.NutritionTargetsData?> read() async => null;
 
   @override
-  Future<void> saveTargetsSetup(nutrition_owner.TargetsSetupData value) async {
-    saveCalls += 1;
-    operations.add('targets.save');
-    data = value;
+  Future<void> upsert(nutrition_owner.NutritionTargetsData targets) async {
+    upsertCalls += 1;
+    operations.add('nutritionTargets.upsert');
   }
 }
 

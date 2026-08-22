@@ -35,14 +35,18 @@ void main() {
 
       final body = body_owner.InMemoryBodySetupRepository();
       final wellness = body_owner.InMemoryWellnessTargetsRepository();
+      final nutritionProfile =
+          nutrition_owner.InMemoryNutritionProfileRepository();
       final workout = workout_owner.InMemoryWorkoutPreferencesRepository();
-      final targets = nutrition_owner.InMemoryTargetsSetupRepository();
+      final nutritionTargets =
+          nutrition_owner.InMemoryNutritionTargetsRepository();
       final persist = PersistOnboardingOwnerDataUseCase(
         profileRepository: bridge,
         bodyRepository: body,
         wellnessRepository: wellness,
+        nutritionProfileRepository: nutritionProfile,
         workoutRepository: workout,
-        targetsRepository: targets,
+        nutritionTargetsRepository: nutritionTargets,
       );
       final draft = _draft();
       final flowPlan = const BuildOnboardingFlowUseCase()(
@@ -63,7 +67,7 @@ void main() {
       expect(body.data?.currentWeightKg, 64);
       expect(body.data?.activeGoal?.targetWeightKg, isNull);
       expect(await workout.getWorkoutPreferences(), isNull);
-      expect(await targets.getTargetsSetup(), isNotNull);
+      expect(await nutritionTargets.read(), isNotNull);
 
       // Persisted onboarding resume identity remains the stable top-level
       // `profileBasics` step. The active plan resolves it to `userProfile`.
@@ -104,8 +108,11 @@ void main() {
       );
       final body = body_owner.InMemoryBodySetupRepository();
       final wellness = body_owner.InMemoryWellnessTargetsRepository();
+      final nutritionProfile =
+          nutrition_owner.InMemoryNutritionProfileRepository();
       final workout = workout_owner.InMemoryWorkoutPreferencesRepository();
-      final targets = nutrition_owner.InMemoryTargetsSetupRepository();
+      final nutritionTargets =
+          nutrition_owner.InMemoryNutritionTargetsRepository();
       final preference = _RecordingAppModePreference(operations);
       final status = _RecordingOnboardingStatusRepository(operations);
       final useCase = CompleteOnboardingUseCase(
@@ -115,8 +122,9 @@ void main() {
           profileRepository: bridge,
           bodyRepository: body,
           wellnessRepository: wellness,
+          nutritionProfileRepository: nutritionProfile,
           workoutRepository: workout,
-          targetsRepository: targets,
+          nutritionTargetsRepository: nutritionTargets,
         ),
         validator: const OnboardingCompletionValidator(
           hasDurableOwnerPersistence: true,
@@ -135,6 +143,7 @@ void main() {
       expect(canonical.data, _canonicalProfile(name: 'Accepted User'));
       expect(legacy.saveCalls, 0);
       expect(body.data?.currentWeightKg, 64);
+      expect(await nutritionTargets.read(), isNotNull);
       expect(preference.storedMode, AppMode.nutrition);
       expect(status.status, OnboardingStatus.completed);
       expect(
@@ -171,9 +180,12 @@ void main() {
         persistOwnerDataUseCase: PersistOnboardingOwnerDataUseCase(
           profileRepository: bridge,
           bodyRepository: body,
+          nutritionProfileRepository:
+              nutrition_owner.InMemoryNutritionProfileRepository(),
           workoutRepository:
               workout_owner.InMemoryWorkoutPreferencesRepository(),
-          targetsRepository: nutrition_owner.InMemoryTargetsSetupRepository(),
+          nutritionTargetsRepository:
+              nutrition_owner.InMemoryNutritionTargetsRepository(),
         ),
         validator: const OnboardingCompletionValidator(
           hasDurableOwnerPersistence: true,

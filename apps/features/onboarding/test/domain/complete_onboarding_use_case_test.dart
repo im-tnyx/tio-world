@@ -12,22 +12,25 @@ void main() {
   late profile_owner.InMemoryProfileSetupRepository profileRepo;
   late body_owner.InMemoryBodySetupRepository bodyRepo;
   late body_owner.InMemoryWellnessTargetsRepository wellnessRepo;
+  late nutrition_owner.InMemoryNutritionProfileRepository nutritionProfileRepo;
   late workout_owner.InMemoryWorkoutPreferencesRepository workoutRepo;
-  late nutrition_owner.InMemoryTargetsSetupRepository targetsRepo;
+  late nutrition_owner.InMemoryNutritionTargetsRepository nutritionTargetsRepo;
   late PersistOnboardingOwnerDataUseCase persistUseCase;
 
   setUp(() {
     profileRepo = profile_owner.InMemoryProfileSetupRepository();
     bodyRepo = body_owner.InMemoryBodySetupRepository();
     wellnessRepo = body_owner.InMemoryWellnessTargetsRepository();
+    nutritionProfileRepo = nutrition_owner.InMemoryNutritionProfileRepository();
     workoutRepo = workout_owner.InMemoryWorkoutPreferencesRepository();
-    targetsRepo = nutrition_owner.InMemoryTargetsSetupRepository();
+    nutritionTargetsRepo = nutrition_owner.InMemoryNutritionTargetsRepository();
     persistUseCase = PersistOnboardingOwnerDataUseCase(
       profileRepository: profileRepo,
       bodyRepository: bodyRepo,
       wellnessRepository: wellnessRepo,
+      nutritionProfileRepository: nutritionProfileRepo,
       workoutRepository: workoutRepo,
-      targetsRepository: targetsRepo,
+      nutritionTargetsRepository: nutritionTargetsRepo,
     );
   });
 
@@ -96,8 +99,9 @@ void main() {
     expect(await profileRepo.getProfileSetup(), isNull);
     expect(bodyRepo.data, isNull);
     expect(wellnessRepo.data, isNull);
+    expect(await nutritionProfileRepo.read(), isNull);
     expect(await workoutRepo.getWorkoutPreferences(), isNull);
-    expect(await targetsRepo.getTargetsSetup(), isNull);
+    expect(await nutritionTargetsRepo.read(), isNull);
   });
 
   test(
@@ -182,8 +186,9 @@ void main() {
     expect(bodyRepo.data, isNotNull);
     expect(wellnessRepo.data, isNotNull);
     expect(wellnessRepo.data?.dailySteps, 10000);
+    expect(await nutritionProfileRepo.read(), isNull);
     expect(await workoutRepo.getWorkoutPreferences(), isNotNull);
-    expect(await targetsRepo.getTargetsSetup(), isNotNull);
+    expect(await nutritionTargetsRepo.read(), isNotNull);
     expect(preference.storedMode, AppMode.workout);
     expect(repository.status, OnboardingStatus.completed);
     expect(
@@ -209,8 +214,9 @@ void main() {
         profileRepository: failingProfileRepo,
         bodyRepository: bodyRepo,
         wellnessRepository: wellnessRepo,
+        nutritionProfileRepository: nutritionProfileRepo,
         workoutRepository: workoutRepo,
-        targetsRepository: targetsRepo,
+        nutritionTargetsRepository: nutritionTargetsRepo,
       ),
       validator: const OnboardingCompletionValidator(
         hasDurableOwnerPersistence: true,

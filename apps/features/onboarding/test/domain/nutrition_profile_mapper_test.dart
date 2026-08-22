@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tio_feature_nutrition/nutrition.dart' as nutrition_owner;
 import 'package:tio_feature_onboarding/onboarding.dart';
 
 void main() {
@@ -7,26 +6,27 @@ void main() {
     const mapper = NutritionProfileMapper();
 
     test('keeps unanswered Nutrition context unknown', () {
-      expect(
-        mapper.map(const NutritionOnboardingDraft()),
-        const nutrition_owner.NutritionProfileData(),
-      );
+      final mapped = mapper.map(const NutritionOnboardingDraft());
+
+      expect(mapped.preferredDiet, isNull);
+      expect(mapped.allergies, isNull);
+      expect(mapped.dislikedFoods, isNull);
+      expect(mapped.medicalConditions, isNull);
     });
 
     test('maps diet and explicit None to preferred diet plus empty allergies',
         () {
-      expect(
-        mapper.map(
-          const NutritionOnboardingDraft(
-            dietType: NutritionDietType.vegan,
-            allergyRestrictions: {NutritionAllergyRestriction.none},
-          ),
-        ),
-        const nutrition_owner.NutritionProfileData(
-          preferredDiet: 'vegan',
-          allergies: {},
+      final mapped = mapper.map(
+        const NutritionOnboardingDraft(
+          dietType: NutritionDietType.vegan,
+          allergyRestrictions: {NutritionAllergyRestriction.none},
         ),
       );
+
+      expect(mapped.preferredDiet, 'vegan');
+      expect(mapped.allergies, isEmpty);
+      expect(mapped.dislikedFoods, isNull);
+      expect(mapped.medicalConditions, isNull);
     });
 
     test('maps selected restrictions to stable storage strings', () {
