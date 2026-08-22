@@ -5,8 +5,8 @@ import 'package:tio_feature_workout/workout.dart' as workout_owner;
 
 import '../models/models.dart';
 import 'body_setup_mapper.dart';
-import 'profile_setup_mapper.dart';
 import 'targets_setup_mapper.dart';
+import 'user_profile_mapper.dart';
 import 'weight_goal_flow_policy.dart';
 import 'workout_preferences_mapper.dart';
 
@@ -15,11 +15,11 @@ import 'workout_preferences_mapper.dart';
 /// persisted data contract.
 class PersistOnboardingOwnerDataUseCase {
   const PersistOnboardingOwnerDataUseCase({
-    required profile_owner.ProfileSetupRepository profileRepository,
+    required profile_owner.UserProfileRepository profileRepository,
     required body_owner.BodySetupRepository bodyRepository,
     required workout_owner.WorkoutPreferencesRepository workoutRepository,
     required nutrition_owner.TargetsSetupRepository targetsRepository,
-    this.profileMapper = const ProfileSetupMapper(),
+    this.profileMapper = const UserProfileMapper(),
     this.bodyMapper = const BodySetupMapper(),
     this.workoutMapper = const WorkoutPreferencesMapper(),
     this.targetsMapper = const TargetsSetupMapper(),
@@ -29,12 +29,12 @@ class PersistOnboardingOwnerDataUseCase {
         _workoutRepository = workoutRepository,
         _targetsRepository = targetsRepository;
 
-  final profile_owner.ProfileSetupRepository _profileRepository;
+  final profile_owner.UserProfileRepository _profileRepository;
   final body_owner.BodySetupRepository _bodyRepository;
   final workout_owner.WorkoutPreferencesRepository _workoutRepository;
   final nutrition_owner.TargetsSetupRepository _targetsRepository;
 
-  final ProfileSetupMapper profileMapper;
+  final UserProfileMapper profileMapper;
   final BodySetupMapper bodyMapper;
   final WorkoutPreferencesMapper workoutMapper;
   final TargetsSetupMapper targetsMapper;
@@ -49,27 +49,24 @@ class PersistOnboardingOwnerDataUseCase {
       selection: draft.goalSelection,
     );
 
-    final profile_owner.ProfileSetupData profileData;
+    final profile_owner.UserProfileData profileData;
     try {
-      profileData = profileMapper.map(
-        draft.profile,
-        activeWeightDirection: activeWeightDirection,
-      );
+      profileData = profileMapper.map(draft.profile);
     } catch (e, st) {
       throw OwnerPersistenceException(
         owner: OwnerPersistenceTarget.profile,
-        message: 'Failed to map profile setup data: $e',
+        message: 'Failed to map canonical common Profile data: $e',
         cause: e,
         stackTrace: st,
       );
     }
 
     try {
-      await _profileRepository.saveProfileSetup(profileData);
+      await _profileRepository.upsert(profileData);
     } catch (e, st) {
       throw OwnerPersistenceException(
         owner: OwnerPersistenceTarget.profile,
-        message: 'Failed to persist profile setup data: $e',
+        message: 'Failed to persist canonical common Profile data: $e',
         cause: e,
         stackTrace: st,
       );
