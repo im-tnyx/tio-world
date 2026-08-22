@@ -525,7 +525,15 @@ Future<void> _completeProfileInputs(WidgetTester tester) async {
       warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  // Target Weight -> Workout Intro.
+  // Target Weight -> Goal Pace.
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
+      warnIfMissed: false);
+  await tester.pumpAndSettle();
+
+  onboardingController.updateGoalPaceKgPerWeek(0.5);
+  await tester.pump();
+
+  // Goal Pace -> Workout Intro.
   await tester.tap(find.widgetWithText(TioButton, 'Continue'),
       warnIfMissed: false);
   await tester.pumpAndSettle();
