@@ -44,6 +44,9 @@ class OnboardingState {
         goalSelection: draft.goalSelection,
       );
 
+  WellnessFlowPlan get wellnessFlowPlan =>
+      const BuildWellnessFlowPlanUseCase()();
+
   TargetsFlowPlan get targetsFlowPlan => const BuildTargetsFlowPlanUseCase()(
         mode: draft.selectedMode,
         goalSelection: draft.goalSelection,
@@ -56,11 +59,8 @@ class OnboardingState {
       );
 
   /// Whether the current user-facing onboarding screen has an internal
-  /// previous screen, including nested Profile, Body Goal, Workout, and
-  /// Targets flows.
-  ///
-  /// [hasPreviousStep] intentionally remains the top-level flow-plan check for
-  /// callers that specifically need section-level position.
+  /// previous screen, including nested Profile, Body Goal, Wellness, Workout,
+  /// and Targets flows.
   bool get hasPreviousScreen {
     if (stepId == OnboardingStepId.profileBasics &&
         profileFlowPlan.previous(draft.profile.currentStepId) != null) {
@@ -69,6 +69,11 @@ class OnboardingState {
 
     if (stepId == OnboardingStepId.bodyGoal &&
         bodyGoalFlowPlan.previous(draft.profile.currentStepId) != null) {
+      return true;
+    }
+
+    if (stepId == OnboardingStepId.wellnessGoals &&
+        wellnessFlowPlan.previous(draft.targets.currentStepId) != null) {
       return true;
     }
 
@@ -125,6 +130,7 @@ class OnboardingState {
       flowPlan: flowPlan,
       profileFlowPlan: profileFlowPlan,
       bodyGoalFlowPlan: bodyGoalFlowPlan,
+      wellnessFlowPlan: wellnessFlowPlan,
       workoutFlowPlan: workoutFlowPlan,
       targetsFlowPlan: targetsFlowPlan,
     );
