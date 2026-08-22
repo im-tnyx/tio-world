@@ -5,63 +5,62 @@ import 'package:tio_feature_workout/workout.dart' as workout_owner;
 
 import '../models/models.dart';
 import 'body_setup_mapper.dart';
-import 'targets_setup_mapper.dart';
+import 'nutrition_profile_mapper.dart';
+import 'nutrition_targets_mapper.dart';
 import 'user_profile_mapper.dart';
-import 'weight_goal_flow_policy.dart';
 import 'wellness_targets_mapper.dart';
 import 'workout_preferences_mapper.dart';
 
-/// Completion coordinator that maps onboarding answers into durable owner
-/// repositories. Onboarding remains orchestration-only; each feature owns its
-/// persisted data contract.
+/// Completion coordinator that maps onboarding answers into durable canonical
+/// owner repositories. Onboarding remains orchestration-only; each feature owns
+/// its persisted data contract.
 class PersistOnboardingOwnerDataUseCase {
   const PersistOnboardingOwnerDataUseCase({
     required Object profileRepository,
     required body_owner.BodySetupRepository bodyRepository,
     body_owner.WellnessTargetsRepository? wellnessRepository,
+    required nutrition_owner.NutritionProfileRepository
+        nutritionProfileRepository,
     required workout_owner.WorkoutPreferencesRepository workoutRepository,
-    required nutrition_owner.TargetsSetupRepository targetsRepository,
+    required nutrition_owner.NutritionTargetsRepository nutritionTargetsRepository,
     this.profileMapper = const UserProfileMapper(),
     this.bodyMapper = const BodySetupMapper(),
     this.wellnessMapper = const WellnessTargetsMapper(),
+    this.nutritionProfileMapper = const NutritionProfileMapper(),
     this.workoutMapper = const WorkoutPreferencesMapper(),
-    this.targetsMapper = const TargetsSetupMapper(),
-    this.weightGoalPolicy = const WeightGoalFlowPolicy(),
+    this.nutritionTargetsMapper = const NutritionTargetsMapper(),
   })  : _profileRepository = profileRepository,
         _bodyRepository = bodyRepository,
         _wellnessRepository = wellnessRepository ??
             (bodyRepository is body_owner.WellnessTargetsRepository
                 ? bodyRepository as body_owner.WellnessTargetsRepository
                 : null),
+        _nutritionProfileRepository = nutritionProfileRepository,
         _workoutRepository = workoutRepository,
-        _targetsRepository = targetsRepository;
+        _nutritionTargetsRepository = nutritionTargetsRepository;
 
   /// Kept as [Object] only so legacy composition/tests can fail closed at the
   /// owner boundary instead of forcing an unsafe broad-interface cast.
-  /// Production O2C composition must provide an object that implements
+  /// Production composition must provide an object that implements
   /// [profile_owner.UserProfileRepository].
   final Object _profileRepository;
   final body_owner.BodySetupRepository _bodyRepository;
   final body_owner.WellnessTargetsRepository? _wellnessRepository;
+  final nutrition_owner.NutritionProfileRepository _nutritionProfileRepository;
   final workout_owner.WorkoutPreferencesRepository _workoutRepository;
-  final nutrition_owner.TargetsSetupRepository _targetsRepository;
+  final nutrition_owner.NutritionTargetsRepository _nutritionTargetsRepository;
 
   final UserProfileMapper profileMapper;
   final BodySetupMapper bodyMapper;
   final WellnessTargetsMapper wellnessMapper;
+  final NutritionProfileMapper nutritionProfileMapper;
   final WorkoutPreferencesMapper workoutMapper;
-  final TargetsSetupMapper targetsMapper;
-  final WeightGoalFlowPolicy weightGoalPolicy;
+  final NutritionTargetsMapper nutritionTargetsMapper;
 
   Future<void> call({
     required OnboardingDraft draft,
     required OnboardingFlowPlan flowPlan,
   }) async {
-    final activeWeightDirection = weightGoalPolicy.directionFor(
-      mode: draft.selectedMode,
-      selection: draft.goalSelection,
-    );
-
     final profile_owner.UserProfileData profileData;
     try {
       profileData = profileMapper.map(draft.profile);
@@ -143,6 +142,33 @@ class PersistOnboardingOwnerDataUseCase {
       );
     }
 
+    final requiresNutritionProfile =
+        flowPlan.stepIds.contains(OnboardingStepId.nutritionProfile);
+    if (requiresNutritionProfile) {
+      final nutrition_owner.NutritionProfileData nutritionProfileData;
+      try {
+        nutritionProfileData = nutritionProfileMapper.map(draft.nutrition);
+      } catch (e, st) {
+        throw OwnerPersistenceException(
+          owner: OwnerPersistenceTarget.nutritionProfile,
+          message: 'Failed to map canonical Nutrition Profile data: $e',
+          cause: e,
+          stackTrace: st,
+        );
+      }
+
+      try {
+        await _nutritionProfileRepository.upsert(nutritionProfileData);
+      } catch (e, st) {
+        throw OwnerPersistenceException(
+          owner: OwnerPersistenceTarget.nutritionProfile,
+          message: 'Failed to persist canonical Nutrition Profile data: $e',
+          cause: e,
+          stackTrace: st,
+        );
+      }
+    }
+
     final requiresWorkout =
         flowPlan.stepIds.contains(OnboardingStepId.workoutPreferences);
     if (requiresWorkout) {
@@ -170,31 +196,31 @@ class PersistOnboardingOwnerDataUseCase {
       }
     }
 
-    final nutrition_owner.TargetsSetupData targetsData;
-    try {
-      targetsData = targetsMapper.map(
-        targetsDraft: draft.targets,
-        profileDraft: draft.profile,
-        activeWeightDirection: activeWeightDirection,
-      );
-    } catch (e, st) {
-      throw OwnerPersistenceException(
-        owner: OwnerPersistenceTarget.targets,
-        message: 'Failed to map targets setup data: $e',
-        cause: e,
-        stackTrace: st,
-      );
-    }
+    final requiresNutritionTargets =
+        flowPlan.stepIds.contains(OnboardingStepId.nutritionGoals);
+    if (requiresNutritionTargets) {
+      final nutrition_owner.NutritionTargetsData nutritionTargetsData;
+      try {
+        nutritionTargetsData = nutritionTargetsMapper.map(draft);
+      } catch (e, st) {
+        throw OwnerPersistenceException(
+          owner: OwnerPersistenceTarget.nutritionTargets,
+          message: 'Failed to map canonical Nutrition Targets data: $e',
+          cause: e,
+          stackTrace: st,
+        );
+      }
 
-    try {
-      await _targetsRepository.saveTargetsSetup(targetsData);
-    } catch (e, st) {
-      throw OwnerPersistenceException(
-        owner: OwnerPersistenceTarget.targets,
-        message: 'Failed to persist targets setup data: $e',
-        cause: e,
-        stackTrace: st,
-      );
+      try {
+        await _nutritionTargetsRepository.upsert(nutritionTargetsData);
+      } catch (e, st) {
+        throw OwnerPersistenceException(
+          owner: OwnerPersistenceTarget.nutritionTargets,
+          message: 'Failed to persist canonical Nutrition Targets data: $e',
+          cause: e,
+          stackTrace: st,
+        );
+      }
     }
   }
 }
@@ -203,7 +229,12 @@ enum OwnerPersistenceTarget {
   profile,
   body,
   wellness,
+  nutritionProfile,
   workout,
+  nutritionTargets,
+
+  /// Retained only as a compatibility enum value for older serialized/test
+  /// references. O5D no longer emits this owner from Product Onboarding.
   targets,
 }
 
