@@ -192,6 +192,16 @@ void main() {
 
     await _completeProfileInputs(tester);
 
+    // O5B inserts the canonical Nutrition Profile before Hybrid Workout setup.
+    await tester.tap(find.byKey(const ValueKey('nutrition-diet-vegetarian')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TioButton, 'Continue'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('nutrition-allergy-none')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TioButton, 'Continue'));
+    await tester.pumpAndSettle();
+
     await tester
         .ensureVisible(find.byKey(const ValueKey('workout-intro-later')));
     await tester.pumpAndSettle();
@@ -538,7 +548,7 @@ Future<void> _completeProfileInputs(WidgetTester tester) async {
       warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  // Wellness Bridge -> Steps -> Sleep -> Water -> Workout Intro.
+  // Wellness Bridge -> Steps -> Sleep -> Water -> next active section.
   for (var step = 0; step < 4; step++) {
     await tester.tap(find.widgetWithText(TioButton, 'Continue'),
         warnIfMissed: false);
