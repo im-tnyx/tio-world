@@ -3,14 +3,14 @@ import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
-  const profilePlanner = BuildProfileFlowPlanUseCase();
+  const bodyGoalPlanner = BuildBodyGoalFlowPlanUseCase();
   const targetsPlanner = BuildTargetsFlowPlanUseCase();
 
-  bool profileCollects({
+  bool bodyGoalCollects({
     required AppMode mode,
     required GoalIntentSelection selection,
   }) =>
-      profilePlanner(mode: mode, goalSelection: selection)
+      bodyGoalPlanner(mode: mode, goalSelection: selection)
           .contains(ProfileStepId.targetWeight);
 
   bool targetsCollects({
@@ -31,7 +31,7 @@ void main() {
     for (final entry in expected.entries) {
       final selection = GoalIntentSelection(primaryGoal: entry.key);
       expect(
-        profileCollects(mode: AppMode.nutrition, selection: selection),
+        bodyGoalCollects(mode: AppMode.nutrition, selection: selection),
         entry.value,
         reason: 'Target Weight eligibility for ${entry.key}',
       );
@@ -62,14 +62,14 @@ void main() {
       );
 
       for (final selection in [primaryLoss, supportingLoss]) {
-        expect(profileCollects(mode: mode, selection: selection), isTrue);
+        expect(bodyGoalCollects(mode: mode, selection: selection), isTrue);
         expect(targetsCollects(mode: mode, selection: selection), isTrue);
       }
 
       for (final goal in trainingOnly) {
         final selection = GoalIntentSelection(primaryGoal: goal);
         expect(
-          profileCollects(mode: mode, selection: selection),
+          bodyGoalCollects(mode: mode, selection: selection),
           isFalse,
           reason: '$goal must not activate Target Weight in $mode',
         );
@@ -83,13 +83,13 @@ void main() {
   });
 
   test('reconcile moves an ineligible Target Weight step to Current Weight', () {
-    final previousPlan = profilePlanner(
+    final previousPlan = bodyGoalPlanner(
       mode: AppMode.nutrition,
       goalSelection: const GoalIntentSelection(
         primaryGoal: GoalIntent.loseWeight,
       ),
     );
-    final nextPlan = profilePlanner(
+    final nextPlan = bodyGoalPlanner(
       mode: AppMode.nutrition,
       goalSelection: const GoalIntentSelection(
         primaryGoal: GoalIntent.maintainWeight,
@@ -97,7 +97,7 @@ void main() {
     );
 
     expect(
-      profilePlanner.reconcileCurrentStep(
+      bodyGoalPlanner.reconcileCurrentStep(
         currentStepId: ProfileStepId.targetWeight,
         previousPlan: previousPlan,
         nextPlan: nextPlan,
