@@ -107,16 +107,6 @@ final profileSetupRepositoryProvider = Provider<ProfileSetupRepository>((ref) {
   );
 });
 
-/// Canonical Body owner. Production uses the live Supabase Body tables; an
-/// in-memory fallback keeps non-Supabase test/local harnesses constructible.
-final bodySetupRepositoryProvider = Provider<BodySetupRepository>((ref) {
-  final supabaseClient = ref.watch(supabaseClientProvider);
-  if (supabaseClient != null) {
-    return SupabaseBodySetupRepository(client: supabaseClient);
-  }
-  return InMemoryBodySetupRepository();
-});
-
 /// Canonical Wellness owner. Production writes only `user_wellness_targets`;
 /// an in-memory fallback keeps non-Supabase test/local harnesses constructible.
 final wellnessTargetsRepositoryProvider =
@@ -127,6 +117,49 @@ final wellnessTargetsRepositoryProvider =
   }
   return InMemoryWellnessTargetsRepository();
 });
+
+/// Canonical Body owner. The returned object also exposes the canonical
+/// Wellness owner boundary so existing onboarding composition can advance O4C
+/// without widening router glue. The two owners still delegate to independent
+/// repositories/tables.
+final bodySetupRepositoryProvider = Provider<BodySetupRepository>((ref) {
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  final BodySetupRepository bodyRepository = supabaseClient != null
+      ? SupabaseBodySetupRepository(client: supabaseClient)
+      : InMemoryBodySetupRepository();
+
+  return _BodyAndWellnessSetupRepository(
+    bodyRepository: bodyRepository,
+    wellnessRepository: ref.watch(wellnessTargetsRepositoryProvider),
+  );
+});
+
+final class _BodyAndWellnessSetupRepository
+    implements BodySetupRepository, WellnessTargetsRepository {
+  const _BodyAndWellnessSetupRepository({
+    required BodySetupRepository bodyRepository,
+    required WellnessTargetsRepository wellnessRepository,
+  })  : _bodyRepository = bodyRepository,
+        _wellnessRepository = wellnessRepository;
+
+  final BodySetupRepository _bodyRepository;
+  final WellnessTargetsRepository _wellnessRepository;
+
+  @override
+  Future<void> saveBodySetup(BodySetupData data) {
+    return _bodyRepository.saveBodySetup(data);
+  }
+
+  @override
+  Future<WellnessTargetsData?> read() {
+    return _wellnessRepository.read();
+  }
+
+  @override
+  Future<void> upsert(WellnessTargetsData targets) {
+    return _wellnessRepository.upsert(targets);
+  }
+}
 
 final profileAccountRepositoryProvider =
     Provider<ProfileAccountRepository?>((ref) {
