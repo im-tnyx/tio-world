@@ -1,8 +1,9 @@
 # Product Onboarding O3 — Canonical Body Goal Section
 
-**Status:** In progress — O3C Goal Pace placement ACTIVE  
+**Status:** In progress — O3A/O3B/O3C validated; O3D integrated Body acceptance ACTIVE  
 **Tracker:** GitHub Issue #55  
-**Focused O3C:** GitHub Issue #56  
+**O3C:** #56 ✅ closed  
+**O3D:** #57 ACTIVE  
 **Parent tracker:** #40  
 **Canonical ownership:** #44  
 **Predecessor:** #53 O2 common User Profile ✅  
@@ -12,28 +13,27 @@
 ## Validated foundation
 
 O2 final:
-
 ```text
 7e7119aa4dfe9cb53b1078376aa93e950f987adb
 Flutter CI #1279 / run 32555540391 ✅
 ```
 
 O3A typed Body Goal child-flow contract:
-
 ```text
 4878ebc0045be9c3d6921aafffcf9f4791df0fd9
-Flutter CI #1290 / run 32556313431
-Flutter analyze ✅
-Dart analyze    ✅
-Flutter tests   ✅
-Dart tests      ✅
+Flutter CI #1290 / run 32556313431 ✅
 ```
 
 O3B runtime `bodyGoal` section + legacy resume:
-
 ```text
 3df7dbd61a57340f7d6f767361d3ceaa49cc83fb
-Flutter CI #1319 / run 32558694870
+Flutter CI #1319 / run 32558694870 ✅
+```
+
+O3C Goal Pace placement/parity:
+```text
+b47495e23f055c7d95eeccbca03b71c35aa38962
+Flutter CI #1345 / run 32561257485
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
@@ -42,7 +42,7 @@ Dart tests      ✅
 
 ## Outcome
 
-Give Body Goal its own Product Onboarding section while keeping one canonical Body owner, preserving user-facing Goal/weight behavior, and placing Goal Pace with its actual Body owner.
+Give Body Goal its own Product Onboarding section and prove one canonical Body owner across runtime navigation, persistence, readback, retry, resume and completion failure ordering.
 
 Canonical ownership:
 
@@ -72,14 +72,14 @@ These are migration-safe draft containers, not durable ownership declarations.
 
 ```text
 O3A typed Body Goal child-flow contract                         ✅ CI #1290
-→ O3B activate bodyGoal top-level section + renderer/navigation ✅ CI #1319
-→ O3C Goal Pace placement + Profile/Body separation parity      ACTIVE #56
-→ O3D integrated canonical Body read/write/resume + full CI
+O3B activate bodyGoal top-level section + renderer/navigation   ✅ CI #1319
+O3C Goal Pace placement + Profile/Body separation parity        ✅ #56 / CI #1345
+→ O3D integrated canonical Body read/write/resume + full CI     ACTIVE #57
 ```
 
 Only one O3 sub-slice is active at a time.
 
-## O3B established runtime boundary
+## Established runtime boundary
 
 ```text
 userProfile
@@ -92,59 +92,48 @@ userProfile
   healthConditions
 
 bodyGoal
-  goal
-  currentWeight
-  targetWeight?  ← GoalWeightFollowUpPolicy
-```
-
-Existing Goal/current/target screens are reused without redesign. Legacy `profileBasics + Body child` checkpoints migrate to `bodyGoal`; later checkpoints stay later and preserve dormant compatible Body values.
-
-## O3C — ACTIVE
-
-Tracker: #56  
-Focused task: `.ai/tasks/product-onboarding-o3c-goal-pace-parity.md`.
-
-Current mismatch:
-
-```text
-canonical durable owner: user_body_goals
-runtime location:        Targets / TargetStepId.goalPace
-value container:         TargetsOnboardingDraft.goalPaceKgPerWeek
-```
-
-Target runtime boundary for eligible explicit weight-direction flows:
-
-```text
-bodyGoal
   Goal
   → Current Weight
-  → Target Weight
-  → Goal Pace
+  → Target Weight?  ← GoalWeightFollowUpPolicy
+  → Goal Pace?      ← same eligibility
 ```
 
-For non-directional/ineligible flows:
+When directional follow-ups are ineligible, Body Goal stops after Current Weight.
+
+Active Targets is now:
 
 ```text
-bodyGoal
-  Goal
-  → Current Weight
+Bridge → Step Target → Sleep Target → Water Target → Nutrition Target
 ```
 
-Target Weight and Goal Pace must use the same `GoalWeightFollowUpPolicy`. The existing `GoalPaceScreen` must be reused without redesign. Active Targets navigation must stop traversing Goal Pace, while serialized pace value compatibility remains safe.
+## O3D — ACTIVE #57
+
+Focused task: `.ai/tasks/product-onboarding-o3d-integrated-body-acceptance.md`.
+
+O3D must prove:
+- Body draft → `BodySetupMapper` → canonical Body owner losslessly;
+- Current Weight canonical read/write/history semantics;
+- Body Goal/Target Weight/Goal Pace canonical active-goal semantics;
+- same-goal retry and changed-goal lifecycle behavior;
+- non-directional/training-only safety;
+- Body persistence failure blocks false mode/completion publication;
+- O3C resume compatibility remains green;
+- full Flutter/Dart CI green on one exact O3D source checkpoint.
 
 ## O3 acceptance
 
 - [x] Body Goal child-flow contract validated;
-- [x] active top-level Product Onboarding flow uses `OnboardingStepId.bodyGoal` / `OnboardingSectionId.bodyGoal`;
-- [x] common `userProfile` section no longer semantically owns Goal/Current Weight/Target Weight;
-- [x] existing Goal/current/target weight screens are reused without redesign;
-- [x] legacy `profileBasics` serialized checkpoints reconcile without losing Body answers;
-- [ ] Goal Pace renders/navigates under Body Goal with shared eligibility;
-- [ ] active Targets flow no longer semantically owns Goal Pace;
-- [ ] legacy/current `targets + goalPace` resume reconciles without pace loss;
-- [ ] Current Weight persists only through canonical Body weight owner;
-- [ ] Body Goal/Target Weight/Goal Pace persist only through canonical Body Goal owner;
-- [ ] full integrated O3 acceptance + Flutter/Dart CI green;
+- [x] active top-level Product Onboarding flow uses `bodyGoal` after `userProfile`;
+- [x] common `userProfile` no longer semantically owns Goal/Current Weight/Target Weight/Goal Pace;
+- [x] existing Goal/current/target/pace screens are reused without redesign;
+- [x] Goal Pace renders/navigates under Body Goal with shared eligibility;
+- [x] active Targets flow no longer semantically owns Goal Pace;
+- [x] legacy mixed Body/Goal Pace resume compatibility validated;
+- [x] O3C exact full CI green;
+- [ ] integrated Current Weight canonical read/write/retry acceptance green;
+- [ ] integrated Body Goal/Target/Pace canonical read/write/retry acceptance green;
+- [ ] integrated completion failure ordering green;
+- [ ] O3 final exact full-CI checkpoint recorded;
 - [ ] O4 remains blocked until O3D.
 
 ## Guardrails
@@ -160,4 +149,4 @@ Target Weight and Goal Pace must use the same `GoalWeightFollowUpPolicy`. The ex
 
 ## Current work
 
-**Execute O3C on #56 from the exact green O3B checkpoint. O3D and O4 remain blocked until their predecessors have exact full-CI evidence.**
+**Execute O3D on #57 from exact green O3C checkpoint `b47495e…` / CI #1345. O4 remains blocked.**
