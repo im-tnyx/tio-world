@@ -1,6 +1,6 @@
 # App Mode Foundation — O1 Durable Account Preference
 
-**Status:** In progress — O1A + O1B validated; O1C onboarding completion cutover is NEXT  
+**Status:** In progress — O1A + O1B validated; O1C onboarding completion cutover is ACTIVE  
 **Primary owners:** `apps/shared`, `apps/app`, onboarding, Settings, `user_app_preferences`  
 **Tracker:** #11  
 **Product Onboarding tracker:** #40  
@@ -121,7 +121,7 @@ Implemented in `apps/app`:
 ```text
 O1A domain/repository contract          ✅ #1183
 → O1B Supabase adapter                  ✅ #1187
-→ O1C onboarding completion cutover     NEXT
+→ O1C onboarding completion cutover     ACTIVE
 → O1D authenticated bootstrap/restore
 → O1E Settings mode-change parity
 → O1F integrated acceptance/full CI
@@ -129,7 +129,9 @@ O1A domain/repository contract          ✅ #1183
 
 Only one O1 sub-slice is active at a time. Do not start O2 common Profile until O1F is validated.
 
-## O1C — Onboarding completion cutover — NEXT
+## O1C — Onboarding completion cutover — ACTIVE
+
+Start checkpoint: prior validated O1B source `641e6eb55dfcbfa43ad1e7e95898c21c0faeb7be`; tracker/docs head before O1C source `fae8351a86b1dd1b841668c061a1e1a284b07ee6`.
 
 Goal: persist canonical App Mode/navigation before onboarding completion becomes durable.
 
@@ -152,7 +154,7 @@ Scope:
 - [ ] canonical preference write must succeed before confirmed local mode and completion are published;
 - [ ] failed canonical preference write leaves onboarding incomplete/retryable;
 - [ ] draft-selected mode remains draft until successful completion;
-- [ ] retry remains idempotent;
+- [ ] retry remains idempotent and must not skip a missing canonical preference merely because local/remote completion already exists;
 - [ ] existing completion tests cover preference success/failure/order;
 - [ ] no bootstrap/Settings behavior change yet;
 - [ ] full relevant CI and exact checkpoint before O1D.
@@ -216,6 +218,6 @@ Required:
 
 ## Handoff
 
-**Start O1C onboarding completion cutover.**  
+**O1C is ACTIVE.**  
 Do not start O1D until O1C focused tests + CI are green.  
 After O1F validation, update trackers and start O2 common Profile owner/section.
