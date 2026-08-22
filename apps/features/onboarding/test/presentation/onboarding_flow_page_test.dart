@@ -132,7 +132,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(WorkoutIntroSection), findsNothing);
-    expect(find.byType(TargetsSection), findsOneWidget);
+    expect(find.byType(NutritionGoalsSection), findsOneWidget);
+    expect(find.byType(TargetsSection), findsNothing);
     expect(find.byType(WellnessSection), findsNothing);
     expect(find.byType(BridgeScreen), findsNothing);
     expect(find.byType(NutritionTargetScreen), findsOneWidget);
@@ -150,7 +151,7 @@ void main() {
     );
   });
 
-  testWidgets('default renderer uses Nutrition-only Targets in nutrition mode',
+  testWidgets('default renderer uses Nutrition Goals in nutrition mode',
       (tester) async {
     await _pumpFlow(
       tester,
@@ -159,14 +160,18 @@ void main() {
         goalSelection: const GoalIntentSelection(
           primaryGoal: GoalIntent.maintainWeight,
         ),
-        currentStepId: OnboardingStepId.targets,
+        currentStepId: OnboardingStepId.nutritionGoals,
         profile: _validProfile(),
+        targets: const TargetsOnboardingDraft(
+          currentStepId: TargetStepId.nutritionTarget,
+        ),
       ),
       useDefaultRenderer: true,
     );
 
     expect(find.byType(OnboardingSectionRenderer), findsOneWidget);
-    expect(find.byType(TargetsSection), findsOneWidget);
+    expect(find.byType(NutritionGoalsSection), findsOneWidget);
+    expect(find.byType(TargetsSection), findsNothing);
     expect(find.byType(WellnessSection), findsNothing);
     expect(find.byType(BridgeScreen), findsNothing);
     expect(find.byType(NutritionTargetScreen), findsOneWidget);
