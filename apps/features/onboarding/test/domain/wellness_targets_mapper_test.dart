@@ -23,6 +23,52 @@ void main() {
     expect(result.wakeTimeMinutes, 395);
   });
 
+  test('keeps missing legacy Wellness values null instead of UI defaults', () {
+    const draft = TargetsOnboardingDraft(
+      dailySteps: 10000,
+      sleepTargetMinutes: 480,
+      sleepTimeMinutes: 1320,
+      wakeTimeMinutes: 360,
+      waterMl: 2500,
+      hasDailyStepsValue: false,
+      hasSleepTargetMinutesValue: false,
+      hasSleepTimeMinutesValue: false,
+      hasWakeTimeMinutesValue: false,
+      hasWaterMlValue: false,
+    );
+
+    final result = mapper.map(draft);
+
+    expect(result.dailySteps, isNull);
+    expect(result.waterMl, isNull);
+    expect(result.sleepTargetMinutes, isNull);
+    expect(result.bedTimeMinutes, isNull);
+    expect(result.wakeTimeMinutes, isNull);
+  });
+
+  test('preserves partial legacy Wellness provenance field-by-field', () {
+    const draft = TargetsOnboardingDraft(
+      dailySteps: 8750,
+      sleepTargetMinutes: 480,
+      sleepTimeMinutes: 1410,
+      wakeTimeMinutes: 360,
+      waterMl: 2500,
+      hasDailyStepsValue: true,
+      hasSleepTargetMinutesValue: false,
+      hasSleepTimeMinutesValue: true,
+      hasWakeTimeMinutesValue: false,
+      hasWaterMlValue: false,
+    );
+
+    final result = mapper.map(draft);
+
+    expect(result.dailySteps, 8750);
+    expect(result.sleepTargetMinutes, isNull);
+    expect(result.bedTimeMinutes, 1410);
+    expect(result.wakeTimeMinutes, isNull);
+    expect(result.waterMl, isNull);
+  });
+
   test('does not leak Body-owned Goal Pace into Wellness owner', () {
     const draft = TargetsOnboardingDraft(
       dailySteps: 9000,
