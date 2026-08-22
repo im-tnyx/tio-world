@@ -91,6 +91,12 @@ void main() {
       expect(profileJson['distance_unit'], 'mi');
       expect(profileJson['volume_unit'], 'fl_oz');
       expect(profileJson['target_weight_direction'], 'loss');
+      final targetsJson = json['targets'] as Map<String, dynamic>;
+      expect(targetsJson['daily_steps_known'], isTrue);
+      expect(targetsJson['sleep_target_minutes_known'], isTrue);
+      expect(targetsJson['sleep_time_minutes_known'], isTrue);
+      expect(targetsJson['wake_time_minutes_known'], isTrue);
+      expect(targetsJson['water_ml_known'], isTrue);
 
       final deserialized = mapper.fromJson(json);
 
@@ -169,6 +175,11 @@ void main() {
       expect(deserialized.draft.targets.wakeTimeMinutes, equals(450));
       expect(deserialized.draft.targets.waterMl, equals(3200));
       expect(deserialized.draft.targets.goalPaceKgPerWeek, equals(0.75));
+      expect(deserialized.draft.targets.hasDailyStepsValue, isTrue);
+      expect(deserialized.draft.targets.hasSleepTargetMinutesValue, isTrue);
+      expect(deserialized.draft.targets.hasSleepTimeMinutesValue, isTrue);
+      expect(deserialized.draft.targets.hasWakeTimeMinutesValue, isTrue);
+      expect(deserialized.draft.targets.hasWaterMlValue, isTrue);
     });
 
     test('schema v3 target restores without inventing direction in DTO layer', () {
@@ -213,6 +224,98 @@ void main() {
         MeasurementUnitPreferences.metric,
       );
       expect(snapshot.draft.goalSelection, const GoalIntentSelection());
+      expect(snapshot.draft.targets.dailySteps, 10000);
+      expect(snapshot.draft.targets.waterMl, 2500);
+      expect(snapshot.draft.targets.hasDailyStepsValue, isFalse);
+      expect(snapshot.draft.targets.hasSleepTargetMinutesValue, isFalse);
+      expect(snapshot.draft.targets.hasSleepTimeMinutesValue, isFalse);
+      expect(snapshot.draft.targets.hasWakeTimeMinutesValue, isFalse);
+      expect(snapshot.draft.targets.hasWaterMlValue, isFalse);
+    });
+
+    test('missing Wellness fields keep UI defaults but remain unknown on autosave',
+        () {
+      final legacy = <String, dynamic>{
+        'schema_version': 2,
+        'selected_mode': 'nutrition',
+        'current_step_id': 'review',
+        'targets': <String, dynamic>{
+          'current_step_id': 'nutritionTarget',
+          'goal_pace_kg_per_week': 0.5,
+        },
+      };
+
+      final restored = mapper.fromJson(legacy);
+      final targets = restored.draft.targets;
+
+      expect(targets.dailySteps, 10000);
+      expect(targets.sleepTargetMinutes, 480);
+      expect(targets.sleepTimeMinutes, 1320);
+      expect(targets.wakeTimeMinutes, 360);
+      expect(targets.waterMl, 2500);
+      expect(targets.hasDailyStepsValue, isFalse);
+      expect(targets.hasSleepTargetMinutesValue, isFalse);
+      expect(targets.hasSleepTimeMinutesValue, isFalse);
+      expect(targets.hasWakeTimeMinutesValue, isFalse);
+      expect(targets.hasWaterMlValue, isFalse);
+
+      final autosaved = mapper.toJson(restored);
+      final autosavedTargets = autosaved['targets'] as Map<String, dynamic>;
+      expect(autosavedTargets['daily_steps'], 10000);
+      expect(autosavedTargets['daily_steps_known'], isFalse);
+      expect(autosavedTargets['sleep_target_minutes_known'], isFalse);
+      expect(autosavedTargets['sleep_time_minutes_known'], isFalse);
+      expect(autosavedTargets['wake_time_minutes_known'], isFalse);
+      expect(autosavedTargets['water_ml_known'], isFalse);
+
+      final reloaded = mapper.fromJson(autosaved).draft.targets;
+      expect(reloaded.hasDailyStepsValue, isFalse);
+      expect(reloaded.hasSleepTargetMinutesValue, isFalse);
+      expect(reloaded.hasSleepTimeMinutesValue, isFalse);
+      expect(reloaded.hasWakeTimeMinutesValue, isFalse);
+      expect(reloaded.hasWaterMlValue, isFalse);
+    });
+
+    test('partial legacy Wellness fields preserve provenance independently', () {
+      final legacy = <String, dynamic>{
+        'schema_version': 2,
+        'targets': <String, dynamic>{
+          'daily_steps': 8700,
+          'sleep_time_minutes': 1410,
+          'goal_pace_kg_per_week': 0.4,
+        },
+      };
+
+      final targets = mapper.fromJson(legacy).draft.targets;
+
+      expect(targets.dailySteps, 8700);
+      expect(targets.hasDailyStepsValue, isTrue);
+      expect(targets.sleepTargetMinutes, 480);
+      expect(targets.hasSleepTargetMinutesValue, isFalse);
+      expect(targets.sleepTimeMinutes, 1410);
+      expect(targets.hasSleepTimeMinutesValue, isTrue);
+      expect(targets.wakeTimeMinutes, 360);
+      expect(targets.hasWakeTimeMinutesValue, isFalse);
+      expect(targets.waterMl, 2500);
+      expect(targets.hasWaterMlValue, isFalse);
+    });
+
+    test('editing an unknown Wellness value marks only that value known', () {
+      const legacyTargets = TargetsOnboardingDraft(
+        hasDailyStepsValue: false,
+        hasSleepTargetMinutesValue: false,
+        hasSleepTimeMinutesValue: false,
+        hasWakeTimeMinutesValue: false,
+        hasWaterMlValue: false,
+      );
+
+      final edited = legacyTargets.copyWith(dailySteps: 9200, waterMl: 2800);
+
+      expect(edited.hasDailyStepsValue, isTrue);
+      expect(edited.hasWaterMlValue, isTrue);
+      expect(edited.hasSleepTargetMinutesValue, isFalse);
+      expect(edited.hasSleepTimeMinutesValue, isFalse);
+      expect(edited.hasWakeTimeMinutesValue, isFalse);
     });
 
     test('legacy aliases normalize to typed storage values', () {
