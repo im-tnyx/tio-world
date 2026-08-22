@@ -20,6 +20,7 @@ export 'sleep_schedule_helper.dart';
 export 'target_step_validator.dart';
 export 'target_weight_recommendation_resolver.dart';
 export 'targets_setup_mapper.dart';
+export 'user_profile_mapper.dart';
 export 'water_unit_converter.dart';
 export 'weight_goal_flow_policy.dart';
 export 'workout_focus_area_selection.dart';
