@@ -125,7 +125,7 @@ void main() {
 
       controller.previous();
 
-      expect(controller.state.stepId, OnboardingStepId.workoutPreferences);
+      expect(controller.state.stepId, OnboardingStepId.workoutTargets);
       expect(
         controller.state.draft.workout.currentStepId,
         WorkoutStepId.specialEvent,
