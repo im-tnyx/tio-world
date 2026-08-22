@@ -30,7 +30,13 @@ class OnboardingSectionRenderer extends StatelessWidget {
           state: state,
           controller: controller,
         ),
+      // Legacy `profile` remains renderable for manually constructed/older
+      // compatibility states; new active flow plans emit `userProfile`.
       OnboardingSectionId.profile => ProfileSection(
+          state: state,
+          controller: controller,
+        ),
+      OnboardingSectionId.userProfile => ProfileSection(
           state: state,
           controller: controller,
         ),
@@ -59,8 +65,6 @@ class OnboardingSectionRenderer extends StatelessWidget {
           controller: controller,
         ),
       OnboardingSectionId.review => ReviewSection(state: state),
-      OnboardingSectionId.userProfile =>
-        _futureSectionNotActive(OnboardingSectionId.userProfile),
       OnboardingSectionId.bodyGoal =>
         _futureSectionNotActive(OnboardingSectionId.bodyGoal),
       OnboardingSectionId.wellnessGoals =>
