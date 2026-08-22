@@ -9,8 +9,8 @@ This is the concise handoff for the next agent. Runtime source remains behavior 
 1. `.ai/CURRENT.md`
 2. `.ai/tasks/product-onboarding-canonical-execution.md`
 3. `.ai/tasks/product-onboarding-o3-body-goal.md`
-4. active focused task `.ai/tasks/product-onboarding-o3c-goal-pace-parity.md`
-5. GitHub Issues #56, #55 and Draft PR #50
+4. active focused task `.ai/tasks/product-onboarding-o3d-integrated-body-acceptance.md`
+5. GitHub Issues #57, #55 and Draft PR #50
 
 ## Canonical persistence owners
 
@@ -37,20 +37,21 @@ O1 durable App Mode / active_tabs               ✅ #11 / CI #1240
 O2 common User Profile owner + userProfile      ✅ #53 / CI #1279
 O3A Body Goal typed child-flow contract         ✅ #55 / CI #1290
 O3B bodyGoal runtime section + legacy resume    ✅ #55 / CI #1319
+O3C Goal Pace placement/parity                  ✅ #56 / CI #1345
 ```
 
-O3B exact source checkpoint:
+O3C exact source checkpoint:
 
 ```text
-3df7dbd61a57340f7d6f767361d3ceaa49cc83fb
-Flutter CI #1319 / run 32558694870
+b47495e23f055c7d95eeccbca03b71c35aa38962
+Flutter CI #1345 / run 32561257485
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
 Dart tests      ✅
 ```
 
-Later documentation commits do not redefine this validated O3B source checkpoint.
+Later documentation commits do not redefine this validated O3C source checkpoint.
 
 ## Current Product Onboarding sequence
 
@@ -60,9 +61,9 @@ O2 User Profile                                 ✅
 → O3 Body Goal section + Profile/Body parity    ACTIVE #55
    O3A typed Body Goal child-flow contract      ✅ #1290
    O3B bodyGoal runtime section + resume        ✅ #1319
-   O3C Goal Pace placement/parity               ACTIVE #56
-   O3D integrated Body acceptance               NEXT after O3C
-→ O4 Wellness
+   O3C Goal Pace placement/parity               ✅ #56 / #1345
+   O3D integrated Body acceptance               ACTIVE #57
+→ O4 Wellness                                   BLOCKED by O3D
 → O5 Nutrition
 → O6 Workout
 → O7 Health Connections
@@ -74,7 +75,7 @@ O2 User Profile                                 ✅
 
 Only one Product Onboarding sub-slice is active. Independent Account/Settings lanes remain parallel and do not change this sequencing.
 
-## Established O3B runtime boundary
+## Current O3 runtime boundary
 
 ```text
 userProfile
@@ -86,54 +87,52 @@ userProfile
   activity
   healthConditions
 
-bodyGoal
-  goal
-  currentWeight
-  targetWeight?  ← GoalWeightFollowUpPolicy
+eligible bodyGoal
+  Goal
+  → Current Weight
+  → Target Weight
+  → Goal Pace
+
+ineligible bodyGoal
+  Goal
+  → Current Weight
+
+Targets
+  Bridge
+  → Step Target
+  → Sleep Target
+  → Water Target
+  → Nutrition Target
 ```
 
-Existing Goal/current/target screens are reused. Pre-O3 `profileBasics + Body child` checkpoints migrate to `bodyGoal`; common Profile checkpoints remain `userProfile`; later checkpoints remain later and preserve compatible dormant Body values. Durable resume preservation is Body Goal-aware.
+Existing Goal/current/target/pace screens are reused. Legacy `profileBasics + Body child` and `targets + goalPace` actual cursors migrate to canonical `bodyGoal` semantics; later checkpoints remain later when Body values are dormant.
 
-## Active slice — O3C Goal Pace placement/parity
+## Active slice — O3D integrated canonical Body acceptance
 
-Tracker: GitHub Issue #56  
+Tracker: GitHub Issue #57  
 Parent O3 tracker: #55  
-Focused task: `.ai/tasks/product-onboarding-o3c-goal-pace-parity.md`
+Focused task: `.ai/tasks/product-onboarding-o3d-integrated-body-acceptance.md`
 
-Current mismatch:
-
-```text
-canonical owner: user_body_goals
-runtime child:   Targets / TargetStepId.goalPace
-value container: TargetsOnboardingDraft.goalPaceKgPerWeek
-```
-
-Current active Targets order before O3C cutover:
+Acceptance path:
 
 ```text
-bridge → stepTarget → sleepTarget → waterTarget → goalPace? → nutritionTarget
+OnboardingDraft
+→ BodySetupMapper
+→ BodySetupRepository / BodyRepository
+→ canonical BodyState
 ```
 
-Target O3C runtime boundary:
-
-```text
-eligible Body Goal:
-Goal → Current Weight → Target Weight → Goal Pace
-
-ineligible Body Goal:
-Goal → Current Weight
-
-Targets after cutover:
-Bridge → Step Target → Sleep Target → Water Target → Nutrition Target
-```
-
-Target Weight and Goal Pace must share the exact `GoalWeightFollowUpPolicy`. Reuse the existing `GoalPaceScreen`; no visual redesign. Preserve `TargetsOnboardingDraft.goalPaceKgPerWeek` as a draft compatibility value unless a narrower safe adapter is required. Do not create duplicate durable writes.
-
-Resume rules to preserve:
-- an actual `targets + goalPace` resume cursor must migrate to canonical Body Goal Goal Pace without losing pace;
-- a later top-level checkpoint stays later when pace is only dormant stored data;
-- compatible dormant pace may survive ineligible transitions and restore on same-direction eligibility;
-- active flow eligibility, not stored numbers, determines whether Goal Pace is traversed.
+O3D must prove:
+- directional Current Weight/Body Goal/Target/Pace round-trip;
+- explicit intent, never numbers/BMI, controls direction;
+- Maintain/Recomposition discard dormant Target/Pace from canonical write;
+- training-only goals do not fabricate Body Goal;
+- repeated onboarding setup preserves one onboarding weight snapshot semantic;
+- same goal retry preserves starting-weight/started-at semantics;
+- changed goal type does not leave competing active state;
+- Body persistence failure blocks confirmed App Mode/completed onboarding publication;
+- O3C Goal Pace resume and pace-free Targets stay intact;
+- one exact full Flutter/Dart CI checkpoint is green before O4.
 
 ## Guardrails
 
@@ -146,5 +145,4 @@ Resume rules to preserve:
 - no legacy-column drop;
 - no permanent dual-write synchronization;
 - no UI redesign;
-- no O3D until O3C exact full CI is green;
-- no O4 activation before O3D.
+- no O4 source work before O3D exact full CI green.
