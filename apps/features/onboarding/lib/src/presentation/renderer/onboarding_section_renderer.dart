@@ -5,6 +5,7 @@ import '../controllers/controllers.dart';
 import '../sections/app_mode_section.dart';
 import '../sections/body_goal_section.dart';
 import '../sections/mobile_section.dart';
+import '../sections/nutrition_goals_section.dart';
 import '../sections/nutrition_intro_section.dart';
 import '../sections/nutrition_profile_section.dart';
 import '../sections/nutrition_section.dart';
@@ -41,6 +42,8 @@ class OnboardingSectionRenderer extends StatelessWidget {
         WellnessSection(state: state, controller: controller),
       OnboardingSectionId.nutritionProfile =>
         NutritionProfileSection(state: state, controller: controller),
+      OnboardingSectionId.nutritionGoals =>
+        NutritionGoalsSection(state: state, controller: controller),
       OnboardingSectionId.mobile =>
         MobileSection(state: state, controller: controller),
       OnboardingSectionId.workoutIntro =>
@@ -56,8 +59,6 @@ class OnboardingSectionRenderer extends StatelessWidget {
       OnboardingSectionId.review => ReviewSection(state: state),
       OnboardingSectionId.workoutProfile =>
         _futureSectionNotActive(OnboardingSectionId.workoutProfile),
-      OnboardingSectionId.nutritionGoals =>
-        _futureSectionNotActive(OnboardingSectionId.nutritionGoals),
       OnboardingSectionId.workoutTargets =>
         _futureSectionNotActive(OnboardingSectionId.workoutTargets),
       OnboardingSectionId.healthConnections =>
