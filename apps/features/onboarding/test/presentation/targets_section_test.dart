@@ -7,7 +7,7 @@ import 'package:tio_shared/shared.dart';
 
 void main() {
   testWidgets(
-      'targets section renders bridge first and advances through all child steps to review',
+      'targets section renders five active child steps and advances to review',
       (tester) async {
     final harness = await _pumpTargets(tester);
     final semantics = tester.ensureSemantics();
@@ -16,7 +16,7 @@ void main() {
       expect(find.byType(TargetsSection), findsOneWidget);
       expect(find.byType(BridgeScreen), findsOneWidget);
       expect(
-        find.bySemanticsLabel('Target step 1 of 6, Building your targets'),
+        find.bySemanticsLabel('Target step 1 of 5, Building your targets'),
         findsOneWidget,
       );
       expect(find.text('Continue'), findsOneWidget);
@@ -25,7 +25,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(StepTargetScreen), findsOneWidget);
       expect(
-        find.bySemanticsLabel('Target step 2 of 6, Daily step target'),
+        find.bySemanticsLabel('Target step 2 of 5, Daily step target'),
         findsOneWidget,
       );
 
@@ -33,7 +33,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(SleepTargetScreen), findsOneWidget);
       expect(
-        find.bySemanticsLabel('Target step 3 of 6, Sleep schedule target'),
+        find.bySemanticsLabel('Target step 3 of 5, Sleep schedule target'),
         findsOneWidget,
       );
 
@@ -41,23 +41,16 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(WaterTargetScreen), findsOneWidget);
       expect(
-        find.bySemanticsLabel('Target step 4 of 6, Daily hydration target'),
+        find.bySemanticsLabel('Target step 4 of 5, Daily hydration target'),
         findsOneWidget,
       );
 
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
-      expect(find.byType(GoalPaceScreen), findsOneWidget);
-      expect(
-        find.bySemanticsLabel(RegExp(r'Target step 5 of 6')),
-        findsOneWidget,
-      );
-
-      await tester.tap(find.text('Continue'));
-      await tester.pumpAndSettle();
+      expect(find.byType(GoalPaceScreen), findsNothing);
       expect(find.byType(NutritionTargetScreen), findsOneWidget);
       expect(
-        find.bySemanticsLabel('Target step 6 of 6, Nutrition targets'),
+        find.bySemanticsLabel('Target step 5 of 5, Nutrition targets'),
         findsOneWidget,
       );
       expect(find.text('DAILY CALORIE TARGET'), findsOneWidget);
@@ -110,7 +103,7 @@ void main() {
   });
 
   testWidgets(
-      'goal pace screen owns weekly pace and projection but no calorie target UI',
+      'legacy Goal Pace cursor renders the existing screen under Body Goal',
       (tester) async {
     final harness = await _pumpTargets(
       tester,
@@ -133,6 +126,13 @@ void main() {
       ),
     );
 
+    expect(harness.controller.state.stepId, OnboardingStepId.bodyGoal);
+    expect(
+      harness.controller.state.draft.profile.currentStepId,
+      ProfileStepId.goalPace,
+    );
+    expect(find.byType(BodyGoalSection), findsOneWidget);
+    expect(find.byType(TargetsSection), findsNothing);
     expect(find.byType(GoalPaceScreen), findsOneWidget);
     expect(find.text('How fast do you want to \nlose weight?'), findsOneWidget);
     expect(find.textContaining('0.5 kg'), findsWidgets);
