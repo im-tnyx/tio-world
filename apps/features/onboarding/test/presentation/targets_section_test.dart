@@ -6,53 +6,67 @@ import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
-  testWidgets(
-      'targets section renders five active child steps and advances to review',
+  testWidgets('Wellness section renders four active children in exact order',
       (tester) async {
-    final harness = await _pumpTargets(tester);
+    final harness = await _pumpTargets(
+      tester,
+      initialTargets: const TargetsOnboardingDraft(
+        currentStepId: TargetStepId.bridge,
+      ),
+    );
+
+    expect(harness.controller.state.stepId, OnboardingStepId.wellnessGoals);
+    expect(find.byType(WellnessSection), findsOneWidget);
+    expect(find.byType(TargetsSection), findsNothing);
+    expect(find.byType(BridgeScreen), findsOneWidget);
+
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(find.byType(StepTargetScreen), findsOneWidget);
+
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SleepTargetScreen), findsOneWidget);
+
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(find.byType(WaterTargetScreen), findsOneWidget);
+
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    expect(
+      harness.controller.state.stepId,
+      OnboardingStepId.workoutPreferences,
+    );
+    expect(find.byType(WorkoutSection), findsOneWidget);
+  });
+
+  testWidgets('Targets section renders Nutrition Target only and reaches review',
+      (tester) async {
+    final harness = await _pumpTargets(
+      tester,
+      mode: AppMode.nutrition,
+      initialTargets: const TargetsOnboardingDraft(
+        currentStepId: TargetStepId.nutritionTarget,
+      ),
+    );
     final semantics = tester.ensureSemantics();
 
     try {
+      expect(harness.controller.state.stepId, OnboardingStepId.targets);
+      expect(
+        harness.controller.state.targetsFlowPlan.steps,
+        const [TargetStepId.nutritionTarget],
+      );
       expect(find.byType(TargetsSection), findsOneWidget);
-      expect(find.byType(BridgeScreen), findsOneWidget);
-      expect(
-        find.bySemanticsLabel('Target step 1 of 5, Building your targets'),
-        findsOneWidget,
-      );
-      expect(find.text('Continue'), findsOneWidget);
-
-      await tester.tap(find.text('Continue'));
-      await tester.pumpAndSettle();
-      expect(find.byType(StepTargetScreen), findsOneWidget);
-      expect(
-        find.bySemanticsLabel('Target step 2 of 5, Daily step target'),
-        findsOneWidget,
-      );
-
-      await tester.tap(find.text('Continue'));
-      await tester.pumpAndSettle();
-      expect(find.byType(SleepTargetScreen), findsOneWidget);
-      expect(
-        find.bySemanticsLabel('Target step 3 of 5, Sleep schedule target'),
-        findsOneWidget,
-      );
-
-      await tester.tap(find.text('Continue'));
-      await tester.pumpAndSettle();
-      expect(find.byType(WaterTargetScreen), findsOneWidget);
-      expect(
-        find.bySemanticsLabel('Target step 4 of 5, Daily hydration target'),
-        findsOneWidget,
-      );
-
-      await tester.tap(find.text('Continue'));
-      await tester.pumpAndSettle();
+      expect(find.byType(WellnessSection), findsNothing);
+      expect(find.byType(BridgeScreen), findsNothing);
+      expect(find.byType(StepTargetScreen), findsNothing);
+      expect(find.byType(SleepTargetScreen), findsNothing);
+      expect(find.byType(WaterTargetScreen), findsNothing);
       expect(find.byType(GoalPaceScreen), findsNothing);
       expect(find.byType(NutritionTargetScreen), findsOneWidget);
-      expect(
-        find.bySemanticsLabel('Target step 5 of 5, Nutrition targets'),
-        findsOneWidget,
-      );
       expect(find.text('DAILY CALORIE TARGET'), findsOneWidget);
       expect(find.text('Protein'), findsOneWidget);
       expect(find.text('Carbohydrates'), findsOneWidget);
@@ -69,7 +83,7 @@ void main() {
     }
   });
 
-  testWidgets('switching water display unit does not alter waterMl in domain',
+  testWidgets('switching Wellness water display unit preserves waterMl',
       (tester) async {
     final harness = await _pumpTargets(
       tester,
@@ -79,6 +93,8 @@ void main() {
       ),
     );
 
+    expect(harness.controller.state.stepId, OnboardingStepId.wellnessGoals);
+    expect(find.byType(WellnessSection), findsOneWidget);
     expect(find.byType(WaterTargetScreen), findsOneWidget);
     expect(find.text('2.5'), findsOneWidget);
     expect(find.text('L/day'), findsOneWidget);
@@ -158,11 +174,12 @@ class _TargetsHarness {
 
 Future<_TargetsHarness> _pumpTargets(
   WidgetTester tester, {
+  AppMode mode = AppMode.workout,
   ProfileOnboardingDraft? initialProfile,
   TargetsOnboardingDraft? initialTargets,
 }) async {
   final draft = OnboardingDraft(
-    selectedMode: AppMode.workout,
+    selectedMode: mode,
     goalSelection: const GoalIntentSelection(
       primaryGoal: GoalIntent.loseWeight,
     ),
@@ -189,10 +206,15 @@ Future<_TargetsHarness> _pumpTargets(
       workoutDuration: WorkoutDuration.sixtyMinutes,
       workoutSplit: WorkoutSplit.auto,
     ),
-    targets: initialTargets ?? const TargetsOnboardingDraft(),
+    targets: initialTargets ??
+        const TargetsOnboardingDraft(
+          currentStepId: TargetStepId.nutritionTarget,
+        ),
     completedStepIds: const {
       OnboardingStepId.mode,
       OnboardingStepId.profileBasics,
+      OnboardingStepId.bodyGoal,
+      OnboardingStepId.wellnessGoals,
       OnboardingStepId.workoutPreferences,
     },
   );
