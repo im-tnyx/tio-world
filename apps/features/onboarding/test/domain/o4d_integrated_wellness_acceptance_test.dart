@@ -21,7 +21,10 @@ void main() {
         wellnessRepository: wellness,
         nutritionProfileRepository:
             nutrition_owner.InMemoryNutritionProfileRepository(),
-        workoutRepository: workout_owner.InMemoryWorkoutPreferencesRepository(),
+        workoutProfileRepository:
+            workout_owner.InMemoryWorkoutProfileRepository(),
+        workoutTargetsRepository:
+            workout_owner.InMemoryWorkoutTargetsRepository(),
         nutritionTargetsRepository: nutritionTargets,
       );
       final draft = _draft(
@@ -116,7 +119,10 @@ void main() {
         wellnessRepository: wellness,
         nutritionProfileRepository:
             nutrition_owner.InMemoryNutritionProfileRepository(),
-        workoutRepository: workout_owner.InMemoryWorkoutPreferencesRepository(),
+        workoutProfileRepository:
+            workout_owner.InMemoryWorkoutProfileRepository(),
+        workoutTargetsRepository:
+            workout_owner.InMemoryWorkoutTargetsRepository(),
         nutritionTargetsRepository: nutritionTargets,
       );
       final flowPlan = const BuildOnboardingFlowUseCase()(
@@ -182,7 +188,10 @@ void main() {
         wellnessRepository: wellness,
         nutritionProfileRepository:
             nutrition_owner.InMemoryNutritionProfileRepository(),
-        workoutRepository: workout_owner.InMemoryWorkoutPreferencesRepository(),
+        workoutProfileRepository:
+            workout_owner.InMemoryWorkoutProfileRepository(),
+        workoutTargetsRepository:
+            workout_owner.InMemoryWorkoutTargetsRepository(),
         nutritionTargetsRepository:
             nutrition_owner.InMemoryNutritionTargetsRepository(),
       );
@@ -208,7 +217,8 @@ void main() {
         () async {
       final operations = <String>[];
       final nutritionProfile = _RecordingNutritionProfileRepository(operations);
-      final workout = _RecordingWorkoutRepository(operations);
+      final workoutProfile = workout_owner.InMemoryWorkoutProfileRepository();
+      final workoutTargets = workout_owner.InMemoryWorkoutTargetsRepository();
       final nutritionTargets = _RecordingNutritionTargetsRepository(operations);
       final preference = _RecordingAppModePreference(operations);
       final status = _RecordingOnboardingStatusRepository(operations);
@@ -220,7 +230,8 @@ void main() {
           bodyRepository: _RecordingBodyRepository(operations),
           wellnessRepository: _FailingWellnessRepository(operations),
           nutritionProfileRepository: nutritionProfile,
-          workoutRepository: workout,
+          workoutProfileRepository: workoutProfile,
+          workoutTargetsRepository: workoutTargets,
           nutritionTargetsRepository: nutritionTargets,
         ),
         validator: const OnboardingCompletionValidator(
@@ -252,7 +263,8 @@ void main() {
       );
 
       expect(nutritionProfile.upsertCalls, 0);
-      expect(workout.saveCalls, 0);
+      expect(await workoutProfile.read(), isNull);
+      expect(await workoutTargets.read(), isNull);
       expect(nutritionTargets.upsertCalls, 0);
       expect(preference.storedMode, isNull);
       expect(status.status, isNull);
@@ -375,28 +387,6 @@ class _RecordingNutritionProfileRepository
   Future<void> upsert(nutrition_owner.NutritionProfileData profile) async {
     upsertCalls += 1;
     operations.add('nutritionProfile.upsert');
-  }
-}
-
-class _RecordingWorkoutRepository
-    implements workout_owner.WorkoutPreferencesRepository {
-  _RecordingWorkoutRepository(this.operations);
-
-  final List<String> operations;
-  int saveCalls = 0;
-  workout_owner.WorkoutPreferencesData? data;
-
-  @override
-  Future<workout_owner.WorkoutPreferencesData?> getWorkoutPreferences() async =>
-      data;
-
-  @override
-  Future<void> saveWorkoutPreferences(
-    workout_owner.WorkoutPreferencesData value,
-  ) async {
-    saveCalls += 1;
-    operations.add('workout.save');
-    data = value;
   }
 }
 
