@@ -62,6 +62,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
       onError: (Object error, StackTrace _) {
         if (_disposed) return;
         _resolutionGeneration++;
+        _configureAuthenticatedAppModeWrites(false);
         _debug('auth stream error: ${error.runtimeType}');
         _setState(AppSessionBootstrapFailure(error));
       },
@@ -85,6 +86,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
     }
     _activeAuthenticatedUserId = userId;
     _resolutionGeneration++;
+    _configureAuthenticatedAppModeWrites(true);
     _debug('mark ready after onboarding completion');
     _setState(AppSessionBootstrapReady(userId: userId));
   }
@@ -112,14 +114,17 @@ class AppSessionBootstrapController extends ChangeNotifier {
 
     switch (authState) {
       case AuthSessionUnknown():
+        _configureAuthenticatedAppModeWrites(false);
         _setState(const AppSessionBootstrapLoading());
         break;
       case AuthSessionUnauthenticated():
         _activeAuthenticatedUserId = null;
+        _configureAuthenticatedAppModeWrites(false);
         _setState(const AppSessionBootstrapUnauthenticated());
         break;
       case AuthSessionAuthenticated(:final session):
         _activeAuthenticatedUserId = session.userId;
+        _configureAuthenticatedAppModeWrites(false);
         if (emitLoading) {
           _setState(const AppSessionBootstrapLoading());
         }
@@ -148,6 +153,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
               await _restoreAuthenticatedAppPreferences(generation);
               if (_disposed || generation != _resolutionGeneration) return;
 
+              _configureAuthenticatedAppModeWrites(true);
               // Legacy completed accounts remain ready even if their historical
               // profile predates the Account Setup completion marker.
               _setState(AppSessionBootstrapReady(userId: session.userId));
@@ -203,6 +209,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
           }
         } catch (error) {
           if (_disposed || generation != _resolutionGeneration) return;
+          _configureAuthenticatedAppModeWrites(false);
           _debug('bootstrap lookup failed: ${error.runtimeType}');
           _setState(AppSessionBootstrapFailure(error));
         }
@@ -236,6 +243,14 @@ class AppSessionBootstrapController extends ChangeNotifier {
     await modeController.restoreCanonical(preferences);
   }
 
+  void _configureAuthenticatedAppModeWrites(bool enabled) {
+    final modeController = _appModeController;
+    if (modeController == null) return;
+    modeController.setAuthenticatedWriteRepository(
+      enabled ? _appPreferencesRepository : null,
+    );
+  }
+
   Future<void> _clearObsoleteDraft() async {
     final repository = _onboardingDraftRepository;
     if (repository == null) return;
@@ -267,6 +282,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
     _debug('dispose');
     _disposed = true;
     _resolutionGeneration++;
+    _configureAuthenticatedAppModeWrites(false);
     _authSubscription?.cancel();
     super.dispose();
   }
