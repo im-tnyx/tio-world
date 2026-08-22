@@ -48,32 +48,33 @@ List<OnboardingStepDefinition> _stepsByMode(
   AppMode mode, {
   WorkoutIntroChoice? workoutIntroChoice,
 }) {
-  const profileAndBody = <OnboardingStepDefinition>[
+  const commonFoundation = <OnboardingStepDefinition>[
     _profileBasics,
     _bodyGoal,
+    _wellnessGoals,
   ];
 
   return switch (mode) {
     AppMode.workout => [
-        ...profileAndBody,
+        ...commonFoundation,
         _workoutPreferences,
         _targets,
         _review,
       ],
     AppMode.nutrition => [
-        ...profileAndBody,
+        ...commonFoundation,
         _targets,
         _review,
       ],
     AppMode.hybrid => workoutIntroChoice == WorkoutIntroChoice.later
         ? [
-            ...profileAndBody,
+            ...commonFoundation,
             _workoutIntro,
             _targets,
             _review,
           ]
         : [
-            ...profileAndBody,
+            ...commonFoundation,
             _workoutIntro,
             _workoutPreferences,
             _targets,
@@ -100,6 +101,12 @@ const _bodyGoal = OnboardingStepDefinition(
   owner: OnboardingStepOwner.crossFeature,
   progressTitle: 'Body goal',
 );
+const _wellnessGoals = OnboardingStepDefinition(
+  id: OnboardingStepId.wellnessGoals,
+  section: OnboardingSectionId.wellnessGoals,
+  owner: OnboardingStepOwner.crossFeature,
+  progressTitle: 'Wellness',
+);
 const _workoutIntro = OnboardingStepDefinition(
   id: OnboardingStepId.workoutIntro,
   section: OnboardingSectionId.workoutIntro,
@@ -116,7 +123,7 @@ const _targets = OnboardingStepDefinition(
   id: OnboardingStepId.targets,
   section: OnboardingSectionId.targets,
   owner: OnboardingStepOwner.crossFeature,
-  progressTitle: 'Your targets',
+  progressTitle: 'Nutrition target',
 );
 const _review = OnboardingStepDefinition(
   id: OnboardingStepId.review,
