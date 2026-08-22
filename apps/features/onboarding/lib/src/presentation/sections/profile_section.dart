@@ -15,9 +15,11 @@ class ProfileSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (state.stepId != OnboardingStepId.profileBasics ||
-        state.currentSection != OnboardingSectionId.profile) {
-      throw StateError('ProfileSection can only render the profile step.');
+    final section = state.currentSection;
+    final isProfileSection = section == OnboardingSectionId.profile ||
+        section == OnboardingSectionId.userProfile;
+    if (state.stepId != OnboardingStepId.profileBasics || !isProfileSection) {
+      throw StateError('ProfileSection can only render the Profile section.');
     }
 
     return ProfileFlowPlanScope(
