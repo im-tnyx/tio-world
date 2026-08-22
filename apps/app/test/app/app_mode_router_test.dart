@@ -533,10 +533,17 @@ Future<void> _completeProfileInputs(WidgetTester tester) async {
   onboardingController.updateGoalPaceKgPerWeek(0.5);
   await tester.pump();
 
-  // Goal Pace -> Workout Intro.
+  // Goal Pace -> Wellness Bridge.
   await tester.tap(find.widgetWithText(TioButton, 'Continue'),
       warnIfMissed: false);
   await tester.pumpAndSettle();
+
+  // Wellness Bridge -> Steps -> Sleep -> Water -> Workout Intro.
+  for (var step = 0; step < 4; step++) {
+    await tester.tap(find.widgetWithText(TioButton, 'Continue'),
+        warnIfMissed: false);
+    await tester.pumpAndSettle();
+  }
 }
 
 class _FixedAppSessionBootstrapController extends AppSessionBootstrapController {
@@ -582,7 +589,7 @@ class _MemoryAppThemePreference implements AppThemePreference {
   Future<void> clear() async => mode = null;
 
   @override
-  Future<TioThemeMode?> read() async => mode;
+  Future<AppMode?> read() async => mode;
 
   @override
   Future<void> write(TioThemeMode mode) async => this.mode = mode;
