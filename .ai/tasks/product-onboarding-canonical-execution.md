@@ -33,14 +33,14 @@ users.email_verified_at                              ✅ LIVE
 P1 schema RLS/grants/hardening                       ✅ LIVE
 O1A App Preferences domain/repository contract       ✅ CI #1183
 O1B Supabase App Preferences adapter                 ✅ CI #1187
-O1C onboarding completion canonical preference write ✅ CI #1194
+O1C onboarding completion canonical preference write ✅ CI #1199
 ```
 
-O1C validated source:
+O1C final authoritative source:
 
 ```text
-e9140705521f8af94675d785fb498180096bef55
-Flutter CI #1194 / run 32548512802
+74e45c9186aed8a6505ca8eef9cd5333de366308
+Flutter CI #1199 / run 32549215504
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
@@ -132,7 +132,7 @@ Validated sub-slices:
 ```text
 O1A backend-neutral App Preferences contract     ✅ #1183
 O1B Supabase user_app_preferences adapter        ✅ #1187
-O1C onboarding completion cutover                ✅ #1194
+O1C onboarding completion cutover                ✅ #1199
 O1D authenticated bootstrap/restore              NEXT
 O1E Settings mode-change parity
 O1F integrated acceptance/full CI
@@ -152,6 +152,8 @@ Onboarding completion
 ```
 
 O1C failure semantics are locked: canonical App Preferences failure keeps onboarding incomplete/retryable, and a completed retry with a missing canonical preference repairs that preference instead of silently returning.
+
+Final O1C composition keeps `OnboardingCompletionRepository` and `AppPreferencesRepository` separate and injects the Supabase-backed App Preferences owner explicitly.
 
 ### O1D — NEXT
 
