@@ -15,7 +15,7 @@ import 'workout_preferences_mapper.dart';
 /// persisted data contract.
 class PersistOnboardingOwnerDataUseCase {
   const PersistOnboardingOwnerDataUseCase({
-    required profile_owner.UserProfileRepository profileRepository,
+    required Object profileRepository,
     required body_owner.BodySetupRepository bodyRepository,
     required workout_owner.WorkoutPreferencesRepository workoutRepository,
     required nutrition_owner.TargetsSetupRepository targetsRepository,
@@ -29,7 +29,11 @@ class PersistOnboardingOwnerDataUseCase {
         _workoutRepository = workoutRepository,
         _targetsRepository = targetsRepository;
 
-  final profile_owner.UserProfileRepository _profileRepository;
+  /// Kept as [Object] only so legacy composition/tests can fail closed at the
+  /// owner boundary instead of forcing an unsafe broad-interface cast.
+  /// Production O2C composition must provide an object that implements
+  /// [profile_owner.UserProfileRepository].
+  final Object _profileRepository;
   final body_owner.BodySetupRepository _bodyRepository;
   final workout_owner.WorkoutPreferencesRepository _workoutRepository;
   final nutrition_owner.TargetsSetupRepository _targetsRepository;
@@ -62,7 +66,13 @@ class PersistOnboardingOwnerDataUseCase {
     }
 
     try {
-      await _profileRepository.upsert(profileData);
+      final profileRepository = _profileRepository;
+      if (profileRepository is! profile_owner.UserProfileRepository) {
+        throw StateError(
+          'Product Onboarding requires the canonical UserProfileRepository.',
+        );
+      }
+      await profileRepository.upsert(profileData);
     } catch (e, st) {
       throw OwnerPersistenceException(
         owner: OwnerPersistenceTarget.profile,
