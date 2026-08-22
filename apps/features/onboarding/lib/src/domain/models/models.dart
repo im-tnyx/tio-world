@@ -32,6 +32,7 @@ export 'remote_onboarding_completion_state.dart';
 export 'target_step_id.dart';
 export 'targets_flow_plan.dart';
 export 'targets_onboarding_draft.dart';
+export 'wellness_flow_plan.dart';
 export 'workout_duration.dart';
 export 'workout_equipment.dart';
 export 'workout_experience_level.dart';
