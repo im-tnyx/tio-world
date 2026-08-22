@@ -11,8 +11,7 @@ void main() {
       expect(plan.stepIds, const [OnboardingStepId.mode]);
     });
 
-    test('active profileBasics step uses canonical userProfile section identity',
-        () {
+    test('active profileBasics and bodyGoal use canonical section identities', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
@@ -23,12 +22,16 @@ void main() {
         OnboardingSectionId.userProfile,
       );
       expect(
+        plan.definitionFor(OnboardingStepId.bodyGoal).section,
+        OnboardingSectionId.bodyGoal,
+      );
+      expect(
         plan.steps.map((step) => step.section),
         isNot(contains(OnboardingSectionId.profile)),
       );
     });
 
-    test('workout product onboarding starts at profile and never includes mobile', () {
+    test('workout product onboarding places bodyGoal after profile', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
@@ -38,6 +41,7 @@ void main() {
         plan.stepIds,
         const [
           OnboardingStepId.profileBasics,
+          OnboardingStepId.bodyGoal,
           OnboardingStepId.workoutPreferences,
           OnboardingStepId.targets,
           OnboardingStepId.review,
@@ -47,7 +51,7 @@ void main() {
       expect(plan.stepIds, isNot(contains(OnboardingStepId.mobile)));
     });
 
-    test('nutrition product onboarding starts at profile and never includes mobile', () {
+    test('nutrition product onboarding places bodyGoal after profile', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.resumeDraft,
         mode: AppMode.nutrition,
@@ -57,6 +61,7 @@ void main() {
         plan.stepIds,
         const [
           OnboardingStepId.profileBasics,
+          OnboardingStepId.bodyGoal,
           OnboardingStepId.targets,
           OnboardingStepId.review,
         ],
@@ -64,7 +69,7 @@ void main() {
       expect(plan.stepIds, isNot(contains(OnboardingStepId.mode)));
     });
 
-    test('hybrid product onboarding starts at profile and never includes mobile', () {
+    test('hybrid product onboarding places bodyGoal before workout setup', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.hybrid,
@@ -74,6 +79,7 @@ void main() {
         plan.stepIds,
         const [
           OnboardingStepId.profileBasics,
+          OnboardingStepId.bodyGoal,
           OnboardingStepId.workoutIntro,
           OnboardingStepId.workoutPreferences,
           OnboardingStepId.targets,
@@ -93,6 +99,7 @@ void main() {
         plan.stepIds,
         const [
           OnboardingStepId.profileBasics,
+          OnboardingStepId.bodyGoal,
           OnboardingStepId.workoutIntro,
           OnboardingStepId.targets,
           OnboardingStepId.review,
@@ -150,7 +157,7 @@ void main() {
           previousPlan: hybridPlan,
           nextPlan: workoutPlan,
         ),
-        OnboardingStepId.profileBasics,
+        OnboardingStepId.bodyGoal,
       );
     });
   });
