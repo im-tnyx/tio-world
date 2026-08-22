@@ -589,7 +589,7 @@ class _MemoryAppThemePreference implements AppThemePreference {
   Future<void> clear() async => mode = null;
 
   @override
-  Future<AppMode?> read() async => mode;
+  Future<TioThemeMode?> read() async => mode;
 
   @override
   Future<void> write(TioThemeMode mode) async => this.mode = mode;
