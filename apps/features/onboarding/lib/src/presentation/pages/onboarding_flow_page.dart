@@ -201,14 +201,15 @@ class OnboardingFlowPage extends ConsumerWidget {
         label: 'Why do we ask for your mobile number?',
         onTap: () => _showMobileDataCollectionSheet(context),
       );
+    } else if (state.stepId == OnboardingStepId.bodyGoal &&
+        state.draft.profile.currentStepId == ProfileStepId.goal) {
+      infoAction = OnboardingBottomInfoAction(
+        label: 'Why we collect this data',
+        onTap: () => _showGoalDataCollectionSheet(context),
+      );
     } else if (state.stepId == OnboardingStepId.profileBasics) {
       final step = state.draft.profile.currentStepId;
-      if (step == ProfileStepId.goal) {
-        infoAction = OnboardingBottomInfoAction(
-          label: 'Why we collect this data',
-          onTap: () => _showGoalDataCollectionSheet(context),
-        );
-      } else if (step == ProfileStepId.activity) {
+      if (step == ProfileStepId.activity) {
         infoAction = OnboardingBottomInfoAction(
           label: 'Why do we need this information?',
           onTap: () => _showActivityDataCollectionSheet(context),
