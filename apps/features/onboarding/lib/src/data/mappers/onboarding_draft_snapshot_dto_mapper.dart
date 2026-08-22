@@ -15,6 +15,7 @@ import '../../domain/models/targets_onboarding_draft.dart';
 import '../../domain/models/workout_duration.dart';
 import '../../domain/models/workout_equipment.dart';
 import '../../domain/models/workout_experience_level.dart';
+import '../../domain/models/workout_flow_plan.dart';
 import '../../domain/models/workout_focus_area.dart';
 import '../../domain/models/workout_gym_access.dart';
 import '../../domain/models/workout_intro_choice.dart';
@@ -83,7 +84,7 @@ class OnboardingDraftSnapshotDtoMapper {
           )
         : const GoalIntentSelection();
 
-    final currentStepId = _stepIdCodec.decodeOr(
+    var currentStepId = _stepIdCodec.decodeOr(
       json['current_step_id'],
       fallback: OnboardingStepId.mode,
     );
@@ -101,6 +102,19 @@ class OnboardingDraftSnapshotDtoMapper {
     final workout = json['workout'] is Map<String, dynamic>
         ? _workoutFromJson(json['workout'] as Map<String, dynamic>)
         : const WorkoutOnboardingDraft();
+
+    // O6C migration: schema v1-v5 had one broad Workout checkpoint. O6B
+    // already emitted the canonical `workoutProfile` key, so schema version is
+    // the only reliable discriminator for old broad state versus the new split.
+    if (schemaVersion < 6) {
+      if (currentStepId == OnboardingStepId.workoutProfile &&
+          WorkoutFlowPlan.targetsOwnedStepIds.contains(workout.currentStepId)) {
+        currentStepId = OnboardingStepId.workoutTargets;
+      }
+      if (completedStepIds.contains(OnboardingStepId.workoutProfile)) {
+        completedStepIds.add(OnboardingStepId.workoutTargets);
+      }
+    }
 
     final targets = json['targets'] is Map<String, dynamic>
         ? _targetsFromJson(json['targets'] as Map<String, dynamic>)
