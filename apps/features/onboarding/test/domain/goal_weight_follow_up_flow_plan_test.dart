@@ -127,7 +127,7 @@ void main() {
     );
   });
 
-  test('legacy Targets Goal Pace cursor reconciles to Water Target', () {
+  test('generic legacy Targets fallback resolves to active Nutrition Target', () {
     const legacyPlan = TargetsFlowPlan(
       steps: TargetsFlowPlan.legacyOrderedSteps,
     );
@@ -144,7 +144,7 @@ void main() {
         previousPlan: legacyPlan,
         nextPlan: activePlan,
       ),
-      TargetStepId.waterTarget,
+      TargetStepId.nutritionTarget,
     );
   });
 }
