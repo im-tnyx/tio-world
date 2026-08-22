@@ -619,9 +619,6 @@ class _RecordingWorkoutProfileRepository
 
 class _RecordingWorkoutTargetsRepository
     implements workout_owner.WorkoutTargetsRepository {
-  _RecordingWorkoutTargetsRepository({this.failuresRemaining = 0});
-
-  int failuresRemaining;
   int upsertCalls = 0;
   workout_owner.WorkoutTargetsData? data;
 
@@ -631,10 +628,6 @@ class _RecordingWorkoutTargetsRepository
   @override
   Future<void> upsert(workout_owner.WorkoutTargetsData targets) async {
     upsertCalls += 1;
-    if (failuresRemaining > 0) {
-      failuresRemaining -= 1;
-      throw StateError('canonical Workout Targets write failed');
-    }
     targets.validate();
     data = targets;
   }
