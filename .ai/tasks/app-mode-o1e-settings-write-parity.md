@@ -1,6 +1,6 @@
 # App Mode O1E — Settings Canonical Write Parity
 
-**Status:** In progress  
+**Status:** Validated  
 **Tracker:** GitHub Issue #11  
 **Parent task:** `.ai/tasks/app-mode-foundation.md`  
 **Canonical onboarding sequence:** `.ai/tasks/product-onboarding-canonical-execution.md`  
@@ -9,78 +9,54 @@
 
 ## Outcome
 
-Make authenticated Settings App Mode changes persist canonical `user_app_preferences` before publishing the new runtime/local App Mode, while preserving the existing Settings UI and all hidden domain data.
+Authenticated Settings App Mode changes now persist canonical `user_app_preferences` before publishing the new runtime/local App Mode, while preserving the existing Settings UI and all hidden domain data.
 
-## Verified starting point
-
-O1D is validated at:
+## Validated checkpoint
 
 ```text
-d5f03847d8c3e0216aa1acf864b44e31abbc251a
-Flutter CI #1210 / run 32550641153
-Flutter analyze ✅
-Dart analyze    ✅
-Flutter tests   ✅
-Dart tests      ✅
+Source: 7210fe7409af9f41f7478096e19d56853e8060d4
+Flutter CI #1231 / run 32551614514
+Bootstrap workspace        ✅
+Analyze Flutter packages   ✅
+Analyze Dart packages      ✅
+Test Flutter packages      ✅
+Test Dart packages         ✅
 ```
 
-Before O1E, Settings save remained local-only:
+An earlier run (#1230) exposed only a widget-test geometry issue: the new test attempted to tap an off-screen Settings card behind the fixed bottom action bar. Production logic and all controller/session O1E tests passed. The test was corrected to scroll the real Settings `ListView` before interaction; #1231 is the authoritative O1E validation.
 
-```text
-AppModeSettingsPage.onModeChanged
-→ AppModeController.select(mode)
-→ SharedPreferences AppModePreference
-→ navigate Home
-```
+## Implemented contract
 
-`AppModeSettingsPage` already catches save failures and renders the existing controlled error state.
-
-## In scope
-
-- make `AppModeController.select` canonical-first only while session bootstrap has published a completed authenticated `Ready` state;
-- write `AppPreferencesUpdate.guided(mode)` through backend-neutral `AppPreferencesRepository` first;
-- publish the accepted canonical mode + ordered guided destinations only after canonical success;
-- keep local SharedPreferences as best-effort cache after canonical success;
-- disable canonical writes during pre-auth, Account Setup, Product Onboarding, signed-out, switching-account, bootstrap-failure and disposed states;
-- canonical write failure preserves current semantic mode/destinations and surfaces through existing Settings failure UI;
-- successful mode change keeps the existing router behavior: navigate Home only after `AppModeController.select` completes;
-- focused controller/session/Settings widget regression tests;
-- full relevant Flutter/Dart CI and exact checkpoint before O1F.
-
-## Out of scope
-
-- Settings UI redesign or copy/layout changes;
-- custom-tab editing;
-- schema/RLS/migration changes;
-- Product Onboarding O2 Profile work;
-- deleting or clearing hidden Body/Nutrition/Workout data;
-- Account contact verification (#8).
-
-## Architecture decision
-
-No router/business-logic expansion is required. `AppSessionBootstrapController` already owns authenticated lifecycle and O1D canonical restore, so it gates whether `AppModeController.select` has access to the canonical writer.
+`AppSessionBootstrapController` owns whether `AppModeController.select` is allowed to use the authenticated canonical writer:
 
 ```text
 pre-auth / Account Setup / Product Onboarding
-→ canonical Settings writer disabled
-→ AppModeController.select remains local staging/cache behavior
+→ canonical writer disabled
+→ local staging remains available
 
 completed authenticated Ready
-→ bootstrap enables AppPreferencesRepository on AppModeController
+→ canonical writer required
 → Settings selection
 → AppPreferencesRepository.upsert(AppPreferencesUpdate.guided(mode))
 → canonical success
-→ best-effort local cache refresh
+→ best-effort SharedPreferences cache refresh
 → runtime mode + guided destinations publish
-→ existing router callback navigates Home
+→ existing router callback may navigate Home
 
-sign-out / account switch / bootstrap failure
-→ canonical writer disabled before further selection
+sign-out / account switch / bootstrap failure / dispose
+→ canonical writer disabled before further local staging
 ```
 
-This preserves O1C completion ordering: onboarding already writes canonical preferences before its local confirmed-mode publication, so its local `select` path must not perform a second remote write before `markReadyAfterOnboardingCompletion` enables Settings parity.
-
-Failure before canonical success must not mutate current runtime/local semantic mode. A local cache failure after canonical success must not roll back or hide valid canonical account truth.
+Validated semantics:
+- `AppPreferencesUpdate.guided(mode)` writes semantic `app_mode` plus ordered guided `active_tabs`;
+- canonical write completes before runtime/local publication;
+- canonical write failure leaves current mode, active destinations and local cache unchanged;
+- completed authenticated state fails closed if its canonical repository is unexpectedly unavailable;
+- local cache failure after canonical success cannot roll back accepted canonical truth;
+- pre-auth/onboarding/signed-out selection cannot write another authenticated account's canonical preference;
+- O1C onboarding completion does not double-write App preferences because Settings canonical write gating is enabled only after `Ready` publication;
+- existing Settings error rendering and router success-navigation behavior are reused unchanged;
+- no Settings production UI source, router production source, schema/RLS, Profile/Body owner or hidden Nutrition/Workout/Body data path was changed.
 
 ## Acceptance checklist
 
@@ -88,20 +64,37 @@ Failure before canonical success must not mutate current runtime/local semantic 
 - [x] canonical write happens before runtime mode publication;
 - [x] payload contains semantic `app_mode` + derived ordered `active_tabs`;
 - [x] canonical failure leaves current mode/destinations unchanged;
+- [x] canonical failure does not reach the existing post-save Home navigation;
 - [x] existing Settings failure UI receives the thrown canonical failure;
 - [x] local cache failure after canonical success still publishes canonical runtime truth;
+- [x] completed authenticated updates fail closed without a canonical repository;
 - [x] pre-auth/onboarding/signed-out state cannot write another authenticated account preference;
-- [x] successful save continues to update route/shell visibility through `AppModeController.activeDestinations`;
+- [x] successful save updates route/shell visibility through `AppModeController.activeDestinations`;
 - [x] no hidden owner data repository is involved or deleted;
 - [x] existing Settings App Mode production UI/source remains unchanged;
 - [x] focused controller/session/Settings widget tests added;
-- [ ] full CI green;
-- [ ] exact O1E checkpoint recorded in #11, #40/#44, PR #50 and canonical tasks.
+- [x] full Flutter/Dart CI green;
+- [x] exact O1E source checkpoint recorded here.
 
-## Validation
+## Scope proof
 
-Implementation source is ready for CI. Do not mark Validated until Flutter/Dart analyze + tests are green on the exact source checkpoint.
+O1E production changes are limited to:
 
-## Exit criteria
+```text
+apps/app/lib/app/app_mode/app_mode_controller.dart
+apps/app/lib/app/session/app_session_bootstrap_controller.dart
+```
 
-Settings App Mode is no longer a local-only write path. O1F integrated acceptance is next only after O1E validation is recorded.
+Focused tests/task evidence:
+
+```text
+.ai/tasks/app-mode-o1e-settings-write-parity.md
+apps/app/test/app/app_mode_controller_test.dart
+apps/app/test/app/app_mode_authenticated_write_requirement_test.dart
+apps/app/test/app/app_mode_settings_write_parity_test.dart
+apps/app/test/app/session/app_session_app_preferences_restore_test.dart
+```
+
+## Exit / next
+
+O1E is validated. O1F integrated App Mode acceptance/full CI is next. Do not start Product Onboarding O2 common Profile until O1F is validated and the final O1 checkpoint is recorded.
