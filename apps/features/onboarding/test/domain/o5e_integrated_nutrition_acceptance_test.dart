@@ -40,13 +40,15 @@ void main() {
             nutrition_owner.InMemoryNutritionProfileRepository();
         final nutritionTargets =
             nutrition_owner.InMemoryNutritionTargetsRepository();
-        final workout = workout_owner.InMemoryWorkoutPreferencesRepository();
+        final workoutProfile = workout_owner.InMemoryWorkoutProfileRepository();
+        final workoutTargets = workout_owner.InMemoryWorkoutTargetsRepository();
         final persist = PersistOnboardingOwnerDataUseCase(
           profileRepository: _MemoryUserProfileRepository(),
           bodyRepository: body_owner.InMemoryBodySetupRepository(),
           wellnessRepository: body_owner.InMemoryWellnessTargetsRepository(),
           nutritionProfileRepository: nutritionProfile,
-          workoutRepository: workout,
+          workoutProfileRepository: workoutProfile,
+          workoutTargetsRepository: workoutTargets,
           nutritionTargetsRepository: nutritionTargets,
         );
         final draft = _validDraft(
@@ -62,7 +64,8 @@ void main() {
         await persist(draft: draft, flowPlan: flowPlan);
 
         final storedProfile = await nutritionProfile.read();
-        final storedWorkout = await workout.getWorkoutPreferences();
+        final storedWorkoutProfile = await workoutProfile.read();
+        final storedWorkoutTargets = await workoutTargets.read();
         final storedTargets = await nutritionTargets.read();
 
         if (testCase.expectNutritionProfile) {
@@ -71,9 +74,11 @@ void main() {
           expect(storedProfile, isNull, reason: testCase.label);
         }
         if (testCase.expectWorkout) {
-          expect(storedWorkout, isNotNull, reason: testCase.label);
+          expect(storedWorkoutProfile, isNotNull, reason: testCase.label);
+          expect(storedWorkoutTargets, isNotNull, reason: testCase.label);
         } else {
-          expect(storedWorkout, isNull, reason: testCase.label);
+          expect(storedWorkoutProfile, isNull, reason: testCase.label);
+          expect(storedWorkoutTargets, isNull, reason: testCase.label);
         }
         expect(storedTargets, isNotNull, reason: testCase.label);
       }
@@ -265,14 +270,16 @@ void main() {
       final nutritionProfile = _RecordingNutritionProfileRepository(
         failuresRemaining: 1,
       );
-      final workout = _RecordingWorkoutRepository();
+      final workoutProfile = _RecordingWorkoutProfileRepository();
+      final workoutTargets = _RecordingWorkoutTargetsRepository();
       final nutritionTargets = _RecordingNutritionTargetsRepository();
       final appPreferences = _RecordingAppPreferencesRepository();
       final preference = _RecordingAppModePreference();
       final status = _RecordingOnboardingStatusRepository();
       final complete = _completeUseCase(
         nutritionProfileRepository: nutritionProfile,
-        workoutRepository: workout,
+        workoutProfileRepository: workoutProfile,
+        workoutTargetsRepository: workoutTargets,
         nutritionTargetsRepository: nutritionTargets,
         appPreferencesRepository: appPreferences,
         preference: preference,
@@ -299,7 +306,8 @@ void main() {
         ),
       );
 
-      expect(workout.saveCalls, 0);
+      expect(workoutProfile.upsertCalls, 0);
+      expect(workoutTargets.upsertCalls, 0);
       expect(nutritionTargets.upsertCalls, 0);
       expect(appPreferences.upsertCalls, 0);
       expect(preference.writeCalls, 0);
@@ -308,7 +316,8 @@ void main() {
       await complete(draft: draft, flowPlan: flowPlan);
 
       expect(nutritionProfile.upsertCalls, 2);
-      expect(workout.saveCalls, 1);
+      expect(workoutProfile.upsertCalls, 1);
+      expect(workoutTargets.upsertCalls, 1);
       expect(nutritionTargets.upsertCalls, 1);
       expect(appPreferences.upsertCalls, 1);
       expect(preference.writeCalls, 1);
@@ -318,21 +327,27 @@ void main() {
       await complete(draft: draft, flowPlan: flowPlan);
 
       expect(nutritionProfile.upsertCalls, 2);
-      expect(workout.saveCalls, 1);
+      expect(workoutProfile.upsertCalls, 1);
+      expect(workoutTargets.upsertCalls, 1);
       expect(nutritionTargets.upsertCalls, 1);
       expect(appPreferences.upsertCalls, 1);
       expect(preference.writeCalls, 1);
       expect(status.completedWriteCalls, 1);
     });
 
-    test('Workout failure blocks Nutrition Targets and publication', () async {
-      final workout = _RecordingWorkoutRepository(failuresRemaining: 1);
+    test(
+        'Workout Profile failure blocks Workout Targets, Nutrition Targets and publication',
+        () async {
+      final workoutProfile =
+          _RecordingWorkoutProfileRepository(failuresRemaining: 1);
+      final workoutTargets = _RecordingWorkoutTargetsRepository();
       final nutritionTargets = _RecordingNutritionTargetsRepository();
       final appPreferences = _RecordingAppPreferencesRepository();
       final preference = _RecordingAppModePreference();
       final status = _RecordingOnboardingStatusRepository();
       final complete = _completeUseCase(
-        workoutRepository: workout,
+        workoutProfileRepository: workoutProfile,
+        workoutTargetsRepository: workoutTargets,
         nutritionTargetsRepository: nutritionTargets,
         appPreferencesRepository: appPreferences,
         preference: preference,
@@ -354,12 +369,13 @@ void main() {
           isA<OwnerPersistenceException>().having(
             (error) => error.owner,
             'owner',
-            OwnerPersistenceTarget.workout,
+            OwnerPersistenceTarget.workoutProfile,
           ),
         ),
       );
 
-      expect(workout.saveCalls, 1);
+      expect(workoutProfile.upsertCalls, 1);
+      expect(workoutTargets.upsertCalls, 0);
       expect(nutritionTargets.upsertCalls, 0);
       expect(appPreferences.upsertCalls, 0);
       expect(preference.writeCalls, 0);
@@ -437,7 +453,8 @@ class _AllergyCase {
 
 PersistOnboardingOwnerDataUseCase _persistUseCase({
   nutrition_owner.NutritionProfileRepository? nutritionProfileRepository,
-  workout_owner.WorkoutPreferencesRepository? workoutRepository,
+  workout_owner.WorkoutProfileRepository? workoutProfileRepository,
+  workout_owner.WorkoutTargetsRepository? workoutTargetsRepository,
   nutrition_owner.NutritionTargetsRepository? nutritionTargetsRepository,
 }) {
   return PersistOnboardingOwnerDataUseCase(
@@ -446,8 +463,10 @@ PersistOnboardingOwnerDataUseCase _persistUseCase({
     wellnessRepository: body_owner.InMemoryWellnessTargetsRepository(),
     nutritionProfileRepository: nutritionProfileRepository ??
         nutrition_owner.InMemoryNutritionProfileRepository(),
-    workoutRepository:
-        workoutRepository ?? workout_owner.InMemoryWorkoutPreferencesRepository(),
+    workoutProfileRepository: workoutProfileRepository ??
+        workout_owner.InMemoryWorkoutProfileRepository(),
+    workoutTargetsRepository: workoutTargetsRepository ??
+        workout_owner.InMemoryWorkoutTargetsRepository(),
     nutritionTargetsRepository: nutritionTargetsRepository ??
         nutrition_owner.InMemoryNutritionTargetsRepository(),
   );
@@ -455,7 +474,8 @@ PersistOnboardingOwnerDataUseCase _persistUseCase({
 
 CompleteOnboardingUseCase _completeUseCase({
   nutrition_owner.NutritionProfileRepository? nutritionProfileRepository,
-  workout_owner.WorkoutPreferencesRepository? workoutRepository,
+  workout_owner.WorkoutProfileRepository? workoutProfileRepository,
+  workout_owner.WorkoutTargetsRepository? workoutTargetsRepository,
   nutrition_owner.NutritionTargetsRepository? nutritionTargetsRepository,
   required _RecordingAppPreferencesRepository appPreferencesRepository,
   required _RecordingAppModePreference preference,
@@ -467,7 +487,8 @@ CompleteOnboardingUseCase _completeUseCase({
     statusRepository: status,
     persistOwnerDataUseCase: _persistUseCase(
       nutritionProfileRepository: nutritionProfileRepository,
-      workoutRepository: workoutRepository,
+      workoutProfileRepository: workoutProfileRepository,
+      workoutTargetsRepository: workoutTargetsRepository,
       nutritionTargetsRepository: nutritionTargetsRepository,
     ),
     validator: const OnboardingCompletionValidator(
@@ -574,28 +595,48 @@ class _RecordingNutritionProfileRepository
   }
 }
 
-class _RecordingWorkoutRepository
-    implements workout_owner.WorkoutPreferencesRepository {
-  _RecordingWorkoutRepository({this.failuresRemaining = 0});
+class _RecordingWorkoutProfileRepository
+    implements workout_owner.WorkoutProfileRepository {
+  _RecordingWorkoutProfileRepository({this.failuresRemaining = 0});
 
   int failuresRemaining;
-  int saveCalls = 0;
-  workout_owner.WorkoutPreferencesData? data;
+  int upsertCalls = 0;
+  workout_owner.WorkoutProfileData? data;
 
   @override
-  Future<workout_owner.WorkoutPreferencesData?> getWorkoutPreferences() async =>
-      data;
+  Future<workout_owner.WorkoutProfileData?> read() async => data;
 
   @override
-  Future<void> saveWorkoutPreferences(
-    workout_owner.WorkoutPreferencesData value,
-  ) async {
-    saveCalls += 1;
+  Future<void> upsert(workout_owner.WorkoutProfileData profile) async {
+    upsertCalls += 1;
     if (failuresRemaining > 0) {
       failuresRemaining -= 1;
-      throw StateError('Workout write failed');
+      throw StateError('canonical Workout Profile write failed');
     }
-    data = value;
+    data = profile;
+  }
+}
+
+class _RecordingWorkoutTargetsRepository
+    implements workout_owner.WorkoutTargetsRepository {
+  _RecordingWorkoutTargetsRepository({this.failuresRemaining = 0});
+
+  int failuresRemaining;
+  int upsertCalls = 0;
+  workout_owner.WorkoutTargetsData? data;
+
+  @override
+  Future<workout_owner.WorkoutTargetsData?> read() async => data;
+
+  @override
+  Future<void> upsert(workout_owner.WorkoutTargetsData targets) async {
+    upsertCalls += 1;
+    if (failuresRemaining > 0) {
+      failuresRemaining -= 1;
+      throw StateError('canonical Workout Targets write failed');
+    }
+    targets.validate();
+    data = targets;
   }
 }
 
