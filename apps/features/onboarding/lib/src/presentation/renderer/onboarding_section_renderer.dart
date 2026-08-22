@@ -6,6 +6,7 @@ import '../sections/app_mode_section.dart';
 import '../sections/body_goal_section.dart';
 import '../sections/mobile_section.dart';
 import '../sections/nutrition_intro_section.dart';
+import '../sections/nutrition_profile_section.dart';
 import '../sections/nutrition_section.dart';
 import '../sections/profile_section.dart';
 import '../sections/review_section.dart';
@@ -32,51 +33,27 @@ class OnboardingSectionRenderer extends StatelessWidget {
           state: state,
           controller: controller,
         ),
-      // Legacy `profile` remains renderable for manually constructed/older
-      // compatibility states; new active flow plans emit `userProfile`.
-      OnboardingSectionId.profile => ProfileSection(
-          state: state,
-          controller: controller,
-        ),
-      OnboardingSectionId.userProfile => ProfileSection(
-          state: state,
-          controller: controller,
-        ),
-      OnboardingSectionId.bodyGoal => BodyGoalSection(
-          state: state,
-          controller: controller,
-        ),
-      OnboardingSectionId.wellnessGoals => WellnessSection(
-          state: state,
-          controller: controller,
-        ),
-      OnboardingSectionId.mobile => MobileSection(
-          state: state,
-          controller: controller,
-        ),
-      OnboardingSectionId.workoutIntro => WorkoutIntroSection(
-          state: state,
-          controller: controller,
-        ),
-      OnboardingSectionId.workout => WorkoutSection(
-          state: state,
-          controller: controller,
-        ),
-      OnboardingSectionId.nutritionIntro => NutritionIntroSection(
-          state: state,
-          controller: controller,
-        ),
-      OnboardingSectionId.nutrition => NutritionSection(
-          state: state,
-          controller: controller,
-        ),
-      OnboardingSectionId.targets => TargetsSection(
-          state: state,
-          controller: controller,
-        ),
-      OnboardingSectionId.review => ReviewSection(state: state),
+      OnboardingSectionId.profile || OnboardingSectionId.userProfile =>
+        ProfileSection(state: state, controller: controller),
+      OnboardingSectionId.bodyGoal =>
+        BodyGoalSection(state: state, controller: controller),
+      OnboardingSectionId.wellnessGoals =>
+        WellnessSection(state: state, controller: controller),
       OnboardingSectionId.nutritionProfile =>
-        _futureSectionNotActive(OnboardingSectionId.nutritionProfile),
+        NutritionProfileSection(state: state, controller: controller),
+      OnboardingSectionId.mobile =>
+        MobileSection(state: state, controller: controller),
+      OnboardingSectionId.workoutIntro =>
+        WorkoutIntroSection(state: state, controller: controller),
+      OnboardingSectionId.workout =>
+        WorkoutSection(state: state, controller: controller),
+      OnboardingSectionId.nutritionIntro =>
+        NutritionIntroSection(state: state, controller: controller),
+      OnboardingSectionId.nutrition =>
+        NutritionSection(state: state, controller: controller),
+      OnboardingSectionId.targets =>
+        TargetsSection(state: state, controller: controller),
+      OnboardingSectionId.review => ReviewSection(state: state),
       OnboardingSectionId.workoutProfile =>
         _futureSectionNotActive(OnboardingSectionId.workoutProfile),
       OnboardingSectionId.nutritionGoals =>

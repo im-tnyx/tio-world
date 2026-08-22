@@ -1,5 +1,6 @@
 export 'body_setup_mapper.dart';
 export 'build_body_goal_flow_plan_use_case.dart';
+export 'build_nutrition_profile_flow_plan_use_case.dart';
 export 'build_onboarding_flow_use_case.dart';
 export 'build_onboarding_progress_plan_use_case.dart';
 export 'build_profile_flow_plan_use_case.dart';
@@ -13,6 +14,7 @@ export 'goal_pace_resolver.dart';
 export 'goal_pace_target_date_calculator.dart';
 export 'goal_weight_follow_up_policy.dart';
 export 'legacy_profile_goal_intent_migration.dart';
+export 'nutrition_profile_step_validator.dart';
 export 'onboarding_completion_validator.dart';
 export 'persist_onboarding_owner_data_use_case.dart';
 export 'preserve_onboarding_resume_checkpoint_use_case.dart';

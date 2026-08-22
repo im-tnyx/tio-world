@@ -37,16 +37,15 @@ class OnboardingState {
         mode: draft.selectedMode,
         goalSelection: draft.goalSelection,
       );
-
   BodyGoalFlowPlan get bodyGoalFlowPlan =>
       const BuildBodyGoalFlowPlanUseCase()(
         mode: draft.selectedMode,
         goalSelection: draft.goalSelection,
       );
-
   WellnessFlowPlan get wellnessFlowPlan =>
       const BuildWellnessFlowPlanUseCase()();
-
+  NutritionProfileFlowPlan get nutritionProfileFlowPlan =>
+      const BuildNutritionProfileFlowPlanUseCase()();
   TargetsFlowPlan get targetsFlowPlan => const BuildTargetsFlowPlanUseCase()(
         mode: draft.selectedMode,
         goalSelection: draft.goalSelection,
@@ -58,35 +57,31 @@ class OnboardingState {
         selection: draft.goalSelection,
       );
 
-  /// Whether the current user-facing onboarding screen has an internal
-  /// previous screen, including nested Profile, Body Goal, Wellness, Workout,
-  /// and Targets flows.
   bool get hasPreviousScreen {
     if (stepId == OnboardingStepId.profileBasics &&
         profileFlowPlan.previous(draft.profile.currentStepId) != null) {
       return true;
     }
-
     if (stepId == OnboardingStepId.bodyGoal &&
         bodyGoalFlowPlan.previous(draft.profile.currentStepId) != null) {
       return true;
     }
-
     if (stepId == OnboardingStepId.wellnessGoals &&
         wellnessFlowPlan.previous(draft.targets.currentStepId) != null) {
       return true;
     }
-
+    if (stepId == OnboardingStepId.nutritionProfile &&
+        nutritionProfileFlowPlan.previous(draft.nutrition.currentStepId) != null) {
+      return true;
+    }
     if (stepId == OnboardingStepId.workoutPreferences &&
         workoutFlowPlan.indexOf(draft.workout.currentStepId) > 0) {
       return true;
     }
-
     if (stepId == OnboardingStepId.targets &&
         targetsFlowPlan.previous(draft.targets.currentStepId) != null) {
       return true;
     }
-
     return hasPreviousStep;
   }
 
@@ -98,7 +93,6 @@ class OnboardingState {
         draft.profile.currentStepId != ProfileStepId.goalPace) {
       return true;
     }
-
     return const TargetStepValidator().isCurrentStepValid(
       draft.targets.copyWith(currentStepId: TargetStepId.goalPace),
       profile: draft.profile,
@@ -131,6 +125,7 @@ class OnboardingState {
       profileFlowPlan: profileFlowPlan,
       bodyGoalFlowPlan: bodyGoalFlowPlan,
       wellnessFlowPlan: wellnessFlowPlan,
+      nutritionProfileFlowPlan: nutritionProfileFlowPlan,
       workoutFlowPlan: workoutFlowPlan,
       targetsFlowPlan: targetsFlowPlan,
     );
@@ -146,6 +141,7 @@ class OnboardingState {
     final index = progressPlan.indexOfCurrentScreen(
       stepId: stepId,
       profileStepId: draft.profile.currentStepId,
+      nutritionProfileStepId: draft.nutrition.currentStepId,
       workoutStepId: draft.workout.currentStepId,
       targetStepId: draft.targets.currentStepId,
     );
@@ -157,6 +153,7 @@ class OnboardingState {
     return progressPlan.progressFor(
       stepId: stepId,
       profileStepId: draft.profile.currentStepId,
+      nutritionProfileStepId: draft.nutrition.currentStepId,
       workoutStepId: draft.workout.currentStepId,
       targetStepId: draft.targets.currentStepId,
     );
