@@ -105,6 +105,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ref.read(appOnboardingDraftRepositoryProvider);
   final onboardingCompletionRepository =
       ref.read(onboardingCompletionRepositoryProvider);
+  final appPreferencesRepository = ref.read(appPreferencesRepositoryProvider);
   final supabaseClient = ref.read(supabaseClientProvider);
   final MeasurementUnitPreferencesRepository? unitPreferencesRepository =
       supabaseClient != null
@@ -425,6 +426,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 final completeOnboarding = CompleteOnboardingUseCase(
                   confirmedModePreference:
                       _AppModeControllerPreferenceAdapter(appModeController),
+                  appPreferencesRepository: appPreferencesRepository,
                   statusRepository: onboardingStatusRepository,
                   completionRepository: onboardingCompletionRepository,
                   draftRepository: onboardingDraftRepository,
