@@ -1,10 +1,11 @@
 # App Mode Foundation — O1 Durable Account Preference
 
-**Status:** In progress — O1A + O1B + O1C + O1D + O1E validated; O1F integrated acceptance is NEXT  
+**Status:** In progress — O1A + O1B + O1C + O1D + O1E validated; O1F integrated acceptance is ACTIVE  
 **Primary owners:** `apps/shared`, `apps/app`, onboarding, Settings, `user_app_preferences`  
 **Tracker:** #11  
 **Product Onboarding tracker:** #40  
 **Canonical sequence:** `.ai/tasks/product-onboarding-canonical-execution.md`  
+**Active focused task:** `.ai/tasks/app-mode-o1f-integrated-acceptance.md`  
 **PR:** #50 remains Draft/unmerged
 
 ## Outcome
@@ -162,14 +163,16 @@ O1A domain/repository contract          ✅ #1183
 → O1C onboarding completion cutover     ✅ #1199
 → O1D authenticated bootstrap/restore   ✅ #1210
 → O1E Settings mode-change parity       ✅ #1231
-→ O1F integrated acceptance/full CI     NEXT
+→ O1F integrated acceptance/full CI     ACTIVE
 ```
 
 Only one O1 sub-slice is active at a time. Do not start O2 common Profile until O1F is validated.
 
-## O1F — Integrated acceptance — NEXT
+## O1F — Integrated acceptance — ACTIVE
 
-Required:
+Focused task: `.ai/tasks/app-mode-o1f-integrated-acceptance.md`
+
+Acceptance-first scope:
 - first-device onboarding completion writes canonical preference;
 - fresh install / cleared local storage restores canonical state;
 - second-device-equivalent login restores canonical state;
@@ -184,6 +187,8 @@ Required:
 - hidden Body/Nutrition/Workout owner data is untouched by mode changes;
 - full Flutter analyze + Dart analyze + Flutter tests + Dart tests;
 - exact final O1 checkpoint recorded in #11, #40, #44, PR #50 and canonical onboarding task.
+
+Production code should change only if the integrated acceptance matrix exposes a real contract gap.
 
 ## Guardrails
 
@@ -200,6 +205,6 @@ Required:
 
 ## Handoff
 
-**Start O1F integrated App Mode acceptance/full CI.**  
+**Continue O1F integrated App Mode acceptance/full CI.**  
 Do not start O2 until O1F final validation evidence is recorded.  
 After O1F validation, update trackers and start O2 common Profile owner/section activation.
