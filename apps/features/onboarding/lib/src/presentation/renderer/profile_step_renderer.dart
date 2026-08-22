@@ -77,6 +77,9 @@ class ProfileStepRenderer extends StatelessWidget {
           onContinue: () => controller.next(onFinish: (_) async {}),
           isBusy: state.isBusy,
           errorText: errorText),
+      ProfileStepId.goalPace => throw StateError(
+          'Goal Pace is Body Goal-owned and cannot render in ProfileSection.',
+        ),
       ProfileStepId.activity => ActivityScreen(
           selectedActivity: draft.activityLevel,
           onSelected: controller.updateProfileActivity,
