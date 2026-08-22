@@ -186,7 +186,7 @@ void main() {
   });
 
   testWidgets(
-      'HealthConcerns and SpecialEvent are real optional inputs and reach Targets',
+      'HealthConcerns and SpecialEvent are real optional inputs and reach Nutrition Goals',
       (tester) async {
     final harness = await _pumpWorkout(
       tester,
@@ -267,7 +267,7 @@ void main() {
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
-    expect(harness.controller.state.stepId, OnboardingStepId.targets);
+    expect(harness.controller.state.stepId, OnboardingStepId.nutritionGoals);
   });
 }
 
