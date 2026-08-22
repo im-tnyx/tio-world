@@ -463,23 +463,12 @@ Future<void> _completeProfileInputs(WidgetTester tester) async {
       warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  await tester.tap(
-    find.byKey(const ValueKey('goal-intent-loseWeight'), skipOffstage: false),
-    warnIfMissed: false,
-  );
-  await tester.pumpAndSettle();
-  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
-      warnIfMissed: false);
-  await tester.pumpAndSettle();
-
   final onboardingController = tester
       .widget<ProfileStepRenderer>(find.byType(ProfileStepRenderer))
       .controller;
   onboardingController
     ..updateProfileDateOfBirth(DateTime(2000, 1, 1))
-    ..updateProfileHeight(170.0)
-    ..updateProfileCurrentWeight(70.0)
-    ..updateProfileTargetWeight(65.0);
+    ..updateProfileHeight(170.0);
   await tester.pump();
 
   // Age -> Measurement Units. Defaults are valid, so Continue advances.
@@ -493,17 +482,7 @@ Future<void> _completeProfileInputs(WidgetTester tester) async {
       warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  // Height -> Current Weight.
-  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
-      warnIfMissed: false);
-  await tester.pumpAndSettle();
-
-  // Current Weight -> Target Weight.
-  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
-      warnIfMissed: false);
-  await tester.pumpAndSettle();
-
-  // Target Weight -> Activity.
+  // Height -> Activity.
   await tester.tap(find.widgetWithText(TioButton, 'Continue'),
       warnIfMissed: false);
   await tester.pumpAndSettle();
@@ -522,6 +501,31 @@ Future<void> _completeProfileInputs(WidgetTester tester) async {
     warnIfMissed: false,
   );
   await tester.pumpAndSettle();
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
+      warnIfMissed: false);
+  await tester.pumpAndSettle();
+
+  // Canonical Body Goal section starts after common Profile.
+  await tester.tap(
+    find.byKey(const ValueKey('goal-intent-loseWeight'), skipOffstage: false),
+    warnIfMissed: false,
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
+      warnIfMissed: false);
+  await tester.pumpAndSettle();
+
+  onboardingController
+    ..updateProfileCurrentWeight(70.0)
+    ..updateProfileTargetWeight(65.0);
+  await tester.pump();
+
+  // Current Weight -> Target Weight.
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
+      warnIfMissed: false);
+  await tester.pumpAndSettle();
+
+  // Target Weight -> Workout Intro.
   await tester.tap(find.widgetWithText(TioButton, 'Continue'),
       warnIfMissed: false);
   await tester.pumpAndSettle();
