@@ -12,6 +12,7 @@ void main() {
       final remoteRepository = _FakeRemoteCompletionAndPreferences(operations);
       final useCase = CompleteOnboardingUseCase(
         confirmedModePreference: modePreference,
+        appPreferencesRepository: remoteRepository,
         statusRepository: statusRepository,
         completionRepository: remoteRepository,
         validator: _validator,
@@ -52,6 +53,7 @@ void main() {
       );
       final useCase = CompleteOnboardingUseCase(
         confirmedModePreference: modePreference,
+        appPreferencesRepository: remoteRepository,
         statusRepository: statusRepository,
         completionRepository: remoteRepository,
         validator: _validator,
@@ -89,6 +91,7 @@ void main() {
       );
       final useCase = CompleteOnboardingUseCase(
         confirmedModePreference: modePreference,
+        appPreferencesRepository: remoteRepository,
         statusRepository: statusRepository,
         completionRepository: remoteRepository,
         validator: _validator,
@@ -134,6 +137,7 @@ void main() {
       );
       final useCase = CompleteOnboardingUseCase(
         confirmedModePreference: modePreference,
+        appPreferencesRepository: remoteRepository,
         statusRepository: statusRepository,
         completionRepository: remoteRepository,
         validator: _validator,
@@ -179,6 +183,7 @@ void main() {
       );
       final useCase = CompleteOnboardingUseCase(
         confirmedModePreference: modePreference,
+        appPreferencesRepository: remoteRepository,
         statusRepository: statusRepository,
         completionRepository: remoteRepository,
         validator: _validator,
