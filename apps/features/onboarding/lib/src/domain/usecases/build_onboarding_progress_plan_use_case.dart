@@ -48,7 +48,12 @@ class BuildOnboardingProgressPlanUseCase {
           items.add(const WorkoutIntroProgressItem());
           break;
         case OnboardingStepId.workoutProfile:
-          for (final workoutStep in workoutFlowPlan.steps) {
+          for (final workoutStep in workoutFlowPlan.profileSteps) {
+            items.add(WorkoutProgressItem(workoutStep));
+          }
+          break;
+        case OnboardingStepId.workoutTargets:
+          for (final workoutStep in workoutFlowPlan.targetSteps) {
             items.add(WorkoutProgressItem(workoutStep));
           }
           break;
@@ -72,7 +77,6 @@ class BuildOnboardingProgressPlanUseCase {
           items.add(const ReviewProgressItem());
           break;
         case OnboardingStepId.userProfile:
-        case OnboardingStepId.workoutTargets:
         case OnboardingStepId.healthConnections:
         case OnboardingStepId.planBuilding:
           throw StateError(
