@@ -125,7 +125,7 @@ const _workoutProfile = OnboardingStepDefinition(
   id: OnboardingStepId.workoutProfile,
   section: OnboardingSectionId.workoutProfile,
   owner: OnboardingStepOwner.workout,
-  progressTitle: 'Training profile',
+  progressTitle: 'Training preferences',
 );
 const _workoutTargets = OnboardingStepDefinition(
   id: OnboardingStepId.workoutTargets,
