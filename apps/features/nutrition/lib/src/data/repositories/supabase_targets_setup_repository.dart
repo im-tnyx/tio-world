@@ -2,21 +2,34 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/models/nutrition_target_recommendation.dart';
 import '../../domain/models/targets_setup_data.dart';
+import '../../domain/repositories/canonical_nutrition_owner_repositories.dart';
+import '../../domain/repositories/nutrition_profile_repository.dart';
+import '../../domain/repositories/nutrition_targets_repository.dart';
 import '../../domain/repositories/targets_setup_repository.dart';
+import 'supabase_nutrition_profile_repository.dart';
+import 'supabase_nutrition_targets_repository.dart';
 
-/// Supabase-backed implementation of [TargetsSetupRepository].
+/// Supabase-backed compatibility implementation of [TargetsSetupRepository].
 ///
-/// O4C keeps this repository responsible only for the current Nutrition
-/// compatibility payload. Wellness-owned Steps/Water/Sleep/Bed/Wake values may
-/// still be present in [TargetsSetupData] as calculation inputs, but new writes
-/// do not mirror them into Nutrition storage. Legacy Wellness columns remain
-/// readable until later owner-specific cleanup/consumer cutovers.
-class SupabaseTargetsSetupRepository implements TargetsSetupRepository {
+/// O5D keeps the legacy read/write API available for compatibility consumers,
+/// but Product Onboarding completion obtains the canonical Nutrition owners
+/// through [CanonicalNutritionOwnerRepositories] and never calls
+/// [saveTargetsSetup].
+class SupabaseTargetsSetupRepository
+    implements TargetsSetupRepository, CanonicalNutritionOwnerRepositories {
   const SupabaseTargetsSetupRepository({
     required SupabaseClient client,
   }) : _client = client;
 
   final SupabaseClient _client;
+
+  @override
+  NutritionProfileRepository get nutritionProfileRepository =>
+      SupabaseNutritionProfileRepository(client: _client);
+
+  @override
+  NutritionTargetsRepository get nutritionTargetsRepository =>
+      SupabaseNutritionTargetsRepository(client: _client);
 
   @override
   Future<void> saveTargetsSetup(TargetsSetupData data) async {
