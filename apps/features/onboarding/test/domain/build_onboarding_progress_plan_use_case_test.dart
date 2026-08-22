@@ -19,11 +19,16 @@ void main() {
         workoutFlowPlan: workoutPlan,
       );
 
-      // O3B preserves the visible screen count while splitting common Profile
-      // and Body Goal into distinct top-level ownership boundaries.
+      // O3C preserves the visible screen count while moving Goal Pace from
+      // Targets progress ownership into the canonical Body Goal boundary.
       expect(progressPlan.totalSteps, 25);
       expect(progressPlan.items.first, isA<ProfileProgressItem>());
-      expect(progressPlan.items.whereType<BodyGoalProgressItem>(), hasLength(3));
+      expect(progressPlan.items.whereType<BodyGoalProgressItem>(), hasLength(4));
+      expect(progressPlan.items.whereType<TargetsProgressItem>(), hasLength(5));
+      expect(
+        progressPlan.items.whereType<TargetsProgressItem>().map((e) => e.stepId),
+        isNot(contains(TargetStepId.goalPace)),
+      );
       expect(progressPlan.items.last, isA<ReviewProgressItem>());
       expect(
         progressPlan.items.whereType<WorkoutProgressItem>().map((e) => e.stepId),
@@ -173,7 +178,7 @@ void main() {
 
       double previousProgress = progressPlan.progressFor(
         stepId: OnboardingStepId.bodyGoal,
-        profileStepId: ProfileStepId.targetWeight,
+        profileStepId: ProfileStepId.goalPace,
         workoutStepId: WorkoutStepId.gymAccess,
         targetStepId: TargetStepId.bridge,
       );
@@ -181,7 +186,7 @@ void main() {
       for (final workoutStep in workoutPlan.steps) {
         final progress = progressPlan.progressFor(
           stepId: OnboardingStepId.workoutPreferences,
-          profileStepId: ProfileStepId.targetWeight,
+          profileStepId: ProfileStepId.goalPace,
           workoutStepId: workoutStep,
           targetStepId: TargetStepId.bridge,
         );
@@ -205,7 +210,7 @@ void main() {
 
       double previousProgress = progressPlan.progressFor(
         stepId: OnboardingStepId.workoutPreferences,
-        profileStepId: ProfileStepId.targetWeight,
+        profileStepId: ProfileStepId.goalPace,
         workoutStepId: WorkoutStepId.specialEvent,
         targetStepId: TargetStepId.bridge,
       );
@@ -213,7 +218,7 @@ void main() {
       for (final targetStep in TargetsFlowPlan.orderedSteps) {
         final progress = progressPlan.progressFor(
           stepId: OnboardingStepId.targets,
-          profileStepId: ProfileStepId.targetWeight,
+          profileStepId: ProfileStepId.goalPace,
           workoutStepId: WorkoutStepId.specialEvent,
           targetStepId: targetStep,
         );
@@ -237,7 +242,7 @@ void main() {
 
       final progress = progressPlan.progressFor(
         stepId: OnboardingStepId.review,
-        profileStepId: ProfileStepId.targetWeight,
+        profileStepId: ProfileStepId.goalPace,
         workoutStepId: WorkoutStepId.specialEvent,
         targetStepId: TargetStepId.nutritionTarget,
       );
