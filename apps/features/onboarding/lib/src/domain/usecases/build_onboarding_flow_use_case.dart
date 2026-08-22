@@ -87,7 +87,7 @@ const _legacyMode = OnboardingStepDefinition(
 );
 const _profileBasics = OnboardingStepDefinition(
   id: OnboardingStepId.profileBasics,
-  section: OnboardingSectionId.profile,
+  section: OnboardingSectionId.userProfile,
   owner: OnboardingStepOwner.profile,
   progressTitle: 'About you',
 );
