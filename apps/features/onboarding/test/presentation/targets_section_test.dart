@@ -14,32 +14,53 @@ void main() {
         currentStepId: TargetStepId.bridge,
       ),
     );
+    final semantics = tester.ensureSemantics();
 
-    expect(harness.controller.state.stepId, OnboardingStepId.wellnessGoals);
-    expect(find.byType(WellnessSection), findsOneWidget);
-    expect(find.byType(TargetsSection), findsNothing);
-    expect(find.byType(BridgeScreen), findsOneWidget);
+    try {
+      expect(harness.controller.state.stepId, OnboardingStepId.wellnessGoals);
+      expect(find.byType(WellnessSection), findsOneWidget);
+      expect(find.byType(TargetsSection), findsNothing);
+      expect(find.byType(BridgeScreen), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Target step 1 of 4, Building your targets'),
+        findsOneWidget,
+      );
 
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-    expect(find.byType(StepTargetScreen), findsOneWidget);
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      expect(find.byType(StepTargetScreen), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Target step 2 of 4, Daily step target'),
+        findsOneWidget,
+      );
 
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-    expect(find.byType(SleepTargetScreen), findsOneWidget);
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      expect(find.byType(SleepTargetScreen), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Target step 3 of 4, Sleep schedule target'),
+        findsOneWidget,
+      );
 
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-    expect(find.byType(WaterTargetScreen), findsOneWidget);
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      expect(find.byType(WaterTargetScreen), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Target step 4 of 4, Daily hydration target'),
+        findsOneWidget,
+      );
 
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
 
-    expect(
-      harness.controller.state.stepId,
-      OnboardingStepId.workoutPreferences,
-    );
-    expect(find.byType(WorkoutSection), findsOneWidget);
+      expect(
+        harness.controller.state.stepId,
+        OnboardingStepId.workoutPreferences,
+      );
+      expect(find.byType(WorkoutSection), findsOneWidget);
+    } finally {
+      semantics.dispose();
+    }
   });
 
   testWidgets('Targets section renders Nutrition Target only and reaches review',
@@ -67,6 +88,10 @@ void main() {
       expect(find.byType(WaterTargetScreen), findsNothing);
       expect(find.byType(GoalPaceScreen), findsNothing);
       expect(find.byType(NutritionTargetScreen), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Target step 1 of 1, Nutrition targets'),
+        findsOneWidget,
+      );
       expect(find.text('DAILY CALORIE TARGET'), findsOneWidget);
       expect(find.text('Protein'), findsOneWidget);
       expect(find.text('Carbohydrates'), findsOneWidget);
