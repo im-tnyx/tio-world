@@ -13,20 +13,20 @@ class BuildWorkoutFlowPlanUseCase {
               WorkoutStepId.equipment,
               WorkoutStepId.experienceLevel,
               WorkoutStepId.focusAreas,
+              WorkoutStepId.healthConcerns,
               WorkoutStepId.trainingDays,
               WorkoutStepId.workoutDuration,
               WorkoutStepId.workoutSplit,
-              WorkoutStepId.healthConcerns,
               WorkoutStepId.specialEvent,
             ]
           : const [
               WorkoutStepId.gymAccess,
               WorkoutStepId.experienceLevel,
               WorkoutStepId.focusAreas,
+              WorkoutStepId.healthConcerns,
               WorkoutStepId.trainingDays,
               WorkoutStepId.workoutDuration,
               WorkoutStepId.workoutSplit,
-              WorkoutStepId.healthConcerns,
               WorkoutStepId.specialEvent,
             ],
     );
