@@ -38,7 +38,7 @@ void main() {
       );
     });
 
-    test('workout mode excludes Nutrition Profile but keeps Nutrition Goals', () {
+    test('workout mode activates canonical Profile then Targets', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
@@ -50,10 +50,19 @@ void main() {
           OnboardingStepId.profileBasics,
           OnboardingStepId.bodyGoal,
           OnboardingStepId.wellnessGoals,
-          OnboardingStepId.workoutPreferences,
+          OnboardingStepId.workoutProfile,
+          OnboardingStepId.workoutTargets,
           OnboardingStepId.nutritionGoals,
           OnboardingStepId.review,
         ],
+      );
+      expect(
+        plan.definitionFor(OnboardingStepId.workoutProfile).section,
+        OnboardingSectionId.workoutProfile,
+      );
+      expect(
+        plan.definitionFor(OnboardingStepId.workoutTargets).section,
+        OnboardingSectionId.workoutTargets,
       );
       expect(plan.stepIds, isNot(contains(OnboardingStepId.nutritionProfile)));
       expect(plan.stepIds, isNot(contains(OnboardingStepId.targets)));
@@ -76,9 +85,11 @@ void main() {
           OnboardingStepId.review,
         ],
       );
+      expect(plan.stepIds, isNot(contains(OnboardingStepId.workoutProfile)));
+      expect(plan.stepIds, isNot(contains(OnboardingStepId.workoutTargets)));
     });
 
-    test('hybrid inserts Nutrition Profile before Workout setup', () {
+    test('hybrid setup now inserts canonical Workout owner sections', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.hybrid,
@@ -92,14 +103,15 @@ void main() {
           OnboardingStepId.wellnessGoals,
           OnboardingStepId.nutritionProfile,
           OnboardingStepId.workoutIntro,
-          OnboardingStepId.workoutPreferences,
+          OnboardingStepId.workoutProfile,
+          OnboardingStepId.workoutTargets,
           OnboardingStepId.nutritionGoals,
           OnboardingStepId.review,
         ],
       );
     });
 
-    test('hybrid later keeps Nutrition Profile and skips Workout preferences', () {
+    test('hybrid later keeps Nutrition and skips both Workout sections', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.hybrid,
@@ -117,6 +129,8 @@ void main() {
           OnboardingStepId.review,
         ],
       );
+      expect(plan.stepIds, isNot(contains(OnboardingStepId.workoutProfile)));
+      expect(plan.stepIds, isNot(contains(OnboardingStepId.workoutTargets)));
     });
 
     test('active sections contain no account-setup mobile section', () {
