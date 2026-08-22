@@ -14,15 +14,27 @@ class BuildBodyGoalFlowPlanUseCase {
     required AppMode? mode,
     required GoalIntentSelection goalSelection,
   }) {
-    final includeTargetWeight = followUpPolicy.shouldCollectTargetWeight(
+    final includeWeightFollowUps = followUpPolicy.shouldCollectTargetWeight(
       mode: mode,
       selection: goalSelection,
     );
+    final includeGoalPace = followUpPolicy.shouldCollectGoalPace(
+      mode: mode,
+      selection: goalSelection,
+    );
+    if (includeWeightFollowUps != includeGoalPace) {
+      throw StateError(
+        'Target Weight and Goal Pace must share Body Goal eligibility.',
+      );
+    }
 
     return BodyGoalFlowPlan(
       steps: [
         for (final step in BodyGoalFlowPlan.orderedSteps)
-          if (step != ProfileStepId.targetWeight || includeTargetWeight) step,
+          if (includeWeightFollowUps ||
+              (step != ProfileStepId.targetWeight &&
+                  step != ProfileStepId.goalPace))
+            step,
       ],
     );
   }
