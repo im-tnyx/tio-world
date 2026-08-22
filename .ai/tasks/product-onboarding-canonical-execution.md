@@ -1,6 +1,6 @@
 # Product Onboarding — Canonical Execution Plan
 
-**Status:** Ready — next implementation slice is O1 durable App Mode  
+**Status:** In progress — O1 App Mode durability; O1A/O1B/O1C validated, O1D bootstrap/restore is NEXT  
 **Primary tracker:** GitHub Issue #40  
 **Canonical ownership:** #44  
 **App Mode:** #11  
@@ -31,6 +31,20 @@ Canonical Body/Wellness/Nutrition/Workout tables    ✅ LIVE
 user_profiles + user_app_preferences schema          ✅ LIVE
 users.email_verified_at                              ✅ LIVE
 P1 schema RLS/grants/hardening                       ✅ LIVE
+O1A App Preferences domain/repository contract       ✅ CI #1183
+O1B Supabase App Preferences adapter                 ✅ CI #1187
+O1C onboarding completion canonical preference write ✅ CI #1194
+```
+
+O1C validated source:
+
+```text
+e9140705521f8af94675d785fb498180096bef55
+Flutter CI #1194 / run 32548512802
+Flutter analyze ✅
+Dart analyze    ✅
+Flutter tests   ✅
+Dart tests      ✅
 ```
 
 Applied P1 migrations:
@@ -108,28 +122,70 @@ onboarding_drafts          → draft/resume orchestration only
 
 Onboarding is an orchestrator, never the durable owner.
 
-## O1 — Durable App Mode / active navigation — NEXT
+## O1 — Durable App Mode / active navigation — IN PROGRESS
 
-**Tracker:** #11
+**Tracker:** #11  
+**Focused task:** `.ai/tasks/app-mode-foundation.md`
 
-Why first:
-- `user_app_preferences` already exists live;
-- current confirmed App Mode remains device-local SharedPreferences;
-- second-device/fresh-install recovery is therefore still broken;
-- App Mode determines mode-specific onboarding eligibility and post-onboarding guided navigation.
+Validated sub-slices:
 
-Scope:
-- [ ] backend-neutral App Preferences repository/domain contract;
-- [ ] Supabase adapter reads/writes `user_app_preferences`;
-- [ ] onboarding completion writes `app_mode` + derived ordered `active_tabs` before completion is published;
-- [ ] Settings mode change writes the same owner;
-- [ ] authenticated bootstrap restores canonical remote preference;
+```text
+O1A backend-neutral App Preferences contract     ✅ #1183
+O1B Supabase user_app_preferences adapter        ✅ #1187
+O1C onboarding completion cutover                ✅ #1194
+O1D authenticated bootstrap/restore              NEXT
+O1E Settings mode-change parity
+O1F integrated acceptance/full CI
+```
+
+Current behavior after O1C:
+
+```text
+Onboarding completion
+→ owner writes
+→ optional finalizer
+→ canonical user_app_preferences(app_mode + guided active_tabs)
+→ local App Mode cache
+→ remote onboarding completion
+→ local completion cache
+→ best-effort draft clear
+```
+
+O1C failure semantics are locked: canonical App Preferences failure keeps onboarding incomplete/retryable, and a completed retry with a missing canonical preference repairs that preference instead of silently returning.
+
+### O1D — NEXT
+
+Authenticated bootstrap/restore must make canonical remote preference win for signed-in users:
+
+```text
+authenticated account
+→ read user_app_preferences
+→ valid active_tabs: restore exact order
+→ app_mode + null active_tabs: derive guided defaults
+→ completed legacy account with no canonical preference: controlled recovery
+→ refresh local SharedPreferences cache
+→ final navigation/shell resolution
+```
+
+O1D acceptance:
+- [ ] wire backend-neutral `AppPreferencesRepository` into authenticated session/bootstrap;
 - [ ] valid remote state wins over stale local cache;
-- [ ] SharedPreferences becomes cache/pre-auth staging only;
-- [ ] no silent Hybrid fallback;
-- [ ] mode changes never delete hidden Nutrition/Workout/Body data;
-- [ ] fresh install / cleared local data / second-device tests;
-- [ ] full Flutter/Dart CI and exact checkpoint recorded.
+- [ ] cleared local storage recovers from remote;
+- [ ] second device recovers from remote;
+- [ ] app_mode-only legacy row derives current guided defaults;
+- [ ] malformed canonical row fails/recover safely rather than becoming local success;
+- [ ] both canonical fields absent never silently invent Hybrid;
+- [ ] pre-auth pending mode cannot overwrite another authenticated account;
+- [ ] no Settings write cutover in O1D;
+- [ ] focused tests + full relevant CI and exact checkpoint before O1E.
+
+Remaining O1:
+- [ ] O1D authenticated bootstrap/restore;
+- [ ] O1E Settings mode change writes the same owner;
+- [ ] O1F fresh-install/cleared-local/second-device/stale-cache integrated acceptance;
+- [ ] SharedPreferences confirmed mode becomes cache/fast path rather than authenticated authority;
+- [ ] no hidden Nutrition/Workout/Body data deletion on mode changes;
+- [ ] full Flutter/Dart CI and exact final O1 checkpoint.
 
 No custom-tab redesign in O1.
 
@@ -372,7 +428,7 @@ A1 must be completed before final account/settings acceptance, but it may be sch
 
 ## Handoff
 
-**Current Product Onboarding next slice:** O1 durable App Mode / active-tabs (#11).  
+**Current Product Onboarding next slice:** O1D authenticated App Preferences bootstrap/restore (#11).  
 **Current parallel account slice:** A1 contact verification (#8), not blocking O1.  
-**After O1 validation:** O2 common Profile owner + section activation.  
+**After O1F validation:** O2 common Profile owner + section activation.  
 **Do not start O2 before O1 validation evidence is recorded.**
