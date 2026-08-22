@@ -11,7 +11,7 @@ void main() {
       expect(plan.stepIds, const [OnboardingStepId.mode]);
     });
 
-    test('active profileBasics and bodyGoal use canonical section identities', () {
+    test('active Profile, Body and Wellness use canonical section identities', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
@@ -26,12 +26,16 @@ void main() {
         OnboardingSectionId.bodyGoal,
       );
       expect(
+        plan.definitionFor(OnboardingStepId.wellnessGoals).section,
+        OnboardingSectionId.wellnessGoals,
+      );
+      expect(
         plan.steps.map((step) => step.section),
         isNot(contains(OnboardingSectionId.profile)),
       );
     });
 
-    test('workout product onboarding places bodyGoal after profile', () {
+    test('workout product onboarding places Wellness after Body Goal', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
@@ -42,6 +46,7 @@ void main() {
         const [
           OnboardingStepId.profileBasics,
           OnboardingStepId.bodyGoal,
+          OnboardingStepId.wellnessGoals,
           OnboardingStepId.workoutPreferences,
           OnboardingStepId.targets,
           OnboardingStepId.review,
@@ -51,7 +56,7 @@ void main() {
       expect(plan.stepIds, isNot(contains(OnboardingStepId.mobile)));
     });
 
-    test('nutrition product onboarding places bodyGoal after profile', () {
+    test('nutrition product onboarding places Wellness after Body Goal', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.resumeDraft,
         mode: AppMode.nutrition,
@@ -62,6 +67,7 @@ void main() {
         const [
           OnboardingStepId.profileBasics,
           OnboardingStepId.bodyGoal,
+          OnboardingStepId.wellnessGoals,
           OnboardingStepId.targets,
           OnboardingStepId.review,
         ],
@@ -69,7 +75,7 @@ void main() {
       expect(plan.stepIds, isNot(contains(OnboardingStepId.mode)));
     });
 
-    test('hybrid product onboarding places bodyGoal before workout setup', () {
+    test('hybrid product onboarding places Wellness before workout setup', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.hybrid,
@@ -80,6 +86,7 @@ void main() {
         const [
           OnboardingStepId.profileBasics,
           OnboardingStepId.bodyGoal,
+          OnboardingStepId.wellnessGoals,
           OnboardingStepId.workoutIntro,
           OnboardingStepId.workoutPreferences,
           OnboardingStepId.targets,
@@ -100,6 +107,7 @@ void main() {
         const [
           OnboardingStepId.profileBasics,
           OnboardingStepId.bodyGoal,
+          OnboardingStepId.wellnessGoals,
           OnboardingStepId.workoutIntro,
           OnboardingStepId.targets,
           OnboardingStepId.review,
@@ -157,7 +165,7 @@ void main() {
           previousPlan: hybridPlan,
           nextPlan: workoutPlan,
         ),
-        OnboardingStepId.bodyGoal,
+        OnboardingStepId.wellnessGoals,
       );
     });
   });
