@@ -14,6 +14,7 @@ class AppModeController extends ChangeNotifier {
   Future<void> _selectionQueue = Future<void>.value();
   int _pendingSelections = 0;
   AppPreferencesRepository? _authenticatedWriteRepository;
+  bool _authenticatedWriteRequired = false;
 
   AppMode? get selectedMode => _selectedMode;
   List<AppDestination>? get activeDestinations => _activeDestinations;
@@ -21,15 +22,18 @@ class AppModeController extends ChangeNotifier {
   bool get isSaving => _isSaving;
   Object? get lastError => _lastError;
 
-  /// Enables canonical-first App Mode changes for a completed authenticated
-  /// session, or disables them when the app is pre-auth/onboarding/signed out.
+  /// Configures App Mode writes for the current session lifecycle.
   ///
-  /// Session bootstrap owns this lifecycle so a pre-auth pending mode cannot
-  /// write through the authenticated account preference owner.
+  /// When [requireCanonical] is true, selection must commit through
+  /// [repository] before runtime publication. A missing repository then fails
+  /// closed instead of falling back to local-only persistence. Pre-auth and
+  /// onboarding flows disable this requirement so local staging remains valid.
   void setAuthenticatedWriteRepository(
-    AppPreferencesRepository? repository,
-  ) {
+    AppPreferencesRepository? repository, {
+    bool requireCanonical = true,
+  }) {
     _authenticatedWriteRepository = repository;
+    _authenticatedWriteRequired = requireCanonical;
   }
 
   Future<void> load() async {
@@ -72,9 +76,17 @@ class AppModeController extends ChangeNotifier {
 
   Future<void> _persistSelection(AppMode mode) async {
     _lastError = null;
-    final canonicalRepository = _authenticatedWriteRepository;
 
-    if (canonicalRepository != null) {
+    if (_authenticatedWriteRequired) {
+      final canonicalRepository = _authenticatedWriteRepository;
+      if (canonicalRepository == null) {
+        final error = StateError(
+          'Canonical App preferences are unavailable for this authenticated update.',
+        );
+        _lastError = error;
+        throw error;
+      }
+
       final update = AppPreferencesUpdate.guided(mode);
       try {
         await canonicalRepository.upsert(update);
