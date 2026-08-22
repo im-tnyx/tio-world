@@ -73,6 +73,9 @@ class ProfileStepValidator {
           draft,
           weightGoalDirection,
         ),
+      // O3C reuses ProfileStepId as a draft cursor identity only. Pace value
+      // validation stays with TargetStepValidator and the Body Goal controller.
+      ProfileStepId.goalPace => null,
       ProfileStepId.activity =>
         draft.activityLevel == null ? 'Choose an activity level.' : null,
       ProfileStepId.healthConditions => null,
