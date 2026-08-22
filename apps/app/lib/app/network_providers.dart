@@ -170,6 +170,8 @@ final profileAccountRepositoryProvider =
   return null;
 });
 
+/// Legacy broad Workout repository retained for compatibility consumers only.
+/// Product Onboarding completion uses the canonical providers below.
 final workoutPreferencesRepositoryProvider =
     Provider<WorkoutPreferencesRepository>((ref) {
   final supabaseClient = ref.watch(supabaseClientProvider);
@@ -180,6 +182,26 @@ final workoutPreferencesRepositoryProvider =
   return RemoteWorkoutPreferencesRepository(
     remoteDataSource: HttpWorkoutPreferencesRemoteDataSource(apiClient),
   );
+});
+
+/// Canonical Workout Profile owner used by Product Onboarding completion.
+final workoutProfileRepositoryProvider =
+    Provider<WorkoutProfileRepository>((ref) {
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  if (supabaseClient != null) {
+    return SupabaseWorkoutProfileRepository(client: supabaseClient);
+  }
+  return InMemoryWorkoutProfileRepository();
+});
+
+/// Canonical Workout Targets owner used by Product Onboarding completion.
+final workoutTargetsRepositoryProvider =
+    Provider<WorkoutTargetsRepository>((ref) {
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  if (supabaseClient != null) {
+    return SupabaseWorkoutTargetsRepository(client: supabaseClient);
+  }
+  return InMemoryWorkoutTargetsRepository();
 });
 
 /// Canonical Nutrition Profile owner used by Product Onboarding completion.
