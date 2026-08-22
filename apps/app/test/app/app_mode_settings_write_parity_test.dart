@@ -25,17 +25,20 @@ void main() {
       ),
     );
 
-    await tester.tap(
-      find.byKey(const ValueKey('app-mode-settings-nutrition')),
-    );
-    await tester.pump();
+    await _selectMode(tester, AppMode.nutrition);
     await tester.tap(find.text('Save App Mode'));
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('Could not update App Mode. Please try again.'),
-      findsOneWidget,
+    final errorFinder =
+        find.text('Could not update App Mode. Please try again.');
+    await tester.scrollUntilVisible(
+      errorFinder,
+      200,
+      scrollable: find.byType(Scrollable).first,
     );
+    await tester.pump();
+
+    expect(errorFinder, findsOneWidget);
     expect(controller.selectedMode, AppMode.workout);
     expect(controller.activeDestinations, AppMode.workout.guidedDestinations);
     expect(preference.storedMode, AppMode.workout);
@@ -67,10 +70,7 @@ void main() {
       ),
     );
 
-    await tester.tap(
-      find.byKey(const ValueKey('app-mode-settings-hybrid')),
-    );
-    await tester.pump();
+    await _selectMode(tester, AppMode.hybrid);
     await tester.tap(find.text('Save App Mode'));
     await tester.pumpAndSettle();
 
@@ -88,6 +88,19 @@ void main() {
     expect(controller.activeDestinations, AppMode.hybrid.guidedDestinations);
     expect(preference.storedMode, AppMode.hybrid);
   });
+}
+
+Future<void> _selectMode(WidgetTester tester, AppMode mode) async {
+  final optionFinder =
+      find.byKey(ValueKey('app-mode-settings-${mode.storageValue}'));
+  await tester.scrollUntilVisible(
+    optionFinder,
+    200,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.pump();
+  await tester.tap(optionFinder);
+  await tester.pump();
 }
 
 class _SettingsTestApp extends StatelessWidget {
