@@ -13,12 +13,24 @@ class AppModeController extends ChangeNotifier {
   Object? _lastError;
   Future<void> _selectionQueue = Future<void>.value();
   int _pendingSelections = 0;
+  AppPreferencesRepository? _authenticatedWriteRepository;
 
   AppMode? get selectedMode => _selectedMode;
   List<AppDestination>? get activeDestinations => _activeDestinations;
   bool get isLoaded => _isLoaded;
   bool get isSaving => _isSaving;
   Object? get lastError => _lastError;
+
+  /// Enables canonical-first App Mode changes for a completed authenticated
+  /// session, or disables them when the app is pre-auth/onboarding/signed out.
+  ///
+  /// Session bootstrap owns this lifecycle so a pre-auth pending mode cannot
+  /// write through the authenticated account preference owner.
+  void setAuthenticatedWriteRepository(
+    AppPreferencesRepository? repository,
+  ) {
+    _authenticatedWriteRepository = repository;
+  }
 
   Future<void> load() async {
     if (_isLoaded) return;
@@ -60,6 +72,23 @@ class AppModeController extends ChangeNotifier {
 
   Future<void> _persistSelection(AppMode mode) async {
     _lastError = null;
+    final canonicalRepository = _authenticatedWriteRepository;
+
+    if (canonicalRepository != null) {
+      final update = AppPreferencesUpdate.guided(mode);
+      try {
+        await canonicalRepository.upsert(update);
+        await _publishCanonical(
+          mode: update.appMode,
+          destinations: update.activeTabs,
+        );
+      } catch (error) {
+        _lastError = error;
+        rethrow;
+      }
+      return;
+    }
+
     try {
       await _preference.write(mode);
       _selectedMode = mode;
@@ -68,19 +97,6 @@ class AppModeController extends ChangeNotifier {
       _lastError = error;
       rethrow;
     }
-  }
-
-  /// Publishes an already-committed canonical App Preferences update.
-  ///
-  /// This is used by authenticated Settings after the remote repository has
-  /// successfully accepted [update]. Local preference persistence is only a
-  /// best-effort cache at this point, so a cache failure cannot roll back or
-  /// hide valid canonical account truth.
-  Future<void> applyCanonicalUpdate(AppPreferencesUpdate update) async {
-    await _publishCanonical(
-      mode: update.appMode,
-      destinations: update.activeTabs,
-    );
   }
 
   /// Publishes already-validated canonical authenticated preferences.
