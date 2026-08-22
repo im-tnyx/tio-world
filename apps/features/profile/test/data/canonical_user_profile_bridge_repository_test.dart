@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tio_core/core.dart';
 import 'package:tio_feature_profile/profile.dart';
 
 void main() {
