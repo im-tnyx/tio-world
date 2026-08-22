@@ -11,7 +11,8 @@ void main() {
   late body_owner.InMemoryBodySetupRepository bodyRepo;
   late body_owner.InMemoryWellnessTargetsRepository wellnessRepo;
   late nutrition_owner.InMemoryNutritionProfileRepository nutritionProfileRepo;
-  late workout_owner.InMemoryWorkoutPreferencesRepository workoutRepo;
+  late workout_owner.InMemoryWorkoutProfileRepository workoutProfileRepo;
+  late workout_owner.InMemoryWorkoutTargetsRepository workoutTargetsRepo;
   late nutrition_owner.InMemoryNutritionTargetsRepository nutritionTargetsRepo;
   late PersistOnboardingOwnerDataUseCase useCase;
 
@@ -20,14 +21,16 @@ void main() {
     bodyRepo = body_owner.InMemoryBodySetupRepository();
     wellnessRepo = body_owner.InMemoryWellnessTargetsRepository();
     nutritionProfileRepo = nutrition_owner.InMemoryNutritionProfileRepository();
-    workoutRepo = workout_owner.InMemoryWorkoutPreferencesRepository();
+    workoutProfileRepo = workout_owner.InMemoryWorkoutProfileRepository();
+    workoutTargetsRepo = workout_owner.InMemoryWorkoutTargetsRepository();
     nutritionTargetsRepo = nutrition_owner.InMemoryNutritionTargetsRepository();
     useCase = PersistOnboardingOwnerDataUseCase(
       profileRepository: profileRepo,
       bodyRepository: bodyRepo,
       wellnessRepository: wellnessRepo,
       nutritionProfileRepository: nutritionProfileRepo,
-      workoutRepository: workoutRepo,
+      workoutProfileRepository: workoutProfileRepo,
+      workoutTargetsRepository: workoutTargetsRepo,
       nutritionTargetsRepository: nutritionTargetsRepo,
     );
   });
@@ -40,12 +43,22 @@ void main() {
     return nutritionTargetsRepo.read();
   }
 
+  Future<workout_owner.WorkoutProfileData?> canonicalWorkoutProfile() {
+    return workoutProfileRepo.read();
+  }
+
+  Future<workout_owner.WorkoutTargetsData?> canonicalWorkoutTargets() {
+    return workoutTargetsRepo.read();
+  }
+
   group('PersistOnboardingOwnerDataUseCase canonical owner writes', () {
-    test(
-        'workout writes Profile Body Wellness Workout and canonical Nutrition Targets only',
+    test('workout writes both canonical Workout owners before Nutrition Targets',
         () async {
       final draft = OnboardingDraft(
         selectedMode: AppMode.workout,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.stayFit,
+        ),
         profile: _validProfile(),
         workout: _validWorkout(),
         targets: _validTargets(),
@@ -53,7 +66,6 @@ void main() {
       final flowPlan = const BuildOnboardingFlowUseCase()(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
-        workoutIntroChoice: null,
       );
 
       await useCase(draft: draft, flowPlan: flowPlan);
@@ -62,13 +74,31 @@ void main() {
       expect(bodyRepo.data?.currentWeightKg, 60);
       expect(wellnessRepo.data?.dailySteps, 10000);
       expect(wellnessRepo.data?.waterMl, 2500);
-      expect(await workoutRepo.getWorkoutPreferences(), isNotNull);
+
+      final workoutProfile = await canonicalWorkoutProfile();
+      expect(workoutProfile, isNotNull);
+      expect(workoutProfile?.workoutLocation, workout_owner.WorkoutGymAccess.gym);
+      expect(
+        workoutProfile?.experienceLevel,
+        workout_owner.WorkoutExperienceLevel.intermediate,
+      );
+      expect(workoutProfile?.focusAreas, {workout_owner.WorkoutFocusArea.fullBody});
+
+      final workoutTargets = await canonicalWorkoutTargets();
+      expect(workoutTargets, isNotNull);
+      expect(
+        workoutTargets?.primaryWorkoutGoal,
+        workout_owner.WorkoutTargetGoal.stayFit,
+      );
+      expect(workoutTargets?.primaryGoalRank, 1);
+      expect(workoutTargets?.preferredDurationMins, 60);
+      expect(workoutTargets?.splitProgram, workout_owner.WorkoutSplit.upperLower);
+
       expect(await canonicalNutritionProfile(), isNull);
       expect(await canonicalNutritionTargets(), isNotNull);
     });
 
-    test(
-        'nutrition writes canonical Nutrition Profile and Targets but not Workout',
+    test('nutrition writes Nutrition owners and no canonical Workout owner',
         () async {
       final draft = OnboardingDraft(
         selectedMode: AppMode.nutrition,
@@ -83,7 +113,6 @@ void main() {
       final flowPlan = const BuildOnboardingFlowUseCase()(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.nutrition,
-        workoutIntroChoice: null,
       );
 
       await useCase(draft: draft, flowPlan: flowPlan);
@@ -91,7 +120,9 @@ void main() {
       expect(profileRepo.data, isNotNull);
       expect(bodyRepo.data, isNotNull);
       expect(wellnessRepo.data, isNotNull);
-      expect(await workoutRepo.getWorkoutPreferences(), isNull);
+      expect(await canonicalWorkoutProfile(), isNull);
+      expect(await canonicalWorkoutTargets(), isNull);
+
       final nutritionProfile = await canonicalNutritionProfile();
       expect(nutritionProfile, isNotNull);
       expect(nutritionProfile?.preferredDiet, 'vegan');
@@ -101,11 +132,15 @@ void main() {
       expect(await canonicalNutritionTargets(), isNotNull);
     });
 
-    test('hybrid setupNow writes both canonical Nutrition owners and Workout',
+    test('hybrid setupNow writes Nutrition plus both canonical Workout owners',
         () async {
       final draft = OnboardingDraft(
         selectedMode: AppMode.hybrid,
         workoutIntroChoice: WorkoutIntroChoice.setupNow,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.buildMuscle,
+          supportingGoal: GoalIntent.getStronger,
+        ),
         profile: _validProfile(),
         nutrition: const NutritionOnboardingDraft(
           dietType: NutritionDietType.vegetarian,
@@ -123,11 +158,15 @@ void main() {
       await useCase(draft: draft, flowPlan: flowPlan);
 
       expect(await canonicalNutritionProfile(), isNotNull);
+      expect(await canonicalWorkoutProfile(), isNotNull);
+      final workoutTargets = await canonicalWorkoutTargets();
+      expect(workoutTargets, isNotNull);
+      expect(workoutTargets?.primaryGoalRank, 1);
+      expect(workoutTargets?.supportingGoalRank, 2);
       expect(await canonicalNutritionTargets(), isNotNull);
-      expect(await workoutRepo.getWorkoutPreferences(), isNotNull);
     });
 
-    test('hybrid later writes both canonical Nutrition owners but not Workout',
+    test('hybrid later preserves draft but writes neither canonical Workout owner',
         () async {
       final draft = OnboardingDraft(
         selectedMode: AppMode.hybrid,
@@ -150,7 +189,9 @@ void main() {
 
       expect(await canonicalNutritionProfile(), isNotNull);
       expect(await canonicalNutritionTargets(), isNotNull);
-      expect(await workoutRepo.getWorkoutPreferences(), isNull);
+      expect(await canonicalWorkoutProfile(), isNull);
+      expect(await canonicalWorkoutTargets(), isNull);
+      expect(draft.workout.trainingDays, isNotEmpty);
     });
 
     test('active weight goal remains Body-owned while canonical targets are outputs only',
@@ -170,7 +211,6 @@ void main() {
       final flowPlan = const BuildOnboardingFlowUseCase()(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.nutrition,
-        workoutIntroChoice: null,
       );
 
       await useCase(draft: draft, flowPlan: flowPlan);
@@ -190,44 +230,19 @@ void main() {
       expect(nutritionTargets?.recommendationMetadata['source'], 'onboarding');
     });
 
-    test('ineligible goal keeps dormant Target Weight and pace out of Body owner',
-        () async {
-      final draft = OnboardingDraft(
-        selectedMode: AppMode.nutrition,
-        goalSelection: const GoalIntentSelection(
-          primaryGoal: GoalIntent.maintainWeight,
-        ),
-        profile: _validProfile(),
-        targets: _validTargets(),
-      );
-      final flowPlan = const BuildOnboardingFlowUseCase()(
-        entryPath: OnboardingEntryPath.firstRun,
-        mode: AppMode.nutrition,
-        workoutIntroChoice: null,
-      );
-
-      await useCase(draft: draft, flowPlan: flowPlan);
-
-      expect(
-        bodyRepo.data?.activeGoal?.goalType,
-        body_owner.BodyGoalType.maintainWeight,
-      );
-      expect(bodyRepo.data?.activeGoal?.targetWeightKg, isNull);
-      expect(bodyRepo.data?.activeGoal?.weeklyWeightChangeKg, isNull);
-      expect(await canonicalNutritionTargets(), isNotNull);
-    });
-
     test('Profile failure stops every downstream canonical owner', () async {
       final failingUseCase = PersistOnboardingOwnerDataUseCase(
         profileRepository: _FailingUserProfileRepository(),
         bodyRepository: bodyRepo,
         wellnessRepository: wellnessRepo,
         nutritionProfileRepository: nutritionProfileRepo,
-        workoutRepository: workoutRepo,
+        workoutProfileRepository: workoutProfileRepo,
+        workoutTargetsRepository: workoutTargetsRepo,
         nutritionTargetsRepository: nutritionTargetsRepo,
       );
       final draft = OnboardingDraft(
         selectedMode: AppMode.workout,
+        goalSelection: const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
         profile: _validProfile(),
         workout: _validWorkout(),
         targets: _validTargets(),
@@ -235,7 +250,6 @@ void main() {
       final flowPlan = const BuildOnboardingFlowUseCase()(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
-        workoutIntroChoice: null,
       );
 
       await expectLater(
@@ -251,60 +265,27 @@ void main() {
 
       expect(bodyRepo.data, isNull);
       expect(wellnessRepo.data, isNull);
-      expect(await workoutRepo.getWorkoutPreferences(), isNull);
       expect(await canonicalNutritionProfile(), isNull);
+      expect(await canonicalWorkoutProfile(), isNull);
+      expect(await canonicalWorkoutTargets(), isNull);
       expect(await canonicalNutritionTargets(), isNull);
     });
 
-    test('Body failure stops Wellness and both later Nutrition owners', () async {
-      final failingUseCase = PersistOnboardingOwnerDataUseCase(
-        profileRepository: profileRepo,
-        bodyRepository: _FailingBodySetupRepository(),
-        wellnessRepository: wellnessRepo,
-        nutritionProfileRepository: nutritionProfileRepo,
-        workoutRepository: workoutRepo,
-        nutritionTargetsRepository: nutritionTargetsRepo,
-      );
-      final draft = OnboardingDraft(
-        selectedMode: AppMode.nutrition,
-        profile: _validProfile(),
-        targets: _validTargets(),
-      );
-      final flowPlan = const BuildOnboardingFlowUseCase()(
-        entryPath: OnboardingEntryPath.firstRun,
-        mode: AppMode.nutrition,
-        workoutIntroChoice: null,
-      );
-
-      await expectLater(
-        () => failingUseCase(draft: draft, flowPlan: flowPlan),
-        throwsA(
-          isA<OwnerPersistenceException>().having(
-            (error) => error.owner,
-            'owner',
-            OwnerPersistenceTarget.body,
-          ),
-        ),
-      );
-
-      expect(profileRepo.data, isNotNull);
-      expect(wellnessRepo.data, isNull);
-      expect(await canonicalNutritionProfile(), isNull);
-      expect(await canonicalNutritionTargets(), isNull);
-    });
-
-    test('Wellness failure stops Nutrition Profile Workout and Targets', () async {
+    test('Wellness failure stops Nutrition Profile and both Workout owners',
+        () async {
       final failingUseCase = PersistOnboardingOwnerDataUseCase(
         profileRepository: profileRepo,
         bodyRepository: bodyRepo,
         wellnessRepository: _FailingWellnessTargetsRepository(),
         nutritionProfileRepository: nutritionProfileRepo,
-        workoutRepository: workoutRepo,
+        workoutProfileRepository: workoutProfileRepo,
+        workoutTargetsRepository: workoutTargetsRepo,
         nutritionTargetsRepository: nutritionTargetsRepo,
       );
       final draft = OnboardingDraft(
         selectedMode: AppMode.hybrid,
         workoutIntroChoice: WorkoutIntroChoice.setupNow,
+        goalSelection: const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
         profile: _validProfile(),
         nutrition: const NutritionOnboardingDraft(
           dietType: NutritionDietType.vegan,
@@ -331,23 +312,27 @@ void main() {
       );
 
       expect(await canonicalNutritionProfile(), isNull);
-      expect(await workoutRepo.getWorkoutPreferences(), isNull);
+      expect(await canonicalWorkoutProfile(), isNull);
+      expect(await canonicalWorkoutTargets(), isNull);
       expect(await canonicalNutritionTargets(), isNull);
     });
 
-    test('Nutrition Profile failure stops Workout and Nutrition Targets', () async {
+    test('Nutrition Profile failure stops both Workout owners and Nutrition Targets',
+        () async {
       final failingTargets = nutrition_owner.InMemoryNutritionTargetsRepository();
       final failingUseCase = PersistOnboardingOwnerDataUseCase(
         profileRepository: profileRepo,
         bodyRepository: bodyRepo,
         wellnessRepository: wellnessRepo,
         nutritionProfileRepository: _FailingNutritionProfileRepository(),
-        workoutRepository: workoutRepo,
+        workoutProfileRepository: workoutProfileRepo,
+        workoutTargetsRepository: workoutTargetsRepo,
         nutritionTargetsRepository: failingTargets,
       );
       final draft = OnboardingDraft(
         selectedMode: AppMode.hybrid,
         workoutIntroChoice: WorkoutIntroChoice.setupNow,
+        goalSelection: const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
         profile: _validProfile(),
         nutrition: const NutritionOnboardingDraft(
           dietType: NutritionDietType.vegan,
@@ -373,22 +358,26 @@ void main() {
         ),
       );
 
-      expect(await workoutRepo.getWorkoutPreferences(), isNull);
+      expect(await canonicalWorkoutProfile(), isNull);
+      expect(await canonicalWorkoutTargets(), isNull);
       expect(await failingTargets.read(), isNull);
     });
 
-    test('Workout failure blocks canonical Nutrition Targets', () async {
+    test('Workout Profile failure blocks Workout Targets and Nutrition Targets',
+        () async {
       final canonicalTargets = nutrition_owner.InMemoryNutritionTargetsRepository();
       final failingUseCase = PersistOnboardingOwnerDataUseCase(
         profileRepository: profileRepo,
         bodyRepository: bodyRepo,
         wellnessRepository: wellnessRepo,
         nutritionProfileRepository: nutritionProfileRepo,
-        workoutRepository: _FailingWorkoutRepository(),
+        workoutProfileRepository: _FailingWorkoutProfileRepository(),
+        workoutTargetsRepository: workoutTargetsRepo,
         nutritionTargetsRepository: canonicalTargets,
       );
       final draft = OnboardingDraft(
         selectedMode: AppMode.workout,
+        goalSelection: const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
         profile: _validProfile(),
         workout: _validWorkout(),
         targets: _validTargets(),
@@ -396,7 +385,6 @@ void main() {
       final flowPlan = const BuildOnboardingFlowUseCase()(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
-        workoutIntroChoice: null,
       );
 
       await expectLater(
@@ -405,10 +393,51 @@ void main() {
           isA<OwnerPersistenceException>().having(
             (error) => error.owner,
             'owner',
-            OwnerPersistenceTarget.workout,
+            OwnerPersistenceTarget.workoutProfile,
           ),
         ),
       );
+
+      expect(await canonicalWorkoutTargets(), isNull);
+      expect(await canonicalTargets.read(), isNull);
+    });
+
+    test('Workout Targets failure reports its owner and blocks Nutrition Targets',
+        () async {
+      final canonicalTargets = nutrition_owner.InMemoryNutritionTargetsRepository();
+      final failingUseCase = PersistOnboardingOwnerDataUseCase(
+        profileRepository: profileRepo,
+        bodyRepository: bodyRepo,
+        wellnessRepository: wellnessRepo,
+        nutritionProfileRepository: nutritionProfileRepo,
+        workoutProfileRepository: workoutProfileRepo,
+        workoutTargetsRepository: _FailingWorkoutTargetsRepository(),
+        nutritionTargetsRepository: canonicalTargets,
+      );
+      final draft = OnboardingDraft(
+        selectedMode: AppMode.workout,
+        goalSelection: const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
+        profile: _validProfile(),
+        workout: _validWorkout(),
+        targets: _validTargets(),
+      );
+      final flowPlan = const BuildOnboardingFlowUseCase()(
+        entryPath: OnboardingEntryPath.firstRun,
+        mode: AppMode.workout,
+      );
+
+      await expectLater(
+        () => failingUseCase(draft: draft, flowPlan: flowPlan),
+        throwsA(
+          isA<OwnerPersistenceException>().having(
+            (error) => error.owner,
+            'owner',
+            OwnerPersistenceTarget.workoutTargets,
+          ),
+        ),
+      );
+
+      expect(await canonicalWorkoutProfile(), isNotNull);
       expect(await canonicalTargets.read(), isNull);
     });
 
@@ -419,11 +448,13 @@ void main() {
         bodyRepository: bodyRepo,
         wellnessRepository: wellnessRepo,
         nutritionProfileRepository: nutritionProfileRepo,
-        workoutRepository: workoutRepo,
+        workoutProfileRepository: workoutProfileRepo,
+        workoutTargetsRepository: workoutTargetsRepo,
         nutritionTargetsRepository: _FailingNutritionTargetsRepository(),
       );
       final draft = OnboardingDraft(
         selectedMode: AppMode.workout,
+        goalSelection: const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
         profile: _validProfile(),
         workout: _validWorkout(),
         targets: _validTargets(),
@@ -431,7 +462,6 @@ void main() {
       final flowPlan = const BuildOnboardingFlowUseCase()(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
-        workoutIntroChoice: null,
       );
 
       await expectLater(
@@ -444,6 +474,9 @@ void main() {
           ),
         ),
       );
+
+      expect(await canonicalWorkoutProfile(), isNotNull);
+      expect(await canonicalWorkoutTargets(), isNotNull);
     });
   });
 }
@@ -471,13 +504,6 @@ class _FailingUserProfileRepository
   }
 }
 
-class _FailingBodySetupRepository implements body_owner.BodySetupRepository {
-  @override
-  Future<void> saveBodySetup(body_owner.BodySetupData data) async {
-    throw StateError('Body database write failed');
-  }
-}
-
 class _FailingWellnessTargetsRepository
     implements body_owner.WellnessTargetsRepository {
   @override
@@ -500,17 +526,25 @@ class _FailingNutritionProfileRepository
   }
 }
 
-class _FailingWorkoutRepository
-    implements workout_owner.WorkoutPreferencesRepository {
+class _FailingWorkoutProfileRepository
+    implements workout_owner.WorkoutProfileRepository {
   @override
-  Future<workout_owner.WorkoutPreferencesData?> getWorkoutPreferences() async =>
-      null;
+  Future<workout_owner.WorkoutProfileData?> read() async => null;
 
   @override
-  Future<void> saveWorkoutPreferences(
-    workout_owner.WorkoutPreferencesData data,
-  ) async {
-    throw StateError('Workout database write failed');
+  Future<void> upsert(workout_owner.WorkoutProfileData profile) async {
+    throw StateError('Workout Profile database write failed');
+  }
+}
+
+class _FailingWorkoutTargetsRepository
+    implements workout_owner.WorkoutTargetsRepository {
+  @override
+  Future<workout_owner.WorkoutTargetsData?> read() async => null;
+
+  @override
+  Future<void> upsert(workout_owner.WorkoutTargetsData targets) async {
+    throw StateError('Workout Targets database write failed');
   }
 }
 
