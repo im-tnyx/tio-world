@@ -1,95 +1,69 @@
 # Product Onboarding O5A — Canonical Nutrition Profile + Targets Contracts
 
-**Status:** Active  
-**Tracker:** GitHub Issue #64  
+**Status:** Validated  
+**Tracker:** GitHub Issue #64 ✅ closed  
 **Parent O5:** #63  
 **Parent Product Onboarding:** #40  
 **Canonical ownership:** #44  
 **Predecessor O4:** #58 ✅ / CI #1441  
+**Successor:** O5B nutritionProfile runtime/draft/navigation/resume  
 **O11 cleanup:** #54 BLOCKED until O10  
 **Implementation PR:** #50 Draft/open/unmerged  
 **Branch:** `agent/onboarding-slice-2-step-1-body-goal-ui`
 
-## Starting validated checkpoint
+## Final validated checkpoint
 
 ```text
-d70de933dc0cc01f1c6544d37f625fb01937b309
-Flutter CI #1441 / run 32570394147
+3b2cc8b896186eb291bf577bcaaadda21b8a1b8e
+Flutter CI #1449 / run 32571519752
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
 Dart tests      ✅
 ```
 
-## Goal
+This exact SHA is the frozen O5A runtime/source checkpoint. Later task/tracker-only commits do not replace it unless runtime source changes and full CI is rerun.
 
-Create backend-neutral Nutrition Profile and Nutrition Targets owner contracts for the already-live canonical Supabase tables before Product Onboarding activates Nutrition-specific runtime sections.
+## Validated outcome
+
+Created backend-neutral canonical Nutrition owner contracts for the already-live Supabase tables:
 
 ```text
-Nutrition Profile domain
-        ↓
+NutritionProfileData
 NutritionProfileRepository
-        ↓
-public.user_nutrition_profiles
-        ↓ context fields only
+InMemoryNutritionProfileRepository
+SupabaseNutritionProfileRepository
 
-Nutrition Targets domain
-        ↓
+NutritionTargetsData
+NutritionTargetCustomizationState
 NutritionTargetsRepository
-        ↓
-public.user_nutrition_targets
+InMemoryNutritionTargetsRepository
+SupabaseNutritionTargetsRepository
 ```
 
-## Live schema evidence
+## Canonical Nutrition Profile contract
 
-### Profile fields allowed in O5A canonical API
-
-```text
-preferred_diet
-allergies[]
-disliked_foods[]
-medical_conditions[]
-```
-
-Do not surface legacy Body/Profile/Wellness/target mirrors that still physically exist in `user_nutrition_profiles`.
-
-### Target fields
-
-```text
-calories_kcal
-protein_grams
-carbohydrate_grams
-fat_grams
-fiber_grams
-customization_state
-customized_fields[]
-recommendation_metadata
-```
-
-Live `customization_state` constraint:
-
-```text
-unknown | recommended | custom | mixed
-```
-
-## Chosen contract direction
-
-### `NutritionProfileData`
-
-Backend-neutral fields:
+Exposes only Nutrition context:
 
 ```text
 String? preferredDiet
-Set<String> allergies
-Set<String> dislikedFoods
-Set<String> medicalConditions
+Set<String>? allergies
+Set<String>? dislikedFoods
+Set<String>? medicalConditions
 ```
 
-Do not invent enum option sets in O5A. The live table has no value constraints for these fields and the current Product Onboarding UI has not yet approved/activated a typed option set.
+Live-schema null semantics are preserved:
 
-### `NutritionTargetsData`
+```text
+null  → unknown/unset
+{}    → explicitly none
+```
 
-Backend-neutral fields:
+No common Profile, Body, Wellness, or numeric target legacy mirror is exposed through this canonical API.
+
+## Canonical Nutrition Targets contract
+
+Maps:
 
 ```text
 int? caloriesKcal
@@ -102,42 +76,20 @@ Set<String> customizedFields
 Map<String, Object?> recommendationMetadata
 ```
 
-Null numeric values mean unknown/unset. Metadata must remain an object. The domain should validate live storage constraints without inventing narrower product ranges.
-
-### Repositories
+Strict storage mapping:
 
 ```text
-NutritionProfileRepository
-  read()
-  upsert(profile)
-
-NutritionTargetsRepository
-  read()
-  upsert(targets)
+unknown | recommended | custom | mixed
 ```
 
-Signed-out reads return null. Signed-out writes throw a clear authenticated-user requirement error without changing auth state.
+Null numeric values remain unknown/unset. Storage-level positive/nonnegative constraints are validated without introducing narrower product or clinical ranges.
 
-## Implementation plan
+## Supabase adapter validation
 
-- [ ] add `NutritionProfileData` + validation/equality if useful;
-- [ ] add `NutritionTargetCustomizationState` storage mapping;
-- [ ] add `NutritionTargetsData` + storage-level validation;
-- [ ] add canonical repository interfaces;
-- [ ] add in-memory repositories preserving null/value semantics;
-- [ ] add testable Supabase table gateways;
-- [ ] add `SupabaseNutritionProfileRepository` targeting only Nutrition context columns;
-- [ ] add `SupabaseNutritionTargetsRepository` targeting only `user_nutrition_targets`;
-- [ ] export new contracts/adapters through the public Nutrition package barrel;
-- [ ] add strict parse/write tests including signed-out fail-closed behavior;
-- [ ] verify legacy `TargetsSetupRepository` production source is unchanged by O5A;
-- [ ] run full Flutter/Dart CI and record one exact source SHA.
-
-## Supabase adapter constraints
-
-Profile write payload may contain only:
+Profile adapter targets only:
 
 ```text
+public.user_nutrition_profiles
 user_id
 preferred_diet
 allergies
@@ -145,9 +97,10 @@ disliked_foods
 medical_conditions
 ```
 
-Targets write payload may contain only:
+Targets adapter targets only:
 
 ```text
+public.user_nutrition_targets
 user_id
 calories_kcal
 protein_grams
@@ -159,35 +112,44 @@ customized_fields
 recommendation_metadata
 ```
 
-No canonical adapter may call `signInAnonymously()`, write `macro_targets`, write `user_targets`, or persist common Profile/Body/Wellness mirrors.
+Both canonical adapters:
 
-## Out of scope
+- signed-out read → null;
+- signed-out write → fail closed;
+- never call `signInAnonymously()`;
+- fail strictly on malformed canonical rows;
+- do not fallback-write `user_targets`;
+- do not write `user_nutrition_profiles.macro_targets` from canonical Targets;
+- do not persist common Profile/Body/Wellness mirrors.
 
-- no onboarding UI or section activation;
-- no `NutritionOnboardingDraft` field design;
-- no mode eligibility changes;
+## Compatibility boundary preserved
+
+Existing mixed `TargetsSetupData` / `TargetsSetupRepository` / `SupabaseTargetsSetupRepository` remains untouched in O5A. The legacy Supabase writer blob remained:
+
+```text
+59a8d237987a4c6de8182659dc696cbac6413c7e
+```
+
+Its cutover/shutdown belongs to O5D after runtime ownership is proven.
+
+## Validation history
+
+- source implementation checkpoint: `ea3f79b6b7ce926eb5a588106019974d37f5c41d`;
+- CI #1448 found only two `prefer_const_constructors` lint findings in the new test fixture;
+- `3b2cc8b896186eb291bf577bcaaadda21b8a1b8e` fixed those two test-only lints;
+- CI #1449 is the final full-green O5A checkpoint.
+
+## Guardrails preserved
+
+- no onboarding UI/runtime/flow change;
+- no `NutritionOnboardingDraft` field design yet;
+- no mode eligibility change;
 - no Product Onboarding persistence cutover;
-- no replacement/deletion of `TargetsSetupRepository` yet;
 - no migration/schema change;
-- no legacy column cleanup;
-- no Settings UI work from #46;
-- no formula changes to Nutrition recommendations.
-
-## Acceptance
-
-- [ ] Profile contract exposes only Nutrition context fields;
-- [ ] Targets contract maps all live canonical Nutrition target fields;
-- [ ] nullable/unknown values are preserved;
-- [ ] customization state mapping is strict and lossless;
-- [ ] in-memory repositories are deterministic;
-- [ ] Supabase Profile adapter writes/reads only canonical context fields;
-- [ ] Supabase Targets adapter writes/reads only `user_nutrition_targets` fields;
-- [ ] signed-out writes fail closed with no auth side effect;
-- [ ] malformed canonical rows fail strictly instead of fabricating defaults;
-- [ ] no UI/runtime/schema changes;
-- [ ] legacy mixed Targets compatibility source remains unchanged;
-- [ ] full four-gate CI green on one exact O5A source SHA.
+- no applied migration edit or legacy-column drop;
+- no Settings UI work;
+- no Nutrition recommendation formula change.
 
 ## Exit
 
-O5A closes only when the canonical contracts and both adapters are proven on one exact full-CI-green source checkpoint. O5B then activates the Nutrition Profile runtime/draft boundary.
+**O5A validated. O5B may start from exact source checkpoint `3b2cc8b896186eb291bf577bcaaadda21b8a1b8e` / Flutter CI #1449.**
