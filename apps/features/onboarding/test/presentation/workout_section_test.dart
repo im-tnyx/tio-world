@@ -116,6 +116,7 @@ void main() {
       ),
     );
 
+    expect(harness.controller.state.stepId, OnboardingStepId.workoutTargets);
     expect(find.byType(TrainingDaysScreen), findsOneWidget);
     expect(find.byType(FilledButton), findsOneWidget);
 
@@ -147,6 +148,7 @@ void main() {
       ),
     );
 
+    expect(durationHarness.controller.state.stepId, OnboardingStepId.workoutTargets);
     expect(find.byType(WorkoutDurationScreen), findsOneWidget);
     await tester.tap(
       find.byKey(
@@ -172,6 +174,7 @@ void main() {
       ),
     );
 
+    expect(splitHarness.controller.state.stepId, OnboardingStepId.workoutTargets);
     expect(find.byType(WorkoutSplitScreen), findsOneWidget);
     await tester.tap(
       find.byKey(const ValueKey('workout-choice-workout-split-upperLower')),
@@ -185,8 +188,7 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets(
-      'HealthConcerns and SpecialEvent are real optional inputs and reach Nutrition Goals',
+  testWidgets('HealthConcerns closes Profile and Back crosses owner boundary',
       (tester) async {
     final harness = await _pumpWorkout(
       tester,
@@ -195,26 +197,22 @@ void main() {
         gymAccess: WorkoutGymAccess.gym,
         experienceLevel: WorkoutExperienceLevel.beginner,
         focusAreas: {WorkoutFocusArea.legs},
-        trainingDays: {WorkoutTrainingDay.monday},
-        workoutDuration: WorkoutDuration.sixtyMinutes,
-        workoutSplit: WorkoutSplit.upperLower,
       ),
     );
 
+    expect(harness.controller.state.stepId, OnboardingStepId.workoutProfile);
     expect(find.byType(HealthConcernsScreen), findsOneWidget);
-    expect(find.byType(SpecialEventScreen), findsNothing);
 
     final healthInput = find.descendant(
       of: find.byKey(const ValueKey('workout-health-concerns-input')),
       matching: find.byType(TextFormField),
     );
-    await tester.enterText(
-      healthInput,
+    await tester.enterText(healthInput, 'Knee stiffness');
+    await tester.pumpAndSettle();
+    expect(
+      harness.controller.state.draft.workout.healthConcerns,
       'Knee stiffness',
     );
-    await tester.pumpAndSettle();
-    expect(harness.controller.state.draft.workout.healthConcerns,
-        'Knee stiffness');
 
     final healthField = tester.widget<EditableText>(
       find.descendant(
@@ -227,27 +225,40 @@ void main() {
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
+    expect(harness.controller.state.stepId, OnboardingStepId.workoutTargets);
+    expect(find.byType(TrainingDaysScreen), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(harness.controller.state.stepId, OnboardingStepId.workoutProfile);
+    expect(find.byType(HealthConcernsScreen), findsOneWidget);
+    expect(find.text('Knee stiffness'), findsOneWidget);
+  });
+
+  testWidgets('SpecialEvent remains optional and reaches Nutrition Goals',
+      (tester) async {
+    final harness = await _pumpWorkout(
+      tester,
+      workout: const WorkoutOnboardingDraft(
+        currentStepId: WorkoutStepId.specialEvent,
+        gymAccess: WorkoutGymAccess.gym,
+        experienceLevel: WorkoutExperienceLevel.beginner,
+        focusAreas: {WorkoutFocusArea.legs},
+        trainingDays: {WorkoutTrainingDay.monday},
+        workoutDuration: WorkoutDuration.sixtyMinutes,
+        workoutSplit: WorkoutSplit.upperLower,
+      ),
+    );
+
+    expect(harness.controller.state.stepId, OnboardingStepId.workoutTargets);
     expect(find.byType(SpecialEventScreen), findsOneWidget);
     final eventInput = find.descendant(
       of: find.byKey(const ValueKey('workout-special-event-input')),
       matching: find.byType(TextFormField),
     );
-    await tester.enterText(
-      eventInput,
-      'City 10K',
-    );
+    await tester.enterText(eventInput, 'City 10K');
     await tester.pumpAndSettle();
     expect(harness.controller.state.draft.workout.specialEvent, 'City 10K');
-
-    await tester.tap(find.byTooltip('Back'));
-    await tester.pumpAndSettle();
-    expect(find.byType(HealthConcernsScreen), findsOneWidget);
-    expect(find.text('Knee stiffness'), findsOneWidget);
-
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-    expect(find.byType(SpecialEventScreen), findsOneWidget);
-    expect(find.text('City 10K'), findsOneWidget);
 
     final titleTopBefore =
         tester.getTopLeft(find.text('Are you training for a special event?')).dy;
@@ -264,6 +275,8 @@ void main() {
       titleTopBefore,
     );
 
+    tester.view.resetViewInsets();
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
@@ -277,6 +290,11 @@ Future<_WorkoutHarness> _pumpWorkout(
 }) async {
   final container = ProviderContainer();
   addTearDown(container.dispose);
+  final workoutDraft = workout ?? const WorkoutOnboardingDraft();
+  final topLevelStepId =
+      WorkoutFlowPlan.targetsOwnedStepIds.contains(workoutDraft.currentStepId)
+          ? OnboardingStepId.workoutTargets
+          : OnboardingStepId.workoutProfile;
   final seed = OnboardingControllerSeed(
     entryPath: OnboardingEntryPath.firstRun,
     draft: OnboardingDraft(
@@ -284,9 +302,9 @@ Future<_WorkoutHarness> _pumpWorkout(
       goalSelection: const GoalIntentSelection(
         primaryGoal: GoalIntent.loseWeight,
       ),
-      currentStepId: OnboardingStepId.workoutPreferences,
+      currentStepId: topLevelStepId,
       profile: _validProfile(),
-      workout: workout ?? const WorkoutOnboardingDraft(),
+      workout: workoutDraft,
     ),
   );
 
