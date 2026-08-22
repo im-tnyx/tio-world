@@ -19,15 +19,25 @@ void main() {
         workoutFlowPlan: workoutPlan,
       );
 
-      // O3C preserves the visible screen count while moving Goal Pace from
-      // Targets progress ownership into the canonical Body Goal boundary.
+      // O4B preserves the visible denominator while moving Bridge/Steps/Sleep/
+      // Water from Targets progress ownership into the Wellness boundary.
       expect(progressPlan.totalSteps, 25);
       expect(progressPlan.items.first, isA<ProfileProgressItem>());
       expect(progressPlan.items.whereType<BodyGoalProgressItem>(), hasLength(4));
-      expect(progressPlan.items.whereType<TargetsProgressItem>(), hasLength(5));
+      expect(progressPlan.items.whereType<WellnessProgressItem>(), hasLength(4));
+      expect(progressPlan.items.whereType<TargetsProgressItem>(), hasLength(1));
+      expect(
+        progressPlan.items.whereType<WellnessProgressItem>().map((e) => e.stepId),
+        const [
+          TargetStepId.bridge,
+          TargetStepId.stepTarget,
+          TargetStepId.sleepTarget,
+          TargetStepId.waterTarget,
+        ],
+      );
       expect(
         progressPlan.items.whereType<TargetsProgressItem>().map((e) => e.stepId),
-        isNot(contains(TargetStepId.goalPace)),
+        const [TargetStepId.nutritionTarget],
       );
       expect(progressPlan.items.last, isA<ReviewProgressItem>());
       expect(
@@ -68,6 +78,8 @@ void main() {
       expect(progressPlan.totalSteps, 17);
       expect(progressPlan.items.whereType<WorkoutProgressItem>(), isEmpty);
       expect(progressPlan.items.whereType<NutritionIntroProgressItem>(), isEmpty);
+      expect(progressPlan.items.whereType<WellnessProgressItem>(), hasLength(4));
+      expect(progressPlan.items.whereType<TargetsProgressItem>(), hasLength(1));
     });
 
     test('hybrid setupNow derives 26 (gym) / 27 (home) screens', () {
@@ -165,6 +177,36 @@ void main() {
       }
     });
 
+    test('Wellness children follow Body Goal monotonically', () {
+      final flowPlan = buildFlowPlan(
+        entryPath: OnboardingEntryPath.firstRun,
+        mode: AppMode.workout,
+      );
+      final progressPlan = buildProgressPlan(
+        flowPlan: flowPlan,
+        workoutFlowPlan: buildWorkoutPlan(gymAccess: WorkoutGymAccess.gym),
+      );
+
+      var previousProgress = progressPlan.progressFor(
+        stepId: OnboardingStepId.bodyGoal,
+        profileStepId: ProfileStepId.goalPace,
+        workoutStepId: WorkoutStepId.gymAccess,
+        targetStepId: TargetStepId.bridge,
+      );
+
+      for (final wellnessStep in WellnessFlowPlan.orderedSteps) {
+        final progress = progressPlan.progressFor(
+          stepId: OnboardingStepId.wellnessGoals,
+          profileStepId: ProfileStepId.goalPace,
+          workoutStepId: WorkoutStepId.gymAccess,
+          targetStepId: wellnessStep,
+        );
+        expect(progress, greaterThan(previousProgress),
+            reason: 'Wellness step $wellnessStep must follow Body Goal');
+        previousProgress = progress;
+      }
+    });
+
     test('every Workout child screen strictly increases progress monotonically', () {
       final flowPlan = buildFlowPlan(
         entryPath: OnboardingEntryPath.firstRun,
@@ -177,10 +219,10 @@ void main() {
       );
 
       double previousProgress = progressPlan.progressFor(
-        stepId: OnboardingStepId.bodyGoal,
+        stepId: OnboardingStepId.wellnessGoals,
         profileStepId: ProfileStepId.goalPace,
         workoutStepId: WorkoutStepId.gymAccess,
-        targetStepId: TargetStepId.bridge,
+        targetStepId: TargetStepId.waterTarget,
       );
 
       for (final workoutStep in workoutPlan.steps) {
@@ -188,7 +230,7 @@ void main() {
           stepId: OnboardingStepId.workoutPreferences,
           profileStepId: ProfileStepId.goalPace,
           workoutStepId: workoutStep,
-          targetStepId: TargetStepId.bridge,
+          targetStepId: TargetStepId.waterTarget,
         );
 
         expect(progress, greaterThan(previousProgress),
@@ -197,7 +239,7 @@ void main() {
       }
     });
 
-    test('every Targets child screen strictly increases progress monotonically', () {
+    test('active Nutrition Target follows the preceding mode-specific section', () {
       final flowPlan = buildFlowPlan(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
@@ -208,25 +250,20 @@ void main() {
         workoutFlowPlan: workoutPlan,
       );
 
-      double previousProgress = progressPlan.progressFor(
+      final previousProgress = progressPlan.progressFor(
         stepId: OnboardingStepId.workoutPreferences,
         profileStepId: ProfileStepId.goalPace,
-        workoutStepId: WorkoutStepId.specialEvent,
-        targetStepId: TargetStepId.bridge,
+        workoutStepId: workoutPlan.steps.last,
+        targetStepId: TargetStepId.waterTarget,
+      );
+      final targetProgress = progressPlan.progressFor(
+        stepId: OnboardingStepId.targets,
+        profileStepId: ProfileStepId.goalPace,
+        workoutStepId: workoutPlan.steps.last,
+        targetStepId: TargetStepId.nutritionTarget,
       );
 
-      for (final targetStep in TargetsFlowPlan.orderedSteps) {
-        final progress = progressPlan.progressFor(
-          stepId: OnboardingStepId.targets,
-          profileStepId: ProfileStepId.goalPace,
-          workoutStepId: WorkoutStepId.specialEvent,
-          targetStepId: targetStep,
-        );
-
-        expect(progress, greaterThan(previousProgress),
-            reason: 'Target step $targetStep must increase progress over $previousProgress');
-        previousProgress = progress;
-      }
+      expect(targetProgress, greaterThan(previousProgress));
     });
 
     test('Review screen reaches exactly 1.0 progress', () {
