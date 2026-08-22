@@ -138,7 +138,7 @@ void main() {
           goalSelection: const GoalIntentSelection(
             primaryGoal: GoalIntent.getStronger,
           ),
-          profile: const ProfileOnboardingDraft(
+          profile: ProfileOnboardingDraft(
             currentWeightKg: 82,
             targetWeightKg: 60,
             targetWeightDirection: GoalWeightDirection.loss,
