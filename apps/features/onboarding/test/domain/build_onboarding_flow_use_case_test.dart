@@ -32,9 +32,13 @@ void main() {
         plan.definitionFor(OnboardingStepId.nutritionProfile).section,
         OnboardingSectionId.nutritionProfile,
       );
+      expect(
+        plan.definitionFor(OnboardingStepId.nutritionGoals).section,
+        OnboardingSectionId.nutritionGoals,
+      );
     });
 
-    test('workout mode excludes Nutrition Profile', () {
+    test('workout mode excludes Nutrition Profile but keeps Nutrition Goals', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
@@ -47,14 +51,15 @@ void main() {
           OnboardingStepId.bodyGoal,
           OnboardingStepId.wellnessGoals,
           OnboardingStepId.workoutPreferences,
-          OnboardingStepId.targets,
+          OnboardingStepId.nutritionGoals,
           OnboardingStepId.review,
         ],
       );
       expect(plan.stepIds, isNot(contains(OnboardingStepId.nutritionProfile)));
+      expect(plan.stepIds, isNot(contains(OnboardingStepId.targets)));
     });
 
-    test('nutrition mode inserts Nutrition Profile after Wellness', () {
+    test('nutrition mode inserts Nutrition Profile then Nutrition Goals', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.resumeDraft,
         mode: AppMode.nutrition,
@@ -67,7 +72,7 @@ void main() {
           OnboardingStepId.bodyGoal,
           OnboardingStepId.wellnessGoals,
           OnboardingStepId.nutritionProfile,
-          OnboardingStepId.targets,
+          OnboardingStepId.nutritionGoals,
           OnboardingStepId.review,
         ],
       );
@@ -88,7 +93,7 @@ void main() {
           OnboardingStepId.nutritionProfile,
           OnboardingStepId.workoutIntro,
           OnboardingStepId.workoutPreferences,
-          OnboardingStepId.targets,
+          OnboardingStepId.nutritionGoals,
           OnboardingStepId.review,
         ],
       );
@@ -108,7 +113,7 @@ void main() {
           OnboardingStepId.wellnessGoals,
           OnboardingStepId.nutritionProfile,
           OnboardingStepId.workoutIntro,
-          OnboardingStepId.targets,
+          OnboardingStepId.nutritionGoals,
           OnboardingStepId.review,
         ],
       );
@@ -128,7 +133,7 @@ void main() {
   });
 
   group('reconciliation', () {
-    test('keeps current eligible step after mode change', () {
+    test('keeps current eligible Nutrition Goals after mode change', () {
       final workoutPlan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
@@ -139,11 +144,11 @@ void main() {
       );
       expect(
         buildFlow.reconcileCurrentStep(
-          currentStepId: OnboardingStepId.targets,
+          currentStepId: OnboardingStepId.nutritionGoals,
           previousPlan: workoutPlan,
           nextPlan: hybridPlan,
         ),
-        OnboardingStepId.targets,
+        OnboardingStepId.nutritionGoals,
       );
     });
 
