@@ -69,7 +69,9 @@ class PersistOnboardingOwnerDataUseCase {
 
     final compatibility = _legacyTargetsRepository;
     if (compatibility is nutrition_owner.CanonicalNutritionOwnerRepositories) {
-      return compatibility.nutritionProfileRepository;
+      final bundle = compatibility
+          as nutrition_owner.CanonicalNutritionOwnerRepositories;
+      return bundle.nutritionProfileRepository;
     }
     return null;
   }
@@ -81,7 +83,9 @@ class PersistOnboardingOwnerDataUseCase {
 
     final compatibility = _legacyTargetsRepository;
     if (compatibility is nutrition_owner.CanonicalNutritionOwnerRepositories) {
-      return compatibility.nutritionTargetsRepository;
+      final bundle = compatibility
+          as nutrition_owner.CanonicalNutritionOwnerRepositories;
+      return bundle.nutritionTargetsRepository;
     }
     return null;
   }
