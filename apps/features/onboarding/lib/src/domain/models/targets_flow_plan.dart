@@ -46,6 +46,6 @@ class TargetsFlowPlan {
   }
 
   String primaryActionLabel(TargetStepId stepId) {
-    return stepId == TargetStepId.nutritionTarget ? 'Review' : 'Continue';
+    return 'Continue';
   }
 }
