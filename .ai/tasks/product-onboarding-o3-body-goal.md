@@ -1,85 +1,35 @@
 # Product Onboarding O3 — Canonical Body Goal Section
 
-**Status:** In progress — O3A/O3B/O3C validated; O3D integrated Body acceptance ACTIVE  
-**Tracker:** GitHub Issue #55  
-**O3C:** #56 ✅ closed  
-**O3D:** #57 ACTIVE  
+**Status:** Complete / Validated  
+**Tracker:** GitHub Issue #55 ✅ closed  
 **Parent tracker:** #40  
 **Canonical ownership:** #44  
-**Predecessor:** #53 O2 common User Profile ✅  
+**Predecessor:** #53 O2 ✅  
+**Successor:** #58 O4 Wellness ACTIVE  
 **Implementation PR:** #50 Draft/open/unmerged  
 **Branch:** `agent/onboarding-slice-2-step-1-body-goal-ui`
 
-## Validated foundation
+## Final O3 checkpoint
 
-O2 final:
 ```text
-7e7119aa4dfe9cb53b1078376aa93e950f987adb
-Flutter CI #1279 / run 32555540391 ✅
-```
-
-O3A typed Body Goal child-flow contract:
-```text
-4878ebc0045be9c3d6921aafffcf9f4791df0fd9
-Flutter CI #1290 / run 32556313431 ✅
-```
-
-O3B runtime `bodyGoal` section + legacy resume:
-```text
-3df7dbd61a57340f7d6f767361d3ceaa49cc83fb
-Flutter CI #1319 / run 32558694870 ✅
-```
-
-O3C Goal Pace placement/parity:
-```text
-b47495e23f055c7d95eeccbca03b71c35aa38962
-Flutter CI #1345 / run 32561257485
+75237e6c31222f4b08f3cdd41353121aa1ca3afc
+Flutter CI #1354 / run 32562632629
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
 Dart tests      ✅
 ```
 
-## Outcome
-
-Give Body Goal its own Product Onboarding section and prove one canonical Body owner across runtime navigation, persistence, readback, retry, resume and completion failure ordering.
-
-Canonical ownership:
+## Completed execution
 
 ```text
-body_weight_logs  → Current Weight / history
-user_body_goals   → Body Goal + Target Weight + Goal Pace
-user_profiles     → common Profile only
+O3A typed Body Goal child-flow contract                       ✅ CI #1290
+O3B bodyGoal top-level section/navigation + legacy resume     ✅ CI #1319
+O3C Goal Pace placement + Profile/Body separation parity      ✅ CI #1345
+O3D integrated canonical Body read/write/resume acceptance    ✅ CI #1354
 ```
 
-No new durable owner is introduced by O3.
-
-## Existing compatibility containers
-
-During O3 the serialized draft remains readable through established fields:
-
-```text
-OnboardingDraft.goalSelection
-ProfileOnboardingDraft.currentWeightKg
-ProfileOnboardingDraft.targetWeightKg
-ProfileOnboardingDraft.targetWeightDirection
-TargetsOnboardingDraft.goalPaceKgPerWeek
-```
-
-These are migration-safe draft containers, not durable ownership declarations.
-
-## Execution
-
-```text
-O3A typed Body Goal child-flow contract                         ✅ CI #1290
-O3B activate bodyGoal top-level section + renderer/navigation   ✅ CI #1319
-O3C Goal Pace placement + Profile/Body separation parity        ✅ #56 / CI #1345
-→ O3D integrated canonical Body read/write/resume + full CI     ACTIVE #57
-```
-
-Only one O3 sub-slice is active at a time.
-
-## Established runtime boundary
+## Final runtime boundary
 
 ```text
 userProfile
@@ -91,62 +41,48 @@ userProfile
   activity
   healthConditions
 
-bodyGoal
+eligible bodyGoal
   Goal
   → Current Weight
-  → Target Weight?  ← GoalWeightFollowUpPolicy
-  → Goal Pace?      ← same eligibility
+  → Target Weight
+  → Goal Pace
+
+ineligible bodyGoal
+  Goal
+  → Current Weight
+
+Targets
+  Bridge
+  → Step Target
+  → Sleep Target
+  → Water Target
+  → Nutrition Target
 ```
 
-When directional follow-ups are ineligible, Body Goal stops after Current Weight.
-
-Active Targets is now:
+## Canonical ownership
 
 ```text
-Bridge → Step Target → Sleep Target → Water Target → Nutrition Target
+body_weight_logs → Current Weight/history
+user_body_goals  → Body Goal + Target Weight + Goal Pace
+user_profiles    → common Profile only
 ```
 
-## O3D — ACTIVE #57
+Serialized draft compatibility fields remain orchestration containers, not durable owners.
 
-Focused task: `.ai/tasks/product-onboarding-o3d-integrated-body-acceptance.md`.
+## O3D final ownership correction
 
-O3D must prove:
-- Body draft → `BodySetupMapper` → canonical Body owner losslessly;
-- Current Weight canonical read/write/history semantics;
-- Body Goal/Target Weight/Goal Pace canonical active-goal semantics;
-- same-goal retry and changed-goal lifecycle behavior;
-- non-directional/training-only safety;
-- Body persistence failure blocks false mode/completion publication;
-- O3C resume compatibility remains green;
-- full Flutter/Dart CI green on one exact O3D source checkpoint.
+Integrated acceptance exposed and fixed ongoing Body mirror writes from Nutrition persistence. `user_nutrition_profiles` no longer receives new `current_weight_kg`, `target_weight_kg`, or `weekly_weight_change_kg` writes from the canonical Targets repository. Legacy rows remain readable until O11.
 
-## O3 acceptance
+## Guardrails preserved
 
-- [x] Body Goal child-flow contract validated;
-- [x] active top-level Product Onboarding flow uses `bodyGoal` after `userProfile`;
-- [x] common `userProfile` no longer semantically owns Goal/Current Weight/Target Weight/Goal Pace;
-- [x] existing Goal/current/target/pace screens are reused without redesign;
-- [x] Goal Pace renders/navigates under Body Goal with shared eligibility;
-- [x] active Targets flow no longer semantically owns Goal Pace;
-- [x] legacy mixed Body/Goal Pace resume compatibility validated;
-- [x] O3C exact full CI green;
-- [ ] integrated Current Weight canonical read/write/retry acceptance green;
-- [ ] integrated Body Goal/Target/Pace canonical read/write/retry acceptance green;
-- [ ] integrated completion failure ordering green;
-- [ ] O3 final exact full-CI checkpoint recorded;
-- [ ] O4 remains blocked until O3D.
-
-## Guardrails
-
-- no legacy-column drops; #54/O11 remains blocked until O10;
-- no applied migration edits;
+- no Body direction inference from numbers/BMI/training-only goals;
+- no fabricated Body defaults;
+- no Profile expansion into Body ownership;
 - no permanent dual-write synchronization;
-- no Profile owner expansion into Body concepts;
-- no UI redesign;
-- preserve existing picker/unit contracts;
-- no Body direction inference from measurements/BMI/training-only goals;
-- do not activate Wellness/Nutrition/Workout future sections during O3.
+- no applied migration edits;
+- no legacy-column drops;
+- no UI redesign.
 
-## Current work
+## Exit
 
-**Execute O3D on #57 from exact green O3C checkpoint `b47495e…` / CI #1345. O4 remains blocked.**
+**O3 is complete. Continue Product Onboarding with O4 Wellness on #58.**
