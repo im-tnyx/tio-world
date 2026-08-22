@@ -1,6 +1,6 @@
 # App Mode Foundation — O1 Durable Account Preference
 
-**Status:** In progress — O1A + O1B validated; O1C onboarding completion cutover is ACTIVE  
+**Status:** In progress — O1A + O1B + O1C validated; O1D authenticated bootstrap/restore is NEXT  
 **Primary owners:** `apps/shared`, `apps/app`, onboarding, Settings, `user_app_preferences`  
 **Tracker:** #11  
 **Product Onboarding tracker:** #40  
@@ -33,18 +33,19 @@ RLS is enabled. Authenticated users have SELECT/INSERT/UPDATE on their own row; 
 
 ## Current runtime gap
 
-Runtime confirmed App Mode is still local-only:
+Onboarding completion now writes canonical App Mode/navigation before completion, but authenticated bootstrap still does not restore `user_app_preferences` and Settings still writes through the local controller path.
 
 ```text
-AppModeController
-→ AppModePreference
-→ SharedPreferencesAppModePreference
-→ local key `app_mode`
+O1C completion
+→ canonical user_app_preferences ✅
+→ local AppMode cache ✅
+
+returning login/bootstrap
+→ still local-first ❌
+
+Settings mode change
+→ still local-only ❌
 ```
-
-`CompleteOnboardingUseCase` still writes confirmed mode through `AppModePreference` before completion status. Authenticated bootstrap still does not restore `user_app_preferences`.
-
-O1A/O1B intentionally did not change runtime authority.
 
 ## Canonical semantics
 
@@ -116,52 +117,44 @@ Implemented in `apps/app`:
 - no onboarding-draft inference;
 - focused repository tests.
 
+### O1C — onboarding completion cutover ✅
+
+```text
+e9140705521f8af94675d785fb498180096bef55
+Flutter CI #1194 / run 32548512802
+Flutter analyze ✅
+Dart analyze    ✅
+Flutter tests   ✅
+Dart tests      ✅
+```
+
+Implemented:
+- `CompleteOnboardingUseCase` accepts/resolves backend-neutral `AppPreferencesRepository`;
+- app composition supplies a Supabase-backed composition adapter implementing both `OnboardingCompletionRepository` and `AppPreferencesRepository` while keeping onboarding domain backend-neutral;
+- successful completion order is now owner data → optional finalizer → canonical App Preferences → local App Mode cache → remote completion → local completion → best-effort draft clear;
+- canonical write uses `AppPreferencesUpdate.guided(selectedMode)`;
+- canonical preference failure prevents local mode/completion publication and keeps retry possible;
+- backend completion failure still prevents local completed cache;
+- completed retry only short-circuits when local selected mode matches and canonical preference is present/usable; a missing canonical row is repaired;
+- bootstrap and Settings behavior intentionally unchanged;
+- focused tests lock success/failure/order + missing-canonical repair + fully canonical idempotent retry.
+
 ## O1 execution order
 
 ```text
 O1A domain/repository contract          ✅ #1183
 → O1B Supabase adapter                  ✅ #1187
-→ O1C onboarding completion cutover     ACTIVE
-→ O1D authenticated bootstrap/restore
+→ O1C onboarding completion cutover     ✅ #1194
+→ O1D authenticated bootstrap/restore   NEXT
 → O1E Settings mode-change parity
 → O1F integrated acceptance/full CI
 ```
 
 Only one O1 sub-slice is active at a time. Do not start O2 common Profile until O1F is validated.
 
-## O1C — Onboarding completion cutover — ACTIVE
+## O1D — Authenticated bootstrap/restore — NEXT
 
-Start checkpoint: prior validated O1B source `641e6eb55dfcbfa43ad1e7e95898c21c0faeb7be`; tracker/docs head before O1C source `fae8351a86b1dd1b841668c061a1e1a284b07ee6`.
-
-Goal: persist canonical App Mode/navigation before onboarding completion becomes durable.
-
-Required order:
-
-```text
-validate onboarding
-→ persist canonical owner data
-→ optional finalizer
-→ persist user_app_preferences(app_mode + derived active_tabs)
-→ update local AppMode cache
-→ mark remote onboarding completed
-→ mark local onboarding status completed
-→ best-effort clear draft
-```
-
-Scope:
-- [ ] inject/use `AppPreferencesRepository` in onboarding completion composition;
-- [ ] write `AppPreferencesUpdate.guided(selectedMode)` after owner/finalizer success;
-- [ ] canonical preference write must succeed before confirmed local mode and completion are published;
-- [ ] failed canonical preference write leaves onboarding incomplete/retryable;
-- [ ] draft-selected mode remains draft until successful completion;
-- [ ] retry remains idempotent and must not skip a missing canonical preference merely because local/remote completion already exists;
-- [ ] existing completion tests cover preference success/failure/order;
-- [ ] no bootstrap/Settings behavior change yet;
-- [ ] full relevant CI and exact checkpoint before O1D.
-
-Exit: onboarding completion no longer relies on local-only App Mode persistence.
-
-## O1D — Authenticated bootstrap/restore
+Goal: make canonical remote App Mode/navigation truth available before final signed-in shell/navigation resolution.
 
 Precedence:
 
@@ -175,10 +168,18 @@ authenticated account
 ```
 
 Required:
-- remote valid state wins over stale local cache;
-- cleared local cache / second device recovers from remote;
-- missing remote preference never silently becomes Hybrid;
-- pre-auth local staging cannot overwrite another authenticated account.
+- [ ] wire `AppPreferencesRepository` into authenticated app/session bootstrap;
+- [ ] valid remote state wins over stale local cache;
+- [ ] cleared local cache recovers from remote;
+- [ ] second device recovers from remote;
+- [ ] app_mode-only canonical row derives current guided defaults without silently changing semantic mode;
+- [ ] missing remote preference never silently becomes Hybrid;
+- [ ] malformed canonical row surfaces controlled bootstrap failure/recovery rather than local success;
+- [ ] pre-auth local staging cannot overwrite another authenticated account;
+- [ ] no Settings write cutover yet;
+- [ ] focused bootstrap/controller/router tests + full relevant CI before O1E.
+
+Exit: authenticated navigation no longer depends on a stale/missing device-local App Mode value.
 
 ## O1E — Settings mode-change parity
 
@@ -218,6 +219,6 @@ Required:
 
 ## Handoff
 
-**O1C is ACTIVE.**  
-Do not start O1D until O1C focused tests + CI are green.  
+**Start O1D authenticated bootstrap/restore.**  
+Do not start O1E until O1D focused tests + CI are green.  
 After O1F validation, update trackers and start O2 common Profile owner/section.
