@@ -177,8 +177,10 @@ void main() {
           profileRepository: profileRepository,
           bodyRepository: bodyRepository,
           nutritionProfileRepository: nutritionProfileRepository,
-          workoutRepository:
-              workout_owner.InMemoryWorkoutPreferencesRepository(),
+          workoutProfileRepository:
+              workout_owner.InMemoryWorkoutProfileRepository(),
+          workoutTargetsRepository:
+              workout_owner.InMemoryWorkoutTargetsRepository(),
           nutritionTargetsRepository: nutritionTargetsRepository,
         ),
         validator: const OnboardingCompletionValidator(
