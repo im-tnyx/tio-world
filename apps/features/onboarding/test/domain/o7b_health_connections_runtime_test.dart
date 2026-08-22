@@ -90,6 +90,9 @@ void main() {
       final draft = OnboardingDraft(
         status: OnboardingStatus.inProgress,
         selectedMode: AppMode.nutrition,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.maintainWeight,
+        ),
         currentStepId: OnboardingStepId.review,
         completedStepIds: const {
           OnboardingStepId.profileBasics,
