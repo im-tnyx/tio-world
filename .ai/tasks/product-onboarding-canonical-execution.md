@@ -1,12 +1,14 @@
 # Product Onboarding — Canonical Execution Plan
 
-**Status:** In progress — O1/O2/O3 complete; O4 Wellness ACTIVE  
+**Status:** In progress — O1/O2/O3 complete; O4B Wellness runtime ACTIVE  
 **Primary tracker:** #40  
 **Canonical ownership:** #44  
 **O1 App Mode:** #11 ✅ closed  
 **O2 User Profile:** #53 ✅ closed  
 **O3 Body Goal:** #55 ✅ closed / CI #1354  
 **O4 Wellness:** #58 ACTIVE  
+**O4A:** #59 ✅ closed / CI #1365  
+**O4B:** #60 ACTIVE  
 **Account verification:** #8 parallel lane  
 **O11 cleanup:** #54 BLOCKED until O10  
 **PR:** #50 Draft/open/unmerged  
@@ -15,26 +17,17 @@
 ## Current validated foundation
 
 ```text
-Section/step identity foundation                 ✅ CI #945
-Target Weight eligibility/draft                  ✅ CI #1079
-Goal Pace ownership/skipped cleanup              ✅ CI #1090
-Integrated Goal/weight acceptance                ✅ CI #1095
-Canonical Body onboarding writes                 ✅ CI #1135
-Canonical Body read/history                      ✅ CI #1153
-Canonical owner schema + P1 Profile/App Prefs    ✅ LIVE
 O1 durable App Mode / active_tabs                ✅ CI #1240
 O2 common User Profile end-to-end                ✅ CI #1279
-O3A Body Goal typed child-flow                   ✅ CI #1290
-O3B bodyGoal runtime section + legacy resume     ✅ CI #1319
-O3C Goal Pace placement/parity                   ✅ CI #1345
-O3D integrated canonical Body acceptance         ✅ CI #1354
+O3 canonical Body Goal end-to-end                ✅ CI #1354
+O4A canonical Wellness repository contract       ✅ CI #1365
 ```
 
-O3 final exact source checkpoint:
+O4A exact source checkpoint:
 
 ```text
-75237e6c31222f4b08f3cdd41353121aa1ca3afc
-Flutter CI #1354 / run 32562632629
+f244b4913143ba8f76439a8b2554fd095d7e1973
+Flutter CI #1365 / run 32563623833
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
@@ -58,7 +51,7 @@ user_workout_targets       → workout targets
 onboarding_drafts          → draft/resume orchestration only
 ```
 
-Onboarding orchestrates; it does not own durable domain data. Applied migrations are immutable and legacy duplicate columns remain until verified O11 cleanup.
+Applied migrations are immutable. Legacy duplicate columns remain until verified O11 cleanup.
 
 ## Execution order
 
@@ -67,6 +60,10 @@ O1 App Mode durability                         ✅ #11 / CI #1240
 O2 common User Profile owner + section         ✅ #53 / CI #1279
 O3 Body Goal section + Profile/Body parity     ✅ #55 / CI #1354
 → O4 Wellness placement + owner                ACTIVE #58
+   O4A canonical repository contract           ✅ #59 / CI #1365
+   O4B runtime Wellness section/resume          ACTIVE #60
+   O4C persistence + Nutrition mirror cutoff   BLOCKED
+   O4D integrated acceptance                   BLOCKED
 → O5 Nutrition Profile + Targets               BLOCKED by O4
 → O6 Workout Intro/Profile/Targets
 → O7 Health Connections
@@ -76,56 +73,37 @@ O3 Body Goal section + Profile/Body parity     ✅ #55 / CI #1354
 → O11 canonical schema cleanup                 BLOCKED #54
 ```
 
-Only one Product Onboarding slice/sub-slice is active at a time.
+Only one Product Onboarding sub-slice is active at a time.
 
-## O3 — COMPLETE
+## O4A — VALIDATED
 
-Final Body boundary:
+`tio_feature_progress` now provides `WellnessTargetsData`, `WellnessTargetsRepository`, an in-memory implementation, and a Supabase adapter targeting only `public.user_wellness_targets`. Canonical reads preserve nulls and fail strictly on malformed state; signed-out writes fail closed with no anonymous auth side effect.
 
-```text
-body_weight_logs → Current Weight/history
-user_body_goals  → Body Goal + Target Weight + Goal Pace
-```
+## O4B — ACTIVE
 
-O3D integrated acceptance also removed ongoing Body mirrors from Nutrition persistence while leaving legacy stored mirrors read-compatible until O11.
+Focused task: `.ai/tasks/product-onboarding-o4b-wellness-section-resume.md`  
+Tracker: #60.
 
-## O4 — Wellness placement + canonical owner
-
-Parent task: `.ai/tasks/product-onboarding-o4-wellness.md`  
-Tracker: #58.
-
-Canonical durable target:
+Target runtime:
 
 ```text
-user_wellness_targets
-→ steps_target
-→ water_target_ml
-→ sleep_target_minutes
-→ bed_time
-→ wake_up_time
+wellnessGoals: Bridge → Step Target → Sleep Target → Water Target
+targets:        Nutrition Target
 ```
 
-O4 starts with an audit of the current Targets child flow, serialized draft, validators/screens, persistence adapters and Nutrition calculation dependencies. The audit must produce one focused O4A sub-slice before source edits.
-
-Expected end state:
-- Wellness has a distinct runtime semantic boundary;
-- Wellness writes go through the canonical Wellness owner only;
-- Nutrition can consume Wellness values as calculation inputs without durable ownership;
-- legacy serialized resume remains safe;
-- legacy schema mirrors remain until O11 rather than being dropped during O4;
-- integrated Wellness read/write/resume/failure acceptance is green before O5.
+O4B reuses existing `TargetStepId` and `TargetsOnboardingDraft` compatibility storage while moving top-level runtime/navigation/progress ownership. Legacy actual Targets Wellness cursors migrate to `wellnessGoals`; later checkpoints remain later with dormant Wellness values.
 
 ## Guardrails
 
-- preserve existing onboarding UI/picker contracts where possible;
-- one canonical durable owner per concept;
-- no fabricated semantic defaults;
-- no anonymous-auth side effects for canonical owner writes;
+- preserve existing screens/picker contracts;
+- no persistence changes in O4B;
+- no Nutrition Wellness mirror cutoff until O4C;
+- no fabricated semantic defaults in canonical repositories;
 - no permanent dual-write synchronization;
-- no applied migration edits;
-- no legacy-column drop before O10/O11;
-- do not start O5 until O4 integrated acceptance is recorded.
+- no applied migration edits or legacy-column drop;
+- O4C starts only after exact O4B full CI green;
+- O5 stays blocked until O4D.
 
 ## Handoff
 
-**O4 is ACTIVE on #58 from validated O3 source `75237e6c…` / CI #1354. Audit first, then create one focused O4A task/issue before source changes.**
+**Execute O4B only on #60 from validated O4A source `f244b491…` / CI #1365.**
