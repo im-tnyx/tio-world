@@ -9,7 +9,8 @@ import 'nutrition_profile_mapper.dart';
 import 'nutrition_targets_mapper.dart';
 import 'user_profile_mapper.dart';
 import 'wellness_targets_mapper.dart';
-import 'workout_preferences_mapper.dart';
+import 'workout_profile_mapper.dart';
+import 'workout_targets_mapper.dart';
 
 /// Completion coordinator that maps onboarding answers into durable canonical
 /// owner repositories. Onboarding remains orchestration-only; each feature owns
@@ -21,14 +22,16 @@ class PersistOnboardingOwnerDataUseCase {
     body_owner.WellnessTargetsRepository? wellnessRepository,
     required nutrition_owner.NutritionProfileRepository
         nutritionProfileRepository,
-    required workout_owner.WorkoutPreferencesRepository workoutRepository,
+    required workout_owner.WorkoutProfileRepository workoutProfileRepository,
+    required workout_owner.WorkoutTargetsRepository workoutTargetsRepository,
     required nutrition_owner.NutritionTargetsRepository
         nutritionTargetsRepository,
     this.profileMapper = const UserProfileMapper(),
     this.bodyMapper = const BodySetupMapper(),
     this.wellnessMapper = const WellnessTargetsMapper(),
     this.nutritionProfileMapper = const NutritionProfileMapper(),
-    this.workoutMapper = const WorkoutPreferencesMapper(),
+    this.workoutProfileMapper = const WorkoutProfileMapper(),
+    this.workoutTargetsMapper = const WorkoutTargetsMapper(),
     this.nutritionTargetsMapper = const NutritionTargetsMapper(),
   })  : _profileRepository = profileRepository,
         _bodyRepository = bodyRepository,
@@ -37,7 +40,8 @@ class PersistOnboardingOwnerDataUseCase {
                 ? bodyRepository as body_owner.WellnessTargetsRepository
                 : null),
         _nutritionProfileRepository = nutritionProfileRepository,
-        _workoutRepository = workoutRepository,
+        _workoutProfileRepository = workoutProfileRepository,
+        _workoutTargetsRepository = workoutTargetsRepository,
         _nutritionTargetsRepository = nutritionTargetsRepository;
 
   /// Kept as [Object] only so legacy composition/tests can fail closed at the
@@ -48,14 +52,16 @@ class PersistOnboardingOwnerDataUseCase {
   final body_owner.BodySetupRepository _bodyRepository;
   final body_owner.WellnessTargetsRepository? _wellnessRepository;
   final nutrition_owner.NutritionProfileRepository _nutritionProfileRepository;
-  final workout_owner.WorkoutPreferencesRepository _workoutRepository;
+  final workout_owner.WorkoutProfileRepository _workoutProfileRepository;
+  final workout_owner.WorkoutTargetsRepository _workoutTargetsRepository;
   final nutrition_owner.NutritionTargetsRepository _nutritionTargetsRepository;
 
   final UserProfileMapper profileMapper;
   final BodySetupMapper bodyMapper;
   final WellnessTargetsMapper wellnessMapper;
   final NutritionProfileMapper nutritionProfileMapper;
-  final WorkoutPreferencesMapper workoutMapper;
+  final WorkoutProfileMapper workoutProfileMapper;
+  final WorkoutTargetsMapper workoutTargetsMapper;
   final NutritionTargetsMapper nutritionTargetsMapper;
 
   Future<void> call({
@@ -170,27 +176,54 @@ class PersistOnboardingOwnerDataUseCase {
       }
     }
 
-    final requiresWorkout =
-        flowPlan.stepIds.contains(OnboardingStepId.workoutPreferences);
-    if (requiresWorkout) {
-      final workout_owner.WorkoutPreferencesData workoutData;
+    final requiresWorkoutProfile =
+        flowPlan.stepIds.contains(OnboardingStepId.workoutProfile);
+    if (requiresWorkoutProfile) {
+      final workout_owner.WorkoutProfileData workoutProfileData;
       try {
-        workoutData = workoutMapper.map(draft.workout);
+        workoutProfileData = workoutProfileMapper.map(draft.workout);
       } catch (e, st) {
         throw OwnerPersistenceException(
-          owner: OwnerPersistenceTarget.workout,
-          message: 'Failed to map workout preferences data: $e',
+          owner: OwnerPersistenceTarget.workoutProfile,
+          message: 'Failed to map canonical Workout Profile data: $e',
           cause: e,
           stackTrace: st,
         );
       }
 
       try {
-        await _workoutRepository.saveWorkoutPreferences(workoutData);
+        await _workoutProfileRepository.upsert(workoutProfileData);
       } catch (e, st) {
         throw OwnerPersistenceException(
-          owner: OwnerPersistenceTarget.workout,
-          message: 'Failed to persist workout preferences data: $e',
+          owner: OwnerPersistenceTarget.workoutProfile,
+          message: 'Failed to persist canonical Workout Profile data: $e',
+          cause: e,
+          stackTrace: st,
+        );
+      }
+    }
+
+    final requiresWorkoutTargets =
+        flowPlan.stepIds.contains(OnboardingStepId.workoutTargets);
+    if (requiresWorkoutTargets) {
+      final workout_owner.WorkoutTargetsData workoutTargetsData;
+      try {
+        workoutTargetsData = workoutTargetsMapper.map(draft);
+      } catch (e, st) {
+        throw OwnerPersistenceException(
+          owner: OwnerPersistenceTarget.workoutTargets,
+          message: 'Failed to map canonical Workout Targets data: $e',
+          cause: e,
+          stackTrace: st,
+        );
+      }
+
+      try {
+        await _workoutTargetsRepository.upsert(workoutTargetsData);
+      } catch (e, st) {
+        throw OwnerPersistenceException(
+          owner: OwnerPersistenceTarget.workoutTargets,
+          message: 'Failed to persist canonical Workout Targets data: $e',
           cause: e,
           stackTrace: st,
         );
@@ -231,8 +264,13 @@ enum OwnerPersistenceTarget {
   body,
   wellness,
   nutritionProfile,
-  workout,
+  workoutProfile,
+  workoutTargets,
   nutritionTargets,
+
+  /// Retained only as a compatibility enum value for older serialized/test
+  /// references. O6D no longer emits this owner from Product Onboarding.
+  workout,
 
   /// Retained only as a compatibility enum value for older serialized/test
   /// references. O5D no longer emits this owner from Product Onboarding.
