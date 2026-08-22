@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_feature_nutrition/nutrition.dart' as nutrition_owner;
 import 'package:tio_feature_onboarding/src/domain/domain.dart';
@@ -9,14 +7,14 @@ import 'package:tio_feature_workout/workout.dart' as workout_owner;
 import 'package:tio_shared/shared.dart';
 
 void main() {
-  late profile_owner.InMemoryProfileSetupRepository profileRepo;
+  late _FakeUserProfileRepository profileRepo;
   late body_owner.InMemoryBodySetupRepository bodyRepo;
   late workout_owner.InMemoryWorkoutPreferencesRepository workoutRepo;
   late nutrition_owner.InMemoryTargetsSetupRepository targetsRepo;
   late PersistOnboardingOwnerDataUseCase useCase;
 
   setUp(() {
-    profileRepo = profile_owner.InMemoryProfileSetupRepository();
+    profileRepo = _FakeUserProfileRepository();
     bodyRepo = body_owner.InMemoryBodySetupRepository();
     workoutRepo = workout_owner.InMemoryWorkoutPreferencesRepository();
     targetsRepo = nutrition_owner.InMemoryTargetsSetupRepository();
@@ -29,7 +27,8 @@ void main() {
   });
 
   group('PersistOnboardingOwnerDataUseCase mode-aware writes', () {
-    test('workout mode persists Profile, Body, Workout, and Targets', () async {
+    test('workout mode persists common Profile, Body, Workout, and Targets',
+        () async {
       final draft = OnboardingDraft(
         selectedMode: AppMode.workout,
         profile: _validProfile(),
@@ -45,14 +44,15 @@ void main() {
 
       await useCase(draft: draft, flowPlan: flowPlan);
 
-      expect(await profileRepo.getProfileSetup(), isNotNull);
+      expect(profileRepo.data?.name, 'Tio User');
+      expect(profileRepo.data?.heightCm, 165);
       expect(bodyRepo.data, isNotNull);
       expect(bodyRepo.data?.currentWeightKg, 60);
       expect(await workoutRepo.getWorkoutPreferences(), isNotNull);
       expect(await targetsRepo.getTargetsSetup(), isNotNull);
     });
 
-    test('nutrition mode persists Profile, Body and Targets, but NOT Workout',
+    test('nutrition mode persists common Profile, Body and Targets, not Workout',
         () async {
       final draft = OnboardingDraft(
         selectedMode: AppMode.nutrition,
@@ -69,13 +69,13 @@ void main() {
 
       await useCase(draft: draft, flowPlan: flowPlan);
 
-      expect(await profileRepo.getProfileSetup(), isNotNull);
+      expect(profileRepo.data, isNotNull);
       expect(bodyRepo.data, isNotNull);
       expect(await workoutRepo.getWorkoutPreferences(), isNull);
       expect(await targetsRepo.getTargetsSetup(), isNotNull);
     });
 
-    test('hybrid setupNow persists Profile, Body, Workout, and Targets',
+    test('hybrid setupNow persists common Profile, Body, Workout, and Targets',
         () async {
       final draft = OnboardingDraft(
         selectedMode: AppMode.hybrid,
@@ -93,13 +93,13 @@ void main() {
 
       await useCase(draft: draft, flowPlan: flowPlan);
 
-      expect(await profileRepo.getProfileSetup(), isNotNull);
+      expect(profileRepo.data, isNotNull);
       expect(bodyRepo.data, isNotNull);
       expect(await workoutRepo.getWorkoutPreferences(), isNotNull);
       expect(await targetsRepo.getTargetsSetup(), isNotNull);
     });
 
-    test('hybrid later persists Profile, Body and Targets, but NOT Workout',
+    test('hybrid later persists common Profile, Body and Targets, not Workout',
         () async {
       final draft = OnboardingDraft(
         selectedMode: AppMode.hybrid,
@@ -117,13 +117,13 @@ void main() {
 
       await useCase(draft: draft, flowPlan: flowPlan);
 
-      expect(await profileRepo.getProfileSetup(), isNotNull);
+      expect(profileRepo.data, isNotNull);
       expect(bodyRepo.data, isNotNull);
       expect(await workoutRepo.getWorkoutPreferences(), isNull);
       expect(await targetsRepo.getTargetsSetup(), isNotNull);
     });
 
-    test('active weight goal persists matching Target Weight and Goal Pace',
+    test('active weight goal remains Body/Targets-owned after Profile cutover',
         () async {
       final draft = OnboardingDraft(
         selectedMode: AppMode.nutrition,
@@ -141,14 +141,14 @@ void main() {
 
       await useCase(draft: draft, flowPlan: flowPlan);
 
-      expect(bodyRepo.data?.activeGoal?.goalType,
-          body_owner.BodyGoalType.loseWeight);
+      expect(profileRepo.data, isNotNull);
+      expect(
+        bodyRepo.data?.activeGoal?.goalType,
+        body_owner.BodyGoalType.loseWeight,
+      );
       expect(bodyRepo.data?.activeGoal?.targetWeightKg, 58);
       expect(bodyRepo.data?.activeGoal?.weeklyWeightChangeKg, 0.5);
       expect(bodyRepo.data?.activeGoal?.intentRank, 1);
-
-      // Compatibility owners are still present during the staged cutover.
-      expect((await profileRepo.getProfileSetup())?.targetWeightKg, 58);
       expect((await targetsRepo.getTargetsSetup())?.targetWeightKg, 58);
       expect((await targetsRepo.getTargetsSetup())?.goalPaceKgPerWeek, 0.5);
     });
@@ -171,22 +171,20 @@ void main() {
 
       await useCase(draft: draft, flowPlan: flowPlan);
 
-      expect(bodyRepo.data?.activeGoal?.goalType,
-          body_owner.BodyGoalType.maintainWeight);
+      expect(
+        bodyRepo.data?.activeGoal?.goalType,
+        body_owner.BodyGoalType.maintainWeight,
+      );
       expect(bodyRepo.data?.activeGoal?.targetWeightKg, isNull);
       expect(bodyRepo.data?.activeGoal?.weeklyWeightChangeKg, isNull);
       expect(bodyRepo.data?.activeGoal?.intentRank, 1);
-
-      expect((await profileRepo.getProfileSetup())?.targetWeightKg, isNull);
       expect((await targetsRepo.getTargetsSetup())?.targetWeightKg, isNull);
       expect((await targetsRepo.getTargetsSetup())?.goalPaceKgPerWeek, 0.0);
     });
 
-    test('re-throws OwnerPersistenceException when Profile repository fails',
-        () async {
-      final failingProfileRepo = _FailingProfileSetupRepository();
+    test('Profile failure stops before downstream owner writes', () async {
       final failingUseCase = PersistOnboardingOwnerDataUseCase(
-        profileRepository: failingProfileRepo,
+        profileRepository: _FailingUserProfileRepository(),
         bodyRepository: bodyRepo,
         workoutRepository: workoutRepo,
         targetsRepository: targetsRepo,
@@ -205,7 +203,7 @@ void main() {
         workoutIntroChoice: null,
       );
 
-      expect(
+      await expectLater(
         () => failingUseCase(draft: draft, flowPlan: flowPlan),
         throwsA(
           isA<OwnerPersistenceException>().having(
@@ -215,6 +213,35 @@ void main() {
           ),
         ),
       );
+
+      expect(bodyRepo.data, isNull);
+      expect(await workoutRepo.getWorkoutPreferences(), isNull);
+      expect(await targetsRepo.getTargetsSetup(), isNull);
+    });
+
+    test('missing required Profile answers fail as Profile owner error', () async {
+      final invalidDraft = OnboardingDraft(
+        selectedMode: AppMode.nutrition,
+        profile: ProfileOnboardingDraft(name: 'Tio User'),
+        targets: _validTargets(),
+      );
+      final flowPlan = const BuildOnboardingFlowUseCase()(
+        entryPath: OnboardingEntryPath.firstRun,
+        mode: AppMode.nutrition,
+        workoutIntroChoice: null,
+      );
+
+      await expectLater(
+        () => useCase(draft: invalidDraft, flowPlan: flowPlan),
+        throwsA(
+          isA<OwnerPersistenceException>().having(
+            (e) => e.owner,
+            'owner',
+            OwnerPersistenceTarget.profile,
+          ),
+        ),
+      );
+      expect(bodyRepo.data, isNull);
     });
 
     test('re-throws OwnerPersistenceException when Body repository fails',
@@ -241,7 +268,7 @@ void main() {
         workoutIntroChoice: null,
       );
 
-      expect(
+      await expectLater(
         () => failingUseCase(draft: draft, flowPlan: flowPlan),
         throwsA(
           isA<OwnerPersistenceException>().having(
@@ -251,36 +278,32 @@ void main() {
           ),
         ),
       );
+      expect(profileRepo.data, isNotNull);
     });
   });
 }
 
-class _FailingProfileSetupRepository implements profile_owner.ProfileSetupRepository {
-  @override
-  Stream<profile_owner.ProfileSetupData?> watchProfileSetup() async* {
-    yield null;
-  }
+class _FakeUserProfileRepository implements profile_owner.UserProfileRepository {
+  profile_owner.UserProfileData? data;
 
   @override
-  Future<void> saveProfileSetup(profile_owner.ProfileSetupData data) async {
+  Future<profile_owner.UserProfileData?> read() async => data;
+
+  @override
+  Future<void> upsert(profile_owner.UserProfileData profile) async {
+    data = profile;
+  }
+}
+
+class _FailingUserProfileRepository
+    implements profile_owner.UserProfileRepository {
+  @override
+  Future<profile_owner.UserProfileData?> read() async => null;
+
+  @override
+  Future<void> upsert(profile_owner.UserProfileData profile) async {
     throw StateError('Profile database write failed');
   }
-
-  @override
-  Future<profile_owner.ProfileSetupData?> getProfileSetup() async => null;
-
-  @override
-  Future<String> uploadAvatarImage({
-    required String fileName,
-    required List<int> bytes,
-  }) async =>
-      '';
-
-  @override
-  Future<void> deleteAvatarImage() async {}
-
-  @override
-  Future<void> updateAvatarFrame(String frame) async {}
 }
 
 class _FailingBodySetupRepository implements body_owner.BodySetupRepository {
