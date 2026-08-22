@@ -144,6 +144,9 @@ void main() {
         entryPath: OnboardingEntryPath.resumeDraft,
         initialDraft: OnboardingDraft(
           selectedMode: AppMode.workout,
+          goalSelection: const GoalIntentSelection(
+            primaryGoal: GoalIntent.stayFit,
+          ),
           currentStepId: OnboardingStepId.workoutProfile,
           workout: const WorkoutOnboardingDraft(
             currentStepId: WorkoutStepId.healthConcerns,
