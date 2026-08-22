@@ -44,6 +44,12 @@ void main() {
       final workoutRepo = container.read(workoutPreferencesRepositoryProvider);
       expect(workoutRepo, isA<WorkoutPreferencesRepository>());
 
+      final workoutProfileRepo = container.read(workoutProfileRepositoryProvider);
+      expect(workoutProfileRepo, isA<InMemoryWorkoutProfileRepository>());
+
+      final workoutTargetsRepo = container.read(workoutTargetsRepositoryProvider);
+      expect(workoutTargetsRepo, isA<InMemoryWorkoutTargetsRepository>());
+
       final nutritionProfileRepo =
           container.read(nutritionProfileRepositoryProvider);
       expect(nutritionProfileRepo, isA<NutritionProfileRepository>());
@@ -70,6 +76,24 @@ void main() {
       expect(
         container.read(wellnessTargetsRepositoryProvider),
         isA<SupabaseWellnessTargetsRepository>(),
+      );
+    });
+
+    test('Supabase availability selects both canonical Workout adapters', () {
+      final container = ProviderContainer(
+        overrides: [
+          supabaseClientProvider.overrideWithValue(_FakeSupabaseClient()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      expect(
+        container.read(workoutProfileRepositoryProvider),
+        isA<SupabaseWorkoutProfileRepository>(),
+      );
+      expect(
+        container.read(workoutTargetsRepositoryProvider),
+        isA<SupabaseWorkoutTargetsRepository>(),
       );
     });
 
