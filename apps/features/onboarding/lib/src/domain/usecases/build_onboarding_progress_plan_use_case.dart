@@ -10,6 +10,7 @@ class BuildOnboardingProgressPlanUseCase {
     required WorkoutFlowPlan workoutFlowPlan,
     ProfileFlowPlan profileFlowPlan = const ProfileFlowPlan(),
     BodyGoalFlowPlan bodyGoalFlowPlan = const BodyGoalFlowPlan(),
+    WellnessFlowPlan wellnessFlowPlan = const WellnessFlowPlan(),
     TargetsFlowPlan targetsFlowPlan = const TargetsFlowPlan(),
   }) {
     final items = <OnboardingProgressItem>[];
@@ -29,6 +30,12 @@ class BuildOnboardingProgressPlanUseCase {
         case OnboardingStepId.bodyGoal:
           for (final bodyGoalStep in bodyGoalFlowPlan.steps) {
             items.add(BodyGoalProgressItem(bodyGoalStep));
+          }
+          break;
+
+        case OnboardingStepId.wellnessGoals:
+          for (final wellnessStep in wellnessFlowPlan.steps) {
+            items.add(WellnessProgressItem(wellnessStep));
           }
           break;
 
@@ -65,7 +72,6 @@ class BuildOnboardingProgressPlanUseCase {
           break;
 
         case OnboardingStepId.userProfile:
-        case OnboardingStepId.wellnessGoals:
         case OnboardingStepId.nutritionProfile:
         case OnboardingStepId.workoutProfile:
         case OnboardingStepId.nutritionGoals:
