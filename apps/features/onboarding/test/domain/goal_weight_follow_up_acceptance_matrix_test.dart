@@ -6,7 +6,7 @@ void main() {
   const policy = WeightGoalFlowPolicy();
   final cases = _acceptanceCases();
 
-  test('restored drafts reconcile weight follow-ups and progress by mode/goal', () {
+  test('restored drafts reconcile active weight follow-ups and progress by mode/goal', () {
     for (final testCase in cases) {
       final direction = policy.directionFor(
         mode: testCase.mode,
@@ -42,10 +42,9 @@ void main() {
       );
       expect(
         controller.state.draft.profile.currentStepId,
-        testCase.expectWeightFollowUps
-            ? ProfileStepId.targetWeight
-            : ProfileStepId.currentWeight,
-        reason: '${testCase.name}: restored Body Goal child reconciliation',
+        ProfileStepId.targetWeight,
+        reason:
+            '${testCase.name}: later resume preserves dormant Body Goal cursor; active plan owns eligibility',
       );
       expect(
         controller.state.draft.targets.currentStepId,
