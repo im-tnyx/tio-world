@@ -1,11 +1,13 @@
 # Product Onboarding — Canonical Execution Plan
 
-**Status:** In progress — O1 validated; O2C common User Profile write cutover ACTIVE  
+**Status:** In progress — O1/O2 validated; O3A Body Goal flow contract ACTIVE  
 **Primary tracker:** #40  
 **Canonical ownership:** #44  
 **O1 App Mode:** #11 ✅ closed  
-**O2 User Profile:** #53 ACTIVE  
+**O2 User Profile:** #53 ✅ closed  
+**O3 Body Goal:** #55 ACTIVE  
 **Account verification:** #8 parallel lane  
+**O11 cleanup:** #54 BLOCKED until O10  
 **PR:** #50 Draft/open/unmerged  
 **Branch:** `agent/onboarding-slice-2-step-1-body-goal-ui`
 
@@ -20,8 +22,7 @@ Canonical Body onboarding writes                 ✅ CI #1135
 Canonical Body read/history                      ✅ CI #1153
 Canonical owner schema + P1 Profile/App Prefs    ✅ LIVE
 O1 durable App Mode / active_tabs                ✅ CI #1240
-O2A narrow UserProfile contract                  ✅ CI #1252
-O2B Supabase user_profiles adapter               ✅ CI #1252
+O2 common User Profile end-to-end                ✅ CI #1279
 ```
 
 O1 final:
@@ -31,15 +32,25 @@ c7925b77e9ccdc1dcd0b6ac1d9554f05972d13a7
 Flutter CI #1240 / run 32552460378 ✅
 ```
 
-O2A/O2B final:
+O2 final:
 
 ```text
-a263e32e2aeb64706820260c1f9eaf4c13399a3c
-Flutter CI #1252 / run 32553301222
+7e7119aa4dfe9cb53b1078376aa93e950f987adb
+Flutter CI #1279 / run 32555540391
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
 Dart tests      ✅
+```
+
+O2 sequence:
+
+```text
+O2A narrow UserProfile contract                 ✅ #1252
+O2B Supabase user_profiles adapter              ✅ #1252
+O2C onboarding canonical Profile write          ✅ #1268
+O2D userProfile section + legacy resume         ✅ #1275
+O2E integrated canonical Profile acceptance     ✅ #1279
 ```
 
 ## Canonical owners
@@ -58,19 +69,18 @@ user_workout_targets       → workout targets
 onboarding_drafts          → draft/resume orchestration only
 ```
 
-Onboarding orchestrates; it does not own durable domain data. Applied migrations are immutable and legacy columns remain until verified cleanup.
+Onboarding orchestrates; it does not own durable domain data. Applied migrations are immutable and legacy columns remain until verified O11 cleanup.
 
 ## Execution order
 
 ```text
 O1 App Mode durability                         ✅ #11 / CI #1240
-→ O2 common User Profile owner + section       ACTIVE #53
-   O2A narrow contract                        ✅ #1252
-   O2B Supabase adapter                       ✅ #1252
-   O2C onboarding Profile write cutover       ACTIVE
-   O2D userProfile section + resume           NEXT after O2C
-   O2E integrated acceptance
-→ O3 Body Goal section + Profile/Body parity
+O2 common User Profile owner + section         ✅ #53 / CI #1279
+→ O3 Body Goal section + Profile/Body parity   ACTIVE #55
+   O3A typed Body Goal child-flow contract     ACTIVE
+   O3B bodyGoal runtime section activation     NEXT after O3A
+   O3C Goal Pace placement/parity
+   O3D integrated Body acceptance
 → O4 Wellness placement + owner
 → O5 Nutrition Profile + Targets
 → O6 Workout Intro/Profile/Targets
@@ -78,16 +88,18 @@ O1 App Mode durability                         ✅ #11 / CI #1240
 → O8 Review + edit-back + resume
 → O9 Plan Building/finalization
 → O10 final acceptance
+→ O11 canonical schema cleanup                 BLOCKED #54
 ```
 
-Only one Product Onboarding slice is active at a time.
+Only one Product Onboarding sub-slice is active at a time.
 
-## O2 — Common User Profile owner
+## O2 — COMPLETE
 
 Parent task: `.ai/tasks/product-onboarding-o2-user-profile-owner.md`  
-Tracker: #53.
+Final task: `.ai/tasks/product-onboarding-o2e-integrated-profile-acceptance.md`  
+Tracker: #53 closed.
 
-Canonical fields:
+Common Profile owner is `public.user_profiles` for:
 
 ```text
 name
@@ -100,59 +112,65 @@ health_conditions
 other_health_condition
 ```
 
-Not common Profile-owned: Account/contact, App Mode, current weight, Body Goal/Target/Pace, Wellness, Nutrition or Workout data.
+Current Weight, Body Goal, Target Weight and Goal Pace are explicitly outside common Profile ownership.
 
-### O2C — ACTIVE
+## O3 — Body Goal section + Profile/Body parity
 
-Focused task: `.ai/tasks/product-onboarding-o2c-profile-write-cutover.md`.
+Parent task: `.ai/tasks/product-onboarding-o3-body-goal.md`  
+Tracker: #55.
 
-Target path:
-
-```text
-ProfileOnboardingDraft
-→ strict UserProfileMapper
-→ UserProfileData
-→ UserProfileRepository.upsert
-→ SupabaseUserProfileRepository
-→ public.user_profiles
-
-Body answers
-→ existing BodySetupMapper
-→ existing canonical Body repository
-```
-
-Current source includes:
-- strict mapper with no fabricated name/gender/DOB/height/activity defaults;
-- Product Onboarding owner coordinator calling canonical `UserProfileRepository.upsert`;
-- separate Body/Workout/Targets writes preserved;
-- `CanonicalUserProfileBridgeRepository` so legacy Profile/avatar/settings APIs remain available while canonical common Profile methods route to `SupabaseUserProfileRepository`;
-- focused mapper/use-case/bridge tests;
-- no `userProfile` section activation yet.
-
-Latest source at this handoff:
+Canonical Body owners stay unchanged:
 
 ```text
-df611158b28f5ded0ef924e45d7d5798803bbfd9
+body_weight_logs → Current Weight/history
+user_body_goals  → Body Goal + Target Weight + Goal Pace
 ```
 
-Take one exact full-CI checkpoint after context-sync commits settle. If green, record O2C and move to O2D.
+Existing onboarding draft compatibility fields stay readable during O3:
 
-## Later slices
+```text
+OnboardingDraft.goalSelection
+ProfileOnboardingDraft.currentWeightKg
+ProfileOnboardingDraft.targetWeightKg
+ProfileOnboardingDraft.targetWeightDirection
+TargetsOnboardingDraft.goalPaceKgPerWeek
+```
 
-O2D activates `userProfile` using the existing `ProfileSection` UI and proves old `profileBasics` draft/resume compatibility. O2E integrates canonical read/write/section acceptance. O3 then activates Body Goal parity. O4–O10 remain in the established sequence.
+### O3A — ACTIVE
+
+Focused task: `.ai/tasks/product-onboarding-o3a-body-goal-flow-contract.md`.
+
+Contract-first implementation adds:
+
+```text
+BodyGoalFlowPlan
+  goal
+  currentWeight
+  targetWeight?  ← GoalWeightFollowUpPolicy
+```
+
+The child plan deliberately reuses existing `ProfileStepId` identities to preserve serialized draft compatibility. O3A does not activate the top-level `bodyGoal` runtime step, renderer, or controller navigation; that is O3B after O3A exact full CI is green.
+
+Current O3A source includes:
+- `body_goal_flow_plan.dart`;
+- `build_body_goal_flow_plan_use_case.dart`;
+- focused mode/conditional/reconciliation tests;
+- barrel exports;
+- no persistence/schema/UI changes.
 
 ## Guardrails
 
-- preserve existing onboarding UI by default;
-- preserve DOB/Height/weight picker contracts;
+- preserve existing onboarding UI and picker contracts;
 - one canonical owner per concept;
+- no Body direction inference from measurements/BMI/training-only goals;
 - no fabricated semantic defaults;
 - no anonymous-auth side effects for canonical writes;
 - no permanent dual-write synchronization;
 - no applied migration edits;
-- no legacy-column drop before proof;
-- do not start O3 before O2 exact validation.
+- no legacy-column drop before O10/O11;
+- do not start O3B until O3A exact full CI is recorded;
+- do not start O4 until O3D integrated acceptance.
 
 ## Handoff
 
-**O2C is ACTIVE on #53. Validate the latest branch head, record exact CI, then start O2D.**
+**O3A is ACTIVE on #55. Validate the latest exact branch head with full Flutter/Dart CI; only then start O3B runtime `bodyGoal` section activation.**
