@@ -6,21 +6,13 @@ void main() {
   const bodyGoalPlanner = BuildBodyGoalFlowPlanUseCase();
   const targetsPlanner = BuildTargetsFlowPlanUseCase();
 
-  bool bodyGoalCollects({
+  BodyGoalFlowPlan bodyPlan({
     required AppMode mode,
     required GoalIntentSelection selection,
   }) =>
-      bodyGoalPlanner(mode: mode, goalSelection: selection)
-          .contains(ProfileStepId.targetWeight);
+      bodyGoalPlanner(mode: mode, goalSelection: selection);
 
-  bool targetsCollects({
-    required AppMode mode,
-    required GoalIntentSelection selection,
-  }) =>
-      targetsPlanner(mode: mode, goalSelection: selection)
-          .contains(TargetStepId.goalPace);
-
-  test('nutrition flow follows the approved weight-change matrix', () {
+  test('nutrition Target Weight and Goal Pace share the approved matrix', () {
     const expected = <GoalIntent, bool>{
       GoalIntent.loseWeight: true,
       GoalIntent.gainWeight: true,
@@ -30,20 +22,27 @@ void main() {
 
     for (final entry in expected.entries) {
       final selection = GoalIntentSelection(primaryGoal: entry.key);
+      final plan = bodyPlan(mode: AppMode.nutrition, selection: selection);
+
       expect(
-        bodyGoalCollects(mode: AppMode.nutrition, selection: selection),
+        plan.contains(ProfileStepId.targetWeight),
         entry.value,
         reason: 'Target Weight eligibility for ${entry.key}',
       );
       expect(
-        targetsCollects(mode: AppMode.nutrition, selection: selection),
+        plan.contains(ProfileStepId.goalPace),
         entry.value,
         reason: 'Goal Pace eligibility for ${entry.key}',
+      );
+      expect(
+        plan.contains(ProfileStepId.targetWeight),
+        plan.contains(ProfileStepId.goalPace),
+        reason: 'Body follow-ups must never diverge for ${entry.key}',
       );
     }
   });
 
-  test('workout and hybrid collect follow-ups only when lose weight is selected', () {
+  test('workout and hybrid activate both follow-ups only for selected loss', () {
     const trainingOnly = [
       GoalIntent.buildMuscle,
       GoalIntent.getStronger,
@@ -62,19 +61,21 @@ void main() {
       );
 
       for (final selection in [primaryLoss, supportingLoss]) {
-        expect(bodyGoalCollects(mode: mode, selection: selection), isTrue);
-        expect(targetsCollects(mode: mode, selection: selection), isTrue);
+        final plan = bodyPlan(mode: mode, selection: selection);
+        expect(plan.contains(ProfileStepId.targetWeight), isTrue);
+        expect(plan.contains(ProfileStepId.goalPace), isTrue);
       }
 
       for (final goal in trainingOnly) {
         final selection = GoalIntentSelection(primaryGoal: goal);
+        final plan = bodyPlan(mode: mode, selection: selection);
         expect(
-          bodyGoalCollects(mode: mode, selection: selection),
+          plan.contains(ProfileStepId.targetWeight),
           isFalse,
           reason: '$goal must not activate Target Weight in $mode',
         );
         expect(
-          targetsCollects(mode: mode, selection: selection),
+          plan.contains(ProfileStepId.goalPace),
           isFalse,
           reason: '$goal must not activate Goal Pace in $mode',
         );
@@ -82,7 +83,19 @@ void main() {
     }
   });
 
-  test('reconcile moves an ineligible Target Weight step to Current Weight', () {
+  test('active Targets plan never contains Goal Pace for any mode', () {
+    for (final mode in AppMode.values) {
+      final plan = targetsPlanner(
+        mode: mode,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.loseWeight,
+        ),
+      );
+      expect(plan.contains(TargetStepId.goalPace), isFalse);
+    }
+  });
+
+  test('Body Goal reconcile removes Target Weight and Goal Pace together', () {
     final previousPlan = bodyGoalPlanner(
       mode: AppMode.nutrition,
       goalSelection: const GoalIntentSelection(
@@ -104,27 +117,32 @@ void main() {
       ),
       ProfileStepId.currentWeight,
     );
+    expect(
+      bodyGoalPlanner.reconcileCurrentStep(
+        currentStepId: ProfileStepId.goalPace,
+        previousPlan: previousPlan,
+        nextPlan: nextPlan,
+      ),
+      ProfileStepId.currentWeight,
+    );
   });
 
-  test('reconcile moves an ineligible Goal Pace step to Water Target', () {
-    final previousPlan = targetsPlanner(
+  test('legacy Targets Goal Pace cursor reconciles to Water Target', () {
+    const legacyPlan = TargetsFlowPlan(
+      steps: TargetsFlowPlan.legacyOrderedSteps,
+    );
+    final activePlan = targetsPlanner(
       mode: AppMode.hybrid,
       goalSelection: const GoalIntentSelection(
         primaryGoal: GoalIntent.loseWeight,
-      ),
-    );
-    final nextPlan = targetsPlanner(
-      mode: AppMode.hybrid,
-      goalSelection: const GoalIntentSelection(
-        primaryGoal: GoalIntent.getStronger,
       ),
     );
 
     expect(
       targetsPlanner.reconcileCurrentStep(
         currentStepId: TargetStepId.goalPace,
-        previousPlan: previousPlan,
-        nextPlan: nextPlan,
+        previousPlan: legacyPlan,
+        nextPlan: activePlan,
       ),
       TargetStepId.waterTarget,
     );
