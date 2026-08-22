@@ -158,12 +158,16 @@ void main() {
       expect(trainingState.activeGoal, isNull);
     });
 
-    test('Body owner failure blocks Targets, mode, and completion publication',
+    test(
+        'Body owner failure blocks later canonical owners, mode, and completion publication',
         () async {
       final operations = <String>[];
       final profileRepository = _RecordingProfileRepository(operations);
       final bodyRepository = _FailingBodyRepository(operations);
-      final targetsRepository = _RecordingTargetsRepository(operations);
+      final nutritionProfileRepository =
+          nutrition_owner.InMemoryNutritionProfileRepository();
+      final nutritionTargetsRepository =
+          nutrition_owner.InMemoryNutritionTargetsRepository();
       final preference = _RecordingAppModePreference(operations);
       final status = _RecordingOnboardingStatusRepository(operations);
       final useCase = CompleteOnboardingUseCase(
@@ -172,9 +176,10 @@ void main() {
         persistOwnerDataUseCase: PersistOnboardingOwnerDataUseCase(
           profileRepository: profileRepository,
           bodyRepository: bodyRepository,
+          nutritionProfileRepository: nutritionProfileRepository,
           workoutRepository:
               workout_owner.InMemoryWorkoutPreferencesRepository(),
-          targetsRepository: targetsRepository,
+          nutritionTargetsRepository: nutritionTargetsRepository,
         ),
         validator: const OnboardingCompletionValidator(
           hasDurableOwnerPersistence: true,
@@ -201,7 +206,8 @@ void main() {
 
       expect(profileRepository.data, isNotNull);
       expect(bodyRepository.saveCalls, 1);
-      expect(targetsRepository.saveCalls, 0);
+      expect(await nutritionProfileRepository.read(), isNull);
+      expect(await nutritionTargetsRepository.read(), isNull);
       expect(preference.storedMode, isNull);
       expect(status.status, isNull);
       expect(
@@ -338,25 +344,6 @@ class _FailingBodyRepository implements body_owner.BodySetupRepository {
     saveCalls += 1;
     operations.add('body.save');
     throw StateError('canonical Body write failed');
-  }
-}
-
-class _RecordingTargetsRepository
-    implements nutrition_owner.TargetsSetupRepository {
-  _RecordingTargetsRepository(this.operations);
-
-  final List<String> operations;
-  int saveCalls = 0;
-  nutrition_owner.TargetsSetupData? data;
-
-  @override
-  Future<nutrition_owner.TargetsSetupData?> getTargetsSetup() async => data;
-
-  @override
-  Future<void> saveTargetsSetup(nutrition_owner.TargetsSetupData value) async {
-    saveCalls += 1;
-    operations.add('targets.save');
-    data = value;
   }
 }
 
