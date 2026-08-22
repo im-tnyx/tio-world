@@ -1,6 +1,6 @@
 # Current State
 
-Last verified from current branch/runtime trackers and live Supabase schema: 2026-08-22.
+Last verified from current branch/runtime trackers and canonical owner contracts: 2026-08-22.
 
 Runtime source remains behavior truth. For Product Onboarding sequencing, read `.ai/tasks/product-onboarding-canonical-execution.md` first.
 
@@ -9,9 +9,9 @@ Runtime source remains behavior truth. For Product Onboarding sequencing, read `
 1. `.ai/CURRENT.md`
 2. `.ai/tasks/product-onboarding-canonical-execution.md`
 3. `.ai/tasks/product-onboarding-o5-nutrition.md`
-4. `.ai/tasks/product-onboarding-o5b-nutrition-profile-runtime.md`
-5. GitHub Issues #65/#63/#40/#44 and Draft PR #50
-6. `.ai/tasks/product-onboarding-o5a-canonical-nutrition-contracts.md` for validated predecessor evidence
+4. `.ai/tasks/product-onboarding-o5d-canonical-nutrition-persistence-cutover.md`
+5. GitHub Issues #67/#63/#40/#44 and Draft PR #50
+6. `.ai/tasks/product-onboarding-o5c-nutrition-goals-runtime.md` for validated predecessor evidence
 
 ## Canonical persistence owners
 
@@ -31,89 +31,83 @@ onboarding_drafts          → draft/resume orchestration only
 
 Legacy mixed columns remain temporarily. Destructive cleanup is O11/#54 and stays blocked until O10 acceptance.
 
-## Validated Product Onboarding foundation
+## Latest exact validated Product Onboarding checkpoint
 
 ```text
-O1 durable App Mode / active_tabs               ✅ #11 / CI #1240
-O2 common User Profile owner + userProfile      ✅ #53 / CI #1279
-O3 canonical Body Goal end-to-end               ✅ #55 / CI #1354
-O4 Canonical Wellness end-to-end                ✅ #58 / CI #1441
-O5A canonical Nutrition owner contracts         ✅ #64 / CI #1449
-```
-
-Latest exact validated runtime/source checkpoint:
-
-```text
-3b2cc8b896186eb291bf577bcaaadda21b8a1b8e
-Flutter CI #1449 / run 32571519752
+938d35ad605150cf6a062ba9badef70a8677b5a6
+Flutter CI #1481 / run 32579778629
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
 Dart tests      ✅
 ```
 
-Task/tracker commits after this SHA do not replace the validated runtime checkpoint unless runtime source changes and full CI is rerun.
+This is the frozen O5C runtime/source checkpoint. Later task/tracker-only commits do not replace it.
 
 ## Current sequence
 
 ```text
-O1 App Mode                                     ✅
-O2 User Profile                                 ✅
-O3 Body Goal                                    ✅
-O4 Wellness                                     ✅ #58 / CI #1441
-→ O5 Nutrition Profile + Targets                ACTIVE #63
-   O5A canonical owner contracts                ✅ #64 / CI #1449
-   → O5B nutritionProfile runtime/draft/resume  ACTIVE #65
-   O5C nutritionGoals runtime + legacy Targets compatibility
-   O5D canonical persistence cutover
+O1 App Mode                                      ✅ #11 / CI #1240
+O2 User Profile                                  ✅ #53 / CI #1279
+O3 Body Goal                                     ✅ #55 / CI #1354
+O4 Wellness                                      ✅ #58 / CI #1441
+→ O5 Nutrition Profile + Targets                 ACTIVE #63
+   O5A canonical owner contracts                 ✅ #64 / CI #1449
+   O5B nutritionProfile runtime/draft/resume     ✅ #65 / CI #1460
+   O5C nutritionGoals runtime + legacy resume    ✅ #66 / CI #1481
+   → O5D canonical persistence cutover           ACTIVE #67
    O5E integrated acceptance
 → O6 Workout
 → O7 Health Connections
 → O8 Review + resume/edit-back
 → O9 Plan Building/finalization
 → O10 final acceptance
-→ O11 Canonical Schema Cleanup                  BLOCKED #54
+→ O11 Canonical Schema Cleanup                   BLOCKED #54
 ```
 
 Only one Product Onboarding sub-slice is active at a time.
 
-## O5A validated result
+## O5C validated result
 
-`tio_feature_nutrition` now exposes canonical backend-neutral Profile and Targets owner contracts and in-memory/Supabase adapters. Canonical signed-out writes fail closed without auth mutation. The legacy mixed `SupabaseTargetsSetupRepository` remains untouched until O5D.
+Active calculated Nutrition Target ownership is `nutritionGoals` in Workout, Nutrition and Hybrid. Legacy `targets + nutritionTarget` resumes losslessly under the stable section. Existing UI, formula, target values and eligibility are unchanged.
 
-## Current O5B objective
+## Current O5D objective
 
-Activate Product Onboarding `nutritionProfile` for Nutrition + Hybrid only, immediately after Wellness, with two approved first-run concepts:
-
-```text
-Diet Type
-  Vegetarian / Non-Vegetarian / Vegan / Eggitarian / Other
-
-Food Allergies & Restrictions
-  None / Lactose / Gluten / Nuts / Seafood / Other
-```
-
-`None` is exclusive. Unanswered is distinct from explicit None.
-
-Mode eligibility:
+Cut Product Onboarding completion persistence to explicit canonical Nutrition owners:
 
 ```text
-Workout   ❌ nutritionProfile
-Nutrition ✅ nutritionProfile
-Hybrid    ✅ nutritionProfile
+Nutrition/Hybrid:
+Onboarding Nutrition Profile → NutritionProfileRepository → user_nutrition_profiles
+
+Workout/Nutrition/Hybrid:
+calculated Nutrition Target → NutritionTargetsRepository → user_nutrition_targets
 ```
 
-Dormant Nutrition Profile values survive mode changes. Legacy Nutrition Target remains under `targets` unchanged until O5C.
+Canonical allergy semantics:
 
-Deferred in O5B: Diet Style, disliked foods, Nutrition-specific medical conditions, free-text Other details.
+```text
+null onboarding answer → canonical allergies = null
+explicit None          → canonical allergies = {}
+selected restrictions  → canonical storage strings
+```
+
+O5D must remove `TargetsSetupRepository.saveTargetsSetup` from Product Onboarding completion ownership. It must not change UI/navigation/formulas/mode eligibility or schema.
+
+Target persistence order:
+
+```text
+Profile → Body → Wellness → Nutrition Profile(if active)
+→ Workout(if active) → Nutrition Targets → App Mode/preferences → completion
+```
 
 ## Guardrails
 
-- read `.ai/tasks/design-system-token-consolidation.md`, `apps/core/lib/src/theme/README.md`, and `apps/features/AGENTS.md` before O5B presentation changes;
-- reuse existing selection patterns; no visual redesign;
-- no canonical persistence cutover in O5B;
-- no migration/schema change or legacy-column drop;
-- no legacy mixed writer change;
-- no O5C until #65 exact full CI green;
+- follow `.ai/tasks/product-onboarding-o5d-canonical-nutrition-persistence-cutover.md`;
+- no UI/navigation/formula/eligibility change;
+- no migration/schema change or applied migration edit;
+- no legacy-column drop;
+- no permanent dual write;
+- no recreation of Wellness/Body/Profile mirrors in Nutrition owners;
+- O5E stays blocked until #67 exact full CI green;
 - O11 remains blocked until O10;
 - PR #50 remains Draft/open/unmerged.
