@@ -33,6 +33,11 @@ class OnboardingProgressPlan {
         return items.indexWhere(
           (item) => item is ProfileProgressItem && item.stepId == profileStepId,
         );
+      case OnboardingStepId.bodyGoal:
+        return items.indexWhere(
+          (item) =>
+              item is BodyGoalProgressItem && item.stepId == profileStepId,
+        );
       case OnboardingStepId.mobile:
         return items.indexWhere((item) => item is MobileProgressItem);
       case OnboardingStepId.workoutIntro:
@@ -52,7 +57,6 @@ class OnboardingProgressPlan {
       case OnboardingStepId.review:
         return items.indexWhere((item) => item is ReviewProgressItem);
       case OnboardingStepId.userProfile:
-      case OnboardingStepId.bodyGoal:
       case OnboardingStepId.wellnessGoals:
       case OnboardingStepId.nutritionProfile:
       case OnboardingStepId.workoutProfile:
@@ -61,7 +65,7 @@ class OnboardingProgressPlan {
       case OnboardingStepId.healthConnections:
       case OnboardingStepId.planBuilding:
         throw StateError(
-          'Future onboarding step ${stepId.name} is not active in Slice 1.',
+          'Future onboarding step ${stepId.name} is not active in the current flow.',
         );
     }
   }
