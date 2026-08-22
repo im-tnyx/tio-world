@@ -18,7 +18,7 @@ class PersistOnboardingOwnerDataUseCase {
   const PersistOnboardingOwnerDataUseCase({
     required Object profileRepository,
     required body_owner.BodySetupRepository bodyRepository,
-    required body_owner.WellnessTargetsRepository wellnessRepository,
+    body_owner.WellnessTargetsRepository? wellnessRepository,
     required workout_owner.WorkoutPreferencesRepository workoutRepository,
     required nutrition_owner.TargetsSetupRepository targetsRepository,
     this.profileMapper = const UserProfileMapper(),
@@ -29,7 +29,10 @@ class PersistOnboardingOwnerDataUseCase {
     this.weightGoalPolicy = const WeightGoalFlowPolicy(),
   })  : _profileRepository = profileRepository,
         _bodyRepository = bodyRepository,
-        _wellnessRepository = wellnessRepository,
+        _wellnessRepository = wellnessRepository ??
+            (bodyRepository is body_owner.WellnessTargetsRepository
+                ? bodyRepository
+                : null),
         _workoutRepository = workoutRepository,
         _targetsRepository = targetsRepository;
 
@@ -39,7 +42,7 @@ class PersistOnboardingOwnerDataUseCase {
   /// [profile_owner.UserProfileRepository].
   final Object _profileRepository;
   final body_owner.BodySetupRepository _bodyRepository;
-  final body_owner.WellnessTargetsRepository _wellnessRepository;
+  final body_owner.WellnessTargetsRepository? _wellnessRepository;
   final workout_owner.WorkoutPreferencesRepository _workoutRepository;
   final nutrition_owner.TargetsSetupRepository _targetsRepository;
 
@@ -124,7 +127,13 @@ class PersistOnboardingOwnerDataUseCase {
     }
 
     try {
-      await _wellnessRepository.upsert(wellnessData);
+      final wellnessRepository = _wellnessRepository;
+      if (wellnessRepository == null) {
+        throw StateError(
+          'Product Onboarding requires the canonical WellnessTargetsRepository.',
+        );
+      }
+      await wellnessRepository.upsert(wellnessData);
     } catch (e, st) {
       throw OwnerPersistenceException(
         owner: OwnerPersistenceTarget.wellness,
