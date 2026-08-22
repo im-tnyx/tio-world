@@ -1,11 +1,12 @@
 # Product Onboarding — Canonical Execution Plan
 
-**Status:** In progress — O1/O2 validated; O3A Body Goal flow contract ACTIVE  
+**Status:** In progress — O1/O2 complete; O3C Goal Pace placement ACTIVE  
 **Primary tracker:** #40  
 **Canonical ownership:** #44  
 **O1 App Mode:** #11 ✅ closed  
 **O2 User Profile:** #53 ✅ closed  
 **O3 Body Goal:** #55 ACTIVE  
+**O3C Goal Pace:** #56 ACTIVE  
 **Account verification:** #8 parallel lane  
 **O11 cleanup:** #54 BLOCKED until O10  
 **PR:** #50 Draft/open/unmerged  
@@ -23,42 +24,28 @@ Canonical Body read/history                      ✅ CI #1153
 Canonical owner schema + P1 Profile/App Prefs    ✅ LIVE
 O1 durable App Mode / active_tabs                ✅ CI #1240
 O2 common User Profile end-to-end                ✅ CI #1279
+O3A Body Goal typed child-flow contract          ✅ CI #1290
+O3B bodyGoal runtime section + legacy resume     ✅ CI #1319
 ```
 
-O1 final:
+O3B final source checkpoint:
 
 ```text
-c7925b77e9ccdc1dcd0b6ac1d9554f05972d13a7
-Flutter CI #1240 / run 32552460378 ✅
-```
-
-O2 final:
-
-```text
-7e7119aa4dfe9cb53b1078376aa93e950f987adb
-Flutter CI #1279 / run 32555540391
+3df7dbd61a57340f7d6f767361d3ceaa49cc83fb
+Flutter CI #1319 / run 32558694870
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
 Dart tests      ✅
 ```
 
-O2 sequence:
-
-```text
-O2A narrow UserProfile contract                 ✅ #1252
-O2B Supabase user_profiles adapter              ✅ #1252
-O2C onboarding canonical Profile write          ✅ #1268
-O2D userProfile section + legacy resume         ✅ #1275
-O2E integrated canonical Profile acceptance     ✅ #1279
-```
-
 ## Canonical owners
 
 ```text
-users                      → account/domain root + contacts/status
+users                      → stable account/domain root + contacts/status
 user_profiles              → common Profile
 user_app_preferences       → App Mode + ordered active_tabs
+user_devices               → device owner
 body_weight_logs           → current/history weight
 user_body_goals            → Body Goal + Target Weight + Goal Pace
 user_wellness_targets      → steps/water/sleep
@@ -69,7 +56,7 @@ user_workout_targets       → workout targets
 onboarding_drafts          → draft/resume orchestration only
 ```
 
-Onboarding orchestrates; it does not own durable domain data. Applied migrations are immutable and legacy columns remain until verified O11 cleanup.
+Onboarding orchestrates; it does not own durable domain data. Applied migrations are immutable and legacy duplicate columns remain until verified O11 cleanup.
 
 ## Execution order
 
@@ -77,10 +64,10 @@ Onboarding orchestrates; it does not own durable domain data. Applied migrations
 O1 App Mode durability                         ✅ #11 / CI #1240
 O2 common User Profile owner + section         ✅ #53 / CI #1279
 → O3 Body Goal section + Profile/Body parity   ACTIVE #55
-   O3A typed Body Goal child-flow contract     ACTIVE
-   O3B bodyGoal runtime section activation     NEXT after O3A
-   O3C Goal Pace placement/parity
-   O3D integrated Body acceptance
+   O3A typed Body Goal child-flow contract     ✅ CI #1290
+   O3B bodyGoal runtime section + resume       ✅ CI #1319
+   O3C Goal Pace placement/parity              ACTIVE #56
+   O3D integrated Body acceptance              NEXT after O3C
 → O4 Wellness placement + owner
 → O5 Nutrition Profile + Targets
 → O6 Workout Intro/Profile/Targets
@@ -136,27 +123,44 @@ ProfileOnboardingDraft.targetWeightDirection
 TargetsOnboardingDraft.goalPaceKgPerWeek
 ```
 
-### O3A — ACTIVE
+### O3A — VALIDATED
 
-Focused task: `.ai/tasks/product-onboarding-o3a-body-goal-flow-contract.md`.
+Typed `BodyGoalFlowPlan` + mode-aware builder established Goal/Current Weight/eligible Target Weight as a distinct child contract. Exact full CI: #1290.
 
-Contract-first implementation adds:
+### O3B — VALIDATED
+
+Active top-level flow now places `bodyGoal` immediately after common `userProfile`; existing Goal/current/target screens are reused; legacy mixed-Profile Body cursors reconcile safely; continuous progress and durable resume preservation are Body Goal-aware. Exact full CI: #1319.
+
+### O3C — ACTIVE
+
+Tracker: #56  
+Focused task: `.ai/tasks/product-onboarding-o3c-goal-pace-parity.md`.
+
+Current mismatch:
 
 ```text
-BodyGoalFlowPlan
-  goal
-  currentWeight
-  targetWeight?  ← GoalWeightFollowUpPolicy
+Goal Pace durable owner = user_body_goals
+Goal Pace runtime child  = Targets / TargetStepId.goalPace
+Goal Pace draft value    = TargetsOnboardingDraft.goalPaceKgPerWeek
 ```
 
-The child plan deliberately reuses existing `ProfileStepId` identities to preserve serialized draft compatibility. O3A does not activate the top-level `bodyGoal` runtime step, renderer, or controller navigation; that is O3B after O3A exact full CI is green.
+Target runtime for eligible explicit weight direction:
 
-Current O3A source includes:
-- `body_goal_flow_plan.dart`;
-- `build_body_goal_flow_plan_use_case.dart`;
-- focused mode/conditional/reconciliation tests;
-- barrel exports;
-- no persistence/schema/UI changes.
+```text
+Body Goal:
+Goal → Current Weight → Target Weight → Goal Pace
+```
+
+Non-directional/ineligible:
+
+```text
+Body Goal:
+Goal → Current Weight
+```
+
+Active Targets flow after O3C must skip Goal Pace. Preserve serialized pace value compatibility and reuse the existing `GoalPaceScreen`; no destructive draft/schema migration and no UI redesign.
+
+Legacy/current `targets + goalPace` actual resume cursors must migrate to canonical Body Goal Goal Pace without losing the value. Later top-level checkpoints stay later when pace is only dormant data.
 
 ## Guardrails
 
@@ -168,9 +172,9 @@ Current O3A source includes:
 - no permanent dual-write synchronization;
 - no applied migration edits;
 - no legacy-column drop before O10/O11;
-- do not start O3B until O3A exact full CI is recorded;
+- do not start O3D until O3C exact full CI is recorded;
 - do not start O4 until O3D integrated acceptance.
 
 ## Handoff
 
-**O3A is ACTIVE on #55. Validate the latest exact branch head with full Flutter/Dart CI; only then start O3B runtime `bodyGoal` section activation.**
+**O3C is ACTIVE on #56 from validated O3B source `3df7dbd6…` / CI #1319. Execute Goal Pace runtime relocation only, then require exact full Flutter/Dart CI before O3D.**
