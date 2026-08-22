@@ -74,9 +74,10 @@ class OnboardingState {
         nutritionProfileFlowPlan.previous(draft.nutrition.currentStepId) != null) {
       return true;
     }
-    if (stepId == OnboardingStepId.workoutPreferences &&
-        workoutFlowPlan.indexOf(draft.workout.currentStepId) > 0) {
-      return true;
+    if (stepId == OnboardingStepId.workoutProfile ||
+        stepId == OnboardingStepId.workoutTargets) {
+      final steps = workoutFlowPlan.stepsFor(stepId);
+      if (steps.indexOf(draft.workout.currentStepId) > 0) return true;
     }
     if ((stepId == OnboardingStepId.nutritionGoals ||
             stepId == OnboardingStepId.targets) &&
