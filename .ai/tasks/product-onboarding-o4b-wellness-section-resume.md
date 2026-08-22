@@ -88,3 +88,31 @@ targets
 ## Current work
 
 **Implement runtime Wellness ownership only.**
+
+### Latest WIP checkpoint — not validated
+
+```text
+72cf4fd6b41b491f72a012225ad546a0ed970044
+Flutter CI #1402 / run 32567221904 — pending at checkpoint
+```
+
+Implemented through this checkpoint:
+
+- selected-mode plans place Wellness immediately after Body Goal;
+- `WellnessFlowPlan` owns Bridge → Steps → Sleep → Water;
+- active `TargetsFlowPlan` owns Nutrition Target only;
+- actual legacy Targets Wellness cursors normalize losslessly to Wellness while Goal Pace retains Body migration;
+- Wellness renderer/progress/controller/resume ownership is active without UI redesign or serialized value relocation;
+- stale O3/Targets regression suites have been migrated to the O4B boundary, including flow plan, progress, Goal Pace compatibility, controller navigation, renderer, and durable resume coverage.
+
+Recent CI evidence:
+
+```text
+CI #1393 / run 32565992066
+Flutter analyze ❌ — one prefer_const_constructors lint only
+Dart analyze    skipped
+Flutter tests   skipped
+Dart tests      skipped
+```
+
+The lint was fixed in `5eaf85afd4663bd167cafe30e8c8644ec53454b3`. O4B remains **in progress** until one later exact SHA is green across all four gates.
