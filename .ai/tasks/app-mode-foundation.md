@@ -120,8 +120,8 @@ Implemented in `apps/app`:
 ### O1C — onboarding completion cutover ✅
 
 ```text
-e9140705521f8af94675d785fb498180096bef55
-Flutter CI #1194 / run 32548512802
+74e45c9186aed8a6505ca8eef9cd5333de366308
+Flutter CI #1199 / run 32549215504
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
@@ -129,22 +129,24 @@ Dart tests      ✅
 ```
 
 Implemented:
-- `CompleteOnboardingUseCase` accepts/resolves backend-neutral `AppPreferencesRepository`;
-- app composition supplies a Supabase-backed composition adapter implementing both `OnboardingCompletionRepository` and `AppPreferencesRepository` while keeping onboarding domain backend-neutral;
-- successful completion order is now owner data → optional finalizer → canonical App Preferences → local App Mode cache → remote completion → local completion → best-effort draft clear;
+- `CompleteOnboardingUseCase` accepts an explicit backend-neutral `AppPreferencesRepository` dependency;
+- app composition exposes the Supabase-backed `appPreferencesRepositoryProvider` and injects it explicitly into onboarding completion;
+- unrelated `OnboardingCompletionRepository` and `AppPreferencesRepository` remain separate contracts—no runtime-type fallback/coupling;
+- successful completion order is owner data → optional finalizer → canonical App Preferences → local App Mode cache → remote completion → local completion → best-effort draft clear;
 - canonical write uses `AppPreferencesUpdate.guided(selectedMode)`;
 - canonical preference failure prevents local mode/completion publication and keeps retry possible;
 - backend completion failure still prevents local completed cache;
 - completed retry only short-circuits when local selected mode matches and canonical preference is present/usable; a missing canonical row is repaired;
 - bootstrap and Settings behavior intentionally unchanged;
-- focused tests lock success/failure/order + missing-canonical repair + fully canonical idempotent retry.
+- focused tests lock success/failure/order + missing-canonical repair + fully canonical idempotent retry;
+- final router diff for production composition is only the canonical repository read + explicit use-case injection.
 
 ## O1 execution order
 
 ```text
 O1A domain/repository contract          ✅ #1183
 → O1B Supabase adapter                  ✅ #1187
-→ O1C onboarding completion cutover     ✅ #1194
+→ O1C onboarding completion cutover     ✅ #1199
 → O1D authenticated bootstrap/restore   NEXT
 → O1E Settings mode-change parity
 → O1F integrated acceptance/full CI
