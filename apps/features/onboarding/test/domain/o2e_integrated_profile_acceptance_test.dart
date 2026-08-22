@@ -34,11 +34,13 @@ void main() {
       expect((await bridge.getProfileSetup())?.name, 'Stale Legacy Mirror');
 
       final body = body_owner.InMemoryBodySetupRepository();
+      final wellness = body_owner.InMemoryWellnessTargetsRepository();
       final workout = workout_owner.InMemoryWorkoutPreferencesRepository();
       final targets = nutrition_owner.InMemoryTargetsSetupRepository();
       final persist = PersistOnboardingOwnerDataUseCase(
         profileRepository: bridge,
         bodyRepository: body,
+        wellnessRepository: wellness,
         workoutRepository: workout,
         targetsRepository: targets,
       );
@@ -101,6 +103,7 @@ void main() {
         canonicalRepository: canonical,
       );
       final body = body_owner.InMemoryBodySetupRepository();
+      final wellness = body_owner.InMemoryWellnessTargetsRepository();
       final workout = workout_owner.InMemoryWorkoutPreferencesRepository();
       final targets = nutrition_owner.InMemoryTargetsSetupRepository();
       final preference = _RecordingAppModePreference(operations);
@@ -111,6 +114,7 @@ void main() {
         persistOwnerDataUseCase: PersistOnboardingOwnerDataUseCase(
           profileRepository: bridge,
           bodyRepository: body,
+          wellnessRepository: wellness,
           workoutRepository: workout,
           targetsRepository: targets,
         ),
