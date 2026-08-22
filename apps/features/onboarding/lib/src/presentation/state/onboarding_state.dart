@@ -87,9 +87,24 @@ class OnboardingState {
 
   bool get hasPreviousStep => currentIndex > 0;
   bool get canGoBack => hasPreviousScreen && !isBusy;
+
+  bool get _isBodyGoalPaceValid {
+    if (stepId != OnboardingStepId.bodyGoal ||
+        draft.profile.currentStepId != ProfileStepId.goalPace) {
+      return true;
+    }
+
+    return const TargetStepValidator().isCurrentStepValid(
+      draft.targets.copyWith(currentStepId: TargetStepId.goalPace),
+      profile: draft.profile,
+      weightGoalDirection: weightGoalDirection,
+    );
+  }
+
   bool get canContinue =>
       !isBusy &&
       validationErrors.isEmpty &&
+      _isBodyGoalPaceValid &&
       switch (stepId) {
         OnboardingStepId.review => completionEligibility.isEligible,
         OnboardingStepId.mode => draft.selectedMode != null,
