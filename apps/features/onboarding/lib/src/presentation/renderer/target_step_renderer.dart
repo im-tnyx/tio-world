@@ -7,7 +7,6 @@ import '../screens/targets/goal_pace_screen.dart';
 import '../screens/targets/nutrition_target_screen.dart';
 import '../screens/targets/sleep_target_screen.dart';
 import '../screens/targets/step_target_screen.dart';
-import '../screens/targets/targets_screen_components.dart';
 import '../screens/targets/water_target_screen.dart';
 import '../state/state.dart';
 
@@ -30,7 +29,7 @@ class TargetStepRenderer extends StatelessWidget {
         ? draft.copyWith(goalPaceKgPerWeek: 0.0)
         : draft;
 
-    final screen = switch (draft.currentStepId) {
+    return switch (draft.currentStepId) {
       TargetStepId.bridge => BridgeScreen(errorText: errorText),
       TargetStepId.stepTarget => StepTargetScreen(
           dailySteps: draft.dailySteps,
@@ -67,10 +66,5 @@ class TargetStepRenderer extends StatelessWidget {
           errorText: errorText,
         ),
     };
-
-    return TargetsFlowPlanScope(
-      flowPlan: state.targetsFlowPlan,
-      child: screen,
-    );
   }
 }
