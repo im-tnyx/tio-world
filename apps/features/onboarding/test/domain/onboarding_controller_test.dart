@@ -743,8 +743,6 @@ void main() {
     await controller.next(onFinish: _completeImmediately);
     expect(controller.state.draft.targets.currentStepId, TargetStepId.waterTarget);
     await controller.next(onFinish: _completeImmediately);
-    expect(controller.state.draft.targets.currentStepId, TargetStepId.goalPace);
-    await controller.next(onFinish: _completeImmediately);
     expect(controller.state.draft.targets.currentStepId, TargetStepId.nutritionTarget);
     await controller.next(onFinish: _completeImmediately);
     expect(controller.state.stepId, OnboardingStepId.review);
