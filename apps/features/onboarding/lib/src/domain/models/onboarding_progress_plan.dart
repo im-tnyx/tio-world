@@ -68,10 +68,13 @@ class OnboardingProgressPlan {
         return items.indexWhere(
           (item) => item is TargetsProgressItem && item.stepId == targetStepId,
         );
+      case OnboardingStepId.healthConnections:
+        return items.indexWhere(
+          (item) => item is HealthConnectionsProgressItem,
+        );
       case OnboardingStepId.review:
         return items.indexWhere((item) => item is ReviewProgressItem);
       case OnboardingStepId.userProfile:
-      case OnboardingStepId.healthConnections:
       case OnboardingStepId.planBuilding:
         throw StateError(
           'Future onboarding step ${stepId.name} is not active in the current flow.',

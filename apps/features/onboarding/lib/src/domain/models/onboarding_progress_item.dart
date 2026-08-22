@@ -165,6 +165,18 @@ class TargetsProgressItem extends OnboardingProgressItem {
   int get hashCode => stepId.hashCode;
 }
 
+class HealthConnectionsProgressItem extends OnboardingProgressItem {
+  const HealthConnectionsProgressItem();
+  @override
+  String get title => 'Health connections';
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is HealthConnectionsProgressItem && runtimeType == other.runtimeType;
+  @override
+  int get hashCode => runtimeType.hashCode;
+}
+
 class ReviewProgressItem extends OnboardingProgressItem {
   const ReviewProgressItem();
   @override

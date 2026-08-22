@@ -4,6 +4,7 @@ import '../../domain/domain.dart';
 import '../controllers/controllers.dart';
 import '../sections/app_mode_section.dart';
 import '../sections/body_goal_section.dart';
+import '../sections/health_connections_section.dart';
 import '../sections/mobile_section.dart';
 import '../sections/nutrition_goals_section.dart';
 import '../sections/nutrition_intro_section.dart';
@@ -58,9 +59,9 @@ class OnboardingSectionRenderer extends StatelessWidget {
         NutritionSection(state: state, controller: controller),
       OnboardingSectionId.targets =>
         TargetsSection(state: state, controller: controller),
-      OnboardingSectionId.review => ReviewSection(state: state),
       OnboardingSectionId.healthConnections =>
-        _futureSectionNotActive(OnboardingSectionId.healthConnections),
+        HealthConnectionsSection(state: state),
+      OnboardingSectionId.review => ReviewSection(state: state),
       OnboardingSectionId.planBuilding =>
         _futureSectionNotActive(OnboardingSectionId.planBuilding),
     };

@@ -73,11 +73,13 @@ class BuildOnboardingProgressPlanUseCase {
             items.add(TargetsProgressItem(targetStep));
           }
           break;
+        case OnboardingStepId.healthConnections:
+          items.add(const HealthConnectionsProgressItem());
+          break;
         case OnboardingStepId.review:
           items.add(const ReviewProgressItem());
           break;
         case OnboardingStepId.userProfile:
-        case OnboardingStepId.healthConnections:
         case OnboardingStepId.planBuilding:
           throw StateError(
             'Future onboarding step ${step.id.name} is not active in the current flow.',

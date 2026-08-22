@@ -11,6 +11,7 @@ export 'goal_intent.dart';
 export 'goal_pace_mode.dart';
 export 'goal_pace_warning.dart';
 export 'goal_weight_direction.dart';
+export 'health_connection_status.dart';
 export 'nutrition_allergy_restriction.dart';
 export 'nutrition_diet_type.dart';
 export 'nutrition_onboarding_draft.dart';

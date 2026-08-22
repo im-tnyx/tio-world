@@ -57,12 +57,14 @@ List<OnboardingStepDefinition> _stepsByMode(
         _workoutProfile,
         _workoutTargets,
         _nutritionGoals,
+        _healthConnections,
         _review,
       ],
     AppMode.nutrition => [
         ...commonFoundation,
         _nutritionProfile,
         _nutritionGoals,
+        _healthConnections,
         _review,
       ],
     AppMode.hybrid => workoutIntroChoice == WorkoutIntroChoice.later
@@ -71,6 +73,7 @@ List<OnboardingStepDefinition> _stepsByMode(
             _nutritionProfile,
             _workoutIntro,
             _nutritionGoals,
+            _healthConnections,
             _review,
           ]
         : [
@@ -80,6 +83,7 @@ List<OnboardingStepDefinition> _stepsByMode(
             _workoutProfile,
             _workoutTargets,
             _nutritionGoals,
+            _healthConnections,
             _review,
           ],
   };
@@ -138,6 +142,13 @@ const _nutritionGoals = OnboardingStepDefinition(
   section: OnboardingSectionId.nutritionGoals,
   owner: OnboardingStepOwner.nutrition,
   progressTitle: 'Nutrition target',
+);
+const _healthConnections = OnboardingStepDefinition(
+  id: OnboardingStepId.healthConnections,
+  section: OnboardingSectionId.healthConnections,
+  owner: OnboardingStepOwner.crossFeature,
+  progressTitle: 'Health connections',
+  isRequired: false,
 );
 const _review = OnboardingStepDefinition(
   id: OnboardingStepId.review,

@@ -36,6 +36,14 @@ void main() {
         plan.definitionFor(OnboardingStepId.nutritionGoals).section,
         OnboardingSectionId.nutritionGoals,
       );
+      expect(
+        plan.definitionFor(OnboardingStepId.healthConnections).section,
+        OnboardingSectionId.healthConnections,
+      );
+      expect(
+        plan.definitionFor(OnboardingStepId.healthConnections).isRequired,
+        isFalse,
+      );
     });
 
     test('workout mode activates canonical Profile then Targets', () {
@@ -53,6 +61,7 @@ void main() {
           OnboardingStepId.workoutProfile,
           OnboardingStepId.workoutTargets,
           OnboardingStepId.nutritionGoals,
+          OnboardingStepId.healthConnections,
           OnboardingStepId.review,
         ],
       );
@@ -82,6 +91,7 @@ void main() {
           OnboardingStepId.wellnessGoals,
           OnboardingStepId.nutritionProfile,
           OnboardingStepId.nutritionGoals,
+          OnboardingStepId.healthConnections,
           OnboardingStepId.review,
         ],
       );
@@ -106,6 +116,7 @@ void main() {
           OnboardingStepId.workoutProfile,
           OnboardingStepId.workoutTargets,
           OnboardingStepId.nutritionGoals,
+          OnboardingStepId.healthConnections,
           OnboardingStepId.review,
         ],
       );
@@ -126,6 +137,7 @@ void main() {
           OnboardingStepId.nutritionProfile,
           OnboardingStepId.workoutIntro,
           OnboardingStepId.nutritionGoals,
+          OnboardingStepId.healthConnections,
           OnboardingStepId.review,
         ],
       );
