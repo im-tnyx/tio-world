@@ -9,8 +9,8 @@ This is the concise handoff for the next agent. Runtime source remains behavior 
 1. `.ai/CURRENT.md`
 2. `.ai/tasks/product-onboarding-canonical-execution.md`
 3. `.ai/tasks/product-onboarding-o3-body-goal.md`
-4. active focused task `.ai/tasks/product-onboarding-o3a-body-goal-flow-contract.md`
-5. GitHub Issue #55 and Draft PR #50
+4. active focused task `.ai/tasks/product-onboarding-o3c-goal-pace-parity.md`
+5. GitHub Issues #56, #55 and Draft PR #50
 
 ## Canonical persistence owners
 
@@ -35,30 +35,22 @@ Legacy mixed columns remain temporarily. Destructive cleanup is O11/#54 and stay
 ```text
 O1 durable App Mode / active_tabs               ✅ #11 / CI #1240
 O2 common User Profile owner + userProfile      ✅ #53 / CI #1279
+O3A Body Goal typed child-flow contract         ✅ #55 / CI #1290
+O3B bodyGoal runtime section + legacy resume    ✅ #55 / CI #1319
 ```
 
-O2 final checkpoint:
+O3B exact source checkpoint:
 
 ```text
-7e7119aa4dfe9cb53b1078376aa93e950f987adb
-Flutter CI #1279 / run 32555540391
+3df7dbd61a57340f7d6f767361d3ceaa49cc83fb
+Flutter CI #1319 / run 32558694870
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
 Dart tests      ✅
 ```
 
-O2 sequence:
-
-```text
-O2A narrow UserProfile contract                 ✅ #1252
-O2B Supabase user_profiles adapter              ✅ #1252
-O2C onboarding canonical Profile write          ✅ #1268
-O2D userProfile section + legacy resume         ✅ #1275
-O2E integrated canonical Profile acceptance     ✅ #1279
-```
-
-Issue #53 is complete/closed. PR #50 remains Draft/open/unmerged.
+Later documentation commits do not redefine this validated O3B source checkpoint.
 
 ## Current Product Onboarding sequence
 
@@ -66,10 +58,10 @@ Issue #53 is complete/closed. PR #50 remains Draft/open/unmerged.
 O1 App Mode                                     ✅
 O2 User Profile                                 ✅
 → O3 Body Goal section + Profile/Body parity    ACTIVE #55
-   O3A typed Body Goal child-flow contract      ACTIVE
-   O3B bodyGoal runtime section activation      NEXT after O3A
-   O3C Goal Pace placement/parity
-   O3D integrated Body acceptance
+   O3A typed Body Goal child-flow contract      ✅ #1290
+   O3B bodyGoal runtime section + resume        ✅ #1319
+   O3C Goal Pace placement/parity               ACTIVE #56
+   O3D integrated Body acceptance               NEXT after O3C
 → O4 Wellness
 → O5 Nutrition
 → O6 Workout
@@ -80,44 +72,79 @@ O2 User Profile                                 ✅
 → O11 Canonical Schema Cleanup                  BLOCKED #54
 ```
 
-Independent Account/Settings lanes remain parallel and do not change this sequencing.
+Only one Product Onboarding sub-slice is active. Independent Account/Settings lanes remain parallel and do not change this sequencing.
 
-## Active slice — O3A Body Goal flow contract
-
-Tracker: GitHub Issue #55  
-Parent task: `.ai/tasks/product-onboarding-o3-body-goal.md`  
-Focused task: `.ai/tasks/product-onboarding-o3a-body-goal-flow-contract.md`
-
-Audit baseline:
-- prepared `OnboardingStepId.bodyGoal` and `OnboardingSectionId.bodyGoal` exist;
-- current runtime still groups Goal/Current Weight/Target Weight inside legacy `ProfileFlowPlan`;
-- Goal Pace currently lives in Targets draft/navigation;
-- `BodySetupMapper` already persists Current Weight separately from Body Goal/Target/Pace through canonical Body owners and never infers Body intent from numbers/BMI.
-
-O3A implementation is contract-first and intentionally does **not** activate the production top-level `bodyGoal` step yet:
+## Established O3B runtime boundary
 
 ```text
-BodyGoalFlowPlan
+userProfile
+  name
+  gender
+  age
+  measurementUnits
+  height
+  activity
+  healthConditions
+
+bodyGoal
   goal
   currentWeight
-  targetWeight?  ← existing GoalWeightFollowUpPolicy
+  targetWeight?  ← GoalWeightFollowUpPolicy
 ```
 
-Added source:
-- `apps/features/onboarding/lib/src/domain/models/body_goal_flow_plan.dart`;
-- `apps/features/onboarding/lib/src/domain/usecases/build_body_goal_flow_plan_use_case.dart`;
-- focused `build_body_goal_flow_plan_use_case_test.dart`;
-- model/use-case barrel exports.
+Existing Goal/current/target screens are reused. Pre-O3 `profileBasics + Body child` checkpoints migrate to `bodyGoal`; common Profile checkpoints remain `userProfile`; later checkpoints remain later and preserve compatible dormant Body values. Durable resume preservation is Body Goal-aware.
 
-Runtime navigation, renderer, persistence and serialized draft format are unchanged in O3A. O3B starts only after exact O3A full CI is green.
+## Active slice — O3C Goal Pace placement/parity
+
+Tracker: GitHub Issue #56  
+Parent O3 tracker: #55  
+Focused task: `.ai/tasks/product-onboarding-o3c-goal-pace-parity.md`
+
+Current mismatch:
+
+```text
+canonical owner: user_body_goals
+runtime child:   Targets / TargetStepId.goalPace
+value container: TargetsOnboardingDraft.goalPaceKgPerWeek
+```
+
+Current active Targets order before O3C cutover:
+
+```text
+bridge → stepTarget → sleepTarget → waterTarget → goalPace? → nutritionTarget
+```
+
+Target O3C runtime boundary:
+
+```text
+eligible Body Goal:
+Goal → Current Weight → Target Weight → Goal Pace
+
+ineligible Body Goal:
+Goal → Current Weight
+
+Targets after cutover:
+Bridge → Step Target → Sleep Target → Water Target → Nutrition Target
+```
+
+Target Weight and Goal Pace must share the exact `GoalWeightFollowUpPolicy`. Reuse the existing `GoalPaceScreen`; no visual redesign. Preserve `TargetsOnboardingDraft.goalPaceKgPerWeek` as a draft compatibility value unless a narrower safe adapter is required. Do not create duplicate durable writes.
+
+Resume rules to preserve:
+- an actual `targets + goalPace` resume cursor must migrate to canonical Body Goal Goal Pace without losing pace;
+- a later top-level checkpoint stays later when pace is only dormant stored data;
+- compatible dormant pace may survive ineligible transitions and restore on same-direction eligibility;
+- active flow eligibility, not stored numbers, determines whether Goal Pace is traversed.
 
 ## Guardrails
 
-- preserve existing Goal/weight/Profile UI and picker contracts;
 - Current Weight remains `body_weight_logs` owned;
 - Body Goal/Target/Pace remain `user_body_goals` owned;
 - no Body direction inference from numbers/BMI/training-only goals;
-- no draft/schema migration in O3A;
+- no Profile owner expansion into Body concepts;
+- no fabricated semantic defaults;
+- no applied migration edit;
 - no legacy-column drop;
 - no permanent dual-write synchronization;
+- no UI redesign;
+- no O3D until O3C exact full CI is green;
 - no O4 activation before O3D.
