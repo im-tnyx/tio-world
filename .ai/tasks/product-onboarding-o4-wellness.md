@@ -1,29 +1,34 @@
 # Product Onboarding O4 — Canonical Wellness
 
-**Status:** In progress — audit active  
+**Status:** In progress — O4A validated; O4B ACTIVE  
 **Tracker:** GitHub Issue #58  
+**O4A:** #59 ✅ closed / CI #1365  
+**O4B:** #60 ACTIVE  
 **Parent:** #40  
 **Canonical ownership:** #44  
 **Predecessor:** #55 O3 ✅ CI #1354  
 **Implementation PR:** #50 Draft/open/unmerged  
 **Branch:** `agent/onboarding-slice-2-step-1-body-goal-ui`
 
-## Starting checkpoint
+## Validated foundation
 
+O3 final:
 ```text
 75237e6c31222f4b08f3cdd41353121aa1ca3afc
-Flutter CI #1354 / run 32562632629
+Flutter CI #1354 / run 32562632629 ✅
+```
+
+O4A canonical Wellness repository contract:
+```text
+f244b4913143ba8f76439a8b2554fd095d7e1973
+Flutter CI #1365 / run 32563623833
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
 Dart tests      ✅
 ```
 
-## Outcome
-
-Give Wellness one canonical Product Onboarding semantic/persistence owner and remove ongoing Wellness durable mirrors from Nutrition without destructive cleanup.
-
-Canonical durable owner:
+## Canonical durable owner
 
 ```text
 user_wellness_targets
@@ -34,57 +39,46 @@ user_wellness_targets
 → wake_up_time
 ```
 
-## Audit before source changes
+O4A established the backend-neutral repository boundary in `tio_feature_progress`. O4B now aligns runtime semantics only.
 
-Determine current reality for:
-- active `TargetStepId` / `TargetsFlowPlan` Wellness children;
-- `TargetsOnboardingDraft` Wellness value/cursor serialization;
-- existing Step/Sleep/Water screens and validators;
-- any typed Wellness flow/section identity already present;
-- canonical `user_wellness_targets` domain/repository adapter availability;
-- `SupabaseTargetsSetupRepository` Wellness mirror writes;
-- Nutrition recommendation dependencies on steps/sleep/water/bed/wake;
-- resume/progress behavior for current Targets cursors.
-
-The audit must create one focused O4A task/issue before source edits.
-
-## Expected execution shape
-
-Exact slices are decided by audit, but likely sequence is:
+## Execution
 
 ```text
-O4A typed Wellness contract/owner boundary
-→ O4B runtime Wellness section + navigation/progress/resume
-→ O4C canonical Wellness persistence + stop Nutrition Wellness mirrors
-→ O4D integrated read/write/resume/failure acceptance
+O4A canonical Wellness domain/repository contract             ✅ #59 / CI #1365
+→ O4B wellnessGoals runtime section/navigation/progress/resume ACTIVE #60
+→ O4C canonical Wellness persistence + Nutrition mirror cutoff
+→ O4D integrated Wellness read/write/resume/failure acceptance
 ```
 
-Only one O4 sub-slice may be active at a time.
+Only one O4 sub-slice is active at a time.
+
+## O4B target runtime
+
+```text
+wellnessGoals
+  Bridge
+  → Step Target
+  → Sleep Target
+  → Water Target
+
+targets
+  Nutrition Target
+```
+
+Existing `TargetsOnboardingDraft` / `TargetStepId` remain serialized compatibility containers. O4B reuses existing screens without redesign and moves semantic ownership/navigation/progress only.
+
+Legacy actual `targets + bridge/stepTarget/sleepTarget/waterTarget` cursors must resume under `wellnessGoals` with values preserved. Later top-level checkpoints stay later when Wellness values are merely dormant.
 
 ## Guardrails
 
-- preserve existing Wellness screens and picker behavior unless wiring requires movement;
-- do not invent Wellness defaults to satisfy persistence;
-- Nutrition may consume Wellness values for calculation but must not own them durably;
-- no permanent dual-write synchronization;
-- no anonymous-auth side effects on canonical owner writes;
-- no applied migration edits;
-- no legacy-column drops; O11/#54 remains blocked until O10;
-- no O5 source work until O4 integrated acceptance is green.
-
-## Validation
-
-Each focused sub-slice requires tests with exact CI evidence before the next begins. Final O4 acceptance requires:
-
-```text
-Flutter analyze ✅
-Dart analyze    ✅
-Flutter tests   ✅
-Dart tests      ✅
-```
-
-on one exact O4 source checkpoint.
+- no persistence wiring in O4B;
+- no Nutrition Wellness mirror cutoff until O4C;
+- no serialized schema-version bump unless unavoidable;
+- no UI redesign;
+- no applied migration edits or legacy-column drops;
+- no O4C until O4B exact full CI green;
+- no O5 until O4D.
 
 ## Current work
 
-**Audit current Wellness runtime/draft/persistence ownership and open the smallest safe O4A slice.**
+**Execute O4B runtime Wellness ownership on #60 only.**
