@@ -69,12 +69,12 @@ void main() {
 
       final loaded = await repository.loadDraft();
 
-      expect(loaded?.draft.currentStepId, OnboardingStepId.targets);
+      expect(loaded?.draft.currentStepId, OnboardingStepId.wellnessGoals);
       expect(loaded?.draft.profile.name, 'Tio User');
       expect(loaded?.draft.profile.heightCm, 171);
       expect(loaded?.draft.profile.currentWeightKg, 70);
       expect(remote.saveCalls, 1);
-      expect(remote.saved?.draft.currentStepId, OnboardingStepId.targets);
+      expect(remote.saved?.draft.currentStepId, OnboardingStepId.wellnessGoals);
       expect(local.record, isNull);
       repository.dispose();
     });
