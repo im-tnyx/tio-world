@@ -8,23 +8,15 @@ class BuildProfileFlowPlanUseCase {
     this.followUpPolicy = const GoalWeightFollowUpPolicy(),
   });
 
+  /// Retained for constructor/source compatibility while Body-owned follow-up
+  /// semantics move to [BuildBodyGoalFlowPlanUseCase].
   final GoalWeightFollowUpPolicy followUpPolicy;
 
   ProfileFlowPlan call({
     required AppMode? mode,
     required GoalIntentSelection goalSelection,
   }) {
-    final includeTargetWeight = followUpPolicy.shouldCollectTargetWeight(
-      mode: mode,
-      selection: goalSelection,
-    );
-
-    return ProfileFlowPlan(
-      steps: [
-        for (final step in ProfileFlowPlan.orderedSteps)
-          if (step != ProfileStepId.targetWeight || includeTargetWeight) step,
-      ],
-    );
+    return const ProfileFlowPlan();
   }
 
   ProfileStepId reconcileCurrentStep({
