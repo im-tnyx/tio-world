@@ -96,7 +96,10 @@ final publicApiClientProvider = Provider<ApiClient>((ref) {
 final profileSetupRepositoryProvider = Provider<ProfileSetupRepository>((ref) {
   final supabaseClient = ref.watch(supabaseClientProvider);
   if (supabaseClient != null) {
-    return SupabaseProfileSetupRepository(client: supabaseClient);
+    return CanonicalUserProfileBridgeRepository(
+      legacyRepository: SupabaseProfileSetupRepository(client: supabaseClient),
+      canonicalRepository: SupabaseUserProfileRepository(client: supabaseClient),
+    );
   }
   final apiClient = ref.watch(authenticatedApiClientProvider);
   return RemoteProfileSetupRepository(
