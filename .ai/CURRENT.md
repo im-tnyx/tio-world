@@ -1,118 +1,150 @@
 # Current State
 
-Last verified from runtime source and canonical documentation: 2026-08-14.
+Last verified from current branch/runtime trackers: 2026-08-22.
 
-This file is a concise handoff for the next agent. It is not a replacement for runtime source, root documentation, or feature ownership rules.
+This is the concise handoff for the next agent. Runtime source remains behavior truth. For Product Onboarding sequencing, read `.ai/tasks/product-onboarding-canonical-execution.md` first.
 
-## Read Order
+## Read order
 
-1. Read this file for the current snapshot.
-2. Read [DECISIONS.md](DECISIONS.md) for durable choices.
-3. Read the relevant file in [tasks/](tasks/README.md) before implementation.
-4. Verify the affected runtime source and canonical docs before changing behavior.
+1. `.ai/CURRENT.md`
+2. `.ai/tasks/README.md`
+3. `.ai/tasks/product-onboarding-canonical-execution.md`
+4. focused task for the active slice
+5. relevant GitHub issue and runtime source
 
-## Verified Runtime Facts
+## Canonical persistence owners
 
-- The phone app is Flutter in `apps/app` and uses `go_router` with `StatefulShellRoute.indexedStack`.
-- `apps/shared` exposes the pure-Dart `AppMode` (`workout`, `nutrition`, `hybrid`), `AppDestination`, guided destination mapping, and mode-preference contract.
-- Flutter renders the initial Splash frame before `AppModeBootstrap` loads the confirmed mode from device-local `SharedPreferencesAsync` storage and refreshes routing. Missing or invalid data routes to mode selection.
-- The shell keeps stable registered branches but derives the visible guided tabs from App Mode: Home/Workout/Progress, Home/Nutrition/Progress, or Home/Workout/Nutrition/Progress. Coach remains unavailable before Phase 7.
-- Home chrome renders uppercase `TIO` at the left inset, a true-centered
-  display-only plan pill, and the shared 36dp Profile avatar. Back, Settings, and
-  streak are absent. Workout and Nutrition roots own icon-only Workout streak and
-  Meal Log streak status until their feature data supplies real positive counts.
-- Onboarding routes one parent flow whose first child is
-  `OnboardingSectionRenderer -> AppModeSection -> AppModeScreen`, followed by
-  `ProfileSection -> ProfileStepRenderer` for nine typed Profile child screens,
-  then a real Hybrid-only `WorkoutIntroSection -> WorkoutIntroScreen` gate,
-  `WorkoutSection -> WorkoutStepRenderer` for Workout Preferences,
-  `NutritionIntroSection -> NutritionIntroScreen` for the Nutrition intro,
-  `TargetsSection -> TargetStepRenderer` for the complete Targets section (real Bridge,
-  StepTarget, SleepTarget, WaterTarget, GoalPace, and NutritionTarget screens),
-  and finally `ReviewSection -> ReviewScreen`. Choosing `setupNow` keeps Workout Preferences
-  in the path; choosing `later` skips directly to Nutrition Intro.
-  Workout Preferences now has a fully real typed W1/W2/W3 child flow.
-  Targets collects typed Daily Steps, Sleep Schedule, Water Target, Goal Pace, and
-  authoritative NutritionTarget recommendations (Mifflin-St Jeor BMR, activity-factored TDEE,
-  goal-pace adjusted calories, protein, carbs, fat, fiber) into `TargetsOnboardingDraft` with pure
-  `SleepScheduleHelper`, `WaterUnitConverter`, `GoalPaceResolver`, `GoalPaceTargetDateCalculator`,
-  and canonical `CalculateNutritionTargetRecommendationUseCase` backed by `apps/features/nutrition/domain`.
-  Durable Owner Persistence architecture is fully implemented with canonical owner repositories:
-  `ProfileSetupRepository` (`apps/features/profile`), `WorkoutPreferencesRepository` (`apps/features/workout`),
-  and `TargetsSetupRepository` (`apps/features/nutrition`), orchestrated atomically via `PersistOnboardingOwnerDataUseCase`
-  in `CompleteOnboardingUseCase`. Mode-aware persistence guarantees inactive workout selections are never stored.
-  Real remote repository adapters (`RemoteProfileSetupRepository`, `RemoteWorkoutPreferencesRepository`, `RemoteTargetsSetupRepository`),
-  DTO mappers (`ProfileSetupDtoMapper`, `WorkoutPreferencesDtoMapper`, `TargetsSetupDtoMapper`), server finalizer (`RemoteOnboardingFinalizer` for `POST /api/v1/onboarding/finalize`),
-  Google authentication chain (`GoogleAuthUseCase`, `GoogleSignInProvider`, `FirebaseAuthSessionRepository`, `FirebaseAuthTokenProvider`), Device identity contract (`DeviceIdentity`, `DeviceIdentityProvider`, `FlutterDeviceIdentityProvider`),
-  and Backend user sync (`BackendUserSyncRepository`, `RemoteBackendUserSyncRepository`, `BackendUserSyncRemoteDataSource` for `POST /api/v1/auth/google-sync`) are fully implemented and tested.
-  Because client runtime currently lacks live Firebase client options/credentials, `authTokenProvider` defaults to `UnavailableAuthTokenProvider`,
-  `authCapabilityProvider` defaults to `AuthCapabilityUnavailable`, `authProductState.isReadyForProtectedBackendCalls` remains `false`, and onboarding completion remains safely `BLOCKED` until live Firebase client auth is wired.
-  All 164 onboarding tests, 11 nutrition tests, 8 profile tests, 5 workout tests, 23 auth tests, 11 shared network/device tests, and 90 phone-app tests pass (312 total tests across all 7 packages).
-- The shell uses a 36dp shared avatar and Profile uses 80dp. Tapping the Profile
-  avatar opens `/profile/avatar`, whose 1:1 preview uses the 160dp `extraLarge`
-  fallback when no image exists. Edit, delete, and download remain disabled until
-  Profile media handlers and private Storage are implemented.
-- `TioAvatarFrame` supports no frame for Free, a theme-semantic circular gradient
-  ring for Plus, and a theme-semantic hexagon crop/frame for Pro. The full-screen
-  `extraLarge` fallback always suppresses plan framing. Current runtime entitlement
-  remains Free until a Billing/Entitlement owner is implemented.
-- The centered plan pill is display-only while no subscription route or billing
-  owner exists; it must not behave like a dead CTA.
-- Shared `TioButton` primary, secondary, and ghost variants now use core tokens for dimensions, spacing, state layers, outlines, disabled behavior, and loading presentation. Loading blocks duplicate actions, exposes live semantics, and becomes static under reduced motion.
-- Pixel 9 emulator validation found and fixed Welcome contrast drift: image controls remain white, feature summaries use a semantic surface, and the entrance animation consumes reduced-motion tokens. Light and dark phone captures plus a compact-width widget check pass.
-- The first Material 3 Expressive slice restores Material touch feedback, applies high-contrast and reduced-motion theme behavior, and uses token-driven `NavigationBar`, `TioAvatar`, and `TioButton` contracts. Manual device and accessibility checks remain open.
-- `apps/wear` is an active Flutter Wear OS package. Its home screen presents Workout and Nutrition quick-action tiles, but selecting a tile currently shows a `coming soon` message.
+```text
+users                      → account/domain root + contacts/status
+user_profiles              → common Profile
+user_app_preferences       → App Mode + active_tabs
+body_weight_logs           → current/history weight
+user_body_goals            → Body Goal + Target Weight + Goal Pace
+user_wellness_targets      → steps/water/sleep
+user_nutrition_profiles    → diet/allergy/food context
+user_nutrition_targets     → calories/macros/fiber + target state
+user_workout_profiles      → workout context/capability
+user_workout_targets       → workout goals/plan constraints
+onboarding_drafts          → draft/resume orchestration only
+```
 
-## Documented Targets, Not Runtime Behavior
+`users` is not renamed. Canonical domain FKs continue to use `public.users(id)`.
 
-- The routed `/onboarding` parent screen keeps the unnumbered App Mode chooser
-  free of top chrome; later children use fixed Back/progress, one changing
-  scrollable child, and a fixed bottom primary action. A pure mode-derived flow
-  plan uses stable step IDs. Draft mode, confirmed App Mode, and onboarding
-  completion remain separate so the first choice cannot open Home prematurely.
-- A final-stage custom navigation upgrade will keep Home first and allow three to six eligible destinations. Home/feature sections and action entry prominence may adapt; destination identity must not rely on raw numeric tab indexes.
-- Workout is Routine/Program-first: an active session starts from a selected Routine or Program session, not a standalone Quick Start. Exercise Search is a nested Routine/Program editor screen planned around a validated versioned local JSON catalog. Workout Library remains a Workout route and may become a future promoted shortcut after implementation. Meal Plan remains a deferred Nutrition route with the same future promotion boundary.
-- Workout start/resume and Nutrition meal logging remain single feature-owned workflows even when Home, a root tab, or a promoted shortcut launches them. Active Workout must remain resumable independently from the selected layout.
-- Recovery is a future independent feature, not a primary tab. Its initial outcome, data source, privacy/sync boundary, and non-medical scope are undecided; do not create a package or health integration yet.
-- Material 3 Expressive remains the phone design direction through `apps/core`; later shared components and screen migrations build on the implemented theme/navigation/avatar/button foundation rather than a separate Flutter API assumption.
-- Wear OS remains Flutter. Its future scope is lightweight workout controls and nutrition quick actions; full food search, diary editing, and Meal Plan editing remain on phone.
-- Apple Watch remains a future native Swift + SwiftUI app.
-- Supabase is the active production persistence, Auth, and Storage platform. Workspace `supabase/` contains initial migrations for `users`, `user_workout_preferences`, `user_targets`, `onboarding_drafts`, and `avatars` bucket with strict RLS (`auth.uid() = user_id`). Concrete adapters `SupabaseProfileSetupRepository`, `SupabaseWorkoutPreferencesRepository`, `SupabaseTargetsSetupRepository`, `SupabaseOnboardingDraftRepository`, `SupabaseAuthSignInRepository`, and `SupabaseAuthSessionRepository` are implemented and wired in app composition.
-- Future HTTP/backend adapters (`Remote*Repository`, `ApiClient`, `DioApiClient`, `GoogleAuthUseCase`, etc.) remain 100% preserved for a future protected backend upgrade.
-- Three persistence lifecycles are strictly maintained: (1) Unfinished onboarding draft in `public.onboarding_drafts` (RLS-protected, versioned, temporary), (2) Canonical owner data in `public.users`, `public.user_workout_preferences`, `public.user_targets`, and (3) Non-sensitive metadata (`OnboardingStatus`, `AppMode`) in `SharedPreferences`.
+## Live Supabase foundation
 
-## Active Implementation Boundary
+Applied and validated:
 
-The App Mode foundation, Supabase Auth architecture, owner data persistence, and secure draft persistence/resume are implemented and covered by focused controller, route-policy, persistence, mapper, router, and shell-widget tests. Their current boundary is:
+```text
+20260821161923_create_canonical_owner_tables
+20260821162207_backfill_canonical_owner_data
+20260821180908_split_account_profile_app_preferences
+20260821181005_harden_profile_app_preference_grants
+```
 
-- Persist the confirmed selection device-locally through a pure-Dart preference contract and an app-composed `SharedPreferencesAsync` adapter.
-- Persist non-sensitive onboarding bootstrap metadata only: explicit `OnboardingStatus` plus schema/version metadata.
-- Unfinished draft state is stored exclusively in `public.onboarding_drafts` behind `OnboardingDraftRepository` with monotonic revision autosave and hydration race protection. Never stored in plaintext local files or SharedPreferences.
-- Keep draft App Mode, confirmed App Mode, and onboarding completion as separate concepts.
-- Onboarding completion writes canonical owner entities, publishes completed status, and cleans up obsolete draft records.
-- Stale draft cleanup failure does not undo or compromise successful completion.
-- Return to mode selection when local data is missing or invalid; reconcile unavailable guided routes to Home.
-- Keep onboarding on Review when required compatibility owner sections remain
-  active, and never route Home on failed completion.
-- Defer account sync until an approved Supabase profile contract exists. Do not add a Supabase schema/bucket, backend endpoint, or cross-device merge behavior in this slice.
-- Treat Android onboarding as non-authoritative for Nutrition because it has no
-  dedicated Nutrition onboarding section. Real Nutrition fields must come from
-  local owner-backed contracts, and none were found yet in the current source.
-- Complete the later Nutrition Preferences/Targets owner-backed onboarding
-  steps in a separate slice; do not treat the current Review boundary as
-  product-complete onboarding while compatibility owner steps remain.
+P1 created `user_profiles`, `user_app_preferences`, and `users.email_verified_at` with RLS/grant hardening. Existing legacy mixed columns remain temporarily; no destructive cleanup yet.
 
-See [tasks/app-mode-foundation.md](tasks/app-mode-foundation.md) for the implemented
-mode foundation and [tasks/onboarding-flow.md](tasks/onboarding-flow.md) for the
-implemented flow/completion foundation and remaining owner-backed work.
+## Product Onboarding validated foundation
 
-Custom navigation, adaptive Home composition, and action-entry placement are a later task. See [tasks/adaptive-navigation-and-actions.md](tasks/adaptive-navigation-and-actions.md).
+```text
+Section/step identity compatibility             ✅ CI #945
+Target Weight draft/eligibility                 ✅ CI #1079
+Goal Pace ownership/skipped-intent cleanup      ✅ CI #1090
+Integrated Goal/weight local acceptance         ✅ CI #1095
+Canonical Body onboarding writes                ✅ CI #1135
+Canonical Body read/history contract            ✅ CI #1153
+P1 Profile/App Preferences schema               ✅ LIVE
+Latest branch validation                         ✅ CI #1175
+```
 
-See [the screen catalog](../docs/screens/README.md) before starting a screen or module vertical slice.
+PR #50 remains Draft/open/unmerged.
+
+## Product Onboarding current sequence
+
+Authoritative task: `.ai/tasks/product-onboarding-canonical-execution.md`
+
+```text
+O1 durable App Mode / active_tabs               NEXT (#11)
+→ O2 common User Profile owner + section
+→ O3 Body Goal section + Body/Profile parity
+→ O4 Wellness placement + owner
+→ O5 Nutrition Profile + Nutrition Targets split
+→ O6 Workout Intro/Profile/Targets split
+→ O7 Health Connections decision/integration
+→ O8 Review + edit-back + draft/resume
+→ O9 truthful Plan Building/finalization + existing Congratulations
+→ O10 full mode/device/persistence acceptance
+→ later legacy-column cleanup
+```
+
+Independent Account/Settings lane:
+
+```text
+A1 real email/mobile add-change-verify (#8)
+```
+
+A1 is required before final Account/Settings acceptance but does not technically block O1–O3.
+
+## Active next slice — O1 App Mode durability
+
+Canonical table is live but runtime confirmed App Mode is still device-local:
+
+```text
+AppModeController
+→ AppModePreference
+→ SharedPreferencesAppModePreference
+→ local key `app_mode`
+```
+
+`CompleteOnboardingUseCase` still publishes confirmed mode through that local preference boundary, and authenticated bootstrap does not restore `user_app_preferences`.
+
+Focused task: `.ai/tasks/app-mode-foundation.md`
+
+Execution:
+
+```text
+O1A domain/repository contract       NEXT
+→ O1B Supabase adapter
+→ O1C onboarding completion cutover
+→ O1D authenticated bootstrap/restore
+→ O1E Settings mode-change parity
+→ O1F integrated acceptance/full CI
+```
+
+Do not start O2 until O1F validation evidence is recorded in #11/#40/#44 and the canonical onboarding task.
+
+## Important onboarding product rules
+
+- Existing onboarding screen designs are preserved by default.
+- Height / Current Weight / Target Weight / DOB wheel/picker contracts are preserved.
+- Existing Goal card visual language is preserved.
+- `GoalIntentSelection` is semantic authority; `Build muscle != Gain weight`.
+- Lose/Gain → Target Weight + Goal Pace.
+- Maintain/Recomposition → skip Target Weight + Goal Pace; do not auto-save target=current weight.
+- Current Weight is Body-owned through `body_weight_logs`.
+- Body Goal/Target/Pace are `user_body_goals`.
+- Hybrid Workout Intro `Later` skips Workout Profile + Targets for the current run without deleting stored Workout data.
+- App Mode visibility never deletes hidden domain data.
+
+## Later open product decisions
+
+- Wellness placement: required / optional / Settings-only.
+- Nutrition Profile requiredness and recommended/custom target semantics.
+- Workout Training Location including `Both`, setup/facility labels, equipment taxonomy, split/event lifecycle.
+- Health Connections provider/privacy/release inclusion.
+- real operations and retry semantics for Plan Building.
+- exact Target Weight recommendation numeric policy.
+- measurement picker/reference restoration if the active source still requires it.
+
+## Historical task note
+
+`.ai/tasks/onboarding-flow.md` contains useful historical architecture/detail but is no longer the sequencing authority. Its old Firebase/HTTP-blocked language must not override the current Supabase-backed canonical execution plan.
 
 ## Guardrails
 
-- Runtime source/config is the behavior truth; canonical docs are the intended product truth.
-- Label any future capability as target, planned, or scaffolded. Do not imply it is live.
-- Keep feature ownership in its owning package. Profile and Settings may launch other domains but do not own their business logic.
-- Do not record secrets, credentials, local paths, build output, or transient task chatter in `.ai/`.
+- one canonical owner per concept;
+- no applied migration edits;
+- no permanent dual-write synchronization;
+- no fabricated defaults or semantic inference;
+- no legacy-column drop before repository cutover proof;
+- no UI redesign as a side effect of persistence/ownership work;
+- future backend consumes the same canonical Postgres owners and backend-neutral repository contracts.
