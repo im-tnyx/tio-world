@@ -134,6 +134,22 @@ class NutritionPreferencesProgressItem extends OnboardingProgressItem {
   int get hashCode => runtimeType.hashCode;
 }
 
+class NutritionGoalsProgressItem extends OnboardingProgressItem {
+  const NutritionGoalsProgressItem(this.stepId);
+  final TargetStepId stepId;
+  @override
+  String get title => 'Nutrition target';
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NutritionGoalsProgressItem &&
+          runtimeType == other.runtimeType &&
+          stepId == other.stepId;
+  @override
+  int get hashCode => Object.hash(runtimeType, stepId);
+}
+
+/// Legacy progress identity retained for compatibility tests and inactive plans.
 class TargetsProgressItem extends OnboardingProgressItem {
   const TargetsProgressItem(this.stepId);
   final TargetStepId stepId;
