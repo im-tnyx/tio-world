@@ -1165,8 +1165,10 @@ class OnboardingController extends ChangeNotifier {
   void _updateTargets(TargetsOnboardingDraft targets) {
     if (state.isBusy) return;
 
-    final completed = {...state.completedStepIds}
-      ..remove(OnboardingStepId.targets);
+    final ownerStepId = state.stepId == OnboardingStepId.bodyGoal
+        ? OnboardingStepId.bodyGoal
+        : OnboardingStepId.targets;
+    final completed = {...state.completedStepIds}..remove(ownerStepId);
     final nextDraft = state.draft.copyWith(
       status: OnboardingStatus.inProgress,
       targets: targets,
