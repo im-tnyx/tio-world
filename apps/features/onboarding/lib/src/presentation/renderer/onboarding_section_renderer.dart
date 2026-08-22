@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../domain/domain.dart';
 import '../controllers/controllers.dart';
 import '../sections/app_mode_section.dart';
+import '../sections/body_goal_section.dart';
 import '../sections/mobile_section.dart';
 import '../sections/nutrition_intro_section.dart';
 import '../sections/nutrition_section.dart';
@@ -40,6 +41,10 @@ class OnboardingSectionRenderer extends StatelessWidget {
           state: state,
           controller: controller,
         ),
+      OnboardingSectionId.bodyGoal => BodyGoalSection(
+          state: state,
+          controller: controller,
+        ),
       OnboardingSectionId.mobile => MobileSection(
           state: state,
           controller: controller,
@@ -65,8 +70,6 @@ class OnboardingSectionRenderer extends StatelessWidget {
           controller: controller,
         ),
       OnboardingSectionId.review => ReviewSection(state: state),
-      OnboardingSectionId.bodyGoal =>
-        _futureSectionNotActive(OnboardingSectionId.bodyGoal),
       OnboardingSectionId.wellnessGoals =>
         _futureSectionNotActive(OnboardingSectionId.wellnessGoals),
       OnboardingSectionId.nutritionProfile =>
@@ -87,6 +90,6 @@ class OnboardingSectionRenderer extends StatelessWidget {
 
 Never _futureSectionNotActive(OnboardingSectionId section) {
   throw StateError(
-    'Future onboarding section ${section.name} is not active in Slice 1.',
+    'Future onboarding section ${section.name} is not active in the current Product Onboarding slice.',
   );
 }
