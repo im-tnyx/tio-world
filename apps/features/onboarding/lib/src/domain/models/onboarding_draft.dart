@@ -126,13 +126,31 @@ bool _isLegacyTargetsGoalPaceCursor(
       targets?.currentStepId == TargetStepId.goalPace;
 }
 
+bool _isLegacyTargetsWellnessCursor(
+  OnboardingStepId currentStepId,
+  TargetsOnboardingDraft? targets,
+) {
+  if (currentStepId != OnboardingStepId.targets) return false;
+  return switch (targets?.currentStepId) {
+    TargetStepId.bridge ||
+    TargetStepId.stepTarget ||
+    TargetStepId.sleepTarget ||
+    TargetStepId.waterTarget => true,
+    _ => false,
+  };
+}
+
 OnboardingStepId _normalizeCurrentStepId(
   OnboardingStepId currentStepId,
   TargetsOnboardingDraft? targets,
 ) {
-  return _isLegacyTargetsGoalPaceCursor(currentStepId, targets)
-      ? OnboardingStepId.bodyGoal
-      : currentStepId;
+  if (_isLegacyTargetsGoalPaceCursor(currentStepId, targets)) {
+    return OnboardingStepId.bodyGoal;
+  }
+  if (_isLegacyTargetsWellnessCursor(currentStepId, targets)) {
+    return OnboardingStepId.wellnessGoals;
+  }
+  return currentStepId;
 }
 
 ProfileOnboardingDraft _normalizeProfileCursor({
