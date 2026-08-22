@@ -35,15 +35,10 @@ class PersistOnboardingOwnerDataUseCase {
             (bodyRepository is body_owner.WellnessTargetsRepository
                 ? bodyRepository as body_owner.WellnessTargetsRepository
                 : null),
-        _nutritionProfileRepository = nutritionProfileRepository ??
-            (targetsRepository is nutrition_owner.CanonicalNutritionOwnerRepositories
-                ? targetsRepository.nutritionProfileRepository
-                : null),
+        _nutritionProfileRepository = nutritionProfileRepository,
         _workoutRepository = workoutRepository,
-        _nutritionTargetsRepository = nutritionTargetsRepository ??
-            (targetsRepository is nutrition_owner.CanonicalNutritionOwnerRepositories
-                ? targetsRepository.nutritionTargetsRepository
-                : null);
+        _nutritionTargetsRepository = nutritionTargetsRepository,
+        _legacyTargetsRepository = targetsRepository;
 
   /// Kept as [Object] only so legacy composition/tests can fail closed at the
   /// owner boundary instead of forcing an unsafe broad-interface cast.
@@ -56,12 +51,40 @@ class PersistOnboardingOwnerDataUseCase {
   final workout_owner.WorkoutPreferencesRepository _workoutRepository;
   final nutrition_owner.NutritionTargetsRepository? _nutritionTargetsRepository;
 
+  /// Compatibility composition handle only. O5D never calls
+  /// [nutrition_owner.TargetsSetupRepository.saveTargetsSetup].
+  final nutrition_owner.TargetsSetupRepository _legacyTargetsRepository;
+
   final UserProfileMapper profileMapper;
   final BodySetupMapper bodyMapper;
   final WellnessTargetsMapper wellnessMapper;
   final NutritionProfileMapper nutritionProfileMapper;
   final WorkoutPreferencesMapper workoutMapper;
   final NutritionTargetsMapper nutritionTargetsMapper;
+
+  nutrition_owner.NutritionProfileRepository?
+      get _resolvedNutritionProfileRepository {
+    final explicit = _nutritionProfileRepository;
+    if (explicit != null) return explicit;
+
+    final compatibility = _legacyTargetsRepository;
+    if (compatibility is nutrition_owner.CanonicalNutritionOwnerRepositories) {
+      return compatibility.nutritionProfileRepository;
+    }
+    return null;
+  }
+
+  nutrition_owner.NutritionTargetsRepository?
+      get _resolvedNutritionTargetsRepository {
+    final explicit = _nutritionTargetsRepository;
+    if (explicit != null) return explicit;
+
+    final compatibility = _legacyTargetsRepository;
+    if (compatibility is nutrition_owner.CanonicalNutritionOwnerRepositories) {
+      return compatibility.nutritionTargetsRepository;
+    }
+    return null;
+  }
 
   Future<void> call({
     required OnboardingDraft draft,
@@ -164,7 +187,7 @@ class PersistOnboardingOwnerDataUseCase {
       }
 
       try {
-        final repository = _nutritionProfileRepository;
+        final repository = _resolvedNutritionProfileRepository;
         if (repository == null) {
           throw StateError(
             'Product Onboarding requires the canonical NutritionProfileRepository.',
@@ -224,7 +247,7 @@ class PersistOnboardingOwnerDataUseCase {
       }
 
       try {
-        final repository = _nutritionTargetsRepository;
+        final repository = _resolvedNutritionTargetsRepository;
         if (repository == null) {
           throw StateError(
             'Product Onboarding requires the canonical NutritionTargetsRepository.',
