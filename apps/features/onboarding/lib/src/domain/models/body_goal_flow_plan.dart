@@ -2,9 +2,9 @@ import 'profile_step_id.dart';
 
 /// Typed child-flow contract for the canonical Body Goal onboarding section.
 ///
-/// O3 deliberately reuses the existing persisted [ProfileStepId] identities
-/// for Goal/weight screens so old draft snapshots stay readable while the
-/// top-level section boundary is migrated separately.
+/// O3 deliberately reuses the existing persisted [ProfileStepId] screen
+/// identities for draft cursor compatibility. This enum is a navigation
+/// identity here; durable Profile ownership remains separate from Body data.
 class BodyGoalFlowPlan {
   const BodyGoalFlowPlan({this.steps = orderedSteps});
 
@@ -12,6 +12,7 @@ class BodyGoalFlowPlan {
     ProfileStepId.goal,
     ProfileStepId.currentWeight,
     ProfileStepId.targetWeight,
+    ProfileStepId.goalPace,
   ];
 
   final List<ProfileStepId> steps;
