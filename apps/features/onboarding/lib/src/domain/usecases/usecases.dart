@@ -25,6 +25,7 @@ export 'targets_setup_mapper.dart';
 export 'user_profile_mapper.dart';
 export 'water_unit_converter.dart';
 export 'weight_goal_flow_policy.dart';
+export 'wellness_targets_mapper.dart';
 export 'workout_focus_area_selection.dart';
 export 'workout_preferences_mapper.dart';
 export 'workout_step_validator.dart';
