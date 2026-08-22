@@ -6,7 +6,7 @@ void main() {
   const policy = WeightGoalFlowPolicy();
   final cases = _acceptanceCases();
 
-  test('restored drafts reconcile active weight follow-ups and progress by mode/goal', () {
+  test('legacy Goal Pace cursors reconcile into Body Goal by mode and goal', () {
     for (final testCase in cases) {
       final direction = policy.directionFor(
         mode: testCase.mode,
@@ -26,6 +26,7 @@ void main() {
           workout: _validWorkout(),
           targets: const TargetsOnboardingDraft(
             currentStepId: TargetStepId.goalPace,
+            goalPaceKgPerWeek: 0.6,
           ),
         ),
       );
@@ -36,22 +37,36 @@ void main() {
         reason: '${testCase.name}: Target Weight Body Goal eligibility',
       );
       expect(
-        controller.state.targetsFlowPlan.contains(TargetStepId.goalPace),
+        controller.state.bodyGoalFlowPlan.contains(ProfileStepId.goalPace),
         testCase.expectWeightFollowUps,
-        reason: '${testCase.name}: Goal Pace plan eligibility',
+        reason: '${testCase.name}: Goal Pace Body Goal eligibility',
+      );
+      expect(
+        controller.state.targetsFlowPlan.contains(TargetStepId.goalPace),
+        isFalse,
+        reason: '${testCase.name}: active Targets must stay pace-free',
+      );
+      expect(
+        controller.state.stepId,
+        OnboardingStepId.bodyGoal,
+        reason: '${testCase.name}: legacy Targets Goal Pace cursor migrates',
       );
       expect(
         controller.state.draft.profile.currentStepId,
-        ProfileStepId.targetWeight,
-        reason:
-            '${testCase.name}: later resume preserves dormant Body Goal cursor; active plan owns eligibility',
+        testCase.expectWeightFollowUps
+            ? ProfileStepId.goalPace
+            : ProfileStepId.currentWeight,
+        reason: '${testCase.name}: Body Goal cursor follows active eligibility',
       );
       expect(
         controller.state.draft.targets.currentStepId,
-        testCase.expectWeightFollowUps
-            ? TargetStepId.goalPace
-            : TargetStepId.waterTarget,
-        reason: '${testCase.name}: restored Targets child reconciliation',
+        TargetStepId.bridge,
+        reason: '${testCase.name}: obsolete Targets cursor is no longer active',
+      );
+      expect(
+        controller.state.draft.targets.goalPaceKgPerWeek,
+        0.6,
+        reason: '${testCase.name}: Goal Pace value survives cursor migration',
       );
       expect(
         controller.state.progressStepCount,
@@ -61,7 +76,7 @@ void main() {
     }
   });
 
-  test('Targets Next and Back follow the same eligibility matrix', () async {
+  test('Targets Next and Back stay pace-free across the eligibility matrix', () async {
     for (final testCase in cases) {
       final direction = policy.directionFor(
         mode: testCase.mode,
@@ -86,10 +101,8 @@ void main() {
 
       expect(
         controller.state.draft.targets.currentStepId,
-        testCase.expectWeightFollowUps
-            ? TargetStepId.goalPace
-            : TargetStepId.nutritionTarget,
-        reason: '${testCase.name}: Next after Water Target',
+        TargetStepId.nutritionTarget,
+        reason: '${testCase.name}: Water Target advances directly to Nutrition',
       );
 
       controller.previous();
