@@ -23,7 +23,10 @@ void main() {
 
     final json = mapper.toJson(snapshot);
     final nutrition = json['nutrition'] as Map<String, dynamic>;
-    expect(json['schema_version'], 5);
+    expect(
+      json['schema_version'],
+      OnboardingDraftSnapshot.currentSchemaVersion,
+    );
     expect(nutrition['current_step_id'], 'allergiesRestrictions');
     expect(nutrition['diet_type'], 'non_vegetarian');
     expect(nutrition['allergy_restrictions'], containsAll(['gluten', 'nuts']));
