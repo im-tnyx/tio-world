@@ -70,6 +70,19 @@ class AppModeController extends ChangeNotifier {
     }
   }
 
+  /// Publishes an already-committed canonical App Preferences update.
+  ///
+  /// This is used by authenticated Settings after the remote repository has
+  /// successfully accepted [update]. Local preference persistence is only a
+  /// best-effort cache at this point, so a cache failure cannot roll back or
+  /// hide valid canonical account truth.
+  Future<void> applyCanonicalUpdate(AppPreferencesUpdate update) async {
+    await _publishCanonical(
+      mode: update.appMode,
+      destinations: update.activeTabs,
+    );
+  }
+
   /// Publishes already-validated canonical authenticated preferences.
   ///
   /// Remote state is authoritative here. The legacy [AppModePreference] is only
@@ -91,9 +104,18 @@ class AppModeController extends ChangeNotifier {
       );
     }
 
-    final destinations = List<AppDestination>.unmodifiable(
-      preferences.activeTabs ?? mode.guidedDestinations,
+    await _publishCanonical(
+      mode: mode,
+      destinations: preferences.activeTabs ?? mode.guidedDestinations,
     );
+  }
+
+  Future<void> _publishCanonical({
+    required AppMode mode,
+    required List<AppDestination> destinations,
+  }) async {
+    final effectiveDestinations =
+        List<AppDestination>.unmodifiable(destinations);
 
     Object? cacheError;
     try {
@@ -103,7 +125,7 @@ class AppModeController extends ChangeNotifier {
     }
 
     _selectedMode = mode;
-    _activeDestinations = destinations;
+    _activeDestinations = effectiveDestinations;
     _lastError = cacheError;
     _isLoaded = true;
     notifyListeners();
