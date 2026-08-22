@@ -34,6 +34,7 @@ export 'screens/workout/workout_duration_screen.dart';
 export 'screens/workout/workout_split_screen.dart';
 export 'sections/app_mode_section.dart';
 export 'sections/body_goal_section.dart';
+export 'sections/nutrition_goals_section.dart';
 export 'sections/nutrition_intro_section.dart';
 export 'sections/nutrition_profile_section.dart';
 export 'sections/nutrition_section.dart';
