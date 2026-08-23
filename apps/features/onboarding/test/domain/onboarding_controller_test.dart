@@ -339,7 +339,7 @@ void main() {
     );
   });
 
-  test('legacy monolithic Targets checkpoint preserves forward progress by mode', () {
+  test('legacy Targets wellness cursor preserves forward progress by mode', () {
     final workout = OnboardingController(
       entryPath: OnboardingEntryPath.resumeDraft,
       initialDraft: OnboardingDraft(
@@ -363,7 +363,7 @@ void main() {
       ),
     );
 
-    expect(workout.state.stepId, OnboardingStepId.healthConnections);
+    expect(workout.state.stepId, OnboardingStepId.workoutProfile);
     expect(workout.state.draft.profile.currentWeightKg, 70);
     expect(workout.state.draft.profile.targetWeightKg, 65);
 
@@ -568,7 +568,7 @@ void main() {
 
     expect(controller.state.draft.workoutIntroChoice, isNull);
     expect(controller.state.stepId, OnboardingStepId.bodyGoal);
-    expect(controller.state.draft.profile.currentStepId, ProfileStepId.currentWeight);
+    expect(controller.state.draft.profile.currentStepId, ProfileStepId.goal);
   });
 
   test('common Profile and Body Goal complete into Workout Profile in Workout mode',
@@ -846,7 +846,7 @@ void main() {
     );
   });
 
-  test('Wellness Back returns to Nutrition Profile after the Bridge', () {
+  test('base Wellness Back re-enters Nutrition Profile at its first child', () {
     final controller = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
       initialDraft: OnboardingDraft(
@@ -873,7 +873,7 @@ void main() {
     expect(controller.state.stepId, OnboardingStepId.nutritionProfile);
     expect(
       controller.state.draft.nutrition.currentStepId,
-      NutritionProfileStepId.allergiesRestrictions,
+      NutritionProfileStepId.dietType,
     );
   });
 
