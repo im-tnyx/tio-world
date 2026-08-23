@@ -24,10 +24,10 @@ void main() {
       containsAllInOrder(const [
         OnboardingStepId.profileBasics,
         OnboardingStepId.bodyGoal,
-        OnboardingStepId.nutritionProfile,
         OnboardingStepId.workoutIntro,
         OnboardingStepId.workoutProfile,
         OnboardingStepId.workoutTargets,
+        OnboardingStepId.nutritionProfile,
         OnboardingStepId.wellnessGoals,
         OnboardingStepId.nutritionGoals,
       ]),
@@ -60,10 +60,10 @@ void main() {
       AppMode.hybrid: const [
         OnboardingStepId.profileBasics,
         OnboardingStepId.bodyGoal,
-        OnboardingStepId.nutritionProfile,
         OnboardingStepId.workoutIntro,
         OnboardingStepId.workoutProfile,
         OnboardingStepId.workoutTargets,
+        OnboardingStepId.nutritionProfile,
         OnboardingStepId.wellnessGoals,
         OnboardingStepId.nutritionGoals,
         OnboardingStepId.healthConnections,
@@ -185,6 +185,33 @@ void main() {
 
     expect(controller.state.stepId, OnboardingStepId.healthConnections);
     expect(controller.state.draft.targets.dailySteps, 10000);
+  });
+
+  test('legacy Hybrid Nutrition Profile resume enters Workout Intro without data loss',
+      () {
+    final controller = OnboardingController(
+      entryPath: OnboardingEntryPath.resumeDraft,
+      initialDraft: OnboardingDraft(
+        selectedMode: AppMode.hybrid,
+        currentStepId: OnboardingStepId.nutritionProfile,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.stayFit,
+        ),
+        profile: _validProfile(),
+        nutrition: const NutritionOnboardingDraft(
+          dietType: NutritionDietType.vegetarian,
+          allergyRestrictions: {NutritionAllergyRestriction.none},
+        ),
+      ),
+    );
+
+    expect(controller.state.stepId, OnboardingStepId.workoutIntro);
+    expect(controller.state.draft.workoutIntroChoice, isNull);
+    expect(controller.state.draft.nutrition.dietType, NutritionDietType.vegetarian);
+    expect(
+      controller.state.draft.nutrition.allergyRestrictions,
+      const {NutritionAllergyRestriction.none},
+    );
   });
 
   test('invalid restored step reconciles safely to Profile', () {
@@ -497,13 +524,16 @@ void main() {
     expect(controller.state.draft.workoutIntroChoice, WorkoutIntroChoice.later);
     expect(
       controller.state.flowPlan.stepIds,
-      isNot(contains(OnboardingStepId.workoutPreferences)),
+      isNot(contains(OnboardingStepId.workoutProfile)),
     );
     expect(controller.state.progressStepCount, 21);
 
     await controller.next(onFinish: _completeImmediately);
-    expect(controller.state.stepId, OnboardingStepId.wellnessGoals);
-    expect(controller.state.draft.targets.currentStepId, TargetStepId.bridge);
+    expect(controller.state.stepId, OnboardingStepId.nutritionProfile);
+    expect(
+      controller.state.draft.nutrition.currentStepId,
+      NutritionProfileStepId.dietType,
+    );
 
     controller.previous();
     expect(controller.state.stepId, OnboardingStepId.workoutIntro);
@@ -512,12 +542,12 @@ void main() {
     controller.selectWorkoutIntroChoice(WorkoutIntroChoice.setupNow);
     expect(
       controller.state.flowPlan.stepIds,
-      contains(OnboardingStepId.workoutPreferences),
+      contains(OnboardingStepId.workoutProfile),
     );
     expect(controller.state.progressStepCount, 29);
 
     await controller.next(onFinish: _completeImmediately);
-    expect(controller.state.stepId, OnboardingStepId.workoutPreferences);
+    expect(controller.state.stepId, OnboardingStepId.workoutProfile);
   });
 
   test('mode change away from hybrid clears workout intro choice', () {
