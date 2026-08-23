@@ -67,13 +67,25 @@ class NutritionAwareOnboardingController extends OnboardingController {
   void previous() {
     if (state.isBusy) return;
     if (state.stepId == OnboardingStepId.nutritionProfile) {
-      final previous =
-          state.nutritionProfileFlowPlan.previous(state.draft.nutrition.currentStepId);
+      final previous = state.nutritionProfileFlowPlan
+          .previous(state.draft.nutrition.currentStepId);
       if (previous != null) {
         _moveNutritionStep(previous);
         return;
       }
     }
+
+    if (state.stepId == OnboardingStepId.wellnessGoals &&
+        state.draft.targets.currentStepId == state.wellnessFlowPlan.steps.first &&
+        state.currentIndex > 0 &&
+        state.flowPlan.steps[state.currentIndex - 1].id ==
+            OnboardingStepId.nutritionProfile) {
+      _moveToNutritionProfileBoundary(
+        state.nutritionProfileFlowPlan.steps.last,
+      );
+      return;
+    }
+
     super.previous();
   }
 
@@ -89,8 +101,8 @@ class NutritionAwareOnboardingController extends OnboardingController {
         setValidationErrors({state.draft.nutrition.currentStepId.name: error});
         return;
       }
-      final nextStep =
-          state.nutritionProfileFlowPlan.next(state.draft.nutrition.currentStepId);
+      final nextStep = state.nutritionProfileFlowPlan
+          .next(state.draft.nutrition.currentStepId);
       if (nextStep != null) {
         _moveNutritionStep(nextStep);
         return;
@@ -113,6 +125,15 @@ class NutritionAwareOnboardingController extends OnboardingController {
 
   void _moveNutritionStep(NutritionProfileStepId stepId) {
     final nextDraft = state.draft.copyWith(
+      nutrition: state.draft.nutrition.copyWith(currentStepId: stepId),
+    );
+    super.initialize(nextDraft);
+    unawaited(_persistNutritionDraft());
+  }
+
+  void _moveToNutritionProfileBoundary(NutritionProfileStepId stepId) {
+    final nextDraft = state.draft.copyWith(
+      currentStepId: OnboardingStepId.nutritionProfile,
       nutrition: state.draft.nutrition.copyWith(currentStepId: stepId),
     );
     super.initialize(nextDraft);
