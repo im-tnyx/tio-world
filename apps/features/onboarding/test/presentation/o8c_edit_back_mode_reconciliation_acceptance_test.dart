@@ -183,7 +183,7 @@ void main() {
             OnboardingStepId.nutritionGoals,
             OnboardingStepId.healthConnections,
           },
-          profile: const ProfileOnboardingDraft(
+          profile: ProfileOnboardingDraft(
             currentStepId: ProfileStepId.healthConditions,
           ),
           workout: _seededWorkout(),
@@ -232,7 +232,7 @@ void main() {
             OnboardingStepId.nutritionGoals,
             OnboardingStepId.healthConnections,
           },
-          profile: const ProfileOnboardingDraft(
+          profile: ProfileOnboardingDraft(
             currentStepId: ProfileStepId.name,
             name: 'Old Name',
           ),
