@@ -225,10 +225,6 @@ void main() {
           currentStepId: OnboardingStepId.nutritionProfile,
           entryPath: OnboardingEntryPath.resumeDraft,
           mode: AppMode.hybrid,
-          completedStepIds: const {
-            OnboardingStepId.profileBasics,
-            OnboardingStepId.bodyGoal,
-          },
         ),
         OnboardingStepId.workoutIntro,
       );
@@ -240,13 +236,7 @@ void main() {
           currentStepId: OnboardingStepId.nutritionProfile,
           entryPath: OnboardingEntryPath.resumeDraft,
           mode: AppMode.hybrid,
-          completedStepIds: const {
-            OnboardingStepId.profileBasics,
-            OnboardingStepId.bodyGoal,
-            OnboardingStepId.workoutIntro,
-            OnboardingStepId.workoutProfile,
-            OnboardingStepId.workoutTargets,
-          },
+          workoutIntroChoice: WorkoutIntroChoice.setupNow,
         ),
         OnboardingStepId.nutritionProfile,
       );
