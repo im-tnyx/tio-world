@@ -39,9 +39,12 @@ class ReviewScreen extends StatelessWidget {
         ? draft.targets.copyWith(goalPaceKgPerWeek: 0.0)
         : draft.targets;
 
-    final hasWorkoutPreferences = draft.selectedMode != AppMode.nutrition &&
-        draft.workoutIntroChoice != WorkoutIntroChoice.later &&
-        workout.gymAccess != null;
+    final hasWellness = flowPlan.contains(OnboardingStepId.wellnessGoals);
+    final hasNutritionTarget = flowPlan.contains(OnboardingStepId.nutritionGoals);
+    final hasDailyTargets = hasWellness || hasNutritionTarget;
+    final hasWorkoutPreferences =
+        flowPlan.contains(OnboardingStepId.workoutProfile) &&
+            workout.gymAccess != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,6 +98,14 @@ class ReviewScreen extends StatelessWidget {
                       ? '${profile.currentWeightKg!.toStringAsFixed(1)} kg ➔ ${activeTargetWeightKg.toStringAsFixed(1)} kg'
                       : '${profile.currentWeightKg!.toStringAsFixed(1)} kg',
             ),
+            if (weightGoalDirection != null) ...[
+              const SizedBox(height: TioSize.dp10),
+              _SummaryRow(
+                label: 'Goal pace',
+                value:
+                    '${draft.targets.goalPaceKgPerWeek.toStringAsFixed(1)} kg / week',
+              ),
+            ],
             const SizedBox(height: TioSize.dp10),
             _SummaryRow(
               label: 'Activity',
@@ -112,53 +123,52 @@ class ReviewScreen extends StatelessWidget {
             ],
           ],
         ),
-        const SizedBox(height: TioSpacing.md),
-        _ReviewCard(
-          title: 'Daily Targets',
-          icon: Icons.track_changes_rounded,
-          children: [
-            _SummaryRow(
-              label: 'Steps',
-              value: draft.targets.hasDailyStepsValue
-                  ? '${draft.targets.dailySteps} steps/day'
-                  : 'Not set',
-            ),
-            const SizedBox(height: TioSize.dp10),
-            _SummaryRow(
-              label: 'Hydration',
-              value: draft.targets.hasWaterMlValue
-                  ? '${draft.targets.waterMl} ml/day'
-                  : 'Not set',
-            ),
-            const SizedBox(height: TioSize.dp10),
-            _SummaryRow(
-              label: 'Sleep',
-              value: draft.targets.hasSleepTargetMinutesValue
-                  ? '${draft.targets.sleepTargetMinutes ~/ 60}h ${(draft.targets.sleepTargetMinutes % 60).toString().padLeft(2, '0')}m / night'
-                  : 'Not set',
-            ),
-            if (weightGoalDirection != null) ...[
-              const SizedBox(height: TioSize.dp10),
-              _SummaryRow(
-                label: 'Goal pace',
-                value:
-                    '${draft.targets.goalPaceKgPerWeek.toStringAsFixed(1)} kg / week',
-              ),
+        if (hasDailyTargets) ...[
+          const SizedBox(height: TioSpacing.md),
+          _ReviewCard(
+            title: 'Daily Targets',
+            icon: Icons.track_changes_rounded,
+            children: [
+              if (hasWellness) ...[
+                _SummaryRow(
+                  label: 'Steps',
+                  value: draft.targets.hasDailyStepsValue
+                      ? '${draft.targets.dailySteps} steps/day'
+                      : 'Not set',
+                ),
+                const SizedBox(height: TioSize.dp10),
+                _SummaryRow(
+                  label: 'Hydration',
+                  value: draft.targets.hasWaterMlValue
+                      ? '${draft.targets.waterMl} ml/day'
+                      : 'Not set',
+                ),
+                const SizedBox(height: TioSize.dp10),
+                _SummaryRow(
+                  label: 'Sleep',
+                  value: draft.targets.hasSleepTargetMinutesValue
+                      ? '${draft.targets.sleepTargetMinutes ~/ 60}h ${(draft.targets.sleepTargetMinutes % 60).toString().padLeft(2, '0')}m / night'
+                      : 'Not set',
+                ),
+              ],
+              if (hasNutritionTarget &&
+                  const CalculateNutritionTargetRecommendationUseCase()(
+                    profile: effectiveProfile,
+                    targets: effectiveTargets,
+                  )
+                      case NutritionTargetRecommendationSuccess(
+                        :final recommendation
+                      )) ...[
+                if (hasWellness) const SizedBox(height: TioSize.dp10),
+                _SummaryRow(
+                  label: 'Target calories',
+                  value:
+                      '${recommendation.caloriesKcal} kcal (${recommendation.proteinGrams}g P / ${recommendation.carbsGrams}g C / ${recommendation.fatGrams}g F)',
+                ),
+              ],
             ],
-            if (const CalculateNutritionTargetRecommendationUseCase()(
-                  profile: effectiveProfile,
-                  targets: effectiveTargets,
-                )
-                case NutritionTargetRecommendationSuccess(:final recommendation)) ...[
-              const SizedBox(height: TioSize.dp10),
-              _SummaryRow(
-                label: 'Target calories',
-                value:
-                    '${recommendation.caloriesKcal} kcal (${recommendation.proteinGrams}g P / ${recommendation.carbsGrams}g C / ${recommendation.fatGrams}g F)',
-              ),
-            ],
-          ],
-        ),
+          ),
+        ],
         if (hasWorkoutPreferences) ...[
           const SizedBox(height: TioSpacing.md),
           _ReviewCard(
@@ -416,34 +426,4 @@ String _focusAreaLabel(WorkoutFocusArea area) {
     WorkoutFocusArea.legs => 'Legs',
     WorkoutFocusArea.cardio => 'Cardio',
   };
-}
-
-String _healthSummary(ProfileOnboardingDraft profile) {
-  final conditions = profile.healthConditions;
-  if (conditions.isEmpty || conditions.contains(ProfileHealthCondition.none)) {
-    return 'None';
-  }
-  if (conditions.contains(ProfileHealthCondition.other) &&
-      profile.otherHealthCondition.trim().isNotEmpty) {
-    return profile.otherHealthCondition.trim();
-  }
-  return conditions.map((e) => e.name).join(', ');
-}
-
-String _formatDate(DateTime value) {
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${value.day} ${months[value.month - 1]} ${value.year}';
 }
