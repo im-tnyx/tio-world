@@ -1,6 +1,6 @@
 # Product Onboarding O7E — Integrated Health Connections Acceptance
 
-**Status:** In progress  
+**Status:** Validated  
 **Tracker:** GitHub Issue #81  
 **Parent O7:** #75  
 **O7D:** #80 ✅ / CI #1600  
@@ -11,67 +11,50 @@
 **O11 cleanup:** #54 BLOCKED until O10  
 **Implementation PR:** #50 Draft/open/unmerged
 
-## Starting exact validated checkpoint
+## Exact validated O7E checkpoint
 
 ```text
-879112d05999a2d204e6d5e7cf93ec98415aa32f
-Flutter CI #1600 / run 32612274689 / job 97127075778 ✅
-Android Native CI #12 / run 32612274590 / job 97127104588 ✅
+e4d8eadc90b20745a89e894cbfe0cec92cdcb740
+Flutter CI #1603 / run 32612660375 / job 97128035652
+Flutter analyze ✅
+Dart analyze    ✅
+Flutter tests   ✅
+Dart tests      ✅
 ```
 
-## Goal
+O7E is test-only; no production source, permission, schema or UI change was required.
 
-Close O7 with one integrated acceptance suite proving Health Connections is optional, availability-only, resumable and completion-safe across all App Modes without introducing health-data authorization or persistence.
+## Integrated result
 
-## Acceptance matrix
+`apps/features/onboarding/test/domain/o7e_integrated_health_connections_acceptance_test.dart` proves:
 
-- all App Modes schedule Health Connections immediately before Review;
-- current-release unavailable gateway cannot fabricate authorization;
-- Health Connections completion is non-blocking;
-- pre-O7B unfinished Review checkpoint routes through Health Connections;
-- completed Health checkpoint resumes Review;
-- snapshot serialization contains Health progress identity but no live platform status;
-- canonical completion owner writes remain Profile/Body/Wellness/Nutrition/Workout/App Mode only as eligible;
-- no Health owner/write exists in Product Onboarding completion;
-- Hybrid setupNow/later semantics remain unchanged;
-- completion failure ordering, retry and completed-call idempotency remain intact with Health step in the flow;
-- no health permissions/plugin/schema/minSdk changes;
-- full Flutter four-gate CI passes on one exact source SHA.
+- Workout, Nutrition, Hybrid setup-now and Hybrid later all keep optional Health Connections immediately before Review;
+- Health Connections is not a completion eligibility blocker;
+- current-release `UnavailableHealthConnectionGateway` cannot fabricate authorization;
+- stale/injected serialized Health status is ignored and never re-emitted by draft serialization;
+- Product Onboarding persistence has no Health authorization owner target;
+- unfinished pre-O7B Review checkpoints route through Health Connections;
+- completed Health checkpoints resume Review without a connection claim.
 
-## Product decision retained
+Existing O6E/O5E completion acceptance remains green in the same full suite, preserving canonical owner write ordering, Hybrid semantics, failure/retry behavior and completed-call idempotency with Health Connections present in the flow.
 
-Future Tio intent includes syncing activity, sleep, nutrition, workout and water/hydration data. Current onboarding does not request these permissions. Future consuming-feature tasks must define exact record types/access/owner/retention/consent/privacy before authorization.
+## Frozen O7 product boundary
 
-## Implementation approach
+Current early-stage Product Onboarding is availability/connect-later only. It requests no Health Connect health-data permissions and persists no imported Health records or live authorization truth.
 
-Acceptance-test first. Reuse existing O7B/O7D and O5/O6 completion fixtures rather than adding production abstractions. Only change production source if the integrated test proves an actual contract bug.
+Future Tio intent includes activity, sleep, nutrition, workout and water/hydration sync. Each future consuming feature must define exact Health Connect record types, read/write scope, canonical owner, retention/freshness/consent and store/privacy declarations before authorization is implemented.
 
-## Source/test audit targets
-
-- `o7b_health_connections_runtime_test.dart`
-- `o7d_health_connections_resume_review_test.dart`
-- `o6e_integrated_workout_acceptance_test.dart`
-- `o5e_integrated_nutrition_acceptance_test.dart`
-- `persist_onboarding_owner_data_use_case_test.dart`
-- `complete_onboarding_use_case.dart`
-- `persist_onboarding_owner_data_use_case.dart`
-
-## Validation
-
-```text
-Not run yet for O7E.
-```
-
-## Guardrails
+## Guardrails retained
 
 - no fake `connected`;
-- no `android.permission.health.*`;
-- no health records/live authorization state in onboarding drafts;
-- no new health DB owner/migration;
-- no UI redesign;
+- no `android.permission.health.*` in current O7;
+- no Health records/live authorization state in onboarding drafts;
+- no health DB owner/migration/minSdk change;
 - PR #50 remains Draft/open/unmerged;
 - O11 remains blocked until O10.
 
-## Exit
+## Final Status
 
-Freeze exact O7E source SHA + four-gate CI, close #81 and parent #75, sync #40/#44/PR #50 + durable docs to O7 ✅, then activate O8 Review/resume/edit-back.
+`PASS`
+
+O7 Health Connections may now close. Next phase: O8 Review/resume/edit-back.
