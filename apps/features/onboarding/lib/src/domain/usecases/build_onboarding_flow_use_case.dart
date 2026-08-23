@@ -43,8 +43,10 @@ class BuildOnboardingFlowUseCase {
   /// Reconciles a persisted top-level step from the flow policy that existed
   /// before mode-specific Wellness/Nutrition Target eligibility was introduced.
   ///
-  /// This is intentionally a migration bridge for resume only. New navigation
-  /// must always use the active plan returned by [call].
+  /// Persisted resume differs from a live mode switch: when the current section
+  /// was deliberately removed from the selected mode, resume advances to the
+  /// first still-eligible section that followed it in the old flow. This avoids
+  /// forcing the user to repeat already completed setup.
   OnboardingStepId reconcilePersistedCurrentStep({
     required OnboardingStepId currentStepId,
     required OnboardingEntryPath entryPath,
@@ -70,11 +72,21 @@ class BuildOnboardingFlowUseCase {
         workoutIntroChoice: workoutIntroChoice,
       ),
     );
-    return reconcileCurrentStep(
-      currentStepId: currentStepId,
-      previousPlan: previousPlan,
-      nextPlan: nextPlan,
-    );
+    final previousIndex = previousPlan.indexOf(currentStepId);
+    if (previousIndex >= 0) {
+      for (var index = previousIndex + 1;
+          index < previousPlan.steps.length;
+          index++) {
+        final candidate = previousPlan.steps[index].id;
+        if (nextPlan.contains(candidate)) return candidate;
+      }
+      for (var index = previousIndex - 1; index >= 0; index--) {
+        final candidate = previousPlan.steps[index].id;
+        if (nextPlan.contains(candidate)) return candidate;
+      }
+    }
+
+    return nextPlan.steps.first.id;
   }
 }
 
