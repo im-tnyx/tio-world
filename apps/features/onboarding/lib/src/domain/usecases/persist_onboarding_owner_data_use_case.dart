@@ -120,33 +120,37 @@ class PersistOnboardingOwnerDataUseCase {
       );
     }
 
-    final body_owner.WellnessTargetsData wellnessData;
-    try {
-      wellnessData = wellnessMapper.map(draft.targets);
-    } catch (e, st) {
-      throw OwnerPersistenceException(
-        owner: OwnerPersistenceTarget.wellness,
-        message: 'Failed to map canonical Wellness targets: $e',
-        cause: e,
-        stackTrace: st,
-      );
-    }
-
-    try {
-      final wellnessRepository = _wellnessRepository;
-      if (wellnessRepository == null) {
-        throw StateError(
-          'Product Onboarding requires the canonical WellnessTargetsRepository.',
+    final requiresWellness =
+        flowPlan.stepIds.contains(OnboardingStepId.wellnessGoals);
+    if (requiresWellness) {
+      final body_owner.WellnessTargetsData wellnessData;
+      try {
+        wellnessData = wellnessMapper.map(draft.targets);
+      } catch (e, st) {
+        throw OwnerPersistenceException(
+          owner: OwnerPersistenceTarget.wellness,
+          message: 'Failed to map canonical Wellness targets: $e',
+          cause: e,
+          stackTrace: st,
         );
       }
-      await wellnessRepository.upsert(wellnessData);
-    } catch (e, st) {
-      throw OwnerPersistenceException(
-        owner: OwnerPersistenceTarget.wellness,
-        message: 'Failed to persist canonical Wellness targets: $e',
-        cause: e,
-        stackTrace: st,
-      );
+
+      try {
+        final wellnessRepository = _wellnessRepository;
+        if (wellnessRepository == null) {
+          throw StateError(
+            'Product Onboarding requires the canonical WellnessTargetsRepository.',
+          );
+        }
+        await wellnessRepository.upsert(wellnessData);
+      } catch (e, st) {
+        throw OwnerPersistenceException(
+          owner: OwnerPersistenceTarget.wellness,
+          message: 'Failed to persist canonical Wellness targets: $e',
+          cause: e,
+          stackTrace: st,
+        );
+      }
     }
 
     final requiresNutritionProfile =
