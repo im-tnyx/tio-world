@@ -18,12 +18,11 @@ Use this file to distinguish validated runtime from remaining Product Onboarding
 | Body Goal ownership | Validated | Body + onboarding | O3 #55 / CI #1354. |
 | Wellness canonical onboarding | Validated | Wellness + onboarding | O4 #58 / CI #1441. |
 | Nutrition canonical onboarding | Validated | Nutrition + onboarding | O5 #63 / source `b017f6c31c9c89a6df1ba6b670ea0ea04d635941` / CI #1507. |
-| Canonical Workout Profile + Targets contracts | Validated | Workout | O6A #70 / source `cd764653146d4514fb4e56ef893e92846327ae2e` / CI #1509. |
-| Canonical workoutProfile runtime + legacy resume | Validated | Workout + onboarding | O6B #71 / source `48f0d1ff562fee7dda5647476ff706d1886dde11` / CI #1511. Historical `workoutPreferences` reads forward; new writes are canonical. |
-| workoutTargets runtime + ordered training goals | Active | Workout + onboarding | O6C #72. Split runtime ownership, schema-v4 migration and ordered goal mapping; persistence stays broad until O6D. |
-| Canonical Workout persistence cutover | Pending | Workout + onboarding + app | O6D after O6C exact full CI green. |
-| Integrated Workout acceptance | Pending | Workout + onboarding | O6E after O6D. |
-| Health Connections onboarding | Documented / undecided | health integration + onboarding | O7 after O6. No fake connection success. |
+| Workout canonical onboarding | Validated | Workout + onboarding + app | O6 #69 / source `d56e8226f8631bc81d3dd309cbb22c631ca636f5` / CI #1555. Canonical Profile/Targets runtime + persistence cutover + integrated acceptance complete. |
+| Health Connections runtime/UI | Validated | onboarding orchestration | O7B #77 / source `371fafb8cf8a27b6f7922733b071277accf4af98` / CI #1575. Optional/non-blocking step active before Review; fallback never fabricates connection. |
+| Android Health Connect platform adapter | Active | app/platform + onboarding boundary | O7C #78. Availability/provider detection may proceed; health-data permission scope remains gated until exact product record types/use case are source-backed. |
+| Health connection durability/review integration | Pending | unresolved until O7D | No imported health records in `onboarding_drafts`. |
+| Integrated Health Connections acceptance | Pending | onboarding + platform | O7E after O7D. |
 | Review + edit-back + draft/resume reconciliation | Partial | onboarding | O8 after O7. |
 | Plan Building / finalization | Pending | onboarding orchestration | O9. Truthful/idempotent finalization only. |
 | Full Product Onboarding acceptance | Pending | onboarding + owners | O10. All modes/navigation/resume/persistence/failure/device acceptance. |
@@ -39,13 +38,13 @@ O2 User Profile                                  ✅ #53 / CI #1279
 O3 Body Goal                                     ✅ #55 / CI #1354
 O4 Wellness                                      ✅ #58 / CI #1441
 O5 Nutrition                                     ✅ #63 / CI #1507
-→ O6 Workout                                     ACTIVE #69
-   O6A canonical owner contracts                 ✅ #70 / CI #1509
-   O6B workoutProfile runtime                    ✅ #71 / CI #1511
-   → O6C workoutTargets runtime + ordered goals  ACTIVE #72
-   O6D canonical persistence cutover
-   O6E integrated acceptance
-→ O7 Health Connections
+O6 Workout                                       ✅ #69 / CI #1555
+→ O7 Health Connections                          ACTIVE #75
+   O7A contract/readiness                        ✅ #76
+   O7B runtime/UI                                ✅ #77 / CI #1575
+   → O7C Android Health Connect adapter          ACTIVE #78
+   O7D persistence/resume/review integration
+   O7E integrated acceptance
 → O8 Review/resume/edit-back
 → O9 finalization
 → O10 final acceptance
@@ -55,8 +54,8 @@ O5 Nutrition                                     ✅ #63 / CI #1507
 ## Latest exact validated source checkpoint
 
 ```text
-48f0d1ff562fee7dda5647476ff706d1886dde11
-Flutter CI #1511 / run 32585811984
+371fafb8cf8a27b6f7922733b071277accf4af98
+Flutter CI #1575 / run 32607322748 / job 97114316589
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
@@ -65,18 +64,20 @@ Dart tests      ✅
 
 ## Important current-source facts
 
-- O6A canonical Workout repositories exist and are signed-out fail-closed without anonymous-auth mutation.
-- O6B active top-level identity is canonical `workoutProfile`; historical `workoutPreferences` remains source/storage compatibility only.
-- O6C will activate a distinct `workoutTargets` top-level section and move the existing Health Concerns screen next to Profile-owned context.
-- O6C must bump onboarding draft schema to v4 because O6B already emits `workoutProfile`, so storage key alone cannot identify broad pre-split completion.
-- Only training intents Build Muscle/Get Stronger/Improve Endurance/Stay Fit belong in canonical Workout Targets; preserve original unified rank.
-- Current broad `WorkoutPreferencesRepository` remains completion writer until O6D.
-- Hybrid `Later` skips Workout Profile/Targets for the run and preserves stored data.
+- O7B activates Health Connections in Workout/Nutrition/Hybrid after Nutrition Targets and before Review.
+- Health Connections is optional, non-blocking and retryable later.
+- `HealthConnectionGateway` is the narrow orchestration/platform boundary; only a real platform adapter may return `connected`.
+- Live Health authorization status is not serialized in `OnboardingDraft`.
+- Pre-O7B unfinished Review checkpoints reconcile through Health Connections.
+- O7C must keep platform implementation/composition outside onboarding business logic.
+- Current app source has no health plugin and no health-data permissions.
+- Repository roadmap defers health permissions/wearable-data sync pending Recovery/data-source/privacy approval; do not invent broad Health Connect scopes.
 - Applied migrations are immutable; duplicate physical cleanup belongs only to O11 after O10.
 
 ## Update rules
 
 - Move capability state only with exact source + CI evidence.
 - One Product Onboarding implementation slice is active at a time.
-- No UI redesign is implied by owner/persistence/section migration unless explicitly approved.
+- Do not turn platform availability into fake authorization success.
+- No health-data permission without an exact source-backed record-type/use-case scope.
 - Do not merge PR #50 until O10-level acceptance and remaining required gates are resolved.
