@@ -240,9 +240,13 @@ class OnboardingFlowPage extends ConsumerWidget {
     final healthBusy = healthController?.isBusy ?? false;
     final interactionBusy = state.isBusy || healthBusy;
     final shouldHandleRouteExit = onExitRequested != null;
-    final visibleBack = !interactionBusy &&
-            (state.hasPreviousScreen || shouldHandleRouteExit)
-        ? () => _handleBack(context, ref, controller)
+    final visibleBack = state.hasPreviousScreen || shouldHandleRouteExit
+        ? () => _handleBack(
+              context,
+              ref,
+              controller,
+              block: healthBusy,
+            )
         : null;
 
     OnboardingBottomInfoAction? infoAction;
@@ -322,6 +326,7 @@ class OnboardingFlowPage extends ConsumerWidget {
               OnboardingTopBar(
                 state: state,
                 onBack: visibleBack,
+                backEnabled: !healthBusy,
                 showProgress: state.stepId != OnboardingStepId.mode,
               ),
               Expanded(
