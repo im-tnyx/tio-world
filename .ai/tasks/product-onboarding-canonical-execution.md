@@ -1,12 +1,13 @@
 # Product Onboarding — Canonical Execution Plan
 
-**Status:** In progress — O1–O6 complete; O7 ACTIVE with O7B blocked on explicit approval  
+**Status:** In progress — O1–O6 complete; O7 ACTIVE with O7C active  
 **Primary tracker:** #40  
 **Canonical ownership:** #44  
 **O6 Workout:** #69 ✅ / CI #1555  
 **O7 Health Connections:** #75 ACTIVE  
 **O7A:** #76 ✅  
-**O7B:** #77 BLOCKED  
+**O7B:** #77 ✅ / CI #1575  
+**O7C:** #78 ACTIVE  
 **Account verification:** #8 parallel lane  
 **O11 cleanup:** #54 BLOCKED until O10  
 **PR:** #50 Draft/open/unmerged
@@ -14,15 +15,15 @@
 ## Latest exact validated source checkpoint
 
 ```text
-d56e8226f8631bc81d3dd309cbb22c631ca636f5
-Flutter CI #1555 / run 32591048642
+371fafb8cf8a27b6f7922733b071277accf4af98
+Flutter CI #1575 / run 32607322748 / job 97114316589
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
 Dart tests      ✅
 ```
 
-O7A is contract/tracker-only; this remains the exact runtime checkpoint.
+O7C task/tracker commits after this SHA do not replace exact runtime validation.
 
 ## Canonical owners
 
@@ -41,7 +42,7 @@ user_workout_targets       → workout goals/schedule/plan constraints
 onboarding_drafts          → draft/resume orchestration only
 ```
 
-Health Connections authorization/connection ownership is intentionally unresolved until O7D proves the correct durable boundary. Imported sensitive health records do not belong in `onboarding_drafts`.
+Health connection durability is intentionally unresolved until O7D proves the correct owner. Imported sensitive health records do not belong in `onboarding_drafts`.
 
 ## Execution order
 
@@ -54,8 +55,8 @@ O5 Nutrition Profile + Targets                    ✅ #63 / CI #1507
 O6 Workout Profile + Targets                      ✅ #69 / CI #1555
 → O7 Health Connections                           ACTIVE #75
    O7A capability + product contract readiness    ✅ #76
-   O7B runtime section + approved UI/content       BLOCKED #77
-   O7C Android Health Connect adapter
+   O7B runtime section + approved UI/content       ✅ #77 / CI #1575
+   → O7C Android Health Connect adapter            ACTIVE #78
    O7D persistence/resume/review integration
    O7E integrated acceptance
 → O8 Review + edit-back + resume
@@ -64,71 +65,52 @@ O6 Workout Profile + Targets                      ✅ #69 / CI #1555
 → O11 canonical schema cleanup                    BLOCKED #54
 ```
 
-Only one Product Onboarding implementation slice may be active at a time. Because O7B is blocked, no later O7 slice starts early.
+Only one Product Onboarding implementation slice may be active at a time.
 
-## Validated through O6
+## Validated through O7B
 
-Canonical Workout runtime/persistence is frozen:
-
-```text
-runtime:     workoutProfile → workoutTargets
-persistence: WorkoutProfileRepository → WorkoutTargetsRepository
-```
-
-O6E #74 / CI #1555 validated mode matrix, Hybrid later preservation, resume compatibility, fail-closed owner order, retry/idempotency and no broad Workout completion writes.
-
-## O7A completed contract — #76
-
-Current source only reserves Health Connections identity. No real Health Connect/HealthKit plugin, Android health permission configuration, Health Connections draft state, active adapter or iOS Runner scaffold exists in this branch.
-
-Minimum safe capability proposal:
+Canonical Health Connections runtime is frozen:
 
 ```text
-unavailable
-notRequested
-denied
-connected
+flow:       Nutrition Targets → Health Connections → Review
+behavior:   optional / non-blocking / retryable later
+status:     unavailable | notRequested | denied | connected
+state:      live platform status outside OnboardingDraft
 ```
 
-Only a live platform adapter may establish `connected`.
+Only a real platform adapter may establish `connected`. O7B's unavailable fallback never requests OS permission and pre-O7B unfinished Review drafts reconcile through the new step.
 
-Ownership:
+## O7C active contract — #78
+
+O7C wires Android Health Connect availability/composition behind O7B's `HealthConnectionGateway`.
+
+The repository currently has no Health Connect dependency, provider query or health-data permission declarations. Repository roadmap also defers health permissions/wearable-data sync until the Recovery/data-source/privacy boundary is approved.
+
+Because Android Health Connect permissions are tied to specific record types/use cases, O7C must not invent a broad future-use permission set. Before adding any health-data permission or runtime authorization request, prove:
+
+- concrete product capability;
+- canonical imported-data owner;
+- exact record types;
+- read/write scope per type;
+- matching Play Console/privacy declaration;
+- partial/denied grants cannot become `connected`.
+
+Until exact scope is approved/source-backed:
 
 ```text
-Product Onboarding
-  → orchestration only
-Platform health adapter
-  → live capability + authorization truth
-Durable connection metadata
-  → unresolved until O7D
-Imported health records
-  → dedicated future health/sync domain
+SDK/provider unavailable                  → unavailable
+SDK/provider available, scope unapproved  → notRequested
+connected                                 → unreachable
 ```
 
-## O7B blocked contract — #77
-
-Before planner/renderer/UI source changes, explicit approval is required for:
-
-- whether Skip / unavailable / denied-cancelled are non-blocking;
-- title/copy/actions and Connect/Skip behavior;
-- connected/unavailable/denied/retry presentation;
-- exact flow placement.
-
-Architecture recommendation:
-
-```text
-Health Connections = optional / non-blocking / retryable later
-Placement = Nutrition Targets → Health Connections → Review
-```
-
-These are recommendations only and are not encoded until approved.
+Platform availability detection and app-level gateway composition may proceed without broad data access.
 
 ## Guardrails
 
 - no fake health connection success;
 - no passive OS health permission request;
-- no new visible Health Connections screen/content without approval;
-- no plugin/manifest/schema mutation outside its focused slice;
+- no broad health permission declarations for future use;
+- no plugin/manifest mutation outside O7C's proven minimum;
 - no sensitive health-data duplication/logging;
 - no applied migration edits or legacy-column drops;
 - O11/#54 stays blocked until O10;
@@ -136,4 +118,4 @@ These are recommendations only and are not encoded until approved.
 
 ## Handoff
 
-**O7A #76 is complete. O7B #77 is the next implementation slice but remains blocked pending the explicit approvals above. Do not start O7C/O7D/O7E early.**
+**O7B #77 is complete on exact source `371faf...` / CI #1575. O7C #78 is the only active Product Onboarding implementation slice. Do not start O7D/O7E early.**
