@@ -10,11 +10,12 @@ import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodChannel;
 
 /**
- * Dependency-free Health Connect availability probe for O7C1.
+ * Dependency-free Health Connect surface-presence probe for O7C1.
  *
- * This bridge intentionally does not request health-data permissions and does
- * not read or write health records. It exists only to report whether a viable
- * Health Connect surface is present on the current Android profile.
+ * This bridge intentionally does not claim SDK readiness or authorization. It
+ * only reports whether a Health Connect framework/provider surface can be found
+ * on the current Android profile. A future O7C2 adapter must use the official
+ * Health Connect client to determine SDK status and permission state.
  */
 final class HealthConnectAvailabilityBridge {
     static final String CHANNEL_NAME = "com.tnyx.tio/health_connect_availability";
@@ -34,11 +35,11 @@ final class HealthConnectAvailabilityBridge {
                 result.notImplemented();
                 return;
             }
-            result.success(isAvailable(context) ? "available" : "unavailable");
+            result.success(isSurfacePresent(context) ? "present" : "absent");
         });
     }
 
-    private static boolean isAvailable(Context context) {
+    private static boolean isSurfacePresent(Context context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
             return false;
         }
