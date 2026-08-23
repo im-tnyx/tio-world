@@ -6,7 +6,8 @@ import 'package:tio_shared/shared.dart';
 
 void main() {
   group('O8A Review active-data mode matrix', () {
-    testWidgets('Workout Review shows active Workout Plan data', (tester) async {
+    testWidgets('Workout Review shows active Workout Plan data only',
+        (tester) async {
       final draft = OnboardingDraft(
         selectedMode: AppMode.workout,
         goalSelection: const GoalIntentSelection(
@@ -15,6 +16,11 @@ void main() {
         currentStepId: OnboardingStepId.review,
         profile: _validProfile(),
         workout: _seededWorkout(),
+        targets: const TargetsOnboardingDraft(
+          dailySteps: 12345,
+          waterMl: 3456,
+          sleepTargetMinutes: 510,
+        ),
       );
 
       await _pumpReview(tester, draft);
@@ -22,6 +28,11 @@ void main() {
       expect(find.text('Workout Plan'), findsOneWidget);
       expect(find.text('Commercial gym'), findsOneWidget);
       expect(find.text('60 min'), findsOneWidget);
+      expect(find.text('Daily Targets'), findsNothing);
+      expect(find.text('Steps'), findsNothing);
+      expect(find.text('Hydration'), findsNothing);
+      expect(find.text('Sleep'), findsNothing);
+      expect(find.text('Target calories'), findsNothing);
     });
 
     testWidgets('Nutrition Review hides preserved dormant Workout data',
@@ -44,6 +55,7 @@ void main() {
       expect(find.text('Workout Plan'), findsNothing);
       expect(find.text('Commercial gym'), findsNothing);
       expect(find.text('60 min'), findsNothing);
+      expect(find.text('Daily Targets'), findsOneWidget);
     });
 
     testWidgets('Hybrid setupNow Review shows active Workout Plan data',
@@ -65,6 +77,7 @@ void main() {
       expect(find.text('Workout Plan'), findsOneWidget);
       expect(find.text('Commercial gym'), findsOneWidget);
       expect(find.text('60 min'), findsOneWidget);
+      expect(find.text('Daily Targets'), findsOneWidget);
     });
 
     testWidgets('Hybrid later Review hides preserved dormant Workout data',
@@ -89,6 +102,7 @@ void main() {
       expect(find.text('Workout Plan'), findsNothing);
       expect(find.text('Commercial gym'), findsNothing);
       expect(find.text('60 min'), findsNothing);
+      expect(find.text('Daily Targets'), findsOneWidget);
     });
   });
 }
