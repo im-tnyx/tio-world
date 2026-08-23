@@ -49,8 +49,6 @@ void main() {
         );
         final flowPlan = const BuildOnboardingFlowUseCase()(
           entryPath: OnboardingEntryPath.firstRun,
-          mode: null,
-        ).rebuildFor(
           mode: variant.mode,
           workoutIntroChoice: variant.workoutIntroChoice,
         );
