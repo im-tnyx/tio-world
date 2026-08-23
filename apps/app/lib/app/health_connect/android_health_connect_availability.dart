@@ -1,22 +1,22 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-enum HealthConnectPlatformAvailability {
-  unavailable,
-  available,
+enum HealthConnectPlatformPresence {
+  absent,
+  present,
 }
 
-/// Thin app-owned bridge to Android Health Connect platform availability.
+/// Thin app-owned bridge to Android Health Connect platform surface presence.
 ///
-/// This probe does not request health-data permissions and does not imply that
-/// the app is authorized to read or write any health record type.
-class AndroidHealthConnectAvailabilityProbe {
-  AndroidHealthConnectAvailabilityProbe({
+/// This probe does not prove Health Connect SDK readiness, does not request
+/// health-data permissions, and does not imply authorization to read or write
+/// any health record type.
+class AndroidHealthConnectSurfaceProbe {
+  AndroidHealthConnectSurfaceProbe({
     MethodChannel? channel,
     bool Function()? isAndroidPlatform,
   })  : _channel = channel ?? const MethodChannel(channelName),
-        _isAndroidPlatform =
-            isAndroidPlatform ?? _defaultIsAndroidPlatform;
+        _isAndroidPlatform = isAndroidPlatform ?? _defaultIsAndroidPlatform;
 
   static const channelName = 'com.tnyx.tio/health_connect_availability';
   static const _getAvailabilityMethod = 'getAvailability';
@@ -24,20 +24,21 @@ class AndroidHealthConnectAvailabilityProbe {
   final MethodChannel _channel;
   final bool Function() _isAndroidPlatform;
 
-  Future<HealthConnectPlatformAvailability> read() async {
+  Future<HealthConnectPlatformPresence> read() async {
     if (!_isAndroidPlatform()) {
-      return HealthConnectPlatformAvailability.unavailable;
+      return HealthConnectPlatformPresence.absent;
     }
 
     try {
       final raw = await _channel.invokeMethod<String>(_getAvailabilityMethod);
-      return raw == 'available'
-          ? HealthConnectPlatformAvailability.available
-          : HealthConnectPlatformAvailability.unavailable;
+      return raw == 'present'
+          ? HealthConnectPlatformPresence.present
+          : HealthConnectPlatformPresence.absent;
     } catch (_) {
-      // Availability is advisory platform state. Any channel/platform failure
-      // must fail closed and must never be interpreted as authorization.
-      return HealthConnectPlatformAvailability.unavailable;
+      // Surface presence is advisory platform state. Any channel/platform
+      // failure must fail closed and must never be interpreted as readiness or
+      // authorization.
+      return HealthConnectPlatformPresence.absent;
     }
   }
 
