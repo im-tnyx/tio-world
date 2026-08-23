@@ -31,16 +31,21 @@ void main() {
         );
 
         controller.previous();
+        final expectedSecondBack = variant.mode == AppMode.workout
+            ? OnboardingStepId.workoutTargets
+            : OnboardingStepId.nutritionGoals;
         expect(
           controller.state.stepId,
-          OnboardingStepId.nutritionGoals,
-          reason: '${variant.name} second Back should reach Nutrition Goals',
+          expectedSecondBack,
+          reason: '${variant.name} second Back should reach active predecessor',
         );
-        expect(
-          controller.state.draft.targets.currentStepId,
-          TargetStepId.nutritionTarget,
-          reason: '${variant.name} must restore the active Nutrition Goals cursor',
-        );
+        if (variant.mode != AppMode.workout) {
+          expect(
+            controller.state.draft.targets.currentStepId,
+            TargetStepId.nutritionTarget,
+            reason: '${variant.name} must restore the active Nutrition Goals cursor',
+          );
+        }
       }
     });
 

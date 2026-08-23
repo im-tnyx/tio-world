@@ -30,7 +30,7 @@ void main() {
         harness.controller.state.draft.workout.gymAccess,
         WorkoutGymAccess.home,
       );
-      expect(harness.controller.state.progressStepCount, 27);
+      expect(harness.controller.state.progressStepCount, 22);
       expect(harness.controller.state.workoutFlowPlan.stepCount, 9);
 
       await tester.tap(find.text('Continue'));
@@ -235,7 +235,7 @@ void main() {
     expect(find.text('Knee stiffness'), findsOneWidget);
   });
 
-  testWidgets('SpecialEvent remains optional and reaches Nutrition Goals',
+  testWidgets('SpecialEvent remains optional and reaches Health Connections',
       (tester) async {
     final harness = await _pumpWorkout(
       tester,
@@ -280,7 +280,7 @@ void main() {
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
-    expect(harness.controller.state.stepId, OnboardingStepId.nutritionGoals);
+    expect(harness.controller.state.stepId, OnboardingStepId.healthConnections);
   });
 }
 

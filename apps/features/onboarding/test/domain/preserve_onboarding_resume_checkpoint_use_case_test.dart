@@ -168,9 +168,9 @@ void main() {
   test('legacy Wellness checkpoint survives Back into Profile when data is valid',
       () {
     final previous = OnboardingDraft(
-      selectedMode: AppMode.workout,
+      selectedMode: AppMode.nutrition,
       goalSelection: const GoalIntentSelection(
-        primaryGoal: GoalIntent.stayFit,
+        primaryGoal: GoalIntent.maintainWeight,
       ),
       currentStepId: OnboardingStepId.targets,
       profile: _validProfile(),

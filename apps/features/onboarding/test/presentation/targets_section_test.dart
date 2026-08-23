@@ -10,6 +10,7 @@ void main() {
       (tester) async {
     final harness = await _pumpTargets(
       tester,
+      mode: AppMode.nutrition,
       initialTargets: const TargetsOnboardingDraft(
         currentStepId: TargetStepId.bridge,
       ),
@@ -55,9 +56,9 @@ void main() {
 
       expect(
         harness.controller.state.stepId,
-        OnboardingStepId.workoutPreferences,
+        OnboardingStepId.nutritionGoals,
       );
-      expect(find.byType(WorkoutSection), findsOneWidget);
+      expect(find.byType(NutritionGoalsSection), findsOneWidget);
     } finally {
       semantics.dispose();
     }
@@ -118,6 +119,7 @@ void main() {
       (tester) async {
     final harness = await _pumpTargets(
       tester,
+      mode: AppMode.nutrition,
       initialTargets: const TargetsOnboardingDraft(
         currentStepId: TargetStepId.waterTarget,
         waterMl: 2500,
