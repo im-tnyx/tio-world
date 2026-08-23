@@ -449,6 +449,17 @@ class OnboardingController extends ChangeNotifier {
       nextDirection: nextDirection,
     );
 
+    final fellBackIntoCompletedBodyGoal =
+        nextStepId == OnboardingStepId.bodyGoal &&
+            state.stepId != OnboardingStepId.bodyGoal &&
+            state.completedStepIds.contains(OnboardingStepId.bodyGoal) &&
+            !goalChanged;
+    if (fellBackIntoCompletedBodyGoal) {
+      nextProfile = nextProfile.copyWith(
+        currentStepId: nextBodyGoalFlowPlan.steps.last,
+      );
+    }
+
     if (nextStepId == OnboardingStepId.profileBasics &&
         BodyGoalFlowPlan.orderedSteps.contains(nextProfile.currentStepId)) {
       nextStepId = OnboardingStepId.bodyGoal;
