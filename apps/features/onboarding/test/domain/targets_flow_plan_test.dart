@@ -43,8 +43,8 @@ void main() {
       expect(plan.previous(TargetStepId.bridge), isNull);
     });
 
-    test('Nutrition Target action advances to Review', () {
-      expect(plan.primaryActionLabel(TargetStepId.nutritionTarget), 'Review');
+    test('Nutrition Target action advances toward Health Connections', () {
+      expect(plan.primaryActionLabel(TargetStepId.nutritionTarget), 'Continue');
     });
   });
 }
