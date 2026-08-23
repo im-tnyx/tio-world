@@ -51,6 +51,21 @@ void main() {
     );
     expect(wheel.valueKg, 50);
   });
+
+  testWidgets('Goal Pace presents canonical pace in the selected weight unit',
+      (tester) async {
+    await _pumpBodyGoal(
+      tester,
+      profile: _profileFor(
+        ProfileStepId.goalPace,
+        targetWeightKg: 65,
+        weightUnit: 'lbs',
+      ),
+    );
+
+    expect(find.byType(GoalPaceScreen), findsOneWidget);
+    expect(find.text('1.1 lb / week'), findsOneWidget);
+  });
 }
 
 Future<void> _pumpBodyGoal(
@@ -89,6 +104,7 @@ ProfileOnboardingDraft _profileFor(
   double heightCm = 170,
   double currentWeightKg = 70,
   double? targetWeightKg,
+  String weightUnit = 'kg',
 }) {
   return ProfileOnboardingDraft(
     currentStepId: stepId,
@@ -97,6 +113,7 @@ ProfileOnboardingDraft _profileFor(
     dateOfBirth: DateTime(2000, 1, 1),
     heightCm: heightCm,
     currentWeightKg: currentWeightKg,
+    weightUnit: weightUnit,
     targetWeightKg: targetWeightKg,
     targetWeightDirection:
         targetWeightKg == null ? null : GoalWeightDirection.loss,
