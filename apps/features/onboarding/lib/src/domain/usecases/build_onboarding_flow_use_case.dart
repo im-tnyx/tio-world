@@ -40,8 +40,7 @@ class BuildOnboardingFlowUseCase {
     return nextPlan.steps.first.id;
   }
 
-  /// Reconciles a persisted top-level step from the flow policy that existed
-  /// before mode-specific Wellness/Nutrition Target eligibility was introduced.
+  /// Reconciles a persisted top-level step from older flow policies.
   ///
   /// Persisted resume differs from a live mode switch: when the current section
   /// was deliberately removed from the selected mode, resume advances to the
@@ -62,6 +61,15 @@ class BuildOnboardingFlowUseCase {
       return nextPlan.contains(currentStepId)
           ? currentStepId
           : nextPlan.steps.first.id;
+    }
+
+    // Older drafts used one monolithic Targets top-level checkpoint. Preserve
+    // forward progress while mapping it to the closest current mode boundary.
+    if (currentStepId == OnboardingStepId.targets) {
+      return switch (mode) {
+        AppMode.workout => OnboardingStepId.healthConnections,
+        AppMode.nutrition || AppMode.hybrid => OnboardingStepId.wellnessGoals,
+      };
     }
 
     final previousPlan = OnboardingFlowPlan(
