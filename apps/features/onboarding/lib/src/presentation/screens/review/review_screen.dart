@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
-import 'package:tio_shared/shared.dart';
 
 import '../../../domain/domain.dart';
 
@@ -42,6 +41,12 @@ class ReviewScreen extends StatelessWidget {
     final hasWellness = flowPlan.contains(OnboardingStepId.wellnessGoals);
     final hasNutritionTarget = flowPlan.contains(OnboardingStepId.nutritionGoals);
     final hasDailyTargets = hasWellness || hasNutritionTarget;
+    final nutritionRecommendation = hasNutritionTarget
+        ? const CalculateNutritionTargetRecommendationUseCase()(
+            profile: effectiveProfile,
+            targets: effectiveTargets,
+          )
+        : null;
     final hasWorkoutPreferences =
         flowPlan.contains(OnboardingStepId.workoutProfile) &&
             workout.gymAccess != null;
@@ -151,14 +156,10 @@ class ReviewScreen extends StatelessWidget {
                       : 'Not set',
                 ),
               ],
-              if (hasNutritionTarget &&
-                  const CalculateNutritionTargetRecommendationUseCase()(
-                    profile: effectiveProfile,
-                    targets: effectiveTargets,
-                  )
-                      case NutritionTargetRecommendationSuccess(
-                        :final recommendation
-                      )) ...[
+              if (nutritionRecommendation
+                  case NutritionTargetRecommendationSuccess(
+                    :final recommendation
+                  )) ...[
                 if (hasWellness) const SizedBox(height: TioSize.dp10),
                 _SummaryRow(
                   label: 'Target calories',
@@ -426,4 +427,34 @@ String _focusAreaLabel(WorkoutFocusArea area) {
     WorkoutFocusArea.legs => 'Legs',
     WorkoutFocusArea.cardio => 'Cardio',
   };
+}
+
+String _healthSummary(ProfileOnboardingDraft profile) {
+  final conditions = profile.healthConditions;
+  if (conditions.isEmpty || conditions.contains(ProfileHealthCondition.none)) {
+    return 'None';
+  }
+  if (conditions.contains(ProfileHealthCondition.other) &&
+      profile.otherHealthCondition.trim().isNotEmpty) {
+    return profile.otherHealthCondition.trim();
+  }
+  return conditions.map((e) => e.name).join(', ');
+}
+
+String _formatDate(DateTime value) {
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  return '${value.day} ${months[value.month - 1]} ${value.year}';
 }
