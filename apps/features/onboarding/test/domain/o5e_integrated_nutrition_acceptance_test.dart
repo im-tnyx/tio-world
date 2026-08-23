@@ -70,8 +70,10 @@ void main() {
 
         if (testCase.expectNutritionProfile) {
           expect(storedProfile, isNotNull, reason: testCase.label);
+          expect(storedTargets, isNotNull, reason: testCase.label);
         } else {
           expect(storedProfile, isNull, reason: testCase.label);
+          expect(storedTargets, isNull, reason: testCase.label);
         }
         if (testCase.expectWorkout) {
           expect(storedWorkoutProfile, isNotNull, reason: testCase.label);
@@ -80,7 +82,6 @@ void main() {
           expect(storedWorkoutProfile, isNull, reason: testCase.label);
           expect(storedWorkoutTargets, isNull, reason: testCase.label);
         }
-        expect(storedTargets, isNotNull, reason: testCase.label);
       }
     });
 
