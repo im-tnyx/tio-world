@@ -119,18 +119,23 @@ class ReviewScreen extends StatelessWidget {
           children: [
             _SummaryRow(
               label: 'Steps',
-              value: '${draft.targets.dailySteps} steps/day',
+              value: draft.targets.hasDailyStepsValue
+                  ? '${draft.targets.dailySteps} steps/day'
+                  : 'Not set',
             ),
             const SizedBox(height: TioSize.dp10),
             _SummaryRow(
               label: 'Hydration',
-              value: '${draft.targets.waterMl} ml/day',
+              value: draft.targets.hasWaterMlValue
+                  ? '${draft.targets.waterMl} ml/day'
+                  : 'Not set',
             ),
             const SizedBox(height: TioSize.dp10),
             _SummaryRow(
               label: 'Sleep',
-              value:
-                  '${draft.targets.sleepTargetMinutes ~/ 60}h ${(draft.targets.sleepTargetMinutes % 60).toString().padLeft(2, '0')}m / night',
+              value: draft.targets.hasSleepTargetMinutesValue
+                  ? '${draft.targets.sleepTargetMinutes ~/ 60}h ${(draft.targets.sleepTargetMinutes % 60).toString().padLeft(2, '0')}m / night'
+                  : 'Not set',
             ),
             if (weightGoalDirection != null) ...[
               const SizedBox(height: TioSize.dp10),
