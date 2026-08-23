@@ -206,9 +206,12 @@ class OnboardingController extends ChangeNotifier {
     final workoutFlowPlan = _workoutPlanner(
       gymAccess: draft.workout.gymAccess,
     );
-    var stepId = plan.contains(draft.currentStepId)
-        ? draft.currentStepId
-        : plan.steps.first.id;
+    var stepId = _planner.reconcilePersistedCurrentStep(
+      currentStepId: draft.currentStepId,
+      entryPath: _entryPath,
+      mode: draft.selectedMode,
+      workoutIntroChoice: draft.workoutIntroChoice,
+    );
     final eligibleCompleted =
         draft.completedStepIds.where(plan.contains).toSet();
     final activeWorkoutSteps = workoutFlowPlan.stepsFor(stepId);
