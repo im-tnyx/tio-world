@@ -77,7 +77,7 @@ void main() {
       expect(plan.stepIds, isNot(contains(OnboardingStepId.targets)));
     });
 
-    test('nutrition mode orders Profile, Wellness, then Nutrition Target', () {
+    test('nutrition mode orders Nutrition Profile, Wellness, Nutrition Target', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.resumeDraft,
         mode: AppMode.nutrition,
@@ -99,7 +99,7 @@ void main() {
       expect(plan.stepIds, isNot(contains(OnboardingStepId.workoutTargets)));
     });
 
-    test('hybrid setup now places Wellness after Workout Targets', () {
+    test('hybrid setup now keeps Workout block before Nutrition Profile', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.hybrid,
@@ -110,10 +110,10 @@ void main() {
         const [
           OnboardingStepId.profileBasics,
           OnboardingStepId.bodyGoal,
-          OnboardingStepId.nutritionProfile,
           OnboardingStepId.workoutIntro,
           OnboardingStepId.workoutProfile,
           OnboardingStepId.workoutTargets,
+          OnboardingStepId.nutritionProfile,
           OnboardingStepId.wellnessGoals,
           OnboardingStepId.nutritionGoals,
           OnboardingStepId.healthConnections,
@@ -122,7 +122,7 @@ void main() {
       );
     });
 
-    test('hybrid later skips Workout sections then enters Wellness', () {
+    test('hybrid later puts Nutrition Profile after Workout Intro', () {
       final plan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.hybrid,
@@ -133,8 +133,8 @@ void main() {
         const [
           OnboardingStepId.profileBasics,
           OnboardingStepId.bodyGoal,
-          OnboardingStepId.nutritionProfile,
           OnboardingStepId.workoutIntro,
+          OnboardingStepId.nutritionProfile,
           OnboardingStepId.wellnessGoals,
           OnboardingStepId.nutritionGoals,
           OnboardingStepId.healthConnections,
@@ -216,6 +216,39 @@ void main() {
           mode: AppMode.workout,
         ),
         OnboardingStepId.healthConnections,
+      );
+    });
+
+    test('legacy Hybrid Nutrition Profile checkpoint resumes at Workout Intro', () {
+      expect(
+        buildFlow.reconcilePersistedCurrentStep(
+          currentStepId: OnboardingStepId.nutritionProfile,
+          entryPath: OnboardingEntryPath.resumeDraft,
+          mode: AppMode.hybrid,
+          completedStepIds: const {
+            OnboardingStepId.profileBasics,
+            OnboardingStepId.bodyGoal,
+          },
+        ),
+        OnboardingStepId.workoutIntro,
+      );
+    });
+
+    test('new Hybrid Nutrition Profile checkpoint stays at Nutrition Profile', () {
+      expect(
+        buildFlow.reconcilePersistedCurrentStep(
+          currentStepId: OnboardingStepId.nutritionProfile,
+          entryPath: OnboardingEntryPath.resumeDraft,
+          mode: AppMode.hybrid,
+          completedStepIds: const {
+            OnboardingStepId.profileBasics,
+            OnboardingStepId.bodyGoal,
+            OnboardingStepId.workoutIntro,
+            OnboardingStepId.workoutProfile,
+            OnboardingStepId.workoutTargets,
+          },
+        ),
+        OnboardingStepId.nutritionProfile,
       );
     });
   });
