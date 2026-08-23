@@ -8,22 +8,22 @@ Runtime source remains behavior truth. Product Onboarding sequencing is owned by
 
 1. `.ai/CURRENT.md`
 2. `.ai/tasks/product-onboarding-canonical-execution.md`
-3. `.ai/tasks/product-onboarding-o7a-health-connections-contract.md`
-4. GitHub Issues #77/#75/#40/#44 and Draft PR #50
-5. O6 predecessor acceptance: #74/#69
+3. `.ai/tasks/product-onboarding-o7c-health-connect-adapter.md`
+4. GitHub Issues #78/#75/#40/#44 and Draft PR #50
+5. O7B predecessor acceptance: #77 / CI #1575
 
 ## Latest exact validated Product Onboarding checkpoint
 
 ```text
-d56e8226f8631bc81d3dd309cbb22c631ca636f5
-Flutter CI #1555 / run 32591048642
+371fafb8cf8a27b6f7922733b071277accf4af98
+Flutter CI #1575 / run 32607322748 / job 97114316589
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
 Dart tests      ✅
 ```
 
-This is the frozen O6 runtime/source checkpoint. O7A contract/tracker commits do not replace exact runtime validation.
+This is the frozen O7B runtime/source checkpoint. O7C task/tracker commits after this SHA do not replace exact runtime validation.
 
 ## Current sequence
 
@@ -36,8 +36,8 @@ O5 Nutrition Profile + Targets                   ✅ #63 / CI #1507
 O6 Workout Profile + Targets                     ✅ #69 / CI #1555
 → O7 Health Connections                          ACTIVE #75
    O7A capability + product contract readiness   ✅ #76
-   O7B runtime section + approved UI/content      BLOCKED #77
-   O7C Android Health Connect adapter
+   O7B runtime section + approved UI/content      ✅ #77 / CI #1575
+   → O7C Android Health Connect adapter           ACTIVE #78
    O7D persistence/resume/review integration
    O7E integrated acceptance
 → O8 Review + resume/edit-back
@@ -46,11 +46,15 @@ O6 Workout Profile + Targets                     ✅ #69 / CI #1555
 → O11 Canonical Schema Cleanup                   BLOCKED #54
 ```
 
-## O7A frozen contract
+## O7B frozen runtime
 
-Reserved `healthConnections` identities exist but remain unscheduled. Current app source has no Health Connect/HealthKit plugin, Android health permission configuration, Health Connections draft state or active platform adapter; this branch also has no iOS Runner scaffold.
+Health Connections is active in every App Mode as:
 
-Minimum product-safe capability proposal:
+```text
+... → Nutrition Targets → Health Connections → Review
+```
+
+It is optional, non-blocking and retryable later. Live status values are:
 
 ```text
 unavailable
@@ -59,40 +63,28 @@ denied
 connected
 ```
 
-Only a real platform adapter may establish `connected`.
+Only a real platform adapter may establish `connected`. O7B's fallback is truthfully unavailable, passive entry never requests OS permission, and live Health authorization state is not serialized into `OnboardingDraft`.
 
-Ownership split:
+## O7C active boundary — #78
+
+O7C owns Android Health Connect platform availability/composition behind `HealthConnectionGateway`.
+
+Repository evidence does not yet approve concrete health-data record types. `docs/ROADMAP.md` explicitly defers health permissions/wearable-data sync until the Recovery/data-source/privacy decision is approved. Therefore O7C must not invent broad health permissions.
+
+Before any `android.permission.health.*` declaration/runtime authorization request, prove the exact product use case, exact record types and read/write scope. Until that gate is satisfied:
 
 ```text
-Product Onboarding
-  → orchestration only: eligibility / skip-or-attempt / resume checkpoint
-
-Platform health adapter
-  → live capability + authorization truth
-
-Durable per-device connection metadata
-  → unresolved until O7D
-
-Imported health / biometric records
-  → future dedicated health/sync domain; never onboarding_drafts
+SDK/provider unavailable                   → unavailable
+SDK/provider available, scope unapproved   → notRequested
+connected                                  → unreachable
 ```
-
-## O7B blocker — #77
-
-Source activation is blocked until explicit approval of:
-
-1. completion behavior for Skip / unavailable / denied-cancelled;
-2. visible screen content/actions and connected/unavailable/denied states;
-3. exact flow placement.
-
-Architecture recommendation: Health Connections should be optional/non-blocking and retryable later. Recommended placement: `Nutrition Targets → Health Connections → Review` for all App Modes. Neither recommendation is implemented until approved.
 
 ## Guardrails
 
 - no fake health connection success;
-- no OS health permission request without explicit user action;
-- no new visible Health Connections screen/content without approval;
-- no health plugin/manifest/schema mutation before its focused slice;
+- no OS health permission request without exact approved data types and explicit user action;
+- no broad future-use permissions;
 - no sensitive health-data duplication/logging;
+- imported health records never belong in `onboarding_drafts`;
 - O11 remains blocked until O10;
 - PR #50 remains Draft/open/unmerged.
