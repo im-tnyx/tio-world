@@ -65,6 +65,70 @@ void main() {
       expect(finalizer, isA<OnboardingRemoteFinalizer>());
     });
 
+    test('O9A finalization durability truth table fails closed', () {
+      final unavailable = buildAppOnboardingCompletionValidator(
+        hasSupabaseClient: false,
+        hasAuthenticatedSupabaseUser: false,
+      );
+      expect(unavailable.hasDurableOwnerPersistence, isFalse);
+      expect(unavailable.backendUserReady, isFalse);
+
+      final unauthenticated = buildAppOnboardingCompletionValidator(
+        hasSupabaseClient: true,
+        hasAuthenticatedSupabaseUser: false,
+      );
+      expect(unauthenticated.hasDurableOwnerPersistence, isTrue);
+      expect(unauthenticated.backendUserReady, isFalse);
+
+      final authenticated = buildAppOnboardingCompletionValidator(
+        hasSupabaseClient: true,
+        hasAuthenticatedSupabaseUser: true,
+      );
+      expect(authenticated.hasDurableOwnerPersistence, isTrue);
+      expect(authenticated.backendUserReady, isTrue);
+    });
+
+    test('no-Supabase app completion validator blocks in-memory owner fallbacks',
+        () {
+      final container = ProviderContainer(
+        overrides: [
+          supabaseClientProvider.overrideWithValue(null),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      expect(
+        container.read(workoutProfileRepositoryProvider),
+        isA<InMemoryWorkoutProfileRepository>(),
+      );
+      expect(
+        container.read(workoutTargetsRepositoryProvider),
+        isA<InMemoryWorkoutTargetsRepository>(),
+      );
+      expect(
+        container.read(nutritionProfileRepositoryProvider),
+        isA<InMemoryNutritionProfileRepository>(),
+      );
+      expect(
+        container.read(nutritionTargetsRepositoryProvider),
+        isA<InMemoryNutritionTargetsRepository>(),
+      );
+
+      final validator = container.read(appOnboardingCompletionValidatorProvider);
+      expect(validator.hasDurableOwnerPersistence, isFalse);
+      expect(validator.backendUserReady, isFalse);
+
+      final eligibility = validator.evaluate(
+        draft: OnboardingDraft(selectedMode: AppMode.workout),
+        flowPlan: const BuildOnboardingFlowUseCase()(
+          entryPath: OnboardingEntryPath.firstRun,
+          mode: AppMode.workout,
+        ),
+      );
+      expect(eligibility.isEligible, isFalse);
+      expect(eligibility.message, contains('durable owner persistence'));
+    });
+
     test('Supabase availability selects the canonical Wellness adapter', () {
       final container = ProviderContainer(
         overrides: [
