@@ -459,7 +459,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   flowPlan: flowPlan,
                 );
                 debugPrint('[Router] completeOnboarding SUCCESS!');
-                onboardingStatusController.markCompleted();
+                final completedUserId = supabaseClient?.auth.currentUser?.id;
                 if (context.mounted) {
                   context.go(
                     AppRoutes.congratulations.path,
@@ -468,11 +468,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                       'isWelcomeBack': false,
                     },
                   );
-                  final completedUserId = supabaseClient?.auth.currentUser?.id;
-                  if (completedUserId != null && completedUserId.isNotEmpty) {
-                    appSessionBootstrapController
-                        .markReadyAfterOnboardingCompletion(completedUserId);
-                  }
+                }
+                onboardingStatusController.markCompleted();
+                if (completedUserId != null && completedUserId.isNotEmpty) {
+                  appSessionBootstrapController
+                      .markReadyAfterOnboardingCompletion(completedUserId);
                 }
               } catch (e, st) {
                 debugPrint('[Router] onFinishRequested EXCEPTION: $e');
