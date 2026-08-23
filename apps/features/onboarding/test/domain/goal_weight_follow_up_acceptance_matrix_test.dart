@@ -99,15 +99,15 @@ void main() {
         ),
       );
 
+      final wellnessIsActive = testCase.mode != AppMode.workout;
       expect(
         controller.state.stepId,
-        OnboardingStepId.wellnessGoals,
-        reason: '${testCase.name}: legacy Water cursor moves under Wellness',
-      );
-      expect(
-        controller.state.draft.targets.currentStepId,
-        TargetStepId.waterTarget,
-        reason: '${testCase.name}: Wellness child identity stays lossless',
+        wellnessIsActive
+            ? OnboardingStepId.wellnessGoals
+            : OnboardingStepId.workoutProfile,
+        reason: wellnessIsActive
+            ? '${testCase.name}: legacy Water cursor moves under Wellness'
+            : '${testCase.name}: removed Wellness advances to Workout Profile',
       );
       expect(
         controller.state.draft.targets.waterMl,
@@ -120,6 +120,20 @@ void main() {
         reason: '${testCase.name}: active Targets remains Nutrition-only',
       );
 
+      if (!wellnessIsActive) {
+        expect(
+          controller.state.draft.targets.currentStepId,
+          TargetStepId.waterTarget,
+          reason: '${testCase.name}: removed Wellness keeps dormant child data',
+        );
+        continue;
+      }
+
+      expect(
+        controller.state.draft.targets.currentStepId,
+        TargetStepId.waterTarget,
+        reason: '${testCase.name}: Wellness child identity stays lossless',
+      );
       controller.previous();
       expect(
         controller.state.draft.targets.currentStepId,
@@ -188,14 +202,14 @@ List<_AcceptanceCase> _acceptanceCases() {
       mode: AppMode.workout,
       selection: primaryLoss,
       expectWeightFollowUps: true,
-      expectedProgressCount: 26,
+      expectedProgressCount: 21,
     ),
     const _AcceptanceCase(
       name: 'Workout Lose weight supporting',
       mode: AppMode.workout,
       selection: supportingLoss,
       expectWeightFollowUps: true,
-      expectedProgressCount: 26,
+      expectedProgressCount: 21,
     ),
     for (final goal in trainingOnlyGoals)
       _AcceptanceCase(
@@ -203,7 +217,7 @@ List<_AcceptanceCase> _acceptanceCases() {
         mode: AppMode.workout,
         selection: GoalIntentSelection(primaryGoal: goal),
         expectWeightFollowUps: false,
-        expectedProgressCount: 24,
+        expectedProgressCount: 19,
       ),
     const _AcceptanceCase(
       name: 'Hybrid setup-now Lose weight primary',

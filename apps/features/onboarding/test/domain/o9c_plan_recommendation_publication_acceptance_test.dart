@@ -57,24 +57,31 @@ void main() {
 
         expect(profileRepo.data, isNotNull);
         expect(bodyRepo.data, isNotNull);
-        expect(wellnessRepo.data, isNotNull);
+        expect(
+          wellnessRepo.data,
+          variant.publishesWellness ? isNotNull : isNull,
+        );
 
         final nutritionTargets = await nutritionTargetsRepo.read();
-        expect(nutritionTargets, isNotNull);
-        expect(
-          nutritionTargets?.customizationState,
-          nutrition_owner.NutritionTargetCustomizationState.recommended,
-        );
-        expect(nutritionTargets?.customizedFields, isEmpty);
-        expect(
-          nutritionTargets?.recommendationMetadata['source'],
-          'onboarding',
-        );
-        expect(nutritionTargets?.caloriesKcal, greaterThan(0));
-        expect(nutritionTargets?.proteinGrams, greaterThan(0));
-        expect(nutritionTargets?.carbohydrateGrams, greaterThanOrEqualTo(0));
-        expect(nutritionTargets?.fatGrams, greaterThan(0));
-        expect(nutritionTargets?.fiberGrams, greaterThan(0));
+        if (variant.publishesNutritionTargets) {
+          expect(nutritionTargets, isNotNull);
+          expect(
+            nutritionTargets?.customizationState,
+            nutrition_owner.NutritionTargetCustomizationState.recommended,
+          );
+          expect(nutritionTargets?.customizedFields, isEmpty);
+          expect(
+            nutritionTargets?.recommendationMetadata['source'],
+            'onboarding',
+          );
+          expect(nutritionTargets?.caloriesKcal, greaterThan(0));
+          expect(nutritionTargets?.proteinGrams, greaterThan(0));
+          expect(nutritionTargets?.carbohydrateGrams, greaterThanOrEqualTo(0));
+          expect(nutritionTargets?.fatGrams, greaterThan(0));
+          expect(nutritionTargets?.fiberGrams, greaterThan(0));
+        } else {
+          expect(nutritionTargets, isNull);
+        }
 
         expect(
           await nutritionProfileRepo.read(),
@@ -110,8 +117,6 @@ void main() {
         }
 
         if (variant.workoutIntroChoice == WorkoutIntroChoice.later) {
-          // Dormant draft answers remain reusable, but they are not published
-          // into active Workout canonical owners.
           expect(draft.workout.gymAccess, WorkoutGymAccess.gym);
           expect(draft.workout.specialEvent, '10K race');
         }
@@ -124,7 +129,9 @@ class _Variant {
   const _Variant({
     required this.name,
     required this.mode,
+    required this.publishesWellness,
     required this.publishesNutritionProfile,
+    required this.publishesNutritionTargets,
     required this.publishesWorkout,
     this.workoutIntroChoice,
   });
@@ -132,35 +139,45 @@ class _Variant {
   final String name;
   final AppMode mode;
   final WorkoutIntroChoice? workoutIntroChoice;
+  final bool publishesWellness;
   final bool publishesNutritionProfile;
+  final bool publishesNutritionTargets;
   final bool publishesWorkout;
 }
 
 const _variants = <_Variant>[
   _Variant(
-    name: 'Workout publishes Nutrition Targets plus Workout Profile/Targets only',
+    name: 'Workout publishes Body and Workout owners only',
     mode: AppMode.workout,
+    publishesWellness: false,
     publishesNutritionProfile: false,
+    publishesNutritionTargets: false,
     publishesWorkout: true,
   ),
   _Variant(
-    name: 'Nutrition publishes Nutrition Profile/Targets and no Workout owners',
+    name: 'Nutrition publishes Wellness and Nutrition owners only',
     mode: AppMode.nutrition,
+    publishesWellness: true,
     publishesNutritionProfile: true,
+    publishesNutritionTargets: true,
     publishesWorkout: false,
   ),
   _Variant(
-    name: 'Hybrid setupNow publishes both Nutrition and Workout owners',
+    name: 'Hybrid setupNow publishes Wellness, Nutrition and Workout owners',
     mode: AppMode.hybrid,
     workoutIntroChoice: WorkoutIntroChoice.setupNow,
+    publishesWellness: true,
     publishesNutritionProfile: true,
+    publishesNutritionTargets: true,
     publishesWorkout: true,
   ),
   _Variant(
-    name: 'Hybrid later publishes Nutrition owners but keeps Workout dormant',
+    name: 'Hybrid later publishes Wellness and Nutrition with Workout dormant',
     mode: AppMode.hybrid,
     workoutIntroChoice: WorkoutIntroChoice.later,
+    publishesWellness: true,
     publishesNutritionProfile: true,
+    publishesNutritionTargets: true,
     publishesWorkout: false,
   ),
 ];

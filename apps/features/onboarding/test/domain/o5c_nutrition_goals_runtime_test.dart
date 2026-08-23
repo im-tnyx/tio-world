@@ -4,7 +4,7 @@ import 'package:tio_shared/shared.dart';
 
 void main() {
   group('O5C Nutrition Goals runtime ownership', () {
-    test('all active modes use nutritionGoals and never legacy targets', () {
+    test('Nutrition-active modes use nutritionGoals and never legacy targets', () {
       const planner = BuildOnboardingFlowUseCase();
 
       for (final mode in AppMode.values) {
@@ -16,18 +16,22 @@ void main() {
               : null,
         );
 
-        expect(plan.stepIds, contains(OnboardingStepId.nutritionGoals));
         expect(plan.stepIds, isNot(contains(OnboardingStepId.targets)));
-        expect(
-          plan.definitionFor(OnboardingStepId.nutritionGoals).section,
-          OnboardingSectionId.nutritionGoals,
-        );
+        if (mode == AppMode.workout) {
+          expect(plan.stepIds, isNot(contains(OnboardingStepId.nutritionGoals)));
+        } else {
+          expect(plan.stepIds, contains(OnboardingStepId.nutritionGoals));
+          expect(
+            plan.definitionFor(OnboardingStepId.nutritionGoals).section,
+            OnboardingSectionId.nutritionGoals,
+          );
+        }
       }
     });
 
     test('legacy targets nutrition cursor normalizes losslessly', () {
       final draft = OnboardingDraft(
-        selectedMode: AppMode.workout,
+        selectedMode: AppMode.nutrition,
         currentStepId: OnboardingStepId.targets,
         targets: const TargetsOnboardingDraft(
           currentStepId: TargetStepId.nutritionTarget,
@@ -61,7 +65,7 @@ void main() {
 
     test('active nutritionGoals always owns the Nutrition Target child', () {
       final draft = OnboardingDraft(
-        selectedMode: AppMode.workout,
+        selectedMode: AppMode.nutrition,
         currentStepId: OnboardingStepId.nutritionGoals,
         targets: const TargetsOnboardingDraft(
           currentStepId: TargetStepId.waterTarget,
@@ -80,9 +84,9 @@ void main() {
       final controller = OnboardingController(
         entryPath: OnboardingEntryPath.resumeDraft,
         initialDraft: OnboardingDraft(
-          selectedMode: AppMode.workout,
+          selectedMode: AppMode.nutrition,
           goalSelection: const GoalIntentSelection(
-            primaryGoal: GoalIntent.stayFit,
+            primaryGoal: GoalIntent.maintainWeight,
           ),
           currentStepId: OnboardingStepId.targets,
           profile: _validProfile(),
@@ -107,13 +111,13 @@ void main() {
       );
     });
 
-    test('Back from Nutrition Goals restores preceding Workout child', () {
+    test('Back from Nutrition Goals restores preceding Wellness child', () {
       final controller = OnboardingController(
         entryPath: OnboardingEntryPath.resumeDraft,
         initialDraft: OnboardingDraft(
-          selectedMode: AppMode.workout,
+          selectedMode: AppMode.nutrition,
           goalSelection: const GoalIntentSelection(
-            primaryGoal: GoalIntent.stayFit,
+            primaryGoal: GoalIntent.maintainWeight,
           ),
           currentStepId: OnboardingStepId.nutritionGoals,
           profile: _validProfile(),
@@ -126,10 +130,10 @@ void main() {
 
       controller.previous();
 
-      expect(controller.state.stepId, OnboardingStepId.workoutTargets);
+      expect(controller.state.stepId, OnboardingStepId.wellnessGoals);
       expect(
-        controller.state.draft.workout.currentStepId,
-        WorkoutStepId.specialEvent,
+        controller.state.draft.targets.currentStepId,
+        TargetStepId.waterTarget,
       );
     });
   });

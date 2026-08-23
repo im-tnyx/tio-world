@@ -47,10 +47,12 @@ void main() {
         );
         final healthIndex = plan.stepIds.indexOf(OnboardingStepId.healthConnections);
         final reviewIndex = plan.stepIds.indexOf(OnboardingStepId.review);
-        final nutritionTargetsIndex =
-            plan.stepIds.indexOf(OnboardingStepId.nutritionGoals);
+        final expectedPredecessor = mode == AppMode.workout
+            ? OnboardingStepId.workoutTargets
+            : OnboardingStepId.nutritionGoals;
+        final predecessorIndex = plan.stepIds.indexOf(expectedPredecessor);
 
-        expect(healthIndex, nutritionTargetsIndex + 1, reason: '$mode placement');
+        expect(healthIndex, predecessorIndex + 1, reason: '$mode placement');
         expect(reviewIndex, healthIndex + 1, reason: '$mode review placement');
         expect(
           plan.definitionFor(OnboardingStepId.healthConnections).isRequired,
