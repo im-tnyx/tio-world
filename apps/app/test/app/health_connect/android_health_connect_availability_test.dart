@@ -6,7 +6,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   const channel = MethodChannel(
-    AndroidHealthConnectAvailabilityProbe.channelName,
+    AndroidHealthConnectSurfaceProbe.channelName,
   );
   final messenger =
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
@@ -15,60 +15,60 @@ void main() {
     messenger.setMockMethodCallHandler(channel, null);
   });
 
-  test('exact native available result maps to platform available', () async {
+  test('exact native present result maps to platform surface present', () async {
     messenger.setMockMethodCallHandler(channel, (call) async {
       expect(call.method, 'getAvailability');
-      return 'available';
+      return 'present';
     });
-    final probe = AndroidHealthConnectAvailabilityProbe(
+    final probe = AndroidHealthConnectSurfaceProbe(
       channel: channel,
       isAndroidPlatform: () => true,
     );
 
     expect(
       await probe.read(),
-      HealthConnectPlatformAvailability.available,
+      HealthConnectPlatformPresence.present,
     );
   });
 
-  test('native unavailable result fails closed', () async {
-    messenger.setMockMethodCallHandler(channel, (_) async => 'unavailable');
-    final probe = AndroidHealthConnectAvailabilityProbe(
+  test('native absent result fails closed', () async {
+    messenger.setMockMethodCallHandler(channel, (_) async => 'absent');
+    final probe = AndroidHealthConnectSurfaceProbe(
       channel: channel,
       isAndroidPlatform: () => true,
     );
 
     expect(
       await probe.read(),
-      HealthConnectPlatformAvailability.unavailable,
+      HealthConnectPlatformPresence.absent,
     );
   });
 
-  test('unknown native result never becomes available', () async {
+  test('unknown native result never becomes surface present', () async {
     messenger.setMockMethodCallHandler(channel, (_) async => 'unexpected');
-    final probe = AndroidHealthConnectAvailabilityProbe(
+    final probe = AndroidHealthConnectSurfaceProbe(
       channel: channel,
       isAndroidPlatform: () => true,
     );
 
     expect(
       await probe.read(),
-      HealthConnectPlatformAvailability.unavailable,
+      HealthConnectPlatformPresence.absent,
     );
   });
 
-  test('platform-channel failure never becomes available', () async {
+  test('platform-channel failure never becomes surface present', () async {
     messenger.setMockMethodCallHandler(channel, (_) async {
       throw PlatformException(code: 'health-connect-unavailable');
     });
-    final probe = AndroidHealthConnectAvailabilityProbe(
+    final probe = AndroidHealthConnectSurfaceProbe(
       channel: channel,
       isAndroidPlatform: () => true,
     );
 
     expect(
       await probe.read(),
-      HealthConnectPlatformAvailability.unavailable,
+      HealthConnectPlatformPresence.absent,
     );
   });
 
@@ -76,16 +76,16 @@ void main() {
     var nativeCalls = 0;
     messenger.setMockMethodCallHandler(channel, (_) async {
       nativeCalls++;
-      return 'available';
+      return 'present';
     });
-    final probe = AndroidHealthConnectAvailabilityProbe(
+    final probe = AndroidHealthConnectSurfaceProbe(
       channel: channel,
       isAndroidPlatform: () => false,
     );
 
     expect(
       await probe.read(),
-      HealthConnectPlatformAvailability.unavailable,
+      HealthConnectPlatformPresence.absent,
     );
     expect(nativeCalls, 0);
   });
