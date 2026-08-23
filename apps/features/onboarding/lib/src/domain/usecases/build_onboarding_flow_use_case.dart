@@ -39,6 +39,43 @@ class BuildOnboardingFlowUseCase {
 
     return nextPlan.steps.first.id;
   }
+
+  /// Reconciles a persisted top-level step from the flow policy that existed
+  /// before mode-specific Wellness/Nutrition Target eligibility was introduced.
+  ///
+  /// This is intentionally a migration bridge for resume only. New navigation
+  /// must always use the active plan returned by [call].
+  OnboardingStepId reconcilePersistedCurrentStep({
+    required OnboardingStepId currentStepId,
+    required OnboardingEntryPath entryPath,
+    required AppMode? mode,
+    WorkoutIntroChoice? workoutIntroChoice,
+  }) {
+    final nextPlan = call(
+      entryPath: entryPath,
+      mode: mode,
+      workoutIntroChoice: workoutIntroChoice,
+    );
+    if (nextPlan.contains(currentStepId) || mode == null) {
+      return nextPlan.contains(currentStepId)
+          ? currentStepId
+          : nextPlan.steps.first.id;
+    }
+
+    final previousPlan = OnboardingFlowPlan(
+      entryPath: entryPath,
+      mode: mode,
+      steps: _legacyPreModeSpecificStepsByMode(
+        mode,
+        workoutIntroChoice: workoutIntroChoice,
+      ),
+    );
+    return reconcileCurrentStep(
+      currentStepId: currentStepId,
+      previousPlan: previousPlan,
+      nextPlan: nextPlan,
+    );
+  }
 }
 
 List<OnboardingStepDefinition> _stepsByMode(
@@ -83,6 +120,54 @@ List<OnboardingStepDefinition> _stepsByMode(
             _workoutProfile,
             _workoutTargets,
             _wellnessGoals,
+            _nutritionGoals,
+            _healthConnections,
+            _review,
+          ],
+  };
+}
+
+List<OnboardingStepDefinition> _legacyPreModeSpecificStepsByMode(
+  AppMode mode, {
+  WorkoutIntroChoice? workoutIntroChoice,
+}) {
+  const commonFoundation = <OnboardingStepDefinition>[
+    _profileBasics,
+    _bodyGoal,
+    _wellnessGoals,
+  ];
+
+  return switch (mode) {
+    AppMode.workout => [
+        ...commonFoundation,
+        _workoutProfile,
+        _workoutTargets,
+        _nutritionGoals,
+        _healthConnections,
+        _review,
+      ],
+    AppMode.nutrition => [
+        ...commonFoundation,
+        _nutritionProfile,
+        _nutritionGoals,
+        _healthConnections,
+        _review,
+      ],
+    AppMode.hybrid => workoutIntroChoice == WorkoutIntroChoice.later
+        ? [
+            ...commonFoundation,
+            _nutritionProfile,
+            _workoutIntro,
+            _nutritionGoals,
+            _healthConnections,
+            _review,
+          ]
+        : [
+            ...commonFoundation,
+            _nutritionProfile,
+            _workoutIntro,
+            _workoutProfile,
+            _workoutTargets,
             _nutritionGoals,
             _healthConnections,
             _review,
