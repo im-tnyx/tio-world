@@ -153,7 +153,7 @@ void main() {
   });
 
   test(
-      'atomic completion when durable owner persistence is explicitly enabled: owner writes -> confirmed mode write -> status completed',
+      'Workout completion persists only Profile, Body, and Workout owners before completion',
       () async {
     final operations = <String>[];
     final preference = _FakeAppModePreference(operations: operations);
@@ -189,12 +189,11 @@ void main() {
 
     expect(await profileRepo.getProfileSetup(), isNotNull);
     expect(bodyRepo.data, isNotNull);
-    expect(wellnessRepo.data, isNotNull);
-    expect(wellnessRepo.data?.dailySteps, 10000);
+    expect(wellnessRepo.data, isNull);
     expect(await nutritionProfileRepo.read(), isNull);
     expect(await workoutProfileRepo.read(), isNotNull);
     expect(await workoutTargetsRepo.read(), isNotNull);
-    expect(await nutritionTargetsRepo.read(), isNotNull);
+    expect(await nutritionTargetsRepo.read(), isNull);
     expect(preference.storedMode, AppMode.workout);
     expect(repository.status, OnboardingStatus.completed);
     expect(
@@ -205,6 +204,32 @@ void main() {
         'repository.write.completed',
       ],
     );
+  });
+
+  test('Nutrition owner persistence keeps Wellness and Nutrition Target active',
+      () async {
+    final draft = OnboardingDraft(
+      selectedMode: AppMode.nutrition,
+      goalSelection:
+          const GoalIntentSelection(primaryGoal: GoalIntent.maintainWeight),
+      profile: _validProfile(),
+      targets: _validTargets(),
+    );
+    final flowPlan = const BuildOnboardingFlowUseCase()(
+      entryPath: OnboardingEntryPath.firstRun,
+      mode: AppMode.nutrition,
+    );
+
+    await persistUseCase(draft: draft, flowPlan: flowPlan);
+
+    expect(await profileRepo.getProfileSetup(), isNotNull);
+    expect(bodyRepo.data, isNotNull);
+    expect(wellnessRepo.data, isNotNull);
+    expect(wellnessRepo.data?.dailySteps, 10000);
+    expect(await nutritionProfileRepo.read(), isNotNull);
+    expect(await workoutProfileRepo.read(), isNull);
+    expect(await workoutTargetsRepo.read(), isNull);
+    expect(await nutritionTargetsRepo.read(), isNotNull);
   });
 
   test('owner persistence failure prevents confirmed mode and status writes',
