@@ -60,6 +60,7 @@ Future<void> _pumpBodyGoal(
     ProviderScope(
       child: MaterialApp(
         builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(),
           child: child ?? const SizedBox.shrink(),
         ),
         home: OnboardingFlowPage(
