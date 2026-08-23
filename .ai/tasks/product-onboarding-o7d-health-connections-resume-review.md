@@ -1,6 +1,6 @@
 # Product Onboarding O7D — Health Connections Resume + Review
 
-**Status:** In progress  
+**Status:** Validated  
 **Primary owner:** Product Onboarding orchestration  
 **Affected platforms:** Flutter phone app (platform-neutral onboarding behavior)
 
@@ -11,162 +11,78 @@
 **Parent Product Onboarding:** #40  
 **Canonical ownership:** #44  
 **O11 cleanup:** #54 BLOCKED until O10  
-**Implementation PR:** #50 Draft/open/unmerged  
-**Branch:** `agent/onboarding-slice-2-step-1-body-goal-ui`
+**Implementation PR:** #50 Draft/open/unmerged
 
-## Starting exact validated checkpoint
+## Exact validated O7D checkpoint
 
 ```text
-f95ddf7cef05e658566e5d9493efd6099edded76
-Flutter CI #1593 / run 32611022666 / job 97124041663 ✅
-Android Native CI #5 / run 32611022667 / job 97124042275 ✅
+879112d05999a2d204e6d5e7cf93ec98415aa32f
+Flutter CI #1600 / run 32612274689 / job 97127075778
+Flutter analyze ✅
+Dart analyze    ✅
+Flutter tests   ✅
+Dart tests      ✅
+
+Android Native CI #12 / run 32612274590 / job 97127104588
+Android debug APK/native compile ✅
 ```
 
-Tracker/docs commits after this SHA do not replace exact O7C validation.
+Docs/tracker commits after this SHA do not replace exact O7D validation.
 
-## Global UI / Design-System Guardrail
+## Result
 
-O7D is non-visual by default. Preserve existing Health Connections and Review rendering unless a correctness gap requires a minimal copy/state adjustment. Before any Flutter visual change, re-read `apps/core/lib/src/theme/README.md` and `apps/features/AGENTS.md` and reuse existing core components.
+O7D required no production/schema/UI change. Source audit confirmed the architecture already matches the availability-only decision:
 
-## 1. Discovery
+- `OnboardingDraft` has no Health Connect presence/authorization field;
+- snapshot JSON persists ordinary `current_step_id` / `completed_step_ids` only;
+- leaving `healthConnections` records only the ordinary completed-step checkpoint and moves to Review;
+- that checkpoint autosaves and resumes at Review instead of replaying Health Connections;
+- Review does not claim `connected` or imported health data;
+- no health-data owner/repository/database write is introduced.
 
-### User Outcome
+Focused coverage lives in:
 
-A user can skip Health Connections during early-stage onboarding, leave/restart/resume safely, reach Review, and finish onboarding without Tio persisting or implying health authorization that does not exist yet.
+`apps/features/onboarding/test/domain/o7d_health_connections_resume_review_test.dart`
 
-### Success Criteria
+It proves:
 
-- Health Connections remains optional/non-blocking.
-- Completion of the Health Connections onboarding step may persist only as ordinary onboarding progress/checkpoint state.
-- Live Health Connect presence/authorization truth is not serialized into `OnboardingDraft` or `onboarding_drafts`.
-- Review does not claim `connected` or imported data availability.
-- Onboarding completion performs no health-data owner write.
-- Historical/pre-O7B unfinished drafts reconcile through Health Connections as already validated.
-- Full Flutter four-gate CI passes on one exact O7D source SHA.
+1. Health step progress round-trips while platform health state is absent from serialized draft JSON;
+2. completed Health Connections resumes at Review through the existing draft repository;
+3. Review never fabricates a connected Health state.
 
-### Scope
+The first CI candidate #1599 failed only because the new test referenced non-exported `ReviewScreen`. The test was corrected to exercise the public `ReviewSection` boundary; production source was unchanged.
 
-- audit snapshot/draft mapper fields for Health status leakage;
-- audit resume checkpoint semantics at/after `healthConnections`;
-- audit Review presentation/data model for truthful availability-only wording;
-- add focused regression/acceptance tests;
-- make only the smallest source correction proven by failing acceptance.
-
-### Non-Goals
-
-- Health Connect SDK authorization;
-- `android.permission.health.*` declarations;
-- activity/sleep/nutrition/workout/water record sync;
-- health-data schema/RLS or canonical imported-record owner;
-- Recovery implementation;
-- HealthKit/iOS;
-- O8 generic Review/edit-back redesign.
-
-## 2. Codebase Exploration
-
-### Verified Evidence
-
-- O7B runtime places `Health Connections` after Nutrition Targets and before Review.
-- `HealthConnectionsController` owns live status separately from `OnboardingDraft`.
-- O7C source checkpoint only probes Android Health Connect surface presence and keeps production onboarding authorization unavailable/connect-later.
-- #79 explicitly decides current onboarding stays availability-only; future activity/sleep/nutrition/workout/water sync is deferred to consuming features with exact permission contracts.
-- Current canonical owner map has no approved imported-health-record owner.
-
-Source/config to inspect before implementation:
-
-- `apps/features/onboarding/lib/src/domain/models/onboarding_draft.dart`
-- `apps/features/onboarding/lib/src/domain/models/onboarding_draft_snapshot.dart`
-- `apps/features/onboarding/lib/src/data/mappers/onboarding_draft_snapshot_dto_mapper.dart`
-- `apps/features/onboarding/lib/src/presentation/controllers/health_connections_controller.dart`
-- `apps/features/onboarding/lib/src/presentation/screens/review/review_screen.dart`
-- `apps/features/onboarding/lib/src/presentation/sections/health_connections_section.dart`
-- existing O7B and draft persistence/resume tests.
-
-## 3. Clarification
-
-### Decisions Required or Made
-
-| Decision | Status | Rationale | Owner |
-|---|---|---|---|
-| Current onboarding requests Health Connect data permissions | No / frozen | Early stage; no approved consuming data contract | Product #79 |
-| Future activity/sleep/nutrition/workout/water sync intent | Planned, not permission approval | Exact records/access/owners defined later per consuming feature | Product #79 |
-| Persist live Health authorization in onboarding draft | No | Device/platform truth is not onboarding-owned durable data | #44/#79 |
-| Persist ordinary Health Connections step completion/checkpoint | Yes, through existing onboarding orchestration only | Needed for resume without storing platform state | O7D |
-| Add health DB table in O7D | No | No durable health connection/record owner approved | O7D |
-
-## 4. Architecture Design
-
-### Chosen Approach
-
-Treat Health Connections as an ordinary optional onboarding step for navigation/resume while keeping all platform health state ephemeral and outside onboarding serialization.
-
-### Ownership and Data Flow
+## Frozen ownership/data flow
 
 ```text
-Health Connections screen
-  → HealthConnectionsController (ephemeral live state only)
-  → HealthConnectionGateway (platform boundary)
+Health Connections UI
+  → ephemeral HealthConnectionsController / gateway state
 
 OnboardingController
-  → currentStepId/completedStepIds only
-  → OnboardingDraft snapshot persistence
+  → currentStepId + completedStepIds
+  → onboarding draft checkpoint persistence
 
 Review
-  → onboarding choices/progress truth only
-  → never imported health records or fabricated authorization
+  → onboarding plan/targets truth only
+  → no health authorization claim
 ```
 
-### Alternative Rejected
+## Product boundary retained
 
-- Persist `connected/denied/unavailable` in `onboarding_drafts`: rejected because it can become stale and is not onboarding-owned truth.
-- Add a Health Connections database owner now: rejected because no durable connection/data contract is approved.
-- Skip Health Connections checkpoint persistence entirely: rejected because resume would repeatedly reinsert an already-completed optional step.
+Current early-stage onboarding requests no Health Connect data permissions. Future intent to sync activity, sleep, nutrition, workout and water/hydration does not approve any broad permission set today. The first consuming health feature must define exact record types, access, canonical owner, retention/consent and store/privacy scope.
 
-### Failure and Accessibility States
+## Guardrails
 
-- Unavailable or deferred health integration never blocks onboarding completion.
-- Resume after process/app restart must land on the correct next onboarding step based on ordinary progress state.
-- Review wording must be understandable without implying permission grant/data sync.
+- no `android.permission.health.*` in current O7;
+- no live Health authorization state in `onboarding_drafts`;
+- no imported health records in onboarding storage;
+- no fake `connected`;
+- no new DB migration/minSdk change;
+- PR #50 remains Draft/open/unmerged;
+- O11 remains blocked until O10.
 
-## 5. Implementation Plan
+## Final Status
 
-- [ ] inspect draft/snapshot serialization for any Health status field;
-- [ ] inspect current Health Connections completion checkpoint/resume semantics;
-- [ ] inspect Review data/copy for connection claims;
-- [ ] add focused O7D tests proving no health-state serialization;
-- [ ] add resume test after Health Connections completion;
-- [ ] add Review truthfulness test for availability/connect-later scope;
-- [ ] add completion test proving no health owner/write is invoked;
-- [ ] fix only evidence-backed gaps;
-- [ ] run full Flutter four-gate CI on one exact source SHA;
-- [ ] freeze #80 and activate O7E only after exact green evidence.
+`PASS`
 
-## 6. Quality Review
-
-### Validation Run
-
-```text
-Not run yet for O7D.
-```
-
-### Review Findings and Resolution
-
-Pending source audit and focused tests.
-
-## 7. Final Handoff
-
-### Changed Files
-
-Pending.
-
-### Actual Behavior
-
-Pending validation.
-
-### Known Limitations
-
-Real Health Connect authorization and activity/sleep/nutrition/workout/water sync remain intentionally deferred beyond Product Onboarding.
-
-### Final Status
-
-`REVIEW`
+Next slice: O7E integrated Health Connections acceptance.
