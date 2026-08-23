@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_feature_progress/progress.dart';
@@ -131,5 +133,90 @@ final class CanonicalProfileDataReader {
       mobile: account.mobile,
       isMobileVerified: account.isMobileVerified,
     );
+  }
+}
+
+/// Realtime invalidation bridge for the canonical Profile display composition.
+///
+/// Table events are only refresh signals. Semantic parsing remains delegated to
+/// [CanonicalProfileDataReader] and its canonical owner repositories.
+final class CanonicalSupabaseProfileDataStream {
+  const CanonicalSupabaseProfileDataStream({
+    required SupabaseClient client,
+    required CanonicalProfileDataReader reader,
+  })  : _client = client,
+        _reader = reader;
+
+  final SupabaseClient _client;
+  final CanonicalProfileDataReader _reader;
+
+  Stream<ProfileSetupData?> watch() {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null || userId.isEmpty) {
+      return Stream<ProfileSetupData?>.value(null);
+    }
+
+    late final StreamController<ProfileSetupData?> controller;
+    final channels = <RealtimeChannel>[];
+    var cancelled = false;
+    var refreshInFlight = false;
+    var refreshQueued = false;
+
+    Future<void> refresh() async {
+      if (cancelled) return;
+      if (refreshInFlight) {
+        refreshQueued = true;
+        return;
+      }
+      refreshInFlight = true;
+      try {
+        do {
+          refreshQueued = false;
+          try {
+            final value = await _reader.read();
+            if (!cancelled) controller.add(value);
+          } catch (error, stackTrace) {
+            if (!cancelled) controller.addError(error, stackTrace);
+          }
+        } while (refreshQueued && !cancelled);
+      } finally {
+        refreshInFlight = false;
+      }
+    }
+
+    void subscribe({required String table, required String userColumn}) {
+      final channel = _client.channel('profile-canonical:$table:$userId')
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: table,
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: userColumn,
+            value: userId,
+          ),
+          callback: (_) => unawaited(refresh()),
+        )
+        ..subscribe();
+      channels.add(channel);
+    }
+
+    controller = StreamController<ProfileSetupData?>(
+      onListen: () {
+        subscribe(table: 'users', userColumn: 'id');
+        subscribe(table: 'user_profiles', userColumn: 'user_id');
+        subscribe(table: 'body_weight_logs', userColumn: 'user_id');
+        subscribe(table: 'user_body_goals', userColumn: 'user_id');
+        unawaited(refresh());
+      },
+      onCancel: () {
+        cancelled = true;
+        for (final channel in channels) {
+          unawaited(channel.unsubscribe());
+        }
+      },
+    );
+
+    return controller.stream;
   }
 }
