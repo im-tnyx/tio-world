@@ -213,7 +213,7 @@ void main() {
     });
 
     test(
-        'Wellness owner failure blocks Workout, Nutrition, mode and completion publication',
+        'Wellness owner failure blocks Nutrition, mode and completion publication',
         () async {
       final operations = <String>[];
       final nutritionProfile = _RecordingNutritionProfileRepository(operations);
@@ -239,15 +239,10 @@ void main() {
           backendUserReady: true,
         ),
       );
-      final draft = _draft(
-        mode: AppMode.workout,
-        goalSelection: const GoalIntentSelection(
-          primaryGoal: GoalIntent.getStronger,
-        ),
-      );
+      final draft = _draft();
       final flowPlan = const BuildOnboardingFlowUseCase()(
         entryPath: OnboardingEntryPath.firstRun,
-        mode: AppMode.workout,
+        mode: AppMode.nutrition,
         workoutIntroChoice: null,
       );
 
