@@ -1,7 +1,7 @@
 # Product Onboarding O9A — Finalization Durability Gate
 
-**Status:** Active  
-**Tracker:** GitHub Issue #89  
+**Status:** Completed / validated  
+**Tracker:** GitHub Issue #89 ✅ closed  
 **Parent O9:** #88  
 **Parent Product Onboarding:** #40  
 **Canonical ownership:** #44  
@@ -16,45 +16,44 @@ Flutter CI #1621 / run 32629836907 / job 97170826659 ✅
 Android Native CI #33 / run 32629836917 / job 97170803705 ✅
 ```
 
-## Audit result
+## Final exact validated checkpoint
 
-The domain finalizer already rechecks completion eligibility and orders completion publication after owner persistence. The app composition currently overstates durability:
+```text
+d2898b56784fc815a6df893b504673641d20050e
+Flutter CI #1627 / run 32636013590 / job 97185796250 ✅
+Android Native CI #39 / run 32636013591 / job 97185787171 ✅
 
-- Review/UI validator uses `hasDurableOwnerPersistence: true` unconditionally;
-- router finalization repeats `const hasDurableStorage = true`;
-- readiness can become true when Supabase is unavailable;
-- without Supabase, canonical Body/Wellness/Workout/Nutrition repositories are in-memory fallbacks.
+Flutter analyze ✅
+Dart analyze    ✅
+Flutter tests   ✅
+Dart tests      ✅
+Android debug APK/native compile ✅
+```
 
-O9A must fail closed unless the canonical Supabase owner path exists and the Supabase user is authenticated.
+Later task/tracker commits are documentation-only and do not replace this runtime checkpoint.
 
-## Scope
+## Validated result
 
-- add a single app-level durability/readiness contract builder;
+The domain finalizer already rechecked completion eligibility and ordered completion publication after owner persistence. O9A corrected app composition so durability is no longer overstated.
+
 - Supabase client absent → not durable / not backend-ready;
 - Supabase client present but user absent → durable capability exists / backend not ready;
 - Supabase client + authenticated user → durable / backend ready;
-- use the same contract for the Review validator provider and router commit-time validator;
-- preserve in-memory fallback providers for tests/local harness construction only.
+- Review/UI and router commit-time finalization use the same fail-closed helper;
+- Firebase/API availability cannot qualify in-memory canonical owner fallbacks as durable completion storage;
+- safe in-memory fallbacks remain available for tests/local harnesses.
 
 ## Acceptance
 
-- [ ] no-Supabase regression test blocks completion;
-- [ ] helper truth table is explicit for absent client, unauthenticated client capability and authenticated client;
-- [ ] app provider no longer hard-codes durable persistence true;
-- [ ] router no longer hard-codes durable persistence true or treats Supabase absence as finalization-ready;
-- [ ] existing completion order/failure/retry/idempotency tests remain green;
-- [ ] no owner/schema/migration changes;
-- [ ] all Flutter/Dart gates green on exact SHA;
-- [ ] Android native debug build green on same SHA.
-
-## Guardrails
-
-- fail closed;
-- no removal of safe test/local in-memory repositories;
-- no O9B/O9C scope;
-- no O11 cleanup;
-- PR #50 remains Draft/open/unmerged.
+- [x] no-Supabase regression test blocks completion;
+- [x] helper truth table covers absent / unauthenticated / authenticated Supabase states;
+- [x] app provider no longer hard-codes durable persistence true;
+- [x] router no longer hard-codes durable persistence true or treats Supabase absence as finalization-ready;
+- [x] existing completion order/failure/retry/idempotency tests remain green;
+- [x] no owner/schema/migration changes;
+- [x] all Flutter/Dart gates green on exact SHA;
+- [x] Android native debug build green on same SHA.
 
 ## Exit
 
-Freeze O9A exact CI, close #89, then continue O9B owner write ordering + failure atomicity audit.
+O9A is frozen on `d2898b56784fc815a6df893b504673641d20050e` / Flutter CI #1627 / Android Native CI #39. Continue O9B canonical owner write ordering + completion atomicity / retry convergence.
