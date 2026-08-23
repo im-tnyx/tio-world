@@ -18,11 +18,12 @@ Use this file to distinguish validated runtime from remaining Product Onboarding
 | Body Goal ownership | Validated | Body + onboarding | O3 #55 / CI #1354. |
 | Wellness canonical onboarding | Validated | Wellness + onboarding | O4 #58 / CI #1441. |
 | Nutrition canonical onboarding | Validated | Nutrition + onboarding | O5 #63 / source `b017f6c31c9c89a6df1ba6b670ea0ea04d635941` / CI #1507. |
-| Workout canonical onboarding | Validated | Workout + onboarding + app | O6 #69 / source `d56e8226f8631bc81d3dd309cbb22c631ca636f5` / CI #1555. Canonical Profile/Targets runtime + persistence cutover + integrated acceptance complete. |
-| Health Connections runtime/UI | Validated | onboarding orchestration | O7B #77 / source `371fafb8cf8a27b6f7922733b071277accf4af98` / CI #1575. Optional/non-blocking step active before Review; fallback never fabricates connection. |
-| Android Health Connect platform adapter | Active | app/platform + onboarding boundary | O7C #78. Availability/provider detection may proceed; health-data permission scope remains gated until exact product record types/use case are source-backed. |
-| Health connection durability/review integration | Pending | unresolved until O7D | No imported health records in `onboarding_drafts`. |
-| Integrated Health Connections acceptance | Pending | onboarding + platform | O7E after O7D. |
+| Workout canonical onboarding | Validated | Workout + onboarding + app | O6 #69 / source `d56e8226f8631bc81d3dd309cbb22c631ca636f5` / CI #1555. |
+| Health Connections runtime/UI | Validated | onboarding orchestration | O7B #77 / source `371fafb8cf8a27b6f7922733b071277accf4af98` / CI #1575. Optional/non-blocking step active before Review. |
+| Android Health Connect surface presence | Validated | app/platform | O7C1 / #78 / source `f95ddf7cef05e658566e5d9493efd6099edded76` / Flutter CI #1593 + Android Native CI #5. Presence only; no readiness/authorization claim. |
+| Android Health Connect SDK readiness + authorization | Blocked | app/platform + product data owner | O7C2 blocked by #79 until first product capability, exact record types/access, owner, retention and privacy scope are approved. |
+| Health connection durability/review integration | Blocked | unresolved until O7D | O7D waits for O7C2. No imported health records in `onboarding_drafts`. |
+| Integrated Health Connections acceptance | Blocked | onboarding + platform | O7E waits for O7C2/O7D. |
 | Review + edit-back + draft/resume reconciliation | Partial | onboarding | O8 after O7. |
 | Plan Building / finalization | Pending | onboarding orchestration | O9. Truthful/idempotent finalization only. |
 | Full Product Onboarding acceptance | Pending | onboarding + owners | O10. All modes/navigation/resume/persistence/failure/device acceptance. |
@@ -39,45 +40,51 @@ O3 Body Goal                                     ✅ #55 / CI #1354
 O4 Wellness                                      ✅ #58 / CI #1441
 O5 Nutrition                                     ✅ #63 / CI #1507
 O6 Workout                                       ✅ #69 / CI #1555
-→ O7 Health Connections                          ACTIVE #75
+→ O7 Health Connections                          ACTIVE/BLOCKED #75
    O7A contract/readiness                        ✅ #76
    O7B runtime/UI                                ✅ #77 / CI #1575
-   → O7C Android Health Connect adapter          ACTIVE #78
-   O7D persistence/resume/review integration
-   O7E integrated acceptance
+   O7C Android Health Connect adapter            PARTIAL #78
+      O7C1 surface presence                      ✅ f95ddf7c / CI #1593 + Native #5
+      O7C2 readiness + authorization             BLOCKED #79
+   O7D durability/review integration             BLOCKED
+   O7E integrated acceptance                    BLOCKED
 → O8 Review/resume/edit-back
 → O9 finalization
 → O10 final acceptance
 → O11 canonical schema cleanup                   BLOCKED #54
 ```
 
-## Latest exact validated source checkpoint
+## Latest exact validated source/platform checkpoint
 
 ```text
-371fafb8cf8a27b6f7922733b071277accf4af98
-Flutter CI #1575 / run 32607322748 / job 97114316589
+f95ddf7cef05e658566e5d9493efd6099edded76
+Flutter CI #1593 / run 32611022666 / job 97124041663
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
 Dart tests      ✅
+
+Android Native CI #5 / run 32611022667 / job 97124042275
+Android debug APK/native compile ✅
 ```
 
 ## Important current-source facts
 
 - O7B activates Health Connections in Workout/Nutrition/Hybrid after Nutrition Targets and before Review.
-- Health Connections is optional, non-blocking and retryable later.
-- `HealthConnectionGateway` is the narrow orchestration/platform boundary; only a real platform adapter may return `connected`.
+- Health Connections remains optional, non-blocking and retryable later.
+- `HealthConnectionGateway` is the narrow onboarding/platform boundary; only a real authorized adapter may return `connected`.
 - Live Health authorization status is not serialized in `OnboardingDraft`.
-- Pre-O7B unfinished Review checkpoints reconcile through Health Connections.
-- O7C must keep platform implementation/composition outside onboarding business logic.
-- Current app source has no health plugin and no health-data permissions.
-- Repository roadmap defers health permissions/wearable-data sync pending Recovery/data-source/privacy approval; do not invent broad Health Connect scopes.
+- O7C1 is app-owned platform infrastructure only and reports `present/absent` Health Connect surface presence.
+- O7C1 adds only provider package visibility; it adds no health-data permissions, record access, client SDK dependency or minSdk change.
+- Production still uses the O7B unavailable gateway because authorization is not yet implemented.
+- O7C2 is blocked by #79; existing wellness step/sleep targets are not permission-scope evidence.
 - Applied migrations are immutable; duplicate physical cleanup belongs only to O11 after O10.
 
 ## Update rules
 
 - Move capability state only with exact source + CI evidence.
 - One Product Onboarding implementation slice is active at a time.
-- Do not turn platform availability into fake authorization success.
+- Surface presence is not SDK readiness; SDK readiness is not authorization.
 - No health-data permission without an exact source-backed record-type/use-case scope.
+- Do not start O7D/O7E while O7C2 is blocked.
 - Do not merge PR #50 until O10-level acceptance and remaining required gates are resolved.
