@@ -8,6 +8,8 @@ import 'package:tio_feature_progress/progress.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
+import 'profile/canonical_profile_data_reader.dart';
+
 /// Configuration for client-safe Supabase credentials.
 class SupabaseConfig {
   const SupabaseConfig({required this.url, required this.anonKey});
@@ -373,8 +375,26 @@ final sendPasswordResetEmailUseCaseProvider =
   return null;
 });
 
+/// Live Profile display data.
+///
+/// Supabase-backed production sessions compose this DTO strictly from the
+/// canonical Profile and Body owners plus account-only fields in `users`.
+/// Legacy `users` Profile/Body mirrors are not read on this path.
 final profileDataProvider = StreamProvider<ProfileSetupData?>((ref) {
   ref.watch(authSessionStateProvider);
+  final client = ref.watch(supabaseClientProvider);
+  if (client != null) {
+    final reader = CanonicalProfileDataReader(
+      profileRepository: SupabaseUserProfileRepository(client: client),
+      bodyRepository: SupabaseBodySetupRepository(client: client),
+      accountReader: SupabaseProfileAccountSnapshotReader(client: client),
+    );
+    return CanonicalSupabaseProfileDataStream(
+      client: client,
+      reader: reader,
+    ).watch();
+  }
+
   final repository = ref.watch(profileSetupRepositoryProvider);
   return repository.watchProfileSetup();
 });
