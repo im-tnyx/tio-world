@@ -60,6 +60,34 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
   late double _paceValue;
   double _lastVibratedPace = GoalPaceResolver.defaultPaceKgPerWeek;
 
+  bool get _usesPounds =>
+      widget.profile.unitPreferences.weightUnit == WeightUnit.lb;
+
+  String _formatPace(double kgPerWeek) {
+    final value =
+        _usesPounds ? MeasurementConverters.kgToLb(kgPerWeek) : kgPerWeek;
+    final unit = _usesPounds ? 'lb' : 'kg';
+    return '${value.toStringAsFixed(1)} $unit / week';
+  }
+
+  String _formatWeight(double kg) {
+    return MeasurementFormatters.formatWeight(
+      kg,
+      _usesPounds ? WeightUnit.lb : WeightUnit.kg,
+    );
+  }
+
+  String _warningMessage(GoalPaceWarning warning) {
+    if (_usesPounds) {
+      return warning == GoalPaceWarning.aggressiveLoss
+          ? 'Losing more than 2.2 lb per week may cause fatigue, muscle loss, and lower adherence. A steady pace of 0.9–1.5 lb/week is recommended.'
+          : 'Gaining more than 2.2 lb per week may increase unwanted fat accumulation rather than lean muscle tissue.';
+    }
+    return warning == GoalPaceWarning.aggressiveLoss
+        ? 'Losing more than 1.0 kg per week may cause fatigue, muscle loss, and lower adherence. A steady pace of 0.4–0.7 kg/week is recommended.'
+        : 'Gaining more than 1.0 kg per week may increase unwanted fat accumulation rather than lean muscle tissue.';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -156,7 +184,7 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
                 const SizedBox(height: TioSpacing.md),
                 Center(
                   child: Text(
-                    '${_paceValue.toStringAsFixed(1)} kg / week',
+                    _formatPace(_paceValue),
                     key: const ValueKey('targets-goal-pace-value-text'),
                     style: textTheme.headlineMedium?.copyWith(
                       fontSize: TioFontSize.size32,
@@ -288,7 +316,7 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
                     ),
                     children: [
                       TextSpan(
-                        text: '${targetWeightKg.toStringAsFixed(1)} kg',
+                        text: _formatWeight(targetWeightKg),
                         style: textTheme.titleLarge?.copyWith(
                           color: colors.textPrimary,
                           fontWeight: TioFontWeight.w700,
@@ -378,7 +406,7 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
                         top: isLoss ? TioSize.dp4 : null,
                         bottom: isLoss ? null : TioSize.dp20,
                         child: _WeightBadge(
-                          text: '${currentWeightKg.toStringAsFixed(1)} kg',
+                          text: _formatWeight(currentWeightKg),
                           colors: colors,
                           textTheme: textTheme,
                         ),
@@ -388,7 +416,7 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
                         bottom: isLoss ? TioSize.dp20 : null,
                         top: isLoss ? null : TioSize.dp4,
                         child: _WeightBadge(
-                          text: '${targetWeightKg.toStringAsFixed(1)} kg',
+                          text: _formatWeight(targetWeightKg),
                           colors: colors,
                           textTheme: textTheme,
                         ),
@@ -488,9 +516,7 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
                   ),
                   const SizedBox(height: TioSize.dp14),
                   Text(
-                    warning == GoalPaceWarning.aggressiveLoss
-                        ? 'Losing more than 1.0 kg per week may cause fatigue, muscle loss, and lower adherence. A steady pace of 0.4–0.7 kg/week is recommended.'
-                        : 'Gaining more than 1.0 kg per week may increase unwanted fat accumulation rather than lean muscle tissue.',
+                    _warningMessage(warning),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: colors.textSecondary,
