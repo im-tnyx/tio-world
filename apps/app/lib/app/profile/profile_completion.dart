@@ -49,9 +49,11 @@ final profileCompletionReminderPreferenceProvider =
   return const ProfileCompletionReminderPreference();
 });
 
-/// Reads only the persisted/auth fields that participate in the Profile
-/// completion reminder. Display fallbacks in [ProfileSetupData] are deliberately
-/// not used as evidence that Gender or DOB were actually supplied.
+/// Reads Profile-owned completion truth from canonical `user_profiles` and only
+/// Account-owned reminder fields from `public.users`.
+///
+/// Legacy Profile mirrors in `users` are deliberately not selected or accepted
+/// as fallback evidence for Name, Gender, or Date of Birth.
 final profileCompletionSummaryProvider =
     FutureProvider<ProfileCompletionSummary?>((ref) async {
   ref.watch(authSessionStateProvider);
@@ -59,22 +61,22 @@ final profileCompletionSummaryProvider =
   final user = client?.auth.currentUser;
   if (client == null || user == null || user.id.isEmpty) return null;
 
-  final row = await client
+  final profile = await SupabaseUserProfileRepository(client: client).read();
+  if (profile == null) return null;
+
+  final accountRow = await client
       .from('users')
-      .select('name,username,mobile,gender,date_of_birth')
+      .select('username,mobile')
       .eq('id', user.id)
       .maybeSingle();
 
-  final gender = (row?['gender'] as String?)?.trim() ?? '';
-  final dob = (row?['date_of_birth'] as String?)?.trim() ?? '';
-
   return ProfileCompletionSummary.fromFields(
-    name: row?['name'] as String?,
-    username: row?['username'] as String?,
+    name: profile.name,
+    username: accountRow?['username'] as String?,
     email: user.email,
-    mobile: row?['mobile'] as String?,
-    hasGender: gender.isNotEmpty,
-    hasDateOfBirth: dob.isNotEmpty && DateTime.tryParse(dob) != null,
+    mobile: accountRow?['mobile'] as String?,
+    hasGender: true,
+    hasDateOfBirth: true,
   );
 });
 
