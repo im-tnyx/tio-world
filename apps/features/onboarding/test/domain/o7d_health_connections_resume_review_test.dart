@@ -98,18 +98,21 @@ void main() {
         mode: AppMode.nutrition,
         workoutIntroChoice: null,
       );
+      final state = OnboardingState(
+        draft: draft,
+        flowPlan: flowPlan,
+        workoutFlowPlan: const WorkoutFlowPlan(steps: []),
+        stepId: OnboardingStepId.review,
+        completionEligibility: OnboardingCompletionEligibility.eligible,
+        completedStepIds: draft.completedStepIds,
+      );
 
       await tester.pumpWidget(
         MaterialApp(
           home: TioTheme(
             child: Scaffold(
               body: SingleChildScrollView(
-                child: ReviewScreen(
-                  draft: draft,
-                  flowPlan: flowPlan,
-                  completionEligibility:
-                      OnboardingCompletionEligibility.eligible,
-                ),
+                child: ReviewSection(state: state),
               ),
             ),
           ),
