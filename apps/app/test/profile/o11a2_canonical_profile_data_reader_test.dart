@@ -32,7 +32,7 @@ void main() {
               measuredAt: DateTime.utc(2026, 8, 23),
               source: BodyWeightSources.profileSettings,
             ),
-            activeGoal: BodyGoalState(
+            activeGoal: const BodyGoalState(
               goalType: BodyGoalType.loseWeight,
               targetWeightKg: 58,
             ),
