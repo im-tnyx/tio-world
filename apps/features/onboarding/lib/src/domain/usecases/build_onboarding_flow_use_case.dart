@@ -51,7 +51,6 @@ class BuildOnboardingFlowUseCase {
     required OnboardingEntryPath entryPath,
     required AppMode? mode,
     WorkoutIntroChoice? workoutIntroChoice,
-    Set<OnboardingStepId> completedStepIds = const {},
   }) {
     final nextPlan = call(
       entryPath: entryPath,
@@ -59,18 +58,15 @@ class BuildOnboardingFlowUseCase {
       workoutIntroChoice: workoutIntroChoice,
     );
 
-    // #106 reordered Hybrid so the Workout block comes before Nutrition
-    // Profile. A persisted draft sitting on Nutrition Profile without having
-    // completed Workout Intro/Workout sections is therefore from the older
-    // Nutrition-first policy. Resume at Workout Intro so the new order cannot
-    // silently skip the training setup block. Already-entered Nutrition data is
-    // retained in the draft and will be prefilled when Nutrition Profile is
-    // reached again.
+    // #106 reordered Hybrid so Workout Intro and the optional Workout block
+    // come before Nutrition Profile. Under the new policy, reaching Nutrition
+    // Profile always means the Workout Intro decision has already been made.
+    // A persisted Hybrid Nutrition Profile checkpoint with no intro choice is
+    // therefore an older Nutrition-first draft; resume at Workout Intro while
+    // retaining any Nutrition answers already captured in the draft.
     if (mode == AppMode.hybrid &&
         currentStepId == OnboardingStepId.nutritionProfile &&
-        !completedStepIds.contains(OnboardingStepId.workoutIntro) &&
-        !completedStepIds.contains(OnboardingStepId.workoutProfile) &&
-        !completedStepIds.contains(OnboardingStepId.workoutTargets)) {
+        workoutIntroChoice == null) {
       return OnboardingStepId.workoutIntro;
     }
 
