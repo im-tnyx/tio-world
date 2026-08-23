@@ -1,7 +1,7 @@
 # Product Onboarding O8E — Integrated Review / Resume / Edit-back Acceptance
 
-**Status:** Active  
-**Tracker:** GitHub Issue #87  
+**Status:** Completed / validated  
+**Tracker:** GitHub Issue #87 ✅ closed  
 **Parent O8:** #82  
 **O8A:** #83 ✅ / CI #1607  
 **O8B:** #84 ✅ / CI #1610  
@@ -19,11 +19,23 @@ Flutter CI #1618 / run 32629448497 / job 97169828504 ✅
 Android Native CI #30 / run 32629448489 / job 97169850346 ✅
 ```
 
-## Scope
+## Final exact validated checkpoint
 
-Final cross-slice O8 acceptance only. Do not introduce O9 behavior.
+```text
+bbe78206ac06344c243b633b22f2598f33e5a703
+Flutter CI #1621 / run 32629836907 / job 97170826659 ✅
+Android Native CI #33 / run 32629836917 / job 97170803705 ✅
 
-Integrated scenario:
+Flutter analyze ✅
+Dart analyze    ✅
+Flutter tests   ✅
+Dart tests      ✅
+Android debug APK/native compile ✅
+```
+
+Later task/tracker commits are documentation-only and do not replace this runtime acceptance checkpoint.
+
+## Integrated scenario validated
 
 1. hydrate a valid Hybrid setupNow draft at Review;
 2. Back navigation moves visibly to Health Connections while durable resume remains at the furthest valid Review checkpoint;
@@ -34,21 +46,21 @@ Integrated scenario:
 7. persist and rehydrate again;
 8. inactive Workout steps remain inactive and dormant answers remain preserved.
 
-The full CI suite on this exact checkpoint must also keep O8A–O8D focused acceptance green, including Review truth, historical provenance and autosave recovery.
+The full CI suite on the same source checkpoint kept O8A–O8D focused acceptance green, including Review truth, historical provenance and autosave recovery.
 
 ## Acceptance
 
-- [ ] visible Back does not regress durable Review resume;
-- [ ] new session resumes Review;
-- [ ] Hybrid later removes active Workout branch/completions;
-- [ ] Workout owner answers remain preserved;
-- [ ] rehydration does not resurrect inactive Workout steps;
-- [ ] O8A–O8D focused tests remain green together;
-- [ ] no O9/O10/O11 source work;
-- [ ] all Flutter/Dart gates green on exact SHA;
-- [ ] Android native debug build green on same SHA.
+- [x] visible Back does not regress durable Review resume;
+- [x] new session resumes Review;
+- [x] Hybrid later removes active Workout branch/completions;
+- [x] Workout owner answers remain preserved;
+- [x] rehydration does not resurrect inactive Workout steps;
+- [x] O8A–O8D focused tests remain green together;
+- [x] no O9/O10/O11 source work;
+- [x] all Flutter/Dart gates green on exact SHA;
+- [x] Android native debug build green on same SHA.
 
-## Guardrails
+## Guardrails preserved
 
 - no schema/owner expansion;
 - no Health Connect permission/data-sync expansion;
@@ -58,4 +70,4 @@ The full CI suite on this exact checkpoint must also keep O8A–O8D focused acce
 
 ## Exit
 
-Freeze exact O8E CI evidence, close #87 and parent #82, align #40/#44/PR #50 to O8 complete, then activate O9 Plan Building / Finalization.
+O8E is frozen complete on `bbe78206ac06344c243b633b22f2598f33e5a703` / Flutter CI #1621 / Android Native CI #33. Parent O8 may close and O9 Plan Building / Finalization may activate.
