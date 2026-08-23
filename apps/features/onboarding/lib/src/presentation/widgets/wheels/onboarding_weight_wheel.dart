@@ -32,6 +32,7 @@ class _OnboardingWeightWheelState extends State<OnboardingWeightWheel> {
 
   late double _selectedKg;
   late int _selectedUnitIndex; // 0: kg, 1: lbs
+  bool _isProgrammaticSync = false;
 
   late FixedExtentScrollController _wholeController;
   late FixedExtentScrollController _decimalController;
@@ -69,7 +70,11 @@ class _OnboardingWeightWheelState extends State<OnboardingWeightWheel> {
     final newUnitIndex = widget.unit == 'lbs' ? 1 : 0;
     if (newUnitIndex != _selectedUnitIndex) {
       setState(() => _selectedUnitIndex = newUnitIndex);
-      if (_unitController.hasClients) _unitController.jumpToItem(newUnitIndex);
+      if (_unitController.hasClients) {
+        _runProgrammaticSync(
+          () => _unitController.jumpToItem(newUnitIndex),
+        );
+      }
     }
   }
 
@@ -81,41 +86,54 @@ class _OnboardingWeightWheelState extends State<OnboardingWeightWheel> {
     super.dispose();
   }
 
+  void _runProgrammaticSync(VoidCallback action) {
+    _isProgrammaticSync = true;
+    try {
+      action();
+    } finally {
+      _isProgrammaticSync = false;
+    }
+  }
+
   void _syncToKg(double kg, {bool notify = true}) {
     setState(() => _selectedKg = kg);
     final whole = kg.truncate().clamp(_minKg, _maxKg);
     final decimal = ((kg - whole) * 10).round().clamp(0, 9);
 
-    if (_selectedUnitIndex == 0) {
-      final wholeIndex = whole - _minKg;
-      if (_wholeController.hasClients &&
-          _wholeController.selectedItem != wholeIndex) {
-        _wholeController.jumpToItem(wholeIndex);
-      }
-      if (_decimalController.hasClients &&
-          _decimalController.selectedItem != decimal) {
-        _decimalController.jumpToItem(decimal);
-      }
-    } else {
-      final lbs = kg * 2.20462;
-      final wholeLbs = lbs.truncate().clamp(_minLbs, _maxLbs);
-      final decimalLbs = ((lbs - wholeLbs) * 10).round().clamp(0, 9);
+    _runProgrammaticSync(() {
+      if (_selectedUnitIndex == 0) {
+        final wholeIndex = whole - _minKg;
+        if (_wholeController.hasClients &&
+            _wholeController.selectedItem != wholeIndex) {
+          _wholeController.jumpToItem(wholeIndex);
+        }
+        if (_decimalController.hasClients &&
+            _decimalController.selectedItem != decimal) {
+          _decimalController.jumpToItem(decimal);
+        }
+      } else {
+        final lbs = kg * 2.20462;
+        final wholeLbs = lbs.truncate().clamp(_minLbs, _maxLbs);
+        final decimalLbs = ((lbs - wholeLbs) * 10).round().clamp(0, 9);
 
-      final wholeIndex = wholeLbs - _minLbs;
-      if (_wholeController.hasClients &&
-          _wholeController.selectedItem != wholeIndex) {
-        _wholeController.jumpToItem(wholeIndex);
+        final wholeIndex = wholeLbs - _minLbs;
+        if (_wholeController.hasClients &&
+            _wholeController.selectedItem != wholeIndex) {
+          _wholeController.jumpToItem(wholeIndex);
+        }
+        if (_decimalController.hasClients &&
+            _decimalController.selectedItem != decimalLbs) {
+          _decimalController.jumpToItem(decimalLbs);
+        }
       }
-      if (_decimalController.hasClients &&
-          _decimalController.selectedItem != decimalLbs) {
-        _decimalController.jumpToItem(decimalLbs);
-      }
-    }
+    });
 
     if (notify) widget.onChanged(kg);
   }
 
   void _onWheelChanged() {
+    if (_isProgrammaticSync) return;
+
     HapticFeedback.selectionClick();
     final wholeIndex =
         _wholeController.hasClients ? _wholeController.selectedItem : 0;
@@ -138,24 +156,27 @@ class _OnboardingWeightWheelState extends State<OnboardingWeightWheel> {
   }
 
   void _onUnitIndexChanged(int index) {
-    if (_selectedUnitIndex == index) return;
+    if (_isProgrammaticSync || _selectedUnitIndex == index) return;
+
     HapticFeedback.selectionClick();
     setState(() => _selectedUnitIndex = index);
     final newUnit = index == 0 ? 'kg' : 'lbs';
     widget.onUnitChanged?.call(newUnit);
 
-    if (index == 0) {
-      final whole = _selectedKg.truncate().clamp(_minKg, _maxKg);
-      final decimal = ((_selectedKg - whole) * 10).round().clamp(0, 9);
-      _wholeController.jumpToItem(whole - _minKg);
-      _decimalController.jumpToItem(decimal);
-    } else {
-      final lbs = _selectedKg * 2.20462;
-      final wholeLbs = lbs.truncate().clamp(_minLbs, _maxLbs);
-      final decimalLbs = ((lbs - wholeLbs) * 10).round().clamp(0, 9);
-      _wholeController.jumpToItem(wholeLbs - _minLbs);
-      _decimalController.jumpToItem(decimalLbs);
-    }
+    _runProgrammaticSync(() {
+      if (index == 0) {
+        final whole = _selectedKg.truncate().clamp(_minKg, _maxKg);
+        final decimal = ((_selectedKg - whole) * 10).round().clamp(0, 9);
+        _wholeController.jumpToItem(whole - _minKg);
+        _decimalController.jumpToItem(decimal);
+      } else {
+        final lbs = _selectedKg * 2.20462;
+        final wholeLbs = lbs.truncate().clamp(_minLbs, _maxLbs);
+        final decimalLbs = ((lbs - wholeLbs) * 10).round().clamp(0, 9);
+        _wholeController.jumpToItem(wholeLbs - _minLbs);
+        _decimalController.jumpToItem(decimalLbs);
+      }
+    });
   }
 
   @override
