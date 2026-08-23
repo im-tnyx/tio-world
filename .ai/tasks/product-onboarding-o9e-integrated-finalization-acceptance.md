@@ -1,52 +1,43 @@
 # Product Onboarding O9E — Integrated Finalization Acceptance
 
-**Status:** Active  
-**Tracker:** GitHub Issue #94  
-**Parent O9:** #88  
+**Status:** Completed  
+**Tracker:** GitHub Issue #94 ✅  
+**Parent O9:** #88 ✅  
 **O9A:** #89 ✅ / CI #1627  
 **O9B:** #90 ✅ / CI #1630  
 **O9C:** #91 ✅ / CI #1634  
 **O9D:** #93 ✅ / CI #1638  
 **Implementation PR:** #50 Draft/open/unmerged
 
-## Starting exact validated checkpoint
+## Exact validated checkpoint
 
 ```text
-1537c6f3a8d7b7b8d369f8b4a4d65456d695ae3c
-Flutter CI #1638 / run 32637962253 / job 97190475798 ✅
-Android Native CI #50 / run 32637962231 / job 97190450781 ✅
+86870c0a4164500455877af05f67ba5f2a197e2d
+Flutter CI #1641 / run 32638397470 / job 97191529443 ✅
+Android Native CI #53 / run 32638397482 / job 97191531402 ✅
+
+Flutter analyze ✅
+Dart analyze    ✅
+Flutter tests   ✅
+Dart tests      ✅
+Android debug APK/native compile ✅
 ```
 
-## Scope
+## Frozen integrated result
 
-Final cross-slice O9 acceptance only. Do not add O10 behavior.
+The final Hybrid `setupNow` O9 acceptance proves:
 
-Integrated Hybrid `setupNow` scenario must prove:
-
-1. finalization writes every active canonical owner;
-2. Nutrition recommendation is published canonically;
-3. Workout publication remains profile + target constraints only;
-4. canonical Hybrid app preferences are persisted;
-5. backend completion precedes/aligns with local completion;
-6. successful completion clears the obsolete draft;
-7. post-completion Congratulations route remains valid;
-8. stale completed onboarding route falls back Home.
-
-Full CI on the exact checkpoint must keep O9A–O9D focused tests green.
-
-## Acceptance
-
-- [ ] active canonical Profile/Body/Wellness/Nutrition/Workout owners persisted;
-- [ ] Nutrition recommendation state/metadata canonical;
-- [ ] Workout target constraints preserved;
-- [ ] Hybrid guided App Preferences persisted;
-- [ ] remote + local completion published;
-- [ ] draft cleared after success;
-- [ ] Congratulations route valid after completion;
-- [ ] stale onboarding route redirects Home;
-- [ ] no new owner/schema/migration/generated-plan architecture;
-- [ ] all Flutter/Dart gates + Android native build green on exact SHA.
+1. all active canonical Profile/Body/Wellness/Nutrition/Workout owners persist;
+2. Nutrition recommendation is canonical `recommended` output with `source=onboarding`;
+3. Workout publication remains Profile + target/plan constraints only;
+4. canonical Hybrid App Preferences persist;
+5. remote and local onboarding completion publish only after required owner writes;
+6. successful completion clears the obsolete onboarding draft;
+7. Congratulations remains the intended success route after completion;
+8. stale completed `/onboarding` falls back Home;
+9. O9A–O9D focused tests remain green together;
+10. no new owner/schema/migration/generated-plan architecture was introduced.
 
 ## Exit
 
-Freeze O9E, close #94 + parent #88, align #40/#44/PR #50 to O9 complete, then activate O10 Integrated Final Acceptance.
+O9E and parent O9 are frozen complete. O10 Integrated Final Acceptance is the next Product Onboarding gate; O11 cleanup remains blocked until O10 completes.
