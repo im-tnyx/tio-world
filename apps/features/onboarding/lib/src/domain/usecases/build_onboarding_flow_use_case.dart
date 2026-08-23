@@ -48,7 +48,6 @@ List<OnboardingStepDefinition> _stepsByMode(
   const commonFoundation = <OnboardingStepDefinition>[
     _profileBasics,
     _bodyGoal,
-    _wellnessGoals,
   ];
 
   return switch (mode) {
@@ -56,13 +55,13 @@ List<OnboardingStepDefinition> _stepsByMode(
         ...commonFoundation,
         _workoutProfile,
         _workoutTargets,
-        _nutritionGoals,
         _healthConnections,
         _review,
       ],
     AppMode.nutrition => [
         ...commonFoundation,
         _nutritionProfile,
+        _wellnessGoals,
         _nutritionGoals,
         _healthConnections,
         _review,
@@ -72,6 +71,7 @@ List<OnboardingStepDefinition> _stepsByMode(
             ...commonFoundation,
             _nutritionProfile,
             _workoutIntro,
+            _wellnessGoals,
             _nutritionGoals,
             _healthConnections,
             _review,
@@ -82,6 +82,7 @@ List<OnboardingStepDefinition> _stepsByMode(
             _workoutIntro,
             _workoutProfile,
             _workoutTargets,
+            _wellnessGoals,
             _nutritionGoals,
             _healthConnections,
             _review,
