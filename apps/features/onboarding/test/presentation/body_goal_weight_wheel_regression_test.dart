@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_onboarding/onboarding.dart';
+import 'package:tio_feature_onboarding/src/presentation/widgets/wheels/onboarding_weight_wheel.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
