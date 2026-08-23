@@ -192,7 +192,16 @@ void main() {
 
     await _completeProfileInputs(tester);
 
-    // O5B inserts the canonical Nutrition Profile before Hybrid Workout setup.
+    // #106 keeps the Hybrid Workout decision before the Nutrition block.
+    await tester
+        .ensureVisible(find.byKey(const ValueKey('workout-intro-later')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('workout-intro-later')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    // Later skips Workout Profile/Targets, then enters Nutrition Profile.
     await tester.tap(find.byKey(const ValueKey('nutrition-diet-vegetarian')));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(TioButton, 'Continue'));
@@ -200,14 +209,6 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('nutrition-allergy-none')));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(TioButton, 'Continue'));
-    await tester.pumpAndSettle();
-
-    await tester
-        .ensureVisible(find.byKey(const ValueKey('workout-intro-later')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('workout-intro-later')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
     for (var step = 0;
@@ -543,17 +544,10 @@ Future<void> _completeProfileInputs(WidgetTester tester) async {
   onboardingController.updateGoalPaceKgPerWeek(0.5);
   await tester.pump();
 
-  // Goal Pace -> Wellness Bridge.
+  // Goal Pace -> next top-level section (Workout Intro in Hybrid).
   await tester.tap(find.widgetWithText(TioButton, 'Continue'),
       warnIfMissed: false);
   await tester.pumpAndSettle();
-
-  // Wellness Bridge -> Steps -> Sleep -> Water -> next active section.
-  for (var step = 0; step < 4; step++) {
-    await tester.tap(find.widgetWithText(TioButton, 'Continue'),
-        warnIfMissed: false);
-    await tester.pumpAndSettle();
-  }
 }
 
 class _FixedAppSessionBootstrapController extends AppSessionBootstrapController {
