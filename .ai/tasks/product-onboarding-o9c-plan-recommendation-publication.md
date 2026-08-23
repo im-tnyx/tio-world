@@ -1,7 +1,7 @@
 # Product Onboarding O9C — Plan / Recommendation Publication Semantics
 
-**Status:** Active  
-**Tracker:** GitHub Issue #91  
+**Status:** Completed ✅  
+**Tracker:** GitHub Issue #91 ✅  
 **Parent O9:** #88  
 **O9A:** #89 ✅ / CI #1627  
 **O9B:** #90 ✅ / CI #1630  
@@ -9,32 +9,30 @@
 **Canonical ownership:** #44  
 **Implementation PR:** #50 Draft/open/unmerged
 
-## Starting exact validated checkpoint
+## Exact validated checkpoint
 
 ```text
-e287f5b8d2f1fa0f539cfe98b9f28a36971310e8
-Flutter CI #1630 / run 32636442164 / job 97186849452 ✅
-Android Native CI #42 / run 32636442150 / job 97186851647 ✅
+b5fe3ce741c3ba093e284ae0dbf893ae4e960ca9
+Flutter CI #1634 / run 32637390199 / job 97189092932 ✅
+Android Native CI #46 / run 32637390197 / job 97189105902 ✅
 ```
 
-Later O9B bookkeeping commits are docs-only and do not replace this runtime baseline.
+## Frozen result
 
-## Audit result
-
-Product Onboarding currently publishes recommendation/plan inputs into existing canonical owners only:
+Product Onboarding publishes recommendation/plan inputs into existing canonical owners only:
 
 - `user_nutrition_targets` = calories/macros/fiber recommendation output + recommendation/customization metadata;
 - `user_workout_targets` = goals, schedule and plan constraints, not a generated exercise program;
 - `user_workout_profiles` = Workout context/capability;
-- `users.plan` = subscription tier, not an onboarding-generated plan.
+- `users.plan` = subscription tier, not onboarding-generated plan output.
 
-There is no separate onboarding meal-plan/workout-plan repository or canonical table to write during finalization. Do not create one in O9C.
+There is no separate onboarding meal-plan/workout-plan repository or canonical table to write during finalization.
 
-`NutritionTargetsMapper` recalculates from the current draft at finalization. Successful calculation publishes `recommended` + empty `customizedFields` + `source=onboarding`; insufficient/invalid inputs publish an explicit canonical `unknown` row rather than invented numeric targets.
+`NutritionTargetsMapper` recalculates from the current draft at finalization. Successful calculation publishes `recommended` + empty `customizedFields` + `source=onboarding`; insufficient/invalid inputs publish explicit canonical `unknown` rather than invented numeric targets.
 
-`dailyStepTarget` is currently forwarded to the Nutrition calculator but is not consumed by the current calculation formula. Therefore historical Wellness compatibility step defaults do not currently alter calories/macros; no source correction is justified without a real failing behavior.
+`dailyStepTarget` is currently forwarded to the Nutrition calculator but is not consumed by the current formula, so historical Wellness compatibility step defaults do not currently alter calories/macros.
 
-## Acceptance matrix
+## Acceptance matrix — validated
 
 ```text
 Workout
@@ -55,28 +53,20 @@ Hybrid setupNow
 Hybrid later
   Nutrition Profile + Targets ✅
   Workout Profile/Targets ❌
+  dormant Workout draft answers preserved ✅
 ```
 
 ## Acceptance
 
-- [ ] focused test validates all four publication variants;
-- [ ] Nutrition recommendation output is `recommended`, has empty customized fields and `source=onboarding` metadata when calculable;
-- [ ] Workout Targets retain only goal/schedule/constraint fields;
-- [ ] Hybrid `later` preserves dormant Workout draft answers but publishes no active Workout canonical owners;
-- [ ] no separate plan repository/table/model is added;
-- [ ] no nutrition formula change;
-- [ ] existing O9A/O9B tests remain green;
-- [ ] all Flutter/Dart gates + Android native build green on exact SHA.
-
-## Guardrails
-
-- one durable owner per concept;
-- no generated meal/workout program fabrication;
-- no schema or migration edits;
-- no O9D routing/draft lifecycle changes;
-- no O11 cleanup;
-- PR #50 remains Draft/open/unmerged.
+- [x] focused test validates all four publication variants;
+- [x] Nutrition recommendation output is `recommended`, has empty customized fields and `source=onboarding` metadata when calculable;
+- [x] Workout Targets retain only goal/schedule/constraint fields;
+- [x] Hybrid `later` preserves dormant Workout draft answers but publishes no active Workout canonical owners;
+- [x] no separate plan repository/table/model added;
+- [x] no nutrition formula change;
+- [x] existing O9A/O9B tests remain green;
+- [x] all Flutter/Dart gates + Android native build green on exact SHA.
 
 ## Exit
 
-Freeze O9C exact CI, close #91, then activate O9D successful completion + draft lifecycle + post-onboarding routing.
+O9C is frozen complete. Continue O9D successful completion + draft lifecycle + post-onboarding routing.
