@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_feature_auth/auth.dart';
@@ -11,7 +12,19 @@ import 'app/onboarding/onboarding.dart';
 import 'app/app_theme.dart';
 import 'app/bootstrap.dart';
 
+void _installSafeDebugPrintPolicy() {
+  final upstreamDebugPrint = debugPrint;
+  debugPrint = (String? message, {int? wrapWidth}) {
+    if (message?.startsWith('[Router]') ?? false) {
+      return;
+    }
+    upstreamDebugPrint(message, wrapWidth: wrapWidth);
+  };
+}
+
 Future<void> main() async {
+  _installSafeDebugPrintPolicy();
+
   const supabaseUrl = String.fromEnvironment(
     'SUPABASE_URL',
     defaultValue: 'https://oykupyiitspujzpwwvuj.supabase.co',
