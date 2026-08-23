@@ -1,7 +1,7 @@
 # Product Onboarding O8D — Historical Snapshots + Autosave Recovery
 
-**Status:** Active  
-**Tracker:** GitHub Issue #86  
+**Status:** Complete ✅  
+**Tracker:** GitHub Issue #86 ✅  
 **Parent O8:** #82  
 **O8A:** #83 ✅ / CI #1607  
 **O8B:** #84 ✅ / CI #1610  
@@ -10,53 +10,56 @@
 **Canonical ownership:** #44  
 **Implementation PR:** #50 Draft/open/unmerged
 
-## Starting exact validated checkpoint
+## Exact validated checkpoint
 
 ```text
-1591b37649a8e1d7913bf7322b200522db5773d1
-Flutter CI #1614 / run 32628899085 / job 97168479612 ✅
-Android Native CI #26 / run 32628899057 / job 97168479439 ✅
+8f9ea1f2d4400cba7e22ec717e0cd0e88d555536
+Flutter CI #1618 / run 32629448497 / job 97169828504 ✅
+Android Native CI #30 / run 32629448489 / job 97169850346 ✅
+
+Flutter analyze ✅
+Dart analyze    ✅
+Flutter tests   ✅
+Dart tests      ✅
+Android debug APK/native compile ✅
 ```
 
-## Audit result
+## Validated outcome
 
-Existing O4 compatibility intentionally lets later top-level checkpoints remain later even when historical Wellness fields are absent. `TargetsOnboardingDraft` therefore carries compatibility UI defaults plus `has*Value` provenance, while `WellnessTargetsMapper` maps historically absent values to canonical `null`.
+Existing O4 compatibility remains intact: later historical top-level checkpoints stay later, and missing Wellness values keep numeric UI compatibility storage plus `has*Value=false` provenance. Canonical `WellnessTargetsMapper` continues mapping those historically absent values to `null`.
 
-O8D must preserve that no-rewind contract without allowing Review to present compatibility defaults as explicit user truth.
+O8D fixed one narrow Review truth gap: historical unknown Steps/Hydration/Sleep now render `Not set` instead of displaying compatibility defaults as explicit user answers. Fresh/current drafts are unchanged because their starting Wellness values are already marked known.
 
-Persistence already uses `ResumePreservingOnboardingDraftRepository`, which serializes saves and preserves the furthest still-valid durable cursor. Controller save failures retain active in-memory state and remain retryable on a later edit.
-
-## Scope
-
-- legacy missing Wellness values remain unknown through mapper/controller autosave/reload;
-- Review renders unknown historical Steps/Hydration/Sleep as `Not set`, not numeric defaults;
-- later Review checkpoint stays Review when otherwise valid;
-- canonical Wellness mapping remains `null` for unknown historical fields;
-- controller load failure preserves safe seed state and still completes hydration;
-- failed debounced save retains in-memory answer;
-- a later edit after repository recovery retries and persists the newest answer.
+Hydration/load failure preserves the safe seed state, failed autosave preserves active in-memory answers, and the next edit after repository recovery retries persistence successfully.
 
 ## Acceptance
 
-- [ ] historical unknown Steps/Hydration/Sleep are not fabricated in Review;
-- [ ] no forced rewind of otherwise-valid historical Review checkpoint;
-- [ ] all unknown Wellness provenance flags survive autosave/reload;
-- [ ] canonical Wellness mapper emits null for those unknown fields;
-- [ ] hydration failure leaves seed/in-memory state intact and `isHydrated=true`;
-- [ ] failed autosave does not erase active answer;
-- [ ] later recovered autosave persists newest answer;
-- [ ] no schema-version bump or migration edit;
-- [ ] all Flutter/Dart gates green on one exact SHA;
-- [ ] Android native debug build green on same SHA.
+- [x] historical unknown Steps/Hydration/Sleep are not fabricated in Review;
+- [x] no forced rewind of otherwise-valid historical Review checkpoint;
+- [x] all unknown Wellness provenance flags survive autosave/reload;
+- [x] canonical Wellness mapper emits null for those unknown fields;
+- [x] hydration failure leaves seed/in-memory state intact and `isHydrated=true`;
+- [x] failed autosave does not erase active answer;
+- [x] later recovered autosave persists newest answer;
+- [x] no schema-version bump or migration edit;
+- [x] all Flutter/Dart gates green on one exact SHA;
+- [x] Android native debug build green on same SHA.
 
-## Guardrails
+## Source/evidence
 
-- do not promote compatibility defaults to canonical truth;
-- do not rewind later historical checkpoints solely because provenance is unknown;
+```text
+apps/features/onboarding/lib/src/presentation/screens/review/review_screen.dart
+apps/features/onboarding/test/presentation/o8d_historical_snapshot_autosave_acceptance_test.dart
+```
+
+## Guardrails preserved
+
+- no compatibility default promotion to canonical truth;
+- no historical checkpoint rewind solely because provenance is unknown;
 - no broad resume/navigation rewrite;
-- no O8E/O9 work until O8D freezes;
+- no schema/migration change;
 - PR #50 remains Draft/open/unmerged.
 
 ## Exit
 
-Freeze O8D exact CI evidence, then activate O8E integrated O8 acceptance.
+O8D frozen complete. Activate O8E integrated O8 acceptance.
