@@ -10,11 +10,13 @@ class OnboardingTopBar extends StatelessWidget {
     super.key,
     this.onBack,
     this.showProgress = true,
+    this.backEnabled = true,
   });
 
   final OnboardingState state;
   final VoidCallback? onBack;
   final bool showProgress;
+  final bool backEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +36,7 @@ class OnboardingTopBar extends StatelessWidget {
               if (onBack != null)
                 IconButton(
                   tooltip: 'Back',
-                  onPressed: state.isBusy ? null : onBack,
+                  onPressed: state.isBusy || !backEnabled ? null : onBack,
                   icon: const Icon(Icons.arrow_back),
                 ),
               const SizedBox(width: TioSpacing.sm),
