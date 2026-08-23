@@ -31,12 +31,13 @@ Establish a truthful Android Health Connect platform boundary behind O7B's exist
 
 - O7B already defines the feature-owned gateway/status contract and approved screen/orchestration behavior.
 - `apps/app/pubspec.yaml` has no Health Connect/HealthKit package today.
-- Android manifest has no Health Connect provider query and no health-data permissions today.
+- Android manifest has no Health Connect provider query and no health-data permissions at the O7B checkpoint.
 - Current Flutter toolchain baseline resolves Android `minSdk` to API 24.
 - Official Health Connect client SDK supports Android 8/API 26+, while usable Health Connect requires Android 9/API 28+ with Google Play services.
 - Adding the official SDK/plugin directly would therefore force a whole-app minimum-SDK decision; O7C must not silently raise API 24 → 26 for an optional integration.
 - Repository roadmap explicitly defers health permissions/wearable-data sync until the Recovery/data-source/privacy decision is approved.
 - Health Connect authorization is data-type-specific; manifest/runtime/Play Console declarations must agree on exact product-used data types.
+- Existing `Flutter CI` analyzes/tests Dart and Flutter packages but does not run an Android Gradle/APK build, so native Java/manifest changes require a separate Android build gate before O7C1 can be called platform-validated.
 
 ## O7C split
 
@@ -48,6 +49,7 @@ Implement a dependency-free Android platform probe owned by `apps/app`:
 Android 14+ (API 34+) → framework Health Connect system-service presence
 Android 9–13          → Health Connect provider/settings activity presence
 Android < 9           → unavailable
+managed/work profile  → unavailable
 non-Android/test      → fail-safe unavailable
 ```
 
@@ -94,10 +96,10 @@ Rules:
 For an eventual fully wired adapter:
 
 ```text
-Health Connect unavailable                    → unavailable
-Provider missing/update required              → unavailable
+Health Connect unavailable                     → unavailable
+Provider missing/update required               → unavailable
 SDK/provider available, permission not granted → notRequested/denied as proven
-full approved permission set granted          → connected
+full approved permission set granted           → connected
 ```
 
 Availability alone is never `connected`.
@@ -107,14 +109,30 @@ Availability alone is never `connected`.
 - [x] re-read root/feature workflow rules before source edits;
 - [x] inspect existing app-level provider composition pattern;
 - [x] reject silent whole-app minSdk 24 → 26 as an O7C1 side effect;
-- [ ] add dependency-free Android platform/provider availability probe;
-- [ ] add only Health Connect provider package visibility query;
-- [ ] add Dart app-layer availability adapter with fail-safe parsing/error behavior;
-- [ ] add focused app-layer tests with mocked platform channel;
-- [ ] keep O7B production gateway fallback wired until authorization scope is real;
-- [ ] run full four-gate CI on one exact O7C1 source SHA;
+- [x] add dependency-free Android platform/provider availability probe;
+- [x] add only Health Connect provider package visibility query;
+- [x] add Dart app-layer availability probe with fail-safe parsing/error behavior;
+- [x] add focused app-layer tests with mocked platform channel;
+- [x] keep O7B production gateway fallback wired until authorization scope is real;
+- [ ] add focused Android Native CI that compiles a debug APK for `apps/app/android/**` changes;
+- [ ] pass full Flutter four-gate CI on one exact O7C1 source SHA;
+- [ ] pass Android debug APK build on that same exact O7C1 source SHA;
 - [ ] freeze O7C1 evidence without closing #78 if O7C2 remains gated;
 - [ ] document exact health-data scope before any authorization/health permission source change.
+
+## Validation contract
+
+O7C1 is not platform-validated unless the same exact source SHA has both:
+
+```text
+Flutter analyze ✅
+Dart analyze    ✅
+Flutter tests   ✅
+Dart tests      ✅
+Android debug APK/native compile ✅
+```
+
+A four-gate Flutter CI run alone is insufficient because it does not compile `MainActivity.java`, `HealthConnectAvailabilityBridge.java`, or the Android manifest.
 
 ## Out of scope
 
@@ -142,4 +160,4 @@ Availability alone is never `connected`.
 
 ## Exit
 
-O7C1 exits with an exact source SHA + four-gate CI for the dependency-free availability probe. #78 remains ACTIVE if authorization scope/minSdk policy is still unresolved; O7D does not start early. O7C fully exits only after a real, least-privilege authorization adapter is wired and validated, or the product explicitly narrows O7C to availability-only behavior.
+O7C1 exits with one exact source SHA that passes both the existing Flutter four-gate CI and an Android debug APK/native compile gate. #78 remains ACTIVE if authorization scope/minSdk policy is still unresolved; O7D does not start early. O7C fully exits only after a real, least-privilege authorization adapter is wired and validated, or the product explicitly narrows O7C to availability-only behavior.
