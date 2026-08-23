@@ -1,6 +1,6 @@
 # Product Onboarding O7C — Android Health Connect Adapter
 
-**Status:** Active  
+**Status:** Active — O7C1 availability probe in implementation; O7C2 authorization gated  
 **Tracker:** GitHub Issue #78  
 **Parent O7:** #75  
 **O7B runtime:** #77 ✅ / CI #1575  
@@ -21,86 +21,106 @@ Flutter tests   ✅
 Dart tests      ✅
 ```
 
-This O7C task/tracker commit is documentation only and does not replace the exact O7B runtime checkpoint above.
+O7C task/tracker commits after this SHA do not replace the exact O7B runtime checkpoint.
 
 ## Goal
 
-Wire a truthful Android Health Connect platform-availability adapter behind O7B's existing `HealthConnectionGateway` boundary while preserving least privilege and the approved Product Onboarding behavior.
-
-O7C must not invent a health-data permission scope simply to make the UI say `connected`.
+Establish a truthful Android Health Connect platform boundary behind O7B's existing `HealthConnectionGateway` contract without inventing health-data permissions or silently dropping supported Android devices.
 
 ## Verified starting evidence
 
 - O7B already defines the feature-owned gateway/status contract and approved screen/orchestration behavior.
 - `apps/app/pubspec.yaml` has no Health Connect/HealthKit package today.
-- `apps/app/android/app/src/main/AndroidManifest.xml` has no Health Connect provider query and no health-data permissions today.
-- Android app composition is Flutter + Riverpod; `apps/app` should remain thin.
-- Current CI uses Flutter 3.47.1 / Dart 3.13.1.
+- Android manifest has no Health Connect provider query and no health-data permissions today.
+- Current Flutter toolchain baseline resolves Android `minSdk` to API 24.
+- Official Health Connect client SDK supports Android 8/API 26+, while usable Health Connect requires Android 9/API 28+ with Google Play services.
+- Adding the official SDK/plugin directly would therefore force a whole-app minimum-SDK decision; O7C must not silently raise API 24 → 26 for an optional integration.
 - Repository roadmap explicitly defers health permissions/wearable-data sync until the Recovery/data-source/privacy decision is approved.
-- Android Health Connect authorization is data-type-specific; manifest/runtime/Play Console declarations must agree on the exact types used by the product.
+- Health Connect authorization is data-type-specific; manifest/runtime/Play Console declarations must agree on exact product-used data types.
+
+## O7C split
+
+### O7C1 — platform availability probe (active)
+
+Implement a dependency-free Android platform probe owned by `apps/app`:
+
+```text
+Android 14+ (API 34+) → framework Health Connect system-service presence
+Android 9–13          → Health Connect provider/settings activity presence
+Android < 9           → unavailable
+non-Android/test      → fail-safe unavailable
+```
+
+The probe may add only the package visibility query needed to inspect the Health Connect provider. It adds **no** `android.permission.health.*` declarations.
+
+O7C1 is infrastructure only. It must not replace the O7B unavailable gateway in app composition if doing so would expose a user-facing `Connect` action that cannot yet perform a real authorization attempt.
+
+### O7C2 — authorization adapter (gated)
+
+Before wiring the real adapter into `healthConnectionGatewayProvider` and making `Connect` invoke the OS flow, resolve:
+
+1. concrete product capability consuming Health Connect data;
+2. canonical owner for imported/read records;
+3. exact Health Connect record types;
+4. read vs write scope per type;
+5. Android minimum-SDK/dependency policy if the official client/plugin is required;
+6. matching Play Console/privacy declaration;
+7. full-grant/partial-grant/denied mapping tests.
+
+Until O7C2 is approved/source-backed, `connected` remains unreachable.
 
 ## Architecture
 
 ```text
 Product Onboarding
   HealthConnectionGateway
-        ↑
+        ↑ (O7C2 only after scope gate)
 apps/app platform composition
   AndroidHealthConnectGateway
         ↑
-Health Connect platform/plugin boundary
+apps/app Android availability / authorization bridge
 ```
 
 Rules:
 
 - onboarding owns orchestration and the narrow gateway contract;
-- app/platform composition owns Android/plugin wiring;
+- `apps/app` owns Android/platform composition;
 - imported health records do not belong to onboarding;
 - durable connection metadata remains O7D;
 - no sensitive platform state is serialized into `onboarding_drafts`.
 
-## Status mapping before permission-scope approval
+## Status semantics
+
+For an eventual fully wired adapter:
 
 ```text
 Health Connect unavailable                    → unavailable
 Provider missing/update required              → unavailable
-SDK/provider available, scope not authorized  → notRequested
-connected                                     → impossible to claim
+SDK/provider available, permission not granted → notRequested/denied as proven
+full approved permission set granted          → connected
 ```
 
-A real `connected` result becomes legal only after O7C has an approved exact data-type permission set and the platform confirms that full required set is granted.
-
-## Permission-scope gate
-
-Before adding any `android.permission.health.*` declaration or runtime authorization request:
-
-1. identify the concrete product capability that consumes the data;
-2. identify the canonical owner for imported/read data;
-3. list the exact Health Connect record types required;
-4. choose read vs write separately for each type;
-5. confirm the same set can be declared in Play Console/privacy disclosures;
-6. add tests proving partial/denied grants never become `connected`.
-
-Do not use a broad convenience list such as steps + sleep + weight + heart rate unless those types are independently source-backed and approved.
+Availability alone is never `connected`.
 
 ## Implementation plan
 
-- [ ] re-read root/feature/app rules before source edits;
-- [ ] inspect existing app-level platform/provider composition patterns;
-- [ ] choose the maintained Health Connect integration boundary compatible with the repo toolchain;
-- [ ] add Android SDK/provider availability detection;
-- [ ] add only provider-query/config required for availability detection;
-- [ ] inject the real Android adapter into `healthConnectionGatewayProvider` from app composition;
-- [ ] preserve the unavailable fallback on unsupported/non-Android environments;
-- [ ] prove passive Health Connections entry does not launch authorization;
-- [ ] prove user `Connect` cannot fabricate success while permission scope is gated;
-- [ ] document exact permission-scope evidence before adding any health-data permissions;
-- [ ] add focused adapter/provider/widget tests;
-- [ ] run full four-gate CI on one exact source SHA.
+- [x] re-read root/feature workflow rules before source edits;
+- [x] inspect existing app-level provider composition pattern;
+- [x] reject silent whole-app minSdk 24 → 26 as an O7C1 side effect;
+- [ ] add dependency-free Android platform/provider availability probe;
+- [ ] add only Health Connect provider package visibility query;
+- [ ] add Dart app-layer availability adapter with fail-safe parsing/error behavior;
+- [ ] add focused app-layer tests with mocked platform channel;
+- [ ] keep O7B production gateway fallback wired until authorization scope is real;
+- [ ] run full four-gate CI on one exact O7C1 source SHA;
+- [ ] freeze O7C1 evidence without closing #78 if O7C2 remains gated;
+- [ ] document exact health-data scope before any authorization/health permission source change.
 
 ## Out of scope
 
 - unapproved health-data permissions;
+- dead/no-op user-facing Connect wiring;
+- silent app minSdk increase;
 - health record import/sync/storage;
 - background reads;
 - HealthKit/iOS;
@@ -122,4 +142,4 @@ Do not use a broad convenience list such as steps + sleep + weight + heart rate 
 
 ## Exit
 
-Freeze exact O7C source SHA + four-gate CI for the Android platform availability adapter and permission boundary. If no exact health-data scope is approved, permission request remains intentionally gated and `connected` remains unreachable rather than fabricated.
+O7C1 exits with an exact source SHA + four-gate CI for the dependency-free availability probe. #78 remains ACTIVE if authorization scope/minSdk policy is still unresolved; O7D does not start early. O7C fully exits only after a real, least-privilege authorization adapter is wired and validated, or the product explicitly narrows O7C to availability-only behavior.
