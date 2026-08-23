@@ -69,18 +69,20 @@ class OnboardingBottomBar extends StatelessWidget {
   final OnboardingBottomSecondaryAction? secondaryAction;
 
   bool get _isWheelStep {
+    final step = state.draft.profile.currentStepId;
     if (state.stepId == OnboardingStepId.profileBasics) {
-      final step = state.draft.profile.currentStepId;
-      return step == ProfileStepId.height ||
-          step == ProfileStepId.currentWeight ||
-          step == ProfileStepId.targetWeight ||
-          step == ProfileStepId.age;
+      return step == ProfileStepId.height || step == ProfileStepId.age;
+    }
+    if (state.stepId == OnboardingStepId.bodyGoal) {
+      return step == ProfileStepId.currentWeight ||
+          step == ProfileStepId.targetWeight;
     }
     return false;
   }
 
   ProfileStepId? get _currentProfileStep {
-    if (state.stepId == OnboardingStepId.profileBasics) {
+    if (state.stepId == OnboardingStepId.profileBasics ||
+        state.stepId == OnboardingStepId.bodyGoal) {
       return state.draft.profile.currentStepId;
     }
     return null;
@@ -132,7 +134,7 @@ class OnboardingBottomBar extends StatelessWidget {
             else if (profileStep == ProfileStepId.targetWeight)
               OnboardingWeightWheel(
                 key: const ValueKey('target-weight-wheel'),
-                valueKg: draft.targetWeightKg,
+                valueKg: draft.targetWeightKg ?? draft.currentWeightKg,
                 unit: draft.weightUnit,
                 onChanged: controller!.updateProfileTargetWeight,
                 onUnitChanged: controller!.updateProfileWeightUnit,
