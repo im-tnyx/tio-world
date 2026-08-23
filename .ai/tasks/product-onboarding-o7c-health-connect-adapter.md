@@ -1,7 +1,8 @@
 # Product Onboarding O7C — Android Health Connect Adapter
 
-**Status:** Active — O7C1 surface-presence probe in validation; O7C2 authorization gated  
+**Status:** O7C1 VALIDATED; O7C2 SDK readiness/authorization BLOCKED by #79  
 **Tracker:** GitHub Issue #78  
+**Health-data scope blocker:** #79  
 **Parent O7:** #75  
 **O7B runtime:** #77 ✅ / CI #1575  
 **Parent Product Onboarding:** #40  
@@ -10,36 +11,25 @@
 **Implementation PR:** #50 Draft/open/unmerged  
 **Branch:** `agent/onboarding-slice-2-step-1-body-goal-ui`
 
-## Starting exact runtime checkpoint
+## Exact validated O7C1 checkpoint
 
 ```text
-371fafb8cf8a27b6f7922733b071277accf4af98
-Flutter CI #1575 / run 32607322748 / job 97114316589
+f95ddf7cef05e658566e5d9493efd6099edded76
+Flutter CI #1593 / run 32611022666 / job 97124041663
 Flutter analyze ✅
 Dart analyze    ✅
 Flutter tests   ✅
 Dart tests      ✅
+
+Android Native CI #5 / run 32611022667 / job 97124042275
+Android debug APK/native compile ✅
 ```
 
-## Goal
+Tracker/docs commits after this SHA do not replace exact O7C1 validation.
 
-Establish the smallest truthful Android Health Connect platform boundary behind O7B without inventing health-data permissions, authorization state, or a whole-app minimum-SDK change.
+## O7C1 validated contract — surface presence only
 
-## Verified evidence
-
-- O7B already defines the feature-owned `HealthConnectionGateway` / `HealthConnectionStatus` contract.
-- The app baseline resolves Android `minSdk` to API 24.
-- The official Health Connect client SDK supports API 26+, while usable Health Connect is Android 9/API 28+.
-- Official Android guidance uses `HealthConnectClient.getSdkStatus()` to distinguish unavailable, provider-update-required and available states.
-- A dependency-free package/settings/service probe cannot prove the same SDK-readiness contract; on Android 9–13, provider surface presence does not prove that the provider is current enough for the client SDK.
-- Health Connect permissions are tied to exact product-used data types and matching Play Console declarations.
-- Repository Recovery/product docs do not yet approve the first imported health signal or its owner.
-
-## O7C split
-
-### O7C1 — platform surface presence
-
-Dependency-free app-owned probe:
+O7C1 establishes the smallest truthful Android platform probe without health-data access:
 
 ```text
 Android 14+            → framework Health Connect service surface present / absent
@@ -49,86 +39,62 @@ managed/work profile   → absent
 non-Android/test       → fail-safe absent
 ```
 
-This is deliberately **presence**, not SDK readiness or authorization.
+This is deliberately **surface presence**, not Health Connect SDK readiness or authorization.
 
-O7C1:
+The first implementation used the word `available`; semantic review corrected that before freeze because provider/settings presence on Android 9–13 cannot prove the official client SDK is current/usable. Official Android guidance uses `HealthConnectClient.getSdkStatus()` to distinguish unavailable, provider-update-required and available states. That readiness check belongs in O7C2 after dependency/minSdk and permission scope are approved.
 
-- may add only provider package visibility needed for the probe;
-- adds no `android.permission.health.*` declarations;
-- reads/writes no health records;
-- does not map surface presence to `connected`;
-- does not replace the O7B unavailable gateway in production composition.
+## Validated O7C1 implementation
 
-### O7C2 — SDK readiness + authorization (gated)
+- app-owned dependency-free Android platform channel/bridge;
+- Android 14+ framework service presence probe;
+- Android 9–13 provider/settings surface presence probe;
+- Android < 9 and managed profile fail closed;
+- non-Android/channel failures fail closed;
+- manifest adds only Health Connect provider package visibility query;
+- no `android.permission.health.*` declarations;
+- no Health Connect record reads/writes;
+- no app minSdk change;
+- no health plugin/client dependency;
+- production O7B `UnavailableHealthConnectionGateway` remains wired, so no dead/fake Connect path is exposed;
+- focused Dart mocked-channel tests;
+- dedicated Android Native CI now compiles the Java bridge/manifest through `flutter build apk --debug`.
 
-Before wiring Product Onboarding `Connect` to a real Android adapter, resolve:
+## O7C2 — SDK readiness + authorization BLOCKED by #79
+
+Before Product Onboarding `Connect` can invoke the real OS authorization flow, #79 must approve:
 
 1. concrete product capability consuming Health Connect data;
-2. canonical owner for imported/read records;
-3. exact Health Connect record types;
-4. read vs write scope per type;
-5. Android dependency/minSdk policy for the official client SDK;
-6. exact `getSdkStatus()` mapping including provider-update-required;
-7. matching Play Console/privacy declaration;
-8. full-grant/partial-grant/denied tests.
+2. exact Health Connect record types;
+3. read vs write scope per type;
+4. canonical owner for imported records/summaries;
+5. retention/freshness/consent-withdrawal rules;
+6. Android client dependency/minSdk policy;
+7. exact `getSdkStatus()` mapping including provider-update-required;
+8. matching Play Console/privacy declaration;
+9. full/partial/denied permission tests.
 
-Until O7C2 is approved/source-backed, `connected` remains unreachable.
+Existing wellness values such as step/sleep **targets** are not imported health records and do not justify permissions.
 
-## Validation contract for O7C1
-
-One exact source SHA must pass:
+Until #79 resolves the contract:
 
 ```text
-Flutter analyze ✅
-Dart analyze    ✅
-Flutter tests   ✅
-Dart tests      ✅
-Android debug APK/native compile ✅
+surface present ≠ SDK ready
+SDK ready        ≠ authorized
+connected        → unreachable
 ```
-
-The Android build gate is required because the normal Flutter four-gate workflow does not compile the Java bridge or manifest.
-
-## Current implementation checklist
-
-- [x] re-read root/feature workflow rules;
-- [x] inspect app-level composition;
-- [x] reject silent minSdk 24 → 26 change;
-- [x] add dependency-free Android surface-presence bridge;
-- [x] add only Health Connect provider package visibility query;
-- [x] add fail-closed Dart bridge + mocked channel tests;
-- [x] keep O7B production gateway fallback wired;
-- [x] add focused Android Native CI debug APK build;
-- [x] identify and correct readiness-overclaim before final freeze;
-- [ ] pass Flutter four-gate CI on the corrected exact SHA;
-- [ ] pass Android Native CI on the same corrected exact SHA;
-- [ ] freeze O7C1 evidence;
-- [ ] resolve first health-data scope before O7C2 source work.
-
-## Out of scope
-
-- SDK-readiness claims from package/settings presence;
-- unapproved health-data permissions;
-- dead/no-op user-facing Connect wiring;
-- silent app minSdk increase;
-- health record import/sync/storage;
-- background health reads;
-- HealthKit/iOS;
-- Recovery feature implementation;
-- Supabase schema/RLS for health connections;
-- durable connection metadata — O7D;
-- O8/O9/O10/O11 work.
 
 ## Guardrails
 
 - no passive permission prompt;
 - no fake `connected`;
-- no broad future-use health permissions;
+- no broad health permissions for future use;
 - no sensitive health-data logging;
-- no applied migration edits;
-- preserve O7B UI/flow semantics;
+- no health records in `onboarding_drafts`;
+- no silent whole-app minSdk increase;
+- no O7D/O7E implementation while O7C2 is blocked;
 - PR #50 remains Draft/open/unmerged;
 - O11 remains blocked until O10.
 
-## Exit
+## Handoff
 
-O7C1 exits when the corrected surface-presence implementation passes both Flutter four-gate CI and Android debug APK/native compile on one exact SHA. #78 remains open while O7C2 is gated. O7D does not start early.
+**O7C1 is frozen on `f95ddf7c...` with Flutter CI #1593 and Android Native CI #5 green. #78 remains open because O7C2 is blocked by product/data decision #79. Do not start O7D/O7E until #79 resolves the first least-privilege Health Connect data contract and O7C2 is implemented/validated.**
