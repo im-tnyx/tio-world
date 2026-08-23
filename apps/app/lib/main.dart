@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_onboarding/onboarding.dart';
+import 'package:tio_feature_profile/profile.dart';
+import 'package:tio_feature_progress/progress.dart';
 
 import 'app/app.dart';
 import 'app/app_mode/app_mode.dart';
@@ -11,6 +13,7 @@ import 'app/network_providers.dart';
 import 'app/onboarding/onboarding.dart';
 import 'app/app_theme.dart';
 import 'app/bootstrap.dart';
+import 'app/profile/canonical_profile_data_reader.dart';
 
 void _installSafeDebugPrintPolicy() {
   final upstreamDebugPrint = debugPrint;
@@ -101,6 +104,26 @@ Future<void> main() async {
               );
               unawaited(controller.hydrateDraft());
               return controller;
+            }),
+            profileDataProvider.overrideWith((ref) {
+              ref.watch(authSessionStateProvider);
+              final client = ref.watch(supabaseClientProvider);
+              if (client == null) {
+                return ref
+                    .watch(profileSetupRepositoryProvider)
+                    .watchProfileSetup();
+              }
+
+              final reader = CanonicalProfileDataReader(
+                profileRepository: SupabaseUserProfileRepository(client: client),
+                bodyRepository: SupabaseBodySetupRepository(client: client),
+                accountReader:
+                    SupabaseProfileAccountSnapshotReader(client: client),
+              );
+              return CanonicalSupabaseProfileDataStream(
+                client: client,
+                reader: reader,
+              ).watch();
             }),
             appThemeControllerProvider
                 .overrideWith((ref) => appThemeController),
