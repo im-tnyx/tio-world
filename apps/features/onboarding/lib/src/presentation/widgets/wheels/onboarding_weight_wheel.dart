@@ -22,11 +22,11 @@ class OnboardingWeightWheel extends StatefulWidget {
 
 class _OnboardingWeightWheelState extends State<OnboardingWeightWheel> {
   static const int _minKg = 30;
-  static const int _maxKg = 220;
+  static const int _maxKg = 200;
   static const int _defaultKg = 75;
 
   static const int _minLbs = 66;
-  static const int _maxLbs = 485;
+  static const int _maxLbs = 440;
   static const double _perspective = 0.003;
   static const double _diameterRatio = 1.6;
 
