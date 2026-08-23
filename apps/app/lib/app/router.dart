@@ -117,7 +117,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           : profileRepository is MeasurementUnitPreferencesRepository
               ? profileRepository as MeasurementUnitPreferencesRepository
               : null;
-  const hasDurableStorage = true;
 
   late final GoRouter router;
   router = GoRouter(
@@ -425,13 +424,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   debugPrint('[Router] Supabase auth succeeded! userId=${supabaseClient.auth.currentUser?.id}');
                 }
 
-                final authProductState = ref.read(authProductStateProvider);
                 final isSupabaseReady =
                     supabaseClient != null && supabaseClient.auth.currentUser != null;
-                final isDurablePersistenceReady = isSupabaseReady ||
-                    authProductState.isReadyForProtectedBackendCalls ||
-                    authProductState.isAuthUnavailable ||
-                    supabaseClient == null;
 
                 final completeOnboarding = CompleteOnboardingUseCase(
                   confirmedModePreference:
@@ -448,9 +442,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                     workoutTargetsRepository: workoutTargetsRepository,
                     nutritionTargetsRepository: nutritionTargetsRepository,
                   ),
-                  validator: OnboardingCompletionValidator(
-                    hasDurableOwnerPersistence: hasDurableStorage,
-                    backendUserReady: isDurablePersistenceReady,
+                  validator: buildAppOnboardingCompletionValidator(
+                    hasSupabaseClient: supabaseClient != null,
+                    hasAuthenticatedSupabaseUser: isSupabaseReady,
                   ),
                 );
                 final flowPlan = const BuildOnboardingFlowUseCase()(
