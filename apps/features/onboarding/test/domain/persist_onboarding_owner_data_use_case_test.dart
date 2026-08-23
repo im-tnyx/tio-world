@@ -52,8 +52,7 @@ void main() {
   }
 
   group('PersistOnboardingOwnerDataUseCase canonical owner writes', () {
-    test('workout writes both canonical Workout owners before Nutrition Targets',
-        () async {
+    test('workout writes only canonical Body and Workout owners', () async {
       final draft = OnboardingDraft(
         selectedMode: AppMode.workout,
         goalSelection: const GoalIntentSelection(
@@ -72,8 +71,7 @@ void main() {
 
       expect(profileRepo.data?.name, 'Tio User');
       expect(bodyRepo.data?.currentWeightKg, 60);
-      expect(wellnessRepo.data?.dailySteps, 10000);
-      expect(wellnessRepo.data?.waterMl, 2500);
+      expect(wellnessRepo.data, isNull);
 
       final workoutProfile = await canonicalWorkoutProfile();
       expect(workoutProfile, isNotNull);
@@ -95,7 +93,7 @@ void main() {
       expect(workoutTargets?.splitProgram, workout_owner.WorkoutSplit.upperLower);
 
       expect(await canonicalNutritionProfile(), isNull);
-      expect(await canonicalNutritionTargets(), isNotNull);
+      expect(await canonicalNutritionTargets(), isNull);
     });
 
     test('nutrition writes Nutrition owners and no canonical Workout owner',
@@ -453,15 +451,21 @@ void main() {
         nutritionTargetsRepository: _FailingNutritionTargetsRepository(),
       );
       final draft = OnboardingDraft(
-        selectedMode: AppMode.workout,
+        selectedMode: AppMode.hybrid,
+        workoutIntroChoice: WorkoutIntroChoice.setupNow,
         goalSelection: const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
         profile: _validProfile(),
+        nutrition: const NutritionOnboardingDraft(
+          dietType: NutritionDietType.vegan,
+          allergyRestrictions: {NutritionAllergyRestriction.none},
+        ),
         workout: _validWorkout(),
         targets: _validTargets(),
       );
       final flowPlan = const BuildOnboardingFlowUseCase()(
         entryPath: OnboardingEntryPath.firstRun,
-        mode: AppMode.workout,
+        mode: AppMode.hybrid,
+        workoutIntroChoice: WorkoutIntroChoice.setupNow,
       );
 
       await expectLater(
