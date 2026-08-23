@@ -81,8 +81,12 @@ void main() {
 
         expect(profileRepo.data?.name, 'Tio User');
         expect(bodyRepo.data?.currentWeightKg, 60);
-        expect(wellnessRepo.data?.dailySteps, 10000);
-        expect(wellnessRepo.data?.waterMl, 2500);
+        if (variant.publishesWellness) {
+          expect(wellnessRepo.data?.dailySteps, 10000);
+          expect(wellnessRepo.data?.waterMl, 2500);
+        } else {
+          expect(wellnessRepo.data, isNull);
+        }
 
         expect(
           await nutritionProfileRepo.read(),
@@ -90,14 +94,18 @@ void main() {
         );
 
         final nutritionTargets = await nutritionTargetsRepo.read();
-        expect(nutritionTargets, isNotNull);
-        expect(
-          nutritionTargets?.customizationState,
-          nutrition_owner.NutritionTargetCustomizationState.recommended,
-        );
-        expect(nutritionTargets?.customizedFields, isEmpty);
-        expect(nutritionTargets?.recommendationMetadata['source'], 'onboarding');
-        expect(nutritionTargets?.caloriesKcal, greaterThan(0));
+        if (variant.publishesNutritionTargets) {
+          expect(nutritionTargets, isNotNull);
+          expect(
+            nutritionTargets?.customizationState,
+            nutrition_owner.NutritionTargetCustomizationState.recommended,
+          );
+          expect(nutritionTargets?.customizedFields, isEmpty);
+          expect(nutritionTargets?.recommendationMetadata['source'], 'onboarding');
+          expect(nutritionTargets?.caloriesKcal, greaterThan(0));
+        } else {
+          expect(nutritionTargets, isNull);
+        }
 
         final workoutProfile = await workoutProfileRepo.read();
         final workoutTargets = await workoutTargetsRepo.read();
@@ -172,7 +180,9 @@ class _Variant {
   const _Variant({
     required this.name,
     required this.mode,
+    required this.publishesWellness,
     required this.publishesNutritionProfile,
+    required this.publishesNutritionTargets,
     required this.publishesWorkout,
     this.workoutIntroChoice,
   });
@@ -180,35 +190,45 @@ class _Variant {
   final String name;
   final AppMode mode;
   final WorkoutIntroChoice? workoutIntroChoice;
+  final bool publishesWellness;
   final bool publishesNutritionProfile;
+  final bool publishesNutritionTargets;
   final bool publishesWorkout;
 }
 
 const _variants = <_Variant>[
   _Variant(
-    name: 'Workout completes with Nutrition Targets and Workout owners',
+    name: 'Workout completes with Body and Workout owners only',
     mode: AppMode.workout,
+    publishesWellness: false,
     publishesNutritionProfile: false,
+    publishesNutritionTargets: false,
     publishesWorkout: true,
   ),
   _Variant(
-    name: 'Nutrition completes with Nutrition owners and no Workout owners',
+    name: 'Nutrition completes with Wellness and Nutrition owners only',
     mode: AppMode.nutrition,
+    publishesWellness: true,
     publishesNutritionProfile: true,
+    publishesNutritionTargets: true,
     publishesWorkout: false,
   ),
   _Variant(
-    name: 'Hybrid setupNow completes with Nutrition and Workout owners',
+    name: 'Hybrid setupNow completes with Wellness, Nutrition and Workout owners',
     mode: AppMode.hybrid,
     workoutIntroChoice: WorkoutIntroChoice.setupNow,
+    publishesWellness: true,
     publishesNutritionProfile: true,
+    publishesNutritionTargets: true,
     publishesWorkout: true,
   ),
   _Variant(
-    name: 'Hybrid later completes with Nutrition owners and dormant Workout',
+    name: 'Hybrid later completes with Wellness and Nutrition owners and dormant Workout',
     mode: AppMode.hybrid,
     workoutIntroChoice: WorkoutIntroChoice.later,
+    publishesWellness: true,
     publishesNutritionProfile: true,
+    publishesNutritionTargets: true,
     publishesWorkout: false,
   ),
 ];
