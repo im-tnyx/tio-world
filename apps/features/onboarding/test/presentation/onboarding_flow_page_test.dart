@@ -99,7 +99,7 @@ void main() {
     }
   });
 
-  testWidgets('real workout intro continues to Wellness when deferred',
+  testWidgets('real workout intro continues to Nutrition Profile when deferred',
       (tester) async {
     await _pumpFlow(
       tester,
@@ -132,8 +132,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(WorkoutIntroSection), findsNothing);
-    expect(find.byType(WellnessSection), findsOneWidget);
-    expect(find.byType(BridgeScreen), findsOneWidget);
+    expect(find.byType(NutritionProfileSection), findsOneWidget);
+    expect(find.byType(DietTypeScreen), findsOneWidget);
+    expect(find.byType(WellnessSection), findsNothing);
     expect(find.byType(NutritionGoalsSection), findsNothing);
     expect(find.byType(TargetsSection), findsNothing);
     expect(find.byType(NutritionTargetScreen), findsNothing);
