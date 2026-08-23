@@ -178,7 +178,7 @@ void main() {
       );
     });
 
-    test('hiding Nutrition Profile falls back to Body Goal', () {
+    test('hiding Nutrition Profile falls back to Body Goal on live mode change', () {
       final nutritionPlan = buildFlow(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.nutrition,
@@ -197,25 +197,25 @@ void main() {
       );
     });
 
-    test('stale Workout Wellness checkpoint falls back to Body Goal', () {
+    test('stale Workout Wellness checkpoint advances to Workout Profile', () {
       expect(
         buildFlow.reconcilePersistedCurrentStep(
           currentStepId: OnboardingStepId.wellnessGoals,
           entryPath: OnboardingEntryPath.resumeDraft,
           mode: AppMode.workout,
         ),
-        OnboardingStepId.bodyGoal,
+        OnboardingStepId.workoutProfile,
       );
     });
 
-    test('stale Workout Nutrition Target checkpoint falls back to Workout Targets', () {
+    test('stale Workout Nutrition Target advances to Health Connections', () {
       expect(
         buildFlow.reconcilePersistedCurrentStep(
           currentStepId: OnboardingStepId.nutritionGoals,
           entryPath: OnboardingEntryPath.resumeDraft,
           mode: AppMode.workout,
         ),
-        OnboardingStepId.workoutTargets,
+        OnboardingStepId.healthConnections,
       );
     });
   });
