@@ -90,7 +90,7 @@ void main() {
       expect(find.byType(OnboardingTopBar), findsOneWidget);
       expect(find.byType(OnboardingProgressIndicator), findsOneWidget);
       expect(
-        find.bySemanticsLabel('Step 1 of 26, About you'),
+        find.bySemanticsLabel('Step 1 of 21, About you'),
         findsOneWidget,
       );
       expect(find.byType(AppModeScreen), findsNothing);
@@ -99,7 +99,7 @@ void main() {
     }
   });
 
-  testWidgets('real workout intro skips directly to Nutrition Target when deferred',
+  testWidgets('real workout intro continues to Wellness when deferred',
       (tester) async {
     await _pumpFlow(
       tester,
@@ -132,11 +132,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(WorkoutIntroSection), findsNothing);
-    expect(find.byType(NutritionGoalsSection), findsOneWidget);
+    expect(find.byType(WellnessSection), findsOneWidget);
+    expect(find.byType(BridgeScreen), findsOneWidget);
+    expect(find.byType(NutritionGoalsSection), findsNothing);
     expect(find.byType(TargetsSection), findsNothing);
-    expect(find.byType(WellnessSection), findsNothing);
-    expect(find.byType(BridgeScreen), findsNothing);
-    expect(find.byType(NutritionTargetScreen), findsOneWidget);
+    expect(find.byType(NutritionTargetScreen), findsNothing);
 
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
@@ -432,18 +432,18 @@ void main() {
         .value!;
 
     await tester.pumpAndSettle();
-    expect(progressValue(), 7 / 26);
+    expect(progressValue(), 7 / 21);
 
     await tester.tap(find.text('Continue'));
     await tester.pump();
-    expect(progressValue(), 7 / 26);
+    expect(progressValue(), 7 / 21);
 
     await tester.pump(const Duration(milliseconds: 125));
-    expect(progressValue(), greaterThan(7 / 26));
-    expect(progressValue(), lessThan(8 / 26));
+    expect(progressValue(), greaterThan(7 / 21));
+    expect(progressValue(), lessThan(8 / 21));
 
     await tester.pumpAndSettle();
-    expect(progressValue(), 8 / 26);
+    expect(progressValue(), 8 / 21);
   });
 
   testWidgets('completion failure is announced as a live region',
