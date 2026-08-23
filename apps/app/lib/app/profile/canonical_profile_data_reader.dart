@@ -209,10 +209,13 @@ final class CanonicalSupabaseProfileDataStream {
         subscribe(table: 'user_body_goals', userColumn: 'user_id');
         unawaited(refresh());
       },
-      onCancel: () {
+      onCancel: () async {
         cancelled = true;
         for (final channel in channels) {
-          unawaited(channel.unsubscribe());
+          await channel.unsubscribe();
+        }
+        if (!controller.isClosed) {
+          await controller.close();
         }
       },
     );
