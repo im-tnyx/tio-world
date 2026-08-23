@@ -196,5 +196,27 @@ void main() {
         OnboardingStepId.bodyGoal,
       );
     });
+
+    test('stale Workout Wellness checkpoint falls back to Body Goal', () {
+      expect(
+        buildFlow.reconcilePersistedCurrentStep(
+          currentStepId: OnboardingStepId.wellnessGoals,
+          entryPath: OnboardingEntryPath.resumeDraft,
+          mode: AppMode.workout,
+        ),
+        OnboardingStepId.bodyGoal,
+      );
+    });
+
+    test('stale Workout Nutrition Target checkpoint falls back to Workout Targets', () {
+      expect(
+        buildFlow.reconcilePersistedCurrentStep(
+          currentStepId: OnboardingStepId.nutritionGoals,
+          entryPath: OnboardingEntryPath.resumeDraft,
+          mode: AppMode.workout,
+        ),
+        OnboardingStepId.workoutTargets,
+      );
+    });
   });
 }
