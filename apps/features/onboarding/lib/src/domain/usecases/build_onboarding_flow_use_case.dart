@@ -51,12 +51,29 @@ class BuildOnboardingFlowUseCase {
     required OnboardingEntryPath entryPath,
     required AppMode? mode,
     WorkoutIntroChoice? workoutIntroChoice,
+    Set<OnboardingStepId> completedStepIds = const {},
   }) {
     final nextPlan = call(
       entryPath: entryPath,
       mode: mode,
       workoutIntroChoice: workoutIntroChoice,
     );
+
+    // #106 reordered Hybrid so the Workout block comes before Nutrition
+    // Profile. A persisted draft sitting on Nutrition Profile without having
+    // completed Workout Intro/Workout sections is therefore from the older
+    // Nutrition-first policy. Resume at Workout Intro so the new order cannot
+    // silently skip the training setup block. Already-entered Nutrition data is
+    // retained in the draft and will be prefilled when Nutrition Profile is
+    // reached again.
+    if (mode == AppMode.hybrid &&
+        currentStepId == OnboardingStepId.nutritionProfile &&
+        !completedStepIds.contains(OnboardingStepId.workoutIntro) &&
+        !completedStepIds.contains(OnboardingStepId.workoutProfile) &&
+        !completedStepIds.contains(OnboardingStepId.workoutTargets)) {
+      return OnboardingStepId.workoutIntro;
+    }
+
     if (nextPlan.contains(currentStepId) || mode == null) {
       return nextPlan.contains(currentStepId)
           ? currentStepId
@@ -126,8 +143,8 @@ List<OnboardingStepDefinition> _stepsByMode(
     AppMode.hybrid => workoutIntroChoice == WorkoutIntroChoice.later
         ? [
             ...commonFoundation,
-            _nutritionProfile,
             _workoutIntro,
+            _nutritionProfile,
             _wellnessGoals,
             _nutritionGoals,
             _healthConnections,
@@ -135,10 +152,10 @@ List<OnboardingStepDefinition> _stepsByMode(
           ]
         : [
             ...commonFoundation,
-            _nutritionProfile,
             _workoutIntro,
             _workoutProfile,
             _workoutTargets,
+            _nutritionProfile,
             _wellnessGoals,
             _nutritionGoals,
             _healthConnections,
