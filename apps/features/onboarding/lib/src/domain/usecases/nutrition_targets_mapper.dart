@@ -19,9 +19,11 @@ class NutritionTargetsMapper {
   final WeightGoalFlowPolicy weightGoalPolicy;
 
   nutrition_owner.NutritionTargetsData map(OnboardingDraft draft) {
-    final activeWeightDirection = weightGoalPolicy.directionFor(
+    final activeWeightDirection = weightGoalPolicy.effectiveDirectionFor(
       mode: draft.selectedMode,
       selection: draft.goalSelection,
+      currentWeightKg: draft.profile.currentWeightKg,
+      targetWeightKg: draft.profile.targetWeightKg,
     );
     final targetIsActive = activeWeightDirection != null &&
         draft.profile.targetWeightDirection == activeWeightDirection;
@@ -29,9 +31,8 @@ class NutritionTargetsMapper {
         ? draft.profile
         : draft.profile.copyWith(clearTargetWeightKg: true);
 
-    // Preserve the verified compatibility behavior: the draft's 0.5 kg/week
-    // starting value is semantic intent only while a directional weight goal
-    // is active. Otherwise calculation receives the neutral 0 pace.
+    // Pace becomes a Nutrition calculation input only when Body has an active
+    // loss/gain direction. Training labels never decide surplus/deficit.
     final effectiveTargets = draft.targets.copyWith(
       goalPaceKgPerWeek: activeWeightDirection == null
           ? 0.0
