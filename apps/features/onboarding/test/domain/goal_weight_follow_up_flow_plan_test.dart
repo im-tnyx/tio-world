@@ -12,74 +12,71 @@ void main() {
   }) =>
       bodyGoalPlanner(mode: mode, goalSelection: selection);
 
-  test('nutrition Target Weight and Goal Pace share the approved matrix', () {
+  test('nutrition Lose/Gain show paired follow-ups and Maintain hides both', () {
     const expected = <GoalIntent, bool>{
       GoalIntent.loseWeight: true,
       GoalIntent.gainWeight: true,
       GoalIntent.maintainWeight: false,
-      GoalIntent.recomposition: false,
     };
 
     for (final entry in expected.entries) {
-      final selection = GoalIntentSelection(primaryGoal: entry.key);
-      final plan = bodyPlan(mode: AppMode.nutrition, selection: selection);
-
-      expect(
-        plan.contains(ProfileStepId.targetWeight),
-        entry.value,
-        reason: 'Target Weight eligibility for ${entry.key}',
+      final plan = bodyPlan(
+        mode: AppMode.nutrition,
+        selection: GoalIntentSelection(primaryGoal: entry.key),
       );
-      expect(
-        plan.contains(ProfileStepId.goalPace),
-        entry.value,
-        reason: 'Goal Pace eligibility for ${entry.key}',
-      );
-      expect(
-        plan.contains(ProfileStepId.targetWeight),
-        plan.contains(ProfileStepId.goalPace),
-        reason: 'Body follow-ups must never diverge for ${entry.key}',
-      );
+      expect(plan.contains(ProfileStepId.targetWeight), entry.value);
+      expect(plan.contains(ProfileStepId.goalPace), entry.value);
     }
   });
 
-  test('workout and hybrid activate both follow-ups only for selected loss', () {
-    const trainingOnly = [
+  test('Workout/Hybrid training-only goals show paired Body follow-ups', () {
+    const trainingGoals = [
       GoalIntent.buildMuscle,
       GoalIntent.getStronger,
       GoalIntent.improveEndurance,
       GoalIntent.stayFit,
-      GoalIntent.recomposition,
     ];
 
     for (final mode in [AppMode.workout, AppMode.hybrid]) {
-      const primaryLoss = GoalIntentSelection(
-        primaryGoal: GoalIntent.loseWeight,
-      );
-      const supportingLoss = GoalIntentSelection(
-        primaryGoal: GoalIntent.getStronger,
-        supportingGoal: GoalIntent.loseWeight,
-      );
-
-      for (final selection in [primaryLoss, supportingLoss]) {
-        final plan = bodyPlan(mode: mode, selection: selection);
-        expect(plan.contains(ProfileStepId.targetWeight), isTrue);
-        expect(plan.contains(ProfileStepId.goalPace), isTrue);
-      }
-
-      for (final goal in trainingOnly) {
-        final selection = GoalIntentSelection(primaryGoal: goal);
-        final plan = bodyPlan(mode: mode, selection: selection);
-        expect(
-          plan.contains(ProfileStepId.targetWeight),
-          isFalse,
-          reason: '$goal must not activate Target Weight in $mode',
+      for (final goal in trainingGoals) {
+        final plan = bodyPlan(
+          mode: mode,
+          selection: GoalIntentSelection(primaryGoal: goal),
         );
-        expect(
-          plan.contains(ProfileStepId.goalPace),
-          isFalse,
-          reason: '$goal must not activate Goal Pace in $mode',
-        );
+        expect(plan.contains(ProfileStepId.targetWeight), isTrue,
+            reason: '$goal should collect Target Weight in $mode');
+        expect(plan.contains(ProfileStepId.goalPace), isTrue,
+            reason: '$goal should collect Goal Pace in $mode');
       }
+    }
+  });
+
+  test('explicit Maintain hides follow-ups even with training priorities', () {
+    final plan = bodyPlan(
+      mode: AppMode.hybrid,
+      selection: const GoalIntentSelection(
+        primaryGoal: GoalIntent.maintainWeight,
+        supportingGoal: GoalIntent.buildMuscle,
+        tertiaryGoal: GoalIntent.getStronger,
+      ),
+    );
+
+    expect(plan.contains(ProfileStepId.targetWeight), isFalse);
+    expect(plan.contains(ProfileStepId.goalPace), isFalse);
+  });
+
+  test('Body Lose/Gain plus training keep paired follow-ups', () {
+    for (final bodyGoal in [GoalIntent.loseWeight, GoalIntent.gainWeight]) {
+      final plan = bodyPlan(
+        mode: AppMode.workout,
+        selection: GoalIntentSelection(
+          primaryGoal: bodyGoal,
+          supportingGoal: GoalIntent.buildMuscle,
+          tertiaryGoal: GoalIntent.improveEndurance,
+        ),
+      );
+      expect(plan.contains(ProfileStepId.targetWeight), isTrue);
+      expect(plan.contains(ProfileStepId.goalPace), isTrue);
     }
   });
 
@@ -109,28 +106,20 @@ void main() {
       ),
     );
 
-    expect(
-      bodyGoalPlanner.reconcileCurrentStep(
-        currentStepId: ProfileStepId.targetWeight,
-        previousPlan: previousPlan,
-        nextPlan: nextPlan,
-      ),
-      ProfileStepId.currentWeight,
-    );
-    expect(
-      bodyGoalPlanner.reconcileCurrentStep(
-        currentStepId: ProfileStepId.goalPace,
-        previousPlan: previousPlan,
-        nextPlan: nextPlan,
-      ),
-      ProfileStepId.currentWeight,
-    );
+    for (final child in [ProfileStepId.targetWeight, ProfileStepId.goalPace]) {
+      expect(
+        bodyGoalPlanner.reconcileCurrentStep(
+          currentStepId: child,
+          previousPlan: previousPlan,
+          nextPlan: nextPlan,
+        ),
+        ProfileStepId.currentWeight,
+      );
+    }
   });
 
   test('generic legacy Targets fallback resolves to active Nutrition Target', () {
-    const legacyPlan = TargetsFlowPlan(
-      steps: TargetsFlowPlan.legacyOrderedSteps,
-    );
+    const legacyPlan = TargetsFlowPlan(steps: TargetsFlowPlan.legacyOrderedSteps);
     final activePlan = targetsPlanner(
       mode: AppMode.hybrid,
       goalSelection: const GoalIntentSelection(
