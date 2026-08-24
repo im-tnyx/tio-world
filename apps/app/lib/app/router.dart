@@ -97,7 +97,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   final appThemeController = ref.read(appThemeControllerProvider);
   final onboardingStatusRepository =
       ref.read(onboardingStatusRepositoryProvider);
-  final profileRepository = ref.read(profileSetupRepositoryProvider);
+  final supabaseClient = ref.read(supabaseClientProvider);
+  final canonicalProfileRepository = ref.read(userProfileRepositoryProvider);
+  final ProfileSetupRepository? fallbackProfileRepository = supabaseClient == null
+      ? ref.read(profileSetupRepositoryProvider)
+      : null;
+  final Object profileRepository =
+      canonicalProfileRepository ?? fallbackProfileRepository!;
   final bodyRepository = ref.read(bodySetupRepositoryProvider);
   final nutritionProfileRepository =
       ref.read(nutritionProfileRepositoryProvider);
@@ -110,12 +116,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   final onboardingCompletionRepository =
       ref.read(onboardingCompletionRepositoryProvider);
   final appPreferencesRepository = ref.read(appPreferencesRepositoryProvider);
-  final supabaseClient = ref.read(supabaseClientProvider);
   final MeasurementUnitPreferencesRepository? unitPreferencesRepository =
       supabaseClient != null
           ? SupabaseMeasurementUnitPreferencesRepository(client: supabaseClient)
-          : profileRepository is MeasurementUnitPreferencesRepository
-              ? profileRepository as MeasurementUnitPreferencesRepository
+          : fallbackProfileRepository is MeasurementUnitPreferencesRepository
+              ? fallbackProfileRepository as MeasurementUnitPreferencesRepository
               : null;
 
   late final GoRouter router;
@@ -568,14 +573,24 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 );
                 if (picked == null) return;
                 final bytes = await picked.readAsBytes();
-                await ref.read(profileSetupRepositoryProvider).uploadAvatarImage(
-                      fileName: picked.name,
-                      bytes: bytes,
-                    );
+                final avatarRepository =
+                    ref.read(profileAvatarRepositoryProvider);
+                if (avatarRepository == null) {
+                  throw StateError('Profile avatar persistence is unavailable.');
+                }
+                await avatarRepository.uploadAvatarImage(
+                  fileName: picked.name,
+                  bytes: bytes,
+                );
                 ref.invalidate(profileDataProvider);
               },
               onDeleteImage: () async {
-                await ref.read(profileSetupRepositoryProvider).deleteAvatarImage();
+                final avatarRepository =
+                    ref.read(profileAvatarRepositoryProvider);
+                if (avatarRepository == null) {
+                  throw StateError('Profile avatar persistence is unavailable.');
+                }
+                await avatarRepository.deleteAvatarImage();
                 ref.invalidate(profileDataProvider);
               },
             );
@@ -608,14 +623,24 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 );
                 if (picked == null) return;
                 final bytes = await picked.readAsBytes();
-                await ref.read(profileSetupRepositoryProvider).uploadAvatarImage(
-                      fileName: picked.name,
-                      bytes: bytes,
-                    );
+                final avatarRepository =
+                    ref.read(profileAvatarRepositoryProvider);
+                if (avatarRepository == null) {
+                  throw StateError('Profile avatar persistence is unavailable.');
+                }
+                await avatarRepository.uploadAvatarImage(
+                  fileName: picked.name,
+                  bytes: bytes,
+                );
                 ref.invalidate(profileDataProvider);
               },
               onDeletePressed: () async {
-                await ref.read(profileSetupRepositoryProvider).deleteAvatarImage();
+                final avatarRepository =
+                    ref.read(profileAvatarRepositoryProvider);
+                if (avatarRepository == null) {
+                  throw StateError('Profile avatar persistence is unavailable.');
+                }
+                await avatarRepository.deleteAvatarImage();
                 ref.invalidate(profileDataProvider);
                 if (context.mounted) context.pop();
               },
