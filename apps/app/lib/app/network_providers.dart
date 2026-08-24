@@ -95,18 +95,29 @@ final publicApiClientProvider = Provider<ApiClient>((ref) {
   return DioApiClient.public(config: config);
 });
 
+/// Non-Supabase compatibility adapter retained for the future protected HTTP
+/// backend path. Supabase production composition must not use this broad
+/// ProfileSetup contract as semantic Profile truth.
 final profileSetupRepositoryProvider = Provider<ProfileSetupRepository>((ref) {
-  final supabaseClient = ref.watch(supabaseClientProvider);
-  if (supabaseClient != null) {
-    return CanonicalUserProfileBridgeRepository(
-      legacyRepository: SupabaseProfileSetupRepository(client: supabaseClient),
-      canonicalRepository: SupabaseUserProfileRepository(client: supabaseClient),
-    );
-  }
   final apiClient = ref.watch(authenticatedApiClientProvider);
   return RemoteProfileSetupRepository(
     remoteDataSource: HttpProfileSetupRemoteDataSource(apiClient),
   );
+});
+
+/// Canonical common Profile owner used by Supabase production composition.
+final userProfileRepositoryProvider = Provider<UserProfileRepository?>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  if (client == null) return null;
+  return SupabaseUserProfileRepository(client: client);
+});
+
+/// Narrow avatar-only Supabase boundary. It writes only `users.avatar_url` and
+/// carries no legacy Profile/Body schema dependency.
+final profileAvatarRepositoryProvider = Provider<ProfileAvatarRepository?>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  if (client == null) return null;
+  return SupabaseProfileAvatarRepository(client: client);
 });
 
 /// Canonical Wellness owner. Production writes only `user_wellness_targets`;
@@ -357,8 +368,14 @@ final profileDataProvider = StreamProvider<ProfileSetupData?>((ref) {
   ref.watch(authSessionStateProvider);
   final client = ref.watch(supabaseClientProvider);
   if (client != null) {
+    final profileRepository = ref.watch(userProfileRepositoryProvider);
+    if (profileRepository == null) {
+      return Stream<ProfileSetupData?>.error(
+        StateError('Canonical Profile repository is unavailable.'),
+      );
+    }
     final reader = CanonicalProfileDataReader(
-      profileRepository: SupabaseUserProfileRepository(client: client),
+      profileRepository: profileRepository,
       bodyRepository: SupabaseBodySetupRepository(client: client),
       accountReader: SupabaseProfileAccountSnapshotReader(client: client),
     );
