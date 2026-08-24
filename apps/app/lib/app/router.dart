@@ -671,16 +671,75 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => Consumer(
           builder: (context, ref, _) {
-            final supabase = ref.watch(supabaseClientProvider);
-            final userEmail = supabase?.auth.currentUser?.email;
+            final authState = ref.watch(authSessionStateProvider).valueOrNull;
+            final authSession = authState is AuthSessionAuthenticated
+                ? authState.session
+                : null;
             final profileAsync = ref.watch(profileDataProvider);
             final profileData = profileAsync.valueOrNull;
 
             return AccountSettingsPage(
               username: profileData?.username,
-              email: userEmail,
-              phoneNumber: profileData?.mobile,
-              isPhoneVerified: profileData?.isMobileVerified ?? false,
+              email: authSession?.email,
+              phoneNumber: authSession?.phone ?? profileData?.mobile,
+              isEmailVerified: authSession?.isEmailVerified ?? false,
+              isPhoneVerified: authSession?.isPhoneVerified ?? false,
+              onVerifyEmailPressed: (email) async {
+                final verificationRepository =
+                    ref.read(accountContactVerificationRepositoryProvider);
+                if (verificationRepository == null) {
+                  throw StateError(
+                    'Email verification is unavailable right now.',
+                  );
+                }
+
+                await verificationRepository
+                    .requestCurrentEmailVerification(email);
+                if (!context.mounted) return false;
+                final token = await showTioOtpVerificationDialog(
+                  context: context,
+                  targetLabel: 'email ($email)',
+                  title: 'Please enter your Code',
+                  subtitle: 'Please check your email for the verification code.',
+                );
+                if (token == null) return false;
+
+                await verificationRepository.verifyCurrentEmail(
+                  email: email,
+                  token: token,
+                );
+                ref.invalidate(authSessionStateProvider);
+                return true;
+              },
+              onVerifyPhonePressed: (phoneNumber) async {
+                final verificationRepository =
+                    ref.read(accountContactVerificationRepositoryProvider);
+                if (verificationRepository == null) {
+                  throw StateError(
+                    'Phone verification is unavailable right now.',
+                  );
+                }
+
+                await verificationRepository
+                    .requestPhoneVerification(phoneNumber);
+                if (!context.mounted) return false;
+                final token = await showTioOtpVerificationDialog(
+                  context: context,
+                  targetLabel: 'mobile number ($phoneNumber)',
+                  title: 'Please enter your Code',
+                  subtitle: 'Please check your mobile for the verification code.',
+                );
+                if (token == null) return false;
+
+                await verificationRepository.verifyPhoneChange(
+                  phoneNumber: phoneNumber,
+                  token: token,
+                );
+                ref.invalidate(authSessionStateProvider);
+                ref.invalidate(profileDataProvider);
+                ref.invalidate(profileCompletionSummaryProvider);
+                return true;
+              },
               onSave: ({required username, required phoneNumber}) async {
                 final accountRepository =
                     ref.read(profileAccountRepositoryProvider);
@@ -689,10 +748,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                     'Account settings persistence is unavailable.',
                   );
                 }
-                await accountRepository.updateAccountSettings(
-                  username: username,
-                  mobile: phoneNumber,
-                );
+
+                // Phone persistence is Auth-owned and occurs only after real
+                // provider verification. Save Changes owns username only.
+                await accountRepository.updateUsername(username);
                 ref.invalidate(profileDataProvider);
                 ref.invalidate(profileCompletionSummaryProvider);
               },
