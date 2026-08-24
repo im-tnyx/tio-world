@@ -8,11 +8,12 @@ import '../../domain/repositories/account_contact_verification_repository.dart';
 /// `public.users`; this adapter never writes verification timestamps itself.
 final class SupabaseAccountContactVerificationRepository
     implements AccountContactVerificationRepository {
-  const SupabaseAccountContactVerificationRepository({
+  SupabaseAccountContactVerificationRepository({
     required SupabaseClient client,
   }) : _client = client;
 
   final SupabaseClient _client;
+  String? _pendingEmailChange;
 
   User _requireUser() {
     final user = _client.auth.currentUser;
@@ -48,44 +49,52 @@ final class SupabaseAccountContactVerificationRepository
   }
 
   @override
-  Future<void> requestCurrentEmailVerification(String email) async {
+  Future<void> requestEmailVerification(String email) async {
     final user = _requireUser();
     final normalizedEmail = _normalizeEmail(email);
     final currentEmail = user.email?.trim().toLowerCase();
 
-    if (currentEmail == null || currentEmail != normalizedEmail) {
-      throw StateError('Email does not match the current authenticated account.');
+    if (currentEmail == normalizedEmail) {
+      _pendingEmailChange = null;
+      if (user.emailConfirmedAt != null) return;
+      await _client.auth.resend(
+        type: OtpType.signup,
+        email: normalizedEmail,
+      );
+      return;
     }
-    if (user.emailConfirmedAt != null) return;
 
-    await _client.auth.resend(
-      type: OtpType.signup,
-      email: normalizedEmail,
+    await _client.auth.updateUser(
+      UserAttributes(email: normalizedEmail),
     );
+    _pendingEmailChange = normalizedEmail;
   }
 
   @override
-  Future<void> verifyCurrentEmail({
+  Future<void> verifyEmail({
     required String email,
     required String token,
   }) async {
     final user = _requireUser();
     final normalizedEmail = _normalizeEmail(email);
-    final currentEmail = user.email?.trim().toLowerCase();
-    if (currentEmail == null || currentEmail != normalizedEmail) {
-      throw StateError('Email does not match the current authenticated account.');
-    }
-
     final normalizedToken = token.trim();
     if (normalizedToken.isEmpty) {
       throw ArgumentError.value(token, 'token', 'must not be empty');
     }
 
+    final currentEmail = user.email?.trim().toLowerCase();
+    final isEmailChange = _pendingEmailChange == normalizedEmail ||
+        (currentEmail != null && currentEmail != normalizedEmail) ||
+        currentEmail == null;
+
     await _client.auth.verifyOTP(
       email: normalizedEmail,
       token: normalizedToken,
-      type: OtpType.signup,
+      type: isEmailChange ? OtpType.emailChange : OtpType.signup,
     );
+    if (_pendingEmailChange == normalizedEmail) {
+      _pendingEmailChange = null;
+    }
   }
 
   @override
