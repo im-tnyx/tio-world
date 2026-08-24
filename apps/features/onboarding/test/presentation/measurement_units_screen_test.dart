@@ -19,6 +19,13 @@ void main() {
           ),
         );
 
+    void expectPresetCentered() {
+      final presetCenter =
+          tester.getCenter(find.byType(SegmentedButton).first).dx;
+      final screenCenter = tester.getCenter(find.byType(Scaffold)).dx;
+      expect(presetCenter, closeTo(screenCenter, 0.5));
+    }
+
     await tester.pumpWidget(build());
     expect(find.text('Choose your units'), findsOneWidget);
     expect(preferences, MeasurementUnitPreferences.metric);
@@ -26,6 +33,7 @@ void main() {
       find.byKey(const ValueKey('measurement-units-preset-custom')),
       findsNothing,
     );
+    expectPresetCentered();
 
     await tester.tap(
       find.byKey(const ValueKey('measurement-units-preset-imperial')),
@@ -36,6 +44,7 @@ void main() {
       find.byKey(const ValueKey('measurement-units-preset-custom')),
       findsNothing,
     );
+    expectPresetCentered();
 
     await tester.tap(find.byKey(const ValueKey('measurement-units-weight-kg')));
     await tester.pumpWidget(build());
@@ -49,6 +58,7 @@ void main() {
       find.byKey(const ValueKey('measurement-units-preset-custom')),
       findsOneWidget,
     );
+    expectPresetCentered();
 
     await tester.tap(find.byKey(const ValueKey('measurement-units-weight-lb')));
     await tester.pumpWidget(build());
@@ -57,6 +67,7 @@ void main() {
       find.byKey(const ValueKey('measurement-units-preset-custom')),
       findsNothing,
     );
+    expectPresetCentered();
 
     await tester.tap(
       find.byKey(const ValueKey('measurement-units-preset-metric')),
@@ -70,6 +81,7 @@ void main() {
       find.byKey(const ValueKey('measurement-units-preset-custom')),
       findsOneWidget,
     );
+    expectPresetCentered();
 
     await tester.tap(find.byKey(const ValueKey('measurement-units-height-cm')));
     await tester.pumpWidget(build());
@@ -78,5 +90,6 @@ void main() {
       find.byKey(const ValueKey('measurement-units-preset-custom')),
       findsNothing,
     );
+    expectPresetCentered();
   });
 }
