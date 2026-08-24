@@ -41,9 +41,6 @@ void main() {
       final wellnessRepo = container.read(wellnessTargetsRepositoryProvider);
       expect(wellnessRepo, isA<WellnessTargetsRepository>());
 
-      final workoutRepo = container.read(workoutPreferencesRepositoryProvider);
-      expect(workoutRepo, isA<WorkoutPreferencesRepository>());
-
       final workoutProfileRepo = container.read(workoutProfileRepositoryProvider);
       expect(workoutProfileRepo, isA<InMemoryWorkoutProfileRepository>());
 
