@@ -1,6 +1,6 @@
 # Measurement Units Segmented UI
 
-**Status:** ACTIVE — implementation validated, visual polish follow-up pending  
+**Status:** COMPLETE / FROZEN  
 **Primary owner:** `tio_core` shared measurement preference editor  
 **Affected platforms:** Flutter phone — Product Onboarding + Settings/Profile  
 **Tracking issue:** #112  
@@ -14,7 +14,7 @@ This slice intentionally changes the approved Measurement Units visual contract.
 
 Measurement Units uses Metric/Imperial convenience presets at the top, then four independent compact unit rows. Mixed per-category choices expose a derived `Custom` preset state.
 
-Approved visual refinement after device review:
+Final approved layout:
 
 ```text
             [ Metric | Imperial ]
@@ -32,7 +32,7 @@ When mixed:
                               selected
 ```
 
-The top preset control must be horizontally centered in the available content area. It must not be right-aligned. Metric/Imperial should read as a balanced pair; when Custom appears, all three segments remain visually balanced and centered.
+The top preset control is horizontally centered in the available content area. Metric/Imperial remain a balanced pair; when Custom appears, all three segments remain centered and balanced.
 
 ## 2. Interaction Contract
 
@@ -46,7 +46,7 @@ The top preset control must be horizontally centered in the available content ar
 - Narrow width / large text may stack safely without overflow.
 - Correct liquid volume option is `fl oz`.
 
-## 3. Verified Current Implementation
+## 3. Final Implementation
 
 Shared owner:
 
@@ -59,15 +59,15 @@ Consumers:
 - Product Onboarding `MeasurementUnitsScreen`;
 - Settings `MeasurementUnitsSettingsPage`.
 
-Current implementation already has correct derived Custom behavior and shared persistence boundaries. Device review found one visual mismatch: the preset selector is wrapped in `Align(alignment: Alignment.centerRight)`, which produces the observed right-biased layout instead of the approved centered composition.
+The final polish replaces the previous right-biased `Alignment.centerRight` preset wrapper with centered alignment and adds a stable keyed preset-control boundary so focused widget coverage verifies the rendered segmented control remains centered in exact Metric/Imperial and mixed Custom states.
 
-## 4. Scope
+## 4. Scope Completed
 
-- center the top Metric/Imperial/Custom preset control;
-- preserve equal/balanced segment treatment;
-- retain the existing row interaction and responsive behavior;
-- add/update widget coverage so the preset selector cannot regress back to right alignment;
-- preserve selected semantics, save/failure behavior and all existing unit values.
+- centered the top Metric/Imperial/Custom preset control;
+- preserved balanced segment treatment;
+- retained existing row interaction and responsive behavior;
+- added focused widget coverage preventing regression back to right alignment;
+- preserved selected semantics, save/failure behavior and all existing unit values.
 
 ## 5. Non-Goals / Guardrails
 
@@ -78,12 +78,12 @@ Current implementation already has correct derived Custom behavior and shared pe
 - no unrelated onboarding redesign;
 - no feature-specific duplicate editor.
 
-## 6. Previously Validated Implementation Checkpoint
+## 6. Final Validated Polish Checkpoint
 
 ```text
-Implementation SHA: b8b99478e9dc9fcb1c2f762c99d12e8e7eaa9467
-Flutter CI #1775 / run 32707113818 ✅
-Android Native CI #187 / run 32707113803 ✅
+Accepted source SHA: 45311ef48cef18bf1f973d158048442a9b1e8bbd
+Flutter CI #1781 / run 32716723775 ✅
+Android Native CI #193 / run 32716723751 ✅
 
 Flutter analyze ✅
 Dart analyze    ✅
@@ -92,7 +92,7 @@ Dart tests      ✅
 Android debug APK/native compile ✅
 ```
 
-A later docs-only checkpoint also reached green CI, but #112 is intentionally reopened for the approved visual centering polish and must receive a new exact-green checkpoint after that source change.
+The source checkpoint includes the centered preset implementation and its stable focused regression test. A transient prior test-only checkpoint failed because the test searched for the generic `SegmentedButton` type instead of the keyed rendered preset boundary; production source analysis was green. The test finder was corrected without changing the approved interaction or persistence contract.
 
 ## 7. Acceptance
 
@@ -102,12 +102,14 @@ A later docs-only checkpoint also reached green CI, but #112 is intentionally re
 - [x] Onboarding + Settings share one implementation.
 - [x] compact-width / large-text behavior is overflow-safe.
 - [x] selected semantics and Settings persistence behavior remain covered.
-- [ ] top preset selector is centered, not `Alignment.centerRight`.
-- [ ] Metric/Imperial are visually balanced as a two-segment control.
-- [ ] Metric/Imperial/Custom remain centered and balanced in mixed state.
-- [ ] focused layout regression test covers centered preset placement.
-- [ ] full Flutter/Dart + Android CI green on the exact polish SHA.
+- [x] top preset selector is centered, not `Alignment.centerRight`.
+- [x] Metric/Imperial are visually balanced as a two-segment control.
+- [x] Metric/Imperial/Custom remain centered and balanced in mixed state.
+- [x] focused layout regression test covers centered preset placement.
+- [x] full Flutter/Dart + Android CI green on the exact polish SHA.
 
-## 8. Final Status Rule
+## 8. Final Status
 
-Do not close #112 until the centered preset polish is implemented and validated on one exact source SHA. No schema or persistence work is required.
+`COMPLETE / FROZEN`
+
+No schema or persistence work was required.
