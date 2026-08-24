@@ -70,12 +70,14 @@ class AccountSettingsPage extends StatefulWidget {
 
 class _AccountSettingsPageState extends State<AccountSettingsPage> {
   late TextEditingController _usernameController;
+  late TextEditingController _emailController;
   late TextEditingController _phoneController;
 
   Timer? _debounceTimer;
   _UsernameStatus _usernameStatus = _UsernameStatus.idle;
   List<String> _suggestions = const [];
   String? _usernameFeedback;
+  String? _verifiedEmail;
   String? _verifiedPhoneDigits;
 
   bool _isSaving = false;
@@ -84,9 +86,13 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
   void initState() {
     super.initState();
     _usernameController = TextEditingController(text: widget.username ?? '');
+    _emailController = TextEditingController(text: widget.email ?? '');
     _phoneController = TextEditingController(
       text: _nationalPhoneDigits(widget.phoneNumber),
     );
+    if (widget.isEmailVerified) {
+      _verifiedEmail = _normalizedEmail(widget.email);
+    }
     if (widget.isPhoneVerified) {
       _verifiedPhoneDigits = _nationalPhoneDigits(widget.phoneNumber);
     }
@@ -95,6 +101,11 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
   @override
   void didUpdateWidget(covariant AccountSettingsPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.isEmailVerified && widget.email != oldWidget.email) {
+      final verifiedEmail = _normalizedEmail(widget.email);
+      _verifiedEmail = verifiedEmail;
+      _emailController.text = widget.email ?? '';
+    }
     if (widget.isPhoneVerified &&
         widget.phoneNumber != oldWidget.phoneNumber) {
       final verifiedDigits = _nationalPhoneDigits(widget.phoneNumber);
@@ -107,8 +118,19 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
   void dispose() {
     _debounceTimer?.cancel();
     _usernameController.dispose();
+    _emailController.dispose();
     _phoneController.dispose();
     super.dispose();
+  }
+
+  bool get _emailChanged =>
+      _normalizedEmail(_emailController.text) != _normalizedEmail(widget.email);
+
+  bool get _isCurrentEmailVerified {
+    final current = _normalizedEmail(_emailController.text);
+    if (current == null) return false;
+    if (_verifiedEmail == current) return true;
+    return widget.isEmailVerified && !_emailChanged;
   }
 
   bool get _phoneChanged =>
@@ -218,9 +240,9 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
   }
 
   Future<void> _handleVerifyEmail() async {
-    final email = widget.email?.trim();
-    if (email == null || email.isEmpty) {
-      _showMessage('Add an email before verifying it.');
+    final email = _emailController.text.trim();
+    if (_normalizedEmail(email) == null) {
+      _showMessage('Enter an email before verifying it.');
       return;
     }
 
@@ -232,9 +254,11 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
 
     try {
       final verified = await verify(email);
-      if (verified) {
-        _showMessage('Email verified successfully!');
-      }
+      if (!verified || !mounted) return;
+      setState(() {
+        _verifiedEmail = _normalizedEmail(email);
+      });
+      _showMessage('Email verified successfully!');
     } catch (_) {
       _showMessage('Could not verify email. Please try again.');
     }
@@ -269,6 +293,11 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     if (_isSaving ||
         _usernameStatus == _UsernameStatus.unavailable ||
         _usernameStatus == _UsernameStatus.checking) {
+      return;
+    }
+
+    if (_emailChanged && !_isCurrentEmailVerified) {
+      _showMessage('Verify the new email before saving.');
       return;
     }
 
@@ -517,7 +546,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
               ],
             ),
             const SizedBox(height: TioSpacing.lg),
-            // ── Field 2: EMAIL (with Verify / Verified Badge) ──
+            // ── Field 2: EMAIL (editable + trusted Verify / Verified Badge) ──
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -554,22 +583,43 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                       ),
                       const SizedBox(width: TioSize.dp14),
                       Expanded(
-                        child: Text(
-                          widget.email ?? 'Not set',
+                        child: TextField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          autocorrect: false,
+                          cursorColor: colors.primary,
+                          onChanged: (_) => setState(() {}),
                           style: TextStyle(
                             color: colors.textPrimary,
                             fontSize: TioFontSize.size16,
                             fontWeight: TioFontWeight.w500,
                           ),
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            errorBorder: InputBorder.none,
+                            disabledBorder: InputBorder.none,
+                            focusedErrorBorder: InputBorder.none,
+                            filled: false,
+                            fillColor: TioPalette.transparent,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                            hintText: 'email@example.com',
+                            hintStyle: TextStyle(
+                              color: colors.textMuted,
+                              fontWeight: TioFontWeight.w400,
+                            ),
+                          ),
                         ),
                       ),
-                      if (widget.isEmailVerified)
+                      if (_isCurrentEmailVerified)
                         Icon(
                           Icons.verified_rounded,
                           size: TioSize.dp22,
                           color: colors.info,
                         )
-                      else if (widget.email?.isNotEmpty == true)
+                      else if (_emailController.text.trim().isNotEmpty)
                         GestureDetector(
                           onTap: _handleVerifyEmail,
                           child: Container(
@@ -761,6 +811,14 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
       ),
     );
   }
+}
+
+String? _normalizedEmail(String? value) {
+  final normalized = value?.trim().toLowerCase();
+  if (normalized == null || normalized.isEmpty || !normalized.contains('@')) {
+    return null;
+  }
+  return normalized;
 }
 
 String _nationalPhoneDigits(String? value) {
