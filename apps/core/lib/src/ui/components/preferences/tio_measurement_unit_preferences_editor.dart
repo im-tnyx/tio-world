@@ -36,6 +36,7 @@ class TioMeasurementUnitPreferencesEditor extends StatelessWidget {
           key: const ValueKey('measurement-units-preset-control'),
           alignment: Alignment.center,
           child: _PreferenceSegmentedControl<_MeasurementPreset>(
+            key: const ValueKey('measurement-units-preset-segmented-control'),
             options: [
               const _SegmentOption(
                 value: _MeasurementPreset.metric,
@@ -197,6 +198,7 @@ class _PreferenceSegmentedControl<T extends Object> extends StatelessWidget {
     required this.options,
     required this.selected,
     required this.onSelected,
+    super.key,
   });
 
   final List<_SegmentOption<T>> options;
