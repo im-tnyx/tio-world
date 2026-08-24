@@ -58,9 +58,6 @@ void main() {
           container.read(nutritionTargetsRepositoryProvider);
       expect(nutritionTargetsRepo, isA<NutritionTargetsRepository>());
 
-      final targetsRepo = container.read(targetsSetupRepositoryProvider);
-      expect(targetsRepo, isA<TargetsSetupRepository>());
-
       final finalizer = container.read(onboardingRemoteFinalizerProvider);
       expect(finalizer, isA<OnboardingRemoteFinalizer>());
     });
@@ -175,27 +172,6 @@ void main() {
       );
       expect(
         container.read(nutritionTargetsRepositoryProvider),
-        isA<SupabaseNutritionTargetsRepository>(),
-      );
-    });
-
-    test('legacy Targets provider exposes canonical Supabase owner bundle', () {
-      final container = ProviderContainer(
-        overrides: [
-          supabaseClientProvider.overrideWithValue(_FakeSupabaseClient()),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      final legacy = container.read(targetsSetupRepositoryProvider);
-      expect(legacy, isA<CanonicalNutritionOwnerRepositories>());
-      final bundle = legacy as CanonicalNutritionOwnerRepositories;
-      expect(
-        bundle.nutritionProfileRepository,
-        isA<SupabaseNutritionProfileRepository>(),
-      );
-      expect(
-        bundle.nutritionTargetsRepository,
         isA<SupabaseNutritionTargetsRepository>(),
       );
     });
