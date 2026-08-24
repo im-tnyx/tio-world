@@ -5,6 +5,7 @@ export 'dto/google_sync_request_dto.dart';
 export 'dto/backend_user_sync_response_dto.dart';
 export 'datasources/backend_user_sync_remote_data_source.dart';
 export 'repositories/remote_backend_user_sync_repository.dart';
+export 'repositories/supabase_account_deletion_repository.dart';
 export 'repositories/supabase_auth_session_repository.dart';
 export 'repositories/supabase_auth_sign_in_repository.dart';
 export 'repositories/supabase_user_device_repository.dart';
