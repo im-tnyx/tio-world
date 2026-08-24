@@ -12,7 +12,7 @@ import 'package:tio_shared/shared.dart';
 void main() {
   group('O2E integrated canonical Profile acceptance', () {
     test(
-        'canonical read beats stale legacy mirror, onboarding write round-trips, and resume keeps userProfile',
+        'canonical read/write round-trips, broad semantic API fails closed, and resume keeps userProfile',
         () async {
       final operations = <String>[];
       final canonicalBefore = _canonicalProfile(name: 'Canonical Before');
@@ -20,18 +20,31 @@ void main() {
         initialData: canonicalBefore,
         operations: operations,
       );
-      final legacy = _LegacyProfileRepository(
-        initialData: _legacyProfile(name: 'Stale Legacy Mirror'),
-      );
+      final avatar = _MemoryProfileAvatarRepository();
       final bridge = profile_owner.CanonicalUserProfileBridgeRepository(
-        legacyRepository: legacy,
         canonicalRepository: canonical,
+        avatarRepository: avatar,
       );
 
-      // Canonical common Profile reads never fall back to or merge stale
-      // legacy `users` mirrors exposed by the broad compatibility API.
+      // Canonical common Profile reads never fall back to broad `users`
+      // compatibility mirrors. Retired broad semantic reads fail closed.
       expect(await bridge.read(), canonicalBefore);
-      expect((await bridge.getProfileSetup())?.name, 'Stale Legacy Mirror');
+      await expectLater(
+        bridge.getProfileSetup(),
+        throwsA(isA<StateError>()),
+      );
+
+      // Avatar behavior remains available only through the narrow avatar owner.
+      expect(
+        await bridge.uploadAvatarImage(
+          fileName: 'avatar.png',
+          bytes: const [1, 2, 3],
+        ),
+        'memory://avatar.png',
+      );
+      await bridge.deleteAvatarImage();
+      expect(avatar.uploadCalls, 1);
+      expect(avatar.deleteCalls, 1);
 
       final body = body_owner.InMemoryBodySetupRepository();
       final wellness = body_owner.InMemoryWellnessTargetsRepository();
@@ -62,8 +75,10 @@ void main() {
       final expected = _canonicalProfile(name: 'Accepted User');
       expect(canonical.data, expected);
       expect(await bridge.read(), expected);
-      expect(legacy.saveCalls, 0);
-      expect((await bridge.getProfileSetup())?.name, 'Stale Legacy Mirror');
+      await expectLater(
+        bridge.getProfileSetup(),
+        throwsA(isA<StateError>()),
+      );
 
       // Current Weight remains Body-owned and never enters UserProfileData.
       expect(body.data?.currentWeightKg, 64);
@@ -102,12 +117,9 @@ void main() {
         () async {
       final operations = <String>[];
       final canonical = _MemoryUserProfileRepository(operations: operations);
-      final legacy = _LegacyProfileRepository(
-        initialData: _legacyProfile(name: 'Stale Legacy Mirror'),
-      );
       final bridge = profile_owner.CanonicalUserProfileBridgeRepository(
-        legacyRepository: legacy,
         canonicalRepository: canonical,
+        avatarRepository: _MemoryProfileAvatarRepository(),
       );
       final body = body_owner.InMemoryBodySetupRepository();
       final wellness = body_owner.InMemoryWellnessTargetsRepository();
@@ -146,7 +158,6 @@ void main() {
       await useCase(draft: draft, flowPlan: flowPlan);
 
       expect(canonical.data, _canonicalProfile(name: 'Accepted User'));
-      expect(legacy.saveCalls, 0);
       expect(body.data?.currentWeightKg, 64);
       expect(await workoutProfile.read(), isNull);
       expect(await workoutTargets.read(), isNull);
@@ -171,12 +182,9 @@ void main() {
         operations: operations,
         writeError: StateError('canonical profile write failed'),
       );
-      final legacy = _LegacyProfileRepository(
-        initialData: _legacyProfile(name: 'Stale Legacy Mirror'),
-      );
       final bridge = profile_owner.CanonicalUserProfileBridgeRepository(
-        legacyRepository: legacy,
         canonicalRepository: canonical,
+        avatarRepository: _MemoryProfileAvatarRepository(),
       );
       final body = body_owner.InMemoryBodySetupRepository();
       final preference = _RecordingAppModePreference(operations);
@@ -222,7 +230,6 @@ void main() {
       expect(body.data, isNull);
       expect(preference.storedMode, isNull);
       expect(status.status, isNull);
-      expect(legacy.saveCalls, 0);
       expect(
         operations,
         [
@@ -247,21 +254,6 @@ profile_owner.UserProfileData _canonicalProfile({required String name}) {
       profile_owner.ProfileHealthCondition.other,
     },
     otherHealthCondition: 'Migraine',
-  );
-}
-
-profile_owner.ProfileSetupData _legacyProfile({required String name}) {
-  return profile_owner.ProfileSetupData(
-    name: name,
-    gender: profile_owner.ProfileGender.male,
-    goals: const {profile_owner.ProfileGoal.buildMuscle},
-    dateOfBirth: DateTime(1980, 1, 1),
-    heightCm: 190,
-    currentWeightKg: 110,
-    targetWeightKg: 95,
-    unitPreferences: MeasurementUnitPreferences.metric,
-    activityLevel: profile_owner.ProfileActivityLevel.sedentary,
-    healthConditions: const {profile_owner.ProfileHealthCondition.none},
   );
 }
 
@@ -322,39 +314,24 @@ class _MemoryUserProfileRepository
   }
 }
 
-class _LegacyProfileRepository
-    implements profile_owner.ProfileSetupRepository {
-  _LegacyProfileRepository({required this.initialData}) : data = initialData;
-
-  final profile_owner.ProfileSetupData initialData;
-  profile_owner.ProfileSetupData? data;
-  int saveCalls = 0;
-
-  @override
-  Future<void> saveProfileSetup(profile_owner.ProfileSetupData data) async {
-    saveCalls += 1;
-    this.data = data;
-  }
-
-  @override
-  Future<profile_owner.ProfileSetupData?> getProfileSetup() async => data;
-
-  @override
-  Stream<profile_owner.ProfileSetupData?> watchProfileSetup() =>
-      Stream<profile_owner.ProfileSetupData?>.value(data);
+class _MemoryProfileAvatarRepository
+    implements profile_owner.ProfileAvatarRepository {
+  int uploadCalls = 0;
+  int deleteCalls = 0;
 
   @override
   Future<String> uploadAvatarImage({
     required String fileName,
     required List<int> bytes,
-  }) async =>
-      'memory://$fileName';
+  }) async {
+    uploadCalls += 1;
+    return 'memory://$fileName';
+  }
 
   @override
-  Future<void> deleteAvatarImage() async {}
-
-  @override
-  Future<void> updateAvatarFrame(String frame) async {}
+  Future<void> deleteAvatarImage() async {
+    deleteCalls += 1;
+  }
 }
 
 class _RecordingAppModePreference implements AppModePreference {
