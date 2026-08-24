@@ -68,6 +68,31 @@ void main() {
     expect(find.byType(GoalPaceScreen), findsOneWidget);
     expect(find.text('1.1 lb / week'), findsOneWidget);
   });
+
+  testWidgets('Goal Pace info sheet stays Body-owned and calorie-free',
+      (tester) async {
+    await _pumpBodyGoal(
+      tester,
+      profile: _profileFor(
+        ProfileStepId.goalPace,
+        targetWeightKg: 65,
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('targets-goal-pace-info')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('targets-goal-pace-info-sheet')),
+      findsOneWidget,
+    );
+    expect(find.text('How goal pace works'), findsOneWidget);
+    expect(find.textContaining('weekly'), findsWidgets);
+    expect(find.textContaining('target date'), findsOneWidget);
+    expect(find.textContaining('BMR'), findsNothing);
+    expect(find.textContaining('TDEE'), findsNothing);
+    expect(find.textContaining('calorie'), findsNothing);
+  });
 }
 
 Future<void> _pumpBodyGoal(
