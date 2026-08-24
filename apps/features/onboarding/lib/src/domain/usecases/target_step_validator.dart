@@ -6,7 +6,7 @@ import 'sleep_schedule_helper.dart';
 ///
 /// Navigation validity is separate from product readiness:
 /// - T1 steps (bridge, stepTarget, sleepTarget, waterTarget) have real validation.
-/// - GoalPace validates the selected pace against explicit Goal intent direction.
+/// - GoalPace validates only after Target Weight has established loss/gain.
 /// - NutritionTarget remains calculation-blocked (formula authority unresolved).
 ///
 /// [OnboardingCompletionValidator] separately gates overall completion;
@@ -81,8 +81,9 @@ class TargetStepValidator {
     double pace,
     GoalWeightDirection? direction,
   ) {
-    final mode = GoalPaceResolver.resolveModeForDirection(direction);
-    if (mode == GoalPaceMode.maintenance) return null;
+    if (direction == null) {
+      return 'Choose a target weight above or below your current weight before setting goal pace.';
+    }
 
     if (pace < minGoalPace || pace > maxGoalPace) {
       return 'Choose a goal pace from $minGoalPace to $maxGoalPace kg/week.';
