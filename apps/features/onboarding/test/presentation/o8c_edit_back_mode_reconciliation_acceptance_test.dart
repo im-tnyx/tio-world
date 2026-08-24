@@ -41,9 +41,13 @@ void main() {
 
       expect(
         controller.state.draft.goalSelection,
-        const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
+        const GoalIntentSelection(
+          primaryGoal: GoalIntent.loseWeight,
+          supportingGoal: GoalIntent.improveEndurance,
+          tertiaryGoal: GoalIntent.stayFit,
+        ),
       );
-      expect(controller.state.weightGoalDirection, isNull);
+      expect(controller.state.weightGoalDirection, GoalWeightDirection.loss);
       expect(
         controller.state.completedStepIds,
         isNot(contains(OnboardingStepId.bodyGoal)),
