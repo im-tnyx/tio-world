@@ -89,6 +89,47 @@ void main() {
     expect(result.supportingGoalRank, 2);
   });
 
+  test('training-only controller derives direction from each target answer', () {
+    final controller = OnboardingController(
+      entryPath: OnboardingEntryPath.firstRun,
+      initialDraft: OnboardingDraft(
+        selectedMode: AppMode.workout,
+        currentStepId: OnboardingStepId.bodyGoal,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.buildMuscle,
+        ),
+        profile: ProfileOnboardingDraft(
+          currentStepId: ProfileStepId.targetWeight,
+          currentWeightKg: 80,
+        ),
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    expect(controller.state.weightGoalDirection, isNull);
+
+    controller.updateProfileTargetWeight(75);
+    expect(controller.state.draft.profile.targetWeightKg, 75);
+    expect(
+      controller.state.draft.profile.targetWeightDirection,
+      GoalWeightDirection.loss,
+    );
+    expect(controller.state.weightGoalDirection, GoalWeightDirection.loss);
+
+    controller.updateProfileTargetWeight(84);
+    expect(controller.state.draft.profile.targetWeightKg, 84);
+    expect(
+      controller.state.draft.profile.targetWeightDirection,
+      GoalWeightDirection.gain,
+    );
+    expect(controller.state.weightGoalDirection, GoalWeightDirection.gain);
+
+    controller.updateProfileTargetWeight(80);
+    expect(controller.state.draft.profile.targetWeightKg, 80);
+    expect(controller.state.draft.profile.targetWeightDirection, isNull);
+    expect(controller.state.weightGoalDirection, isNull);
+  });
+
   test('zero-delta target cannot establish Goal Pace direction', () {
     const policy = WeightGoalFlowPolicy();
     const selection = GoalIntentSelection(primaryGoal: GoalIntent.stayFit);
