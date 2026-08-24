@@ -112,7 +112,7 @@ void main() {
     );
   });
 
-  test('live mode change reconciles an ineligible step to nearest previous step',
+  test('live mode change re-enters completed Body at the active training follow-up',
       () {
     final controller = OnboardingController(
       entryPath: OnboardingEntryPath.firstRun,
@@ -123,7 +123,10 @@ void main() {
         goalSelection: const GoalIntentSelection(
           primaryGoal: GoalIntent.stayFit,
         ),
-        profile: _validProfile(),
+        profile: _validProfile().copyWith(
+          targetWeightKg: 65,
+          targetWeightDirection: GoalWeightDirection.loss,
+        ),
         workout: _validWorkout(),
         completedStepIds: const {
           OnboardingStepId.profileBasics,
@@ -137,7 +140,8 @@ void main() {
     controller.selectMode(AppMode.workout);
 
     expect(controller.state.stepId, OnboardingStepId.bodyGoal);
-    expect(controller.state.draft.profile.currentStepId, ProfileStepId.currentWeight);
+    expect(controller.state.draft.profile.currentStepId, ProfileStepId.goalPace);
+    expect(controller.state.weightGoalDirection, GoalWeightDirection.loss);
     expect(
       controller.state.completedStepIds,
       isNot(contains(OnboardingStepId.workoutIntro)),
@@ -300,7 +304,7 @@ void main() {
     );
   });
 
-  test('legacy ineligible Target Weight child clamps to Current Weight', () {
+  test('legacy training-only Target Weight child remains eligible in Body Goal', () {
     final controller = OnboardingController(
       entryPath: OnboardingEntryPath.resumeDraft,
       initialDraft: OnboardingDraft(
@@ -309,16 +313,21 @@ void main() {
         goalSelection: const GoalIntentSelection(
           primaryGoal: GoalIntent.stayFit,
         ),
-        profile: _validProfile(currentStepId: ProfileStepId.targetWeight),
+        profile: _validProfile(currentStepId: ProfileStepId.targetWeight).copyWith(
+          targetWeightKg: 65,
+          targetWeightDirection: GoalWeightDirection.loss,
+        ),
       ),
     );
 
     expect(controller.state.stepId, OnboardingStepId.bodyGoal);
     expect(
       controller.state.draft.profile.currentStepId,
-      ProfileStepId.currentWeight,
+      ProfileStepId.targetWeight,
     );
     expect(controller.state.draft.profile.currentWeightKg, 70);
+    expect(controller.state.draft.profile.targetWeightKg, 65);
+    expect(controller.state.weightGoalDirection, GoalWeightDirection.loss);
   });
 
   test('legacy common Profile child stays in userProfile section', () {
@@ -445,7 +454,7 @@ void main() {
 
     expect(controller.state.stepId, OnboardingStepId.bodyGoal);
     await controller.next(onFinish: _completeImmediately);
-    expect(controller.state.validationErrors['goal'], 'Choose your main goal.');
+    expect(controller.state.validationErrors['goal'], 'Choose at least one goal.');
 
     controller.tapGoalIntent(GoalIntent.buildMuscle);
     controller.tapGoalIntent(GoalIntent.getStronger);
@@ -626,7 +635,14 @@ void main() {
 
     controller.updateProfileCurrentWeight(70);
     await controller.next(onFinish: _completeImmediately);
+    expect(controller.state.draft.profile.currentStepId, ProfileStepId.targetWeight);
 
+    controller.updateProfileTargetWeight(65);
+    expect(controller.state.weightGoalDirection, GoalWeightDirection.loss);
+    await controller.next(onFinish: _completeImmediately);
+    expect(controller.state.draft.profile.currentStepId, ProfileStepId.goalPace);
+
+    await controller.next(onFinish: _completeImmediately);
     expect(controller.state.stepId, OnboardingStepId.workoutProfile);
     expect(controller.state.draft.workout.currentStepId, WorkoutStepId.gymAccess);
     expect(
