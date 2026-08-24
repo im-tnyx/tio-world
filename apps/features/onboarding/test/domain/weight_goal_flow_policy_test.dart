@@ -5,39 +5,8 @@ import 'package:tio_shared/shared.dart';
 void main() {
   const policy = WeightGoalFlowPolicy();
 
-  test('nutrition exposes explicit loss and gain directions only', () {
-    expect(
-      policy.directionFor(
-        mode: AppMode.nutrition,
-        selection: const GoalIntentSelection(
-          primaryGoal: GoalIntent.loseWeight,
-        ),
-      ),
-      GoalWeightDirection.loss,
-    );
-    expect(
-      policy.directionFor(
-        mode: AppMode.nutrition,
-        selection: const GoalIntentSelection(
-          primaryGoal: GoalIntent.gainWeight,
-        ),
-      ),
-      GoalWeightDirection.gain,
-    );
-
-    for (final goal in [GoalIntent.maintainWeight, GoalIntent.recomposition]) {
-      expect(
-        policy.directionFor(
-          mode: AppMode.nutrition,
-          selection: GoalIntentSelection(primaryGoal: goal),
-        ),
-        isNull,
-      );
-    }
-  });
-
-  test('workout and hybrid use lose weight from either selected position', () {
-    for (final mode in [AppMode.workout, AppMode.hybrid]) {
+  test('explicit Lose/Gain cards establish direction in every active mode', () {
+    for (final mode in AppMode.values) {
       expect(
         policy.directionFor(
           mode: mode,
@@ -51,96 +20,107 @@ void main() {
         policy.directionFor(
           mode: mode,
           selection: const GoalIntentSelection(
-            primaryGoal: GoalIntent.getStronger,
-            supportingGoal: GoalIntent.loseWeight,
+            primaryGoal: GoalIntent.gainWeight,
           ),
         ),
-        GoalWeightDirection.loss,
+        GoalWeightDirection.gain,
       );
     }
   });
 
-  test('training-only goals never invent body-weight direction', () {
-    const trainingOnlyGoals = [
+  test('training labels never invent body-weight direction', () {
+    for (final goal in [
       GoalIntent.buildMuscle,
       GoalIntent.getStronger,
       GoalIntent.improveEndurance,
       GoalIntent.stayFit,
-      GoalIntent.recomposition,
-    ];
-
-    for (final mode in [AppMode.workout, AppMode.hybrid]) {
-      for (final goal in trainingOnlyGoals) {
-        expect(
-          policy.directionFor(
-            mode: mode,
-            selection: GoalIntentSelection(primaryGoal: goal),
-          ),
-          isNull,
-          reason: '$goal must not imply weight change in $mode',
-        );
-      }
-
+    ]) {
       expect(
         policy.directionFor(
-          mode: mode,
-          selection: const GoalIntentSelection(
-            primaryGoal: GoalIntent.buildMuscle,
-            supportingGoal: GoalIntent.getStronger,
-          ),
+          mode: AppMode.workout,
+          selection: GoalIntentSelection(primaryGoal: goal),
         ),
         isNull,
       );
     }
   });
 
-  test('build muscle is never treated as gain weight', () {
-    for (final mode in [AppMode.workout, AppMode.hybrid]) {
-      expect(
-        policy.directionFor(
-          mode: mode,
-          selection: const GoalIntentSelection(
-            primaryGoal: GoalIntent.buildMuscle,
-          ),
-        ),
-        isNot(GoalWeightDirection.gain),
-      );
-    }
+  test('training-only path derives loss/gain only from actual Target Weight', () {
+    const selection = GoalIntentSelection(
+      primaryGoal: GoalIntent.buildMuscle,
+      supportingGoal: GoalIntent.getStronger,
+    );
+
+    expect(
+      policy.effectiveDirectionFor(
+        mode: AppMode.workout,
+        selection: selection,
+        currentWeightKg: 80,
+        targetWeightKg: 75,
+      ),
+      GoalWeightDirection.loss,
+    );
+    expect(
+      policy.effectiveDirectionFor(
+        mode: AppMode.workout,
+        selection: selection,
+        currentWeightKg: 80,
+        targetWeightKg: 85,
+      ),
+      GoalWeightDirection.gain,
+    );
+    expect(
+      policy.effectiveDirectionFor(
+        mode: AppMode.workout,
+        selection: selection,
+        currentWeightKg: 80,
+        targetWeightKg: 80,
+      ),
+      isNull,
+    );
   });
 
-  test('target weight and goal pace share the same eligibility', () {
-    const weightSelection = GoalIntentSelection(
-      primaryGoal: GoalIntent.loseWeight,
-    );
-    const nonWeightSelection = GoalIntentSelection(
+  test('training-only goals collect paired Target Weight and Goal Pace', () {
+    const selection = GoalIntentSelection(
       primaryGoal: GoalIntent.getStronger,
     );
 
     expect(
-      policy.requiresTargetWeight(
-        mode: AppMode.hybrid,
-        selection: weightSelection,
-      ),
+      policy.requiresTargetWeight(mode: AppMode.hybrid, selection: selection),
       isTrue,
     );
     expect(
-      policy.requiresGoalPace(
-        mode: AppMode.hybrid,
-        selection: weightSelection,
-      ),
+      policy.requiresGoalPace(mode: AppMode.hybrid, selection: selection),
       isTrue,
     );
+  });
+
+  test('explicit Maintain stays non-directional and hides paired follow-ups', () {
+    const selection = GoalIntentSelection(
+      primaryGoal: GoalIntent.maintainWeight,
+      supportingGoal: GoalIntent.buildMuscle,
+    );
+
     expect(
-      policy.requiresTargetWeight(
+      policy.effectiveDirectionFor(
         mode: AppMode.hybrid,
-        selection: nonWeightSelection,
+        selection: selection,
+        currentWeightKg: 80,
+        targetWeightKg: 75,
+      ),
+      isNull,
+    );
+    expect(
+      policy.shouldCollectTargetWeight(
+        mode: AppMode.hybrid,
+        selection: selection,
       ),
       isFalse,
     );
     expect(
-      policy.requiresGoalPace(
+      policy.shouldCollectGoalPace(
         mode: AppMode.hybrid,
-        selection: nonWeightSelection,
+        selection: selection,
       ),
       isFalse,
     );
