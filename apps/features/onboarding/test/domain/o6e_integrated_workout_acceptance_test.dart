@@ -216,8 +216,8 @@ void main() {
         storedTargets?.primaryWorkoutGoal,
         workout_owner.WorkoutTargetGoal.buildMuscle,
       );
-      // buildMuscle is the supporting unified goal, so canonical rank stays 2.
-      expect(storedTargets?.primaryGoalRank, 2);
+      // Canonical Workout ranks are owner-relative after Body intents are filtered.
+      expect(storedTargets?.primaryGoalRank, 1);
       expect(storedTargets?.supportingWorkoutGoal, isNull);
       expect(storedTargets?.supportingGoalRank, isNull);
       expect(
