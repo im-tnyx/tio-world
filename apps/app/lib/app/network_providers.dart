@@ -226,19 +226,6 @@ final nutritionTargetsRepositoryProvider =
   return InMemoryNutritionTargetsRepository();
 });
 
-/// Legacy mixed Targets repository retained for compatibility consumers only.
-/// Product Onboarding completion must use the two canonical providers above.
-final targetsSetupRepositoryProvider = Provider<TargetsSetupRepository>((ref) {
-  final supabaseClient = ref.watch(supabaseClientProvider);
-  if (supabaseClient != null) {
-    return SupabaseTargetsSetupRepository(client: supabaseClient);
-  }
-  final apiClient = ref.watch(authenticatedApiClientProvider);
-  return RemoteTargetsSetupRepository(
-    remoteDataSource: HttpTargetsSetupRemoteDataSource(apiClient),
-  );
-});
-
 final onboardingRemoteFinalizerProvider =
     Provider<OnboardingRemoteFinalizer>((ref) {
   final apiClient = ref.watch(authenticatedApiClientProvider);
