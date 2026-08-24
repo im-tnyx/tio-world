@@ -172,20 +172,6 @@ final profileAccountRepositoryProvider =
   return null;
 });
 
-/// Legacy broad Workout repository retained for compatibility consumers only.
-/// Product Onboarding completion uses the canonical providers below.
-final workoutPreferencesRepositoryProvider =
-    Provider<WorkoutPreferencesRepository>((ref) {
-  final supabaseClient = ref.watch(supabaseClientProvider);
-  if (supabaseClient != null) {
-    return SupabaseWorkoutPreferencesRepository(client: supabaseClient);
-  }
-  final apiClient = ref.watch(authenticatedApiClientProvider);
-  return RemoteWorkoutPreferencesRepository(
-    remoteDataSource: HttpWorkoutPreferencesRemoteDataSource(apiClient),
-  );
-});
-
 /// Canonical Workout Profile owner used by Product Onboarding completion.
 final workoutProfileRepositoryProvider =
     Provider<WorkoutProfileRepository>((ref) {
