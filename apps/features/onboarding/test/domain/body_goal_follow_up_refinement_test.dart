@@ -91,7 +91,7 @@ void main() {
 
   test('zero-delta target cannot establish Goal Pace direction', () {
     const policy = WeightGoalFlowPolicy();
-    const selection = GoalIntentSelection(primaryGoal: GoalIntent.keepFit);
+    const selection = GoalIntentSelection(primaryGoal: GoalIntent.stayFit);
 
     expect(
       policy.effectiveDirectionFor(
