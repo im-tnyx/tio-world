@@ -43,6 +43,24 @@ class BodyGoalSection extends StatelessWidget {
       throw StateError('Body Goal requires a selected App Mode.');
     }
 
+    void updateTargetWeight(double value) {
+      // Training-only intent deliberately has no Body direction until the user
+      // answers Target Weight. The first non-zero target delta makes that
+      // direction explicit by selecting the matching Body weight-state card;
+      // no training label, BMI or default is used to infer it.
+      if (controller.state.weightGoalDirection == null) {
+        final currentWeight = controller.state.draft.profile.currentWeightKg;
+        if (currentWeight != null && value != currentWeight) {
+          controller.tapGoalIntent(
+            value < currentWeight
+                ? GoalIntent.loseWeight
+                : GoalIntent.gainWeight,
+          );
+        }
+      }
+      controller.updateProfileTargetWeight(value);
+    }
+
     final screen = switch (stepId) {
       ProfileStepId.goal => GoalIntentScreen(
           mode: mode,
@@ -65,7 +83,7 @@ class BodyGoalSection extends StatelessWidget {
           currentWeightKg: profile.currentWeightKg,
           weightGoalDirection: state.weightGoalDirection,
           heightCm: profile.heightCm,
-          onChanged: controller.updateProfileTargetWeight,
+          onChanged: updateTargetWeight,
           onContinue: () => controller.next(onFinish: (_) async {}),
           isBusy: state.isBusy,
           errorText: errorText,
