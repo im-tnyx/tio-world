@@ -33,14 +33,14 @@ class GoalIntentScreen extends StatelessWidget {
           title: 'What do you want to achieve?',
           subtitle: mode == AppMode.nutrition
               ? 'Choose your main goal.'
-              : 'Choose your main goal and one supporting goal.',
+              : 'Choose what fits you. Select up to two training goals.',
         ),
         const SizedBox(height: TioSpacing.lg),
         for (final goal in goals) ...[
           GoalChoiceCard(
             id: 'goal-intent-${goal.name}',
             title: _title(goal),
-            description: _description(mode, goal),
+            description: _description(goal),
             svgAsset: _svgAsset(goal),
             isSelected: selection.contains(goal),
             onTap: () {
@@ -72,22 +72,20 @@ String _title(GoalIntent goal) => switch (goal) {
       GoalIntent.maintainWeight => 'Maintain weight',
       GoalIntent.recomposition => 'Recomposition',
       GoalIntent.buildMuscle => 'Build muscle',
-      GoalIntent.getStronger => 'Get stronger',
+      GoalIntent.getStronger => 'Boost strength',
       GoalIntent.improveEndurance => 'Improve endurance',
-      GoalIntent.stayFit => 'Stay fit',
+      GoalIntent.stayFit => 'Keep fit',
     };
 
-String _description(AppMode mode, GoalIntent goal) => switch (goal) {
-      GoalIntent.loseWeight => mode == AppMode.workout
-          ? 'Burn fat through consistent training'
-          : 'Burn fat and reach a healthier weight',
-      GoalIntent.gainWeight => 'Gain weight in a healthy way',
-      GoalIntent.maintainWeight => 'Keep your weight steady',
+String _description(GoalIntent goal) => switch (goal) {
+      GoalIntent.loseWeight => 'Reduce body weight and body fat',
+      GoalIntent.gainWeight => 'Gain body weight gradually and healthily',
+      GoalIntent.maintainWeight => 'Keep your current weight stable',
       GoalIntent.recomposition => 'Lose fat and build lean mass',
-      GoalIntent.buildMuscle => 'Gain muscle size and strength',
-      GoalIntent.getStronger => 'Improve strength and performance',
-      GoalIntent.improveEndurance => 'Build stamina and conditioning',
-      GoalIntent.stayFit => 'Maintain fitness and overall health',
+      GoalIntent.buildMuscle => 'Increase muscle size and lean mass',
+      GoalIntent.getStronger => 'Improve strength and lifting performance',
+      GoalIntent.improveEndurance => 'Improve cardio, stamina and conditioning',
+      GoalIntent.stayFit => 'Maintain overall fitness, energy and health',
     };
 
 String _svgAsset(GoalIntent goal) => switch (goal) {
