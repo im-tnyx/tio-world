@@ -650,15 +650,25 @@ class OnboardingController extends ChangeNotifier {
   }
 
   void updateProfileTargetWeight(double? value) {
-    final direction = state.weightGoalDirection;
-    if (value != null && direction == null) return;
+    final explicitDirection = _weightGoalPolicy.directionFor(
+      mode: state.draft.selectedMode,
+      selection: state.draft.goalSelection,
+    );
+    final direction = value == null
+        ? null
+        : explicitDirection ??
+            _weightGoalPolicy.directionFromTarget(
+              currentWeightKg: state.draft.profile.currentWeightKg,
+              targetWeightKg: value,
+            );
+
     _markInProgress();
     _updateProfile(
       state.draft.profile.copyWith(
         targetWeightKg: value,
         targetWeightDirection: direction,
         clearTargetWeightKg: value == null,
-        clearTargetWeightDirection: value == null,
+        clearTargetWeightDirection: value == null || direction == null,
       ),
     );
   }
