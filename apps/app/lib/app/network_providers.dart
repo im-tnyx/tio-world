@@ -95,16 +95,6 @@ final publicApiClientProvider = Provider<ApiClient>((ref) {
   return DioApiClient.public(config: config);
 });
 
-/// Non-Supabase compatibility adapter retained for the future protected HTTP
-/// backend path. Supabase production composition must not use this broad
-/// ProfileSetup contract as semantic Profile truth.
-final profileSetupRepositoryProvider = Provider<ProfileSetupRepository>((ref) {
-  final apiClient = ref.watch(authenticatedApiClientProvider);
-  return RemoteProfileSetupRepository(
-    remoteDataSource: HttpProfileSetupRemoteDataSource(apiClient),
-  );
-});
-
 /// Canonical common Profile owner used by Supabase production composition.
 final userProfileRepositoryProvider = Provider<UserProfileRepository?>((ref) {
   final client = ref.watch(supabaseClientProvider);
@@ -118,6 +108,29 @@ final profileAvatarRepositoryProvider = Provider<ProfileAvatarRepository?>((ref)
   final client = ref.watch(supabaseClientProvider);
   if (client == null) return null;
   return SupabaseProfileAvatarRepository(client: client);
+});
+
+/// Broad ProfileSetup is retained only as a compatibility type. Supabase
+/// production gets a fail-closed canonical facade: semantic Profile methods are
+/// canonical-only and avatar actions delegate to the narrow avatar owner.
+/// Non-Supabase environments retain the future protected HTTP adapter.
+final profileSetupRepositoryProvider = Provider<ProfileSetupRepository>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  if (client != null) {
+    final profileRepository = ref.watch(userProfileRepositoryProvider);
+    final avatarRepository = ref.watch(profileAvatarRepositoryProvider);
+    if (profileRepository == null || avatarRepository == null) {
+      throw StateError('Canonical Profile composition is unavailable.');
+    }
+    return CanonicalUserProfileBridgeRepository(
+      canonicalRepository: profileRepository,
+      avatarRepository: avatarRepository,
+    );
+  }
+  final apiClient = ref.watch(authenticatedApiClientProvider);
+  return RemoteProfileSetupRepository(
+    remoteDataSource: HttpProfileSetupRemoteDataSource(apiClient),
+  );
 });
 
 /// Canonical Wellness owner. Production writes only `user_wellness_targets`;
