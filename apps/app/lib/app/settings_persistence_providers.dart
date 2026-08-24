@@ -12,9 +12,10 @@ final measurementUnitPreferencesRepositoryProvider =
   }
 
   final fallbackProfileRepository = ref.watch(profileSetupRepositoryProvider);
-  return fallbackProfileRepository is MeasurementUnitPreferencesRepository
-      ? fallbackProfileRepository
-      : null;
+  if (fallbackProfileRepository is MeasurementUnitPreferencesRepository) {
+    return fallbackProfileRepository as MeasurementUnitPreferencesRepository;
+  }
+  return null;
 });
 
 final accountDeletionRepositoryProvider =
