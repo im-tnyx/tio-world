@@ -98,7 +98,7 @@ void main() {
     });
 
     test(
-        'non-directional and training-only intents never consume dormant Body follow-ups',
+        'non-directional intent ignores dormant follow-ups while training-only target establishes Body direction',
         () async {
       const mapper = BodySetupMapper();
       final repository = body_owner.InMemoryBodySetupRepository(
@@ -150,12 +150,18 @@ void main() {
       );
 
       expect(trainingOnly.currentWeightKg, 82);
-      expect(trainingOnly.activeGoal, isNull);
+      expect(trainingOnly.activeGoal?.goalType, body_owner.BodyGoalType.loseWeight);
+      expect(trainingOnly.activeGoal?.targetWeightKg, 60);
+      expect(trainingOnly.activeGoal?.weeklyWeightChangeKg, 1.2);
+      expect(trainingOnly.activeGoal?.intentRank, isNull);
 
       await repository.saveBodySetup(trainingOnly);
       final trainingState = await repository.getBodyState();
       expect(trainingState.latestWeight?.weightKg, 82);
-      expect(trainingState.activeGoal, isNull);
+      expect(trainingState.activeGoal?.goalType, body_owner.BodyGoalType.loseWeight);
+      expect(trainingState.activeGoal?.targetWeightKg, 60);
+      expect(trainingState.activeGoal?.weeklyWeightChangeKg, 1.2);
+      expect(trainingState.activeGoal?.intentRank, isNull);
     });
 
     test(
