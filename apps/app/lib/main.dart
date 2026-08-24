@@ -1,5 +1,8 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_feature_auth/auth.dart';
@@ -9,11 +12,12 @@ import 'package:tio_feature_progress/progress.dart';
 
 import 'app/app.dart';
 import 'app/app_mode/app_mode.dart';
-import 'app/network_providers.dart';
-import 'app/onboarding/onboarding.dart';
 import 'app/app_theme.dart';
 import 'app/bootstrap.dart';
+import 'app/network_providers.dart';
+import 'app/onboarding/onboarding.dart';
 import 'app/profile/canonical_profile_data_reader.dart';
+import 'app/startup_hydration.dart';
 
 void _installSafeDebugPrintPolicy() {
   final upstreamDebugPrint = debugPrint;
@@ -26,7 +30,9 @@ void _installSafeDebugPrintPolicy() {
 }
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   _installSafeDebugPrintPolicy();
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
   const supabaseUrl = String.fromEnvironment(
     'SUPABASE_URL',
@@ -68,69 +74,63 @@ Future<void> main() async {
   final appThemeController =
       AppThemeController(SharedPreferencesAppThemePreference());
 
-  await appModeController.load();
-  await onboardingStatusController.load();
-  await appThemeController.load();
+  await hydrateStartupControllers(
+    appModeController: appModeController,
+    onboardingStatusController: onboardingStatusController,
+    appThemeController: appThemeController,
+  );
 
   bootstrap(
-    () => AppThemeBootstrap(
-      controller: appThemeController,
-      child: AppModeBootstrap(
-        controller: appModeController,
-        child: ProviderScope(
-          overrides: [
-            appModeControllerProvider.overrideWith((ref) => appModeController),
-            onboardingStatusControllerProvider
-                .overrideWith((ref) => onboardingStatusController),
-            onboardingStatusRepositoryProvider
-                .overrideWith((ref) => onboardingStatusRepository),
-            onboardingDraftRepositoryProvider.overrideWith(
-              (ref) => ref.watch(hybridOnboardingDraftRepositoryProvider),
-            ),
-            onboardingCompletionValidatorProvider.overrideWith(
-                (ref) => ref.watch(appOnboardingCompletionValidatorProvider)),
-            onboardingHydrationGateProvider.overrideWith((ref) => true),
-            onboardingControllerProvider.overrideWith((ref, seed) {
-              final draftRepository =
-                  ref.watch(hybridOnboardingDraftRepositoryProvider);
-              final controller = AppOnboardingController(
-                entryPath: seed.entryPath,
-                initialDraft: seed.draft,
-                statusRepository: ref.watch(onboardingStatusRepositoryProvider),
-                draftRepository: draftRepository,
-                completionValidator:
-                    ref.watch(onboardingCompletionValidatorProvider),
-                localDraftStore: ref.watch(localOnboardingDraftStoreProvider),
-              );
-              unawaited(controller.hydrateDraft());
-              return controller;
-            }),
-            profileDataProvider.overrideWith((ref) {
-              ref.watch(authSessionStateProvider);
-              final client = ref.watch(supabaseClientProvider);
-              if (client == null) {
-                return ref
-                    .watch(profileSetupRepositoryProvider)
-                    .watchProfileSetup();
-              }
-
-              final reader = CanonicalProfileDataReader(
-                profileRepository: SupabaseUserProfileRepository(client: client),
-                bodyRepository: SupabaseBodySetupRepository(client: client),
-                accountReader:
-                    SupabaseProfileAccountSnapshotReader(client: client),
-              );
-              return CanonicalSupabaseProfileDataStream(
-                client: client,
-                reader: reader,
-              ).watch();
-            }),
-            appThemeControllerProvider
-                .overrideWith((ref) => appThemeController),
-          ],
-          child: const TioApp(),
+    () => ProviderScope(
+      overrides: [
+        appModeControllerProvider.overrideWith((ref) => appModeController),
+        onboardingStatusControllerProvider
+            .overrideWith((ref) => onboardingStatusController),
+        onboardingStatusRepositoryProvider
+            .overrideWith((ref) => onboardingStatusRepository),
+        onboardingDraftRepositoryProvider.overrideWith(
+          (ref) => ref.watch(hybridOnboardingDraftRepositoryProvider),
         ),
-      ),
+        onboardingCompletionValidatorProvider.overrideWith(
+          (ref) => ref.watch(appOnboardingCompletionValidatorProvider),
+        ),
+        onboardingHydrationGateProvider.overrideWith((ref) => true),
+        onboardingControllerProvider.overrideWith((ref, seed) {
+          final draftRepository =
+              ref.watch(hybridOnboardingDraftRepositoryProvider);
+          final controller = AppOnboardingController(
+            entryPath: seed.entryPath,
+            initialDraft: seed.draft,
+            statusRepository: ref.watch(onboardingStatusRepositoryProvider),
+            draftRepository: draftRepository,
+            completionValidator:
+                ref.watch(onboardingCompletionValidatorProvider),
+            localDraftStore: ref.watch(localOnboardingDraftStoreProvider),
+          );
+          unawaited(controller.hydrateDraft());
+          return controller;
+        }),
+        profileDataProvider.overrideWith((ref) {
+          ref.watch(authSessionStateProvider);
+          final client = ref.watch(supabaseClientProvider);
+          if (client == null) {
+            return ref.watch(profileSetupRepositoryProvider).watchProfileSetup();
+          }
+
+          final reader = CanonicalProfileDataReader(
+            profileRepository: SupabaseUserProfileRepository(client: client),
+            bodyRepository: SupabaseBodySetupRepository(client: client),
+            accountReader:
+                SupabaseProfileAccountSnapshotReader(client: client),
+          );
+          return CanonicalSupabaseProfileDataStream(
+            client: client,
+            reader: reader,
+          ).watch();
+        }),
+        appThemeControllerProvider.overrideWith((ref) => appThemeController),
+      ],
+      child: const TioApp(),
     ),
   );
 }
