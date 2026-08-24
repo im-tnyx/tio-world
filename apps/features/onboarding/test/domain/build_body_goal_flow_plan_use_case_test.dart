@@ -25,7 +25,7 @@ void main() {
       );
     });
 
-    test('non-directional nutrition goal skips both weight follow-ups', () {
+    test('Maintain Weight skips both weight follow-ups', () {
       final plan = builder(
         mode: AppMode.nutrition,
         goalSelection: const GoalIntentSelection(
@@ -35,14 +35,11 @@ void main() {
 
       expect(
         plan.steps,
-        const [
-          ProfileStepId.goal,
-          ProfileStepId.currentWeight,
-        ],
+        const [ProfileStepId.goal, ProfileStepId.currentWeight],
       );
     });
 
-    test('training-only workout goal invents neither Target Weight nor Goal Pace', () {
+    test('training-only workout goal collects Target Weight and Goal Pace', () {
       final plan = builder(
         mode: AppMode.workout,
         goalSelection: const GoalIntentSelection(
@@ -51,16 +48,30 @@ void main() {
         ),
       );
 
+      expect(plan.contains(ProfileStepId.targetWeight), isTrue);
+      expect(plan.contains(ProfileStepId.goalPace), isTrue);
+    });
+
+    test('Maintain plus training remains non-directional without schema change', () {
+      final plan = builder(
+        mode: AppMode.hybrid,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.maintainWeight,
+          supportingGoal: GoalIntent.buildMuscle,
+        ),
+      );
+
       expect(plan.contains(ProfileStepId.targetWeight), isFalse);
       expect(plan.contains(ProfileStepId.goalPace), isFalse);
     });
 
-    test('hybrid supporting loss keeps both directional follow-ups', () {
+    test('hybrid explicit loss with two training goals keeps both follow-ups', () {
       final plan = builder(
         mode: AppMode.hybrid,
         goalSelection: const GoalIntentSelection(
-          primaryGoal: GoalIntent.buildMuscle,
-          supportingGoal: GoalIntent.loseWeight,
+          primaryGoal: GoalIntent.loseWeight,
+          supportingGoal: GoalIntent.buildMuscle,
+          tertiaryGoal: GoalIntent.getStronger,
         ),
       );
 
