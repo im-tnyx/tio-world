@@ -20,8 +20,13 @@ void main() {
         );
 
     void expectPresetCentered() {
-      final presetCenter =
-          tester.getCenter(find.byType(SegmentedButton).first).dx;
+      final presetCenter = tester
+          .getCenter(
+            find.byKey(
+              const ValueKey('measurement-units-preset-segmented-control'),
+            ),
+          )
+          .dx;
       final screenCenter = tester.getCenter(find.byType(Scaffold)).dx;
       expect(presetCenter, closeTo(screenCenter, 0.5));
     }
