@@ -1,88 +1,71 @@
-import 'dart:async';
-
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tio_core/core.dart';
 import 'package:tio_feature_profile/profile.dart';
 
 void main() {
-  test('canonical upsert never calls legacy broad save', () async {
-    final legacy = _FakeLegacyProfileRepository();
-    final canonical = _FakeCanonicalUserProfileRepository();
-    final bridge = CanonicalUserProfileBridgeRepository(
-      legacyRepository: legacy,
-      canonicalRepository: canonical,
-    );
-    final profile = UserProfileData(
-      name: 'Tio User',
-      gender: ProfileGender.female,
-      dateOfBirth: DateTime(1996, 6, 15),
-      unitPreferences: const MeasurementUnitPreferences(),
-      heightCm: 165,
-      activityLevel: ProfileActivityLevel.active,
-      healthConditions: const {ProfileHealthCondition.none},
-    );
+  group('CanonicalUserProfileBridgeRepository', () {
+    test('canonical upsert delegates only to UserProfile owner', () async {
+      final canonical = _FakeCanonicalUserProfileRepository();
+      final bridge = CanonicalUserProfileBridgeRepository(
+        canonicalRepository: canonical,
+        avatarRepository: _RecordingAvatarRepository(),
+      );
+      final profile = UserProfileData(
+        name: 'Tio User',
+        gender: ProfileGender.female,
+        dateOfBirth: DateTime(1996, 6, 15),
+        unitPreferences: const MeasurementUnitPreferences(),
+        heightCm: 165,
+        activityLevel: ProfileActivityLevel.active,
+        healthConditions: const {ProfileHealthCondition.none},
+      );
 
-    await bridge.upsert(profile);
+      await bridge.upsert(profile);
 
-    expect(canonical.data, profile);
-    expect(legacy.saveCalls, 0);
+      expect(canonical.data, profile);
+    });
+
+    test('retired broad ProfileSetup reads and writes fail closed', () async {
+      final bridge = CanonicalUserProfileBridgeRepository(
+        canonicalRepository: _FakeCanonicalUserProfileRepository(),
+        avatarRepository: _RecordingAvatarRepository(),
+      );
+      final broad = ProfileSetupData(
+        name: 'Legacy User',
+        gender: ProfileGender.male,
+        goals: const {},
+        dateOfBirth: DateTime(1990, 1, 1),
+        heightCm: 180,
+        currentWeightKg: 80,
+        activityLevel: ProfileActivityLevel.light,
+        healthConditions: const {ProfileHealthCondition.none},
+      );
+
+      await expectLater(bridge.saveProfileSetup(broad), throwsStateError);
+      await expectLater(bridge.getProfileSetup(), throwsStateError);
+      await expectLater(
+        bridge.watchProfileSetup(),
+        emitsError(isA<StateError>()),
+      );
+    });
+
+    test('avatar actions delegate only to narrow avatar owner', () async {
+      final avatar = _RecordingAvatarRepository();
+      final bridge = CanonicalUserProfileBridgeRepository(
+        canonicalRepository: _FakeCanonicalUserProfileRepository(),
+        avatarRepository: avatar,
+      );
+
+      final url = await bridge.uploadAvatarImage(
+        fileName: 'avatar.jpg',
+        bytes: const [4, 5, 6],
+      );
+      await bridge.deleteAvatarImage();
+
+      expect(url, 'https://example.test/canonical-avatar.jpg');
+      expect(avatar.uploadCalls, 1);
+      expect(avatar.deleteCalls, 1);
+    });
   });
-
-  test('legacy broad operations remain delegated for compatibility surfaces',
-      () async {
-    final legacy = _FakeLegacyProfileRepository();
-    final canonical = _FakeCanonicalUserProfileRepository();
-    final bridge = CanonicalUserProfileBridgeRepository(
-      legacyRepository: legacy,
-      canonicalRepository: canonical,
-    );
-    final broad = ProfileSetupData(
-      name: 'Legacy User',
-      gender: ProfileGender.male,
-      goals: const {},
-      dateOfBirth: DateTime(1990, 1, 1),
-      heightCm: 180,
-      currentWeightKg: 80,
-      activityLevel: ProfileActivityLevel.light,
-      healthConditions: const {ProfileHealthCondition.none},
-    );
-
-    await bridge.saveProfileSetup(broad);
-
-    expect(legacy.saved, broad);
-    expect(legacy.saveCalls, 1);
-    expect(canonical.data, isNull);
-  });
-}
-
-class _FakeLegacyProfileRepository implements ProfileSetupRepository {
-  int saveCalls = 0;
-  ProfileSetupData? saved;
-
-  @override
-  Future<void> saveProfileSetup(ProfileSetupData data) async {
-    saveCalls += 1;
-    saved = data;
-  }
-
-  @override
-  Future<ProfileSetupData?> getProfileSetup() async => saved;
-
-  @override
-  Stream<ProfileSetupData?> watchProfileSetup() => const Stream.empty();
-
-  @override
-  Future<String> uploadAvatarImage({
-    required String fileName,
-    required List<int> bytes,
-  }) async =>
-      'memory://$fileName';
-
-  @override
-  Future<void> deleteAvatarImage() async {}
-
-  @override
-  Future<void> updateAvatarFrame(String frame) async {}
 }
 
 class _FakeCanonicalUserProfileRepository implements UserProfileRepository {
@@ -94,5 +77,24 @@ class _FakeCanonicalUserProfileRepository implements UserProfileRepository {
   @override
   Future<void> upsert(UserProfileData profile) async {
     data = profile;
+  }
+}
+
+class _RecordingAvatarRepository implements ProfileAvatarRepository {
+  int uploadCalls = 0;
+  int deleteCalls = 0;
+
+  @override
+  Future<String> uploadAvatarImage({
+    required String fileName,
+    required List<int> bytes,
+  }) async {
+    uploadCalls += 1;
+    return 'https://example.test/canonical-avatar.jpg';
+  }
+
+  @override
+  Future<void> deleteAvatarImage() async {
+    deleteCalls += 1;
   }
 }
