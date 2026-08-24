@@ -116,7 +116,6 @@ void main() {
         'Workout Targets failure blocks publication, retry succeeds canonically, and completed retry is idempotent',
         () async {
       final operations = <String>[];
-      final legacyWorkout = _LegacyWorkoutPreferencesSpy();
       final profile = _RecordingProfileRepository(operations);
       final body = _RecordingBodyRepository(operations);
       final wellness = _RecordingWellnessRepository(operations);
@@ -186,7 +185,6 @@ void main() {
       expect(appPreferences.upsertCalls, 0);
       expect(preference.writeCalls, 0);
       expect(status.completedWriteCalls, 0);
-      expect(legacyWorkout.saveCalls, 0);
 
       await complete(draft: draft, flowPlan: flowPlan);
 
@@ -197,7 +195,6 @@ void main() {
       expect(preference.writeCalls, 1);
       expect(status.completedWriteCalls, 1);
       expect(status.status, OnboardingStatus.completed);
-      expect(legacyWorkout.saveCalls, 0);
 
       final storedProfile = await workoutProfile.read();
       expect(
@@ -265,7 +262,6 @@ void main() {
       expect(appPreferences.upsertCalls, 1);
       expect(preference.writeCalls, 1);
       expect(status.completedWriteCalls, 1);
-      expect(legacyWorkout.saveCalls, 0);
     });
   });
 }
@@ -462,22 +458,6 @@ class _RecordingNutritionTargetsRepository
     operations.add('nutritionTargets.upsert');
     targets.validate();
     data = targets;
-  }
-}
-
-class _LegacyWorkoutPreferencesSpy
-    implements workout_owner.WorkoutPreferencesRepository {
-  int saveCalls = 0;
-
-  @override
-  Future<workout_owner.WorkoutPreferencesData?> getWorkoutPreferences() async =>
-      null;
-
-  @override
-  Future<void> saveWorkoutPreferences(
-    workout_owner.WorkoutPreferencesData data,
-  ) async {
-    saveCalls += 1;
   }
 }
 
