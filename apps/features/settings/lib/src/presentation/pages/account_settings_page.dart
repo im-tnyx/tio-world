@@ -28,7 +28,7 @@ class AccountSettingsPage extends StatefulWidget {
     this.username,
     this.email,
     this.phoneNumber,
-    this.isEmailVerified = true,
+    this.isEmailVerified = false,
     this.isPhoneVerified = false,
     this.linkedProvider = 'Google',
     this.onUsernameChanged,
@@ -51,8 +51,13 @@ class AccountSettingsPage extends StatefulWidget {
   final ValueChanged<String>? onPhoneNumberChanged;
   final Future<UsernameAvailabilityResult> Function(String username)?
       onCheckUsernameAvailability;
-  final VoidCallback? onVerifyEmailPressed;
-  final VoidCallback? onVerifyPhonePressed;
+
+  /// Returns true only after real provider-backed verification succeeds.
+  final Future<bool> Function(String email)? onVerifyEmailPressed;
+
+  /// Returns true only after real provider-backed verification succeeds.
+  final Future<bool> Function(String phoneNumber)? onVerifyPhonePressed;
+
   final Future<void> Function({
     required String username,
     required String phoneNumber,
@@ -71,6 +76,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
   _UsernameStatus _usernameStatus = _UsernameStatus.idle;
   List<String> _suggestions = const [];
   String? _usernameFeedback;
+  String? _verifiedPhoneDigits;
 
   bool _isSaving = false;
 
@@ -81,6 +87,20 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     _phoneController = TextEditingController(
       text: _nationalPhoneDigits(widget.phoneNumber),
     );
+    if (widget.isPhoneVerified) {
+      _verifiedPhoneDigits = _nationalPhoneDigits(widget.phoneNumber);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant AccountSettingsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isPhoneVerified &&
+        widget.phoneNumber != oldWidget.phoneNumber) {
+      final verifiedDigits = _nationalPhoneDigits(widget.phoneNumber);
+      _verifiedPhoneDigits = verifiedDigits;
+      _phoneController.text = verifiedDigits;
+    }
   }
 
   @override
@@ -89,6 +109,24 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     _usernameController.dispose();
     _phoneController.dispose();
     super.dispose();
+  }
+
+  bool get _phoneChanged =>
+      _nationalPhoneDigits(_phoneController.text) !=
+      _nationalPhoneDigits(widget.phoneNumber);
+
+  bool get _isCurrentPhoneVerified {
+    final current = _nationalPhoneDigits(_phoneController.text);
+    if (current.isEmpty) return false;
+    if (_verifiedPhoneDigits == current) return true;
+    return widget.isPhoneVerified && !_phoneChanged;
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   void _onUsernameInput(String val) {
@@ -180,43 +218,50 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
   }
 
   Future<void> _handleVerifyEmail() async {
-    if (widget.onVerifyEmailPressed != null) {
-      widget.onVerifyEmailPressed!();
+    final email = widget.email?.trim();
+    if (email == null || email.isEmpty) {
+      _showMessage('Add an email before verifying it.');
       return;
     }
 
-    final code = await showTioOtpVerificationDialog(
-      context: context,
-      targetLabel: 'email (${widget.email ?? ""})',
-      title: 'Please enter your Code',
-      subtitle: 'Please check your email for the verification code.',
-    );
+    final verify = widget.onVerifyEmailPressed;
+    if (verify == null) {
+      _showMessage('Email verification is unavailable right now.');
+      return;
+    }
 
-    if (code != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email verified successfully!')),
-      );
+    try {
+      final verified = await verify(email);
+      if (verified) {
+        _showMessage('Email verified successfully!');
+      }
+    } catch (_) {
+      _showMessage('Could not verify email. Please try again.');
     }
   }
 
   Future<void> _handleVerifyPhone() async {
-    if (widget.onVerifyPhonePressed != null) {
-      widget.onVerifyPhonePressed!();
+    final phoneNumber = _phoneController.text.trim();
+    if (phoneNumber.isEmpty) {
+      _showMessage('Enter a mobile number before verifying it.');
       return;
     }
 
-    final num = _phoneController.text.trim();
-    final code = await showTioOtpVerificationDialog(
-      context: context,
-      targetLabel: 'mobile number ($num)',
-      title: 'Please enter your Code',
-      subtitle: 'Please check your mobile for the verification code.',
-    );
+    final verify = widget.onVerifyPhonePressed;
+    if (verify == null) {
+      _showMessage('Phone verification is unavailable right now.');
+      return;
+    }
 
-    if (code != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Phone number verified successfully!')),
-      );
+    try {
+      final verified = await verify(phoneNumber);
+      if (!verified || !mounted) return;
+      setState(() {
+        _verifiedPhoneDigits = _nationalPhoneDigits(phoneNumber);
+      });
+      _showMessage('Phone number verified successfully!');
+    } catch (_) {
+      _showMessage('Could not verify phone number. Please try again.');
     }
   }
 
@@ -227,14 +272,15 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
       return;
     }
 
+    if (_phoneChanged && !_isCurrentPhoneVerified) {
+      _showMessage('Verify the new phone number before saving.');
+      return;
+    }
+
     final onSave = widget.onSave;
     if (onSave == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Account settings are unavailable right now. Please try again.',
-          ),
-        ),
+      _showMessage(
+        'Account settings are unavailable right now. Please try again.',
       );
       return;
     }
@@ -246,21 +292,11 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
         phoneNumber: _phoneController.text.trim(),
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Account settings saved!')),
-        );
+        _showMessage('Account settings saved!');
         Navigator.of(context).pop();
       }
     } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Could not save account settings. Please try again.',
-            ),
-          ),
-        );
-      }
+      _showMessage('Could not save account settings. Please try again.');
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -578,7 +614,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                 const SizedBox(height: TioSpacing.sm),
                 TioMobileNumberField(
                   controller: _phoneController,
-                  isVerified: widget.isPhoneVerified,
+                  isVerified: _isCurrentPhoneVerified,
                   onVerifyPressed: _handleVerifyPhone,
                   onChanged: (value) {
                     widget.onPhoneNumberChanged?.call(value);
