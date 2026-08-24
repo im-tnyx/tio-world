@@ -4,9 +4,10 @@ import '../models/models.dart';
 
 /// Single source of truth for body-weight follow-up semantics in onboarding.
 ///
-/// Direction is derived only from the user's explicit [GoalIntentSelection].
-/// Measurements, BMI, target/current weight deltas, and training-only intents
-/// must never invent a body-weight direction.
+/// Explicit Lose/Gain Goal cards establish direction immediately. Training-only
+/// paths may still collect Target Weight + Goal Pace, but their direction comes
+/// only from the user's actual target-vs-current answer. Training labels, BMI,
+/// calories and defaults never invent Body direction.
 class GoalWeightFollowUpPolicy {
   const GoalWeightFollowUpPolicy();
 
@@ -15,31 +16,73 @@ class GoalWeightFollowUpPolicy {
     required GoalIntentSelection selection,
   }) {
     if (mode == null) return null;
+    if (selection.contains(GoalIntent.loseWeight)) {
+      return GoalWeightDirection.loss;
+    }
+    if (selection.contains(GoalIntent.gainWeight)) {
+      return GoalWeightDirection.gain;
+    }
+    return null;
+  }
 
-    return switch (mode) {
-      AppMode.nutrition => switch (selection.primaryGoal) {
-          GoalIntent.loseWeight => GoalWeightDirection.loss,
-          GoalIntent.gainWeight => GoalWeightDirection.gain,
-          _ => null,
-        },
-      AppMode.workout || AppMode.hybrid =>
-        selection.contains(GoalIntent.loseWeight)
-            ? GoalWeightDirection.loss
-            : null,
-    };
+  GoalWeightDirection? directionFromTarget({
+    required double? currentWeightKg,
+    required double? targetWeightKg,
+  }) {
+    if (currentWeightKg == null || targetWeightKg == null) return null;
+    if (targetWeightKg < currentWeightKg) return GoalWeightDirection.loss;
+    if (targetWeightKg > currentWeightKg) return GoalWeightDirection.gain;
+    return null;
+  }
+
+  /// Returns the direction that is safe to consume downstream.
+  ///
+  /// Explicit Lose/Gain wins. A training-only path can derive direction from
+  /// the target answer only while Body follow-ups are active. Maintain Weight
+  /// is deliberately non-directional and never consumes a dormant target.
+  GoalWeightDirection? effectiveDirectionFor({
+    required AppMode? mode,
+    required GoalIntentSelection selection,
+    required double? currentWeightKg,
+    required double? targetWeightKg,
+  }) {
+    final explicit = directionFor(mode: mode, selection: selection);
+    if (explicit != null) return explicit;
+    if (!shouldCollectTargetWeight(mode: mode, selection: selection)) {
+      return null;
+    }
+    return directionFromTarget(
+      currentWeightKg: currentWeightKg,
+      targetWeightKg: targetWeightKg,
+    );
   }
 
   bool shouldCollectTargetWeight({
     required AppMode? mode,
     required GoalIntentSelection selection,
-  }) =>
-      directionFor(mode: mode, selection: selection) != null;
+  }) {
+    if (mode == null || selection.goals.isEmpty) return false;
+
+    // Canonical user_body_goals forbids target/pace values for Maintain Weight.
+    // Keep this no-schema follow-up coherent even when training goals coexist.
+    if (selection.contains(GoalIntent.maintainWeight)) return false;
+
+    return selection.goals.any((goal) => switch (goal) {
+          GoalIntent.loseWeight ||
+          GoalIntent.gainWeight ||
+          GoalIntent.buildMuscle ||
+          GoalIntent.getStronger ||
+          GoalIntent.improveEndurance ||
+          GoalIntent.stayFit => true,
+          GoalIntent.maintainWeight || GoalIntent.recomposition => false,
+        });
+  }
 
   bool shouldCollectGoalPace({
     required AppMode? mode,
     required GoalIntentSelection selection,
   }) =>
-      directionFor(mode: mode, selection: selection) != null;
+      shouldCollectTargetWeight(mode: mode, selection: selection);
 
   /// Compatibility name retained for callers/tests that predate the
   /// `shouldCollect*` flow-plan API.
