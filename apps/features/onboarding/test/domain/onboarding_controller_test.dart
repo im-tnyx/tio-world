@@ -928,7 +928,10 @@ void main() {
           primaryGoal: GoalIntent.stayFit,
         ),
         currentStepId: OnboardingStepId.profileBasics,
-        profile: _validProfile(),
+        profile: _validProfile().copyWith(
+          targetWeightKg: 65,
+          targetWeightDirection: GoalWeightDirection.loss,
+        ),
         workout: _validWorkout(),
       ),
       completionValidator: const _AlwaysEligibleValidator(),
