@@ -25,7 +25,7 @@ void main() {
     );
   }
 
-  testWidgets('nutrition keeps the existing card style with four single-goal choices',
+  testWidgets('nutrition keeps Tio card style with three weight choices',
       (tester) async {
     GoalIntent? tapped;
 
@@ -44,7 +44,7 @@ void main() {
     expect(find.text('Lose weight'), findsOneWidget);
     expect(find.text('Gain weight'), findsOneWidget);
     expect(find.text('Maintain weight'), findsOneWidget);
-    expect(find.text('Recomposition'), findsOneWidget);
+    expect(find.text('Recomposition'), findsNothing);
     expect(find.text('Build muscle'), findsNothing);
 
     final lossCard = find.byKey(const ValueKey('goal-intent-loseWeight'));
@@ -57,31 +57,33 @@ void main() {
     expect(tapped, GoalIntent.gainWeight);
   });
 
-  testWidgets('workout shows six training-aware choices and existing selection state',
+  testWidgets('workout shows seven refined choices and three selected cards',
       (tester) async {
     await tester.pumpWidget(
       buildScreen(
         mode: AppMode.workout,
         selection: const GoalIntentSelection(
-          primaryGoal: GoalIntent.buildMuscle,
-          supportingGoal: GoalIntent.getStronger,
+          primaryGoal: GoalIntent.loseWeight,
+          supportingGoal: GoalIntent.buildMuscle,
+          tertiaryGoal: GoalIntent.getStronger,
         ),
       ),
     );
 
     expect(
-      find.text('Choose your main goal and one supporting goal.'),
+      find.text('Choose what fits you. Select up to two training goals.'),
       findsOneWidget,
     );
-    expect(find.text('Gain weight'), findsNothing);
-    expect(find.text('Maintain weight'), findsNothing);
+    expect(find.text('Lose weight'), findsOneWidget);
+    expect(find.text('Gain weight'), findsOneWidget);
+    expect(find.text('Maintain weight'), findsOneWidget);
     expect(find.text('Build muscle'), findsOneWidget);
-    expect(find.text('Get stronger'), findsOneWidget);
+    expect(find.text('Boost strength'), findsOneWidget);
     expect(find.text('Improve endurance'), findsOneWidget);
-    expect(find.text('Stay fit'), findsOneWidget);
-    expect(find.text('Burn fat through consistent training'), findsOneWidget);
+    expect(find.text('Keep fit'), findsOneWidget);
+    expect(find.text('Recomposition'), findsNothing);
 
-    for (final key in ['buildMuscle', 'getStronger']) {
+    for (final key in ['loseWeight', 'buildMuscle', 'getStronger']) {
       final card = find.byKey(ValueKey('goal-intent-$key'));
       expect(
         find.descendant(of: card, matching: find.byIcon(Icons.check_circle)),
@@ -90,16 +92,16 @@ void main() {
     }
   });
 
-  testWidgets('hybrid reuses the same six cards with body-aware loss copy',
+  testWidgets('hybrid reuses same Tio seven-card vocabulary and copy',
       (tester) async {
     await tester.pumpWidget(buildScreen(mode: AppMode.hybrid));
 
-    expect(find.text('Build muscle'), findsOneWidget);
-    expect(find.text('Get stronger'), findsOneWidget);
-    expect(find.text('Improve endurance'), findsOneWidget);
-    expect(find.text('Stay fit'), findsOneWidget);
-    expect(find.text('Recomposition'), findsOneWidget);
-    expect(find.text('Gain weight'), findsNothing);
-    expect(find.text('Burn fat and reach a healthier weight'), findsOneWidget);
+    expect(find.text('Reduce body weight and body fat'), findsOneWidget);
+    expect(find.text('Gain body weight gradually and healthily'), findsOneWidget);
+    expect(find.text('Increase muscle size and lean mass'), findsOneWidget);
+    expect(find.text('Improve strength and lifting performance'), findsOneWidget);
+    expect(find.text('Improve cardio, stamina and conditioning'), findsOneWidget);
+    expect(find.text('Maintain overall fitness, energy and health'), findsOneWidget);
+    expect(find.text('Recomposition'), findsNothing);
   });
 }
