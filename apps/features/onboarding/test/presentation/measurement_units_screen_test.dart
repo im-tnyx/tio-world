@@ -4,7 +4,7 @@ import 'package:tio_core/core.dart';
 import 'package:tio_feature_onboarding/src/presentation/screens/profile/measurement_units_screen.dart';
 
 void main() {
-  testWidgets('preset and individual unit choices remain independently editable',
+  testWidgets('preset and individual unit choices derive Custom reversibly',
       (tester) async {
     var preferences = MeasurementUnitPreferences.metric;
 
@@ -22,17 +22,61 @@ void main() {
     await tester.pumpWidget(build());
     expect(find.text('Choose your units'), findsOneWidget);
     expect(preferences, MeasurementUnitPreferences.metric);
+    expect(
+      find.byKey(const ValueKey('measurement-units-preset-custom')),
+      findsNothing,
+    );
 
-    await tester.tap(find.text('Imperial'));
+    await tester.tap(
+      find.byKey(const ValueKey('measurement-units-preset-imperial')),
+    );
     await tester.pumpWidget(build());
     expect(preferences, MeasurementUnitPreferences.imperial);
+    expect(
+      find.byKey(const ValueKey('measurement-units-preset-custom')),
+      findsNothing,
+    );
 
-    await tester.tap(find.text('kg'));
+    await tester.tap(find.byKey(const ValueKey('measurement-units-weight-kg')));
     await tester.pumpWidget(build());
     expect(preferences.weightUnit, WeightUnit.kg);
     expect(preferences.heightUnit, HeightUnit.ftIn);
     expect(preferences.distanceUnit, DistanceUnit.mi);
     expect(preferences.volumeUnit, VolumeUnit.flOz);
     expect(preferences.isImperialPreset, isFalse);
+    expect(preferences.isMetricPreset, isFalse);
+    expect(
+      find.byKey(const ValueKey('measurement-units-preset-custom')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('measurement-units-weight-lb')));
+    await tester.pumpWidget(build());
+    expect(preferences, MeasurementUnitPreferences.imperial);
+    expect(
+      find.byKey(const ValueKey('measurement-units-preset-custom')),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('measurement-units-preset-metric')),
+    );
+    await tester.pumpWidget(build());
+    await tester.tap(
+      find.byKey(const ValueKey('measurement-units-height-ft-in')),
+    );
+    await tester.pumpWidget(build());
+    expect(
+      find.byKey(const ValueKey('measurement-units-preset-custom')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('measurement-units-height-cm')));
+    await tester.pumpWidget(build());
+    expect(preferences, MeasurementUnitPreferences.metric);
+    expect(
+      find.byKey(const ValueKey('measurement-units-preset-custom')),
+      findsNothing,
+    );
   });
 }
