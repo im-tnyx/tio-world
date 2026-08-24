@@ -12,7 +12,7 @@ void main() {
     );
   }
 
-  testWidgets('AccountSettingsPage opens OTP verification popup on tapping verify',
+  testWidgets('Verify cannot show local success without a real callback',
       (tester) async {
     await tester.pumpWidget(
       themedApp(
@@ -29,20 +29,40 @@ void main() {
 
     expect(find.text('Verify'), findsNWidgets(2));
 
-    // Tap Email Verify
     await tester.tap(find.text('Verify').first);
     await tester.pumpAndSettle();
 
-    // Verify dialog is open
-    expect(find.text('Please enter your Code'), findsOneWidget);
-    expect(find.text('VERIFY'), findsOneWidget);
-    expect(find.text('BACK'), findsOneWidget);
+    expect(
+      find.text('Email verification is unavailable right now.'),
+      findsOneWidget,
+    );
+    expect(find.text('Please enter your Code'), findsNothing);
+    expect(find.text('Email verified successfully!'), findsNothing);
+  });
 
-    // Tap BACK to dismiss
-    await tester.tap(find.text('BACK'));
+  testWidgets('real verification callback controls Email success feedback',
+      (tester) async {
+    String? verifiedEmail;
+
+    await tester.pumpWidget(
+      themedApp(
+        home: AccountSettingsPage(
+          username: 'santosh_initial',
+          email: 'santosh@example.com',
+          isEmailVerified: false,
+          onVerifyEmailPressed: (email) async {
+            verifiedEmail = email;
+            return true;
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Verify'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Please enter your Code'), findsNothing);
+    expect(verifiedEmail, 'santosh@example.com');
+    expect(find.text('Email verified successfully!'), findsOneWidget);
   });
 
   testWidgets('loads persisted phone and saves account fields before popping',
@@ -63,6 +83,7 @@ void main() {
                         username: 'santosh_initial',
                         email: 'santosh@example.com',
                         phoneNumber: '9876543210',
+                        isEmailVerified: true,
                         isPhoneVerified: true,
                         onSave: ({
                           required username,
@@ -99,5 +120,39 @@ void main() {
     expect(savedPhoneNumber, '9876543210');
     expect(find.text('Open Account Settings'), findsOneWidget);
     expect(find.text('Account Settings'), findsNothing);
+  });
+
+  testWidgets('changed phone must verify before Save Changes can persist',
+      (tester) async {
+    var saveCalls = 0;
+
+    await tester.pumpWidget(
+      themedApp(
+        home: AccountSettingsPage(
+          username: 'santosh_initial',
+          email: 'santosh@example.com',
+          phoneNumber: '9876543210',
+          isEmailVerified: true,
+          isPhoneVerified: true,
+          onSave: ({required username, required phoneNumber}) async {
+            saveCalls++;
+          },
+        ),
+      ),
+    );
+
+    final textFields = tester.widgetList<TextField>(find.byType(TextField)).toList();
+    await tester.enterText(find.byWidget(textFields.last), '9123456789');
+    await tester.pump();
+
+    await tester.tap(find.text('Save Changes'));
+    await tester.pumpAndSettle();
+
+    expect(saveCalls, 0);
+    expect(
+      find.text('Verify the new phone number before saving.'),
+      findsOneWidget,
+    );
+    expect(find.text('Account Settings'), findsOneWidget);
   });
 }
