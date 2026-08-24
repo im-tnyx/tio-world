@@ -110,21 +110,15 @@ final profileAvatarRepositoryProvider = Provider<ProfileAvatarRepository?>((ref)
   return SupabaseProfileAvatarRepository(client: client);
 });
 
-/// Broad ProfileSetup is retained only as a compatibility type. Supabase
-/// production gets a fail-closed canonical facade: semantic Profile methods are
-/// canonical-only and avatar actions delegate to the narrow avatar owner.
-/// Non-Supabase environments retain the future protected HTTP adapter.
+/// Broad ProfileSetup is retained only for the future protected HTTP adapter.
+/// Supabase production must use canonical Profile/Body owners and the narrow
+/// avatar owner directly; requesting this broad provider in a Supabase session
+/// fails closed so legacy schema dependencies cannot be reintroduced.
 final profileSetupRepositoryProvider = Provider<ProfileSetupRepository>((ref) {
   final client = ref.watch(supabaseClientProvider);
   if (client != null) {
-    final profileRepository = ref.watch(userProfileRepositoryProvider);
-    final avatarRepository = ref.watch(profileAvatarRepositoryProvider);
-    if (profileRepository == null || avatarRepository == null) {
-      throw StateError('Canonical Profile composition is unavailable.');
-    }
-    return CanonicalUserProfileBridgeRepository(
-      canonicalRepository: profileRepository,
-      avatarRepository: avatarRepository,
+    throw StateError(
+      'Broad Supabase ProfileSetup access is retired; use canonical Profile/Body and avatar owners.',
     );
   }
   final apiClient = ref.watch(authenticatedApiClientProvider);
