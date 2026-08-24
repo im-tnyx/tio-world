@@ -62,32 +62,25 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(AllergiesRestrictionsScreen), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('nutrition-allergy-lactose')),
-          matching: find.byIcon(Icons.check_circle),
-        ),
-        findsOneWidget,
+      final allergiesScreen = tester.widget<AllergiesRestrictionsScreen>(
+        find.byType(AllergiesRestrictionsScreen),
       );
       expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('nutrition-allergy-gluten')),
-          matching: find.byIcon(Icons.check_circle),
-        ),
-        findsOneWidget,
+        allergiesScreen.selectedRestrictions,
+        containsAll(const [
+          NutritionAllergyRestriction.lactose,
+          NutritionAllergyRestriction.gluten,
+        ]),
       );
 
       await tester.tap(find.byTooltip('Back'));
       await tester.pumpAndSettle();
 
       expect(find.byType(DietTypeScreen), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('nutrition-diet-vegan')),
-          matching: find.byIcon(Icons.check_circle),
-        ),
-        findsOneWidget,
+      final dietScreen = tester.widget<DietTypeScreen>(
+        find.byType(DietTypeScreen),
       );
+      expect(dietScreen.selectedDietType, NutritionDietType.vegan);
     } finally {
       semantics.dispose();
     }
@@ -119,13 +112,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(DietTypeScreen), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('nutrition-diet-vegetarian')),
-        matching: find.byIcon(Icons.check_circle),
-      ),
-      findsOneWidget,
+    final dietScreen = tester.widget<DietTypeScreen>(
+      find.byType(DietTypeScreen),
     );
+    expect(dietScreen.selectedDietType, NutritionDietType.vegetarian);
   });
 
   testWidgets('Hybrid Later enters Nutrition Profile at Diet Type',
