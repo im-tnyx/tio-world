@@ -1,10 +1,12 @@
 /// Domain model representing an authenticated user session.
-/// Keeps raw Firebase SDK user types decoupled from application logic.
+/// Keeps raw authentication SDK user types decoupled from application logic.
 class AuthSession {
   const AuthSession({
     required this.userId,
     this.email,
     this.phone,
+    this.isEmailVerified = false,
+    this.isPhoneVerified = false,
     this.displayName,
     this.photoUrl,
   });
@@ -12,6 +14,8 @@ class AuthSession {
   final String userId;
   final String? email;
   final String? phone;
+  final bool isEmailVerified;
+  final bool isPhoneVerified;
   final String? displayName;
   final String? photoUrl;
 
@@ -22,6 +26,8 @@ class AuthSession {
         other.userId == userId &&
         other.email == email &&
         other.phone == phone &&
+        other.isEmailVerified == isEmailVerified &&
+        other.isPhoneVerified == isPhoneVerified &&
         other.displayName == displayName &&
         other.photoUrl == photoUrl;
   }
@@ -31,10 +37,13 @@ class AuthSession {
         userId,
         email,
         phone,
+        isEmailVerified,
+        isPhoneVerified,
         displayName,
         photoUrl,
       );
 
   @override
-  String toString() => 'AuthSession(userId: $userId, email: $email, phone: $phone)';
+  String toString() =>
+      'AuthSession(userId: $userId, email: $email, phone: $phone)';
 }
