@@ -60,6 +60,8 @@ class SupabaseAuthSessionRepository implements AuthSessionRepository {
       userId: user.id,
       email: user.email,
       phone: user.phone,
+      isEmailVerified: user.emailConfirmedAt != null,
+      isPhoneVerified: user.phoneConfirmedAt != null,
       displayName: displayName,
       photoUrl: photoUrl,
     );
