@@ -52,9 +52,11 @@ class OnboardingState {
       );
 
   GoalWeightDirection? get weightGoalDirection =>
-      const WeightGoalFlowPolicy().directionFor(
+      const WeightGoalFlowPolicy().effectiveDirectionFor(
         mode: draft.selectedMode,
         selection: draft.goalSelection,
+        currentWeightKg: draft.profile.currentWeightKg,
+        targetWeightKg: draft.profile.targetWeightKg,
       );
 
   bool get hasPreviousScreen {
