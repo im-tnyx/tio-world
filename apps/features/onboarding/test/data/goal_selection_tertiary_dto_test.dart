@@ -6,8 +6,8 @@ void main() {
 
   test('tertiary goal round-trips additively inside existing draft schema', () {
     final snapshot = OnboardingDraftSnapshot(
-      draft: const OnboardingDraft(
-        goalSelection: GoalIntentSelection(
+      draft: OnboardingDraft(
+        goalSelection: const GoalIntentSelection(
           primaryGoal: GoalIntent.loseWeight,
           supportingGoal: GoalIntent.buildMuscle,
           tertiaryGoal: GoalIntent.getStronger,
@@ -32,8 +32,8 @@ void main() {
   test('two-slot legacy payload stays byte-shape compatible when tertiary is null', () {
     final json = mapper.toJson(
       OnboardingDraftSnapshot(
-        draft: const OnboardingDraft(
-          goalSelection: GoalIntentSelection(
+        draft: OnboardingDraft(
+          goalSelection: const GoalIntentSelection(
             primaryGoal: GoalIntent.buildMuscle,
             supportingGoal: GoalIntent.getStronger,
           ),
