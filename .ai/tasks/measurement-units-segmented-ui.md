@@ -1,6 +1,6 @@
 # Measurement Units Segmented UI
 
-**Status:** In progress  
+**Status:** Validated  
 **Primary owner:** `tio_core` shared measurement preference editor  
 **Affected platforms:** Flutter phone — Product Onboarding + Settings/Profile  
 **Tracking issue:** #112  
@@ -8,13 +8,13 @@
 
 ## Global UI / Design-System Guardrail
 
-This slice intentionally changes the approved Measurement Units visual contract. It follows `.ai/tasks/design-system-token-consolidation.md` and `apps/core/lib/src/theme/README.md`: use existing Tio theme/tokens, keep one shared core editor, and do not create a feature-local token bag.
+This slice intentionally changes the approved Measurement Units visual contract. It follows `.ai/tasks/design-system-token-consolidation.md`, `apps/core/lib/src/theme/README.md`, and `apps/features/AGENTS.md`: existing governed Tio theme/tokens are reused, the UI remains one shared core editor, and no feature-local token bag was added.
 
 ## 1. Discovery
 
 ### User Outcome
 
-Measurement Units should feel like a compact settings selector: Metric/Imperial presets at the top, then label-left segmented unit rows. A mixed per-category selection automatically exposes a derived `Custom` preset state.
+Measurement Units now uses a compact selector: Metric/Imperial presets at the top, then label-left segmented unit rows. A mixed per-category selection automatically exposes a derived `Custom` preset state.
 
 ### Success Criteria
 
@@ -28,7 +28,8 @@ Measurement Units should feel like a compact settings selector: Metric/Imperial 
 ### Scope
 
 - `apps/core/lib/src/ui/components/preferences/tio_measurement_unit_preferences_editor.dart`
-- focused Onboarding/Settings widget tests only as required
+- `apps/features/onboarding/test/presentation/measurement_units_screen_test.dart`
+- `apps/features/settings/test/presentation/measurement_units_settings_page_test.dart`
 
 ### Non-Goals
 
@@ -42,32 +43,32 @@ Measurement Units should feel like a compact settings selector: Metric/Imperial 
 
 ### Verified Evidence
 
-- Current shared editor uses large `TioButton.primary/secondary` pairs for presets and each category.
+- The previous shared editor used large `TioButton.primary/secondary` pairs for presets and each category.
 - `MeasurementUnitPreferences` already owns four independent typed preferences and exposes `isMetricPreset` / `isImperialPreset`.
 - `MeasurementUnitsScreen` and `MeasurementUnitsSettingsPage` already consume the same shared editor.
-- Existing widget tests cover preset changes, mixed persistence, selected semantics, and Settings save failure.
-- Existing Tio theme contract provides governed `TioSpacing`, `TioRadius`, `TioStroke`, `TioSize`, typography roles, and runtime `context.tioColors`.
+- Existing widget tests already covered preset changes, mixed persistence, selected semantics, and Settings save failure.
+- Tio theme provides governed `TioSpacing`, `TioRadius`, `TioStroke`, `TioSize`, typography roles, and runtime `context.tioColors`.
 
-### Existing Pattern to Follow
+### Existing Pattern Followed
 
-Use a reusable core widget composition with Material semantics/interaction and governed Tio theme values. Do not add a new token family unless an existing governed primitive/semantic role is genuinely insufficient.
+The shared editor now uses Material `SegmentedButton` within core, styled only through governed Tio theme/tokens. No new design token family was required.
 
 ## 3. Clarification
 
 | Decision | Status | Rationale | Owner |
 |---|---|---|---|
-| Top preset starts Metric / Imperial only | Approved | matches requested compact UX | Product |
-| Mixed choices reveal Custom | Approved | preserves independent preferences without coercion | Product/Core |
-| Custom is derived, never persisted | Approved | four fields remain durable truth | Core |
-| Rows use label-left + segmented pill-right | Approved | matches supplied reference direction | Product |
-| Volume uses `fl oz`, not reference-image `Lb` | Approved | correct unit semantics | Core |
-| Small/large-text layout may stack | Approved | avoids overflow while preserving hierarchy | UI |
+| Top preset starts Metric / Imperial only | Approved + implemented | matches requested compact UX | Product |
+| Mixed choices reveal Custom | Approved + implemented | preserves independent preferences without coercion | Product/Core |
+| Custom is derived, never persisted | Approved + implemented | four fields remain durable truth | Core |
+| Rows use label-left + segmented pill-right | Approved + implemented | matches supplied reference direction | Product |
+| Volume uses `fl oz`, not reference-image `Lb` | Approved + implemented | correct unit semantics | Core |
+| Small/large-text layout may stack | Approved + implemented | Wrap prevents narrow-layout overflow | UI |
 
 ## 4. Architecture Design
 
 ### Chosen Approach
 
-Keep `TioMeasurementUnitPreferencesEditor` stateless. Derive `isCustom = !preferences.isMetricPreset && !preferences.isImperialPreset` every build. Build one private segmented-control primitive inside the shared editor and one responsive label/selector row composition.
+`TioMeasurementUnitPreferencesEditor` stays stateless. `Custom` is derived as `!preferences.isMetricPreset && !preferences.isImperialPreset` every build. A private generic segmented-control composition renders both the preset selector and typed unit selectors. Responsive rows use `Wrap`, preserving label-left/control-right when space permits and stacking safely when it does not.
 
 ### Ownership and Data Flow
 
@@ -80,51 +81,79 @@ Onboarding / Settings
 
 ### Alternative Rejected
 
-Persisting `Custom` or a rigid measurement-system flag is rejected because mixed independent choices are already first-class durable state.
+Persisting `Custom` or a rigid measurement-system flag remains rejected because mixed independent choices are first-class durable state.
 
 ### Failure and Accessibility States
 
-- each segment exposes selected semantics;
-- tap targets remain accessible;
-- large text/compact width must not overflow;
-- Settings save error/retry behavior remains unchanged because persistence surface is untouched.
+- Material segmented controls retain selected semantics;
+- existing stable selector keys remain available;
+- compact 320dp + 1.6x text scaling is widget-tested for overflow;
+- Settings save failure/retry behavior remains unchanged because persistence is untouched.
 
 ## 5. Implementation Plan
 
-- [ ] Replace large preset buttons with compact segmented preset selector.
-- [ ] Add derived Custom segment only for mixed state.
-- [ ] Replace four large button pairs with responsive label-left segmented rows.
-- [ ] Use Tio theme/tokens only for visual values.
-- [ ] Update focused Onboarding + Settings tests for Custom and semantics.
-- [ ] Add compact-width / large-text overflow regression test.
-- [ ] Run exact-head Flutter/Dart + Android CI.
+- [x] Replace large preset buttons with compact segmented preset selector.
+- [x] Add derived Custom segment only for mixed state.
+- [x] Replace four large button pairs with responsive label-left segmented rows.
+- [x] Use Tio theme/tokens only for visual values.
+- [x] Update focused Onboarding + Settings tests for Custom and semantics.
+- [x] Add compact-width / large-text overflow regression test.
+- [x] Run exact implementation-head Flutter/Dart + Android CI.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Not run yet.
+Implementation SHA: b8b99478e9dc9fcb1c2f762c99d12e8e7eaa9467
+Flutter CI #1775 / run 32707113818 ✅
+Android Native CI #187 / run 32707113803 ✅
+
+Flutter analyze ✅
+Dart analyze    ✅
+Flutter tests   ✅
+Dart tests      ✅
+Android debug APK/native compile ✅
 ```
 
 ### Review Findings and Resolution
 
-Pending implementation.
+- No analyzer/compiler regression.
+- Custom state remains derived and reversible.
+- Existing Settings save path remains unchanged.
+- Compact/large-text test passes with no overflow exception.
+- No schema/domain/persistence changes were introduced.
 
 ## 7. Final Handoff
 
 ### Changed Files
 
-Pending.
+```text
+.ai/tasks/measurement-units-segmented-ui.md
+apps/core/lib/src/ui/components/preferences/tio_measurement_unit_preferences_editor.dart
+apps/features/onboarding/test/presentation/measurement_units_screen_test.dart
+apps/features/settings/test/presentation/measurement_units_settings_page_test.dart
+```
 
 ### Actual Behavior
 
-Pending.
+```text
+Exact Metric   → [ Metric selected | Imperial ]
+Exact Imperial → [ Metric | Imperial selected ]
+Mixed units    → [ Metric | Imperial | Custom selected ]
+
+Weight        [ kg | lb ]
+Height        [ cm | ft / in ]
+Distance      [ km | miles ]
+Liquid volume [ mL / L | fl oz ]
+```
+
+Returning all four choices exactly to Metric or Imperial automatically hides Custom and selects the matching preset.
 
 ### Known Limitations
 
-None expected beyond existing measurement preference feature scope.
+This slice does not add new unit types or change measurement conversion semantics; it only changes the approved selector UI/interaction.
 
 ### Final Status
 
-`PARTIAL`
+`PASS`
