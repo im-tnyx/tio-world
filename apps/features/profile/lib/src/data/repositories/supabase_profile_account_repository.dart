@@ -49,24 +49,6 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
         _usernamePattern.hasMatch(username);
   }
 
-  String _resolveProfileName(User user) {
-    final metadata = user.userMetadata ?? const <String, dynamic>{};
-    for (final key in const ['full_name', 'display_name', 'name']) {
-      final value = metadata[key];
-      if (value is String && value.trim().isNotEmpty) {
-        return value.trim();
-      }
-    }
-
-    final email = user.email?.trim() ?? '';
-    if (email.contains('@')) {
-      final localPart = email.split('@').first.trim();
-      if (localPart.isNotEmpty) return localPart;
-    }
-
-    return 'Tio User';
-  }
-
   UsernameAvailabilityReason? _parseReason(Object? value) {
     return switch (value) {
       'taken' => UsernameAvailabilityReason.taken,
@@ -158,7 +140,7 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
 
   @override
   Future<void> updateUsername(String username) async {
-    final user = _requireUser();
+    _requireUser();
     final normalizedUsername = _normalizeUsername(username);
     if (!_isValidUsername(normalizedUsername)) {
       throw ArgumentError.value(
@@ -168,30 +150,16 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
       );
     }
 
-    var claim = await _claimUsername(normalizedUsername);
+    final claim = await _claimUsername(normalizedUsername);
     if (claim['claimed'] == true) return;
 
-    if (_parseReason(claim['reason']) !=
+    if (_parseReason(claim['reason']) ==
         UsernameAvailabilityReason.profileMissing) {
-      _throwClaimFailure(claim);
+      throw StateError(
+        'Account root is missing for the authenticated user.',
+      );
     }
 
-    final nowIso = DateTime.now().toUtc().toIso8601String();
-    try {
-      await _client.from('users').insert({
-        'id': user.id,
-        'name': _resolveProfileName(user),
-        if (user.email != null && user.email!.trim().isNotEmpty)
-          'email': user.email!.trim().toLowerCase(),
-        'last_active_at': nowIso,
-        'updated_at': nowIso,
-      });
-    } on PostgrestException catch (error) {
-      if (error.code != '23505') rethrow;
-    }
-
-    claim = await _claimUsername(normalizedUsername);
-    if (claim['claimed'] == true) return;
     _throwClaimFailure(claim);
   }
 
