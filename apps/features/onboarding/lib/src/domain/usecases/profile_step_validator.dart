@@ -86,8 +86,15 @@ class ProfileStepValidator {
     ProfileOnboardingDraft draft,
     GoalWeightDirection? direction,
   ) {
+    final current = draft.currentWeightKg;
+    final target = draft.targetWeightKg;
+
+    if (direction == null && current != null && target == null) {
+      return 'Choose a target above or below your current weight.';
+    }
+
     final rangeError = _validateRange(
-      draft.targetWeightKg,
+      target,
       minimumWeightKg,
       maximumWeightKg,
       'target weight',
@@ -95,9 +102,12 @@ class ProfileStepValidator {
     );
     if (rangeError != null) return rangeError;
 
-    final current = draft.currentWeightKg;
-    final target = draft.targetWeightKg;
-    if (current == null || target == null || direction == null) return null;
+    if (current == null || target == null) return null;
+    if (direction == null) {
+      return target == current
+          ? 'Choose a target above or below your current weight.'
+          : null;
+    }
 
     return switch (direction) {
       GoalWeightDirection.loss => target < current
