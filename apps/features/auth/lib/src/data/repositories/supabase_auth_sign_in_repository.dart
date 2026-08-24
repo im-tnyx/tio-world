@@ -358,21 +358,6 @@ class SupabaseAuthSignInRepository
         );
       }
       _startDeviceSync();
-      try {
-        final nowIso = DateTime.now().toUtc().toIso8601String();
-        await _client.from('users').upsert(
-          {
-            'id': user.id,
-            if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
-            'email': email.trim().toLowerCase(),
-            'last_active_at': nowIso,
-            'updated_at': nowIso,
-          },
-          onConflict: 'id',
-        );
-      } catch (e) {
-        developer.log('Failed to save email signup profile: $e');
-      }
       return SignInSuccess(_mapUser(user));
     } on AuthException catch (e) {
       if (e.message.toLowerCase().contains('already registered') ||
@@ -525,24 +510,32 @@ class SupabaseAuthSignInRepository
     required bool importProviderPhoto,
   }) async {
     final nowIso = DateTime.now().toUtc().toIso8601String();
-    await _client.from('users').upsert(
-      {
-        'id': user.id,
-        if (session.displayName != null && session.displayName!.isNotEmpty)
-          'name': session.displayName,
-        if (session.email != null && session.email!.isNotEmpty)
-          'email': session.email,
-        // Provider avatar enrichment is first-account bootstrap only. Returning
-        // Google sign-in must never overwrite a user-owned/custom avatar.
-        if (importProviderPhoto &&
-            session.photoUrl != null &&
-            session.photoUrl!.isNotEmpty)
-          'avatar_url': session.photoUrl,
-        'last_active_at': nowIso,
-        'updated_at': nowIso,
-      },
-      onConflict: 'id',
-    );
+    final updatedRows = await _client
+        .from('users')
+        .update(
+          {
+            if (session.displayName != null && session.displayName!.isNotEmpty)
+              'name': session.displayName,
+            if (session.email != null && session.email!.isNotEmpty)
+              'email': session.email,
+            // Provider avatar enrichment is first-account bootstrap only. Returning
+            // Google sign-in must never overwrite a user-owned/custom avatar.
+            if (importProviderPhoto &&
+                session.photoUrl != null &&
+                session.photoUrl!.isNotEmpty)
+              'avatar_url': session.photoUrl,
+            'last_active_at': nowIso,
+            'updated_at': nowIso,
+          },
+        )
+        .eq('id', user.id)
+        .select('id');
+
+    if (updatedRows.isEmpty) {
+      throw StateError(
+        'Account root is missing for the authenticated Google user.',
+      );
+    }
   }
 
   AuthSession _mapUser(User user) {
