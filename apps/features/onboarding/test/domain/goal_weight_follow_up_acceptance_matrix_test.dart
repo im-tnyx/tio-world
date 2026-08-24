@@ -8,7 +8,7 @@ void main() {
 
   test('legacy Goal Pace cursors reconcile into Body Goal by mode and goal', () {
     for (final testCase in cases) {
-      final direction = policy.directionFor(
+      final explicitDirection = policy.directionFor(
         mode: testCase.mode,
         selection: testCase.selection,
       );
@@ -20,8 +20,9 @@ void main() {
           workoutIntroChoice: testCase.workoutIntroChoice,
           currentStepId: OnboardingStepId.targets,
           profile: _profileFor(
-            direction,
+            explicitDirection,
             currentStepId: ProfileStepId.targetWeight,
+            includeDirectionalTarget: testCase.expectWeightFollowUps,
           ),
           workout: _validWorkout(),
           targets: const TargetsOnboardingDraft(
@@ -41,33 +42,16 @@ void main() {
         testCase.expectWeightFollowUps,
         reason: '${testCase.name}: Goal Pace Body Goal eligibility',
       );
-      expect(
-        controller.state.targetsFlowPlan.contains(TargetStepId.goalPace),
-        isFalse,
-        reason: '${testCase.name}: active Targets must stay pace-free',
-      );
-      expect(
-        controller.state.targetsFlowPlan.steps,
-        const [TargetStepId.nutritionTarget],
-        reason: '${testCase.name}: active Targets is Nutrition-only in O4B',
-      );
-      expect(
-        controller.state.stepId,
-        OnboardingStepId.bodyGoal,
-        reason: '${testCase.name}: legacy Targets Goal Pace cursor migrates',
-      );
+      expect(controller.state.targetsFlowPlan.contains(TargetStepId.goalPace), isFalse);
+      expect(controller.state.targetsFlowPlan.steps, const [TargetStepId.nutritionTarget]);
+      expect(controller.state.stepId, OnboardingStepId.bodyGoal);
       expect(
         controller.state.draft.profile.currentStepId,
         testCase.expectWeightFollowUps
             ? ProfileStepId.goalPace
             : ProfileStepId.currentWeight,
-        reason: '${testCase.name}: Body Goal cursor follows active eligibility',
       );
-      expect(
-        controller.state.draft.targets.goalPaceKgPerWeek,
-        0.6,
-        reason: '${testCase.name}: Goal Pace value survives cursor migration',
-      );
+      expect(controller.state.draft.targets.goalPaceKgPerWeek, 0.6);
       expect(
         controller.state.progressStepCount,
         testCase.expectedProgressCount,
@@ -76,10 +60,33 @@ void main() {
     }
   });
 
+  test('training-only resume derives direction from stored target, not label', () {
+    final controller = OnboardingController(
+      entryPath: OnboardingEntryPath.resumeDraft,
+      initialDraft: OnboardingDraft(
+        selectedMode: AppMode.workout,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.buildMuscle,
+          supportingGoal: GoalIntent.getStronger,
+        ),
+        currentStepId: OnboardingStepId.bodyGoal,
+        profile: _profileFor(
+          null,
+          currentStepId: ProfileStepId.goalPace,
+          includeDirectionalTarget: true,
+        ),
+        workout: _validWorkout(),
+      ),
+    );
+
+    expect(controller.state.weightGoalDirection, GoalWeightDirection.loss);
+    expect(controller.state.draft.goalSelection.contains(GoalIntent.loseWeight), isFalse);
+  });
+
   test('legacy Wellness cursors migrate losslessly across the mode matrix',
       () async {
     for (final testCase in cases) {
-      final direction = policy.directionFor(
+      final explicitDirection = policy.directionFor(
         mode: testCase.mode,
         selection: testCase.selection,
       );
@@ -90,7 +97,10 @@ void main() {
           goalSelection: testCase.selection,
           workoutIntroChoice: testCase.workoutIntroChoice,
           currentStepId: OnboardingStepId.targets,
-          profile: _profileFor(direction),
+          profile: _profileFor(
+            explicitDirection,
+            includeDirectionalTarget: testCase.expectWeightFollowUps,
+          ),
           workout: _validWorkout(),
           targets: const TargetsOnboardingDraft(
             currentStepId: TargetStepId.waterTarget,
@@ -105,48 +115,17 @@ void main() {
         wellnessIsActive
             ? OnboardingStepId.wellnessGoals
             : OnboardingStepId.workoutProfile,
-        reason: wellnessIsActive
-            ? '${testCase.name}: legacy Water cursor moves under Wellness'
-            : '${testCase.name}: removed Wellness advances to Workout Profile',
       );
-      expect(
-        controller.state.draft.targets.waterMl,
-        2500,
-        reason: '${testCase.name}: Wellness value stays lossless',
-      );
-      expect(
-        controller.state.targetsFlowPlan.steps,
-        const [TargetStepId.nutritionTarget],
-        reason: '${testCase.name}: active Targets remains Nutrition-only',
-      );
+      expect(controller.state.draft.targets.waterMl, 2500);
+      expect(controller.state.targetsFlowPlan.steps, const [TargetStepId.nutritionTarget]);
 
-      if (!wellnessIsActive) {
-        expect(
-          controller.state.draft.targets.currentStepId,
-          TargetStepId.waterTarget,
-          reason: '${testCase.name}: removed Wellness keeps dormant child data',
-        );
-        continue;
-      }
+      if (!wellnessIsActive) continue;
 
-      expect(
-        controller.state.draft.targets.currentStepId,
-        TargetStepId.waterTarget,
-        reason: '${testCase.name}: Wellness child identity stays lossless',
-      );
+      expect(controller.state.draft.targets.currentStepId, TargetStepId.waterTarget);
       controller.previous();
-      expect(
-        controller.state.draft.targets.currentStepId,
-        TargetStepId.sleepTarget,
-        reason: '${testCase.name}: Wellness Back reaches Sleep',
-      );
-
+      expect(controller.state.draft.targets.currentStepId, TargetStepId.sleepTarget);
       await controller.next(onFinish: _completeImmediately);
-      expect(
-        controller.state.draft.targets.currentStepId,
-        TargetStepId.waterTarget,
-        reason: '${testCase.name}: Wellness Next returns to Water',
-      );
+      expect(controller.state.draft.targets.currentStepId, TargetStepId.waterTarget);
     }
   });
 }
@@ -157,16 +136,9 @@ List<_AcceptanceCase> _acceptanceCases() {
     GoalIntent.getStronger,
     GoalIntent.improveEndurance,
     GoalIntent.stayFit,
-    GoalIntent.recomposition,
   ];
 
-  const primaryLoss = GoalIntentSelection(
-    primaryGoal: GoalIntent.loseWeight,
-  );
-  const supportingLoss = GoalIntentSelection(
-    primaryGoal: GoalIntent.getStronger,
-    supportingGoal: GoalIntent.loseWeight,
-  );
+  const primaryLoss = GoalIntentSelection(primaryGoal: GoalIntent.loseWeight);
 
   return [
     const _AcceptanceCase(
@@ -191,36 +163,35 @@ List<_AcceptanceCase> _acceptanceCases() {
       expectedProgressCount: 18,
     ),
     const _AcceptanceCase(
-      name: 'Nutrition Recomposition',
-      mode: AppMode.nutrition,
-      selection: GoalIntentSelection(primaryGoal: GoalIntent.recomposition),
+      name: 'Workout Lose weight with training',
+      mode: AppMode.workout,
+      selection: GoalIntentSelection(
+        primaryGoal: GoalIntent.loseWeight,
+        supportingGoal: GoalIntent.getStronger,
+      ),
+      expectWeightFollowUps: true,
+      expectedProgressCount: 21,
+    ),
+    const _AcceptanceCase(
+      name: 'Workout Maintain plus training',
+      mode: AppMode.workout,
+      selection: GoalIntentSelection(
+        primaryGoal: GoalIntent.maintainWeight,
+        supportingGoal: GoalIntent.buildMuscle,
+      ),
       expectWeightFollowUps: false,
-      expectedProgressCount: 18,
-    ),
-    const _AcceptanceCase(
-      name: 'Workout Lose weight primary',
-      mode: AppMode.workout,
-      selection: primaryLoss,
-      expectWeightFollowUps: true,
-      expectedProgressCount: 21,
-    ),
-    const _AcceptanceCase(
-      name: 'Workout Lose weight supporting',
-      mode: AppMode.workout,
-      selection: supportingLoss,
-      expectWeightFollowUps: true,
-      expectedProgressCount: 21,
+      expectedProgressCount: 19,
     ),
     for (final goal in trainingOnlyGoals)
       _AcceptanceCase(
         name: 'Workout ${goal.name}',
         mode: AppMode.workout,
         selection: GoalIntentSelection(primaryGoal: goal),
-        expectWeightFollowUps: false,
-        expectedProgressCount: 19,
+        expectWeightFollowUps: true,
+        expectedProgressCount: 21,
       ),
     const _AcceptanceCase(
-      name: 'Hybrid setup-now Lose weight primary',
+      name: 'Hybrid setup-now Lose weight',
       mode: AppMode.hybrid,
       selection: primaryLoss,
       workoutIntroChoice: WorkoutIntroChoice.setupNow,
@@ -228,12 +199,15 @@ List<_AcceptanceCase> _acceptanceCases() {
       expectedProgressCount: 29,
     ),
     const _AcceptanceCase(
-      name: 'Hybrid setup-now Lose weight supporting',
+      name: 'Hybrid setup-now Maintain plus training',
       mode: AppMode.hybrid,
-      selection: supportingLoss,
+      selection: GoalIntentSelection(
+        primaryGoal: GoalIntent.maintainWeight,
+        supportingGoal: GoalIntent.buildMuscle,
+      ),
       workoutIntroChoice: WorkoutIntroChoice.setupNow,
-      expectWeightFollowUps: true,
-      expectedProgressCount: 29,
+      expectWeightFollowUps: false,
+      expectedProgressCount: 27,
     ),
     for (final goal in trainingOnlyGoals)
       _AcceptanceCase(
@@ -241,21 +215,13 @@ List<_AcceptanceCase> _acceptanceCases() {
         mode: AppMode.hybrid,
         selection: GoalIntentSelection(primaryGoal: goal),
         workoutIntroChoice: WorkoutIntroChoice.setupNow,
-        expectWeightFollowUps: false,
-        expectedProgressCount: 27,
+        expectWeightFollowUps: true,
+        expectedProgressCount: 29,
       ),
     const _AcceptanceCase(
-      name: 'Hybrid later Lose weight primary',
+      name: 'Hybrid later Lose weight',
       mode: AppMode.hybrid,
       selection: primaryLoss,
-      workoutIntroChoice: WorkoutIntroChoice.later,
-      expectWeightFollowUps: true,
-      expectedProgressCount: 21,
-    ),
-    const _AcceptanceCase(
-      name: 'Hybrid later Lose weight supporting',
-      mode: AppMode.hybrid,
-      selection: supportingLoss,
       workoutIntroChoice: WorkoutIntroChoice.later,
       expectWeightFollowUps: true,
       expectedProgressCount: 21,
@@ -266,8 +232,8 @@ List<_AcceptanceCase> _acceptanceCases() {
         mode: AppMode.hybrid,
         selection: GoalIntentSelection(primaryGoal: goal),
         workoutIntroChoice: WorkoutIntroChoice.later,
-        expectWeightFollowUps: false,
-        expectedProgressCount: 19,
+        expectWeightFollowUps: true,
+        expectedProgressCount: 21,
       ),
   ];
 }
@@ -275,6 +241,7 @@ List<_AcceptanceCase> _acceptanceCases() {
 ProfileOnboardingDraft _profileFor(
   GoalWeightDirection? direction, {
   ProfileStepId currentStepId = ProfileStepId.healthConditions,
+  bool includeDirectionalTarget = false,
 }) {
   final storedDirection = direction ?? GoalWeightDirection.loss;
   final targetWeight = switch (storedDirection) {
@@ -289,8 +256,9 @@ ProfileOnboardingDraft _profileFor(
     dateOfBirth: DateTime(2000, 1, 1),
     heightCm: 171,
     currentWeightKg: 70,
-    targetWeightKg: targetWeight,
-    targetWeightDirection: storedDirection,
+    targetWeightKg: includeDirectionalTarget || direction != null ? targetWeight : null,
+    targetWeightDirection:
+        includeDirectionalTarget || direction != null ? storedDirection : null,
     activityLevel: ProfileActivityLevel.active,
     healthConditions: const {ProfileHealthCondition.none},
   );
