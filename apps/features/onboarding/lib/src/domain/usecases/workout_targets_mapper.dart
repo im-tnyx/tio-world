@@ -8,25 +8,21 @@ class WorkoutTargetsMapper {
   const WorkoutTargetsMapper();
 
   workout_owner.WorkoutTargetsData map(OnboardingDraft draft) {
-    final rankedGoals = <_RankedWorkoutGoal>[];
-    final primaryGoal = _mapGoal(draft.goalSelection.primaryGoal);
-    if (primaryGoal != null) {
-      rankedGoals.add(_RankedWorkoutGoal(goal: primaryGoal, rank: 1));
-    }
-    final supportingGoal = _mapGoal(draft.goalSelection.supportingGoal);
-    if (supportingGoal != null) {
-      rankedGoals.add(_RankedWorkoutGoal(goal: supportingGoal, rank: 2));
-    }
+    final workoutGoals = draft.goalSelection.goals
+        .map(_mapGoal)
+        .whereType<workout_owner.WorkoutTargetGoal>()
+        .take(2)
+        .toList();
 
-    final first = rankedGoals.isEmpty ? null : rankedGoals.first;
-    final second = rankedGoals.length < 2 ? null : rankedGoals[1];
+    final first = workoutGoals.isEmpty ? null : workoutGoals.first;
+    final second = workoutGoals.length < 2 ? null : workoutGoals[1];
     final specialEvent = draft.workout.specialEvent.trim();
 
     final data = workout_owner.WorkoutTargetsData(
-      primaryWorkoutGoal: first?.goal,
-      primaryGoalRank: first?.rank,
-      supportingWorkoutGoal: second?.goal,
-      supportingGoalRank: second?.rank,
+      primaryWorkoutGoal: first,
+      primaryGoalRank: first == null ? null : 1,
+      supportingWorkoutGoal: second,
+      supportingGoalRank: second == null ? null : 2,
       trainingDays: draft.workout.trainingDays.map(_mapTrainingDay).toSet(),
       preferredDurationMins: _mapDuration(draft.workout.workoutDuration),
       splitProgram: _mapSplit(draft.workout.workoutSplit),
@@ -79,11 +75,4 @@ class WorkoutTargetsMapper {
         WorkoutSplit.ppl => workout_owner.WorkoutSplit.ppl,
         WorkoutSplit.bodyPart => workout_owner.WorkoutSplit.bodyPart,
       };
-}
-
-class _RankedWorkoutGoal {
-  const _RankedWorkoutGoal({required this.goal, required this.rank});
-
-  final workout_owner.WorkoutTargetGoal goal;
-  final int rank;
 }
