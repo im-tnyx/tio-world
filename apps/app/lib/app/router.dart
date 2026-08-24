@@ -24,6 +24,7 @@ import 'onboarding/onboarding.dart';
 import 'profile/profile_completion.dart';
 import 'profile/profile_settings_route.dart';
 import 'session/session.dart';
+import 'settings_persistence_providers.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -95,33 +96,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   final appSessionBootstrapController =
       ref.read(appSessionBootstrapControllerProvider);
   final appThemeController = ref.read(appThemeControllerProvider);
-  final onboardingStatusRepository =
-      ref.read(onboardingStatusRepositoryProvider);
   final supabaseClient = ref.read(supabaseClientProvider);
-  final canonicalProfileRepository = ref.read(userProfileRepositoryProvider);
-  final ProfileSetupRepository? fallbackProfileRepository = supabaseClient == null
-      ? ref.read(profileSetupRepositoryProvider)
-      : null;
-  final Object profileRepository =
-      canonicalProfileRepository ?? fallbackProfileRepository!;
-  final bodyRepository = ref.read(bodySetupRepositoryProvider);
-  final nutritionProfileRepository =
-      ref.read(nutritionProfileRepositoryProvider);
-  final workoutProfileRepository = ref.read(workoutProfileRepositoryProvider);
-  final workoutTargetsRepository = ref.read(workoutTargetsRepositoryProvider);
-  final nutritionTargetsRepository =
-      ref.read(nutritionTargetsRepositoryProvider);
-  final onboardingDraftRepository =
-      ref.read(appOnboardingDraftRepositoryProvider);
-  final onboardingCompletionRepository =
-      ref.read(onboardingCompletionRepositoryProvider);
-  final appPreferencesRepository = ref.read(appPreferencesRepositoryProvider);
-  final MeasurementUnitPreferencesRepository? unitPreferencesRepository =
-      supabaseClient != null
-          ? SupabaseMeasurementUnitPreferencesRepository(client: supabaseClient)
-          : fallbackProfileRepository is MeasurementUnitPreferencesRepository
-              ? fallbackProfileRepository as MeasurementUnitPreferencesRepository
-              : null;
 
   late final GoRouter router;
   router = GoRouter(
@@ -429,29 +404,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   debugPrint('[Router] Supabase auth succeeded! userId=${supabaseClient.auth.currentUser?.id}');
                 }
 
-                final isSupabaseReady =
-                    supabaseClient != null && supabaseClient.auth.currentUser != null;
-
-                final completeOnboarding = CompleteOnboardingUseCase(
-                  confirmedModePreference:
-                      _AppModeControllerPreferenceAdapter(appModeController),
-                  appPreferencesRepository: appPreferencesRepository,
-                  statusRepository: onboardingStatusRepository,
-                  completionRepository: onboardingCompletionRepository,
-                  draftRepository: onboardingDraftRepository,
-                  persistOwnerDataUseCase: PersistOnboardingOwnerDataUseCase(
-                    profileRepository: profileRepository,
-                    bodyRepository: bodyRepository,
-                    nutritionProfileRepository: nutritionProfileRepository,
-                    workoutProfileRepository: workoutProfileRepository,
-                    workoutTargetsRepository: workoutTargetsRepository,
-                    nutritionTargetsRepository: nutritionTargetsRepository,
-                  ),
-                  validator: buildAppOnboardingCompletionValidator(
-                    hasSupabaseClient: supabaseClient != null,
-                    hasAuthenticatedSupabaseUser: isSupabaseReady,
-                  ),
-                );
+                final completeOnboarding =
+                    ref.read(appCompleteOnboardingUseCaseFactoryProvider)();
+                if (completeOnboarding == null) {
+                  throw StateError(
+                    'Product Onboarding completion is unavailable right now.',
+                  );
+                }
                 final flowPlan = const BuildOnboardingFlowUseCase()(
                   entryPath: onboardingStatusController.entryPath,
                   mode: draft.selectedMode,
@@ -689,7 +648,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               initialPreferences:
                   profileData?.unitPreferences ?? MeasurementUnitPreferences.metric,
               onSave: (preferences) async {
-                final repository = unitPreferencesRepository;
+                final repository =
+                    ref.read(measurementUnitPreferencesRepositoryProvider);
                 if (repository == null) {
                   throw StateError(
                     'Measurement unit persistence is unavailable.',
@@ -738,9 +698,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 ref.invalidate(profileCompletionSummaryProvider);
               },
               onDeleteAccountConfirmed: () async {
-                try {
-                  await supabase?.rpc<void>('delete_user_account');
-                } catch (_) {}
+                final deleteCurrentAccount =
+                    ref.read(deleteCurrentAccountUseCaseProvider);
+                if (deleteCurrentAccount == null) {
+                  throw StateError(
+                    'Account deletion is unavailable right now.',
+                  );
+                }
+                await deleteCurrentAccount();
                 await ref.read(authSessionRepositoryProvider).signOut();
                 if (context.mounted) context.go(AppRoutes.auth.path);
               },
@@ -800,18 +765,3 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   ref.onDispose(router.dispose);
   return router;
 });
-
-class _AppModeControllerPreferenceAdapter implements AppModePreference {
-  _AppModeControllerPreferenceAdapter(this._controller);
-
-  final AppModeController _controller;
-
-  @override
-  Future<void> clear() => _controller.clear();
-
-  @override
-  Future<AppMode?> read() async => _controller.selectedMode;
-
-  @override
-  Future<void> write(AppMode mode) => _controller.select(mode);
-}
