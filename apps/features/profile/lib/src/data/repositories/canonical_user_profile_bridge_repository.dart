@@ -2,25 +2,27 @@ import 'dart:async';
 
 import '../../domain/models/profile_setup_data.dart';
 import '../../domain/models/user_profile_data.dart';
+import '../../domain/repositories/profile_avatar_repository.dart';
 import '../../domain/repositories/profile_setup_repository.dart';
 import '../../domain/repositories/user_profile_repository.dart';
 
-/// Transitional O2 composition bridge.
+/// Transitional compatibility facade for callers that still hold the broad
+/// [ProfileSetupRepository] type.
 ///
-/// Legacy Profile/avatar/settings surfaces continue through
-/// [ProfileSetupRepository], while Product Onboarding can use the same injected
-/// object through [UserProfileRepository] and therefore reach only the canonical
-/// common Profile owner.
+/// Supabase production semantic Profile reads/writes are canonical-only through
+/// [UserProfileRepository]. Avatar actions delegate to the narrow
+/// [ProfileAvatarRepository]. Retired broad ProfileSetup semantic methods fail
+/// closed so they cannot recreate legacy `public.users` Profile/Body mirrors.
 final class CanonicalUserProfileBridgeRepository
     implements ProfileSetupRepository, UserProfileRepository {
   const CanonicalUserProfileBridgeRepository({
-    required ProfileSetupRepository legacyRepository,
     required UserProfileRepository canonicalRepository,
-  })  : _legacyRepository = legacyRepository,
-        _canonicalRepository = canonicalRepository;
+    required ProfileAvatarRepository avatarRepository,
+  })  : _canonicalRepository = canonicalRepository,
+        _avatarRepository = avatarRepository;
 
-  final ProfileSetupRepository _legacyRepository;
   final UserProfileRepository _canonicalRepository;
+  final ProfileAvatarRepository _avatarRepository;
 
   @override
   Future<UserProfileData?> read() => _canonicalRepository.read();
@@ -30,31 +32,47 @@ final class CanonicalUserProfileBridgeRepository
       _canonicalRepository.upsert(profile);
 
   @override
-  Future<void> saveProfileSetup(ProfileSetupData data) =>
-      _legacyRepository.saveProfileSetup(data);
+  Future<void> saveProfileSetup(ProfileSetupData data) {
+    return Future<void>.error(
+      StateError(
+        'Broad Supabase ProfileSetup persistence is retired; use canonical owner repositories.',
+      ),
+    );
+  }
 
   @override
-  Future<ProfileSetupData?> getProfileSetup() =>
-      _legacyRepository.getProfileSetup();
+  Future<ProfileSetupData?> getProfileSetup() {
+    return Future<ProfileSetupData?>.error(
+      StateError(
+        'Broad Supabase ProfileSetup reads are retired; use canonical Profile composition.',
+      ),
+    );
+  }
 
   @override
-  Stream<ProfileSetupData?> watchProfileSetup() =>
-      _legacyRepository.watchProfileSetup();
+  Stream<ProfileSetupData?> watchProfileSetup() {
+    return Stream<ProfileSetupData?>.error(
+      StateError(
+        'Broad Supabase ProfileSetup watches are retired; use canonical Profile composition.',
+      ),
+    );
+  }
 
   @override
   Future<String> uploadAvatarImage({
     required String fileName,
     required List<int> bytes,
   }) =>
-      _legacyRepository.uploadAvatarImage(
+      _avatarRepository.uploadAvatarImage(
         fileName: fileName,
         bytes: bytes,
       );
 
   @override
-  Future<void> deleteAvatarImage() => _legacyRepository.deleteAvatarImage();
+  Future<void> deleteAvatarImage() => _avatarRepository.deleteAvatarImage();
 
   @override
-  Future<void> updateAvatarFrame(String frame) =>
-      _legacyRepository.updateAvatarFrame(frame);
+  Future<void> updateAvatarFrame(String frame) async {
+    // Avatar framing is entitlement-derived display state, not persisted here.
+  }
 }
