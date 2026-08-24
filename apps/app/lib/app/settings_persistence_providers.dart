@@ -18,6 +18,13 @@ final measurementUnitPreferencesRepositoryProvider =
   return null;
 });
 
+final accountContactVerificationRepositoryProvider =
+    Provider<AccountContactVerificationRepository?>((ref) {
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  if (supabaseClient == null) return null;
+  return SupabaseAccountContactVerificationRepository(client: supabaseClient);
+});
+
 final accountDeletionRepositoryProvider =
     Provider<AccountDeletionRepository?>((ref) {
   final supabaseClient = ref.watch(supabaseClientProvider);
