@@ -212,7 +212,6 @@ void main() {
 
     test('legacy Nutrition Target resume completes through canonical owners only',
         () async {
-      final legacyTargets = _LegacyTargetsSpy();
       final nutritionProfile =
           nutrition_owner.InMemoryNutritionProfileRepository();
       final nutritionTargets =
@@ -262,7 +261,6 @@ void main() {
 
       expect(await nutritionProfile.read(), isNotNull);
       expect(await nutritionTargets.read(), isNotNull);
-      expect(legacyTargets.saveCalls, 0);
     });
 
     test(
@@ -654,18 +652,6 @@ class _RecordingNutritionTargetsRepository
     }
     targets.validate();
     data = targets;
-  }
-}
-
-class _LegacyTargetsSpy implements nutrition_owner.TargetsSetupRepository {
-  int saveCalls = 0;
-
-  @override
-  Future<nutrition_owner.TargetsSetupData?> getTargetsSetup() async => null;
-
-  @override
-  Future<void> saveTargetsSetup(nutrition_owner.TargetsSetupData data) async {
-    saveCalls += 1;
   }
 }
 
