@@ -84,14 +84,22 @@ class ProfileSettingsRoute extends ConsumerWidget {
         );
         if (picked == null) return;
         final bytes = await picked.readAsBytes();
-        await ref.read(profileSetupRepositoryProvider).uploadAvatarImage(
-              fileName: picked.name,
-              bytes: bytes,
-            );
+        final avatarRepository = ref.read(profileAvatarRepositoryProvider);
+        if (avatarRepository == null) {
+          throw StateError('Profile avatar persistence is unavailable.');
+        }
+        await avatarRepository.uploadAvatarImage(
+          fileName: picked.name,
+          bytes: bytes,
+        );
         ref.invalidate(profileDataProvider);
       },
       onDeleteImage: () async {
-        await ref.read(profileSetupRepositoryProvider).deleteAvatarImage();
+        final avatarRepository = ref.read(profileAvatarRepositoryProvider);
+        if (avatarRepository == null) {
+          throw StateError('Profile avatar persistence is unavailable.');
+        }
+        await avatarRepository.deleteAvatarImage();
         ref.invalidate(profileDataProvider);
       },
       onSave: ({
