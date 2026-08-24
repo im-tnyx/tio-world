@@ -33,7 +33,8 @@ class TioMeasurementUnitPreferencesEditor extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Align(
-          alignment: Alignment.centerRight,
+          key: const ValueKey('measurement-units-preset-control'),
+          alignment: Alignment.center,
           child: _PreferenceSegmentedControl<_MeasurementPreset>(
             options: [
               const _SegmentOption(
