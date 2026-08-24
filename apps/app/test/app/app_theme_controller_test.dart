@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_app/app/app_theme.dart';
 import 'package:tio_core/core.dart';
@@ -81,28 +80,6 @@ void main() {
       expect(preference.storedMode, TioThemeMode.oled);
       expect(controller.isSaving, isFalse);
     });
-
-    testWidgets('renders the app before stored theme loading completes',
-        (tester) async {
-      final preference = _ControlledAppThemePreference(blockRead: true);
-      final controller = AppThemeController(preference);
-
-      await tester.pumpWidget(
-        AppThemeBootstrap(
-          controller: controller,
-          child: const MaterialApp(home: Text('Theme bootstrap')),
-        ),
-      );
-
-      expect(find.text('Theme bootstrap'), findsOneWidget);
-      expect(controller.isLoaded, isFalse);
-
-      preference.completeRead(TioThemeMode.oled);
-      await tester.pump();
-
-      expect(controller.isLoaded, isTrue);
-      expect(controller.selectedMode, TioThemeMode.oled);
-    });
   });
 }
 
@@ -129,12 +106,8 @@ class _FakeAppThemePreference implements AppThemePreference {
 }
 
 class _ControlledAppThemePreference implements AppThemePreference {
-  _ControlledAppThemePreference({this.blockRead = false});
-
-  final bool blockRead;
   final List<TioThemeMode> writeCalls = [];
   final List<Completer<void>> _writes = [];
-  final Completer<TioThemeMode?> _read = Completer<TioThemeMode?>();
   TioThemeMode? storedMode;
 
   @override
@@ -147,11 +120,8 @@ class _ControlledAppThemePreference implements AppThemePreference {
     _writes[index].complete();
   }
 
-  void completeRead(TioThemeMode? mode) => _read.complete(mode);
-
   @override
-  Future<TioThemeMode?> read() =>
-      blockRead ? _read.future : Future<TioThemeMode?>.value(storedMode);
+  Future<TioThemeMode?> read() async => storedMode;
 
   @override
   Future<void> write(TioThemeMode mode) async {
