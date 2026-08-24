@@ -277,6 +277,65 @@ void main() {
       expect(result.session.displayName, equals('Email User'));
     });
 
+    test('email signup without session requires confirmation and skips sync',
+        () async {
+      final fakeUser = User(
+        id: 'usr-email-pending',
+        appMetadata: const {},
+        userMetadata: const {},
+        aud: 'authenticated',
+        createdAt: DateTime.now().toIso8601String(),
+        email: 'pending@test.com',
+      );
+      final fakeGoTrue = FakeGoTrueClient(
+        authResponseToReturn: AuthResponse(session: null, user: fakeUser),
+      );
+      final deviceRepository = PendingUserDeviceRepository();
+      final repo = SupabaseAuthSignInRepository(
+        client: FakeSupabaseClient(goTrueClient: fakeGoTrue),
+        userDeviceRepository: deviceRepository,
+      );
+
+      final result = await repo.signUpWithEmailPassword(
+        email: ' Pending@Test.COM ',
+        password: 'password123',
+      );
+
+      expect(result, isA<SignInFailure>());
+      expect((result as SignInFailure).code, 'email_confirmation_required');
+      expect(fakeGoTrue.lastSignUpEmail, 'pending@test.com');
+      expect(deviceRepository.syncCalls, 0);
+    });
+
+    test('email signup with session returns authenticated success', () async {
+      final fakeUser = User(
+        id: 'usr-email-confirmed',
+        appMetadata: const {},
+        userMetadata: const {},
+        aud: 'authenticated',
+        createdAt: DateTime.now().toIso8601String(),
+        email: 'confirmed@test.com',
+      );
+      final fakeGoTrue = FakeGoTrueClient(
+        authResponseToReturn: _authResponse(fakeUser),
+      );
+      final deviceRepository = PendingUserDeviceRepository();
+      final repo = SupabaseAuthSignInRepository(
+        client: FakeSupabaseClient(goTrueClient: fakeGoTrue),
+        userDeviceRepository: deviceRepository,
+      );
+
+      final result = await repo.signUpWithEmailPassword(
+        email: 'confirmed@test.com',
+        password: 'password123',
+      );
+
+      expect(result, isA<SignInSuccess>());
+      expect((result as SignInSuccess).session.userId, 'usr-email-confirmed');
+      expect(deviceRepository.syncCalls, 1);
+      deviceRepository.complete();
+    });
+
     test('successful sign-in does not wait for secondary device sync', () async {
       final fakeUser = User(
         id: 'usr-email-2',
@@ -408,6 +467,30 @@ class FakeGoTrueClient extends Fake implements GoTrueClient {
   final Object? exceptionToThrow;
   final Future<AuthResponse>? idTokenFuture;
   int idTokenCalls = 0;
+  int signUpCalls = 0;
+  String? lastSignUpEmail;
+
+  @override
+  Future<AuthResponse> signUp({
+    String? email,
+    String? phone,
+    required String password,
+    String? emailRedirectTo,
+    Map<String, dynamic>? data,
+    String? captchaToken,
+    OtpChannel channel = OtpChannel.sms,
+  }) async {
+    signUpCalls++;
+    lastSignUpEmail = email;
+    if (exceptionToThrow != null) {
+      throw exceptionToThrow!;
+    }
+    return authResponseToReturn ??
+        AuthResponse(
+          session: null,
+          user: currentUser,
+        );
+  }
 
   @override
   Future<AuthResponse> signInWithPassword({
