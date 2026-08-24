@@ -5,30 +5,20 @@ import 'package:tio_shared/shared.dart';
 void main() {
   const policy = GoalIntentSelectionPolicy();
 
-  test('nutrition exposes body-direction intents and no supporting goal', () {
+  test('nutrition exposes exactly three weight-state goals', () {
     expect(
       policy.optionsFor(AppMode.nutrition),
       const [
         GoalIntent.loseWeight,
         GoalIntent.gainWeight,
         GoalIntent.maintainWeight,
-        GoalIntent.recomposition,
       ],
     );
     expect(policy.allowsSupportingGoal(AppMode.nutrition), isFalse);
-    expect(
-      policy.validate(
-        mode: AppMode.nutrition,
-        selection: const GoalIntentSelection(
-          primaryGoal: GoalIntent.loseWeight,
-          supportingGoal: GoalIntent.getStronger,
-        ),
-      ),
-      isNotNull,
-    );
+    expect(policy.optionsFor(AppMode.nutrition), isNot(contains(GoalIntent.recomposition)));
   });
 
-  test('nutrition tap always replaces the single primary goal', () {
+  test('nutrition tap always replaces the single weight goal', () {
     final next = policy.applyTap(
       mode: AppMode.nutrition,
       current: const GoalIntentSelection(
@@ -43,94 +33,145 @@ void main() {
     );
   });
 
-  test('workout and hybrid expose the approved six-card set', () {
+  test('workout and hybrid expose the approved seven-card set', () {
     const expected = [
       GoalIntent.loseWeight,
+      GoalIntent.gainWeight,
+      GoalIntent.maintainWeight,
       GoalIntent.buildMuscle,
       GoalIntent.getStronger,
       GoalIntent.improveEndurance,
       GoalIntent.stayFit,
-      GoalIntent.recomposition,
     ];
 
     expect(policy.optionsFor(AppMode.workout), expected);
     expect(policy.optionsFor(AppMode.hybrid), expected);
+    expect(expected, isNot(contains(GoalIntent.recomposition)));
   });
 
-  test('compatible second tap becomes supporting and third replaces it', () {
-    final primary = policy.applyTap(
+  test('one Body goal and two training goals coexist in three slots', () {
+    var selection = policy.applyTap(
       mode: AppMode.workout,
       current: const GoalIntentSelection(),
+      tappedGoal: GoalIntent.loseWeight,
+    );
+    selection = policy.applyTap(
+      mode: AppMode.workout,
+      current: selection,
       tappedGoal: GoalIntent.buildMuscle,
     );
-    final withSupporting = policy.applyTap(
+    selection = policy.applyTap(
       mode: AppMode.workout,
-      current: primary,
+      current: selection,
       tappedGoal: GoalIntent.getStronger,
     );
-    final replacedSupporting = policy.applyTap(
-      mode: AppMode.workout,
-      current: withSupporting,
-      tappedGoal: GoalIntent.recomposition,
-    );
 
     expect(
-      withSupporting,
+      selection,
       const GoalIntentSelection(
-        primaryGoal: GoalIntent.buildMuscle,
-        supportingGoal: GoalIntent.getStronger,
+        primaryGoal: GoalIntent.loseWeight,
+        supportingGoal: GoalIntent.buildMuscle,
+        tertiaryGoal: GoalIntent.getStronger,
       ),
     );
-    expect(
-      replacedSupporting,
-      const GoalIntentSelection(
-        primaryGoal: GoalIntent.buildMuscle,
-        supportingGoal: GoalIntent.recomposition,
-      ),
-    );
+    expect(policy.validate(mode: AppMode.workout, selection: selection), isNull);
   });
 
-  test('incompatible new tap starts a new primary selection', () {
+  test('changing Body goal preserves both training selections', () {
     final next = policy.applyTap(
       mode: AppMode.hybrid,
       current: const GoalIntentSelection(
         primaryGoal: GoalIntent.loseWeight,
-        supportingGoal: GoalIntent.improveEndurance,
+        supportingGoal: GoalIntent.buildMuscle,
+        tertiaryGoal: GoalIntent.improveEndurance,
       ),
-      tappedGoal: GoalIntent.stayFit,
+      tappedGoal: GoalIntent.gainWeight,
     );
 
     expect(
       next,
-      const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
+      const GoalIntentSelection(
+        primaryGoal: GoalIntent.gainWeight,
+        supportingGoal: GoalIntent.buildMuscle,
+        tertiaryGoal: GoalIntent.improveEndurance,
+      ),
     );
   });
 
-  test('mode reconciliation drops invalid supporting or promotes visible one', () {
+  test('third training tap preserves first priority and replaces supporting', () {
+    final next = policy.applyTap(
+      mode: AppMode.workout,
+      current: const GoalIntentSelection(
+        primaryGoal: GoalIntent.buildMuscle,
+        supportingGoal: GoalIntent.getStronger,
+      ),
+      tappedGoal: GoalIntent.improveEndurance,
+    );
+
+    expect(
+      next,
+      const GoalIntentSelection(
+        primaryGoal: GoalIntent.buildMuscle,
+        supportingGoal: GoalIntent.improveEndurance,
+      ),
+    );
+  });
+
+  test('tapping selected training goal removes only that training goal', () {
+    final next = policy.applyTap(
+      mode: AppMode.hybrid,
+      current: const GoalIntentSelection(
+        primaryGoal: GoalIntent.maintainWeight,
+        supportingGoal: GoalIntent.buildMuscle,
+        tertiaryGoal: GoalIntent.getStronger,
+      ),
+      tappedGoal: GoalIntent.buildMuscle,
+    );
+
+    expect(
+      next,
+      const GoalIntentSelection(
+        primaryGoal: GoalIntent.maintainWeight,
+        supportingGoal: GoalIntent.getStronger,
+      ),
+    );
+  });
+
+  test('mode reconciliation keeps visible Body goal and drops training in nutrition', () {
     expect(
       policy.reconcileForMode(
         mode: AppMode.nutrition,
         selection: const GoalIntentSelection(
           primaryGoal: GoalIntent.loseWeight,
-          supportingGoal: GoalIntent.improveEndurance,
-        ),
-      ),
-      const GoalIntentSelection(primaryGoal: GoalIntent.loseWeight),
-    );
-
-    expect(
-      policy.reconcileForMode(
-        mode: AppMode.nutrition,
-        selection: const GoalIntentSelection(
-          primaryGoal: GoalIntent.getStronger,
-          supportingGoal: GoalIntent.loseWeight,
+          supportingGoal: GoalIntent.buildMuscle,
+          tertiaryGoal: GoalIntent.getStronger,
         ),
       ),
       const GoalIntentSelection(primaryGoal: GoalIntent.loseWeight),
     );
   });
 
-  test('compatible supporting pairs validate without changing ownership', () {
+  test('legacy recomposition is decode-compatible but not active after reconcile', () {
+    expect(
+      policy.reconcileForMode(
+        mode: AppMode.hybrid,
+        selection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.recomposition,
+          supportingGoal: GoalIntent.buildMuscle,
+        ),
+      ),
+      const GoalIntentSelection(primaryGoal: GoalIntent.buildMuscle),
+    );
+  });
+
+  test('empty selection is invalid but training-only workout selection is valid', () {
+    expect(
+      policy.validate(
+        mode: AppMode.workout,
+        selection: const GoalIntentSelection(),
+      ),
+      'Choose at least one goal.',
+    );
     expect(
       policy.validate(
         mode: AppMode.workout,
@@ -140,39 +181,6 @@ void main() {
         ),
       ),
       isNull,
-    );
-    expect(
-      policy.validate(
-        mode: AppMode.hybrid,
-        selection: const GoalIntentSelection(
-          primaryGoal: GoalIntent.loseWeight,
-          supportingGoal: GoalIntent.improveEndurance,
-        ),
-      ),
-      isNull,
-    );
-  });
-
-  test('redundant or contradictory supporting pairs are rejected', () {
-    expect(
-      policy.validate(
-        mode: AppMode.workout,
-        selection: const GoalIntentSelection(
-          primaryGoal: GoalIntent.loseWeight,
-          supportingGoal: GoalIntent.stayFit,
-        ),
-      ),
-      'Choose a compatible supporting goal.',
-    );
-    expect(
-      policy.validate(
-        mode: AppMode.hybrid,
-        selection: const GoalIntentSelection(
-          primaryGoal: GoalIntent.recomposition,
-          supportingGoal: GoalIntent.stayFit,
-        ),
-      ),
-      'Choose a compatible supporting goal.',
     );
   });
 }
