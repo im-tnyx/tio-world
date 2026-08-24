@@ -152,17 +152,24 @@ class OnboardingDraftSnapshotDtoMapper {
   Map<String, dynamic> _goalSelectionToJson(GoalIntentSelection selection) => {
         'primary_goal': selection.primaryGoal?.name,
         'supporting_goal': selection.supportingGoal?.name,
+        // Additive inside the existing v6 draft payload. Older snapshots omit
+        // this key and decode it as null; no Supabase schema change is needed.
+        'tertiary_goal': selection.tertiaryGoal?.name,
       };
 
   GoalIntentSelection _goalSelectionFromJson(Map<String, dynamic> j) {
     final primaryStr = j['primary_goal'] as String?;
     final supportingStr = j['supporting_goal'] as String?;
+    final tertiaryStr = j['tertiary_goal'] as String?;
     return GoalIntentSelection(
       primaryGoal: GoalIntent.values
           .where((goal) => goal.name == primaryStr)
           .firstOrNull,
       supportingGoal: GoalIntent.values
           .where((goal) => goal.name == supportingStr)
+          .firstOrNull,
+      tertiaryGoal: GoalIntent.values
+          .where((goal) => goal.name == tertiaryStr)
           .firstOrNull,
     );
   }
@@ -260,7 +267,7 @@ class OnboardingDraftSnapshotDtoMapper {
       };
 
   String? _normalizeHeightUnit(Object? value) => switch (value) {
-        'ft' || 'in' => 'ft_in',
+        'ft' => 'ft-in',
         final String unit => unit,
         _ => null,
       };
@@ -286,56 +293,55 @@ class OnboardingDraftSnapshotDtoMapper {
         WorkoutStepId.gymAccess;
 
     final gymStr = j['gym_access'] as String?;
-    final gym =
-        WorkoutGymAccess.values.where((g) => g.name == gymStr).firstOrNull;
+    final gymAccess = WorkoutGymAccess.values
+        .where((g) => g.name == gymStr)
+        .firstOrNull;
 
-    final equipList = (j['equipment'] as List<dynamic>?) ?? [];
-    final equipment = equipList
-        .map((e) => WorkoutEquipment.values
-            .where((we) => we.name == e)
-            .firstOrNull)
+    final equipmentList = (j['equipment'] as List<dynamic>?) ?? [];
+    final equipment = equipmentList
+        .map((e) =>
+            WorkoutEquipment.values.where((we) => we.name == e).firstOrNull)
         .whereType<WorkoutEquipment>()
         .toSet();
 
-    final expStr = j['experience_level'] as String?;
-    final exp = WorkoutExperienceLevel.values
-        .where((e) => e.name == expStr)
+    final experienceStr = j['experience_level'] as String?;
+    final experienceLevel = WorkoutExperienceLevel.values
+        .where((e) => e.name == experienceStr)
         .firstOrNull;
 
     final focusList = (j['focus_areas'] as List<dynamic>?) ?? [];
-    final focus = focusList
-        .map((f) => WorkoutFocusArea.values
-            .where((wf) => wf.name == f)
-            .firstOrNull)
+    final focusAreas = focusList
+        .map((f) =>
+            WorkoutFocusArea.values.where((wf) => wf.name == f).firstOrNull)
         .whereType<WorkoutFocusArea>()
         .toSet();
 
     final daysList = (j['training_days'] as List<dynamic>?) ?? [];
-    final days = daysList
+    final trainingDays = daysList
         .map((d) => WorkoutTrainingDay.values
             .where((wd) => wd.name == d)
             .firstOrNull)
         .whereType<WorkoutTrainingDay>()
         .toSet();
 
-    final durStr = j['workout_duration'] as String?;
-    final dur = WorkoutDuration.values
-        .where((d) => d.name == durStr)
+    final durationStr = j['workout_duration'] as String?;
+    final workoutDuration = WorkoutDuration.values
+        .where((d) => d.name == durationStr)
         .firstOrNull;
 
     final splitStr = j['workout_split'] as String?;
-    final split =
+    final workoutSplit =
         WorkoutSplit.values.where((s) => s.name == splitStr).firstOrNull;
 
     return WorkoutOnboardingDraft(
       currentStepId: currentStep,
-      gymAccess: gym,
+      gymAccess: gymAccess,
       equipment: equipment,
-      experienceLevel: exp,
-      focusAreas: focus,
-      trainingDays: days,
-      workoutDuration: dur,
-      workoutSplit: split,
+      experienceLevel: experienceLevel,
+      focusAreas: focusAreas,
+      trainingDays: trainingDays,
+      workoutDuration: workoutDuration,
+      workoutSplit: workoutSplit,
       healthConcerns: j['health_concerns'] as String? ?? '',
       specialEvent: j['special_event'] as String? ?? '',
     );
@@ -349,11 +355,11 @@ class OnboardingDraftSnapshotDtoMapper {
         'wake_time_minutes': t.wakeTimeMinutes,
         'water_ml': t.waterMl,
         'goal_pace_kg_per_week': t.goalPaceKgPerWeek,
-        'daily_steps_known': t.hasDailyStepsValue,
-        'sleep_target_minutes_known': t.hasSleepTargetMinutesValue,
-        'sleep_time_minutes_known': t.hasSleepTimeMinutesValue,
-        'wake_time_minutes_known': t.hasWakeTimeMinutesValue,
-        'water_ml_known': t.hasWaterMlValue,
+        'has_daily_steps_value': t.hasDailyStepsValue,
+        'has_sleep_target_minutes_value': t.hasSleepTargetMinutesValue,
+        'has_sleep_time_minutes_value': t.hasSleepTimeMinutesValue,
+        'has_wake_time_minutes_value': t.hasWakeTimeMinutesValue,
+        'has_water_ml_value': t.hasWaterMlValue,
       };
 
   TargetsOnboardingDraft _targetsFromJson(Map<String, dynamic> j) {
@@ -365,24 +371,21 @@ class OnboardingDraftSnapshotDtoMapper {
 
     return TargetsOnboardingDraft(
       currentStepId: currentStep,
-      dailySteps: (j['daily_steps'] as num?)?.toInt() ?? 10000,
-      sleepTargetMinutes:
-          (j['sleep_target_minutes'] as num?)?.toInt() ?? 480,
-      sleepTimeMinutes: (j['sleep_time_minutes'] as num?)?.toInt() ?? 1320,
-      wakeTimeMinutes: (j['wake_time_minutes'] as num?)?.toInt() ?? 360,
-      waterMl: (j['water_ml'] as num?)?.toInt() ?? 2500,
+      dailySteps: j['daily_steps'] as int? ?? 8000,
+      sleepTargetMinutes: j['sleep_target_minutes'] as int? ?? 480,
+      sleepTimeMinutes: j['sleep_time_minutes'] as int? ?? 22 * 60,
+      wakeTimeMinutes: j['wake_time_minutes'] as int? ?? 6 * 60,
+      waterMl: j['water_ml'] as int? ?? 2500,
       goalPaceKgPerWeek:
           (j['goal_pace_kg_per_week'] as num?)?.toDouble() ?? 0.5,
-      hasDailyStepsValue:
-          j['daily_steps_known'] as bool? ?? j['daily_steps'] != null,
-      hasSleepTargetMinutesValue: j['sleep_target_minutes_known'] as bool? ??
-          j['sleep_target_minutes'] != null,
-      hasSleepTimeMinutesValue: j['sleep_time_minutes_known'] as bool? ??
-          j['sleep_time_minutes'] != null,
-      hasWakeTimeMinutesValue: j['wake_time_minutes_known'] as bool? ??
-          j['wake_time_minutes'] != null,
-      hasWaterMlValue:
-          j['water_ml_known'] as bool? ?? j['water_ml'] != null,
+      hasDailyStepsValue: j['has_daily_steps_value'] as bool? ?? true,
+      hasSleepTargetMinutesValue:
+          j['has_sleep_target_minutes_value'] as bool? ?? true,
+      hasSleepTimeMinutesValue:
+          j['has_sleep_time_minutes_value'] as bool? ?? true,
+      hasWakeTimeMinutesValue:
+          j['has_wake_time_minutes_value'] as bool? ?? true,
+      hasWaterMlValue: j['has_water_ml_value'] as bool? ?? true,
     );
   }
 }
