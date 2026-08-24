@@ -26,10 +26,7 @@ abstract interface class ProfileAccountSnapshotReader {
 }
 
 /// Reads only Account-owned Profile display metadata from `public.users`.
-///
-/// Profile and Body mirror columns are intentionally not selected. The legacy
-/// `profile_image` column remains an avatar-only fallback until the dedicated
-/// avatar cleanup gate retires it.
+/// Common Profile and Body mirrors are intentionally not selected.
 final class SupabaseProfileAccountSnapshotReader
     implements ProfileAccountSnapshotReader {
   const SupabaseProfileAccountSnapshotReader({required SupabaseClient client})
@@ -45,8 +42,7 @@ final class SupabaseProfileAccountSnapshotReader
     final row = await _client
         .from('users')
         .select(
-          'username, avatar_url, profile_image, plan, mobile, '
-          'mobile_verified_at',
+          'username, avatar_url, plan, mobile, mobile_verified_at',
         )
         .eq('id', userId)
         .maybeSingle();
@@ -69,12 +65,9 @@ final class SupabaseProfileAccountSnapshotReader
       return normalized.isEmpty ? null : normalized;
     }
 
-    final avatarUrl = optionalString('avatar_url');
-    final legacyAvatar = optionalString('profile_image');
-
     return ProfileAccountSnapshot(
       username: optionalString('username'),
-      avatarUrl: avatarUrl ?? legacyAvatar,
+      avatarUrl: optionalString('avatar_url'),
       plan: rawPlan.trim(),
       mobile: optionalString('mobile'),
       isMobileVerified: row['mobile_verified_at'] != null,
