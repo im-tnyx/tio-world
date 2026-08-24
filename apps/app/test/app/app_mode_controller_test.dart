@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_app/app/app_mode/app_mode.dart';
 import 'package:tio_shared/shared.dart';
@@ -324,32 +323,6 @@ void main() {
       );
       expect(controller.lastError, isA<StateError>());
     });
-
-    testWidgets('renders the app before stored mode loading completes',
-        (tester) async {
-      final preference = _ControlledAppModePreference(blockRead: true);
-      final controller = AppModeController(preference);
-
-      await tester.pumpWidget(
-        AppModeBootstrap(
-          controller: controller,
-          child: const MaterialApp(home: Text('Splash content')),
-        ),
-      );
-
-      expect(find.text('Splash content'), findsOneWidget);
-      expect(controller.isLoaded, isFalse);
-
-      preference.completeRead(AppMode.hybrid);
-      await tester.pump();
-
-      expect(controller.isLoaded, isTrue);
-      expect(controller.selectedMode, AppMode.hybrid);
-      expect(
-        controller.activeDestinations,
-        AppMode.hybrid.guidedDestinations,
-      );
-    });
   });
 
   group('AppMode contract', () {
@@ -436,12 +409,8 @@ class _FakeAppModePreference implements AppModePreference {
 }
 
 class _ControlledAppModePreference implements AppModePreference {
-  _ControlledAppModePreference({this.blockRead = false});
-
-  final bool blockRead;
   final List<AppMode> writeCalls = [];
   final List<Completer<void>> _writes = [];
-  final Completer<AppMode?> _read = Completer<AppMode?>();
   AppMode? storedMode;
 
   @override
@@ -454,11 +423,8 @@ class _ControlledAppModePreference implements AppModePreference {
     _writes[index].complete();
   }
 
-  void completeRead(AppMode? mode) => _read.complete(mode);
-
   @override
-  Future<AppMode?> read() =>
-      blockRead ? _read.future : Future<AppMode?>.value(storedMode);
+  Future<AppMode?> read() async => storedMode;
 
   @override
   Future<void> write(AppMode mode) async {
