@@ -337,28 +337,39 @@ class SupabaseAuthSignInRepository
     String? name,
   }) async {
     try {
+      final normalizedEmail = email.trim().toLowerCase();
       final response = await _client.auth.signUp(
-        email: email.trim(),
+        email: normalizedEmail,
         password: password,
         data: {
           if (name != null && name.trim().isNotEmpty) 'full_name': name.trim(),
         },
       );
-      final user = response.user ?? _client.auth.currentUser;
+      final user = response.user;
       if (user == null) {
         return const SignInFailure('Sign up failed: user not returned.');
       }
-      // If user already exists, Supabase returns user with empty identities list
-      if (response.user != null &&
-          response.user!.identities != null &&
-          response.user!.identities!.isEmpty) {
+      // If user already exists, Supabase returns user with empty identities list.
+      if (user.identities != null && user.identities!.isEmpty) {
         return const SignInFailure(
           'This email is already registered. Please log in to continue.',
           code: 'user_already_exists',
         );
       }
+
+      // With Email confirmation enabled Supabase can create the user without
+      // establishing a session. That is a successful account creation, but it
+      // is not authenticated success and must not enter onboarding yet.
+      final authSession = response.session;
+      if (authSession == null) {
+        return SignInFailure(
+          'Check $normalizedEmail to confirm your email before signing in.',
+          code: 'email_confirmation_required',
+        );
+      }
+
       _startDeviceSync();
-      return SignInSuccess(_mapUser(user));
+      return SignInSuccess(_mapUser(authSession.user));
     } on AuthException catch (e) {
       if (e.message.toLowerCase().contains('already registered') ||
           e.message.toLowerCase().contains('already in use') ||
@@ -514,12 +525,11 @@ class SupabaseAuthSignInRepository
         .from('users')
         .update(
           {
-            if (session.displayName != null && session.displayName!.isNotEmpty)
-              'name': session.displayName,
-            if (session.email != null && session.email!.isNotEmpty)
-              'email': session.email,
-            // Provider avatar enrichment is first-account bootstrap only. Returning
-            // Google sign-in must never overwrite a user-owned/custom avatar.
+            // Profile Name is owned exclusively by public.user_profiles.name.
+            // Auth/provider display metadata is never persisted into users.
+            // Auth contact projection is database-owned by the auth.users
+            // reconciliation trigger, so this enrichment owns only Account
+            // activity and first-account provider avatar import.
             if (importProviderPhoto &&
                 session.photoUrl != null &&
                 session.photoUrl!.isNotEmpty)
@@ -550,6 +560,8 @@ class SupabaseAuthSignInRepository
       userId: user.id,
       email: user.email,
       phone: user.phone,
+      isEmailVerified: user.emailConfirmedAt != null,
+      isPhoneVerified: user.phoneConfirmedAt != null,
       displayName: displayName,
       photoUrl: photoUrl,
     );
