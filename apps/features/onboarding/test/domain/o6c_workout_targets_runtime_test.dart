@@ -184,7 +184,7 @@ void main() {
   group('WorkoutTargetsMapper', () {
     const mapper = WorkoutTargetsMapper();
 
-    test('preserves supporting training intent rank and explicit targets', () {
+    test('uses Workout-relative rank after filtering Body intent', () {
       final data = mapper.map(
         OnboardingDraft(
           goalSelection: const GoalIntentSelection(
@@ -204,7 +204,7 @@ void main() {
       );
 
       expect(data.primaryWorkoutGoal, workout_owner.WorkoutTargetGoal.buildMuscle);
-      expect(data.primaryGoalRank, 2);
+      expect(data.primaryGoalRank, 1);
       expect(data.supportingWorkoutGoal, isNull);
       expect(data.supportingGoalRank, isNull);
       expect(
@@ -218,6 +218,23 @@ void main() {
       expect(data.splitProgram, workout_owner.WorkoutSplit.ppl);
       expect(data.specialEvent, 'Local race');
       expect(data.specialEventDate, isNull);
+    });
+
+    test('Body plus two training goals preserve both Workout priorities', () {
+      final data = mapper.map(
+        OnboardingDraft(
+          goalSelection: const GoalIntentSelection(
+            primaryGoal: GoalIntent.loseWeight,
+            supportingGoal: GoalIntent.buildMuscle,
+            tertiaryGoal: GoalIntent.getStronger,
+          ),
+        ),
+      );
+
+      expect(data.primaryWorkoutGoal, workout_owner.WorkoutTargetGoal.buildMuscle);
+      expect(data.primaryGoalRank, 1);
+      expect(data.supportingWorkoutGoal, workout_owner.WorkoutTargetGoal.getStronger);
+      expect(data.supportingGoalRank, 2);
     });
 
     test('Body-only goals and Auto duration fabricate nothing', () {
