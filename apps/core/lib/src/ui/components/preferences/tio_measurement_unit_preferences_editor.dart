@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../../measurement/measurement.dart';
 import '../../../theme/theme.dart';
-import '../buttons/tio_button.dart';
 
 /// Shared editor for the four independent measurement-unit preferences.
 ///
 /// Metric and Imperial are convenience presets only. Selecting an individual
 /// category after a preset creates a mixed preference without changing any
-/// canonical physical value.
+/// canonical physical value. Mixed preferences expose a derived Custom preset
+/// state; Custom is never persisted separately.
 class TioMeasurementUnitPreferencesEditor extends StatelessWidget {
   const TioMeasurementUnitPreferencesEditor({
     required this.preferences,
@@ -21,82 +21,137 @@ class TioMeasurementUnitPreferencesEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCustom =
+        !preferences.isMetricPreset && !preferences.isImperialPreset;
+    final selectedPreset = preferences.isMetricPreset
+        ? _MeasurementPreset.metric
+        : preferences.isImperialPreset
+            ? _MeasurementPreset.imperial
+            : _MeasurementPreset.custom;
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _SectionLabel('Preset'),
-        _UnitChoiceRow(
-          leftKey: const ValueKey('measurement-units-preset-metric'),
-          rightKey: const ValueKey('measurement-units-preset-imperial'),
-          leftLabel: 'Metric',
-          rightLabel: 'Imperial',
-          leftSelected: preferences.isMetricPreset,
-          rightSelected: preferences.isImperialPreset,
-          onLeft: () => onChanged(MeasurementUnitPreferences.metric),
-          onRight: () => onChanged(MeasurementUnitPreferences.imperial),
-        ),
-        const SizedBox(height: TioSpacing.lg),
-        const _SectionLabel('Weight'),
-        _UnitChoiceRow(
-          leftKey: const ValueKey('measurement-units-weight-kg'),
-          rightKey: const ValueKey('measurement-units-weight-lb'),
-          leftLabel: 'kg',
-          rightLabel: 'lb',
-          leftSelected: preferences.weightUnit == WeightUnit.kg,
-          rightSelected: preferences.weightUnit == WeightUnit.lb,
-          onLeft: () => onChanged(
-            preferences.copyWith(weightUnit: WeightUnit.kg),
-          ),
-          onRight: () => onChanged(
-            preferences.copyWith(weightUnit: WeightUnit.lb),
-          ),
-        ),
-        const SizedBox(height: TioSpacing.lg),
-        const _SectionLabel('Height'),
-        _UnitChoiceRow(
-          leftKey: const ValueKey('measurement-units-height-cm'),
-          rightKey: const ValueKey('measurement-units-height-ft-in'),
-          leftLabel: 'cm',
-          rightLabel: 'ft / in',
-          leftSelected: preferences.heightUnit == HeightUnit.cm,
-          rightSelected: preferences.heightUnit == HeightUnit.ftIn,
-          onLeft: () => onChanged(
-            preferences.copyWith(heightUnit: HeightUnit.cm),
-          ),
-          onRight: () => onChanged(
-            preferences.copyWith(heightUnit: HeightUnit.ftIn),
+        Align(
+          alignment: Alignment.centerRight,
+          child: _PreferenceSegmentedControl<_MeasurementPreset>(
+            options: [
+              const _SegmentOption(
+                value: _MeasurementPreset.metric,
+                label: 'Metric',
+                key: ValueKey('measurement-units-preset-metric'),
+              ),
+              const _SegmentOption(
+                value: _MeasurementPreset.imperial,
+                label: 'Imperial',
+                key: ValueKey('measurement-units-preset-imperial'),
+              ),
+              if (isCustom)
+                const _SegmentOption(
+                  value: _MeasurementPreset.custom,
+                  label: 'Custom',
+                  key: ValueKey('measurement-units-preset-custom'),
+                ),
+            ],
+            selected: selectedPreset,
+            onSelected: (preset) {
+              switch (preset) {
+                case _MeasurementPreset.metric:
+                  onChanged(MeasurementUnitPreferences.metric);
+                case _MeasurementPreset.imperial:
+                  onChanged(MeasurementUnitPreferences.imperial);
+                case _MeasurementPreset.custom:
+                  break;
+              }
+            },
           ),
         ),
-        const SizedBox(height: TioSpacing.lg),
-        const _SectionLabel('Distance'),
-        _UnitChoiceRow(
-          leftKey: const ValueKey('measurement-units-distance-km'),
-          rightKey: const ValueKey('measurement-units-distance-mi'),
-          leftLabel: 'km',
-          rightLabel: 'mi',
-          leftSelected: preferences.distanceUnit == DistanceUnit.km,
-          rightSelected: preferences.distanceUnit == DistanceUnit.mi,
-          onLeft: () => onChanged(
-            preferences.copyWith(distanceUnit: DistanceUnit.km),
-          ),
-          onRight: () => onChanged(
-            preferences.copyWith(distanceUnit: DistanceUnit.mi),
+        const SizedBox(height: TioSpacing.xxl),
+        _UnitPreferenceRow(
+          label: 'Weight',
+          control: _PreferenceSegmentedControl<WeightUnit>(
+            options: const [
+              _SegmentOption(
+                value: WeightUnit.kg,
+                label: 'kg',
+                key: ValueKey('measurement-units-weight-kg'),
+              ),
+              _SegmentOption(
+                value: WeightUnit.lb,
+                label: 'lb',
+                key: ValueKey('measurement-units-weight-lb'),
+              ),
+            ],
+            selected: preferences.weightUnit,
+            onSelected: (unit) => onChanged(
+              preferences.copyWith(weightUnit: unit),
+            ),
           ),
         ),
-        const SizedBox(height: TioSpacing.lg),
-        const _SectionLabel('Water & volume'),
-        _UnitChoiceRow(
-          leftKey: const ValueKey('measurement-units-volume-ml'),
-          rightKey: const ValueKey('measurement-units-volume-fl-oz'),
-          leftLabel: 'mL / L',
-          rightLabel: 'fl oz',
-          leftSelected: preferences.volumeUnit == VolumeUnit.ml,
-          rightSelected: preferences.volumeUnit == VolumeUnit.flOz,
-          onLeft: () => onChanged(
-            preferences.copyWith(volumeUnit: VolumeUnit.ml),
+        const SizedBox(height: TioSpacing.xl),
+        _UnitPreferenceRow(
+          label: 'Height',
+          control: _PreferenceSegmentedControl<HeightUnit>(
+            options: const [
+              _SegmentOption(
+                value: HeightUnit.cm,
+                label: 'cm',
+                key: ValueKey('measurement-units-height-cm'),
+              ),
+              _SegmentOption(
+                value: HeightUnit.ftIn,
+                label: 'ft / in',
+                key: ValueKey('measurement-units-height-ft-in'),
+              ),
+            ],
+            selected: preferences.heightUnit,
+            onSelected: (unit) => onChanged(
+              preferences.copyWith(heightUnit: unit),
+            ),
           ),
-          onRight: () => onChanged(
-            preferences.copyWith(volumeUnit: VolumeUnit.flOz),
+        ),
+        const SizedBox(height: TioSpacing.xl),
+        _UnitPreferenceRow(
+          label: 'Distance',
+          control: _PreferenceSegmentedControl<DistanceUnit>(
+            options: const [
+              _SegmentOption(
+                value: DistanceUnit.km,
+                label: 'km',
+                key: ValueKey('measurement-units-distance-km'),
+              ),
+              _SegmentOption(
+                value: DistanceUnit.mi,
+                label: 'miles',
+                key: ValueKey('measurement-units-distance-mi'),
+              ),
+            ],
+            selected: preferences.distanceUnit,
+            onSelected: (unit) => onChanged(
+              preferences.copyWith(distanceUnit: unit),
+            ),
+          ),
+        ),
+        const SizedBox(height: TioSpacing.xl),
+        _UnitPreferenceRow(
+          label: 'Liquid volume',
+          control: _PreferenceSegmentedControl<VolumeUnit>(
+            options: const [
+              _SegmentOption(
+                value: VolumeUnit.ml,
+                label: 'mL / L',
+                key: ValueKey('measurement-units-volume-ml'),
+              ),
+              _SegmentOption(
+                value: VolumeUnit.flOz,
+                label: 'fl oz',
+                key: ValueKey('measurement-units-volume-fl-oz'),
+              ),
+            ],
+            selected: preferences.volumeUnit,
+            onSelected: (unit) => onChanged(
+              preferences.copyWith(volumeUnit: unit),
+            ),
           ),
         ),
       ],
@@ -104,91 +159,117 @@ class TioMeasurementUnitPreferencesEditor extends StatelessWidget {
   }
 }
 
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.label);
+enum _MeasurementPreset { metric, imperial, custom }
+
+class _UnitPreferenceRow extends StatelessWidget {
+  const _UnitPreferenceRow({
+    required this.label,
+    required this.control,
+  });
 
   final String label;
+  final Widget control;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: TioSpacing.sm),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: colors.textSecondary,
-          fontSize: TioFontSize.size13,
-          fontWeight: TioFontWeight.w700,
+    final labelStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
+          color: colors.textPrimary,
+          fontWeight: TioFontWeight.w600,
+        );
+
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: TioSpacing.lg,
+      runSpacing: TioSpacing.sm,
+      children: [
+        Text(label, style: labelStyle),
+        control,
+      ],
+    );
+  }
+}
+
+class _PreferenceSegmentedControl<T extends Object> extends StatelessWidget {
+  const _PreferenceSegmentedControl({
+    required this.options,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final List<_SegmentOption<T>> options;
+  final T selected;
+  final ValueChanged<T> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+
+    return SegmentedButton<T>(
+      showSelectedIcon: false,
+      segments: [
+        for (final option in options)
+          ButtonSegment<T>(
+            value: option.value,
+            label: Text(
+              option.label,
+              key: option.key,
+              textAlign: TextAlign.center,
+            ),
+          ),
+      ],
+      selected: {selected},
+      onSelectionChanged: (selection) => onSelected(selection.single),
+      style: ButtonStyle(
+        minimumSize: const WidgetStatePropertyAll(
+          Size(TioSize.dp64, TioSize.dp44),
+        ),
+        padding: const WidgetStatePropertyAll(
+          EdgeInsets.symmetric(
+            horizontal: TioSpacing.md,
+            vertical: TioSpacing.sm,
+          ),
+        ),
+        textStyle: const WidgetStatePropertyAll(
+          TextStyle(fontWeight: TioFontWeight.w700),
+        ),
+        backgroundColor: WidgetStateProperty.resolveWith((states) {
+          return states.contains(WidgetState.selected)
+              ? colors.primary
+              : colors.surfaceVariant;
+        }),
+        foregroundColor: WidgetStateProperty.resolveWith((states) {
+          return states.contains(WidgetState.selected)
+              ? colors.onPrimary
+              : colors.textPrimary;
+        }),
+        side: WidgetStateProperty.resolveWith((states) {
+          return BorderSide(
+            color: states.contains(WidgetState.selected)
+                ? colors.primary
+                : colors.outlineStrong.withAlpha(TioAlpha.alpha24),
+            width: TioStroke.width1,
+          );
+        }),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(TioRadius.full),
+          ),
         ),
       ),
     );
   }
 }
 
-class _UnitChoiceRow extends StatelessWidget {
-  const _UnitChoiceRow({
-    required this.leftKey,
-    required this.rightKey,
-    required this.leftLabel,
-    required this.rightLabel,
-    required this.leftSelected,
-    required this.rightSelected,
-    required this.onLeft,
-    required this.onRight,
+class _SegmentOption<T extends Object> {
+  const _SegmentOption({
+    required this.value,
+    required this.label,
+    required this.key,
   });
 
-  final Key leftKey;
-  final Key rightKey;
-  final String leftLabel;
-  final String rightLabel;
-  final bool leftSelected;
-  final bool rightSelected;
-  final VoidCallback onLeft;
-  final VoidCallback onRight;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Semantics(
-            selected: leftSelected,
-            child: leftSelected
-                ? TioButton.primary(
-                    key: leftKey,
-                    label: leftLabel,
-                    onPressed: onLeft,
-                    expand: true,
-                  )
-                : TioButton.secondary(
-                    key: leftKey,
-                    label: leftLabel,
-                    onPressed: onLeft,
-                    expand: true,
-                  ),
-          ),
-        ),
-        const SizedBox(width: TioSpacing.md),
-        Expanded(
-          child: Semantics(
-            selected: rightSelected,
-            child: rightSelected
-                ? TioButton.primary(
-                    key: rightKey,
-                    label: rightLabel,
-                    onPressed: onRight,
-                    expand: true,
-                  )
-                : TioButton.secondary(
-                    key: rightKey,
-                    label: rightLabel,
-                    onPressed: onRight,
-                    expand: true,
-                  ),
-          ),
-        ),
-      ],
-    );
-  }
+  final T value;
+  final String label;
+  final Key key;
 }
