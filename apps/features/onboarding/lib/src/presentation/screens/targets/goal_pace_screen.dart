@@ -179,6 +179,18 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
                         color: colors.textPrimary,
                       ),
                     ),
+                    const SizedBox(width: TioSpacing.xs),
+                    IconButton(
+                      key: const ValueKey('targets-goal-pace-info'),
+                      tooltip: 'How goal pace works',
+                      onPressed: () => _showGoalPaceInfoSheet(context),
+                      icon: Icon(
+                        Icons.info_outline_rounded,
+                        color: colors.textSecondary,
+                        size: TioSize.dp20,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                    ),
                   ],
                 ),
                 const SizedBox(height: TioSpacing.md),
@@ -429,6 +441,94 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showGoalPaceInfoSheet(BuildContext context) {
+    final colors = context.tioColors;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: TioPalette.transparent,
+      builder: (context) {
+        return Container(
+          key: const ValueKey('targets-goal-pace-info-sheet'),
+          decoration: BoxDecoration(
+            color: colors.surfaceRaised,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(TioRadius.xl),
+            ),
+            border: Border.all(
+              color: colors.outlineStrong.withAlpha(TioAlpha.alpha25),
+            ),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                TioSpacing.lg,
+                TioSpacing.lg,
+                TioSpacing.lg,
+                TioSpacing.xl,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        color: colors.primary,
+                        size: TioSize.dp22,
+                      ),
+                      const SizedBox(width: TioSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          'How goal pace works',
+                          style: TextStyle(
+                            color: colors.textPrimary,
+                            fontWeight: TioFontWeight.w700,
+                            fontSize: TioFontSize.size20,
+                            letterSpacing: TioLetterSpacing.negative03,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: Icon(
+                          Icons.close_rounded,
+                          color: colors.textSecondary,
+                          size: TioSize.dp18,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: TioSpacing.md),
+                  Text(
+                    'Your goal pace is the amount of body weight you plan to change each week. '
+                    'We combine your current weight, target weight, and weekly pace to estimate a target date.\n\n'
+                    'Choose a pace you can sustain. Faster loss or gain can trigger an attention warning so you can review the trade-offs before continuing.',
+                    style: TextStyle(
+                      color: colors.textSecondary,
+                      fontSize: TioFontSize.size14,
+                      height: TioLineHeight.height140,
+                      fontWeight: TioFontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: TioSpacing.xl),
+                  TioButton.primary(
+                    label: 'Got it',
+                    expand: true,
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
