@@ -4,11 +4,11 @@
 /// ownership proof. Application/profile rows and client booleans are never
 /// verification authority.
 abstract interface class AccountContactVerificationRepository {
-  /// Re-sends confirmation for the current authenticated, unverified email.
-  Future<void> requestCurrentEmailVerification(String email);
+  /// Starts verification for an existing unverified Email or an Email add/change.
+  Future<void> requestEmailVerification(String email);
 
-  /// Confirms the current authenticated email using the provider-issued code.
-  Future<void> verifyCurrentEmail({
+  /// Confirms the pending Email verification using the provider-issued code.
+  Future<void> verifyEmail({
     required String email,
     required String token,
   });
