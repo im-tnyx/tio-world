@@ -26,9 +26,18 @@ void main() {
       ).onPressed,
       isNull,
     );
+    expect(
+      find.byKey(const ValueKey('measurement-units-preset-custom')),
+      findsNothing,
+    );
 
     await tester.tap(find.byKey(const ValueKey('measurement-units-weight-kg')));
     await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('measurement-units-preset-custom')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const ValueKey('measurement-units-save')));
     await tester.pumpAndSettle();
@@ -65,6 +74,45 @@ void main() {
     await tester.pump();
 
     expect(selectedSemanticsCount(), 5);
+  });
+
+  testWidgets('compact large-text layout remains overflow-safe', (tester) async {
+    tester.view.physicalSize = const Size(320, 760);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) {
+          final mediaQuery = MediaQuery.of(context);
+          return MediaQuery(
+            data: mediaQuery.copyWith(
+              textScaler: const TextScaler.linear(1.6),
+            ),
+            child: TioTheme(child: child ?? const SizedBox.shrink()),
+          );
+        },
+        home: MeasurementUnitsSettingsPage(
+          initialPreferences: const MeasurementUnitPreferences(
+            weightUnit: WeightUnit.kg,
+            heightUnit: HeightUnit.ftIn,
+            distanceUnit: DistanceUnit.mi,
+            volumeUnit: VolumeUnit.ml,
+          ),
+          onSave: (_) async {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('measurement-units-preset-custom')),
+      findsOneWidget,
+    );
+    expect(find.text('Liquid volume'), findsOneWidget);
+    expect(find.text('miles'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('save failure stays retryable and exposes feedback',
