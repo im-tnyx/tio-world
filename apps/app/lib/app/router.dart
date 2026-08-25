@@ -793,8 +793,26 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   );
                 }
                 await deleteCurrentAccount();
-                await ref.read(authSessionRepositoryProvider).signOut();
-                if (context.mounted) context.go(AppRoutes.auth.path);
+              },
+              onAccountDeleted: () async {
+                // The server-side delete is already confirmed at this point.
+                // Local sign-out is best-effort: failure must not turn a real
+                // deletion into a false-negative UI state.
+                try {
+                  await ref.read(authSessionRepositoryProvider).signOut();
+                } catch (_) {}
+
+                appSessionBootstrapController
+                    .markUnauthenticatedAfterAccountDeletion();
+                ref.read(backendUserStateProvider.notifier).state =
+                    const BackendUserUnknown();
+                ref.invalidate(authSessionStateProvider);
+                ref.invalidate(profileDataProvider);
+                ref.invalidate(profileCompletionSummaryProvider);
+
+                if (context.mounted) {
+                  context.go(AppRoutes.auth.path);
+                }
               },
             );
           },
