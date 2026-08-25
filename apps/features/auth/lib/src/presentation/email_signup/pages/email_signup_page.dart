@@ -233,10 +233,14 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                           cursorColor: colors.primary,
                           decoration: InputDecoration(
                             labelText: 'Email',
+                            hintText: 'Enter your email',
                             labelStyle: textTheme.bodyMedium,
                             floatingLabelStyle: textTheme.bodyMedium?.copyWith(
                               color: colors.textPrimary,
                               fontWeight: TioFontWeight.w500,
+                            ),
+                            hintStyle: textTheme.bodyLarge?.copyWith(
+                              color: colors.textMuted,
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: TioInputTokens.horizontalPadding,
@@ -271,7 +275,13 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                           cursorColor: colors.primary,
                           onFieldSubmitted: (_) => _handleSignUp(),
                           decoration: InputDecoration(
-                            hintText: 'Password',
+                            labelText: 'Password',
+                            hintText: 'At least 6 characters',
+                            labelStyle: textTheme.bodyMedium,
+                            floatingLabelStyle: textTheme.bodyMedium?.copyWith(
+                              color: colors.textPrimary,
+                              fontWeight: TioFontWeight.w500,
+                            ),
                             hintStyle: textTheme.bodyLarge?.copyWith(
                               color: colors.textMuted,
                             ),
@@ -439,7 +449,6 @@ class _FloatingErrorBanner extends StatelessWidget {
     required this.onDismiss,
   });
 
-  // One-off local Material effect; not evidence for a shared elevation role.
   static const _elevation = 6.0;
 
   final String message;
