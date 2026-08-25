@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:tio_shared/shared.dart';
 
 import '../../domain/repositories/account_contact_verification_repository.dart';
 
@@ -34,20 +35,15 @@ final class SupabaseAccountContactVerificationRepository
   }
 
   String _normalizePhone(String phoneNumber) {
-    final trimmed = phoneNumber.trim();
-    final digits = trimmed.replaceAll(RegExp(r'[^0-9]'), '');
-
-    if (digits.length == 10) return '+91$digits';
-    if (digits.length == 12 && digits.startsWith('91')) return '+$digits';
-    if (trimmed.startsWith('+') && digits.length >= 8 && digits.length <= 15) {
-      return '+$digits';
+    final normalized = normalizePhoneNumberE164(phoneNumber);
+    if (normalized.isEmpty) {
+      throw ArgumentError.value(
+        phoneNumber,
+        'phoneNumber',
+        'must be a valid international mobile number',
+      );
     }
-
-    throw ArgumentError.value(
-      phoneNumber,
-      'phoneNumber',
-      'must be a valid international mobile number',
-    );
+    return normalized;
   }
 
   bool _hasConfirmedEmail(User? user, String normalizedEmail) {
