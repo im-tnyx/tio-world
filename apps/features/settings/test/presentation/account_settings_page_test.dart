@@ -65,7 +65,7 @@ void main() {
     expect(find.text('Email verified successfully!'), findsOneWidget);
   });
 
-  testWidgets('loads persisted phone and saves account fields before popping',
+  testWidgets('loads persisted account fields and saves after trusted state',
       (tester) async {
     String? savedUsername;
     String? savedPhoneNumber;
@@ -108,9 +108,10 @@ void main() {
     await tester.pumpAndSettle();
 
     final textFields = tester.widgetList<TextField>(find.byType(TextField)).toList();
-    expect(textFields, hasLength(2));
-    expect(textFields.first.controller?.text, 'santosh_initial');
-    expect(textFields.last.controller?.text, '9876543210');
+    expect(textFields, hasLength(3));
+    expect(textFields[0].controller?.text, 'santosh_initial');
+    expect(textFields[1].controller?.text, 'santosh@example.com');
+    expect(textFields[2].controller?.text, '9876543210');
     expect(find.byIcon(Icons.verified_rounded), findsNWidgets(2));
 
     await tester.tap(find.text('Save Changes'));
@@ -120,6 +121,78 @@ void main() {
     expect(savedPhoneNumber, '9876543210');
     expect(find.text('Open Account Settings'), findsOneWidget);
     expect(find.text('Account Settings'), findsNothing);
+  });
+
+  testWidgets('changed Email must verify before Save Changes can persist',
+      (tester) async {
+    var saveCalls = 0;
+
+    await tester.pumpWidget(
+      themedApp(
+        home: AccountSettingsPage(
+          username: 'santosh_initial',
+          email: 'santosh@example.com',
+          phoneNumber: '9876543210',
+          isEmailVerified: true,
+          isPhoneVerified: true,
+          onSave: ({required username, required phoneNumber}) async {
+            saveCalls++;
+          },
+        ),
+      ),
+    );
+
+    final textFields = tester.widgetList<TextField>(find.byType(TextField)).toList();
+    await tester.enterText(find.byWidget(textFields[1]), 'new@example.com');
+    await tester.pump();
+
+    await tester.tap(find.text('Save Changes'));
+    await tester.pumpAndSettle();
+
+    expect(saveCalls, 0);
+    expect(
+      find.text('Verify the new email before saving.'),
+      findsOneWidget,
+    );
+    expect(find.text('Account Settings'), findsOneWidget);
+  });
+
+  testWidgets('changed Email can save only after provider callback succeeds',
+      (tester) async {
+    var saveCalls = 0;
+    String? verificationTarget;
+
+    await tester.pumpWidget(
+      themedApp(
+        home: AccountSettingsPage(
+          username: 'santosh_initial',
+          email: 'santosh@example.com',
+          phoneNumber: '9876543210',
+          isEmailVerified: true,
+          isPhoneVerified: true,
+          onVerifyEmailPressed: (email) async {
+            verificationTarget = email;
+            return true;
+          },
+          onSave: ({required username, required phoneNumber}) async {
+            saveCalls++;
+          },
+        ),
+      ),
+    );
+
+    final textFields = tester.widgetList<TextField>(find.byType(TextField)).toList();
+    await tester.enterText(find.byWidget(textFields[1]), 'new@example.com');
+    await tester.pump();
+
+    await tester.tap(find.text('Verify'));
+    await tester.pumpAndSettle();
+    expect(verificationTarget, 'new@example.com');
+
+    await tester.tap(find.text('Save Changes'));
+    await tester.pumpAndSettle();
+
+    expect(saveCalls, 1);
   });
 
   testWidgets('changed phone must verify before Save Changes can persist',
