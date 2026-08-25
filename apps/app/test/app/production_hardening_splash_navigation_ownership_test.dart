@@ -12,7 +12,7 @@ void main() {
       expect(splashSource, isNot(contains('onCheckInitialDestination')));
       expect(splashSource, isNot(contains('context.go(')));
       expect(splashSource, isNot(contains('.timeout(')));
-      expect(splashSource, isNot(contains("package:go_router/go_router.dart")));
+      expect(splashSource, isNot(contains('package:go_router/go_router.dart')));
       expect(splashSource, isNot(contains('AppRoutes.auth.path')));
     });
 
