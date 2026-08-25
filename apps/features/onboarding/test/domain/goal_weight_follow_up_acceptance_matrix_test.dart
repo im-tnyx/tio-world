@@ -163,7 +163,7 @@ List<_AcceptanceCase> _acceptanceCases() {
       expectedProgressCount: 18,
     ),
     const _AcceptanceCase(
-      name: 'Workout Lose weight with training',
+      name: 'Workout Fat Loss with training',
       mode: AppMode.workout,
       selection: GoalIntentSelection(
         primaryGoal: GoalIntent.loseWeight,
@@ -173,14 +173,14 @@ List<_AcceptanceCase> _acceptanceCases() {
       expectedProgressCount: 21,
     ),
     const _AcceptanceCase(
-      name: 'Workout Maintain plus training',
+      name: 'Workout legacy Maintain plus training reconciles to training-only',
       mode: AppMode.workout,
       selection: GoalIntentSelection(
         primaryGoal: GoalIntent.maintainWeight,
         supportingGoal: GoalIntent.buildMuscle,
       ),
-      expectWeightFollowUps: false,
-      expectedProgressCount: 19,
+      expectWeightFollowUps: true,
+      expectedProgressCount: 21,
     ),
     for (final goal in trainingOnlyGoals)
       _AcceptanceCase(
@@ -191,7 +191,7 @@ List<_AcceptanceCase> _acceptanceCases() {
         expectedProgressCount: 21,
       ),
     const _AcceptanceCase(
-      name: 'Hybrid setup-now Lose weight',
+      name: 'Hybrid setup-now Fat Loss',
       mode: AppMode.hybrid,
       selection: primaryLoss,
       workoutIntroChoice: WorkoutIntroChoice.setupNow,
@@ -199,15 +199,15 @@ List<_AcceptanceCase> _acceptanceCases() {
       expectedProgressCount: 29,
     ),
     const _AcceptanceCase(
-      name: 'Hybrid setup-now Maintain plus training',
+      name: 'Hybrid setup-now legacy Maintain plus training reconciles to training-only',
       mode: AppMode.hybrid,
       selection: GoalIntentSelection(
         primaryGoal: GoalIntent.maintainWeight,
         supportingGoal: GoalIntent.buildMuscle,
       ),
       workoutIntroChoice: WorkoutIntroChoice.setupNow,
-      expectWeightFollowUps: false,
-      expectedProgressCount: 27,
+      expectWeightFollowUps: true,
+      expectedProgressCount: 29,
     ),
     for (final goal in trainingOnlyGoals)
       _AcceptanceCase(
@@ -219,7 +219,7 @@ List<_AcceptanceCase> _acceptanceCases() {
         expectedProgressCount: 29,
       ),
     const _AcceptanceCase(
-      name: 'Hybrid later Lose weight',
+      name: 'Hybrid later Fat Loss',
       mode: AppMode.hybrid,
       selection: primaryLoss,
       workoutIntroChoice: WorkoutIntroChoice.later,
