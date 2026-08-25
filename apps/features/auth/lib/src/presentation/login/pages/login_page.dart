@@ -196,6 +196,7 @@ class _LoginPageState extends State<LoginPage> {
           children: [
             Column(
               children: [
+                // Top App Bar (100% Identical alignment with OnboardingTopBar & SignUp)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(
                     TioSpacing.sm,
@@ -230,6 +231,8 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
+
+                // Form Content
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
@@ -239,6 +242,8 @@ class _LoginPageState extends State<LoginPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: TioSpacing.lg),
+
+                        // Email Input Field (Outlined)
                         TextFormField(
                           key: const ValueKey('login-email-input'),
                           controller: _emailController,
@@ -275,7 +280,10 @@ class _LoginPageState extends State<LoginPage> {
                             filled: false,
                           ),
                         ),
+
                         const SizedBox(height: TioSpacing.lg),
+
+                        // Password Input Field (Outlined with Visibility Toggle)
                         TextFormField(
                           key: const ValueKey('login-password-input'),
                           controller: _passwordController,
@@ -327,7 +335,10 @@ class _LoginPageState extends State<LoginPage> {
                             filled: false,
                           ),
                         ),
+
                         const SizedBox(height: TioSpacing.md),
+
+                        // Forgot Password Link
                         GestureDetector(
                           key: const ValueKey('login-forgot-password-link'),
                           onTap: () {
@@ -341,6 +352,7 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                         const SizedBox(height: TioSpacing.xl),
+                        // Login Action Button (Reusable TioButton Component)
                         TioButton.primary(
                           key: const ValueKey('login-submit-button'),
                           label: 'Login',
@@ -349,7 +361,10 @@ class _LoginPageState extends State<LoginPage> {
                           enabled: _isFormValid && !_isGoogleLoading,
                           onPressed: _handleEmailSignIn,
                         ),
+
                         const SizedBox(height: TioSpacing.xl),
+
+                        // OR Divider
                         Row(
                           children: [
                             Expanded(
@@ -384,20 +399,27 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ],
                         ),
+
                         const SizedBox(height: TioSpacing.xl),
+
+                        // Continue with Google Button
                         TioSocialButton.google(
                           key: const ValueKey('login-google-button'),
                           loading: _isGoogleLoading,
                           enabled: !_isEmailLoading,
                           onPressed: _handleGoogleSignIn,
                         ),
+
                         const SizedBox(height: TioSpacing.md),
+
+                        // Continue with Truecaller Button
                         TioSocialButton.truecaller(
                           key: const ValueKey('login-truecaller-button'),
                           loading: false,
                           enabled: !_isBusy,
                           onPressed: _handleTruecallerSignIn,
                         ),
+
                         const SizedBox(
                           height: TioSpacing.xl + TioSpacing.sm,
                         ),
@@ -405,6 +427,8 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
+
+                // Footer: Don't have an account? Sign Up
                 Padding(
                   padding: const EdgeInsets.only(top: TioSpacing.sm),
                   child: Row(
@@ -436,6 +460,8 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ],
             ),
+
+            // Floating Error Banner at Top
             if (_errorMessage != null)
               Positioned(
                 top: TioSpacing.md,
@@ -453,12 +479,15 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
+/// Floating error banner matching Tnyx-Hub error state.
 class _FloatingErrorBanner extends StatelessWidget {
   const _FloatingErrorBanner({
     required this.message,
     required this.onDismiss,
   });
 
+  // This is a one-off local Material effect, not evidence for a shared
+  // TioElevation role.
   static const _elevation = 6.0;
 
   final String message;
