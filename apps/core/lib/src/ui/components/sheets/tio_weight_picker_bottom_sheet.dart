@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../measurement/measurement_converters.dart';
 import '../../../theme/theme.dart';
 import '../buttons/tio_button.dart';
 
@@ -46,11 +47,11 @@ class _TioWeightPickerBottomSheetState
   void initState() {
     super.initState();
     final isKg = widget.unit == 'kg';
-    final val = isKg
+    final value = isKg
         ? widget.initialWeightKg
-        : (widget.initialWeightKg * 2.20462);
+        : MeasurementConverters.kgToLb(widget.initialWeightKg);
 
-    _controller = TextEditingController(text: val.toStringAsFixed(1));
+    _controller = TextEditingController(text: value.toStringAsFixed(1));
   }
 
   @override
@@ -61,15 +62,15 @@ class _TioWeightPickerBottomSheetState
 
   void _save() {
     final raw = double.tryParse(_controller.text.trim());
-    if (raw == null) {
+    if (raw == null || !raw.isFinite) {
       Navigator.of(context).pop(widget.initialWeightKg);
       return;
     }
 
     final isKg = widget.unit == 'kg';
-    final resolvedKg = isKg ? raw : (raw / 2.20462);
+    final resolvedKg = isKg ? raw : MeasurementConverters.lbToKg(raw);
 
-    if (resolvedKg >= 25 && resolvedKg <= 350) {
+    if (resolvedKg.isFinite && resolvedKg >= 25 && resolvedKg <= 350) {
       Navigator.of(context).pop(resolvedKg);
     } else {
       Navigator.of(context).pop(widget.initialWeightKg);
