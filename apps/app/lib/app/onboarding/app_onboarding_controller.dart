@@ -8,26 +8,21 @@ import 'auth_aware_onboarding_draft_repository.dart';
 /// checkpoint without advancing the signed-out screen state.
 class AppOnboardingController extends OnboardingController {
   AppOnboardingController({
-    required OnboardingEntryPath entryPath,
+    required super.entryPath,
     required LocalOnboardingDraftStore localDraftStore,
-    OnboardingDraft? initialDraft,
-    bool includeMobile = false,
+    super.initialDraft,
+    super.includeMobile,
     OnboardingStatusRepository statusRepository =
         const NoOpOnboardingStatusRepository(),
     OnboardingDraftRepository? draftRepository,
-    OnboardingCompletionValidator completionValidator =
-        const OnboardingCompletionValidator(),
+    super.completionValidator,
   })  : _localDraftStore = localDraftStore,
         super(
-          entryPath: entryPath,
-          initialDraft: initialDraft,
-          includeMobile: includeMobile,
           statusRepository:
               _DeduplicatingOnboardingStatusRepository(statusRepository),
           draftRepository: draftRepository == null
               ? null
               : _SerializingOnboardingDraftRepository(draftRepository),
-          completionValidator: completionValidator,
         );
 
   final LocalOnboardingDraftStore _localDraftStore;
