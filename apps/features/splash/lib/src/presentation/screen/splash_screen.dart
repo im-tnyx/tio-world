@@ -1,57 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
 
-class SplashScreen extends ConsumerStatefulWidget {
+/// Presentation-only startup surface.
+///
+/// Session resolution, timeout policy, and destination routing are owned by
+/// the app-level bootstrap controller and GoRouter redirect policy.
+class SplashScreen extends StatefulWidget {
   const SplashScreen({
     super.key,
-    this.onCheckInitialDestination,
     this.failureMessage,
     this.onRetry,
   });
 
-  final Future<String> Function()? onCheckInitialDestination;
   final String? failureMessage;
   final Future<void> Function()? onRetry;
 
   @override
-  ConsumerState<SplashScreen> createState() => _SplashScreenState();
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends ConsumerState<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen> {
   bool _isRetrying = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _startInitFlow();
-    });
-  }
-
-  Future<void> _startInitFlow() async {
-    final destinationResolver = widget.onCheckInitialDestination;
-    if (destinationResolver == null) {
-      // Passive mode: app-level router/bootstrap state owns product navigation.
-      return;
-    }
-
-    String destination;
-    try {
-      destination = await destinationResolver().timeout(
-        const Duration(seconds: 4),
-        onTimeout: () => AppRoutes.auth.path,
-      );
-    } catch (_) {
-      destination = AppRoutes.auth.path;
-    }
-
-    if (mounted) {
-      context.go(destination);
-    }
-  }
 
   Future<void> _handleRetry() async {
     final retry = widget.onRetry;
@@ -87,7 +57,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Center Brand Logo
               ClipRRect(
                 borderRadius: BorderRadius.circular(TioRadius.xl),
                 child: Image.asset(
