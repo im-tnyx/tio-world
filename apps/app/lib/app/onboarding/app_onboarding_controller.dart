@@ -100,13 +100,14 @@ class AppOnboardingController extends OnboardingController {
   }
 }
 
-/// Collapses repeated writes of the same successfully persisted onboarding
-/// status while still allowing a later edit to retry after a failed write.
+/// Collapses repeated writes of the same persisted onboarding status while
+/// still allowing a later edit to retry after a failed read or write.
 class _DeduplicatingOnboardingStatusRepository
     implements OnboardingStatusRepository {
   _DeduplicatingOnboardingStatusRepository(this._delegate);
 
   final OnboardingStatusRepository _delegate;
+  bool _hasObservedPersistedStatus = false;
   OnboardingStatus? _lastSuccessfulWrite;
   OnboardingStatus? _inFlightStatus;
   Future<void>? _inFlightWrite;
@@ -114,6 +115,7 @@ class _DeduplicatingOnboardingStatusRepository
   @override
   Future<void> clear() async {
     await _delegate.clear();
+    _hasObservedPersistedStatus = false;
     _lastSuccessfulWrite = null;
   }
 
@@ -123,13 +125,14 @@ class _DeduplicatingOnboardingStatusRepository
   @override
   Future<OnboardingStatusSnapshot> read() async {
     final snapshot = await _delegate.read();
+    _hasObservedPersistedStatus = true;
     _lastSuccessfulWrite = snapshot.status;
     return snapshot;
   }
 
   @override
   Future<void> write(OnboardingStatus status) {
-    if (_lastSuccessfulWrite == status) {
+    if (_hasObservedPersistedStatus && _lastSuccessfulWrite == status) {
       return Future<void>.value();
     }
 
@@ -139,9 +142,7 @@ class _DeduplicatingOnboardingStatusRepository
     }
 
     late final Future<void> operation;
-    operation = _delegate.write(status).then((_) {
-      _lastSuccessfulWrite = status;
-    }).whenComplete(() {
+    operation = _writeIfChanged(status).whenComplete(() {
       if (identical(_inFlightWrite, operation)) {
         _inFlightStatus = null;
         _inFlightWrite = null;
@@ -150,6 +151,18 @@ class _DeduplicatingOnboardingStatusRepository
     _inFlightStatus = status;
     _inFlightWrite = operation;
     return operation;
+  }
+
+  Future<void> _writeIfChanged(OnboardingStatus status) async {
+    if (!_hasObservedPersistedStatus) {
+      final snapshot = await _delegate.read();
+      _hasObservedPersistedStatus = true;
+      _lastSuccessfulWrite = snapshot.status;
+    }
+    if (_lastSuccessfulWrite == status) return;
+
+    await _delegate.write(status);
+    _lastSuccessfulWrite = status;
   }
 }
 
