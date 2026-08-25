@@ -314,8 +314,8 @@ class FakeAuthSignInRepository implements AuthSignInRepository {
   }) async => const SignInSuccess(AuthSession(userId: 'usr-1'));
 
   @override
-  Future<SignInResult> sendPasswordResetEmail(String email) async =>
-      const SignInSuccess(AuthSession(userId: ''));
+  Future<PasswordResetRequestResult> sendPasswordResetEmail(String email) async =>
+      const PasswordResetRequestAccepted();
 
   @override
   Future<SignInResult> signInWithOtp({
