@@ -85,7 +85,8 @@ final class SupabaseRuntimeConfig {
       );
     }
 
-    if (normalizedLegacyAnonKey.isNotEmpty &&
+    if (normalizedPublishableKey.isEmpty &&
+        normalizedLegacyAnonKey.isNotEmpty &&
         !_isLegacyAnonJwt(normalizedLegacyAnonKey)) {
       throw StateError(
         'SUPABASE_ANON_KEY must be a legacy Supabase JWT whose role claim is anon.',
