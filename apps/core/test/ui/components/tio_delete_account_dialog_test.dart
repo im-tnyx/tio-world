@@ -33,8 +33,12 @@ void main() {
     final gesture = await tester.startGesture(
       tester.getCenter(find.byKey(const ValueKey('hold_to_delete_button'))),
     );
+    // Let the tap recognizer deliver onTapDown before advancing the
+    // five-second AnimationController. A single five-second jump can resolve
+    // the gesture only at the end of that pump, starting the animation late.
+    await tester.pump(const Duration(milliseconds: 150));
     await tester.pump(const Duration(seconds: 5));
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump();
     await gesture.up();
     await tester.pump();
     return gesture;
