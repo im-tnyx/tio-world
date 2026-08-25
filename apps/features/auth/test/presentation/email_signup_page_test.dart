@@ -34,6 +34,35 @@ void main() {
       expect(find.text('Already have an account? '), findsOneWidget);
     });
 
+    testWidgets('keeps account switch footer on the login viewport contract',
+        (tester) async {
+      await tester.pumpWidget(createTestWidget(const EmailSignupPage()));
+
+      final scaffold = tester.widget<Scaffold>(
+        find.descendant(
+          of: find.byType(EmailSignupPage),
+          matching: find.byType(Scaffold),
+        ),
+      );
+      expect(scaffold.resizeToAvoidBottomInset, isFalse);
+
+      final safeArea = tester.widget<SafeArea>(
+        find.descendant(
+          of: find.byType(EmailSignupPage),
+          matching: find.byType(SafeArea),
+        ),
+      );
+      expect(safeArea.maintainBottomViewPadding, isTrue);
+
+      final footer = tester.widget<Padding>(
+        find.byKey(const ValueKey('signup-auth-switch-footer')),
+      );
+      expect(
+        footer.padding,
+        const EdgeInsets.only(top: TioSpacing.sm),
+      );
+    });
+
     testWidgets('password visibility toggle changes obscureText', (tester) async {
       await tester.pumpWidget(createTestWidget(const EmailSignupPage()));
 
