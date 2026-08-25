@@ -164,8 +164,10 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: colors.background,
       body: SafeArea(
+        maintainBottomViewPadding: true,
         child: Stack(
           children: [
             Column(
@@ -368,10 +370,8 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: TioSpacing.lg,
-                    top: TioSpacing.sm,
-                  ),
+                  key: const ValueKey('signup-auth-switch-footer'),
+                  padding: const EdgeInsets.only(top: TioSpacing.sm),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
