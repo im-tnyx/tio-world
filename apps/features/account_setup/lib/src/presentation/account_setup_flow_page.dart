@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_profile/profile.dart';
+import 'package:tio_shared/shared.dart';
 
 import '../domain/models/account_setup_flow_plan.dart';
 import '../domain/models/account_setup_step_id.dart';
@@ -94,6 +95,15 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
   }
 
   AccountSetupStepId get _currentStep => _plan!.steps[_currentIndex];
+
+  bool get _mobileCanContinue {
+    if (_mobile.trim().isEmpty) return true;
+    try {
+      return normalizePhoneNumberE164(_mobile).isNotEmpty;
+    } on ArgumentError {
+      return false;
+    }
+  }
 
   Future<void> _handleBack() async {
     if (_busy) return;
@@ -193,7 +203,10 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
           initialMobile: _mobile,
           isVerified: account.isMobileVerified,
           enabled: !_busy,
-          onChanged: (value) => _mobile = value,
+          onChanged: (value) {
+            if (!mounted) return;
+            setState(() => _mobile = value);
+          },
         ),
     };
   }
@@ -248,8 +261,9 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
     final plan = _plan!;
     final account = _accountState!;
     final step = _currentStep;
-    final canContinue = step == AccountSetupStepId.mobile ||
-        (step == AccountSetupStepId.username && _usernameCanContinue);
+    final canContinue = step == AccountSetupStepId.mobile
+        ? _mobileCanContinue
+        : _usernameCanContinue;
 
     return _withBackHandling(
       Scaffold(
