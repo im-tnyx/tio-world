@@ -9,6 +9,7 @@ class AuthSession {
     this.isPhoneVerified = false,
     this.displayName,
     this.photoUrl,
+    this.loginCycleId,
   });
 
   final String userId;
@@ -18,6 +19,12 @@ class AuthSession {
   final bool isPhoneVerified;
   final String? displayName;
   final String? photoUrl;
+
+  /// Provider-neutral identifier for the current real sign-in cycle.
+  ///
+  /// Adapters should keep this stable across token refreshes and change it after
+  /// a new interactive sign-in whenever their SDK exposes that information.
+  final String? loginCycleId;
 
   @override
   bool operator ==(Object other) {
@@ -29,7 +36,8 @@ class AuthSession {
         other.isEmailVerified == isEmailVerified &&
         other.isPhoneVerified == isPhoneVerified &&
         other.displayName == displayName &&
-        other.photoUrl == photoUrl;
+        other.photoUrl == photoUrl &&
+        other.loginCycleId == loginCycleId;
   }
 
   @override
@@ -41,6 +49,7 @@ class AuthSession {
         isPhoneVerified,
         displayName,
         photoUrl,
+        loginCycleId,
       );
 
   @override
