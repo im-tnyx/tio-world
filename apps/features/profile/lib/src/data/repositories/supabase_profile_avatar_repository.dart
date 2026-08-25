@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -12,9 +13,18 @@ abstract interface class ProfileAvatarStorageGateway {
     required List<int> bytes,
     required String contentType,
   });
+
+  String? ownedPathFromPublicUrl({
+    required String userId,
+    required String avatarUrl,
+  });
+
+  Future<void> remove({required String path});
 }
 
 abstract interface class ProfileAvatarAccountGateway {
+  Future<String?> readAvatarUrl({required String userId});
+
   Future<void> writeAvatarUrl({
     required String userId,
     required String? avatarUrl,
@@ -43,6 +53,78 @@ final class SupabaseProfileAvatarStorageGateway
         );
     return _client.storage.from('avatars').getPublicUrl(path);
   }
+
+  @override
+  String? ownedPathFromPublicUrl({
+    required String userId,
+    required String avatarUrl,
+  }) {
+    final markerUrl = _client.storage
+        .from('avatars')
+        .getPublicUrl('$userId/__tio_avatar_marker__');
+    return resolveOwnedAvatarPath(
+      avatarUrl: avatarUrl,
+      markerUrl: markerUrl,
+      userId: userId,
+    );
+  }
+
+  @override
+  Future<void> remove({required String path}) async {
+    await _client.storage.from('avatars').remove([path]);
+  }
+
+  /// Resolves an object path only when [avatarUrl] belongs to the same public
+  /// Storage bucket URL represented by [markerUrl] and is inside [userId]'s
+  /// first folder segment.
+  ///
+  /// Exposed for focused ownership regression tests; production callers should
+  /// use [ownedPathFromPublicUrl].
+  static String? resolveOwnedAvatarPath({
+    required String avatarUrl,
+    required String markerUrl,
+    required String userId,
+  }) {
+    final normalizedUserId = userId.trim();
+    final candidate = Uri.tryParse(avatarUrl.trim());
+    final marker = Uri.tryParse(markerUrl.trim());
+    if (normalizedUserId.isEmpty ||
+        candidate == null ||
+        marker == null ||
+        !candidate.hasScheme ||
+        candidate.host.isEmpty ||
+        !marker.hasScheme ||
+        marker.host.isEmpty ||
+        candidate.scheme != marker.scheme ||
+        candidate.host != marker.host ||
+        candidate.port != marker.port) {
+      return null;
+    }
+
+    final markerSegments = marker.pathSegments;
+    // marker = <public avatars prefix>/<userId>/__tio_avatar_marker__
+    if (markerSegments.length < 2 ||
+        markerSegments[markerSegments.length - 2] != normalizedUserId) {
+      return null;
+    }
+
+    final prefixLength = markerSegments.length - 2;
+    final candidateSegments = candidate.pathSegments;
+    if (candidateSegments.length < prefixLength + 2) return null;
+
+    for (var index = 0; index < prefixLength; index += 1) {
+      if (candidateSegments[index] != markerSegments[index]) return null;
+    }
+
+    if (candidateSegments[prefixLength] != normalizedUserId) return null;
+
+    final objectSegments = candidateSegments.sublist(prefixLength);
+    if (objectSegments.length < 2 ||
+        objectSegments.any((segment) => segment.trim().isEmpty)) {
+      return null;
+    }
+    return objectSegments.join('/');
+  }
 }
 
 final class SupabaseProfileAvatarAccountGateway
@@ -50,6 +132,28 @@ final class SupabaseProfileAvatarAccountGateway
   const SupabaseProfileAvatarAccountGateway(this._client);
 
   final SupabaseClient _client;
+
+  @override
+  Future<String?> readAvatarUrl({required String userId}) async {
+    final row = await _client
+        .from('users')
+        .select('avatar_url')
+        .eq('id', userId)
+        .maybeSingle();
+    if (row == null) {
+      throw StateError('Account root is missing for the authenticated user.');
+    }
+
+    final raw = row['avatar_url'];
+    if (raw == null) return null;
+    if (raw is! String) {
+      throw const FormatException(
+        'Invalid canonical avatar_url: expected string or null.',
+      );
+    }
+    final normalized = raw.trim();
+    return normalized.isEmpty ? null : normalized;
+  }
 
   @override
   Future<void> writeAvatarUrl({
@@ -89,6 +193,8 @@ final class SupabaseProfileAvatarRepository implements ProfileAvatarRepository {
     required List<int> bytes,
   }) async {
     final userId = _requireUserId();
+    final previousAvatarUrl =
+        await _accountGateway.readAvatarUrl(userId: userId);
     final extension = _fileExtension(fileName);
     final storagePath =
         '$userId/avatar_${DateTime.now().millisecondsSinceEpoch}.$extension';
@@ -97,10 +203,28 @@ final class SupabaseProfileAvatarRepository implements ProfileAvatarRepository {
       bytes: bytes,
       contentType: _contentType(extension),
     );
-    await _accountGateway.writeAvatarUrl(
-      userId: userId,
-      avatarUrl: publicUrl,
-    );
+
+    try {
+      await _accountGateway.writeAvatarUrl(
+        userId: userId,
+        avatarUrl: publicUrl,
+      );
+    } catch (error, stackTrace) {
+      await _removeOwnedAvatarBestEffort(
+        userId: userId,
+        avatarUrl: publicUrl,
+        operation: 'rollback newly uploaded avatar after pointer write failure',
+      );
+      Error.throwWithStackTrace(error, stackTrace);
+    }
+
+    if (previousAvatarUrl != publicUrl) {
+      await _removeOwnedAvatarBestEffort(
+        userId: userId,
+        avatarUrl: previousAvatarUrl,
+        operation: 'remove replaced avatar',
+      );
+    }
     return publicUrl;
   }
 
@@ -108,10 +232,44 @@ final class SupabaseProfileAvatarRepository implements ProfileAvatarRepository {
   Future<void> deleteAvatarImage() async {
     final userId = _currentUserId()?.trim();
     if (userId == null || userId.isEmpty) return;
+
+    final previousAvatarUrl =
+        await _accountGateway.readAvatarUrl(userId: userId);
     await _accountGateway.writeAvatarUrl(
       userId: userId,
       avatarUrl: null,
     );
+    await _removeOwnedAvatarBestEffort(
+      userId: userId,
+      avatarUrl: previousAvatarUrl,
+      operation: 'remove cleared avatar',
+    );
+  }
+
+  Future<void> _removeOwnedAvatarBestEffort({
+    required String userId,
+    required String? avatarUrl,
+    required String operation,
+  }) async {
+    final normalizedUrl = avatarUrl?.trim();
+    if (normalizedUrl == null || normalizedUrl.isEmpty) return;
+
+    final path = _storageGateway.ownedPathFromPublicUrl(
+      userId: userId,
+      avatarUrl: normalizedUrl,
+    );
+    if (path == null) return;
+
+    try {
+      await _storageGateway.remove(path: path);
+    } catch (error, stackTrace) {
+      developer.log(
+        'Avatar Storage cleanup failed: $operation',
+        name: 'SupabaseProfileAvatarRepository',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   String _requireUserId() {
