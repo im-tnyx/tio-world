@@ -2,7 +2,10 @@
 
 ## Status
 
-**AUDIT COMPLETE / IMPLEMENTATION REQUIRED.**
+**COMPLETE / FROZEN.**
+
+Owner tracker: #5 P1 item 14.
+Implementation PR: #50 (Draft/open/unmerged).
 
 Fresh audit head:
 
@@ -10,126 +13,122 @@ Fresh audit head:
 1e4702215dfbbedd14d83766ce09e611e378dd15
 ```
 
-Owner tracker: #5 P1 item 14.
+Accepted source/test checkpoint:
+
+```text
+8f91280634cfc3cf5002ee8c00b0df45df23f0fd
+Flutter CI #1945 / run 32827016471 ✅
+Android Native CI #357 / run 32827016528 ✅
+```
+
+This accepted head includes the completed item 14 implementation plus the later item 15 Splash-only hardening. Item 14's implementation boundary remains the commits and files documented below; the later Splash work does not change the deletion contract.
 
 ## Goal
 
 Make Delete Account failure-safe and complete across Supabase Storage, Postgres/Auth ownership, local session cleanup, and navigation without false success or destructive test-data shortcuts.
 
-## Fresh findings
+## Historical audit findings
 
-### Live backend state
+At audit time, live `public.delete_user_account()` was absent. The repository's historical `20260815000003_delete_user_account_rpc.sql` also attempted direct `DELETE FROM storage.objects`, which is not a safe Supabase Storage deletion lifecycle because physical objects must be removed through the Storage API.
 
-Connected project `oykupyiitspujzpwwvuj` currently has no `public.delete_user_account()` function.
-
-Live FK audit shows the intended cascade graph already exists:
+The live FK graph already supported one authenticated Auth-root delete:
 - `public.users.id -> auth.users.id ON DELETE CASCADE`;
-- `user_devices`, `onboarding_drafts`, nutrition/workout profile rows also reference `auth.users` with `ON DELETE CASCADE`;
+- `user_devices`, `onboarding_drafts`, nutrition/workout profile rows reference `auth.users` with `ON DELETE CASCADE`;
 - Body/Profile/App Preferences/Wellness/Nutrition Targets/Workout Targets reference `public.users` with `ON DELETE CASCADE`.
 
-Therefore database deletion can be one authenticated `auth.users` delete and should not manually enumerate current canonical tables.
+All current live identities/rows are user-owned testing data and were explicitly protected from destructive acceptance shortcuts.
 
-### Historical migration is unsafe to deploy
-
-Repository migration `20260815000003_delete_user_account_rpc.sql` is not live and directly executes `DELETE FROM storage.objects`.
-
-Current Supabase Storage guidance requires object deletion through the Storage API `remove`; direct SQL metadata deletion can orphan physical files. Do not edit the historical migration; supersede it with a new forward migration.
-
-### Current app/backend boundary
-
-`SupabaseAccountDeletionRepository.deleteCurrentAccount()` currently calls RPC `delete_user_account` only.
-
-Current router callback then signs out and navigates immediately after repository completion.
-
-Current delete overlay:
-- correctly does not show `Account Deleted` until the callback returns;
-- still allows Close / Keep Account / system Back while deletion is in flight;
-- dismisses the overlay on backend failure instead of preserving a recoverable retry state;
-- has no explicit duplicate-submit regression.
-
-### Session semantics
-
-Deleting `auth.users` cascades Auth session rows, but an already-issued JWT can remain cryptographically valid until expiry. Client local auth state must therefore be cleared after confirmed server deletion; no success navigation is allowed before server deletion succeeds.
-
-### Test-data guardrail
-
-All current live user rows/identities are user-owned testing data. No existing test identity may be deleted merely to validate this slice.
-
-## Architecture
+## Final architecture
 
 ### A. Storage cleanup owner
 
-Before irreversible Auth deletion, the client account-deletion repository must remove the current user's owned objects from every currently supported user-owned Storage bucket via the Supabase Storage API.
+`SupabaseAccountDeletionRepository` removes the authenticated user's owned objects through the Supabase Storage API before irreversible account deletion.
 
 Current owned bucket in scope: `avatars`.
 
 - list only the authenticated user's folder;
 - remove returned object paths through Storage API;
-- Storage cleanup failure is a deletion failure: do not proceed to Auth deletion and do not show success;
-- an empty/missing user folder is success;
-- do not delete external/provider URLs directly.
-
-Future user-media buckets must be added deliberately to the repository-owned bucket list when introduced.
+- Storage cleanup failure stops the flow before the RPC;
+- empty/missing owned folders are success;
+- external/provider URLs are not treated as owned Storage paths.
 
 ### B. Database/Auth deletion owner
 
-Create a new forward migration that defines `public.delete_user_account()` as a tightly scoped `SECURITY DEFINER` RPC:
-- require `auth.uid()`;
-- delete only `auth.users.id = auth.uid()`;
-- rely on reviewed FK cascades for public/domain/Auth child rows;
-- no Storage SQL;
-- `search_path = ''`;
-- revoke PUBLIC/anon; grant authenticated only;
-- verify the delete affected exactly one Auth row or fail.
+Forward-only live migrations:
+
+```text
+20260825074245 create_delete_user_account_rpc
+20260825074318 restrict_delete_user_account_rpc_execute
+```
+
+`public.delete_user_account()` now:
+- is `SECURITY DEFINER` with `search_path = ''`;
+- requires the authenticated `auth.uid()` identity;
+- deletes only `auth.users.id = auth.uid()`;
+- relies on reviewed FK cascades for canonical child rows;
+- contains no Storage SQL;
+- is executable by `authenticated` and the owning `postgres` role, not `anon` or `service_role`.
 
 ### C. UI lifecycle
 
-- block system Back, top Close, Keep Account, and duplicate destructive interaction while `_isDeleting`;
-- on backend failure, stay on the destructive step with a visible recoverable error and allow retry/cancel afterward;
-- only transition to `Account Deleted` after Storage + RPC succeed;
-- completed Close returns `true` to Account Settings.
+- system Back, top Close, Keep Account, and duplicate destructive interaction are blocked while deletion is in flight;
+- backend failure remains on the destructive step with recoverable error feedback;
+- `Account Deleted` is shown only after Storage cleanup + RPC success;
+- the 5-second hold starts deterministically on raw pointer down and resets on pointer up/cancel.
 
 ### D. Local finalization/navigation
 
-The destructive callback owns server deletion only.
+The destructive callback owns server deletion only. After confirmed overlay success:
+- local Supabase session cleanup is best-effort;
+- bootstrap is forced unauthenticated and user-scoped state is invalidated;
+- navigation to Auth has one owner and happens exactly once;
+- server deletion failure never signs out/navigates as fake success.
 
-After the overlay returns `deleted == true`, Account Settings/router finalization must:
-- clear local Supabase session best-effort;
-- refresh/clear bootstrap and user-scoped app state;
-- navigate to Auth exactly once;
-- never sign out/navigate on server deletion failure.
+## Implementation evidence
 
-## Implementation scope
+- [x] Storage API cleanup added to `SupabaseAccountDeletionRepository`.
+- [x] Repository regressions cover signed-out, empty folder, cleanup failure, RPC failure, and ordering.
+- [x] Forward-only replacement RPC migrations added; historical applied/legacy migration was not edited.
+- [x] Live RPC deployed and verified without deleting an existing identity.
+- [x] Supabase security/performance advisors reviewed after DDL.
+- [x] Delete overlay hardened for in-flight controls, Back handling, retry state, and duplicate submission.
+- [x] Focused destructive-flow widget regressions added.
+- [x] Post-delete sign-out/bootstrap/navigation moved behind confirmed success.
+- [x] Raw pointer lifecycle makes the 5-second hold deterministic.
+- [x] Exact-head Flutter/Dart + Android CI green.
 
-- [ ] Add Storage API cleanup to `SupabaseAccountDeletionRepository`.
-- [ ] Add focused repository tests for signed-out, empty folder, cleanup failure, RPC failure, and ordering.
-- [ ] Add forward-only replacement RPC migration; do not edit `20260815000003`.
-- [ ] Apply/verify live migration without deleting an existing user.
-- [ ] Run Supabase security/performance advisors after DDL.
-- [ ] Harden delete overlay in-flight controls, Back handling, retry failure state, and duplicate submission.
-- [ ] Add focused widget regressions.
-- [ ] Move sign-out/navigation finalization to confirmed overlay success path.
-- [ ] Exact-head Flutter/Dart + Android CI.
+## Live verification
 
-## Out of scope
+Final read-only verification:
 
-- Deleting any current live test identity for acceptance.
-- Bulk historical Storage orphan sweeper.
-- Future meal/workout/progress media buckets that do not yet exist.
-- General Auth provider linking/recovery (#34).
-- Visual redesign of the delete flow.
+```text
+auth.users                         4
+public.users                       4
+public.delete_user_account()       exists
+SECURITY DEFINER                   true
+search_path                        ''
+EXECUTE                            authenticated, postgres
+anon EXECUTE                       no
+service_role EXECUTE               no
+```
+
+All four existing live test identities remained intact throughout acceptance.
+
+The Supabase security advisor flags authenticated access to a `SECURITY DEFINER` function as a generic warning. For this RPC the authenticated call surface is intentional: the function itself binds deletion to `auth.uid()` and deletes only that same Auth UUID. The existing username SECURITY DEFINER warnings, leaked-password-protection warning, RLS init-plan notices, and unused-index notices remain separate #5/config hardening debt and were not expanded into this slice.
 
 ## Acceptance
 
-- [ ] Failed Storage cleanup never deletes Auth/DB account data and never shows success.
-- [ ] Failed RPC never signs out/navigates/shows `Account Deleted`.
-- [ ] Successful server deletion uses FK cascades and no Storage SQL.
-- [ ] In-flight deletion cannot be dismissed/backed out or submitted twice.
-- [ ] Failure remains recoverable in-place.
-- [ ] Confirmed success clears local auth state and navigates exactly once.
-- [ ] Existing live test identities remain untouched.
-- [ ] Live RPC exists with restricted grants and secure search path.
-- [ ] Exact-SHA CI green.
+- [x] Failed Storage cleanup never proceeds to Auth/DB deletion and never shows success.
+- [x] Failed RPC never signs out/navigates/shows `Account Deleted`.
+- [x] Successful server-deletion contract uses reviewed FK cascades and no Storage SQL.
+- [x] In-flight deletion cannot be dismissed/backed out or submitted twice.
+- [x] Failure remains recoverable in-place.
+- [x] Confirmed success clears local auth/bootstrap state and navigates exactly once.
+- [x] Existing live test identities remain untouched.
+- [x] Live RPC exists with restricted grants and secure empty search path.
+- [x] Exact-SHA CI green.
+
+A destructive live-disposable identity was intentionally not created/deleted during acceptance because the current live identities are protected user testing data. Code, database contract, non-destructive live verification, and regression coverage are frozen; any future disposable-environment destructive smoke test must not reuse these identities.
 
 ## Guardrails
 
