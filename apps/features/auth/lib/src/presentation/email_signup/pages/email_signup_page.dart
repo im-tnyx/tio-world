@@ -162,6 +162,15 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
+    final isDark = colors.isDark;
+
+    final inputBorderRadius = BorderRadius.circular(TioRadius.lg);
+    final inputBorderColor = colors.outlineStrong.withValues(
+      alpha: isDark
+          ? TioInputTokens.darkUnfocusedOutlineOpacity
+          : TioInputTokens.lightUnfocusedOutlineOpacity,
+    );
+    final inputFocusedBorderColor = colors.textPrimary;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -214,105 +223,75 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: TioSpacing.lg),
-                        TextField(
+                        TextFormField(
                           key: const ValueKey('signup-email-input'),
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.next,
                           enabled: !_isBusy,
-                          style: TextStyle(color: colors.textPrimary),
+                          style: textTheme.bodyLarge,
+                          cursorColor: colors.primary,
                           decoration: InputDecoration(
                             labelText: 'Email',
-                            hintText: 'Enter your email',
-                            prefixIcon: Icon(
-                              Icons.email_outlined,
-                              color: colors.textMuted,
-                              size: TioSize.dp20,
-                            ),
-                            labelStyle: TextStyle(color: colors.textMuted),
-                            hintStyle: TextStyle(
-                              color: colors.textMuted.withValues(
-                                alpha: TioOpacity.opacity60,
-                              ),
+                            labelStyle: textTheme.bodyMedium,
+                            floatingLabelStyle: textTheme.bodyMedium?.copyWith(
+                              color: colors.textPrimary,
+                              fontWeight: TioFontWeight.w500,
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: TioInputTokens.horizontalPadding,
-                              vertical: TioSize.dp14,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(TioRadius.lg),
-                              borderSide: BorderSide(
-                                color: colors.outlineStrong.withValues(
-                                  alpha: TioOpacity.opacity40,
-                                ),
-                              ),
+                              vertical:
+                                  TioInputTokens.standardContentVerticalPadding,
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(TioRadius.lg),
+                              borderRadius: inputBorderRadius,
                               borderSide: BorderSide(
-                                color: colors.outlineStrong.withValues(
-                                  alpha: TioOpacity.opacity40,
-                                ),
+                                color: inputBorderColor,
+                                width: TioStroke.width12,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(TioRadius.lg),
+                              borderRadius: inputBorderRadius,
                               borderSide: BorderSide(
-                                color: colors.primary,
-                                width: TioStroke.width2,
+                                color: inputFocusedBorderColor,
+                                width: TioStroke.width18,
                               ),
                             ),
                             filled: false,
                           ),
                         ),
                         const SizedBox(height: TioSpacing.lg),
-                        TextField(
+                        TextFormField(
                           key: const ValueKey('signup-password-input'),
                           controller: _passwordController,
                           obscureText: !_isPasswordVisible,
                           textInputAction: TextInputAction.done,
                           enabled: !_isBusy,
-                          style: TextStyle(color: colors.textPrimary),
-                          onSubmitted: (_) => _handleSignUp(),
+                          style: textTheme.bodyLarge,
+                          cursorColor: colors.primary,
+                          onFieldSubmitted: (_) => _handleSignUp(),
                           decoration: InputDecoration(
-                            labelText: 'Password',
-                            hintText: 'At least 6 characters',
-                            prefixIcon: Icon(
-                              Icons.lock_outline,
+                            hintText: 'Password',
+                            hintStyle: textTheme.bodyLarge?.copyWith(
                               color: colors.textMuted,
-                              size: TioSize.dp20,
-                            ),
-                            labelStyle: TextStyle(color: colors.textMuted),
-                            hintStyle: TextStyle(
-                              color: colors.textMuted.withValues(
-                                alpha: TioOpacity.opacity60,
-                              ),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: TioInputTokens.horizontalPadding,
-                              vertical: TioSize.dp14,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(TioRadius.lg),
-                              borderSide: BorderSide(
-                                color: colors.outlineStrong.withValues(
-                                  alpha: TioOpacity.opacity40,
-                                ),
-                              ),
+                              vertical:
+                                  TioInputTokens.standardContentVerticalPadding,
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(TioRadius.lg),
+                              borderRadius: inputBorderRadius,
                               borderSide: BorderSide(
-                                color: colors.outlineStrong.withValues(
-                                  alpha: TioOpacity.opacity40,
-                                ),
+                                color: inputBorderColor,
+                                width: TioStroke.width12,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(TioRadius.lg),
+                              borderRadius: inputBorderRadius,
                               borderSide: BorderSide(
-                                color: colors.primary,
-                                width: TioStroke.width2,
+                                color: inputFocusedBorderColor,
+                                width: TioStroke.width18,
                               ),
                             ),
                             suffixIcon: IconButton(
