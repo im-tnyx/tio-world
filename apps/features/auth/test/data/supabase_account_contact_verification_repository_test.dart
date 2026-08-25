@@ -186,7 +186,11 @@ class FakeContactGoTrueClient extends Fake implements GoTrueClient {
   }) async {
     updatedEmail = attributes.email;
     updatedPhone = attributes.phone;
-    return UserResponse(user: currentUser);
+    final user = currentUser;
+    if (user == null) {
+      throw StateError('test requires a current user');
+    }
+    return UserResponse.fromJson(user.toJson());
   }
 
   @override
