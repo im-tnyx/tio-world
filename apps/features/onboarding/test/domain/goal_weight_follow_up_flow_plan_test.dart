@@ -113,7 +113,7 @@ void main() {
           previousPlan: previousPlan,
           nextPlan: nextPlan,
         ),
-        ProfileStepId.currentWeight,
+        ProfileStepId.goal,
       );
     }
   });
