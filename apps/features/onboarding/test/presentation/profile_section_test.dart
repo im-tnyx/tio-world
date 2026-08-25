@@ -131,7 +131,7 @@ void main() {
     expect(harness.controller.state.draft.profile.name, 'Tio User');
   });
 
-  testWidgets('health Other stays typed and final Profile step enters Body Goal',
+  testWidgets('final Profile step enters Current Weight then Goal',
       (tester) async {
     final harness = await _pumpProfile(
       tester,
@@ -160,7 +160,19 @@ void main() {
     expect(harness.controller.state.stepId, OnboardingStepId.bodyGoal);
     expect(harness.controller.state.currentSection, OnboardingSectionId.bodyGoal);
     expect(find.byType(BodyGoalSection), findsOneWidget);
+    expect(find.text('What is your current weight?'), findsOneWidget);
+    expect(
+      harness.controller.state.draft.profile.currentStepId,
+      ProfileStepId.currentWeight,
+    );
+
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
     expect(find.text('What do you want to achieve?'), findsOneWidget);
+    expect(
+      harness.controller.state.draft.profile.currentStepId,
+      ProfileStepId.goal,
+    );
   });
 
   testWidgets('common Profile subprogress has deterministic accessible semantics',
