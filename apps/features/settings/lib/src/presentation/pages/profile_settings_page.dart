@@ -85,21 +85,17 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
   String _formattedHeight() {
     if (_heightUnit == 'cm') {
       return '${_heightCm.toStringAsFixed(0)} cm';
-    } else {
-      final totalInches = _heightCm / 2.54;
-      final feet = (totalInches / 12).floor();
-      final inches = (totalInches % 12).round();
-      return "$feet' $inches\"";
     }
+    final display = MeasurementConverters.cmToFeetInches(_heightCm);
+    return "${display.feet}' ${display.inches}\"";
   }
 
   String _formattedWeight() {
     if (_weightUnit == 'kg') {
       return '${_weightKg.toStringAsFixed(1)} kg';
-    } else {
-      final lbs = _weightKg * 2.20462;
-      return '${lbs.toStringAsFixed(1)} lbs';
     }
+    final pounds = MeasurementConverters.kgToLb(_weightKg);
+    return '${pounds.toStringAsFixed(1)} lbs';
   }
 
   Future<void> _triggerAvatarActionSheet(
