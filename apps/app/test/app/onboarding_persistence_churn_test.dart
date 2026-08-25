@@ -34,6 +34,26 @@ void main() {
       controller.dispose();
     });
 
+    test('already-persisted in-progress status does not rewrite on edit',
+        () async {
+      final statusRepository = _RecordingStatusRepository(
+        initialStatus: OnboardingStatus.inProgress,
+      );
+      final controller = AppOnboardingController(
+        entryPath: OnboardingEntryPath.resumeDraft,
+        initialDraft: OnboardingDraft(status: OnboardingStatus.inProgress),
+        localDraftStore: _MemoryLocalDraftStore(),
+        statusRepository: statusRepository,
+      );
+
+      controller.updateProfileName('Resume edit');
+      await _drainAsyncWork();
+
+      expect(statusRepository.readCalls, 1);
+      expect(statusRepository.writes, isEmpty);
+      controller.dispose();
+    });
+
     test('failed in-progress status write retries on a later edit', () async {
       final statusRepository = _RecordingStatusRepository(failNextWrite: true);
       final controller = AppOnboardingController(
@@ -107,22 +127,30 @@ Future<void> _drainAsyncWork() async {
 }
 
 class _RecordingStatusRepository implements OnboardingStatusRepository {
-  _RecordingStatusRepository({this.failNextWrite = false});
+  _RecordingStatusRepository({
+    this.initialStatus,
+    this.failNextWrite = false,
+  });
 
+  OnboardingStatus? initialStatus;
   bool failNextWrite;
+  int readCalls = 0;
   final List<OnboardingStatus> writes = [];
 
   @override
-  Future<void> clear() async {}
+  Future<void> clear() async {
+    initialStatus = null;
+  }
 
   @override
   Future<void> ensureInitialized() async {}
 
   @override
   Future<OnboardingStatusSnapshot> read() async {
-    return const OnboardingStatusSnapshot(
-      status: null,
-      hasStoredContractVersion: false,
+    readCalls++;
+    return OnboardingStatusSnapshot(
+      status: initialStatus,
+      hasStoredContractVersion: initialStatus != null,
     );
   }
 
@@ -133,6 +161,7 @@ class _RecordingStatusRepository implements OnboardingStatusRepository {
       failNextWrite = false;
       throw StateError('status write failed');
     }
+    initialStatus = status;
   }
 }
 
