@@ -33,14 +33,14 @@ class GoalIntentScreen extends StatelessWidget {
           title: 'What do you want to achieve?',
           subtitle: mode == AppMode.nutrition
               ? 'Choose your main goal.'
-              : 'Choose what fits you. Select up to two training goals.',
+              : 'Choose your focus. Add up to two training goals.',
         ),
         const SizedBox(height: TioSpacing.lg),
         for (final goal in goals) ...[
           GoalChoiceCard(
             id: 'goal-intent-${goal.name}',
-            title: _title(goal),
-            description: _description(goal),
+            title: _title(mode, goal),
+            description: _description(mode, goal),
             svgAsset: _svgAsset(goal),
             isSelected: selection.contains(goal),
             onTap: () {
@@ -66,8 +66,9 @@ class GoalIntentScreen extends StatelessWidget {
   }
 }
 
-String _title(GoalIntent goal) => switch (goal) {
-      GoalIntent.loseWeight => 'Lose weight',
+String _title(AppMode mode, GoalIntent goal) => switch (goal) {
+      GoalIntent.loseWeight =>
+        mode == AppMode.nutrition ? 'Lose weight' : 'Fat Loss',
       GoalIntent.gainWeight => 'Gain weight',
       GoalIntent.maintainWeight => 'Maintain weight',
       GoalIntent.recomposition => 'Recomposition',
@@ -77,8 +78,10 @@ String _title(GoalIntent goal) => switch (goal) {
       GoalIntent.stayFit => 'Keep fit',
     };
 
-String _description(GoalIntent goal) => switch (goal) {
-      GoalIntent.loseWeight => 'Reduce body weight and body fat',
+String _description(AppMode mode, GoalIntent goal) => switch (goal) {
+      GoalIntent.loseWeight => mode == AppMode.nutrition
+          ? 'Reduce body weight and body fat'
+          : 'Reduce body fat while supporting lean mass',
       GoalIntent.gainWeight => 'Gain body weight gradually and healthily',
       GoalIntent.maintainWeight => 'Keep your current weight stable',
       GoalIntent.recomposition => 'Lose fat and build lean mass',
