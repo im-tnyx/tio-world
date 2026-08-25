@@ -29,8 +29,10 @@ void main() {
     final hold = await tester.startGesture(
       tester.getCenter(find.byKey(const ValueKey('hold_to_delete_button'))),
     );
+    // Resolve onTapDown before advancing the five-second hold animation.
+    await tester.pump(const Duration(milliseconds: 150));
     await tester.pump(const Duration(seconds: 5));
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump();
     await hold.up();
     await tester.pumpAndSettle();
   }
