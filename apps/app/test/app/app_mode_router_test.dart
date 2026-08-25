@@ -516,7 +516,16 @@ Future<void> _completeProfileInputs(WidgetTester tester) async {
       warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  // Canonical Body Goal section starts after common Profile.
+  // Canonical Body Goal starts with Current Weight after common Profile.
+  onboardingController.updateProfileCurrentWeight(70.0);
+  await tester.pump();
+
+  // Current Weight -> Goal.
+  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
+      warnIfMissed: false);
+  await tester.pumpAndSettle();
+
+  // Hybrid presents the compatibility loseWeight intent as Fat Loss.
   await tester.tap(
     find.byKey(const ValueKey('goal-intent-loseWeight'), skipOffstage: false),
     warnIfMissed: false,
@@ -526,15 +535,8 @@ Future<void> _completeProfileInputs(WidgetTester tester) async {
       warnIfMissed: false);
   await tester.pumpAndSettle();
 
-  onboardingController
-    ..updateProfileCurrentWeight(70.0)
-    ..updateProfileTargetWeight(65.0);
+  onboardingController.updateProfileTargetWeight(65.0);
   await tester.pump();
-
-  // Current Weight -> Target Weight.
-  await tester.tap(find.widgetWithText(TioButton, 'Continue'),
-      warnIfMissed: false);
-  await tester.pumpAndSettle();
 
   // Target Weight -> Goal Pace.
   await tester.tap(find.widgetWithText(TioButton, 'Continue'),
