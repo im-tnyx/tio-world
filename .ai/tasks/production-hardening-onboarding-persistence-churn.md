@@ -1,31 +1,34 @@
 # Production Hardening — Onboarding Persistence Churn
 
-**Status:** In progress
+**Status:** Complete / frozen
 **Primary owner:** Product Onboarding / production hardening #5 item 18
-**Affected platforms:** Flutter phone app; storage-neutral onboarding persistence
+**Affected platforms:** Flutter phone app; app-owned onboarding persistence composition
 
 ## Global UI / Design-System Guardrail
 
-No visual change is authorized by this task. Preserve current onboarding rendering, navigation, copy, geometry, and design-system behavior.
+No visual change was authorized or made. Current onboarding rendering, navigation, copy, geometry, and design-system behavior remain unchanged.
 
 ## 1. Discovery
 
 ### User Outcome
 
-Keep unfinished onboarding durable and resume-safe without issuing redundant status writes or allowing overlapping draft saves to persist stale snapshots out of order.
+Keep unfinished onboarding durable and resume-safe without redundant status writes or overlapping draft saves that can persist stale snapshots out of order.
 
 ### Success Criteria
 
-- `OnboardingStatus.inProgress` is persisted only when the draft actually transitions into in-progress state, not on every field edit.
-- Draft writes remain debounced for ordinary edits and immediate for navigation/branch transitions.
-- Draft repository writes are serialized so an older request cannot complete after and overwrite a newer snapshot.
-- A save failure retains the current in-memory draft and retries only after a later user change, preserving accepted O8D behavior.
-- O8/O9 furthest-valid resume, edit-back, completion, retry, and idempotency contracts remain unchanged.
+- `OnboardingStatus.inProgress` is not rewritten when already durably persisted.
+- Failed status persistence remains retryable on a later user edit.
+- Existing 300 ms ordinary-edit debounce and immediate navigation/branch saves are preserved.
+- Production draft repository calls are serialized so an older request cannot complete after and overwrite a newer snapshot.
+- Existing O8/O9 furthest-valid resume, edit-back, failure recovery, completion ordering, retry, and idempotency contracts remain unchanged.
 
-### Scope
+### Final Scope
 
-- `apps/features/onboarding/lib/src/presentation/controllers/onboarding_controller.dart`
-- focused persistence/controller tests only
+- `apps/app/lib/app/onboarding/app_onboarding_controller.dart`
+- `apps/app/test/app/onboarding_persistence_churn_test.dart`
+- this task brief
+
+The storage-neutral feature `OnboardingController` scheduler was intentionally left unchanged. Production already replaces it with the app-owned `AppOnboardingController`, so the hardening was composed at that production boundary instead of broadening the feature controller contract.
 
 ### Non-Goals
 
@@ -40,102 +43,134 @@ Keep unfinished onboarding durable and resume-safe without issuing redundant sta
 
 ### Verified Evidence
 
-- Source/config inspected:
-  - `OnboardingController` at audit head `a76ec4502395296f6ee4b47c5564c6a8def088c8`;
-  - `SupabaseOnboardingDraftRepository`;
-  - `OnboardingStatusRepository`;
-  - `onboarding_controller_draft_persistence_test.dart`;
-  - O8D autosave/failure acceptance remains an authoritative regression boundary.
-- Existing pattern to follow:
-  - 300 ms debounce for ordinary draft edits;
-  - immediate draft persistence for navigation/branch changes;
-  - failed saves retain in-memory truth and retry on a later edit.
-- Tests or validation already present:
-  - hydration race protection;
-  - immediate mode-selection save;
-  - save failure preserves in-memory answers;
-  - O8D failure recovery and historical-provenance acceptance.
+Audit predecessor:
+
+```text
+a76ec4502395296f6ee4b47c5564c6a8def088c8
+```
+
+Inspected:
+- feature `OnboardingController` scheduling/status behavior;
+- production `AppOnboardingController` override in `apps/app/lib/main.dart`;
+- `OnboardingStatusRepository` and SharedPreferences implementation;
+- `OnboardingDraftRepository`, Supabase/Auth-aware production composition;
+- existing controller draft-persistence tests;
+- O8D autosave failure-recovery acceptance.
+
+Existing semantics retained:
+- 300 ms debounce for ordinary edits;
+- immediate saves for navigation/branch transitions;
+- failed draft saves preserve current in-memory truth;
+- later user edits can retry persistence.
 
 ### Reproducible Findings
 
-1. `_markInProgress()` calls `_persistInProgress()` on every invocation even when `state.draft.status` is already `OnboardingStatus.inProgress`. Most field update methods call `_markInProgress()`, so ordinary editing creates redundant status-store writes.
-2. `_scheduleDraftSave(immediate: true)` can start `_flushDraftSave()` while an older save is still in flight. The revision counters prevent some duplicate starts but do not serialize repository calls. If the older network request completes last, it can overwrite the newer row with stale draft state.
+1. Base `_markInProgress()` invokes status persistence for every edit even after local state is already `inProgress`; the production repository boundary had no dedupe, so repeated edits caused repeated durable writes.
+2. Multiple immediate `_flushDraftSave()` calls could reach the production repository concurrently. Revision counters prevent some duplicate starts but do not prevent an older network request from finishing after a newer save and overwriting it.
 
 ## 3. Clarification
 
-### Decisions Required or Made
-
-| Decision | Status | Rationale | Owner |
-|---|---|---|---|
-| Persist in-progress status only on state transition | Made | Status is bootstrap metadata, not an edit journal | Onboarding |
-| Serialize draft writes at controller boundary | Made | Repository is storage-neutral and should receive ordered semantic snapshots | Onboarding |
-| Preserve debounce/immediate call sites | Made | Existing resume/navigation durability semantics are already accepted | O8/O9 |
-| Do not auto-loop after save failure | Made | O8D requires retry on later edit, not uncontrolled background retry | O8D |
+| Decision | Result | Rationale |
+|---|---|---|
+| Harden the app-owned production composition | Accepted | `main.dart` already overrides the feature controller with `AppOnboardingController` |
+| Check persisted status before first dedupe decision | Accepted | hydrated `inProgress` resume must not cause one unnecessary rewrite per controller instance |
+| Serialize production draft repository operations | Accepted | preserves existing scheduler call sites while eliminating stale completion ordering |
+| Preserve failure retry semantics | Accepted | failed status/draft persistence must not be memoized as success |
+| No automatic retry loop | Accepted | avoids outage spin and preserves O8D later-edit retry behavior |
 
 ## 4. Architecture Design
 
-### Chosen Approach
-
-Keep the current scheduling semantics but replace parallel `_flushDraftSave(revision)` calls with a single drain worker. The worker saves the latest pending revision, then checks whether a newer revision arrived while it was in flight. It continues serially on success. On failure it exits and leaves the pending revision unsaved until a later `_scheduleDraftSave()` call restarts the worker.
-
-### Ownership and Data Flow
+### Accepted Approach
 
 ```text
 Onboarding UI
-  -> OnboardingController
-     -> transition-only OnboardingStatusRepository.write(inProgress)
-     -> debounce/immediate draft scheduler
-        -> single serialized draft-save worker
-           -> OnboardingDraftRepository
-              -> Supabase onboarding_drafts
+  -> feature OnboardingController scheduler (unchanged)
+  -> production AppOnboardingController composition
+     -> _DeduplicatingOnboardingStatusRepository
+        -> SharedPreferencesOnboardingStatusRepository
+     -> _SerializingOnboardingDraftRepository
+        -> Auth-aware / Supabase draft repository
 ```
 
-### Alternative Rejected
+`_DeduplicatingOnboardingStatusRepository`:
+- lazily reads the currently persisted status before the first write decision;
+- suppresses an already-durable identical status;
+- shares an identical in-flight status operation;
+- records success only after the delegate succeeds;
+- permits a later edit to retry after read/write failure.
 
-- repository-level last-write-wins timestamps/revisions: would expand storage contract/schema concerns unnecessarily;
-- removing immediate saves: would weaken accepted resume checkpoints;
-- automatic retry loop after failure: could spin under outage and changes O8D semantics.
+`_SerializingOnboardingDraftRepository`:
+- queues save/clear operations in mutation order;
+- never allows two delegate writes from one live app controller to overlap;
+- surfaces each operation's failure to the existing feature controller handling;
+- keeps the internal queue usable after a failed operation.
 
-### Failure and Accessibility States
+### Rejected Alternatives
 
-No visual/accessibility state changes. Draft save failure remains non-destructive and silent at this boundary, with in-memory state retained for the next edit retry.
+- schema revision/timestamp conflict machinery: unnecessary storage-contract expansion;
+- removing immediate saves: weakens accepted resume durability;
+- changing base flow/navigation scheduler semantics: broader than the reproducible production issue;
+- automatic background retry loops: changes accepted failure-recovery behavior.
 
-## 5. Implementation Plan
+## 5. Implementation
 
-- [ ] gate `_persistInProgress()` behind the actual local transition to `inProgress`;
-- [ ] serialize draft saves with one in-flight drain worker;
-- [ ] preserve 300 ms debounce and immediate navigation saves;
-- [ ] add regression proving repeated edits produce one in-progress status write;
-- [ ] add regression proving a newer immediate snapshot cannot overlap an older save;
-- [ ] keep existing save-failure/recovery tests green;
-- [ ] run focused/full Flutter/Dart + Android exact-SHA CI before freeze.
+- [x] production status persistence deduplicates repeated `inProgress` writes;
+- [x] already-persisted `inProgress` is detected without rewriting;
+- [x] failed status persistence can retry on a later edit;
+- [x] production draft writes are serialized in mutation order;
+- [x] 300 ms debounce and immediate-save call sites preserved;
+- [x] focused regressions added;
+- [x] no UI/navigation/schema/ownership changes.
 
 ## 6. Quality Review
 
-### Validation Run
+### Exact Accepted Runtime Checkpoint
 
 ```text
-Not run yet.
+cf7ed40bb3942646d0cfa23f04ed2fa16b3d9aa0
+Flutter CI #1965 / run 32841098222 ✅
+Android Native CI #377 / run 32841098217 ✅
+
+Flutter analyze ✅
+Dart analyze    ✅
+Flutter tests   ✅
+Dart tests      ✅
+Android debug APK/native compile ✅
 ```
 
-### Review Findings and Resolution
+The earlier `f40a076811542d9eaa16fb7997c9359546f74eb1` candidate failed only the `use_super_parameters` analyzer lint and was not accepted.
 
-Audit found two current-head persistence issues. Implementation is bounded to controller scheduling/status writes.
+Focused regression file:
+
+```text
+apps/app/test/app/onboarding_persistence_churn_test.dart
+```
+
+Coverage locks:
+- repeated edits produce one successful `inProgress` write;
+- already-persisted `inProgress` produces zero rewrite;
+- failed status write retries on a later edit;
+- a second immediate draft save waits behind a blocked first save and preserves mutation order.
 
 ## 7. Final Handoff
 
-### Changed Files
+### Changed Runtime Files
 
-Pending.
+```text
+apps/app/lib/app/onboarding/app_onboarding_controller.dart
+apps/app/test/app/onboarding_persistence_churn_test.dart
+```
 
 ### Actual Behavior
 
-Pending.
+Production phone onboarding now removes redundant status churn and stale overlapping draft-save risk without changing Product Onboarding state semantics, flow, visuals, or database ownership.
 
 ### Known Limitations
 
-No offline queue or cross-device merge is introduced; this task only orders writes generated by one live controller instance.
+No offline queue or cross-device merge algorithm is introduced. Serialization is intentionally scoped to writes generated by one live production app-controller instance; Supabase remains the durable owner under the existing Auth-aware repository contract.
 
 ### Final Status
 
-`PARTIAL`
+`PASS / COMPLETE / FROZEN`
+
+This task/tracker-only closeout commit does not replace the exact accepted runtime checkpoint `cf7ed40bb3942646d0cfa23f04ed2fa16b3d9aa0` above.
