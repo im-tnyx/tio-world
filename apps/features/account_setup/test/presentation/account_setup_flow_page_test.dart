@@ -107,17 +107,27 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('account-setup-mobile-info')));
     await tester.pumpAndSettle();
 
-    expect(
-      find.byKey(const ValueKey('account-setup-mobile-info-sheet')),
-      findsOneWidget,
-    );
+    final sheet = find.byKey(const ValueKey('account-setup-mobile-info-sheet'));
+    expect(sheet, findsOneWidget);
     expect(
       find.text('Why we ask for your mobile number'),
       findsOneWidget,
     );
-    expect(find.textContaining('account recovery'), findsOneWidget);
-    expect(find.textContaining('future verification'), findsOneWidget);
-    expect(find.textContaining('Account Settings'), findsOneWidget);
+    expect(
+      find.descendant(of: sheet, matching: find.textContaining('account recovery')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: sheet,
+        matching: find.textContaining('future verification'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: sheet, matching: find.textContaining('Account Settings')),
+      findsOneWidget,
+    );
 
     await tester.tap(
       find.byKey(const ValueKey('account-setup-mobile-info-close')),
