@@ -395,6 +395,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 return true;
               }
 
+              if (!context.mounted) return false;
               final result = await context.push<bool>(AppRoutes.emailSignup.path);
               return result ?? false;
             },
@@ -411,6 +412,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   debugPrint(
                     '[Router] Auth session is not ready. Pushing Signup...',
                   );
+                  if (!context.mounted) return;
                   await context.push<bool>(AppRoutes.emailSignup.path);
                   sessionState = await authRepository.currentSessionState;
                   if (sessionState is! AuthSessionAuthenticated) {
