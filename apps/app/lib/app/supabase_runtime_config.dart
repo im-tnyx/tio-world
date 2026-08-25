@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -83,6 +85,13 @@ final class SupabaseRuntimeConfig {
       );
     }
 
+    if (normalizedLegacyAnonKey.isNotEmpty &&
+        !_isLegacyAnonJwt(normalizedLegacyAnonKey)) {
+      throw StateError(
+        'SUPABASE_ANON_KEY must be a legacy Supabase JWT whose role claim is anon.',
+      );
+    }
+
     final selectedKey = normalizedPublishableKey.isNotEmpty
         ? normalizedPublishableKey
         : normalizedLegacyAnonKey;
@@ -106,12 +115,24 @@ final class SupabaseRuntimeConfig {
   bool get isConfigured => keySource != SupabaseRuntimeKeySource.none;
 }
 
+bool _isLegacyAnonJwt(String key) {
+  final parts = key.split('.');
+  if (parts.length != 3) return false;
+
+  try {
+    final payloadBytes = base64Url.decode(base64Url.normalize(parts[1]));
+    final payload = jsonDecode(utf8.decode(payloadBytes));
+    return payload is Map<String, dynamic> && payload['role'] == 'anon';
+  } catch (_) {
+    return false;
+  }
+}
+
 /// Initializes the global Supabase client when this build is explicitly
 /// configured. Release initialization errors propagate; debug/test harnesses
 /// may remain unconfigured or degrade to their existing no-Supabase fallbacks.
 Future<bool> initializeSupabaseRuntime({
   required SupabaseRuntimeConfig config,
-  bool isRelease = kReleaseMode,
   SupabaseRuntimeInitializer? initializer,
 }) async {
   if (!config.isConfigured) return false;
@@ -131,7 +152,7 @@ Future<bool> initializeSupabaseRuntime({
     );
     return true;
   } catch (_) {
-    if (isRelease) rethrow;
+    if (config.isRelease) rethrow;
     return false;
   }
 }
