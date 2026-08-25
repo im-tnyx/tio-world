@@ -9,8 +9,8 @@ class BodyGoalFlowPlan {
   const BodyGoalFlowPlan({this.steps = orderedSteps});
 
   static const orderedSteps = <ProfileStepId>[
-    ProfileStepId.goal,
     ProfileStepId.currentWeight,
+    ProfileStepId.goal,
     ProfileStepId.targetWeight,
     ProfileStepId.goalPace,
   ];
