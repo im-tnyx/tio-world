@@ -15,6 +15,14 @@ void main() {
       expect(normalizePhoneNumberE164('91 9123456789'), '+919123456789');
     });
 
+    test('verified E.164 and formatted account input stay identical', () {
+      final authValue = normalizePhoneNumberE164('+919123456789');
+      final accountValue = normalizePhoneNumberE164('+91 9123456789');
+
+      expect(accountValue, authValue);
+      expect(accountValue, '+919123456789');
+    });
+
     test('preserves explicit valid international E.164 identity', () {
       expect(
         normalizePhoneNumberE164('+1 (415) 555-2671'),
