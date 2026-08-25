@@ -3,6 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_app/app/network_providers.dart';
 import 'package:tio_app/app/supabase_runtime_config.dart';
 
+const _legacyAnonKey =
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiJ9.signature';
+const _legacyServiceRoleKey =
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.signature';
+
 void main() {
   group('SupabaseRuntimeConfig', () {
     test('debug/test missing config stays explicitly unconfigured', () {
@@ -57,7 +62,7 @@ void main() {
       final config = SupabaseRuntimeConfig.resolve(
         url: ' https://example.supabase.co ',
         publishableKey: ' sb_publishable_primary ',
-        legacyAnonKey: 'legacy-anon-token',
+        legacyAnonKey: _legacyAnonKey,
         isRelease: true,
       );
 
@@ -72,12 +77,12 @@ void main() {
       final config = SupabaseRuntimeConfig.resolve(
         url: 'https://example.supabase.co',
         publishableKey: '',
-        legacyAnonKey: 'legacy-anon-token',
+        legacyAnonKey: _legacyAnonKey,
         isRelease: true,
       );
 
       expect(config.isConfigured, isTrue);
-      expect(config.publishableKey, 'legacy-anon-token');
+      expect(config.publishableKey, _legacyAnonKey);
       expect(config.keySource, SupabaseRuntimeKeySource.legacyAnon);
     });
 
@@ -85,7 +90,7 @@ void main() {
       expect(
         () => SupabaseRuntimeConfig.resolve(
           url: 'https://example.supabase.co',
-          publishableKey: 'legacy-anon-token',
+          publishableKey: _legacyAnonKey,
           legacyAnonKey: '',
           isRelease: false,
         ),
@@ -105,6 +110,18 @@ void main() {
           url: 'https://example.supabase.co',
           publishableKey: '',
           legacyAnonKey: 'sb_secret_never-client',
+          isRelease: false,
+        ),
+        throwsStateError,
+      );
+    });
+
+    test('legacy compatibility rejects non-anon JWT roles', () {
+      expect(
+        () => SupabaseRuntimeConfig.resolve(
+          url: 'https://example.supabase.co',
+          publishableKey: '',
+          legacyAnonKey: _legacyServiceRoleKey,
           isRelease: false,
         ),
         throwsStateError,
@@ -145,7 +162,6 @@ void main() {
 
       final initialized = await initializeSupabaseRuntime(
         config: config,
-        isRelease: false,
         initializer: ({required url, required publishableKey}) async {
           calls += 1;
         },
@@ -167,7 +183,6 @@ void main() {
 
       final initialized = await initializeSupabaseRuntime(
         config: config,
-        isRelease: true,
         initializer: ({required url, required publishableKey}) async {
           receivedUrl = url;
           receivedKey = publishableKey;
@@ -190,7 +205,6 @@ void main() {
 
       final initialized = await initializeSupabaseRuntime(
         config: config,
-        isRelease: false,
         initializer: ({required url, required publishableKey}) async {
           throw StateError('synthetic init failure');
         },
@@ -199,7 +213,8 @@ void main() {
       expect(initialized, isFalse);
     });
 
-    test('release initialization failure propagates', () async {
+    test('release initialization failure propagates from resolved config',
+        () async {
       final config = SupabaseRuntimeConfig.resolve(
         url: 'https://example.supabase.co',
         publishableKey: 'sb_publishable_example',
@@ -210,7 +225,6 @@ void main() {
       await expectLater(
         initializeSupabaseRuntime(
           config: config,
-          isRelease: true,
           initializer: ({required url, required publishableKey}) async {
             throw StateError('synthetic init failure');
           },
