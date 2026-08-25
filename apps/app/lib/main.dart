@@ -17,6 +17,7 @@ import 'app/network_providers.dart';
 import 'app/onboarding/onboarding.dart';
 import 'app/profile/canonical_profile_data_reader.dart';
 import 'app/startup_hydration.dart';
+import 'app/supabase_runtime_config.dart';
 
 void _installSafeDebugPrintPolicy() {
   final upstreamDebugPrint = debugPrint;
@@ -33,33 +34,19 @@ Future<void> main() async {
   _installSafeDebugPrintPolicy();
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
-  const supabaseUrl = String.fromEnvironment(
-    'SUPABASE_URL',
-    defaultValue: 'https://oykupyiitspujzpwwvuj.supabase.co',
+  final supabaseConfig = SupabaseRuntimeConfig.fromEnvironment();
+  final supabaseInitialized = await initializeSupabaseRuntime(
+    config: supabaseConfig,
   );
-  const supabaseAnonKey = String.fromEnvironment(
-    'SUPABASE_ANON_KEY',
-    defaultValue: 'sb_publishable_pVet6gRi6JRZ-dyxrZtDSg_MAZa9mfq',
-  );
-  if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
-    try {
-      await Supabase.initialize(
-        url: supabaseUrl,
-        // ignore: deprecated_member_use
-        anonKey: supabaseAnonKey,
-      );
-      if (Supabase.instance.client.auth.currentUser != null) {
-        // Sync device in background upon session restore on launch
-        unawaited(
-          SupabaseUserDeviceRepository(
-            client: Supabase.instance.client,
-            deviceIdentityProvider: FlutterDeviceIdentityProvider(),
-          ).syncCurrentDevice(),
-        );
-      }
-    } catch (_) {
-      // Safe fallback if headless test environment
-    }
+  if (supabaseInitialized &&
+      Supabase.instance.client.auth.currentUser != null) {
+    // Sync device in background upon session restore on launch.
+    unawaited(
+      SupabaseUserDeviceRepository(
+        client: Supabase.instance.client,
+        deviceIdentityProvider: FlutterDeviceIdentityProvider(),
+      ).syncCurrentDevice(),
+    );
   }
 
   final appModeController =
@@ -82,6 +69,7 @@ Future<void> main() async {
   bootstrap(
     () => ProviderScope(
       overrides: [
+        supabaseConfigProvider.overrideWithValue(supabaseConfig),
         appModeControllerProvider.overrideWith((ref) => appModeController),
         onboardingStatusControllerProvider
             .overrideWith((ref) => onboardingStatusController),
