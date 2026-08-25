@@ -55,6 +55,10 @@ class SupabaseAuthSessionRepository implements AuthSessionRepository {
         metadata['display_name'] as String?;
     final photoUrl = metadata['avatar_url'] as String? ??
         metadata['picture'] as String?;
+    final lastSignInAt = user.lastSignInAt?.trim();
+    final loginCycleId = lastSignInAt != null && lastSignInAt.isNotEmpty
+        ? lastSignInAt
+        : user.createdAt;
 
     return AuthSession(
       userId: user.id,
@@ -64,6 +68,7 @@ class SupabaseAuthSessionRepository implements AuthSessionRepository {
       isPhoneVerified: user.phoneConfirmedAt != null,
       displayName: displayName,
       photoUrl: photoUrl,
+      loginCycleId: loginCycleId,
     );
   }
 }
