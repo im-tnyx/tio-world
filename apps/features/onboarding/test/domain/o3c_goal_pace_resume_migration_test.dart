@@ -66,7 +66,7 @@ void main() {
       expect(controller.state.stepId, OnboardingStepId.bodyGoal);
       expect(
         controller.state.draft.profile.currentStepId,
-        ProfileStepId.currentWeight,
+        ProfileStepId.goal,
       );
       expect(controller.state.draft.targets.goalPaceKgPerWeek, 0.6);
       expect(
