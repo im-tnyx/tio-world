@@ -65,4 +65,27 @@ void main() {
 
     expect(savedName, 'Santosh');
   });
+
+  testWidgets('ProfileSettingsPage normalizes imperial height rollover',
+      (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) =>
+            TioTheme(child: child ?? const SizedBox.shrink()),
+        home: ProfileSettingsPage(
+          name: 'Santosh',
+          dateOfBirth: DateTime(1995, 6, 5),
+          heightCm: 182.0,
+          currentWeightKg: 72.5,
+        ),
+      ),
+    );
+
+    expect(find.text("6' 0\""), findsOneWidget);
+    expect(find.text("5' 12\""), findsNothing);
+  });
 }
