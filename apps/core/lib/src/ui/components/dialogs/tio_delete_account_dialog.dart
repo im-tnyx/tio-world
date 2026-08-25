@@ -330,11 +330,11 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
         const SizedBox(height: TioSpacing.md),
 
         // ── Interactive 5-Second Hold Button ──
-        GestureDetector(
+        Listener(
           key: const ValueKey('hold_to_delete_button'),
-          onTapDown: (_) => _onHoldStarted(),
-          onTapUp: (_) => _onHoldReleased(),
-          onTapCancel: () => _onHoldReleased(),
+          onPointerDown: (_) => _onHoldStarted(),
+          onPointerUp: (_) => _onHoldReleased(),
+          onPointerCancel: (_) => _onHoldReleased(),
           child: SizedBox(
             width: TioSize.dp140,
             height: TioSize.dp140,
