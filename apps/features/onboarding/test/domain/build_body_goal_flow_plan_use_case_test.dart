@@ -6,7 +6,7 @@ void main() {
   group('BuildBodyGoalFlowPlanUseCase', () {
     const builder = BuildBodyGoalFlowPlanUseCase();
 
-    test('nutrition loss includes Target Weight and Goal Pace in Body Goal', () {
+    test('nutrition loss includes Target Weight and Goal Pace after Current Weight and Goal', () {
       final plan = builder(
         mode: AppMode.nutrition,
         goalSelection: const GoalIntentSelection(
@@ -17,8 +17,8 @@ void main() {
       expect(
         plan.steps,
         const [
-          ProfileStepId.goal,
           ProfileStepId.currentWeight,
+          ProfileStepId.goal,
           ProfileStepId.targetWeight,
           ProfileStepId.goalPace,
         ],
@@ -35,7 +35,7 @@ void main() {
 
       expect(
         plan.steps,
-        const [ProfileStepId.goal, ProfileStepId.currentWeight],
+        const [ProfileStepId.currentWeight, ProfileStepId.goal],
       );
     });
 
@@ -48,8 +48,15 @@ void main() {
         ),
       );
 
-      expect(plan.contains(ProfileStepId.targetWeight), isTrue);
-      expect(plan.contains(ProfileStepId.goalPace), isTrue);
+      expect(
+        plan.steps,
+        const [
+          ProfileStepId.currentWeight,
+          ProfileStepId.goal,
+          ProfileStepId.targetWeight,
+          ProfileStepId.goalPace,
+        ],
+      );
     });
 
     test('Maintain plus training remains non-directional without schema change', () {
@@ -103,7 +110,7 @@ void main() {
       );
     });
 
-    test('reconcile clamps removed Target Weight to Current Weight', () {
+    test('reconcile clamps removed Target Weight to Goal', () {
       final previous = builder(
         mode: AppMode.nutrition,
         goalSelection: const GoalIntentSelection(
@@ -123,11 +130,11 @@ void main() {
           previousPlan: previous,
           nextPlan: next,
         ),
-        ProfileStepId.currentWeight,
+        ProfileStepId.goal,
       );
     });
 
-    test('reconcile clamps removed Goal Pace through removed Target Weight', () {
+    test('reconcile clamps removed Goal Pace through removed Target Weight to Goal', () {
       final previous = builder(
         mode: AppMode.nutrition,
         goalSelection: const GoalIntentSelection(
@@ -147,7 +154,7 @@ void main() {
           previousPlan: previous,
           nextPlan: next,
         ),
-        ProfileStepId.currentWeight,
+        ProfileStepId.goal,
       );
     });
   });
