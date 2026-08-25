@@ -1,6 +1,6 @@
 # Production Hardening — Configuration Cleanup
 
-**Status:** Ready  
+**Status:** Complete / Frozen  
 **Primary owner:** `apps/app` runtime configuration boundary  
 **Affected platforms:** Flutter phone app; build/release configuration  
 **Tracking:** production hardening #5 — Configuration cleanup
@@ -14,179 +14,160 @@ A release build must never silently select a Supabase project because build-time
 ### Success Criteria
 
 - release configuration selection is explicit and fail-safe;
-- `main.dart` and provider composition consume one resolved Supabase configuration instead of duplicating environment/default logic;
-- current live production project URL/publishable key are not embedded as implicit defaults in runtime source;
-- modern Supabase publishable-key naming/API is used, with only bounded compatibility for an explicitly supplied legacy `SUPABASE_ANON_KEY` if needed;
-- release initialization/configuration failures are not swallowed as a headless-test fallback;
-- no service-role/secret key is introduced to the client;
-- timezone audit is documented without speculative schema/runtime work;
-- full exact-SHA Flutter/Dart + Android validation is green before freeze.
+- `main.dart` and provider composition consume one resolved Supabase configuration;
+- no live Supabase project URL/publishable key is embedded as an implicit runtime default;
+- modern `SUPABASE_PUBLISHABLE_KEY` / `publishableKey:` is primary, with bounded explicit legacy anon compatibility;
+- release configuration and initialization failures fail closed;
+- no service-role/secret key is accepted by the Flutter client boundary;
+- timezone audit is recorded without speculative schema/runtime work;
+- exact-SHA Flutter/Dart + Android validation is green.
 
-### Scope
+### Scope Implemented
 
+- `apps/app/lib/app/supabase_runtime_config.dart`
 - `apps/app/lib/main.dart`
 - `apps/app/lib/app/network_providers.dart`
-- one small app-owned runtime/Supabase configuration contract if needed
-- focused app configuration tests
-- minimal developer/release configuration documentation/example only if required to make explicit build-time configuration usable
+- `apps/app/test/app/supabase_runtime_config_test.dart`
+- `docs/SUPABASE_RUNTIME_CONFIG.md`
 
-### Non-Goals
+### Non-Goals Preserved
 
 - no Supabase schema migration;
-- no RLS/Auth/provider redesign;
+- no RLS/Auth-provider redesign;
 - no backend-service creation;
 - no secret-manager architecture;
-- no staging project creation or invented project mapping;
-- no timezone package/plugin addition while no current timezone consumer exists;
+- no staging/dev project creation or invented project mapping;
+- no timezone package/plugin or persistence work;
 - no UI/navigation/visual change;
-- no change to canonical owner tables.
+- no canonical owner-table change.
 
 ## 2. Codebase Exploration
 
-### Verified Evidence
+### Verified Audit Evidence
 
-Audit head:
+Audit source head:
 
 ```text
 95e95a5b03815814002275b323844a80693e4610
 ```
 
-Source/config inspected:
+Reproduced before implementation:
 
-- `apps/app/lib/main.dart`
-- `apps/app/lib/app/network_providers.dart`
-- `apps/app/test/app/network_providers_test.dart`
-- `apps/app/lib/app/**`
-- `apps/app/pubspec.yaml`
-- `apps/app/pubspec.lock`
-- `.github/workflows/**`
-- `.gitignore`
-- current Supabase project URL/publishable-key metadata
-- live `public.users`, `user_profiles`, `user_app_preferences`, and `user_devices` columns
-- current device identity + device-sync repositories
+1. `main.dart` used live `tio-world` Supabase URL/key `defaultValue`s.
+2. `network_providers.dart` independently duplicated the same defaults.
+3. Omitted Dart defines therefore silently selected the live project.
+4. `main.dart` swallowed every Supabase initialization failure, including release startup failure.
+5. Provider composition could then silently degrade to no-Supabase/in-memory boundaries.
+6. Locked `supabase_flutter` is `2.17.1`; current API supports `publishableKey` and modern publishable keys.
+7. No repository build-time Supabase configuration contract was documented.
+8. Live `public.users.timezone` exists but all audited live rows were unset; current device/runtime code has no timezone persistence consumer.
 
-Reproducible findings:
+## 3. Decisions
 
-1. `main.dart` resolves `SUPABASE_URL` with the live `tio-world` project URL as a `defaultValue` and resolves `SUPABASE_ANON_KEY` with the live modern `sb_publishable_...` key as a `defaultValue`.
-2. `network_providers.dart` independently duplicates the same environment names and same live-project defaults.
-3. Therefore any build that omits Dart defines silently selects the live project. This is a wrong-environment release risk even though the publishable key itself is client-safe/non-secret.
-4. `main.dart` catches every Supabase initialization exception and continues. The comment describes a headless-test fallback, but the same catch applies to a real release startup failure.
-5. Provider composition then catches an uninitialized `Supabase.instance.client` and falls back to no-Supabase/in-memory boundaries. Product Onboarding completion fails closed, but release startup itself does not make the configuration failure explicit.
-6. Current locked `supabase_flutter` is `2.17.1`; current Supabase guidance exposes `publishableKey` and recommends publishable keys for public/mobile clients. The current code still passes the modern publishable key through the deprecated `anonKey` parameter and legacy environment name.
-7. Repository search found no existing `--dart-define` build contract or checked example configuration.
-8. Live database has a nullable `public.users.timezone` compatibility column, but all current rows have it unset.
-9. The removed broad `SupabaseProfileSetupRepository` was the historical source reference returned by timezone search; it is absent on the current head. Current `FlutterDeviceIdentityProvider` and `SupabaseUserDeviceRepository` do not capture or persist timezone.
-10. No current product/runtime consumer was found that requires persisted timezone for correctness in this release-hardening slice.
+| Decision | Status | Rationale |
+|---|---|---|
+| Treat publishable key as client-safe, not secret | Made | RLS/Auth remain the protection boundary |
+| Remove implicit live-project defaults | Made | omission must not select production |
+| Keep debug/test no-config composition constructible | Made | existing local/test harnesses intentionally support unavailable backend state |
+| Prefer `SUPABASE_PUBLISHABLE_KEY` | Made | modern Supabase client contract |
+| Allow legacy `SUPABASE_ANON_KEY` only when it is an anon-role JWT | Made | bounded compatibility without accepting service-role credentials |
+| Reject `sb_secret_` client configuration | Made | elevated keys never belong in Flutter client |
+| Release missing/partial config fails closed | Made | no false production backend readiness |
+| Release initialization errors propagate | Made | no silent in-memory production degradation |
+| Future timezone canonical form is IANA zone ID | Made | raw offsets do not encode DST/travel semantics |
+| Do not implement timezone persistence now | Made | no current consumer or populated live data |
 
-### Existing pattern to follow
-
-- compile-time Flutter values use `String.fromEnvironment`;
-- provider tests already explicitly override Supabase availability and prove no-Supabase finalization fails closed;
-- `.gitignore` already excludes `.env`/local/secret files and permits an `.env.example`, but no example currently exists.
-
-### Tests or validation already present
-
-- `apps/app/test/app/network_providers_test.dart`
-- full Flutter/Dart CI
-- Android Native CI (phone + Wear debug APKs)
-
-## 3. Clarification
-
-### Decisions Made
-
-| Decision | Status | Rationale | Owner |
-|---|---|---|---|
-| Treat Supabase publishable key as client-safe, not a secret | Made | current Supabase contract; RLS/auth remains the protection boundary | app/platform |
-| Remove implicit live-project defaults from production runtime selection | Made | omission must not silently choose production | app composition |
-| Keep local/test no-Supabase composition constructible | Made | current tests and non-backend harnesses intentionally use explicit unavailable fallbacks | app composition |
-| Prefer `SUPABASE_PUBLISHABLE_KEY`; allow explicit legacy `SUPABASE_ANON_KEY` compatibility only if bounded | Made | current key is modern publishable; legacy naming/API should not be the primary contract | app composition |
-| Release configuration/init failure must fail closed instead of being swallowed | Made | a release must not continue under false backend assumptions | startup |
-| Do not add timezone persistence/schema work now | Made | no current consumer, 0 populated live values, and no current runtime write/read path | configuration cleanup |
-| Future canonical timezone representation should be an IANA zone identifier, not a raw UTC offset | Made | offsets are snapshots and do not encode DST/travel zone rules | future product/data owner |
-| Do not assign a new canonical timezone table/owner in this slice | Made | product semantics/consumer do not yet justify an ownership migration | #44 owner map |
-
-## 4. Architecture Design
-
-### Chosen Approach
-
-Introduce one app-owned resolved Supabase runtime configuration contract consumed by both startup initialization and Riverpod provider composition.
-
-Expected behavior:
+## 4. Frozen Architecture
 
 ```text
-build-time environment
-    -> one SupabaseRuntimeConfig resolver
-       -> startup validates config
-       -> Supabase.initialize(...) when explicitly configured
+compile-time Dart defines
+    -> SupabaseRuntimeConfig.fromEnvironment()
+       -> validate URL + client-safe key contract
+       -> initializeSupabaseRuntime()
+          -> Supabase.initialize(publishableKey: ...)
        -> same resolved config injected into ProviderScope
-       -> providers use initialized client only
+       -> supabaseConfigProvider
+       -> supabaseClientProvider
 ```
 
-Release mode:
+Release policy:
 
-- no embedded live-project default;
-- missing/partial Supabase config is a startup configuration error;
-- initialization failure is surfaced/fails closed;
-- only publishable/legacy-anon client-safe keys are accepted by this boundary.
+- `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` are required;
+- explicit legacy `SUPABASE_ANON_KEY` is compatibility-only;
+- missing/partial config throws before normal app composition;
+- initialization failure propagates;
+- provider composition does not convert an unavailable initialized client into a silent release fallback.
 
-Debug/test mode:
+Debug/test policy:
 
-- missing config may remain intentionally unconfigured so tests/local non-backend harnesses can compose no-Supabase fallbacks;
-- an explicitly supplied valid config initializes normally;
-- no automatic production selection.
+- no Supabase values => explicit unconfigured state;
+- existing no-Supabase test/local composition remains available;
+- explicitly supplied malformed/partial config still fails rather than guessing.
 
-### Alternative Rejected
+## 5. Completed Implementation
 
-- Keep current live project as a debug/release default: rejected because omission remains an implicit production connection.
-- Add service-role/secret key handling to Flutter: rejected; elevated keys never belong in a public mobile client.
-- Create staging/dev Supabase projects or hardcode an environment-to-project mapping: rejected as outside current audited evidence.
-- Add timezone plugin/schema columns now: rejected because there is no current runtime consumer or populated canonical data.
-
-### Failure and Accessibility States
-
-No UI change. Release configuration failure occurs before normal app composition and must be diagnosable rather than silently degrading into an in-memory production session.
-
-## 5. Implementation Plan
-
-- [ ] add a single testable Supabase runtime configuration resolver/contract;
-- [ ] remove live project URL/key `defaultValue` usage from `main.dart` and `network_providers.dart`;
-- [ ] prefer `SUPABASE_PUBLISHABLE_KEY` and modern `publishableKey:` initialization;
-- [ ] keep an explicit legacy `SUPABASE_ANON_KEY` compatibility path only if it does not restore implicit fallback behavior;
-- [ ] make release missing/partial configuration fail closed;
-- [ ] make release Supabase initialization failure propagate instead of being swallowed;
-- [ ] inject the same resolved config into provider composition so startup/provider selection cannot drift;
-- [ ] add focused tests for complete, missing, partial, publishable-key, and legacy-key resolution plus release/debug policy;
-- [ ] add the smallest usable build-time configuration example/documentation if required;
-- [ ] run full exact-SHA Flutter analyze, Dart analyze, Flutter tests, Dart tests, phone Android debug APK, and Wear Android debug APK;
-- [ ] freeze accepted checkpoint in #5 and keep PR #50 Draft/open/unmerged until explicit merge authorization.
+- [x] added one testable `SupabaseRuntimeConfig` resolver/contract;
+- [x] removed live URL/key defaults from `main.dart` and `network_providers.dart`;
+- [x] switched primary key name to `SUPABASE_PUBLISHABLE_KEY`;
+- [x] switched initialization to modern `publishableKey:` API;
+- [x] bounded legacy `SUPABASE_ANON_KEY` to `role=anon` JWT compatibility;
+- [x] rejected `sb_secret_` client keys;
+- [x] made release missing/partial configuration fail closed;
+- [x] made release initialization failure propagate;
+- [x] injected the same resolved config into ProviderScope;
+- [x] added focused complete/missing/partial/key-source/failure-policy tests;
+- [x] documented explicit build-time configuration;
+- [x] ran exact-SHA Flutter/Dart + phone/Wear Android validation;
+- [x] froze accepted checkpoint in #5.
 
 ## 6. Quality Review
 
-### Validation Run
+Accepted runtime/source-test checkpoint:
 
 ```text
-Audit only. Implementation validation not run yet.
+faeb7e403c387cdc5561b8f2f9402886f6aaa94c
 ```
 
-### Review Findings and Resolution
+Exact-SHA validation:
 
-- Merge-blocking concrete defect: implicit live Supabase project selection + release-wide swallowed initialization failure.
-- Timezone: audited/classified; representation strategy documented, no current implementation defect authorizes schema/runtime expansion.
+```text
+Flutter CI #2005 / run 32853309958 ✅
+  Flutter analyze ✅
+  Dart analyze    ✅
+  Flutter tests   ✅
+  Dart tests      ✅
+
+Android Native CI #417 / run 32853309733 ✅
+  Phone Android debug APK ✅
+  Wear Android debug APK  ✅
+```
+
+Compare from the configuration audit brief head `3420ca8bf019175dd44677cbff841ee12f46d14d` to accepted runtime SHA contains only the bounded runtime config owner, startup/provider wiring, focused tests, and configuration documentation.
+
+Issue #5 freeze comment:
+
+```text
+5411184764
+```
 
 ## 7. Final Handoff
 
-### Changed Files
+**Complete / Frozen.**
 
-Audit brief only.
+The accepted runtime/source-test SHA remains:
 
-### Actual Behavior
+```text
+faeb7e403c387cdc5561b8f2f9402886f6aaa94c
+```
 
-Current release/runtime source still contains the audited implicit live-project defaults until the implementation checklist is executed.
+This documentation-only closeout commit does not replace that runtime acceptance checkpoint.
 
-### Known Limitations
+Timezone remains intentionally deferred until a concrete product consumer defines ownership and scheduling semantics.
 
-There is no release deployment workflow in `.github/workflows`; current CI validates source/tests and debug Android compilation. This slice should make application configuration safe independently of any future store/deployment pipeline.
+Next bounded merge-hardening lane: canonical mobile-number normalization to E.164 across Account Setup, Account Settings, and Supabase Auth verification. No new country-code database column is implied by that next audit.
+
+PR #50 must remain Draft/open/unmerged until explicit merge authorization.
 
 ### Final Status
 
-`REVIEW`
+`PASS`
