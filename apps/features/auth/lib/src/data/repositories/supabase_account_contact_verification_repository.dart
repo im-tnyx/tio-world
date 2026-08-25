@@ -6,6 +6,8 @@ import '../../domain/repositories/account_contact_verification_repository.dart';
 ///
 /// The database projects trusted `auth.users` confirmation timestamps into
 /// `public.users`; this adapter never writes verification timestamps itself.
+/// A successful OTP API call is not enough to claim verification: the returned
+/// Supabase Auth user must expose the exact target contact as confirmed.
 final class SupabaseAccountContactVerificationRepository
     implements AccountContactVerificationRepository {
   SupabaseAccountContactVerificationRepository({
@@ -48,6 +50,16 @@ final class SupabaseAccountContactVerificationRepository
     );
   }
 
+  bool _hasConfirmedEmail(User? user, String normalizedEmail) {
+    return user?.email?.trim().toLowerCase() == normalizedEmail &&
+        user?.emailConfirmedAt != null;
+  }
+
+  bool _hasConfirmedPhone(User? user, String normalizedPhone) {
+    return user?.phone?.trim() == normalizedPhone &&
+        user?.phoneConfirmedAt != null;
+  }
+
   @override
   Future<void> requestEmailVerification(String email) async {
     final user = _requireUser();
@@ -87,11 +99,21 @@ final class SupabaseAccountContactVerificationRepository
         (currentEmail != null && currentEmail != normalizedEmail) ||
         currentEmail == null;
 
-    await _client.auth.verifyOTP(
+    final response = await _client.auth.verifyOTP(
       email: normalizedEmail,
       token: normalizedToken,
       type: isEmailChange ? OtpType.emailChange : OtpType.signup,
     );
+
+    // Secure Email Change can require more than one confirmation. Never turn an
+    // intermediate successful Auth response into a local Verified badge.
+    final authoritativeUser = response.user ?? _client.auth.currentUser;
+    if (!_hasConfirmedEmail(authoritativeUser, normalizedEmail)) {
+      throw StateError(
+        'Supabase Auth has not finished confirming this email yet.',
+      );
+    }
+
     if (_pendingEmailChange == normalizedEmail) {
       _pendingEmailChange = null;
     }
@@ -132,10 +154,17 @@ final class SupabaseAccountContactVerificationRepository
       throw ArgumentError.value(token, 'token', 'must not be empty');
     }
 
-    await _client.auth.verifyOTP(
+    final response = await _client.auth.verifyOTP(
       phone: normalizedPhone,
       token: normalizedToken,
       type: OtpType.phoneChange,
     );
+
+    final authoritativeUser = response.user ?? _client.auth.currentUser;
+    if (!_hasConfirmedPhone(authoritativeUser, normalizedPhone)) {
+      throw StateError(
+        'Supabase Auth has not finished confirming this phone number yet.',
+      );
+    }
   }
 }
