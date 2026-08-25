@@ -23,8 +23,8 @@ class _FakeAuthSignInRepository implements AuthSignInRepository {
       resultToReturn;
 
   @override
-  Future<SignInResult> sendPasswordResetEmail(String email) async =>
-      resultToReturn;
+  Future<PasswordResetRequestResult> sendPasswordResetEmail(String email) async =>
+      const PasswordResetRequestAccepted();
 
   @override
   Future<SignInResult> signInWithOtp({
@@ -33,7 +33,6 @@ class _FakeAuthSignInRepository implements AuthSignInRepository {
   }) async =>
       resultToReturn;
 }
-
 
 void main() {
   group('SignInWithGoogleUseCase', () {
