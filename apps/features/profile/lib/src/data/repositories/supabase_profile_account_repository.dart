@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:tio_shared/shared.dart';
 
 import '../../domain/repositories/profile_account_repository.dart';
 
@@ -29,18 +30,6 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
 
   String _normalizeUsername(String username) {
     return username.trim().toLowerCase();
-  }
-
-  String _normalizeMobile(String mobile) {
-    final trimmed = mobile.trim();
-    if (trimmed.isEmpty) return '';
-
-    final digits = trimmed.replaceAll(RegExp(r'[^0-9]'), '');
-    if (digits.length == 10) return '+91 $digits';
-    if (digits.startsWith('91') && digits.length == 12) {
-      return '+91 ${digits.substring(2)}';
-    }
-    return trimmed;
   }
 
   bool _isValidUsername(String username) {
@@ -186,8 +175,8 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
     );
     final usernameChanged = previousUsername != normalizedUsername;
 
-    final normalizedMobile = _normalizeMobile(mobile);
-    final previousMobile = _normalizeMobile(
+    final normalizedMobile = normalizePhoneNumberE164(mobile);
+    final previousMobile = normalizePhoneNumberE164(
       (current['mobile'] as String?)?.trim() ?? '',
     );
     final mobileChanged = previousMobile != normalizedMobile;
