@@ -8,6 +8,9 @@ on:
       - 'apps/app/android/**'
       - 'apps/app/lib/app/health_connect/**'
       - 'apps/app/pubspec.yaml'
+      - 'apps/wear/android/**'
+      - 'apps/wear/lib/**'
+      - 'apps/wear/pubspec.yaml'
       - 'pubspec.yaml'
       - 'pubspec.lock'
       - '.github/workflows/android-native-ci.yml'
@@ -22,7 +25,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build Android debug APK
+    name: Build Android debug APKs
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -45,10 +48,18 @@ jobs:
       - name: Toolchain info
         run: flutter --version
 
-      - name: Resolve app dependencies
+      - name: Resolve phone app dependencies
         working-directory: apps/app
         run: flutter pub get
 
-      - name: Build Android debug APK
+      - name: Build phone Android debug APK
         working-directory: apps/app
+        run: flutter build apk --debug --no-pub
+
+      - name: Resolve Wear app dependencies
+        working-directory: apps/wear
+        run: flutter pub get
+
+      - name: Build Wear Android debug APK
+        working-directory: apps/wear
         run: flutter build apk --debug --no-pub
