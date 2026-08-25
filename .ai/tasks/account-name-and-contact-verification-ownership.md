@@ -2,12 +2,14 @@
 
 ## Status
 
-AUDIT COMPLETE / IMPLEMENTATION REQUIRED.
+**IMPLEMENTATION COMPLETE / FROZEN — CODE + DATABASE.**
 
-Audit source head:
+Accepted implementation/test checkpoint:
 
 ```text
-6b10ea3a3f5ec739da4c5187de5ee312ecf4d31c
+1cde11557666a8e4d05673aeb301f7d4d127e8d2
+Flutter CI #1879 / run 32809594177 ✅
+Android Native CI #291 / run 32809594166 ✅
 ```
 
 Live Supabase project:
@@ -16,98 +18,61 @@ Live Supabase project:
 oykupyiitspujzpwwvuj
 ```
 
-This task is intentionally split into two different ownership decisions:
+Forward-only live migrations:
 
-1. remove the duplicate Account/bootstrap `users.name` column so user-entered Name has one canonical owner;
-2. preserve trusted Email/Mobile verification evidence semantics while fixing the currently stale application projection.
+```text
+20260824192004 retire_account_bootstrap_name
+20260824192328 reconcile_auth_contact_verification
+```
 
-Do not treat contact verification timestamps as the same kind of duplicate as Name.
+No applied migration was edited. No `CASCADE` was used.
 
 ---
 
-## A. Name ownership audit — users.name retirement
+## A. Name ownership — COMPLETE / FROZEN
 
-### Current live state
-
-```text
-public.users rows                   4
-public.users.name populated         4
-public.user_profiles rows           0
-public.user_profiles.name populated 0
-```
-
-All four current `users.name` values came from Google/Auth `full_name` bootstrap metadata.
-
-Live `private.provision_tio_user_root()` currently creates the Account root with:
-
-```text
-full_name
-→ display_name
-→ metadata name
-→ email local-part
-→ "Tio User"
-→ public.users.name
-```
-
-`public.users.name` is currently `NOT NULL` and has no default.
-
-### Current canonical user-entered Name path
-
-```text
-Product Onboarding NameScreen
-→ onboarding draft.profile.name
-→ UserProfileMapper
-→ UserProfileData.name
-→ SupabaseUserProfileRepository.upsert()
-→ public.user_profiles.name
-```
-
-Profile Settings edits follow the same canonical owner through `UserProfileRepository`; they do not write `users.name`.
-
-Profile display/completion reads `user_profiles.name`. Account display reads from `users` only for Account-owned values such as username/avatar/plan/mobile; it intentionally does not use `users.name` as Profile truth.
-
-No live view or index depends on `public.users.name`. The only confirmed live semantic dependency is the Auth-root provisioning function that must currently satisfy the column's `NOT NULL` constraint. Username RPCs use `users.username`, not the `name` column.
-
-### Decision
-
-Final user-entered Name must have one canonical owner:
+Final editable Name owner:
 
 ```text
 public.user_profiles.name
 ```
 
-`public.users.name` is now compatibility/bootstrap debt and should be retired after the final current-head dependency check.
+`public.users.name` has been retired.
 
-### Implementation scope
+Accepted result:
 
-- [ ] Re-audit current-head code/Edge Functions/SQL for any remaining legitimate `users.name` consumer immediately before DDL.
-- [ ] Add a forward-only migration that removes the `users.name` requirement and then drops `public.users.name` without `CASCADE`.
-- [ ] Update `private.provision_tio_user_root()` so new Auth users create a minimal Account root without any bootstrap Name.
-- [ ] Remove obsolete bootstrap-name metadata/fallback logic and its tests.
-- [ ] Keep Product Onboarding NameScreen unchanged except for tests proving its only durable Name owner is `user_profiles.name`.
-- [ ] Keep Profile Settings Name editable and persisted only through `user_profiles.name`.
-- [ ] Do not copy provider/Google display name into `user_profiles.name` automatically.
-- [ ] Do not dual-write or add a synchronization trigger between two Name columns.
-- [ ] Verify fresh Google and Email account provisioning still creates exactly one `public.users` root.
-- [ ] Verify onboarding/editing Name cannot mutate Account contact/root state.
+- [x] Fresh dependency preflight found no legitimate catalog dependency on `public.users.name`; provisioning was the live semantic dependency and was updated first.
+- [x] Forward-only migration removed bootstrap-Name derivation from `private.provision_tio_user_root()` and safely dropped `public.users.name` without `CASCADE`.
+- [x] Google post-auth enrichment no longer writes provider display Name into `public.users`.
+- [x] Fresh Auth root provisioning still creates exactly one minimal `public.users` root per `auth.users.id`.
+- [x] Product Onboarding Name persists through `UserProfileRepository` to `user_profiles.name` only.
+- [x] Profile Settings Name persists through the same canonical `user_profiles.name` owner.
+- [x] No Name dual-write or synchronization trigger exists.
+- [x] Provider/Auth display metadata is not copied into `user_profiles.name` automatically.
+
+Final live Name invariant:
+
+```text
+public.users.name columns          0
+public.user_profiles.name columns  1
+```
+
+Historical #44/O11 text saying `users.name` was retained describes the earlier accepted state and is superseded by this post-O11 hardening decision.
 
 ---
 
-## B. Email/Mobile verification audit — trusted Auth evidence + application projection
+## B. Email/Mobile verification — COMPLETE / FROZEN (CODE + DB)
 
-### Intended ownership
+### Authority
 
-Trusted verification evidence:
+Supabase Auth is the only trusted verification-evidence authority:
 
 ```text
 auth.users.email_confirmed_at
-→ authoritative evidence for the current Auth email
-
 auth.users.phone_confirmed_at
-→ authoritative evidence for the current Auth phone
 ```
 
-Provider-neutral Account projection:
+Tio keeps provider-neutral Account projections:
 
 ```text
 public.users.email
@@ -116,100 +81,78 @@ public.users.mobile
 public.users.mobile_verified_at
 ```
 
-`user_profiles` must not own Email/Mobile verification.
+The public timestamps are projections only; the client cannot establish verification truth.
 
-The public timestamps are not independent proof. They may only reflect trusted Auth/backend evidence for the exact same normalized contact.
+### Database reconciliation
 
-### Live audit result
+`private.reconcile_tio_user_contact_verification()` is the trusted reconciliation owner and runs after relevant `auth.users` INSERT/UPDATE contact-confirmation changes.
 
-```text
-auth.users                          4
-auth users with email               4
-auth email_confirmed_at populated   4
-public.users with email             4
-public email_verified_at populated  0
-confirmed email missing projection  4
+Accepted rules:
 
-Auth phone populated                0
-Auth phone_confirmed_at populated   0
-public mobile populated             0
-public mobile_verified_at populated 0
-```
+- [x] Exact normalized Auth Email + non-null `email_confirmed_at` is required for Email verification projection.
+- [x] Exact normalized Auth Phone + non-null `phone_confirmed_at` is required for Mobile verification projection.
+- [x] Relevant Auth changes reconcile deterministically into `public.users`.
+- [x] Historical exact-match trusted Email confirmations were backfilled.
+- [x] Client roles cannot promote `email_verified_at` / `mobile_verified_at`; the existing public guard remains in force.
+- [x] Contact-change state-transition regressions prove one contact can change/verify without fabricating verification for the other.
+- [x] New private reconciliation/provisioning functions introduced no Supabase security-advisor warning.
 
-All four current Auth identities are Google identities.
-
-Therefore the live Email verification projection is stale for every current account even though Supabase Auth already has trusted confirmation evidence.
-
-### Live database guard
-
-`public.protect_user_contact_verification()` correctly prevents normal `authenticated` / `anon` writes from promoting verification timestamps:
-
-- client INSERT forces both verification timestamps to NULL;
-- changing Email clears `email_verified_at`;
-- changing Mobile clears `mobile_verified_at`;
-- direct client attempts to set either timestamp without changing the contact preserve the old trusted value.
-
-This guard is correct and should remain conceptually intact.
-
-### Confirmed missing reconciliation
-
-No live function currently reconciles `auth.users.email_confirmed_at` / `phone_confirmed_at` into `public.users.email_verified_at` / `mobile_verified_at`.
-
-The only custom `auth.users` trigger is currently the `AFTER INSERT` Account-root provisioning trigger. There is no verification reconciliation trigger on Auth updates.
-
-### Current app gaps
-
-- `AuthSession` currently carries email/phone but no verification state.
-- `SupabaseAuthSessionRepository` does not map authoritative verification state.
-- Account Settings gets Email directly from `supabase.auth.currentUser.email` but does not pass real Email verification state.
-- `AccountSettingsPage` defaults `isEmailVerified = true`, which can show unknown/unverified Email as Verified.
-- Phone verified state is currently read from the stale/provider-neutral public projection.
-- Built-in Settings OTP dialogs can show local success without durable Supabase Auth verification when no real callback is wired.
-- `SupabaseProfileAccountRepository.updateAccountSettings()` may update `public.users.mobile` and clear its verification, but it does not by itself perform the required Supabase Auth phone update/OTP verification flow.
-- Email signup currently returns `SignInSuccess` from a returned user even when the required authenticated session may be absent pending Email confirmation; session-present vs session-absent must be typed distinctly.
-
-### Decision
-
-Do **not** remove `email_verified_at` / `mobile_verified_at` merely because Supabase Auth also has confirmation timestamps.
-
-They serve a different boundary: application Account projection for the exact stored contact, while Supabase Auth remains the trusted evidence source. The fix is to make projection reconciliation deterministic and trusted.
-
-Preferred invariant:
+Final live verification invariant at freeze:
 
 ```text
-public.users.email_verified_at IS NOT NULL
-iff
-public.users.email matches current auth.users.email
-AND auth.users.email_confirmed_at IS NOT NULL
+auth_users                         4
+public_users                       4
+auth_with_email                    4
+auth_email_confirmed               4
+public_with_email                  4
+public_email_verified              4
+confirmed_email_missing_projection 0
 
-public.users.mobile_verified_at IS NOT NULL
-iff
-public.users.mobile matches current auth.users.phone after canonical normalization
-AND auth.users.phone_confirmed_at IS NOT NULL
+auth_with_phone                    0
+auth_phone_confirmed               0
+public_with_mobile                 0
+public_mobile_verified             0
+confirmed_phone_missing_projection 0
 ```
 
-No client boolean or timestamp may establish verification.
+All current live identities are development/testing identities; no existing testing identity was deleted or rewritten merely to make the migration pass.
 
-### Implementation scope
+### App/Auth behavior
 
-- [ ] Add one trusted reconciliation owner for Auth contact confirmation → `public.users` projection; prefer database-owned reconciliation in the same Auth/Postgres boundary if it can be made fail-safe and fully tested.
-- [ ] Reconcile on relevant Auth user changes, not only fresh signup.
-- [ ] Backfill current exact-match trusted Email confirmations; current audit expects 4 Email projections to become verified.
-- [ ] Never verify a public contact when it does not exactly match the trusted Auth contact after normalization.
-- [ ] A changed Email clears only Email verification; a changed Mobile clears only Mobile verification.
-- [ ] Verifying one contact must preserve the other contact's trusted verified state.
-- [ ] Replace Account Settings `isEmailVerified = true` default with explicit authoritative state.
-- [ ] Extend the Auth/account domain model so missing contact, unverified contact, and verified contact are distinct states.
-- [ ] Wire real Supabase Auth Email add/change + verification and Phone add/change + OTP verification; remove fake local verification-success semantics.
-- [ ] Email signup must distinguish `user created + authenticated session` from `user created + confirmation pending/no session`.
-- [ ] Google Email is considered verified only from trusted Supabase/provider evidence; never from `user_metadata` alone.
-- [ ] Add phone-first → add/verify Email and email-first → add/verify Phone regression coverage.
-- [ ] Add stale-projection repair tests for login/bootstrap/auth-state changes.
-- [ ] Keep Email/Mobile verification under Account/Auth ownership; never move it to `user_profiles`.
+- [x] `AuthSession` carries authoritative Email/Phone verification state.
+- [x] Account Settings no longer defaults Email to Verified.
+- [x] Missing/unverified/verified contact state is explicit rather than inferred from contact presence.
+- [x] Fake local OTP-success semantics are removed; missing provider callbacks cannot show durable verification success.
+- [x] Email add/change goes through Supabase Auth `updateUser(...)` / verification behavior.
+- [x] Existing unconfirmed Email can request Supabase signup verification again.
+- [x] Phone add/change goes through Supabase Auth `updateUser(...)` followed by `OtpType.phoneChange` verification.
+- [x] Secure Email Change intermediate success is fail-closed: the app requires the exact target Email to be confirmed by Supabase Auth before reporting Verified.
+- [x] Phone verification similarly requires the exact target Phone to be confirmed by Supabase Auth before reporting Verified.
+- [x] Email Signup distinguishes `user created + session present` from `user created + confirmation pending/session absent`; pending confirmation is not authenticated success.
+- [x] Google Email verification is derived from trusted Supabase Auth confirmation evidence, never provider display metadata alone.
+- [x] Focused Auth-adapter tests prove `OtpType.emailChange` / `OtpType.phoneChange`, resend behavior, normalization, and fail-closed unconfirmed responses.
+- [x] Settings regressions prove changed Email/Phone cannot be smuggled through ordinary Save without verification.
+- [x] Exact-head Flutter/Dart + Android CI is green.
+
+### External provider-delivery acceptance
+
+Hosted inbox/SMS delivery itself is **not fabricated as tested** by this task. The connected Supabase tooling exposes database/docs/logs but not a disposable signed-in end-user session plus inbox/SMS receiver or all hosted Auth provider settings.
+
+Therefore real-environment acceptance still requires a disposable account/device check of:
+
+```text
+Email signup → receive confirmation → confirm → signed-in/verified
+Email change → Supabase confirmation flow (including both inboxes when Secure Email Change is enabled)
+Phone add/change → receive SMS OTP → verify → confirmed/verified
+```
+
+This is an external delivery/configuration acceptance, not an open code/database ownership defect. The app is fail-closed if delivery/confirmation does not complete.
+
+Current Supabase documentation confirms that authenticated Email changes are handled by `updateUser(...)`; Secure Email Change may require confirmation from both old and new Email, while Phone change uses `updateUser(phone)` followed by `phone_change` OTP verification.
 
 ---
 
-## Coordination
+## Coordination / remaining work
 
 Authoritative trackers:
 
@@ -220,35 +163,25 @@ Authoritative trackers:
 #44 canonical owner map
 ```
 
-`#34` contains older text stating `public.users.email_verified_at` is absent; live schema and #8 supersede that statement. Do not create the column again.
+This task resolves Name ownership and the trusted contact-verification projection/Settings boundary. It does **not** close the broader #34 work for identifier uniqueness, password policy/recovery/change-password, linked identities, or the broader #5 Auth source-of-truth lane.
 
-## Acceptance
+`#34` contains historical text saying `public.users.email_verified_at` did not exist. That text is stale and superseded; do not add the column again.
 
-### Name
+Next production-hardening slice after this freeze:
 
-- [ ] exactly one durable editable Profile Name field remains: `user_profiles.name`;
-- [ ] `users.name` is removed safely with no `CASCADE`;
-- [ ] fresh Auth provisioning does not fabricate a Profile Name;
-- [ ] onboarding and Profile Settings Name edits persist only to `user_profiles.name`.
+```text
+#5 P1 item 6 — Presentation-layer direct Supabase access (fresh current-head audit)
+```
 
-### Verification
+Then continue with the broader #5 item 7 Auth source-of-truth alignment.
 
-- [ ] Auth confirmation is the only trusted verification evidence;
-- [ ] public verification timestamps are deterministic exact-contact projections, never client truth;
-- [ ] current live exact-match Email confirmation projection is repaired;
-- [ ] Account Settings cannot display false Verified state;
-- [ ] Email signup pending-confirmation state is not reported as authenticated success;
-- [ ] real Email/Mobile verification flows are used;
-- [ ] contact changes invalidate only their own verification state;
-- [ ] exact-head Flutter/Dart + Android CI and focused DB regressions are green before freezing.
-
-## Guardrails
+## Guardrails frozen
 
 - No applied migration edits.
 - No `CASCADE`.
 - No dual Name write.
 - No Profile Name bootstrap from Auth/provider metadata.
 - No client-authoritative verification timestamps.
-- No verification inference from mere Email/Mobile presence.
-- No broad auth-provider switch.
+- No verification inference from Email/Mobile presence.
+- No broad auth-provider switch in this task.
 - PR #50 remains Draft/open/unmerged unless separately authorized.
