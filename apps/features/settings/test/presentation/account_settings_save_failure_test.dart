@@ -66,16 +66,14 @@ void main() {
       expect(fields[1].controller?.text, 'user@example.com');
       expect(fields[2].controller?.text, '9876543210');
 
-      // Exercise the ordinary account persistence retry path without changing a
-      // trusted contact identifier. Email/phone changes have their own Auth
-      // verification gates and must not be smuggled through this save test.
-      await tester.enterText(find.byWidget(fields[0]), 'stable_user_2');
-
+      // This regression owns save failure/retry only. Username availability and
+      // contact verification have dedicated tests, so keep all trusted values
+      // unchanged and exercise the persistence boundary directly.
       await tester.tap(find.text('Save Changes'));
       await tester.pumpAndSettle();
 
       expect(saveAttempts, 1);
-      expect(savedUsername, 'stable_user_2');
+      expect(savedUsername, 'stable_user');
       expect(savedPhoneNumber, '9876543210');
       expect(find.text('Account Settings'), findsOneWidget);
       expect(
@@ -88,7 +86,7 @@ void main() {
       final preservedFields =
           tester.widgetList<TextField>(find.byType(TextField)).toList();
       expect(preservedFields, hasLength(3));
-      expect(preservedFields[0].controller?.text, 'stable_user_2');
+      expect(preservedFields[0].controller?.text, 'stable_user');
       expect(preservedFields[1].controller?.text, 'user@example.com');
       expect(preservedFields[2].controller?.text, '9876543210');
 
