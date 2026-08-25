@@ -73,7 +73,17 @@ final authSessionRepositoryProvider = Provider<AuthSessionRepository>((ref) {
 });
 
 /// Provider for retrieving bearer ID tokens for protected HTTP requests.
+///
+/// The token authority must follow the same runtime provider selection as the
+/// session repository: Supabase is the production owner when configured,
+/// Firebase remains a compatibility fallback, and otherwise protected calls
+/// fail closed through [UnavailableAuthTokenProvider].
 final authTokenProvider = Provider<AuthTokenProvider>((ref) {
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  if (supabaseClient != null) {
+    return SupabaseAuthTokenProvider(client: supabaseClient);
+  }
+
   final capability = ref.watch(authCapabilityProvider);
   if (capability.isAvailable) {
     return FirebaseAuthTokenProvider();
