@@ -83,8 +83,8 @@ class _PendingGoogleAuthRepository
   }) async => const SignInSuccess(AuthSession(userId: 'email-user'));
 
   @override
-  Future<SignInResult> sendPasswordResetEmail(String email) async =>
-      const SignInSuccess(AuthSession(userId: ''));
+  Future<PasswordResetRequestResult> sendPasswordResetEmail(String email) async =>
+      const PasswordResetRequestAccepted();
 
   @override
   Future<SignInResult> signInWithOtp({
