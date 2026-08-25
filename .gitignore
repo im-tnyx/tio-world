@@ -70,6 +70,9 @@ supabase/.temp/
 **/*service_role*.json
 **/*private-key*.json
 
+# Local mobile QA runtime configuration (contains client-safe Supabase values)
+/apps/app/.runtime.qa.json
+
 # -----------------------------------------------------------------------------
 # Flutter / Dart
 # -----------------------------------------------------------------------------
