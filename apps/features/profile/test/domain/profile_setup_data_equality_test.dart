@@ -7,7 +7,7 @@ void main() {
     final first = ProfileSetupData(
       name: 'Tio User',
       gender: ProfileGender.other,
-      goals: <ProfileGoal>{
+      goals: const <ProfileGoal>{
         ProfileGoal.buildMuscle,
         ProfileGoal.keepFit,
       },
@@ -15,7 +15,7 @@ void main() {
       heightCm: 175,
       currentWeightKg: 72.5,
       activityLevel: ProfileActivityLevel.active,
-      healthConditions: <ProfileHealthCondition>{
+      healthConditions: const <ProfileHealthCondition>{
         ProfileHealthCondition.diabetes,
         ProfileHealthCondition.hypertension,
       },
@@ -23,7 +23,7 @@ void main() {
     final second = ProfileSetupData(
       name: 'Tio User',
       gender: ProfileGender.other,
-      goals: <ProfileGoal>{
+      goals: const <ProfileGoal>{
         ProfileGoal.keepFit,
         ProfileGoal.buildMuscle,
       },
@@ -31,7 +31,7 @@ void main() {
       heightCm: 175,
       currentWeightKg: 72.5,
       activityLevel: ProfileActivityLevel.active,
-      healthConditions: <ProfileHealthCondition>{
+      healthConditions: const <ProfileHealthCondition>{
         ProfileHealthCondition.hypertension,
         ProfileHealthCondition.diabetes,
       },
