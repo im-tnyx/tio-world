@@ -1,36 +1,51 @@
 # Startup bootstrap initial session + timeout
 
-Status: In Progress
+Status: Complete / Frozen
 
 ## Problem
 
-Fresh-install/debug runs can remain on Splash forever when the active `AuthSessionRepository.sessionState` does not replay its initial state. `AppSessionBootstrapController.start()` currently listens only to the stream, so an already-emitted unauthenticated state can be missed. The initial `Loading` state then has no deadline.
+Fresh-install/debug runs could remain on Splash forever when the active `AuthSessionRepository.sessionState` did not replay its initial state. `AppSessionBootstrapController.start()` listened only to the stream, so an already-emitted unauthenticated state could be missed. The initial `Loading` state then had no bounded current-session resolution.
 
-Observed acceptance failure: clear local/app data, launch app, Splash progress ring continues indefinitely and Welcome never appears.
+Observed acceptance failure: clear local/app data, launch app, Splash progress ring continued indefinitely and Welcome never appeared.
 
-## Scope
+## Implemented
 
-- Make startup bootstrap resolve the repository's current session snapshot after subscribing to transitions.
-- Bound initial/current-session lookup with a finite timeout.
-- Ensure stale initial reads cannot overwrite a newer stream event.
-- Ensure refresh/retry uses the same finite timeout and fails to Splash error/Retry instead of spinning forever.
-- Add focused regression tests using a non-replaying auth stream and a hanging current-session lookup.
-- Improve Splash bootstrap failure copy only if needed for accurate startup messaging.
+- Startup now subscribes to auth transitions and also explicitly resolves `currentSessionState`.
+- Initial current-session lookup is bounded to 8 seconds.
+- Retry/refresh current-session lookup uses the same 8-second timeout.
+- Timeout/error resolves `AppSessionBootstrapFailure`, allowing Splash to show failure + Retry instead of an endless progress ring.
+- Generation guarding prevents a late startup snapshot from overwriting a newer auth stream transition.
+- Product Onboarding flow/data/schema, Auth provider ownership, Supabase runtime config, Splash branding, and database schema were not changed.
 
-## Out of scope
+## Regression coverage
 
-- Product Onboarding flow/data/schema changes.
-- Auth provider redesign.
-- Supabase runtime-config policy changes.
-- Splash branding/image redesign.
-- Database migrations.
+Focused tests prove:
 
-## Acceptance
+1. A non-replaying auth stream with current unauthenticated state resolves from `start()` without manual refresh.
+2. A hanging initial current-session lookup becomes `AppSessionBootstrapFailure` instead of remaining Loading forever.
+3. A hanging retry/refresh lookup is also bounded.
+4. A late initial snapshot cannot overwrite a newer auth stream event.
+5. Existing authenticated bootstrap/completion/race behavior remains green.
 
-1. Fresh unauthenticated state with a non-replaying auth stream resolves `AppSessionBootstrapUnauthenticated` from `start()` without manual `refresh()`.
-2. Initial current-session lookup cannot remain pending forever; timeout produces `AppSessionBootstrapFailure`.
-3. Retry/current-session lookup is also bounded by the same timeout.
-4. A newer auth stream event wins over a late initial snapshot.
-5. Existing authenticated bootstrap/completion behavior remains green.
-6. Full Flutter/Dart + Android phone/Wear CI passes at exact accepted SHA.
-7. PR #50 remains Draft/open/unmerged.
+## Accepted runtime/source-test checkpoint
+
+```text
+f3517d211dacb0945d14163af9abb4c97f52082c
+```
+
+Validation:
+
+```text
+Flutter CI #2021 / run 32861957470 ✅
+Android Native CI #433 / run 32861957648 ✅
+Flutter analyze ✅
+Dart analyze ✅
+Flutter tests ✅
+Dart tests ✅
+Phone Android debug APK ✅
+Wear Android debug APK ✅
+```
+
+## Merge state
+
+PR #50 remains Draft / open / unmerged. This startup fix is a post-audit merge-blocker correction and does not reopen the accepted Product Onboarding O1–O11 data/UI architecture.
