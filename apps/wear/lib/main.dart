@@ -1,8 +1,16 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'src/device/wear_display_shape.dart';
 import 'wear_app.dart';
 
-void main() {
-  runApp(const ProviderScope(child: TioWearApp()));
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final displayShape = await const MethodChannelWearDisplayShapeReader().read();
+
+  runApp(
+    ProviderScope(
+      child: TioWearApp(displayShape: displayShape),
+    ),
+  );
 }
