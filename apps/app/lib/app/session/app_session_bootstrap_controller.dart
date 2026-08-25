@@ -20,6 +20,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
     OnboardingDraftRepository? onboardingDraftRepository,
     AppPreferencesRepository? appPreferencesRepository,
     AppModeController? appModeController,
+    Duration sessionLookupTimeout = const Duration(seconds: 8),
     Duration completionLookupTimeout = const Duration(seconds: 8),
   })  : _authSessionRepository = authSessionRepository,
         _onboardingCompletionRepository = onboardingCompletionRepository,
@@ -29,6 +30,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
         _onboardingDraftRepository = onboardingDraftRepository,
         _appPreferencesRepository = appPreferencesRepository,
         _appModeController = appModeController,
+        _sessionLookupTimeout = sessionLookupTimeout,
         _completionLookupTimeout = completionLookupTimeout;
 
   final AuthSessionRepository _authSessionRepository;
@@ -39,6 +41,7 @@ class AppSessionBootstrapController extends ChangeNotifier {
   final OnboardingDraftRepository? _onboardingDraftRepository;
   final AppPreferencesRepository? _appPreferencesRepository;
   final AppModeController? _appModeController;
+  final Duration _sessionLookupTimeout;
   final Duration _completionLookupTimeout;
 
   AppSessionBootstrapState _state = const AppSessionBootstrapLoading();
@@ -54,6 +57,8 @@ class AppSessionBootstrapController extends ChangeNotifier {
     if (_disposed || _started) return;
     _started = true;
     _debug('start');
+
+    final startupGeneration = _resolutionGeneration;
     _authSubscription = _authSessionRepository.sessionState.listen(
       (authState) {
         _debug('auth event: ${authState.runtimeType}');
@@ -67,15 +72,51 @@ class AppSessionBootstrapController extends ChangeNotifier {
         _setState(AppSessionBootstrapFailure(error));
       },
     );
+
+    // Do not assume every AuthSessionRepository replays its current value to a
+    // new stream subscriber. Resolve the current snapshot explicitly so a
+    // fresh unauthenticated launch cannot remain on Splash forever if the
+    // repository emitted its initial state before this listener attached.
+    unawaited(_resolveInitialSessionSnapshot(startupGeneration));
+  }
+
+  Future<void> _resolveInitialSessionSnapshot(int startupGeneration) async {
+    try {
+      _debug('initial auth snapshot lookup started');
+      final authState = await _authSessionRepository.currentSessionState
+          .timeout(_sessionLookupTimeout);
+      if (_disposed || startupGeneration != _resolutionGeneration) return;
+
+      _debug('initial auth snapshot: ${authState.runtimeType}');
+      await _resolve(authState);
+    } catch (error) {
+      if (_disposed || startupGeneration != _resolutionGeneration) return;
+      _resolutionGeneration++;
+      _configureAuthenticatedAppModeWrites(false);
+      _debug('initial auth snapshot failed: ${error.runtimeType}');
+      _setState(AppSessionBootstrapFailure(error));
+    }
   }
 
   Future<void> refresh({bool emitLoading = true}) async {
     if (_disposed) return;
     _debug('refresh requested');
-    final authState = await _authSessionRepository.currentSessionState;
-    if (_disposed) return;
-    _debug('refresh auth state: ${authState.runtimeType}');
-    await _resolve(authState, emitLoading: emitLoading, force: true);
+
+    final refreshGeneration = _resolutionGeneration;
+    try {
+      final authState = await _authSessionRepository.currentSessionState
+          .timeout(_sessionLookupTimeout);
+      if (_disposed || refreshGeneration != _resolutionGeneration) return;
+
+      _debug('refresh auth state: ${authState.runtimeType}');
+      await _resolve(authState, emitLoading: emitLoading, force: true);
+    } catch (error) {
+      if (_disposed || refreshGeneration != _resolutionGeneration) return;
+      _resolutionGeneration++;
+      _configureAuthenticatedAppModeWrites(false);
+      _debug('refresh auth lookup failed: ${error.runtimeType}');
+      _setState(AppSessionBootstrapFailure(error));
+    }
   }
 
   /// Accepts the already-verified result of a successful onboarding completion.
