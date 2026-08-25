@@ -46,25 +46,22 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       _errorMessage = null;
     });
 
-    if (widget.sendPasswordResetEmailUseCase == null) {
-      // Dev mode: simulate success. This is behavior timing, not visual motion.
-      await Future<void>.delayed(const Duration(milliseconds: 600));
-      if (mounted) setState(() => _emailSent = true);
-      setState(() => _isLoading = false);
+    final useCase = widget.sendPasswordResetEmailUseCase;
+    if (useCase == null) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Password reset is unavailable right now.';
+      });
       return;
     }
 
     try {
-      final result = await widget.sendPasswordResetEmailUseCase!(
-        _emailController.text.trim(),
-      );
+      final result = await useCase(_emailController.text.trim());
       if (!mounted) return;
       switch (result) {
-        case SignInSuccess():
+        case PasswordResetRequestAccepted():
           setState(() => _emailSent = true);
-        case SignInCancelled():
-          break;
-        case SignInFailure(:final message):
+        case PasswordResetRequestFailure(:final message):
           setState(() => _errorMessage = message);
       }
     } catch (e) {
@@ -180,7 +177,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                 color: colors.primary,
                                 fontWeight: TioFontWeight.w600,
                               ),
-                            ),
                           ),
                         ),
                       ],
@@ -233,7 +229,7 @@ class _SuccessState extends StatelessWidget {
         ),
         const SizedBox(height: TioSize.dp10),
         Text(
-          'We sent a password reset link to\n$email',
+          'If an account can receive a reset email at\n$email, a reset link will arrive there.',
           style: textTheme.bodyLarge?.copyWith(color: colors.textSecondary),
           textAlign: TextAlign.center,
         ),
