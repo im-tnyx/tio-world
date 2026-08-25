@@ -91,6 +91,19 @@ class AppSessionBootstrapController extends ChangeNotifier {
     _setState(AppSessionBootstrapReady(userId: userId));
   }
 
+  /// Forces the post-delete app boundary to unauthenticated after the server
+  /// has already confirmed permanent account deletion. This is deliberately
+  /// independent of a best-effort client sign-out call: an already-issued JWT
+  /// can remain locally cached even though the Auth user/session rows are gone.
+  void markUnauthenticatedAfterAccountDeletion() {
+    if (_disposed) return;
+    _activeAuthenticatedUserId = null;
+    _resolutionGeneration++;
+    _configureAuthenticatedAppModeWrites(false);
+    _debug('mark unauthenticated after account deletion');
+    _setState(const AppSessionBootstrapUnauthenticated());
+  }
+
   Future<void> _resolve(
     AuthSessionState authState, {
     bool emitLoading = true,
