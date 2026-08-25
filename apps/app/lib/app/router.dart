@@ -95,7 +95,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   final appSessionBootstrapController =
       ref.read(appSessionBootstrapControllerProvider);
   final appThemeController = ref.read(appThemeControllerProvider);
-  final supabaseClient = ref.read(supabaseClientProvider);
 
   late final GoRouter router;
   router = GoRouter(
@@ -331,7 +330,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               failureMessage: 'Account setup is unavailable right now.',
             );
           }
-          final currentPhone = supabaseClient?.auth.currentUser?.phone?.trim();
+          final authState = ref.read(authSessionStateProvider).valueOrNull;
+          final currentPhone = authState is AuthSessionAuthenticated
+              ? authState.session.phone?.trim()
+              : null;
           return AccountSetupFlowPage(
             usernameRepository: usernameRepository,
             accountSetupRepository: setupRepository,
@@ -378,29 +380,50 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               await appSessionBootstrapController.refresh();
             },
             onAuthRequired: () async {
+              final sessionState = await ref
+                  .read(authSessionRepositoryProvider)
+                  .currentSessionState;
+              if (sessionState is AuthSessionAuthenticated) {
+                return true;
+              }
+
               final authProductState = ref.read(authProductStateProvider);
-              final isSupabaseReady =
-                  supabaseClient != null && supabaseClient.auth.currentUser != null;
-              if (authProductState.isFirebaseAuthenticated || isSupabaseReady) {
+              final hasDurableProfileOwner =
+                  ref.read(userProfileRepositoryProvider) != null;
+              if (authProductState.isAuthUnavailable &&
+                  !hasDurableProfileOwner) {
                 return true;
               }
-              if (authProductState.isAuthUnavailable && supabaseClient == null) {
-                return true;
-              }
+
               final result = await context.push<bool>(AppRoutes.emailSignup.path);
               return result ?? false;
             },
             onFinishRequested: (draft) async {
               debugPrint('[Router] onFinishRequested invoked. Profile name: "${draft.profile.name}"');
               try {
-                if (supabaseClient != null && supabaseClient.auth.currentUser == null) {
-                  debugPrint('[Router] Supabase user is not logged in. Pushing Signup...');
+                final authRepository = ref.read(authSessionRepositoryProvider);
+                final hasDurableProfileOwner =
+                    ref.read(userProfileRepositoryProvider) != null;
+                var sessionState = await authRepository.currentSessionState;
+
+                if (hasDurableProfileOwner &&
+                    sessionState is! AuthSessionAuthenticated) {
+                  debugPrint(
+                    '[Router] Auth session is not ready. Pushing Signup...',
+                  );
                   await context.push<bool>(AppRoutes.emailSignup.path);
-                  if (supabaseClient.auth.currentUser == null) {
-                    debugPrint('[Router] User still not logged in after signup sheet.');
-                    throw StateError('Sign in is required to save your setup to Supabase.');
+                  sessionState = await authRepository.currentSessionState;
+                  if (sessionState is! AuthSessionAuthenticated) {
+                    debugPrint(
+                      '[Router] User still not authenticated after signup sheet.',
+                    );
+                    throw StateError(
+                      'Sign in is required to save your setup to Supabase.',
+                    );
                   }
-                  debugPrint('[Router] Supabase auth succeeded! userId=${supabaseClient.auth.currentUser?.id}');
+                  debugPrint(
+                    '[Router] Auth succeeded! userId=${sessionState.session.userId}',
+                  );
                 }
 
                 final completeOnboarding =
@@ -422,7 +445,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   flowPlan: flowPlan,
                 );
                 debugPrint('[Router] completeOnboarding SUCCESS!');
-                final completedUserId = supabaseClient?.auth.currentUser?.id;
+                final finalSessionState = await authRepository.currentSessionState;
+                final completedUserId =
+                    finalSessionState is AuthSessionAuthenticated
+                        ? finalSessionState.session.userId
+                        : null;
                 if (context.mounted) {
                   context.go(
                     AppRoutes.congratulations.path,
@@ -486,7 +513,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
             final avatarFrame = switch (profileData?.plan.toLowerCase()) {
               'plus' => TioAvatarFrame.plusRing,
-              'pro' || 'premium' => TioAvatarFrame.proHexagon,
+              'pro' || 'premium' => TioAvatarFrame.premium,
               _ => TioAvatarFrame.none,
             };
 
