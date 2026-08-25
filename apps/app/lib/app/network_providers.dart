@@ -9,38 +9,23 @@ import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
 import 'profile/canonical_profile_data_reader.dart';
+import 'supabase_runtime_config.dart';
 
-/// Configuration for client-safe Supabase credentials.
-class SupabaseConfig {
-  const SupabaseConfig({required this.url, required this.anonKey});
-  final String url;
-  final String anonKey;
-  bool get isConfigured => url.isNotEmpty && anonKey.isNotEmpty;
-}
-
-final supabaseConfigProvider = Provider<SupabaseConfig>((ref) {
-  const url = String.fromEnvironment(
-    'SUPABASE_URL',
-    defaultValue: 'https://oykupyiitspujzpwwvuj.supabase.co',
-  );
-  const anonKey = String.fromEnvironment(
-    'SUPABASE_ANON_KEY',
-    defaultValue: 'sb_publishable_pVet6gRi6JRZ-dyxrZtDSg_MAZa9mfq',
-  );
-  return const SupabaseConfig(url: url, anonKey: anonKey);
+final supabaseConfigProvider = Provider<SupabaseRuntimeConfig>((ref) {
+  return SupabaseRuntimeConfig.fromEnvironment();
 });
 
 /// Provider for injected or initialized [SupabaseClient].
 final supabaseClientProvider = Provider<SupabaseClient?>((ref) {
   final config = ref.watch(supabaseConfigProvider);
-  if (config.isConfigured) {
-    try {
-      return Supabase.instance.client;
-    } catch (_) {
-      return null;
-    }
+  if (!config.isConfigured) return null;
+
+  try {
+    return Supabase.instance.client;
+  } catch (_) {
+    if (config.isRelease) rethrow;
+    return null;
   }
-  return null;
 });
 
 /// Provider for global API configuration (base URL and timeouts).
