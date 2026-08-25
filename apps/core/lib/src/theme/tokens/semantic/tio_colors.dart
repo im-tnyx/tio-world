@@ -230,5 +230,33 @@ class TioColors extends ThemeExtension<TioColors> {
   }
 
   @override
-  TioColors lerp(ThemeExtension<TioColors>? other, double t) => this;
+  TioColors lerp(ThemeExtension<TioColors>? other, double t) {
+    if (other is! TioColors) return this;
+
+    return TioColors(
+      isDark: t < 0.5 ? isDark : other.isDark,
+      primary: Color.lerp(primary, other.primary, t)!,
+      onPrimary: Color.lerp(onPrimary, other.onPrimary, t)!,
+      background: Color.lerp(background, other.background, t)!,
+      surface: Color.lerp(surface, other.surface, t)!,
+      surfaceRaised: Color.lerp(surfaceRaised, other.surfaceRaised, t)!,
+      surfaceVariant: Color.lerp(surfaceVariant, other.surfaceVariant, t)!,
+      outlineStrong: Color.lerp(outlineStrong, other.outlineStrong, t)!,
+      textPrimary: Color.lerp(textPrimary, other.textPrimary, t)!,
+      textSecondary: Color.lerp(textSecondary, other.textSecondary, t)!,
+      textMuted: Color.lerp(textMuted, other.textMuted, t)!,
+      mediaBackground: Color.lerp(mediaBackground, other.mediaBackground, t)!,
+      onMediaPrimary: Color.lerp(onMediaPrimary, other.onMediaPrimary, t)!,
+      onMediaSecondary:
+          Color.lerp(onMediaSecondary, other.onMediaSecondary, t)!,
+      success: Color.lerp(success, other.success, t)!,
+      warning: Color.lerp(warning, other.warning, t)!,
+      danger: Color.lerp(danger, other.danger, t)!,
+      info: Color.lerp(info, other.info, t)!,
+      workout: Color.lerp(workout, other.workout, t)!,
+      nutrition: Color.lerp(nutrition, other.nutrition, t)!,
+      progress: Color.lerp(progress, other.progress, t)!,
+      coach: Color.lerp(coach, other.coach, t)!,
+    );
+  }
 }
