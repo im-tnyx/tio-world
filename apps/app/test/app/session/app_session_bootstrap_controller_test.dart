@@ -251,6 +251,28 @@ void main() {
       const AppSessionBootstrapReady(userId: 'user-a'),
     );
   });
+
+  test('confirmed account deletion forces bootstrap unauthenticated immediately',
+      () async {
+    final fixture = await _Fixture.create(
+      authState: _authenticated('user-a'),
+      completionResolver: () async =>
+          RemoteOnboardingCompletionState.completed,
+    );
+
+    await fixture.controller.refresh();
+    expect(
+      fixture.controller.state,
+      const AppSessionBootstrapReady(userId: 'user-a'),
+    );
+
+    fixture.controller.markUnauthenticatedAfterAccountDeletion();
+
+    expect(
+      fixture.controller.state,
+      const AppSessionBootstrapUnauthenticated(),
+    );
+  });
 }
 
 AuthSessionAuthenticated _authenticated(String userId) {
