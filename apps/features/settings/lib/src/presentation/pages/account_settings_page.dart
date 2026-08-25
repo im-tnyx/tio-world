@@ -347,7 +347,12 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
 
     if (!deleted || !mounted) return;
 
-    await widget.onAccountDeleted?.call();
+    final onAccountDeleted = widget.onAccountDeleted;
+    if (onAccountDeleted != null) {
+      await onAccountDeleted();
+      return;
+    }
+
     if (mounted) {
       Navigator.of(context).pop();
     }
