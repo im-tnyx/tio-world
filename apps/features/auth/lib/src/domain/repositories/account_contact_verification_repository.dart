@@ -13,6 +13,18 @@ abstract interface class AccountContactVerificationRepository {
     required String token,
   });
 
+  /// Compatibility aliases for existing Account Settings composition.
+  ///
+  /// Despite the historical names, implementations must support both the
+  /// current Email and a pending Email add/change through the same trusted Auth
+  /// provider flow. These are not separate verification authorities.
+  Future<void> requestCurrentEmailVerification(String email);
+
+  Future<void> verifyCurrentEmail({
+    required String email,
+    required String token,
+  });
+
   /// Starts add/change verification for a phone number.
   Future<void> requestPhoneVerification(String phoneNumber);
 
