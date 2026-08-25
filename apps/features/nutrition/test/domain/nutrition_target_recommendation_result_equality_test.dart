@@ -6,16 +6,16 @@ void main() {
       'equal insufficient-input results have equal hashes regardless of Set order',
       () {
     final first = NutritionTargetRecommendationInsufficientInput(
-      missingFields: Set<String>.from([
+      missingFields: <String>{
         'heightCm',
         'weightKg',
-      ]),
+      },
     );
     final second = NutritionTargetRecommendationInsufficientInput(
-      missingFields: Set<String>.from([
+      missingFields: <String>{
         'weightKg',
         'heightCm',
-      ]),
+      },
     );
 
     expect(first, equals(second));
