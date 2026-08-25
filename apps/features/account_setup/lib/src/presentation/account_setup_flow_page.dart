@@ -129,6 +129,80 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
     );
   }
 
+  Future<void> _showMobileInformation() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final colors = sheetContext.tioColors;
+
+        return Container(
+          key: const ValueKey('account-setup-mobile-info-sheet'),
+          decoration: BoxDecoration(
+            color: colors.surfaceRaised,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(TioRadius.xl),
+            ),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                TioSpacing.lg,
+                TioSpacing.lg,
+                TioSpacing.lg,
+                TioSpacing.xl,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Why we ask for your mobile number',
+                          key: const ValueKey(
+                            'account-setup-mobile-info-title',
+                          ),
+                          style: TextStyle(
+                            color: colors.textPrimary,
+                            fontSize: TioFontSize.size22,
+                            fontWeight: TioFontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        key: const ValueKey(
+                          'account-setup-mobile-info-close',
+                        ),
+                        onPressed: () => Navigator.of(sheetContext).pop(),
+                        icon: Icon(
+                          Icons.close_rounded,
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: TioSpacing.sm),
+                  Text(
+                    'Your mobile number can help with account recovery, security features, and future verification. It is optional during setup, and you can add or verify it later from Account Settings.',
+                    key: const ValueKey('account-setup-mobile-info-body'),
+                    style: TextStyle(
+                      color: colors.textSecondary,
+                      fontSize: TioFontSize.size14,
+                      height: TioLineHeight.height150,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _handleContinue() async {
     if (_busy || _plan == null) return;
 
@@ -327,21 +401,12 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
               Container(
                 key: const ValueKey('account-setup-footer'),
                 width: double.infinity,
+                color: colors.background,
                 padding: const EdgeInsets.fromLTRB(
                   TioSpacing.lg,
                   TioSpacing.sm,
                   TioSpacing.lg,
                   TioSpacing.lg,
-                ),
-                decoration: BoxDecoration(
-                  color: colors.background,
-                  border: Border(
-                    top: BorderSide(
-                      color: colors.outlineStrong.withValues(
-                        alpha: TioOpacity.opacity18,
-                      ),
-                    ),
-                  ),
                 ),
                 child: Center(
                   child: ConstrainedBox(
@@ -363,16 +428,23 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
                           ),
                           const SizedBox(height: TioSpacing.sm),
                         ],
-                        Text(
-                          step == AccountSetupStepId.username
-                              ? 'Username is required before continuing.'
-                              : 'Mobile is optional. You can leave it blank and continue.',
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colors.textSecondary,
+                        if (step == AccountSetupStepId.mobile) ...[
+                          TextButton.icon(
+                            key: const ValueKey('account-setup-mobile-info'),
+                            onPressed: _busy ? null : _showMobileInformation,
+                            icon: const Icon(
+                              Icons.info_outline_rounded,
+                              size: TioSize.dp20,
+                            ),
+                            label: const Text(
+                              'Why do we need this information?',
+                            ),
+                            style: TextButton.styleFrom(
+                              foregroundColor: colors.textSecondary,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: TioSpacing.sm),
+                          const SizedBox(height: TioSpacing.sm),
+                        ],
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton(
