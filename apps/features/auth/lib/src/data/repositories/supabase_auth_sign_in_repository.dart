@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/models/auth_session.dart';
 import '../../domain/models/google_sign_in_intent.dart';
+import '../../domain/models/password_reset_request_result.dart';
 import '../../domain/models/sign_in_result.dart';
 import '../../domain/repositories/auth_sign_in_repository.dart';
 import '../../domain/repositories/user_device_repository.dart';
@@ -386,17 +387,14 @@ class SupabaseAuthSignInRepository
   }
 
   @override
-  Future<SignInResult> sendPasswordResetEmail(String email) async {
+  Future<PasswordResetRequestResult> sendPasswordResetEmail(String email) async {
     try {
       await _client.auth.resetPasswordForEmail(email.trim());
-      // Return a synthetic empty session to signal success — no user session created.
-      return const SignInSuccess(
-        AuthSession(userId: '', email: null, displayName: null),
-      );
+      return const PasswordResetRequestAccepted();
     } on AuthException catch (e) {
-      return SignInFailure(e.message, code: e.statusCode);
+      return PasswordResetRequestFailure(e.message, code: e.statusCode);
     } catch (e) {
-      return SignInFailure(e.toString());
+      return PasswordResetRequestFailure(e.toString());
     }
   }
 
