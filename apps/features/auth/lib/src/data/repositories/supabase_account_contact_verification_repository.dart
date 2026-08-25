@@ -98,6 +98,19 @@ final class SupabaseAccountContactVerificationRepository
   }
 
   @override
+  Future<void> requestCurrentEmailVerification(String email) {
+    return requestEmailVerification(email);
+  }
+
+  @override
+  Future<void> verifyCurrentEmail({
+    required String email,
+    required String token,
+  }) {
+    return verifyEmail(email: email, token: token);
+  }
+
+  @override
   Future<void> requestPhoneVerification(String phoneNumber) async {
     _requireUser();
     final normalizedPhone = _normalizePhone(phoneNumber);
