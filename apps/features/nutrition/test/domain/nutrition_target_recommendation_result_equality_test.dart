@@ -5,13 +5,13 @@ void main() {
   test(
       'equal insufficient-input results have equal hashes regardless of Set order',
       () {
-    final first = NutritionTargetRecommendationInsufficientInput(
+    const first = NutritionTargetRecommendationInsufficientInput(
       missingFields: <String>{
         'heightCm',
         'weightKg',
       },
     );
-    final second = NutritionTargetRecommendationInsufficientInput(
+    const second = NutritionTargetRecommendationInsufficientInput(
       missingFields: <String>{
         'weightKg',
         'heightCm',
