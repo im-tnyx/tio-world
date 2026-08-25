@@ -1,4 +1,5 @@
 import '../models/google_sign_in_intent.dart';
+import '../models/password_reset_request_result.dart';
 import '../models/sign_in_result.dart';
 
 /// Repository contract for signing in users.
@@ -27,10 +28,11 @@ abstract interface class AuthSignInRepository {
     String? name,
   });
 
-  /// Sends a password reset email to [email].
-  /// Returns [SignInSuccess] with an empty session on success,
-  /// or [SignInFailure] on error.
-  Future<SignInResult> sendPasswordResetEmail(String email);
+  /// Requests a password-recovery email for [email].
+  ///
+  /// An accepted request does not establish an authenticated session and does
+  /// not prove that an account exists or that an email was delivered.
+  Future<PasswordResetRequestResult> sendPasswordResetEmail(String email);
 
   /// Signs in using email OTP / Magic link.
   Future<SignInResult> signInWithOtp({
