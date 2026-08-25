@@ -26,7 +26,8 @@ void main() {
     return border! as OutlineInputBorder;
   }
 
-  testWidgets('signup fields match the accepted login field visual contract',
+  testWidgets(
+      'login and signup share field geometry while preserving screen semantics',
       (tester) async {
     await tester.pumpWidget(app(const LoginPage()));
 
@@ -37,6 +38,20 @@ void main() {
     final loginEmailFocused = outline(loginEmail.decoration?.focusedBorder);
     final loginPasswordEnabled = outline(loginPassword.decoration?.enabledBorder);
     final loginPasswordFocused = outline(loginPassword.decoration?.focusedBorder);
+
+    expect(loginEmail.decoration?.labelText, 'Email');
+    expect(loginPassword.decoration?.labelText, 'Password');
+    expect(loginEmail.decoration?.hintText, isNull);
+    expect(loginPassword.decoration?.hintText, isNull);
+    expect(
+      loginEmail.decoration?.floatingLabelBehavior ?? FloatingLabelBehavior.auto,
+      FloatingLabelBehavior.auto,
+    );
+    expect(
+      loginPassword.decoration?.floatingLabelBehavior ??
+          FloatingLabelBehavior.auto,
+      FloatingLabelBehavior.auto,
+    );
 
     await tester.pumpWidget(app(const EmailSignupPage()));
     await tester.pump();
@@ -49,8 +64,20 @@ void main() {
     final signupPasswordEnabled = outline(signupPassword.decoration?.enabledBorder);
     final signupPasswordFocused = outline(signupPassword.decoration?.focusedBorder);
 
-    expect(signupEmail.decoration?.labelText, loginEmail.decoration?.labelText);
-    expect(signupPassword.decoration?.hintText, loginPassword.decoration?.hintText);
+    expect(signupEmail.decoration?.labelText, 'Email');
+    expect(signupPassword.decoration?.labelText, 'Password');
+    expect(signupEmail.decoration?.hintText, 'Enter your email');
+    expect(signupPassword.decoration?.hintText, 'At least 6 characters');
+    expect(
+      signupEmail.decoration?.floatingLabelBehavior ?? FloatingLabelBehavior.auto,
+      FloatingLabelBehavior.auto,
+    );
+    expect(
+      signupPassword.decoration?.floatingLabelBehavior ??
+          FloatingLabelBehavior.auto,
+      FloatingLabelBehavior.auto,
+    );
+
     expect(signupEmail.decoration?.prefixIcon, isNull);
     expect(signupPassword.decoration?.prefixIcon, isNull);
 
