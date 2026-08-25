@@ -4,6 +4,7 @@ export 'models/auth_session_state.dart';
 export 'models/backend_user_state.dart';
 export 'models/auth_product_state.dart';
 export 'models/google_sign_in_intent.dart';
+export 'models/password_reset_request_result.dart';
 export 'models/sign_in_result.dart';
 export 'repositories/account_contact_verification_repository.dart';
 export 'repositories/account_deletion_repository.dart';
