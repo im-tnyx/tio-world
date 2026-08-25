@@ -177,6 +177,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                 color: colors.primary,
                                 fontWeight: TioFontWeight.w600,
                               ),
+                            ),
                           ),
                         ),
                       ],
