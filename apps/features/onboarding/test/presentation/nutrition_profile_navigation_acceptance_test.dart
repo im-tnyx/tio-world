@@ -125,10 +125,13 @@ void main() {
       OnboardingDraft(
         selectedMode: AppMode.hybrid,
         goalSelection: const GoalIntentSelection(
-          primaryGoal: GoalIntent.maintainWeight,
+          primaryGoal: GoalIntent.loseWeight,
         ),
         currentStepId: OnboardingStepId.workoutIntro,
-        profile: _validProfile(),
+        profile: _validProfile(
+          targetWeightKg: 65,
+          targetWeightDirection: GoalWeightDirection.loss,
+        ),
       ),
     );
 
@@ -192,7 +195,10 @@ Future<void> _pumpFlow(WidgetTester tester, OnboardingDraft draft) async {
   await tester.pumpAndSettle();
 }
 
-ProfileOnboardingDraft _validProfile() {
+ProfileOnboardingDraft _validProfile({
+  double targetWeightKg = 70,
+  GoalWeightDirection? targetWeightDirection,
+}) {
   return ProfileOnboardingDraft(
     currentStepId: ProfileStepId.healthConditions,
     name: 'Nutrition Audit',
@@ -200,7 +206,8 @@ ProfileOnboardingDraft _validProfile() {
     dateOfBirth: DateTime(2000, 1, 1),
     heightCm: 171,
     currentWeightKg: 70,
-    targetWeightKg: 70,
+    targetWeightKg: targetWeightKg,
+    targetWeightDirection: targetWeightDirection,
     activityLevel: ProfileActivityLevel.active,
     healthConditions: const {ProfileHealthCondition.none},
   );
