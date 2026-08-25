@@ -44,6 +44,7 @@ void main() {
     expect(find.text('Lose weight'), findsOneWidget);
     expect(find.text('Gain weight'), findsOneWidget);
     expect(find.text('Maintain weight'), findsOneWidget);
+    expect(find.text('Fat Loss'), findsNothing);
     expect(find.text('Recomposition'), findsNothing);
     expect(find.text('Build muscle'), findsNothing);
 
@@ -57,7 +58,7 @@ void main() {
     expect(tapped, GoalIntent.gainWeight);
   });
 
-  testWidgets('workout shows seven refined choices and three selected cards',
+  testWidgets('workout shows five outcome choices with Fat Loss presentation',
       (tester) async {
     await tester.pumpWidget(
       buildScreen(
@@ -71,12 +72,13 @@ void main() {
     );
 
     expect(
-      find.text('Choose what fits you. Select up to two training goals.'),
+      find.text('Choose your focus. Add up to two training goals.'),
       findsOneWidget,
     );
-    expect(find.text('Lose weight'), findsOneWidget);
-    expect(find.text('Gain weight'), findsOneWidget);
-    expect(find.text('Maintain weight'), findsOneWidget);
+    expect(find.text('Fat Loss'), findsOneWidget);
+    expect(find.text('Lose weight'), findsNothing);
+    expect(find.text('Gain weight'), findsNothing);
+    expect(find.text('Maintain weight'), findsNothing);
     expect(find.text('Build muscle'), findsOneWidget);
     expect(find.text('Boost strength'), findsOneWidget);
     expect(find.text('Improve endurance'), findsOneWidget);
@@ -92,12 +94,17 @@ void main() {
     }
   });
 
-  testWidgets('hybrid reuses same Tio seven-card vocabulary and copy',
+  testWidgets('hybrid uses the same five outcome cards without duplicate gain card',
       (tester) async {
     await tester.pumpWidget(buildScreen(mode: AppMode.hybrid));
 
-    expect(find.text('Reduce body weight and body fat'), findsOneWidget);
-    expect(find.text('Gain body weight gradually and healthily'), findsOneWidget);
+    expect(find.text('Fat Loss'), findsOneWidget);
+    expect(
+      find.text('Reduce body fat while supporting lean mass'),
+      findsOneWidget,
+    );
+    expect(find.text('Gain body weight gradually and healthily'), findsNothing);
+    expect(find.text('Keep your current weight stable'), findsNothing);
     expect(find.text('Increase muscle size and lean mass'), findsOneWidget);
     expect(find.text('Improve strength and lifting performance'), findsOneWidget);
     expect(find.text('Improve cardio, stamina and conditioning'), findsOneWidget);
