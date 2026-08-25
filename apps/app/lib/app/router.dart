@@ -513,7 +513,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
             final avatarFrame = switch (profileData?.plan.toLowerCase()) {
               'plus' => TioAvatarFrame.plusRing,
-              'pro' || 'premium' => TioAvatarFrame.premium,
+              'pro' || 'premium' => TioAvatarFrame.proHexagon,
               _ => TioAvatarFrame.none,
             };
 
