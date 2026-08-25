@@ -38,6 +38,7 @@ class AccountSettingsPage extends StatefulWidget {
     this.onVerifyPhonePressed,
     this.onSave,
     this.onDeleteAccountConfirmed,
+    this.onAccountDeleted,
     super.key,
   });
 
@@ -62,7 +63,12 @@ class AccountSettingsPage extends StatefulWidget {
     required String username,
     required String phoneNumber,
   })? onSave;
+
+  /// Performs irreversible server-side deletion only.
   final Future<void> Function()? onDeleteAccountConfirmed;
+
+  /// Runs only after the user closes the confirmed `Account Deleted` state.
+  final Future<void> Function()? onAccountDeleted;
 
   @override
   State<AccountSettingsPage> createState() => _AccountSettingsPageState();
@@ -339,7 +345,10 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
       },
     );
 
-    if (deleted && mounted) {
+    if (!deleted || !mounted) return;
+
+    await widget.onAccountDeleted?.call();
+    if (mounted) {
       Navigator.of(context).pop();
     }
   }
