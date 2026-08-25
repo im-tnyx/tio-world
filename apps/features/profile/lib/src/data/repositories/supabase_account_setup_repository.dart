@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:tio_shared/shared.dart';
 
 import '../../domain/repositories/account_setup_repository.dart';
 
@@ -15,18 +16,6 @@ class SupabaseAccountSetupRepository implements AccountSetupRepository {
       throw StateError('User is not authenticated');
     }
     return userId;
-  }
-
-  String _normalizeMobile(String mobile) {
-    final trimmed = mobile.trim();
-    if (trimmed.isEmpty) return '';
-
-    final digits = trimmed.replaceAll(RegExp(r'[^0-9]'), '');
-    if (digits.length == 10) return '+91 $digits';
-    if (digits.startsWith('91') && digits.length == 12) {
-      return '+91 ${digits.substring(2)}';
-    }
-    return trimmed;
   }
 
   @override
@@ -75,8 +64,8 @@ class SupabaseAccountSetupRepository implements AccountSetupRepository {
         throw StateError('Profile is not initialized for the current account.');
       }
 
-      final normalized = _normalizeMobile(mobile);
-      final previous = _normalizeMobile(
+      final normalized = normalizePhoneNumberE164(mobile);
+      final previous = normalizePhoneNumberE164(
         (current['mobile'] as String?)?.trim() ?? '',
       );
       final changed = previous != normalized;
