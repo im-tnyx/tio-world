@@ -15,7 +15,10 @@ void main() {
       ],
     );
     expect(policy.allowsSupportingGoal(AppMode.nutrition), isFalse);
-    expect(policy.optionsFor(AppMode.nutrition), isNot(contains(GoalIntent.recomposition)));
+    expect(
+      policy.optionsFor(AppMode.nutrition),
+      isNot(contains(GoalIntent.recomposition)),
+    );
   });
 
   test('nutrition tap always replaces the single weight goal', () {
@@ -33,11 +36,9 @@ void main() {
     );
   });
 
-  test('workout and hybrid expose the approved seven-card set', () {
+  test('workout and hybrid expose the approved five-card outcome set', () {
     const expected = [
       GoalIntent.loseWeight,
-      GoalIntent.gainWeight,
-      GoalIntent.maintainWeight,
       GoalIntent.buildMuscle,
       GoalIntent.getStronger,
       GoalIntent.improveEndurance,
@@ -46,10 +47,35 @@ void main() {
 
     expect(policy.optionsFor(AppMode.workout), expected);
     expect(policy.optionsFor(AppMode.hybrid), expected);
+    expect(expected, isNot(contains(GoalIntent.gainWeight)));
+    expect(expected, isNot(contains(GoalIntent.maintainWeight)));
     expect(expected, isNot(contains(GoalIntent.recomposition)));
   });
 
-  test('one Body goal and two training goals coexist in three slots', () {
+  test('hidden Workout and Hybrid weight cards cannot be selected', () {
+    const current = GoalIntentSelection(
+      primaryGoal: GoalIntent.buildMuscle,
+    );
+
+    expect(
+      policy.applyTap(
+        mode: AppMode.workout,
+        current: current,
+        tappedGoal: GoalIntent.gainWeight,
+      ),
+      current,
+    );
+    expect(
+      policy.applyTap(
+        mode: AppMode.hybrid,
+        current: current,
+        tappedGoal: GoalIntent.maintainWeight,
+      ),
+      current,
+    );
+  });
+
+  test('Fat Loss compatibility intent and two training goals coexist', () {
     var selection = policy.applyTap(
       mode: AppMode.workout,
       current: const GoalIntentSelection(),
@@ -74,27 +100,9 @@ void main() {
         tertiaryGoal: GoalIntent.getStronger,
       ),
     );
-    expect(policy.validate(mode: AppMode.workout, selection: selection), isNull);
-  });
-
-  test('changing Body goal preserves both training selections', () {
-    final next = policy.applyTap(
-      mode: AppMode.hybrid,
-      current: const GoalIntentSelection(
-        primaryGoal: GoalIntent.loseWeight,
-        supportingGoal: GoalIntent.buildMuscle,
-        tertiaryGoal: GoalIntent.improveEndurance,
-      ),
-      tappedGoal: GoalIntent.gainWeight,
-    );
-
     expect(
-      next,
-      const GoalIntentSelection(
-        primaryGoal: GoalIntent.gainWeight,
-        supportingGoal: GoalIntent.buildMuscle,
-        tertiaryGoal: GoalIntent.improveEndurance,
-      ),
+      policy.validate(mode: AppMode.workout, selection: selection),
+      isNull,
     );
   });
 
@@ -121,7 +129,7 @@ void main() {
     final next = policy.applyTap(
       mode: AppMode.hybrid,
       current: const GoalIntentSelection(
-        primaryGoal: GoalIntent.maintainWeight,
+        primaryGoal: GoalIntent.loseWeight,
         supportingGoal: GoalIntent.buildMuscle,
         tertiaryGoal: GoalIntent.getStronger,
       ),
@@ -131,7 +139,7 @@ void main() {
     expect(
       next,
       const GoalIntentSelection(
-        primaryGoal: GoalIntent.maintainWeight,
+        primaryGoal: GoalIntent.loseWeight,
         supportingGoal: GoalIntent.getStronger,
       ),
     );
@@ -148,6 +156,35 @@ void main() {
         ),
       ),
       const GoalIntentSelection(primaryGoal: GoalIntent.loseWeight),
+    );
+  });
+
+  test('Workout and Hybrid reconcile hidden historical weight goals away', () {
+    expect(
+      policy.reconcileForMode(
+        mode: AppMode.workout,
+        selection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.gainWeight,
+          supportingGoal: GoalIntent.buildMuscle,
+          tertiaryGoal: GoalIntent.getStronger,
+        ),
+      ),
+      const GoalIntentSelection(
+        primaryGoal: GoalIntent.buildMuscle,
+        supportingGoal: GoalIntent.getStronger,
+      ),
+    );
+    expect(
+      policy.reconcileForMode(
+        mode: AppMode.hybrid,
+        selection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.maintainWeight,
+          supportingGoal: GoalIntent.improveEndurance,
+        ),
+      ),
+      const GoalIntentSelection(
+        primaryGoal: GoalIntent.improveEndurance,
+      ),
     );
   });
 
