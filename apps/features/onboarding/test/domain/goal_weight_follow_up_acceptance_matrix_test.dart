@@ -49,7 +49,7 @@ void main() {
         controller.state.draft.profile.currentStepId,
         testCase.expectWeightFollowUps
             ? ProfileStepId.goalPace
-            : ProfileStepId.currentWeight,
+            : ProfileStepId.goal,
       );
       expect(controller.state.draft.targets.goalPaceKgPerWeek, 0.6);
       expect(
