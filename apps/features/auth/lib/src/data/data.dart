@@ -1,6 +1,7 @@
 export 'firebase_auth_session_repository.dart';
 export 'firebase_auth_token_provider.dart';
 export 'in_memory_auth_session_repository.dart';
+export 'supabase_auth_token_provider.dart';
 export 'dto/google_sync_request_dto.dart';
 export 'dto/backend_user_sync_response_dto.dart';
 export 'datasources/backend_user_sync_remote_data_source.dart';
