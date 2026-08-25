@@ -44,6 +44,14 @@ void main() {
     expect(find.text('Choose your username'), findsOneWidget);
     expect(find.text('1 / 2'), findsOneWidget);
     expect(find.textContaining('Skip'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('account-setup-username-helper')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('account-setup-mobile-info')),
+      findsNothing,
+    );
 
     await tester.enterText(
       find.byKey(const ValueKey('tio-username-input')),
@@ -59,7 +67,15 @@ void main() {
     expect(find.text("What's your mobile number?"), findsOneWidget);
     expect(find.text('2 / 2'), findsOneWidget);
     expect(
+      find.byKey(const ValueKey('account-setup-mobile-helper')),
+      findsOneWidget,
+    );
+    expect(
       find.text('Mobile is optional. You can leave it blank and continue.'),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('account-setup-mobile-info')),
       findsOneWidget,
     );
 
@@ -69,6 +85,48 @@ void main() {
     expect(setupRepository.completeCalls, 1);
     expect(setupRepository.lastMobile, '');
     expect(completed, 1);
+  });
+
+  testWidgets('Mobile info action opens explanatory bottom sheet',
+      (tester) async {
+    await tester.pumpWidget(
+      app(
+        usernameRepository: _FakeProfileAccountRepository(),
+        setupRepository: _FakeAccountSetupRepository(
+          const AccountSetupAccountState(username: 'existing.user'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Why do we need this information?'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('account-setup-mobile-info')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('account-setup-mobile-info-sheet')),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Why we ask for your mobile number'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('account recovery'), findsOneWidget);
+    expect(find.textContaining('future verification'), findsOneWidget);
+    expect(find.textContaining('Account Settings'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('account-setup-mobile-info-close')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('account-setup-mobile-info-sheet')),
+      findsNothing,
+    );
   });
 
   testWidgets('entered mobile persists but remains unverified', (tester) async {
@@ -116,6 +174,10 @@ void main() {
     expect(find.text("What's your mobile number?"), findsOneWidget);
     expect(find.text('1 / 1'), findsOneWidget);
     expect(find.text('Choose your username'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('account-setup-mobile-info')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('trusted phone skips optional Mobile after username',
@@ -199,10 +261,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Choose your username'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('account-setup-mobile-info')),
+      findsNothing,
+    );
     expect(exits, 0);
   });
 
-  testWidgets('Account Setup owns fixed footer and shared auth-style chrome',
+  testWidgets('Account Setup footer stays fixed without an extra divider',
       (tester) async {
     tester.view.physicalSize = const Size(393, 852);
     tester.view.devicePixelRatio = 1;
@@ -224,6 +290,27 @@ void main() {
     expect(find.byKey(const ValueKey('account-setup-footer')), findsOneWidget);
     expect(find.byKey(const ValueKey('account-setup-continue')), findsOneWidget);
     expect(find.text('Choose your username'), findsOneWidget);
+
+    final helper = find.byKey(const ValueKey('account-setup-username-helper'));
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('account-setup-content')),
+        matching: helper,
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('account-setup-footer')),
+        matching: helper,
+      ),
+      findsNothing,
+    );
+
+    final footer = tester.widget<Container>(
+      find.byKey(const ValueKey('account-setup-footer')),
+    );
+    expect(footer.decoration, isNull);
 
     final footerRect = tester.getRect(
       find.byKey(const ValueKey('account-setup-footer')),
