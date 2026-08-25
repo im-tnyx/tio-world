@@ -4,9 +4,10 @@ import '../models/goal_intent.dart';
 
 /// Pure mode/selection policy for the unified onboarding Goal screen.
 ///
-/// Presentation stays one flat Tio card list. This policy keeps Body weight
-/// state and Workout training priorities independently selectable before later
-/// owner-specific mapping.
+/// Presentation stays one flat Tio card list while each App Mode exposes only
+/// the vocabulary that is meaningful to that product context. The underlying
+/// mixed onboarding intent model remains compatibility-only glue before values
+/// are mapped into their canonical Body and Workout owners.
 class GoalIntentSelectionPolicy {
   const GoalIntentSelectionPolicy();
 
@@ -18,8 +19,16 @@ class GoalIntentSelectionPolicy {
 
   static const _workoutOptions = <GoalIntent>[
     GoalIntent.loseWeight,
-    GoalIntent.gainWeight,
-    GoalIntent.maintainWeight,
+    GoalIntent.buildMuscle,
+    GoalIntent.getStronger,
+    GoalIntent.improveEndurance,
+    GoalIntent.stayFit,
+  ];
+
+  // Kept as an explicit mode list even while it matches Workout so future
+  // product divergence does not require re-coupling the two mode contracts.
+  static const _hybridOptions = <GoalIntent>[
+    GoalIntent.loseWeight,
     GoalIntent.buildMuscle,
     GoalIntent.getStronger,
     GoalIntent.improveEndurance,
@@ -41,7 +50,8 @@ class GoalIntentSelectionPolicy {
 
   List<GoalIntent> optionsFor(AppMode mode) => switch (mode) {
         AppMode.nutrition => _nutritionOptions,
-        AppMode.workout || AppMode.hybrid => _workoutOptions,
+        AppMode.workout => _workoutOptions,
+        AppMode.hybrid => _hybridOptions,
       };
 
   bool allowsSupportingGoal(AppMode mode) => mode != AppMode.nutrition;
@@ -69,12 +79,12 @@ class GoalIntentSelectionPolicy {
     return true;
   }
 
-  /// Applies one card tap while preserving one Body weight-state choice and at
-  /// most two Workout training priorities.
+  /// Applies one card tap while preserving one visible Body weight-state choice
+  /// and at most two Workout training priorities.
   ///
-  /// The normalized slot order is Body first (when selected), followed by the
-  /// training selections. This makes owner mapping deterministic while the UI
-  /// remains a single flat card list.
+  /// Nutrition exposes all three Body directions. Workout and Hybrid expose
+  /// only `loseWeight` as the compatibility intent behind their Fat Loss card;
+  /// Gain/Maintain remain decodable domain values but are not selectable there.
   GoalIntentSelection applyTap({
     required AppMode mode,
     required GoalIntentSelection current,
@@ -107,8 +117,8 @@ class GoalIntentSelectionPolicy {
   }
 
   /// Reconciles an existing selection after an App Mode change or draft restore.
-  /// Legacy Recomposition remains decode-compatible but is intentionally not
-  /// fabricated into a new Body/training combination.
+  /// Hidden historical values remain decodable, but values that are no longer
+  /// selectable in the active mode are removed from the active selection.
   GoalIntentSelection reconcileForMode({
     required AppMode mode,
     required GoalIntentSelection selection,
