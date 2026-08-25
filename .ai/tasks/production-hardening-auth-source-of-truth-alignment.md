@@ -2,7 +2,7 @@
 
 ## Status
 
-**AUDIT COMPLETE / IMPLEMENTATION REQUIRED.**
+**COMPLETE / FROZEN.**
 
 Audit head lineage:
 
@@ -10,115 +10,101 @@ Audit head lineage:
 427f217d8c71c1df1cf76349e2bd1139ec420e38
 ```
 
-Owner tracker: #5 P1 item 7. Coordinate with #8/#34 without absorbing their contact/linking/password scopes.
+Accepted source/test checkpoint:
+
+```text
+7e971590c6bb8106ef01095aedba8fc4d022929b
+Flutter CI #1896 / run 32812159586 ✅
+Android Native CI #308 / run 32812159562 ✅
+```
+
+Owner tracker: #5 P1 item 7. #8/#34 remain authoritative for contact verification, linking, password, recovery, and uniqueness.
 
 ## Goal
 
 Make the active production auth session and protected-HTTP bearer token use the same authority, while preserving current fallback adapters and keeping 401 refresh concurrency as the separate #5 item 8 lane.
 
-## Fresh findings
+## Accepted result
 
-### 1. Production session authority is already Supabase-first
+### Production session + token authority are aligned
 
-`authSessionRepositoryProvider` currently resolves:
+Runtime selection is now:
 
 ```text
 Supabase client available
 → SupabaseAuthSessionRepository
+→ SupabaseAuthTokenProvider
 
 else Firebase capability available
 → FirebaseAuthSessionRepository
-
-else
-→ InMemoryAuthSessionRepository
-```
-
-`AppSessionBootstrapController` receives this repository, so production bootstrap/session truth already follows Supabase when Supabase is configured.
-
-### 2. Protected HTTP token authority is misaligned
-
-`authTokenProvider` currently ignores the Supabase client and only checks the Firebase-centric `authCapabilityProvider`:
-
-```text
-Firebase capability available
 → FirebaseAuthTokenProvider
 
 else
+→ InMemoryAuthSessionRepository
 → UnavailableAuthTokenProvider
 ```
 
-Therefore a valid production Supabase session can coexist with an unavailable protected-HTTP bearer token provider.
+Production Supabase Auth therefore owns both session truth and the bearer token used by protected HTTP calls.
 
-This is a real source-of-truth mismatch.
+### Supabase bearer-token adapter
 
-### 3. Current Supabase API contract verified
+`SupabaseAuthTokenProvider` implements shared `AuthTokenProvider`:
 
-Official current Supabase Flutter/Dart reference confirms:
+- normal reads use `supabase.auth.currentSession?.accessToken`;
+- `forceRefresh: true` calls `supabase.auth.refreshSession()` and returns the refreshed session access token;
+- empty/missing token, missing session behavior, and SDK/network failures fail closed with `null`;
+- token normalization trims accidental whitespace;
+- no service-role/secret credential is introduced.
 
-- current bearer token is available from `supabase.auth.currentSession?.accessToken`;
-- `supabase.auth.refreshSession()` force-refreshes and returns a new session whether or not the current session is expired;
-- current v2 initialization can expose a locally restored session before refresh completes, so callers must remain fail-safe around missing/expired sessions and auth events.
+Official current Supabase Flutter/Dart documentation was checked before implementation; the current session and `refreshSession()` APIs are supported, and no relevant current Auth breaking change invalidates this integration.
 
-No relevant current Auth breaking change was found that invalidates these APIs.
+### Compatibility paths retained intentionally
 
-### 4. 401 concurrency remains item 8
+Firebase/custom-backend code remains as fallback compatibility. Current Login Google behavior already prioritizes the Supabase `SignInWithGoogleUseCase` when Supabase is available, so no broad provider-removal change was justified.
 
-`AuthInterceptor` already attempts one retry after a 401 and calls `getIdToken(forceRefresh: true)`, but there is no shared refresh mutex/future for simultaneous 401s.
+`AuthCapability` / `AuthProductState` retain legacy Firebase-centric helpers because current call-site audit found no active production decision that requires broad semantic churn after session/token authority was aligned. This does not redefine Supabase production authority.
 
-Do not add the mutex in item 7. Item 7 only aligns token authority; item 8 owns refresh concurrency.
+### 401 concurrency explicitly deferred
 
-### 5. Firebase/custom-backend paths are fallback compatibility, not production authority
-
-Current Login Google handling prioritizes `SignInWithGoogleUseCase` when Supabase is configured and only falls back to the legacy `GoogleAuthUseCase` when that path is unavailable.
-
-Do not delete Firebase/custom-backend code mechanically in this slice. The goal is one active authority per runtime configuration, not a broad provider removal.
-
-### 6. Firebase-centric capability naming is legacy debt
-
-`AuthCapability` / `AuthProductState` comments and helpers still describe Firebase-specific readiness even though the production session owner is Supabase-first.
-
-Only change semantics that are currently used for production decisions and can be made provider-neutral safely. Avoid broad API churn that is not required to fix the active authority mismatch.
+`AuthInterceptor` still owns one retry on 401 and calls `getIdToken(forceRefresh: true)`. It still has no shared refresh mutex/future for simultaneous 401 responses. That is intentionally **not** claimed complete here and remains #5 item 8.
 
 ## Implementation scope
 
-- [ ] Add a `SupabaseAuthTokenProvider` implementing shared `AuthTokenProvider`.
-- [ ] Normal token read uses the active Supabase session access token.
-- [ ] `forceRefresh: true` delegates to `SupabaseAuth.refreshSession()` and returns the refreshed session access token.
-- [ ] Missing session / refresh failure fails safely with `null`, matching the existing token-provider contract.
-- [ ] Compose `authTokenProvider` Supabase-first, then Firebase fallback, then unavailable.
-- [ ] Add focused token-provider tests for current token, missing session, forced refresh, and refresh failure.
-- [ ] Add app composition regression proving Supabase token provider wins when a Supabase client is configured.
-- [ ] Re-audit `AuthProductState` call sites and make only the minimum provider-neutral semantic correction required for current production decisions.
-- [ ] Preserve Supabase-first `AuthSessionRepository` and current Account verification behavior.
-- [ ] Preserve existing Google/Firebase/custom-backend fallback code unless a current consumer proves it dead and removal is separately justified.
-- [ ] Full exact-head Flutter/Dart + Android CI before freeze.
+- [x] Add `SupabaseAuthTokenProvider` implementing shared `AuthTokenProvider`.
+- [x] Normal token read uses the active Supabase session access token.
+- [x] `forceRefresh: true` delegates to `SupabaseAuth.refreshSession()` and returns the refreshed session access token.
+- [x] Missing/failed token access fails safely with `null`.
+- [x] Compose `authTokenProvider` Supabase-first, then Firebase fallback, then unavailable.
+- [x] Add focused current-token, missing-token, forced-refresh, and refresh-failure tests.
+- [x] Add app composition regression proving Supabase wins when configured.
+- [x] Re-audit `AuthProductState` call sites; no additional production semantic correction was required in this bounded slice.
+- [x] Preserve Supabase-first session repository and frozen Account verification behavior.
+- [x] Preserve current Google/Firebase/custom-backend fallback code.
+- [x] Full exact-head Flutter/Dart + Android CI green.
 
-## Out of scope
+## Focused regressions
 
-- Shared 401 refresh mutex/concurrency (#5 item 8).
-- Password-reset result typing (#5 item 9 / #34).
-- Provider linking, identifier uniqueness, password policy, or recovery (#34).
-- Contact verification ownership/reconciliation (#8) beyond preserving the frozen contract.
-- `OnboardingAuthDraftHandoff` redesign unless a direct source-of-truth contradiction remains after token alignment.
-- Auth-provider migration/removal.
-- DB/schema changes.
+```text
+apps/features/auth/test/data/supabase_auth_token_provider_test.dart
+apps/app/test/app/production_hardening_auth_source_of_truth_test.dart
+```
 
 ## Acceptance
 
-- [ ] One active production Supabase session yields a Supabase bearer token for protected HTTP calls.
-- [ ] Forced token refresh uses Supabase Auth and returns the refreshed bearer token.
-- [ ] Missing/failed Supabase session does not fabricate a token.
-- [ ] Firebase token provider remains a fallback only when Supabase is unavailable and Firebase capability is available.
-- [ ] Session authority and protected-HTTP token authority select the same production provider.
-- [ ] Existing Account Email/Mobile verification authority remains Supabase Auth.
-- [ ] No 401 concurrency implementation is falsely claimed here.
-- [ ] No DB migration.
-- [ ] Exact-SHA Flutter/Dart + Android CI green.
+- [x] One active production Supabase session yields a Supabase bearer-token adapter for protected HTTP calls.
+- [x] Forced token refresh uses Supabase Auth and returns the refreshed bearer token.
+- [x] Missing/failed Supabase token access does not fabricate a token.
+- [x] Firebase remains fallback only when Supabase is unavailable and Firebase capability is available.
+- [x] Session authority and protected-HTTP token authority select the same production provider.
+- [x] Existing Account Email/Mobile verification authority remains Supabase Auth.
+- [x] No 401 concurrency implementation is falsely claimed here.
+- [x] No DB migration.
+- [x] Exact-SHA Flutter/Dart + Android CI green.
 
 ## Guardrails
 
 - Supabase Auth remains the current canonical production auth provider per #34.
 - Never derive auth/authorization from user metadata.
 - Never expose service-role/secret credentials in Flutter.
-- Do not weaken token failures into anonymous protected requests.
+- Protected token failure remains fail-closed.
 - PR #50 remains Draft/open/unmerged unless separately authorized.
