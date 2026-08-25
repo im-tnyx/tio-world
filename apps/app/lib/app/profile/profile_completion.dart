@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_profile/profile.dart';
 
 import '../network_providers.dart';
@@ -49,51 +50,37 @@ final profileCompletionReminderPreferenceProvider =
   return const ProfileCompletionReminderPreference();
 });
 
-/// Reads Profile-owned completion truth from canonical `user_profiles` and only
-/// Account-owned reminder fields from `public.users`.
-///
-/// Legacy Profile mirrors in `users` are deliberately not selected or accepted
-/// as fallback evidence for Name, Gender, or Date of Birth.
 final profileCompletionSummaryProvider =
     FutureProvider<ProfileCompletionSummary?>((ref) async {
-  ref.watch(authSessionStateProvider);
-  final client = ref.watch(supabaseClientProvider);
-  final user = client?.auth.currentUser;
-  if (client == null || user == null || user.id.isEmpty) return null;
-
-  final profile = await SupabaseUserProfileRepository(client: client).read();
-  if (profile == null) return null;
-
-  final accountRow = await client
-      .from('users')
-      .select('username,mobile')
-      .eq('id', user.id)
-      .maybeSingle();
+  final profile = ref.watch(profileDataProvider).valueOrNull;
+  final authState = ref.watch(authSessionStateProvider).valueOrNull;
+  final session = authState is AuthSessionAuthenticated ? authState.session : null;
+  if (profile == null || session == null) return null;
 
   return ProfileCompletionSummary.fromFields(
     name: profile.name,
-    username: accountRow?['username'] as String?,
-    email: user.email,
-    mobile: accountRow?['mobile'] as String?,
+    username: profile.username,
+    email: session.email,
+    mobile: profile.mobile,
     hasGender: true,
     hasDateOfBirth: true,
   );
 });
 
-/// Stable for token refreshes, but changes after a real Supabase sign-in.
 final profileCompletionReminderScopeProvider =
     Provider<ProfileCompletionReminderScope?>((ref) {
-  ref.watch(authSessionStateProvider);
-  final user = ref.watch(supabaseClientProvider)?.auth.currentUser;
-  if (user == null || user.id.isEmpty) return null;
+  final authState = ref.watch(authSessionStateProvider).valueOrNull;
+  if (authState is! AuthSessionAuthenticated) return null;
 
-  final lastSignInAt = user.lastSignInAt?.trim();
-  final loginCycleId = lastSignInAt != null && lastSignInAt.isNotEmpty
-      ? lastSignInAt
-      : user.createdAt;
+  final session = authState.session;
+  final userId = session.userId.trim();
+  final loginCycleId = session.loginCycleId?.trim();
+  if (userId.isEmpty || loginCycleId == null || loginCycleId.isEmpty) {
+    return null;
+  }
 
   return ProfileCompletionReminderScope(
-    userId: user.id,
+    userId: userId,
     loginCycleId: loginCycleId,
   );
 });
