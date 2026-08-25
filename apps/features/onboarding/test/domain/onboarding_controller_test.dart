@@ -97,7 +97,10 @@ void main() {
 
     expect(controller.state.stepId, OnboardingStepId.bodyGoal);
     expect(controller.state.currentSection, OnboardingSectionId.bodyGoal);
-    expect(controller.state.draft.profile.currentStepId, ProfileStepId.goal);
+    expect(
+      controller.state.draft.profile.currentStepId,
+      ProfileStepId.currentWeight,
+    );
     expect(
       controller.state.completedStepIds,
       contains(OnboardingStepId.profileBasics),
@@ -470,7 +473,7 @@ void main() {
     expect(controller.state.stepId, OnboardingStepId.bodyGoal);
     expect(
       controller.state.draft.profile.currentStepId,
-      ProfileStepId.currentWeight,
+      ProfileStepId.targetWeight,
     );
   });
 
@@ -577,7 +580,10 @@ void main() {
 
     expect(controller.state.draft.workoutIntroChoice, isNull);
     expect(controller.state.stepId, OnboardingStepId.bodyGoal);
-    expect(controller.state.draft.profile.currentStepId, ProfileStepId.goal);
+    expect(
+      controller.state.draft.profile.currentStepId,
+      ProfileStepId.currentWeight,
+    );
   });
 
   test('common Profile and Body Goal complete into Workout Profile in Workout mode',
@@ -624,16 +630,16 @@ void main() {
 
     await controller.next(onFinish: _completeImmediately);
     expect(controller.state.stepId, OnboardingStepId.bodyGoal);
-    expect(controller.state.draft.profile.currentStepId, ProfileStepId.goal);
-
-    controller.tapGoalIntent(GoalIntent.stayFit);
-    await controller.next(onFinish: _completeImmediately);
     expect(
       controller.state.draft.profile.currentStepId,
       ProfileStepId.currentWeight,
     );
 
     controller.updateProfileCurrentWeight(70);
+    await controller.next(onFinish: _completeImmediately);
+    expect(controller.state.draft.profile.currentStepId, ProfileStepId.goal);
+
+    controller.tapGoalIntent(GoalIntent.stayFit);
     await controller.next(onFinish: _completeImmediately);
     expect(controller.state.draft.profile.currentStepId, ProfileStepId.targetWeight);
 
@@ -700,7 +706,10 @@ void main() {
 
       await controller.next(onFinish: _completeImmediately);
       expect(controller.state.stepId, OnboardingStepId.bodyGoal);
-      expect(controller.state.draft.profile.currentStepId, ProfileStepId.goal);
+      expect(
+        controller.state.draft.profile.currentStepId,
+        ProfileStepId.currentWeight,
+      );
     }
 
     final controller = OnboardingController(
