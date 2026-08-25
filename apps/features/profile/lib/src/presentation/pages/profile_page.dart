@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
 
 import '../../domain/models/models.dart';
+import '../../domain/usecases/usecases.dart';
 
 /// The primary user profile page with one optional completion affordance.
 class ProfilePage extends StatelessWidget {
@@ -63,41 +64,6 @@ class ProfilePage extends StatelessWidget {
     }
   }
 
-  int _calculateAge(DateTime dob) {
-    final now = DateTime.now();
-    var age = now.year - dob.year;
-    if (now.month < dob.month ||
-        (now.month == dob.month && now.day < dob.day)) {
-      age--;
-    }
-    return age;
-  }
-
-  double? _calculateBmi({
-    required double weightKg,
-    required double heightCm,
-  }) {
-    if (weightKg <= 0 || heightCm <= 0) return null;
-    final heightM = heightCm / 100.0;
-    final bmi = weightKg / (heightM * heightM);
-    return double.parse(bmi.toStringAsFixed(1));
-  }
-
-  int _calculateBmr({
-    required double weightKg,
-    required double heightCm,
-    required int age,
-    required ProfileGender gender,
-  }) {
-    final base = (10 * weightKg) + (6.25 * heightCm) - (5 * age);
-    final bmr = switch (gender) {
-      ProfileGender.male => base + 5,
-      ProfileGender.female => base - 161,
-      ProfileGender.other => base - 78,
-    };
-    return bmr.round();
-  }
-
   String _genderLabel(ProfileGender gender) {
     return switch (gender) {
       ProfileGender.male => 'Male',
@@ -119,25 +85,18 @@ class ProfilePage extends StatelessWidget {
         ? (rawUsername.startsWith('@') ? rawUsername : '@$rawUsername')
         : null;
 
-    final age = data != null ? _calculateAge(data.dateOfBirth) : null;
+    final healthMetrics = data != null
+        ? const CalculateProfileHealthMetrics().call(data)
+        : null;
+    final age = healthMetrics?.ageYears;
     final genderStr = data != null ? _genderLabel(data.gender) : null;
     final heightCm =
         (data != null && data.heightCm > 0) ? data.heightCm : null;
     final weightKg = (data != null && data.currentWeightKg > 0)
         ? data.currentWeightKg
         : null;
-    final bmi = (weightKg != null && heightCm != null)
-        ? _calculateBmi(weightKg: weightKg, heightCm: heightCm)
-        : null;
-    final bmr =
-        (data != null && weightKg != null && heightCm != null && age != null)
-            ? _calculateBmr(
-                weightKg: weightKg,
-                heightCm: heightCm,
-                age: age,
-                gender: data.gender,
-              )
-            : null;
+    final bmi = healthMetrics?.bmi;
+    final bmr = healthMetrics?.bmrKcal;
 
     final demoParts = <String>[];
     if (age != null) demoParts.add('$age year old');
