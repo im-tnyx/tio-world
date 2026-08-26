@@ -25,6 +25,7 @@ Signup and Login open in Phone mode, use real Phone OTP through the #126 capabil
 - Legacy `/login/email` resolves the same `LoginPage` directly in Email mode.
 - Existing `/login/email-signup` remains the compatible Signup path while the page itself is Phone-first.
 - Round provider/mode actions are shared through `apps/core`, visible-label and semantics-safe.
+- Three round actions stay within narrow phone content widths instead of relying on fixed 300dp total width.
 - No Account Setup, schema, migration, hook, Edge Function, or hosted Auth configuration change.
 
 ### Scope
@@ -59,7 +60,7 @@ Signup and Login open in Phone mode, use real Phone OTP through the #126 capabil
 - Login uses `PhoneOtpIntent.login`; Signup uses `PhoneOtpIntent.signup`.
 - `TioSocialButton.round` is a reusable core variant with a 56dp circular action, visible label, button semantics, and theme-governed colors/geometry.
 - `apps/core/lib/src/theme/README.md` now documents `TioSocialButton.round` as the shared provider/mode action contract and keeps provider ordering/state feature-owned.
-- `AuthRoundActions` composes Google, existing Truecaller, and the reciprocal Email/Phone action without duplicating the core component.
+- `AuthRoundActions` composes Google, existing Truecaller, and the reciprocal Email/Phone action through three `Expanded` slots, so the shared 100dp preferred label lane is constrained safely on narrower phone widths.
 - `PhoneOtpAuthScope` lets app composition inject production Phone OTP use cases while pages still accept explicit dependencies for tests/isolated hosts.
 - `AppRoutes.signup` aliases the existing `/login/email-signup` route so old links remain resolvable.
 - `LoginPage` resolves `/login/email` to `AuthEntryMode.email` when no explicit mode was supplied; isolated hosts/tests retain Phone-first default unless they opt into Email explicitly.
@@ -69,13 +70,14 @@ Signup and Login open in Phone mode, use real Phone OTP through the #126 capabil
 
 The first Phone-first branch pass changed Signup defaults and round-action keys but left existing Email Signup widget tests assuming the old default Email form/full-width Google key. Those tests would fail when executable validation becomes available.
 
-The audit corrected source/test drift by:
+The audit corrected source/test/layout drift by:
 
 - adding Phone-first Signup default/mode-switch/Signup-intent verification coverage;
 - preserving Email-specific behavior tests with `initialMode: AuthEntryMode.email`;
 - updating Google loading/signup assertions to the round-action keys;
 - adding a route-aware Login regression proving legacy `/login/email` opens the same `LoginPage` in Email mode;
-- documenting the new public `TioSocialButton.round` contract in the design-system README.
+- documenting the new public `TioSocialButton.round` contract in the design-system README;
+- constraining the three round actions with `Expanded` slots so the row remains width-safe on narrow phone layouts.
 
 ## 3. Clarification
 
@@ -119,6 +121,7 @@ Email form
 OR
 → reusable TioSocialButton.round
    Google | Truecaller | reciprocal Email/Phone action
+   each composed in an Expanded slot
 ```
 
 `Code sent` remains a request state, never `SignInSuccess`. Switching mode clears the active request/error state by rebuilding the mode-owned form and does not mutate Auth identity or route history.
@@ -136,6 +139,7 @@ OR
 - [x] audit and repair stale Signup tests for the new default/round-action contract;
 - [x] update `apps/core/lib/src/theme/README.md` for the new public reusable round-action contract;
 - [x] preserve `/login/email` strict Email-mode intent on the same `LoginPage`;
+- [x] make the three-action row narrow-width safe;
 - [x] run parent-to-head GitHub ancestry/scope audit;
 - [ ] run Flutter/Dart validation when an executable environment is available;
 - [ ] run controlled hosted SMS delivery/session smoke now that Phone Auth is enabled;
@@ -148,8 +152,8 @@ OR
 ```text
 Stack base                         c223d5874417b7e5dfb381890c56874d472387cc
 Merge base                        exact stack base
-Branch state                      ahead 24 / behind 0 before this task update
-Changed files                     16 before this task update
+Branch state                      ahead 26 / behind 0 before this task update
+Changed files                     16
 Scope                             apps/features/auth, apps/core auth UI/routing/docs,
                                   apps/app Phone OTP composition, focused task/tests
 Account Setup changes             none
@@ -165,8 +169,9 @@ Hosted SMS delivery/session smoke: NOT RUN yet; user reports Phone Auth is enabl
 1. **Signup test drift found and repaired.** Old widget tests assumed Email was still the default and referenced removed full-width social-action keys.
 2. **Legacy Email route intent preserved.** `/login/email` now resolves the same mode-driven Login page in Email mode instead of silently becoming Phone-first.
 3. **Core contract documentation complete.** `TioSocialButton.round` is documented without introducing an Auth token bag.
-4. **No scope contamination found.** No Account Setup, onboarding, profile, database, migration, hook, or Edge Function file is in the branch delta.
-5. **Runtime acceptance remains intentionally pending.** Source/test coverage is not equivalent to executed Flutter tests or a real hosted SMS verification.
+4. **Narrow-layout risk removed.** The three 100dp-preferred round actions no longer require 300dp of unconstrained row width; `Expanded` composition constrains them to the available phone width.
+5. **No scope contamination found.** No Account Setup, onboarding, profile, database, migration, hook, or Edge Function file is in the branch delta.
+6. **Runtime acceptance remains intentionally pending.** Source/test coverage is not equivalent to executed Flutter tests or a real hosted SMS verification.
 
 ## 7. Final Handoff
 
@@ -183,7 +188,7 @@ Hosted SMS delivery/session smoke: NOT RUN yet; user reports Phone Auth is enabl
 
 ### Actual Behavior
 
-Source now implements the bounded #128 Phone-first Signup/Login entry surface. Phone OTP request/resend/verify is consumed from #126; Email + Password remains same-screen; Google/Truecaller remain fixed round actions; request-code success is not treated as authentication; and `/login/email` preserves direct Email-mode intent without maintaining a duplicate Login screen.
+Source now implements the bounded #128 Phone-first Signup/Login entry surface. Phone OTP request/resend/verify is consumed from #126; Email + Password remains same-screen; Google/Truecaller remain fixed round actions; request-code success is not treated as authentication; `/login/email` preserves direct Email-mode intent without maintaining a duplicate Login screen; and the three-action row is constrained for narrow phone layouts.
 
 ### Known Limitations
 
