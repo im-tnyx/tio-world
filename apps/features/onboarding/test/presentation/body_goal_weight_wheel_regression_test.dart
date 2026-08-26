@@ -86,6 +86,7 @@ void main() {
       find.byKey(const ValueKey('targets-goal-pace-info-sheet')),
       findsOneWidget,
     );
+    expect(find.byType(TioInformationBottomSheet), findsOneWidget);
     expect(find.text('How goal pace works'), findsOneWidget);
     expect(find.textContaining('weekly'), findsWidgets);
     expect(find.textContaining('target date'), findsOneWidget);
