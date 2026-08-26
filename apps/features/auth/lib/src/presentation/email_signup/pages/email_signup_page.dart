@@ -3,17 +3,23 @@ import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
 
 import '../../../domain/domain.dart';
+import '../../shared/auth_entry_mode.dart';
+import '../../shared/auth_round_actions.dart';
+import '../../shared/phone_otp_auth_section.dart';
 
-/// Canonical Sign Up screen for fresh-account authentication.
+/// Canonical fresh-account Signup surface.
 ///
-/// Email/password, Google, future Truecaller, and the legal disclaimer live on
-/// this one surface. Entry source affects post-auth continuation in the app
-/// router/bootstrap layer, not which signup providers are visible here.
+/// Phone OTP is the default mode. Email + Password remains available on the
+/// same screen through the reciprocal Email/Phone round action.
 class EmailSignupPage extends StatefulWidget {
   const EmailSignupPage({
     this.signUpWithEmailUseCase,
     this.signInWithGoogleUseCase,
     this.googleAuthUseCase,
+    this.requestPhoneOtpUseCase,
+    this.resendPhoneOtpUseCase,
+    this.verifyPhoneOtpUseCase,
+    this.initialMode = AuthEntryMode.phone,
     this.onSignUpSuccess,
     this.onAuthSuccess,
     this.onTruecallerClick,
@@ -23,6 +29,10 @@ class EmailSignupPage extends StatefulWidget {
   final SignUpWithEmailUseCase? signUpWithEmailUseCase;
   final SignInWithGoogleUseCase? signInWithGoogleUseCase;
   final GoogleAuthUseCase? googleAuthUseCase;
+  final RequestPhoneOtpUseCase? requestPhoneOtpUseCase;
+  final ResendPhoneOtpUseCase? resendPhoneOtpUseCase;
+  final VerifyPhoneOtpUseCase? verifyPhoneOtpUseCase;
+  final AuthEntryMode initialMode;
   final ValueChanged<SignInSuccess>? onSignUpSuccess;
   final ValueChanged<GoogleAuthComplete>? onAuthSuccess;
   final VoidCallback? onTruecallerClick;
@@ -36,17 +46,20 @@ enum _SignupAuthAction { email, google }
 class _EmailSignupPageState extends State<EmailSignupPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  late AuthEntryMode _mode;
   bool _isPasswordVisible = false;
+  bool _isPhoneBusy = false;
   _SignupAuthAction? _activeAction;
   String? _errorMessage;
 
-  bool get _isBusy => _activeAction != null;
+  bool get _isBusy => _activeAction != null || _isPhoneBusy;
   bool get _isEmailLoading => _activeAction == _SignupAuthAction.email;
   bool get _isGoogleLoading => _activeAction == _SignupAuthAction.google;
 
   @override
   void initState() {
     super.initState();
+    _mode = widget.initialMode;
     _emailController.addListener(_onFieldChanged);
     _passwordController.addListener(_onFieldChanged);
   }
@@ -72,6 +85,16 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
   bool get _isPasswordValid => _passwordController.text.length >= 6;
   bool get _isFormValid => _isEmailValid && _isPasswordValid;
 
+  void _switchMode() {
+    if (_isBusy) return;
+    setState(() {
+      _mode = _mode == AuthEntryMode.phone
+          ? AuthEntryMode.email
+          : AuthEntryMode.phone;
+      _errorMessage = null;
+    });
+  }
+
   Future<void> _handleSignUp() async {
     if (!_isFormValid || _isBusy) return;
 
@@ -82,7 +105,12 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
 
     final useCase = widget.signUpWithEmailUseCase;
     if (useCase == null) {
-      if (mounted) setState(() => _activeAction = null);
+      if (mounted) {
+        setState(() {
+          _activeAction = null;
+          _errorMessage = 'Email signup is unavailable right now.';
+        });
+      }
       return;
     }
 
@@ -96,15 +124,15 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
       switch (result) {
         case SignInSuccess():
           widget.onSignUpSuccess?.call(result);
-          break;
         case SignInFailure(:final message):
           setState(() => _errorMessage = message);
-          break;
         case SignInCancelled():
           break;
       }
-    } catch (e) {
-      if (mounted) setState(() => _errorMessage = e.toString());
+    } catch (_) {
+      if (mounted) {
+        setState(() => _errorMessage = 'Could not create the account. Please try again.');
+      }
     } finally {
       if (mounted && _activeAction == _SignupAuthAction.email) {
         setState(() => _activeAction = null);
@@ -149,8 +177,10 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
           setState(() => _errorMessage = result.message);
         }
       }
-    } catch (e) {
-      if (mounted) setState(() => _errorMessage = e.toString());
+    } catch (_) {
+      if (mounted) {
+        setState(() => _errorMessage = 'Google signup could not be completed.');
+      }
     } finally {
       if (mounted && _activeAction == _SignupAuthAction.google) {
         setState(() => _activeAction = null);
@@ -158,19 +188,105 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
     }
   }
 
+  void _handleTruecaller() {
+    if (_isBusy) return;
+    final callback = widget.onTruecallerClick;
+    if (callback != null) {
+      callback();
+      return;
+    }
+    setState(() {
+      _errorMessage = 'Truecaller signup is not available yet.';
+    });
+  }
+
+  Widget _buildEmailForm(BuildContext context) {
+    final colors = context.tioColors;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TioInput(
+          key: const ValueKey('signup-email-input'),
+          controller: _emailController,
+          onChanged: (_) {},
+          label: 'Email',
+          hint: 'Enter your email',
+          keyboardType: TextInputType.emailAddress,
+          textInputAction: TextInputAction.next,
+          enabled: !_isBusy,
+        ),
+        const SizedBox(height: TioSpacing.lg),
+        TioInput(
+          key: const ValueKey('signup-password-input'),
+          controller: _passwordController,
+          onChanged: (_) {},
+          label: 'Password',
+          hint: 'At least 6 characters',
+          obscureText: !_isPasswordVisible,
+          textInputAction: TextInputAction.done,
+          enabled: !_isBusy,
+          onSubmitted: (_) => _handleSignUp(),
+          trailing: IconButton(
+            icon: Icon(
+              _isPasswordVisible
+                  ? Icons.visibility_outlined
+                  : Icons.visibility_off_outlined,
+              color: colors.textMuted,
+              size: TioSize.dp22,
+            ),
+            onPressed: _isBusy
+                ? null
+                : () => setState(
+                      () => _isPasswordVisible = !_isPasswordVisible,
+                    ),
+          ),
+        ),
+        const SizedBox(height: TioSize.dp28),
+        TioButton.primary(
+          key: const ValueKey('signup-submit-button'),
+          label: 'Create Account',
+          expand: true,
+          loading: _isEmailLoading,
+          enabled: _isFormValid && !_isGoogleLoading && !_isPhoneBusy,
+          onPressed: _handleSignUp,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOrDivider(BuildContext context) {
+    final colors = context.tioColors;
+    final textTheme = Theme.of(context).textTheme;
+    return Row(
+      children: [
+        Expanded(
+          child: Divider(
+            color: colors.outlineStrong.withValues(alpha: TioOpacity.opacity30),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
+          child: Text(
+            'OR',
+            style: textTheme.labelSmall?.copyWith(
+              letterSpacing: TioLetterSpacing.positive10,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Divider(
+            color: colors.outlineStrong.withValues(alpha: TioOpacity.opacity30),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
-    final isDark = colors.isDark;
-
-    final inputBorderRadius = BorderRadius.circular(TioRadius.lg);
-    final inputBorderColor = colors.outlineStrong.withValues(
-      alpha: isDark
-          ? TioInputTokens.darkUnfocusedOutlineOpacity
-          : TioInputTokens.lightUnfocusedOutlineOpacity,
-    );
-    final inputFocusedBorderColor = colors.textPrimary;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -198,15 +314,15 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                             Icons.arrow_back,
                             color: colors.textPrimary,
                           ),
-                          onPressed: () {
-                            if (!_isBusy) {
-                              if (context.canPop()) {
-                                context.pop();
-                              } else {
-                                context.go(AppRoutes.auth.path);
-                              }
-                            }
-                          },
+                          onPressed: _isBusy
+                              ? null
+                              : () {
+                                  if (context.canPop()) {
+                                    context.pop();
+                                  } else {
+                                    context.go(AppRoutes.auth.path);
+                                  }
+                                },
                         ),
                         const SizedBox(width: TioSpacing.sm),
                         Text('Sign Up', style: textTheme.titleLarge),
@@ -223,131 +339,41 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: TioSpacing.lg),
-                        TextFormField(
-                          key: const ValueKey('signup-email-input'),
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          textInputAction: TextInputAction.next,
-                          enabled: !_isBusy,
-                          style: textTheme.bodyLarge,
-                          cursorColor: colors.primary,
-                          decoration: InputDecoration(
-                            labelText: 'Email',
-                            hintText: 'Enter your email',
-                            labelStyle: textTheme.bodyMedium,
-                            floatingLabelStyle: textTheme.bodyMedium?.copyWith(
-                              color: colors.textPrimary,
-                              fontWeight: TioFontWeight.w500,
-                            ),
-                            hintStyle: textTheme.bodyLarge?.copyWith(
-                              color: colors.textMuted,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: TioInputTokens.horizontalPadding,
-                              vertical:
-                                  TioInputTokens.standardContentVerticalPadding,
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: inputBorderRadius,
-                              borderSide: BorderSide(
-                                color: inputBorderColor,
-                                width: TioStroke.width12,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: inputBorderRadius,
-                              borderSide: BorderSide(
-                                color: inputFocusedBorderColor,
-                                width: TioStroke.width18,
-                              ),
-                            ),
-                            filled: false,
-                          ),
-                        ),
-                        const SizedBox(height: TioSpacing.lg),
-                        TextFormField(
-                          key: const ValueKey('signup-password-input'),
-                          controller: _passwordController,
-                          obscureText: !_isPasswordVisible,
-                          textInputAction: TextInputAction.done,
-                          enabled: !_isBusy,
-                          style: textTheme.bodyLarge,
-                          cursorColor: colors.primary,
-                          onFieldSubmitted: (_) => _handleSignUp(),
-                          decoration: InputDecoration(
-                            labelText: 'Password',
-                            hintText: 'At least 6 characters',
-                            labelStyle: textTheme.bodyMedium,
-                            floatingLabelStyle: textTheme.bodyMedium?.copyWith(
-                              color: colors.textPrimary,
-                              fontWeight: TioFontWeight.w500,
-                            ),
-                            hintStyle: textTheme.bodyLarge?.copyWith(
-                              color: colors.textMuted,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: TioInputTokens.horizontalPadding,
-                              vertical:
-                                  TioInputTokens.standardContentVerticalPadding,
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: inputBorderRadius,
-                              borderSide: BorderSide(
-                                color: inputBorderColor,
-                                width: TioStroke.width12,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: inputBorderRadius,
-                              borderSide: BorderSide(
-                                color: inputFocusedBorderColor,
-                                width: TioStroke.width18,
-                              ),
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _isPasswordVisible
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                                color: colors.textMuted,
-                                size: TioSize.dp22,
-                              ),
-                              onPressed: _isBusy
-                                  ? null
-                                  : () {
-                                      setState(
-                                        () => _isPasswordVisible =
-                                            !_isPasswordVisible,
-                                      );
-                                    },
-                            ),
-                            filled: false,
-                          ),
-                        ),
-                        const SizedBox(height: TioSize.dp28),
-                        TioButton.primary(
-                          key: const ValueKey('signup-submit-button'),
-                          label: 'Create Account',
-                          expand: true,
-                          loading: _isEmailLoading,
-                          enabled: _isFormValid && !_isGoogleLoading,
-                          onPressed: _handleSignUp,
-                        ),
+                        if (_mode == AuthEntryMode.phone)
+                          PhoneOtpAuthSection(
+                            key: const ValueKey('signup-phone-section'),
+                            keyPrefix: 'signup',
+                            intent: PhoneOtpIntent.signup,
+                            requestPhoneOtpUseCase: widget.requestPhoneOtpUseCase,
+                            resendPhoneOtpUseCase: widget.resendPhoneOtpUseCase,
+                            verifyPhoneOtpUseCase: widget.verifyPhoneOtpUseCase,
+                            enabled: _activeAction == null,
+                            onBusyChanged: (busy) {
+                              if (mounted) setState(() => _isPhoneBusy = busy);
+                            },
+                            onError: (message) {
+                              if (mounted) {
+                                setState(() => _errorMessage = message);
+                              }
+                            },
+                            onSignInSuccess: (result) {
+                              widget.onSignUpSuccess?.call(result);
+                            },
+                          )
+                        else
+                          _buildEmailForm(context),
                         const SizedBox(height: TioSpacing.xl),
-                        _OrDivider(colors: colors),
+                        _buildOrDivider(context),
                         const SizedBox(height: TioSpacing.xl),
-                        TioSocialButton.google(
-                          key: const ValueKey('signup-google-button'),
-                          loading: _isGoogleLoading,
-                          enabled: !_isEmailLoading,
-                          onPressed: _handleGoogleSignIn,
-                        ),
-                        const SizedBox(height: TioSpacing.md),
-                        TioSocialButton.truecaller(
-                          key: const ValueKey('signup-truecaller-button'),
-                          loading: false,
-                          enabled: !_isBusy,
-                          onPressed: widget.onTruecallerClick ?? () {},
+                        AuthRoundActions(
+                          key: const ValueKey('signup-round-actions'),
+                          keyPrefix: 'signup',
+                          mode: _mode,
+                          googleLoading: _isGoogleLoading,
+                          enabled: !_isPhoneBusy && !_isEmailLoading,
+                          onGooglePressed: _handleGoogleSignIn,
+                          onTruecallerPressed: _handleTruecaller,
+                          onModeSwitchPressed: _switchMode,
                         ),
                         const SizedBox(height: TioSpacing.lg),
                         const TioTermsDisclaimer(),
@@ -405,44 +431,6 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
   }
 }
 
-class _OrDivider extends StatelessWidget {
-  const _OrDivider({required this.colors});
-
-  final TioColors colors;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return Row(
-      children: [
-        Expanded(
-          child: Divider(
-            color: colors.outlineStrong.withValues(
-              alpha: TioOpacity.opacity30,
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
-          child: Text(
-            'OR',
-            style: textTheme.labelSmall?.copyWith(
-              letterSpacing: TioLetterSpacing.positive10,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Divider(
-            color: colors.outlineStrong.withValues(
-              alpha: TioOpacity.opacity30,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _FloatingErrorBanner extends StatelessWidget {
   const _FloatingErrorBanner({
     required this.message,
@@ -495,37 +483,6 @@ class _FloatingErrorBanner extends StatelessWidget {
                 ),
               ),
             ),
-            if (message.toLowerCase().contains('already registered') ||
-                message.toLowerCase().contains('log in')) ...[
-              const SizedBox(width: TioSpacing.sm),
-              TextButton(
-                onPressed: () {
-                  onDismiss();
-                  context.pushReplacement(AppRoutes.login.path);
-                },
-                style: TextButton.styleFrom(
-                  foregroundColor: TioPalette.white,
-                  backgroundColor: TioPalette.white.withAlpha(TioAlpha.alpha50),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: TioSize.dp10,
-                    vertical: TioSpacing.xs,
-                  ),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(TioRadius.sm),
-                  ),
-                ),
-                child: const Text(
-                  'Log In',
-                  style: TextStyle(
-                    fontWeight: TioFontWeight.w800,
-                    fontSize: TioFontSize.size12,
-                  ),
-                ),
-              ),
-              const SizedBox(width: TioSpacing.sm),
-            ],
             IconButton(
               icon: const Icon(
                 Icons.close,
