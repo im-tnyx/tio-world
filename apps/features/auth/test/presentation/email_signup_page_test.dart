@@ -12,26 +12,102 @@ void main() {
     );
   }
 
-  group('EmailSignupPage', () {
-    testWidgets('renders email, social providers, and legal disclaimer together',
+  group('EmailSignupPage Phone-first auth entry', () {
+    testWidgets('opens in Phone mode with reciprocal round actions',
         (tester) async {
       await tester.pumpWidget(createTestWidget(const EmailSignupPage()));
 
       expect(find.text('Sign Up'), findsOneWidget);
       expect(find.byKey(const ValueKey('signup-back-button')), findsOneWidget);
-      expect(find.byKey(const ValueKey('signup-username-input')), findsNothing);
-      expect(find.byKey(const ValueKey('signup-email-input')), findsOneWidget);
-      expect(find.byKey(const ValueKey('signup-password-input')), findsOneWidget);
-      expect(find.byKey(const ValueKey('signup-submit-button')), findsOneWidget);
-      expect(find.byKey(const ValueKey('signup-google-button')), findsOneWidget);
+      expect(find.byKey(const ValueKey('signup-phone-input')), findsOneWidget);
+      expect(find.byKey(const ValueKey('signup-email-input')), findsNothing);
       expect(
-        find.byKey(const ValueKey('signup-truecaller-button')),
+        find.byKey(const ValueKey('signup-google-round-action')),
         findsOneWidget,
       );
+      expect(
+        find.byKey(const ValueKey('signup-truecaller-round-action')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('signup-mode-round-action')),
+        findsOneWidget,
+      );
+      expect(find.text('Google'), findsOneWidget);
+      expect(find.text('Truecaller'), findsOneWidget);
+      expect(find.text('Email'), findsOneWidget);
       expect(find.byType(TioTermsDisclaimer), findsOneWidget);
-      expect(find.text('Create Account'), findsOneWidget);
       expect(find.byKey(const ValueKey('signup-login-link')), findsOneWidget);
-      expect(find.text('Already have an account? '), findsOneWidget);
+    });
+
+    testWidgets('Email and Phone switch on the same Signup page',
+        (tester) async {
+      await tester.pumpWidget(createTestWidget(const EmailSignupPage()));
+
+      await tester.tap(find.byKey(const ValueKey('signup-mode-round-action')));
+      await tester.pump();
+
+      expect(find.byType(EmailSignupPage), findsOneWidget);
+      expect(find.byKey(const ValueKey('signup-phone-input')), findsNothing);
+      expect(find.byKey(const ValueKey('signup-email-input')), findsOneWidget);
+      expect(find.byKey(const ValueKey('signup-password-input')), findsOneWidget);
+      expect(find.text('Phone'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('signup-mode-round-action')));
+      await tester.pump();
+
+      expect(find.byType(EmailSignupPage), findsOneWidget);
+      expect(find.byKey(const ValueKey('signup-phone-input')), findsOneWidget);
+      expect(find.byKey(const ValueKey('signup-email-input')), findsNothing);
+      expect(find.text('Email'), findsOneWidget);
+    });
+
+    testWidgets('Phone Signup requests create-user intent and authenticates only on verify',
+        (tester) async {
+      final phoneRepository = _FakePhoneOtpAuthRepository();
+      SignInSuccess? success;
+
+      await tester.pumpWidget(
+        createTestWidget(
+          EmailSignupPage(
+            requestPhoneOtpUseCase:
+                RequestPhoneOtpUseCase(repository: phoneRepository),
+            resendPhoneOtpUseCase:
+                ResendPhoneOtpUseCase(repository: phoneRepository),
+            verifyPhoneOtpUseCase:
+                VerifyPhoneOtpUseCase(repository: phoneRepository),
+            onSignUpSuccess: (result) => success = result,
+          ),
+        ),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('signup-phone-input')),
+        '9876543210',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('signup-phone-send-code')));
+      await tester.pump();
+
+      expect(phoneRepository.lastIntent, PhoneOtpIntent.signup);
+      expect(phoneRepository.lastRequestedPhone, '+919876543210');
+      expect(success, isNull);
+      expect(
+        find.byKey(const ValueKey('signup-phone-otp-input')),
+        findsOneWidget,
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('signup-phone-otp-input')),
+        '123456',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('signup-phone-verify-code')));
+      await tester.pump();
+
+      expect(phoneRepository.lastVerifiedPhone, '+919876543210');
+      expect(phoneRepository.lastToken, '123456');
+      expect(success?.session.userId, 'phone-user');
     });
 
     testWidgets('keeps account switch footer on the login viewport contract',
@@ -57,14 +133,32 @@ void main() {
       final footer = tester.widget<Padding>(
         find.byKey(const ValueKey('signup-auth-switch-footer')),
       );
-      expect(
-        footer.padding,
-        const EdgeInsets.only(top: TioSpacing.sm),
+      expect(footer.padding, const EdgeInsets.only(top: TioSpacing.sm));
+    });
+  });
+
+  group('EmailSignupPage Email mode compatibility', () {
+    testWidgets('renders Email + Password on explicit Email mode',
+        (tester) async {
+      await tester.pumpWidget(
+        createTestWidget(
+          const EmailSignupPage(initialMode: AuthEntryMode.email),
+        ),
       );
+
+      expect(find.byKey(const ValueKey('signup-email-input')), findsOneWidget);
+      expect(find.byKey(const ValueKey('signup-password-input')), findsOneWidget);
+      expect(find.byKey(const ValueKey('signup-submit-button')), findsOneWidget);
+      expect(find.text('Create Account'), findsOneWidget);
+      expect(find.text('Phone'), findsOneWidget);
     });
 
     testWidgets('password visibility toggle changes obscureText', (tester) async {
-      await tester.pumpWidget(createTestWidget(const EmailSignupPage()));
+      await tester.pumpWidget(
+        createTestWidget(
+          const EmailSignupPage(initialMode: AuthEntryMode.email),
+        ),
+      );
 
       final passwordField = tester.widget<EditableText>(
         find.descendant(
@@ -88,12 +182,20 @@ void main() {
 
     testWidgets('create account button is disabled when fields are empty or invalid',
         (tester) async {
-      await tester.pumpWidget(createTestWidget(const EmailSignupPage()));
-
-      final submitBtn = tester.widget<TioButton>(
-        find.byKey(const ValueKey('signup-submit-button')),
+      await tester.pumpWidget(
+        createTestWidget(
+          const EmailSignupPage(initialMode: AuthEntryMode.email),
+        ),
       );
-      expect(submitBtn.enabled, isFalse);
+
+      expect(
+        tester
+            .widget<TioButton>(
+              find.byKey(const ValueKey('signup-submit-button')),
+            )
+            .enabled,
+        isFalse,
+      );
 
       await tester.enterText(
         find.byKey(const ValueKey('signup-email-input')),
@@ -104,29 +206,34 @@ void main() {
         '12345',
       );
       await tester.pump();
-
-      final submitBtnShort = tester.widget<TioButton>(
-        find.byKey(const ValueKey('signup-submit-button')),
+      expect(
+        tester
+            .widget<TioButton>(
+              find.byKey(const ValueKey('signup-submit-button')),
+            )
+            .enabled,
+        isFalse,
       );
-      expect(submitBtnShort.enabled, isFalse);
 
       await tester.enterText(
         find.byKey(const ValueKey('signup-password-input')),
         '123456',
       );
       await tester.pump();
-
-      final submitBtnValid = tester.widget<TioButton>(
-        find.byKey(const ValueKey('signup-submit-button')),
+      expect(
+        tester
+            .widget<TioButton>(
+              find.byKey(const ValueKey('signup-submit-button')),
+            )
+            .enabled,
+        isTrue,
       );
-      expect(submitBtnValid.enabled, isTrue);
     });
 
     testWidgets('calls signUpWithEmailUseCase without mapping username to name',
         (tester) async {
       var emailSubmitted = '';
       var passwordSubmitted = '';
-
       final mockRepo = FakeAuthSignInRepository(
         onSignUpWithEmail: (email, pass) async {
           emailSubmitted = email;
@@ -140,6 +247,7 @@ void main() {
       await tester.pumpWidget(
         createTestWidget(
           EmailSignupPage(
+            initialMode: AuthEntryMode.email,
             signUpWithEmailUseCase:
                 SignUpWithEmailUseCase(signInRepository: mockRepo),
           ),
@@ -155,7 +263,6 @@ void main() {
         'Pass123456',
       );
       await tester.pump();
-
       await tester.tap(find.byKey(const ValueKey('signup-submit-button')));
       await tester.pump();
 
@@ -179,26 +286,26 @@ void main() {
         ),
       );
 
-      await tester.ensureVisible(find.byKey(const ValueKey('signup-google-button')));
-      await tester.tap(find.byKey(const ValueKey('signup-google-button')));
+      await tester.tap(
+        find.byKey(const ValueKey('signup-google-round-action')),
+      );
       await tester.pump();
 
       expect(repository.lastIntent, GoogleSignInIntent.signupOrExisting);
       expect(success?.session.userId, 'google-user');
     });
 
-    testWidgets('displays error banner when sign up fails', (tester) async {
+    testWidgets('displays error banner when Email sign up fails', (tester) async {
       final mockRepo = FakeAuthSignInRepository(
-        onSignUpWithEmail: (email, pass) async {
-          return const SignInFailure(
-            'User already registered with this email.',
-          );
-        },
+        onSignUpWithEmail: (email, pass) async => const SignInFailure(
+          'User already registered with this email.',
+        ),
       );
 
       await tester.pumpWidget(
         createTestWidget(
           EmailSignupPage(
+            initialMode: AuthEntryMode.email,
             signUpWithEmailUseCase:
                 SignUpWithEmailUseCase(signInRepository: mockRepo),
           ),
@@ -214,7 +321,6 @@ void main() {
         'Pass123456',
       );
       await tester.pump();
-
       await tester.tap(find.byKey(const ValueKey('signup-submit-button')));
       await tester.pump();
 
@@ -226,10 +332,51 @@ void main() {
   });
 }
 
+class _FakePhoneOtpAuthRepository implements PhoneOtpAuthRepository {
+  PhoneOtpIntent? lastIntent;
+  String? lastRequestedPhone;
+  String? lastVerifiedPhone;
+  String? lastToken;
+
+  @override
+  Future<PhoneOtpRequestResult> requestCode({
+    required String phone,
+    required PhoneOtpIntent intent,
+  }) async {
+    lastIntent = intent;
+    lastRequestedPhone = phone;
+    return PhoneOtpCodeSent(phone);
+  }
+
+  @override
+  Future<PhoneOtpRequestResult> resendCode({
+    required String phone,
+    required PhoneOtpIntent intent,
+  }) async {
+    lastIntent = intent;
+    lastRequestedPhone = phone;
+    return PhoneOtpCodeSent(phone);
+  }
+
+  @override
+  Future<SignInResult> verifyCode({
+    required String phone,
+    required String token,
+  }) async {
+    lastVerifiedPhone = phone;
+    lastToken = token;
+    return SignInSuccess(
+      AuthSession(
+        userId: 'phone-user',
+        phone: phone,
+        isPhoneVerified: true,
+      ),
+    );
+  }
+}
+
 class FakeAuthSignInRepository implements AuthSignInRepository {
-  FakeAuthSignInRepository({
-    this.onSignUpWithEmail,
-  });
+  FakeAuthSignInRepository({this.onSignUpWithEmail});
 
   final Future<SignInResult> Function(String email, String password)?
       onSignUpWithEmail;
