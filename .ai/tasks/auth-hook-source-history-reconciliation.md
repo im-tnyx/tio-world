@@ -1,123 +1,133 @@
 # Auth Hook Source-History Reconciliation
 
 **Status:** Validated
-**Primary owner:** `supabase/*` migration history and Auth configuration
+**Primary owner:** `supabase/*` migration history and stacked Auth admission PRs
 **Affected platforms:** Hosted Supabase Auth/Postgres; repository migration source
-**Related trackers:** #34, #120; stacked PR #123
+**Related trackers:** #34, #120
 
 ## 1. Discovery
 
 ### User Outcome
 
-Keep the already-enabled hosted `Before User Created` hook reproducible from
-one canonical Git source without reapplying, duplicating, or altering the live
-Auth/database behavior.
+Keep the already-live hosted Auth admission migrations and enabled `Before User Created` hook reproducible from one clean stacked Git history without replaying production SQL or mixing unrelated UI work into Auth PRs.
 
 ### Success Criteria
 
-- the canonical source contains the same migration identities recorded by the
-  hosted project, or an approved documented reconciliation explains each ID;
-- the hosted Dashboard binding remains
-  `public.before_user_created_canonical_email_guard`;
-- no duplicate migration is applied to the hosted project;
-- no user-data, Auth-user, RLS, grant, or hook behavior change occurs during
-  source reconciliation.
+- repository migration filenames match the IDs recorded by the hosted project;
+- each migration remains owned by the bounded PR that introduced its behavior;
+- the hosted Dashboard binding remains `public.before_user_created_canonical_email_guard`;
+- no migration is replayed and no production user/Auth data changes during source-history cleanup;
+- #119 → #121 → #122 → #123 is linear with no branch drift;
+- unrelated Core/Onboarding/Welcome UI commits are preserved outside the Auth stack.
 
-### Scope
+## 2. Verified Evidence
 
-- compare hosted migration history, Dashboard binding, and Git branch history;
-- select the safe canonical source adoption method before changing migration
-  filenames or branch ancestry;
-- record validation and the handoff boundary.
-
-### Non-Goals
-
-- applying/replaying a migration, changing the Dashboard hook, or creating a
-  test Auth user;
-- merging, rebasing, force-pushing, or deleting a branch;
-- changing Flutter/Auth client behavior or starting #118.
-
-## 2. Codebase Exploration
-
-### Verified Evidence
-
-- Chrome Dashboard shows an enabled `Before User Created` Postgres hook with
-  schema `public` and function
-  `before_user_created_canonical_email_guard`.
-- Live function body delegates from `public` to
-  `private.before_user_created_canonical_email_guard(event)`; both functions
-  are `SECURITY INVOKER`, executable by `supabase_auth_admin`, and not
-  executable by `anon`.
-- Hosted migration history records these Auth migrations:
-  `20260826112650`, `20260826112754`, `20260826114935`, and
-  `20260826121524` (public wrapper).
-- `main` does not contain this hook source. The current branch
-  `agent/auth-canonical-email-admission` contains the private guard under
-  source ID `20260826104000` and local private-hook wiring.
-- `origin/agent/auth-email-canonical-signup` contains the equivalent public
-  wrapper under source ID `20260826123000`; its wrapper body and grants match
-  the live function, but its full Auth migration ID sequence differs from the
-  hosted sequence.
-- Reconciliation source now uses the hosted IDs above; each renamed source
-  retained byte-identical SQL content.
-
-## 3. Clarification
-
-### Decision Made
-
-| Decision | Status | Rationale | Owner |
-|---|---|---|---|
-| Canonical reconciliation method | Chosen | Adopt the hosted IDs in source; do not replay live SQL. | Auth/Data owner |
-| Branch/PR that owns the consolidated source | Chosen | Existing Auth admission branch receives the source-history reconciliation. | Repository owner |
-
-## 4. Architecture Design
-
-### Guardrail
+Hosted migration IDs for this Auth lane are:
 
 ```text
-Hosted migration record + enabled Dashboard binding
-        -> source-history reconciliation decision
-        -> one canonical Git migration lineage
-        -> optional, explicitly approved real Auth smoke test
+20260826102110 add_canonical_email_identity_function
+20260826102133 enforce_verified_identifier_ownership
+20260826112650 add_canonical_email_admission_guard
+20260826112754 add_google_canonical_admission_resolver
+20260826114935 harden_email_signup_canonical_form
+20260826121524 add_public_before_user_created_hook_wrapper
 ```
 
-The hosted project is behavior truth. The reconciliation must adopt that truth
-in source without applying a duplicate migration or changing the enabled hook.
-
-## 5. Implementation Plan
-
-- [x] Capture hosted hook/function/migration evidence read-only.
-- [x] Locate equivalent Git source and identify migration-ID divergence.
-- [x] Adopt the hosted migration IDs without changing SQL content.
-- [x] Make the smallest source-only reconciliation on the existing Auth branch.
-- [x] Run source-history and security validation.
-- [ ] Run a real Auth smoke test only after explicit approval to create a
-  controlled Auth user.
-
-## 6. Quality Review
-
-### Validation Run
+Dashboard verification showed an enabled `Before User Created` Postgres hook using:
 
 ```text
-Read-only Chrome Dashboard verification: completed.
-Read-only Supabase function/ACL and migration-history queries: completed.
-Read-only Git/GitHub branch and source comparison: completed.
-Six migration source files were renamed to their hosted IDs. All six contents
-were byte-identical to their pre-rename versions. `git diff --check` passed.
-Migration apply, hook update, user creation, merge, and rebase: not run.
+schema:   public
+function: before_user_created_canonical_email_guard
 ```
 
-## 7. Final Handoff
+The public wrapper delegates to `private.before_user_created_canonical_email_guard(event)`. Normal client roles do not have wrapper EXECUTE; `supabase_auth_admin` does.
 
-### Changed Files
+A later local push had placed Auth migration-history reconciliation plus unrelated Core/Onboarding/Welcome UI commits on `agent/auth-canonical-email-admission`, causing #122 to diverge from #121. The UI state was preserved first on:
 
-- `.ai/tasks/auth-hook-source-history-reconciliation.md`
+```text
+agent/ui-bottom-sheet-welcome-parity-preserve
+```
 
-### Known Limitations
+No UI commit was discarded during Auth branch cleanup.
 
-The current checkout has unrelated uncommitted onboarding/core UI work. It is
-not included in this Auth source-history commit.
+## 3. Chosen Reconciliation
 
-### Final Status
+Migration ownership is distributed through the existing bounded stack instead of consolidating future-phase migration files into #121:
 
-`PASS`
+```text
+#119
+  20260826102110
+  20260826102133
+    ↓
+#121
+  20260826112650
+    ↓
+#122
+  20260826112754
+    ↓
+#123
+  20260826114935
+  20260826121524
+```
+
+SQL content was retained while source filenames were aligned to the hosted IDs. Production migrations were not replayed.
+
+## 4. Branch Reconciliation Result
+
+Current source checkpoints after cleanup:
+
+```text
+#119  agent/auth-verified-identifier-ownership
+      48e6eb1efed091c2249afbcd9abec523eddedfbd
+
+#121  agent/auth-canonical-email-admission
+      4ccb04821cec99c0b029f5ebe8f206b9512ba8c0
+
+#122  agent/auth-google-canonical-admission
+      0a7eef5a81fd75dbb544d63736e260f8e27e9209
+
+#123  agent/auth-email-canonical-signup
+      source-history cleanup parent: 0a7eef5a81fd75dbb544d63736e260f8e27e9209
+```
+
+After rebuilding the stacked heads, GitHub comparison reported:
+
+```text
+#119 → #121  ahead 1 / behind 0
+#121 → #122  ahead 1 / behind 0
+#122 → #123  ahead 1 / behind 0
+```
+
+Bounded changed-file audits:
+
+```text
+#121  4 files, Auth/Supabase only
+#122  9 files, Auth/Supabase only
+#123  Auth domain/tests + Phase 4 migrations/tasks only
+```
+
+No Core, Product Onboarding, Account Setup UI, or Welcome UI file remains in #121/#122/#123.
+
+## 5. Production Safety Review
+
+This reconciliation changed Git history/source filenames only. It did **not**:
+
+- apply a Supabase migration;
+- update the hosted Auth Hook setting;
+- deploy an Edge Function;
+- create, modify, merge, or delete an Auth identity;
+- change RLS/ACL in production;
+- mark any PR Ready or merge any PR.
+
+Fresh read-only hosted state during the audit showed the hook functions/wrapper still present with restricted execution. The project currently has no Auth/public user rows, so the next real runtime validation must use a controlled test identity rather than infer success from existing fixtures.
+
+## 6. Remaining Validation
+
+- [ ] executable Flutter/Dart validation for #122/#123 in a working Flutter toolchain;
+- [ ] controlled real Email Signup + confirmation smoke;
+- [ ] Gmail alias duplicate/canonical smoke;
+- [ ] controlled Google admission smoke when suitable test identities are available.
+
+## 7. Final Status
+
+`PASS` — migration source IDs and bounded PR ownership are reconciled, the Auth stack is linear again, unrelated UI work is preserved outside the stack, and no production mutation was performed by this cleanup.
