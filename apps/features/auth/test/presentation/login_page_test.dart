@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_auth/auth.dart';
 
@@ -29,6 +30,35 @@ void main() {
       expect(find.text('Truecaller'), findsOneWidget);
       expect(find.text('Email'), findsOneWidget);
       expect(find.text('Phone'), findsNothing);
+    });
+
+    testWidgets('legacy email deep link opens the same LoginPage in Email mode',
+        (tester) async {
+      final router = GoRouter(
+        initialLocation: AppRoutes.emailLogin.path,
+        routes: [
+          GoRoute(
+            path: AppRoutes.emailLogin.path,
+            builder: (context, state) => const LoginPage(),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp.router(
+          builder: (context, appChild) =>
+              TioTheme(child: appChild ?? const SizedBox.shrink()),
+          routerConfig: router,
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(LoginPage), findsOneWidget);
+      expect(find.byKey(const ValueKey('login-email-input')), findsOneWidget);
+      expect(find.byKey(const ValueKey('login-password-input')), findsOneWidget);
+      expect(find.byKey(const ValueKey('login-phone-input')), findsNothing);
+      expect(find.text('Phone'), findsOneWidget);
     });
 
     testWidgets('Email and Phone switch on the same LoginPage', (tester) async {
