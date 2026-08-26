@@ -130,32 +130,13 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
   }
 
   Future<void> _showMobileInformation() async {
-    final colors = context.tioColors;
-
-    await showModalBottomSheet<void>(
+    await showTioInformationBottomSheet(
       context: context,
-      backgroundColor: colors.background.withValues(
-        alpha: TioOpacity.opacity0,
-      ),
-      builder: (sheetContext) {
-        final sheetColors = sheetContext.tioColors;
-        final textTheme = Theme.of(sheetContext).textTheme;
-
-        return SafeArea(
-          top: false,
-          child: TioSheet(
-            key: const ValueKey('account-setup-mobile-info-sheet'),
-            title: 'Why we ask for your mobile number',
-            child: Text(
-              'Your mobile number can help with account recovery, security features, and future verification. It is optional during setup, and you can add or verify it later from Account Settings.',
-              key: const ValueKey('account-setup-mobile-info-body'),
-              style: textTheme.bodyMedium?.copyWith(
-                color: sheetColors.textSecondary,
-              ),
-            ),
-          ),
-        );
-      },
+      sheetKey: const ValueKey('account-setup-mobile-info-sheet'),
+      title: 'Why we ask for your mobile number',
+      message:
+          'Your mobile number can help with account recovery, security features, and future verification. It is optional during setup, and you can add or verify it later from Account Settings.',
+      actionLabel: 'Understood',
     );
   }
 

@@ -67,6 +67,35 @@ void main() {
     expect(animation.duration, Duration.zero);
   });
 
+  testWidgets('welcome sign-in footer uses surface semantic colors', (
+    tester,
+  ) async {
+    for (final mode in [TioThemeMode.light, TioThemeMode.dark]) {
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: TioThemeConfig(mode: mode),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: const WelcomeRoute(),
+        ),
+      );
+      await tester.pump(const Duration(seconds: 1));
+
+      final footerContext = tester.element(
+        find.text('Already have an account? '),
+      );
+      final colors = footerContext.tioColors;
+      final supportingText = tester.widget<Text>(
+        find.text('Already have an account? '),
+      );
+      final signInText = tester.widget<Text>(find.text('Log In'));
+
+      expect(supportingText.style?.color, colors.textSecondary);
+      expect(signInText.style?.color, colors.primary);
+    }
+  });
+
   testWidgets(
       'placeholder language is not announced as actions and legal copy is omitted',
       (tester) async {
