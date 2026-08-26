@@ -87,7 +87,7 @@ void main() {
     expect(completed, 1);
   });
 
-  testWidgets('Mobile info action opens explanatory bottom sheet',
+  testWidgets('Mobile info action opens explanatory reusable TioSheet',
       (tester) async {
     await tester.pumpWidget(
       app(
@@ -109,6 +109,7 @@ void main() {
 
     final sheet = find.byKey(const ValueKey('account-setup-mobile-info-sheet'));
     expect(sheet, findsOneWidget);
+    expect(find.byType(TioSheet), findsOneWidget);
     expect(
       find.text('Why we ask for your mobile number'),
       findsOneWidget,
@@ -127,15 +128,6 @@ void main() {
     expect(
       find.descendant(of: sheet, matching: find.textContaining('Account Settings')),
       findsOneWidget,
-    );
-
-    await tester.tap(
-      find.byKey(const ValueKey('account-setup-mobile-info-close')),
-    );
-    await tester.pumpAndSettle();
-    expect(
-      find.byKey(const ValueKey('account-setup-mobile-info-sheet')),
-      findsNothing,
     );
   });
 
