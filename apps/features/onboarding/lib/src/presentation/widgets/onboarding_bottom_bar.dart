@@ -221,38 +221,12 @@ class OnboardingBottomBar extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (infoAction != null) ...[
-              GestureDetector(
+            if (infoAction != null)
+              TioInlineInfoAction(
+                label: infoAction!.label,
+                icon: infoAction!.icon,
                 onTap: infoAction!.onTap,
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: TioSpacing.sm,
-                    top: TioSize.dp2,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        infoAction!.icon,
-                        size: TioSize.dp16,
-                        color: colors.textSecondary,
-                      ),
-                      const SizedBox(width: TioSpacing.sm),
-                      Text(
-                        infoAction!.label,
-                        style: TextStyle(
-                          fontSize: TioFontSize.size12,
-                          fontWeight: TioFontWeight.w500,
-                          color: colors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ),
-            ],
             if (state.retryableError != null) ...[
               Semantics(
                 liveRegion: true,
