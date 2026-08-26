@@ -18,3 +18,4 @@ export 'usecases/sign_in_with_google_use_case.dart';
 export 'usecases/sign_in_with_email_use_case.dart';
 export 'usecases/sign_up_with_email_use_case.dart';
 export 'usecases/send_password_reset_email_use_case.dart';
+export 'utils/canonical_email_identity.dart';
