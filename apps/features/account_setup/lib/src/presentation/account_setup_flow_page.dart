@@ -5,6 +5,7 @@ import 'package:tio_shared/shared.dart';
 
 import '../domain/models/account_setup_flow_plan.dart';
 import '../domain/models/account_setup_step_id.dart';
+import '../domain/repositories/account_setup_auth_contact_bridge.dart';
 import '../domain/usecases/build_account_setup_flow_use_case.dart';
 import 'steps/email_step.dart';
 import 'steps/mobile_step.dart';
@@ -52,6 +53,11 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
   String _email = '';
   String? _flowError;
 
+  AccountSetupAuthContactBridge? get _authContactBridge {
+    final repository = widget.accountSetupRepository;
+    return repository is AccountSetupAuthContactBridge ? repository : null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -68,11 +74,16 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
 
     try {
       final account = await widget.accountSetupRepository.readAccountSetupState();
+      final bridge = _authContactBridge;
+      final hasTrustedEmailIdentity =
+          bridge?.hasTrustedEmailIdentity ?? widget.hasTrustedEmailIdentity;
+      final hasTrustedPhoneIdentity =
+          bridge?.hasTrustedPhoneIdentity ?? widget.hasTrustedPhoneIdentity;
       final plan = widget.planner(
         hasUsername: account.hasUsername,
         accountSetupCompleted: account.isCompleted,
-        hasTrustedEmailIdentity: widget.hasTrustedEmailIdentity,
-        hasTrustedPhoneIdentity: widget.hasTrustedPhoneIdentity,
+        hasTrustedEmailIdentity: hasTrustedEmailIdentity,
+        hasTrustedPhoneIdentity: hasTrustedPhoneIdentity,
       );
 
       if (!mounted) return;
@@ -86,12 +97,15 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
         return;
       }
 
+      final providedEmail = widget.initialEmail.trim();
       setState(() {
         _accountState = account;
         _plan = plan;
         _currentIndex = 0;
         _mobile = account.mobile;
-        _email = widget.initialEmail.trim();
+        _email = providedEmail.isNotEmpty
+            ? providedEmail
+            : (bridge?.currentEmail.trim() ?? '');
         _usernameCanContinue = false;
         _loading = false;
       });
@@ -180,6 +194,20 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
     );
   }
 
+  Future<void> _requestOptionalEmail(String email) async {
+    final request = widget.requestOptionalEmailVerification;
+    if (request != null) {
+      await request(email);
+      return;
+    }
+
+    final bridge = _authContactBridge;
+    if (bridge == null) {
+      throw StateError('Email verification is unavailable right now.');
+    }
+    await bridge.requestOptionalEmailVerification(email);
+  }
+
   Future<void> _handleContinue() async {
     if (_busy || _plan == null) return;
 
@@ -232,11 +260,7 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
         case AccountSetupStepId.email:
           final email = _email.trim();
           if (email.isNotEmpty) {
-            final request = widget.requestOptionalEmailVerification;
-            if (request == null) {
-              throw StateError('Email verification is unavailable right now.');
-            }
-            await request(email);
+            await _requestOptionalEmail(email);
           }
           await widget.accountSetupRepository.completeAccountSetup();
           if (!mounted) return;
