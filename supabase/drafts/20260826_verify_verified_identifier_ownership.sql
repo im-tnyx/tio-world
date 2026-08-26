@@ -36,8 +36,7 @@ before insert or update of email, email_verified_at, mobile, mobile_verified_at
 on public._tio_verified_identifier_test
 for each row execute function public.protect_user_contact_verification();
 
--- PostgreSQL must be able to maintain the expression index during authenticated
--- DML. Pending aliases are intentionally allowed because they do not own the
+-- Pending aliases are intentionally allowed because they do not own the
 -- identifier yet.
 set local role authenticated;
 
@@ -68,6 +67,15 @@ values (
   '+919999999999',
   timezone('utc'::text, now())
 );
+
+-- PostgreSQL must be able to maintain the Email expression index during an
+-- authenticated update of an already-verified row. The no-op value assignment
+-- intentionally touches the indexed Email column without changing ownership.
+set local role authenticated;
+update public._tio_verified_identifier_test
+set email = email
+where id = '00000000-0000-0000-0000-000000000105';
+reset role;
 
 -- A second verified Gmail alias and second verified Mobile must not insert.
 with attempted as (
@@ -117,33 +125,37 @@ reset role;
 
 -- Direct client mutation of a trusted verified contact must fail rather than
 -- releasing ownership while Auth still owns the old identifier.
-do $guard_test$
+set local role authenticated;
+do $email_guard_test$
 begin
   begin
-    set local role authenticated;
     update public._tio_verified_identifier_test
     set email = 'attacker@example.com'
     where id = '00000000-0000-0000-0000-000000000105';
-    reset role;
     raise exception 'verified Email direct-mutation guard did not fire';
   exception
-    when insufficient_privilege then
-      reset role;
+    when sqlstate '42501' then
+      null;
   end;
+end;
+$email_guard_test$;
+reset role;
 
+set local role authenticated;
+do $mobile_guard_test$
+begin
   begin
-    set local role authenticated;
     update public._tio_verified_identifier_test
     set mobile = '+918888888888'
     where id = '00000000-0000-0000-0000-000000000105';
-    reset role;
     raise exception 'verified Mobile direct-mutation guard did not fire';
   exception
-    when insufficient_privilege then
-      reset role;
+    when sqlstate '42501' then
+      null;
   end;
 end;
-$guard_test$;
+$mobile_guard_test$;
+reset role;
 
 -- Pending values remain editable and must stay unverified.
 set local role authenticated;
