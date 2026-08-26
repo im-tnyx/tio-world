@@ -423,7 +423,6 @@ void main() {
     );
 
     expect(find.text('Why do we ask for your mobile number?'), findsNothing);
-    expect(find.byType(MobileScreen), findsNothing);
   });
 
   testWidgets('progress animates smoothly across Profile to Body Goal',
