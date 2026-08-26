@@ -409,7 +409,7 @@ void main() {
     );
   });
 
-  testWidgets('Mobile uses the same data-information action label as Goal', (
+  testWidgets('legacy Mobile does not re-enter Product Onboarding', (
     tester,
   ) async {
     await _pumpFlow(
@@ -422,8 +422,8 @@ void main() {
       useDefaultRenderer: true,
     );
 
-    expect(find.text('Why we collect this data'), findsOneWidget);
     expect(find.text('Why do we ask for your mobile number?'), findsNothing);
+    expect(find.byType(MobileScreen), findsNothing);
   });
 
   testWidgets('progress animates smoothly across Profile to Body Goal',
