@@ -7,6 +7,7 @@
 **Parent tracker:** #34
 **Depends on:** PR #119 verified identifier ownership foundation
 **Working branch:** `agent/auth-canonical-email-admission`
+**Draft child PR:** #121
 
 ## 1. Discovery
 
@@ -28,8 +29,8 @@ Prevent a verified Google Email alias from creating a second canonical Tio accou
 
 - add one restricted server RPC for verified canonical Email owner existence;
 - add one private Postgres `Before User Created` hook function scoped to Google new-user creation;
-- add focused SQL verification source and local hook configuration only if it can remain non-production;
-- record security/enum-safety decisions in #120.
+- add focused SQL verification source and local hook configuration;
+- record security/enumeration-safety decisions in #120.
 
 ### Non-Goals
 
@@ -56,6 +57,7 @@ Prevent a verified Google Email alias from creating a second canonical Tio accou
 - Current Email signup calls `supabase.auth.signUp` directly after trim/lowercase; `user != null && session == null` is already treated as pending Email confirmation.
 - Supabase documents `Before User Created` as running immediately before a new Auth user insert and allowing a Postgres function to reject creation.
 - Supabase also documents obfuscated duplicate Email-signup behavior to reduce account enumeration. Returning a canonical-owner hook error for unverified Email/password signup would weaken that property.
+- Current Supabase CLI hook schema explicitly supports `before_user_created`; the current CLI config template uses `[auth.hook.before_user_created]` plus a `pg-functions://postgres/<schema>/<function>` URI.
 
 ### Existing Pattern to Follow
 
@@ -79,8 +81,10 @@ Prevent a verified Google Email alias from creating a second canonical Tio accou
 | Reuse DB canonicalizer | Frozen | One provider-aware identity contract | Auth/Data |
 | Lookup only verified owners | Frozen | Pending/unverified Email is not ownership | #34/#120 |
 | No normal-client existence RPC | Frozen | Avoid enumeration/authority leakage | Security |
-| Google new-user creation may be hook-gated | Chosen | Google token/provider proves Email ownership before Auth exchange | Auth/Security |
+| Google new-user creation may be hook-gated | Chosen | Google provider evidence proves Email ownership before Auth exchange | Auth/Security |
 | Email/password new-user creation is not hook-gated in this slice | Chosen | Hook rejection would expose canonical account existence before Email ownership proof | Auth/Security |
+| Narrow helper may be `SECURITY DEFINER` | Chosen | Avoid broad `supabase_auth_admin` table SELECT; helper is static/read-only and returns only boolean | Auth/Data |
+| Hook itself remains invoker | Chosen | Follow Supabase Auth-hook least-privilege guidance | Auth/Data |
 | DB unique index remains final race-safe backstop | Frozen | Admission checks do not replace atomic ownership enforcement | Data |
 | Production hook enable/apply is separate | Frozen | Source work does not authorize hosted Auth behavior change | Owner |
 
@@ -88,9 +92,9 @@ Prevent a verified Google Email alias from creating a second canonical Tio accou
 
 ### Chosen Approach
 
-Add a narrow server-only RPC in `public` because the existing Edge Function can later call only exposed PostgREST RPC schemas. Revoke it from normal client roles and grant only trusted server roles. The RPC performs a single indexed verified-owner existence lookup using the existing canonical expression.
+Add a narrow server-only RPC in `public` because the existing Edge Function can later call exposed PostgREST RPC schemas. Revoke it from normal client roles and grant only trusted server roles. The RPC performs one verified-owner existence lookup using the existing canonical expression and returns no UUID.
 
-The RPC may use a tightly-scoped `SECURITY DEFINER` implementation so `supabase_auth_admin` does not receive broad table `SELECT` rights. It must contain only static read-only SQL and `SET search_path = ''`.
+The RPC uses a tightly-scoped `SECURITY DEFINER` implementation so `supabase_auth_admin` does not receive broad table `SELECT` rights. It contains only static read-only SQL and `SET search_path = ''`.
 
 Add a private invoker `Before User Created` hook that calls the RPC only for `provider = google`:
 
@@ -132,18 +136,20 @@ Google provider evidence
 
 ### Failure and Accessibility States
 
-Database/server-only slice. Google conflict returns one controlled hook error and no second Auth UUID. Infrastructure/programmer errors must not silently create a second canonical verified owner; the existing verified-only UNIQUE index remains the final DB backstop.
+Database/server-only slice. Google conflict returns one controlled hook error and no second Auth UUID after the hook is actually enabled. Infrastructure/programmer errors must not silently create a second canonical verified owner; the existing verified-only UNIQUE index remains the final DB backstop.
 
 ## 5. Implementation Plan
 
 - [x] Complete fresh source + live privilege audit.
 - [x] Freeze enumeration-safe Google-vs-Email hook boundary.
-- [ ] Add restricted verified canonical Email owner lookup migration source.
-- [ ] Add private Google-scoped Before User Created hook migration source.
-- [ ] Add focused SQL verification source.
-- [ ] Review local `config.toml` hook wiring; do not imply hosted hook enable.
-- [ ] Review diff and update #120 checkpoint.
-- [ ] Run available validation; record any environment limitation exactly.
+- [x] Add restricted verified canonical Email owner lookup migration source.
+- [x] Add private Google-scoped Before User Created hook migration source.
+- [x] Add focused SQL verification source.
+- [x] Confirm and wire current local `config.toml` hook contract; do not imply hosted hook enable.
+- [x] Review branch diff against PR #119 parent.
+- [x] Open Draft child PR #121.
+- [ ] Execute actual migration/hook runtime validation only after an explicitly approved target is available.
+- [ ] Apply/enable on hosted Supabase only after separate explicit owner approval.
 
 ## 6. Quality Review
 
@@ -158,29 +164,50 @@ Fresh read-only live privilege audit:
 - supabase_auth_admin SELECT public.users: false
 - supabase_auth_admin canonicalizer EXECUTE: true
 
+Fresh read-only equivalent lookup audit:
+- known verified owner lookup logic: true
+- reserved no-owner fixture collision: false
+- public.verified_email_owner_exists(text) already live: false
+- private.before_user_created_canonical_email_guard(jsonb) already live: false
+
+Supabase CLI contract audit:
+- hook key `before_user_created`: confirmed
+- Postgres hook URI shape: confirmed
+
+Branch compare against `agent/auth-verified-identifier-ownership` before this handoff:
+- behind: 0
+- changed runtime/config files are limited to `supabase/*`; task brief under `.ai/tasks/`
+
 Production DDL/Auth-hook mutation from this task: NOT performed.
+Actual migration compilation/hook runtime test: NOT performed; no separate dev branch requested and hosted apply is not authorized by this slice.
 ```
 
 ### Review Findings and Resolution
 
-The initial idea of using one rejecting `Before User Created` hook for both Google and Email/password is unsafe for Email enumeration semantics. This task narrows the hook to Google, where provider verification already proves control of the Email identity, and leaves Email signup admission for a later dedicated #120 slice.
+The initial idea of using one rejecting `Before User Created` hook for both Google and Email/password is unsafe for Email enumeration semantics. This task narrows the hook to Google, where provider verification establishes the Email before new-user creation, and leaves Email signup admission for a later dedicated #120 slice.
+
+The hook itself stays `SECURITY INVOKER`. Only the narrow boolean lookup is `SECURITY DEFINER`, avoiding a broad `SELECT` grant to `supabase_auth_admin` while not returning user identity data.
 
 ## 7. Final Handoff
 
 ### Changed Files
 
 - `.ai/tasks/auth-canonical-email-admission.md`
+- `supabase/migrations/20260826104000_add_canonical_email_admission_guard.sql`
+- `supabase/drafts/20260826_verify_canonical_email_admission.sql`
+- `supabase/config.toml`
 
 ### Actual Behavior
 
-No runtime behavior changed yet. Task boundary is frozen before source implementation.
+Repository source now contains the canonical verified-owner lookup, Google-only Before User Created guard, focused verification SQL, and local hook wiring. Hosted Supabase behavior is unchanged because the migration and hosted Auth Hook have not been applied/enabled in this task.
 
 ### Known Limitations
 
-- hosted Auth Hook remains disabled/unmodified by this task until separately approved;
-- Google admission Edge Function still uses exact lowercased Email lookup;
-- Email/password canonical alias admission remains later #120 work.
+- actual migration compilation and real Auth-hook invocation remain unvalidated until an approved runtime target is used;
+- `google-login-admission` still uses exact lowercased Email lookup;
+- Email/password canonical alias admission remains later #120 work;
+- no Flutter/UI changes are included.
 
 ### Final Status
 
-`PARTIAL` — task brief/audit complete; source implementation and validation pending.
+`PARTIAL` — source shape and read-only audits are complete; actual migration/hook runtime validation and hosted activation remain pending separate approval.
