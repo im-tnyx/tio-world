@@ -1,5 +1,6 @@
--- Enforce verified-only Email/Mobile ownership without introducing a second
--- identity-key column. Pending contacts remain non-authoritative.
+-- Enforce verified-only Email/Mobile ownership without adding a table, column,
+-- generated identity field, or persistent CHECK constraint. Pending contacts
+-- remain non-authoritative and therefore stay outside ownership uniqueness.
 --
 -- Preconditions:
 -- - private.canonical_email_identity(text) exists and is immutable.
@@ -57,34 +58,8 @@ begin
 end;
 $preflight$;
 
--- Verified ownership values must always be canonical enough to participate in
--- the unique backstop. Pending/unverified values intentionally remain outside
--- these checks.
-alter table public.users
-  add constraint users_verified_email_canonical_check
-  check (
-    email_verified_at is null
-    or private.canonical_email_identity(email) is not null
-  ) not valid;
-
-alter table public.users
-  validate constraint users_verified_email_canonical_check;
-
-alter table public.users
-  add constraint users_verified_mobile_e164_check
-  check (
-    mobile_verified_at is null
-    or (
-      mobile is not null
-      and mobile ~ '^\+[1-9][0-9]{7,14}$'
-    )
-  ) not valid;
-
-alter table public.users
-  validate constraint users_verified_mobile_e164_check;
-
--- Pending contacts do not reserve ownership. The unique key becomes active only
--- when trusted verification evidence is projected onto the row.
+-- Pending contacts do not reserve ownership. These indexes become authoritative
+-- only when trusted Supabase Auth verification is projected onto the row.
 create unique index users_verified_email_identity_uidx
   on public.users (private.canonical_email_identity(email))
   where email_verified_at is not null;
