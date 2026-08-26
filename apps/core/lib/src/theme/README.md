@@ -44,7 +44,7 @@ final shadows = context.tioShadows;
 final textTheme = Theme.of(context).textTheme;
 ```
 
-Prefer reusable core UI such as `TioButton`, `TioInlineInfoAction`, `TioInput`, `TioUsernameInputField`, `TioMobileNumberField`, `TioCard`, `TioConfirmationCard`, `TioAvatar`, and shared dialogs/pickers/sheets before rebuilding the same contract in a feature.
+Prefer reusable core UI such as `TioButton`, `TioInlineInfoAction`, `TioInput`, `TioUsernameInputField`, `TioMobileNumberField`, `TioCard`, `TioConfirmationCard`, `TioAvatar`, `showTioInformationBottomSheet`, `showTioConfirmationBottomSheet`, and shared dialogs/pickers/sheets before rebuilding the same contract in a feature.
 
 A normal feature edit should not require opening internal token source. Inspect `apps/core/lib/src/theme/tokens/**` only when a documented role is missing/ambiguous, runtime source and this README disagree, or the task intentionally changes the core design-system contract.
 
@@ -381,12 +381,21 @@ TioMobileNumberField
 TioCard
 TioConfirmationCard
 TioAvatar
+showTioInformationBottomSheet
+showTioConfirmationBottomSheet
 core reusable dialogs/pickers/sheets
 ```
 
 `TioInlineInfoAction` owns the compact contextual-info treatment used in feature footers: a `12px` `w500` label, `16px` icon, theme-resolved secondary text color, and compact governed padding without the global `TextButton` minimum height. Features provide only the label, optional icon, and callback.
 
 `TioConfirmationCard` is the generic themed confirm/cancel card composition. Product-specific copy, consequences, persistence, and navigation remain feature-owned. Present the card through the surface that fits the workflow, such as a modal sheet, rather than creating a product-action-specific dialog/token bag.
+
+`showTioInformationBottomSheet` owns the standard explanatory modal shell:
+safe area, shared `TioSheet` surface, optional semantic icon, close affordance,
+body text, and an explicit primary dismissal action. Features provide only copy,
+optional icon semantics, alignment, and callbacks. `showTioConfirmationBottomSheet`
+owns the corresponding modal shell for `TioConfirmationCard` and returns the
+user's confirm/cancel result.
 
 When a repeated pattern is missing, first ask whether the correct fix is an existing component, reusable variant, or direct governed primitives—not another token file.
 
