@@ -103,6 +103,10 @@ void main() {
       find.text('Why do we need this information?'),
       findsOneWidget,
     );
+    expect(
+      tester.widget(find.byKey(const ValueKey('account-setup-mobile-info'))),
+      isA<TioInlineInfoAction>(),
+    );
 
     await tester.tap(find.byKey(const ValueKey('account-setup-mobile-info')));
     await tester.pumpAndSettle();
