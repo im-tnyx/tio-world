@@ -79,10 +79,7 @@ begin
   select p.prosecdef
   into helper_is_security_definer
   from pg_proc as p
-  join pg_namespace as n on n.oid = p.pronamespace
-  where n.nspname = 'public'
-    and p.proname = 'verified_email_owner_exists'
-    and pg_get_function_identity_arguments(p.oid) = 'raw_email text';
+  where p.oid = 'public.verified_email_owner_exists(text)'::regprocedure;
 
   if helper_is_security_definer is distinct from true then
     raise exception 'verified Email owner lookup must keep narrow SECURITY DEFINER access';
@@ -91,10 +88,7 @@ begin
   select p.prosecdef
   into hook_is_security_definer
   from pg_proc as p
-  join pg_namespace as n on n.oid = p.pronamespace
-  where n.nspname = 'private'
-    and p.proname = 'before_user_created_canonical_email_guard'
-    and pg_get_function_identity_arguments(p.oid) = 'event jsonb';
+  where p.oid = 'private.before_user_created_canonical_email_guard(jsonb)'::regprocedure;
 
   if hook_is_security_definer is distinct from false then
     raise exception 'Before User Created hook itself must remain SECURITY INVOKER';
