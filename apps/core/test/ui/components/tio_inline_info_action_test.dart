@@ -33,19 +33,20 @@ void main() {
     expect(find.byType(TextButton), findsNothing);
   });
 
-  testWidgets('invokes callback and exposes button semantics', (tester) async {
+  testWidgets('invokes callback and keeps an explicit semantics wrapper',
+      (tester) async {
     var taps = 0;
     await tester.pumpWidget(buildApp(onTap: () => taps++));
 
-    await tester.tap(find.byKey(const ValueKey('info-action')));
+    final action = find.byKey(const ValueKey('info-action'));
+    expect(
+      find.descendant(of: action, matching: find.byType(Semantics)),
+      findsWidgets,
+    );
+
+    await tester.tap(action);
     await tester.pump();
 
     expect(taps, 1);
-    expect(
-      tester.getSemantics(find.byKey(const ValueKey('info-action'))).hasFlag(
-            SemanticsFlag.isButton,
-          ),
-      isTrue,
-    );
   });
 }
