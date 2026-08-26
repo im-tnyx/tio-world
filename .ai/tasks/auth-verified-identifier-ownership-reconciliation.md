@@ -7,6 +7,7 @@
 **Parent task:** `.ai/tasks/auth-identifier-uniqueness.md`
 **Depends on:** `.ai/tasks/auth-canonical-email-identity-function.md`
 **Working branch:** `agent/auth-verified-identifier-ownership`
+**Draft child PR:** #119
 
 ## 1. Discovery
 
@@ -43,7 +44,7 @@ No `email_identity_key` column or separate contact table is required for this sl
 - direct verified-contact mutation hardening in the existing verification guard;
 - Step 1 canonicalizer schema/ACL correction needed by the expression index;
 - focused disposable/dev SQL verification source;
-- read-only live preflight and CI evidence.
+- read-only live preflight and repository validation evidence.
 
 ### Non-Goals
 
@@ -141,6 +142,19 @@ Official Account Settings already verifies contact changes through Supabase Auth
 ### Expression-Index ACL Finding
 
 The Step 1 canonicalizer must be callable by PostgreSQL when maintaining the Email expression index during authenticated/service-role DML. Therefore it now lives under `private.canonical_email_identity(text)` with minimal `USAGE`/`EXECUTE` grants required for database-maintained expression evaluation, while the private schema remains outside normal public PostgREST RPC exposure.
+
+### CI Trigger Finding
+
+Repository Flutter/Android workflows are not automatic validation gates for this Supabase-only child PR:
+
+```text
+Flutter CI pull_request base filter: main
+Flutter CI path filter: apps/** + workspace/tooling files
+Android Native CI pull_request base filter: main
+Android Native CI path filter: Android/Flutter app files only
+```
+
+PR #119 targets the parent branch and changes only `.ai/` + `supabase/`, so neither workflow auto-runs. Parent checkpoint CI remains relevant for unchanged Flutter/Android source, while this DB slice requires disposable/dev Supabase validation as its meaningful gate.
 
 ## 3. Clarification
 
@@ -267,9 +281,9 @@ Later application slices must map the DB/Auth conflict to controlled UX. The uni
 
 - [x] Add disposable/dev SQL verification source covering pending duplicates, verified canonical collisions, authenticated expression-index maintenance, verified direct-mutation guard, and pending edits.
 - [x] Fresh live preflight is collision-clean.
+- [x] Confirm app CI does not auto-trigger for this parent-targeted Supabase-only child PR; no Flutter/Android source changed.
 - [ ] Execute both migrations and verification scripts on disposable/dev Supabase.
 - [ ] Verify reconciliation with real Auth-trigger transactions on disposable/dev Supabase.
-- [ ] Run/record child-branch CI on the exact source checkpoint.
 - [ ] Production migration only after separate explicit owner approval.
 
 ## 6. Quality Review
@@ -294,6 +308,8 @@ Flutter CI #2079 / run 32954102032        success
 Android Native CI #491 / run 32954102044 success
 ```
 
+PR #119 is Draft, targets the current parent branch, and is a six-file `.ai/` + `supabase/` diff. Flutter/Android workflow filters intentionally produce no child-run for this diff.
+
 Current child source has **not yet** been executed as DDL on any Supabase environment in this task. Production DDL/DML remains untouched.
 
 ### Review Findings and Resolution
@@ -305,6 +321,8 @@ The no-extra-column approach remains valid, but only after three protections are
 3. prevention of direct client replacement of an already-verified contact.
 
 Without item 3, a client could release the public verified-ownership predicate while Supabase Auth still owned the identifier. This finding is now part of the durable design and migration source.
+
+The remaining validation gate is database-specific, not Flutter-specific: run the migrations and focused verification against a disposable/dev Supabase branch before considering production application.
 
 ## 7. Final Handoff
 
@@ -330,4 +348,4 @@ Repository source now contains the verified-ownership migration design and focus
 
 ### Final Status
 
-`PARTIAL` — source implementation complete for this bounded DB slice; disposable/dev migration + trigger validation and exact child-branch CI remain pending.
+`PARTIAL` — source implementation complete for this bounded DB slice; disposable/dev migration + real Auth-trigger validation remain pending.
