@@ -8,6 +8,7 @@ void main() {
   Widget host({
     required GlobalKey<UsernameStepState> stepKey,
     required _FakeProfileAccountRepository repository,
+    String initialUsername = '',
   }) {
     return MaterialApp(
       theme: ThemeData(extensions: const [TioColors.light]),
@@ -15,7 +16,7 @@ void main() {
         body: UsernameStep(
           key: stepKey,
           repository: repository,
-          initialUsername: '',
+          initialUsername: initialUsername,
           enabled: true,
           onCanContinueChanged: (_) {},
         ),
@@ -23,12 +24,52 @@ void main() {
     );
   }
 
+  testWidgets('missing username starts blank with only the generic hint',
+      (tester) async {
+    final key = GlobalKey<UsernameStepState>();
+    final repository = _FakeProfileAccountRepository();
+
+    await tester.pumpWidget(host(stepKey: key, repository: repository));
+
+    final field = tester.widget<TextField>(
+      find.byKey(const ValueKey('tio-username-input')),
+    );
+    expect(field.controller!.text, isEmpty);
+    expect(field.decoration?.hintText, 'e.g. your.name');
+    expect(repository.checked, isEmpty);
+  });
+
+  testWidgets('persisted canonical username hydrates without a new check',
+      (tester) async {
+    final key = GlobalKey<UsernameStepState>();
+    final repository = _FakeProfileAccountRepository();
+
+    await tester.pumpWidget(
+      host(
+        stepKey: key,
+        repository: repository,
+        initialUsername: 'existing.user',
+      ),
+    );
+
+    final field = tester.widget<TextField>(
+      find.byKey(const ValueKey('tio-username-input')),
+    );
+    expect(field.controller!.text, 'existing.user');
+    expect(key.currentState!.username, 'existing.user');
+    expect(repository.checked, isEmpty);
+  });
+
   testWidgets('renders server-verified alternatives when username is taken',
       (tester) async {
     final key = GlobalKey<UsernameStepState>();
     final repository = _FakeProfileAccountRepository(
       available: false,
-      suggestions: const ['taken.user.1a2b', 'taken.user.3c4d'],
+      suggestions: const [
+        'taken.user27',
+        'taken.user_314',
+        'taken.user.82',
+      ],
     );
 
     await tester.pumpWidget(host(stepKey: key, repository: repository));
@@ -45,8 +86,36 @@ void main() {
       find.text('This username is already taken. Try one of these instead:'),
       findsOneWidget,
     );
-    expect(find.text('@taken.user.1a2b'), findsOneWidget);
-    expect(find.text('@taken.user.3c4d'), findsOneWidget);
+    expect(find.text('@taken.user27'), findsOneWidget);
+    expect(find.text('@taken.user_314'), findsOneWidget);
+    expect(find.text('@taken.user.82'), findsOneWidget);
+  });
+
+  testWidgets('tapping a suggestion rechecks it before showing available',
+      (tester) async {
+    final key = GlobalKey<UsernameStepState>();
+    final repository = _FakeProfileAccountRepository(
+      available: false,
+      suggestions: const ['typed.user27'],
+    );
+
+    await tester.pumpWidget(host(stepKey: key, repository: repository));
+
+    await tester.enterText(
+      find.byKey(const ValueKey('tio-username-input')),
+      'typed.user',
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump();
+
+    repository.available = true;
+    repository.suggestions = const [];
+    await tester.tap(find.text('@typed.user27'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump();
+
+    expect(repository.checked, ['typed.user', 'typed.user27']);
+    expect(find.text('@typed.user27 is available!'), findsOneWidget);
   });
 
   testWidgets('save race refreshes server alternatives and stays retryable',
@@ -73,7 +142,7 @@ void main() {
       find.text('That username was just taken. Please choose another.'),
       findsOneWidget,
     );
-    expect(find.text('@race.user.9f2a'), findsOneWidget);
+    expect(find.text('@race.user_482'), findsOneWidget);
   });
 }
 
@@ -116,10 +185,10 @@ class _FakeProfileAccountRepository implements ProfileAccountRepository {
     if (failNextSave) {
       failNextSave = false;
       available = false;
-      suggestions = const ['race.user.9f2a'];
+      suggestions = const ['race.user_482'];
       throw const UsernameUnavailableException(
         reason: UsernameAvailabilityReason.taken,
-        suggestions: ['race.user.9f2a'],
+        suggestions: ['race.user_482'],
       );
     }
   }
