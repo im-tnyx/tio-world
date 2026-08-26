@@ -1,292 +1,218 @@
 # Auth Email Canonical Signup Admission
 
 **Status:** In progress
-**Primary owner:** `apps/features/auth` + Supabase Auth admission boundary
-**Affected platforms:** Flutter Auth + Supabase Auth/Postgres
+**Primary owner:** `apps/features/auth` + Supabase Auth/Postgres
+**Affected platforms:** Flutter Auth + hosted Supabase Auth
 **Related issue:** #120
 **Parent tracker:** #34
-**Depends on:** PR #122 Google canonical admission source; live canonical Email ownership foundation
+**Depends on:** #119 verified ownership, #121 canonical admission guard, #122 typed Google admission
 **Working branch:** `agent/auth-email-canonical-signup`
+**Draft PR:** #123
 
 ## 1. Discovery
 
 ### User Outcome
 
-Make Email + Password Signup resolve Gmail/Googlemail aliases to one canonical Supabase/Tio identity without exposing whether an existing canonical account exists, without passing the user's password through a custom Tio server, and without creating new tables or columns.
+Make Email + Password Signup/Login use one provider-aware canonical Email identity rule while preserving Supabase's account-enumeration protections and preventing Gmail/Googlemail aliases from becoming separate canonical Tio identities.
 
 ### Success Criteria
 
-- Gmail dot / `+tag` / `googlemail.com` aliases resolve to the same Auth Email identity before `auth.signUp`.
-- Non-Gmail `+tag` and dots are preserved.
-- Password continues directly from Flutter to Supabase Auth.
-- Supabase duplicate-Signup obfuscation is not decoded into an explicit account-existence result.
-- `user != null && session == null` remains pending confirmation, never authenticated success.
-- Email Signup is bounded by timeout.
-- Email Login accepts the same canonical Gmail aliases used by Signup.
-- Existing verified-only canonical Email uniqueness remains the final ownership backstop.
-- No new table/column/generated identity field.
-- Hosted Before User Created hook activation is never claimed until independently verified.
-
-### Scope
-
-- provider-aware canonical Email helper;
-- Email Signup and Email Login input canonicalization;
-- neutral Signup duplicate/pending response;
-- Signup timeout;
-- focused domain tests;
-- server hook source that enforces canonical form without owner lookup;
-- a dashboard-selectable public Auth Hook wrapper that delegates to the private implementation with restricted EXECUTE ACL.
+- Gmail/Googlemail aliases collapse by trim/lowercase, `googlemail.com → gmail.com`, local `+tag` removal, and local dot removal.
+- Non-Gmail dots and `+tag` semantics remain unchanged after trim/lowercase.
+- Password stays inside direct Supabase Auth SDK calls.
+- Email Signup never performs a client-visible canonical owner lookup before mailbox ownership is proven.
+- fresh pending Signup and Supabase's obfuscated existing-account Signup produce the same neutral check-email product outcome.
+- Email Login uses the same canonicalizer as Signup.
+- Signup has a bounded timeout.
+- hosted `Before User Created` protection enforces canonical form without turning account existence into an oracle.
+- no new table, column, generated identity field, or contact table.
 
 ### Non-Goals
 
-- password policy redesign;
 - Forgot/Reset Password;
+- authenticated Change Password;
 - Settings Email change/linking;
 - Phone OTP / #118;
-- UI redesign;
-- Google Settings linking;
-- new identity/contact tables or columns;
+- Google Settings linking/unlinking;
+- Auth UI redesign;
 - PR Ready/merge.
 
-## 2. Codebase Exploration
+## 2. Codebase / Runtime Evidence
 
-### Verified Evidence
+Before this slice, Email Signup/Login only trimmed/lowercased Email and repository internals could expose `user_already_exists` from Supabase's obfuscated duplicate Signup response.
 
-Before this slice:
-
-```text
-SignUpWithEmailUseCase
-→ repository.signUpWithEmailPassword
-→ trim + lowercase only
-→ Supabase auth.signUp
-```
-
-The repository treated `user.identities.isEmpty` and duplicate AuthException text as `user_already_exists`. The Signup page rendered that failure directly and exposed a Log In action. Supabase documentation states existing-account Signup may intentionally return an obfuscated response to prevent user enumeration, including Email Signup after an OAuth account with the same Email. Therefore decoding that response was unsafe.
-
-Existing pending-confirmation behavior was correct:
-
-```text
-user created + session == null
-→ email_confirmation_required
-→ no device sync
-→ no authenticated onboarding success
-```
-
-Email Signup had no bounded timeout. Email Login only trimmed input, so canonical Signup storage without Login canonicalization would make Gmail alias Login inconsistent.
-
-Fresh hosted read-only audit before production apply:
-
-```text
-auth users                              2
-confirmed Auth Email users              2
-unconfirmed Auth Email users            0
-Email provider identities               0
-Google identities                       2
-Auth Emails needing Gmail rewrite       0
-verified public Emails needing rewrite  0
-pending public Email rows               0
-verified canonical collision groups     0
-Auth/public projection mismatches       0
-```
-
-No existing hosted row needed a canonical Email rewrite.
-
-The hosted Dashboard Auth Hook picker did not list the valid `private.before_user_created_canonical_email_guard(jsonb)` function even though Postgres confirmed the function signature and `supabase_auth_admin` privileges were correct. The public-schema picker path is therefore supported through a thin wrapper that delegates to the private implementation.
-
-### Existing Pattern to Follow
-
-- Password stays inside Supabase Auth SDK calls.
-- Reuse the frozen provider-aware rule implemented by `private.canonical_email_identity(text)`.
-- No client-visible canonical owner precheck before Email ownership is proven.
-- Verified-only canonical Email UNIQUE ownership remains the final trusted DB authority.
-- Keep business/policy logic in `private.before_user_created_canonical_email_guard(jsonb)`.
-- The public Auth Hook entrypoint is a SECURITY INVOKER wrapper only; it is not a second policy implementation.
-
-## 3. Clarification
-
-| Decision | Status | Rationale |
-|---|---|---|
-| No canonical owner precheck from Flutter Signup | Frozen | Raw Email is not ownership proof and lookup would become an enumeration oracle |
-| No custom Tio Signup endpoint carrying plaintext password | Frozen | Supabase Auth remains password owner |
-| Canonicalize Gmail aliases before direct `auth.signUp()` | Implemented | Converts provider-equivalent aliases to Supabase exact Email identity while preserving native duplicate behavior |
-| Canonicalize Email Login with same rule | Implemented | Avoids alias-login regression |
-| Do not expose `user_already_exists` from obfuscated Signup response | Implemented at product-facing use-case boundary | Preserves account-enumeration-safe behavior |
-| Keep session-absent Signup distinct from authenticated success | Frozen | Existing semantics correct |
-| Email server hook may enforce canonical form only, never owner existence | Implemented and live in Postgres | Closes old/malicious client alias bypass without exposing account existence once the hosted hook is active |
-| Use a public dashboard wrapper instead of moving private policy logic | Implemented and live | Studio did not list the private function; thin invoker delegation keeps one policy owner and restricts normal-client EXECUTE |
-
-## 4. Architecture Design
-
-### Chosen Approach
+Chosen client boundary:
 
 ```text
 raw Email
 → canonicalEmailIdentity()
-→ direct Supabase auth.signUp / signInWithPassword
-→ Supabase exact Email uniqueness + native duplicate obfuscation
+→ direct supabase.auth.signUp / signInWithPassword
+→ Supabase native exact-Email behavior
 → pending confirmation or authenticated session
 ```
 
-Gmail / Googlemail:
+Server backstop:
 
 ```text
-trim + lowercase
-→ googlemail.com → gmail.com
-→ strip local +tag
-→ remove local dots
+provider=email
+→ canonicalize submitted Email
+→ already canonical? allow
+→ noncanonical Gmail/Googlemail alias? generic reject
 ```
 
-Other domains:
+The hook does **not** query verified owner existence for Email/password Signup.
+
+Hosted functions are live:
 
 ```text
-trim + lowercase
-→ preserve local dots
-→ preserve +tag
+private.before_user_created_canonical_email_guard(jsonb)
+public.before_user_created_canonical_email_guard(jsonb)
 ```
 
-Signup product outcome:
+The public function is a thin SECURITY INVOKER Dashboard wrapper delegating to the private policy owner. `anon`, `authenticated`, and `service_role` do not have wrapper EXECUTE; `supabase_auth_admin` does.
+
+The hosted Supabase Dashboard was configured with:
+
+```text
+Before User Created
+schema: public
+function: before_user_created_canonical_email_guard
+```
+
+Post-save Auth logs showed an API configuration reload. The connector cannot read the selected hook name back directly, so a real Auth invocation remains the final execution proof.
+
+## 3. Frozen Decisions
+
+| Decision | Status | Rationale |
+|---|---|---|
+| Provider-aware Gmail canonicalization | Frozen | Gmail alias semantics differ from other domains |
+| No universal `+tag` stripping | Frozen | Non-Gmail provider semantics vary |
+| No client owner precheck | Frozen | Raw Email is not ownership proof and lookup would leak account existence |
+| Password stays direct to Supabase Auth | Frozen | Avoid widening password handling |
+| Pending confirmation is not authenticated success | Frozen | Session absence remains authoritative |
+| Duplicate/pending Signup product outcome is neutral | Implemented | Preserve Supabase enumeration resistance |
+| Hook enforces Email canonical form only | Implemented/live | Backstop old/malicious clients without owner-existence leakage |
+| Public hook entrypoint is wrapper only | Implemented/live | Keep business logic private and Dashboard-selectable |
+
+## 4. Architecture
+
+Gmail/Googlemail:
+
+```text
+Na.Me+Fit@googlemail.com
+→ name@gmail.com
+```
+
+Non-Gmail:
+
+```text
+User.Name+Fit@Example.com
+→ user.name+fit@example.com
+```
+
+Product-facing Signup result:
 
 ```text
 fresh Signup, session absent
              ┐
-             ├→ same neutral check-email result
-obfuscated existing-account Signup
+             ├→ email_confirmation_required
+obfuscated duplicate Signup
              ┘
 ```
 
-No UUID or owner lookup is exposed.
+No UUID/owner metadata is returned to the client.
 
-### Server Backstop
-
-The production hook implementation makes `provider=email` only check whether the submitted Email is already in canonical form. It never calls `verified_email_owner_exists` for Email/password Signup.
-
-```text
-provider=email
-→ canonicalize input
-→ canonical form? allow
-→ Gmail alias/noncanonical form? generic reject
-```
-
-This decision is independent of account existence. Google behavior remains unchanged and may use verified-owner existence because Google provider evidence has already proved Email ownership.
-
-Core private hook migration:
+Hosted migration IDs owned by this PR:
 
 ```text
 20260826114935 harden_email_signup_canonical_form
-```
-
-Hosted Dashboard compatibility wrapper:
-
-```text
-public.before_user_created_canonical_email_guard(event jsonb)
-→ private.before_user_created_canonical_email_guard(event)
-```
-
-The wrapper is SECURITY INVOKER, has `search_path = ''`, and is executable by `supabase_auth_admin` only. `anon`, `authenticated`, and `service_role` cannot execute it.
-
-Live wrapper migration record:
-
-```text
 20260826121524 add_public_before_user_created_hook_wrapper
 ```
 
-### Alternatives Rejected
-
-- raw owner-existence RPC from Signup client;
-- custom password Signup Edge Function;
-- universal plus/dot stripping;
-- relying only on verified public index while allowing avoidable alias Auth UUID creation;
-- exposing `user_already_exists` from `identities.isEmpty`;
-- duplicating hook policy in a second public implementation;
-- widening wrapper EXECUTE to normal Data API roles.
+The full stacked Auth migration source now matches hosted migration history; no migration was replayed during source-history cleanup.
 
 ## 5. Implementation Plan
 
-- [x] Fresh repository/use-case/UI audit.
-- [x] Fresh hosted canonical-state audit.
-- [x] Review Supabase duplicate Signup / enumeration semantics.
-- [x] Add pure provider-aware Email canonicalization helper.
+- [x] Add provider-aware Email canonicalization helper.
 - [x] Use helper for Email Signup.
 - [x] Use helper for Email Login.
-- [x] Map pending confirmation and `user_already_exists` to the same product-facing neutral result.
-- [x] Add bounded Email Signup timeout.
-- [x] Add focused canonicalizer/use-case tests.
-- [x] Add Email hook canonical-form enforcement source.
-- [x] Add focused SQL verification draft.
-- [x] Read-only equivalent server-rule validation: 6/6 cases matched.
-- [x] Apply production hook-function migration after explicit owner authorization.
-- [x] Post-apply function behavior/ACL verification: 6/6 cases matched, restricted execute privileges preserved.
-- [x] Add dashboard-selectable public SECURITY INVOKER wrapper source.
-- [x] Apply wrapper migration after explicit owner authorization.
-- [x] Verify wrapper delegation and ACL: 4/4 focused cases matched; only `supabase_auth_admin` has EXECUTE.
-- [ ] Execute Flutter analyze/tests in a Flutter/Dart-capable environment.
-- [x] Verify the hosted Before User Created hook is enabled with
-  `public.before_user_created_canonical_email_guard` in Supabase Dashboard.
-- [ ] Real Email Signup/confirmation smoke on a controlled test identity.
+- [x] Neutralize fresh-pending vs obfuscated-duplicate product result.
+- [x] Add bounded Signup timeout.
+- [x] Add focused Dart test source.
+- [x] Harden private Email hook policy.
+- [x] Add public Dashboard-selectable SECURITY INVOKER wrapper.
+- [x] Apply and verify both hosted DB migrations after explicit approval.
+- [x] Verify hosted Dashboard hook selection/save.
+- [x] Align repository migration filenames with hosted migration IDs.
+- [x] Reconcile #119 → #121 → #122 → #123 into a clean linear stack.
+- [ ] Execute Flutter/Dart analyze/tests in a working Flutter toolchain.
+- [ ] Run controlled real Email Signup + confirmation smoke.
+- [ ] Run Gmail/Googlemail alias duplicate/canonical smoke.
 
 ## 6. Quality Review
 
-### Validation Run
+Completed SQL/runtime evidence:
 
 ```text
-Hosted pre-apply data audit                  PASS
-Equivalent Email hook rule cases             6 / 6 PASS
-Private hook migration                       20260826114935 LIVE
-Post-apply private hook cases                6 / 6 PASS
-Public wrapper migration                     20260826121524 LIVE
-Public wrapper delegation cases              4 / 4 PASS
-Wrapper SECURITY DEFINER                     false
-Wrapper EXECUTE: supabase_auth_admin         true
-Wrapper EXECUTE: anon/authenticated/service  false
-Verified Email collision groups              0
-Auth/public projection mismatches             0
-Branch base                                  PR #122 head
-Flutter/Dart executable validation           NOT RUN
-Hosted Before User Created hook activation   VERIFIED (Chrome Dashboard)
+private Email hook cases             6 / 6 PASS
+public wrapper delegation            4 / 4 PASS
+wrapper SECURITY DEFINER             false
+supabase_auth_admin wrapper EXECUTE  true
+anon wrapper EXECUTE                 false
+authenticated wrapper EXECUTE        false
+verified Email collision groups      0
+Auth/public projection mismatches    0
 ```
 
-### Review Findings and Resolution
+Fresh post-branch-cleanup hosted read-only audit:
 
-1. Existing exact-Email duplicate inference defeats Supabase obfuscation. Product-facing `SignUpWithEmailUseCase` maps pending and duplicate codes to the same neutral outcome.
-2. Signup-only canonicalization would make alias Login inconsistent. `SignInWithEmailUseCase` uses the same canonical identity helper.
-3. Client owner precheck is unsafe before Email proof. Not introduced.
-4. Password proxying would widen secret handling. Not introduced.
-5. Old/malicious clients could still submit Gmail aliases unless the hosted Before User Created hook is active. The policy function and dashboard-selectable wrapper are live, and Dashboard now confirms the public wrapper is enabled.
-6. The Dashboard picker did not surface the private function. A public SECURITY INVOKER wrapper was added instead of moving or duplicating private business logic.
-7. Settings/contact verification still uses lower/trim-only normalization and remains a separate #34/#8 lane.
-8. Post-DDL Supabase security advisor warnings are pre-existing/unrelated. The new wrapper is not SECURITY DEFINER and is not executable by normal client roles.
+```text
+auth.users                            0
+public.users                          0
+private hook exists                   true
+public wrapper exists                 true
+supabase_auth_admin wrapper EXECUTE  true
+anon/authenticated wrapper EXECUTE    false
+```
+
+The current hosted project has no user fixtures. This is not a failure, but it means a real smoke test must create/use a controlled test identity rather than infer execution from existing accounts.
+
+Git source-history reconciliation:
+
+```text
+#119 → #121  linear
+#121 → #122  linear
+#122 → #123  linear
+```
+
+No Core/Onboarding/Account Setup/Welcome UI file remains in the Auth stack. The unrelated UI state was preserved separately on `agent/ui-bottom-sheet-welcome-parity-preserve` before branch cleanup.
+
+Executable Flutter validation is still unavailable in the current execution environment because `flutter`/`dart` are not installed and the stacked PRs do not trigger the repository's `pull_request -> main` workflow.
 
 ## 7. Final Handoff
 
-### Changed Files
+### Changed Runtime/Source Files
 
-- `.ai/tasks/auth-email-canonical-signup-admission.md`
 - `apps/features/auth/lib/src/domain/domain.dart`
 - `apps/features/auth/lib/src/domain/utils/canonical_email_identity.dart`
 - `apps/features/auth/lib/src/domain/usecases/sign_up_with_email_use_case.dart`
 - `apps/features/auth/lib/src/domain/usecases/sign_in_with_email_use_case.dart`
-- `apps/features/auth/test/domain/canonical_email_identity_test.dart`
-- `apps/features/auth/test/domain/email_auth_canonicalization_use_case_test.dart`
+- focused Auth domain tests
 - `supabase/migrations/20260826114935_harden_email_signup_canonical_form.sql`
 - `supabase/migrations/20260826121524_add_public_before_user_created_hook_wrapper.sql`
-- `supabase/drafts/20260826_verify_email_signup_canonical_form.sql`
+- focused verification SQL
 
-### Actual Behavior
+### Remaining Gate
 
-- Official Email Signup/Login inputs canonicalize Gmail/Googlemail aliases provider-aware.
-- Non-Gmail plus/dot semantics remain unchanged.
-- Password remains direct to Supabase Auth.
-- Product-facing Signup no longer distinguishes a fresh pending confirmation from repository `user_already_exists`.
-- Signup timeout returns `email_signup_timeout`.
-- The private production hook enforces Email canonical form without querying owner existence.
-- A public dashboard-selectable wrapper delegates to the private hook and is callable only by `supabase_auth_admin`.
-
-### Known Limitations
-
-- Existing repository internals still produce `user_already_exists`; the normal product path is protected by `SignUpWithEmailUseCase`. Direct repository consumers must not be added as UI/business entry points.
-- Flutter/Dart tests are source-only until run in a toolchain-capable environment.
-- No controlled real Email Signup/confirmation identity has been mutated for smoke testing yet.
+```text
+controlled Email Signup
+→ confirm mailbox
+→ verify one Auth/public UUID projection
+→ attempt equivalent Gmail alias
+→ verify no second canonical account
+→ inspect Auth logs + DB invariants
+```
 
 ### Final Status
 
-`PARTIAL` — Phase 4 source, private hook migration, and dashboard-selectable wrapper are live with clean ACL/behavior validation. Hosted hook activation, executable Flutter validation, and controlled real Auth smoke remain pending.
+`PARTIAL` — source implementation, production DB migrations, Dashboard hook activation, ACL checks, migration-history reconciliation, and branch-stack cleanup are complete. Executable Flutter validation and controlled real Auth smoke remain pending. PR #123 stays Draft/unmerged.
