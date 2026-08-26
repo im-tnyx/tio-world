@@ -44,7 +44,7 @@ final shadows = context.tioShadows;
 final textTheme = Theme.of(context).textTheme;
 ```
 
-Prefer reusable core UI such as `TioButton`, `TioInlineInfoAction`, `TioInput`, `TioUsernameInputField`, `TioMobileNumberField`, `TioCard`, `TioConfirmationCard`, `TioAvatar`, and shared dialogs/pickers/sheets before rebuilding the same contract in a feature.
+Prefer reusable core UI such as `TioButton`, `TioSocialButton`, `TioInlineInfoAction`, `TioInput`, `TioUsernameInputField`, `TioMobileNumberField`, `TioCard`, `TioConfirmationCard`, `TioAvatar`, and shared dialogs/pickers/sheets before rebuilding the same contract in a feature.
 
 A normal feature edit should not require opening internal token source. Inspect `apps/core/lib/src/theme/tokens/**` only when a documented role is missing/ambiguous, runtime source and this README disagree, or the task intentionally changes the core design-system contract.
 
@@ -374,6 +374,7 @@ Prefer:
 
 ```text
 TioButton
+TioSocialButton
 TioInlineInfoAction
 TioInput
 TioUsernameInputField
@@ -383,6 +384,8 @@ TioConfirmationCard
 TioAvatar
 core reusable dialogs/pickers/sheets
 ```
+
+`TioSocialButton` owns shared provider/mode action presentation for Google, Truecaller, Email, and Phone. Its default constructors retain the full-width provider treatment. `TioSocialButton.round` is the shared compact Auth action variant: a 56dp circular interactive target with a visible label, button semantics, theme-resolved colors, and governed geometry. Features own provider ordering, loading/availability state, and whether Email or Phone is the reciprocal mode action; they should not duplicate the round visual contract or create an Auth-specific token bag.
 
 `TioInlineInfoAction` owns the compact contextual-info treatment used in feature footers: a `12px` `w500` label, `16px` icon, theme-resolved secondary text color, and compact governed padding without the global `TextButton` minimum height. Features provide only the label, optional icon, and callback.
 
