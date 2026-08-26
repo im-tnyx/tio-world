@@ -133,6 +133,10 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  /// Generic name for the current Phone-first Signup surface. It intentionally
+  /// aliases the existing path so old deep links remain valid.
+  static const signup = emailSignup;
+
   static const forgotPassword = TioRouteContract(
     path: '/login/forgot-password',
     title: 'Reset Password',
