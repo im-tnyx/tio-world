@@ -384,23 +384,12 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
                           ),
                           const SizedBox(height: TioSpacing.sm),
                         ],
-                        if (step == AccountSetupStepId.mobile) ...[
-                          TextButton.icon(
+                        if (step == AccountSetupStepId.mobile)
+                          TioInlineInfoAction(
                             key: const ValueKey('account-setup-mobile-info'),
-                            onPressed: _busy ? null : _showMobileInformation,
-                            icon: const Icon(
-                              Icons.info_outline_rounded,
-                              size: TioSize.dp20,
-                            ),
-                            label: const Text(
-                              'Why do we need this information?',
-                            ),
-                            style: TextButton.styleFrom(
-                              foregroundColor: colors.textSecondary,
-                            ),
+                            label: 'Why do we need this information?',
+                            onTap: _busy ? null : _showMobileInformation,
                           ),
-                          const SizedBox(height: TioSpacing.sm),
-                        ],
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton(
