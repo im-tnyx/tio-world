@@ -116,7 +116,7 @@ class TioSocialButton extends StatelessWidget {
       label: label,
       child: ExcludeSemantics(
         child: SizedBox(
-          width: TioSize.dp72,
+          width: TioSize.dp100,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
