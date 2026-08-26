@@ -1,19 +1,21 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 enum GoogleLoginAdmissionDecision {
-  existingAccount,
+  linkedAccount,
   noAccount,
+  linkRequired,
+  identityConflict,
 }
 
 typedef GoogleLoginAdmissionChecker =
     Future<GoogleLoginAdmissionDecision> Function(String idToken);
 
-/// Checks whether the verified Google identity is already attached to a real
-/// Tio account before returning-user Login is allowed to create a Supabase
-/// session.
+/// Resolves a verified Google identity against Tio's canonical verified Email
+/// owner and the stable Google provider subject before Supabase Auth exchange.
 ///
-/// The Edge Function receives only the Google ID token. It derives the identity
-/// server-side after verification, so the client cannot probe arbitrary emails.
+/// The Edge Function receives only the Google ID token. It verifies and derives
+/// the Email + provider subject server-side, so the client cannot probe arbitrary
+/// Emails or choose an account UUID.
 class SupabaseGoogleLoginAdmissionChecker {
   const SupabaseGoogleLoginAdmissionChecker({
     required SupabaseClient client,
@@ -32,15 +34,14 @@ class SupabaseGoogleLoginAdmissionChecker {
       throw const FormatException('Invalid Google login admission response.');
     }
 
-    final allowed = data['allowed'];
-    if (allowed is! bool) {
-      throw const FormatException(
-        'Google login admission response is missing an allowed decision.',
-      );
-    }
-
-    return allowed
-        ? GoogleLoginAdmissionDecision.existingAccount
-        : GoogleLoginAdmissionDecision.noAccount;
+    return switch (data['decision']) {
+      'linked_account' => GoogleLoginAdmissionDecision.linkedAccount,
+      'no_account' => GoogleLoginAdmissionDecision.noAccount,
+      'link_required' => GoogleLoginAdmissionDecision.linkRequired,
+      'identity_conflict' => GoogleLoginAdmissionDecision.identityConflict,
+      _ => throw const FormatException(
+          'Google login admission response is missing a valid decision.',
+        ),
+    };
   }
 }

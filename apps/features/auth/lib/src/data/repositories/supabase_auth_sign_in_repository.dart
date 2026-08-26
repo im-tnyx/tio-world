@@ -149,103 +149,55 @@ class SupabaseAuthSignInRepository
       final accessToken = googleAuth.accessToken;
 
       if (idToken == null || idToken.isEmpty) {
-        if (intent == GoogleSignInIntent.existingAccountOnly) {
-          developer.log(
-            '[GoogleAuth] native ID token unavailable for existing-account admission',
-          );
-          return const SignInFailure(
-            'Tio could not verify this Google account. Please try again.',
-            code: 'google_login_admission_token_unavailable',
-          );
-        }
-
         developer.log(
-          '[GoogleAuth] native ID token unavailable; signup-capable OAuth fallback started',
+          '[GoogleAuth] native ID token unavailable; canonical admission cannot run',
         );
-        bool success;
-        try {
-          success = await _client.auth
-              .signInWithOAuth(
-                OAuthProvider.google,
-                redirectTo: 'tio://login-callback',
-                queryParams: const {'prompt': 'select_account'},
-              )
-              .timeout(_googleSupabaseExchangeTimeout);
-        } on TimeoutException catch (error, stackTrace) {
-          developer.log(
-            '[GoogleAuth] OAuth fallback timed out',
-            error: error,
-            stackTrace: stackTrace,
-          );
-          return const SignInFailure(
-            'Tio could not finish Google sign-in in time. Please try again.',
-            code: 'google_supabase_exchange_timeout',
-          );
-        }
-        if (!success) {
-          return const SignInCancelled();
-        }
-        final user = _client.auth.currentUser;
-        if (user != null) {
-          developer.log('[GoogleAuth] OAuth fallback session established');
-          final session = _mapUser(user);
-          _startDeviceSync();
-          // Without a native ID token we cannot classify fresh-vs-returning
-          // before account creation. Be conservative and never import a
-          // provider avatar on this fallback path.
-          _startGoogleProfileSync(user: user, session: session);
-          return SignInSuccess(session);
-        }
-        return const SignInCancelled();
+        return const SignInFailure(
+          'Tio could not verify this Google account. Please try again.',
+          code: 'google_login_admission_token_unavailable',
+        );
       }
 
-      Future<GoogleLoginAdmissionDecision?>? signupAccountDecision;
-      if (intent == GoogleSignInIntent.signupOrExisting) {
-        // Start fresh-vs-returning classification before the Supabase exchange,
-        // but do not await it on the authentication critical path. Profile
-        // enrichment can consume the result later in the background.
-        signupAccountDecision =
-            _classifyGoogleAccountForProfileBootstrap(idToken);
+      developer.log('[GoogleAuth] canonical admission started');
+      GoogleLoginAdmissionDecision admissionDecision;
+      try {
+        admissionDecision = await _googleLoginAdmissionChecker(idToken)
+            .timeout(_googleAdmissionTimeout);
+      } on TimeoutException catch (error, stackTrace) {
+        developer.log(
+          '[GoogleAuth] canonical admission timed out',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        return const SignInFailure(
+          'Tio could not verify your account in time. Please try again.',
+          code: 'google_login_admission_timeout',
+        );
+      } catch (error, stackTrace) {
+        developer.log(
+          '[GoogleAuth] canonical admission failed',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        return const SignInFailure(
+          'Tio could not verify your account right now. Please try again.',
+          code: 'google_login_admission_failed',
+        );
       }
 
-      if (intent == GoogleSignInIntent.existingAccountOnly) {
-        developer.log('[GoogleAuth] existing-account admission started');
-        GoogleLoginAdmissionDecision admissionDecision;
-        try {
-          admissionDecision = await _googleLoginAdmissionChecker(idToken)
-              .timeout(_googleAdmissionTimeout);
-        } on TimeoutException catch (error, stackTrace) {
-          developer.log(
-            '[GoogleAuth] existing-account admission timed out',
-            error: error,
-            stackTrace: stackTrace,
-          );
-          return const SignInFailure(
-            'Tio could not verify your account in time. Please try again.',
-            code: 'google_login_admission_timeout',
-          );
-        } catch (error, stackTrace) {
-          developer.log(
-            '[GoogleAuth] existing-account admission failed',
-            error: error,
-            stackTrace: stackTrace,
-          );
-          return const SignInFailure(
-            'Tio could not verify your account right now. Please try again.',
-            code: 'google_login_admission_failed',
-          );
-        }
-
-        if (admissionDecision == GoogleLoginAdmissionDecision.noAccount) {
-          developer.log('[GoogleAuth] existing-account admission denied');
-          return const SignInFailure(
-            'No Tio account found for this Google account.\n'
-            'Create a Tio account first to continue.',
-            code: 'google_account_not_found',
-          );
-        }
-        developer.log('[GoogleAuth] existing-account admission allowed');
+      final admissionFailure = _googleAdmissionFailure(
+        intent: intent,
+        decision: admissionDecision,
+      );
+      if (admissionFailure != null) {
+        developer.log(
+          '[GoogleAuth] canonical admission denied: ${admissionDecision.name}',
+        );
+        return admissionFailure;
       }
+      developer.log(
+        '[GoogleAuth] canonical admission allowed: ${admissionDecision.name}',
+      );
 
       developer.log('[GoogleAuth] Supabase ID-token exchange started');
       AuthResponse response;
@@ -284,7 +236,7 @@ class SupabaseAuthSignInRepository
       _startGoogleProfileSync(
         user: user,
         session: session,
-        accountDecision: signupAccountDecision,
+        accountDecision: admissionDecision,
       );
 
       developer.log('[GoogleAuth] sign-in completed successfully');
@@ -306,6 +258,31 @@ class SupabaseAuthSignInRepository
       }
       return SignInFailure(errorStr);
     }
+  }
+
+  SignInFailure? _googleAdmissionFailure({
+    required GoogleSignInIntent intent,
+    required GoogleLoginAdmissionDecision decision,
+  }) {
+    return switch (decision) {
+      GoogleLoginAdmissionDecision.linkedAccount => null,
+      GoogleLoginAdmissionDecision.noAccount =>
+        intent == GoogleSignInIntent.signupOrExisting
+            ? null
+            : const SignInFailure(
+                'No Tio account found for this Google account.\n'
+                'Create a Tio account first to continue.',
+                code: 'google_account_not_found',
+              ),
+      GoogleLoginAdmissionDecision.linkRequired => const SignInFailure(
+          'This Google account matches an existing Tio account but is not connected as a sign-in method. Sign in with an existing method first.',
+          code: 'google_account_link_required',
+        ),
+      GoogleLoginAdmissionDecision.identityConflict => const SignInFailure(
+          'Tio could not safely match this Google identity to an account. Please use another sign-in method and try again.',
+          code: 'google_identity_conflict',
+        ),
+    };
   }
 
   @override
@@ -439,37 +416,10 @@ class SupabaseAuthSignInRepository
     );
   }
 
-  Future<GoogleLoginAdmissionDecision?>
-      _classifyGoogleAccountForProfileBootstrap(String idToken) async {
-    try {
-      developer.log('[GoogleAuth] signup profile classification started');
-      final decision = await _googleLoginAdmissionChecker(idToken)
-          .timeout(_googleAdmissionTimeout);
-      developer.log(
-        '[GoogleAuth] signup profile classification completed: ${decision.name}',
-      );
-      return decision;
-    } on TimeoutException catch (error, stackTrace) {
-      developer.log(
-        '[GoogleAuth] signup profile classification timed out; avatar import skipped',
-        error: error,
-        stackTrace: stackTrace,
-      );
-      return null;
-    } catch (error, stackTrace) {
-      developer.log(
-        '[GoogleAuth] signup profile classification failed; avatar import skipped',
-        error: error,
-        stackTrace: stackTrace,
-      );
-      return null;
-    }
-  }
-
   void _startGoogleProfileSync({
     required User user,
     required AuthSession session,
-    Future<GoogleLoginAdmissionDecision?>? accountDecision,
+    required GoogleLoginAdmissionDecision accountDecision,
   }) {
     unawaited(
       _syncGoogleProfile(
@@ -483,12 +433,11 @@ class SupabaseAuthSignInRepository
   Future<void> _syncGoogleProfile({
     required User user,
     required AuthSession session,
-    Future<GoogleLoginAdmissionDecision?>? accountDecision,
+    required GoogleLoginAdmissionDecision accountDecision,
   }) async {
     try {
-      final decision = accountDecision == null ? null : await accountDecision;
       final importProviderPhoto =
-          decision == GoogleLoginAdmissionDecision.noAccount;
+          accountDecision == GoogleLoginAdmissionDecision.noAccount;
       final callback = _googleProfileSyncCallback;
       if (callback != null) {
         await callback(

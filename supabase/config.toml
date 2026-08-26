@@ -24,6 +24,13 @@ enable_signup = true
 enabled = true
 uri = "pg-functions://postgres/private/before_user_created_canonical_email_guard"
 
+# This endpoint runs before a Tio Supabase session exists. It authenticates the
+# request by cryptographically verifying the supplied Google ID token itself.
+# Keep platform JWT verification disabled to match the currently deployed
+# function and to support publishable-key callers without weakening the handler.
+[functions.google-login-admission]
+verify_jwt = false
+
 [storage]
 enabled = true
 file_size_limit = "50MiB"

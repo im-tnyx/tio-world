@@ -10,12 +10,12 @@ void main() {
     test('fresh signup imports the Google photo once', () async {
       final user = _googleUser(photoUrl: 'https://example.com/google.jpg');
       final sync = ProfileSyncRecorder();
-      var classificationCalls = 0;
+      var admissionCalls = 0;
       final repository = _repository(
         user: user,
         profileSync: sync.call,
         admissionChecker: (_) async {
-          classificationCalls++;
+          admissionCalls++;
           return GoogleLoginAdmissionDecision.noAccount;
         },
       );
@@ -26,18 +26,19 @@ void main() {
       await sync.completed.future.timeout(const Duration(seconds: 1));
 
       expect(result, isA<SignInSuccess>());
-      expect(classificationCalls, 1);
+      expect(admissionCalls, 1);
+      expect(sync.calls, 1);
       expect(sync.importProviderPhoto, isTrue);
       expect(sync.photoUrl, 'https://example.com/google.jpg');
     });
 
-    test('returning signup identity never overwrites a custom avatar', () async {
+    test('returning linked identity never overwrites a custom avatar', () async {
       final sync = ProfileSyncRecorder();
       final repository = _repository(
         user: _googleUser(photoUrl: 'https://example.com/google-new.jpg'),
         profileSync: sync.call,
         admissionChecker: (_) async =>
-            GoogleLoginAdmissionDecision.existingAccount,
+            GoogleLoginAdmissionDecision.linkedAccount,
       );
 
       final result = await repository.signInWithGoogleForIntent(
@@ -46,6 +47,7 @@ void main() {
       await sync.completed.future.timeout(const Duration(seconds: 1));
 
       expect(result, isA<SignInSuccess>());
+      expect(sync.calls, 1);
       expect(sync.importProviderPhoto, isFalse);
     });
 
@@ -55,7 +57,7 @@ void main() {
         user: _googleUser(photoUrl: 'https://example.com/google.jpg'),
         profileSync: sync.call,
         admissionChecker: (_) async =>
-            GoogleLoginAdmissionDecision.existingAccount,
+            GoogleLoginAdmissionDecision.linkedAccount,
       );
 
       final result = await repository.signInWithGoogleForIntent(
@@ -64,25 +66,43 @@ void main() {
       await sync.completed.future.timeout(const Duration(seconds: 1));
 
       expect(result, isA<SignInSuccess>());
+      expect(sync.calls, 1);
       expect(sync.importProviderPhoto, isFalse);
     });
 
-    test('classification failure does not fail signup or import a photo',
-        () async {
+    test('admission failure blocks signup before profile enrichment', () async {
       final sync = ProfileSyncRecorder();
       final repository = _repository(
         user: _googleUser(photoUrl: 'https://example.com/google.jpg'),
         profileSync: sync.call,
-        admissionChecker: (_) async => throw StateError('classifier unavailable'),
+        admissionChecker: (_) async => throw StateError('resolver unavailable'),
       );
 
       final result = await repository.signInWithGoogleForIntent(
         intent: GoogleSignInIntent.signupOrExisting,
       );
-      await sync.completed.future.timeout(const Duration(seconds: 1));
 
-      expect(result, isA<SignInSuccess>());
-      expect(sync.importProviderPhoto, isFalse);
+      expect(result, isA<SignInFailure>());
+      expect((result as SignInFailure).code, 'google_login_admission_failed');
+      expect(sync.calls, 0);
+    });
+
+    test('link-required identity never reaches profile enrichment', () async {
+      final sync = ProfileSyncRecorder();
+      final repository = _repository(
+        user: _googleUser(photoUrl: 'https://example.com/google.jpg'),
+        profileSync: sync.call,
+        admissionChecker: (_) async =>
+            GoogleLoginAdmissionDecision.linkRequired,
+      );
+
+      final result = await repository.signInWithGoogleForIntent(
+        intent: GoogleSignInIntent.signupOrExisting,
+      );
+
+      expect(result, isA<SignInFailure>());
+      expect((result as SignInFailure).code, 'google_account_link_required');
+      expect(sync.calls, 0);
     });
 
     test('missing Google photo remains a valid fresh signup', () async {
@@ -178,6 +198,7 @@ FakeGoogleSignInAccount _googleAccountWithTokens() => FakeGoogleSignInAccount(
 
 class ProfileSyncRecorder {
   final Completer<void> completed = Completer<void>();
+  int calls = 0;
   bool? importProviderPhoto;
   String? photoUrl;
 
@@ -186,6 +207,7 @@ class ProfileSyncRecorder {
     required AuthSession session,
     required bool importProviderPhoto,
   }) async {
+    calls++;
     this.importProviderPhoto = importProviderPhoto;
     photoUrl = session.photoUrl;
     if (!completed.isCompleted) completed.complete();
