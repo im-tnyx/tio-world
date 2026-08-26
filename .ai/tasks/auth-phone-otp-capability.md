@@ -86,7 +86,7 @@ Provide the real passwordless Phone OTP capability that #118 can consume without
 
 ### Tests or Validation Already Present
 
-- Auth repository tests use lightweight `FakeSupabaseClient` / `FakeGoTrueClient` implementations.
+- Auth repository tests use lightweight fake Supabase clients and injectable SDK boundaries.
 - Shared phone normalization is already used by Account contact verification and Account Setup persistence paths.
 - No executable Flutter/Dart validation is available in the current connector environment; source tests must not be described as run until a toolchain executes them.
 
@@ -158,24 +158,24 @@ apps/features/auth domain
 
 ### Failure and Accessibility States
 
-This slice has no production UI. Domain/data must expose stable failures for invalid phone/token, request/resend/verify timeout, backend request failure, missing authenticated session, and verified-Phone mismatch so #118 can render controlled accessible states later.
+This slice has no production UI. Domain/data exposes stable failures for invalid phone/token, request/resend/verify timeout, backend request failure, missing authenticated session, and verified-Phone mismatch so #118 can render controlled accessible states later.
 
 ## 5. Implementation Plan
 
 - [x] Read required repository/auth/data ownership docs.
 - [x] Audit current Email OTP, contact-change Phone OTP, AuthSession, phone normalization, Supabase config, and live trigger order.
 - [x] Freeze dedicated Phone OTP capability boundary.
-- [ ] Add Phone OTP intent/request result models.
-- [ ] Add `PhoneOtpAuthRepository` contract.
-- [ ] Add request/resend/verify use cases with E.164 normalization and timeouts.
-- [ ] Add `SupabasePhoneOtpAuthRepository` using `signInWithOtp` / `verifyOTP(OtpType.sms)`.
-- [ ] Require real authenticated session + confirmed target Phone on verify.
-- [ ] Start device sync only after verified authenticated success.
-- [ ] Export the new capability through public Auth package boundaries.
-- [ ] Add focused repository/use-case tests.
-- [ ] Run parent-to-head scope audit.
+- [x] Add Phone OTP intent/request result models.
+- [x] Add `PhoneOtpAuthRepository` contract.
+- [x] Add request/resend/verify use cases with E.164 normalization and timeouts.
+- [x] Add `SupabasePhoneOtpAuthRepository` using `signInWithOtp` / `verifyOTP(OtpType.sms)`.
+- [x] Require real authenticated session + confirmed target Phone on verify.
+- [x] Start device sync only after verified authenticated success.
+- [x] Export the new capability through public Auth package boundaries.
+- [x] Add focused repository/use-case test source.
+- [x] Run final parent-to-head GitHub scope audit.
 - [ ] Run Flutter/Dart tests when a capable environment is available.
-- [ ] Record #126/#118 source checkpoint.
+- [x] Record #126/#118 source checkpoint.
 
 ## 6. Quality Review
 
@@ -191,34 +191,64 @@ auth.users trigger order:
   provision_tio_user_root_after_auth_insert
   reconcile_tio_user_contact_verification_after_auth_change
 
-Source/runtime mutation during audit: none
-Flutter/Dart executable validation: not run yet
-Hosted SMS delivery/session smoke: not run; controlled phone/provider readiness unavailable
+Source review:
+Phone OTP domain/request/result/repository/use-case boundaries added.
+Supabase request/resend path uses signInWithOtp + explicit shouldCreateUser intent.
+Supabase verify path uses OtpType.sms and requires response.session.
+Verified success requires exact target Phone + phoneConfirmedAt.
+Device sync remains non-blocking and starts only after authenticated success.
+No UI, migration, table, column, hook, Edge Function, or hosted Auth config change.
+
+Final parent-to-head audit:
+base                                      agent/auth-email-canonical-signup
+base SHA                                  fb648f5cf739eae431958483dc6820e24d9d1dac
+branch                                    agent/auth-phone-otp-capability
+behind                                    0
+changed scope                              Auth task/domain/data/tests only
+unrelated Core/Onboarding/UI files         none
+Supabase migration/config changes          none
+
+Flutter/Dart executable validation: NOT RUN in current environment
+Hosted SMS delivery/session smoke: NOT RUN; controlled phone/provider readiness unavailable
 ```
 
 ### Review Findings and Resolution
 
-1. Existing `signInWithOtp` is Email magic-link verification and is not a Phone OTP foundation. Use a dedicated capability.
-2. Signed-out Phone OTP and authenticated Phone change use different Supabase verification types (`sms` vs `phoneChange`). Keep them separate.
+1. Existing `signInWithOtp` is Email magic-link verification and is not a Phone OTP foundation. A dedicated capability was added.
+2. Signed-out Phone OTP and authenticated Phone change use different Supabase verification types (`sms` vs `phoneChange`). They remain separate.
 3. Phone-only Auth root provisioning is safe only if provisioning precedes contact reconciliation. Live trigger order confirms that ordering today.
-4. Repo source cannot prove hosted SMS provider readiness. Treat real delivery as an operational smoke gate, not a source assumption.
+4. Repo source cannot prove hosted SMS provider readiness. Real delivery remains an operational smoke gate, not a source assumption.
+5. Request-code success is represented by `PhoneOtpCodeSent`, not `SignInSuccess`; only OTP verification can establish authenticated success.
+6. Verify does not fall back to a pre-existing `currentSession`; it requires the `verifyOTP` response session and exact confirmed target Phone, avoiding stale-session false success.
 
 ## 7. Final Handoff
 
 ### Changed Files
 
 - `.ai/tasks/auth-phone-otp-capability.md`
+- `apps/features/auth/lib/src/domain/models/phone_otp_intent.dart`
+- `apps/features/auth/lib/src/domain/models/phone_otp_request_result.dart`
+- `apps/features/auth/lib/src/domain/repositories/phone_otp_auth_repository.dart`
+- `apps/features/auth/lib/src/domain/usecases/request_phone_otp_use_case.dart`
+- `apps/features/auth/lib/src/domain/usecases/resend_phone_otp_use_case.dart`
+- `apps/features/auth/lib/src/domain/usecases/verify_phone_otp_use_case.dart`
+- `apps/features/auth/lib/src/data/repositories/supabase_phone_otp_auth_repository.dart`
+- `apps/features/auth/lib/src/domain/domain.dart`
+- `apps/features/auth/lib/src/data/data.dart`
+- `apps/features/auth/test/domain/phone_otp_use_case_test.dart`
+- `apps/features/auth/test/data/supabase_phone_otp_auth_repository_test.dart`
 
 ### Actual Behavior
 
-No runtime behavior changed yet. The bounded Phone OTP architecture and evidence are recorded before implementation.
+Repository source now provides a bounded Phone OTP capability that #118 can compose later. Signup requests allow Supabase user creation, Login requests prohibit it, resend repeats the passwordless request, and verification can return authenticated success only from a real Supabase SMS OTP session whose confirmed Phone matches the requested canonical E.164 value.
 
 ### Known Limitations
 
 - Hosted SMS provider/vendor/rate-limit configuration has not been independently read back.
 - No controlled phone number is available for real SMS/session smoke.
-- Flutter/Dart executable validation remains unavailable in the current tool environment.
+- Flutter/Dart tests are added as source but have not executed in the current environment.
+- #125 Email/Google real hosted smoke remains deferred and independent.
 
 ### Final Status
 
-`PARTIAL` — audit/architecture complete; source implementation pending.
+`PARTIAL` — bounded Phone OTP source implementation and source/static review are complete; executable Flutter validation and hosted SMS/session smoke remain pending.
