@@ -6,7 +6,7 @@ import 'package:tio_core/core.dart';
 import 'package:tio_feature_auth/auth.dart';
 
 void main() {
-  testWidgets('Google signup shows loading only on the Google action',
+  testWidgets('Google signup shows loading only on the Google round action',
       (tester) async {
     final repository = _PendingGoogleAuthRepository();
 
@@ -15,6 +15,7 @@ void main() {
         builder: (context, child) =>
             TioTheme(child: child ?? const SizedBox.shrink()),
         home: EmailSignupPage(
+          initialMode: AuthEntryMode.email,
           signInWithGoogleUseCase:
               SignInWithGoogleUseCase(signInRepository: repository),
         ),
@@ -31,17 +32,16 @@ void main() {
     );
     await tester.pump();
 
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('signup-google-button')),
+    await tester.tap(
+      find.byKey(const ValueKey('signup-google-round-action')),
     );
-    await tester.tap(find.byKey(const ValueKey('signup-google-button')));
     await tester.pump();
 
     final emailButton = tester.widget<TioButton>(
       find.byKey(const ValueKey('signup-submit-button')),
     );
     final googleButton = tester.widget<TioSocialButton>(
-      find.byKey(const ValueKey('signup-google-button')),
+      find.byKey(const ValueKey('signup-google-round-action')),
     );
 
     expect(emailButton.loading, isFalse);
