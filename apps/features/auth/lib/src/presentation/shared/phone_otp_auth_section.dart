@@ -3,6 +3,7 @@ import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../../domain/domain.dart';
+import 'phone_otp_auth_scope.dart';
 
 /// Shared Phone OTP form used by Signup and Login.
 ///
@@ -83,9 +84,24 @@ class _PhoneOtpAuthSectionState extends State<PhoneOtpAuthSection> {
     }
   }
 
+  RequestPhoneOtpUseCase? _requestUseCase() {
+    return widget.requestPhoneOtpUseCase ??
+        PhoneOtpAuthScope.maybeOf(context)?.requestPhoneOtpUseCase;
+  }
+
+  ResendPhoneOtpUseCase? _resendUseCase() {
+    return widget.resendPhoneOtpUseCase ??
+        PhoneOtpAuthScope.maybeOf(context)?.resendPhoneOtpUseCase;
+  }
+
+  VerifyPhoneOtpUseCase? _verifyUseCase() {
+    return widget.verifyPhoneOtpUseCase ??
+        PhoneOtpAuthScope.maybeOf(context)?.verifyPhoneOtpUseCase;
+  }
+
   Future<void> _requestCode() async {
     if (!_canRequest) return;
-    final useCase = widget.requestPhoneOtpUseCase;
+    final useCase = _requestUseCase();
     if (useCase == null) {
       widget.onError('Phone verification is unavailable right now.');
       return;
@@ -120,7 +136,7 @@ class _PhoneOtpAuthSectionState extends State<PhoneOtpAuthSection> {
 
   Future<void> _resendCode() async {
     if (_busy || !widget.enabled || !_codeSent) return;
-    final useCase = widget.resendPhoneOtpUseCase;
+    final useCase = _resendUseCase();
     if (useCase == null) {
       widget.onError('Phone verification is unavailable right now.');
       return;
@@ -154,7 +170,7 @@ class _PhoneOtpAuthSectionState extends State<PhoneOtpAuthSection> {
 
   Future<void> _verifyCode() async {
     if (!_canVerify) return;
-    final useCase = widget.verifyPhoneOtpUseCase;
+    final useCase = _verifyUseCase();
     if (useCase == null) {
       widget.onError('Phone verification is unavailable right now.');
       return;
