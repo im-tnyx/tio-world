@@ -6,6 +6,7 @@ import 'package:tio_shared/shared.dart';
 import '../domain/models/account_setup_flow_plan.dart';
 import '../domain/models/account_setup_step_id.dart';
 import '../domain/usecases/build_account_setup_flow_use_case.dart';
+import 'steps/email_step.dart';
 import 'steps/mobile_step.dart';
 import 'steps/username_step.dart';
 
@@ -16,13 +17,19 @@ class AccountSetupFlowPage extends StatefulWidget {
     required this.hasTrustedPhoneIdentity,
     required this.onCompleted,
     required this.onExitRequested,
+    this.hasTrustedEmailIdentity = false,
+    this.initialEmail = '',
+    this.requestOptionalEmailVerification,
     this.planner = const BuildAccountSetupFlowUseCase(),
     super.key,
   });
 
   final ProfileAccountRepository usernameRepository;
   final AccountSetupRepository accountSetupRepository;
+  final bool hasTrustedEmailIdentity;
   final bool hasTrustedPhoneIdentity;
+  final String initialEmail;
+  final Future<void> Function(String email)? requestOptionalEmailVerification;
   final Future<void> Function() onCompleted;
   final Future<void> Function() onExitRequested;
   final BuildAccountSetupFlowUseCase planner;
@@ -42,6 +49,7 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
   bool _busy = false;
   bool _usernameCanContinue = false;
   String _mobile = '';
+  String _email = '';
   String? _flowError;
 
   @override
@@ -63,6 +71,7 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
       final plan = widget.planner(
         hasUsername: account.hasUsername,
         accountSetupCompleted: account.isCompleted,
+        hasTrustedEmailIdentity: widget.hasTrustedEmailIdentity,
         hasTrustedPhoneIdentity: widget.hasTrustedPhoneIdentity,
       );
 
@@ -82,6 +91,7 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
         _plan = plan;
         _currentIndex = 0;
         _mobile = account.mobile;
+        _email = widget.initialEmail.trim();
         _usernameCanContinue = false;
         _loading = false;
       });
@@ -103,6 +113,17 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
     } on ArgumentError {
       return false;
     }
+  }
+
+  bool get _emailCanContinue {
+    final email = _email.trim();
+    if (email.isEmpty) return true;
+    if (email.contains(RegExp(r'\s'))) return false;
+    final atIndex = email.indexOf('@');
+    final dotIndex = email.lastIndexOf('.');
+    return atIndex > 0 &&
+        dotIndex > atIndex + 1 &&
+        dotIndex < email.length - 1;
   }
 
   Future<void> _handleBack() async {
@@ -207,6 +228,20 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
           if (!mounted) return;
           await widget.onCompleted();
           return;
+
+        case AccountSetupStepId.email:
+          final email = _email.trim();
+          if (email.isNotEmpty) {
+            final request = widget.requestOptionalEmailVerification;
+            if (request == null) {
+              throw StateError('Email verification is unavailable right now.');
+            }
+            await request(email);
+          }
+          await widget.accountSetupRepository.completeAccountSetup();
+          if (!mounted) return;
+          await widget.onCompleted();
+          return;
       }
     } catch (_) {
       if (!mounted) return;
@@ -236,6 +271,14 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
           onChanged: (value) {
             if (!mounted) return;
             setState(() => _mobile = value);
+          },
+        ),
+      AccountSetupStepId.email => EmailStep(
+          initialEmail: _email,
+          enabled: !_busy,
+          onChanged: (value) {
+            if (!mounted) return;
+            setState(() => _email = value);
           },
         ),
     };
@@ -291,9 +334,11 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
     final plan = _plan!;
     final account = _accountState!;
     final step = _currentStep;
-    final canContinue = step == AccountSetupStepId.mobile
-        ? _mobileCanContinue
-        : _usernameCanContinue;
+    final canContinue = switch (step) {
+      AccountSetupStepId.username => _usernameCanContinue,
+      AccountSetupStepId.mobile => _mobileCanContinue,
+      AccountSetupStepId.email => _emailCanContinue,
+    };
 
     return _withBackHandling(
       Scaffold(

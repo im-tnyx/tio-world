@@ -38,10 +38,9 @@ class SupabaseAccountSetupRepository implements AccountSetupRepository {
       username: username == null || username.isEmpty ? null : username,
       mobile: mobile,
       isMobileVerified: isMobileVerified,
-      // A trusted backend-verified mobile already satisfies the optional
-      // Mobile step even if this row predates the explicit completion marker.
-      isCompleted:
-          row['account_setup_completed_at'] != null || isMobileVerified,
+      // Completion is the durable Account Setup acknowledgement. Trusted Auth
+      // contact evidence is planned separately by the Account Setup flow.
+      isCompleted: row['account_setup_completed_at'] != null,
     );
   }
 

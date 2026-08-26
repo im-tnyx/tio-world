@@ -7,6 +7,7 @@ class BuildAccountSetupFlowUseCase {
   AccountSetupFlowPlan call({
     required bool hasUsername,
     required bool accountSetupCompleted,
+    bool hasTrustedEmailIdentity = false,
     required bool hasTrustedPhoneIdentity,
   }) {
     final steps = <AccountSetupStepId>[];
@@ -15,12 +16,16 @@ class BuildAccountSetupFlowUseCase {
       steps.add(AccountSetupStepId.username);
     }
 
-    // Mobile is optional, but the step itself must be durably acknowledged for
-    // non-phone-authenticated fresh accounts. A trusted authenticated phone
-    // identity satisfies this account-level requirement without showing the
-    // collection step.
-    if (!accountSetupCompleted && !hasTrustedPhoneIdentity) {
-      steps.add(AccountSetupStepId.mobile);
+    if (!accountSetupCompleted) {
+      if (hasTrustedEmailIdentity && hasTrustedPhoneIdentity) {
+        // Both complementary contacts are already trusted by Auth.
+      } else if (hasTrustedPhoneIdentity) {
+        steps.add(AccountSetupStepId.email);
+      } else {
+        // Trusted Email accounts need optional Mobile. The same Mobile fallback
+        // is retained for compatibility if trusted Auth evidence is missing.
+        steps.add(AccountSetupStepId.mobile);
+      }
     }
 
     return AccountSetupFlowPlan(steps: steps);
