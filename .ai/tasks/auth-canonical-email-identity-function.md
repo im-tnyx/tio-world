@@ -5,112 +5,84 @@
 **Affected platforms:** Supabase database contract only
 **Related issue:** #34
 **Parent task:** `.ai/tasks/auth-identifier-uniqueness.md`
+**Working branch:** `agent/auth-verified-identifier-ownership`
 
 ## 1. Discovery
 
 ### User Outcome
 
-Create one provider-aware canonical Email identity primitive that later verified-ownership, Signup admission, Google admission, recovery, and linking paths can reuse without duplicating Gmail alias rules.
+Provide one provider-aware server-owned Email identity canonicalizer for later verified ownership and account admission without adding an identity-key column.
 
 ### Success Criteria
 
-- Gmail / Googlemail aliases collapse by trim + lowercase + `googlemail.com -> gmail.com` + Gmail dot removal + Gmail `+tag` removal.
-- Other domains are trim/lowercase normalized without universal `+tag` stripping or dot removal.
-- Blank or structurally ambiguous input returns `NULL`.
-- The canonicalizer is a database-owned primitive, not client-owned account authority.
-- Its ACL/schema shape is compatible with later PostgreSQL expression-index maintenance.
-- No production Supabase DDL is applied without separate owner authorization.
-
-### Scope
-
-- one immutable canonical Email function migration;
-- focused non-production verification SQL;
-- expression-index-safe schema/ACL correction discovered by Step 2 audit.
+- Gmail/Googlemail aliases collapse by trim/lowercase, `googlemail.com → gmail.com`, Gmail local `+tag` removal, and Gmail local dot removal.
+- Non-Gmail domains keep provider-specific local-part semantics; `+tag` and dots are preserved.
+- malformed single-address input fails closed to `NULL`.
+- no normal public PostgREST RPC surface for the helper.
+- no table or column change in this step.
 
 ### Non-Goals
 
-- verified Email/Mobile uniqueness itself;
-- Account contact reconciliation changes;
-- Signup/Google admission changes;
-- Phone OTP / #118 UI;
-- production migration apply.
+- ownership UNIQUE indexes, reconciliation, Signup/Google admission, Phone OTP, Auth UI, or production apply by this task alone.
 
 ## 2. Codebase Exploration
 
-### Verified Evidence
+Current provisioning/reconciliation and Google admission use only lower/trim Email matching. Live read-only preflight found no canonical verified Email collisions in current rows.
 
-- `.ai/tasks/auth-identifier-uniqueness.md` freezes provider-aware Gmail canonicalization and verified-only ownership semantics.
-- Current provisioning/reconciliation and Google admission still use simple lower/trim Email matching.
-- Live `public.users` has no extra Email identity-key column and current Email/Mobile indexes are non-unique.
-- Step 2 audit proved a public function with normal client execution revoked is incompatible with the chosen verified-only expression-index design because PostgreSQL must evaluate the function during DML index maintenance.
+The later verified Email ownership index evaluates the canonicalizer during DML. Therefore the helper must be available to PostgreSQL index maintenance for roles that can write the indexed table, while remaining outside the exposed public RPC schema.
+
+Fresh live private-schema ACL audit confirms existing private functions already have explicit restricted EXECUTE ACLs, so granting schema `USAGE` for expression-index maintenance does not expose them by itself.
 
 ## 3. Clarification
 
-| Decision | Status | Rationale | Owner |
-|---|---|---|---|
-| Provider-aware canonicalization | Frozen | Gmail alias semantics differ from other providers | Product/Auth |
-| No universal non-Gmail `+tag` stripping | Frozen | Provider semantics vary | Product/Auth |
-| Invalid/ambiguous input returns `NULL` | Frozen | Ownership must fail closed | Auth/Data |
-| Function lives under `private` | Chosen after Step 2 audit | Avoid normal PostgREST RPC exposure while supporting DB ownership/index use | Data |
-| `authenticated` / `service_role` may execute only this deterministic primitive | Chosen | PostgreSQL stored-expression maintenance requires function/schema access | Data |
-| Function output alone never proves ownership | Frozen | Verification remains Supabase Auth authority | Auth |
-| Production apply is separate | Frozen | Source implementation is not live DDL authorization | Owner |
+| Decision | Status | Rationale |
+|---|---|---|
+| Provider-aware Gmail canonicalization | Frozen | #34 product rule |
+| No `email_identity_key` column | Approved | Expression index is sufficient |
+| Helper under `private` schema | Chosen | Avoid normal public RPC exposure |
+| Invalid input returns `NULL` | Chosen | Fail closed for ownership/admission callers |
+| Production apply separate | Frozen | Source implementation is not live-DDL authorization |
 
 ## 4. Architecture Design
 
 ```text
 raw Email
-→ private.canonical_email_identity(text)
-→ canonical account-resolution key
-→ later verified-only ownership/admission consumers
+→ trim + lowercase
+→ exactly one @ + non-empty local/domain guard
+→ Gmail/Googlemail provider rule OR generic-domain rule
+→ canonical Email identity
 ```
 
 Examples:
 
 ```text
 Na.Me+Fit@googlemail.com → name@gmail.com
-N.A.M.E+tag@gmail.com    → name@gmail.com
+N.A.M.E+1@gmail.com      → name@gmail.com
 User+Fit@Example.com     → user+fit@example.com
 First.Last@Example.com   → first.last@example.com
 ```
 
-The function is `IMMUTABLE`, `STRICT`, and `PARALLEL SAFE`. It lives in the `private` schema. `authenticated`, `service_role`, and `supabase_auth_admin` receive the minimum namespace/function access needed for database-maintained expressions and trusted server/database paths. The private schema remains outside the normal public PostgREST exposure surface.
+The helper is `IMMUTABLE` so it can back the verified-only expression index. Minimal `private` schema/function grants exist only for stored-expression evaluation; account existence/admission will later use a narrow trusted wrapper rather than exposing this helper as public client authority.
 
 ## 5. Implementation Plan
 
-- [x] Add provider-aware canonical function source.
-- [x] Add focused canonicalization verification SQL.
-- [x] Run read-only equivalent canonicalization matrix against live Postgres: 12/12 expected cases passed.
-- [x] Revise the unapplied migration from `public` to `private` after expression-index ACL audit.
-- [x] Align verification SQL with the private schema.
-- [ ] Execute the actual migration and verification SQL on a disposable/dev Supabase database.
-- [ ] Record final child-branch CI + disposable/dev DB evidence.
+- [x] Add provider-aware canonicalizer migration source.
+- [x] Move helper to `private` schema for the final expression-index design.
+- [x] Align focused SQL verification script.
+- [x] Read-only case matrix: 12/12 expected outputs passed.
+- [x] Audit private-schema ACL impact.
+- [ ] Apply together with the reviewed ownership migration only after separate explicit owner approval.
 
 ## 6. Quality Review
 
-### Validation Run
-
 ```text
-Parent checkpoint before Step 2 ACL correction:
-a5ecdbef4cc3c012376842982caa737fb0bca5a9
-Flutter CI #2079 / run 32954102032        success
-Android Native CI #491 / run 32954102044 success
-
-Read-only canonicalization matrix: 12/12 pass
-Production DDL/DML: NOT performed
-Disposable/dev migration execution: pending
+Canonicalization read-only matrix: 12/12 pass
+Existing live canonical Email collisions: 0
+New table/column: none
+Production migration apply: not performed
 ```
 
-Current child branch source correction:
-
-```text
-agent/auth-verified-identifier-ownership
-545eb43eb4009e5be74b2938fe3d9273a37dda19
-```
-
-### Review Findings and Resolution
-
-The original public-function ACL was safe from client-authority misuse but not suitable for the later expression-index implementation. Because the migration has never been applied to production, the source was corrected before first live application instead of introducing a compatibility migration for a schema shape that never went live.
+No Flutter/UI source changes are part of this task.
 
 ## 7. Final Handoff
 
@@ -122,12 +94,8 @@ The original public-function ACL was safe from client-authority misuse but not s
 
 ### Actual Behavior
 
-Repository source contains the canonical Email identity primitive. Live production behavior is unchanged because the migration is not applied.
-
-### Known Limitations
-
-Verified ownership enforcement and contact-specific reconciliation are owned by `.ai/tasks/auth-verified-identifier-ownership-reconciliation.md`. Signup/Google admission and Phone OTP remain later slices.
+Repository source defines the canonical Email identity primitive. Live Supabase behavior is unchanged until migration apply.
 
 ### Final Status
 
-`PARTIAL` — source contract is prepared; disposable/dev DB execution remains required before production consideration.
+`REVIEW` — source and read-only algorithm validation complete; live apply is a separate explicit decision.
