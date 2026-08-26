@@ -1,17 +1,17 @@
 # Account Setup footer and Mobile information UX
 
-Status: Active
+Status: Complete / Frozen
 
 ## Fresh audit
 
-Account Setup currently owns one shared fixed footer for Username and Mobile. The footer draws a top border/divider and also contains step-specific helper copy before the Continue button.
+Account Setup owned one shared fixed footer for Username and Mobile. The footer drew a top border/divider and also contained step-specific helper copy before the Continue button.
 
-Current footer copy:
+Former footer copy:
 
 - Username: `Username is required before continuing.`
 - Mobile: `Mobile is optional. You can leave it blank and continue.`
 
-Mobile screen already contains recovery/security context in its header and a second helper below the phone field. There was no explanatory bottom sheet before this slice.
+Mobile already contained recovery/security context near the input but had no explanatory bottom sheet.
 
 ## Theme / reusable UI ownership audit
 
@@ -23,59 +23,81 @@ The existing reusable sheet owner is:
 apps/core/lib/src/ui/components/sheets/tio_sheet.dart
 ```
 
-`TioSheet` already owns the shared themed sheet surface, top radius, padding, title typography, and runtime semantic colors. Therefore Account Setup must not recreate that surface with a feature-owned `Container` / `BoxDecoration` or add an AccountSetup-specific sheet token class.
+`TioSheet` owns the shared themed sheet surface, top radius, padding, title typography, and runtime semantic colors. Account Setup therefore does not recreate that surface with a feature-owned decorated container and does not add an AccountSetup-specific sheet token class.
 
-The modal transparency is framework/composition behavior. In feature code it must use the existing governed opacity primitive rather than raw `Colors.transparent`:
+The modal transparency is framework/composition behavior and uses the existing governed opacity primitive instead of raw `Colors.transparent`:
 
 ```text
 context.tioColors.<semantic>.withValues(alpha: TioOpacity.opacity0)
 ```
 
-No new core reusable API or token is required for this slice, so the public design-system contract itself does not need to change.
+No new core reusable API or token was required, so the public design-system contract itself did not change.
 
 ## Accepted product behavior
 
 ### Shared footer
 
-- Remove the extra top divider/border on both Username and Mobile.
-- Keep the fixed Continue action at the bottom.
-- Do not change validation, save semantics, progress, Back behavior, E.164 normalization, or Account Setup ownership.
+- Extra top divider/border removed on both Username and Mobile.
+- Fixed Continue action remains at the bottom.
+- Validation, save semantics, progress, Back behavior, E.164 normalization, and Account Setup ownership are unchanged.
 
 ### Username
 
-- Move `Username is required before continuing.` out of the shared footer and into the Username screen content near the username input as subtle helper copy.
+- `Username is required before continuing.` moved out of the shared footer and into Username content near the input as subtle helper copy.
 - Existing availability, suggestions, validation, and save-error behavior remains unchanged.
 
 ### Mobile
 
-- Move the optional/later guidance into the Mobile screen content near the phone input.
-- Keep the mobile step optional.
-- Do not imply that Account Setup performs OTP verification.
-- Add a bottom action above Continue: `Why do we need this information?` with an information icon.
-- Tapping that action opens a theme-aware modal bottom sheet explaining that a mobile number can support account recovery, security features, and future verification, and that it can be added or verified later from Account Settings.
-- The explanatory surface must use the existing reusable `TioSheet` owner.
+- Optional/later guidance lives in Mobile content near the phone input.
+- Mobile remains optional.
+- Account Setup does not imply or perform OTP verification.
+- A Mobile-only bottom action above Continue reads `Why do we need this information?` with an information icon.
+- Tapping the action opens a theme-aware modal explanation covering account recovery, security features, future verification, and later Account Settings management.
+- The explanatory visual surface uses existing reusable `TioSheet`.
 - Verified-provider copy remains truthful when a trusted/verified mobile is already present.
 
-## Smallest implementation
+## Implementation result
 
-1. Update `UsernameStep` helper placement.
-2. Update `MobileStep` optional/later helper copy without changing phone field behavior.
-3. Remove the shared footer top border and step helper text from `AccountSetupFlowPage`.
-4. Add a Mobile-only `Why do we need this information?` footer action.
-5. Present the explanation through existing core `TioSheet`; keep only product-specific copy in Account Setup.
-6. Use semantic colors/governed opacity for the modal composition; no raw framework/product colors in the feature.
-7. Update focused Account Setup widget regressions for divider absence, helper placement, Mobile-only info action, reusable sheet content, and existing persistence behavior.
+1. `UsernameStep` owns required-helper placement near the username input.
+2. `MobileStep` owns optional/later helper copy near the phone field.
+3. `AccountSetupFlowPage` footer no longer owns a divider or duplicate step helper copy.
+4. Mobile owns the `Why do we need this information?` footer action.
+5. The explanation is presented through core `TioSheet`; Account Setup owns only product-specific copy/modal invocation.
+6. Modal transparency uses semantic color + `TioOpacity.opacity0`; the previous direct feature `Colors.transparent` violation is gone.
+7. Focused widget regression confirms helper placement, divider absence, Mobile-only info action, reusable `TioSheet` usage, explanatory content, and unchanged optional-mobile persistence.
 
-## Constraints
+## Constraints preserved
 
 - No Supabase/schema/auth-provider changes.
-- No OTP implementation in this slice.
+- No OTP implementation.
 - No phone normalization changes.
 - No routing redesign.
-- No feature-specific sheet token/widget when `TioSheet` already owns the reusable visual contract.
-- No copy or layout changes outside Account Setup Username/Mobile unless required by an existing reusable Tio primitive.
+- No feature-specific sheet token/widget.
 - PR #50 remains Draft/open/unmerged.
 
-## Validation
+## Accepted source checkpoint
 
-Run focused `tio_feature_account_setup` tests, core visual-ownership enforcement, then full Flutter/Dart analysis/tests and Android exact-SHA CI before freezing.
+```text
+f0ba3d29543a2b188f3393c4846d1495a5018e11
+```
+
+Validation on that exact source SHA:
+
+```text
+Flutter CI #2062 / run 32931363127 ✅
+- Flutter analyze ✅
+- Dart analyze ✅
+- Flutter tests ✅
+- Dart tests ✅
+- core final visual-ownership enforcement ✅
+
+Android Native CI #474 / run 32931363080 ✅
+- phone Android debug APK ✅
+- Wear Android debug APK ✅
+```
+
+This task-file freeze commit is documentation-only and does not replace the accepted runtime/source checkpoint above.
+
+## Merge guard
+
+PR #50 stays Draft/open/unmerged. Do not mark Ready, merge, or enable auto-merge without explicit owner authorization.
