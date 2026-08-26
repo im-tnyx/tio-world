@@ -3,8 +3,13 @@
 -- This function intentionally separates a communication/display Email value
 -- from the server-owned identity key used by later verified-ownership slices.
 -- It does not create uniqueness, bind ownership, or imply verification.
+--
+-- The function lives in the private schema so it is not exposed as a normal
+-- PostgREST RPC. Authenticated/service-role execution is still granted because
+-- PostgreSQL must be able to evaluate the function while maintaining the later
+-- verified-only expression index during DML.
 
-create or replace function public.canonical_email_identity(raw_email text)
+create or replace function private.canonical_email_identity(raw_email text)
 returns text
 language plpgsql
 immutable
@@ -52,14 +57,15 @@ begin
 end;
 $function$;
 
-comment on function public.canonical_email_identity(text) is
-  'Server-owned provider-aware canonical Email identity key. Gmail/Googlemail aliases collapse; other domains retain provider-specific local-part semantics.';
+comment on function private.canonical_email_identity(text) is
+  'Provider-aware canonical Email identity key. Gmail/Googlemail aliases collapse; other domains retain provider-specific local-part semantics.';
 
--- The function lives in public so trusted server callers such as a future Edge
--- Function can consume the same database-owned contract through RPC. Normal
--- application roles must not treat it as client-authoritative identity logic.
-revoke all on function public.canonical_email_identity(text)
-  from public, anon, authenticated;
+revoke all on function private.canonical_email_identity(text)
+  from public, anon, authenticated, service_role;
 
-grant execute on function public.canonical_email_identity(text)
-  to service_role, supabase_auth_admin;
+-- `authenticated` and `service_role` need namespace/function access only so
+-- PostgreSQL can maintain stored expressions that depend on this function.
+-- The private schema is not exposed through the normal PostgREST API surface.
+grant usage on schema private to authenticated, service_role, supabase_auth_admin;
+grant execute on function private.canonical_email_identity(text)
+  to authenticated, service_role, supabase_auth_admin;
