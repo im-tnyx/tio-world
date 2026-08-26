@@ -10,7 +10,8 @@ import '../../shared/phone_otp_auth_section.dart';
 /// Canonical returning-user Login surface.
 ///
 /// Phone OTP is the default mode. Email + Password remains available on the
-/// same screen through the reciprocal Email/Phone round action.
+/// same screen through the reciprocal Email/Phone round action. The legacy
+/// `/login/email` deep link resolves the same page directly in Email mode.
 class LoginPage extends StatefulWidget {
   const LoginPage({
     this.signInWithGoogleUseCase,
@@ -19,7 +20,7 @@ class LoginPage extends StatefulWidget {
     this.requestPhoneOtpUseCase,
     this.resendPhoneOtpUseCase,
     this.verifyPhoneOtpUseCase,
-    this.initialMode = AuthEntryMode.phone,
+    this.initialMode,
     this.onAuthSuccess,
     this.onSignInSuccess,
     super.key,
@@ -31,7 +32,7 @@ class LoginPage extends StatefulWidget {
   final RequestPhoneOtpUseCase? requestPhoneOtpUseCase;
   final ResendPhoneOtpUseCase? resendPhoneOtpUseCase;
   final VerifyPhoneOtpUseCase? verifyPhoneOtpUseCase;
-  final AuthEntryMode initialMode;
+  final AuthEntryMode? initialMode;
   final ValueChanged<GoogleAuthComplete>? onAuthSuccess;
   final ValueChanged<SignInSuccess>? onSignInSuccess;
 
@@ -45,6 +46,7 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   late AuthEntryMode _mode;
+  bool _routeModeResolved = false;
   bool _isPasswordVisible = false;
   bool _isPhoneBusy = false;
   _LoginAuthAction? _activeAction;
@@ -57,9 +59,26 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    _mode = widget.initialMode;
+    _mode = widget.initialMode ?? AuthEntryMode.phone;
     _emailController.addListener(_onFieldChanged);
     _passwordController.addListener(_onFieldChanged);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_routeModeResolved) return;
+    _routeModeResolved = true;
+    if (widget.initialMode != null) return;
+
+    try {
+      if (GoRouterState.of(context).uri.path == AppRoutes.emailLogin.path) {
+        _mode = AuthEntryMode.email;
+      }
+    } catch (_) {
+      // Isolated widget hosts/tests may not have a GoRouter ancestor. They keep
+      // the canonical Phone-first default unless an explicit mode was supplied.
+    }
   }
 
   @override
