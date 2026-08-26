@@ -116,6 +116,14 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  static const signup = TioRouteContract(
+    path: '/signup',
+    title: 'Create Account',
+    description: 'Create an account with Phone, Email, or an available provider.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
+  /// Compatibility deep link that opens Login directly in Email mode.
   static const emailLogin = TioRouteContract(
     path: '/login/email',
     title: 'Sign In',
@@ -123,6 +131,7 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  /// Compatibility deep link that opens Signup directly in Email mode.
   static const emailSignup = TioRouteContract(
     path: '/login/email-signup',
     title: 'Create Account',
