@@ -64,7 +64,7 @@ Signup and Login open in Phone mode, use real Phone OTP through the #126 capabil
 - `PhoneOtpAuthScope` lets app composition inject production Phone OTP use cases while pages still accept explicit dependencies for tests/isolated hosts.
 - `AppRoutes.signup` aliases the existing `/login/email-signup` route so old links remain resolvable.
 - `LoginPage` resolves `/login/email` to `AuthEntryMode.email` when no explicit mode was supplied; isolated hosts/tests retain Phone-first default unless they opt into Email explicitly.
-- Fresh branch compare against PR #127 remains linear with merge-base equal to the exact PR #127 head and no Account Setup/Supabase/schema files.
+- Fresh branch compare against PR #127 is linear with merge-base equal to the exact PR #127 head and no Account Setup/Supabase/schema files.
 
 ### Audit Corrections Applied
 
@@ -152,13 +152,15 @@ OR
 ```text
 Stack base                         c223d5874417b7e5dfb381890c56874d472387cc
 Merge base                        exact stack base
-Branch state                      ahead 26 / behind 0 before this task update
+Branch state                      ahead 27 / behind 0 at final source checkpoint
 Changed files                     16
 Scope                             apps/features/auth, apps/core auth UI/routing/docs,
                                   apps/app Phone OTP composition, focused task/tests
 Account Setup changes             none
 Supabase migration/config changes none
 Production Supabase mutation      none
+GitHub status checks              none on stacked head
+GitHub workflow runs              none on stacked head
 
 Flutter/Dart executable validation: NOT RUN, toolchain unavailable here.
 Hosted SMS delivery/session smoke: NOT RUN yet; user reports Phone Auth is enabled.
