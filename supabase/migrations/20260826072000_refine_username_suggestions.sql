@@ -39,9 +39,17 @@ begin
   if v_reason = 'reserved' then
     v_base := 'user';
   else
-    v_base := pg_catalog.regexp_replace(v_username, '[._]+$', '');
-    if pg_catalog.length(v_base) < 3 then
-      v_base := v_username;
+    -- Preserve ordinary user-selected dots/underscores while cleaning only
+    -- repeated or edge separators so generated alternatives stay readable.
+    v_base := pg_catalog.regexp_replace(v_username, '[._]{2,}', '.', 'g');
+    v_base := pg_catalog.regexp_replace(v_base, '^[._]+', '');
+    v_base := pg_catalog.regexp_replace(v_base, '[._]+$', '');
+
+    -- A separator-only candidate is syntactically allowed by the legacy
+    -- character policy, but it is not a useful suggestion base. Use a neutral
+    -- fallback while keeping the typed candidate as the suffix seed.
+    if v_base = '' then
+      v_base := 'user';
     end if;
   end if;
 
