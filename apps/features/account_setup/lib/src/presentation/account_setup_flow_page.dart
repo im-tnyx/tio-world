@@ -18,7 +18,7 @@ class AccountSetupFlowPage extends StatefulWidget {
     required this.hasTrustedPhoneIdentity,
     required this.onCompleted,
     required this.onExitRequested,
-    this.hasTrustedEmailIdentity = false,
+    this.hasTrustedEmailIdentity,
     this.initialEmail = '',
     this.requestOptionalEmailVerification,
     this.planner = const BuildAccountSetupFlowUseCase(),
@@ -27,7 +27,7 @@ class AccountSetupFlowPage extends StatefulWidget {
 
   final ProfileAccountRepository usernameRepository;
   final AccountSetupRepository accountSetupRepository;
-  final bool hasTrustedEmailIdentity;
+  final bool? hasTrustedEmailIdentity;
   final bool hasTrustedPhoneIdentity;
   final String initialEmail;
   final Future<void> Function(String email)? requestOptionalEmailVerification;
@@ -75,8 +75,9 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
     try {
       final account = await widget.accountSetupRepository.readAccountSetupState();
       final bridge = _authContactBridge;
-      final hasTrustedEmailIdentity =
-          bridge?.hasTrustedEmailIdentity ?? widget.hasTrustedEmailIdentity;
+      final hasTrustedEmailIdentity = bridge != null
+          ? bridge.hasTrustedEmailIdentity
+          : widget.hasTrustedEmailIdentity;
       final hasTrustedPhoneIdentity =
           bridge?.hasTrustedPhoneIdentity ?? widget.hasTrustedPhoneIdentity;
       final plan = widget.planner(

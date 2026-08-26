@@ -7,7 +7,7 @@ class BuildAccountSetupFlowUseCase {
   AccountSetupFlowPlan call({
     required bool hasUsername,
     required bool accountSetupCompleted,
-    bool hasTrustedEmailIdentity = false,
+    bool? hasTrustedEmailIdentity,
     required bool hasTrustedPhoneIdentity,
   }) {
     final steps = <AccountSetupStepId>[];
@@ -17,7 +17,14 @@ class BuildAccountSetupFlowUseCase {
     }
 
     if (!accountSetupCompleted) {
-      if (hasTrustedEmailIdentity && hasTrustedPhoneIdentity) {
+      // Legacy callers predate the complementary Email step and only supplied
+      // trusted Phone. Preserve their old planning contract when Email evidence
+      // is omitted. Production app composition now supplies Email trust
+      // explicitly through AccountSetupAuthContactBridge.
+      final hasTrustedEmail =
+          hasTrustedEmailIdentity ?? hasTrustedPhoneIdentity;
+
+      if (hasTrustedEmail && hasTrustedPhoneIdentity) {
         // Both complementary contacts are already trusted by Auth.
       } else if (hasTrustedPhoneIdentity) {
         steps.add(AccountSetupStepId.email);
