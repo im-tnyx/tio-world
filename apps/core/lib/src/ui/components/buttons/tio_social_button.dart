@@ -6,11 +6,13 @@ import 'tio_button.dart';
 
 enum TioSocialButtonType { google, truecaller, email, phone }
 
-/// Reusable, unified social authentication and provider button component.
+enum TioSocialButtonLayout { fullWidth, round }
+
+/// Reusable, unified social authentication and provider action component.
 ///
-/// Built on top of core [TioButton] to ensure 100% identical styling,
-/// height, corner radius, touch feedback, and token consistency across
-/// all screens in the app using official SVG brand assets.
+/// The default constructors preserve the existing full-width button treatment.
+/// [TioSocialButton.round] provides the shared round icon + visible label
+/// treatment used when multiple provider/mode actions are presented together.
 class TioSocialButton extends StatelessWidget {
   const TioSocialButton({
     required this.label,
@@ -20,6 +22,7 @@ class TioSocialButton extends StatelessWidget {
     this.enabled = true,
     this.loading = false,
     this.expand = true,
+    this.layout = TioSocialButtonLayout.fullWidth,
   });
 
   const TioSocialButton.google({
@@ -29,7 +32,8 @@ class TioSocialButton extends StatelessWidget {
     this.enabled = true,
     this.loading = false,
     this.expand = true,
-  }) : type = TioSocialButtonType.google;
+  })  : type = TioSocialButtonType.google,
+        layout = TioSocialButtonLayout.fullWidth;
 
   const TioSocialButton.truecaller({
     required this.onPressed,
@@ -38,7 +42,8 @@ class TioSocialButton extends StatelessWidget {
     this.enabled = true,
     this.loading = false,
     this.expand = true,
-  }) : type = TioSocialButtonType.truecaller;
+  })  : type = TioSocialButtonType.truecaller,
+        layout = TioSocialButtonLayout.fullWidth;
 
   const TioSocialButton.email({
     required this.onPressed,
@@ -47,7 +52,8 @@ class TioSocialButton extends StatelessWidget {
     this.enabled = true,
     this.loading = false,
     this.expand = true,
-  }) : type = TioSocialButtonType.email;
+  })  : type = TioSocialButtonType.email,
+        layout = TioSocialButtonLayout.fullWidth;
 
   const TioSocialButton.phone({
     required this.onPressed,
@@ -56,7 +62,18 @@ class TioSocialButton extends StatelessWidget {
     this.enabled = true,
     this.loading = false,
     this.expand = true,
-  }) : type = TioSocialButtonType.phone;
+  })  : type = TioSocialButtonType.phone,
+        layout = TioSocialButtonLayout.fullWidth;
+
+  const TioSocialButton.round({
+    required this.type,
+    required this.label,
+    required this.onPressed,
+    super.key,
+    this.enabled = true,
+    this.loading = false,
+  })  : expand = false,
+        layout = TioSocialButtonLayout.round;
 
   final String label;
   final VoidCallback? onPressed;
@@ -64,71 +81,117 @@ class TioSocialButton extends StatelessWidget {
   final bool enabled;
   final bool loading;
   final bool expand;
+  final TioSocialButtonLayout layout;
 
   @override
   Widget build(BuildContext context) {
+    if (layout == TioSocialButtonLayout.round) {
+      return _buildRoundAction(context);
+    }
+    return _buildFullWidthAction();
+  }
+
+  Widget _buildFullWidthAction() {
+    return TioButton.secondary(
+      label: label,
+      onPressed: onPressed,
+      enabled: enabled,
+      loading: loading,
+      expand: expand,
+      leading: Padding(
+        padding: const EdgeInsets.only(right: TioSpacing.sm),
+        child: _providerIcon(size: TioSize.dp20),
+      ),
+    );
+  }
+
+  Widget _buildRoundAction(BuildContext context) {
+    final colors = context.tioColors;
+    final textTheme = Theme.of(context).textTheme;
+    final isInteractive = enabled && !loading && onPressed != null;
+
+    return Semantics(
+      button: true,
+      enabled: isInteractive,
+      label: label,
+      child: ExcludeSemantics(
+        child: SizedBox(
+          width: TioSize.dp72,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Material(
+                color: Colors.transparent,
+                child: InkResponse(
+                  onTap: isInteractive ? onPressed : null,
+                  containedInkWell: true,
+                  customBorder: const CircleBorder(),
+                  radius: TioSize.dp28,
+                  child: Container(
+                    width: TioSize.dp56,
+                    height: TioSize.dp56,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: colors.surfaceRaised,
+                      border: Border.all(
+                        color: colors.outlineStrong.withValues(
+                          alpha: TioOpacity.opacity30,
+                        ),
+                        width: TioStroke.width1,
+                      ),
+                    ),
+                    child: loading
+                        ? SizedBox(
+                            width: TioSize.dp20,
+                            height: TioSize.dp20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: TioStroke.width2,
+                              color: colors.primary,
+                            ),
+                          )
+                        : _providerIcon(size: TioSize.dp22),
+                  ),
+                ),
+              ),
+              const SizedBox(height: TioSpacing.sm),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: textTheme.labelSmall?.copyWith(
+                  color: enabled ? colors.textPrimary : colors.textMuted,
+                  fontWeight: TioFontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _providerIcon({required double size}) {
     switch (type) {
       case TioSocialButtonType.truecaller:
-        return TioButton.secondary(
-          label: label,
-          onPressed: onPressed,
-          enabled: enabled,
-          loading: loading,
-          expand: expand,
-          leading: Padding(
-            padding: const EdgeInsets.only(right: TioSpacing.sm),
-            child: SvgPicture.asset(
-              'assets/svg_icon/ic_trucaller.svg',
-              package: 'tio_core',
-              width: TioSize.dp20,
-              height: TioSize.dp20,
-            ),
-          ),
+        return SvgPicture.asset(
+          'assets/svg_icon/ic_trucaller.svg',
+          package: 'tio_core',
+          width: size,
+          height: size,
         );
-
       case TioSocialButtonType.google:
-        return TioButton.secondary(
-          label: label,
-          onPressed: onPressed,
-          enabled: enabled,
-          loading: loading,
-          expand: expand,
-          leading: Padding(
-            padding: const EdgeInsets.only(right: TioSpacing.sm),
-            child: SvgPicture.asset(
-              'assets/svg_icon/ic_google.svg',
-              package: 'tio_core',
-              width: TioSize.dp20,
-              height: TioSize.dp20,
-            ),
-          ),
+        return SvgPicture.asset(
+          'assets/svg_icon/ic_google.svg',
+          package: 'tio_core',
+          width: size,
+          height: size,
         );
-
       case TioSocialButtonType.email:
-        return TioButton.secondary(
-          label: label,
-          onPressed: onPressed,
-          enabled: enabled,
-          loading: loading,
-          expand: expand,
-          leading: const Padding(
-            padding: EdgeInsets.only(right: TioSpacing.sm),
-            child: Icon(Icons.mail_outline, size: TioSize.dp20),
-          ),
-        );
-
+        return Icon(Icons.mail_outline, size: size);
       case TioSocialButtonType.phone:
-        return TioButton.secondary(
-          label: label,
-          onPressed: onPressed,
-          enabled: enabled,
-          loading: loading,
-          expand: expand,
-          leading: const Padding(
-            padding: EdgeInsets.only(right: TioSpacing.sm),
-            child: Icon(Icons.phone_outlined, size: TioSize.dp20),
-          ),
-        );
+        return Icon(Icons.phone_outlined, size: size);
     }
   }
 }
