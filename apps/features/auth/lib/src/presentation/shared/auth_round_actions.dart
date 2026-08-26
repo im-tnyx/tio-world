@@ -29,31 +29,36 @@ class AuthRoundActions extends StatelessWidget {
     final switchToEmail = mode == AuthEntryMode.phone;
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        TioSocialButton.round(
-          key: ValueKey('$keyPrefix-google-round-action'),
-          type: TioSocialButtonType.google,
-          label: 'Google',
-          enabled: enabled,
-          loading: googleLoading,
-          onPressed: onGooglePressed,
+        Expanded(
+          child: TioSocialButton.round(
+            key: ValueKey('$keyPrefix-google-round-action'),
+            type: TioSocialButtonType.google,
+            label: 'Google',
+            enabled: enabled,
+            loading: googleLoading,
+            onPressed: onGooglePressed,
+          ),
         ),
-        TioSocialButton.round(
-          key: ValueKey('$keyPrefix-truecaller-round-action'),
-          type: TioSocialButtonType.truecaller,
-          label: 'Truecaller',
-          enabled: enabled && !googleLoading,
-          onPressed: onTruecallerPressed,
+        Expanded(
+          child: TioSocialButton.round(
+            key: ValueKey('$keyPrefix-truecaller-round-action'),
+            type: TioSocialButtonType.truecaller,
+            label: 'Truecaller',
+            enabled: enabled && !googleLoading,
+            onPressed: onTruecallerPressed,
+          ),
         ),
-        TioSocialButton.round(
-          key: ValueKey('$keyPrefix-mode-round-action'),
-          type: switchToEmail
-              ? TioSocialButtonType.email
-              : TioSocialButtonType.phone,
-          label: switchToEmail ? 'Email' : 'Phone',
-          enabled: enabled && !googleLoading,
-          onPressed: onModeSwitchPressed,
+        Expanded(
+          child: TioSocialButton.round(
+            key: ValueKey('$keyPrefix-mode-round-action'),
+            type: switchToEmail
+                ? TioSocialButtonType.email
+                : TioSocialButtonType.phone,
+            label: switchToEmail ? 'Email' : 'Phone',
+            enabled: enabled && !googleLoading,
+            onPressed: onModeSwitchPressed,
+          ),
         ),
       ],
     );
