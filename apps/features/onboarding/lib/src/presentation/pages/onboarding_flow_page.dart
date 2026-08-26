@@ -252,7 +252,7 @@ class OnboardingFlowPage extends ConsumerWidget {
     OnboardingBottomInfoAction? infoAction;
     if (state.stepId == OnboardingStepId.mobile) {
       infoAction = OnboardingBottomInfoAction(
-        label: 'Why do we ask for your mobile number?',
+        label: 'Why we collect this data',
         onTap: () => _showMobileDataCollectionSheet(context),
       );
     } else if (state.stepId == OnboardingStepId.bodyGoal &&

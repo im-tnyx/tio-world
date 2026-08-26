@@ -409,6 +409,23 @@ void main() {
     );
   });
 
+  testWidgets('Mobile uses the same data-information action label as Goal', (
+    tester,
+  ) async {
+    await _pumpFlow(
+      tester,
+      draft: OnboardingDraft(
+        selectedMode: AppMode.hybrid,
+        currentStepId: OnboardingStepId.mobile,
+        profile: ProfileOnboardingDraft(name: 'Tio User'),
+      ),
+      useDefaultRenderer: true,
+    );
+
+    expect(find.text('Why we collect this data'), findsOneWidget);
+    expect(find.text('Why do we ask for your mobile number?'), findsNothing);
+  });
+
   testWidgets('progress animates smoothly across Profile to Body Goal',
       (tester) async {
     await _pumpFlow(
