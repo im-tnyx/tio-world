@@ -25,7 +25,7 @@ void main() {
           goals: {ProfileGoal.buildMuscle, ProfileGoal.loseWeight},
           dateOfBirth: DateTime.utc(1995, 5, 20),
           heightCm: 168.5,
-          unitPreferences: const MeasurementUnitPreferences(
+          unitPreferences: const UnitPreferences(
             weightUnit: WeightUnit.kg,
             heightUnit: HeightUnit.ftIn,
             distanceUnit: DistanceUnit.mi,
@@ -140,7 +140,7 @@ void main() {
       );
       expect(
         deserialized.draft.profile.unitPreferences,
-        const MeasurementUnitPreferences(
+        const UnitPreferences(
           weightUnit: WeightUnit.kg,
           heightUnit: HeightUnit.ftIn,
           distanceUnit: DistanceUnit.mi,
@@ -221,7 +221,7 @@ void main() {
       expect(snapshot.schemaVersion, 1);
       expect(
         snapshot.draft.profile.unitPreferences,
-        MeasurementUnitPreferences.metric,
+        UnitPreferences.metric,
       );
       expect(snapshot.draft.goalSelection, const GoalIntentSelection());
       expect(snapshot.draft.targets.dailySteps, 10000);
