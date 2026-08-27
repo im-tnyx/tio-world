@@ -73,6 +73,14 @@ void main() {
         expect(find.text('Tio'), findsOneWidget);
         expect(find.text('Please verify your email'), findsOneWidget);
         expect(find.byKey(const ValueKey('signup-resend-email')), findsOneWidget);
+        final waitProgress = find.byKey(
+          const ValueKey('signup-verification-wait-progress'),
+        );
+        expect(waitProgress, findsOneWidget);
+        expect(
+          tester.widget<LinearProgressIndicator>(waitProgress).value,
+          isNull,
+        );
         expect(find.text('pending-signup'), findsNothing);
 
         await tester.tap(find.byKey(const ValueKey('signup-resend-email')));
@@ -115,6 +123,10 @@ void main() {
       expect(find.text('Network unavailable.'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('signup-email-verification-view')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('signup-verification-wait-progress')),
         findsNothing,
       );
     });
