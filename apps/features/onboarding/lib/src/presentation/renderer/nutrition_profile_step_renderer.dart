@@ -24,13 +24,18 @@ class NutritionProfileStepRenderer extends StatelessWidget {
     return switch (draft.currentStepId) {
       NutritionProfileStepId.dietType => DietTypeScreen(
           selectedDietType: draft.dietType,
+          otherText: draft.otherDietType,
           onSelected: controller.updateNutritionDietType,
+          onOtherTextChanged: controller.updateNutritionOtherDietType,
           errorText: errorText,
         ),
       NutritionProfileStepId.allergiesRestrictions =>
         AllergiesRestrictionsScreen(
           selectedRestrictions: draft.allergyRestrictions,
+          otherText: draft.otherAllergyRestriction,
           onToggled: controller.toggleNutritionAllergyRestriction,
+          onOtherTextChanged:
+              controller.updateNutritionOtherAllergyRestriction,
           errorText: errorText,
         ),
     };
