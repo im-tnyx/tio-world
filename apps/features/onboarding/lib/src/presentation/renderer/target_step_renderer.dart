@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:tio_core/core.dart';
 
 import '../../domain/domain.dart';
 import '../controllers/controllers.dart';
@@ -49,11 +48,7 @@ class TargetStepRenderer extends StatelessWidget {
           volumeUnit: profile.unitPreferences.volumeUnit,
           onVolumeUnitChanged: (volumeUnit) =>
               controller.updateMeasurementUnitPreferences(
-            MeasurementUnitPreferences.fromJson(
-              profile.unitPreferences
-                  .copyWith(volumeUnit: volumeUnit)
-                  .toJson(),
-            ),
+            profile.unitPreferences.copyWith(volumeUnit: volumeUnit),
           ),
           onChanged: controller.updateWaterTargetMl,
           errorText: errorText,
