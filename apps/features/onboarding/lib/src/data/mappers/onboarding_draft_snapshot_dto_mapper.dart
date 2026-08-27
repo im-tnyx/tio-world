@@ -233,7 +233,7 @@ class OnboardingDraftSnapshotDtoMapper {
         .whereType<ProfileHealthCondition>()
         .toSet();
 
-    final unitPreferences = MeasurementUnitPreferences(
+    final unitPreferences = UnitPreferences(
       weightUnit: WeightUnit.fromStorage(_normalizeWeightUnit(j['weight_unit'])),
       heightUnit: HeightUnit.fromStorage(_normalizeHeightUnit(j['height_unit'])),
       distanceUnit: DistanceUnit.fromStorage(j['distance_unit'] as String?),
