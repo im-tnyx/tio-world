@@ -11,9 +11,9 @@ Branch: `agent/auth-email-confirmation-return`
 
 **SOURCE + REPOSITORY CI PASS / HOSTED CALLBACK RETEST PENDING**
 
-Validated source commit:
+Latest validated application/test source commit:
 
-`921adc25370e2338da944cda22b178a900cd82c0`
+`26efac10ae61173cdcad2b4d72df48f5c61821bb`
 
 ## Problem
 
@@ -24,6 +24,7 @@ Initial Email + Password Signup created the correct pending Supabase Auth user a
 ```text
 Email Signup accepted
 → dedicated Tio "Please verify your email" state
+→ bottom indeterminate horizontal wait progress remains active
 → confirmation link uses tio://login-callback
 → Supabase establishes the confirmed session on callback
 → existing app-session bootstrap becomes the single progress/navigation owner
@@ -31,6 +32,8 @@ Email Signup accepted
 ```
 
 The verification state does not display the submitted identifier and preserves enumeration-safe duplicate behavior. `Resend email` uses the real Supabase signup-resend path with the same app callback. Actual failures remain separate from the expected pending state.
+
+The bottom wait line is intentionally indeterminate. It communicates that Tio is waiting for external Email confirmation; it does not claim a measurable percentage or pollute Auth authority with page-local progress semantics.
 
 ## Architecture decision
 
@@ -57,10 +60,11 @@ A hosted device retest must still prove that the callback is received correctly 
 - [x] `email_confirmation_required` becomes an expected pending verification state, not an error banner.
 - [x] Pending verification UI is dedicated and accessible while actual failures remain separate.
 - [x] Pending view does not expose the submitted Email identifier.
+- [x] Pending view shows a continuously animated indeterminate horizontal progress line at the bottom.
 - [x] `Resend email` delegates to Supabase `auth.resend(type: signup)` with the mobile callback.
 - [x] Existing Auth session stream/bootstrap remains the single confirmed-session navigation owner.
 - [x] Repeated post-auth routing remains under the existing idempotent bootstrap policy rather than page-local navigation.
-- [x] Focused repository/widget tests cover redirect, resend, pending presentation, and actual-error separation.
+- [x] Focused repository/widget tests cover redirect, resend, pending presentation, wait progress, and actual-error separation.
 - [x] Repository-wide Flutter analyze passes.
 - [x] Repository-wide Dart analyze passes.
 - [x] Repository-wide serialized Flutter tests pass.
@@ -71,24 +75,39 @@ A hosted device retest must still prove that the callback is received correctly 
 
 ## Executable validation
 
-Validation-only Draft PR #139 targeted `main` so the stacked source could exercise repository workflows.
+### Confirmation return source
 
-Final exact source under validation:
+Validation-only Draft PR #139 targeted `main` for the original confirmation-return source.
+
+Exact source:
 
 `921adc25370e2338da944cda22b178a900cd82c0`
 
 Green runs:
 
 - Flutter CI #2090, run `33055694097`
+- Android Native CI #502, run `33055694770`
+
+### Verification wait progress increment
+
+Validation-only Draft PR #140 targeted `main` for the final pending-screen progress increment.
+
+Exact application/test source:
+
+`26efac10ae61173cdcad2b4d72df48f5c61821bb`
+
+Green runs:
+
+- Flutter CI #2091, run `33060000316`
   - Flutter analyze PASS
   - Dart analyze PASS
   - serialized Flutter tests PASS
   - Dart tests PASS
-- Android Native CI #502, run `33055694770`
+- Android Native CI #503, run `33060000286`
   - Phone Android debug APK PASS
   - Wear Android debug APK PASS
 
-The first validation run on the preceding source checkpoint exposed only a local Dart type-promotion error plus one const lint; both were corrected before the final green source above. No production runtime behavior was widened to fix those validation findings.
+No production Supabase mutation occurred in either validation increment.
 
 ## Runtime evidence before source change
 
@@ -107,4 +126,4 @@ The backend confirmation succeeded; the demonstrated defect was post-confirm red
 
 ## PR state rule
 
-PR #138 remains Draft/open/unmerged. Do not mark Ready or merge without explicit owner authorization. Validation-only PR #139 should close without merge after evidence sync.
+PR #138 remains Draft/open/unmerged. Do not mark Ready or merge without explicit owner authorization. Validation-only PRs close without merge after evidence sync.
