@@ -13,6 +13,7 @@ export 'repositories/account_deletion_repository.dart';
 export 'repositories/auth_session_repository.dart';
 export 'repositories/auth_sign_in_repository.dart';
 export 'repositories/backend_user_sync_repository.dart';
+export 'repositories/google_identity_link_repository.dart';
 export 'repositories/phone_otp_auth_repository.dart';
 export 'repositories/user_device_repository.dart';
 export 'usecases/delete_current_account_use_case.dart';
