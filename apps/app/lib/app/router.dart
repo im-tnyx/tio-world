@@ -40,6 +40,30 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
   return _page(branch.route);
 }
 
+String _linkedAuthProvidersLabel(AuthSession? session) {
+  final providers = session?.identityProviders ?? const <String>{};
+  if (providers.isEmpty) return 'Current session';
+
+  const orderedKnownProviders = <String>['phone', 'email', 'google'];
+  final ordered = <String>[
+    ...orderedKnownProviders.where(providers.contains),
+    ...(providers.where((provider) => !orderedKnownProviders.contains(provider))
+          .toList()
+        ..sort()),
+  ];
+
+  String label(String provider) => switch (provider) {
+        'phone' => 'Phone',
+        'email' => 'Email',
+        'google' => 'Google',
+        _ => provider.isEmpty
+            ? 'Unknown'
+            : '${provider[0].toUpperCase()}${provider.substring(1)}',
+      };
+
+  return ordered.map(label).join(' + ');
+}
+
 ChromePolicy shellChromePolicyForPath(String location) {
   final appRoutes = [
     AppRoutes.splash,
@@ -713,6 +737,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               phoneNumber: authSession?.phone ?? profileData?.mobile,
               isEmailVerified: authSession?.isEmailVerified ?? false,
               isPhoneVerified: authSession?.isPhoneVerified ?? false,
+              linkedProvider: _linkedAuthProvidersLabel(authSession),
               onVerifyEmailPressed: (email) async {
                 final verificationRepository =
                     ref.read(accountContactVerificationRepositoryProvider);
