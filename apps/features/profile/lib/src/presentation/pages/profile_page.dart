@@ -331,7 +331,7 @@ class ProfilePage extends StatelessWidget {
                         icon: Icons.crop_square_rounded,
                         label: 'WEIGHT',
                         value: weightKg != null && data != null
-                            ? MeasurementFormatters.formatWeight(
+                            ? UnitFormatters.formatWeight(
                                 weightKg,
                                 data.unitPreferences.weightUnit,
                               )
@@ -342,7 +342,7 @@ class ProfilePage extends StatelessWidget {
                         icon: Icons.straighten_rounded,
                         label: 'HEIGHT',
                         value: heightCm != null && data != null
-                            ? MeasurementFormatters.formatHeight(
+                            ? UnitFormatters.formatHeight(
                                 heightCm,
                                 data.unitPreferences.heightUnit,
                               )
