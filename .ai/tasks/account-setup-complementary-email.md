@@ -1,18 +1,18 @@
 # Account Setup Complementary Email
 
-**Status:** Source complete, executable validation pending
-**Primary owner:** `apps/features/account_setup` with app composition through `apps/app`
+**Status:** Source hardening complete; executable validation and hosted Email redirect retest pending  
+**Primary owner:** `apps/features/account_setup` with Auth/Settings app composition through `apps/app`  
 **Affected platforms:** Flutter mobile
 
 ## Global UI / Design-System Guardrail
 
-This slice follows `.ai/tasks/design-system-token-consolidation.md`, `apps/core/lib/src/theme/README.md`, and `apps/features/AGENTS.md`. It preserves the existing Account Setup visual language and uses existing core tokens/components. No unrelated redesign is authorized.
+This slice follows `.ai/tasks/design-system-token-consolidation.md`, `apps/core/lib/src/theme/README.md`, and `apps/features/AGENTS.md`. It preserves the existing Account Setup and Account Settings visual language. No unrelated redesign is authorized.
 
 ## 1. Discovery
 
 ### User Outcome
 
-Complete the Account Setup part of #118 so the flow asks only for the contact method that is complementary to the trusted authenticated identity.
+Complete the Account Setup part of #118 so the flow asks only for the contact method that is complementary to the trusted authenticated identity, and make the resulting Auth state truthful end-to-end.
 
 ```text
 trusted Email / Google identity
@@ -24,16 +24,38 @@ trusted Phone identity
 → Email optional
 ```
 
+### Runtime Findings Added After Device Smoke
+
+Two defects were reproduced after real hosted Phone OTP testing and are now part of this task rather than deferred follow-up work.
+
+1. **Email confirmation redirect defect**
+   - Phone signup and optional Email request succeeded.
+   - Supabase sent the Email change confirmation message and accepted the first confirmation click.
+   - After verification, the browser was redirected to `localhost:3000`, producing `ERR_CONNECTION_REFUSED` on the mobile device.
+   - Read-only hosted Auth evidence confirmed the Email itself became verified, so the defect was the post-confirmation redirect rather than ownership verification.
+
+2. **False Google Connected state in Account Settings**
+   - A Phone-created account with a later Email identity showed `Google / Connected` in Account Settings.
+   - Read-only Supabase identity evidence for the account contained `phone` and `email`, with no `google` identity.
+   - Root cause: the Settings widget had a hardcoded Google fallback and the production route did not supply provider-truth evidence.
+
+No private identifier is recorded in this task file.
+
 ### Success Criteria
 
 - trusted Email + no trusted Phone plans optional Mobile;
 - trusted Phone + no trusted Email plans optional Email;
 - both trusted identities require no complementary contact step;
 - optional Email can be left blank and Account Setup completes;
-- entered Email delegates to Auth-owned Supabase Email add/change + confirmation request semantics;
+- entered Email delegates to Auth-owned Supabase Email add/change + confirmation semantics;
+- Email confirmation requests explicitly use the mobile callback `tio://login-callback` instead of relying on the localhost Site URL;
+- the mobile callback is represented in repo Supabase redirect configuration;
+- Account Settings derives linked provider labels from trusted Supabase Auth provider metadata, not Email presence, profile metadata, or a hardcoded Google label;
+- a Phone + Email account must not display Google Connected unless Supabase actually reports a Google identity;
 - no Flutter code writes Email verification timestamps;
 - canonical authenticated UUID is unchanged;
-- no Supabase schema, migration, hook, Edge Function, or production data mutation.
+- no schema, migration, hook, or Edge Function change is required for these fixes;
+- PR remains Draft until executable validation and hosted Email redirect retest pass.
 
 ### Scope
 
@@ -41,173 +63,147 @@ trusted Phone identity
 - Account Setup Email step presentation and focused validation;
 - app composition from trusted Auth session evidence;
 - Account Setup completion-marker semantics needed to distinguish completed setup from merely verified Mobile;
-- focused planner/presentation/bridge tests;
-- Issue #130 under parent #118.
+- Auth-owned Email confirmation redirect hardening;
+- trusted Auth provider identity projection into `AuthSession`;
+- bounded Account Settings provider-truth correction;
+- local/repo Supabase redirect allow-list source configuration;
+- focused planner/presentation/bridge/Auth/Settings regression tests;
+- Issue #130 under parent #118 and Draft PR #131.
 
 ### Non-Goals
 
 - Phone OTP capability or Phone-first Login/Signup UI;
 - password creation/reset/change;
-- Google linking/unlinking;
+- Google linking/unlinking behavior;
 - Account Settings contact redesign;
 - Product Onboarding changes;
-- Supabase schema/runtime production changes.
+- schema or production data mutation;
+- marking any stacked PR Ready or merging it;
+- claiming hosted Email redirect acceptance before a real device retest.
 
-## 2. Codebase Exploration
+## 2. Verified Evidence
 
-### Verified Evidence
+- Account Setup planner and optional Email behavior were already implemented on the clean #129 child branch.
+- Real hosted Phone OTP device smoke passed: SMS request, OTP verification, Supabase session, confirmed Phone and matching projected user state were observed.
+- Hosted Auth logs showed Email-change mail delivery and successful verification, followed by localhost redirect behavior.
+- Read-only Auth state confirmed the target Email became verified even though the browser landed on localhost.
+- Read-only Supabase provider evidence for the Phone-created account reported `phone` + `email` and no `google` identity.
+- Android already declares the app deep link `tio://login-callback` in `AndroidManifest.xml`.
+- The Supabase Dart Auth API used by this repo supports `emailRedirectTo` for `updateUser` and `resend`.
+- Current connector access does not expose hosted Auth URL Configuration mutation, so hosted redirect allow-list acceptance must be verified separately before runtime closure.
 
-- Source/config inspected: `AGENTS.md`, `.ai/workflow.md`, `.ai/tasks/TEMPLATE.md`, `.ai/tasks/design-system-token-consolidation.md`, `docs/MODULE_OWNERSHIP.md`, `docs/SUPABASE_STRATEGY.md`, `apps/features/AGENTS.md`, `apps/core/lib/src/theme/README.md`, `docs/PUSH_TEMPLATE.md`, `.github/PULL_REQUEST_TEMPLATE.md`.
-- Account Setup originally planned only `username` + optional `mobile` through `BuildAccountSetupFlowUseCase` and accepted only `hasTrustedPhoneIdentity`.
-- `AuthSession` already exposes provider-derived `isEmailVerified` and `isPhoneVerified`; `SupabaseAuthSessionRepository` maps them from Auth confirmation state.
-- `SupabaseAccountContactVerificationRepository.requestEmailVerification()` already owns Supabase Auth Email add/change + confirmation-request semantics and never writes verification timestamps.
-- `accountSetupRepositoryProvider` is an app-composition seam already consumed by Account Setup routing and session bootstrap.
-- `SupabaseAccountSetupRepository.readAccountSetupState()` previously treated a verified Mobile as equivalent to completed Account Setup. That would incorrectly skip optional Email for a fresh Phone-authenticated account, so completion now means the durable `account_setup_completed_at` marker only.
-- Existing legacy planner/widget callers predate the Email step. Production app composition therefore supplies explicit Email trust while omitted Email evidence keeps the historical trusted-Phone planning contract for old tests/non-composed callers.
-- Flutter/Dart executable validation is unavailable in the current environment.
-
-## 3. Clarification
-
-### Decisions Required or Made
+## 3. Architecture Decisions
 
 | Decision | Status | Rationale | Owner |
 |---|---|---|---|
-| Trusted Email / Phone source | Made | Use `AuthSession.isEmailVerified` / `isPhoneVerified`; Supabase Auth confirmation is only a fallback while session state resolves | Auth boundary |
-| Cross-feature dependency | Made | App composition implements a narrow `AccountSetupAuthContactBridge`; `tio_feature_account_setup` does not import `tio_feature_auth` | App composition |
-| Router churn | Made | Keep the central router unchanged; the existing `accountSetupRepositoryProvider` returns a composite object that also exposes the narrow Auth bridge | App shell |
-| Pending optional Email | Made | Request Auth add/change confirmation first, then Account Setup may complete; verification remains pending until Auth confirms it | Auth + Account Setup |
-| Completion meaning | Made | `account_setup_completed_at` is the durable Account Setup acknowledgement; verified Mobile alone is contact evidence, not setup completion | Profile persistence |
-| Legacy planner callers | Made | Omitted Email trust preserves old behavior; production bridge passes explicit Email trust so Phone-only accounts receive the new Email step | Account Setup |
-| No trusted identity fallback | Made | Preserve optional Mobile fallback if explicit trusted evidence says neither contact is trusted | Account Setup |
+| Trusted Email / Phone source | Made | Use Auth confirmation evidence, not non-empty contact strings | Auth boundary |
+| Linked provider truth source | Made | Use normalized Supabase `app_metadata.provider/providers` projected into `AuthSession.identityProviders` | Auth boundary |
+| Settings provider display | Made | App composition passes a label derived from `AuthSession.identityProviders`; no inference from Email/Profile data | App shell / Settings |
+| Email callback | Made | Explicitly pass `tio://login-callback` to Auth Email update/resend operations | Auth boundary |
+| Hosted redirect acceptance | Pending retest | Repo allow-list source includes callback, but hosted Dashboard config cannot be mutated/read by the current connector | Supabase hosted config |
+| Cross-feature dependency | Made | Account Setup remains free of direct Auth SDK/provider imports; app composition bridges bounded features | App composition |
+| Pending optional Email | Made | Request Auth confirmation first, then Account Setup may complete while Email remains pending | Auth + Account Setup |
+| Completion meaning | Made | `account_setup_completed_at` remains the durable setup acknowledgement | Profile persistence |
 
-## 4. Architecture Design
-
-### Chosen Approach
-
-Extend the Account Setup planner with explicit trusted Email + trusted Phone awareness and add a feature-owned optional Email step. App composition wraps the existing persistence repository and Auth contact-verification repository in one object implementing both `AccountSetupRepository` and the narrow `AccountSetupAuthContactBridge` capability.
-
-This keeps the feature free of Auth SDK/provider dependencies and avoids widening the already-large central router for a bounded Account Setup concern.
-
-### Ownership and Data Flow
+## 4. Data Flow
 
 ```text
-Supabase/Auth session
-→ AuthSession verified-contact flags
-→ apps/app accountSetupRepositoryProvider
-→ _AppAccountSetupRepository
-   ├─ AccountSetupRepository → profile persistence
-   └─ AccountSetupAuthContactBridge → Auth contact verification
-→ AccountSetupFlowPage planner
-→ optional Email step
-→ requestOptionalEmailVerification(email)
-→ SupabaseAccountContactVerificationRepository
-→ Supabase Auth updateUser/resend
-→ Email remains pending until Auth confirmation
+Phone OTP authenticated Supabase user
+→ AuthSession
+   ├─ verified Email/Phone evidence
+   └─ identityProviders from Supabase Auth app metadata
+→ Account Setup planner
+→ optional Email
+   ├─ blank → complete setup
+   └─ entered
+      → Supabase Auth updateUser(email, emailRedirectTo: tio://login-callback)
+      → confirmation Email
+      → Supabase verifies ownership
+      → mobile callback opens Tio app
+
+Account Settings
+→ AuthSession.identityProviders
+→ Phone / Email / Google labels only when actually reported by Supabase Auth
 ```
 
-Account Setup completion remains owned by `AccountSetupRepository` / `public.users.account_setup_completed_at`. Email ownership proof remains Supabase Auth-owned. The canonical Auth UUID is never replaced.
+## 5. Implementation Checklist
 
-### Alternative Rejected
-
-- Importing the Auth feature directly into Account Setup, because app composition can bridge the bounded features without reversing package ownership.
-- Adding more constructor wiring in the central router, because the existing Account Setup provider is already the correct composition seam and a bridge keeps router churn at zero.
-- Writing Email directly to `public.users`, because that bypasses trusted Auth add/change confirmation semantics.
-- Treating a non-empty Email/Phone string as verified, because verified-contact flags already exist.
-- Treating `mobile_verified_at` as Account Setup completion, because Phone-authenticated users still need the new optional Email acknowledgement step.
-- Adding an OTP/code verification screen here, because optional Email may remain pending and confirmation is Auth-owned.
-
-### Failure and Accessibility States
-
-- blank Email is valid and skips the optional contact;
-- malformed Email disables Continue;
-- Auth request happens before completion, so request failure leaves the user on the Email step and does not falsely complete Account Setup;
-- Email field uses the existing `TioInput`, Email keyboard, design-system typography/spacing, and explicit pending-verification helper copy;
-- helper copy states that adding Email here does not create Email + Password capability;
-- existing Back/progress/footer behavior remains unchanged;
-- Mobile-only explanatory info action remains Mobile-specific.
-
-## 5. Implementation Plan
+### Original complementary-contact slice
 
 - [x] add `email` Account Setup step ID and complementary-contact planner matrix;
 - [x] add optional Email step UI using existing Tio design-system primitives;
 - [x] extend `AccountSetupFlowPage` with Email state, validation, skip, and Auth request-before-completion behavior;
-- [x] add `AccountSetupAuthContactBridge` and compose it at app level from verified Auth evidence + existing Auth contact-verification repository;
-- [x] keep the central router unchanged while preserving thin app-shell composition;
-- [x] make `account_setup_completed_at` the explicit durable completion signal instead of inferring completion from verified Mobile;
-- [x] add focused planner, Email presentation, and app-bridge source tests;
-- [x] audit branch diff against #129 head for unrelated files;
-- [x] keep PR Draft and unmerged;
-- [ ] run focused Flutter/Dart tests when a toolchain is available.
+- [x] add `AccountSetupAuthContactBridge` and compose it at app level;
+- [x] make `account_setup_completed_at` the explicit durable completion signal;
+- [x] add focused planner, Email presentation, and bridge tests.
 
-## 6. Quality Review
+### Runtime hardening added from device testing
 
-### Validation Run
+- [x] pass `tio://login-callback` as `emailRedirectTo` for Email add/change requests;
+- [x] pass the same callback when resending verification for an existing unconfirmed Email;
+- [x] add `tio://login-callback` to repo `supabase/config.toml` redirect allow-list source;
+- [x] add `AuthSession.identityProviders` as provider-neutral trusted identity evidence;
+- [x] map Supabase `app_metadata.provider/providers` into `AuthSession.identityProviders`;
+- [x] wire Account Settings provider label from actual Auth identity evidence;
+- [x] add Auth regression tests proving Phone + Email does not imply Google and Google is shown only when reported;
+- [x] add Email redirect regression assertions for `updateUser` and `resend`;
+- [ ] run Flutter/Dart analyze and focused tests on the exact current PR #131 head;
+- [ ] verify hosted Supabase Redirect URLs allow `tio://login-callback`;
+- [ ] run a fresh real-device Email confirmation smoke and prove the app opens instead of `localhost:3000`;
+- [ ] re-open Account Settings after the same Phone + Email flow and prove Google is absent unless a Google identity is actually linked.
 
-```text
-Source / branch validation:
-- parent: f2fc821c4e9b781662a65b26502c57aa4fc1ef1a (#129 head)
-- branch compare: ahead only, behind 0
-- merge base: exact #129 head
-- changed-file audit: Account Setup task/app composition/Account Setup feature/narrow profile persistence only
-- Supabase directory changes: none
-- production Supabase mutations: none
-- Flutter executable: unavailable (`flutter` not installed)
-- Dart executable: unavailable (`dart` not installed)
-```
+## 6. Source Changes Added by Runtime Hardening
 
-### Review Findings and Resolution
+- `apps/features/auth/lib/src/domain/models/auth_session.dart`
+- `apps/features/auth/lib/src/data/repositories/supabase_auth_session_repository.dart`
+- `apps/features/auth/lib/src/data/repositories/supabase_account_contact_verification_repository.dart`
+- `apps/features/auth/test/data/supabase_auth_session_repository_test.dart`
+- `apps/features/auth/test/data/supabase_account_contact_verification_repository_test.dart`
+- `apps/app/lib/app/router.dart`
+- `supabase/config.toml`
+- this task file
 
-1. **Fresh Phone-authenticated accounts would have skipped Email because verified Mobile was treated as completed setup.** Resolved by making the explicit completion marker authoritative.
-2. **Directly editing the central router would add unnecessary churn.** Resolved by using the existing app-level Account Setup provider as a composite bridge seam.
-3. **Legacy planner/tests only know about trusted Phone.** Resolved with nullable Email evidence for legacy callers; production bridge always supplies explicit trusted Email/Phone values.
-4. **Email request failure must not leave a false completion marker.** Resolved by calling the Auth request before `completeAccountSetup()`.
-5. **Optional Email must not imply password capability.** Resolved in helper copy and by delegating only to the existing Email verification request boundary.
+The original Account Setup slice files remain part of PR #131.
 
-No production schema/config/data mutation was performed.
-
-## 7. Final Handoff
-
-### Changed Files
-
-- `.ai/tasks/account-setup-complementary-email.md`
-- `apps/app/lib/app/account_setup/account_setup_providers.dart`
-- `apps/features/account_setup/lib/src/domain/domain.dart`
-- `apps/features/account_setup/lib/src/domain/models/account_setup_step_id.dart`
-- `apps/features/account_setup/lib/src/domain/repositories/account_setup_auth_contact_bridge.dart`
-- `apps/features/account_setup/lib/src/domain/usecases/build_account_setup_flow_use_case.dart`
-- `apps/features/account_setup/lib/src/presentation/account_setup_flow_page.dart`
-- `apps/features/account_setup/lib/src/presentation/steps/email_step.dart`
-- `apps/features/account_setup/test/domain/complementary_contact_flow_test.dart`
-- `apps/features/account_setup/test/presentation/account_setup_auth_contact_bridge_test.dart`
-- `apps/features/account_setup/test/presentation/account_setup_complementary_email_test.dart`
-- `apps/features/profile/lib/src/data/repositories/supabase_account_setup_repository.dart`
-
-### Actual Behavior
+## 7. Expected Behavior After Hardening
 
 ```text
-verified Email only
-→ Username if needed
-→ optional Mobile
-→ complete Account Setup
+Phone-only trusted account
+→ Authentication: Phone Connected
 
-verified Phone only
-→ Username if needed
-→ optional Email
-   ├─ blank → complete Account Setup
-   └─ entered → Auth Email confirmation request → complete Account Setup while pending
+Phone account + verified/linked Email identity
+→ Authentication: Phone + Email Connected
+→ Google must NOT appear
 
-verified Email + verified Phone
-→ Username if needed
-→ no complementary contact collection
-→ durable completion marker
+Google-authenticated/linked account where Supabase reports google
+→ Authentication includes Google Connected
+
+Optional Email confirmation
+→ confirmation Email received
+→ link verifies ownership
+→ redirect returns to tio://login-callback
+→ Tio app opens
+→ localhost must not be the user-visible destination
 ```
 
-### Known Limitations
+## 8. Validation / Handoff
 
-- Focused Flutter widget/unit tests are source-authored but could not be executed because the current environment has neither Flutter nor Dart installed.
-- This slice does not verify the optional Email inside Account Setup; confirmation remains a later Auth-owned action.
-- Existing Auth contact-verification normalization behavior is intentionally unchanged; broader canonical contact-change hardening remains outside #130.
+### Completed
+
+- source implementation for both runtime defects;
+- read-only hosted evidence establishing the original defects;
+- Auth provider-truth mapping based on hosted metadata shape;
+- source-level regression tests authored;
+- no schema/data mutation;
+- PR remains Draft/open/unmerged.
+
+### Pending Gates
+
+1. Flutter/Dart executable validation on exact current #131 head.
+2. Hosted Redirect URL allow-list confirmation for `tio://login-callback`.
+3. Real-device Email confirmation retest.
+4. Real-device Account Settings provider display retest.
 
 ### Final Status
 
-`PARTIAL` — source implementation and clean stacked-branch audit are complete. Executable Flutter/Dart validation remains pending, so the PR must stay Draft/unmerged.
+`PARTIAL` — both reported defects are source-fixed and recorded in this task, but runtime closure requires executable CI/tests plus a fresh hosted device retest. PR #131 must remain Draft/unmerged until those gates are satisfied.
