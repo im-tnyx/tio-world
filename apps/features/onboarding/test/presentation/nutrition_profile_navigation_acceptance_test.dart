@@ -86,6 +86,80 @@ void main() {
     }
   });
 
+  testWidgets('Other details show inline and survive Nutrition Back navigation',
+      (tester) async {
+    await _pumpFlow(
+      tester,
+      OnboardingDraft(
+        selectedMode: AppMode.nutrition,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.maintainWeight,
+        ),
+        currentStepId: OnboardingStepId.nutritionProfile,
+        profile: _validProfile(),
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey('nutrition-diet-other-text-field')),
+      findsNothing,
+    );
+    await tester.tap(find.byKey(const ValueKey('nutrition-diet-other')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('nutrition-diet-other-text-field')),
+      findsOneWidget,
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('nutrition-diet-other-text-field')),
+      'Jain',
+    );
+    await tester.pump();
+
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AllergiesRestrictionsScreen), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('nutrition-allergy-other-text-field')),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('nutrition-allergy-other')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('nutrition-allergy-other-text-field')),
+      findsOneWidget,
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('nutrition-allergy-other-text-field')),
+      'Sesame',
+    );
+    await tester.pump();
+
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(find.byType(WellnessSection), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    final allergyScreen = tester.widget<AllergiesRestrictionsScreen>(
+      find.byType(AllergiesRestrictionsScreen),
+    );
+    expect(
+      allergyScreen.selectedRestrictions,
+      contains(NutritionAllergyRestriction.other),
+    );
+    expect(allergyScreen.otherText, 'Sesame');
+    expect(find.text('Sesame'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    final dietScreen = tester.widget<DietTypeScreen>(find.byType(DietTypeScreen));
+    expect(dietScreen.selectedDietType, NutritionDietType.other);
+    expect(dietScreen.otherText, 'Jain');
+    expect(find.text('Jain'), findsOneWidget);
+  });
+
   testWidgets('exact Nutrition Profile resume preserves the Allergies child cursor',
       (tester) async {
     await _pumpFlow(
@@ -147,7 +221,8 @@ void main() {
     expect(find.byType(AllergiesRestrictionsScreen), findsNothing);
   });
 
-  testWidgets('Hybrid Setup Now enters Nutrition Profile at Diet Type after Workout Targets',
+  testWidgets(
+      'Hybrid Setup Now enters Nutrition Profile at Diet Type after Workout Targets',
       (tester) async {
     await _pumpFlow(
       tester,
