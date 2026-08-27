@@ -27,7 +27,10 @@ void main() {
     test('currentSessionState returns authenticated when user is signed in', () async {
       final fakeUser = User(
         id: 'usr-1234',
-        appMetadata: const {},
+        appMetadata: const {
+          'provider': 'phone',
+          'providers': ['phone', 'email'],
+        },
         userMetadata: const {
           'full_name': 'Sarah Connor',
           'avatar_url': 'https://example.com/avatar.png',
@@ -50,6 +53,32 @@ void main() {
       expect(authSession.email, 'sarah@example.com');
       expect(authSession.phone, '+1234567890');
       expect(authSession.photoUrl, 'https://example.com/avatar.png');
+      expect(authSession.identityProviders, containsAll(['phone', 'email']));
+      expect(authSession.identityProviders, isNot(contains('google')));
+    });
+
+    test('maps Google only when Supabase reports a Google identity', () async {
+      final fakeUser = User(
+        id: 'usr-google',
+        appMetadata: const {
+          'provider': 'google',
+          'providers': ['google'],
+        },
+        userMetadata: const {},
+        aud: 'authenticated',
+        createdAt: DateTime.now().toIso8601String(),
+        email: 'google@example.com',
+        emailConfirmedAt: DateTime.now().toIso8601String(),
+      );
+
+      final repository = SupabaseAuthSessionRepository(
+        client: FakeSupabaseClient(currentUser: fakeUser),
+      );
+
+      final state = await repository.currentSessionState;
+      final authSession = (state as AuthSessionAuthenticated).session;
+
+      expect(authSession.identityProviders, {'google'});
     });
 
     test('sessionState stream emits initial unauthenticated state immediately', () async {
