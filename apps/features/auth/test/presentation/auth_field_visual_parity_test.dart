@@ -104,9 +104,15 @@ void main() {
     expect(signupPasswordFocused.borderRadius, loginPasswordFocused.borderRadius);
     expect(signupPasswordFocused.borderSide, loginPasswordFocused.borderSide);
 
-    expect(signupEmailEnabled.borderSide.width, TioStroke.width12);
-    expect(signupEmailFocused.borderSide.width, TioStroke.width18);
-    expect(signupPasswordEnabled.borderSide.width, TioStroke.width12);
-    expect(signupPasswordFocused.borderSide.width, TioStroke.width18);
+    expect(signupEmailEnabled.borderSide.width, TioInputTokens.outlineWidth);
+    expect(
+      signupEmailFocused.borderSide.width,
+      TioInputTokens.focusedOutlineWidth,
+    );
+    expect(signupPasswordEnabled.borderSide.width, TioInputTokens.outlineWidth);
+    expect(
+      signupPasswordFocused.borderSide.width,
+      TioInputTokens.focusedOutlineWidth,
+    );
   });
 }
