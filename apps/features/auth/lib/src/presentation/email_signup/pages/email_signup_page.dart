@@ -49,10 +49,15 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
   late AuthEntryMode _mode;
   bool _isPasswordVisible = false;
   bool _isPhoneBusy = false;
+  bool _isResendingEmail = false;
   _SignupAuthAction? _activeAction;
   String? _errorMessage;
+  String? _pendingEmail;
+  String? _verificationMessage;
+  String? _verificationErrorMessage;
 
-  bool get _isBusy => _activeAction != null || _isPhoneBusy;
+  bool get _isBusy =>
+      _activeAction != null || _isPhoneBusy || _isResendingEmail;
   bool get _isEmailLoading => _activeAction == _SignupAuthAction.email;
   bool get _isGoogleLoading => _activeAction == _SignupAuthAction.google;
 
@@ -95,6 +100,24 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
     });
   }
 
+  void _goBack(BuildContext context) {
+    if (_isBusy) return;
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(AppRoutes.auth.path);
+    }
+  }
+
+  void _returnToSignupForm() {
+    if (_isBusy) return;
+    setState(() {
+      _pendingEmail = null;
+      _verificationMessage = null;
+      _verificationErrorMessage = null;
+    });
+  }
+
   Future<void> _handleSignUp() async {
     if (!_isFormValid || _isBusy) return;
 
@@ -124,18 +147,64 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
       switch (result) {
         case SignInSuccess():
           widget.onSignUpSuccess?.call(result);
-        case SignInFailure(:final message):
-          setState(() => _errorMessage = message);
+        case SignInFailure(:final message, :final code):
+          if (code == 'email_confirmation_required') {
+            final canonicalEmail =
+                canonicalEmailIdentity(_emailController.text.trim());
+            setState(() {
+              _pendingEmail = canonicalEmail ??
+                  _emailController.text.trim().toLowerCase();
+              _verificationMessage = null;
+              _verificationErrorMessage = null;
+              _errorMessage = null;
+            });
+          } else {
+            setState(() => _errorMessage = message);
+          }
         case SignInCancelled():
           break;
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _errorMessage = 'Could not create the account. Please try again.');
+        setState(
+          () => _errorMessage =
+              'Could not create the account. Please try again.',
+        );
       }
     } finally {
       if (mounted && _activeAction == _SignupAuthAction.email) {
         setState(() => _activeAction = null);
+      }
+    }
+  }
+
+  Future<void> _handleResendEmail() async {
+    final pendingEmail = _pendingEmail;
+    final useCase = widget.signUpWithEmailUseCase;
+    if (pendingEmail == null || useCase == null || _isResendingEmail) return;
+
+    setState(() {
+      _isResendingEmail = true;
+      _verificationMessage = null;
+      _verificationErrorMessage = null;
+    });
+
+    try {
+      await useCase.resendConfirmation(email: pendingEmail);
+      if (!mounted) return;
+      setState(() {
+        _verificationMessage =
+            'If this account is waiting for verification, a new email has been requested.';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _verificationErrorMessage =
+            'Could not resend the verification email. Please try again.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isResendingEmail = false);
       }
     }
   }
@@ -179,7 +248,9 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _errorMessage = 'Google signup could not be completed.');
+        setState(
+          () => _errorMessage = 'Google signup could not be completed.',
+        );
       }
     } finally {
       if (mounted && _activeAction == _SignupAuthAction.google) {
@@ -283,8 +354,140 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
     );
   }
 
+  Widget _buildEmailVerificationView(BuildContext context) {
+    final colors = context.tioColors;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Scaffold(
+      key: const ValueKey('signup-email-verification-view'),
+      backgroundColor: colors.background,
+      body: SafeArea(
+        maintainBottomViewPadding: true,
+        child: Column(
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(left: TioSpacing.sm),
+                child: IconButton(
+                  key: const ValueKey('signup-verification-back-button'),
+                  icon: Icon(
+                    Icons.arrow_back,
+                    color: colors.textPrimary,
+                  ),
+                  onPressed: _isBusy ? null : _returnToSignupForm,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: TioSpacing.xl,
+                ),
+                child: Column(
+                  children: [
+                    const Spacer(flex: 2),
+                    Semantics(
+                      header: true,
+                      label: 'Tio',
+                      child: ExcludeSemantics(
+                        child: Text(
+                          'Tio',
+                          key: const ValueKey('signup-verification-wordmark'),
+                          style: textTheme.displayLarge?.copyWith(
+                            color: colors.textPrimary,
+                            fontWeight: TioFontWeight.w900,
+                            fontStyle: FontStyle.italic,
+                            letterSpacing: TioLetterSpacing.negative05,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Spacer(flex: 2),
+                    Text(
+                      'Please verify your email',
+                      key: const ValueKey('signup-verification-title'),
+                      textAlign: TextAlign.center,
+                      style: textTheme.headlineSmall?.copyWith(
+                        color: colors.textPrimary,
+                        fontWeight: TioFontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: TioSpacing.xl),
+                    Text(
+                      'Check your inbox for a verification link. Open it to confirm your email, then Tio will continue automatically.',
+                      textAlign: TextAlign.center,
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: TioSpacing.lg),
+                    Text(
+                      'If you already have a Tio account, use Log In or Forgot Password.',
+                      textAlign: TextAlign.center,
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: colors.textMuted,
+                      ),
+                    ),
+                    const Spacer(flex: 2),
+                    if (_isResendingEmail) ...[
+                      SizedBox(
+                        width: TioSize.dp22,
+                        height: TioSize.dp22,
+                        child: CircularProgressIndicator(
+                          key: const ValueKey(
+                            'signup-verification-resend-progress',
+                          ),
+                          strokeWidth: TioStroke.width2,
+                          color: colors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: TioSpacing.md),
+                    ],
+                    TextButton(
+                      key: const ValueKey('signup-resend-email'),
+                      onPressed: _isBusy ? null : _handleResendEmail,
+                      child: const Text('Resend email'),
+                    ),
+                    if (_verificationMessage != null) ...[
+                      const SizedBox(height: TioSpacing.sm),
+                      Text(
+                        _verificationMessage!,
+                        key: const ValueKey('signup-verification-message'),
+                        textAlign: TextAlign.center,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                    ],
+                    if (_verificationErrorMessage != null) ...[
+                      const SizedBox(height: TioSpacing.sm),
+                      Text(
+                        _verificationErrorMessage!,
+                        key: const ValueKey('signup-verification-error'),
+                        textAlign: TextAlign.center,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colors.danger,
+                        ),
+                      ),
+                    ],
+                    const Spacer(flex: 3),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_pendingEmail != null) {
+      return _buildEmailVerificationView(context);
+    }
+
     final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
 
@@ -314,15 +517,7 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                             Icons.arrow_back,
                             color: colors.textPrimary,
                           ),
-                          onPressed: _isBusy
-                              ? null
-                              : () {
-                                  if (context.canPop()) {
-                                    context.pop();
-                                  } else {
-                                    context.go(AppRoutes.auth.path);
-                                  }
-                                },
+                          onPressed: _isBusy ? null : () => _goBack(context),
                         ),
                         const SizedBox(width: TioSpacing.sm),
                         Text('Sign Up', style: textTheme.titleLarge),
@@ -398,7 +593,9 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                         key: const ValueKey('signup-login-link'),
                         onPressed: _isBusy
                             ? null
-                            : () => context.pushReplacement(AppRoutes.login.path),
+                            : () => context.pushReplacement(
+                                  AppRoutes.login.path,
+                                ),
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                             horizontal: TioSpacing.xs,
