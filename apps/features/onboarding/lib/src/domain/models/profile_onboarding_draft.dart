@@ -31,7 +31,7 @@ class ProfileOnboardingDraft {
     Set<ProfileGoal> goals = const {},
     this.dateOfBirth,
     this.heightCm,
-    MeasurementUnitPreferences? unitPreferences,
+    UnitPreferences? unitPreferences,
     String? heightUnit,
     this.currentWeightKg,
     String? weightUnit,
@@ -43,7 +43,7 @@ class ProfileOnboardingDraft {
     this.mobile = '',
     this.isMobileVerified = false,
   })  : unitPreferences = _resolveUnitPreferences(
-          base: unitPreferences ?? MeasurementUnitPreferences.metric,
+          base: unitPreferences ?? UnitPreferences.metric,
           legacyHeightUnit: heightUnit,
           legacyWeightUnit: weightUnit,
         ),
@@ -56,7 +56,7 @@ class ProfileOnboardingDraft {
   final Set<ProfileGoal> goals;
   final DateTime? dateOfBirth;
   final double? heightCm;
-  final MeasurementUnitPreferences unitPreferences;
+  final UnitPreferences unitPreferences;
   final double? currentWeightKg;
   final double? targetWeightKg;
 
@@ -85,7 +85,7 @@ class ProfileOnboardingDraft {
     Set<ProfileGoal>? goals,
     DateTime? dateOfBirth,
     double? heightCm,
-    MeasurementUnitPreferences? unitPreferences,
+    UnitPreferences? unitPreferences,
     String? heightUnit,
     bool clearHeightCm = false,
     double? currentWeightKg,
@@ -167,8 +167,8 @@ class ProfileOnboardingDraft {
       );
 }
 
-MeasurementUnitPreferences _resolveUnitPreferences({
-  required MeasurementUnitPreferences base,
+UnitPreferences _resolveUnitPreferences({
+  required UnitPreferences base,
   String? legacyHeightUnit,
   String? legacyWeightUnit,
 }) {
