@@ -9,7 +9,7 @@ void main() {
         name: '  Jane Doe  ',
         gender: ProfileGender.female,
         dateOfBirth: DateTime(1998, 12, 10),
-        unitPreferences: MeasurementUnitPreferences.imperial,
+        unitPreferences: UnitPreferences.imperial,
         heightCm: 165,
         activityLevel: ProfileActivityLevel.light,
         healthConditions: const {ProfileHealthCondition.other},
@@ -19,7 +19,7 @@ void main() {
       expect(profile.name, 'Jane Doe');
       expect(profile.gender, ProfileGender.female);
       expect(profile.dateOfBirth, DateTime(1998, 12, 10));
-      expect(profile.unitPreferences, MeasurementUnitPreferences.imperial);
+      expect(profile.unitPreferences, UnitPreferences.imperial);
       expect(profile.heightCm, 165);
       expect(profile.activityLevel, ProfileActivityLevel.light);
       expect(profile.healthConditions, const {ProfileHealthCondition.other});
@@ -79,7 +79,7 @@ UserProfileData _profile({
     name: name,
     gender: ProfileGender.female,
     dateOfBirth: DateTime(1998, 12, 10),
-    unitPreferences: MeasurementUnitPreferences.metric,
+    unitPreferences: UnitPreferences.metric,
     heightCm: heightCm,
     activityLevel: ProfileActivityLevel.light,
     healthConditions: healthConditions,
