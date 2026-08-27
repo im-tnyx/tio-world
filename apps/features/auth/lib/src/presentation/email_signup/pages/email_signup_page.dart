@@ -476,6 +476,17 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                 ),
               ),
             ),
+            Semantics(
+              label: 'Waiting for email verification',
+              child: LinearProgressIndicator(
+                key: const ValueKey('signup-verification-wait-progress'),
+                minHeight: TioStroke.width3,
+                color: colors.textPrimary,
+                backgroundColor: colors.outlineStrong.withValues(
+                  alpha: TioOpacity.opacity30,
+                ),
+              ),
+            ),
           ],
         ),
       ),
