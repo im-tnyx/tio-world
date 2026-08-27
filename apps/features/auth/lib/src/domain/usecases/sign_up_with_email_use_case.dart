@@ -74,12 +74,14 @@ class SignUpWithEmailUseCase {
       throw ArgumentError.value(email, 'email', 'must be a valid email');
     }
 
-    final repository = _signInRepository;
-    if (repository is! EmailSignupConfirmationRepository) {
-      throw StateError('Email confirmation resend is unavailable right now.');
-    }
+    final confirmationRepository = switch (_signInRepository) {
+      EmailSignupConfirmationRepository repository => repository,
+      _ => throw StateError(
+          'Email confirmation resend is unavailable right now.',
+        ),
+    };
 
-    await repository
+    await confirmationRepository
         .resendSignupConfirmation(email: canonicalEmail)
         .timeout(_timeout);
   }
