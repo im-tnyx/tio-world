@@ -244,7 +244,7 @@ profile_owner.UserProfileData _canonicalProfile({required String name}) {
     name: name,
     gender: profile_owner.ProfileGender.female,
     dateOfBirth: DateTime(1994, 5, 6),
-    unitPreferences: MeasurementUnitPreferences.imperial,
+    unitPreferences: UnitPreferences.imperial,
     heightCm: 168,
     activityLevel: profile_owner.ProfileActivityLevel.active,
     healthConditions: const {
@@ -267,7 +267,7 @@ OnboardingDraft _draft() {
       name: 'Accepted User',
       gender: ProfileGender.female,
       dateOfBirth: DateTime(1994, 5, 6),
-      unitPreferences: MeasurementUnitPreferences.imperial,
+      unitPreferences: UnitPreferences.imperial,
       heightCm: 168,
       currentWeightKg: 64,
       activityLevel: ProfileActivityLevel.active,

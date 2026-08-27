@@ -6,14 +6,14 @@ import 'package:tio_feature_settings/settings.dart';
 void main() {
   testWidgets('hydrates persisted preferences and saves mixed changes',
       (tester) async {
-    MeasurementUnitPreferences? saved;
+    UnitPreferences? saved;
 
     await tester.pumpWidget(
       MaterialApp(
         builder: (context, child) =>
             TioTheme(child: child ?? const SizedBox.shrink()),
         home: MeasurementUnitsSettingsPage(
-          initialPreferences: MeasurementUnitPreferences.imperial,
+          initialPreferences: UnitPreferences.imperial,
           onSave: (preferences) async => saved = preferences,
         ),
       ),
@@ -55,7 +55,7 @@ void main() {
         builder: (context, child) =>
             TioTheme(child: child ?? const SizedBox.shrink()),
         home: MeasurementUnitsSettingsPage(
-          initialPreferences: MeasurementUnitPreferences.metric,
+          initialPreferences: UnitPreferences.metric,
           onSave: (_) async {},
         ),
       ),
@@ -94,7 +94,7 @@ void main() {
           );
         },
         home: MeasurementUnitsSettingsPage(
-          initialPreferences: const MeasurementUnitPreferences(
+          initialPreferences: const UnitPreferences(
             weightUnit: WeightUnit.kg,
             heightUnit: HeightUnit.ftIn,
             distanceUnit: DistanceUnit.mi,
@@ -122,7 +122,7 @@ void main() {
         builder: (context, child) =>
             TioTheme(child: child ?? const SizedBox.shrink()),
         home: MeasurementUnitsSettingsPage(
-          initialPreferences: MeasurementUnitPreferences.metric,
+          initialPreferences: UnitPreferences.metric,
           onSave: (_) async => throw StateError('write failed'),
         ),
       ),

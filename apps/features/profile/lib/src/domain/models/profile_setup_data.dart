@@ -19,13 +19,13 @@ class ProfileSetupData {
     required this.heightCm,
     required this.currentWeightKg,
     this.targetWeightKg,
-    MeasurementUnitPreferences? unitPreferences,
+    UnitPreferences? unitPreferences,
     required this.activityLevel,
     required this.healthConditions,
     this.otherHealthCondition,
     this.mobile,
     this.isMobileVerified = false,
-  })  : unitPreferences = unitPreferences ?? MeasurementUnitPreferences.metric,
+  })  : unitPreferences = unitPreferences ?? UnitPreferences.metric,
         hasExplicitUnitPreferences = unitPreferences != null;
 
   final String name;
@@ -39,7 +39,7 @@ class ProfileSetupData {
   final double heightCm;
   final double currentWeightKg;
   final double? targetWeightKg;
-  final MeasurementUnitPreferences unitPreferences;
+  final UnitPreferences unitPreferences;
 
   /// Distinguishes an explicit unit mutation from a legacy/profile-only save.
   ///

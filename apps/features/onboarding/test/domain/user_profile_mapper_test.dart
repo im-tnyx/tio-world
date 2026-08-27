@@ -13,7 +13,7 @@ void main() {
       goals: const {ProfileGoal.loseWeight},
       dateOfBirth: DateTime(1996, 6, 15, 12),
       heightCm: 165,
-      unitPreferences: const MeasurementUnitPreferences(
+      unitPreferences: const UnitPreferences(
         weightUnit: WeightUnit.lb,
         heightUnit: HeightUnit.ftIn,
         distanceUnit: DistanceUnit.mi,

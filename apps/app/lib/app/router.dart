@@ -698,7 +698,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
             return MeasurementUnitsSettingsPage(
               initialPreferences:
-                  profileData?.unitPreferences ?? MeasurementUnitPreferences.metric,
+                  profileData?.unitPreferences ?? UnitPreferences.metric,
               onSave: (preferences) async {
                 final repository =
                     ref.read(measurementUnitPreferencesRepositoryProvider);

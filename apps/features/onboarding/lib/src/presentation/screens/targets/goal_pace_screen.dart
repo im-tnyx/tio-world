@@ -64,14 +64,13 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
       widget.profile.unitPreferences.weightUnit == WeightUnit.lb;
 
   String _formatPace(double kgPerWeek) {
-    final value =
-        _usesPounds ? MeasurementConverters.kgToLb(kgPerWeek) : kgPerWeek;
+    final value = _usesPounds ? UnitConverters.kgToLb(kgPerWeek) : kgPerWeek;
     final unit = _usesPounds ? 'lb' : 'kg';
     return '${value.toStringAsFixed(1)} $unit / week';
   }
 
   String _formatWeight(double kg) {
-    return MeasurementFormatters.formatWeight(
+    return UnitFormatters.formatWeight(
       kg,
       _usesPounds ? WeightUnit.lb : WeightUnit.kg,
     );

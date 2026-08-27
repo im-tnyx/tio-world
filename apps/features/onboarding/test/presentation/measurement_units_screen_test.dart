@@ -6,7 +6,7 @@ import 'package:tio_feature_onboarding/src/presentation/screens/profile/measurem
 void main() {
   testWidgets('preset and individual unit choices derive Custom reversibly',
       (tester) async {
-    var preferences = MeasurementUnitPreferences.metric;
+    var preferences = UnitPreferences.metric;
 
     Widget build() => MaterialApp(
           builder: (context, child) =>
@@ -33,7 +33,7 @@ void main() {
 
     await tester.pumpWidget(build());
     expect(find.text('Choose your units'), findsOneWidget);
-    expect(preferences, MeasurementUnitPreferences.metric);
+    expect(preferences, UnitPreferences.metric);
     expect(
       find.byKey(const ValueKey('measurement-units-preset-custom')),
       findsNothing,
@@ -44,7 +44,7 @@ void main() {
       find.byKey(const ValueKey('measurement-units-preset-imperial')),
     );
     await tester.pumpWidget(build());
-    expect(preferences, MeasurementUnitPreferences.imperial);
+    expect(preferences, UnitPreferences.imperial);
     expect(
       find.byKey(const ValueKey('measurement-units-preset-custom')),
       findsNothing,
@@ -67,7 +67,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('measurement-units-weight-lb')));
     await tester.pumpWidget(build());
-    expect(preferences, MeasurementUnitPreferences.imperial);
+    expect(preferences, UnitPreferences.imperial);
     expect(
       find.byKey(const ValueKey('measurement-units-preset-custom')),
       findsNothing,
@@ -90,7 +90,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('measurement-units-height-cm')));
     await tester.pumpWidget(build());
-    expect(preferences, MeasurementUnitPreferences.metric);
+    expect(preferences, UnitPreferences.metric);
     expect(
       find.byKey(const ValueKey('measurement-units-preset-custom')),
       findsNothing,

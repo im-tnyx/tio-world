@@ -60,7 +60,7 @@ void main() {
         },
       );
       expect(profile.otherHealthCondition, 'Example condition');
-      expect(profile.unitPreferences, MeasurementUnitPreferences.imperial);
+      expect(profile.unitPreferences, UnitPreferences.imperial);
     });
 
     test('rejects malformed canonical state instead of inventing defaults',
@@ -114,7 +114,7 @@ void main() {
           name: 'Jane Doe',
           gender: ProfileGender.female,
           dateOfBirth: DateTime(1998, 12, 10),
-          unitPreferences: MeasurementUnitPreferences.imperial,
+          unitPreferences: UnitPreferences.imperial,
           heightCm: 165,
           activityLevel: ProfileActivityLevel.veryActive,
           healthConditions: const {
@@ -174,7 +174,7 @@ UserProfileData _profile() => UserProfileData(
       name: 'Jane Doe',
       gender: ProfileGender.female,
       dateOfBirth: DateTime(1998, 12, 10),
-      unitPreferences: MeasurementUnitPreferences.metric,
+      unitPreferences: UnitPreferences.metric,
       heightCm: 165,
       activityLevel: ProfileActivityLevel.light,
       healthConditions: const {ProfileHealthCondition.none},

@@ -12,7 +12,7 @@ void main() {
         name: 'Canonical Name',
         gender: ProfileGender.female,
         dateOfBirth: DateTime(1994, 4, 5),
-        unitPreferences: const MeasurementUnitPreferences(
+        unitPreferences: const UnitPreferences(
           weightUnit: WeightUnit.lb,
           heightUnit: HeightUnit.ftIn,
           distanceUnit: DistanceUnit.mi,
@@ -99,7 +99,7 @@ void main() {
             name: 'User',
             gender: ProfileGender.other,
             dateOfBirth: DateTime(2000, 1, 1),
-            unitPreferences: MeasurementUnitPreferences.metric,
+            unitPreferences: UnitPreferences.metric,
             heightCm: 170,
             activityLevel: ProfileActivityLevel.active,
             healthConditions: const {ProfileHealthCondition.none},

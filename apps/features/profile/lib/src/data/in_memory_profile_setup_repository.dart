@@ -65,7 +65,7 @@ class InMemoryProfileSetupRepository implements
 
   @override
   Future<void> updateMeasurementUnitPreferences(
-    MeasurementUnitPreferences preferences,
+    UnitPreferences preferences,
   ) async {
     final canonical = _canonicalData;
     if (canonical != null) {
@@ -132,7 +132,7 @@ class InMemoryProfileSetupRepository implements
     String? avatarUrl,
     bool clearAvatarUrl = false,
     String? avatarFrame,
-    MeasurementUnitPreferences? unitPreferences,
+    UnitPreferences? unitPreferences,
   }) {
     return ProfileSetupData(
       name: data.name,

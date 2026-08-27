@@ -10,7 +10,7 @@ void main() {
         name: 'Profile User',
         gender: ProfileGender.female,
         dateOfBirth: DateTime(1995, 6, 7),
-        unitPreferences: MeasurementUnitPreferences.metric,
+        unitPreferences: UnitPreferences.metric,
         heightCm: 164,
         activityLevel: ProfileActivityLevel.veryActive,
         healthConditions: const {ProfileHealthCondition.hypertension},
@@ -21,7 +21,7 @@ void main() {
         client: SupabaseClient('https://example.supabase.co', 'test-anon-key'),
         profileRepository: profileRepository,
       );
-      const requested = MeasurementUnitPreferences(
+      const requested = UnitPreferences(
         weightUnit: WeightUnit.lb,
         heightUnit: HeightUnit.ftIn,
         distanceUnit: DistanceUnit.mi,
@@ -52,7 +52,7 @@ void main() {
 
       await expectLater(
         repository.updateMeasurementUnitPreferences(
-          MeasurementUnitPreferences.metric,
+          UnitPreferences.metric,
         ),
         throwsA(isA<StateError>()),
       );

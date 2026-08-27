@@ -1,15 +1,15 @@
-import 'measurement_units.dart';
+import 'unit_types.dart';
 
-class MeasurementUnitPreferences {
-  const MeasurementUnitPreferences({
+class UnitPreferences {
+  const UnitPreferences({
     this.weightUnit = WeightUnit.kg,
     this.heightUnit = HeightUnit.cm,
     this.distanceUnit = DistanceUnit.km,
     this.volumeUnit = VolumeUnit.ml,
   });
 
-  static const metric = MeasurementUnitPreferences();
-  static const imperial = MeasurementUnitPreferences(
+  static const metric = UnitPreferences();
+  static const imperial = UnitPreferences(
     weightUnit: WeightUnit.lb,
     heightUnit: HeightUnit.ftIn,
     distanceUnit: DistanceUnit.mi,
@@ -37,7 +37,7 @@ class MeasurementUnitPreferences {
 
   /// Parses the durable account-storage shape and safely falls back to metric
   /// values when the object or any individual value is missing/corrupt.
-  factory MeasurementUnitPreferences.fromJson(Object? value) {
+  factory UnitPreferences.fromJson(Object? value) {
     if (value is! Map) return metric;
 
     String? readString(String key) {
@@ -45,7 +45,7 @@ class MeasurementUnitPreferences {
       return raw is String ? raw : null;
     }
 
-    return MeasurementUnitPreferences(
+    return UnitPreferences(
       weightUnit: WeightUnit.fromStorage(readString('weight')),
       heightUnit: HeightUnit.fromStorage(readString('height')),
       distanceUnit: DistanceUnit.fromStorage(readString('distance')),
@@ -53,13 +53,13 @@ class MeasurementUnitPreferences {
     );
   }
 
-  MeasurementUnitPreferences copyWith({
+  UnitPreferences copyWith({
     WeightUnit? weightUnit,
     HeightUnit? heightUnit,
     DistanceUnit? distanceUnit,
     VolumeUnit? volumeUnit,
   }) {
-    return MeasurementUnitPreferences(
+    return UnitPreferences(
       weightUnit: weightUnit ?? this.weightUnit,
       heightUnit: heightUnit ?? this.heightUnit,
       distanceUnit: distanceUnit ?? this.distanceUnit,
@@ -70,7 +70,7 @@ class MeasurementUnitPreferences {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is MeasurementUnitPreferences &&
+      other is UnitPreferences &&
           weightUnit == other.weightUnit &&
           heightUnit == other.heightUnit &&
           distanceUnit == other.distanceUnit &&

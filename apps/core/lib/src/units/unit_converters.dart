@@ -1,5 +1,5 @@
-class MeasurementConverters {
-  const MeasurementConverters._();
+class UnitConverters {
+  const UnitConverters._();
 
   static const double poundsPerKilogram = 2.2046226218487757;
   static const double centimetresPerInch = 2.54;

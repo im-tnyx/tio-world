@@ -34,7 +34,7 @@ class TargetWeightScreen extends StatelessWidget {
 
   String get _displayValue {
     final kg = valueKg ?? currentWeightKg ?? _defaultKg;
-    return MeasurementFormatters.formatWeight(
+    return UnitFormatters.formatWeight(
       kg,
       _usesPounds ? WeightUnit.lb : WeightUnit.kg,
     );
@@ -45,7 +45,7 @@ class TargetWeightScreen extends StatelessWidget {
     final target = valueKg ?? currentWeightKg ?? _defaultKg;
     final current = currentWeightKg ?? target;
     final diffKg = target - current;
-    final diffVal = _usesPounds ? MeasurementConverters.kgToLb(diffKg) : diffKg;
+    final diffVal = _usesPounds ? UnitConverters.kgToLb(diffKg) : diffKg;
     final diffAbs = diffVal.abs();
     final unitLabel = _usesPounds ? 'lb' : 'kg';
     final diffText = diffAbs < 0.05

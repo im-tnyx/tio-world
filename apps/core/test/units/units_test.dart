@@ -2,23 +2,23 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 
 void main() {
-  group('MeasurementUnitPreferences', () {
+  group('UnitPreferences', () {
     test('metric preset maps to canonical metric preferences', () {
-      expect(MeasurementUnitPreferences.metric.weightUnit, WeightUnit.kg);
-      expect(MeasurementUnitPreferences.metric.heightUnit, HeightUnit.cm);
-      expect(MeasurementUnitPreferences.metric.distanceUnit, DistanceUnit.km);
-      expect(MeasurementUnitPreferences.metric.volumeUnit, VolumeUnit.ml);
+      expect(UnitPreferences.metric.weightUnit, WeightUnit.kg);
+      expect(UnitPreferences.metric.heightUnit, HeightUnit.cm);
+      expect(UnitPreferences.metric.distanceUnit, DistanceUnit.km);
+      expect(UnitPreferences.metric.volumeUnit, VolumeUnit.ml);
     });
 
     test('imperial preset maps to independent imperial preferences', () {
-      expect(MeasurementUnitPreferences.imperial.weightUnit, WeightUnit.lb);
-      expect(MeasurementUnitPreferences.imperial.heightUnit, HeightUnit.ftIn);
-      expect(MeasurementUnitPreferences.imperial.distanceUnit, DistanceUnit.mi);
-      expect(MeasurementUnitPreferences.imperial.volumeUnit, VolumeUnit.flOz);
+      expect(UnitPreferences.imperial.weightUnit, WeightUnit.lb);
+      expect(UnitPreferences.imperial.heightUnit, HeightUnit.ftIn);
+      expect(UnitPreferences.imperial.distanceUnit, DistanceUnit.mi);
+      expect(UnitPreferences.imperial.volumeUnit, VolumeUnit.flOz);
     });
 
     test('mixed preferences remain independently selectable', () {
-      final mixed = MeasurementUnitPreferences.metric.copyWith(
+      final mixed = UnitPreferences.metric.copyWith(
         heightUnit: HeightUnit.ftIn,
         volumeUnit: VolumeUnit.flOz,
       );
@@ -31,7 +31,7 @@ void main() {
     });
 
     test('serializes mixed preferences into one durable json object', () {
-      const mixed = MeasurementUnitPreferences(
+      const mixed = UnitPreferences(
         weightUnit: WeightUnit.kg,
         heightUnit: HeightUnit.ftIn,
         distanceUnit: DistanceUnit.mi,
@@ -44,14 +44,11 @@ void main() {
         'distance': 'mi',
         'volume': 'ml',
       });
-      expect(
-        MeasurementUnitPreferences.fromJson(mixed.toJson()),
-        mixed,
-      );
+      expect(UnitPreferences.fromJson(mixed.toJson()), mixed);
     });
 
     test('invalid json values fall back per category to safe metric defaults', () {
-      final parsed = MeasurementUnitPreferences.fromJson({
+      final parsed = UnitPreferences.fromJson({
         'weight': 'stones',
         'height': 'ft_in',
         'distance': null,
@@ -62,10 +59,7 @@ void main() {
       expect(parsed.heightUnit, HeightUnit.ftIn);
       expect(parsed.distanceUnit, DistanceUnit.km);
       expect(parsed.volumeUnit, VolumeUnit.flOz);
-      expect(
-        MeasurementUnitPreferences.fromJson(null),
-        MeasurementUnitPreferences.metric,
-      );
+      expect(UnitPreferences.fromJson(null), UnitPreferences.metric);
     });
 
     test('invalid stored unit values fall back to safe metric defaults', () {
@@ -80,19 +74,19 @@ void main() {
     });
   });
 
-  group('MeasurementConverters', () {
+  group('UnitConverters', () {
     test('kg and lb roundtrip within tolerance', () {
       const kg = 81.6466;
       expect(
-        MeasurementConverters.lbToKg(MeasurementConverters.kgToLb(kg)),
+        UnitConverters.lbToKg(UnitConverters.kgToLb(kg)),
         closeTo(kg, 1e-9),
       );
     });
 
     test('cm and feet/inches roundtrip within display tolerance', () {
       const cm = 180.0;
-      final display = MeasurementConverters.cmToFeetInches(cm);
-      final restored = MeasurementConverters.feetInchesToCm(
+      final display = UnitConverters.cmToFeetInches(cm);
+      final restored = UnitConverters.feetInchesToCm(
         feet: display.feet,
         inches: display.inches,
       );
@@ -102,7 +96,7 @@ void main() {
     test('km and mi roundtrip within tolerance', () {
       const km = 5.0;
       expect(
-        MeasurementConverters.miToKm(MeasurementConverters.kmToMi(km)),
+        UnitConverters.miToKm(UnitConverters.kmToMi(km)),
         closeTo(km, 1e-9),
       );
     });
@@ -110,20 +104,20 @@ void main() {
     test('ml and US fl oz roundtrip within tolerance', () {
       const ml = 2500.0;
       expect(
-        MeasurementConverters.flOzToMl(MeasurementConverters.mlToFlOz(ml)),
+        UnitConverters.flOzToMl(UnitConverters.mlToFlOz(ml)),
         closeTo(ml, 1e-8),
       );
     });
   });
 
-  group('MeasurementFormatters', () {
+  group('UnitFormatters', () {
     test('metric volume uses mL below one litre and L above it', () {
-      expect(MeasurementFormatters.formatVolume(750, VolumeUnit.ml), '750 mL');
-      expect(MeasurementFormatters.formatVolume(2500, VolumeUnit.ml), '2.5 L');
+      expect(UnitFormatters.formatVolume(750, VolumeUnit.ml), '750 mL');
+      expect(UnitFormatters.formatVolume(2500, VolumeUnit.ml), '2.5 L');
     });
 
     test('height formatter avoids inches rollover bugs', () {
-      expect(MeasurementFormatters.formatHeight(182.88, HeightUnit.ftIn), '6 ft 0 in');
+      expect(UnitFormatters.formatHeight(182.88, HeightUnit.ftIn), '6 ft 0 in');
     });
   });
 }

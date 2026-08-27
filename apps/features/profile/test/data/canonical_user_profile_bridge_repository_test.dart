@@ -14,7 +14,7 @@ void main() {
         name: 'Tio User',
         gender: ProfileGender.female,
         dateOfBirth: DateTime(1996, 6, 15),
-        unitPreferences: const MeasurementUnitPreferences(),
+        unitPreferences: const UnitPreferences(),
         heightCm: 165,
         activityLevel: ProfileActivityLevel.active,
         healthConditions: const {ProfileHealthCondition.none},

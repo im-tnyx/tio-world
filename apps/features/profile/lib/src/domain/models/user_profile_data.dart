@@ -28,7 +28,7 @@ final class UserProfileData {
   final String name;
   final ProfileGender gender;
   final DateTime dateOfBirth;
-  final MeasurementUnitPreferences unitPreferences;
+  final UnitPreferences unitPreferences;
   final double heightCm;
   final ProfileActivityLevel activityLevel;
   final Set<ProfileHealthCondition> healthConditions;
