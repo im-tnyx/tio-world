@@ -6,23 +6,33 @@ import 'auth_aware_onboarding_draft_repository.dart';
 
 /// App-owned onboarding controller that records a separate post-auth resume
 /// checkpoint without advancing the signed-out screen state.
-class AppOnboardingController extends OnboardingController {
+///
+/// This must remain Nutrition-aware because the production app overrides the
+/// feature controller provider with this app-owned controller. Extending the
+/// plain [OnboardingController] would bypass Nutrition Profile child-step
+/// selection and navigation in the real app composition.
+class AppOnboardingController extends NutritionAwareOnboardingController {
   AppOnboardingController({
-    required super.entryPath,
+    required OnboardingEntryPath entryPath,
     required LocalOnboardingDraftStore localDraftStore,
-    super.initialDraft,
-    super.includeMobile,
+    OnboardingDraft? initialDraft,
+    bool includeMobile = false,
     OnboardingStatusRepository statusRepository =
         const NoOpOnboardingStatusRepository(),
     OnboardingDraftRepository? draftRepository,
-    super.completionValidator,
+    OnboardingCompletionValidator completionValidator =
+        const OnboardingCompletionValidator(),
   })  : _localDraftStore = localDraftStore,
         super(
+          entryPath: entryPath,
+          initialDraft: initialDraft,
+          includeMobile: includeMobile,
           statusRepository:
               _DeduplicatingOnboardingStatusRepository(statusRepository),
           draftRepository: draftRepository == null
               ? null
               : _SerializingOnboardingDraftRepository(draftRepository),
+          completionValidator: completionValidator,
         );
 
   final LocalOnboardingDraftStore _localDraftStore;
