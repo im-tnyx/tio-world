@@ -119,14 +119,6 @@ void main() {
         closeTo(ml, 1e-8),
       );
     });
-
-    test('temporary legacy converter bridge delegates exactly', () {
-      expect(MeasurementConverters.kgToLb(10), UnitConverters.kgToLb(10));
-      expect(
-        MeasurementConverters.feetInchesToCm(feet: 6, inches: 0),
-        UnitConverters.feetInchesToCm(feet: 6, inches: 0),
-      );
-    });
   });
 
   group('UnitFormatters', () {
@@ -137,13 +129,6 @@ void main() {
 
     test('height formatter avoids inches rollover bugs', () {
       expect(UnitFormatters.formatHeight(182.88, HeightUnit.ftIn), '6 ft 0 in');
-    });
-
-    test('temporary legacy formatter bridge delegates exactly', () {
-      expect(
-        MeasurementFormatters.formatWeight(81, WeightUnit.lb),
-        UnitFormatters.formatWeight(81, WeightUnit.lb),
-      );
     });
   });
 }
