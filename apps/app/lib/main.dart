@@ -8,11 +8,13 @@ import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_feature_progress/progress.dart';
+import 'package:tio_feature_settings/settings.dart';
 
 import 'app/app.dart';
 import 'app/app_mode/app_mode.dart';
 import 'app/app_theme.dart';
 import 'app/bootstrap.dart';
+import 'app/google_identity_link_controller.dart';
 import 'app/network_providers.dart';
 import 'app/onboarding/onboarding.dart';
 import 'app/profile/canonical_profile_data_reader.dart';
@@ -70,6 +72,9 @@ Future<void> main() async {
     () => ProviderScope(
       overrides: [
         supabaseConfigProvider.overrideWithValue(supabaseConfig),
+        googleIdentityLinkControllerProvider.overrideWith(
+          (ref) => ref.watch(appGoogleIdentityLinkControllerProvider),
+        ),
         appModeControllerProvider.overrideWith((ref) => appModeController),
         onboardingStatusControllerProvider
             .overrideWith((ref) => onboardingStatusController),
