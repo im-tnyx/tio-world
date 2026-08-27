@@ -1,6 +1,6 @@
 # Core Units Module Rename
 
-**Status:** ACTIVE — audit complete, source rename pending  
+**Status:** ACTIVE — physical module rename complete; public class/consumer migration pending  
 **Issue:** #23  
 **Working branch:** `agent/core-units-module-rename`  
 **Stack base:** PR #131 @ `d4e323ce7ef22cd2958756236f34f411bc87473d`  
@@ -56,6 +56,25 @@ This is repository-wide, not a folder-only rename. Consumers exist in Core, App 
 
 Known impact areas include `apps/core/lib/core.dart`, the shared Measurement Units editor, Onboarding draft/screens/mappers/controllers, Profile models/repositories, App-level unit persistence composition, Settings, and their tests.
 
+## Source checkpoints
+
+### Physical capability rename
+
+Commit: `7e8d7d994f721ade073c82d2a6f47c75b815dafb`
+
+Completed without changing public class names or serialized values:
+
+```text
+apps/core/lib/src/measurement/ → apps/core/lib/src/units/
+measurement.dart               → units.dart
+measurement_units.dart         → unit_types.dart
+measurement_unit_preferences.dart → unit_preferences.dart
+measurement_converters.dart    → unit_converters.dart
+measurement_formatters.dart    → unit_formatters.dart
+```
+
+`apps/core/lib/core.dart` now exports `src/units/units.dart`, and the shared editor's direct internal import points to `units`. This is an intermediate buildable checkpoint; obsolete public class names still intentionally remain until the repository-wide consumer pass.
+
 ## Execution checklist
 
 - [x] confirm #23 future-domain rationale
@@ -63,13 +82,13 @@ Known impact areas include `apps/core/lib/core.dart`, the shared Measurement Uni
 - [x] verify PR #131 as safe stack base
 - [x] create dedicated branch
 - [x] create durable tracker before source mutation
-- [ ] rename physical module/folder/files
+- [x] rename physical module/folder/files
+- [x] update `core.dart` and direct internal module import
 - [ ] rename public classes to `UnitPreferences`, `UnitConverters`, `UnitFormatters`
-- [ ] update `core.dart` and internal imports
 - [ ] migrate all app/feature consumers
 - [ ] migrate tests and test paths where appropriate
-- [ ] preserve serialized values exactly
-- [ ] zero references to obsolete `src/measurement` path
+- [x] preserve serialized values exactly in physical rename checkpoint
+- [ ] zero references to obsolete `src/measurement` path across repository docs/tests/source
 - [ ] zero references to obsolete public class names
 - [ ] Flutter/Dart analyze
 - [ ] focused tests
