@@ -1,6 +1,6 @@
 # Core Units Module Rename
 
-**Status:** ACTIVE — core capability and primary runtime graph migrated; final `UnitPreferences` bridge cleanup + zero-reference/validation gates pending  
+**Status:** SOURCE MIGRATION PASS / EXECUTABLE PENDING  
 **Issue:** #23  
 **Working branch:** `agent/core-units-module-rename`  
 **Stack base:** PR #131 @ `d4e323ce7ef22cd2958756236f34f411bc87473d`  
@@ -32,7 +32,7 @@ apps/core/lib/src/
 - Keep `WeightUnit`, `HeightUnit`, `DistanceUnit`, `VolumeUnit` enum names.
 - No Supabase schema/data/config mutation.
 - No UI behavior redesign.
-- No permanent compatibility aliases/wrappers after all consumers migrate.
+- No permanent compatibility aliases/wrappers after consumer migration.
 - Do not move this capability into generic `utils` or `helpers`.
 - PR stays Draft/open/unmerged until explicit owner authorization.
 
@@ -54,9 +54,9 @@ MeasurementFormatters      → UnitFormatters
 
 This is repository-wide, not a folder-only rename. Consumers exist in Core, App composition, Onboarding, Profile, Settings and tests. PR #50 unit consumers are included through the PR #131 stack base.
 
-Default-branch GitHub code search is historical for this stacked branch, so current-branch files/directories are source truth before mutation. This already prevented acting on one retired historical Profile repository and caught real stale picker imports after the folder move.
+Default-branch GitHub code search is historical for this stacked branch, so current-branch files and the PR diff are source truth. The final static audit distinguishes obsolete core class symbols from valid product/domain names such as `MeasurementUnitsSettingsPage`, `MeasurementUnitPreferencesRepository`, and `updateMeasurementUnitPreferences`.
 
-## Completed checkpoints
+## Completed source checkpoints
 
 ### Physical capability rename
 
@@ -77,11 +77,11 @@ UnitConverters
 UnitFormatters
 ```
 
-Unit enums and serialized storage values remain unchanged.
+Unit enums remain unchanged.
 
 ### Runtime consumer migration
 
-Canonical helper APIs are now used by:
+Canonical helper APIs are used by:
 
 - shared Height/Weight pickers;
 - Onboarding Height / Current Weight / Target Weight;
@@ -89,7 +89,7 @@ Canonical helper APIs are now used by:
 - Profile display;
 - Profile Settings.
 
-Canonical `UnitPreferences` is now used by:
+Canonical `UnitPreferences` is used by:
 
 - shared Measurement Units editor;
 - `ProfileSetupData`;
@@ -99,51 +99,74 @@ Canonical `UnitPreferences` is now used by:
 - `ProfileOnboardingDraft`;
 - Onboarding Measurement Units screen;
 - `OnboardingController.updateMeasurementUnitPreferences`;
-- Profile/Targets renderers directly, with temporary adapters removed;
+- Profile/Targets renderers directly;
 - draft DTO decode path;
 - Settings Measurement Units page;
-- focused Onboarding/Profile/Settings tests migrated so far.
+- App router metric fallback;
+- focused Core/Onboarding/Profile/Settings tests migrated in this task.
 
-The draft DTO serialized keys and values remain exactly the same.
+The draft DTO and Profile `unit_preferences` serialized keys/values remain exactly the same.
 
-### Compatibility bridge cleanup
+### Compatibility cleanup
 
-Removed:
+Removed from active code:
 
+- `MeasurementUnitPreferences` compatibility class;
 - `MeasurementConverters` compatibility class;
 - `MeasurementFormatters` compatibility class;
-- their temporary bridge-equivalence tests.
+- temporary renderer adapters;
+- temporary bridge-equivalence test coverage.
 
-Still intentionally present:
+No compatibility bridge remains in `apps/core/lib/src/units/`.
 
-- `MeasurementUnitPreferences` compatibility class only.
+## Static zero-reference audit
 
-Current known runtime blocker for removing the last preference bridge:
+Source checkpoint:
+
+`de539e57a4bac135bd472d3cd93a949593e5d150`
+
+The PR diff and known default-branch candidate paths were audited against the current branch after migration.
+
+Result for active Dart source/tests:
 
 ```text
-apps/app/lib/app/router.dart
-profileData?.unitPreferences ?? MeasurementUnitPreferences.metric
+obsolete src/measurement imports/exports       0 current additions
+exact MeasurementUnitPreferences class usage   0 current additions
+exact MeasurementConverters class usage        0 current additions
+exact MeasurementFormatters class usage        0 current additions
+temporary compatibility classes                removed
+temporary renderer adapters                    removed
 ```
 
-This router is a large file, so the one-line migration must be performed from verified full current source rather than by blind overwrite.
+Historical task/tracker text may intentionally mention the obsolete names when documenting the rename. Product/domain identifiers containing “Measurement Units” are not part of the public-core-class rename target.
 
-Core `units_test.dart` still contains one temporary preference-bridge test while that final bridge remains.
+Static diff review also preserves these storage values unchanged:
 
-## Current checkpoint
+```text
+kg
+lb
+cm
+ft_in
+km
+mi
+ml
+fl_oz
+```
 
-Latest source head before this tracker-only update:
+No Supabase schema/data/config mutation was performed for #23.
 
-`210ca8b876f7ebfc9f5da262505af5ae2d16fa4c`
+## Executable validation status
 
-At this checkpoint:
+For exact source head `de539e57a4bac135bd472d3cd93a949593e5d150`:
 
-- `MeasurementConverters` bridge: removed
-- `MeasurementFormatters` bridge: removed
-- Onboarding controller adapter bridge: removed
-- draft DTO preference adapter: removed
-- `MeasurementUnitPreferences` bridge: still pending App router migration
-- no Supabase/schema/data mutation
-- no executable green state claimed yet
+- GitHub combined status checks: none available.
+- PR-triggered workflow runs: none available.
+- Flutter/Dart analyze: not yet evidenced on this head.
+- focused tests: not yet evidenced on this head.
+- repository-wide serialized tests / CI: not yet evidenced.
+- Android debug build: not yet evidenced on this head.
+
+Do not infer executable success from the static migration audit or from older PR #131 validation.
 
 ## Execution checklist
 
@@ -155,43 +178,38 @@ At this checkpoint:
 - [x] introduce canonical `UnitPreferences`, `UnitConverters`, `UnitFormatters`
 - [x] repair stale deleted-path picker imports
 - [x] migrate helper consumers to `UnitConverters` / `UnitFormatters`
-- [x] migrate primary Profile model/repository graph to `UnitPreferences`
-- [x] migrate primary Onboarding draft/screen/controller graph to `UnitPreferences`
+- [x] migrate Profile model/repository graph to `UnitPreferences`
+- [x] migrate Onboarding draft/screen/controller graph to `UnitPreferences`
 - [x] remove temporary renderer adapters
 - [x] migrate draft DTO decode constructor to `UnitPreferences`
 - [x] migrate Settings Measurement Units page + focused tests
+- [x] migrate App router fallback to `UnitPreferences.metric`
 - [x] remove `MeasurementConverters` compatibility bridge
 - [x] remove `MeasurementFormatters` compatibility bridge
-- [ ] migrate App router fallback to `UnitPreferences.metric`
-- [ ] migrate any remaining `MeasurementUnitPreferences` test/docs/source refs required by final zero-reference gate
-- [ ] remove final `MeasurementUnitPreferences` compatibility bridge
-- [ ] preserve serialized values exactly
-- [ ] zero references to obsolete `src/measurement` path/imports
-- [ ] zero symbol references to obsolete public class names
-- [ ] Flutter/Dart analyze
-- [ ] focused tests
+- [x] remove final `MeasurementUnitPreferences` compatibility bridge
+- [x] remove bridge-specific test coverage
+- [x] preserve serialized unit values in source/storage contracts
+- [x] static active-source audit shows no obsolete `src/measurement` additions
+- [x] static active-source audit shows no obsolete public core class additions
+- [ ] Flutter/Dart analyze on accepted source head
+- [ ] focused tests on accepted source head
 - [ ] repository-wide serialized tests / CI
 - [ ] Android debug build if required for final acceptance
-- [ ] record final evidence in Issue #23 and Draft PR
+- [ ] record executable evidence in Issue #23 and Draft PR
 
-## Validation gates
+## Final validation gates
 
 ```text
-obsolete src/measurement references    0
-MeasurementUnitPreferences symbol refs 0
-MeasurementConverters symbol refs      0
-MeasurementFormatters symbol refs       0
-temporary migration bridges/adapters    removed
-serialized unit values changed          no
-metric calculation behavior changed     no
-Flutter analyze                          pass
-Dart analyze                             pass
-Flutter/Dart tests                       pass
+active obsolete src/measurement imports     0
+obsolete public core class usages           0
+temporary migration bridges/adapters        removed
+serialized unit values changed              no
+metric calculation behavior intentionally changed  no
+Flutter/Dart analyze                        pending
+focused tests                               pending
+repository-wide tests / CI                  pending
+Android debug build                         pending if required
 ```
-
-Repository/product names such as `MeasurementUnitsSettingsPage` may remain because they describe the user-facing concept “Measurement Units”. The zero-reference gate targets the obsolete core capability path and the three explicitly renamed public core class symbols.
-
-Exact-head evidence that cannot actually execute remains pending and must not be inferred from older SHAs.
 
 ## Scope boundary
 
@@ -199,4 +217,4 @@ Do not add the future `body_measurements` domain, Progress measurement history, 
 
 ## Resume rule
 
-If interrupted, resume from this tracker, Issue #23 and Draft PR #132. Re-read current branch source before relying on default-branch code search. Finish App router migration before removing the final preference bridge, then run repository-wide zero-reference and executable validation gates before declaring completion.
+If interrupted, resume from this tracker, Issue #23 and Draft PR #132. Source migration is complete. Next work is executable validation only unless a real analyzer/test failure demonstrates a required source fix. Keep PR #132 Draft/open/unmerged until explicit owner authorization.
