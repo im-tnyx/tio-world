@@ -2,6 +2,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/repositories/google_identity_link_repository.dart';
+import '../../domain/utils/canonical_email_identity.dart';
 
 /// Supabase Auth-backed Google identity linker for an already authenticated user.
 ///
@@ -31,6 +32,16 @@ final class SupabaseGoogleIdentityLinkRepository
       return true;
     }
 
+    final tioEmail = beforeUser.email;
+    final canonicalTioEmail = tioEmail == null
+        ? null
+        : canonicalEmailIdentity(tioEmail);
+    if (canonicalTioEmail == null || beforeUser.emailConfirmedAt == null) {
+      throw StateError(
+        'Add and verify your Tio email before connecting Google.',
+      );
+    }
+
     // Always show an explicit account chooser for a Settings linking action.
     try {
       await _googleSignIn.signOut();
@@ -40,6 +51,14 @@ final class SupabaseGoogleIdentityLinkRepository
 
     final googleUser = await _googleSignIn.signIn();
     if (googleUser == null) return false;
+
+    final canonicalGoogleEmail = canonicalEmailIdentity(googleUser.email);
+    if (canonicalGoogleEmail == null ||
+        canonicalGoogleEmail != canonicalTioEmail) {
+      throw StateError(
+        'Use the Google account matching your Tio email.',
+      );
+    }
 
     final googleAuth = await googleUser.authentication;
     final idToken = googleAuth.idToken?.trim();
