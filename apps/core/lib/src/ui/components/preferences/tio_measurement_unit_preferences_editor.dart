@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../measurement/measurement.dart';
+import '../../../units/units.dart';
 import '../../../theme/theme.dart';
 
 /// Shared editor for the four independent measurement-unit preferences.

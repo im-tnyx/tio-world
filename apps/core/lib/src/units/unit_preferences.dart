@@ -1,4 +1,4 @@
-import 'measurement_units.dart';
+import 'unit_types.dart';
 
 class MeasurementUnitPreferences {
   const MeasurementUnitPreferences({

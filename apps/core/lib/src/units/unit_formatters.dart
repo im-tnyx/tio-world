@@ -1,5 +1,5 @@
-import 'measurement_converters.dart';
-import 'measurement_units.dart';
+import 'unit_converters.dart';
+import 'unit_types.dart';
 
 class MeasurementFormatters {
   const MeasurementFormatters._();
