@@ -8,18 +8,23 @@ import 'nutrition_profile_screen_components.dart';
 class AllergiesRestrictionsScreen extends StatelessWidget {
   const AllergiesRestrictionsScreen({
     required this.selectedRestrictions,
+    required this.otherText,
     required this.onToggled,
+    required this.onOtherTextChanged,
     super.key,
     this.errorText,
   });
 
   final Set<NutritionAllergyRestriction>? selectedRestrictions;
+  final String otherText;
   final ValueChanged<NutritionAllergyRestriction> onToggled;
+  final ValueChanged<String> onOtherTextChanged;
   final String? errorText;
 
   @override
   Widget build(BuildContext context) {
-    final selected = selectedRestrictions ?? const <NutritionAllergyRestriction>{};
+    final selected =
+        selectedRestrictions ?? const <NutritionAllergyRestriction>{};
     return NutritionProfileScreenScaffold(
       stepId: NutritionProfileStepId.allergiesRestrictions,
       title: 'Any food allergies or restrictions?',
@@ -28,15 +33,28 @@ class AllergiesRestrictionsScreen extends StatelessWidget {
       child: Column(
         children: [
           for (final restriction in NutritionAllergyRestriction.values) ...[
-            NutritionProfileChoiceCard(
-              id: 'nutrition-allergy-${restriction.name}',
-              title: _restrictionLabel(restriction),
-              selected: selected.contains(restriction),
-              onTap: () {
-                HapticFeedback.selectionClick();
-                onToggled(restriction);
-              },
-            ),
+            if (restriction == NutritionAllergyRestriction.other)
+              NutritionProfileOtherChoiceCard(
+                id: 'nutrition-allergy-other',
+                selected: selected.contains(NutritionAllergyRestriction.other),
+                value: otherText,
+                hintText: 'e.g. Soy, Sesame, specific foods...',
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  onToggled(NutritionAllergyRestriction.other);
+                },
+                onTextChanged: onOtherTextChanged,
+              )
+            else
+              NutritionProfileChoiceCard(
+                id: 'nutrition-allergy-${restriction.name}',
+                title: _restrictionLabel(restriction),
+                selected: selected.contains(restriction),
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  onToggled(restriction);
+                },
+              ),
             const SizedBox(height: TioSpacing.md),
           ],
         ],
