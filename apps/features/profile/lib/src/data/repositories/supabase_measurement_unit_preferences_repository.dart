@@ -23,7 +23,7 @@ class SupabaseMeasurementUnitPreferencesRepository
 
   @override
   Future<void> updateMeasurementUnitPreferences(
-    MeasurementUnitPreferences preferences,
+    UnitPreferences preferences,
   ) async {
     final current = await _profileRepository.read();
     if (current == null) {
