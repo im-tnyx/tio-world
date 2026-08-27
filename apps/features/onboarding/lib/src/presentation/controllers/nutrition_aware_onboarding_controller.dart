@@ -37,8 +37,20 @@ class NutritionAwareOnboardingController extends OnboardingController {
 
   void updateNutritionDietType(NutritionDietType value) {
     if (state.isBusy) return;
+    final current = state.draft.nutrition;
     _updateNutrition(
-      state.draft.nutrition.copyWith(dietType: value),
+      current.copyWith(
+        dietType: value,
+        otherDietType:
+            value == NutritionDietType.other ? current.otherDietType : '',
+      ),
+    );
+  }
+
+  void updateNutritionOtherDietType(String value) {
+    if (state.isBusy) return;
+    _updateNutrition(
+      state.draft.nutrition.copyWith(otherDietType: value),
     );
   }
 
@@ -50,17 +62,35 @@ class NutritionAwareOnboardingController extends OnboardingController {
     final next = <NutritionAllergyRestriction>{
       ...?current.allergyRestrictions,
     };
+    var otherText = current.otherAllergyRestriction;
 
     if (restriction == NutritionAllergyRestriction.none) {
       next
         ..clear()
         ..add(NutritionAllergyRestriction.none);
+      otherText = '';
     } else {
       next.remove(NutritionAllergyRestriction.none);
-      if (!next.remove(restriction)) next.add(restriction);
+      if (!next.remove(restriction)) {
+        next.add(restriction);
+      } else if (restriction == NutritionAllergyRestriction.other) {
+        otherText = '';
+      }
     }
 
-    _updateNutrition(current.copyWith(allergyRestrictions: next));
+    _updateNutrition(
+      current.copyWith(
+        allergyRestrictions: next,
+        otherAllergyRestriction: otherText,
+      ),
+    );
+  }
+
+  void updateNutritionOtherAllergyRestriction(String value) {
+    if (state.isBusy) return;
+    _updateNutrition(
+      state.draft.nutrition.copyWith(otherAllergyRestriction: value),
+    );
   }
 
   @override
@@ -76,7 +106,8 @@ class NutritionAwareOnboardingController extends OnboardingController {
     }
 
     if (state.stepId == OnboardingStepId.wellnessGoals &&
-        state.draft.targets.currentStepId == state.wellnessFlowPlan.steps.first &&
+        state.draft.targets.currentStepId ==
+            state.wellnessFlowPlan.steps.first &&
         state.currentIndex > 0 &&
         state.flowPlan.steps[state.currentIndex - 1].id ==
             OnboardingStepId.nutritionProfile) {
@@ -96,7 +127,8 @@ class NutritionAwareOnboardingController extends OnboardingController {
   }) async {
     if (state.isBusy) return;
     if (state.stepId == OnboardingStepId.nutritionProfile) {
-      final error = _nutritionValidator.validateCurrentStep(state.draft.nutrition);
+      final error =
+          _nutritionValidator.validateCurrentStep(state.draft.nutrition);
       if (error != null) {
         setValidationErrors({state.draft.nutrition.currentStepId.name: error});
         return;
@@ -166,8 +198,14 @@ extension NutritionProfileOnboardingActions on OnboardingController {
   void updateNutritionDietType(NutritionDietType value) =>
       _nutritionAware.updateNutritionDietType(value);
 
+  void updateNutritionOtherDietType(String value) =>
+      _nutritionAware.updateNutritionOtherDietType(value);
+
   void toggleNutritionAllergyRestriction(
     NutritionAllergyRestriction restriction,
   ) =>
       _nutritionAware.toggleNutritionAllergyRestriction(restriction);
+
+  void updateNutritionOtherAllergyRestriction(String value) =>
+      _nutritionAware.updateNutritionOtherAllergyRestriction(value);
 }
