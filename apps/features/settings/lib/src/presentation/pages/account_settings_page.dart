@@ -23,6 +23,13 @@ class UsernameAvailabilityResult {
 
 enum _UsernameStatus { idle, checking, available, unavailable }
 
+const _googleEmailMismatchGuardMessage =
+    'Use the Google account matching your Tio email.';
+const _googleEmailMismatchUserMessage =
+    'Google account doesn’t match. Please choose the Google account with the same email as your Tio account.';
+const _googleConnectGenericError =
+    'Could not connect Google. Please try again.';
+
 /// Account Settings Page structured with modern capsule input containers,
 /// live debounced username availability checking, smart suggestions, and
 /// docked action bar.
@@ -329,8 +336,8 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
       // Google identity evidence for the same canonical UUID.
       setState(() => _googleConnected = true);
       _showMessage('Google connected successfully!');
-    } catch (_) {
-      _showMessage('Could not connect Google. Please try again.');
+    } catch (error) {
+      _showMessage(_googleConnectFailureMessage(error));
     } finally {
       if (mounted) setState(() => _isLinkingGoogle = false);
     }
@@ -902,6 +909,13 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
       ),
     );
   }
+}
+
+String _googleConnectFailureMessage(Object error) {
+  if (error is StateError && error.message == _googleEmailMismatchGuardMessage) {
+    return _googleEmailMismatchUserMessage;
+  }
+  return _googleConnectGenericError;
 }
 
 bool _linkedProviderContainsGoogle(String value) {
