@@ -4,7 +4,7 @@ import 'package:tio_feature_auth/auth.dart';
 
 void main() {
   group('SupabaseAccountContactVerificationRepository', () {
-    test('email change uses Supabase Auth emailChange and requires confirmation',
+    test('email change uses Supabase Auth emailChange and mobile callback',
         () async {
       final currentUser = _user(
         email: 'old@example.com',
@@ -29,6 +29,7 @@ void main() {
       );
 
       expect(auth.updatedEmail, 'new@example.com');
+      expect(auth.lastEmailRedirectTo, 'tio://login-callback');
       expect(auth.lastVerifyEmail, 'new@example.com');
       expect(auth.lastVerifyType, OtpType.emailChange);
     });
@@ -57,8 +58,7 @@ void main() {
       expect(auth.lastVerifyType, OtpType.emailChange);
     });
 
-    test('existing unconfirmed email resends Supabase signup verification',
-        () async {
+    test('existing unconfirmed email resends with mobile callback', () async {
       final auth = FakeContactGoTrueClient(
         currentUser: _user(email: 'pending@example.com'),
       );
@@ -70,6 +70,7 @@ void main() {
 
       expect(auth.lastResendEmail, 'pending@example.com');
       expect(auth.lastResendType, OtpType.signup);
+      expect(auth.lastResendEmailRedirectTo, 'tio://login-callback');
       expect(auth.updatedEmail, isNull);
     });
 
@@ -172,8 +173,10 @@ class FakeContactGoTrueClient extends Fake implements GoTrueClient {
   final AuthResponse? verifyResponse;
   String? updatedEmail;
   String? updatedPhone;
+  String? lastEmailRedirectTo;
   String? lastResendEmail;
   OtpType? lastResendType;
+  String? lastResendEmailRedirectTo;
   String? lastVerifyEmail;
   String? lastVerifyPhone;
   String? lastVerifyToken;
@@ -186,6 +189,7 @@ class FakeContactGoTrueClient extends Fake implements GoTrueClient {
   }) async {
     updatedEmail = attributes.email;
     updatedPhone = attributes.phone;
+    lastEmailRedirectTo = emailRedirectTo;
     final user = currentUser;
     if (user == null) {
       throw StateError('test requires a current user');
@@ -203,6 +207,7 @@ class FakeContactGoTrueClient extends Fake implements GoTrueClient {
   }) async {
     lastResendEmail = email;
     lastResendType = type;
+    lastResendEmailRedirectTo = emailRedirectTo;
     return ResendResponse();
   }
 
