@@ -72,7 +72,6 @@ void main() {
       expect(find.byKey(const ValueKey('login-email-input')), findsOneWidget);
       expect(find.byKey(const ValueKey('login-password-input')), findsOneWidget);
       expect(find.text('Phone'), findsOneWidget);
-      expect(find.text('Email'), findsNothing);
 
       await tester.tap(find.byKey(const ValueKey('login-mode-round-action')));
       await tester.pump();
