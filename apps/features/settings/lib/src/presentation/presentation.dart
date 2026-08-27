@@ -1,3 +1,4 @@
+export 'google_identity_link_controller.dart';
 export 'navigation/settings_navigation.dart';
 export 'pages/account_settings_page.dart';
 export 'pages/app_mode_settings_page.dart';
