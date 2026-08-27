@@ -15,6 +15,8 @@ final class SupabaseAccountContactVerificationRepository
     required SupabaseClient client,
   }) : _client = client;
 
+  static const String _emailVerificationRedirect = 'tio://login-callback';
+
   final SupabaseClient _client;
   String? _pendingEmailChange;
 
@@ -68,12 +70,14 @@ final class SupabaseAccountContactVerificationRepository
       await _client.auth.resend(
         type: OtpType.signup,
         email: normalizedEmail,
+        emailRedirectTo: _emailVerificationRedirect,
       );
       return;
     }
 
     await _client.auth.updateUser(
       UserAttributes(email: normalizedEmail),
+      emailRedirectTo: _emailVerificationRedirect,
     );
     _pendingEmailChange = normalizedEmail;
   }
