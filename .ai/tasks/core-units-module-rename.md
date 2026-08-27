@@ -1,6 +1,6 @@
 # Core Units Module Rename
 
-**Status:** ACTIVE — physical rename complete; canonical public unit APIs live; primary runtime preference graph is migrating behind temporary compatibility bridges  
+**Status:** ACTIVE — core capability and primary runtime graph migrated; final `UnitPreferences` bridge cleanup + zero-reference/validation gates pending  
 **Issue:** #23  
 **Working branch:** `agent/core-units-module-rename`  
 **Stack base:** PR #131 @ `d4e323ce7ef22cd2958756236f34f411bc87473d`  
@@ -50,29 +50,26 @@ MeasurementConverters      → UnitConverters
 MeasurementFormatters      → UnitFormatters
 ```
 
-## Audit findings
+## Audit rule
 
-This is repository-wide, not a folder-only rename. Consumers exist in Core, App composition, Onboarding, Profile, Settings and tests. PR #50 also contains unit-related consumers, so this branch starts from PR #131, whose ancestry contains the current PR #50 head plus the Auth stack, instead of starting from `main`.
+This is repository-wide, not a folder-only rename. Consumers exist in Core, App composition, Onboarding, Profile, Settings and tests. PR #50 unit consumers are included through the PR #131 stack base.
 
-Default-branch GitHub code search is historical for this stacked branch, so current-branch files/directories are treated as source truth before mutation. That audit already caught one stale historical path (`supabase_profile_setup_repository.dart`) that no longer exists on the active branch and two real stale picker imports that did exist and were fixed.
+Default-branch GitHub code search is historical for this stacked branch, so current-branch files/directories are source truth before mutation. This already prevented acting on one retired historical Profile repository and caught real stale picker imports after the folder move.
 
-## Checkpoints
+## Completed checkpoints
 
 ### Physical capability rename
-
-Completed in:
 
 `7e8d7d994f721ade073c82d2a6f47c75b815dafb`
 
 - `apps/core/lib/src/measurement/` moved to `apps/core/lib/src/units/`.
-- Core file names now match the approved `unit_*` map.
+- Core file names use the approved `unit_*` map.
 - `core.dart` exports `src/units/units.dart`.
-- shared editor direct import moved to `../../../units/units.dart`.
-- storage values and behavior remained unchanged.
+- shared direct imports moved to the `units` capability.
 
-### Canonical public names
+### Canonical public APIs
 
-Canonical classes are now defined as:
+Canonical public classes:
 
 ```text
 UnitPreferences
@@ -80,72 +77,94 @@ UnitConverters
 UnitFormatters
 ```
 
-Old `Measurement*` names remain only as explicitly deprecated temporary migration bridges so repository-wide consumers can be moved in bounded passes without leaving the branch uncompilable. These bridges are not an accepted final state and must be deleted after consumer migration and zero-reference audit.
+Unit enums and serialized storage values remain unchanged.
 
-Core canonical tests moved from `test/measurement/measurement_test.dart` to `test/units/units_test.dart` and exercise the new names plus temporary bridge equivalence.
+### Runtime consumer migration
 
-Canonical API checkpoint:
+Canonical helper APIs are now used by:
 
-`40bd4753f78c87d9aee5db7d8af73ce2396e6316`
+- shared Height/Weight pickers;
+- Onboarding Height / Current Weight / Target Weight;
+- Goal Pace;
+- Profile display;
+- Profile Settings.
 
-### Helper consumer migration
+Canonical `UnitPreferences` is now used by:
 
-Migrated:
-
-- Onboarding Height display → `UnitFormatters`.
-- Onboarding Current Weight display → `UnitFormatters`.
-- Onboarding Target Weight display/difference → `UnitFormatters` + `UnitConverters`.
-- shared Height picker → `units/units.dart` + `UnitConverters`.
-- shared Weight picker → `units/units.dart` + `UnitConverters`.
-
-The picker audit caught stale direct imports left behind by the first physical-folder move; those imports now point to the canonical `units` capability rather than the removed `measurement` path.
-
-Known remaining helper consumers: Goal Pace, Profile display and Profile Settings.
-
-### UnitPreferences runtime graph
-
-Migrated to `UnitPreferences`:
-
-- shared `TioMeasurementUnitPreferencesEditor` contract;
+- shared Measurement Units editor;
 - `ProfileSetupData`;
 - canonical `UserProfileData`;
-- `MeasurementUnitPreferencesRepository` method parameter;
-- `InMemoryProfileSetupRepository` implementation/copy helper;
-- `SupabaseMeasurementUnitPreferencesRepository` implementation;
-- `SupabaseUserProfileRepository` decode/persistence type while preserving exact JSON keys/values;
-- `ProfileOnboardingDraft` constructor/field/copy/resolver;
-- Product Onboarding `MeasurementUnitsScreen`;
-- Settings `MeasurementUnitsSettingsPage`.
+- Profile preference repository interface + in-memory/Supabase implementations;
+- Supabase canonical `user_profiles.unit_preferences` decode/write path;
+- `ProfileOnboardingDraft`;
+- Onboarding Measurement Units screen;
+- `OnboardingController.updateMeasurementUnitPreferences`;
+- Profile/Targets renderers directly, with temporary adapters removed;
+- draft DTO decode path;
+- Settings Measurement Units page;
+- focused Onboarding/Profile/Settings tests migrated so far.
 
-The large `OnboardingController` still has one `MeasurementUnitPreferences` method signature. Until that giant file is migrated safely, Profile and Targets renderers use explicit temporary adapters that round-trip the already canonical `UnitPreferences.toJson()` into the deprecated bridge. These adapters preserve exact values and are explicitly temporary; both must be removed together with the controller old signature before final acceptance.
+The draft DTO serialized keys and values remain exactly the same.
 
-The draft DTO mapper still constructs the deprecated preference bridge on decode; its serialized keys/values remain unchanged and it is pending a safe mapper pass.
+### Compatibility bridge cleanup
 
-Current source checkpoint before this tracker update:
+Removed:
 
-`8cc6e8769f828bffc3388f060cd00709682bcc03`
+- `MeasurementConverters` compatibility class;
+- `MeasurementFormatters` compatibility class;
+- their temporary bridge-equivalence tests.
 
-PR-triggered workflow runs on that SHA: none. No analyzer/test/build green state is inferred.
+Still intentionally present:
+
+- `MeasurementUnitPreferences` compatibility class only.
+
+Current known runtime blocker for removing the last preference bridge:
+
+```text
+apps/app/lib/app/router.dart
+profileData?.unitPreferences ?? MeasurementUnitPreferences.metric
+```
+
+This router is a large file, so the one-line migration must be performed from verified full current source rather than by blind overwrite.
+
+Core `units_test.dart` still contains one temporary preference-bridge test while that final bridge remains.
+
+## Current checkpoint
+
+Latest source head before this tracker-only update:
+
+`210ca8b876f7ebfc9f5da262505af5ae2d16fa4c`
+
+At this checkpoint:
+
+- `MeasurementConverters` bridge: removed
+- `MeasurementFormatters` bridge: removed
+- Onboarding controller adapter bridge: removed
+- draft DTO preference adapter: removed
+- `MeasurementUnitPreferences` bridge: still pending App router migration
+- no Supabase/schema/data mutation
+- no executable green state claimed yet
 
 ## Execution checklist
 
 - [x] confirm #23 future-domain rationale
 - [x] repository-wide consumer audit
 - [x] verify PR #131 as safe stack base
-- [x] create dedicated branch
-- [x] create durable tracker before source mutation
+- [x] create dedicated branch + durable tracker
 - [x] rename physical module/folder/files
 - [x] introduce canonical `UnitPreferences`, `UnitConverters`, `UnitFormatters`
-- [x] migrate first bounded helper consumers and repair stale picker imports
-- [x] migrate primary Profile models/repositories to `UnitPreferences`
-- [x] migrate primary Onboarding draft/screen contract to `UnitPreferences`
-- [x] migrate Settings Measurement Units page to `UnitPreferences`
-- [ ] migrate remaining helper consumers to `UnitConverters` / `UnitFormatters`
-- [ ] migrate `OnboardingController` unit preference signature and remove renderer adapters
-- [ ] migrate draft DTO decode constructor to `UnitPreferences`
-- [ ] migrate App router fallback and remaining app/feature consumers
-- [ ] migrate remaining tests and historical task/docs references where required for final zero-reference acceptance
-- [ ] remove temporary deprecated `Measurement*` migration bridges
+- [x] repair stale deleted-path picker imports
+- [x] migrate helper consumers to `UnitConverters` / `UnitFormatters`
+- [x] migrate primary Profile model/repository graph to `UnitPreferences`
+- [x] migrate primary Onboarding draft/screen/controller graph to `UnitPreferences`
+- [x] remove temporary renderer adapters
+- [x] migrate draft DTO decode constructor to `UnitPreferences`
+- [x] migrate Settings Measurement Units page + focused tests
+- [x] remove `MeasurementConverters` compatibility bridge
+- [x] remove `MeasurementFormatters` compatibility bridge
+- [ ] migrate App router fallback to `UnitPreferences.metric`
+- [ ] migrate any remaining `MeasurementUnitPreferences` test/docs/source refs required by final zero-reference gate
+- [ ] remove final `MeasurementUnitPreferences` compatibility bridge
 - [ ] preserve serialized values exactly
 - [ ] zero references to obsolete `src/measurement` path/imports
 - [ ] zero symbol references to obsolete public class names
@@ -170,7 +189,7 @@ Dart analyze                             pass
 Flutter/Dart tests                       pass
 ```
 
-Repository/domain names such as `MeasurementUnitsSettingsPage` may remain where they describe the user-facing product concept “Measurement Units”; the zero-reference gate targets the obsolete core capability path and the three explicitly renamed public core class symbols.
+Repository/product names such as `MeasurementUnitsSettingsPage` may remain because they describe the user-facing concept “Measurement Units”. The zero-reference gate targets the obsolete core capability path and the three explicitly renamed public core class symbols.
 
 Exact-head evidence that cannot actually execute remains pending and must not be inferred from older SHAs.
 
@@ -180,4 +199,4 @@ Do not add the future `body_measurements` domain, Progress measurement history, 
 
 ## Resume rule
 
-If interrupted, resume from this tracker, Issue #23 and Draft PR #132. Re-read current branch source before relying on default-branch code search. Re-run repository-wide zero-reference audit before removing old names or declaring completion.
+If interrupted, resume from this tracker, Issue #23 and Draft PR #132. Re-read current branch source before relying on default-branch code search. Finish App router migration before removing the final preference bridge, then run repository-wide zero-reference and executable validation gates before declaring completion.
