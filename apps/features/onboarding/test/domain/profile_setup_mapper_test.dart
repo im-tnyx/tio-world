@@ -17,7 +17,7 @@ void main() {
         currentWeightKg: 64.0,
         targetWeightKg: 58.0,
         targetWeightDirection: GoalWeightDirection.loss,
-        unitPreferences: const MeasurementUnitPreferences(
+        unitPreferences: const UnitPreferences(
           weightUnit: WeightUnit.lb,
           heightUnit: HeightUnit.ftIn,
           distanceUnit: DistanceUnit.km,
@@ -45,7 +45,7 @@ void main() {
       expect(result.targetWeightKg, 58.0);
       expect(
         result.unitPreferences,
-        const MeasurementUnitPreferences(
+        const UnitPreferences(
           weightUnit: WeightUnit.lb,
           heightUnit: HeightUnit.ftIn,
           distanceUnit: DistanceUnit.km,
@@ -96,7 +96,7 @@ void main() {
       expect(result.gender, profile_owner.ProfileGender.male);
       expect(result.heightCm, 170.0);
       expect(result.currentWeightKg, 70.0);
-      expect(result.unitPreferences, MeasurementUnitPreferences.metric);
+      expect(result.unitPreferences, UnitPreferences.metric);
       expect(result.activityLevel, profile_owner.ProfileActivityLevel.active);
       expect(
         result.healthConditions,
