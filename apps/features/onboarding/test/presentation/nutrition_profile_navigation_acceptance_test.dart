@@ -124,7 +124,11 @@ void main() {
       findsNothing,
     );
 
-    await tester.tap(find.byKey(const ValueKey('nutrition-allergy-other')));
+    final allergyOther =
+        find.byKey(const ValueKey('nutrition-allergy-other'));
+    await tester.ensureVisible(allergyOther);
+    await tester.pumpAndSettle();
+    await tester.tap(allergyOther);
     await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('nutrition-allergy-other-text-field')),
