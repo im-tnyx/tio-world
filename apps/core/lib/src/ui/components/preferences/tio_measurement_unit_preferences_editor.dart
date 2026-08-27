@@ -16,8 +16,8 @@ class TioMeasurementUnitPreferencesEditor extends StatelessWidget {
     super.key,
   });
 
-  final MeasurementUnitPreferences preferences;
-  final ValueChanged<MeasurementUnitPreferences> onChanged;
+  final UnitPreferences preferences;
+  final ValueChanged<UnitPreferences> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -59,9 +59,9 @@ class TioMeasurementUnitPreferencesEditor extends StatelessWidget {
             onSelected: (preset) {
               switch (preset) {
                 case _MeasurementPreset.metric:
-                  onChanged(MeasurementUnitPreferences.metric);
+                  onChanged(UnitPreferences.metric);
                 case _MeasurementPreset.imperial:
-                  onChanged(MeasurementUnitPreferences.imperial);
+                  onChanged(UnitPreferences.imperial);
                 case _MeasurementPreset.custom:
                   break;
               }
