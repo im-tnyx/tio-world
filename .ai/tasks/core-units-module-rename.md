@@ -1,6 +1,6 @@
 # Core Units Module Rename
 
-**Status:** SOURCE MIGRATION PASS / EXECUTABLE PENDING  
+**Status:** SOURCE MIGRATION PASS / AFFECTED VALIDATION PASS / REPO-WIDE INHERITED AUTH BLOCKER  
 **Issue:** #23  
 **Working branch:** `agent/core-units-module-rename`  
 **Stack base:** PR #131 @ `d4e323ce7ef22cd2958756236f34f411bc87473d`  
@@ -121,9 +121,9 @@ No compatibility bridge remains in `apps/core/lib/src/units/`.
 
 ## Static zero-reference audit
 
-Source checkpoint:
+Validated application source head:
 
-`de539e57a4bac135bd472d3cd93a949593e5d150`
+`2fd7222127150b63b21be804514bd4c043b18fd9`
 
 The PR diff and known default-branch candidate paths were audited against the current branch after migration.
 
@@ -155,18 +155,35 @@ fl_oz
 
 No Supabase schema/data/config mutation was performed for #23.
 
-## Executable validation status
+## Executable validation evidence
 
-For exact source head `de539e57a4bac135bd472d3cd93a949593e5d150`:
+Validation-only Draft PR #133 targeted `main` to trigger existing CI without retargeting stacked PR #132. Its validation commit `34b89337c83fd3f0a619c706b2d2669664b3ae6b` contains the same application source as #132 source head `2fd7222127150b63b21be804514bd4c043b18fd9`; the only extra change is validation workflow YAML.
 
-- GitHub combined status checks: none available.
-- PR-triggered workflow runs: none available.
-- Flutter/Dart analyze: not yet evidenced on this head.
-- focused tests: not yet evidenced on this head.
-- repository-wide serialized tests / CI: not yet evidenced.
-- Android debug build: not yet evidenced on this head.
+Confirmed:
 
-Do not infer executable success from the static migration audit or from older PR #131 validation.
+- repository-wide Flutter analyze: PASS
+- repository-wide Dart analyze: PASS
+- focused Issue #23 affected-package validation: PASS
+  - App
+  - Core
+  - Onboarding
+  - Profile
+  - Settings
+- App tests observed in serialized CI: 226 PASS
+- Core tests observed in serialized CI: 112 PASS
+- Account Setup tests observed before inherited blocker: 37 PASS
+- Android Native CI: PASS
+  - phone Android debug APK build PASS
+  - Wear Android debug APK build PASS
+
+Repository-wide serialized Flutter tests do not currently complete green because the inherited Auth stack has two unrelated failing tests:
+
+```text
+apps/features/auth/test/presentation/auth_field_visual_parity_test.dart
+apps/features/auth/test/presentation/login_page_test.dart
+```
+
+Those two files are byte-identical between PR #131 base and PR #132, and neither file is changed by PR #132. Therefore they are recorded as an inherited repository-wide blocker, not as an Issue #23 regression. Do not mix unrelated Auth fixes into this units refactor.
 
 ## Execution checklist
 
@@ -191,11 +208,12 @@ Do not infer executable success from the static migration audit or from older PR
 - [x] preserve serialized unit values in source/storage contracts
 - [x] static active-source audit shows no obsolete `src/measurement` additions
 - [x] static active-source audit shows no obsolete public core class additions
-- [ ] Flutter/Dart analyze on accepted source head
-- [ ] focused tests on accepted source head
-- [ ] repository-wide serialized tests / CI
-- [ ] Android debug build if required for final acceptance
-- [ ] record executable evidence in Issue #23 and Draft PR
+- [x] Flutter/Dart analyze on source-identical validation tree
+- [x] focused affected-package tests on source-identical validation tree
+- [ ] repository-wide serialized Flutter tests green, blocked only by inherited Auth failures outside #23
+- [x] Android phone debug build
+- [x] Android Wear debug build
+- [x] record executable evidence in Issue #23 / Draft PR #132 / tracker
 
 ## Final validation gates
 
@@ -205,10 +223,11 @@ obsolete public core class usages           0
 temporary migration bridges/adapters        removed
 serialized unit values changed              no
 metric calculation behavior intentionally changed  no
-Flutter/Dart analyze                        pending
-focused tests                               pending
-repository-wide tests / CI                  pending
-Android debug build                         pending if required
+Flutter/Dart analyze                        PASS
+focused affected-package tests              PASS
+Android phone debug build                   PASS
+Android Wear debug build                    PASS
+repository-wide Flutter tests               BLOCKED by 2 inherited Auth tests outside #23
 ```
 
 ## Scope boundary
@@ -217,4 +236,4 @@ Do not add the future `body_measurements` domain, Progress measurement history, 
 
 ## Resume rule
 
-If interrupted, resume from this tracker, Issue #23 and Draft PR #132. Source migration is complete. Next work is executable validation only unless a real analyzer/test failure demonstrates a required source fix. Keep PR #132 Draft/open/unmerged until explicit owner authorization.
+If interrupted, resume from this tracker, Issue #23 and Draft PR #132. Issue #23 implementation and affected-package validation are complete. Only the repository-wide inherited Auth test blocker remains before claiming a completely green repository gate. Keep PR #132 Draft/open/unmerged until explicit owner authorization.
