@@ -47,7 +47,7 @@ measurement_formatters.dart            → unit_formatters.dart
 
 MeasurementUnitPreferences → UnitPreferences
 MeasurementConverters      → UnitConverters
-MeasurementFormatters      → UnitFormatters
+MeasurementFormatters       → UnitFormatters
 ```
 
 ## Audit rule
@@ -237,3 +237,7 @@ Do not add the future `body_measurements` domain, Progress measurement history, 
 ## Resume rule
 
 If interrupted, resume from this tracker, Issue #23 and Draft PR #132. Issue #23 implementation and affected-package validation are complete. Only the repository-wide inherited Auth test blocker remains before claiming a completely green repository gate. Keep PR #132 Draft/open/unmerged until explicit owner authorization.
+
+## Evidence sync note
+
+This tracker update is documentation-only. It moves the PR head after application validation without changing application source, tests, dependencies, native code, or runtime behavior.
