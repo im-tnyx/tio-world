@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../measurement/measurement_converters.dart';
+import '../../../units/units.dart';
 import '../../../theme/theme.dart';
 import '../buttons/tio_button.dart';
 
@@ -51,7 +51,7 @@ class _TioHeightPickerBottomSheetState
     final cm = widget.initialHeightCm;
     _cmController = TextEditingController(text: cm.toStringAsFixed(1));
 
-    final display = MeasurementConverters.cmToFeetInches(cm);
+    final display = UnitConverters.cmToFeetInches(cm);
     _ftController = TextEditingController(text: display.feet.toString());
     _inController = TextEditingController(text: display.inches.toString());
   }
@@ -77,7 +77,7 @@ class _TioHeightPickerBottomSheetState
           feet >= 0 &&
           inches >= 0 &&
           inches <= 11) {
-        resolvedCm = MeasurementConverters.feetInchesToCm(
+        resolvedCm = UnitConverters.feetInchesToCm(
           feet: feet,
           inches: inches,
         );
@@ -126,7 +126,6 @@ class _TioHeightPickerBottomSheetState
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // ── Header: Title & Close Button ──
               Stack(
                 alignment: Alignment.center,
                 children: [
@@ -172,8 +171,6 @@ class _TioHeightPickerBottomSheetState
               const SizedBox(
                 height: TioMeasurementPickerTokens.headerSubtitleGap,
               ),
-
-              // ── Subtitle ──
               Text(
                 'Height is important for calculating BMI, estimating calorie needs, and personalizing your fitness plan.',
                 textAlign: TextAlign.center,
@@ -184,16 +181,12 @@ class _TioHeightPickerBottomSheetState
                   fontWeight: TioFontWeight.w400,
                 ),
               ),
-
               const SizedBox(
                 height: TioMeasurementPickerTokens.inputSectionGap,
               ),
-
-              // ── Input Fields ──
               if (isFt)
                 Row(
                   children: [
-                    // Feet Box
                     Expanded(
                       child: _HeightInputCapsule(
                         controller: _ftController,
@@ -204,7 +197,6 @@ class _TioHeightPickerBottomSheetState
                     const SizedBox(
                       width: TioMeasurementPickerTokens.dualInputGap,
                     ),
-                    // Inches Box
                     Expanded(
                       child: _HeightInputCapsule(
                         controller: _inController,
@@ -220,12 +212,9 @@ class _TioHeightPickerBottomSheetState
                   suffix: 'cm',
                   colors: colors,
                 ),
-
               const SizedBox(
                 height: TioMeasurementPickerTokens.inputSectionGap,
               ),
-
-              // ── Save Button ──
               TioButton.primary(
                 label: 'Save',
                 expand: true,
