@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:tio_core/core.dart';
 
 import '../../domain/domain.dart';
 import '../controllers/controllers.dart';
@@ -51,11 +50,7 @@ class ProfileStepRenderer extends StatelessWidget {
           errorText: errorText),
       ProfileStepId.measurementUnits => MeasurementUnitsScreen(
           preferences: draft.unitPreferences,
-          onChanged: (preferences) {
-            controller.updateMeasurementUnitPreferences(
-              MeasurementUnitPreferences.fromJson(preferences.toJson()),
-            );
-          },
+          onChanged: controller.updateMeasurementUnitPreferences,
         ),
       ProfileStepId.height => HeightScreen(
           valueCm: draft.heightCm,
