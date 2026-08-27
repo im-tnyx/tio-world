@@ -1,6 +1,6 @@
 # Core Units Module Rename
 
-**Status:** ACTIVE — physical rename complete; canonical public unit names introduced behind temporary migration bridges  
+**Status:** ACTIVE — physical rename complete; canonical public unit names introduced; consumer migration in progress behind temporary migration bridges  
 **Issue:** #23  
 **Working branch:** `agent/core-units-module-rename`  
 **Stack base:** PR #131 @ `d4e323ce7ef22cd2958756236f34f411bc87473d`  
@@ -72,7 +72,7 @@ Completed in:
 
 ### Canonical public names
 
-Current checkpoint introduces the final canonical classes:
+Canonical classes are now defined as:
 
 ```text
 UnitPreferences
@@ -82,7 +82,29 @@ UnitFormatters
 
 Old `Measurement*` names remain only as explicitly deprecated temporary migration bridges so repository-wide consumers can be moved in bounded passes without leaving the branch uncompilable. These bridges are not an accepted final state and must be deleted after consumer migration and zero-reference audit.
 
-Core canonical tests move from `test/measurement/measurement_test.dart` to `test/units/units_test.dart` and exercise the new names plus temporary bridge equivalence.
+Core canonical tests moved from `test/measurement/measurement_test.dart` to `test/units/units_test.dart` and exercise the new names plus temporary bridge equivalence.
+
+Canonical API checkpoint:
+
+`40bd4753f78c87d9aee5db7d8af73ce2396e6316`
+
+### Helper consumer migration
+
+Migrated in bounded follow-up commits:
+
+- Onboarding Height display → `UnitFormatters`.
+- Onboarding Current Weight display → `UnitFormatters`.
+- Onboarding Target Weight display/difference → `UnitFormatters` + `UnitConverters`.
+- shared Height picker → `units/units.dart` + `UnitConverters`.
+- shared Weight picker → `units/units.dart` + `UnitConverters`.
+
+The picker audit caught stale direct imports left behind by the first physical-folder move; those imports now point to the canonical `units` capability rather than the removed `measurement` path.
+
+Current helper-consumer checkpoint:
+
+`f62024e0c3f3df7c3a46970a9b25f693f3b05d54`
+
+Remaining known helper consumers include Goal Pace, Profile display and Profile Settings. The larger `MeasurementUnitPreferences` model/repository consumer graph remains a separate next pass.
 
 ## Execution checklist
 
@@ -93,11 +115,13 @@ Core canonical tests move from `test/measurement/measurement_test.dart` to `test
 - [x] create durable tracker before source mutation
 - [x] rename physical module/folder/files
 - [x] introduce canonical `UnitPreferences`, `UnitConverters`, `UnitFormatters`
-- [ ] migrate all app/feature consumers to canonical names
+- [x] migrate first bounded helper consumers and repair stale picker imports
+- [ ] migrate remaining helper consumers to `UnitConverters` / `UnitFormatters`
+- [ ] migrate `MeasurementUnitPreferences` app/feature consumers to `UnitPreferences`
 - [ ] migrate remaining tests and test references
 - [ ] remove temporary deprecated `Measurement*` migration bridges
 - [ ] preserve serialized values exactly
-- [ ] zero references to obsolete `src/measurement` path
+- [ ] zero references to obsolete `src/measurement` path/imports
 - [ ] zero references to obsolete public class names
 - [ ] Flutter/Dart analyze
 - [ ] focused tests
