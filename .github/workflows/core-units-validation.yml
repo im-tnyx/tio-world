@@ -1,0 +1,55 @@
+name: Core Units Focused Validation
+
+on:
+  push:
+    branches:
+      - ci/core-units-module-rename-validation
+    paths:
+      - 'apps/**'
+      - '.github/workflows/core-units-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: core-units-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  affected-package-tests:
+    name: Test #23 affected packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Flutter stable
+        shell: bash
+        run: |
+          git clone https://github.com/flutter/flutter.git --depth 1 --branch stable "$HOME/flutter"
+          echo "$HOME/flutter/bin" >> "$GITHUB_PATH"
+
+      - name: Toolchain info
+        run: flutter --version
+
+      - name: Test affected Flutter packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          for package in \
+            apps/app \
+            apps/core \
+            apps/features/onboarding \
+            apps/features/profile \
+            apps/features/settings
+          do
+            echo "==> $package"
+            (
+              cd "$package"
+              flutter pub get
+              flutter test --no-pub
+            )
+          done
