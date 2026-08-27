@@ -86,7 +86,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
     if (_heightUnit == 'cm') {
       return '${_heightCm.toStringAsFixed(0)} cm';
     }
-    final display = MeasurementConverters.cmToFeetInches(_heightCm);
+    final display = UnitConverters.cmToFeetInches(_heightCm);
     return "${display.feet}' ${display.inches}\"";
   }
 
@@ -94,7 +94,7 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
     if (_weightUnit == 'kg') {
       return '${_weightKg.toStringAsFixed(1)} kg';
     }
-    final pounds = MeasurementConverters.kgToLb(_weightKg);
+    final pounds = UnitConverters.kgToLb(_weightKg);
     return '${pounds.toStringAsFixed(1)} lbs';
   }
 
