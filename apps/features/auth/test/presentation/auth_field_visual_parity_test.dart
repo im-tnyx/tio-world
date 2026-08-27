@@ -29,7 +29,9 @@ void main() {
   testWidgets(
       'login and signup share field geometry while preserving screen semantics',
       (tester) async {
-    await tester.pumpWidget(app(const LoginPage()));
+    await tester.pumpWidget(
+      app(const LoginPage(initialMode: AuthEntryMode.email)),
+    );
 
     final loginEmail = renderedField(tester, 'login-email-input');
     final loginPassword = renderedField(tester, 'login-password-input');
@@ -53,7 +55,9 @@ void main() {
       FloatingLabelBehavior.auto,
     );
 
-    await tester.pumpWidget(app(const EmailSignupPage()));
+    await tester.pumpWidget(
+      app(const EmailSignupPage(initialMode: AuthEntryMode.email)),
+    );
     await tester.pump();
 
     final signupEmail = renderedField(tester, 'signup-email-input');
@@ -100,9 +104,15 @@ void main() {
     expect(signupPasswordFocused.borderRadius, loginPasswordFocused.borderRadius);
     expect(signupPasswordFocused.borderSide, loginPasswordFocused.borderSide);
 
-    expect(signupEmailEnabled.borderSide.width, TioStroke.width12);
-    expect(signupEmailFocused.borderSide.width, TioStroke.width18);
-    expect(signupPasswordEnabled.borderSide.width, TioStroke.width12);
-    expect(signupPasswordFocused.borderSide.width, TioStroke.width18);
+    expect(signupEmailEnabled.borderSide.width, TioInputTokens.outlineWidth);
+    expect(
+      signupEmailFocused.borderSide.width,
+      TioInputTokens.focusedOutlineWidth,
+    );
+    expect(signupPasswordEnabled.borderSide.width, TioInputTokens.outlineWidth);
+    expect(
+      signupPasswordFocused.borderSide.width,
+      TioInputTokens.focusedOutlineWidth,
+    );
   });
 }
