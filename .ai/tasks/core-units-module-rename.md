@@ -1,6 +1,6 @@
 # Core Units Module Rename
 
-**Status:** ACTIVE — physical module rename complete; public class/consumer migration pending  
+**Status:** ACTIVE — physical rename complete; canonical public unit names introduced behind temporary migration bridges  
 **Issue:** #23  
 **Working branch:** `agent/core-units-module-rename`  
 **Stack base:** PR #131 @ `d4e323ce7ef22cd2958756236f34f411bc87473d`  
@@ -32,7 +32,7 @@ apps/core/lib/src/
 - Keep `WeightUnit`, `HeightUnit`, `DistanceUnit`, `VolumeUnit` enum names.
 - No Supabase schema/data/config mutation.
 - No UI behavior redesign.
-- No permanent compatibility aliases after all consumers migrate.
+- No permanent compatibility aliases/wrappers after all consumers migrate.
 - Do not move this capability into generic `utils` or `helpers`.
 - PR stays Draft/open/unmerged until explicit owner authorization.
 
@@ -56,24 +56,33 @@ This is repository-wide, not a folder-only rename. Consumers exist in Core, App 
 
 Known impact areas include `apps/core/lib/core.dart`, the shared Measurement Units editor, Onboarding draft/screens/mappers/controllers, Profile models/repositories, App-level unit persistence composition, Settings, and their tests.
 
-## Source checkpoints
+## Checkpoints
 
 ### Physical capability rename
 
-Commit: `7e8d7d994f721ade073c82d2a6f47c75b815dafb`
+Completed in:
 
-Completed without changing public class names or serialized values:
+`7e8d7d994f721ade073c82d2a6f47c75b815dafb`
+
+- `apps/core/lib/src/measurement/` moved to `apps/core/lib/src/units/`.
+- Core file names now match the approved `unit_*` map.
+- `core.dart` exports `src/units/units.dart`.
+- shared editor direct import moved to `../../../units/units.dart`.
+- storage values and behavior remained unchanged.
+
+### Canonical public names
+
+Current checkpoint introduces the final canonical classes:
 
 ```text
-apps/core/lib/src/measurement/ → apps/core/lib/src/units/
-measurement.dart               → units.dart
-measurement_units.dart         → unit_types.dart
-measurement_unit_preferences.dart → unit_preferences.dart
-measurement_converters.dart    → unit_converters.dart
-measurement_formatters.dart    → unit_formatters.dart
+UnitPreferences
+UnitConverters
+UnitFormatters
 ```
 
-`apps/core/lib/core.dart` now exports `src/units/units.dart`, and the shared editor's direct internal import points to `units`. This is an intermediate buildable checkpoint; obsolete public class names still intentionally remain until the repository-wide consumer pass.
+Old `Measurement*` names remain only as explicitly deprecated temporary migration bridges so repository-wide consumers can be moved in bounded passes without leaving the branch uncompilable. These bridges are not an accepted final state and must be deleted after consumer migration and zero-reference audit.
+
+Core canonical tests move from `test/measurement/measurement_test.dart` to `test/units/units_test.dart` and exercise the new names plus temporary bridge equivalence.
 
 ## Execution checklist
 
@@ -83,12 +92,12 @@ measurement_formatters.dart    → unit_formatters.dart
 - [x] create dedicated branch
 - [x] create durable tracker before source mutation
 - [x] rename physical module/folder/files
-- [x] update `core.dart` and direct internal module import
-- [ ] rename public classes to `UnitPreferences`, `UnitConverters`, `UnitFormatters`
-- [ ] migrate all app/feature consumers
-- [ ] migrate tests and test paths where appropriate
-- [x] preserve serialized values exactly in physical rename checkpoint
-- [ ] zero references to obsolete `src/measurement` path across repository docs/tests/source
+- [x] introduce canonical `UnitPreferences`, `UnitConverters`, `UnitFormatters`
+- [ ] migrate all app/feature consumers to canonical names
+- [ ] migrate remaining tests and test references
+- [ ] remove temporary deprecated `Measurement*` migration bridges
+- [ ] preserve serialized values exactly
+- [ ] zero references to obsolete `src/measurement` path
 - [ ] zero references to obsolete public class names
 - [ ] Flutter/Dart analyze
 - [ ] focused tests
@@ -103,6 +112,7 @@ obsolete src/measurement references    0
 MeasurementUnitPreferences references  0
 MeasurementConverters references       0
 MeasurementFormatters references       0
+temporary migration bridges            removed
 serialized unit values changed         no
 metric calculation behavior changed    no
 Flutter analyze                         pass
@@ -118,4 +128,4 @@ Do not add the future `body_measurements` domain, Progress measurement history, 
 
 ## Resume rule
 
-If interrupted, resume from this tracker and Issue #23. Re-run repository-wide zero-reference audit before removing old names or declaring completion.
+If interrupted, resume from this tracker, Issue #23 and Draft PR #132. Re-run repository-wide zero-reference audit before removing old names or declaring completion.
