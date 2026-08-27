@@ -607,7 +607,7 @@ class OnboardingController extends ChangeNotifier {
   }
 
   void updateMeasurementUnitPreferences(
-    MeasurementUnitPreferences preferences,
+    UnitPreferences preferences,
   ) {
     _markInProgress();
     _updateProfile(
