@@ -301,7 +301,7 @@ OnboardingDraft _draft({
       name: 'Wellness Accepted',
       gender: ProfileGender.female,
       dateOfBirth: DateTime(1994, 5, 6),
-      unitPreferences: MeasurementUnitPreferences.metric,
+      unitPreferences: UnitPreferences.metric,
       heightCm: 168,
       currentWeightKg: 64,
       activityLevel: ProfileActivityLevel.active,
