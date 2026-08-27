@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../models/sign_in_result.dart';
 import '../repositories/auth_sign_in_repository.dart';
+import '../repositories/email_signup_confirmation_repository.dart';
 import '../utils/canonical_email_identity.dart';
 
 /// Use case for registering a new user with email and password.
@@ -61,5 +62,25 @@ class SignUpWithEmailUseCase {
         code: 'email_signup_timeout',
       );
     }
+  }
+
+  /// Requests another confirmation email for an already-pending Signup.
+  ///
+  /// This does not authenticate the user. Supabase Auth still owns the actual
+  /// confirmation and session establishment when the email link is opened.
+  Future<void> resendConfirmation({required String email}) async {
+    final canonicalEmail = canonicalEmailIdentity(email);
+    if (canonicalEmail == null) {
+      throw ArgumentError.value(email, 'email', 'must be a valid email');
+    }
+
+    final repository = _signInRepository;
+    if (repository is! EmailSignupConfirmationRepository) {
+      throw StateError('Email confirmation resend is unavailable right now.');
+    }
+
+    await repository
+        .resendSignupConfirmation(email: canonicalEmail)
+        .timeout(_timeout);
   }
 }
