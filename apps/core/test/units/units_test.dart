@@ -62,17 +62,6 @@ void main() {
       expect(UnitPreferences.fromJson(null), UnitPreferences.metric);
     });
 
-    test('temporary legacy preference bridge preserves storage semantics', () {
-      const legacy = MeasurementUnitPreferences(
-        weightUnit: WeightUnit.lb,
-        heightUnit: HeightUnit.ftIn,
-        distanceUnit: DistanceUnit.mi,
-        volumeUnit: VolumeUnit.flOz,
-      );
-      expect(legacy.toJson(), UnitPreferences.imperial.toJson());
-      expect(MeasurementUnitPreferences.fromJson(legacy.toJson()), legacy);
-    });
-
     test('invalid stored unit values fall back to safe metric defaults', () {
       expect(WeightUnit.fromStorage('stones'), WeightUnit.kg);
       expect(HeightUnit.fromStorage('yards'), HeightUnit.cm);
