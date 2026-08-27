@@ -12,11 +12,13 @@ void main() {
         currentStepId: OnboardingStepId.nutritionProfile,
         nutrition: const NutritionOnboardingDraft(
           currentStepId: NutritionProfileStepId.allergiesRestrictions,
-          dietType: NutritionDietType.nonVegetarian,
+          dietType: NutritionDietType.other,
+          otherDietType: 'Jain',
           allergyRestrictions: {
             NutritionAllergyRestriction.gluten,
-            NutritionAllergyRestriction.nuts,
+            NutritionAllergyRestriction.other,
           },
+          otherAllergyRestriction: 'Sesame',
         ),
       ),
     );
@@ -28,16 +30,41 @@ void main() {
       OnboardingDraftSnapshot.currentSchemaVersion,
     );
     expect(nutrition['current_step_id'], 'allergiesRestrictions');
-    expect(nutrition['diet_type'], 'non_vegetarian');
-    expect(nutrition['allergy_restrictions'], containsAll(['gluten', 'nuts']));
+    expect(nutrition['diet_type'], 'other');
+    expect(nutrition['other_diet_type'], 'Jain');
+    expect(
+      nutrition['allergy_restrictions'],
+      containsAll(['gluten', 'other']),
+    );
+    expect(nutrition['other_allergy_restriction'], 'Sesame');
 
     final restored = mapper.fromJson(json).draft.nutrition;
     expect(restored.currentStepId, NutritionProfileStepId.allergiesRestrictions);
-    expect(restored.dietType, NutritionDietType.nonVegetarian);
+    expect(restored.dietType, NutritionDietType.other);
+    expect(restored.otherDietType, 'Jain');
     expect(restored.allergyRestrictions, {
       NutritionAllergyRestriction.gluten,
-      NutritionAllergyRestriction.nuts,
+      NutritionAllergyRestriction.other,
     });
+    expect(restored.otherAllergyRestriction, 'Sesame');
+  });
+
+  test('older Nutrition payload defaults missing Other details to empty', () {
+    final restored = mapper.fromJson(<String, dynamic>{
+      'schema_version': 4,
+      'selected_mode': 'nutrition',
+      'current_step_id': 'nutritionProfile',
+      'nutrition': <String, dynamic>{
+        'current_step_id': 'allergiesRestrictions',
+        'diet_type': 'other',
+        'allergy_restrictions': ['other'],
+      },
+    }).draft.nutrition;
+
+    expect(restored.dietType, NutritionDietType.other);
+    expect(restored.otherDietType, isEmpty);
+    expect(restored.allergyRestrictions, {NutritionAllergyRestriction.other});
+    expect(restored.otherAllergyRestriction, isEmpty);
   });
 
   test('legacy payload without Nutrition remains unanswered', () {
@@ -46,8 +73,13 @@ void main() {
       'selected_mode': 'nutrition',
       'current_step_id': 'review',
     });
-    expect(restored.draft.nutrition.currentStepId, NutritionProfileStepId.dietType);
+    expect(
+      restored.draft.nutrition.currentStepId,
+      NutritionProfileStepId.dietType,
+    );
     expect(restored.draft.nutrition.dietType, isNull);
+    expect(restored.draft.nutrition.otherDietType, isEmpty);
     expect(restored.draft.nutrition.allergyRestrictions, isNull);
+    expect(restored.draft.nutrition.otherAllergyRestriction, isEmpty);
   });
 }
