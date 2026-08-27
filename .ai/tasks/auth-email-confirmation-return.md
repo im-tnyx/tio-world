@@ -3,25 +3,42 @@
 Issue: #137
 Parent: #118
 Hosted smoke: #125
+Implementation PR: #138
 Stack base: Draft PR #134 / `agent/auth-phone-first-test-alignment`
 Branch: `agent/auth-email-confirmation-return`
 
+## Status
+
+**SOURCE + REPOSITORY CI PASS / HOSTED CALLBACK RETEST PENDING**
+
+Validated source commit:
+
+`921adc25370e2338da944cda22b178a900cd82c0`
+
 ## Problem
 
-Initial Email + Password Signup creates the correct pending Supabase Auth user and sends the confirmation mail, but does not pass the mobile callback redirect. Successful confirmation therefore falls back to the project Site URL and can show a localhost browser failure even though the backend account is confirmed. The Signup page also renders `email_confirmation_required` through destructive error styling.
+Initial Email + Password Signup created the correct pending Supabase Auth user and sent the confirmation mail, but did not pass the mobile callback redirect. Successful confirmation therefore fell back to the project Site URL and showed a localhost browser failure even though the backend account was confirmed. The Signup page also rendered `email_confirmation_required` through destructive error styling.
 
-## Target behavior
+## Implemented behavior
 
 ```text
 Email Signup accepted
-→ dedicated pending verification state
+→ dedicated Tio "Please verify your email" state
 → confirmation link uses tio://login-callback
-→ Tio receives/restores the authenticated confirmed session
-→ Email verified / Setting up your account progress state
-→ canonical app session bootstrap continues
+→ Supabase establishes the confirmed session on callback
+→ existing app-session bootstrap becomes the single progress/navigation owner
+→ Account Setup / Username when required
 ```
 
-Manual app resume after confirmation must also re-check the authoritative Auth session so the page cannot stay stuck on the pending state after the callback has already established a verified session.
+The verification state does not display the submitted identifier and preserves enumeration-safe duplicate behavior. `Resend email` uses the real Supabase signup-resend path with the same app callback. Actual failures remain separate from the expected pending state.
+
+## Architecture decision
+
+Do not add duplicate direct Username navigation inside `EmailSignupPage`.
+
+`AppSessionBootstrapController` already listens to authoritative Auth session transitions. Once the confirmation callback establishes an authenticated Supabase session, the existing bootstrap resolves account state and `app_session_route_policy.dart` routes incomplete accounts to Account Setup. This keeps post-auth progress/navigation under the existing canonical owner.
+
+A hosted device retest must still prove that the callback is received correctly and that the user reaches the expected Account Setup / Username step.
 
 ## Invariants
 
@@ -34,21 +51,48 @@ Manual app resume after confirmation must also re-check the authoritative Auth s
 - Site URL is not changed by this fix.
 - Existing allowed `tio://login-callback` contract is reused.
 
-## Implementation plan
+## Implementation checklist
 
-- [ ] Initial Email Signup passes `emailRedirectTo: tio://login-callback`.
-- [ ] `email_confirmation_required` becomes an expected pending verification state, not an error banner.
-- [ ] Pending verification UI is dedicated, accessible, and keeps actual failures separate.
-- [ ] Auth session stream/resume snapshot can detect confirmed matching Email.
-- [ ] Confirmed state shows success/progress before handing control to app session bootstrap.
-- [ ] Repeated auth events/resume checks are idempotent.
-- [ ] Focused repository/widget tests cover redirect and state transition.
-- [ ] Affected analyze/tests pass.
-- [ ] Hosted #125 follow-up proves callback no longer falls back to localhost.
+- [x] Initial Email Signup passes `emailRedirectTo: tio://login-callback`.
+- [x] `email_confirmation_required` becomes an expected pending verification state, not an error banner.
+- [x] Pending verification UI is dedicated and accessible while actual failures remain separate.
+- [x] Pending view does not expose the submitted Email identifier.
+- [x] `Resend email` delegates to Supabase `auth.resend(type: signup)` with the mobile callback.
+- [x] Existing Auth session stream/bootstrap remains the single confirmed-session navigation owner.
+- [x] Repeated post-auth routing remains under the existing idempotent bootstrap policy rather than page-local navigation.
+- [x] Focused repository/widget tests cover redirect, resend, pending presentation, and actual-error separation.
+- [x] Repository-wide Flutter analyze passes.
+- [x] Repository-wide Dart analyze passes.
+- [x] Repository-wide serialized Flutter tests pass.
+- [x] Repository-wide Dart tests pass.
+- [x] Phone Android debug APK builds.
+- [x] Wear Android debug APK builds.
+- [ ] Hosted #125 follow-up proves callback no longer falls back to localhost and reaches Account Setup / Username.
+
+## Executable validation
+
+Validation-only Draft PR #139 targeted `main` so the stacked source could exercise repository workflows.
+
+Final exact source under validation:
+
+`921adc25370e2338da944cda22b178a900cd82c0`
+
+Green runs:
+
+- Flutter CI #2090, run `33055694097`
+  - Flutter analyze PASS
+  - Dart analyze PASS
+  - serialized Flutter tests PASS
+  - Dart tests PASS
+- Android Native CI #502, run `33055694770`
+  - Phone Android debug APK PASS
+  - Wear Android debug APK PASS
+
+The first validation run on the preceding source checkpoint exposed only a local Dart type-promotion error plus one const lint; both were corrected before the final green source above. No production runtime behavior was widened to fix those validation findings.
 
 ## Runtime evidence before source change
 
-Sanitized hosted checkpoint after the owner-confirmed Email confirmation:
+Sanitized hosted checkpoint after the earlier owner-confirmed Email confirmation:
 
 ```text
 auth users = 1
@@ -59,8 +103,8 @@ verified email projections = 1
 canonical verified-email collision groups = 0
 ```
 
-The backend confirmation succeeded; the demonstrated defect is post-confirm redirect/presentation handling.
+The backend confirmation succeeded; the demonstrated defect was post-confirm redirect/presentation handling.
 
 ## PR state rule
 
-Implementation PR must remain Draft/open/unmerged. Do not mark Ready or merge without explicit owner authorization.
+PR #138 remains Draft/open/unmerged. Do not mark Ready or merge without explicit owner authorization. Validation-only PR #139 should close without merge after evidence sync.
