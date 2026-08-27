@@ -216,7 +216,7 @@ Set<ProfileHealthCondition> _parseHealthConditions(Object? raw) {
   return result;
 }
 
-MeasurementUnitPreferences _parseUnitPreferences(Object? raw) {
+UnitPreferences _parseUnitPreferences(Object? raw) {
   if (raw is! Map) {
     throw const FormatException(
       'Invalid canonical unit_preferences: expected object.',
@@ -238,7 +238,7 @@ MeasurementUnitPreferences _parseUnitPreferences(Object? raw) {
   final distance = requireUnit('distance');
   final volume = requireUnit('volume');
 
-  return MeasurementUnitPreferences(
+  return UnitPreferences(
     weightUnit: switch (weight) {
       'kg' => WeightUnit.kg,
       'lb' => WeightUnit.lb,
