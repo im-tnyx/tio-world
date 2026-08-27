@@ -9,6 +9,7 @@ import '../../domain/models/google_sign_in_intent.dart';
 import '../../domain/models/password_reset_request_result.dart';
 import '../../domain/models/sign_in_result.dart';
 import '../../domain/repositories/auth_sign_in_repository.dart';
+import '../../domain/repositories/email_signup_confirmation_repository.dart';
 import '../../domain/repositories/user_device_repository.dart';
 import '../google_login_admission_checker.dart';
 
@@ -22,8 +23,10 @@ typedef GoogleProfileSyncCallback = Future<void> Function({
 ///
 /// Authenticates users directly with Supabase GoTrue and establishes
 /// an authenticated session.
-class SupabaseAuthSignInRepository
-    implements AuthSignInRepository, GoogleSignInIntentRepository {
+class SupabaseAuthSignInRepository implements
+    AuthSignInRepository,
+    GoogleSignInIntentRepository,
+    EmailSignupConfirmationRepository {
   SupabaseAuthSignInRepository({
     required SupabaseClient client,
     GoogleSignIn? googleSignIn,
@@ -54,6 +57,8 @@ class SupabaseAuthSignInRepository
                         '218403286180-2047ibc6i5r6tb2kftoq4lu6220kl8d9.apps.googleusercontent.com',
                   ),
             );
+
+  static const String _emailVerificationRedirect = 'tio://login-callback';
 
   final SupabaseClient _client;
   final GoogleSignIn _googleSignIn;
@@ -319,6 +324,7 @@ class SupabaseAuthSignInRepository
       final response = await _client.auth.signUp(
         email: normalizedEmail,
         password: password,
+        emailRedirectTo: _emailVerificationRedirect,
         data: {
           if (name != null && name.trim().isNotEmpty) 'full_name': name.trim(),
         },
@@ -361,6 +367,16 @@ class SupabaseAuthSignInRepository
     } catch (e) {
       return SignInFailure(e.toString());
     }
+  }
+
+  @override
+  Future<void> resendSignupConfirmation({required String email}) async {
+    final normalizedEmail = email.trim().toLowerCase();
+    await _client.auth.resend(
+      type: OtpType.signup,
+      email: normalizedEmail,
+      emailRedirectTo: _emailVerificationRedirect,
+    );
   }
 
   @override
