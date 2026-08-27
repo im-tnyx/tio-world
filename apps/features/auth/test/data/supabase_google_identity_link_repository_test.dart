@@ -36,6 +36,38 @@ void main() {
       expect(auth.linkCalls, 0);
     });
 
+    test('requires a verified Tio email before showing Google chooser', () async {
+      final currentUser = _user(
+        'user-1',
+        email: 'member@example.com',
+        emailConfirmedAt: null,
+      );
+      final auth = _FakeGoTrueClient(
+        currentUser: currentUser,
+        identities: [_identity(provider: 'phone')],
+      );
+      final google = _FakeGoogleSignIn(
+        accountToReturn: _FakeGoogleAccount(),
+      );
+      final repository = SupabaseGoogleIdentityLinkRepository(
+        client: _FakeSupabaseClient(auth),
+        googleSignIn: google,
+      );
+
+      await expectLater(
+        repository.linkGoogleIdentity(),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            'Add and verify your Tio email before connecting Google.',
+          ),
+        ),
+      );
+      expect(google.signInCalls, 0);
+      expect(auth.linkCalls, 0);
+    });
+
     test('cancelled Google chooser returns false and does not link', () async {
       final currentUser = _user('user-1');
       final auth = _FakeGoTrueClient(
@@ -53,7 +85,62 @@ void main() {
       expect(auth.linkCalls, 0);
     });
 
-    test('links Google tokens, confirms identity, refreshes, and keeps UUID',
+    test('blocks a different Google email before Supabase identity linking',
+        () async {
+      final currentUser = _user('user-1', email: 'member@example.com');
+      final auth = _FakeGoTrueClient(
+        currentUser: currentUser,
+        identities: [_identity(provider: 'phone'), _identity(provider: 'email')],
+      );
+      final google = _FakeGoogleSignIn(
+        accountToReturn: _FakeGoogleAccount(email: 'other@example.com'),
+      );
+      final repository = SupabaseGoogleIdentityLinkRepository(
+        client: _FakeSupabaseClient(auth),
+        googleSignIn: google,
+      );
+
+      await expectLater(
+        repository.linkGoogleIdentity(),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            'Use the Google account matching your Tio email.',
+          ),
+        ),
+      );
+      expect(auth.linkCalls, 0);
+      expect(auth.refreshCalls, 0);
+    });
+
+    test('accepts Gmail canonical equivalents for Google linking', () async {
+      final currentUser = _user(
+        'user-1',
+        email: 'First.Last+fitness@gmail.com',
+      );
+      final auth = _FakeGoTrueClient(
+        currentUser: currentUser,
+        identities: [_identity(provider: 'email')],
+        addGoogleIdentityAfterLink: true,
+        refreshedUser: currentUser,
+      );
+      final google = _FakeGoogleSignIn(
+        accountToReturn: _FakeGoogleAccount(
+          email: 'firstlast@googlemail.com',
+        ),
+      );
+      final repository = SupabaseGoogleIdentityLinkRepository(
+        client: _FakeSupabaseClient(auth),
+        googleSignIn: google,
+      );
+
+      expect(await repository.linkGoogleIdentity(), isTrue);
+      expect(auth.linkCalls, 1);
+      expect(auth.refreshCalls, 1);
+    });
+
+    test('links matching Google tokens, confirms identity, refreshes, and keeps UUID',
         () async {
       final currentUser = _user('user-1');
       final auth = _FakeGoTrueClient(
@@ -125,7 +212,11 @@ void main() {
   });
 }
 
-User _user(String id) {
+User _user(
+  String id, {
+  String? email = 'member@example.com',
+  String? emailConfirmedAt = '2026-08-27T00:00:00.000Z',
+}) {
   return User(
     id: id,
     appMetadata: const {
@@ -135,6 +226,8 @@ User _user(String id) {
     userMetadata: const {},
     aud: 'authenticated',
     createdAt: '2026-08-27T00:00:00.000Z',
+    email: email,
+    emailConfirmedAt: emailConfirmedAt,
     phone: '+919123456789',
     phoneConfirmedAt: '2026-08-27T00:00:00.000Z',
   );
@@ -231,11 +324,13 @@ class _FakeGoogleSignIn extends GoogleSignIn {
 }
 
 class _FakeGoogleAccount implements GoogleSignInAccount {
-  @override
-  String get displayName => 'Test Member';
+  _FakeGoogleAccount({this.email = 'member@example.com'});
 
   @override
-  String get email => 'member@example.com';
+  final String email;
+
+  @override
+  String get displayName => 'Test Member';
 
   @override
   String get id => 'google-user';
