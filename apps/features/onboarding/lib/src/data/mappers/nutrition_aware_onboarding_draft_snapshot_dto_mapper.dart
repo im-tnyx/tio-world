@@ -32,9 +32,11 @@ class NutritionAwareOnboardingDraftSnapshotDtoMapper
   Map<String, dynamic> _nutritionToJson(NutritionOnboardingDraft draft) => {
         'current_step_id': draft.currentStepId.name,
         'diet_type': draft.dietType?.storageValue,
+        'other_diet_type': draft.otherDietType,
         'allergy_restrictions': draft.allergyRestrictions
             ?.map((restriction) => restriction.storageValue)
             .toList(growable: false),
+        'other_allergy_restriction': draft.otherAllergyRestriction,
       };
 
   NutritionOnboardingDraft _nutritionFromJson(Map<String, dynamic> json) {
@@ -53,7 +55,10 @@ class NutritionAwareOnboardingDraftSnapshotDtoMapper
     return NutritionOnboardingDraft(
       currentStepId: currentStep,
       dietType: NutritionDietType.tryFromStorage(json['diet_type']),
+      otherDietType: _stringOrEmpty(json['other_diet_type']),
       allergyRestrictions: restrictions,
+      otherAllergyRestriction:
+          _stringOrEmpty(json['other_allergy_restriction']),
     );
   }
 
@@ -65,4 +70,6 @@ class NutritionAwareOnboardingDraftSnapshotDtoMapper
     }
     return NutritionProfileStepId.dietType;
   }
+
+  String _stringOrEmpty(Object? value) => value is String ? value : '';
 }
