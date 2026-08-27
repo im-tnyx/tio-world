@@ -1,6 +1,6 @@
 # Auth Phone-first Test Alignment
 
-**Status:** TEST FIX PASS / FLUTTER CI PASS / ANDROID CI PENDING  
+**Status:** TEST FIX PASS / FLUTTER CI PASS / ANDROID CI PASS  
 **Parent:** #118  
 **Base:** PR #131 @ `d4e323ce7ef22cd2958756236f34f411bc87473d`  
 **Branch:** `agent/auth-phone-first-test-alignment`
@@ -31,7 +31,7 @@ Later tracker-only commits do not change application/test source.
 
 ## Validation
 
-Validation-only Draft PR #135 targets `main` only to trigger existing CI while PR #134 remains stacked on PR #131.
+Validation-only Draft PR #135 targeted `main` only to trigger existing CI while PR #134 remains stacked on PR #131. PR #135 was closed without merge after evidence was recorded.
 
 Confirmed on source head `ba9f42887e2200f7a8a0fb8b6a3b81bc49dc7e31`:
 
@@ -41,11 +41,12 @@ Confirmed on source head `ba9f42887e2200f7a8a0fb8b6a3b81bc49dc7e31`:
 - [x] repository-wide Dart tests PASS
 - [x] previously failing Login mode-switch test PASS
 - [x] previously failing Auth field visual-parity test PASS
-- [ ] Android phone/Wear debug build validation still running
-- [ ] record final evidence on parent/Auth PR after Android completes
+- [x] Android phone debug APK PASS
+- [x] Android Wear debug APK PASS
+- [x] final evidence recorded on parent #118 and PR #134
 
 ## Scope
 
 Test-only alignment. Production Phone-first Auth behavior and canonical design-system input geometry remain unchanged.
 
-Keep PR #134 Draft/open/unmerged. Close validation-only PR #135 without merge after final executable evidence is recorded. Do not mark PR #131 or downstream stacked PRs Ready/merged without explicit owner authorization.
+Keep PR #134 Draft/open/unmerged. Do not mark PR #131 or downstream stacked PRs Ready/merged without explicit owner authorization.
