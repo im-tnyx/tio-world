@@ -6,6 +6,6 @@ import 'package:tio_core/core.dart';
 /// canonical metric values plus unrelated profile/account data untouched.
 abstract interface class MeasurementUnitPreferencesRepository {
   Future<void> updateMeasurementUnitPreferences(
-    MeasurementUnitPreferences preferences,
+    UnitPreferences preferences,
   );
 }
