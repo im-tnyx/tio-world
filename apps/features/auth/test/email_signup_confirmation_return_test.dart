@@ -7,10 +7,10 @@ import 'package:tio_feature_auth/auth.dart';
 void main() {
   group('Email Signup confirmation return', () {
     test('Signup and resend both use the mobile callback redirect', () async {
-      final user = User(
+      const user = User(
         id: 'pending-user',
-        appMetadata: const {},
-        userMetadata: const {},
+        appMetadata: {},
+        userMetadata: {},
         aud: 'authenticated',
         createdAt: '2026-08-27T00:00:00.000Z',
         email: 'pending@example.com',
