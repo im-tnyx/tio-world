@@ -83,4 +83,45 @@ void main() {
       NutritionAllergyRestriction.none,
     });
   });
+
+  test('Nutrition controller clears stale Other detail when selection changes',
+      () {
+    final controller = NutritionAwareOnboardingController(
+      entryPath: OnboardingEntryPath.firstRun,
+      initialDraft: OnboardingDraft(
+        selectedMode: AppMode.nutrition,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.maintainWeight,
+        ),
+        currentStepId: OnboardingStepId.nutritionProfile,
+      ),
+      statusRepository: const NoOpOnboardingStatusRepository(),
+      completionValidator: const OnboardingCompletionValidator(),
+    );
+    addTearDown(controller.dispose);
+
+    controller.updateNutritionDietType(NutritionDietType.other);
+    controller.updateNutritionOtherDietType('Jain');
+    expect(controller.state.draft.nutrition.otherDietType, 'Jain');
+
+    controller.updateNutritionDietType(NutritionDietType.vegetarian);
+    expect(controller.state.draft.nutrition.otherDietType, isEmpty);
+
+    controller.toggleNutritionAllergyRestriction(
+      NutritionAllergyRestriction.other,
+    );
+    controller.updateNutritionOtherAllergyRestriction('Sesame');
+    expect(
+      controller.state.draft.nutrition.otherAllergyRestriction,
+      'Sesame',
+    );
+
+    controller.toggleNutritionAllergyRestriction(
+      NutritionAllergyRestriction.none,
+    );
+    expect(controller.state.draft.nutrition.otherAllergyRestriction, isEmpty);
+    expect(controller.state.draft.nutrition.allergyRestrictions, {
+      NutritionAllergyRestriction.none,
+    });
+  });
 }
