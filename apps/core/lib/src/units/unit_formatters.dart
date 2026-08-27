@@ -62,34 +62,3 @@ class UnitFormatters {
     return text;
   }
 }
-
-/// Temporary migration bridge while repository-wide consumers move to
-/// [UnitFormatters]. Issue #23 requires removal before final acceptance.
-@Deprecated('Use UnitFormatters')
-class MeasurementFormatters {
-  const MeasurementFormatters._();
-
-  static String formatWeight(
-    double kilograms,
-    WeightUnit unit, {
-    int decimals = 1,
-  }) =>
-      UnitFormatters.formatWeight(kilograms, unit, decimals: decimals);
-
-  static String formatHeight(double centimetres, HeightUnit unit) =>
-      UnitFormatters.formatHeight(centimetres, unit);
-
-  static String formatDistance(
-    double kilometres,
-    DistanceUnit unit, {
-    int decimals = 2,
-  }) =>
-      UnitFormatters.formatDistance(kilometres, unit, decimals: decimals);
-
-  static String formatVolume(
-    double millilitres,
-    VolumeUnit unit, {
-    int decimals = 1,
-  }) =>
-      UnitFormatters.formatVolume(millilitres, unit, decimals: decimals);
-}
