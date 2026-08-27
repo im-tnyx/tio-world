@@ -1,6 +1,6 @@
 # Account Setup Complementary Email
 
-**Status:** Source complete; executable validation and hosted Email/Google runtime retests pending  
+**Status:** PARTIAL — source audit fixes, focused validation, package analysis, and Android debug build passed; repository-wide test execution and hosted/device runtime gates remain pending.
 **Primary owner:** `apps/features/account_setup` with Auth/Settings composition through `apps/app`  
 **Affected platforms:** Flutter mobile
 
@@ -153,8 +153,11 @@ if linking/evidence/UUID check fails
 
 ### Validation
 
-- [ ] Flutter/Dart analyze and tests on exact latest PR #131 head;
-- [ ] Android build/CI on exact latest head as available;
+- [x] source/API compatibility audit on `agent/account-setup-complementary-email` at `5a80e753fe006c28da3a9050ed058c0a6c1fae73`;
+- [x] focused Flutter analyze/tests: `tio_feature_auth`, `tio_feature_settings`, `account_setup`, and `apps/app`;
+- [x] Flutter/Dart analysis completed for every Melos package using the locked workspace package graph;
+- [x] Android phone debug APK build on the exact latest PR #131 head;
+- [ ] repository-wide serialized Flutter/Dart test command: local Flutter SDK runner stalled without emitting test output after focused suites passed; rerun on a clean CI/local SDK is still required;
 - [ ] real device: Email confirmation opens Tio instead of localhost;
 - [ ] real device: Phone + Email account shows `Google / Connect`;
 - [ ] real device: Google Connect preserves UUID and adds `google` identity;
@@ -198,4 +201,4 @@ Google       Connected
 
 ## Final handoff
 
-`PARTIAL` — requested source changes are implemented and regression tests are authored. Runtime closure still requires executable Flutter/Dart validation, hosted manual-linking readiness, a fresh Email deep-link retest, and a real Google identity-link device smoke. PR #131 must remain Draft/open/unmerged until those gates pass.
+`PARTIAL` — exact-head source audit found and fixed one Account Setup compile error, and its focused regression suites now pass. Android debug build also passes. Runtime closure still requires the repository-wide serialized test run on a clean Flutter SDK/CI, hosted manual-linking readiness, a fresh Email deep-link retest, and a real Google identity-link device smoke. PR #131 must remain Draft/open/unmerged until those gates pass.

@@ -55,7 +55,10 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
 
   AccountSetupAuthContactBridge? get _authContactBridge {
     final repository = widget.accountSetupRepository;
-    return repository is AccountSetupAuthContactBridge ? repository : null;
+    if (repository is AccountSetupAuthContactBridge) {
+      return repository as AccountSetupAuthContactBridge;
+    }
+    return null;
   }
 
   @override

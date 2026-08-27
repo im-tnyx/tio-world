@@ -160,7 +160,8 @@ void main() {
         onCompleted: () async => completed++,
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
 
     expect(find.byKey(const ValueKey('account-setup-email-input')), findsNothing);
     expect(find.byKey(const ValueKey('account-setup-mobile-input')), findsNothing);
