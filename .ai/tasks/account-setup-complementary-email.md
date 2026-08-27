@@ -1,6 +1,6 @@
 # Account Setup Complementary Email
 
-**Status:** PARTIAL — source audit fixes, focused validation, package analysis, and Android debug build passed; repository-wide test execution and hosted/device runtime gates remain pending.
+**Status:** PARTIAL — runtime acceptance passed; clean repository-wide serialized test/CI evidence remains pending.  
 **Primary owner:** `apps/features/account_setup` with Auth/Settings composition through `apps/app`  
 **Affected platforms:** Flutter mobile
 
@@ -18,7 +18,7 @@ trusted Phone identity
 → Email optional
 ```
 
-Account Settings must keep contact verification and OAuth identity linking as separate truths:
+Account Settings keeps contact verification and OAuth identity linking as separate truths:
 
 ```text
 Email        verified badge only after Email ownership verification
@@ -27,21 +27,11 @@ Google       Connect while no Google identity exists
 Google       Connected only after a real Google identity is linked
 ```
 
-## Runtime findings incorporated into this task
+## Runtime findings and fixes
 
-### 1. Email confirmation redirect
+### Email confirmation redirect
 
-Observed on a real device:
-
-```text
-Phone signup
-→ optional Email
-→ confirmation mail received
-→ Email ownership confirmed in Supabase
-→ browser redirected to localhost:3000 ❌
-```
-
-Hosted Supabase Dashboard evidence later confirmed `tio://login-callback` was already present in Additional Redirect URLs. The defect was therefore the client request falling back to Site URL instead of sending an explicit mobile redirect.
+The original Phone → optional Email confirmation flow verified ownership but could fall back to the hosted Site URL (`localhost:3000`). Hosted Dashboard evidence confirmed `tio://login-callback` was already allow-listed.
 
 Source fix:
 
@@ -51,65 +41,37 @@ updateUser(email)
 → emailRedirectTo: tio://login-callback
 ```
 
-### 2. False Google Connected
+Owner-run fresh device validation now confirms the Email confirmation return-to-app behavior works.
 
-Read-only hosted Auth evidence for the tested Phone-created account showed:
+### False Google Connected
 
-```text
-providers = phone + email
-Email verified = true
-Phone verified = true
-Google identity = absent
-```
+A Phone-created account with verified Email previously could show `Google / Connected` despite no Google identity. Provider truth is now projected from Supabase Auth rather than inferred from contact/profile state.
 
-The previous Settings UI could still show `Google / Connected`, which was false.
+### Real Google Connect
 
-### 3. Google Connect must be real identity linking
+`Google / Connect` uses native Google credentials plus Supabase manual identity linking against the currently authenticated canonical user. It must not substitute ordinary Google sign-in for linking.
 
-`Google / Connect` must never call the normal Google sign-in path in a way that can replace the current account. It must link Google to the current authenticated Supabase UUID and show `Connected` only after authoritative Google identity evidence exists.
-
-Supabase Auth remains the identity authority.
-
-## Architecture decisions
-
-| Concern | Decision |
-|---|---|
-| Trusted Email/Phone | Use provider-backed Auth confirmation evidence |
-| Provider truth | Project normalized Supabase `app_metadata.provider/providers` into `AuthSession.identityProviders` |
-| Google UI state | `Connect` unless provider truth contains `google`; `Connected` only when it does |
-| Google linking | Native Google chooser + Supabase `linkIdentityWithIdToken` |
-| UUID invariant | Capture current UUID before linking and require the same UUID after refresh |
-| Post-link evidence | Require `getUserIdentities()` to contain `google` before success |
-| Post-link refresh | Refresh Supabase session and invalidate app Auth session state |
-| Email callback | Explicit `tio://login-callback` on Email update/resend |
-| Settings ownership | Settings owns UI only; provider SDK/Supabase linking remains Auth-owned |
-| Google unlink | Out of scope for this slice |
-
-## Implemented flow
+Implemented safety contract:
 
 ```text
-Account Settings
-→ Email / Phone verified badges remain independent
-→ Google state from AuthSession provider evidence
-
-if google absent
-→ Google / Connect
+Google / Connect
 → explicit Google account chooser
 → obtain Google ID + access token
 → Supabase linkIdentityWithIdToken(google)
 → require Google identity in getUserIdentities()
 → refresh session
-→ require refreshed user UUID == original UUID
+→ require refreshed UUID == original UUID
 → invalidate Auth session state
 → Google / Connected
-
-if chooser cancelled
-→ remain Google / Connect
-
-if linking/evidence/UUID check fails
-→ fail closed
-→ remain Google / Connect
 ```
+
+Cancellation or missing identity/UUID evidence fails closed and leaves `Connect`.
+
+## Password behavior decision
+
+Phone signup does not force password creation.
+
+Adding and verifying optional Email does not automatically create Email + Password capability. If the user later wants Email + Password login, the verified Email can use the separate password set/recovery path. Password setup remains outside Account Setup.
 
 ## Implementation checklist
 
@@ -128,9 +90,9 @@ if linking/evidence/UUID check fails
 - [x] pass `tio://login-callback` to Email add/change request;
 - [x] pass `tio://login-callback` to Email verification resend;
 - [x] record mobile callback in repo Supabase config;
-- [x] owner screenshot confirmed hosted Additional Redirect URLs already contains `tio://login-callback`;
+- [x] hosted Additional Redirect URLs contains `tio://login-callback`;
 - [x] redirect propagation regression tests authored;
-- [ ] fresh real-device Email confirmation retest on latest build.
+- [x] fresh real-device Email confirmation return-to-app owner-confirmed working.
 
 ### Provider truth and Google Connect
 
@@ -148,24 +110,54 @@ if linking/evidence/UUID check fails
 - [x] handle chooser cancellation without false Connected state;
 - [x] add Settings widget tests for Connect, Connected, success and cancellation;
 - [x] add Auth repository tests for unauthenticated, already-linked, cancel, success, missing identity evidence and UUID change;
-- [ ] verify hosted Supabase manual identity linking is enabled;
-- [ ] real-device Google Connect smoke on latest build.
+- [x] hosted manual identity linking readiness proven by successful real-device link;
+- [x] real-device Google Connect succeeds;
+- [x] Settings changes from `Connect` to `Connected` after successful link;
+- [x] logout + subsequent Google login succeeds for the same Tio account;
+- [x] read-only hosted Auth logs show Phone OTP and subsequent Google OIDC logins resolving to the same canonical user record.
 
-### Validation
+### Executable validation
 
-- [x] source/API compatibility audit on `agent/account-setup-complementary-email` at `5a80e753fe006c28da3a9050ed058c0a6c1fae73`;
-- [x] focused Flutter analyze/tests: `tio_feature_auth`, `tio_feature_settings`, `account_setup`, and `apps/app`;
-- [x] Flutter/Dart analysis completed for every Melos package using the locked workspace package graph;
-- [x] Android phone debug APK build on the exact latest PR #131 head;
-- [ ] repository-wide serialized Flutter/Dart test command: local Flutter SDK runner stalled without emitting test output after focused suites passed; rerun on a clean CI/local SDK is still required;
-- [ ] real device: Email confirmation opens Tio instead of localhost;
-- [ ] real device: Phone + Email account shows `Google / Connect`;
-- [ ] real device: Google Connect preserves UUID and adds `google` identity;
-- [ ] real device: Settings changes to `Google / Connected` only after successful link.
+Validated source state before the final validation-fix commit:
+
+- [x] Auth Google identity-link repository: 6 tests passed;
+- [x] Settings package: 23 tests passed;
+- [x] Account Setup package: 37 tests passed;
+- [x] App package: 226 tests passed;
+- [x] affected package analyzers passed;
+- [x] manual analysis across Melos Flutter packages and `apps/shared` Dart package passed;
+- [x] Android phone debug build passed.
+
+Validation-fix commit:
+
+`d3543512f7aa2307cf92ee1c045f65007186ed41`
+
+The validated fixes were committed normally and pushed with a clean working tree. Post-commit focused commands and exact-commit Android rebuild were attempted, but the local Flutter SDK runner stalled on a stale `dart.exe` lock without emitting test/build output. These were not falsely marked green.
+
+Remaining executable gates:
+
+- [ ] clean environment / CI repository-wide serialized Flutter/Dart test run on the final accepted code SHA;
+- [ ] exact committed-head Android rebuild evidence if required for release acceptance.
+
+## Runtime evidence checkpoint
+
+Owner-run device flow now passes:
+
+```text
+Phone OTP authentication
+→ complementary Email add/verify
+→ Email confirmation returns to Tio
+→ Settings shows Google / Connect
+→ Google identity links successfully
+→ Settings shows Google / Connected
+→ logout
+→ Google login
+→ same Tio account
+```
+
+Read-only hosted Auth logs independently confirm that the Phone OTP login and later Google OIDC login events resolve to the same canonical user record. No private identifier is recorded in this task file.
 
 ## Changed areas
-
-Original Account Setup slice plus runtime hardening now touches:
 
 - `apps/features/account_setup/...`
 - `apps/features/profile/lib/src/data/repositories/supabase_account_setup_repository.dart`
@@ -184,21 +176,6 @@ Original Account Setup slice plus runtime hardening now touches:
 
 No database schema, migration, hook, Edge Function, or production data mutation is introduced by this source hardening.
 
-## Expected final behavior
-
-```text
-Phone + verified Email, no Google identity
-Email        ✅ verified badge
-Phone        ✅ verified badge
-Google       Connect
-
-After successful Google identity link
-same Supabase UUID
-providers include google
-Email/Phone badges unchanged
-Google       Connected
-```
-
 ## Final handoff
 
-`PARTIAL` — exact-head source audit found and fixed one Account Setup compile error, and its focused regression suites now pass. Android debug build also passes. Runtime closure still requires the repository-wide serialized test run on a clean Flutter SDK/CI, hosted manual-linking readiness, a fresh Email deep-link retest, and a real Google identity-link device smoke. PR #131 must remain Draft/open/unmerged until those gates pass.
+`PARTIAL` — product/runtime acceptance is passed for complementary Email, Google Connect/Connected, and subsequent same-account Google login. The only remaining closure gate is clean executable evidence for the final accepted code SHA. PR #131 must remain Draft/open/unmerged until that gate is intentionally accepted.
