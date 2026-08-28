@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_progress/progress.dart';
 
@@ -882,6 +883,15 @@ class _SleepScheduleBottomSheetState
   void _setFromFraction(double fraction, _SleepScheduleHandle handle) {
     final positionMinutes = (fraction.clamp(0.0, 1.0) * _minutesPerDay).round();
     final absolute = _snap(positionMinutes + _timelineStartMinutes);
+    final previous =
+        handle == _SleepScheduleHandle.bed ? _bedTime : _wakeTime;
+    // Fire exactly once per crossing into a different snapped 15-minute
+    // value — never on every raw pointer update, and never merely for
+    // touching/selecting a handle (the down event's own value is usually
+    // unchanged from the handle's current position, so it stays silent).
+    if (previous != absolute) {
+      HapticFeedback.selectionClick();
+    }
     setState(() {
       if (handle == _SleepScheduleHandle.bed) {
         _bedTime = absolute;

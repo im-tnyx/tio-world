@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_progress/progress.dart';
@@ -1051,6 +1052,174 @@ void main() {
     expect(savedTargets, isNotNull);
     expect(savedTargets!.wakeTimeMinutes! % 15, 0);
     expect(savedTargets!.wakeTimeMinutes, 8 * 60 + 15);
+  });
+
+  group('Sleep Schedule timeline haptics', () {
+    // A single 15-minute bucket is only a few logical pixels wide on any
+    // realistic track width, well under Flutter's drag-recognizer touch
+    // slop -- so a genuine multi-pixel drag confined to one bucket may
+    // never even reach onHorizontalDragUpdate. Down events don't require
+    // slop, so these tests drive the exact same _setFromFraction dedup
+    // logic deterministically via stationary taps at precise timeline
+    // positions instead of short drags.
+    late int selectionClickCount;
+
+    setUp(() {
+      selectionClickCount = 0;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'HapticFeedback.vibrate' &&
+            call.arguments == 'HapticFeedbackType.selectionClick') {
+          selectionClickCount++;
+        }
+        return null;
+      });
+    });
+
+    tearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null);
+    });
+
+    Future<Rect> openSheet(
+      WidgetTester tester, {
+      required int bedTimeMinutes,
+      required int wakeTimeMinutes,
+    }) async {
+      await tester.pumpWidget(
+        buildApp(
+          DailyWellnessSettingsPage(
+            initialTargets: WellnessTargetsData(
+              bedTimeMinutes: bedTimeMinutes,
+              wakeTimeMinutes: wakeTimeMinutes,
+            ),
+            volumeUnit: VolumeUnit.ml,
+            onSave: (_) async {},
+          ),
+        ),
+      );
+
+      await tester.tap(
+          find.byKey(const ValueKey('daily-wellness-sleep-schedule-field')));
+      await tester.pumpAndSettle();
+
+      return tester
+          .getRect(find.byKey(const ValueKey('sleep-schedule-timeline-track')));
+    }
+
+    testWidgets(
+        'repeated touches within the same snapped 15-minute value do not repeat the haptic',
+        (tester) async {
+      final trackRect = await openSheet(
+        tester,
+        bedTimeMinutes: 23 * 60,
+        wakeTimeMinutes: 7 * 60,
+      );
+
+      // Two separate touches near the Bedtime handle, both snapping to the
+      // same 23:00 mark -- neither one is a change from the current value.
+      final firstX = trackRect.left +
+          trackRect.width *
+              timelineFraction(const TimeOfDay(hour: 23, minute: 0));
+      final secondX = trackRect.left +
+          trackRect.width *
+              timelineFraction(const TimeOfDay(hour: 23, minute: 6));
+
+      await tester.tapAt(Offset(firstX, trackRect.center.dy));
+      await tester.pump();
+      await tester.tapAt(Offset(secondX, trackRect.center.dy));
+      await tester.pump();
+
+      final context = tester.element(find.byType(DailyWellnessSettingsPage));
+      expect(
+        find.text(const TimeOfDay(hour: 23, minute: 0).format(context)),
+        findsOneWidget,
+      );
+      expect(selectionClickCount, 0);
+    });
+
+    testWidgets(
+        'touching a new snapped Bedtime value fires exactly one haptic',
+        (tester) async {
+      final trackRect = await openSheet(
+        tester,
+        bedTimeMinutes: 23 * 60,
+        wakeTimeMinutes: 7 * 60,
+      );
+
+      final targetX = trackRect.left +
+          trackRect.width *
+              timelineFraction(const TimeOfDay(hour: 22, minute: 45));
+
+      await tester.tapAt(Offset(targetX, trackRect.center.dy));
+      await tester.pump();
+
+      final context = tester.element(find.byType(DailyWellnessSettingsPage));
+      expect(
+        find.text(const TimeOfDay(hour: 22, minute: 45).format(context)),
+        findsOneWidget,
+      );
+      expect(selectionClickCount, 1);
+    });
+
+    testWidgets(
+        'touching a new snapped Wake Time value fires exactly one haptic',
+        (tester) async {
+      final trackRect = await openSheet(
+        tester,
+        bedTimeMinutes: 23 * 60,
+        wakeTimeMinutes: 7 * 60,
+      );
+
+      final targetX = trackRect.left +
+          trackRect.width *
+              timelineFraction(const TimeOfDay(hour: 7, minute: 15));
+
+      await tester.tapAt(Offset(targetX, trackRect.center.dy));
+      await tester.pump();
+
+      final context = tester.element(find.byType(DailyWellnessSettingsPage));
+      expect(
+        find.text(const TimeOfDay(hour: 7, minute: 15).format(context)),
+        findsOneWidget,
+      );
+      expect(selectionClickCount, 1);
+    });
+
+    testWidgets(
+        'a longer drag crossing several 15-minute boundaries fires one haptic per boundary, not per pointer update',
+        (tester) async {
+      final trackRect = await openSheet(
+        tester,
+        bedTimeMinutes: 23 * 60,
+        wakeTimeMinutes: 7 * 60,
+      );
+
+      final startX = trackRect.left +
+          trackRect.width *
+              timelineFraction(const TimeOfDay(hour: 23, minute: 0));
+      // 23:00 -> 22:00 crosses exactly 4 boundaries (22:45, 22:30, 22:15,
+      // 22:00), each of which should fire at most once.
+      final endX = trackRect.left +
+          trackRect.width *
+              timelineFraction(const TimeOfDay(hour: 22, minute: 0));
+
+      await tester.dragFrom(
+        Offset(startX, trackRect.center.dy),
+        Offset(endX - startX, 0),
+      );
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(DailyWellnessSettingsPage));
+      expect(
+        find.text(const TimeOfDay(hour: 22, minute: 0).format(context)),
+        findsOneWidget,
+      );
+      // Never fewer than one (a real value change occurred) and never more
+      // than the number of distinct 15-minute marks between start and end.
+      expect(selectionClickCount, greaterThanOrEqualTo(1));
+      expect(selectionClickCount, lessThanOrEqualTo(4));
+    });
   });
 
   testWidgets('Double tap on Save cannot trigger a second onSave call',
