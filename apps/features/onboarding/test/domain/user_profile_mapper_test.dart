@@ -82,18 +82,98 @@ void main() {
     );
   });
 
-  test('requires text when Other health condition is selected', () {
+  test('retains Other condition and normalizes blank detail to null (Case A)',
+      () {
+    final result = mapper.map(ProfileOnboardingDraft(
+      name: 'Tio',
+      gender: ProfileGender.other,
+      dateOfBirth: DateTime(2000, 1, 1),
+      heightCm: 170,
+      activityLevel: ProfileActivityLevel.light,
+      healthConditions: const {ProfileHealthCondition.other},
+      otherHealthCondition: '',
+    ));
+
     expect(
-      () => mapper.map(ProfileOnboardingDraft(
-        name: 'Tio',
-        gender: ProfileGender.other,
-        dateOfBirth: DateTime(2000, 1, 1),
-        heightCm: 170,
-        activityLevel: ProfileActivityLevel.light,
-        healthConditions: const {ProfileHealthCondition.other},
-      )),
-      throwsArgumentError,
+        result.healthConditions, {profile_owner.ProfileHealthCondition.other});
+    expect(result.otherHealthCondition, isNull);
+  });
+
+  test(
+      'retains Other condition and normalizes whitespace detail to null (Case B)',
+      () {
+    final result = mapper.map(ProfileOnboardingDraft(
+      name: 'Tio',
+      gender: ProfileGender.other,
+      dateOfBirth: DateTime(2000, 1, 1),
+      heightCm: 170,
+      activityLevel: ProfileActivityLevel.light,
+      healthConditions: const {ProfileHealthCondition.other},
+      otherHealthCondition: '   ',
+    ));
+
+    expect(
+        result.healthConditions, {profile_owner.ProfileHealthCondition.other});
+    expect(result.otherHealthCondition, isNull);
+  });
+
+  test('preserves both diabetes and other when Other detail is blank (Case C)',
+      () {
+    final result = mapper.map(ProfileOnboardingDraft(
+      name: 'Tio',
+      gender: ProfileGender.male,
+      dateOfBirth: DateTime(2000, 1, 1),
+      heightCm: 170,
+      activityLevel: ProfileActivityLevel.active,
+      healthConditions: const {
+        ProfileHealthCondition.diabetes,
+        ProfileHealthCondition.other,
+      },
+      otherHealthCondition: '',
+    ));
+
+    expect(result.healthConditions, {
+      profile_owner.ProfileHealthCondition.diabetes,
+      profile_owner.ProfileHealthCondition.other,
+    });
+    expect(result.otherHealthCondition, isNull);
+  });
+
+  test(
+      'retains Other condition and trims detail when non-empty text provided (Case D)',
+      () {
+    final result = mapper.map(ProfileOnboardingDraft(
+      name: 'Tio',
+      gender: ProfileGender.female,
+      dateOfBirth: DateTime(1996, 6, 15),
+      heightCm: 165,
+      activityLevel: ProfileActivityLevel.active,
+      healthConditions: const {ProfileHealthCondition.other},
+      otherHealthCondition: '  Asthma  ',
+    ));
+
+    expect(
+        result.healthConditions, {profile_owner.ProfileHealthCondition.other});
+    expect(result.otherHealthCondition, 'Asthma');
+  });
+
+  test(
+      'normalizes resumed draft DTO containing empty Other text without failing',
+      () {
+    final resumedDraft = ProfileOnboardingDraft(
+      name: 'Tio Resumed',
+      gender: ProfileGender.female,
+      dateOfBirth: DateTime(1998, 4, 12),
+      heightCm: 160,
+      activityLevel: ProfileActivityLevel.sedentary,
+      healthConditions: const {ProfileHealthCondition.other},
+      otherHealthCondition: '',
     );
+
+    final result = mapper.map(resumedDraft);
+    expect(
+        result.healthConditions, {profile_owner.ProfileHealthCondition.other});
+    expect(result.otherHealthCondition, isNull);
   });
 
   test('does not persist stale Other text when Other is not selected', () {

@@ -75,12 +75,14 @@ void main() {
 
       final workoutProfile = await canonicalWorkoutProfile();
       expect(workoutProfile, isNotNull);
-      expect(workoutProfile?.workoutLocation, workout_owner.WorkoutGymAccess.gym);
+      expect(
+          workoutProfile?.workoutLocation, workout_owner.WorkoutGymAccess.gym);
       expect(
         workoutProfile?.experienceLevel,
         workout_owner.WorkoutExperienceLevel.intermediate,
       );
-      expect(workoutProfile?.focusAreas, {workout_owner.WorkoutFocusArea.fullBody});
+      expect(workoutProfile?.focusAreas,
+          {workout_owner.WorkoutFocusArea.fullBody});
 
       final workoutTargets = await canonicalWorkoutTargets();
       expect(workoutTargets, isNotNull);
@@ -90,7 +92,8 @@ void main() {
       );
       expect(workoutTargets?.primaryGoalRank, 1);
       expect(workoutTargets?.preferredDurationMins, 60);
-      expect(workoutTargets?.splitProgram, workout_owner.WorkoutSplit.upperLower);
+      expect(
+          workoutTargets?.splitProgram, workout_owner.WorkoutSplit.upperLower);
 
       expect(await canonicalNutritionProfile(), isNull);
       expect(await canonicalNutritionTargets(), isNull);
@@ -130,6 +133,44 @@ void main() {
       expect(await canonicalNutritionTargets(), isNotNull);
     });
 
+    test(
+        'nutrition with blank optional Health Other successfully persists normalized Profile and reaches Nutrition owners',
+        () async {
+      final draft = OnboardingDraft(
+        selectedMode: AppMode.nutrition,
+        profile: _validProfile().copyWith(
+          healthConditions: const {ProfileHealthCondition.other},
+          otherHealthCondition: '   ',
+        ),
+        nutrition: const NutritionOnboardingDraft(
+          dietType: NutritionDietType.vegan,
+          allergyRestrictions: {NutritionAllergyRestriction.none},
+        ),
+        workout: _validWorkout(),
+        targets: _validTargets(),
+      );
+      final flowPlan = const BuildOnboardingFlowUseCase()(
+        entryPath: OnboardingEntryPath.firstRun,
+        mode: AppMode.nutrition,
+      );
+
+      await useCase(draft: draft, flowPlan: flowPlan);
+
+      expect(profileRepo.data, isNotNull);
+      expect(
+        profileRepo.data?.healthConditions,
+        {profile_owner.ProfileHealthCondition.other},
+      );
+      expect(profileRepo.data?.otherHealthCondition, isNull);
+      expect(bodyRepo.data, isNotNull);
+      expect(wellnessRepo.data, isNotNull);
+
+      final nutritionProfile = await canonicalNutritionProfile();
+      expect(nutritionProfile, isNotNull);
+      expect(nutritionProfile?.preferredDiet, 'vegan');
+      expect(await canonicalNutritionTargets(), isNotNull);
+    });
+
     test('hybrid setupNow writes Nutrition plus both canonical Workout owners',
         () async {
       final draft = OnboardingDraft(
@@ -164,7 +205,8 @@ void main() {
       expect(await canonicalNutritionTargets(), isNotNull);
     });
 
-    test('hybrid later preserves draft but writes neither canonical Workout owner',
+    test(
+        'hybrid later preserves draft but writes neither canonical Workout owner',
         () async {
       final draft = OnboardingDraft(
         selectedMode: AppMode.hybrid,
@@ -192,7 +234,8 @@ void main() {
       expect(draft.workout.trainingDays, isNotEmpty);
     });
 
-    test('active weight goal remains Body-owned while canonical targets are outputs only',
+    test(
+        'active weight goal remains Body-owned while canonical targets are outputs only',
         () async {
       final draft = OnboardingDraft(
         selectedMode: AppMode.nutrition,
@@ -240,7 +283,8 @@ void main() {
       );
       final draft = OnboardingDraft(
         selectedMode: AppMode.workout,
-        goalSelection: const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
+        goalSelection:
+            const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
         profile: _validProfile(),
         workout: _validWorkout(),
         targets: _validTargets(),
@@ -283,7 +327,8 @@ void main() {
       final draft = OnboardingDraft(
         selectedMode: AppMode.hybrid,
         workoutIntroChoice: WorkoutIntroChoice.setupNow,
-        goalSelection: const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
+        goalSelection:
+            const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
         profile: _validProfile(),
         nutrition: const NutritionOnboardingDraft(
           dietType: NutritionDietType.vegan,
@@ -315,9 +360,11 @@ void main() {
       expect(await canonicalNutritionTargets(), isNull);
     });
 
-    test('Nutrition Profile failure stops both Workout owners and Nutrition Targets',
+    test(
+        'Nutrition Profile failure stops both Workout owners and Nutrition Targets',
         () async {
-      final failingTargets = nutrition_owner.InMemoryNutritionTargetsRepository();
+      final failingTargets =
+          nutrition_owner.InMemoryNutritionTargetsRepository();
       final failingUseCase = PersistOnboardingOwnerDataUseCase(
         profileRepository: profileRepo,
         bodyRepository: bodyRepo,
@@ -330,7 +377,8 @@ void main() {
       final draft = OnboardingDraft(
         selectedMode: AppMode.hybrid,
         workoutIntroChoice: WorkoutIntroChoice.setupNow,
-        goalSelection: const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
+        goalSelection:
+            const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
         profile: _validProfile(),
         nutrition: const NutritionOnboardingDraft(
           dietType: NutritionDietType.vegan,
@@ -363,7 +411,8 @@ void main() {
 
     test('Workout Profile failure blocks Workout Targets and Nutrition Targets',
         () async {
-      final canonicalTargets = nutrition_owner.InMemoryNutritionTargetsRepository();
+      final canonicalTargets =
+          nutrition_owner.InMemoryNutritionTargetsRepository();
       final failingUseCase = PersistOnboardingOwnerDataUseCase(
         profileRepository: profileRepo,
         bodyRepository: bodyRepo,
@@ -375,7 +424,8 @@ void main() {
       );
       final draft = OnboardingDraft(
         selectedMode: AppMode.workout,
-        goalSelection: const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
+        goalSelection:
+            const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
         profile: _validProfile(),
         workout: _validWorkout(),
         targets: _validTargets(),
@@ -400,9 +450,11 @@ void main() {
       expect(await canonicalTargets.read(), isNull);
     });
 
-    test('Workout Targets failure reports its owner and blocks Nutrition Targets',
+    test(
+        'Workout Targets failure reports its owner and blocks Nutrition Targets',
         () async {
-      final canonicalTargets = nutrition_owner.InMemoryNutritionTargetsRepository();
+      final canonicalTargets =
+          nutrition_owner.InMemoryNutritionTargetsRepository();
       final failingUseCase = PersistOnboardingOwnerDataUseCase(
         profileRepository: profileRepo,
         bodyRepository: bodyRepo,
@@ -414,7 +466,8 @@ void main() {
       );
       final draft = OnboardingDraft(
         selectedMode: AppMode.workout,
-        goalSelection: const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
+        goalSelection:
+            const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
         profile: _validProfile(),
         workout: _validWorkout(),
         targets: _validTargets(),
@@ -453,7 +506,8 @@ void main() {
       final draft = OnboardingDraft(
         selectedMode: AppMode.hybrid,
         workoutIntroChoice: WorkoutIntroChoice.setupNow,
-        goalSelection: const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
+        goalSelection:
+            const GoalIntentSelection(primaryGoal: GoalIntent.stayFit),
         profile: _validProfile(),
         nutrition: const NutritionOnboardingDraft(
           dietType: NutritionDietType.vegan,
@@ -485,7 +539,8 @@ void main() {
   });
 }
 
-class _FakeUserProfileRepository implements profile_owner.UserProfileRepository {
+class _FakeUserProfileRepository
+    implements profile_owner.UserProfileRepository {
   profile_owner.UserProfileData? data;
 
   @override

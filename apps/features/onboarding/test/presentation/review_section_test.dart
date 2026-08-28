@@ -86,7 +86,8 @@ void main() {
     expect(find.text('8h 00m / night'), findsOneWidget);
     expect(find.text('Setup Incomplete'), findsOneWidget);
     expect(
-      find.textContaining('Finish stays disabled until durable owner persistence'),
+      find.textContaining(
+          'Finish stays disabled until durable owner persistence'),
       findsOneWidget,
     );
     expect(find.text('Workout Plan'), findsNothing);
@@ -139,6 +140,210 @@ void main() {
     expect(find.text('70.0 kg ➔ 68.0 kg'), findsNothing);
     expect(find.text('Goal pace'), findsNothing);
     expect(find.text('0.5 kg / week'), findsNothing);
+  });
+
+  testWidgets(
+      'review displays Health info: Other when only Other is selected with blank detail',
+      (tester) async {
+    final draft = OnboardingDraft(
+      selectedMode: AppMode.nutrition,
+      goalSelection: const GoalIntentSelection(
+        primaryGoal: GoalIntent.maintainWeight,
+      ),
+      currentStepId: OnboardingStepId.review,
+      profile: _validProfile().copyWith(
+        gender: ProfileGender.female,
+        healthConditions: const {ProfileHealthCondition.other},
+        otherHealthCondition: '   ',
+      ),
+      targets: const TargetsOnboardingDraft(goalPaceKgPerWeek: 0.5),
+    );
+    final flowPlan = const BuildOnboardingFlowUseCase()(
+      entryPath: OnboardingEntryPath.firstRun,
+      mode: AppMode.nutrition,
+      workoutIntroChoice: null,
+    );
+    final state = OnboardingState(
+      draft: draft,
+      flowPlan: flowPlan,
+      workoutFlowPlan: const WorkoutFlowPlan(steps: []),
+      stepId: OnboardingStepId.review,
+      completionEligibility: const OnboardingCompletionValidator().evaluate(
+        draft: draft,
+        flowPlan: flowPlan,
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TioTheme(
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: ReviewSection(state: state),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Review your plan'), findsOneWidget);
+    expect(find.text('Health info'), findsOneWidget);
+    expect(find.text('Other'), findsOneWidget);
+    expect(find.text('other'), findsNothing);
+  });
+
+  testWidgets(
+      'review displays entered custom health condition text when Other is non-empty',
+      (tester) async {
+    final draft = OnboardingDraft(
+      selectedMode: AppMode.nutrition,
+      goalSelection: const GoalIntentSelection(
+        primaryGoal: GoalIntent.maintainWeight,
+      ),
+      currentStepId: OnboardingStepId.review,
+      profile: _validProfile().copyWith(
+        healthConditions: const {ProfileHealthCondition.other},
+        otherHealthCondition: '  Asthma  ',
+      ),
+      targets: const TargetsOnboardingDraft(goalPaceKgPerWeek: 0.5),
+    );
+    final flowPlan = const BuildOnboardingFlowUseCase()(
+      entryPath: OnboardingEntryPath.firstRun,
+      mode: AppMode.nutrition,
+      workoutIntroChoice: null,
+    );
+    final state = OnboardingState(
+      draft: draft,
+      flowPlan: flowPlan,
+      workoutFlowPlan: const WorkoutFlowPlan(steps: []),
+      stepId: OnboardingStepId.review,
+      completionEligibility: const OnboardingCompletionValidator().evaluate(
+        draft: draft,
+        flowPlan: flowPlan,
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TioTheme(
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: ReviewSection(state: state),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Health info'), findsOneWidget);
+    expect(find.text('Asthma'), findsOneWidget);
+    expect(find.text('other'), findsNothing);
+  });
+
+  testWidgets(
+      'review displays both valid condition and Other when Other detail is blank',
+      (tester) async {
+    final draft = OnboardingDraft(
+      selectedMode: AppMode.nutrition,
+      goalSelection: const GoalIntentSelection(
+        primaryGoal: GoalIntent.maintainWeight,
+      ),
+      currentStepId: OnboardingStepId.review,
+      profile: _validProfile().copyWith(
+        healthConditions: const {
+          ProfileHealthCondition.diabetes,
+          ProfileHealthCondition.other,
+        },
+        otherHealthCondition: '',
+      ),
+      targets: const TargetsOnboardingDraft(goalPaceKgPerWeek: 0.5),
+    );
+    final flowPlan = const BuildOnboardingFlowUseCase()(
+      entryPath: OnboardingEntryPath.firstRun,
+      mode: AppMode.nutrition,
+      workoutIntroChoice: null,
+    );
+    final state = OnboardingState(
+      draft: draft,
+      flowPlan: flowPlan,
+      workoutFlowPlan: const WorkoutFlowPlan(steps: []),
+      stepId: OnboardingStepId.review,
+      completionEligibility: const OnboardingCompletionValidator().evaluate(
+        draft: draft,
+        flowPlan: flowPlan,
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TioTheme(
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: ReviewSection(state: state),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Health info'), findsOneWidget);
+    expect(find.text('Diabetes, Other'), findsOneWidget);
+    expect(find.text('other'), findsNothing);
+  });
+
+  testWidgets(
+      'review displays valid condition and described Other when detail is entered',
+      (tester) async {
+    final draft = OnboardingDraft(
+      selectedMode: AppMode.nutrition,
+      goalSelection: const GoalIntentSelection(
+        primaryGoal: GoalIntent.maintainWeight,
+      ),
+      currentStepId: OnboardingStepId.review,
+      profile: _validProfile().copyWith(
+        healthConditions: const {
+          ProfileHealthCondition.diabetes,
+          ProfileHealthCondition.other,
+        },
+        otherHealthCondition: 'Asthma',
+      ),
+      targets: const TargetsOnboardingDraft(goalPaceKgPerWeek: 0.5),
+    );
+    final flowPlan = const BuildOnboardingFlowUseCase()(
+      entryPath: OnboardingEntryPath.firstRun,
+      mode: AppMode.nutrition,
+      workoutIntroChoice: null,
+    );
+    final state = OnboardingState(
+      draft: draft,
+      flowPlan: flowPlan,
+      workoutFlowPlan: const WorkoutFlowPlan(steps: []),
+      stepId: OnboardingStepId.review,
+      completionEligibility: const OnboardingCompletionValidator().evaluate(
+        draft: draft,
+        flowPlan: flowPlan,
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TioTheme(
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: ReviewSection(state: state),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Health info'), findsOneWidget);
+    expect(find.text('Diabetes, Asthma'), findsOneWidget);
+    expect(find.text('other'), findsNothing);
   });
 
   testWidgets('review section rejects non-review steps', (tester) async {

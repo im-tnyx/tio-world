@@ -41,15 +41,9 @@ class UserProfileMapper {
       throw ArgumentError.notNull('activityLevel');
     }
 
-    final rawOtherCondition = draft.otherHealthCondition.trim();
-    if (draft.healthConditions.contains(ProfileHealthCondition.other) &&
-        rawOtherCondition.isEmpty) {
-      throw ArgumentError.value(
-        draft.otherHealthCondition,
-        'otherHealthCondition',
-        'must be provided when Other is selected',
-      );
-    }
+    final normalizedOtherHealthCondition = draft.otherHealthCondition.trim();
+    final otherSelected =
+        draft.healthConditions.contains(ProfileHealthCondition.other);
 
     return profile_owner.UserProfileData(
       name: name,
@@ -69,7 +63,8 @@ class UserProfileMapper {
         ProfileActivityLevel.sedentary =>
           profile_owner.ProfileActivityLevel.sedentary,
         ProfileActivityLevel.light => profile_owner.ProfileActivityLevel.light,
-        ProfileActivityLevel.active => profile_owner.ProfileActivityLevel.active,
+        ProfileActivityLevel.active =>
+          profile_owner.ProfileActivityLevel.active,
         ProfileActivityLevel.veryActive =>
           profile_owner.ProfileActivityLevel.veryActive,
         ProfileActivityLevel.dynamic =>
@@ -90,8 +85,8 @@ class UserProfileMapper {
               })
           .toSet(),
       otherHealthCondition:
-          draft.healthConditions.contains(ProfileHealthCondition.other)
-              ? rawOtherCondition
+          otherSelected && normalizedOtherHealthCondition.isNotEmpty
+              ? normalizedOtherHealthCondition
               : null,
     );
   }
