@@ -17,12 +17,16 @@ void main() {
     );
   }
 
+  String timeRange(WidgetTester tester, TimeOfDay bed, TimeOfDay wake) {
+    final context = tester.element(find.byType(DailyWellnessSettingsPage));
+    return '${bed.format(context)} - ${wake.format(context)}';
+  }
+
   testWidgets('DailyWellnessSettingsPage renders populated targets cleanly',
       (tester) async {
     const initial = WellnessTargetsData(
       dailySteps: 10000,
       waterMl: 2500,
-      sleepTargetMinutes: 480,
       bedTimeMinutes: 22 * 60, // 10:00 PM
       wakeTimeMinutes: 6 * 60 + 30, // 6:30 AM
     );
@@ -39,13 +43,33 @@ void main() {
 
     expect(find.text('Daily Wellness'), findsOneWidget);
     expect(find.text('TARGETS'), findsOneWidget);
-    expect(find.text('DAILY SCHEDULE'), findsOneWidget);
+    expect(find.text('SLEEP'), findsOneWidget);
+    expect(find.text('DAILY SCHEDULE'), findsNothing);
 
     expect(find.text('10000 steps/day'), findsOneWidget);
     expect(find.text('2500 ml/day (2.5 L)'), findsOneWidget);
-    expect(find.text('8 hrs'), findsOneWidget);
-    expect(find.text('10:00 PM'), findsOneWidget);
-    expect(find.text('6:30 AM'), findsOneWidget);
+
+    // Sleep duration (22:00 -> 6:30, wraps midnight) = 510 min = 8h 30m.
+    expect(find.text('8h 30m'), findsOneWidget);
+    expect(
+      find.text(timeRange(
+        tester,
+        const TimeOfDay(hour: 22, minute: 0),
+        const TimeOfDay(hour: 6, minute: 30),
+      )),
+      findsOneWidget,
+    );
+
+    // Sleep Goal / Bedtime / Wake Time no longer exist as independent rows.
+    expect(find.text('Sleep Goal'), findsNothing);
+    expect(find.byKey(const ValueKey('daily-wellness-sleep-field')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('daily-wellness-bedtime-field')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('daily-wellness-wake-time-field')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('daily-wellness-sleep-schedule-field')),
+        findsOneWidget);
 
     // Save button disabled initially because no changes
     final saveButtonFinder = find.byKey(const ValueKey('daily-wellness-save'));
@@ -64,7 +88,8 @@ void main() {
     }
   });
 
-  testWidgets('DailyWellnessSettingsPage renders "Not set" when initial targets are null',
+  testWidgets(
+      'DailyWellnessSettingsPage renders "Not set" when initial targets are null',
       (tester) async {
     await tester.pumpWidget(
       buildApp(
@@ -76,13 +101,16 @@ void main() {
       ),
     );
 
-    expect(find.text('Not set'), findsNWidgets(5));
-    final button =
-        tester.widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
+    // Step Goal, Water Goal, Sleep Schedule duration. No subtitle range is
+    // rendered when both Bedtime and Wake Time are unset.
+    expect(find.text('Not set'), findsNWidgets(3));
+    final button = tester
+        .widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
     expect(button.onPressed, isNull);
   });
 
-  testWidgets('DailyWellnessSettingsPage displays water in fl oz when volumeUnit is flOz',
+  testWidgets(
+      'DailyWellnessSettingsPage displays water in fl oz when volumeUnit is flOz',
       (tester) async {
     const initial = WellnessTargetsData(waterMl: 2500);
 
@@ -99,7 +127,8 @@ void main() {
     expect(find.text('85 fl oz/day'), findsOneWidget);
   });
 
-  testWidgets('Pristine editor rehydrates new initialTargets when provider updates and keeps Save disabled',
+  testWidgets(
+      'Pristine editor rehydrates new initialTargets when provider updates and keeps Save disabled',
       (tester) async {
     const targetsA = WellnessTargetsData(
       dailySteps: 8000,
@@ -123,8 +152,8 @@ void main() {
 
     expect(find.text('8000 steps/day'), findsOneWidget);
     expect(find.text('2000 ml/day (2 L)'), findsOneWidget);
-    var saveButton =
-        tester.widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
+    var saveButton = tester
+        .widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
     expect(saveButton.onPressed, isNull);
 
     // Parent provider updates with targetsB while user made no edits
@@ -140,8 +169,8 @@ void main() {
 
     expect(find.text('12000 steps/day'), findsOneWidget);
     expect(find.text('3500 ml/day (3.5 L)'), findsOneWidget);
-    saveButton =
-        tester.widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
+    saveButton = tester
+        .widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
     expect(saveButton.onPressed, isNull);
   });
 
@@ -173,8 +202,8 @@ void main() {
     await tester.tap(find.text('Clear Goal'));
     await tester.pumpAndSettle();
 
-    var saveButton =
-        tester.widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
+    var saveButton = tester
+        .widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
     expect(saveButton.onPressed, isNotNull);
 
     // Parent rebuilds with targetsB while user is dirty
@@ -192,14 +221,14 @@ void main() {
     expect(find.text('12000 steps/day'), findsNothing);
   });
 
-  testWidgets('Editing step goal updates value, enables save, and preserves untouched nulls',
+  testWidgets(
+      'Editing step goal updates value, enables save, and preserves untouched nulls',
       (tester) async {
     WellnessTargetsData? savedTargets;
 
     const initial = WellnessTargetsData(
       dailySteps: 8000,
       waterMl: null,
-      sleepTargetMinutes: null,
       bedTimeMinutes: null,
       wakeTimeMinutes: null,
     );
@@ -228,11 +257,12 @@ void main() {
     await tester.tap(find.text('Clear Goal'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Not set'), findsNWidgets(5));
+    // Steps, Water, Sleep Schedule duration all "Not set".
+    expect(find.text('Not set'), findsNWidgets(3));
 
     // Save should now be enabled because steps changed from 8000 -> null
-    final saveButton =
-        tester.widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
+    final saveButton = tester
+        .widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
     expect(saveButton.onPressed, isNotNull);
 
     await tester.tap(find.byKey(const ValueKey('daily-wellness-save')));
@@ -246,14 +276,13 @@ void main() {
     expect(savedTargets!.wakeTimeMinutes, isNull);
   });
 
-  testWidgets('Partial edit preserves all untouched populated values on save',
+  testWidgets('Partial edit preserves untouched populated values on save',
       (tester) async {
     WellnessTargetsData? savedTargets;
 
     const initial = WellnessTargetsData(
       dailySteps: 10000,
       waterMl: 3000,
-      sleepTargetMinutes: 480,
       bedTimeMinutes: 1320, // 22:00
       wakeTimeMinutes: 390, // 06:30
     );
@@ -282,7 +311,8 @@ void main() {
     expect(savedTargets, isNotNull);
     expect(savedTargets!.dailySteps, 10000); // Preserved!
     expect(savedTargets!.waterMl, isNull); // Cleared!
-    expect(savedTargets!.sleepTargetMinutes, 480); // Preserved!
+    // Bedtime/Wake Time untouched -> derived duration = 510 (8h 30m).
+    expect(savedTargets!.sleepTargetMinutes, 510);
     expect(savedTargets!.bedTimeMinutes, 1320); // Preserved!
     expect(savedTargets!.wakeTimeMinutes, 390); // Preserved!
   });
@@ -293,7 +323,6 @@ void main() {
     const targetsA = WellnessTargetsData(
       dailySteps: 8000,
       waterMl: 2000,
-      sleepTargetMinutes: 480,
       bedTimeMinutes: 1320,
       wakeTimeMinutes: 390,
     );
@@ -301,7 +330,6 @@ void main() {
     const targetsB = WellnessTargetsData(
       dailySteps: 12000,
       waterMl: 3500,
-      sleepTargetMinutes: 510,
       bedTimeMinutes: 1350,
       wakeTimeMinutes: 420,
     );
@@ -364,14 +392,17 @@ void main() {
     );
 
     // Untouched fields adopt the fresh canonical values from targetsB.
+    // Schedule 22:30 -> 07:00 wraps to 510 min = 8h 30m either way.
     expect(find.text('3500 ml/day (3.5 L)'), findsOneWidget);
-    expect(find.text('8 hrs 30 mins'), findsOneWidget);
-    expect(find.text(const TimeOfDay(hour: 22, minute: 30).format(
-      tester.element(find.byType(DailyWellnessSettingsPage)),
-    )), findsOneWidget);
-    expect(find.text(const TimeOfDay(hour: 7, minute: 0).format(
-      tester.element(find.byType(DailyWellnessSettingsPage)),
-    )), findsOneWidget);
+    expect(find.text('8h 30m'), findsOneWidget);
+    expect(
+      find.text(timeRange(
+        tester,
+        const TimeOfDay(hour: 22, minute: 30),
+        const TimeOfDay(hour: 7, minute: 0),
+      )),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const ValueKey('daily-wellness-save')));
     await tester.pumpAndSettle();
@@ -428,8 +459,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('10000 steps/day'), findsOneWidget);
-    var saveButton =
-        tester.widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
+    var saveButton = tester
+        .widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
     expect(saveButton.onPressed, isNotNull);
 
     // Provider refreshes to targetsB, whose canonical Steps now equals the
@@ -447,8 +478,8 @@ void main() {
 
     expect(find.text('10000 steps/day'), findsOneWidget);
     expect(find.text('3000 ml/day (3 L)'), findsOneWidget);
-    saveButton =
-        tester.widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
+    saveButton = tester
+        .widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
     expect(saveButton.onPressed, isNull);
 
     // Provider refreshes again to targetsC. Because Steps converged back to
@@ -466,8 +497,8 @@ void main() {
 
     expect(find.text('12000 steps/day'), findsOneWidget);
     expect(find.text('3500 ml/day (3.5 L)'), findsOneWidget);
-    saveButton =
-        tester.widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
+    saveButton = tester
+        .widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
     expect(saveButton.onPressed, isNull);
   });
 
@@ -509,14 +540,137 @@ void main() {
     expect(savedTargets!.waterMl! % 100, 0);
   });
 
-  testWidgets('Editing sleep goal saves expected minutes and preserves other fields',
+  // ── Sleep Schedule (derived duration) ──────────────────────────────────
+
+  for (final testCase in const [
+    (bed: TimeOfDay(hour: 23, minute: 0), wake: TimeOfDay(hour: 7, minute: 0), label: '8h'),
+    (bed: TimeOfDay(hour: 22, minute: 30), wake: TimeOfDay(hour: 6, minute: 30), label: '8h'),
+    (bed: TimeOfDay(hour: 0, minute: 30), wake: TimeOfDay(hour: 8, minute: 0), label: '7h 30m'),
+  ]) {
+    testWidgets(
+        'Sleep Schedule computes cross-midnight-safe duration for ${testCase.bed.hour}:${testCase.bed.minute} -> ${testCase.wake.hour}:${testCase.wake.minute}',
+        (tester) async {
+      final initial = WellnessTargetsData(
+        bedTimeMinutes: testCase.bed.hour * 60 + testCase.bed.minute,
+        wakeTimeMinutes: testCase.wake.hour * 60 + testCase.wake.minute,
+      );
+
+      await tester.pumpWidget(
+        buildApp(
+          DailyWellnessSettingsPage(
+            initialTargets: initial,
+            volumeUnit: VolumeUnit.ml,
+            onSave: (_) async {},
+          ),
+        ),
+      );
+
+      expect(find.text(testCase.label), findsOneWidget);
+      expect(
+        find.text(timeRange(tester, testCase.bed, testCase.wake)),
+        findsOneWidget,
+      );
+    });
+  }
+
+  testWidgets(
+      'Null Sleep Schedule shows Not set and keeps Save disabled until a real change',
+      (tester) async {
+    await tester.pumpWidget(
+      buildApp(
+        DailyWellnessSettingsPage(
+          initialTargets: const WellnessTargetsData(dailySteps: 8000),
+          volumeUnit: VolumeUnit.ml,
+          onSave: (_) async {},
+        ),
+      ),
+    );
+
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('daily-wellness-sleep-schedule-field')),
+        matching: find.text('Not set'),
+      ),
+      findsOneWidget,
+    );
+
+    final saveButton = tester
+        .widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
+    expect(saveButton.onPressed, isNull);
+  });
+
+  testWidgets(
+      'Sleep Schedule bottom sheet sets Bedtime and Wake Time together and saves the derived duration',
+      (tester) async {
+    WellnessTargetsData? savedTargets;
+
+    await tester.pumpWidget(
+      buildApp(
+        DailyWellnessSettingsPage(
+          initialTargets: const WellnessTargetsData(),
+          volumeUnit: VolumeUnit.ml,
+          onSave: (targets) async => savedTargets = targets,
+        ),
+      ),
+    );
+
+    await tester.tap(
+        find.byKey(const ValueKey('daily-wellness-sleep-schedule-field')));
+    await tester.pumpAndSettle();
+    expect(find.text('Sleep Schedule'), findsWidgets);
+    expect(find.text('Bedtime'), findsOneWidget);
+    expect(find.text('Wake Time'), findsOneWidget);
+
+    // Set Bedtime to 11:00 PM via the existing native time picker.
+    await tester.tap(find.text('Bedtime'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Switch to text input mode'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).first, '11');
+    await tester.enterText(find.byType(TextFormField).last, '00');
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    // Set Wake Time to 7:00 AM.
+    await tester.tap(find.text('Wake Time'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Switch to text input mode'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).first, '7');
+    await tester.enterText(find.byType(TextFormField).last, '00');
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    // Live preview inside the sheet reflects the derived duration.
+    expect(find.text('8h planned sleep'), findsOneWidget);
+
+    await tester.tap(find.text('Save Schedule'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('8h'), findsOneWidget);
+    expect(
+      find.text(timeRange(
+        tester,
+        const TimeOfDay(hour: 23, minute: 0),
+        const TimeOfDay(hour: 7, minute: 0),
+      )),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('daily-wellness-save')));
+    await tester.pumpAndSettle();
+
+    expect(savedTargets, isNotNull);
+    expect(savedTargets!.bedTimeMinutes, 23 * 60);
+    expect(savedTargets!.wakeTimeMinutes, 7 * 60);
+    expect(savedTargets!.sleepTargetMinutes, 8 * 60);
+  });
+
+  testWidgets('Clear Schedule clears both Bedtime and Wake Time together',
       (tester) async {
     WellnessTargetsData? savedTargets;
 
     const initial = WellnessTargetsData(
-      dailySteps: 10000,
-      waterMl: 2500,
-      sleepTargetMinutes: 480,
       bedTimeMinutes: 1320,
       wakeTimeMinutes: 390,
     );
@@ -531,34 +685,98 @@ void main() {
       ),
     );
 
-    await tester.tap(find.byKey(const ValueKey('daily-wellness-sleep-field')));
+    await tester.tap(
+        find.byKey(const ValueKey('daily-wellness-sleep-schedule-field')));
     await tester.pumpAndSettle();
-    final sleepSliderRect = tester.getRect(find.byType(Slider));
-    await tester.tapAt(
-      Offset(sleepSliderRect.left + sleepSliderRect.width * 0.1,
-          sleepSliderRect.center.dy),
+
+    await tester.tap(find.text('Clear Schedule'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save Schedule'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('daily-wellness-sleep-schedule-field')),
+        matching: find.text('Not set'),
+      ),
+      findsOneWidget,
     );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Set Goal'));
-    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('daily-wellness-save')));
     await tester.pumpAndSettle();
 
     expect(savedTargets, isNotNull);
-    expect(savedTargets!.sleepTargetMinutes, isNot(480));
-    expect(savedTargets!.sleepTargetMinutes! % 30, 0);
-    expect(savedTargets!.dailySteps, 10000);
-    expect(savedTargets!.waterMl, 2500);
-    expect(savedTargets!.bedTimeMinutes, 1320);
-    expect(savedTargets!.wakeTimeMinutes, 390);
+    expect(savedTargets!.bedTimeMinutes, isNull);
+    expect(savedTargets!.wakeTimeMinutes, isNull);
+    expect(savedTargets!.sleepTargetMinutes, isNull);
   });
 
-  testWidgets('Editing bedtime saves expected minutes since midnight',
+  testWidgets(
+      'Dismissing the Sleep Schedule sheet without Save Schedule leaves the page unchanged',
+      (tester) async {
+    const initial = WellnessTargetsData(
+      bedTimeMinutes: 1320, // 10:00 PM
+      wakeTimeMinutes: 390, // 6:30 AM
+    );
+
+    await tester.pumpWidget(
+      buildApp(
+        DailyWellnessSettingsPage(
+          initialTargets: initial,
+          volumeUnit: VolumeUnit.ml,
+          onSave: (_) async {},
+        ),
+      ),
+    );
+
+    await tester.tap(
+        find.byKey(const ValueKey('daily-wellness-sleep-schedule-field')));
+    await tester.pumpAndSettle();
+
+    // Change Bedtime inside the sheet, but never tap Save Schedule.
+    await tester.tap(find.text('Bedtime'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Switch to text input mode'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).first, '6');
+    await tester.enterText(find.byType(TextFormField).last, '00');
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    // Dismiss the sheet by tapping the barrier instead of Save Schedule.
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
+    // Page still shows the original, untouched schedule.
+    expect(find.text('8h 30m'), findsOneWidget);
+    expect(
+      find.text(timeRange(
+        tester,
+        const TimeOfDay(hour: 22, minute: 0),
+        const TimeOfDay(hour: 6, minute: 30),
+      )),
+      findsOneWidget,
+    );
+
+    final saveButton = tester
+        .widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
+    expect(saveButton.onPressed, isNull);
+  });
+
+  testWidgets(
+      'Editing only Step Goal reconciles a stale legacy sleepTargetMinutes to the real schedule duration',
       (tester) async {
     WellnessTargetsData? savedTargets;
 
-    const initial = WellnessTargetsData(bedTimeMinutes: 1320); // 10:00 PM
+    // sleepTargetMinutes is a stale/inconsistent legacy value that does not
+    // match the real 23:00 -> 08:00 schedule (whose real duration is 540
+    // minutes, not 480).
+    const initial = WellnessTargetsData(
+      dailySteps: 8000,
+      bedTimeMinutes: 23 * 60,
+      wakeTimeMinutes: 8 * 60,
+      sleepTargetMinutes: 480,
+    );
 
     await tester.pumpWidget(
       buildApp(
@@ -570,72 +788,22 @@ void main() {
       ),
     );
 
-    await tester.tap(find.byKey(const ValueKey('daily-wellness-bedtime-field')));
+    // The page never trusted the stale 480 in the first place.
+    expect(find.text('9h'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('daily-wellness-steps-field')));
     await tester.pumpAndSettle();
-
-    // Switch to text input entry mode to set a deterministic new time.
-    await tester.tap(find.byTooltip('Switch to text input mode'));
+    await tester.tap(find.text('Clear Goal'));
     await tester.pumpAndSettle();
-
-    final hourField = find.byType(TextFormField).first;
-    final minuteField = find.byType(TextFormField).last;
-
-    await tester.enterText(hourField, '9');
-    await tester.enterText(minuteField, '15');
-    // Initial time (10:00 PM) is already in the PM period; leave it as PM.
-    await tester.tap(find.text('OK'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('9:15 PM'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('daily-wellness-save')));
     await tester.pumpAndSettle();
 
     expect(savedTargets, isNotNull);
-    expect(savedTargets!.bedTimeMinutes, 21 * 60 + 15);
-  });
-
-  testWidgets('Editing wake time saves expected minutes since midnight',
-      (tester) async {
-    WellnessTargetsData? savedTargets;
-
-    const initial = WellnessTargetsData(wakeTimeMinutes: 390); // 06:30 AM
-
-    await tester.pumpWidget(
-      buildApp(
-        DailyWellnessSettingsPage(
-          initialTargets: initial,
-          volumeUnit: VolumeUnit.ml,
-          onSave: (targets) async => savedTargets = targets,
-        ),
-      ),
-    );
-
-    await tester.ensureVisible(
-        find.byKey(const ValueKey('daily-wellness-wake-time-field')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('daily-wellness-wake-time-field')));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byTooltip('Switch to text input mode'));
-    await tester.pumpAndSettle();
-
-    final hourField = find.byType(TextFormField).first;
-    final minuteField = find.byType(TextFormField).last;
-
-    await tester.enterText(hourField, '7');
-    await tester.enterText(minuteField, '45');
-    // Initial time (6:30 AM) is already in the AM period; leave it as AM.
-    await tester.tap(find.text('OK'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('7:45 AM'), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('daily-wellness-save')));
-    await tester.pumpAndSettle();
-
-    expect(savedTargets, isNotNull);
-    expect(savedTargets!.wakeTimeMinutes, 7 * 60 + 45);
+    expect(savedTargets!.dailySteps, isNull);
+    expect(savedTargets!.bedTimeMinutes, 23 * 60);
+    expect(savedTargets!.wakeTimeMinutes, 8 * 60);
+    expect(savedTargets!.sleepTargetMinutes, 9 * 60);
   });
 
   testWidgets('Double tap on Save cannot trigger a second onSave call',
@@ -775,7 +943,6 @@ void main() {
               initialTargets: const WellnessTargetsData(
                 dailySteps: 10000,
                 waterMl: 2500,
-                sleepTargetMinutes: 480,
                 bedTimeMinutes: 1320,
                 wakeTimeMinutes: 390,
               ),

@@ -44,14 +44,14 @@ repository; this IA slice does not change sign-out failure handling.
 
 ## Health & Goals And Daily Wellness Ownership
 
-Health & Goals delivers the post-onboarding entry point for Daily Wellness targets
-(Step Goal, Water Goal, Sleep Goal, Bedtime, Wake Time).
+Health & Goals delivers the post-onboarding entry point for Daily Wellness targets.
+Settings' user-facing controls are exactly: Step Goal, Water Goal, and Sleep Schedule.
 Settings does not own Wellness persistence or business logic; it consumes the
 canonical `WellnessTargetsRepository` (`apps/features/progress`) via `wellnessTargetsRepositoryProvider`
 and `wellnessTargetsDataProvider`.
 
 - Water Goal respects the user's `UnitPreferences.volumeUnit` for display (`ml` or `fl oz`) while storing canonical `ml`.
-- Bedtime and Wake Time use local 0..1439 minute-of-day integer values (persisted as SQL TIME).
+- Sleep Schedule edits Bedtime and Wake Time together in one bottom sheet (local 0..1439 minute-of-day integer values, persisted as SQL TIME). There is no independently editable Sleep Goal in Settings: `sleepTargetMinutes` is always derived from the current Bedtime/Wake Time pair (cross-midnight safe) and recomputed on every save, never fabricated when either side of the schedule is unset.
 - Partial edits preserve all untouched values (including unset `null`s) without fabricating defaults.
 - Default Glass Size is unowned and explicitly deferred (not implemented in S0-B1).
 - Body Goal / Weight edit remains deferred post-S0-C; no placeholder Body rows are exposed in Settings.

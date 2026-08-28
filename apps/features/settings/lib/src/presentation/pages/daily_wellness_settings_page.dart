@@ -32,9 +32,13 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
   // dirty field whose draft happens to match a newly arrived canonical value
   // converges back to non-dirty and stays eligible for future hydration,
   // instead of blocking every later refresh just because it once diverged.
+  //
+  // There is no _dirtySleep: sleepTargetMinutes is never independently
+  // edited. It is always derived from Bedtime + Wake Time (see
+  // _computeSleepDuration), so its "dirtiness" is fully implied by
+  // _dirtyBedtime / _dirtyWakeTime.
   var _dirtySteps = false;
   var _dirtyWater = false;
-  var _dirtySleep = false;
   var _dirtyBedtime = false;
   var _dirtyWakeTime = false;
 
@@ -42,20 +46,27 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
   String? _errorMessage;
 
   bool get _hasChanges =>
-      _dirtySteps ||
-      _dirtyWater ||
-      _dirtySleep ||
-      _dirtyBedtime ||
-      _dirtyWakeTime;
+      _dirtySteps || _dirtyWater || _dirtyBedtime || _dirtyWakeTime;
+
+  /// Sleep duration is a pure function of Bedtime/Wake Time, never an
+  /// independent target. Null when either side of the schedule is unset —
+  /// never fabricated. Dart's `%` on int is Euclidean (always non-negative
+  /// for a positive divisor), so this handles the schedule wrapping past
+  /// midnight without a branch.
+  static int? _computeSleepDuration(int? bed, int? wake) {
+    if (bed == null || wake == null) return null;
+    return (wake - bed) % (24 * 60);
+  }
 
   @override
   void initState() {
     super.initState();
     _dailySteps = widget.initialTargets?.dailySteps;
     _waterMl = widget.initialTargets?.waterMl;
-    _sleepTargetMinutes = widget.initialTargets?.sleepTargetMinutes;
     _bedTimeMinutes = widget.initialTargets?.bedTimeMinutes;
     _wakeTimeMinutes = widget.initialTargets?.wakeTimeMinutes;
+    _sleepTargetMinutes =
+        _computeSleepDuration(_bedTimeMinutes, _wakeTimeMinutes);
   }
 
   @override
@@ -77,12 +88,6 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
       _waterMl = newInit?.waterMl;
     }
 
-    if (_dirtySleep) {
-      _dirtySleep = _sleepTargetMinutes != newInit?.sleepTargetMinutes;
-    } else {
-      _sleepTargetMinutes = newInit?.sleepTargetMinutes;
-    }
-
     if (_dirtyBedtime) {
       _dirtyBedtime = _bedTimeMinutes != newInit?.bedTimeMinutes;
     } else {
@@ -94,6 +99,9 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
     } else {
       _wakeTimeMinutes = newInit?.wakeTimeMinutes;
     }
+
+    _sleepTargetMinutes =
+        _computeSleepDuration(_bedTimeMinutes, _wakeTimeMinutes);
   }
 
   String _formatSteps() {
@@ -115,14 +123,15 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
     return '$_waterMl ml/day ($formatted)';
   }
 
-  String _formatSleep() {
-    if (_sleepTargetMinutes == null) return 'Not set';
-    final hours = _sleepTargetMinutes! ~/ 60;
-    final mins = _sleepTargetMinutes! % 60;
-    if (mins > 0) {
-      return '$hours hrs $mins mins';
-    }
-    return '$hours hrs';
+  /// Compact duration format for the derived Sleep Schedule summary:
+  /// "48 min", "7h", "7h 30m", "8h 15m". Deliberately not decimal hours.
+  String _formatSleepDuration(int? totalMinutes) {
+    if (totalMinutes == null) return 'Not set';
+    final hours = totalMinutes ~/ 60;
+    final mins = totalMinutes % 60;
+    if (hours == 0) return '$mins min';
+    if (mins == 0) return '${hours}h';
+    return '${hours}h ${mins}m';
   }
 
   String _formatTimeOfDay(int? totalMinutes) {
@@ -369,12 +378,16 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
     }
   }
 
-  Future<void> _pickSleep() async {
-    final current = _sleepTargetMinutes ?? 480;
-    var tempValue = current.clamp(240, 720);
+  /// Combined Bedtime + Wake Time editor. Both times are edited as local
+  /// temporary state inside the sheet; nothing on the page commits unless
+  /// the user taps "Save Schedule" — dismissing/backing out of the sheet
+  /// leaves the page's Bedtime/Wake Time/derived duration untouched.
+  Future<void> _pickSleepSchedule() async {
+    var tempBedTime = _bedTimeMinutes;
+    var tempWakeTime = _wakeTimeMinutes;
     final colors = context.tioColors;
 
-    final result = await showModalBottomSheet<int?>(
+    final result = await showModalBottomSheet<(int?, int?)>(
       context: context,
       backgroundColor: colors.surfaceRaised,
       shape: const RoundedRectangleBorder(
@@ -385,10 +398,79 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
       builder: (modalContext) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            final hours = tempValue ~/ 60;
-            final mins = tempValue % 60;
-            final displayStr =
-                mins > 0 ? '$hours hrs $mins mins' : '$hours hrs';
+            final previewDuration =
+                _computeSleepDuration(tempBedTime, tempWakeTime);
+
+            Future<void> pickBedTime() async {
+              final current = tempBedTime ?? (22 * 60);
+              final picked = await showTimePicker(
+                context: context,
+                initialTime: TimeOfDay(
+                  hour: current ~/ 60,
+                  minute: current % 60,
+                ),
+              );
+              if (picked != null) {
+                setModalState(() {
+                  tempBedTime = (picked.hour * 60) + picked.minute;
+                });
+              }
+            }
+
+            Future<void> pickWakeTime() async {
+              final current = tempWakeTime ?? (6 * 60 + 30);
+              final picked = await showTimePicker(
+                context: context,
+                initialTime: TimeOfDay(
+                  hour: current ~/ 60,
+                  minute: current % 60,
+                ),
+              );
+              if (picked != null) {
+                setModalState(() {
+                  tempWakeTime = (picked.hour * 60) + picked.minute;
+                });
+              }
+            }
+
+            Widget scheduleTimeColumn({
+              required String label,
+              required int? minutes,
+              required VoidCallback onTap,
+            }) {
+              return Expanded(
+                child: InkWell(
+                  onTap: onTap,
+                  borderRadius: BorderRadius.circular(TioRadius.sm),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: TioSpacing.sm,
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          label,
+                          style: TextStyle(
+                            color: colors.textSecondary,
+                            fontSize: TioFontSize.size13,
+                            fontWeight: TioFontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: TioSpacing.xs),
+                        Text(
+                          _formatTimeOfDay(minutes),
+                          style: TextStyle(
+                            color: colors.textPrimary,
+                            fontWeight: TioFontWeight.w700,
+                            fontSize: TioFontSize.size18,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
 
             return SafeArea(
               child: Padding(
@@ -410,53 +492,54 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
                     ),
                     const SizedBox(height: TioSpacing.md),
                     Text(
-                      'Daily Sleep Goal',
+                      'Sleep Schedule',
                       style: TextStyle(
                         color: colors.textPrimary,
                         fontWeight: TioFontWeight.w700,
                         fontSize: TioFontSize.size18,
                       ),
                     ),
-                    const SizedBox(height: TioSpacing.sm),
-                    Text(
-                      'Recommended: 7 - 9 hours/night',
-                      style: TextStyle(
-                        color: colors.textSecondary,
-                        fontSize: TioFontSize.size13,
-                      ),
+                    const SizedBox(height: TioSpacing.lg),
+                    Row(
+                      children: [
+                        scheduleTimeColumn(
+                          label: 'Bedtime',
+                          minutes: tempBedTime,
+                          onTap: pickBedTime,
+                        ),
+                        scheduleTimeColumn(
+                          label: 'Wake Time',
+                          minutes: tempWakeTime,
+                          onTap: pickWakeTime,
+                        ),
+                      ],
                     ),
                     const SizedBox(height: TioSpacing.lg),
                     Center(
                       child: Text(
-                        displayStr,
+                        previewDuration == null
+                            ? 'Set both times to see sleep duration'
+                            : '${_formatSleepDuration(previewDuration)} planned sleep',
                         style: TextStyle(
                           color: colors.primary,
-                          fontWeight: TioFontWeight.w800,
-                          fontSize: TioFontSize.size24,
+                          fontWeight: TioFontWeight.w700,
+                          fontSize: TioFontSize.size15,
                         ),
                       ),
                     ),
-                    Slider(
-                      value: tempValue.toDouble(),
-                      min: 240,
-                      max: 720,
-                      divisions: 16,
-                      activeColor: colors.primary,
-                      onChanged: (val) {
-                        setModalState(() {
-                          tempValue = (val / 30).round() * 30;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: TioSpacing.md),
+                    const SizedBox(height: TioSpacing.lg),
                     Row(
                       children: [
                         Expanded(
                           child: TextButton(
-                            onPressed: () =>
-                                Navigator.of(modalContext).pop(-1),
+                            onPressed: () {
+                              setModalState(() {
+                                tempBedTime = null;
+                                tempWakeTime = null;
+                              });
+                            },
                             child: Text(
-                              'Clear Goal',
+                              'Clear Schedule',
                               style: TextStyle(color: colors.danger),
                             ),
                           ),
@@ -464,9 +547,9 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
                         const SizedBox(width: TioSpacing.md),
                         Expanded(
                           child: TioButton.primary(
-                            label: 'Set Goal',
-                            onPressed: () =>
-                                Navigator.of(modalContext).pop(tempValue),
+                            label: 'Save Schedule',
+                            onPressed: () => Navigator.of(modalContext)
+                                .pop((tempBedTime, tempWakeTime)),
                           ),
                         ),
                       ],
@@ -482,52 +565,13 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
 
     if (result != null && mounted) {
       setState(() {
-        _sleepTargetMinutes = result == -1 ? null : result;
-        _dirtySleep =
-            _sleepTargetMinutes != widget.initialTargets?.sleepTargetMinutes;
-        _errorMessage = null;
-      });
-    }
-  }
-
-  Future<void> _pickBedtime() async {
-    final currentMinutes = _bedTimeMinutes ?? (22 * 60);
-    final initial = TimeOfDay(
-      hour: currentMinutes ~/ 60,
-      minute: currentMinutes % 60,
-    );
-
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: initial,
-    );
-
-    if (picked != null && mounted) {
-      setState(() {
-        _bedTimeMinutes = (picked.hour * 60) + picked.minute;
+        _bedTimeMinutes = result.$1;
+        _wakeTimeMinutes = result.$2;
         _dirtyBedtime = _bedTimeMinutes != widget.initialTargets?.bedTimeMinutes;
-        _errorMessage = null;
-      });
-    }
-  }
-
-  Future<void> _pickWakeTime() async {
-    final currentMinutes = _wakeTimeMinutes ?? (6 * 60 + 30);
-    final initial = TimeOfDay(
-      hour: currentMinutes ~/ 60,
-      minute: currentMinutes % 60,
-    );
-
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: initial,
-    );
-
-    if (picked != null && mounted) {
-      setState(() {
-        _wakeTimeMinutes = (picked.hour * 60) + picked.minute;
         _dirtyWakeTime =
             _wakeTimeMinutes != widget.initialTargets?.wakeTimeMinutes;
+        _sleepTargetMinutes =
+            _computeSleepDuration(_bedTimeMinutes, _wakeTimeMinutes);
         _errorMessage = null;
       });
     }
@@ -613,6 +657,7 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
                         icon: Icons.directions_walk_rounded,
                         label: 'Step Goal',
                         value: _formatSteps(),
+                        isUnset: _dailySteps == null,
                         onTap: _pickSteps,
                       ),
                       const _DailyWellnessDivider(),
@@ -621,39 +666,31 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
                         icon: Icons.water_drop_outlined,
                         label: 'Water Goal',
                         value: _formatWater(),
+                        isUnset: _waterMl == null,
                         onTap: _pickWater,
-                      ),
-                      const _DailyWellnessDivider(),
-                      _DailyWellnessRow(
-                        key: const ValueKey('daily-wellness-sleep-field'),
-                        icon: Icons.bedtime_outlined,
-                        label: 'Sleep Goal',
-                        value: _formatSleep(),
-                        onTap: _pickSleep,
                       ),
                     ],
                   ),
 
                   const SizedBox(height: TioSpacing.lg),
 
-                  // ── SCHEDULE GROUP ──
-                  const _DailyWellnessSectionHeader(title: 'DAILY SCHEDULE'),
+                  // ── SLEEP GROUP ──
+                  const _DailyWellnessSectionHeader(title: 'SLEEP'),
                   _DailyWellnessGroupCard(
                     children: [
                       _DailyWellnessRow(
-                        key: const ValueKey('daily-wellness-bedtime-field'),
-                        icon: Icons.nightlight_round,
-                        label: 'Bedtime',
-                        value: _formatTimeOfDay(_bedTimeMinutes),
-                        onTap: _pickBedtime,
-                      ),
-                      const _DailyWellnessDivider(),
-                      _DailyWellnessRow(
-                        key: const ValueKey('daily-wellness-wake-time-field'),
-                        icon: Icons.wb_sunny_rounded,
-                        label: 'Wake Time',
-                        value: _formatTimeOfDay(_wakeTimeMinutes),
-                        onTap: _pickWakeTime,
+                        key: const ValueKey(
+                          'daily-wellness-sleep-schedule-field',
+                        ),
+                        icon: Icons.bedtime_outlined,
+                        label: 'Sleep Schedule',
+                        value: _formatSleepDuration(_sleepTargetMinutes),
+                        isUnset: _sleepTargetMinutes == null,
+                        subtitle: _bedTimeMinutes == null &&
+                                _wakeTimeMinutes == null
+                            ? null
+                            : '${_formatTimeOfDay(_bedTimeMinutes)} - ${_formatTimeOfDay(_wakeTimeMinutes)}',
+                        onTap: _pickSleepSchedule,
                       ),
                     ],
                   ),
@@ -778,19 +815,27 @@ class _DailyWellnessRow extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
+    required this.isUnset,
     required this.onTap,
+    this.subtitle,
     super.key,
   });
 
   final IconData icon;
   final String label;
   final String value;
+
+  /// Explicit unset styling contract instead of sniffing `value == 'Not set'`.
+  final bool isUnset;
+
+  /// Optional secondary line rendered below [label]/[value] (e.g. the
+  /// Bedtime–Wake Time range under the Sleep Schedule duration).
+  final String? subtitle;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
-    final isUnset = value == 'Not set';
 
     return InkWell(
       onTap: onTap,
@@ -837,6 +882,17 @@ class _DailyWellnessRow extends StatelessWidget {
                           isUnset ? TioFontWeight.w400 : TioFontWeight.w500,
                     ),
                   ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: TioSpacing.xxs),
+                    Text(
+                      subtitle!,
+                      style: TextStyle(
+                        color: colors.textMuted,
+                        fontSize: TioFontSize.size12,
+                        fontWeight: TioFontWeight.w400,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
