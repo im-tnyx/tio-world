@@ -26,15 +26,15 @@ Tio is designed as a premium health and wellness platform that helps users manag
 | Wear OS | Flutter | Existing Flutter companion package sharing design tokens, contracts, and watch-first workflows. |
 | Apple Watch | Swift + SwiftUI | Native watchOS integration, HealthKit, complications, and WatchConnectivity. |
 | Auth, data, and media | Supabase | Active Auth/Postgres/RLS foundation with approved Storage added only through bounded feature slices. |
-| Protected backend upgrade | Future server-side workspace | Gemini, advanced integrations, long-running jobs, and heavy processing only when explicitly approved. |
+| Protected API | Future `services/api` — Node.js + TypeScript + Fastify | Locked modular-monolith destination for protected server work, created only when separately authorized. |
 
 > **Watch strategy:** Wear OS remains a Flutter package (`apps/wear`) with watch-first UI, shared design tokens, and shared contracts where useful. Apple Watch uses native SwiftUI for close platform integration.
 
 ## Target Repository Shape
 
-`tio-world` uses an apps-based modular Flutter workspace that mirrors the native `:app`, `:shared`, `:core`, and `:features:*` structure. The current checkout contains both the Flutter workspace and the active `supabase/` platform workspace. `backend/` remains a planned protected-service workspace and must be created only with its first explicitly approved backend implementation slice.
+`tio-world` uses an apps-based modular Flutter workspace that mirrors the native `:app`, `:shared`, `:core`, and `:features:*` structure. The current checkout contains both the Flutter workspace and the active `supabase/` platform workspace. The accepted future protected server destination is `services/api`; it is architecture-only today and must be created only with its first explicitly authorized backend implementation slice.
 
-The `supabase/` workspace owns approved Auth/platform configuration, schema migrations, RLS policies, Storage boundaries, and database functions. A separate `backend/` is reserved for a future protected-service upgrade; it is not the current database/authentication layer.
+The `supabase/` workspace owns approved Auth/platform configuration, schema migrations, RLS policies, Storage boundaries, and database functions. Future protected orchestration belongs under `services/api`; it is not the current database/authentication layer, and no `backend/api` alternate namespace should be introduced.
 
 The current feature packages include `home`, `auth`, `onboarding`, `workout`, `nutrition`, `profile`, `settings`, `progress`, and `coaching`.
 
@@ -49,22 +49,25 @@ tio-world/
 │  └─ features/
 │     ├─ auth/
 │     ├─ onboarding/
+│     ├─ home/
 │     ├─ workout/
 │     ├─ nutrition/
 │     ├─ profile/
 │     ├─ settings/
 │     ├─ progress/
 │     └─ coaching/
-├─ supabase/                       # Active config, migrations, policies, approved functions
-├─ backend/                        # Future protected-service upgrade; not started
-│  ├─ api/
-│  ├─ ai-coach/
-│  └─ jobs/
+├─ supabase/                       # ACTIVE config, migrations, policies, approved functions
+├─ services/                       # Future runnable protected server processes
+│  ├─ api/                         # Future Node.js + TypeScript + Fastify modular monolith
+│  └─ worker/                      # Future only when a real async workload requires it
+├─ packages/                       # Future reusable code only when a real extraction boundary exists
 ├─ docs/
 ├─ .github/
 ├─ .ai/
 └─ README.md
 ```
+
+The future paths above document accepted destinations only. Do not create empty `services/`, `worker/`, or package folders merely to match the tree.
 
 ## Native-Style To Flutter Module Mapping
 
@@ -94,7 +97,8 @@ tio-world/
 - Backend table/API shapes must not leak directly into widgets.
 - Feature presentation layers must not import another feature's presentation layer.
 - Watch apps own their own UI and platform integrations.
-- Heavy AI, analytics, sync reconciliation, and protected credentials belong on a future protected server-side boundary when explicitly implemented.
+- Heavy AI, analytics, sync reconciliation, and protected credentials belong on the future `services/api` protected server boundary when explicitly implemented.
+- Supabase Auth remains the identity authority; a future protected API verifies Supabase-issued access tokens rather than introducing a second canonical auth provider.
 
 ## Feature Package Pattern
 
@@ -232,16 +236,19 @@ melos test
 Start here:
 
 - [Documentation index](docs/README.md)
+- [Architecture](docs/ARCHITECTURE.md)
 - [AI context and active tasks](.ai/README.md)
 - [Onboarding flow architecture](docs/ONBOARDING_ARCHITECTURE.md)
 
-For platform trust, data, recovery, and future protected-service contracts, read:
+For platform trust, data, recovery, environment, and future protected-service contracts, read:
 
 - [Authentication architecture](docs/AUTH_ARCHITECTURE.md)
 - [Supabase server access](docs/SUPABASE_SERVER_ACCESS.md)
+- [Secrets & environment strategy](docs/SECRETS_AND_ENVIRONMENTS.md)
 - [Data & privacy governance](docs/DATA_PRIVACY_GOVERNANCE.md)
 - [Database backup & recovery](docs/DATABASE_BACKUP_RECOVERY.md)
 - [API lifecycle & client compatibility](docs/API_LIFECYCLE.md)
+- [Feature rollout & kill switch](docs/FEATURE_ROLLOUT.md)
 
 For the phone and Wear OS screen-by-screen product plan, read:
 
