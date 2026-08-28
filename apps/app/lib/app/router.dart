@@ -75,6 +75,8 @@ ChromePolicy shellChromePolicyForPath(String location) {
     AppRoutes.profile,
     AppRoutes.profileAvatar,
     AppRoutes.settings,
+    AppRoutes.healthGoalsSettings,
+    AppRoutes.dailyWellnessSettings,
     AppRoutes.profileSettings,
     AppRoutes.accountSettings,
     AppRoutes.appSettings,
@@ -667,10 +669,132 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               context.push(AppRoutes.profileSettings.path),
           onAccountSettingsPressed: () =>
               context.push(AppRoutes.accountSettings.path),
+          onHealthGoalsPressed: () =>
+              context.push(AppRoutes.healthGoalsSettings.path),
           onAppSettingsPressed: () => context.push(AppRoutes.appSettings.path),
           onLogoutPressed: () async {
             await ref.read(authSessionRepositoryProvider).signOut();
             if (context.mounted) context.go(AppRoutes.auth.path);
+          },
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.healthGoalsSettings.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => HealthGoalsSettingsPage(
+          onDailyWellnessPressed: () =>
+              context.push(AppRoutes.dailyWellnessSettings.path),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.dailyWellnessSettings.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => Consumer(
+          builder: (context, ref, _) {
+            final wellnessAsync = ref.watch(wellnessTargetsDataProvider);
+            final profileAsync = ref.watch(profileDataProvider);
+            final volumeUnit =
+                profileAsync.valueOrNull?.unitPreferences.volumeUnit ??
+                    VolumeUnit.ml;
+
+            if (wellnessAsync.isLoading && wellnessAsync.valueOrNull == null) {
+              return Scaffold(
+                backgroundColor: context.tioColors.background,
+                appBar: AppBar(
+                  backgroundColor: context.tioColors.background,
+                  elevation: TioElevation.none,
+                  scrolledUnderElevation: TioElevation.none,
+                  leading: BackButton(color: context.tioColors.textPrimary),
+                  title: Text(
+                    'Daily Wellness',
+                    style: TextStyle(
+                      color: context.tioColors.textPrimary,
+                      fontWeight: TioFontWeight.w800,
+                      fontSize: TioFontSize.size20,
+                    ),
+                  ),
+                ),
+                body: SafeArea(
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: context.tioColors.primary,
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            if (wellnessAsync.hasError && wellnessAsync.valueOrNull == null) {
+              final colors = context.tioColors;
+              return Scaffold(
+                backgroundColor: colors.background,
+                appBar: AppBar(
+                  backgroundColor: colors.background,
+                  elevation: TioElevation.none,
+                  scrolledUnderElevation: TioElevation.none,
+                  leading: BackButton(color: colors.textPrimary),
+                  title: Text(
+                    'Daily Wellness',
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontWeight: TioFontWeight.w800,
+                      fontSize: TioFontSize.size20,
+                    ),
+                  ),
+                ),
+                body: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(TioSpacing.xl),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline_rounded,
+                            size: TioSize.dp48,
+                            color: colors.danger,
+                          ),
+                          const SizedBox(height: TioSpacing.lg),
+                          Text(
+                            'Could not load wellness targets',
+                            style: TextStyle(
+                              color: colors.textPrimary,
+                              fontSize: TioFontSize.size18,
+                              fontWeight: TioFontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: TioSpacing.sm),
+                          Text(
+                            'Please check your connection and try again.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: colors.textSecondary,
+                              fontSize: TioFontSize.size14,
+                            ),
+                          ),
+                          const SizedBox(height: TioSpacing.xl),
+                          TioButton.primary(
+                            label: 'Retry',
+                            onPressed: () =>
+                                ref.invalidate(wellnessTargetsDataProvider),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            return DailyWellnessSettingsPage(
+              initialTargets: wellnessAsync.valueOrNull,
+              volumeUnit: volumeUnit,
+              onSave: (targets) async {
+                final repository = ref.read(wellnessTargetsRepositoryProvider);
+                await repository.upsert(targets);
+                ref.invalidate(wellnessTargetsDataProvider);
+              },
+            );
           },
         ),
       ),

@@ -102,6 +102,20 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  static const healthGoalsSettings = TioRouteContract(
+    path: '/settings/health-goals',
+    title: 'Health & Goals',
+    description: 'Manage your daily wellness targets and goals.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
+  static const dailyWellnessSettings = TioRouteContract(
+    path: '/settings/health-goals/daily-wellness',
+    title: 'Daily Wellness',
+    description: 'Manage daily steps, water, sleep, and schedule targets.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
   static const themeSettings = TioRouteContract(
     path: '/settings/theme',
     title: 'Theme',

@@ -6,6 +6,7 @@ class SettingsPage extends StatelessWidget {
     required this.onAppSettingsPressed,
     this.onProfileSettingsPressed,
     this.onAccountSettingsPressed,
+    this.onHealthGoalsPressed,
     this.onLogoutPressed,
     super.key,
   });
@@ -13,6 +14,7 @@ class SettingsPage extends StatelessWidget {
   final VoidCallback onAppSettingsPressed;
   final VoidCallback? onProfileSettingsPressed;
   final VoidCallback? onAccountSettingsPressed;
+  final VoidCallback? onHealthGoalsPressed;
   final VoidCallback? onLogoutPressed;
 
   void _showLogoutDialog(BuildContext context) {
@@ -104,6 +106,19 @@ class SettingsPage extends StatelessWidget {
                   title: 'Account Settings',
                   subtitle: 'Email, mobile, linked account & delete account',
                   onTap: onAccountSettingsPressed,
+                ),
+              ],
+            ),
+            const SizedBox(height: TioSpacing.lg),
+            const _SettingsSectionHeader(title: 'HEALTH & GOALS'),
+            _SettingsGroupCard(
+              children: [
+                _SettingsTile(
+                  key: const ValueKey('settings-health-goals-entry'),
+                  icon: Icons.track_changes_rounded,
+                  title: 'Health & Goals',
+                  subtitle: 'Daily Wellness targets',
+                  onTap: onHealthGoalsPressed,
                 ),
               ],
             ),

@@ -74,6 +74,7 @@ void main() {
 
     var profileSettingsTaps = 0;
     var accountSettingsTaps = 0;
+    var healthGoalsTaps = 0;
     var appSettingsTaps = 0;
 
     await tester.pumpWidget(
@@ -83,23 +84,29 @@ void main() {
         home: SettingsPage(
           onProfileSettingsPressed: () => profileSettingsTaps++,
           onAccountSettingsPressed: () => accountSettingsTaps++,
+          onHealthGoalsPressed: () => healthGoalsTaps++,
           onAppSettingsPressed: () => appSettingsTaps++,
         ),
       ),
     );
 
     expect(find.text('ACCOUNT & PROFILE'), findsOneWidget);
+    expect(find.text('HEALTH & GOALS'), findsOneWidget);
     expect(find.text('PREFERENCES'), findsOneWidget);
     expect(find.text('SESSION'), findsOneWidget);
 
     expect(find.text('Profile Settings'), findsOneWidget);
     expect(find.text('Account Settings'), findsOneWidget);
+    expect(find.text('Health & Goals'), findsOneWidget);
+    expect(find.text('Daily Wellness targets'), findsOneWidget);
     expect(find.text('App Preferences'), findsOneWidget);
     expect(find.text('Log Out'), findsOneWidget);
     expect(find.text('App Mode, theme & units'), findsOneWidget);
     expect(find.text('Units'), findsNothing);
     expect(find.byKey(const ValueKey('settings-measurement-units-entry')),
         findsNothing);
+    expect(find.byKey(const ValueKey('settings-health-goals-entry')),
+        findsOneWidget);
     for (final absent in [
       'Measurement Units',
       'Manage Subscription',
@@ -122,6 +129,9 @@ void main() {
 
     await tester.tap(find.text('Account Settings'));
     expect(accountSettingsTaps, 1);
+
+    await tester.tap(find.text('Health & Goals'));
+    expect(healthGoalsTaps, 1);
 
     await tester.tap(find.text('App Preferences'));
     expect(appSettingsTaps, 1);
