@@ -1,6 +1,8 @@
 # Architecture
 
-`tio-world` is a Flutter-first product monorepo with a Flutter Wear OS companion, a future native Apple Watch app, and a planned server-side backend workspace.
+`tio-world` is a Flutter-first product monorepo with a Flutter Wear OS companion, a future native Apple Watch app, an active Supabase Auth/data foundation, and a future protected TypeScript/Fastify server workspace.
+
+This document is the canonical repository-shape and ownership reference. Runtime source/config remains the truth for what is actually implemented today.
 
 ## Core Promise
 
@@ -9,15 +11,16 @@ Move fast on product, but keep boundaries clean.
 - `apps/app` owns the Flutter Android and iOS phone app shell.
 - `apps/wear` owns the Flutter Wear OS companion app.
 - `apps/shared` owns pure Dart shared models, entities, repository contracts, use cases, results, errors, and utilities.
-- `apps/core` owns Flutter design system, route contracts, shell components, reusable UI, tokens, constants, and extensions.
-- `apps/features/home` owns the Home screen presentation slice and future Home-specific workflows.
-- `apps/features/*` owns feature packages such as workout, nutrition, onboarding, auth, profile, settings, progress, coaching, and future recovery.
-- future `supabase/*` will own Supabase Auth, Postgres/RLS, Storage, migrations, seed data, and approved server functions for the first data slices.
-- future `backend/*` will own Gemini/AI coach orchestration, advanced integrations, and long-running server work when the Supabase-first foundation needs an upgrade.
-- `docs/` owns architecture and implementation direction.
-- `.ai/` owns short AI orientation files.
+- `apps/core` owns the Flutter design system, route contracts, shell components, reusable UI, tokens, constants, and extensions.
+- `apps/features/*` owns product feature packages such as home, workout, nutrition, onboarding, auth, profile, settings, progress, and coaching.
+- `supabase/` is active and owns Supabase project configuration, database migrations, RLS/policies, approved Edge Functions, and related platform assets.
+- future `services/api/` is the canonical protected server application path when backend implementation is explicitly authorized.
+- future `services/worker/` is reserved for real asynchronous/background processing needs and must not be scaffolded speculatively.
+- `packages/` is reserved for reusable code only when a real extraction/reuse boundary exists.
+- `docs/` owns canonical architecture and policy.
+- `.ai/` is a short orientation layer, not an alternate architecture source.
 
-## Current Target Shape
+## Current And Future Repository Shape
 
 ```text
 tio-world/
@@ -30,63 +33,197 @@ tio-world/
 │  └─ features/
 │     ├─ auth/
 │     ├─ onboarding/
+│     ├─ home/
 │     ├─ workout/
 │     ├─ nutrition/
 │     ├─ profile/
 │     ├─ settings/
 │     ├─ progress/
 │     └─ coaching/
-├─ supabase/                      # Future Auth, Postgres/RLS, Storage, migrations
-├─ backend/                       # Future protected-service upgrade
-│  ├─ api/
-│  ├─ ai-coach/
-│  └─ jobs/
-├─ docs/
+├─ supabase/                       # ACTIVE Auth/data/Storage/functions/migrations owner
+├─ services/                       # Future runnable protected server processes
+│  ├─ api/                         # Future Node.js + TypeScript + Fastify modular monolith
+│  └─ worker/                      # Future only when async workload needs it
+├─ packages/                       # Future reusable TS/Dart code only when justified
+├─ docs/                           # Canonical architecture/product/operations docs
 ├─ .github/
 └─ .ai/
 ```
 
-Some folders may be created later. Do not create empty future modules unless a real feature slice needs them.
+Important current-state rule:
+
+- `supabase/` already exists and is active.
+- `services/api/` is a locked future destination, not a statement that backend code has started.
+- Do not create empty future folders merely to match the conceptual tree.
 
 ## Platform Strategy
 
-| Platform | Stack | Note |
+| Platform | Stack | Status / note |
 | :--- | :--- | :--- |
-| Android phone | Flutter | Shared mobile UI. |
+| Android phone | Flutter | Active product app surface. |
 | iPhone | Flutter | Shared mobile UI. |
-| Wear OS | Flutter | Existing Flutter Wear OS companion package with watch-first UI and shared contracts where useful. |
-| Apple Watch | Swift + SwiftUI | Native watchOS experience when introduced. |
-| Auth, data, and media | Supabase | Planned Auth, Postgres/RLS, private Storage, migrations, and approved server functions. |
-| Protected backend upgrade | Server-side workspace | Future Gemini/AI coach orchestration, advanced integrations, and long-running jobs. |
+| Wear OS | Flutter | Existing watch-first companion package. |
+| Apple Watch | Swift + SwiftUI | Future native watchOS app when approved. |
+| Auth, data, migrations | Supabase | Active canonical foundation. |
+| Protected API | Node.js + TypeScript + Fastify | Architecture locked; implementation deferred until explicitly authorized. |
+| Async worker | TypeScript process under `services/worker` | Future only when a real durable async workload requires it. |
 
-## Native-Style To Flutter Module Mapping
+## Supabase Boundary
 
-The Flutter workspace mirrors the native modular structure used in `Tio-hub`.
+Supabase is the current canonical Auth/data platform.
 
-| Native-style module | Flutter workspace path | Responsibility |
+Current direction:
+
+```text
+Flutter / Wear clients
+        ↓
+Supabase Auth
+        ↓
+Supabase Postgres + RLS
+        ↓
+approved Storage / Edge Function paths where required
+```
+
+Rules:
+
+- Supabase Auth is the identity authority.
+- `auth.users.id` is the canonical auth UUID.
+- `public.users.id` is the matching app/domain root UUID.
+- `supabase/migrations/` is the sole Tio database-schema/RLS migration owner.
+- Client code uses only client-safe configuration.
+- Privileged/service-role access is reserved for explicit trusted server workflows and must not be used to bypass RLS denial.
+- Private/sensitive media follows the data/privacy and Storage ownership policies; bucket existence alone does not make a media model production-ready.
+
+See:
+
+- [Auth Architecture](AUTH_ARCHITECTURE.md)
+- [Supabase Strategy](SUPABASE_STRATEGY.md)
+- [Supabase Server Access](SUPABASE_SERVER_ACCESS.md)
+- [Data & Privacy Governance](DATA_PRIVACY_GOVERNANCE.md)
+
+## Future Protected Server Boundary
+
+The first protected backend implementation, when explicitly authorized, belongs at:
+
+```text
+services/api/
+```
+
+The runtime/framework decision is already locked:
+
+```text
+Node.js
++ TypeScript
++ Fastify
++ modular monolith
+```
+
+The first scaffold must remain minimal. The canonical starting shape is:
+
+```text
+services/api/
+├─ src/
+│  ├─ app/
+│  │  ├─ create-app.ts
+│  │  ├─ register-plugins.ts        # add when needed
+│  │  └─ register-routes.ts         # add when needed
+│  ├─ config/
+│  │  ├─ env.ts
+│  │  └─ schema.ts
+│  └─ server.ts
+├─ test/
+├─ package.json
+├─ tsconfig.json
+└─ README.md
+```
+
+As real modules appear, the locked internal ownership model is:
+
+```text
+services/api/src/
+├─ app/              # Fastify composition only
+├─ modules/          # business use cases + domain authorization
+├─ infrastructure/   # auth, Supabase, providers, logging, telemetry, queue adapters
+├─ shared/           # small cross-cutting primitives only
+├─ config/
+└─ server.ts         # process startup/shutdown only
+```
+
+Rules:
+
+- `services/api` starts as one modular monolith, not microservices.
+- Fastify-specific code stays at HTTP/composition boundaries.
+- Domain/business rules must not depend directly on Fastify.
+- `services/worker` is not created until a real queue/background use case exists.
+- No Kafka, Kubernetes, service mesh, GraphQL federation, Redis, or extra service is introduced without a concrete requirement and evidence.
+- Backend implementation remains deferred until separately authorized; architecture documentation does not grant permission to scaffold it.
+
+See the accepted Linear B0 decisions for repository namespaces, Fastify baseline, and `services/api` internal ownership.
+
+## Client ↔ Future API Auth Contract
+
+The canonical future protected-service auth flow is:
+
+```text
+Supabase Auth
+→ access token
+→ Tio API (`services/api`)
+→ verify Supabase token
+→ derive verified user identity
+→ authorize operation
+```
+
+Firebase Admin token verification is not part of the target backend auth architecture.
+
+Historical Firebase-named classes, adapters, tests, or migration-era code may still exist in source. Their existence is not evidence that Firebase remains an approved auth provider or future backend target.
+
+Use [Auth Architecture](AUTH_ARCHITECTURE.md) for the canonical identity contract.
+
+## Future HTTP Adapter Preservation Rule
+
+The repository contains some Remote*/HTTP/backend transport abstractions created before the current Supabase composition was finalized.
+
+Do not delete a generic future HTTP/repository abstraction solely because it is inactive today. Removal should follow an explicit source audit so useful contract/mapper work is not accidentally lost.
+
+However, this preservation rule does **not** protect stale provider-specific architecture:
+
+- Firebase-specific Auth behavior is not canonical future architecture.
+- A class name or historical implementation mentioning Firebase does not override `AUTH_ARCHITECTURE.md`.
+- Provider-specific code may be retired, rewritten, or isolated when its owning cleanup task proves it is obsolete.
+- Generic Remote*/HTTP adapters, if retained, must target the current future boundary: `services/api`, Supabase Auth tokens, and Tio-owned API contracts.
+
+Conceptual future path:
+
+```text
+Flutter
+→ feature-owned repository contract
+→ approved Remote*/HTTP adapter
+→ services/api
+→ trusted server integrations / Supabase server access
+```
+
+## Flutter Module Mapping
+
+| Conceptual module | Workspace path | Responsibility |
 | :--- | :--- | :--- |
-| `:app` | `apps/app` | Flutter Android + iOS phone app shell, bootstrap, route composition, provider wiring. |
-| `:wear` | `apps/wear` | Flutter Wear OS companion app. |
-| `:shared` | `apps/shared` | Pure Dart models, repository contracts, use cases, results, errors, and shared utilities. |
-| `:core` | `apps/core` | Design system, tokens, shared widgets, shell, route contracts, constants, extensions. |
-| `:features:home` | `apps/features/home` | Home overview, prepared sections, and future Home-owned workflows. |
-| `:features:workout` | `apps/features/workout` | Workout feature package and all workout screens/flows. |
-| `:features:nutrition` | `apps/features/nutrition` | Nutrition feature package and all nutrition screens/flows. |
-| `:features:onboarding` | `apps/features/onboarding` | Onboarding feature package and all onboarding screens/flows. |
-| `:features:auth` | `apps/features/auth` | Auth feature package and session entry flows. |
-| `:features:profile` | `apps/features/profile` | Profile launcher, account, and fitness hub package. |
-| `:features:settings` | `apps/features/settings` | App settings and account controls package. |
-| `:features:progress` | `apps/features/progress` | Progress, measurements, photos, streaks, and analytics package. |
-| `:features:coaching` | `apps/features/coaching` | Coaching UI package and backend-facing coaching contracts. |
-| `:features:recovery` | future `apps/features/recovery` | Recovery, readiness, and rest context after its first approved vertical slice. |
-| `supabase/` | future root `supabase/` | Auth, Postgres migrations, RLS, private Storage buckets, seed data, and approved functions. |
-| `backend/` | future root `backend/` | Protected Gemini/AI orchestration, advanced APIs/integrations, and long-running jobs after the upgrade gate. |
+| `:app` | `apps/app` | Phone bootstrap, route composition, provider wiring. |
+| `:wear` | `apps/wear` | Wear OS companion app. |
+| `:shared` | `apps/shared` | Pure Dart models/contracts/use cases/utilities. |
+| `:core` | `apps/core` | Design system, tokens, shell, route contracts, shared widgets. |
+| `:features:home` | `apps/features/home` | Home presentation and Home-owned workflows. |
+| `:features:workout` | `apps/features/workout` | Workout feature. |
+| `:features:nutrition` | `apps/features/nutrition` | Nutrition feature. |
+| `:features:onboarding` | `apps/features/onboarding` | Onboarding feature. |
+| `:features:auth` | `apps/features/auth` | Auth/session entry flows. |
+| `:features:profile` | `apps/features/profile` | Profile/account launcher and profile flows. |
+| `:features:settings` | `apps/features/settings` | App/account settings. |
+| `:features:progress` | `apps/features/progress` | Progress, measurements, photos, streaks, analytics UI. |
+| `:features:coaching` | `apps/features/coaching` | Coaching UI and backend-facing coaching contracts. |
+| future recovery | future `apps/features/recovery` | Create only with its first approved product/data/privacy slice. |
 
 ## Flutter Feature Package Pattern
 
-Each large product feature should be a complete Flutter/Dart package under `apps/features/<feature>`.
-
-This keeps features manageable when workout, nutrition, onboarding, progress, coaching, or recovery grow to 20+ screens.
+Each large feature remains a complete Flutter/Dart package under `apps/features/<feature>`.
 
 ```text
 apps/features/<feature>/
@@ -94,28 +231,13 @@ apps/features/<feature>/
 │  ├─ <feature>.dart
 │  └─ src/
 │     ├─ domain/
-│     │  ├─ entities/
-│     │  ├─ repositories/
-│     │  └─ usecases/
 │     ├─ data/
-│     │  ├─ datasources/
-│     │  ├─ dto/
-│     │  ├─ mappers/
-│     │  └─ repositories/
 │     └─ presentation/
-│        ├─ routes/
-│        ├─ navigation/
-│        ├─ controllers/
-│        ├─ state/
-│        ├─ pages/
-│        └─ widgets/
 ├─ test/
 └─ pubspec.yaml
 ```
 
-## Dependency Direction
-
-Use one-way dependencies.
+Dependency direction:
 
 ```text
 apps/app
@@ -127,248 +249,98 @@ apps/core + apps/shared
 
 Rules:
 
-- `apps/app` wires app bootstrap, route composition, providers, and platform entry configuration.
-- `apps/app` should not own feature business logic.
-- Feature packages can depend on `apps/core` and `apps/shared`.
+- `apps/app` wires composition; it should not own feature business logic.
 - `apps/core` must not import feature packages.
-- `apps/shared` must stay pure Dart and must not import Flutter UI.
+- `apps/shared` stays pure Dart and must not import Flutter UI.
 - Feature presentation layers must not import another feature's presentation layer.
-- Cross-feature reads should go through stable contracts, repositories, or use cases.
-- Backend API/table shapes must not leak directly into widgets or screens.
-- Supabase is the planned first Auth/data/Storage platform. A separate backend is a future protected-service upgrade, not the owner of initial database migrations.
+- Cross-feature reads/actions use stable contracts, repositories, or use cases.
+- Supabase table shapes and future API payloads must not leak directly into widgets.
 
-## App Mode, Navigation Layout, And Surface Composition
+## App Mode And Navigation Ownership
 
-`AppMode` is the implemented product contract for selecting the phone app experience:
+`AppMode` is the implemented shared product contract:
 
 ```dart
 enum AppMode { workout, nutrition, hybrid }
 ```
 
-The enum, guided destination mapping, and preference boundary live in `apps/shared`. They are pure Dart and can therefore be read by every Flutter feature package without violating ownership boundaries or duplicating mode rules.
+The pure-Dart contract belongs in `apps/shared`. Onboarding and Settings use the same underlying product-mode model.
 
-Onboarding now begins with App Mode selection, and Settings changes the same selection later. The common-profile, Workout, Nutrition, review, and finish steps remain planned and must be shown conditionally for the chosen mode when implemented. App Mode remains a product-scope contract; it is not replaced by future tab personalization.
+The routed onboarding flow uses one `/onboarding` parent route with mode-derived child steps. Stable step IDs own progress/resume identity. See [Onboarding Architecture](ONBOARDING_ARCHITECTURE.md) and [ADR-0006](adr/0006-single-route-onboarding-parent-flow.md).
 
-The routed onboarding flow keeps one `/onboarding` route and one parent
-`OnboardingFlowPage`. Its unnumbered App Mode chooser keeps Back-only chrome while
-hiding and remaining excluded from progress. Later children keep fixed
-Back/progress and a fixed bottom
-primary action while a mode-derived `OnboardingFlowPlan` changes only the child
-content. Stable step IDs, not route paths or raw indexes, own internal progress and
-resume identity. The unfinished draft mode, confirmed product mode, and
-onboarding-completion status are separate so choosing mode on step one cannot
-redirect to Home prematurely. See [Onboarding Flow Architecture](ONBOARDING_ARCHITECTURE.md)
-and [ADR-0006](adr/0006-single-route-onboarding-parent-flow.md).
+The phone shell uses `go_router` with a `StatefulShellRoute.indexedStack`; route registration stays at the app composition boundary while each feature owns its internal screens/actions.
 
-The first App Mode slice persists the confirmed selection on the device. The pure-Dart preference contract belongs in `apps/shared`, while a `SharedPreferencesAsync` adapter is wired at the `apps/app` composition boundary. Flutter renders the initial Splash frame first, then `AppModeBootstrap` loads the stored value and refreshes the router through the shared controller. Missing or invalid values return to mode selection. Account-backed sync is deferred until an approved Supabase profile contract exists; this slice does not add a Supabase schema, bucket, backend endpoint, or cross-device merge behavior.
+Guided navigation defaults:
 
-The app shell uses `go_router` `StatefulShellRoute.indexedStack`. `shellBranchRegistry` is the single source for each registered branch's stable tab identity, route contract, path, and index; router registration and route eligibility derive from it. The visible guided layout remains derived from the active mode:
-
-| App mode | Guided default tabs |
+| App mode | Default root destinations |
 | :--- | :--- |
 | `workout` | Home, Workout, Progress |
 | `nutrition` | Home, Nutrition, Progress |
 | `hybrid` | Home, Workout, Nutrition, Progress |
 
-Bottom navigation renders only on the exact selected root destination paths.
-Child, editor, drill-down, account, and full-screen routes hide it. Root tabs do
-not derive a Back button from navigator history; each child/sub-screen owns an
-explicit top Back action that returns through its route stack.
+Future navigation personalization must not change feature ownership. See [ADR-0005](adr/0005-adaptive-navigation-and-action-entry.md).
 
-After the core product screens are stable, a separate Navigation & Tabs setting may let the user choose three to six eligible destinations. Home remains required and first. Eligibility is the intersection of App Mode, implemented feature availability, and release-stage policy. The exact compact-phone presentation for six selections requires responsive and accessibility validation; an overflow/More treatment may represent part of the selected layout without changing the saved preference.
+## Profile-Derived Defaults
 
-Navigation destinations are not synonymous with screens. Root destinations such as Home, Workout, Nutrition, Progress, future You, Coach, and future Social own primary navigation surfaces. Workout Library and Meal Plan remain canonical feature routes; a future custom layout may promote either as a shortcut after the owning feature exists. Promotion changes entry placement, not module ownership, data rules, or workflow implementation.
+Profile owns approved personal/fitness context. Feature domains own their own confirmed settings and calculations.
 
-Home and other feature surfaces use prepared composition inputs rather than raw tab-index checks:
+- Nutrition owns Nutrition Targets.
+- Workout owns workout-specific settings, routines/programs, and training behavior.
+- A profile value may seed a feature default through a stable contract.
+- A profile change must not silently replace a user-confirmed feature override.
 
-```text
-AppMode + NavigationLayout + FeatureAvailability + UserDataState
-  -> SurfaceComposition
-  -> visible sections, section prominence, and action entry placement
-```
+## Design System Direction
 
-Feature actions have one canonical command/workflow and may appear through multiple entry points. For example, Workout owns start/resume behavior and Nutrition owns meal logging; Home or a promoted shortcut only launches those owned actions with approved context. An active workout must remain resumable even when the Workout destination is not directly visible.
+`apps/core` owns reusable UI primitives and Material 3 Expressive direction through semantic tokens/components.
 
-Profile is the account launch surface in Home chrome, while Settings opens from Profile or an approved feature-owned entry. Neither is a primary bottom tab, and Home does not expose a separate Settings icon. The Home route is owned by `apps/features/home`; `apps/app` remains limited to shell composition and route registration.
+Shared components such as `TioAvatar` and `TioButton` belong in `apps/core`; feature packages provide intent/state rather than recreating common interaction behavior.
 
-```text
-Home -> Profile avatar/account entry -> Profile -> Profile photo / Settings
-```
+Flutter Material 3 remains the implementation baseline. Do not assume a separate stable Flutter “Material 3 Expressive API” exists; expressiveness is delivered through Tio-owned tokens/components and verified accessibility behavior.
 
-The implemented App Mode foundation delivers guided defaults only. Future personalization and adaptive action placement are tracked separately in [ADR-0005](adr/0005-adaptive-navigation-and-action-entry.md) and the [adaptive navigation task](../.ai/tasks/adaptive-navigation-and-actions.md).
+## Watch Rules
 
-## Feature Boundaries For Profile-Derived Defaults
+Watch apps stay compact, battery-aware, and watch-first.
 
-Profile is the source of approved personal and fitness context. Nutrition owns Nutrition Targets—including calculation, explicit overrides, and validation—and Workout owns Workout Settings, Routines, Programs, muscle heatmap, radar map, calendar, and training behavior. A profile value may seed a feature default through a stable pure-Dart contract, but it must never silently replace a user-confirmed feature override.
+Good watch responsibilities include:
 
-Recovery is a future independent `apps/features/recovery` feature. It is not an App Mode tab and must not be created until its first data source, privacy/sync model, and non-medical user outcome are approved. Home, Workout, Progress, and Coach may consume a prepared Recovery summary through a contract; they must not calculate it themselves.
+- workout start/pause/resume/finish;
+- active set input and rest timer;
+- heart-rate/steps/calorie summaries where supported;
+- offline active-workout snapshot;
+- food/water quick add;
+- today's nutrition summary;
+- quick sync and appropriate tiles/complications.
 
-See the [screen catalog](screens/README.md) for per-screen content, actions, states, and acceptance criteria.
-
-## Supabase And Future Backend Boundary
-
-The first authenticated data slices use Supabase Auth, Postgres with explicit RLS, and private module Storage. The future `supabase/` workspace owns migrations and policies. Gemini and any privileged provider integration remain outside mobile/watch clients and are introduced only through an approved protected function or future backend upgrade. The exact custom-backend framework is intentionally undecided.
-
-See [Supabase-first platform strategy](SUPABASE_STRATEGY.md) for the module bucket and security contract.
+Avoid full phone home surfaces, long forms, large analytics flows, full AI chat, or image-heavy editing on watches.
 
 ## Architecture Decision Records
 
-Durable platform, navigation, data-boundary, and design-system choices are recorded in [Architecture Decision Records](adr/README.md). ADRs explain the decision and trade-offs; this document remains the canonical repository shape and ownership reference.
+Durable architecture decisions live in [Architecture Decision Records](adr/README.md).
 
-## Reusable Profile Avatar
+The current Supabase + future `services/api` cutover supersedes the original workspace assumptions in ADR-0003; see ADR-0007 for the current durable boundary.
 
-`apps/core` owns one reusable `TioAvatar` component for shell, list, card,
-Profile, and photo-fallback use. Its API provides five semantic
-sizes—`compact`, `small`, `medium`, `large`, and `extraLarge`—and a standard
-shape option: circular by default with a rounded Profile treatment where the
-owning screen requires it. It accepts an optional `ImageProvider`, uses initials
-or an icon fallback on missing/failed images, and exposes caller-supplied image
-semantics. Screens select its contracts instead of defining avatar dimensions,
-clipping, or fallback behavior locally.
-
-`TioAvatarFrame` is presentation-only: Free maps to no decorative frame, Plus to
-the theme-semantic circular gradient ring, and Pro to the theme-semantic hexagon
-crop/frame. Billing/Entitlement owns the tier; screens map its prepared value into
-the component. `TioAvatarSize.extraLarge` ignores frames because the full-screen
-photo surface owns that presentation.
-
-`apps/core` also owns the reusable `TioButton` primary, secondary, and ghost action variants. The component and theme share finite token-driven dimensions, spacing, state layers, outlines, disabled behavior, loading lockout, progress semantics, and reduced-motion fallback. Feature packages provide action intent and state; they do not recreate common button loading or interaction behavior.
-
-## Material 3 Expressive Direction
-
-The phone design system adopts Material 3 Expressive as its product direction. `apps/core` owns the implementation through semantic color, typography, shape, spacing, motion, and accessibility tokens plus reusable components. Flutter's baseline Material 3 is already enabled; do not assume a separate Flutter Material 3 Expressive API is stable or available.
-
-Apply the direction incrementally: migrate shared phone components only when their interaction, accessibility, and dark-mode states are verified. Guided navigation, avatar, and button foundations are implemented; remaining components and feature screens still move in focused slices. Preserve visible touch feedback, honor reduced-motion and high-contrast preferences, and avoid hardcoded expressive values in feature packages. Wear OS remains watch-first and compact; it may share tokens where useful but must not inherit phone-sized layouts or motion.
-
-## Recommended Flutter Stack
-
-```text
-State: Riverpod
-Navigation: go_router with typed routes
-Data: offline-first repository pattern
-Local persistence: Drift, Isar, or similar after the first real data slice is chosen
-Code generation: freezed + json_serializable
-HTTP/API: dio when remote APIs are introduced
-Workspace: melos
-```
-
-Use feature-owned routes and navigation registration. Keep app-level routing composition in `apps/app`, and keep feature internals inside the owning feature package.
-
-Local persistence should stay behind repository implementations so the database choice can evolve before production hardening.
-
-## Watch Rules
-
-Watch apps should stay small and fast.
-
-Good watch responsibilities:
-
-- workout start, pause, resume, finish
-- active set input
-- rest timer
-- heart rate display
-- steps and calories summary
-- offline active workout snapshot
-- food and water quick add
-- today's nutrition summary
-- next planned meal status after Meal Plan is available on phone
-- quick sync
-- tiles and complications where useful
-
-Avoid putting heavy phone home surfaces, long forms, full AI chat, large analytics flows, or image-heavy UI on watches.
+ADRs preserve historical decisions. This file represents current architecture truth and may be updated as accepted decisions evolve.
 
 ## Naming Rules
 
-The Flutter phone app folder is:
-
-`apps/core` also owns the reusable `TioButton` primary, secondary, and ghost action variants. The component and theme share finite token-driven dimensions, spacing, state layers, outlines, disabled behavior, loading lockout, progress semantics, and reduced-motion fallback. Feature packages provide action intent and state; they do not recreate common button loading or interaction behavior.
-
-## Material 3 Expressive Direction
-
-The phone design system adopts Material 3 Expressive as its product direction. `apps/core` owns the implementation through semantic color, typography, shape, spacing, motion, and accessibility tokens plus reusable components. Flutter's baseline Material 3 is already enabled; do not assume a separate Flutter Material 3 Expressive API is stable or available.
-
-Apply the direction incrementally: migrate shared phone components only when their interaction, accessibility, and dark-mode states are verified. Guided navigation, avatar, and button foundations are implemented; remaining components and feature screens still move in focused slices. Preserve visible touch feedback, honor reduced-motion and high-contrast preferences, and avoid hardcoded expressive values in feature packages. Wear OS remains watch-first and compact; it may share tokens where useful but must not inherit phone-sized layouts or motion.
-
-## Recommended Flutter Stack
-
-```text
-State: Riverpod
-Navigation: go_router with typed routes
-Data: offline-first repository pattern
-Local persistence: Drift, Isar, or similar after the first real data slice is chosen
-Code generation: freezed + json_serializable
-HTTP/API: dio when remote APIs are introduced
-Workspace: melos
-```
-
-Use feature-owned routes and navigation registration. Keep app-level routing composition in `apps/app`, and keep feature internals inside the owning feature package.
-
-Local persistence should stay behind repository implementations so the database choice can evolve before production hardening.
-
-## Watch Rules
-
-Watch apps should stay small and fast.
-
-Good watch responsibilities:
-
-- workout start, pause, resume, finish
-- active set input
-- rest timer
-- heart rate display
-- steps and calories summary
-- offline active workout snapshot
-- food and water quick add
-- today's nutrition summary
-- next planned meal status after Meal Plan is available on phone
-- quick sync
-- tiles and complications where useful
-
-Avoid putting heavy phone home surfaces, long forms, full AI chat, large analytics flows, or image-heavy UI on watches.
-
-## Naming Rules
-
-The Flutter phone app folder is:
+Canonical current/future paths include:
 
 ```text
 apps/app
-```
-
-The Wear OS folder is:
-
-```text
 apps/wear
+supabase/
+services/api/       # future; not implemented yet
+services/worker/    # future; only when justified
 ```
 
-## Future-Safe Backend Preservation Rule
+Do not introduce `backend/api` as the canonical protected API path. Do not rename existing Flutter paths only for symmetry.
 
-Tio-World currently uses **Supabase as the active production data boundary**, but the repository has already-established **future custom-backend infrastructure**.
+## Related
 
-The following code is intentional architecture and MUST NOT be deleted, merged away, replaced, or classified as dead/unused code merely because it is not active in the current Supabase production composition:
-
-* `ApiClient`
-* `DioApiClient`
-* `AuthTokenProvider`
-* `RemoteProfileSetupRepository`
-* `ProfileSetupDtoMapper`
-* `RemoteWorkoutPreferencesRepository`
-* `WorkoutPreferencesDtoMapper`
-* `RemoteTargetsSetupRepository`
-* `TargetsSetupDtoMapper`
-* `RemoteOnboardingFinalizer`
-* `BackendUserSyncRepository`
-* `RemoteBackendUserSyncRepository`
-* `GoogleAuthUseCase` (Firebase + custom backend path)
-* backend transport DTOs and mappers
-
-### Current vs Future Adapter Rule
-
-Current production path:
-```text
-Flutter → existing repository contracts → Supabase adapters → Supabase Auth + Postgres/RLS
-```
-
-Future backend path:
-```text
-Flutter → SAME repository contracts → Remote*/HTTP adapters → custom Tio backend
-```
-
-A model, coding agent, cleanup task, dead-code audit, refactor, or architecture migration MUST NOT delete inactive Remote*/HTTP/backend infrastructure solely because Supabase is the current production adapter. Inactive != obsolete. Removal requires an explicit architecture audit, retirement decision, and explicit user approval.
+- [Documentation index](README.md)
+- [Auth Architecture](AUTH_ARCHITECTURE.md)
+- [Supabase Strategy](SUPABASE_STRATEGY.md)
+- [Supabase Server Access](SUPABASE_SERVER_ACCESS.md)
+- [API Lifecycle](API_LIFECYCLE.md)
+- [Feature Rollout](FEATURE_ROLLOUT.md)
+- [ADR index](adr/README.md)
