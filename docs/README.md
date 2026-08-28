@@ -15,6 +15,7 @@ This folder is the source of truth for product architecture, module ownership, s
 | [`DATA_PRIVACY_GOVERNANCE.md`](DATA_PRIVACY_GOVERNANCE.md) | Data classification, minimization, logging/analytics, AI/provider, deletion/export, retention, and environment-separation policy. |
 | [`DATABASE_BACKUP_RECOVERY.md`](DATABASE_BACKUP_RECOVERY.md) | Backup/PITR readiness, RPO/RTO, restore ownership, Storage recovery, and migration-safety policy. |
 | [`API_LIFECYCLE.md`](API_LIFECYCLE.md) | `/v1` compatibility, deprecation, minimum-client, capability negotiation, and generated-client traceability policy. |
+| [`FEATURE_ROLLOUT.md`](FEATURE_ROLLOUT.md) | Provider-neutral capability rollout, safe defaults, cohorting, cache/offline behavior, and emergency kill-switch policy. |
 | [`ONBOARDING_ARCHITECTURE.md`](ONBOARDING_ARCHITECTURE.md) | Single-route parent shell, mode-derived child flow, state, persistence gates, and delivery slices for onboarding. |
 | [`screens/README.md`](screens/README.md) | Per-screen product specifications, module owners, state rules, and implementation order. |
 | [`FLUTTER_MODULAR_STRUCTURE.md`](FLUTTER_MODULAR_STRUCTURE.md) | Flutter apps-based module structure matching the native `:app`, `:shared`, `:core`, and `:features:*` pattern. |
