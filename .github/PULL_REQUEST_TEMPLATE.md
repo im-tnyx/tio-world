@@ -12,6 +12,24 @@ Use this section for user-facing features, cross-package changes, navigation, pe
 - Chosen architecture and rejected alternative:
 - Quality-review outcome:
 
+## Stack And Scope Audit
+
+For a stacked PR, use the immediate parent branch, not `main`.
+
+- Immediate parent branch:
+- Parent SHA at audit time:
+- Head SHA:
+- Ahead / behind:
+- Expected owned paths:
+- Complete changed-file audit:
+
+- [ ] Immediate parent is an ancestor of `HEAD`.
+- [ ] Parent-to-head commit list contains only this task/slice.
+- [ ] Parent-to-head changed-file list contains only this task/slice.
+- [ ] No unrelated feature area is included.
+- [ ] If the parent moved, affected child branches were reconciled in order before new implementation continued.
+- [ ] No history rewrite was used, or the rewrite was explicitly approved and required work was preserved on a recovery ref first.
+
 ## Type Of Change
 
 - [ ] Documentation
@@ -70,6 +88,10 @@ List commands actually run:
 Examples:
 
 ```bash
+git merge-base --is-ancestor origin/<base-branch> HEAD
+git log --oneline origin/<base-branch>..HEAD
+git diff --name-only origin/<base-branch>...HEAD
+git diff --check origin/<base-branch>...HEAD
 melos analyze
 melos test
 cd apps/app && flutter test
@@ -81,4 +103,4 @@ pnpm test
 
 ## Notes
 
-Add implementation notes, intentional deviations, or non-applicable checklist explanations.
+Add implementation notes, intentional deviations, preserved recovery refs, or non-applicable checklist explanations.
