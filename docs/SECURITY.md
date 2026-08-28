@@ -4,6 +4,8 @@
 
 Cross-cutting data classification, minimization, retention, deletion/export, AI/provider, and environment-separation policy lives in [Data & Privacy Governance](DATA_PRIVACY_GOVERNANCE.md).
 
+Canonical client-safe/server-secret classification, environment isolation, rotation/revocation, and credential-exposure response lives in [Secrets & Environment Strategy](SECRETS_AND_ENVIRONMENTS.md).
+
 ## Public Repository Rule
 
 This repository is public. Assume anything committed here can be seen by other people.
@@ -53,7 +55,7 @@ Not allowed:
 
 Mobile and watch apps should only contain values safe for client distribution.
 
-Server-only operations should stay in backend code.
+Server-only operations and privileged credentials belong only in an approved trusted server/runtime boundary.
 
 ## Health Data
 
