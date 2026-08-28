@@ -148,6 +148,7 @@ Allowed examples:
 - `coaching` reads workout summaries through a workout domain contract.
 - `profile` launches a progress route but does not own progress analytics.
 - `settings` launches nutrition target settings but does not own nutrition calculations.
+- `settings` launches Daily Wellness settings and consumes the `progress`-owned `WellnessTargetsRepository` contract.
 - `wear` sends workout events and nutrition quick actions using stable sync payloads and shared contracts.
 
 ## Anti-Patterns

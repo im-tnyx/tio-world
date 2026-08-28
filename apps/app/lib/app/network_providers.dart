@@ -133,6 +133,13 @@ final wellnessTargetsRepositoryProvider =
   return InMemoryWellnessTargetsRepository();
 });
 
+/// Canonical Wellness read state provider for UI routes.
+final wellnessTargetsDataProvider =
+    FutureProvider<WellnessTargetsData?>((ref) async {
+  final repository = ref.watch(wellnessTargetsRepositoryProvider);
+  return repository.read();
+});
+
 /// Canonical Body owner. The returned object also exposes the canonical
 /// Wellness owner boundary so existing onboarding composition can advance O4C
 /// without widening router glue. The two owners still delegate to independent

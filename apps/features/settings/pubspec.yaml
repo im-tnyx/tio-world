@@ -13,6 +13,8 @@ dependencies:
     path: ../../core
   tio_shared:
     path: ../../shared
+  tio_feature_progress:
+    path: ../progress
   flutter_svg: ^2.3.0
   image_picker: ^1.1.2
 

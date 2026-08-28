@@ -473,6 +473,38 @@ void main() {
     expect(find.byType(SettingsPage), findsOneWidget);
   });
 
+  testWidgets('Settings navigates to Health & Goals and Daily Wellness',
+      (tester) async {
+    await _pumpSettingsRoute(tester);
+    await tester
+        .tap(find.byKey(const ValueKey('settings-health-goals-entry')));
+    await tester.pumpAndSettle();
+    expect(find.byType(HealthGoalsSettingsPage), findsOneWidget);
+    expect(
+        GoRouterState.of(tester.element(find.byType(HealthGoalsSettingsPage)))
+            .uri
+            .path,
+        AppRoutes.healthGoalsSettings.path);
+
+    await tester
+        .tap(find.byKey(const ValueKey('health-goals-daily-wellness-entry')));
+    await tester.pumpAndSettle();
+    expect(find.byType(DailyWellnessSettingsPage), findsOneWidget);
+    expect(
+        GoRouterState.of(tester.element(find.byType(DailyWellnessSettingsPage)))
+            .uri
+            .path,
+        AppRoutes.dailyWellnessSettings.path);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byType(HealthGoalsSettingsPage), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsPage), findsOneWidget);
+  });
+
   testWidgets(
       'Settings logout cancel preserves session; confirm signs out to auth',
       (tester) async {
