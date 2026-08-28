@@ -113,29 +113,15 @@ class OnboardingFlowPage extends ConsumerWidget {
     final exit = onExitRequested;
     if (exit == null) return;
 
-    final confirmed = await showModalBottomSheet<bool>(
+    final confirmed = await showTioConfirmationBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: TioPalette.transparent,
-      builder: (sheetContext) {
-        return SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.all(TioSpacing.lg),
-            child: TioConfirmationCard(
-              key: const ValueKey('onboarding-exit-confirmation-card'),
-              icon: const Icon(Icons.logout_rounded),
-              title: 'Log out of Tio?',
-              message:
-                  'You’ll return to Welcome. Your onboarding progress will stay saved so you can continue after signing in again.',
-              cancelLabel: 'Stay',
-              confirmLabel: 'Log out',
-              onCancel: () => Navigator.of(sheetContext).pop(false),
-              onConfirm: () => Navigator.of(sheetContext).pop(true),
-            ),
-          ),
-        );
-      },
+      cardKey: const ValueKey('onboarding-exit-confirmation-card'),
+      icon: const Icon(Icons.logout_rounded),
+      title: 'Log out of Tio?',
+      message:
+          'You\'ll return to Welcome. Your onboarding progress will stay saved so you can continue after signing in again.',
+      cancelLabel: 'Stay',
+      confirmLabel: 'Log out',
     );
 
     if (confirmed == true && context.mounted) {
@@ -158,48 +144,56 @@ class OnboardingFlowPage extends ConsumerWidget {
 
   void _showGoalDataCollectionSheet(BuildContext context) {
     unawaited(
-      showOnboardingDataCollectionSheet(
+      showTioInformationBottomSheet(
         context: context,
-        body:
+        title: 'Data Collection',
+        message:
             'Your fitness goals help Tio calculate baseline energy expenditure, macro distribution, and customized training splits.\n\n'
             'Primary goals define your target workout intensity, while supporting goals tailor your recovery and mobility recommendations.\n\n'
             'All data is encrypted and used solely for tailoring your personal fitness plan.',
+        actionLabel: 'Understood',
       ),
     );
   }
 
   void _showActivityDataCollectionSheet(BuildContext context) {
     unawaited(
-      showOnboardingDataCollectionSheet(
+      showTioInformationBottomSheet(
         context: context,
-        body:
+        title: 'Data Collection',
+        message:
             'We value your trust and appreciate the importance of your daily routine in shaping your fitness journey. The reason we ask about your whole-day activity is to design a plan that aligns seamlessly with your lifestyle.\n\n'
             'Your activity levels help us determine the most suitable calorie targets, energy expenditure, and exercise recommendations for you.\n\n'
             'By understanding how active you are throughout the day, we can provide personalized guidance that fits your routine and ensures you stay on track with your goals, one step at a time.',
+        actionLabel: 'Understood',
       ),
     );
   }
 
   void _showHealthDataCollectionSheet(BuildContext context) {
     unawaited(
-      showOnboardingDataCollectionSheet(
+      showTioInformationBottomSheet(
         context: context,
-        body:
+        title: 'Data Collection',
+        message:
             'We value your trust and understand that your health is personal.\n\n'
             'The reason we ask about health conditions like diabetes, low blood pressure, or high blood pressure is to create a safe and effective plan tailored to your needs.\n\n'
             'This ensures that our recommendations align with your health and fitness goals while prioritizing your well-being every step of the way.',
+        actionLabel: 'Understood',
       ),
     );
   }
 
   void _showMobileDataCollectionSheet(BuildContext context) {
     unawaited(
-      showOnboardingDataCollectionSheet(
+      showTioInformationBottomSheet(
         context: context,
-        body:
+        title: 'Data Collection',
+        message:
             'Your mobile number can support account recovery, future security options, and optional reminders. Adding it is optional in the current release.\n\n'
             'Entering a number does not mark it as verified. Verification is only recognized when a trusted authentication provider or backend supplies verification evidence.\n\n'
             'We use this information only for account and product features you choose to use and do not sell your contact information.',
+        actionLabel: 'Understood',
       ),
     );
   }

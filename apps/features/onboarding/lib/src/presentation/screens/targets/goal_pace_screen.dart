@@ -444,90 +444,16 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
   }
 
   void _showGoalPaceInfoSheet(BuildContext context) {
-    final colors = context.tioColors;
-
-    showModalBottomSheet<void>(
+    showTioInformationBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: TioPalette.transparent,
-      builder: (context) {
-        return Container(
-          key: const ValueKey('targets-goal-pace-info-sheet'),
-          decoration: BoxDecoration(
-            color: colors.surfaceRaised,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(TioRadius.xl),
-            ),
-            border: Border.all(
-              color: colors.outlineStrong.withAlpha(TioAlpha.alpha25),
-            ),
-          ),
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                TioSpacing.lg,
-                TioSpacing.lg,
-                TioSpacing.lg,
-                TioSpacing.xl,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline_rounded,
-                        color: colors.primary,
-                        size: TioSize.dp22,
-                      ),
-                      const SizedBox(width: TioSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          'How goal pace works',
-                          style: TextStyle(
-                            color: colors.textPrimary,
-                            fontWeight: TioFontWeight.w700,
-                            fontSize: TioFontSize.size20,
-                            letterSpacing: TioLetterSpacing.negative03,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: Icon(
-                          Icons.close_rounded,
-                          color: colors.textSecondary,
-                          size: TioSize.dp18,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: TioSpacing.md),
-                  Text(
-                    'Your goal pace is the amount of body weight you plan to change each week. '
-                    'We combine your current weight, target weight, and weekly pace to estimate a target date.\n\n'
-                    'Choose a pace you can sustain. Faster loss or gain can trigger an attention warning so you can review the trade-offs before continuing.',
-                    style: TextStyle(
-                      color: colors.textSecondary,
-                      fontSize: TioFontSize.size14,
-                      height: TioLineHeight.height140,
-                      fontWeight: TioFontWeight.w400,
-                    ),
-                  ),
-                  const SizedBox(height: TioSpacing.xl),
-                  TioButton.primary(
-                    label: 'Got it',
-                    expand: true,
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+      sheetKey: const ValueKey('targets-goal-pace-info-sheet'),
+      title: 'How goal pace works',
+      message:
+          'Your goal pace is the amount of body weight you plan to change each week. '
+          'We combine your current weight, target weight, and weekly pace to estimate a target date.\n\n'
+          'Choose a pace you can sustain. Faster loss or gain can trigger an attention warning so you can review the trade-offs before continuing.',
+      actionLabel: 'Got it',
+      icon: Icons.info_outline_rounded,
     );
   }
 
@@ -537,105 +463,14 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
   ) {
     final colors = context.tioColors;
 
-    showModalBottomSheet<void>(
+    showTioInformationBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: TioPalette.transparent,
-      builder: (context) {
-        return Container(
-          decoration: BoxDecoration(
-            color: colors.surfaceRaised,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(TioRadius.xl),
-            ),
-            border: Border.all(
-              color: colors.outlineStrong.withAlpha(TioAlpha.alpha25),
-            ),
-          ),
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                TioSpacing.lg,
-                TioSpacing.lg,
-                TioSpacing.lg,
-                TioSpacing.xl,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.warning_amber_rounded,
-                            color: colors.danger,
-                            size: TioSize.dp22,
-                          ),
-                          const SizedBox(width: TioSpacing.sm),
-                          Text(
-                            'Attention',
-                            style: TextStyle(
-                              color: colors.textPrimary,
-                              fontWeight: TioFontWeight.w700,
-                              fontSize: TioFontSize.size20,
-                              letterSpacing: TioLetterSpacing.negative03,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Container(
-                          width: TioSize.dp32,
-                          height: TioSize.dp32,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: colors.outlineStrong.withAlpha(
-                              TioAlpha.alpha50,
-                            ),
-                          ),
-                          child: IconButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            icon: Icon(
-                              Icons.close_rounded,
-                              color: colors.textSecondary,
-                              size: TioSize.dp18,
-                            ),
-                            splashRadius: TioSize.dp16,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: TioSize.dp14),
-                  Text(
-                    _warningMessage(warning),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: colors.textSecondary,
-                      fontSize: TioFontSize.size14,
-                      height: TioLineHeight.height140,
-                      fontWeight: TioFontWeight.w400,
-                    ),
-                  ),
-                  const SizedBox(height: TioSize.dp28),
-                  TioButton.primary(
-                    label: 'Understood',
-                    expand: true,
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+      title: 'Attention',
+      message: _warningMessage(warning),
+      actionLabel: 'Understood',
+      icon: Icons.warning_amber_rounded,
+      iconColor: colors.danger,
+      messageTextAlign: TextAlign.center,
     );
   }
 }

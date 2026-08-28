@@ -230,7 +230,7 @@ class WelcomeScreen extends StatelessWidget {
                                         fontSize: TioFontSize.size14,
                                         fontWeight: TioFontWeight.w400,
                                       ).copyWith(
-                                        color: colors.onMediaSecondary,
+                                        color: colors.textSecondary,
                                       ),
                                     ),
                                     GestureDetector(
@@ -247,7 +247,7 @@ class WelcomeScreen extends StatelessWidget {
                                           fontWeight: TioFontWeight.w700,
                                           decoration: TextDecoration.underline,
                                         ).copyWith(
-                                          color: colors.onMediaPrimary,
+                                          color: colors.primary,
                                         ),
                                       ),
                                     ),

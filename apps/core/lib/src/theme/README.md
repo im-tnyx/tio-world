@@ -391,6 +391,10 @@ core reusable dialogs/pickers/sheets
 
 `TioConfirmationCard` is the generic themed confirm/cancel card composition. Product-specific copy, consequences, persistence, and navigation remain feature-owned. Present the card through the surface that fits the workflow, such as a modal sheet, rather than creating a product-action-specific dialog/token bag.
 
+`showTioInformationBottomSheet` is the reusable presenter for standard explanatory/informational content. It owns the modal shell, safe-area handling, close action, icon slot, title/body layout, and governed primary dismiss button. Features supply only the title, message, action label, and optional icon. Do not rebuild a bespoke information sheet when this presenter matches the intent.
+
+`showTioConfirmationBottomSheet` is the reusable presenter for confirm/cancel decisions. It owns the modal shell, safe-area handling, and `TioConfirmationCard` composition. Features supply only the title, message, confirm/cancel labels, and optional icon widget. Do not rebuild a bespoke confirmation sheet when this presenter matches the intent.
+
 When a repeated pattern is missing, first ask whether the correct fix is an existing component, reusable variant, or direct governed primitives—not another token file.
 
 Raw Flutter primitives are valid inside reusable core implementations and rare justified one-off cases.
