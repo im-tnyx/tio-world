@@ -80,30 +80,41 @@ Do not expose health/fitness media through public buckets or public URLs by defa
 
 ## Authentication & Token Security
 
-Auth flows should avoid leaking implementation details into UI.
+Supabase Auth is the canonical identity authority. See [Authentication Architecture](AUTH_ARCHITECTURE.md).
 
-Recommended direction:
+Canonical protected-service direction:
 
 ```text
 UI
   ↓
-Auth controller
+Auth controller / repository
   ↓
-AuthSessionRepository
+Supabase Auth session
   ↓
-AuthTokenProvider / Identity Provider
+Supabase access token
   ↓
-AuthenticatedApiClient (with AuthInterceptor & Bearer Token)
+Authenticated API client (`Authorization: Bearer <token>`)
   ↓
-Backend (Firebase Admin verifies token -> resolves firebase_uid)
+Future Tio API authentication middleware
+  ↓
+Verify Supabase token and derive canonical user identity from verified `sub`
+  ↓
+Resource authorization
 ```
 
+Firebase Admin token verification is not the target Tio backend architecture. Any Firebase-named auth adapters or historical diagrams remaining elsewhere in the repository are legacy/compatibility context unless a separately approved migration task proves an active dependency.
+
 Rules:
-- Never persist raw ID tokens manually in `SharedPreferences`, SQLite plaintext, or custom unencrypted storage.
-- Never log `Authorization` headers, Firebase ID tokens, or Bearer credentials. `AuthInterceptor` sanitizes/redacts all Authorization headers to `Bearer [REDACTED]` in logs.
+
+- Never persist raw access or refresh tokens manually in `SharedPreferences`, SQLite plaintext, or custom unencrypted storage.
+- Never log `Authorization` headers, Supabase access tokens, refresh tokens, or Bearer credentials. Authorization data must be sanitized/redacted in logs.
 - Sensitive request bodies (DOB, current weight, health conditions, workout concerns, nutrition targets) must never be printed to stdout or debug logs.
-- 401 response forces a single token refresh attempt; if the refreshed token is also rejected with 401, the client fails fast with a typed `UnauthenticatedException` without infinite loops.
-- 403 Forbidden responses never trigger token refresh loops.
+- Mobile/watch clients must never contain Supabase `service_role` or other server-secret credentials.
+- A future protected API must derive user identity from a cryptographically verified Supabase token, not from a client-supplied `user_id`, Email, Phone, or provider payload.
+- Authentication and authorization remain separate: a valid token does not grant access to every user/resource.
+- Exact future backend token-verification libraries and claim rules must be verified against current Supabase documentation when backend implementation is explicitly authorized.
+- If an API client implements token refresh after a `401`, retries must be bounded; repeated rejection must fail fast without infinite loops.
+- `403 Forbidden` must not trigger authentication-refresh loops.
 
 ## Watch Security
 
