@@ -63,14 +63,14 @@ class AppRoutes {
   static const settings = TioRouteContract(
     path: '/settings',
     title: 'Settings',
-    description: 'Configure your app preferences and notifications.',
+    description: 'Manage your profile, account and app preferences.',
     chromePolicy: ChromePolicy.fullScreen,
   );
 
   static const appSettings = TioRouteContract(
     path: '/settings/app',
-    title: 'App Settings',
-    description: 'Manage app mode and theme preferences.',
+    title: 'App Preferences',
+    description: 'Manage app mode, theme and measurement units.',
     chromePolicy: ChromePolicy.fullScreen,
   );
 
@@ -83,7 +83,7 @@ class AppRoutes {
 
   static const measurementUnitsSettings = TioRouteContract(
     path: '/settings/measurement-units',
-    title: 'Measurement Units',
+    title: 'Units',
     description: 'Choose weight, height, distance, and volume display units.',
     chromePolicy: ChromePolicy.fullScreen,
   );

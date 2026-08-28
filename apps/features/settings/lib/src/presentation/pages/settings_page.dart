@@ -4,29 +4,15 @@ import 'package:tio_core/core.dart';
 class SettingsPage extends StatelessWidget {
   const SettingsPage({
     required this.onAppSettingsPressed,
-    this.onMeasurementUnitsPressed,
     this.onProfileSettingsPressed,
     this.onAccountSettingsPressed,
-    this.onManageSubscriptionPressed,
-    this.onResetPasswordPressed,
-    this.onWorkoutPressed,
-    this.onWearOsPressed,
-    this.onNutritionPressed,
-    this.onAboutPressed,
     this.onLogoutPressed,
     super.key,
   });
 
   final VoidCallback onAppSettingsPressed;
-  final VoidCallback? onMeasurementUnitsPressed;
   final VoidCallback? onProfileSettingsPressed;
   final VoidCallback? onAccountSettingsPressed;
-  final VoidCallback? onManageSubscriptionPressed;
-  final VoidCallback? onResetPasswordPressed;
-  final VoidCallback? onWorkoutPressed;
-  final VoidCallback? onWearOsPressed;
-  final VoidCallback? onNutritionPressed;
-  final VoidCallback? onAboutPressed;
   final VoidCallback? onLogoutPressed;
 
   void _showLogoutDialog(BuildContext context) {
@@ -113,61 +99,11 @@ class SettingsPage extends StatelessWidget {
                 ),
                 const _SettingsDivider(),
                 _SettingsTile(
-                  key: const ValueKey('settings-subscription-entry'),
-                  icon: Icons.stars_rounded,
-                  title: 'Manage Subscription',
-                  subtitle: 'Plan tier, Plus/Pro features & billing',
-                  onTap: onManageSubscriptionPressed,
-                ),
-                const _SettingsDivider(),
-                _SettingsTile(
-                  key: const ValueKey('settings-security-entry'),
-                  icon: Icons.lock_outline_rounded,
-                  title: 'Reset Password',
-                  subtitle: 'Change password & security credentials',
-                  onTap: onResetPasswordPressed,
-                ),
-                const _SettingsDivider(),
-                _SettingsTile(
                   key: const ValueKey('settings-account-settings-entry'),
                   icon: Icons.shield_outlined,
                   title: 'Account Settings',
                   subtitle: 'Email, mobile, linked account & delete account',
                   onTap: onAccountSettingsPressed,
-                ),
-              ],
-            ),
-            const SizedBox(height: TioSpacing.lg),
-            const _SettingsSectionHeader(title: 'WORKOUT & WEARABLES'),
-            _SettingsGroupCard(
-              children: [
-                _SettingsTile(
-                  key: const ValueKey('settings-workout-hub'),
-                  icon: Icons.fitness_center_rounded,
-                  title: 'Workout Settings',
-                  subtitle: 'Rest timers, warmup, plate calc & wake lock',
-                  onTap: onWorkoutPressed,
-                ),
-                const _SettingsDivider(),
-                _SettingsTile(
-                  key: const ValueKey('settings-wear-os-entry'),
-                  icon: Icons.watch_rounded,
-                  title: 'Wear OS / Watch Settings',
-                  subtitle: 'Watch companion sync, heart rate & complications',
-                  onTap: onWearOsPressed,
-                ),
-              ],
-            ),
-            const SizedBox(height: TioSpacing.lg),
-            const _SettingsSectionHeader(title: 'NUTRITION'),
-            _SettingsGroupCard(
-              children: [
-                _SettingsTile(
-                  key: const ValueKey('settings-nutrition-hub'),
-                  icon: Icons.restaurant_menu_rounded,
-                  title: 'Nutrition & Diet',
-                  subtitle: 'Daily calories, macros & food preferences',
-                  onTap: onNutritionPressed,
                 ),
               ],
             ),
@@ -179,29 +115,8 @@ class SettingsPage extends StatelessWidget {
                   key: const ValueKey('settings-app-settings-entry'),
                   icon: Icons.tune_rounded,
                   title: 'App Preferences',
-                  subtitle: 'Theme, sound & haptics, alerts & calendar',
+                  subtitle: 'App Mode, theme & units',
                   onTap: onAppSettingsPressed,
-                ),
-                const _SettingsDivider(),
-                _SettingsTile(
-                  key: const ValueKey('settings-measurement-units-entry'),
-                  icon: Icons.straighten_rounded,
-                  title: 'Measurement Units',
-                  subtitle: 'Weight, height, distance & water units',
-                  onTap: onMeasurementUnitsPressed,
-                ),
-              ],
-            ),
-            const SizedBox(height: TioSpacing.lg),
-            const _SettingsSectionHeader(title: 'ABOUT'),
-            _SettingsGroupCard(
-              children: [
-                _SettingsTile(
-                  key: const ValueKey('settings-about-hub'),
-                  icon: Icons.info_outline_rounded,
-                  title: 'About Tio',
-                  subtitle: 'App version, terms of service & privacy policy',
-                  onTap: onAboutPressed,
                 ),
               ],
             ),
@@ -321,8 +236,8 @@ class _SettingsTile extends StatelessWidget {
               width: TioSize.dp40,
               height: TioSize.dp40,
               decoration: BoxDecoration(
-                color: (iconColor ?? colors.primary)
-                    .withAlpha(TioAlpha.alpha18),
+                color:
+                    (iconColor ?? colors.primary).withAlpha(TioAlpha.alpha18),
                 borderRadius: BorderRadius.circular(TioRadius.sm),
               ),
               child: Icon(

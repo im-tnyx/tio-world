@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:tio_app/app/app.dart';
 import 'package:tio_app/app/app_mode/app_mode.dart';
 import 'package:tio_app/app/onboarding/onboarding.dart';
@@ -9,6 +10,7 @@ import 'package:tio_app/app/app_theme.dart';
 import 'package:tio_app/app/network_providers.dart';
 import 'package:tio_app/app/router.dart';
 import 'package:tio_app/app/session/session.dart';
+import 'package:tio_app/app/settings_persistence_providers.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_home/home.dart';
@@ -19,6 +21,7 @@ import 'package:tio_feature_onboarding/onboarding.dart'
         ProfileActivityLevel,
         ProfileHealthCondition;
 import 'package:tio_feature_profile/profile.dart';
+import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
@@ -220,7 +223,8 @@ void main() {
 
     expect(find.text('Finish'), findsOneWidget);
     expect(
-      find.textContaining('Finish stays disabled until durable owner persistence'),
+      find.textContaining(
+          'Finish stays disabled until durable owner persistence'),
       findsOneWidget,
     );
     expect(find.text('Pending'), findsNothing);
@@ -303,13 +307,17 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('settings-app-settings-entry')));
     await tester.pumpAndSettle();
 
-    expect(find.text('App Settings'), findsOneWidget);
+    expect(find.text('App Preferences'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('app-settings-app-mode-entry')),
       findsOneWidget,
     );
     expect(
       find.byKey(const ValueKey('app-settings-theme-entry')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('app-settings-units-entry')),
       findsOneWidget,
     );
 
@@ -319,6 +327,178 @@ void main() {
       find.byKey(const ValueKey('settings-app-settings-entry')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('Settings Units preserves mixed hydration, back and save retry',
+      (tester) async {
+    final fixture = await _pumpSettingsRoute(tester);
+    await tester.tap(find.byKey(const ValueKey('settings-app-settings-entry')));
+    await tester.pumpAndSettle();
+    final unitsEntry = find.byKey(const ValueKey('app-settings-units-entry'));
+    await tester.tap(unitsEntry);
+    await tester.pumpAndSettle();
+
+    expect(
+      GoRouterState.of(
+              tester.element(find.byType(MeasurementUnitsSettingsPage)))
+          .uri
+          .path,
+      AppRoutes.measurementUnitsSettings.path,
+    );
+    expect(find.text('Units'), findsOneWidget);
+    expect(
+        tester
+            .widget<MeasurementUnitsSettingsPage>(
+                find.byType(MeasurementUnitsSettingsPage))
+            .initialPreferences,
+        _mixedUnits);
+    expect(find.byKey(const ValueKey('measurement-units-preset-custom')),
+        findsOneWidget);
+    final save = find.byKey(const ValueKey('measurement-units-save'));
+    expect(tester.widget<TioButton>(save).onPressed, isNull);
+
+    await tester.tap(find.byKey(const ValueKey('measurement-units-weight-kg')));
+    await tester.pump();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byType(AppSettingsPage), findsOneWidget);
+    expect(fixture.units.saveCalls, 0);
+    expect(fixture.units.preferences, _mixedUnits);
+
+    await tester.tap(unitsEntry);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('measurement-units-weight-kg')));
+    await tester.pump();
+    final requested = _mixedUnits.copyWith(weightUnit: WeightUnit.kg);
+    fixture.units.failNextSave = true;
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('measurement-units-save-error')),
+        findsOneWidget);
+    expect(find.byType(MeasurementUnitsSettingsPage), findsOneWidget);
+    expect(fixture.units.preferences, _mixedUnits);
+    expect(
+        tester
+            .widget<TioMeasurementUnitPreferencesEditor>(
+                find.byType(TioMeasurementUnitPreferencesEditor))
+            .preferences,
+        requested);
+
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(fixture.units.saveCalls, 2);
+    expect(fixture.units.preferences, requested);
+    expect(find.byType(AppSettingsPage), findsOneWidget);
+    expect(find.byType(MeasurementUnitsSettingsPage), findsNothing);
+    await tester.tap(unitsEntry);
+    await tester.pumpAndSettle();
+    expect(
+        tester
+            .widget<MeasurementUnitsSettingsPage>(
+                find.byType(MeasurementUnitsSettingsPage))
+            .initialPreferences,
+        requested);
+    expect(tester.widget<TioButton>(save).onPressed, isNull);
+  });
+
+  testWidgets('direct Units route retains its existing path and editor',
+      (tester) async {
+    final fixture = await _pumpSettingsRoute(
+      tester,
+      initialPath: AppRoutes.measurementUnitsSettings.path,
+    );
+    expect(fixture.router.routeInformationProvider.value.uri.path,
+        '/settings/measurement-units');
+    expect(find.byType(MeasurementUnitsSettingsPage), findsOneWidget);
+    expect(find.byType(TioMeasurementUnitPreferencesEditor), findsOneWidget);
+    expect(find.text('Units'), findsOneWidget);
+    expect(fixture.units.saveCalls, 0);
+  });
+
+  testWidgets(
+      'Theme uses Appearance sheet and retains direct page compatibility',
+      (tester) async {
+    final fixture = await _pumpSettingsRoute(
+      tester,
+      initialPath: AppRoutes.appSettings.path,
+    );
+    await tester.tap(find.byKey(const ValueKey('app-settings-theme-entry')));
+    await tester.pumpAndSettle();
+    expect(find.byType(ThemeSelectionBottomSheet), findsOneWidget);
+    expect(find.text('Appearance'), findsOneWidget);
+    expect(find.byType(ThemeSettingsPage), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('theme-option-dark')));
+    await tester.pumpAndSettle();
+    expect(fixture.theme.selectedMode, TioThemeMode.dark);
+    expect(find.byType(ThemeSelectionBottomSheet), findsNothing);
+    expect(find.byType(AppSettingsPage), findsOneWidget);
+
+    fixture.router.go(AppRoutes.themeSettings.path);
+    await tester.pumpAndSettle();
+    expect(fixture.router.routeInformationProvider.value.uri.path,
+        '/settings/theme');
+    expect(find.byType(ThemeSettingsPage), findsOneWidget);
+    expect(
+        tester
+            .widget<ThemeSettingsPage>(find.byType(ThemeSettingsPage))
+            .currentMode,
+        TioThemeMode.dark);
+  });
+
+  testWidgets('Settings retains Profile and Account owner navigation',
+      (tester) async {
+    await _pumpSettingsRoute(tester);
+    await tester
+        .tap(find.byKey(const ValueKey('settings-profile-settings-entry')));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProfileSettingsPage), findsOneWidget);
+    expect(
+        GoRouterState.of(tester.element(find.byType(ProfileSettingsPage)))
+            .uri
+            .path,
+        AppRoutes.profileSettings.path);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('settings-account-settings-entry')));
+    await tester.pumpAndSettle();
+    expect(find.byType(AccountSettingsPage), findsOneWidget);
+    expect(
+        GoRouterState.of(tester.element(find.byType(AccountSettingsPage)))
+            .uri
+            .path,
+        AppRoutes.accountSettings.path);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsPage), findsOneWidget);
+  });
+
+  testWidgets(
+      'Settings logout cancel preserves session; confirm signs out to auth',
+      (tester) async {
+    final fixture = await _pumpSettingsRoute(tester);
+    final logout = find.byKey(const ValueKey('settings-logout-entry'));
+    await tester.scrollUntilVisible(logout, 200);
+    await tester.tap(logout);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(fixture.auth.signOutCalls, 0);
+    expect(await fixture.auth.currentSessionState,
+        isA<AuthSessionAuthenticated>());
+    expect(fixture.router.routeInformationProvider.value.uri.path,
+        AppRoutes.settings.path);
+
+    await tester.tap(logout);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Log Out'));
+    await tester.pumpAndSettle();
+    expect(fixture.auth.signOutCalls, 1);
+    expect(await fixture.auth.currentSessionState,
+        isA<AuthSessionUnauthenticated>());
+    expect(fixture.router.routeInformationProvider.value.uri.path,
+        AppRoutes.auth.path);
+    expect(find.byType(SettingsPage), findsNothing);
   });
 
   testWidgets('Profile avatar opens the full-screen photo route',
@@ -384,7 +564,8 @@ void main() {
     expect(find.byType(BackButton), findsOneWidget);
     expect(find.byKey(const ValueKey('profile-avatar-edit')), findsOneWidget);
     expect(find.byKey(const ValueKey('profile-avatar-delete')), findsOneWidget);
-    expect(find.byKey(const ValueKey('profile-avatar-download')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('profile-avatar-download')), findsOneWidget);
 
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
@@ -392,6 +573,109 @@ void main() {
     expect(find.byType(AvatarPreviewPage), findsNothing);
     expect(find.byKey(const ValueKey('profile-avatar-entry')), findsOneWidget);
   });
+}
+
+const _mixedUnits = UnitPreferences(
+  weightUnit: WeightUnit.lb,
+  heightUnit: HeightUnit.cm,
+  distanceUnit: DistanceUnit.mi,
+  volumeUnit: VolumeUnit.ml,
+);
+
+Future<
+    ({
+      GoRouter router,
+      _SettingsUnitsRepository units,
+      _SettingsAuthRepository auth,
+      AppThemeController theme
+    })> _pumpSettingsRoute(
+  WidgetTester tester, {
+  String initialPath = '/settings',
+}) async {
+  final mode = AppModeController(_MemoryAppModePreference(AppMode.hybrid));
+  await mode.load();
+  final onboardingRepository = _MemoryOnboardingStatusRepository(
+    status: OnboardingStatus.completed,
+    hasStoredContractVersion: true,
+  );
+  final onboarding = OnboardingStatusController(
+    repository: onboardingRepository,
+    appModeController: mode,
+  );
+  await onboarding.load();
+  final theme = await _createThemeController();
+  final bootstrap = _FixedAppSessionBootstrapController(
+    state: const AppSessionBootstrapReady(userId: 'test-user'),
+    onboardingStatusController: onboarding,
+  );
+  final auth = _SettingsAuthRepository(bootstrap.markSignedOut);
+  final units = _SettingsUnitsRepository();
+  addTearDown(auth.dispose);
+  final container = ProviderContainer(overrides: [
+    supabaseClientProvider.overrideWithValue(null),
+    appModeControllerProvider.overrideWith((ref) => mode),
+    onboardingStatusControllerProvider.overrideWith((ref) => onboarding),
+    onboardingStatusRepositoryProvider
+        .overrideWith((ref) => onboardingRepository),
+    appThemeControllerProvider.overrideWith((ref) => theme),
+    appSessionBootstrapControllerProvider.overrideWith((ref) => bootstrap),
+    authSessionRepositoryProvider.overrideWithValue(auth),
+    measurementUnitPreferencesRepositoryProvider.overrideWithValue(units),
+    profileDataProvider.overrideWith((ref) => Stream.value(ProfileSetupData(
+          name: 'Test Member',
+          username: 'test_member',
+          gender: ProfileGender.other,
+          goals: const {},
+          dateOfBirth: DateTime(2000, 1, 1),
+          heightCm: 170,
+          currentWeightKg: 70,
+          activityLevel: ProfileActivityLevel.active,
+          healthConditions: const {},
+          unitPreferences: units.preferences,
+        ))),
+  ]);
+  addTearDown(container.dispose);
+  final router = container.read(goRouterProvider)..go(initialPath);
+  await tester.pumpWidget(UncontrolledProviderScope(
+    container: container,
+    child: const TioApp(),
+  ));
+  await tester.pumpAndSettle();
+  return (router: router, units: units, auth: auth, theme: theme);
+}
+
+class _SettingsUnitsRepository implements MeasurementUnitPreferencesRepository {
+  UnitPreferences preferences = _mixedUnits;
+  int saveCalls = 0;
+  bool failNextSave = false;
+
+  @override
+  Future<void> updateMeasurementUnitPreferences(UnitPreferences next) async {
+    saveCalls++;
+    if (failNextSave) {
+      failNextSave = false;
+      throw StateError('Test save failure');
+    }
+    preferences = next;
+  }
+}
+
+class _SettingsAuthRepository extends InMemoryAuthSessionRepository {
+  _SettingsAuthRepository(this.onSignedOut)
+      : super(
+            initialSessionState: const AuthSessionAuthenticated(
+          AuthSession(userId: 'test-user'),
+        ));
+
+  final VoidCallback onSignedOut;
+  int signOutCalls = 0;
+
+  @override
+  Future<void> signOut() async {
+    signOutCalls++;
+    await super.signOut();
+    onSignedOut();
+  }
 }
 
 Future<SystemUiOverlayStyle> _pumpSystemUiOverlay(
@@ -552,7 +836,8 @@ Future<void> _completeProfileInputs(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-class _FixedAppSessionBootstrapController extends AppSessionBootstrapController {
+class _FixedAppSessionBootstrapController
+    extends AppSessionBootstrapController {
   _FixedAppSessionBootstrapController({
     required AppSessionBootstrapState state,
     required super.onboardingStatusController,
@@ -562,7 +847,12 @@ class _FixedAppSessionBootstrapController extends AppSessionBootstrapController 
           onboardingCompletionRepository: null,
         );
 
-  final AppSessionBootstrapState fixedState;
+  AppSessionBootstrapState fixedState;
+
+  void markSignedOut() {
+    fixedState = const AppSessionBootstrapUnauthenticated();
+    notifyListeners();
+  }
 
   @override
   AppSessionBootstrapState get state => fixedState;

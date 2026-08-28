@@ -19,11 +19,13 @@ void main() {
       ),
     );
 
-    expect(find.text('Measurement Units'), findsOneWidget);
+    expect(find.text('Units'), findsOneWidget);
     expect(
-      tester.widget<TioButton>(
-        find.byKey(const ValueKey('measurement-units-save')),
-      ).onPressed,
+      tester
+          .widget<TioButton>(
+            find.byKey(const ValueKey('measurement-units-save')),
+          )
+          .onPressed,
       isNull,
     );
     expect(
@@ -76,7 +78,8 @@ void main() {
     expect(selectedSemanticsCount(), 5);
   });
 
-  testWidgets('compact large-text layout remains overflow-safe', (tester) async {
+  testWidgets('compact large-text layout remains overflow-safe',
+      (tester) async {
     tester.view.physicalSize = const Size(320, 760);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -139,6 +142,6 @@ void main() {
       find.byKey(const ValueKey('measurement-units-save-error')),
       findsOneWidget,
     );
-    expect(find.text('Measurement Units'), findsOneWidget);
+    expect(find.text('Units'), findsOneWidget);
   });
 }
