@@ -4,7 +4,7 @@
 
 This repository follows one practical rule: **move fast on product, keep boundaries clean.**
 
-The phone app and Wear OS companion use Flutter. Apple Watch stays native for platform integrations. Supabase is the planned Auth, data, and Storage foundation; protected AI and advanced server operations remain server-side.
+The phone app and Wear OS companion use Flutter. Apple Watch stays native for platform integrations. Supabase is the current Auth/data foundation and owns approved Postgres/RLS, migrations, and Storage boundaries; protected AI and advanced server operations remain future server-side work until explicitly authorized.
 
 ## Project Overview
 
@@ -25,16 +25,16 @@ Tio is designed as a premium health and wellness platform that helps users manag
 | iPhone | Flutter | Same mobile UI and feature flow as Android. |
 | Wear OS | Flutter | Existing Flutter companion package sharing design tokens, contracts, and watch-first workflows. |
 | Apple Watch | Swift + SwiftUI | Native watchOS integration, HealthKit, complications, and WatchConnectivity. |
-| Auth, data, and media | Supabase | Planned Auth, Postgres/RLS, and private module Storage buckets. |
-| Protected backend upgrade | Future server-side workspace | Gemini, advanced integrations, long-running jobs, and heavy processing when needed. |
+| Auth, data, and media | Supabase | Active Auth/Postgres/RLS foundation with approved Storage added only through bounded feature slices. |
+| Protected backend upgrade | Future server-side workspace | Gemini, advanced integrations, long-running jobs, and heavy processing only when explicitly approved. |
 
 > **Watch strategy:** Wear OS remains a Flutter package (`apps/wear`) with watch-first UI, shared design tokens, and shared contracts where useful. Apple Watch uses native SwiftUI for close platform integration.
 
 ## Target Repository Shape
 
-`tio-world` uses an apps-based modular Flutter workspace that mirrors the native `:app`, `:shared`, `:core`, and `:features:*` structure. The current checkout contains the Flutter workspace; `backend/` is a planned server workspace and must be created only with its first approved backend slice.
+`tio-world` uses an apps-based modular Flutter workspace that mirrors the native `:app`, `:shared`, `:core`, and `:features:*` structure. The current checkout contains both the Flutter workspace and the active `supabase/` platform workspace. `backend/` remains a planned protected-service workspace and must be created only with its first explicitly approved backend implementation slice.
 
-The planned `supabase/` workspace owns Auth, migrations, RLS, Storage policies, and seed data for approved slices. A separate `backend/` is reserved for a future protected-service upgrade; it is not the first database/authentication layer.
+The `supabase/` workspace owns approved Auth/platform configuration, schema migrations, RLS policies, Storage boundaries, and database functions. A separate `backend/` is reserved for a future protected-service upgrade; it is not the current database/authentication layer.
 
 The current feature packages include `home`, `auth`, `onboarding`, `workout`, `nutrition`, `profile`, `settings`, `progress`, and `coaching`.
 
@@ -55,8 +55,8 @@ tio-world/
 │     ├─ settings/
 │     ├─ progress/
 │     └─ coaching/
-├─ supabase/                      # Future Auth, Postgres/RLS, Storage, migrations
-├─ backend/                       # Future protected-service upgrade
+├─ supabase/                       # Active config, migrations, policies, approved functions
+├─ backend/                        # Future protected-service upgrade; not started
 │  ├─ api/
 │  ├─ ai-coach/
 │  └─ jobs/
@@ -94,7 +94,7 @@ tio-world/
 - Backend table/API shapes must not leak directly into widgets.
 - Feature presentation layers must not import another feature's presentation layer.
 - Watch apps own their own UI and platform integrations.
-- Heavy AI, analytics, sync reconciliation, and protected credentials belong on the backend.
+- Heavy AI, analytics, sync reconciliation, and protected credentials belong on a future protected server-side boundary when explicitly implemented.
 
 ## Feature Package Pattern
 
@@ -234,6 +234,14 @@ Start here:
 - [Documentation index](docs/README.md)
 - [AI context and active tasks](.ai/README.md)
 - [Onboarding flow architecture](docs/ONBOARDING_ARCHITECTURE.md)
+
+For platform trust, data, recovery, and future protected-service contracts, read:
+
+- [Authentication architecture](docs/AUTH_ARCHITECTURE.md)
+- [Supabase server access](docs/SUPABASE_SERVER_ACCESS.md)
+- [Data & privacy governance](docs/DATA_PRIVACY_GOVERNANCE.md)
+- [Database backup & recovery](docs/DATABASE_BACKUP_RECOVERY.md)
+- [API lifecycle & client compatibility](docs/API_LIFECYCLE.md)
 
 For the phone and Wear OS screen-by-screen product plan, read:
 
