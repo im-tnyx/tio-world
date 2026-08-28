@@ -22,7 +22,8 @@ class ReviewScreen extends StatelessWidget {
     final profile = draft.profile;
     final workout = draft.workout;
     final blockers = completionEligibility.blockingSteps;
-    final goalSummary = draft.goalSelection.goals.map(_goalIntentLabel).join(', ');
+    final goalSummary =
+        draft.goalSelection.goals.map(_goalIntentLabel).join(', ');
     final weightGoalDirection = const WeightGoalFlowPolicy().directionFor(
       mode: draft.selectedMode,
       selection: draft.goalSelection,
@@ -39,7 +40,8 @@ class ReviewScreen extends StatelessWidget {
         : draft.targets;
 
     final hasWellness = flowPlan.contains(OnboardingStepId.wellnessGoals);
-    final hasNutritionTarget = flowPlan.contains(OnboardingStepId.nutritionGoals);
+    final hasNutritionTarget =
+        flowPlan.contains(OnboardingStepId.nutritionGoals);
     final hasDailyTargets = hasWellness || hasNutritionTarget;
     final nutritionRecommendation = hasNutritionTarget
         ? const CalculateNutritionTargetRecommendationUseCase()(
@@ -66,7 +68,8 @@ class ReviewScreen extends StatelessWidget {
           children: [
             _SummaryRow(
               label: 'Name',
-              value: profile.name.trim().isEmpty ? 'Not set' : profile.name.trim(),
+              value:
+                  profile.name.trim().isEmpty ? 'Not set' : profile.name.trim(),
             ),
             const SizedBox(height: TioSize.dp10),
             _SummaryRow(
@@ -118,12 +121,11 @@ class ReviewScreen extends StatelessWidget {
                   ? 'Not selected'
                   : _activityLabel(profile.activityLevel!),
             ),
-            if (profile.healthConditions.isNotEmpty &&
-                !profile.healthConditions.contains(ProfileHealthCondition.none)) ...[
+            if (_visibleHealthConditions(profile).isNotEmpty) ...[
               const SizedBox(height: TioSize.dp10),
               _SummaryRow(
                 label: 'Health info',
-                value: _healthSummary(profile),
+                value: _visibleHealthConditions(profile).join(', '),
               ),
             ],
           ],
@@ -429,16 +431,38 @@ String _focusAreaLabel(WorkoutFocusArea area) {
   };
 }
 
-String _healthSummary(ProfileOnboardingDraft profile) {
+List<String> _visibleHealthConditions(ProfileOnboardingDraft profile) {
   final conditions = profile.healthConditions;
   if (conditions.isEmpty || conditions.contains(ProfileHealthCondition.none)) {
-    return 'None';
+    return const [];
   }
-  if (conditions.contains(ProfileHealthCondition.other) &&
-      profile.otherHealthCondition.trim().isNotEmpty) {
-    return profile.otherHealthCondition.trim();
+  final trimmedOther = profile.otherHealthCondition.trim();
+  final visible = <String>[];
+  for (final condition in conditions) {
+    if (condition == ProfileHealthCondition.none) {
+      continue;
+    }
+    if (condition == ProfileHealthCondition.other) {
+      if (trimmedOther.isNotEmpty) {
+        visible.add(trimmedOther);
+      } else {
+        visible.add('Other');
+      }
+    } else {
+      visible.add(_healthConditionLabel(condition));
+    }
   }
-  return conditions.map((e) => e.name).join(', ');
+  return visible;
+}
+
+String _healthConditionLabel(ProfileHealthCondition condition) {
+  return switch (condition) {
+    ProfileHealthCondition.none => 'None',
+    ProfileHealthCondition.diabetes => 'Diabetes',
+    ProfileHealthCondition.hypertension => 'Hypertension',
+    ProfileHealthCondition.lowBloodPressure => 'Low blood pressure',
+    ProfileHealthCondition.other => 'Other',
+  };
 }
 
 String _formatDate(DateTime value) {
