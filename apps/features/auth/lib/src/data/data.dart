@@ -1,12 +1,17 @@
 export 'firebase_auth_session_repository.dart';
 export 'firebase_auth_token_provider.dart';
 export 'in_memory_auth_session_repository.dart';
+export 'supabase_auth_token_provider.dart';
 export 'dto/google_sync_request_dto.dart';
 export 'dto/backend_user_sync_response_dto.dart';
 export 'datasources/backend_user_sync_remote_data_source.dart';
 export 'repositories/remote_backend_user_sync_repository.dart';
+export 'repositories/supabase_account_contact_verification_repository.dart';
+export 'repositories/supabase_account_deletion_repository.dart';
 export 'repositories/supabase_auth_session_repository.dart';
 export 'repositories/supabase_auth_sign_in_repository.dart';
+export 'repositories/supabase_google_identity_link_repository.dart';
+export 'repositories/supabase_phone_otp_auth_repository.dart';
 export 'repositories/supabase_user_device_repository.dart';
 export 'device/flutter_device_identity_provider.dart';
 export 'google_login_admission_checker.dart';

@@ -14,9 +14,22 @@ port = 54322
 [auth]
 enabled = true
 site_url = "http://127.0.0.1:3000"
-additional_redirect_urls = ["https://127.0.0.1:3000"]
+additional_redirect_urls = ["https://127.0.0.1:3000", "tio://login-callback"]
 jwt_expiry = 3600
 enable_signup = true
+
+# Local Supabase Auth hook wiring. Hosted-project hook activation remains a
+# separate explicit deployment decision and is not performed by this config edit.
+[auth.hook.before_user_created]
+enabled = true
+uri = "pg-functions://postgres/private/before_user_created_canonical_email_guard"
+
+# This endpoint runs before a Tio Supabase session exists. It authenticates the
+# request by cryptographically verifying the supplied Google ID token itself.
+# Keep platform JWT verification disabled to match the currently deployed
+# function and to support publishable-key callers without weakening the handler.
+[functions.google-login-admission]
+verify_jwt = false
 
 [storage]
 enabled = true

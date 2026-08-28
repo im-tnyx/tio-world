@@ -7,6 +7,7 @@ class BuildAccountSetupFlowUseCase {
   AccountSetupFlowPlan call({
     required bool hasUsername,
     required bool accountSetupCompleted,
+    bool? hasTrustedEmailIdentity,
     required bool hasTrustedPhoneIdentity,
   }) {
     final steps = <AccountSetupStepId>[];
@@ -15,12 +16,23 @@ class BuildAccountSetupFlowUseCase {
       steps.add(AccountSetupStepId.username);
     }
 
-    // Mobile is optional, but the step itself must be durably acknowledged for
-    // non-phone-authenticated fresh accounts. A trusted authenticated phone
-    // identity satisfies this account-level requirement without showing the
-    // collection step.
-    if (!accountSetupCompleted && !hasTrustedPhoneIdentity) {
-      steps.add(AccountSetupStepId.mobile);
+    if (!accountSetupCompleted) {
+      // Legacy callers predate the complementary Email step and only supplied
+      // trusted Phone. Preserve their old planning contract when Email evidence
+      // is omitted. Production app composition now supplies Email trust
+      // explicitly through AccountSetupAuthContactBridge.
+      final hasTrustedEmail =
+          hasTrustedEmailIdentity ?? hasTrustedPhoneIdentity;
+
+      if (hasTrustedEmail && hasTrustedPhoneIdentity) {
+        // Both complementary contacts are already trusted by Auth.
+      } else if (hasTrustedPhoneIdentity) {
+        steps.add(AccountSetupStepId.email);
+      } else {
+        // Trusted Email accounts need optional Mobile. The same Mobile fallback
+        // is retained for compatibility if trusted Auth evidence is missing.
+        steps.add(AccountSetupStepId.mobile);
+      }
     }
 
     return AccountSetupFlowPlan(steps: steps);

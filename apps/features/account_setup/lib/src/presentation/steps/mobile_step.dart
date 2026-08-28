@@ -51,7 +51,7 @@ class _MobileStepState extends State<MobileStep> {
         const TioScreenHeader(
           title: "What's your mobile number?",
           subtitle:
-              'Add a mobile number for account recovery and future security options. This step is optional and can be completed later.',
+              'Add a mobile number for account recovery and future security options.',
         ),
         const SizedBox(height: TioSpacing.lg),
         TioMobileNumberField(
@@ -66,7 +66,8 @@ class _MobileStepState extends State<MobileStep> {
         Text(
           widget.isVerified
               ? 'Verified by your authentication provider.'
-              : 'You can add or verify a mobile number later from Account Settings.',
+              : 'Optional — leave this blank to continue, or add and verify a mobile number later from Account Settings.',
+          key: const ValueKey('account-setup-mobile-helper'),
           style: TextStyle(
             color: colors.textMuted,
             fontSize: TioFontSize.size12,

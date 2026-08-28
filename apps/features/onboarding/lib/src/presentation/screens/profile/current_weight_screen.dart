@@ -29,7 +29,7 @@ class CurrentWeightScreen extends StatelessWidget {
   String get _displayValue {
     final kg = valueKg ?? _defaultKg;
     final typedUnit = unit == 'lb' || unit == 'lbs' ? WeightUnit.lb : WeightUnit.kg;
-    return MeasurementFormatters.formatWeight(kg, typedUnit);
+    return UnitFormatters.formatWeight(kg, typedUnit);
   }
 
   double get _currentBmi {

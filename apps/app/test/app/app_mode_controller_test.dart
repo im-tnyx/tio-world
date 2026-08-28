@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_app/app/app_mode/app_mode.dart';
 import 'package:tio_shared/shared.dart';
@@ -15,6 +14,10 @@ void main() {
 
       expect(controller.isLoaded, isTrue);
       expect(controller.selectedMode, AppMode.workout);
+      expect(
+        controller.activeDestinations,
+        AppMode.workout.guidedDestinations,
+      );
       expect(controller.lastError, isNull);
     });
 
@@ -24,6 +27,7 @@ void main() {
       await controller.load();
 
       expect(controller.selectedMode, isNull);
+      expect(controller.activeDestinations, isNull);
     });
 
     test('persists a confirmed selection before publishing it', () async {
@@ -35,6 +39,10 @@ void main() {
 
       expect(preference.storedMode, AppMode.hybrid);
       expect(controller.selectedMode, AppMode.hybrid);
+      expect(
+        controller.activeDestinations,
+        AppMode.hybrid.guidedDestinations,
+      );
       expect(controller.isSaving, isFalse);
     });
 
@@ -47,6 +55,7 @@ void main() {
       await expectLater(controller.select(AppMode.nutrition), throwsStateError);
 
       expect(controller.selectedMode, isNull);
+      expect(controller.activeDestinations, isNull);
       expect(controller.lastError, isA<StateError>());
       expect(controller.isSaving, isFalse);
     });
@@ -76,6 +85,10 @@ void main() {
 
       expect(controller.selectedMode, AppMode.nutrition);
       expect(preference.storedMode, AppMode.nutrition);
+      expect(
+        controller.activeDestinations,
+        AppMode.nutrition.guidedDestinations,
+      );
       expect(controller.isSaving, isFalse);
     });
 
@@ -93,30 +106,222 @@ void main() {
 
       expect(controller.selectedMode, AppMode.nutrition);
       expect(preference.storedMode, AppMode.nutrition);
+      expect(
+        controller.activeDestinations,
+        AppMode.nutrition.guidedDestinations,
+      );
       expect(controller.lastError, isNull);
       expect(controller.isSaving, isFalse);
     });
 
-    testWidgets('renders the app before stored mode loading completes',
-        (tester) async {
-      final preference = _ControlledAppModePreference(blockRead: true);
+    test('authenticated selection commits canonical preference before publishing',
+        () async {
+      final preference = _FakeAppModePreference(initialMode: AppMode.workout);
       final controller = AppModeController(preference);
+      await controller.load();
+      final repository = _RecordingAppPreferencesRepository(
+        onUpsert: (update) {
+          expect(controller.selectedMode, AppMode.workout);
+          expect(controller.activeDestinations, AppMode.workout.guidedDestinations);
+          expect(preference.storedMode, AppMode.workout);
+          expect(update.appMode, AppMode.nutrition);
+          expect(update.activeTabs, AppMode.nutrition.guidedDestinations);
+        },
+      );
+      controller.setAuthenticatedWriteRepository(repository);
 
-      await tester.pumpWidget(
-        AppModeBootstrap(
-          controller: controller,
-          child: const MaterialApp(home: Text('Splash content')),
+      await controller.select(AppMode.nutrition);
+
+      expect(repository.updates, hasLength(1));
+      expect(repository.updates.single.appMode, AppMode.nutrition);
+      expect(
+        repository.updates.single.activeTabs,
+        AppMode.nutrition.guidedDestinations,
+      );
+      expect(preference.storedMode, AppMode.nutrition);
+      expect(controller.selectedMode, AppMode.nutrition);
+      expect(
+        controller.activeDestinations,
+        AppMode.nutrition.guidedDestinations,
+      );
+      expect(controller.lastError, isNull);
+    });
+
+    test('canonical write failure preserves current runtime and local mode',
+        () async {
+      final preference = _FakeAppModePreference(initialMode: AppMode.workout);
+      final controller = AppModeController(preference);
+      await controller.load();
+      final repository = _RecordingAppPreferencesRepository(
+        upsertError: StateError('remote write failed'),
+      );
+      controller.setAuthenticatedWriteRepository(repository);
+
+      await expectLater(controller.select(AppMode.hybrid), throwsStateError);
+
+      expect(repository.updates, hasLength(1));
+      expect(preference.storedMode, AppMode.workout);
+      expect(controller.selectedMode, AppMode.workout);
+      expect(
+        controller.activeDestinations,
+        AppMode.workout.guidedDestinations,
+      );
+      expect(controller.lastError, isA<StateError>());
+      expect(controller.isSaving, isFalse);
+    });
+
+    test('canonical success remains authoritative if local cache refresh fails',
+        () async {
+      final preference = _FakeAppModePreference(
+        initialMode: AppMode.workout,
+        writeError: StateError('cache write failed'),
+      );
+      final controller = AppModeController(preference);
+      await controller.load();
+      final repository = _RecordingAppPreferencesRepository();
+      controller.setAuthenticatedWriteRepository(repository);
+
+      await controller.select(AppMode.hybrid);
+
+      expect(repository.updates, hasLength(1));
+      expect(repository.updates.single.appMode, AppMode.hybrid);
+      expect(preference.storedMode, AppMode.workout);
+      expect(controller.selectedMode, AppMode.hybrid);
+      expect(
+        controller.activeDestinations,
+        AppMode.hybrid.guidedDestinations,
+      );
+      expect(controller.lastError, isA<StateError>());
+      expect(controller.isSaving, isFalse);
+    });
+
+    test('disabling authenticated writes restores local staging behavior',
+        () async {
+      final preference = _FakeAppModePreference(initialMode: AppMode.workout);
+      final controller = AppModeController(preference);
+      await controller.load();
+      final repository = _RecordingAppPreferencesRepository();
+      controller.setAuthenticatedWriteRepository(repository);
+      controller.setAuthenticatedWriteRepository(null);
+
+      await controller.select(AppMode.nutrition);
+
+      expect(repository.updates, isEmpty);
+      expect(preference.storedMode, AppMode.nutrition);
+      expect(controller.selectedMode, AppMode.nutrition);
+    });
+
+    test('canonical restore overrides stale local mode and preserves tab order',
+        () async {
+      final preference = _FakeAppModePreference(initialMode: AppMode.workout);
+      final controller = AppModeController(preference);
+      await controller.load();
+
+      await controller.restoreCanonical(
+        AppPreferencesState.present(
+          appMode: AppMode.nutrition,
+          activeTabs: const [
+            AppDestination.progress,
+            AppDestination.home,
+            AppDestination.nutrition,
+          ],
         ),
       );
 
-      expect(find.text('Splash content'), findsOneWidget);
-      expect(controller.isLoaded, isFalse);
+      expect(preference.storedMode, AppMode.nutrition);
+      expect(controller.selectedMode, AppMode.nutrition);
+      expect(
+        controller.activeDestinations,
+        const [
+          AppDestination.progress,
+          AppDestination.home,
+          AppDestination.nutrition,
+        ],
+      );
+      expect(controller.lastError, isNull);
+    });
 
-      preference.completeRead(AppMode.hybrid);
-      await tester.pump();
+    test('canonical app-mode-only row derives guided destinations', () async {
+      final controller = AppModeController(_FakeAppModePreference());
+      await controller.load();
 
-      expect(controller.isLoaded, isTrue);
-      expect(controller.selectedMode, AppMode.hybrid);
+      await controller.restoreCanonical(
+        AppPreferencesState.present(
+          appMode: AppMode.workout,
+          activeTabs: null,
+        ),
+      );
+
+      expect(controller.selectedMode, AppMode.workout);
+      expect(
+        controller.activeDestinations,
+        AppMode.workout.guidedDestinations,
+      );
+    });
+
+    test('missing canonical state clears stale device semantic mode', () async {
+      final preference = _FakeAppModePreference(initialMode: AppMode.hybrid);
+      final controller = AppModeController(preference);
+      await controller.load();
+
+      await controller.restoreMissingCanonical();
+
+      expect(preference.storedMode, isNull);
+      expect(controller.selectedMode, isNull);
+      expect(controller.activeDestinations, isNull);
+    });
+
+    test('canonical restore never invents a mode when remote mode is null',
+        () async {
+      final preference = _FakeAppModePreference(initialMode: AppMode.workout);
+      final controller = AppModeController(preference);
+      await controller.load();
+
+      await expectLater(
+        controller.restoreCanonical(
+          AppPreferencesState.present(
+            appMode: null,
+            activeTabs: const [AppDestination.home],
+          ),
+        ),
+        throwsStateError,
+      );
+
+      expect(controller.selectedMode, AppMode.workout);
+      expect(preference.storedMode, AppMode.workout);
+    });
+
+    test('valid remote state remains authoritative if local cache write fails',
+        () async {
+      final preference = _FakeAppModePreference(
+        initialMode: AppMode.workout,
+        writeError: StateError('cache write failed'),
+      );
+      final controller = AppModeController(preference);
+      await controller.load();
+
+      await controller.restoreCanonical(
+        AppPreferencesState.present(
+          appMode: AppMode.nutrition,
+          activeTabs: const [
+            AppDestination.home,
+            AppDestination.progress,
+            AppDestination.nutrition,
+          ],
+        ),
+      );
+
+      expect(preference.storedMode, AppMode.workout);
+      expect(controller.selectedMode, AppMode.nutrition);
+      expect(
+        controller.activeDestinations,
+        const [
+          AppDestination.home,
+          AppDestination.progress,
+          AppDestination.nutrition,
+        ],
+      );
+      expect(controller.lastError, isA<StateError>());
     });
   });
 
@@ -159,6 +364,28 @@ void main() {
   });
 }
 
+class _RecordingAppPreferencesRepository implements AppPreferencesRepository {
+  _RecordingAppPreferencesRepository({
+    this.onUpsert,
+    this.upsertError,
+  });
+
+  final void Function(AppPreferencesUpdate update)? onUpsert;
+  final Object? upsertError;
+  final List<AppPreferencesUpdate> updates = [];
+
+  @override
+  Future<AppPreferencesState> read() async =>
+      const AppPreferencesState.missing();
+
+  @override
+  Future<void> upsert(AppPreferencesUpdate preferences) async {
+    updates.add(preferences);
+    onUpsert?.call(preferences);
+    if (upsertError case final error?) throw error;
+  }
+}
+
 class _FakeAppModePreference implements AppModePreference {
   _FakeAppModePreference({AppMode? initialMode, this.writeError})
       : storedMode = initialMode;
@@ -182,12 +409,8 @@ class _FakeAppModePreference implements AppModePreference {
 }
 
 class _ControlledAppModePreference implements AppModePreference {
-  _ControlledAppModePreference({this.blockRead = false});
-
-  final bool blockRead;
   final List<AppMode> writeCalls = [];
   final List<Completer<void>> _writes = [];
-  final Completer<AppMode?> _read = Completer<AppMode?>();
   AppMode? storedMode;
 
   @override
@@ -200,11 +423,8 @@ class _ControlledAppModePreference implements AppModePreference {
     _writes[index].complete();
   }
 
-  void completeRead(AppMode? mode) => _read.complete(mode);
-
   @override
-  Future<AppMode?> read() =>
-      blockRead ? _read.future : Future<AppMode?>.value(storedMode);
+  Future<AppMode?> read() async => storedMode;
 
   @override
   Future<void> write(AppMode mode) async {

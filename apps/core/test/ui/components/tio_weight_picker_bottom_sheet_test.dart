@@ -46,4 +46,42 @@ void main() {
 
     expect(pickedKg, 70.0);
   });
+
+  testWidgets('lbs mode converts through the canonical core converter',
+      (tester) async {
+    double? pickedKg;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) =>
+            TioTheme(child: child ?? const SizedBox.shrink()),
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                pickedKg = await showTioWeightPickerBottomSheet(
+                  context: context,
+                  initialWeightKg: 81.6466266,
+                  unit: 'lbs',
+                );
+              },
+              child: const Text('Open Imperial Weight Picker'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open Imperial Weight Picker'));
+    await tester.pumpAndSettle();
+
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(field.controller?.text, '180.0');
+    expect(find.text('lbs'), findsOneWidget);
+
+    await tester.tap(find.byType(TioButton));
+    await tester.pumpAndSettle();
+
+    expect(pickedKg, closeTo(81.6466266, 0.0001));
+  });
 }

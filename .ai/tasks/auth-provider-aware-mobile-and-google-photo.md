@@ -203,6 +203,7 @@ Rules:
 - Do not silently overwrite an existing username on later login.
 - Existing incomplete accounts resume according to durable account/onboarding state; Username is required only when that account still lacks its canonical username.
 - `public.users.username` remains nullable for legacy compatibility; do not add a global `NOT NULL` constraint.
+- A missing username starts with an empty input and a generic placeholder only. Do not prefill a newly created handle from identity/profile data.
 
 ### 4.1 Username normalization, availability, filtering, and suggestions
 
@@ -223,7 +224,7 @@ User enters candidate
 
 Frozen rules:
 
-- Canonical comparison is case-insensitive. Current production schema already has a unique index on `lower(username)`, so `Santosh` and `santosh` must be treated as the same handle.
+- Canonical comparison is case-insensitive. A mixed-case form and its lowercase form must be treated as the same handle.
 - Normalize candidate input consistently before checking/saving, including trim + lowercase canonical comparison.
 - Initial public-handle character policy is ASCII letters, numbers, underscore, and dot unless a later reviewed policy expands it.
 - Canonical length is **3–30 characters**, enforced in UI, server policy, and the database persistence boundary.
@@ -233,35 +234,54 @@ Frozen rules:
 - Availability UI is advisory; the database unique constraint remains the final concurrency authority when the user saves.
 - If a handle becomes taken between availability check and final save, return a controlled conflict state and refresh alternatives instead of failing generically.
 
+### 4.2 Username privacy boundary
+
+The only allowed seed for new username alternatives is the username candidate the user explicitly typed in the Username field.
+
+The Username UI and suggestion engine MUST NOT derive, prefill, hint, rank, or suggest handles from:
+
+- Profile `Name` or name parts;
+- Google/provider display name;
+- email or email local-part;
+- phone/mobile number;
+- DOB, birth year, age, or the current year;
+- avatar/profile metadata;
+- any other personal profile/account attribute.
+
+A persisted canonical username may populate the field normally. When no canonical username exists, the field remains blank and the placeholder remains generic, for example `e.g. your.name`.
+
 Suggestion policy:
 
 ```text
-@santosh taken
-→ candidate generator produces multiple neutral variations
+@yourhandle taken
+→ candidate generator uses only the explicitly typed `yourhandle` candidate as its seed
+→ generator builds a bounded pool of neutral variations
 → backend filters every candidate through the same policy + availability rules
 → UI receives only verified-available alternatives
 ```
 
-Examples may include:
+Illustrative shapes may include:
 
 ```text
-@santosh47
-@santosh.j
-@santosh_jangid
-@santosh214
-@santosh_fit
+@yourhandle27
+@yourhandle_314
+@yourhandle.82
+@yourhandle4921
+@yourhandle_56
 ```
 
-But:
+These are documentation examples only, not runtime defaults or a hard-coded list.
 
-- `_fit` is not mandatory.
-- `_tio` is not mandatory and should not be mechanically appended to every user.
+Rules:
+
+- No fixed product/trend suffix such as `_fit` or `_tio` is mandatory or preferred.
 - **Current year has no special role in username suggestions and must not be automatically appended or preferred.**
-- A numeric suffix is just a neutral candidate variation; it must not encode or imply a year unless the user explicitly typed/chose that value.
-- Suggestions should be dynamic and context-appropriate rather than a permanent hard-coded three-item list.
-- Avoid deriving numeric suffixes from private attributes such as date of birth.
-- Candidate generation may use name parts and short neutral/random numeric suffixes, but only server-verified available candidates should be displayed as suggestions.
-- Reserved/system candidates must not produce alternatives inside the same protected namespace; use neutral verified alternatives instead.
+- A numeric suffix is a neutral variation only; it must not encode or imply a year unless the user explicitly typed/chose that value.
+- Suggestions must be dynamic rather than a permanent hard-coded list or one mandatory suffix format.
+- The generator may vary separators and neutral suffix lengths/shapes, but candidate content must remain derived from the explicit typed candidate plus non-personal deterministic/random variation.
+- No private profile or identity lookup is needed to generate alternatives.
+- Reserved/system candidates must not produce lookalike alternatives inside the same protected namespace. A neutral fallback may be used, but its variation seed must still come only from the explicit typed candidate and never from profile/account data.
+- Return 3–5 alternatives when the bounded server search can find them; every returned alternative must have passed the authoritative policy and availability check.
 
 Suggestion tap behavior:
 
@@ -299,7 +319,7 @@ The RPCs must not reveal the identity or profile of the account that already own
 
 ### Step 2B implementation note
 
-Production migrations `20260817000002_harden_username_policy.sql` and `20260817000003_refine_username_impersonation_policy.sql` implement the server policy, narrow authenticated RPCs, verified neutral suggestions, canonical claim path, and database policy constraint. The final `lower(username)` unique index remains the concurrency authority.
+Production migrations `20260817000002_harden_username_policy.sql` and `20260817000003_refine_username_impersonation_policy.sql` implement the server policy, narrow authenticated RPCs, canonical claim path, and database policy constraint. Forward-only migration `20260826072000_refine_username_suggestions.sql` replaces the old fixed three-item/single-template suggestion helper with a bounded multi-shape generator seeded only by the explicit typed candidate. The final `lower(username)` unique index remains the concurrency authority.
 
 The public username RPCs intentionally use `SECURITY DEFINER` with a fixed empty `search_path` because owner-scoped RLS cannot otherwise answer cross-account collision questions. `PUBLIC`/`anon` execute is revoked; `authenticated` execute is granted only to the narrow RPC surface. Private helpers are not executable by API roles.
 
@@ -446,14 +466,17 @@ Mobile may remain null forever if the user chooses not to provide it.
 ### Username
 
 - [x] fresh/incomplete authenticated account missing username routes to Username before later onboarding;
+- [x] missing username starts blank with a generic placeholder and no identity-derived prefill;
+- [x] persisted canonical username still hydrates normally;
 - [x] returning completed login does not show Username retroactively;
 - [x] existing username is not overwritten by later login bootstrap;
 - [x] username normalization is case-insensitive and matches backend uniqueness semantics;
 - [x] invalid/reserved/system-impersonation usernames are rejected by the reviewed initial policy;
 - [x] availability is checked through a narrow backend contract rather than broad users-table reads;
 - [x] unavailable username returns only server-verified available suggestions;
-- [x] suggestions are dynamic and do not require `_fit`, `_tio`, or any year-based suffix;
-- [x] current year is never automatically appended or preferred by the suggestion engine;
+- [x] suggestion generation is seeded only by the candidate explicitly typed in the Username field;
+- [x] Profile `Name`, provider display name, email, phone, DOB/year, and other private attributes are not suggestion seeds;
+- [x] suggestions are dynamic and do not require a fixed product suffix, current year, or a single mandatory suffix format;
 - [x] tapping a suggestion re-checks/validates it before showing Available;
 - [x] stale async availability responses cannot overwrite the current input state;
 - [x] final save handles a unique-race conflict with controlled UX and an authoritative suggestion refresh;
@@ -488,7 +511,8 @@ Mobile may remain null forever if the user chooses not to provide it.
 - Do not make `public.users.username` globally `NOT NULL` or force completed legacy accounts through the Username checkpoint.
 - Do not expose broad user-directory reads for availability checking.
 - Do not treat locally generated username suggestions as authoritative availability results.
-- Do not bias username suggestions toward the current year.
+- Do not seed username hints, prefills, or suggestions from Profile `Name`, provider identity, email, phone, DOB/year, avatar, or other private profile/account data.
+- Do not bias username suggestions toward the current year or any fixed product/trend suffix.
 - Do not keep AuthLanding as an extra hop after canonical Signup takes over its responsibilities.
 - Do not add entry-source-specific social-button visibility logic to Signup.
 - Do not keep Username as a pre-auth Signup field after the post-auth Username screen becomes canonical.

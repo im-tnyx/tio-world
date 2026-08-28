@@ -116,6 +116,7 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  /// Compatibility deep link for Email Login.
   static const emailLogin = TioRouteContract(
     path: '/login/email',
     title: 'Sign In',
@@ -123,12 +124,18 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  /// Existing signup route retained for compatibility. Runtime Signup is now
+  /// mode-driven and opens Phone-first by default.
   static const emailSignup = TioRouteContract(
     path: '/login/email-signup',
     title: 'Create Account',
-    description: 'Register a new account with email and password.',
+    description: 'Create a new Tio account.',
     chromePolicy: ChromePolicy.fullScreen,
   );
+
+  /// Generic name for the current Phone-first Signup surface. It intentionally
+  /// aliases the existing path so old deep links remain valid.
+  static const signup = emailSignup;
 
   static const forgotPassword = TioRouteContract(
     path: '/login/forgot-password',

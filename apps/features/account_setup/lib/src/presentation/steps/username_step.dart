@@ -123,6 +123,7 @@ class UsernameStepState extends State<UsernameStep> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.tioColors;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -149,6 +150,16 @@ class UsernameStepState extends State<UsernameStep> {
             setState(() => _status = status);
             widget.onCanContinueChanged(status == TioUsernameStatus.available);
           },
+        ),
+        const SizedBox(height: TioSpacing.sm),
+        Text(
+          'Username is required before continuing.',
+          key: const ValueKey('account-setup-username-helper'),
+          style: TextStyle(
+            color: colors.textMuted,
+            fontSize: TioFontSize.size12,
+            height: TioLineHeight.height130,
+          ),
         ),
         if (_saveError case final error?) ...[
           const SizedBox(height: TioSpacing.md),

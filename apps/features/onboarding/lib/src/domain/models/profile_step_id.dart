@@ -7,6 +7,7 @@ enum ProfileStepId {
   height,
   currentWeight,
   targetWeight,
+  goalPace,
   activity,
   healthConditions,
 }

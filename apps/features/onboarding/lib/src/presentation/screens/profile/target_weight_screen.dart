@@ -8,9 +8,9 @@ class TargetWeightScreen extends StatelessWidget {
   const TargetWeightScreen({
     required this.valueKg,
     required this.onChanged,
+    required this.weightGoalDirection,
     this.unit = 'kg',
     this.currentWeightKg,
-    this.primaryGoalId,
     this.heightCm,
     this.onContinue,
     this.isBusy = false,
@@ -20,9 +20,9 @@ class TargetWeightScreen extends StatelessWidget {
 
   final double? valueKg;
   final ValueChanged<double> onChanged;
+  final GoalWeightDirection? weightGoalDirection;
   final String unit;
   final double? currentWeightKg;
-  final String? primaryGoalId;
   final double? heightCm;
   final VoidCallback? onContinue;
   final bool isBusy;
@@ -33,63 +33,77 @@ class TargetWeightScreen extends StatelessWidget {
   bool get _usesPounds => unit == 'lb' || unit == 'lbs';
 
   String get _displayValue {
-    final kg = valueKg ?? _defaultKg;
-    return MeasurementFormatters.formatWeight(
+    final kg = valueKg ?? currentWeightKg ?? _defaultKg;
+    return UnitFormatters.formatWeight(
       kg,
       _usesPounds ? WeightUnit.lb : WeightUnit.kg,
     );
   }
 
-  ({String badge, String diffText, String message, Color color}) _getTargetAnalysis() {
-    final target = valueKg ?? _defaultKg;
+  ({String badge, String diffText, String message, Color color})
+      _getTargetAnalysis() {
+    final target = valueKg ?? currentWeightKg ?? _defaultKg;
     final current = currentWeightKg ?? target;
     final diffKg = target - current;
-    final diffVal = _usesPounds ? MeasurementConverters.kgToLb(diffKg) : diffKg;
+    final diffVal = _usesPounds ? UnitConverters.kgToLb(diffKg) : diffKg;
     final diffAbs = diffVal.abs();
     final unitLabel = _usesPounds ? 'lb' : 'kg';
+    final diffText = diffAbs < 0.05
+        ? '0.0 $unitLabel'
+        : '${diffVal > 0 ? '+' : '-'}${diffAbs.toStringAsFixed(1)} $unitLabel';
 
-    if (diffAbs < 0.2) {
-      return (
-        badge: 'Maintain',
-        diffText: '0.0 $unitLabel',
-        message: 'Your plan will focus on body recomposition, stamina, and overall vitality.',
-        color: TioDomainColors.healthInfo,
-      );
-    } else if (diffKg < 0) {
-      final diffStr = '-${diffAbs.toStringAsFixed(1)} $unitLabel';
-      if (diffAbs <= (_usesPounds ? 33 : 15)) {
-        return (
-          badge: 'Weight Loss',
-          diffText: diffStr,
-          message: 'Sustainable calorie deficit and cardio-strength blend will achieve this safely.',
-          color: TioDomainColors.healthPositive,
-        );
-      } else {
-        return (
-          badge: 'Ambitious Loss',
-          diffText: diffStr,
-          message: 'Ambitious target. We will pace your progression in sustainable phased cycles.',
-          color: TioDomainColors.healthWarning,
-        );
-      }
-    } else {
-      final diffStr = '+${diffAbs.toStringAsFixed(1)} $unitLabel';
-      if (diffAbs <= (_usesPounds ? 22 : 10)) {
-        return (
-          badge: 'Muscle Gain',
-          diffText: diffStr,
-          message: 'Hypertrophy resistance workouts and protein surplus will fuel lean gains.',
-          color: TioDomainColors.healthPositive,
-        );
-      } else {
-        return (
-          badge: 'Significant Gain',
-          diffText: diffStr,
-          message: 'High calorie surplus and progressive overload will drive healthy mass growth.',
-          color: TioDomainColors.healthWarning,
-        );
-      }
-    }
+    return switch (weightGoalDirection) {
+      GoalWeightDirection.loss => diffKg >= 0
+          ? (
+              badge: 'Weight Loss',
+              diffText: diffText,
+              message: 'Choose a target below your current weight for this goal.',
+              color: TioDomainColors.healthWarning,
+            )
+          : diffAbs <= (_usesPounds ? 33 : 15)
+              ? (
+                  badge: 'Weight Loss',
+                  diffText: diffText,
+                  message:
+                      'A steady target supports sustainable progress toward your weight-loss goal.',
+                  color: TioDomainColors.healthPositive,
+                )
+              : (
+                  badge: 'Ambitious Loss',
+                  diffText: diffText,
+                  message:
+                      'Ambitious target. We will pace your progression in sustainable phased cycles.',
+                  color: TioDomainColors.healthWarning,
+                ),
+      GoalWeightDirection.gain => diffKg <= 0
+          ? (
+              badge: 'Weight Gain',
+              diffText: diffText,
+              message: 'Choose a target above your current weight for this goal.',
+              color: TioDomainColors.healthWarning,
+            )
+          : diffAbs <= (_usesPounds ? 22 : 10)
+              ? (
+                  badge: 'Weight Gain',
+                  diffText: diffText,
+                  message:
+                      'A steady target supports healthy progress toward your weight-gain goal.',
+                  color: TioDomainColors.healthPositive,
+                )
+              : (
+                  badge: 'Significant Gain',
+                  diffText: diffText,
+                  message:
+                      'A larger target change should be approached gradually and sustainably.',
+                  color: TioDomainColors.healthWarning,
+                ),
+      null => (
+          badge: 'Target',
+          diffText: diffText,
+          message: 'Adjust your target to match the goal you selected.',
+          color: TioDomainColors.healthInfo,
+        ),
+    };
   }
 
   @override

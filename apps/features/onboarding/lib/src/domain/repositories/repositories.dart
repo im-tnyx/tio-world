@@ -1,3 +1,4 @@
+export 'health_connection_gateway.dart';
 export 'onboarding_completion_repository.dart';
 export 'onboarding_draft_repository.dart';
 export 'onboarding_remote_finalizer.dart';

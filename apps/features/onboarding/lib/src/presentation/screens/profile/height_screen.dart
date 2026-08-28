@@ -30,7 +30,7 @@ class HeightScreen extends StatelessWidget {
       'ft' || 'in' || 'ft_in' => HeightUnit.ftIn,
       _ => HeightUnit.cm,
     };
-    return MeasurementFormatters.formatHeight(cm, typedUnit);
+    return UnitFormatters.formatHeight(cm, typedUnit);
   }
 
   @override

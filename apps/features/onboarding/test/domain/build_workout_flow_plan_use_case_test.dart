@@ -5,16 +5,21 @@ void main() {
   const useCase = BuildWorkoutFlowPlanUseCase();
 
   test('null and gym access both use the non-equipment initial plan', () {
-    expect(useCase().steps, _gymPath);
+    final plan = useCase();
+    expect(plan.steps, _gymPath);
     expect(useCase(gymAccess: WorkoutGymAccess.gym).steps, _gymPath);
-    expect(useCase().stepCount, 8);
+    expect(plan.stepCount, 8);
+    expect(plan.profileSteps, _gymProfilePath);
+    expect(plan.targetSteps, _targetPath);
   });
 
-  test('home access inserts equipment and expands the child plan to 9', () {
+  test('home access inserts equipment and expands only Workout Profile', () {
     final plan = useCase(gymAccess: WorkoutGymAccess.home);
 
     expect(plan.steps, _homePath);
     expect(plan.stepCount, 9);
+    expect(plan.profileSteps, _homeProfilePath);
+    expect(plan.targetSteps, _targetPath);
   });
 
   test('reconcile keeps valid current step and safely falls back when removed',
@@ -42,34 +47,43 @@ void main() {
 
     expect(
       useCase.reconcileCurrentStep(
-        currentStepId: WorkoutStepId.experienceLevel,
+        currentStepId: WorkoutStepId.trainingDays,
         previousPlan: gymPlan,
         nextPlan: homePlan,
       ),
-      WorkoutStepId.experienceLevel,
+      WorkoutStepId.trainingDays,
     );
   });
 }
 
-const _gymPath = [
+const _gymProfilePath = [
   WorkoutStepId.gymAccess,
   WorkoutStepId.experienceLevel,
   WorkoutStepId.focusAreas,
-  WorkoutStepId.trainingDays,
-  WorkoutStepId.workoutDuration,
-  WorkoutStepId.workoutSplit,
   WorkoutStepId.healthConcerns,
-  WorkoutStepId.specialEvent,
 ];
 
-const _homePath = [
+const _homeProfilePath = [
   WorkoutStepId.gymAccess,
   WorkoutStepId.equipment,
   WorkoutStepId.experienceLevel,
   WorkoutStepId.focusAreas,
+  WorkoutStepId.healthConcerns,
+];
+
+const _targetPath = [
   WorkoutStepId.trainingDays,
   WorkoutStepId.workoutDuration,
   WorkoutStepId.workoutSplit,
-  WorkoutStepId.healthConcerns,
   WorkoutStepId.specialEvent,
+];
+
+const _gymPath = [
+  ..._gymProfilePath,
+  ..._targetPath,
+];
+
+const _homePath = [
+  ..._homeProfilePath,
+  ..._targetPath,
 ];

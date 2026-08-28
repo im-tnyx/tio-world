@@ -4,16 +4,21 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_profile/profile.dart';
+import 'package:tio_feature_progress/progress.dart';
 import 'package:tio_feature_settings/settings.dart';
 
 import '../network_providers.dart';
+import 'canonical_profile_settings_repository.dart';
 import 'profile_completion.dart';
 
 final profileSettingsRepositoryProvider =
     Provider<ProfileSettingsRepository?>((ref) {
   final client = ref.watch(supabaseClientProvider);
   if (client == null) return null;
-  return SupabaseProfileSettingsRepository(client: client);
+  return CanonicalProfileSettingsRepository(
+    profileRepository: SupabaseUserProfileRepository(client: client),
+    bodyRepository: SupabaseBodySetupRepository(client: client),
+  );
 });
 
 final saveProfileSettingsUseCaseProvider =
@@ -79,14 +84,22 @@ class ProfileSettingsRoute extends ConsumerWidget {
         );
         if (picked == null) return;
         final bytes = await picked.readAsBytes();
-        await ref.read(profileSetupRepositoryProvider).uploadAvatarImage(
-              fileName: picked.name,
-              bytes: bytes,
-            );
+        final avatarRepository = ref.read(profileAvatarRepositoryProvider);
+        if (avatarRepository == null) {
+          throw StateError('Profile avatar persistence is unavailable.');
+        }
+        await avatarRepository.uploadAvatarImage(
+          fileName: picked.name,
+          bytes: bytes,
+        );
         ref.invalidate(profileDataProvider);
       },
       onDeleteImage: () async {
-        await ref.read(profileSetupRepositoryProvider).deleteAvatarImage();
+        final avatarRepository = ref.read(profileAvatarRepositoryProvider);
+        if (avatarRepository == null) {
+          throw StateError('Profile avatar persistence is unavailable.');
+        }
+        await avatarRepository.deleteAvatarImage();
         ref.invalidate(profileDataProvider);
       },
       onSave: ({

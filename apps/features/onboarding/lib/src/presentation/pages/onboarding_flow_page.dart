@@ -55,18 +55,45 @@ class OnboardingFlowPage extends ConsumerWidget {
       }
     }
 
-    await controller.next(
-      onFinish: onFinishRequested,
-    );
+    await controller.next(onFinish: onFinishRequested);
+  }
+
+  Future<void> _handleHealthPrimary(
+    HealthConnectionsController healthController,
+    OnboardingController onboardingController,
+  ) async {
+    if (healthController.isBusy) return;
+
+    switch (healthController.status) {
+      case null:
+        return;
+      case HealthConnectionStatus.notRequested:
+      case HealthConnectionStatus.denied:
+        await healthController.requestConnection();
+        return;
+      case HealthConnectionStatus.unavailable:
+      case HealthConnectionStatus.connected:
+        await onboardingController.next(onFinish: onFinishRequested);
+        return;
+    }
+  }
+
+  Future<void> _handleHealthSkip(
+    HealthConnectionsController healthController,
+    OnboardingController onboardingController,
+  ) async {
+    if (healthController.isBusy) return;
+    await onboardingController.next(onFinish: onFinishRequested);
   }
 
   void _handleBack(
     BuildContext context,
     WidgetRef ref,
-    OnboardingController controller,
-  ) {
+    OnboardingController controller, {
+    bool block = false,
+  }) {
     final state = controller.state;
-    if (state.isBusy) return;
+    if (block || state.isBusy) return;
 
     if (state.hasPreviousScreen) {
       controller.previous();
@@ -86,29 +113,15 @@ class OnboardingFlowPage extends ConsumerWidget {
     final exit = onExitRequested;
     if (exit == null) return;
 
-    final confirmed = await showModalBottomSheet<bool>(
+    final confirmed = await showTioConfirmationBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: TioPalette.transparent,
-      builder: (sheetContext) {
-        return SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.all(TioSpacing.lg),
-            child: TioConfirmationCard(
-              key: const ValueKey('onboarding-exit-confirmation-card'),
-              icon: const Icon(Icons.logout_rounded),
-              title: 'Log out of Tio?',
-              message:
-                  'You’ll return to Welcome. Your onboarding progress will stay saved so you can continue after signing in again.',
-              cancelLabel: 'Stay',
-              confirmLabel: 'Log out',
-              onCancel: () => Navigator.of(sheetContext).pop(false),
-              onConfirm: () => Navigator.of(sheetContext).pop(true),
-            ),
-          ),
-        );
-      },
+      cardKey: const ValueKey('onboarding-exit-confirmation-card'),
+      icon: const Icon(Icons.logout_rounded),
+      title: 'Log out of Tio?',
+      message:
+          'You\'ll return to Welcome. Your onboarding progress will stay saved so you can continue after signing in again.',
+      cancelLabel: 'Stay',
+      confirmLabel: 'Log out',
     );
 
     if (confirmed == true && context.mounted) {
@@ -131,48 +144,56 @@ class OnboardingFlowPage extends ConsumerWidget {
 
   void _showGoalDataCollectionSheet(BuildContext context) {
     unawaited(
-      showOnboardingDataCollectionSheet(
+      showTioInformationBottomSheet(
         context: context,
-        body:
+        title: 'Data Collection',
+        message:
             'Your fitness goals help Tio calculate baseline energy expenditure, macro distribution, and customized training splits.\n\n'
             'Primary goals define your target workout intensity, while supporting goals tailor your recovery and mobility recommendations.\n\n'
             'All data is encrypted and used solely for tailoring your personal fitness plan.',
+        actionLabel: 'Understood',
       ),
     );
   }
 
   void _showActivityDataCollectionSheet(BuildContext context) {
     unawaited(
-      showOnboardingDataCollectionSheet(
+      showTioInformationBottomSheet(
         context: context,
-        body:
+        title: 'Data Collection',
+        message:
             'We value your trust and appreciate the importance of your daily routine in shaping your fitness journey. The reason we ask about your whole-day activity is to design a plan that aligns seamlessly with your lifestyle.\n\n'
             'Your activity levels help us determine the most suitable calorie targets, energy expenditure, and exercise recommendations for you.\n\n'
             'By understanding how active you are throughout the day, we can provide personalized guidance that fits your routine and ensures you stay on track with your goals, one step at a time.',
+        actionLabel: 'Understood',
       ),
     );
   }
 
   void _showHealthDataCollectionSheet(BuildContext context) {
     unawaited(
-      showOnboardingDataCollectionSheet(
+      showTioInformationBottomSheet(
         context: context,
-        body:
+        title: 'Data Collection',
+        message:
             'We value your trust and understand that your health is personal.\n\n'
             'The reason we ask about health conditions like diabetes, low blood pressure, or high blood pressure is to create a safe and effective plan tailored to your needs.\n\n'
             'This ensures that our recommendations align with your health and fitness goals while prioritizing your well-being every step of the way.',
+        actionLabel: 'Understood',
       ),
     );
   }
 
   void _showMobileDataCollectionSheet(BuildContext context) {
     unawaited(
-      showOnboardingDataCollectionSheet(
+      showTioInformationBottomSheet(
         context: context,
-        body:
+        title: 'Data Collection',
+        message:
             'Your mobile number can support account recovery, future security options, and optional reminders. Adding it is optional in the current release.\n\n'
             'Entering a number does not mark it as verified. Verification is only recognized when a trusted authentication provider or backend supplies verification evidence.\n\n'
             'We use this information only for account and product features you choose to use and do not sell your contact information.',
+        actionLabel: 'Understood',
       ),
     );
   }
@@ -190,25 +211,53 @@ class OnboardingFlowPage extends ConsumerWidget {
     }
 
     final state = controller.state;
+    if (_needsO7bHealthCompatibility(state)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final current = controller.state;
+        if (_needsO7bHealthCompatibility(current)) {
+          controller.initialize(
+            current.draft.copyWith(
+              currentStepId: OnboardingStepId.healthConnections,
+            ),
+          );
+        }
+      });
+      return Scaffold(
+        backgroundColor: context.tioColors.background,
+        body: const SizedBox.expand(),
+      );
+    }
+
+    final healthController = state.stepId == OnboardingStepId.healthConnections
+        ? ref.watch(healthConnectionsControllerProvider)
+        : null;
+    final healthBusy = healthController?.isBusy ?? false;
+    final interactionBusy = state.isBusy || healthBusy;
     final shouldHandleRouteExit = onExitRequested != null;
     final visibleBack = state.hasPreviousScreen || shouldHandleRouteExit
-        ? () => _handleBack(context, ref, controller)
+        ? () => _handleBack(
+              context,
+              ref,
+              controller,
+              block: healthBusy,
+            )
         : null;
 
     OnboardingBottomInfoAction? infoAction;
     if (state.stepId == OnboardingStepId.mobile) {
       infoAction = OnboardingBottomInfoAction(
-        label: 'Why do we ask for your mobile number?',
+        label: 'Why we collect this data',
         onTap: () => _showMobileDataCollectionSheet(context),
+      );
+    } else if (state.stepId == OnboardingStepId.bodyGoal &&
+        state.draft.profile.currentStepId == ProfileStepId.goal) {
+      infoAction = OnboardingBottomInfoAction(
+        label: 'Why we collect this data',
+        onTap: () => _showGoalDataCollectionSheet(context),
       );
     } else if (state.stepId == OnboardingStepId.profileBasics) {
       final step = state.draft.profile.currentStepId;
-      if (step == ProfileStepId.goal) {
-        infoAction = OnboardingBottomInfoAction(
-          label: 'Why we collect this data',
-          onTap: () => _showGoalDataCollectionSheet(context),
-        );
-      } else if (step == ProfileStepId.activity) {
+      if (step == ProfileStepId.activity) {
         infoAction = OnboardingBottomInfoAction(
           label: 'Why do we need this information?',
           onTap: () => _showActivityDataCollectionSheet(context),
@@ -221,12 +270,45 @@ class OnboardingFlowPage extends ConsumerWidget {
       }
     }
 
+    Future<void> Function() continueAction =
+        () => _handleContinue(context, state, controller);
+    String? primaryLabel;
+    bool? primaryEnabled;
+    bool? primaryLoading;
+    String? primaryLoadingLabel;
+    OnboardingBottomSecondaryAction? secondaryAction;
+
+    if (healthController != null) {
+      primaryLabel = _healthPrimaryLabel(healthController);
+      primaryEnabled = !healthController.isBusy && healthController.status != null;
+      primaryLoading = healthController.isBusy;
+      primaryLoadingLabel =
+          healthController.isRequesting ? 'Connecting' : 'Checking';
+      continueAction = () => _handleHealthPrimary(healthController, controller);
+
+      if (_healthCanSkip(healthController)) {
+        secondaryAction = OnboardingBottomSecondaryAction(
+          label: 'Not now',
+          enabled: !healthController.isBusy,
+          onTap: () => unawaited(
+            _handleHealthSkip(healthController, controller),
+          ),
+        );
+      }
+    }
+
     return PopScope(
-      canPop:
-          !state.isBusy && !state.hasPreviousScreen && !shouldHandleRouteExit,
+      canPop: !interactionBusy &&
+          !state.hasPreviousScreen &&
+          !shouldHandleRouteExit,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        _handleBack(context, ref, controller);
+        _handleBack(
+          context,
+          ref,
+          controller,
+          block: healthBusy,
+        );
       },
       child: Scaffold(
         backgroundColor: context.tioColors.background,
@@ -238,6 +320,7 @@ class OnboardingFlowPage extends ConsumerWidget {
               OnboardingTopBar(
                 state: state,
                 onBack: visibleBack,
+                backEnabled: !healthBusy,
                 showProgress: state.stepId != OnboardingStepId.mode,
               ),
               Expanded(
@@ -258,8 +341,12 @@ class OnboardingFlowPage extends ConsumerWidget {
                         state: state,
                         controller: controller,
                         infoAction: infoAction,
-                        onContinue: () =>
-                            _handleContinue(context, state, controller),
+                        primaryLabel: primaryLabel,
+                        primaryEnabled: primaryEnabled,
+                        primaryLoading: primaryLoading,
+                        primaryLoadingLabel: primaryLoadingLabel,
+                        secondaryAction: secondaryAction,
+                        onContinue: continueAction,
                       ),
                     ),
                   ],
@@ -271,4 +358,26 @@ class OnboardingFlowPage extends ConsumerWidget {
       ),
     );
   }
+}
+
+bool _needsO7bHealthCompatibility(OnboardingState state) {
+  return state.stepId == OnboardingStepId.review &&
+      state.draft.selectedMode != null &&
+      state.draft.status != OnboardingStatus.completed &&
+      !state.completedStepIds.contains(OnboardingStepId.healthConnections);
+}
+
+String _healthPrimaryLabel(HealthConnectionsController controller) {
+  if (controller.status == null) return 'Checking';
+  return switch (controller.status!) {
+    HealthConnectionStatus.unavailable => 'Continue',
+    HealthConnectionStatus.notRequested => 'Connect',
+    HealthConnectionStatus.denied => 'Try again',
+    HealthConnectionStatus.connected => 'Continue',
+  };
+}
+
+bool _healthCanSkip(HealthConnectionsController controller) {
+  return controller.status == HealthConnectionStatus.notRequested ||
+      controller.status == HealthConnectionStatus.denied;
 }

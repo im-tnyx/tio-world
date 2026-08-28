@@ -1,7 +1,7 @@
-import '../models/sign_in_result.dart';
+import '../models/password_reset_request_result.dart';
 import '../repositories/auth_sign_in_repository.dart';
 
-/// Use case for sending a password reset email.
+/// Use case for requesting a password reset email.
 class SendPasswordResetEmailUseCase {
   const SendPasswordResetEmailUseCase(
       {required AuthSignInRepository signInRepository})
@@ -9,6 +9,6 @@ class SendPasswordResetEmailUseCase {
 
   final AuthSignInRepository _signInRepository;
 
-  Future<SignInResult> call(String email) =>
+  Future<PasswordResetRequestResult> call(String email) =>
       _signInRepository.sendPasswordResetEmail(email);
 }

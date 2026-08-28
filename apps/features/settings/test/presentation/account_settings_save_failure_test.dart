@@ -32,6 +32,8 @@ void main() {
                           username: 'stable_user',
                           email: 'user@example.com',
                           phoneNumber: '9876543210',
+                          isEmailVerified: true,
+                          isPhoneVerified: true,
                           onSave: ({
                             required username,
                             required phoneNumber,
@@ -58,16 +60,21 @@ void main() {
       await tester.tap(find.text('Open Account Settings'));
       await tester.pumpAndSettle();
 
-      final fields = find.byType(TextField);
-      expect(fields, findsNWidgets(2));
-      await tester.enterText(fields.last, '9123456789');
+      final fields = tester.widgetList<TextField>(find.byType(TextField)).toList();
+      expect(fields, hasLength(3));
+      expect(fields[0].controller?.text, 'stable_user');
+      expect(fields[1].controller?.text, 'user@example.com');
+      expect(fields[2].controller?.text, '9876543210');
 
+      // This regression owns save failure/retry only. Username availability and
+      // contact verification have dedicated tests, so keep all trusted values
+      // unchanged and exercise the persistence boundary directly.
       await tester.tap(find.text('Save Changes'));
       await tester.pumpAndSettle();
 
       expect(saveAttempts, 1);
       expect(savedUsername, 'stable_user');
-      expect(savedPhoneNumber, '9123456789');
+      expect(savedPhoneNumber, '9876543210');
       expect(find.text('Account Settings'), findsOneWidget);
       expect(
         find.text('Could not save account settings. Please try again.'),
@@ -78,8 +85,10 @@ void main() {
 
       final preservedFields =
           tester.widgetList<TextField>(find.byType(TextField)).toList();
-      expect(preservedFields.first.controller?.text, 'stable_user');
-      expect(preservedFields.last.controller?.text, '9123456789');
+      expect(preservedFields, hasLength(3));
+      expect(preservedFields[0].controller?.text, 'stable_user');
+      expect(preservedFields[1].controller?.text, 'user@example.com');
+      expect(preservedFields[2].controller?.text, '9876543210');
 
       await tester.tap(find.text('Save Changes'));
       await tester.pumpAndSettle();
@@ -98,6 +107,8 @@ void main() {
           username: 'stable_user',
           email: 'user@example.com',
           phoneNumber: '9876543210',
+          isEmailVerified: true,
+          isPhoneVerified: true,
         ),
       ),
     );

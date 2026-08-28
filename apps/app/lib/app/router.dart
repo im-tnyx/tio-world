@@ -14,7 +14,6 @@ import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_feature_splash/splash.dart';
 import 'package:tio_feature_welcome/welcome.dart';
-import 'package:tio_shared/shared.dart';
 
 import 'account_setup/account_setup.dart';
 import 'app_mode/app_mode.dart';
@@ -24,6 +23,7 @@ import 'onboarding/onboarding.dart';
 import 'profile/profile_completion.dart';
 import 'profile/profile_settings_route.dart';
 import 'session/session.dart';
+import 'settings_persistence_providers.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -38,6 +38,30 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
   }
 
   return _page(branch.route);
+}
+
+String _linkedAuthProvidersLabel(AuthSession? session) {
+  final providers = session?.identityProviders ?? const <String>{};
+  if (providers.isEmpty) return 'Current session';
+
+  const orderedKnownProviders = <String>['phone', 'email', 'google'];
+  final ordered = <String>[
+    ...orderedKnownProviders.where(providers.contains),
+    ...(providers.where((provider) => !orderedKnownProviders.contains(provider))
+          .toList()
+        ..sort()),
+  ];
+
+  String label(String provider) => switch (provider) {
+        'phone' => 'Phone',
+        'email' => 'Email',
+        'google' => 'Google',
+        _ => provider.isEmpty
+            ? 'Unknown'
+            : '${provider[0].toUpperCase()}${provider.substring(1)}',
+      };
+
+  return ordered.map(label).join(' + ');
 }
 
 ChromePolicy shellChromePolicyForPath(String location) {
@@ -95,23 +119,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   final appSessionBootstrapController =
       ref.read(appSessionBootstrapControllerProvider);
   final appThemeController = ref.read(appThemeControllerProvider);
-  final onboardingStatusRepository =
-      ref.read(onboardingStatusRepositoryProvider);
-  final profileRepository = ref.read(profileSetupRepositoryProvider);
-  final workoutRepository = ref.read(workoutPreferencesRepositoryProvider);
-  final targetsRepository = ref.read(targetsSetupRepositoryProvider);
-  final onboardingDraftRepository =
-      ref.read(appOnboardingDraftRepositoryProvider);
-  final onboardingCompletionRepository =
-      ref.read(onboardingCompletionRepositoryProvider);
-  final supabaseClient = ref.read(supabaseClientProvider);
-  final MeasurementUnitPreferencesRepository? unitPreferencesRepository =
-      supabaseClient != null
-          ? SupabaseMeasurementUnitPreferencesRepository(client: supabaseClient)
-          : profileRepository is MeasurementUnitPreferencesRepository
-              ? profileRepository as MeasurementUnitPreferencesRepository
-              : null;
-  const hasDurableStorage = true;
 
   late final GoRouter router;
   router = GoRouter(
@@ -138,6 +145,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       return appModeRedirect(
         path: state.uri.path,
         selectedMode: appModeController.selectedMode,
+        activeDestinations: appModeController.activeDestinations,
         onboardingStatus: onboardingStatusController.status,
       );
     },
@@ -148,11 +156,16 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
           return Consumer(
             builder: (context, ref, child) {
-              final selectedMode =
-                  ref.watch(appModeControllerProvider).selectedMode;
+              final modeState = ref.watch(appModeControllerProvider);
+              final selectedMode = modeState.selectedMode;
               final visibleTabs = selectedMode == null
-                  ? const [ShellTab.home]
-                  : guidedShellTabs(selectedMode);
+                  ? (onboardingStatusController.status == OnboardingStatus.completed
+                      ? missingModeCompatibilityShellTabs
+                      : const [ShellTab.home])
+                  : shellTabsForDestinations(
+                      modeState.activeDestinations ??
+                          selectedMode.guidedDestinations,
+                    );
 
               final profileAsync = ref.watch(profileDataProvider);
               final profileData = profileAsync.valueOrNull;
@@ -341,7 +354,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               failureMessage: 'Account setup is unavailable right now.',
             );
           }
-          final currentPhone = supabaseClient?.auth.currentUser?.phone?.trim();
+          final authState = ref.read(authSessionStateProvider).valueOrNull;
+          final currentPhone = authState is AuthSessionAuthenticated
+              ? authState.session.phone?.trim()
+              : null;
           return AccountSetupFlowPage(
             usernameRepository: usernameRepository,
             accountSetupRepository: setupRepository,
@@ -388,55 +404,61 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               await appSessionBootstrapController.refresh();
             },
             onAuthRequired: () async {
+              final sessionState = await ref
+                  .read(authSessionRepositoryProvider)
+                  .currentSessionState;
+              if (sessionState is AuthSessionAuthenticated) {
+                return true;
+              }
+
               final authProductState = ref.read(authProductStateProvider);
-              final isSupabaseReady =
-                  supabaseClient != null && supabaseClient.auth.currentUser != null;
-              if (authProductState.isFirebaseAuthenticated || isSupabaseReady) {
+              final hasDurableProfileOwner =
+                  ref.read(userProfileRepositoryProvider) != null;
+              if (authProductState.isAuthUnavailable &&
+                  !hasDurableProfileOwner) {
                 return true;
               }
-              if (authProductState.isAuthUnavailable && supabaseClient == null) {
-                return true;
-              }
+
+              if (!context.mounted) return false;
               final result = await context.push<bool>(AppRoutes.emailSignup.path);
               return result ?? false;
             },
             onFinishRequested: (draft) async {
               debugPrint('[Router] onFinishRequested invoked. Profile name: "${draft.profile.name}"');
               try {
-                if (supabaseClient != null && supabaseClient.auth.currentUser == null) {
-                  debugPrint('[Router] Supabase user is not logged in. Pushing Signup...');
+                final authRepository = ref.read(authSessionRepositoryProvider);
+                final hasDurableProfileOwner =
+                    ref.read(userProfileRepositoryProvider) != null;
+                var sessionState = await authRepository.currentSessionState;
+
+                if (hasDurableProfileOwner &&
+                    sessionState is! AuthSessionAuthenticated) {
+                  debugPrint(
+                    '[Router] Auth session is not ready. Pushing Signup...',
+                  );
+                  if (!context.mounted) return;
                   await context.push<bool>(AppRoutes.emailSignup.path);
-                  if (supabaseClient.auth.currentUser == null) {
-                    debugPrint('[Router] User still not logged in after signup sheet.');
-                    throw StateError('Sign in is required to save your setup to Supabase.');
+                  sessionState = await authRepository.currentSessionState;
+                  if (sessionState is! AuthSessionAuthenticated) {
+                    debugPrint(
+                      '[Router] User still not authenticated after signup sheet.',
+                    );
+                    throw StateError(
+                      'Sign in is required to save your setup to Supabase.',
+                    );
                   }
-                  debugPrint('[Router] Supabase auth succeeded! userId=${supabaseClient.auth.currentUser?.id}');
+                  debugPrint(
+                    '[Router] Auth succeeded! userId=${sessionState.session.userId}',
+                  );
                 }
 
-                final authProductState = ref.read(authProductStateProvider);
-                final isSupabaseReady =
-                    supabaseClient != null && supabaseClient.auth.currentUser != null;
-                final isDurablePersistenceReady = isSupabaseReady ||
-                    authProductState.isReadyForProtectedBackendCalls ||
-                    authProductState.isAuthUnavailable ||
-                    supabaseClient == null;
-
-                final completeOnboarding = CompleteOnboardingUseCase(
-                  confirmedModePreference:
-                      _AppModeControllerPreferenceAdapter(appModeController),
-                  statusRepository: onboardingStatusRepository,
-                  completionRepository: onboardingCompletionRepository,
-                  draftRepository: onboardingDraftRepository,
-                  persistOwnerDataUseCase: PersistOnboardingOwnerDataUseCase(
-                    profileRepository: profileRepository,
-                    workoutRepository: workoutRepository,
-                    targetsRepository: targetsRepository,
-                  ),
-                  validator: OnboardingCompletionValidator(
-                    hasDurableOwnerPersistence: hasDurableStorage,
-                    backendUserReady: isDurablePersistenceReady,
-                  ),
-                );
+                final completeOnboarding =
+                    ref.read(appCompleteOnboardingUseCaseFactoryProvider)();
+                if (completeOnboarding == null) {
+                  throw StateError(
+                    'Product Onboarding completion is unavailable right now.',
+                  );
+                }
                 final flowPlan = const BuildOnboardingFlowUseCase()(
                   entryPath: onboardingStatusController.entryPath,
                   mode: draft.selectedMode,
@@ -449,7 +471,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   flowPlan: flowPlan,
                 );
                 debugPrint('[Router] completeOnboarding SUCCESS!');
-                onboardingStatusController.markCompleted();
+                final finalSessionState = await authRepository.currentSessionState;
+                final completedUserId =
+                    finalSessionState is AuthSessionAuthenticated
+                        ? finalSessionState.session.userId
+                        : null;
                 if (context.mounted) {
                   context.go(
                     AppRoutes.congratulations.path,
@@ -458,11 +484,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                       'isWelcomeBack': false,
                     },
                   );
-                  final completedUserId = supabaseClient?.auth.currentUser?.id;
-                  if (completedUserId != null && completedUserId.isNotEmpty) {
-                    appSessionBootstrapController
-                        .markReadyAfterOnboardingCompletion(completedUserId);
-                  }
+                }
+                onboardingStatusController.markCompleted();
+                if (completedUserId != null && completedUserId.isNotEmpty) {
+                  appSessionBootstrapController
+                      .markReadyAfterOnboardingCompletion(completedUserId);
                 }
               } catch (e, st) {
                 debugPrint('[Router] onFinishRequested EXCEPTION: $e');
@@ -558,14 +584,24 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 );
                 if (picked == null) return;
                 final bytes = await picked.readAsBytes();
-                await ref.read(profileSetupRepositoryProvider).uploadAvatarImage(
-                      fileName: picked.name,
-                      bytes: bytes,
-                    );
+                final avatarRepository =
+                    ref.read(profileAvatarRepositoryProvider);
+                if (avatarRepository == null) {
+                  throw StateError('Profile avatar persistence is unavailable.');
+                }
+                await avatarRepository.uploadAvatarImage(
+                  fileName: picked.name,
+                  bytes: bytes,
+                );
                 ref.invalidate(profileDataProvider);
               },
               onDeleteImage: () async {
-                await ref.read(profileSetupRepositoryProvider).deleteAvatarImage();
+                final avatarRepository =
+                    ref.read(profileAvatarRepositoryProvider);
+                if (avatarRepository == null) {
+                  throw StateError('Profile avatar persistence is unavailable.');
+                }
+                await avatarRepository.deleteAvatarImage();
                 ref.invalidate(profileDataProvider);
               },
             );
@@ -598,14 +634,24 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 );
                 if (picked == null) return;
                 final bytes = await picked.readAsBytes();
-                await ref.read(profileSetupRepositoryProvider).uploadAvatarImage(
-                      fileName: picked.name,
-                      bytes: bytes,
-                    );
+                final avatarRepository =
+                    ref.read(profileAvatarRepositoryProvider);
+                if (avatarRepository == null) {
+                  throw StateError('Profile avatar persistence is unavailable.');
+                }
+                await avatarRepository.uploadAvatarImage(
+                  fileName: picked.name,
+                  bytes: bytes,
+                );
                 ref.invalidate(profileDataProvider);
               },
               onDeletePressed: () async {
-                await ref.read(profileSetupRepositoryProvider).deleteAvatarImage();
+                final avatarRepository =
+                    ref.read(profileAvatarRepositoryProvider);
+                if (avatarRepository == null) {
+                  throw StateError('Profile avatar persistence is unavailable.');
+                }
+                await avatarRepository.deleteAvatarImage();
                 ref.invalidate(profileDataProvider);
                 if (context.mounted) context.pop();
               },
@@ -652,9 +698,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
             return MeasurementUnitsSettingsPage(
               initialPreferences:
-                  profileData?.unitPreferences ?? MeasurementUnitPreferences.metric,
+                  profileData?.unitPreferences ?? UnitPreferences.metric,
               onSave: (preferences) async {
-                final repository = unitPreferencesRepository;
+                final repository =
+                    ref.read(measurementUnitPreferencesRepositoryProvider);
                 if (repository == null) {
                   throw StateError(
                     'Measurement unit persistence is unavailable.',
@@ -677,16 +724,76 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => Consumer(
           builder: (context, ref, _) {
-            final supabase = ref.watch(supabaseClientProvider);
-            final userEmail = supabase?.auth.currentUser?.email;
+            final authState = ref.watch(authSessionStateProvider).valueOrNull;
+            final authSession = authState is AuthSessionAuthenticated
+                ? authState.session
+                : null;
             final profileAsync = ref.watch(profileDataProvider);
             final profileData = profileAsync.valueOrNull;
 
             return AccountSettingsPage(
               username: profileData?.username,
-              email: userEmail,
-              phoneNumber: profileData?.mobile,
-              isPhoneVerified: profileData?.isMobileVerified ?? false,
+              email: authSession?.email,
+              phoneNumber: authSession?.phone ?? profileData?.mobile,
+              isEmailVerified: authSession?.isEmailVerified ?? false,
+              isPhoneVerified: authSession?.isPhoneVerified ?? false,
+              linkedProvider: _linkedAuthProvidersLabel(authSession),
+              onVerifyEmailPressed: (email) async {
+                final verificationRepository =
+                    ref.read(accountContactVerificationRepositoryProvider);
+                if (verificationRepository == null) {
+                  throw StateError(
+                    'Email verification is unavailable right now.',
+                  );
+                }
+
+                await verificationRepository
+                    .requestCurrentEmailVerification(email);
+                if (!context.mounted) return false;
+                final token = await showTioOtpVerificationDialog(
+                  context: context,
+                  targetLabel: 'email ($email)',
+                  title: 'Please enter your Code',
+                  subtitle: 'Please check your email for the verification code.',
+                );
+                if (token == null) return false;
+
+                await verificationRepository.verifyCurrentEmail(
+                  email: email,
+                  token: token,
+                );
+                ref.invalidate(authSessionStateProvider);
+                return true;
+              },
+              onVerifyPhonePressed: (phoneNumber) async {
+                final verificationRepository =
+                    ref.read(accountContactVerificationRepositoryProvider);
+                if (verificationRepository == null) {
+                  throw StateError(
+                    'Phone verification is unavailable right now.',
+                  );
+                }
+
+                await verificationRepository
+                    .requestPhoneVerification(phoneNumber);
+                if (!context.mounted) return false;
+                final token = await showTioOtpVerificationDialog(
+                  context: context,
+                  targetLabel: 'mobile number ($phoneNumber)',
+                  title: 'Please enter your Code',
+                  subtitle: 'Please check your mobile for the verification code.',
+                );
+                if (token == null) return false;
+
+                await verificationRepository.verifyPhoneChange(
+                  phoneNumber: phoneNumber,
+                  token: token,
+                );
+                ref.invalidate(authSessionStateProvider);
+                ref.invalidate(profileDataProvider);
+                ref.invalidate(profileCompletionSummaryProvider);
+                return true;
+              },
               onSave: ({required username, required phoneNumber}) async {
                 final accountRepository =
                     ref.read(profileAccountRepositoryProvider);
@@ -695,19 +802,42 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                     'Account settings persistence is unavailable.',
                   );
                 }
-                await accountRepository.updateAccountSettings(
-                  username: username,
-                  mobile: phoneNumber,
-                );
+
+                // Phone persistence is Auth-owned and occurs only after real
+                // provider verification. Save Changes owns username only.
+                await accountRepository.updateUsername(username);
                 ref.invalidate(profileDataProvider);
                 ref.invalidate(profileCompletionSummaryProvider);
               },
               onDeleteAccountConfirmed: () async {
+                final deleteCurrentAccount =
+                    ref.read(deleteCurrentAccountUseCaseProvider);
+                if (deleteCurrentAccount == null) {
+                  throw StateError(
+                    'Account deletion is unavailable right now.',
+                  );
+                }
+                await deleteCurrentAccount();
+              },
+              onAccountDeleted: () async {
+                // The server-side delete is already confirmed at this point.
+                // Local sign-out is best-effort: failure must not turn a real
+                // deletion into a false-negative UI state.
                 try {
-                  await supabase?.rpc<void>('delete_user_account');
+                  await ref.read(authSessionRepositoryProvider).signOut();
                 } catch (_) {}
-                await ref.read(authSessionRepositoryProvider).signOut();
-                if (context.mounted) context.go(AppRoutes.auth.path);
+
+                appSessionBootstrapController
+                    .markUnauthenticatedAfterAccountDeletion();
+                ref.read(backendUserStateProvider.notifier).state =
+                    const BackendUserUnknown();
+                ref.invalidate(authSessionStateProvider);
+                ref.invalidate(profileDataProvider);
+                ref.invalidate(profileCompletionSummaryProvider);
+
+                if (context.mounted) {
+                  context.go(AppRoutes.auth.path);
+                }
               },
             );
           },
@@ -765,18 +895,3 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   ref.onDispose(router.dispose);
   return router;
 });
-
-class _AppModeControllerPreferenceAdapter implements AppModePreference {
-  _AppModeControllerPreferenceAdapter(this._controller);
-
-  final AppModeController _controller;
-
-  @override
-  Future<void> clear() => _controller.clear();
-
-  @override
-  Future<AppMode?> read() async => _controller.selectedMode;
-
-  @override
-  Future<void> write(AppMode mode) => _controller.select(mode);
-}

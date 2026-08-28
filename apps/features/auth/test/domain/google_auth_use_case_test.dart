@@ -8,9 +8,13 @@ import 'package:tio_shared/shared.dart';
 
 class _FakeGoogleSignInProvider extends GoogleSignInProvider {
   GoogleSignInResult resultToReturn = const GoogleSignInCancelled();
+  int signInCalls = 0;
 
   @override
-  Future<GoogleSignInResult> signIn() async => resultToReturn;
+  Future<GoogleSignInResult> signIn() async {
+    signInCalls += 1;
+    return resultToReturn;
+  }
 }
 
 class _FakeBackendUserSyncRepository implements BackendUserSyncRepository {
@@ -39,30 +43,60 @@ void main() {
   late _FakeGoogleSignInProvider googleProvider;
   late _FakeBackendUserSyncRepository syncRepository;
   late _FakeDeviceIdentityProvider deviceProvider;
-  late GoogleAuthUseCase useCase;
 
   setUp(() {
     googleProvider = _FakeGoogleSignInProvider();
     syncRepository = _FakeBackendUserSyncRepository();
     deviceProvider = _FakeDeviceIdentityProvider();
-    // Since FirebaseAuth is heavily sealed, we cannot mock it perfectly without mokito.
-    // However, we can test the failure paths that don't require the internal Firebase mocks.
-    useCase = GoogleAuthUseCase(
+  });
+
+  test('legacy Firebase Google path fails closed by default before chooser',
+      () async {
+    final useCase = GoogleAuthUseCase(
       googleSignInProvider: googleProvider,
       backendUserSyncRepository: syncRepository,
       deviceIdentityProvider: deviceProvider,
     );
-  });
 
-  test('call returns GoogleAuthCancelled if sign in is cancelled', () async {
-    googleProvider.resultToReturn = const GoogleSignInCancelled();
     final result = await useCase();
-    expect(result, isA<GoogleAuthCancelled>());
-  });
 
-  test('call returns GoogleAuthFailed if sign in fails', () async {
-    googleProvider.resultToReturn = const GoogleSignInFailed('error');
-    final result = await useCase();
     expect(result, isA<GoogleAuthFailed>());
+    expect(
+      (result as GoogleAuthFailed).message,
+      GoogleAuthUseCase.unavailableMessage,
+    );
+    expect(googleProvider.signInCalls, 0);
+  });
+
+  test('explicit legacy compatibility returns cancelled when chooser cancels',
+      () async {
+    googleProvider.resultToReturn = const GoogleSignInCancelled();
+    final useCase = GoogleAuthUseCase(
+      googleSignInProvider: googleProvider,
+      backendUserSyncRepository: syncRepository,
+      deviceIdentityProvider: deviceProvider,
+      legacyFirebaseEnabled: true,
+    );
+
+    final result = await useCase();
+
+    expect(result, isA<GoogleAuthCancelled>());
+    expect(googleProvider.signInCalls, 1);
+  });
+
+  test('explicit legacy compatibility returns provider failure', () async {
+    googleProvider.resultToReturn = const GoogleSignInFailed('error');
+    final useCase = GoogleAuthUseCase(
+      googleSignInProvider: googleProvider,
+      backendUserSyncRepository: syncRepository,
+      deviceIdentityProvider: deviceProvider,
+      legacyFirebaseEnabled: true,
+    );
+
+    final result = await useCase();
+
+    expect(result, isA<GoogleAuthFailed>());
+    expect((result as GoogleAuthFailed).message, 'error');
+    expect(googleProvider.signInCalls, 1);
   });
 }

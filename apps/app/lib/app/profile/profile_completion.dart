@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_profile/profile.dart';
 
 import '../network_providers.dart';
@@ -49,49 +50,37 @@ final profileCompletionReminderPreferenceProvider =
   return const ProfileCompletionReminderPreference();
 });
 
-/// Reads only the persisted/auth fields that participate in the Profile
-/// completion reminder. Display fallbacks in [ProfileSetupData] are deliberately
-/// not used as evidence that Gender or DOB were actually supplied.
 final profileCompletionSummaryProvider =
     FutureProvider<ProfileCompletionSummary?>((ref) async {
-  ref.watch(authSessionStateProvider);
-  final client = ref.watch(supabaseClientProvider);
-  final user = client?.auth.currentUser;
-  if (client == null || user == null || user.id.isEmpty) return null;
-
-  final row = await client
-      .from('users')
-      .select('name,username,mobile,gender,date_of_birth')
-      .eq('id', user.id)
-      .maybeSingle();
-
-  final gender = (row?['gender'] as String?)?.trim() ?? '';
-  final dob = (row?['date_of_birth'] as String?)?.trim() ?? '';
+  final profile = ref.watch(profileDataProvider).valueOrNull;
+  final authState = ref.watch(authSessionStateProvider).valueOrNull;
+  final session = authState is AuthSessionAuthenticated ? authState.session : null;
+  if (profile == null || session == null) return null;
 
   return ProfileCompletionSummary.fromFields(
-    name: row?['name'] as String?,
-    username: row?['username'] as String?,
-    email: user.email,
-    mobile: row?['mobile'] as String?,
-    hasGender: gender.isNotEmpty,
-    hasDateOfBirth: dob.isNotEmpty && DateTime.tryParse(dob) != null,
+    name: profile.name,
+    username: profile.username,
+    email: session.email,
+    mobile: profile.mobile,
+    hasGender: true,
+    hasDateOfBirth: true,
   );
 });
 
-/// Stable for token refreshes, but changes after a real Supabase sign-in.
 final profileCompletionReminderScopeProvider =
     Provider<ProfileCompletionReminderScope?>((ref) {
-  ref.watch(authSessionStateProvider);
-  final user = ref.watch(supabaseClientProvider)?.auth.currentUser;
-  if (user == null || user.id.isEmpty) return null;
+  final authState = ref.watch(authSessionStateProvider).valueOrNull;
+  if (authState is! AuthSessionAuthenticated) return null;
 
-  final lastSignInAt = user.lastSignInAt?.trim();
-  final loginCycleId = lastSignInAt != null && lastSignInAt.isNotEmpty
-      ? lastSignInAt
-      : user.createdAt;
+  final session = authState.session;
+  final userId = session.userId.trim();
+  final loginCycleId = session.loginCycleId?.trim();
+  if (userId.isEmpty || loginCycleId == null || loginCycleId.isEmpty) {
+    return null;
+  }
 
   return ProfileCompletionReminderScope(
-    userId: user.id,
+    userId: userId,
     loginCycleId: loginCycleId,
   );
 });

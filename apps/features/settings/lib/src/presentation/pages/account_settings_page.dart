@@ -3,7 +3,10 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
+
+import '../google_identity_link_controller.dart';
 
 /// Result returned from checking username availability.
 class UsernameAvailabilityResult {
@@ -20,17 +23,24 @@ class UsernameAvailabilityResult {
 
 enum _UsernameStatus { idle, checking, available, unavailable }
 
+const _googleEmailMismatchGuardMessage =
+    'Use the Google account matching your Tio email.';
+const _googleEmailMismatchUserMessage =
+    'Google account doesn’t match. Please choose the Google account with the same email as your Tio account.';
+const _googleConnectGenericError =
+    'Could not connect Google. Please try again.';
+
 /// Account Settings Page structured with modern capsule input containers,
 /// live debounced username availability checking, smart suggestions, and
 /// docked action bar.
-class AccountSettingsPage extends StatefulWidget {
+class AccountSettingsPage extends ConsumerStatefulWidget {
   const AccountSettingsPage({
     this.username,
     this.email,
     this.phoneNumber,
-    this.isEmailVerified = true,
+    this.isEmailVerified = false,
     this.isPhoneVerified = false,
-    this.linkedProvider = 'Google',
+    this.linkedProvider = '',
     this.onUsernameChanged,
     this.onPhoneNumberChanged,
     this.onCheckUsernameAvailability,
@@ -38,6 +48,7 @@ class AccountSettingsPage extends StatefulWidget {
     this.onVerifyPhonePressed,
     this.onSave,
     this.onDeleteAccountConfirmed,
+    this.onAccountDeleted,
     super.key,
   });
 
@@ -46,49 +57,126 @@ class AccountSettingsPage extends StatefulWidget {
   final String? phoneNumber;
   final bool isEmailVerified;
   final bool isPhoneVerified;
+
+  /// Provider-truth label supplied by app composition.
+  ///
+  /// The Google row derives `Connected` only when this evidence contains an
+  /// actual Google identity. Email or Phone verification never implies Google.
   final String linkedProvider;
   final ValueChanged<String>? onUsernameChanged;
   final ValueChanged<String>? onPhoneNumberChanged;
   final Future<UsernameAvailabilityResult> Function(String username)?
       onCheckUsernameAvailability;
-  final VoidCallback? onVerifyEmailPressed;
-  final VoidCallback? onVerifyPhonePressed;
+
+  /// Returns true only after real provider-backed verification succeeds.
+  final Future<bool> Function(String email)? onVerifyEmailPressed;
+
+  /// Returns true only after real provider-backed verification succeeds.
+  final Future<bool> Function(String phoneNumber)? onVerifyPhonePressed;
+
   final Future<void> Function({
     required String username,
     required String phoneNumber,
   })? onSave;
+
+  /// Performs irreversible server-side deletion only.
   final Future<void> Function()? onDeleteAccountConfirmed;
 
+  /// Runs only after the user closes the confirmed `Account Deleted` state.
+  final Future<void> Function()? onAccountDeleted;
+
   @override
-  State<AccountSettingsPage> createState() => _AccountSettingsPageState();
+  ConsumerState<AccountSettingsPage> createState() =>
+      _AccountSettingsPageState();
 }
 
-class _AccountSettingsPageState extends State<AccountSettingsPage> {
+class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
   late TextEditingController _usernameController;
+  late TextEditingController _emailController;
   late TextEditingController _phoneController;
 
   Timer? _debounceTimer;
   _UsernameStatus _usernameStatus = _UsernameStatus.idle;
   List<String> _suggestions = const [];
   String? _usernameFeedback;
+  String? _verifiedEmail;
+  String? _verifiedPhoneDigits;
 
   bool _isSaving = false;
+  bool _isLinkingGoogle = false;
+  bool _googleConnected = false;
 
   @override
   void initState() {
     super.initState();
     _usernameController = TextEditingController(text: widget.username ?? '');
+    _emailController = TextEditingController(text: widget.email ?? '');
     _phoneController = TextEditingController(
       text: _nationalPhoneDigits(widget.phoneNumber),
     );
+    if (widget.isEmailVerified) {
+      _verifiedEmail = _normalizedEmail(widget.email);
+    }
+    if (widget.isPhoneVerified) {
+      _verifiedPhoneDigits = _nationalPhoneDigits(widget.phoneNumber);
+    }
+    _googleConnected = _linkedProviderContainsGoogle(widget.linkedProvider);
+  }
+
+  @override
+  void didUpdateWidget(covariant AccountSettingsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isEmailVerified && widget.email != oldWidget.email) {
+      final verifiedEmail = _normalizedEmail(widget.email);
+      _verifiedEmail = verifiedEmail;
+      _emailController.text = widget.email ?? '';
+    }
+    if (widget.isPhoneVerified &&
+        widget.phoneNumber != oldWidget.phoneNumber) {
+      final verifiedDigits = _nationalPhoneDigits(widget.phoneNumber);
+      _verifiedPhoneDigits = verifiedDigits;
+      _phoneController.text = verifiedDigits;
+    }
+    if (widget.linkedProvider != oldWidget.linkedProvider) {
+      _googleConnected = _linkedProviderContainsGoogle(widget.linkedProvider);
+    }
   }
 
   @override
   void dispose() {
     _debounceTimer?.cancel();
     _usernameController.dispose();
+    _emailController.dispose();
     _phoneController.dispose();
     super.dispose();
+  }
+
+  bool get _emailChanged =>
+      _normalizedEmail(_emailController.text) != _normalizedEmail(widget.email);
+
+  bool get _isCurrentEmailVerified {
+    final current = _normalizedEmail(_emailController.text);
+    if (current == null) return false;
+    if (_verifiedEmail == current) return true;
+    return widget.isEmailVerified && !_emailChanged;
+  }
+
+  bool get _phoneChanged =>
+      _nationalPhoneDigits(_phoneController.text) !=
+      _nationalPhoneDigits(widget.phoneNumber);
+
+  bool get _isCurrentPhoneVerified {
+    final current = _nationalPhoneDigits(_phoneController.text);
+    if (current.isEmpty) return false;
+    if (_verifiedPhoneDigits == current) return true;
+    return widget.isPhoneVerified && !_phoneChanged;
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   void _onUsernameInput(String val) {
@@ -147,9 +235,10 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
       return widget.onCheckUsernameAvailability!(handle);
     }
 
-    // Built-in intelligent availability check & suggestion generator
+    // Local fallback is generic only. Production availability comes from the
+    // injected repository callback and must never contain personal-name hints.
     await Future<void>.delayed(const Duration(milliseconds: 250));
-    final takenList = {'santosh', 'admin', 'tio', 'alex', 'fitness', 'user'};
+    final takenList = {'admin', 'tio', 'fitness', 'user', 'coach', 'member'};
 
     if (takenList.contains(handle)) {
       return UsernameAvailabilityResult(
@@ -180,43 +269,77 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
   }
 
   Future<void> _handleVerifyEmail() async {
-    if (widget.onVerifyEmailPressed != null) {
-      widget.onVerifyEmailPressed!();
+    final email = _emailController.text.trim();
+    if (_normalizedEmail(email) == null) {
+      _showMessage('Enter an email before verifying it.');
       return;
     }
 
-    final code = await showTioOtpVerificationDialog(
-      context: context,
-      targetLabel: 'email (${widget.email ?? ""})',
-      title: 'Please enter your Code',
-      subtitle: 'Please check your email for the verification code.',
-    );
+    final verify = widget.onVerifyEmailPressed;
+    if (verify == null) {
+      _showMessage('Email verification is unavailable right now.');
+      return;
+    }
 
-    if (code != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email verified successfully!')),
-      );
+    try {
+      final verified = await verify(email);
+      if (!verified || !mounted) return;
+      setState(() {
+        _verifiedEmail = _normalizedEmail(email);
+      });
+      _showMessage('Email verified successfully!');
+    } catch (_) {
+      _showMessage('Could not verify email. Please try again.');
     }
   }
 
   Future<void> _handleVerifyPhone() async {
-    if (widget.onVerifyPhonePressed != null) {
-      widget.onVerifyPhonePressed!();
+    final phoneNumber = _phoneController.text.trim();
+    if (phoneNumber.isEmpty) {
+      _showMessage('Enter a mobile number before verifying it.');
       return;
     }
 
-    final num = _phoneController.text.trim();
-    final code = await showTioOtpVerificationDialog(
-      context: context,
-      targetLabel: 'mobile number ($num)',
-      title: 'Please enter your Code',
-      subtitle: 'Please check your mobile for the verification code.',
-    );
+    final verify = widget.onVerifyPhonePressed;
+    if (verify == null) {
+      _showMessage('Phone verification is unavailable right now.');
+      return;
+    }
 
-    if (code != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Phone number verified successfully!')),
-      );
+    try {
+      final verified = await verify(phoneNumber);
+      if (!verified || !mounted) return;
+      setState(() {
+        _verifiedPhoneDigits = _nationalPhoneDigits(phoneNumber);
+      });
+      _showMessage('Phone number verified successfully!');
+    } catch (_) {
+      _showMessage('Could not verify phone number. Please try again.');
+    }
+  }
+
+  Future<void> _handleConnectGoogle() async {
+    if (_googleConnected || _isLinkingGoogle) return;
+
+    final controller = ref.read(googleIdentityLinkControllerProvider);
+    if (controller == null) {
+      _showMessage('Google connection is unavailable right now.');
+      return;
+    }
+
+    setState(() => _isLinkingGoogle = true);
+    try {
+      final linked = await controller.linkGoogleIdentity();
+      if (!linked || !mounted) return;
+
+      // The controller may return true only after the Auth owner confirms real
+      // Google identity evidence for the same canonical UUID.
+      setState(() => _googleConnected = true);
+      _showMessage('Google connected successfully!');
+    } catch (error) {
+      _showMessage(_googleConnectFailureMessage(error));
+    } finally {
+      if (mounted) setState(() => _isLinkingGoogle = false);
     }
   }
 
@@ -227,14 +350,20 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
       return;
     }
 
+    if (_emailChanged && !_isCurrentEmailVerified) {
+      _showMessage('Verify the new email before saving.');
+      return;
+    }
+
+    if (_phoneChanged && !_isCurrentPhoneVerified) {
+      _showMessage('Verify the new phone number before saving.');
+      return;
+    }
+
     final onSave = widget.onSave;
     if (onSave == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Account settings are unavailable right now. Please try again.',
-          ),
-        ),
+      _showMessage(
+        'Account settings are unavailable right now. Please try again.',
       );
       return;
     }
@@ -246,21 +375,11 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
         phoneNumber: _phoneController.text.trim(),
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Account settings saved!')),
-        );
+        _showMessage('Account settings saved!');
         Navigator.of(context).pop();
       }
     } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Could not save account settings. Please try again.',
-            ),
-          ),
-        );
-      }
+      _showMessage('Could not save account settings. Please try again.');
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -274,7 +393,15 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
       },
     );
 
-    if (deleted && mounted) {
+    if (!deleted || !mounted) return;
+
+    final onAccountDeleted = widget.onAccountDeleted;
+    if (onAccountDeleted != null) {
+      await onAccountDeleted();
+      return;
+    }
+
+    if (mounted) {
       Navigator.of(context).pop();
     }
   }
@@ -481,7 +608,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
               ],
             ),
             const SizedBox(height: TioSpacing.lg),
-            // ── Field 2: EMAIL (with Verify / Verified Badge) ──
+            // ── Field 2: EMAIL (editable + trusted Verify / Verified Badge) ──
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -518,22 +645,43 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                       ),
                       const SizedBox(width: TioSize.dp14),
                       Expanded(
-                        child: Text(
-                          widget.email ?? 'Not set',
+                        child: TextField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          autocorrect: false,
+                          cursorColor: colors.primary,
+                          onChanged: (_) => setState(() {}),
                           style: TextStyle(
                             color: colors.textPrimary,
                             fontSize: TioFontSize.size16,
                             fontWeight: TioFontWeight.w500,
                           ),
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            errorBorder: InputBorder.none,
+                            disabledBorder: InputBorder.none,
+                            focusedErrorBorder: InputBorder.none,
+                            filled: false,
+                            fillColor: TioPalette.transparent,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                            hintText: 'email@example.com',
+                            hintStyle: TextStyle(
+                              color: colors.textMuted,
+                              fontWeight: TioFontWeight.w400,
+                            ),
+                          ),
                         ),
                       ),
-                      if (widget.isEmailVerified)
+                      if (_isCurrentEmailVerified)
                         Icon(
                           Icons.verified_rounded,
                           size: TioSize.dp22,
                           color: colors.info,
                         )
-                      else if (widget.email?.isNotEmpty == true)
+                      else if (_emailController.text.trim().isNotEmpty)
                         GestureDetector(
                           onTap: _handleVerifyEmail,
                           child: Container(
@@ -578,7 +726,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                 const SizedBox(height: TioSpacing.sm),
                 TioMobileNumberField(
                   controller: _phoneController,
-                  isVerified: widget.isPhoneVerified,
+                  isVerified: _isCurrentPhoneVerified,
                   onVerifyPressed: _handleVerifyPhone,
                   onChanged: (value) {
                     widget.onPhoneNumberChanged?.call(value);
@@ -588,7 +736,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
               ],
             ),
             const SizedBox(height: TioSpacing.lg),
-            // ── Field 4: LINKED ACCOUNT ──
+            // ── Field 4: GOOGLE AUTH IDENTITY ──
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -626,7 +774,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                       const SizedBox(width: TioSize.dp14),
                       Expanded(
                         child: Text(
-                          widget.linkedProvider,
+                          'Google',
                           style: TextStyle(
                             color: colors.textPrimary,
                             fontSize: TioFontSize.size16,
@@ -634,24 +782,60 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                           ),
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: TioSpacing.sm,
-                          vertical: TioSize.dp3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colors.primary.withAlpha(TioAlpha.alpha20),
-                          borderRadius: BorderRadius.circular(TioSize.dp6),
-                        ),
-                        child: Text(
-                          'Connected',
-                          style: TextStyle(
-                            color: colors.primary,
-                            fontWeight: TioFontWeight.w700,
-                            fontSize: TioFontSize.size11,
+                      if (_googleConnected)
+                        Container(
+                          key: const ValueKey('google-connected-badge'),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: TioSpacing.sm,
+                            vertical: TioSize.dp3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colors.primary.withAlpha(TioAlpha.alpha20),
+                            borderRadius: BorderRadius.circular(TioSize.dp6),
+                          ),
+                          child: Text(
+                            'Connected',
+                            style: TextStyle(
+                              color: colors.primary,
+                              fontWeight: TioFontWeight.w700,
+                              fontSize: TioFontSize.size11,
+                            ),
+                          ),
+                        )
+                      else
+                        InkWell(
+                          key: const ValueKey('google-connect-action'),
+                          onTap: _isLinkingGoogle ? null : _handleConnectGoogle,
+                          borderRadius: BorderRadius.circular(TioRadius.sm),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: TioSpacing.sm,
+                              vertical: TioSize.dp5,
+                            ),
+                            decoration: BoxDecoration(
+                              color:
+                                  colors.primary.withAlpha(TioAlpha.alpha20),
+                              borderRadius: BorderRadius.circular(TioRadius.sm),
+                            ),
+                            child: _isLinkingGoogle
+                                ? SizedBox(
+                                    width: TioSize.dp16,
+                                    height: TioSize.dp16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: TioStroke.width2,
+                                      color: colors.primary,
+                                    ),
+                                  )
+                                : Text(
+                                    'Connect',
+                                    style: TextStyle(
+                                      color: colors.primary,
+                                      fontWeight: TioFontWeight.w700,
+                                      fontSize: TioFontSize.size11,
+                                    ),
+                                  ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -725,6 +909,30 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
       ),
     );
   }
+}
+
+String _googleConnectFailureMessage(Object error) {
+  if (error is StateError && error.message == _googleEmailMismatchGuardMessage) {
+    return _googleEmailMismatchUserMessage;
+  }
+  return _googleConnectGenericError;
+}
+
+bool _linkedProviderContainsGoogle(String value) {
+  final providers = value
+      .toLowerCase()
+      .split(RegExp(r'[^a-z0-9]+'))
+      .where((part) => part.isNotEmpty)
+      .toSet();
+  return providers.contains('google');
+}
+
+String? _normalizedEmail(String? value) {
+  final normalized = value?.trim().toLowerCase();
+  if (normalized == null || normalized.isEmpty || !normalized.contains('@')) {
+    return null;
+  }
+  return normalized;
 }
 
 String _nationalPhoneDigits(String? value) {

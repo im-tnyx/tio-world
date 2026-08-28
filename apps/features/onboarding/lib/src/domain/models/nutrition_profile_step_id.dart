@@ -1,0 +1,4 @@
+enum NutritionProfileStepId {
+  dietType,
+  allergiesRestrictions,
+}

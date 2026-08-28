@@ -1,0 +1,65 @@
+name: Android Native CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'apps/app/android/**'
+      - 'apps/app/lib/app/health_connect/**'
+      - 'apps/app/pubspec.yaml'
+      - 'apps/wear/android/**'
+      - 'apps/wear/lib/**'
+      - 'apps/wear/pubspec.yaml'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - '.github/workflows/android-native-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-native-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Android debug APKs
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Flutter stable
+        shell: bash
+        run: |
+          git clone https://github.com/flutter/flutter.git --depth 1 --branch stable "$HOME/flutter"
+          echo "$HOME/flutter/bin" >> "$GITHUB_PATH"
+
+      - name: Toolchain info
+        run: flutter --version
+
+      - name: Resolve phone app dependencies
+        working-directory: apps/app
+        run: flutter pub get
+
+      - name: Build phone Android debug APK
+        working-directory: apps/app
+        run: flutter build apk --debug --no-pub
+
+      - name: Resolve Wear app dependencies
+        working-directory: apps/wear
+        run: flutter pub get
+
+      - name: Build Wear Android debug APK
+        working-directory: apps/wear
+        run: flutter build apk --debug --no-pub

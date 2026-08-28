@@ -8,8 +8,8 @@ class MeasurementUnitsSettingsPage extends StatefulWidget {
     super.key,
   });
 
-  final MeasurementUnitPreferences initialPreferences;
-  final Future<void> Function(MeasurementUnitPreferences preferences) onSave;
+  final UnitPreferences initialPreferences;
+  final Future<void> Function(UnitPreferences preferences) onSave;
 
   @override
   State<MeasurementUnitsSettingsPage> createState() =>
@@ -18,7 +18,7 @@ class MeasurementUnitsSettingsPage extends StatefulWidget {
 
 class _MeasurementUnitsSettingsPageState
     extends State<MeasurementUnitsSettingsPage> {
-  late MeasurementUnitPreferences _preferences;
+  late UnitPreferences _preferences;
   var _isSaving = false;
   String? _errorMessage;
 

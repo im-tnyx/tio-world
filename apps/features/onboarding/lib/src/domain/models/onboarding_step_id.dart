@@ -4,14 +4,12 @@ enum OnboardingStepId {
   profileBasics,
   mobile,
   workoutIntro,
-  workoutPreferences,
   nutritionIntro,
   nutritionPreferences,
   targets,
   review,
 
-  // Future top-level identities. Slice 1 defines identity only; later approved
-  // slices activate these in the runtime flow.
+  // Canonical top-level identities, activated incrementally by migration slices.
   userProfile,
   bodyGoal,
   wellnessGoals,
@@ -20,5 +18,10 @@ enum OnboardingStepId {
   nutritionGoals,
   workoutTargets,
   healthConnections,
-  planBuilding,
+  planBuilding;
+
+  /// Source-compatibility alias for historical callers. Durable legacy
+  /// `workoutPreferences` storage is decoded to [workoutProfile]. New writes
+  /// use the canonical `workoutProfile` identity.
+  static const OnboardingStepId workoutPreferences = workoutProfile;
 }

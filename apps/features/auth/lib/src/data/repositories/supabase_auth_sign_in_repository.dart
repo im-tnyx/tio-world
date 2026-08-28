@@ -6,8 +6,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/models/auth_session.dart';
 import '../../domain/models/google_sign_in_intent.dart';
+import '../../domain/models/password_reset_request_result.dart';
 import '../../domain/models/sign_in_result.dart';
 import '../../domain/repositories/auth_sign_in_repository.dart';
+import '../../domain/repositories/email_signup_confirmation_repository.dart';
 import '../../domain/repositories/user_device_repository.dart';
 import '../google_login_admission_checker.dart';
 
@@ -21,8 +23,10 @@ typedef GoogleProfileSyncCallback = Future<void> Function({
 ///
 /// Authenticates users directly with Supabase GoTrue and establishes
 /// an authenticated session.
-class SupabaseAuthSignInRepository
-    implements AuthSignInRepository, GoogleSignInIntentRepository {
+class SupabaseAuthSignInRepository implements
+    AuthSignInRepository,
+    GoogleSignInIntentRepository,
+    EmailSignupConfirmationRepository {
   SupabaseAuthSignInRepository({
     required SupabaseClient client,
     GoogleSignIn? googleSignIn,
@@ -53,6 +57,8 @@ class SupabaseAuthSignInRepository
                         '218403286180-2047ibc6i5r6tb2kftoq4lu6220kl8d9.apps.googleusercontent.com',
                   ),
             );
+
+  static const String _emailVerificationRedirect = 'tio://login-callback';
 
   final SupabaseClient _client;
   final GoogleSignIn _googleSignIn;
@@ -148,103 +154,55 @@ class SupabaseAuthSignInRepository
       final accessToken = googleAuth.accessToken;
 
       if (idToken == null || idToken.isEmpty) {
-        if (intent == GoogleSignInIntent.existingAccountOnly) {
-          developer.log(
-            '[GoogleAuth] native ID token unavailable for existing-account admission',
-          );
-          return const SignInFailure(
-            'Tio could not verify this Google account. Please try again.',
-            code: 'google_login_admission_token_unavailable',
-          );
-        }
-
         developer.log(
-          '[GoogleAuth] native ID token unavailable; signup-capable OAuth fallback started',
+          '[GoogleAuth] native ID token unavailable; canonical admission cannot run',
         );
-        bool success;
-        try {
-          success = await _client.auth
-              .signInWithOAuth(
-                OAuthProvider.google,
-                redirectTo: 'tio://login-callback',
-                queryParams: const {'prompt': 'select_account'},
-              )
-              .timeout(_googleSupabaseExchangeTimeout);
-        } on TimeoutException catch (error, stackTrace) {
-          developer.log(
-            '[GoogleAuth] OAuth fallback timed out',
-            error: error,
-            stackTrace: stackTrace,
-          );
-          return const SignInFailure(
-            'Tio could not finish Google sign-in in time. Please try again.',
-            code: 'google_supabase_exchange_timeout',
-          );
-        }
-        if (!success) {
-          return const SignInCancelled();
-        }
-        final user = _client.auth.currentUser;
-        if (user != null) {
-          developer.log('[GoogleAuth] OAuth fallback session established');
-          final session = _mapUser(user);
-          _startDeviceSync();
-          // Without a native ID token we cannot classify fresh-vs-returning
-          // before account creation. Be conservative and never import a
-          // provider avatar on this fallback path.
-          _startGoogleProfileSync(user: user, session: session);
-          return SignInSuccess(session);
-        }
-        return const SignInCancelled();
+        return const SignInFailure(
+          'Tio could not verify this Google account. Please try again.',
+          code: 'google_login_admission_token_unavailable',
+        );
       }
 
-      Future<GoogleLoginAdmissionDecision?>? signupAccountDecision;
-      if (intent == GoogleSignInIntent.signupOrExisting) {
-        // Start fresh-vs-returning classification before the Supabase exchange,
-        // but do not await it on the authentication critical path. Profile
-        // enrichment can consume the result later in the background.
-        signupAccountDecision =
-            _classifyGoogleAccountForProfileBootstrap(idToken);
+      developer.log('[GoogleAuth] canonical admission started');
+      GoogleLoginAdmissionDecision admissionDecision;
+      try {
+        admissionDecision = await _googleLoginAdmissionChecker(idToken)
+            .timeout(_googleAdmissionTimeout);
+      } on TimeoutException catch (error, stackTrace) {
+        developer.log(
+          '[GoogleAuth] canonical admission timed out',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        return const SignInFailure(
+          'Tio could not verify your account in time. Please try again.',
+          code: 'google_login_admission_timeout',
+        );
+      } catch (error, stackTrace) {
+        developer.log(
+          '[GoogleAuth] canonical admission failed',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        return const SignInFailure(
+          'Tio could not verify your account right now. Please try again.',
+          code: 'google_login_admission_failed',
+        );
       }
 
-      if (intent == GoogleSignInIntent.existingAccountOnly) {
-        developer.log('[GoogleAuth] existing-account admission started');
-        GoogleLoginAdmissionDecision admissionDecision;
-        try {
-          admissionDecision = await _googleLoginAdmissionChecker(idToken)
-              .timeout(_googleAdmissionTimeout);
-        } on TimeoutException catch (error, stackTrace) {
-          developer.log(
-            '[GoogleAuth] existing-account admission timed out',
-            error: error,
-            stackTrace: stackTrace,
-          );
-          return const SignInFailure(
-            'Tio could not verify your account in time. Please try again.',
-            code: 'google_login_admission_timeout',
-          );
-        } catch (error, stackTrace) {
-          developer.log(
-            '[GoogleAuth] existing-account admission failed',
-            error: error,
-            stackTrace: stackTrace,
-          );
-          return const SignInFailure(
-            'Tio could not verify your account right now. Please try again.',
-            code: 'google_login_admission_failed',
-          );
-        }
-
-        if (admissionDecision == GoogleLoginAdmissionDecision.noAccount) {
-          developer.log('[GoogleAuth] existing-account admission denied');
-          return const SignInFailure(
-            'No Tio account found for this Google account.\n'
-            'Create a Tio account first to continue.',
-            code: 'google_account_not_found',
-          );
-        }
-        developer.log('[GoogleAuth] existing-account admission allowed');
+      final admissionFailure = _googleAdmissionFailure(
+        intent: intent,
+        decision: admissionDecision,
+      );
+      if (admissionFailure != null) {
+        developer.log(
+          '[GoogleAuth] canonical admission denied: ${admissionDecision.name}',
+        );
+        return admissionFailure;
       }
+      developer.log(
+        '[GoogleAuth] canonical admission allowed: ${admissionDecision.name}',
+      );
 
       developer.log('[GoogleAuth] Supabase ID-token exchange started');
       AuthResponse response;
@@ -283,7 +241,7 @@ class SupabaseAuthSignInRepository
       _startGoogleProfileSync(
         user: user,
         session: session,
-        accountDecision: signupAccountDecision,
+        accountDecision: admissionDecision,
       );
 
       developer.log('[GoogleAuth] sign-in completed successfully');
@@ -305,6 +263,31 @@ class SupabaseAuthSignInRepository
       }
       return SignInFailure(errorStr);
     }
+  }
+
+  SignInFailure? _googleAdmissionFailure({
+    required GoogleSignInIntent intent,
+    required GoogleLoginAdmissionDecision decision,
+  }) {
+    return switch (decision) {
+      GoogleLoginAdmissionDecision.linkedAccount => null,
+      GoogleLoginAdmissionDecision.noAccount =>
+        intent == GoogleSignInIntent.signupOrExisting
+            ? null
+            : const SignInFailure(
+                'No Tio account found for this Google account.\n'
+                'Create a Tio account first to continue.',
+                code: 'google_account_not_found',
+              ),
+      GoogleLoginAdmissionDecision.linkRequired => const SignInFailure(
+          'This Google account matches an existing Tio account but is not connected as a sign-in method. Sign in with an existing method first.',
+          code: 'google_account_link_required',
+        ),
+      GoogleLoginAdmissionDecision.identityConflict => const SignInFailure(
+          'Tio could not safely match this Google identity to an account. Please use another sign-in method and try again.',
+          code: 'google_identity_conflict',
+        ),
+    };
   }
 
   @override
@@ -337,43 +320,40 @@ class SupabaseAuthSignInRepository
     String? name,
   }) async {
     try {
+      final normalizedEmail = email.trim().toLowerCase();
       final response = await _client.auth.signUp(
-        email: email.trim(),
+        email: normalizedEmail,
         password: password,
+        emailRedirectTo: _emailVerificationRedirect,
         data: {
           if (name != null && name.trim().isNotEmpty) 'full_name': name.trim(),
         },
       );
-      final user = response.user ?? _client.auth.currentUser;
+      final user = response.user;
       if (user == null) {
         return const SignInFailure('Sign up failed: user not returned.');
       }
-      // If user already exists, Supabase returns user with empty identities list
-      if (response.user != null &&
-          response.user!.identities != null &&
-          response.user!.identities!.isEmpty) {
+      // If user already exists, Supabase returns user with empty identities list.
+      if (user.identities != null && user.identities!.isEmpty) {
         return const SignInFailure(
           'This email is already registered. Please log in to continue.',
           code: 'user_already_exists',
         );
       }
-      _startDeviceSync();
-      try {
-        final nowIso = DateTime.now().toUtc().toIso8601String();
-        await _client.from('users').upsert(
-          {
-            'id': user.id,
-            if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
-            'email': email.trim().toLowerCase(),
-            'last_active_at': nowIso,
-            'updated_at': nowIso,
-          },
-          onConflict: 'id',
+
+      // With Email confirmation enabled Supabase can create the user without
+      // establishing a session. That is a successful account creation, but it
+      // is not authenticated success and must not enter onboarding yet.
+      final authSession = response.session;
+      if (authSession == null) {
+        return SignInFailure(
+          'Check $normalizedEmail to confirm your email before signing in.',
+          code: 'email_confirmation_required',
         );
-      } catch (e) {
-        developer.log('Failed to save email signup profile: $e');
       }
-      return SignInSuccess(_mapUser(user));
+
+      _startDeviceSync();
+      return SignInSuccess(_mapUser(authSession.user));
     } on AuthException catch (e) {
       if (e.message.toLowerCase().contains('already registered') ||
           e.message.toLowerCase().contains('already in use') ||
@@ -390,17 +370,24 @@ class SupabaseAuthSignInRepository
   }
 
   @override
-  Future<SignInResult> sendPasswordResetEmail(String email) async {
+  Future<void> resendSignupConfirmation({required String email}) async {
+    final normalizedEmail = email.trim().toLowerCase();
+    await _client.auth.resend(
+      type: OtpType.signup,
+      email: normalizedEmail,
+      emailRedirectTo: _emailVerificationRedirect,
+    );
+  }
+
+  @override
+  Future<PasswordResetRequestResult> sendPasswordResetEmail(String email) async {
     try {
       await _client.auth.resetPasswordForEmail(email.trim());
-      // Return a synthetic empty session to signal success — no user session created.
-      return const SignInSuccess(
-        AuthSession(userId: '', email: null, displayName: null),
-      );
+      return const PasswordResetRequestAccepted();
     } on AuthException catch (e) {
-      return SignInFailure(e.message, code: e.statusCode);
+      return PasswordResetRequestFailure(e.message, code: e.statusCode);
     } catch (e) {
-      return SignInFailure(e.toString());
+      return PasswordResetRequestFailure(e.toString());
     }
   }
 
@@ -445,37 +432,10 @@ class SupabaseAuthSignInRepository
     );
   }
 
-  Future<GoogleLoginAdmissionDecision?>
-      _classifyGoogleAccountForProfileBootstrap(String idToken) async {
-    try {
-      developer.log('[GoogleAuth] signup profile classification started');
-      final decision = await _googleLoginAdmissionChecker(idToken)
-          .timeout(_googleAdmissionTimeout);
-      developer.log(
-        '[GoogleAuth] signup profile classification completed: ${decision.name}',
-      );
-      return decision;
-    } on TimeoutException catch (error, stackTrace) {
-      developer.log(
-        '[GoogleAuth] signup profile classification timed out; avatar import skipped',
-        error: error,
-        stackTrace: stackTrace,
-      );
-      return null;
-    } catch (error, stackTrace) {
-      developer.log(
-        '[GoogleAuth] signup profile classification failed; avatar import skipped',
-        error: error,
-        stackTrace: stackTrace,
-      );
-      return null;
-    }
-  }
-
   void _startGoogleProfileSync({
     required User user,
     required AuthSession session,
-    Future<GoogleLoginAdmissionDecision?>? accountDecision,
+    required GoogleLoginAdmissionDecision accountDecision,
   }) {
     unawaited(
       _syncGoogleProfile(
@@ -489,12 +449,11 @@ class SupabaseAuthSignInRepository
   Future<void> _syncGoogleProfile({
     required User user,
     required AuthSession session,
-    Future<GoogleLoginAdmissionDecision?>? accountDecision,
+    required GoogleLoginAdmissionDecision accountDecision,
   }) async {
     try {
-      final decision = accountDecision == null ? null : await accountDecision;
       final importProviderPhoto =
-          decision == GoogleLoginAdmissionDecision.noAccount;
+          accountDecision == GoogleLoginAdmissionDecision.noAccount;
       final callback = _googleProfileSyncCallback;
       if (callback != null) {
         await callback(
@@ -525,24 +484,31 @@ class SupabaseAuthSignInRepository
     required bool importProviderPhoto,
   }) async {
     final nowIso = DateTime.now().toUtc().toIso8601String();
-    await _client.from('users').upsert(
-      {
-        'id': user.id,
-        if (session.displayName != null && session.displayName!.isNotEmpty)
-          'name': session.displayName,
-        if (session.email != null && session.email!.isNotEmpty)
-          'email': session.email,
-        // Provider avatar enrichment is first-account bootstrap only. Returning
-        // Google sign-in must never overwrite a user-owned/custom avatar.
-        if (importProviderPhoto &&
-            session.photoUrl != null &&
-            session.photoUrl!.isNotEmpty)
-          'avatar_url': session.photoUrl,
-        'last_active_at': nowIso,
-        'updated_at': nowIso,
-      },
-      onConflict: 'id',
-    );
+    final updatedRows = await _client
+        .from('users')
+        .update(
+          {
+            // Profile Name is owned exclusively by public.user_profiles.name.
+            // Auth/provider display metadata is never persisted into users.
+            // Auth contact projection is database-owned by the auth.users
+            // reconciliation trigger, so this enrichment owns only Account
+            // activity and first-account provider avatar import.
+            if (importProviderPhoto &&
+                session.photoUrl != null &&
+                session.photoUrl!.isNotEmpty)
+              'avatar_url': session.photoUrl,
+            'last_active_at': nowIso,
+            'updated_at': nowIso,
+          },
+        )
+        .eq('id', user.id)
+        .select('id');
+
+    if (updatedRows.isEmpty) {
+      throw StateError(
+        'Account root is missing for the authenticated Google user.',
+      );
+    }
   }
 
   AuthSession _mapUser(User user) {
@@ -557,6 +523,8 @@ class SupabaseAuthSignInRepository
       userId: user.id,
       email: user.email,
       phone: user.phone,
+      isEmailVerified: user.emailConfirmedAt != null,
+      isPhoneVerified: user.phoneConfirmedAt != null,
       displayName: displayName,
       photoUrl: photoUrl,
     );

@@ -10,8 +10,8 @@ class GoalPaceScreen extends StatefulWidget {
     required this.goalPaceKgPerWeek,
     required this.onPaceChanged,
     required this.profile,
+    required this.weightGoalDirection,
     super.key,
-    this.stepTarget = 10000,
     this.errorText,
     this.currentDate,
   });
@@ -19,7 +19,7 @@ class GoalPaceScreen extends StatefulWidget {
   final double goalPaceKgPerWeek;
   final ValueChanged<double> onPaceChanged;
   final ProfileOnboardingDraft profile;
-  final int stepTarget;
+  final GoalWeightDirection weightGoalDirection;
   final String? errorText;
   final DateTime? currentDate;
 
@@ -29,21 +29,71 @@ class GoalPaceScreen extends StatefulWidget {
 
 class _GoalPaceScreenState extends State<GoalPaceScreen> {
   static const _monthsFull = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
   static const _monthsShort = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   late double _paceValue;
-  double _lastVibratedPace = 0.5;
+  double _lastVibratedPace = GoalPaceResolver.defaultPaceKgPerWeek;
+
+  bool get _usesPounds =>
+      widget.profile.unitPreferences.weightUnit == WeightUnit.lb;
+
+  String _formatPace(double kgPerWeek) {
+    final value = _usesPounds ? UnitConverters.kgToLb(kgPerWeek) : kgPerWeek;
+    final unit = _usesPounds ? 'lb' : 'kg';
+    return '${value.toStringAsFixed(1)} $unit / week';
+  }
+
+  String _formatWeight(double kg) {
+    return UnitFormatters.formatWeight(
+      kg,
+      _usesPounds ? WeightUnit.lb : WeightUnit.kg,
+    );
+  }
+
+  String _warningMessage(GoalPaceWarning warning) {
+    if (_usesPounds) {
+      return warning == GoalPaceWarning.aggressiveLoss
+          ? 'Losing more than 2.2 lb per week may cause fatigue, muscle loss, and lower adherence. A steady pace of 0.9–1.5 lb/week is recommended.'
+          : 'Gaining more than 2.2 lb per week may increase unwanted fat accumulation rather than lean muscle tissue.';
+    }
+    return warning == GoalPaceWarning.aggressiveLoss
+        ? 'Losing more than 1.0 kg per week may cause fatigue, muscle loss, and lower adherence. A steady pace of 0.4–0.7 kg/week is recommended.'
+        : 'Gaining more than 1.0 kg per week may increase unwanted fat accumulation rather than lean muscle tissue.';
+  }
 
   @override
   void initState() {
     super.initState();
-    _paceValue = widget.goalPaceKgPerWeek.clamp(0.1, 1.5);
+    _paceValue = widget.goalPaceKgPerWeek.clamp(
+      GoalPaceResolver.minPaceKgPerWeek,
+      GoalPaceResolver.maxPaceKgPerWeek,
+    );
     _lastVibratedPace = _paceValue;
   }
 
@@ -51,7 +101,10 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
   void didUpdateWidget(covariant GoalPaceScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.goalPaceKgPerWeek != widget.goalPaceKgPerWeek) {
-      _paceValue = widget.goalPaceKgPerWeek.clamp(0.1, 1.5);
+      _paceValue = widget.goalPaceKgPerWeek.clamp(
+        GoalPaceResolver.minPaceKgPerWeek,
+        GoalPaceResolver.maxPaceKgPerWeek,
+      );
     }
   }
 
@@ -61,40 +114,11 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
     final textTheme = Theme.of(context).textTheme;
 
     final currentWeightKg = widget.profile.currentWeightKg ?? 70.0;
-    final targetWeightKg = widget.profile.targetWeightKg ?? 63.6;
-    final primaryGoal = widget.profile.goals.isNotEmpty
-        ? widget.profile.goals.first
-        : ProfileGoal.loseWeight;
-
-    final mode = GoalPaceResolver.resolveMode(
-      currentWeightKg: widget.profile.currentWeightKg,
-      targetWeightKg: widget.profile.targetWeightKg,
+    final targetWeightKg = widget.profile.targetWeightKg ?? currentWeightKg;
+    final mode = GoalPaceResolver.resolveModeForDirection(
+      widget.weightGoalDirection,
     );
-
     final isLoss = mode == GoalPaceMode.loss;
-    final isMaintenance = mode == GoalPaceMode.maintenance;
-
-    // Domain calculation values stay outside the visual token system.
-    final baseBmrValue = currentWeightKg > 0 ? (24.0 * currentWeightKg) : 1600.0;
-    final stepCalories = widget.stepTarget * 0.04;
-    final tdee = baseBmrValue + stepCalories;
-
-    final int rawTargetKcal;
-    switch (mode) {
-      case GoalPaceMode.loss:
-        final deficit = (_paceValue * 7700.0) / 7.0;
-        rawTargetKcal = (tdee - deficit).toInt();
-        break;
-      case GoalPaceMode.gain:
-        final surplus = (_paceValue * 5000.0) / 7.0;
-        rawTargetKcal = (tdee + surplus).toInt();
-        break;
-      case GoalPaceMode.maintenance:
-        rawTargetKcal = tdee.toInt();
-        break;
-    }
-
-    final displayTargetKcal = rawTargetKcal;
 
     final warning = GoalPaceResolver.resolveWarning(
       mode: mode,
@@ -107,7 +131,6 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
 
     final now = widget.currentDate ?? DateTime.now();
     final targetDate = now.add(Duration(days: daysNeeded));
-
     final targetDay = targetDate.day.toString();
     final targetMonthIndex = (targetDate.month - 1).clamp(0, 11);
     final targetMonthFull = _monthsFull[targetMonthIndex];
@@ -115,18 +138,18 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
     final targetYear = targetDate.year.toString();
 
     final paceTag = GoalPaceResolver.paceTag(_paceValue);
-    final titleText = GoalPaceResolver.screenTitle(
-      primaryGoal: primaryGoal,
-      mode: mode,
+    final titleText = GoalPaceResolver.screenTitleForDirection(
+      widget.weightGoalDirection,
     );
-    final headerLabel = _resolveHeader(primaryGoal, mode, isLoss, isMaintenance);
+    final headerLabel = GoalPaceResolver.cardHeaderForDirection(
+      widget.weightGoalDirection,
+    );
 
     return TargetsScreenScaffold(
       stepId: TargetStepId.goalPace,
       title: titleText,
-      description: isMaintenance
-          ? 'Maintain your current weight and focus on body composition and energy balance.'
-          : 'Choose a realistic weekly pace to reach your target weight sustainably.',
+      description:
+          'Choose a realistic weekly pace to reach your target weight sustainably.',
       errorText: widget.errorText,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -139,194 +162,147 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.local_fire_department_outlined,
-                          color: colors.primary,
-                          size: TioSize.dp22,
-                        ),
-                        const SizedBox(width: TioSpacing.sm),
-                        Text(
-                          headerLabel,
-                          style: textTheme.titleMedium?.copyWith(
-                            fontSize: TioFontSize.size16,
-                            fontWeight: TioFontWeight.w600,
-                            color: colors.textPrimary,
-                          ),
-                        ),
-                      ],
+                    Icon(
+                      Icons.local_fire_department_outlined,
+                      color: colors.primary,
+                      size: TioSize.dp22,
                     ),
-                    InkResponse(
-                      onTap: () => _showCalorieInfoSheet(context),
-                      radius: TioSize.dp16,
-                      child: Icon(
-                        Icons.info_outline,
-                        size: TioSize.dp20,
-                        color: colors.textSecondary.withValues(
-                          alpha: TioOpacity.opacity60,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (!isMaintenance) ...[
-                  const SizedBox(height: TioSpacing.md),
-                  Center(
-                    child: Text(
-                      '${_paceValue.toStringAsFixed(1)} kg / week',
-                      key: const ValueKey('targets-goal-pace-value-text'),
-                      style: textTheme.headlineMedium?.copyWith(
-                        fontSize: TioFontSize.size32,
-                        fontWeight: TioFontWeight.w800,
+                    const SizedBox(width: TioSpacing.sm),
+                    Text(
+                      headerLabel,
+                      style: textTheme.titleMedium?.copyWith(
+                        fontSize: TioFontSize.size16,
+                        fontWeight: TioFontWeight.w600,
                         color: colors.textPrimary,
-                        letterSpacing: TioLetterSpacing.negative05,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: TioSpacing.sm),
-                  SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      activeTrackColor: colors.primary,
-                      inactiveTrackColor: colors.surfaceVariant,
-                      thumbColor: colors.primary,
-                      overlayColor: colors.primary.withValues(
-                        alpha: TioOpacity.opacity20,
+                    const SizedBox(width: TioSpacing.xs),
+                    IconButton(
+                      key: const ValueKey('targets-goal-pace-info'),
+                      tooltip: 'How goal pace works',
+                      onPressed: () => _showGoalPaceInfoSheet(context),
+                      icon: Icon(
+                        Icons.info_outline_rounded,
+                        color: colors.textSecondary,
+                        size: TioSize.dp20,
                       ),
-                      trackHeight: TioSize.dp6,
-                      trackShape: const RectangularSliderTrackShape(),
-                      thumbShape: const RoundSliderThumbShape(
-                        enabledThumbRadius: TioSize.dp9,
-                      ),
-                      overlayShape: const RoundSliderOverlayShape(
-                        overlayRadius: TioSize.dp16,
-                      ),
-                    ),
-                    child: Slider(
-                      key: const ValueKey('targets-goal-pace-slider'),
-                      value: _paceValue,
-                      min: 0.1,
-                      max: 1.5,
-                      divisions: 14,
-                      onChanged: (val) {
-                        final rounded = (val * 10).round() / 10.0;
-                        setState(() {
-                          _paceValue = rounded;
-                        });
-                        widget.onPaceChanged(rounded);
-
-                        if ((rounded - _lastVibratedPace).abs() >= 0.09) {
-                          HapticFeedback.selectionClick();
-                          _lastVibratedPace = rounded;
-                        }
-                      },
-                    ),
-                  ),
-                ],
-                const SizedBox(height: TioSpacing.md),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    if (warning != GoalPaceWarning.none)
-                      InkWell(
-                        onTap: () => _showAttentionSheet(context, warning),
-                        borderRadius: BorderRadius.circular(TioRadius.md),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: TioSpacing.md,
-                            vertical: TioSize.dp6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: colors.danger.withValues(
-                              alpha: TioOpacity.opacity15,
-                            ),
-                            borderRadius: BorderRadius.circular(TioRadius.md),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.warning_amber_rounded,
-                                size: TioFontSize.size15,
-                                color: colors.danger,
-                              ),
-                              const SizedBox(width: TioSpacing.xs),
-                              Text(
-                                warning == GoalPaceWarning.aggressiveLoss
-                                    ? 'Aggressive Loss Pace'
-                                    : 'Aggressive Gain Pace',
-                                style: textTheme.labelMedium?.copyWith(
-                                  fontSize: TioFontSize.size13,
-                                  color: colors.danger,
-                                  fontWeight: TioFontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    else
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: TioSize.dp14,
-                          vertical: TioSize.dp6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colors.primary.withValues(
-                            alpha: TioOpacity.opacity15,
-                          ),
-                          borderRadius: BorderRadius.circular(TioRadius.md),
-                        ),
-                        child: Text(
-                          isMaintenance ? 'Maintenance' : paceTag,
-                          style: textTheme.labelMedium?.copyWith(
-                            fontSize: TioFontSize.size13,
-                            color: colors.primary,
-                            fontWeight: TioFontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    InkWell(
-                      onTap: () => _showCalorieInfoSheet(context),
-                      borderRadius: BorderRadius.circular(TioRadius.md),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: TioSize.dp14,
-                          vertical: TioSize.dp6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colors.primary.withValues(
-                            alpha: TioOpacity.opacity15,
-                          ),
-                          borderRadius: BorderRadius.circular(TioRadius.md),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '$displayTargetKcal kcal',
-                              style: textTheme.labelMedium?.copyWith(
-                                fontSize: TioFontSize.size13,
-                                color: colors.primary,
-                                fontWeight: TioFontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(width: TioSpacing.xs),
-                            Icon(
-                              Icons.info_outline,
-                              size: TioSize.dp14,
-                              color: colors.primary,
-                            ),
-                          ],
-                        ),
-                      ),
+                      visualDensity: VisualDensity.compact,
                     ),
                   ],
                 ),
+                const SizedBox(height: TioSpacing.md),
+                Center(
+                  child: Text(
+                    _formatPace(_paceValue),
+                    key: const ValueKey('targets-goal-pace-value-text'),
+                    style: textTheme.headlineMedium?.copyWith(
+                      fontSize: TioFontSize.size32,
+                      fontWeight: TioFontWeight.w800,
+                      color: colors.textPrimary,
+                      letterSpacing: TioLetterSpacing.negative05,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: TioSpacing.sm),
+                SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    activeTrackColor: colors.primary,
+                    inactiveTrackColor: colors.surfaceVariant,
+                    thumbColor: colors.primary,
+                    overlayColor: colors.primary.withValues(
+                      alpha: TioOpacity.opacity20,
+                    ),
+                    trackHeight: TioSize.dp6,
+                    trackShape: const RectangularSliderTrackShape(),
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: TioSize.dp9,
+                    ),
+                    overlayShape: const RoundSliderOverlayShape(
+                      overlayRadius: TioSize.dp16,
+                    ),
+                  ),
+                  child: Slider(
+                    key: const ValueKey('targets-goal-pace-slider'),
+                    value: _paceValue,
+                    min: GoalPaceResolver.minPaceKgPerWeek,
+                    max: GoalPaceResolver.maxPaceKgPerWeek,
+                    divisions: 14,
+                    onChanged: (val) {
+                      final rounded = (val * 10).round() / 10.0;
+                      setState(() {
+                        _paceValue = rounded;
+                      });
+                      widget.onPaceChanged(rounded);
+
+                      if ((rounded - _lastVibratedPace).abs() >= 0.09) {
+                        HapticFeedback.selectionClick();
+                        _lastVibratedPace = rounded;
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(height: TioSpacing.md),
+                if (warning != GoalPaceWarning.none)
+                  InkWell(
+                    onTap: () => _showAttentionSheet(context, warning),
+                    borderRadius: BorderRadius.circular(TioRadius.md),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: TioSpacing.md,
+                        vertical: TioSize.dp6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colors.danger.withValues(
+                          alpha: TioOpacity.opacity15,
+                        ),
+                        borderRadius: BorderRadius.circular(TioRadius.md),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.warning_amber_rounded,
+                            size: TioFontSize.size15,
+                            color: colors.danger,
+                          ),
+                          const SizedBox(width: TioSpacing.xs),
+                          Text(
+                            warning == GoalPaceWarning.aggressiveLoss
+                                ? 'Aggressive Loss Pace'
+                                : 'Aggressive Gain Pace',
+                            style: textTheme.labelMedium?.copyWith(
+                              fontSize: TioFontSize.size13,
+                              color: colors.danger,
+                              fontWeight: TioFontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: TioSize.dp14,
+                      vertical: TioSize.dp6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.primary.withValues(
+                        alpha: TioOpacity.opacity15,
+                      ),
+                      borderRadius: BorderRadius.circular(TioRadius.md),
+                    ),
+                    child: Text(
+                      paceTag,
+                      style: textTheme.labelMedium?.copyWith(
+                        fontSize: TioFontSize.size13,
+                        color: colors.primary,
+                        fontWeight: TioFontWeight.w600,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -351,7 +327,7 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
                     ),
                     children: [
                       TextSpan(
-                        text: '${targetWeightKg.toStringAsFixed(1)} kg',
+                        text: _formatWeight(targetWeightKg),
                         style: textTheme.titleLarge?.copyWith(
                           color: colors.textPrimary,
                           fontWeight: TioFontWeight.w700,
@@ -441,7 +417,7 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
                         top: isLoss ? TioSize.dp4 : null,
                         bottom: isLoss ? null : TioSize.dp20,
                         child: _WeightBadge(
-                          text: '${currentWeightKg.toStringAsFixed(1)} kg',
+                          text: _formatWeight(currentWeightKg),
                           colors: colors,
                           textTheme: textTheme,
                         ),
@@ -451,7 +427,7 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
                         bottom: isLoss ? TioSize.dp20 : null,
                         top: isLoss ? null : TioSize.dp4,
                         child: _WeightBadge(
-                          text: '${targetWeightKg.toStringAsFixed(1)} kg',
+                          text: _formatWeight(targetWeightKg),
                           colors: colors,
                           textTheme: textTheme,
                         ),
@@ -467,99 +443,17 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
     );
   }
 
-  void _showCalorieInfoSheet(BuildContext context) {
-    final colors = context.tioColors;
-
-    showModalBottomSheet<void>(
+  void _showGoalPaceInfoSheet(BuildContext context) {
+    showTioInformationBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: TioPalette.transparent,
-      builder: (context) {
-        return Container(
-          decoration: BoxDecoration(
-            color: colors.surfaceRaised,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(TioRadius.xl),
-            ),
-            border: Border.all(
-              color: colors.outlineStrong.withAlpha(TioAlpha.alpha25),
-            ),
-          ),
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                TioSpacing.lg,
-                TioSpacing.lg,
-                TioSpacing.lg,
-                TioSpacing.xl,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Center(
-                        child: Text(
-                          'Target Calories',
-                          style: TextStyle(
-                            color: colors.textPrimary,
-                            fontWeight: TioFontWeight.w700,
-                            fontSize: TioFontSize.size20,
-                            letterSpacing: TioLetterSpacing.negative03,
-                          ),
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Container(
-                          width: TioSize.dp32,
-                          height: TioSize.dp32,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: colors.outlineStrong.withAlpha(
-                              TioAlpha.alpha50,
-                            ),
-                          ),
-                          child: IconButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            icon: Icon(
-                              Icons.close_rounded,
-                              color: colors.textSecondary,
-                              size: TioSize.dp18,
-                            ),
-                            splashRadius: TioSize.dp16,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: TioSize.dp14),
-                  Text(
-                    'Your daily calorie target is dynamically calculated using your Basal Metabolic Rate (BMR), daily activity level, and chosen weekly pace.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: colors.textSecondary,
-                      fontSize: TioFontSize.size14,
-                      height: TioLineHeight.height140,
-                      fontWeight: TioFontWeight.w400,
-                    ),
-                  ),
-                  const SizedBox(height: TioSize.dp28),
-                  TioButton.primary(
-                    label: 'Understood',
-                    expand: true,
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+      sheetKey: const ValueKey('targets-goal-pace-info-sheet'),
+      title: 'How goal pace works',
+      message:
+          'Your goal pace is the amount of body weight you plan to change each week. '
+          'We combine your current weight, target weight, and weekly pace to estimate a target date.\n\n'
+          'Choose a pace you can sustain. Faster loss or gain can trigger an attention warning so you can review the trade-offs before continuing.',
+      actionLabel: 'Got it',
+      icon: Icons.info_outline_rounded,
     );
   }
 
@@ -569,131 +463,15 @@ class _GoalPaceScreenState extends State<GoalPaceScreen> {
   ) {
     final colors = context.tioColors;
 
-    showModalBottomSheet<void>(
+    showTioInformationBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: TioPalette.transparent,
-      builder: (context) {
-        return Container(
-          decoration: BoxDecoration(
-            color: colors.surfaceRaised,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(TioRadius.xl),
-            ),
-            border: Border.all(
-              color: colors.outlineStrong.withAlpha(TioAlpha.alpha25),
-            ),
-          ),
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                TioSpacing.lg,
-                TioSpacing.lg,
-                TioSpacing.lg,
-                TioSpacing.xl,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.warning_amber_rounded,
-                            color: colors.danger,
-                            size: TioSize.dp22,
-                          ),
-                          const SizedBox(width: TioSpacing.sm),
-                          Text(
-                            'Attention',
-                            style: TextStyle(
-                              color: colors.textPrimary,
-                              fontWeight: TioFontWeight.w700,
-                              fontSize: TioFontSize.size20,
-                              letterSpacing: TioLetterSpacing.negative03,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Container(
-                          width: TioSize.dp32,
-                          height: TioSize.dp32,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: colors.outlineStrong.withAlpha(
-                              TioAlpha.alpha50,
-                            ),
-                          ),
-                          child: IconButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            icon: Icon(
-                              Icons.close_rounded,
-                              color: colors.textSecondary,
-                              size: TioSize.dp18,
-                            ),
-                            splashRadius: TioSize.dp16,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: TioSize.dp14),
-                  Text(
-                    warning == GoalPaceWarning.aggressiveLoss
-                        ? 'Losing more than 1.0 kg per week may cause fatigue, muscle loss, and lower adherence. A steady pace of 0.4–0.7 kg/week is recommended.'
-                        : 'Gaining more than 1.0 kg per week may increase unwanted fat accumulation rather than lean muscle tissue.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: colors.textSecondary,
-                      fontSize: TioFontSize.size14,
-                      height: TioLineHeight.height140,
-                      fontWeight: TioFontWeight.w400,
-                    ),
-                  ),
-                  const SizedBox(height: TioSize.dp28),
-                  TioButton.primary(
-                    label: 'Understood',
-                    expand: true,
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+      title: 'Attention',
+      message: _warningMessage(warning),
+      actionLabel: 'Understood',
+      icon: Icons.warning_amber_rounded,
+      iconColor: colors.danger,
+      messageTextAlign: TextAlign.center,
     );
-  }
-
-  String _resolveHeader(
-    ProfileGoal primaryGoal,
-    GoalPaceMode mode,
-    bool isLoss,
-    bool isMaintenance,
-  ) {
-    if (primaryGoal == ProfileGoal.buildMuscle) {
-      return mode == GoalPaceMode.loss
-          ? 'Recomposition'
-          : mode == GoalPaceMode.maintenance
-              ? 'Body Recomposition'
-              : 'Muscle Gain';
-    }
-    if (primaryGoal == ProfileGoal.loseWeight) {
-      return mode == GoalPaceMode.loss ? 'Fat Loss' : 'Healthy Target';
-    }
-    return isMaintenance
-        ? 'Maintenance'
-        : isLoss
-            ? 'Fat Loss'
-            : 'Muscle Gain';
   }
 }
 
@@ -787,13 +565,12 @@ class _ProjectionGraphPainter extends CustomPainter {
 
     final path = Path();
     path.moveTo(0, startY);
-    // Control-point ratios are one-off graph composition data.
     path.cubicTo(w * 0.4, startY, w * 0.6, endY, w, endY);
 
-    final fillPath = Path.from(path);
-    fillPath.lineTo(w, h);
-    fillPath.lineTo(0, h);
-    fillPath.close();
+    final fillPath = Path.from(path)
+      ..lineTo(w, h)
+      ..lineTo(0, h)
+      ..close();
 
     final gradientPaint = Paint()
       ..shader = LinearGradient(

@@ -16,9 +16,16 @@ type GoogleJwtPayload = {
   aud?: string | string[]
   iss?: string
   exp?: number
+  sub?: string
   email?: string
   email_verified?: boolean
 }
+
+type GoogleAdmissionDecision =
+  | 'linked_account'
+  | 'no_account'
+  | 'link_required'
+  | 'identity_conflict'
 
 type GoogleJwk = JsonWebKey & { kid?: string }
 
@@ -181,9 +188,13 @@ async function verifyGoogleIdTokenWithKey(
   if (
     payload.email_verified !== true ||
     typeof payload.email !== 'string' ||
-    payload.email.trim().length === 0
+    payload.email.trim().length === 0 ||
+    typeof payload.sub !== 'string' ||
+    payload.sub.trim().length === 0
   ) {
-    throw new Error('Google identity does not contain a verified email.')
+    throw new Error(
+      'Google identity does not contain a verified email and stable subject.',
+    )
   }
 
   return payload
@@ -207,36 +218,52 @@ function adminApiKey(): string {
   throw new Error('Supabase admin API key is unavailable.')
 }
 
-async function hasTioAccount(email: string): Promise<boolean> {
+function isAdmissionDecision(value: unknown): value is GoogleAdmissionDecision {
+  return value === 'linked_account' ||
+    value === 'no_account' ||
+    value === 'link_required' ||
+    value === 'identity_conflict'
+}
+
+async function resolveGoogleAdmission(
+  email: string,
+  googleSubject: string,
+): Promise<GoogleAdmissionDecision> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   if (supabaseUrl == null || supabaseUrl.length === 0) {
     throw new Error('Supabase URL is unavailable.')
   }
 
   const apiKey = adminApiKey()
-  const url = new URL(`${supabaseUrl}/rest/v1/users`)
-  url.searchParams.set('select', 'id')
-  url.searchParams.set('email', `eq.${email.trim().toLowerCase()}`)
-  url.searchParams.set('limit', '1')
-
+  const url = new URL(
+    `${supabaseUrl}/rest/v1/rpc/resolve_google_login_admission`,
+  )
   const headers: Record<string, string> = {
     apikey: apiKey,
     Accept: 'application/json',
+    'Content-Type': 'application/json',
   }
   if (apiKey.startsWith('eyJ')) {
     headers.Authorization = `Bearer ${apiKey}`
   }
 
-  const accountResponse = await fetch(url, { headers })
-  if (!accountResponse.ok) {
-    throw new Error('Tio account lookup failed.')
+  const admissionResponse = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      raw_email: email,
+      google_subject: googleSubject,
+    }),
+  })
+  if (!admissionResponse.ok) {
+    throw new Error('Google admission resolver failed.')
   }
 
-  const rows = (await accountResponse.json()) as unknown
-  if (!Array.isArray(rows)) {
-    throw new Error('Tio account lookup response is invalid.')
+  const decision = (await admissionResponse.json()) as unknown
+  if (!isAdmissionDecision(decision)) {
+    throw new Error('Google admission resolver response is invalid.')
   }
-  return rows.length > 0
+  return decision
 }
 
 Deno.serve(async (req: Request) => {
@@ -251,10 +278,13 @@ Deno.serve(async (req: Request) => {
     }
 
     const googleIdentity = await verifyGoogleIdToken(body.id_token)
-    const allowed = await hasTioAccount(googleIdentity.email!)
-    return response({ allowed })
+    const decision = await resolveGoogleAdmission(
+      googleIdentity.email!,
+      googleIdentity.sub!,
+    )
+    return response({ decision })
   } catch (_error) {
-    // Never return token details, account metadata, or arbitrary lookup results.
+    // Never return token details, Email, Google subject, UUID, or account metadata.
     return response({ error: 'admission_unavailable' }, 503)
   }
 })

@@ -43,7 +43,7 @@ class NutritionTargetRecommendationInsufficientInput
           other.missingFields.containsAll(missingFields);
 
   @override
-  int get hashCode => Object.hashAll(missingFields);
+  int get hashCode => Object.hashAllUnordered(missingFields);
 }
 
 class NutritionTargetRecommendationInvalidInput

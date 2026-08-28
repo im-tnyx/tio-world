@@ -23,6 +23,19 @@ class OnboardingBottomInfoAction {
   final IconData icon;
 }
 
+/// Optional secondary action for the fixed Product Onboarding bottom surface.
+class OnboardingBottomSecondaryAction {
+  const OnboardingBottomSecondaryAction({
+    required this.label,
+    required this.onTap,
+    this.enabled = true,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final bool enabled;
+}
+
 /// Unified dynamic onboarding bottom action bar.
 ///
 /// Features:
@@ -35,6 +48,11 @@ class OnboardingBottomBar extends StatelessWidget {
     required this.onContinue,
     this.controller,
     this.infoAction,
+    this.primaryLabel,
+    this.primaryEnabled,
+    this.primaryLoading,
+    this.primaryLoadingLabel,
+    this.secondaryAction,
     super.key,
   });
 
@@ -44,20 +62,27 @@ class OnboardingBottomBar extends StatelessWidget {
   final OnboardingController? controller;
   final Future<void> Function() onContinue;
   final OnboardingBottomInfoAction? infoAction;
+  final String? primaryLabel;
+  final bool? primaryEnabled;
+  final bool? primaryLoading;
+  final String? primaryLoadingLabel;
+  final OnboardingBottomSecondaryAction? secondaryAction;
 
   bool get _isWheelStep {
+    final step = state.draft.profile.currentStepId;
     if (state.stepId == OnboardingStepId.profileBasics) {
-      final step = state.draft.profile.currentStepId;
-      return step == ProfileStepId.height ||
-          step == ProfileStepId.currentWeight ||
-          step == ProfileStepId.targetWeight ||
-          step == ProfileStepId.age;
+      return step == ProfileStepId.height || step == ProfileStepId.age;
+    }
+    if (state.stepId == OnboardingStepId.bodyGoal) {
+      return step == ProfileStepId.currentWeight ||
+          step == ProfileStepId.targetWeight;
     }
     return false;
   }
 
   ProfileStepId? get _currentProfileStep {
-    if (state.stepId == OnboardingStepId.profileBasics) {
+    if (state.stepId == OnboardingStepId.profileBasics ||
+        state.stepId == OnboardingStepId.bodyGoal) {
       return state.draft.profile.currentStepId;
     }
     return null;
@@ -66,6 +91,12 @@ class OnboardingBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
+    final effectivePrimaryLabel = primaryLabel ?? state.primaryActionLabel;
+    final effectivePrimaryEnabled = primaryEnabled ?? state.canContinue;
+    final effectivePrimaryLoading =
+        primaryLoading ?? (state.isCompleting || state.isSaving);
+    final effectiveLoadingLabel = primaryLoadingLabel ??
+        (state.isCompleting ? 'Finishing' : state.isSaving ? 'Saving' : null);
 
     if (_isWheelStep && controller != null) {
       final profileStep = _currentProfileStep;
@@ -85,8 +116,6 @@ class OnboardingBottomBar extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: TioSpacing.md),
-
-            // Active Dynamic Wheel for current profile step
             if (profileStep == ProfileStepId.height)
               OnboardingHeightWheel(
                 valueCm: draft.heightCm,
@@ -105,7 +134,7 @@ class OnboardingBottomBar extends StatelessWidget {
             else if (profileStep == ProfileStepId.targetWeight)
               OnboardingWeightWheel(
                 key: const ValueKey('target-weight-wheel'),
-                valueKg: draft.targetWeightKg,
+                valueKg: draft.targetWeightKg ?? draft.currentWeightKg,
                 unit: draft.weightUnit,
                 onChanged: controller!.updateProfileTargetWeight,
                 onUnitChanged: controller!.updateProfileWeightUnit,
@@ -115,8 +144,6 @@ class OnboardingBottomBar extends StatelessWidget {
                 value: draft.dateOfBirth,
                 onChanged: controller!.updateProfileDateOfBirth,
               ),
-
-            // Fixed Action Button pinned inside the sheet with exact same safe area elevation
             SafeArea(
               top: false,
               minimum: EdgeInsets.only(
@@ -143,14 +170,23 @@ class OnboardingBottomBar extends StatelessWidget {
                     const SizedBox(height: TioSpacing.md),
                   ],
                   TioButton.primary(
-                    label: state.primaryActionLabel,
-                    loading: state.isCompleting || state.isSaving,
-                    loadingLabel: state.isCompleting ? 'Finishing' : 'Saving',
+                    label: effectivePrimaryLabel,
+                    loading: effectivePrimaryLoading,
+                    loadingLabel: effectiveLoadingLabel,
                     expand: true,
-                    enabled: state.canContinue,
+                    enabled: effectivePrimaryEnabled,
                     onPressed: () => unawaited(onContinue()),
                     trailing: const Icon(Icons.arrow_forward),
                   ),
+                  if (secondaryAction != null) ...[
+                    const SizedBox(height: TioSpacing.sm),
+                    TioButton.secondary(
+                      label: secondaryAction!.label,
+                      expand: true,
+                      enabled: secondaryAction!.enabled,
+                      onPressed: secondaryAction!.onTap,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -159,7 +195,6 @@ class OnboardingBottomBar extends StatelessWidget {
       );
     }
 
-    // Normal screens: Pure smooth gradient fade bar (No solid box, no frosted cut)
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -186,40 +221,12 @@ class OnboardingBottomBar extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Fixed contextual Info Link on top of smooth gradient
-            if (infoAction != null) ...[
-              GestureDetector(
+            if (infoAction != null)
+              TioInlineInfoAction(
+                label: infoAction!.label,
+                icon: infoAction!.icon,
                 onTap: infoAction!.onTap,
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: TioSpacing.sm,
-                    top: TioSize.dp2,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        infoAction!.icon,
-                        size: TioSize.dp16,
-                        color: colors.textSecondary,
-                      ),
-                      const SizedBox(width: TioSpacing.sm),
-                      Text(
-                        infoAction!.label,
-                        style: TextStyle(
-                          fontSize: TioFontSize.size12,
-                          fontWeight: TioFontWeight.w500,
-                          color: colors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ),
-            ],
-
             if (state.retryableError != null) ...[
               Semantics(
                 liveRegion: true,
@@ -233,16 +240,25 @@ class OnboardingBottomBar extends StatelessWidget {
               const SizedBox(height: TioSpacing.md),
             ],
             TioButton.primary(
-              label: state.primaryActionLabel,
-              loading: state.isCompleting || state.isSaving,
-              loadingLabel: state.isCompleting ? 'Finishing' : 'Saving',
+              label: effectivePrimaryLabel,
+              loading: effectivePrimaryLoading,
+              loadingLabel: effectiveLoadingLabel,
               expand: true,
-              enabled: state.canContinue,
+              enabled: effectivePrimaryEnabled,
               onPressed: () => unawaited(onContinue()),
               trailing: state.stepId == OnboardingStepId.review
                   ? const Icon(Icons.check)
                   : const Icon(Icons.arrow_forward),
             ),
+            if (secondaryAction != null) ...[
+              const SizedBox(height: TioSpacing.sm),
+              TioButton.secondary(
+                label: secondaryAction!.label,
+                expand: true,
+                enabled: secondaryAction!.enabled,
+                onPressed: secondaryAction!.onTap,
+              ),
+            ],
           ],
         ),
       ),

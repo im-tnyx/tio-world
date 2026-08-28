@@ -1,21 +1,88 @@
+import 'dart:async';
+
 import '../models/sign_in_result.dart';
 import '../repositories/auth_sign_in_repository.dart';
+import '../repositories/email_signup_confirmation_repository.dart';
+import '../utils/canonical_email_identity.dart';
 
 /// Use case for registering a new user with email and password.
 class SignUpWithEmailUseCase {
-  const SignUpWithEmailUseCase({required AuthSignInRepository signInRepository})
-      : _signInRepository = signInRepository;
+  const SignUpWithEmailUseCase({
+    required AuthSignInRepository signInRepository,
+    Duration timeout = const Duration(seconds: 15),
+  })  : _signInRepository = signInRepository,
+        _timeout = timeout;
+
+  static const _neutralPendingMessage =
+      'Check your email to continue. If you already have a Tio account, '
+      'use Log In or Forgot Password.';
 
   final AuthSignInRepository _signInRepository;
+  final Duration _timeout;
 
   Future<SignInResult> call({
     required String email,
     required String password,
     String? name,
-  }) =>
-      _signInRepository.signUpWithEmailPassword(
-        email: email,
-        password: password,
-        name: name,
+  }) async {
+    final canonicalEmail = canonicalEmailIdentity(email);
+    if (canonicalEmail == null) {
+      return const SignInFailure(
+        'Enter a valid email address.',
+        code: 'invalid_email',
       );
+    }
+
+    try {
+      final result = await _signInRepository
+          .signUpWithEmailPassword(
+            email: canonicalEmail,
+            password: password,
+            name: name,
+          )
+          .timeout(_timeout);
+
+      if (result is SignInFailure &&
+          (result.code == 'email_confirmation_required' ||
+              result.code == 'user_already_exists')) {
+        // Supabase can deliberately obfuscate existing-account Signup responses.
+        // Keep the same user-visible outcome for a fresh pending confirmation
+        // and an obfuscated duplicate so Signup cannot be used as an account
+        // existence oracle.
+        return const SignInFailure(
+          _neutralPendingMessage,
+          code: 'email_confirmation_required',
+        );
+      }
+
+      return result;
+    } on TimeoutException {
+      return const SignInFailure(
+        'Email sign up took too long. Please try again.',
+        code: 'email_signup_timeout',
+      );
+    }
+  }
+
+  /// Requests another confirmation email for an already-pending Signup.
+  ///
+  /// This does not authenticate the user. Supabase Auth still owns the actual
+  /// confirmation and session establishment when the email link is opened.
+  Future<void> resendConfirmation({required String email}) async {
+    final canonicalEmail = canonicalEmailIdentity(email);
+    if (canonicalEmail == null) {
+      throw ArgumentError.value(email, 'email', 'must be a valid email');
+    }
+
+    final confirmationRepository = switch (_signInRepository) {
+      EmailSignupConfirmationRepository repository => repository,
+      _ => throw StateError(
+          'Email confirmation resend is unavailable right now.',
+        ),
+    };
+
+    await confirmationRepository
+        .resendSignupConfirmation(email: canonicalEmail)
+        .timeout(_timeout);
+  }
 }

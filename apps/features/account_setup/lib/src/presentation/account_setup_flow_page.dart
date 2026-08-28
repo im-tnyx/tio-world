@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_profile/profile.dart';
+import 'package:tio_shared/shared.dart';
 
 import '../domain/models/account_setup_flow_plan.dart';
 import '../domain/models/account_setup_step_id.dart';
+import '../domain/repositories/account_setup_auth_contact_bridge.dart';
 import '../domain/usecases/build_account_setup_flow_use_case.dart';
+import 'steps/email_step.dart';
 import 'steps/mobile_step.dart';
 import 'steps/username_step.dart';
 
@@ -15,13 +18,19 @@ class AccountSetupFlowPage extends StatefulWidget {
     required this.hasTrustedPhoneIdentity,
     required this.onCompleted,
     required this.onExitRequested,
+    this.hasTrustedEmailIdentity,
+    this.initialEmail = '',
+    this.requestOptionalEmailVerification,
     this.planner = const BuildAccountSetupFlowUseCase(),
     super.key,
   });
 
   final ProfileAccountRepository usernameRepository;
   final AccountSetupRepository accountSetupRepository;
+  final bool? hasTrustedEmailIdentity;
   final bool hasTrustedPhoneIdentity;
+  final String initialEmail;
+  final Future<void> Function(String email)? requestOptionalEmailVerification;
   final Future<void> Function() onCompleted;
   final Future<void> Function() onExitRequested;
   final BuildAccountSetupFlowUseCase planner;
@@ -41,7 +50,16 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
   bool _busy = false;
   bool _usernameCanContinue = false;
   String _mobile = '';
+  String _email = '';
   String? _flowError;
+
+  AccountSetupAuthContactBridge? get _authContactBridge {
+    final repository = widget.accountSetupRepository;
+    if (repository is AccountSetupAuthContactBridge) {
+      return repository as AccountSetupAuthContactBridge;
+    }
+    return null;
+  }
 
   @override
   void initState() {
@@ -59,10 +77,17 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
 
     try {
       final account = await widget.accountSetupRepository.readAccountSetupState();
+      final bridge = _authContactBridge;
+      final hasTrustedEmailIdentity = bridge != null
+          ? bridge.hasTrustedEmailIdentity
+          : widget.hasTrustedEmailIdentity;
+      final hasTrustedPhoneIdentity =
+          bridge?.hasTrustedPhoneIdentity ?? widget.hasTrustedPhoneIdentity;
       final plan = widget.planner(
         hasUsername: account.hasUsername,
         accountSetupCompleted: account.isCompleted,
-        hasTrustedPhoneIdentity: widget.hasTrustedPhoneIdentity,
+        hasTrustedEmailIdentity: hasTrustedEmailIdentity,
+        hasTrustedPhoneIdentity: hasTrustedPhoneIdentity,
       );
 
       if (!mounted) return;
@@ -76,11 +101,15 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
         return;
       }
 
+      final providedEmail = widget.initialEmail.trim();
       setState(() {
         _accountState = account;
         _plan = plan;
         _currentIndex = 0;
         _mobile = account.mobile;
+        _email = providedEmail.isNotEmpty
+            ? providedEmail
+            : (bridge?.currentEmail.trim() ?? '');
         _usernameCanContinue = false;
         _loading = false;
       });
@@ -94,6 +123,26 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
   }
 
   AccountSetupStepId get _currentStep => _plan!.steps[_currentIndex];
+
+  bool get _mobileCanContinue {
+    if (_mobile.trim().isEmpty) return true;
+    try {
+      return normalizePhoneNumberE164(_mobile).isNotEmpty;
+    } on ArgumentError {
+      return false;
+    }
+  }
+
+  bool get _emailCanContinue {
+    final email = _email.trim();
+    if (email.isEmpty) return true;
+    if (email.contains(RegExp(r'\s'))) return false;
+    final atIndex = email.indexOf('@');
+    final dotIndex = email.lastIndexOf('.');
+    return atIndex > 0 &&
+        dotIndex > atIndex + 1 &&
+        dotIndex < email.length - 1;
+  }
 
   Future<void> _handleBack() async {
     if (_busy) return;
@@ -117,6 +166,31 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
       },
       child: child,
     );
+  }
+
+  Future<void> _showMobileInformation() async {
+    await showTioInformationBottomSheet(
+      context: context,
+      sheetKey: const ValueKey('account-setup-mobile-info-sheet'),
+      title: 'Why we ask for your mobile number',
+      message:
+          'Your mobile number can help with account recovery, security features, and future verification. It is optional during setup, and you can add or verify it later from Account Settings.',
+      actionLabel: 'Understood',
+    );
+  }
+
+  Future<void> _requestOptionalEmail(String email) async {
+    final request = widget.requestOptionalEmailVerification;
+    if (request != null) {
+      await request(email);
+      return;
+    }
+
+    final bridge = _authContactBridge;
+    if (bridge == null) {
+      throw StateError('Email verification is unavailable right now.');
+    }
+    await bridge.requestOptionalEmailVerification(email);
   }
 
   Future<void> _handleContinue() async {
@@ -167,6 +241,16 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
           if (!mounted) return;
           await widget.onCompleted();
           return;
+
+        case AccountSetupStepId.email:
+          final email = _email.trim();
+          if (email.isNotEmpty) {
+            await _requestOptionalEmail(email);
+          }
+          await widget.accountSetupRepository.completeAccountSetup();
+          if (!mounted) return;
+          await widget.onCompleted();
+          return;
       }
     } catch (_) {
       if (!mounted) return;
@@ -193,7 +277,18 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
           initialMobile: _mobile,
           isVerified: account.isMobileVerified,
           enabled: !_busy,
-          onChanged: (value) => _mobile = value,
+          onChanged: (value) {
+            if (!mounted) return;
+            setState(() => _mobile = value);
+          },
+        ),
+      AccountSetupStepId.email => EmailStep(
+          initialEmail: _email,
+          enabled: !_busy,
+          onChanged: (value) {
+            if (!mounted) return;
+            setState(() => _email = value);
+          },
         ),
     };
   }
@@ -248,8 +343,11 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
     final plan = _plan!;
     final account = _accountState!;
     final step = _currentStep;
-    final canContinue = step == AccountSetupStepId.mobile ||
-        (step == AccountSetupStepId.username && _usernameCanContinue);
+    final canContinue = switch (step) {
+      AccountSetupStepId.username => _usernameCanContinue,
+      AccountSetupStepId.mobile => _mobileCanContinue,
+      AccountSetupStepId.email => _emailCanContinue,
+    };
 
     return _withBackHandling(
       Scaffold(
@@ -313,21 +411,12 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
               Container(
                 key: const ValueKey('account-setup-footer'),
                 width: double.infinity,
+                color: colors.background,
                 padding: const EdgeInsets.fromLTRB(
                   TioSpacing.lg,
                   TioSpacing.sm,
                   TioSpacing.lg,
                   TioSpacing.lg,
-                ),
-                decoration: BoxDecoration(
-                  color: colors.background,
-                  border: Border(
-                    top: BorderSide(
-                      color: colors.outlineStrong.withValues(
-                        alpha: TioOpacity.opacity18,
-                      ),
-                    ),
-                  ),
                 ),
                 child: Center(
                   child: ConstrainedBox(
@@ -349,16 +438,12 @@ class _AccountSetupFlowPageState extends State<AccountSetupFlowPage> {
                           ),
                           const SizedBox(height: TioSpacing.sm),
                         ],
-                        Text(
-                          step == AccountSetupStepId.username
-                              ? 'Username is required before continuing.'
-                              : 'Mobile is optional. You can leave it blank and continue.',
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colors.textSecondary,
+                        if (step == AccountSetupStepId.mobile)
+                          TioInlineInfoAction(
+                            key: const ValueKey('account-setup-mobile-info'),
+                            label: 'Why do we need this information?',
+                            onTap: _busy ? null : _showMobileInformation,
                           ),
-                        ),
-                        const SizedBox(height: TioSpacing.sm),
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton(

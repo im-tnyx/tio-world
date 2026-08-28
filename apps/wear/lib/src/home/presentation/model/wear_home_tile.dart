@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tio_shared/shared.dart';
 
 enum WearHomeTileAction {
   workoutRoutine,
@@ -15,9 +16,11 @@ class WearHomeTile {
     required this.title,
     required this.icon,
     required this.action,
+    this.requiredDestination,
   });
 
   final String title;
   final IconData icon;
   final WearHomeTileAction action;
+  final AppDestination? requiredDestination;
 }

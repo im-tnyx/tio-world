@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../units/units.dart';
 import '../../../theme/theme.dart';
 import '../buttons/tio_button.dart';
 
@@ -46,11 +47,11 @@ class _TioWeightPickerBottomSheetState
   void initState() {
     super.initState();
     final isKg = widget.unit == 'kg';
-    final val = isKg
+    final value = isKg
         ? widget.initialWeightKg
-        : (widget.initialWeightKg * 2.20462);
+        : UnitConverters.kgToLb(widget.initialWeightKg);
 
-    _controller = TextEditingController(text: val.toStringAsFixed(1));
+    _controller = TextEditingController(text: value.toStringAsFixed(1));
   }
 
   @override
@@ -61,15 +62,15 @@ class _TioWeightPickerBottomSheetState
 
   void _save() {
     final raw = double.tryParse(_controller.text.trim());
-    if (raw == null) {
+    if (raw == null || !raw.isFinite) {
       Navigator.of(context).pop(widget.initialWeightKg);
       return;
     }
 
     final isKg = widget.unit == 'kg';
-    final resolvedKg = isKg ? raw : (raw / 2.20462);
+    final resolvedKg = isKg ? raw : UnitConverters.lbToKg(raw);
 
-    if (resolvedKg >= 25 && resolvedKg <= 350) {
+    if (resolvedKg.isFinite && resolvedKg >= 25 && resolvedKg <= 350) {
       Navigator.of(context).pop(resolvedKg);
     } else {
       Navigator.of(context).pop(widget.initialWeightKg);
@@ -108,7 +109,6 @@ class _TioWeightPickerBottomSheetState
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // ── Header: Title & Close Button ──
               Stack(
                 alignment: Alignment.center,
                 children: [
@@ -154,8 +154,6 @@ class _TioWeightPickerBottomSheetState
               const SizedBox(
                 height: TioMeasurementPickerTokens.headerSubtitleGap,
               ),
-
-              // ── Subtitle ──
               Text(
                 'Weight is important for calculating BMI, estimating calorie needs, and personalizing your fitness plan.',
                 textAlign: TextAlign.center,
@@ -166,12 +164,9 @@ class _TioWeightPickerBottomSheetState
                   fontWeight: TioFontWeight.w400,
                 ),
               ),
-
               const SizedBox(
                 height: TioMeasurementPickerTokens.inputSectionGap,
               ),
-
-              // ── Weight Input Capsule ──
               Container(
                 height: TioMeasurementPickerTokens.inputHeight,
                 decoration: BoxDecoration(
@@ -235,12 +230,9 @@ class _TioWeightPickerBottomSheetState
                   ],
                 ),
               ),
-
               const SizedBox(
                 height: TioMeasurementPickerTokens.inputSectionGap,
               ),
-
-              // ── Save Button ──
               TioButton.primary(
                 label: 'Save',
                 expand: true,

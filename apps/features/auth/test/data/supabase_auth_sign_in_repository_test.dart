@@ -63,14 +63,14 @@ void main() {
       expect((result as SignInFailure).code, 'google_credential_timeout');
     });
 
-    test('existing-account Login rejects unknown Google identity before exchange',
-        () async {
+    test('existing-account Login rejects no-account before exchange', () async {
       final fakeGoTrue = FakeGoTrueClient();
-      final account = _googleAccountWithTokens();
       var admissionCalls = 0;
       final repo = SupabaseAuthSignInRepository(
         client: FakeSupabaseClient(goTrueClient: fakeGoTrue),
-        googleSignIn: FakeGoogleSignIn(accountToReturn: account),
+        googleSignIn: FakeGoogleSignIn(
+          accountToReturn: _googleAccountWithTokens(),
+        ),
         googleLoginAdmissionChecker: (idToken) async {
           admissionCalls++;
           expect(idToken, 'google-id-token');
@@ -94,7 +94,8 @@ void main() {
       );
     });
 
-    test('existing-account Login proceeds after admission succeeds', () async {
+    test('existing-account Login proceeds only for linked Google identity',
+        () async {
       final fakeUser = _googleUser();
       final fakeGoTrue = FakeGoTrueClient(
         currentUser: fakeUser,
@@ -108,7 +109,7 @@ void main() {
         ),
         googleLoginAdmissionChecker: (_) async {
           admissionCalls++;
-          return GoogleLoginAdmissionDecision.existingAccount;
+          return GoogleLoginAdmissionDecision.linkedAccount;
         },
       );
 
@@ -121,21 +122,21 @@ void main() {
       expect(result, isA<SignInSuccess>());
     });
 
-    test('signup-capable Google flow classifies account without gating exchange',
+    test('signup-capable Google flow awaits no-account admission before exchange',
         () async {
       final fakeUser = _googleUser();
       final fakeGoTrue = FakeGoTrueClient(
         currentUser: fakeUser,
         authResponseToReturn: _authResponse(fakeUser),
       );
-      var classificationCalls = 0;
+      var admissionCalls = 0;
       final repo = SupabaseAuthSignInRepository(
         client: FakeSupabaseClient(goTrueClient: fakeGoTrue),
         googleSignIn: FakeGoogleSignIn(
           accountToReturn: _googleAccountWithTokens(),
         ),
         googleLoginAdmissionChecker: (_) async {
-          classificationCalls++;
+          admissionCalls++;
           return GoogleLoginAdmissionDecision.noAccount;
         },
       );
@@ -144,9 +145,76 @@ void main() {
         intent: GoogleSignInIntent.signupOrExisting,
       );
 
-      expect(classificationCalls, 1);
+      expect(admissionCalls, 1);
       expect(fakeGoTrue.idTokenCalls, 1);
       expect(result, isA<SignInSuccess>());
+    });
+
+    test('signup-capable Google flow allows already-linked identity', () async {
+      final fakeUser = _googleUser();
+      final fakeGoTrue = FakeGoTrueClient(
+        currentUser: fakeUser,
+        authResponseToReturn: _authResponse(fakeUser),
+      );
+      final repo = SupabaseAuthSignInRepository(
+        client: FakeSupabaseClient(goTrueClient: fakeGoTrue),
+        googleSignIn: FakeGoogleSignIn(
+          accountToReturn: _googleAccountWithTokens(),
+        ),
+        googleLoginAdmissionChecker: (_) async =>
+            GoogleLoginAdmissionDecision.linkedAccount,
+      );
+
+      final result = await repo.signInWithGoogleForIntent(
+        intent: GoogleSignInIntent.signupOrExisting,
+      );
+
+      expect(fakeGoTrue.idTokenCalls, 1);
+      expect(result, isA<SignInSuccess>());
+    });
+
+    test('link-required Google identity is blocked before Auth exchange',
+        () async {
+      final fakeGoTrue = FakeGoTrueClient();
+      final repo = SupabaseAuthSignInRepository(
+        client: FakeSupabaseClient(goTrueClient: fakeGoTrue),
+        googleSignIn: FakeGoogleSignIn(
+          accountToReturn: _googleAccountWithTokens(),
+        ),
+        googleLoginAdmissionChecker: (_) async =>
+            GoogleLoginAdmissionDecision.linkRequired,
+      );
+
+      final result = await repo.signInWithGoogleForIntent(
+        intent: GoogleSignInIntent.signupOrExisting,
+      );
+
+      expect(fakeGoTrue.idTokenCalls, 0);
+      expect(result, isA<SignInFailure>());
+      expect(
+        (result as SignInFailure).code,
+        'google_account_link_required',
+      );
+    });
+
+    test('Google identity conflict fails closed before Auth exchange', () async {
+      final fakeGoTrue = FakeGoTrueClient();
+      final repo = SupabaseAuthSignInRepository(
+        client: FakeSupabaseClient(goTrueClient: fakeGoTrue),
+        googleSignIn: FakeGoogleSignIn(
+          accountToReturn: _googleAccountWithTokens(),
+        ),
+        googleLoginAdmissionChecker: (_) async =>
+            GoogleLoginAdmissionDecision.identityConflict,
+      );
+
+      final result = await repo.signInWithGoogleForIntent(
+        intent: GoogleSignInIntent.signupOrExisting,
+      );
+
+      expect(fakeGoTrue.idTokenCalls, 0);
+      expect(result, isA<SignInFailure>());
+      expect((result as SignInFailure).code, 'google_identity_conflict');
     });
 
     test('admission infrastructure failure is retryable and not no-account',
@@ -173,21 +241,62 @@ void main() {
       expect(failure.code, isNot('google_account_not_found'));
     });
 
-    test('existing-account Login does not fall back to signup-capable OAuth',
+    test('signup admission failure blocks exchange instead of bypassing it',
         () async {
       final fakeGoTrue = FakeGoTrueClient();
-      final account = FakeGoogleSignInAccount(
-        authenticationFuture: Future.value(
-          FakeGoogleSignInAuthentication(idToken: null),
-        ),
-      );
       final repo = SupabaseAuthSignInRepository(
         client: FakeSupabaseClient(goTrueClient: fakeGoTrue),
-        googleSignIn: FakeGoogleSignIn(accountToReturn: account),
+        googleSignIn: FakeGoogleSignIn(
+          accountToReturn: _googleAccountWithTokens(),
+        ),
+        googleLoginAdmissionChecker: (_) async {
+          throw StateError('resolver unavailable');
+        },
+      );
+
+      final result = await repo.signInWithGoogleForIntent(
+        intent: GoogleSignInIntent.signupOrExisting,
+      );
+
+      expect(fakeGoTrue.idTokenCalls, 0);
+      expect(result, isA<SignInFailure>());
+      expect((result as SignInFailure).code, 'google_login_admission_failed');
+    });
+
+    test('existing-account Login fails closed when native ID token is missing',
+        () async {
+      final fakeGoTrue = FakeGoTrueClient();
+      final repo = SupabaseAuthSignInRepository(
+        client: FakeSupabaseClient(goTrueClient: fakeGoTrue),
+        googleSignIn: FakeGoogleSignIn(
+          accountToReturn: _googleAccountWithoutIdToken(),
+        ),
       );
 
       final result = await repo.signInWithGoogleForIntent(
         intent: GoogleSignInIntent.existingAccountOnly,
+      );
+
+      expect(fakeGoTrue.idTokenCalls, 0);
+      expect(result, isA<SignInFailure>());
+      expect(
+        (result as SignInFailure).code,
+        'google_login_admission_token_unavailable',
+      );
+    });
+
+    test('signup flow also fails closed when native ID token is missing',
+        () async {
+      final fakeGoTrue = FakeGoTrueClient();
+      final repo = SupabaseAuthSignInRepository(
+        client: FakeSupabaseClient(goTrueClient: fakeGoTrue),
+        googleSignIn: FakeGoogleSignIn(
+          accountToReturn: _googleAccountWithoutIdToken(),
+        ),
+      );
+
+      final result = await repo.signInWithGoogleForIntent(
+        intent: GoogleSignInIntent.signupOrExisting,
       );
 
       expect(fakeGoTrue.idTokenCalls, 0);
@@ -207,7 +316,7 @@ void main() {
           accountToReturn: _googleAccountWithTokens(),
         ),
         googleLoginAdmissionChecker: (_) async =>
-            GoogleLoginAdmissionDecision.existingAccount,
+            GoogleLoginAdmissionDecision.linkedAccount,
         googleSupabaseExchangeTimeout: const Duration(milliseconds: 10),
       );
 
@@ -232,7 +341,7 @@ void main() {
           accountToReturn: _googleAccountWithTokens(),
         ),
         googleLoginAdmissionChecker: (_) async =>
-            GoogleLoginAdmissionDecision.existingAccount,
+            GoogleLoginAdmissionDecision.linkedAccount,
       );
 
       final result = await repo.signInWithGoogle();
@@ -275,6 +384,65 @@ void main() {
       expect((result as SignInSuccess).session.userId, equals('usr-email-1'));
       expect(result.session.email, equals('user@test.com'));
       expect(result.session.displayName, equals('Email User'));
+    });
+
+    test('email signup without session requires confirmation and skips sync',
+        () async {
+      final fakeUser = User(
+        id: 'usr-email-pending',
+        appMetadata: const {},
+        userMetadata: const {},
+        aud: 'authenticated',
+        createdAt: DateTime.now().toIso8601String(),
+        email: 'pending@test.com',
+      );
+      final fakeGoTrue = FakeGoTrueClient(
+        authResponseToReturn: AuthResponse(session: null, user: fakeUser),
+      );
+      final deviceRepository = PendingUserDeviceRepository();
+      final repo = SupabaseAuthSignInRepository(
+        client: FakeSupabaseClient(goTrueClient: fakeGoTrue),
+        userDeviceRepository: deviceRepository,
+      );
+
+      final result = await repo.signUpWithEmailPassword(
+        email: ' Pending@Test.COM ',
+        password: 'password123',
+      );
+
+      expect(result, isA<SignInFailure>());
+      expect((result as SignInFailure).code, 'email_confirmation_required');
+      expect(fakeGoTrue.lastSignUpEmail, 'pending@test.com');
+      expect(deviceRepository.syncCalls, 0);
+    });
+
+    test('email signup with session returns authenticated success', () async {
+      final fakeUser = User(
+        id: 'usr-email-confirmed',
+        appMetadata: const {},
+        userMetadata: const {},
+        aud: 'authenticated',
+        createdAt: DateTime.now().toIso8601String(),
+        email: 'confirmed@test.com',
+      );
+      final fakeGoTrue = FakeGoTrueClient(
+        authResponseToReturn: _authResponse(fakeUser),
+      );
+      final deviceRepository = PendingUserDeviceRepository();
+      final repo = SupabaseAuthSignInRepository(
+        client: FakeSupabaseClient(goTrueClient: fakeGoTrue),
+        userDeviceRepository: deviceRepository,
+      );
+
+      final result = await repo.signUpWithEmailPassword(
+        email: 'confirmed@test.com',
+        password: 'password123',
+      );
+
+      expect(result, isA<SignInSuccess>());
+      expect((result as SignInSuccess).session.userId, 'usr-email-confirmed');
+      expect(deviceRepository.syncCalls, 1);
+      deviceRepository.complete();
     });
 
     test('successful sign-in does not wait for secondary device sync', () async {
@@ -365,6 +533,13 @@ FakeGoogleSignInAccount _googleAccountWithTokens() => FakeGoogleSignInAccount(
       ),
     );
 
+FakeGoogleSignInAccount _googleAccountWithoutIdToken() =>
+    FakeGoogleSignInAccount(
+      authenticationFuture: Future.value(
+        FakeGoogleSignInAuthentication(idToken: null),
+      ),
+    );
+
 class PendingUserDeviceRepository implements UserDeviceRepository {
   final Completer<void> _completer = Completer<void>();
   int syncCalls = 0;
@@ -408,6 +583,30 @@ class FakeGoTrueClient extends Fake implements GoTrueClient {
   final Object? exceptionToThrow;
   final Future<AuthResponse>? idTokenFuture;
   int idTokenCalls = 0;
+  int signUpCalls = 0;
+  String? lastSignUpEmail;
+
+  @override
+  Future<AuthResponse> signUp({
+    String? email,
+    String? phone,
+    required String password,
+    String? emailRedirectTo,
+    Map<String, dynamic>? data,
+    String? captchaToken,
+    OtpChannel channel = OtpChannel.sms,
+  }) async {
+    signUpCalls++;
+    lastSignUpEmail = email;
+    if (exceptionToThrow != null) {
+      throw exceptionToThrow!;
+    }
+    return authResponseToReturn ??
+        AuthResponse(
+          session: null,
+          user: currentUser,
+        );
+  }
 
   @override
   Future<AuthResponse> signInWithPassword({

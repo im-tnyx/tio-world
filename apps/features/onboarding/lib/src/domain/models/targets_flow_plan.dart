@@ -1,14 +1,18 @@
 import 'target_step_id.dart';
 
-/// Ordered flow plan for the Targets onboarding section.
+/// Ordered flow plan for the active legacy Targets top-level section.
 ///
-/// Steps 1–4 (bridge, stepTarget, sleepTarget, waterTarget) are real T1 screens.
-/// Steps 5–6 (goalPace, nutritionTarget) are T2 compatibility — navigation-passable
-/// but do not satisfy the Targets product readiness gate.
+/// O3C moved Goal Pace to Body Goal. O4B moves Bridge/Steps/Sleep/Water to the
+/// canonical Wellness section. [legacyOrderedSteps] retains the historical
+/// child ordering exclusively for draft/resume migration.
 class TargetsFlowPlan {
-  const TargetsFlowPlan();
+  const TargetsFlowPlan({this.steps = orderedSteps});
 
   static const orderedSteps = <TargetStepId>[
+    TargetStepId.nutritionTarget,
+  ];
+
+  static const legacyOrderedSteps = <TargetStepId>[
     TargetStepId.bridge,
     TargetStepId.stepTarget,
     TargetStepId.sleepTarget,
@@ -17,31 +21,31 @@ class TargetsFlowPlan {
     TargetStepId.nutritionTarget,
   ];
 
-  int get stepCount => orderedSteps.length;
+  final List<TargetStepId> steps;
 
-  int indexOf(TargetStepId stepId) => orderedSteps.indexOf(stepId);
+  int get stepCount => steps.length;
 
-  bool isFirst(TargetStepId stepId) => stepId == orderedSteps.first;
+  bool contains(TargetStepId stepId) => steps.contains(stepId);
 
-  bool isLast(TargetStepId stepId) => stepId == orderedSteps.last;
+  int indexOf(TargetStepId stepId) => steps.indexOf(stepId);
+
+  bool isFirst(TargetStepId stepId) => stepId == steps.first;
+
+  bool isLast(TargetStepId stepId) => stepId == steps.last;
 
   TargetStepId? next(TargetStepId stepId) {
     final index = indexOf(stepId);
-    if (index < 0 || index >= orderedSteps.length - 1) return null;
-    return orderedSteps[index + 1];
+    if (index < 0 || index >= steps.length - 1) return null;
+    return steps[index + 1];
   }
 
   TargetStepId? previous(TargetStepId stepId) {
     final index = indexOf(stepId);
     if (index <= 0) return null;
-    return orderedSteps[index - 1];
+    return steps[index - 1];
   }
 
-  /// CTA label for the current child step.
-  ///
-  /// [nutritionTarget] is the final child whose next global step is Review,
-  /// so it shows 'Review'. All other child steps show 'Continue'.
   String primaryActionLabel(TargetStepId stepId) {
-    return stepId == TargetStepId.nutritionTarget ? 'Review' : 'Continue';
+    return 'Continue';
   }
 }

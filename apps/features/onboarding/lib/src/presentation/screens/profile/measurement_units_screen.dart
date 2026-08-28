@@ -11,8 +11,8 @@ class MeasurementUnitsScreen extends StatelessWidget {
     super.key,
   });
 
-  final MeasurementUnitPreferences preferences;
-  final ValueChanged<MeasurementUnitPreferences> onChanged;
+  final UnitPreferences preferences;
+  final ValueChanged<UnitPreferences> onChanged;
 
   @override
   Widget build(BuildContext context) {

@@ -6,14 +6,14 @@ import 'package:tio_feature_settings/settings.dart';
 void main() {
   testWidgets('hydrates persisted preferences and saves mixed changes',
       (tester) async {
-    MeasurementUnitPreferences? saved;
+    UnitPreferences? saved;
 
     await tester.pumpWidget(
       MaterialApp(
         builder: (context, child) =>
             TioTheme(child: child ?? const SizedBox.shrink()),
         home: MeasurementUnitsSettingsPage(
-          initialPreferences: MeasurementUnitPreferences.imperial,
+          initialPreferences: UnitPreferences.imperial,
           onSave: (preferences) async => saved = preferences,
         ),
       ),
@@ -26,9 +26,18 @@ void main() {
       ).onPressed,
       isNull,
     );
+    expect(
+      find.byKey(const ValueKey('measurement-units-preset-custom')),
+      findsNothing,
+    );
 
     await tester.tap(find.byKey(const ValueKey('measurement-units-weight-kg')));
     await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('measurement-units-preset-custom')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const ValueKey('measurement-units-save')));
     await tester.pumpAndSettle();
@@ -46,7 +55,7 @@ void main() {
         builder: (context, child) =>
             TioTheme(child: child ?? const SizedBox.shrink()),
         home: MeasurementUnitsSettingsPage(
-          initialPreferences: MeasurementUnitPreferences.metric,
+          initialPreferences: UnitPreferences.metric,
           onSave: (_) async {},
         ),
       ),
@@ -67,6 +76,45 @@ void main() {
     expect(selectedSemanticsCount(), 5);
   });
 
+  testWidgets('compact large-text layout remains overflow-safe', (tester) async {
+    tester.view.physicalSize = const Size(320, 760);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) {
+          final mediaQuery = MediaQuery.of(context);
+          return MediaQuery(
+            data: mediaQuery.copyWith(
+              textScaler: const TextScaler.linear(1.6),
+            ),
+            child: TioTheme(child: child ?? const SizedBox.shrink()),
+          );
+        },
+        home: MeasurementUnitsSettingsPage(
+          initialPreferences: const UnitPreferences(
+            weightUnit: WeightUnit.kg,
+            heightUnit: HeightUnit.ftIn,
+            distanceUnit: DistanceUnit.mi,
+            volumeUnit: VolumeUnit.ml,
+          ),
+          onSave: (_) async {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('measurement-units-preset-custom')),
+      findsOneWidget,
+    );
+    expect(find.text('Liquid volume'), findsOneWidget);
+    expect(find.text('miles'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('save failure stays retryable and exposes feedback',
       (tester) async {
     await tester.pumpWidget(
@@ -74,7 +122,7 @@ void main() {
         builder: (context, child) =>
             TioTheme(child: child ?? const SizedBox.shrink()),
         home: MeasurementUnitsSettingsPage(
-          initialPreferences: MeasurementUnitPreferences.metric,
+          initialPreferences: UnitPreferences.metric,
           onSave: (_) async => throw StateError('write failed'),
         ),
       ),

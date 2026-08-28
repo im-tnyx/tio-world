@@ -90,7 +90,7 @@ void main() {
       expect(find.byType(OnboardingTopBar), findsOneWidget);
       expect(find.byType(OnboardingProgressIndicator), findsOneWidget);
       expect(
-        find.bySemanticsLabel('Step 1 of 25, About you'),
+        find.bySemanticsLabel('Step 1 of 21, About you'),
         findsOneWidget,
       );
       expect(find.byType(AppModeScreen), findsNothing);
@@ -99,7 +99,7 @@ void main() {
     }
   });
 
-  testWidgets('real workout intro screen skips to targets when deferred',
+  testWidgets('real workout intro continues to Nutrition Profile when deferred',
       (tester) async {
     await _pumpFlow(
       tester,
@@ -132,9 +132,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(WorkoutIntroSection), findsNothing);
-    expect(find.byType(TargetsSection), findsOneWidget);
-    expect(find.byType(BridgeScreen), findsOneWidget);
-    expect(find.text('Building your targets'), findsOneWidget);
+    expect(find.byType(NutritionProfileSection), findsOneWidget);
+    expect(find.byType(DietTypeScreen), findsOneWidget);
+    expect(find.byType(WellnessSection), findsNothing);
+    expect(find.byType(NutritionGoalsSection), findsNothing);
+    expect(find.byType(TargetsSection), findsNothing);
+    expect(find.byType(NutritionTargetScreen), findsNothing);
 
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
@@ -149,22 +152,30 @@ void main() {
     );
   });
 
-  testWidgets('default renderer uses targets section for nutrition mode',
+  testWidgets('default renderer uses Nutrition Goals in nutrition mode',
       (tester) async {
     await _pumpFlow(
       tester,
       draft: OnboardingDraft(
         selectedMode: AppMode.nutrition,
-        currentStepId: OnboardingStepId.targets,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.maintainWeight,
+        ),
+        currentStepId: OnboardingStepId.nutritionGoals,
         profile: _validProfile(),
+        targets: const TargetsOnboardingDraft(
+          currentStepId: TargetStepId.nutritionTarget,
+        ),
       ),
       useDefaultRenderer: true,
     );
 
     expect(find.byType(OnboardingSectionRenderer), findsOneWidget);
-    expect(find.byType(TargetsSection), findsOneWidget);
-    expect(find.byType(BridgeScreen), findsOneWidget);
-    expect(find.text('Building your targets'), findsOneWidget);
+    expect(find.byType(NutritionGoalsSection), findsOneWidget);
+    expect(find.byType(TargetsSection), findsNothing);
+    expect(find.byType(WellnessSection), findsNothing);
+    expect(find.byType(BridgeScreen), findsNothing);
+    expect(find.byType(NutritionTargetScreen), findsOneWidget);
   });
 
   testWidgets('system back uses the same nested Profile previous transition',
@@ -226,6 +237,7 @@ void main() {
           OnboardingStepId.profileBasics,
           OnboardingStepId.workoutPreferences,
           OnboardingStepId.targets,
+          OnboardingStepId.healthConnections,
         },
       ),
       controllerFactory: (seed) => OnboardingController(
@@ -397,12 +409,31 @@ void main() {
     );
   });
 
-  testWidgets('progress animates smoothly between user-facing steps',
+  testWidgets('legacy Mobile does not re-enter Product Onboarding', (
+    tester,
+  ) async {
+    await _pumpFlow(
+      tester,
+      draft: OnboardingDraft(
+        selectedMode: AppMode.hybrid,
+        currentStepId: OnboardingStepId.mobile,
+        profile: ProfileOnboardingDraft(name: 'Tio User'),
+      ),
+      useDefaultRenderer: true,
+    );
+
+    expect(find.text('Why do we ask for your mobile number?'), findsNothing);
+  });
+
+  testWidgets('progress animates smoothly across Profile to Body Goal',
       (tester) async {
     await _pumpFlow(
       tester,
       draft: OnboardingDraft(
         selectedMode: AppMode.workout,
+        goalSelection: const GoalIntentSelection(
+          primaryGoal: GoalIntent.loseWeight,
+        ),
         currentStepId: OnboardingStepId.profileBasics,
         profile: _validProfile(),
       ),
@@ -418,18 +449,18 @@ void main() {
         .value!;
 
     await tester.pumpAndSettle();
-    expect(progressValue(), 10 / 25);
+    expect(progressValue(), 7 / 21);
 
     await tester.tap(find.text('Continue'));
     await tester.pump();
-    expect(progressValue(), 10 / 25);
+    expect(progressValue(), 7 / 21);
 
     await tester.pump(const Duration(milliseconds: 125));
-    expect(progressValue(), greaterThan(10 / 25));
-    expect(progressValue(), lessThan(11 / 25));
+    expect(progressValue(), greaterThan(7 / 21));
+    expect(progressValue(), lessThan(8 / 21));
 
     await tester.pumpAndSettle();
-    expect(progressValue(), 11 / 25);
+    expect(progressValue(), 8 / 21);
   });
 
   testWidgets('completion failure is announced as a live region',
@@ -450,6 +481,7 @@ void main() {
             OnboardingStepId.profileBasics,
             OnboardingStepId.workoutPreferences,
             OnboardingStepId.targets,
+            OnboardingStepId.healthConnections,
           },
         ),
         controllerFactory: (seed) => OnboardingController(
@@ -506,17 +538,68 @@ Future<void> _pumpFlow(
         home: OnboardingFlowPage(
           seed: OnboardingControllerSeed(
             entryPath: OnboardingEntryPath.firstRun,
-            draft: draft ?? OnboardingDraft(selectedMode: AppMode.workout),
+            draft: draft ??
+                OnboardingDraft(
+                  selectedMode: AppMode.workout,
+                  goalSelection: const GoalIntentSelection(
+                    primaryGoal: GoalIntent.loseWeight,
+                  ),
+                  currentStepId: OnboardingStepId.profileBasics,
+                  profile: ProfileOnboardingDraft(name: 'Tio User'),
+                ),
           ),
           onExitRequested: onExitRequested,
           onFinishRequested: onFinishRequested ?? (_) async {},
-          stepBuilder:
-              useDefaultRenderer ? null : stepBuilder ?? _buildPlaceholderStep,
+          stepBuilder: useDefaultRenderer ? null : stepBuilder ?? _buildPlaceholder,
         ),
       ),
     ),
   );
   await tester.pump();
+}
+
+Widget _buildPlaceholder(
+  BuildContext context,
+  OnboardingState state,
+  OnboardingController controller,
+) {
+  return Text('Child ${state.stepId.name}');
+}
+
+Widget _buildProfileAwarePlaceholder(
+  BuildContext context,
+  OnboardingState state,
+  OnboardingController controller,
+) {
+  return Text('Profile ${state.draft.profile.currentStepId.name}');
+}
+
+ProfileOnboardingDraft _validProfile() {
+  return ProfileOnboardingDraft(
+    currentStepId: ProfileStepId.healthConditions,
+    name: 'Tio User',
+    gender: ProfileGender.other,
+    goals: const {ProfileGoal.keepFit},
+    dateOfBirth: DateTime(2000, 1, 1),
+    heightCm: 171,
+    currentWeightKg: 70,
+    targetWeightKg: 65,
+    targetWeightDirection: GoalWeightDirection.loss,
+    activityLevel: ProfileActivityLevel.active,
+    healthConditions: const {ProfileHealthCondition.none},
+  );
+}
+
+WorkoutOnboardingDraft _validWorkout() {
+  return const WorkoutOnboardingDraft(
+    currentStepId: WorkoutStepId.specialEvent,
+    gymAccess: WorkoutGymAccess.gym,
+    experienceLevel: WorkoutExperienceLevel.beginner,
+    focusAreas: {WorkoutFocusArea.fullBody},
+    trainingDays: {WorkoutTrainingDay.monday},
+    workoutDuration: WorkoutDuration.sixtyMinutes,
+    workoutSplit: WorkoutSplit.fullBody,
+  );
 }
 
 class _AlwaysEligibleValidator extends OnboardingCompletionValidator {
@@ -529,47 +612,4 @@ class _AlwaysEligibleValidator extends OnboardingCompletionValidator {
   }) {
     return OnboardingCompletionEligibility.eligible;
   }
-}
-
-Widget _buildProfileAwarePlaceholder(
-  BuildContext context,
-  OnboardingState state,
-  OnboardingController controller,
-) {
-  return Text('Profile ${state.draft.profile.currentStepId.name}');
-}
-
-Widget _buildPlaceholderStep(
-  BuildContext context,
-  OnboardingState state,
-  OnboardingController controller,
-) {
-  return Text('Child ${state.stepId.name}');
-}
-
-ProfileOnboardingDraft _validProfile() {
-  return ProfileOnboardingDraft(
-    currentStepId: ProfileStepId.healthConditions,
-    name: 'Tio User',
-    gender: ProfileGender.other,
-    goals: const {ProfileGoal.keepFit},
-    dateOfBirth: DateTime(2000, 1, 1),
-    heightCm: 171,
-    currentWeightKg: 70,
-    targetWeightKg: 70,
-    activityLevel: ProfileActivityLevel.active,
-    healthConditions: const {ProfileHealthCondition.none},
-  );
-}
-
-WorkoutOnboardingDraft _validWorkout() {
-  return const WorkoutOnboardingDraft(
-    currentStepId: WorkoutStepId.gymAccess,
-    gymAccess: WorkoutGymAccess.gym,
-    experienceLevel: WorkoutExperienceLevel.beginner,
-    focusAreas: {WorkoutFocusArea.legs},
-    trainingDays: {WorkoutTrainingDay.monday, WorkoutTrainingDay.wednesday},
-    workoutDuration: WorkoutDuration.sixtyMinutes,
-    workoutSplit: WorkoutSplit.auto,
-  );
 }

@@ -22,6 +22,78 @@ void main() {
     );
   });
 
+  test('start resolves current state when auth stream does not replay', () async {
+    final authRepository = _NonReplayingAuthSessionRepository(
+      currentState: const AuthSessionUnauthenticated(),
+    );
+    final fixture = await _Fixture.create(authRepository: authRepository);
+
+    fixture.controller.start();
+    await _flush();
+
+    expect(
+      fixture.controller.state,
+      const AppSessionBootstrapUnauthenticated(),
+    );
+  });
+
+  test('initial auth snapshot timeout fails instead of loading forever', () async {
+    final authRepository = _ControlledCurrentSessionRepository();
+    final fixture = await _Fixture.create(
+      authRepository: authRepository,
+      sessionLookupTimeout: const Duration(milliseconds: 10),
+    );
+
+    fixture.controller.start();
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+
+    final state = fixture.controller.state;
+    expect(state, isA<AppSessionBootstrapFailure>());
+    expect((state as AppSessionBootstrapFailure).error, isA<TimeoutException>());
+  });
+
+  test('refresh auth snapshot timeout fails instead of retry loading forever',
+      () async {
+    final authRepository = _ControlledCurrentSessionRepository();
+    final fixture = await _Fixture.create(
+      authRepository: authRepository,
+      sessionLookupTimeout: const Duration(milliseconds: 10),
+    );
+
+    await fixture.controller.refresh();
+
+    final state = fixture.controller.state;
+    expect(state, isA<AppSessionBootstrapFailure>());
+    expect((state as AppSessionBootstrapFailure).error, isA<TimeoutException>());
+  });
+
+  test('late initial snapshot cannot overwrite a newer auth stream event',
+      () async {
+    final authRepository = _ControlledCurrentSessionRepository();
+    final fixture = await _Fixture.create(
+      authRepository: authRepository,
+      completionResolver: () async =>
+          RemoteOnboardingCompletionState.incomplete,
+    );
+
+    fixture.controller.start();
+    authRepository.emit(const AuthSessionUnauthenticated());
+    await _flush();
+
+    expect(
+      fixture.controller.state,
+      const AppSessionBootstrapUnauthenticated(),
+    );
+
+    authRepository.completeCurrent(_authenticated('stale-user'));
+    await _flush();
+
+    expect(
+      fixture.controller.state,
+      const AppSessionBootstrapUnauthenticated(),
+    );
+  });
+
   test('remote completed resolves ready and reconciles local completion',
       () async {
     final fixture = await _Fixture.create(
@@ -251,6 +323,28 @@ void main() {
       const AppSessionBootstrapReady(userId: 'user-a'),
     );
   });
+
+  test('confirmed account deletion forces bootstrap unauthenticated immediately',
+      () async {
+    final fixture = await _Fixture.create(
+      authState: _authenticated('user-a'),
+      completionResolver: () async =>
+          RemoteOnboardingCompletionState.completed,
+    );
+
+    await fixture.controller.refresh();
+    expect(
+      fixture.controller.state,
+      const AppSessionBootstrapReady(userId: 'user-a'),
+    );
+
+    fixture.controller.markUnauthenticatedAfterAccountDeletion();
+
+    expect(
+      fixture.controller.state,
+      const AppSessionBootstrapUnauthenticated(),
+    );
+  });
 }
 
 AuthSessionAuthenticated _authenticated(String userId) {
@@ -273,10 +367,11 @@ class _Fixture {
 
   static Future<_Fixture> create({
     AuthSessionState? authState,
-    _FakeAuthSessionRepository? authRepository,
+    AuthSessionRepository? authRepository,
     OnboardingStatus? initialLocalStatus,
     Future<RemoteOnboardingCompletionState> Function()? completionResolver,
     OnboardingDraftRepository? draftRepository,
+    Duration sessionLookupTimeout = const Duration(seconds: 8),
     Duration completionLookupTimeout = const Duration(seconds: 8),
   }) async {
     final modeController = AppModeController(_FakeAppModePreference());
@@ -306,6 +401,7 @@ class _Fixture {
         onboardingCompletionRepository: completionRepository,
         onboardingStatusController: statusController,
         onboardingDraftRepository: draftRepository,
+        sessionLookupTimeout: sessionLookupTimeout,
         completionLookupTimeout: completionLookupTimeout,
       ),
     );
@@ -333,6 +429,58 @@ class _FakeAuthSessionRepository implements AuthSessionRepository {
 
   @override
   Future<AuthSessionState> get currentSessionState async => _currentState;
+
+  @override
+  Future<void> signOut() async {
+    emit(const AuthSessionUnauthenticated());
+  }
+}
+
+class _NonReplayingAuthSessionRepository implements AuthSessionRepository {
+  _NonReplayingAuthSessionRepository({required AuthSessionState currentState})
+      : _currentState = currentState;
+
+  final StreamController<AuthSessionState> _changes =
+      StreamController<AuthSessionState>.broadcast();
+  AuthSessionState _currentState;
+
+  void emit(AuthSessionState state) {
+    _currentState = state;
+    _changes.add(state);
+  }
+
+  @override
+  Stream<AuthSessionState> get sessionState => _changes.stream;
+
+  @override
+  Future<AuthSessionState> get currentSessionState async => _currentState;
+
+  @override
+  Future<void> signOut() async {
+    emit(const AuthSessionUnauthenticated());
+  }
+}
+
+class _ControlledCurrentSessionRepository implements AuthSessionRepository {
+  final StreamController<AuthSessionState> _changes =
+      StreamController<AuthSessionState>.broadcast();
+  final Completer<AuthSessionState> _current = Completer<AuthSessionState>();
+
+  void emit(AuthSessionState state) {
+    _changes.add(state);
+  }
+
+  void completeCurrent(AuthSessionState state) {
+    if (!_current.isCompleted) {
+      _current.complete(state);
+    }
+  }
+
+  @override
+  Stream<AuthSessionState> get sessionState => _changes.stream;
+
+  @override
+  Future<AuthSessionState> get currentSessionState => _current.future;
 
   @override
   Future<void> signOut() async {

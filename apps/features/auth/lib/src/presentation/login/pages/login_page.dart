@@ -3,26 +3,24 @@ import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
 
 import '../../../domain/domain.dart';
+import '../../shared/auth_entry_mode.dart';
+import '../../shared/auth_round_actions.dart';
+import '../../shared/phone_otp_auth_section.dart';
 
-/// Pixel-perfect implementation of the Tnyx-Hub Email/Social Login Screen.
+/// Canonical returning-user Login surface.
 ///
-/// Follows AGENTS.md and Material 3 Expressive design tokens:
-/// - Semantic colors from [TioColors] (Light, Dark, OLED, High-Contrast ready).
-/// - Dimensions, spacing, and radii from [TioSpacing], [TioRadius], and [TioInputTokens].
-/// - Outlined Email input field with floating label.
-/// - Outlined Password input field with visibility toggle.
-/// - "Forgot Password?" action link.
-/// - Full-width "Login" submit button with loading and validation states.
-/// - "OR" divider with subtle semantic outline.
-/// - "Continue with Google" branded button with official 4-color Google logo.
-/// - "Continue with Truecaller" branded action button.
-/// - "Don't have an account? Sign Up" footer navigation.
-/// - Floating error banner for accessible feedback.
+/// Phone OTP is the default mode. Email + Password remains available on the
+/// same screen through the reciprocal Email/Phone round action. The legacy
+/// `/login/email` deep link resolves the same page directly in Email mode.
 class LoginPage extends StatefulWidget {
   const LoginPage({
     this.signInWithGoogleUseCase,
     this.signInWithEmailUseCase,
     this.googleAuthUseCase,
+    this.requestPhoneOtpUseCase,
+    this.resendPhoneOtpUseCase,
+    this.verifyPhoneOtpUseCase,
+    this.initialMode,
     this.onAuthSuccess,
     this.onSignInSuccess,
     super.key,
@@ -31,6 +29,10 @@ class LoginPage extends StatefulWidget {
   final SignInWithGoogleUseCase? signInWithGoogleUseCase;
   final SignInWithEmailUseCase? signInWithEmailUseCase;
   final GoogleAuthUseCase? googleAuthUseCase;
+  final RequestPhoneOtpUseCase? requestPhoneOtpUseCase;
+  final ResendPhoneOtpUseCase? resendPhoneOtpUseCase;
+  final VerifyPhoneOtpUseCase? verifyPhoneOtpUseCase;
+  final AuthEntryMode? initialMode;
   final ValueChanged<GoogleAuthComplete>? onAuthSuccess;
   final ValueChanged<SignInSuccess>? onSignInSuccess;
 
@@ -43,19 +45,40 @@ enum _LoginAuthAction { email, google }
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  late AuthEntryMode _mode;
+  bool _routeModeResolved = false;
   bool _isPasswordVisible = false;
+  bool _isPhoneBusy = false;
   _LoginAuthAction? _activeAction;
   String? _errorMessage;
 
-  bool get _isBusy => _activeAction != null;
+  bool get _isBusy => _activeAction != null || _isPhoneBusy;
   bool get _isEmailLoading => _activeAction == _LoginAuthAction.email;
   bool get _isGoogleLoading => _activeAction == _LoginAuthAction.google;
 
   @override
   void initState() {
     super.initState();
+    _mode = widget.initialMode ?? AuthEntryMode.phone;
     _emailController.addListener(_onFieldChanged);
     _passwordController.addListener(_onFieldChanged);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_routeModeResolved) return;
+    _routeModeResolved = true;
+    if (widget.initialMode != null) return;
+
+    try {
+      if (GoRouterState.of(context).uri.path == AppRoutes.emailLogin.path) {
+        _mode = AuthEntryMode.email;
+      }
+    } catch (_) {
+      // Isolated widget hosts/tests may not have a GoRouter ancestor. They keep
+      // the canonical Phone-first default unless an explicit mode was supplied.
+    }
   }
 
   @override
@@ -76,11 +99,18 @@ class _LoginPageState extends State<LoginPage> {
     return RegExp(r'^[\w.+\-]+@[\w\-]+\.\w{2,}$').hasMatch(email);
   }
 
-  bool get _isPasswordValid {
-    return _passwordController.text.isNotEmpty;
-  }
-
+  bool get _isPasswordValid => _passwordController.text.isNotEmpty;
   bool get _isFormValid => _isEmailValid && _isPasswordValid;
+
+  void _switchMode() {
+    if (_isBusy) return;
+    setState(() {
+      _mode = _mode == AuthEntryMode.phone
+          ? AuthEntryMode.email
+          : AuthEntryMode.phone;
+      _errorMessage = null;
+    });
+  }
 
   Future<void> _handleEmailSignIn() async {
     if (!_isFormValid || _isBusy) return;
@@ -90,17 +120,22 @@ class _LoginPageState extends State<LoginPage> {
       _errorMessage = null;
     });
 
-    if (widget.signInWithEmailUseCase == null) {
-      if (mounted) setState(() => _activeAction = null);
+    final useCase = widget.signInWithEmailUseCase;
+    if (useCase == null) {
+      if (mounted) {
+        setState(() {
+          _activeAction = null;
+          _errorMessage = 'Email sign-in is unavailable right now.';
+        });
+      }
       return;
     }
 
     try {
-      final result = await widget.signInWithEmailUseCase!(
+      final result = await useCase(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-
       if (!mounted) return;
 
       switch (result) {
@@ -111,8 +146,10 @@ class _LoginPageState extends State<LoginPage> {
         case SignInFailure(:final message):
           setState(() => _errorMessage = message);
       }
-    } catch (e) {
-      if (mounted) setState(() => _errorMessage = e.toString());
+    } catch (_) {
+      if (mounted) {
+        setState(() => _errorMessage = 'Could not sign in. Please try again.');
+      }
     } finally {
       if (mounted && _activeAction == _LoginAuthAction.email) {
         setState(() => _activeAction = null);
@@ -132,7 +169,6 @@ class _LoginPageState extends State<LoginPage> {
       if (widget.signInWithGoogleUseCase != null) {
         final result = await widget.signInWithGoogleUseCase!();
         if (!mounted) return;
-
         switch (result) {
           case SignInSuccess():
             widget.onSignInSuccess?.call(result);
@@ -147,7 +183,6 @@ class _LoginPageState extends State<LoginPage> {
       if (widget.googleAuthUseCase != null) {
         final result = await widget.googleAuthUseCase!();
         if (!mounted) return;
-
         switch (result) {
           case GoogleAuthComplete():
             widget.onAuthSuccess?.call(result);
@@ -157,8 +192,10 @@ class _LoginPageState extends State<LoginPage> {
             setState(() => _errorMessage = message);
         }
       }
-    } catch (e) {
-      if (mounted) setState(() => _errorMessage = 'Google sign in error: $e');
+    } catch (_) {
+      if (mounted) {
+        setState(() => _errorMessage = 'Google sign-in could not be completed.');
+      }
     } finally {
       if (mounted && _activeAction == _LoginAuthAction.google) {
         setState(() => _activeAction = null);
@@ -173,19 +210,109 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 
+  Widget _buildEmailForm(BuildContext context) {
+    final colors = context.tioColors;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TioInput(
+          key: const ValueKey('login-email-input'),
+          controller: _emailController,
+          onChanged: (_) {},
+          label: 'Email',
+          keyboardType: TextInputType.emailAddress,
+          textInputAction: TextInputAction.next,
+          enabled: !_isBusy,
+        ),
+        const SizedBox(height: TioSpacing.lg),
+        TioInput(
+          key: const ValueKey('login-password-input'),
+          controller: _passwordController,
+          onChanged: (_) {},
+          label: 'Password',
+          obscureText: !_isPasswordVisible,
+          textInputAction: TextInputAction.done,
+          enabled: !_isBusy,
+          onSubmitted: (_) => _handleEmailSignIn(),
+          trailing: IconButton(
+            icon: Icon(
+              _isPasswordVisible
+                  ? Icons.visibility_outlined
+                  : Icons.visibility_off_outlined,
+              color: colors.textMuted,
+              size: TioSize.dp22,
+            ),
+            onPressed: _isBusy
+                ? null
+                : () => setState(
+                      () => _isPasswordVisible = !_isPasswordVisible,
+                    ),
+          ),
+        ),
+        const SizedBox(height: TioSpacing.md),
+        TextButton(
+          key: const ValueKey('login-forgot-password-link'),
+          onPressed: _isBusy
+              ? null
+              : () => context.push(AppRoutes.forgotPassword.path),
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          child: Text('Forgot Password?', style: textTheme.labelLarge),
+        ),
+        const SizedBox(height: TioSpacing.xl),
+        TioButton.primary(
+          key: const ValueKey('login-submit-button'),
+          label: 'Login',
+          expand: true,
+          loading: _isEmailLoading,
+          enabled: _isFormValid && !_isGoogleLoading && !_isPhoneBusy,
+          onPressed: _handleEmailSignIn,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOrDivider(BuildContext context) {
+    final colors = context.tioColors;
+    return Row(
+      children: [
+        Expanded(
+          child: Divider(
+            color: colors.outlineStrong.withValues(alpha: TioOpacity.opacity30),
+            thickness: TioStroke.width1,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
+          child: Text(
+            'OR',
+            style: TextStyle(
+              fontSize: TioFontSize.size11,
+              fontWeight: TioFontWeight.w600,
+              color: colors.textMuted,
+              letterSpacing: TioLetterSpacing.positive05,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Divider(
+            color: colors.outlineStrong.withValues(alpha: TioOpacity.opacity30),
+            thickness: TioStroke.width1,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
-    final isDark = colors.isDark;
-
-    final inputBorderRadius = BorderRadius.circular(TioRadius.lg);
-    final inputBorderColor = colors.outlineStrong.withValues(
-      alpha: isDark
-          ? TioInputTokens.darkUnfocusedOutlineOpacity
-          : TioInputTokens.lightUnfocusedOutlineOpacity,
-    );
-    final inputFocusedBorderColor = colors.textPrimary;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -196,7 +323,6 @@ class _LoginPageState extends State<LoginPage> {
           children: [
             Column(
               children: [
-                // Top App Bar (100% Identical alignment with OnboardingTopBar & SignUp)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(
                     TioSpacing.sm,
@@ -215,15 +341,15 @@ class _LoginPageState extends State<LoginPage> {
                             color: colors.textPrimary,
                             size: TioSize.dp24,
                           ),
-                          onPressed: () {
-                            if (!_isBusy) {
-                              if (context.canPop()) {
-                                context.pop();
-                              } else {
-                                context.go('/auth');
-                              }
-                            }
-                          },
+                          onPressed: _isBusy
+                              ? null
+                              : () {
+                                  if (context.canPop()) {
+                                    context.pop();
+                                  } else {
+                                    context.go(AppRoutes.auth.path);
+                                  }
+                                },
                         ),
                         const SizedBox(width: TioSpacing.sm),
                         Text('Login', style: textTheme.titleLarge),
@@ -231,8 +357,6 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
-
-                // Form Content
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
@@ -242,182 +366,42 @@ class _LoginPageState extends State<LoginPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: TioSpacing.lg),
-
-                        // Email Input Field (Outlined)
-                        TextFormField(
-                          key: const ValueKey('login-email-input'),
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          textInputAction: TextInputAction.next,
-                          style: textTheme.bodyLarge,
-                          cursorColor: colors.primary,
-                          decoration: InputDecoration(
-                            labelText: 'Email',
-                            labelStyle: textTheme.bodyMedium,
-                            floatingLabelStyle: textTheme.bodyMedium?.copyWith(
-                              color: colors.textPrimary,
-                              fontWeight: TioFontWeight.w500,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: TioInputTokens.horizontalPadding,
-                              vertical:
-                                  TioInputTokens.standardContentVerticalPadding,
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: inputBorderRadius,
-                              borderSide: BorderSide(
-                                color: inputBorderColor,
-                                width: TioStroke.width12,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: inputBorderRadius,
-                              borderSide: BorderSide(
-                                color: inputFocusedBorderColor,
-                                width: TioStroke.width18,
-                              ),
-                            ),
-                            filled: false,
-                          ),
-                        ),
-
-                        const SizedBox(height: TioSpacing.lg),
-
-                        // Password Input Field (Outlined with Visibility Toggle)
-                        TextFormField(
-                          key: const ValueKey('login-password-input'),
-                          controller: _passwordController,
-                          obscureText: !_isPasswordVisible,
-                          textInputAction: TextInputAction.done,
-                          onFieldSubmitted: (_) => _handleEmailSignIn(),
-                          style: textTheme.bodyLarge,
-                          cursorColor: colors.primary,
-                          decoration: InputDecoration(
-                            hintText: 'Password',
-                            hintStyle: textTheme.bodyLarge?.copyWith(
-                              color: colors.textMuted,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: TioInputTokens.horizontalPadding,
-                              vertical:
-                                  TioInputTokens.standardContentVerticalPadding,
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: inputBorderRadius,
-                              borderSide: BorderSide(
-                                color: inputBorderColor,
-                                width: TioStroke.width12,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: inputBorderRadius,
-                              borderSide: BorderSide(
-                                color: inputFocusedBorderColor,
-                                width: TioStroke.width18,
-                              ),
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _isPasswordVisible
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                                color: colors.textMuted,
-                                size: TioSize.dp22,
-                              ),
-                              onPressed: () {
-                                setState(
-                                  () => _isPasswordVisible = !_isPasswordVisible,
-                                );
-                              },
-                            ),
-                            filled: false,
-                          ),
-                        ),
-
-                        const SizedBox(height: TioSpacing.md),
-
-                        // Forgot Password Link
-                        GestureDetector(
-                          key: const ValueKey('login-forgot-password-link'),
-                          onTap: () {
-                            if (!_isBusy) {
-                              context.push('/login/forgot-password');
-                            }
-                          },
-                          child: Text(
-                            'Forgot Password?',
-                            style: textTheme.labelLarge,
-                          ),
-                        ),
+                        if (_mode == AuthEntryMode.phone)
+                          PhoneOtpAuthSection(
+                            key: const ValueKey('login-phone-section'),
+                            keyPrefix: 'login',
+                            intent: PhoneOtpIntent.login,
+                            requestPhoneOtpUseCase: widget.requestPhoneOtpUseCase,
+                            resendPhoneOtpUseCase: widget.resendPhoneOtpUseCase,
+                            verifyPhoneOtpUseCase: widget.verifyPhoneOtpUseCase,
+                            enabled: _activeAction == null,
+                            onBusyChanged: (busy) {
+                              if (mounted) setState(() => _isPhoneBusy = busy);
+                            },
+                            onError: (message) {
+                              if (mounted) {
+                                setState(() => _errorMessage = message);
+                              }
+                            },
+                            onSignInSuccess: (result) {
+                              widget.onSignInSuccess?.call(result);
+                            },
+                          )
+                        else
+                          _buildEmailForm(context),
                         const SizedBox(height: TioSpacing.xl),
-                        // Login Action Button (Reusable TioButton Component)
-                        TioButton.primary(
-                          key: const ValueKey('login-submit-button'),
-                          label: 'Login',
-                          expand: true,
-                          loading: _isEmailLoading,
-                          enabled: _isFormValid && !_isGoogleLoading,
-                          onPressed: _handleEmailSignIn,
-                        ),
-
+                        _buildOrDivider(context),
                         const SizedBox(height: TioSpacing.xl),
-
-                        // OR Divider
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Divider(
-                                color: colors.outlineStrong.withValues(
-                                  alpha: TioOpacity.opacity30,
-                                ),
-                                thickness: TioStroke.width1,
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: TioSpacing.lg,
-                              ),
-                              child: Text(
-                                'OR',
-                                style: TextStyle(
-                                  fontSize: TioFontSize.size11,
-                                  fontWeight: TioFontWeight.w600,
-                                  color: colors.textMuted,
-                                  letterSpacing: TioLetterSpacing.positive05,
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: Divider(
-                                color: colors.outlineStrong.withValues(
-                                  alpha: TioOpacity.opacity30,
-                                ),
-                                thickness: TioStroke.width1,
-                              ),
-                            ),
-                          ],
+                        AuthRoundActions(
+                          key: const ValueKey('login-round-actions'),
+                          keyPrefix: 'login',
+                          mode: _mode,
+                          googleLoading: _isGoogleLoading,
+                          enabled: !_isPhoneBusy && !_isEmailLoading,
+                          onGooglePressed: _handleGoogleSignIn,
+                          onTruecallerPressed: _handleTruecallerSignIn,
+                          onModeSwitchPressed: _switchMode,
                         ),
-
-                        const SizedBox(height: TioSpacing.xl),
-
-                        // Continue with Google Button
-                        TioSocialButton.google(
-                          key: const ValueKey('login-google-button'),
-                          loading: _isGoogleLoading,
-                          enabled: !_isEmailLoading,
-                          onPressed: _handleGoogleSignIn,
-                        ),
-
-                        const SizedBox(height: TioSpacing.md),
-
-                        // Continue with Truecaller Button
-                        TioSocialButton.truecaller(
-                          key: const ValueKey('login-truecaller-button'),
-                          loading: false,
-                          enabled: !_isBusy,
-                          onPressed: _handleTruecallerSignIn,
-                        ),
-
                         const SizedBox(
                           height: TioSpacing.xl + TioSpacing.sm,
                         ),
@@ -425,8 +409,6 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
-
-                // Footer: Don't have an account? Sign Up
                 Padding(
                   padding: const EdgeInsets.only(top: TioSpacing.sm),
                   child: Row(
@@ -438,11 +420,9 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       TextButton(
                         key: const ValueKey('login-signup-link'),
-                        onPressed: () {
-                          if (!_isBusy) {
-                            context.pushReplacement(AppRoutes.emailSignup.path);
-                          }
-                        },
+                        onPressed: _isBusy
+                            ? null
+                            : () => context.pushReplacement(AppRoutes.signup.path),
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                             horizontal: TioSpacing.xs,
@@ -458,8 +438,6 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ],
             ),
-
-            // Floating Error Banner at Top
             if (_errorMessage != null)
               Positioned(
                 top: TioSpacing.md,
@@ -477,15 +455,12 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
-/// Floating error banner matching Tnyx-Hub error state.
 class _FloatingErrorBanner extends StatelessWidget {
   const _FloatingErrorBanner({
     required this.message,
     required this.onDismiss,
   });
 
-  // This is a one-off local Material effect, not evidence for a shared
-  // TioElevation role.
   static const _elevation = 6.0;
 
   final String message;
@@ -531,9 +506,11 @@ class _FloatingErrorBanner extends StatelessWidget {
                 ),
               ),
             ),
-            GestureDetector(
-              onTap: onDismiss,
-              child: const Icon(
+            IconButton(
+              onPressed: onDismiss,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              icon: const Icon(
                 Icons.close,
                 color: TioPalette.whiteAlpha179,
                 size: TioSize.dp18,

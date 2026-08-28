@@ -16,6 +16,8 @@ class AuthInterceptor extends Interceptor {
 
   static const _retryKey = '_tio_auth_retried';
 
+  Future<String?>? _inFlightRefresh;
+
   @override
   Future<void> onRequest(
     RequestOptions options,
@@ -68,15 +70,14 @@ class AuthInterceptor extends Interceptor {
   ) async {
     final statusCode = err.response?.statusCode;
 
-    // 401 Unauthorized -> Attempt single token refresh and request retry
+    // 401 Unauthorized -> Attempt single token refresh and request retry.
     if (statusCode == 401) {
       final isAlreadyRetried =
           err.requestOptions.extra[_retryKey] as bool? ?? false;
 
       if (!isAlreadyRetried) {
         try {
-          final refreshedToken =
-              await tokenProvider.getIdToken(forceRefresh: true);
+          final refreshedToken = await _refreshTokenOnce();
           if (refreshedToken != null && refreshedToken.trim().isNotEmpty) {
             final retryOptions = err.requestOptions;
             retryOptions.extra[_retryKey] = true;
@@ -91,12 +92,31 @@ class AuthInterceptor extends Interceptor {
             }
           }
         } catch (_) {
-          // Fall through to reject
+          // Fall through to reject the original 401 for all waiting requests.
         }
       }
     }
 
     return handler.next(err);
+  }
+
+  Future<String?> _refreshTokenOnce() {
+    final activeRefresh = _inFlightRefresh;
+    if (activeRefresh != null) {
+      return activeRefresh;
+    }
+
+    final refresh = _performRefresh();
+    _inFlightRefresh = refresh;
+    return refresh;
+  }
+
+  Future<String?> _performRefresh() async {
+    try {
+      return await tokenProvider.getIdToken(forceRefresh: true);
+    } finally {
+      _inFlightRefresh = null;
+    }
   }
 
   /// Utility to redact Authorization headers from map copies for safe logging.

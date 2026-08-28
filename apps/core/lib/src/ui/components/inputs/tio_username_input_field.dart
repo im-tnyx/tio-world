@@ -42,7 +42,7 @@ class TioUsernameInputField extends StatefulWidget {
     this.textInputAction = TextInputAction.next,
     this.onSubmitted,
     this.labelText = 'Username',
-    this.hintText = 'e.g. santosh_99',
+    this.hintText = 'e.g. your.name',
   });
 
   final TextEditingController controller;

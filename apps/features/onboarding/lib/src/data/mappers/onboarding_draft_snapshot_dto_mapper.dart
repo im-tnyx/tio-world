@@ -1,6 +1,8 @@
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
+import '../../domain/models/goal_intent.dart';
+import '../../domain/models/goal_weight_direction.dart';
 import '../../domain/models/onboarding_draft.dart';
 import '../../domain/models/onboarding_draft_snapshot.dart';
 import '../../domain/models/onboarding_status.dart';
@@ -13,6 +15,7 @@ import '../../domain/models/targets_onboarding_draft.dart';
 import '../../domain/models/workout_duration.dart';
 import '../../domain/models/workout_equipment.dart';
 import '../../domain/models/workout_experience_level.dart';
+import '../../domain/models/workout_flow_plan.dart';
 import '../../domain/models/workout_focus_area.dart';
 import '../../domain/models/workout_gym_access.dart';
 import '../../domain/models/workout_intro_choice.dart';
@@ -40,6 +43,7 @@ class OnboardingDraftSnapshotDtoMapper {
       'status': draft.status.name,
       'selected_mode': draft.selectedMode?.name,
       'workout_intro_choice': draft.workoutIntroChoice?.name,
+      'goal_selection': _goalSelectionToJson(draft.goalSelection),
       'current_step_id': _stepIdCodec.encode(draft.currentStepId),
       'completed_step_ids':
           draft.completedStepIds.map(_stepIdCodec.encode).toList(),
@@ -74,7 +78,13 @@ class OnboardingDraftSnapshotDtoMapper {
         .where((c) => c.name == introStr)
         .firstOrNull;
 
-    final currentStepId = _stepIdCodec.decodeOr(
+    final goalSelection = json['goal_selection'] is Map<String, dynamic>
+        ? _goalSelectionFromJson(
+            json['goal_selection'] as Map<String, dynamic>,
+          )
+        : const GoalIntentSelection();
+
+    var currentStepId = _stepIdCodec.decodeOr(
       json['current_step_id'],
       fallback: OnboardingStepId.mode,
     );
@@ -93,9 +103,28 @@ class OnboardingDraftSnapshotDtoMapper {
         ? _workoutFromJson(json['workout'] as Map<String, dynamic>)
         : const WorkoutOnboardingDraft();
 
+    // O6C migration: schema v1-v5 had one broad Workout checkpoint. O6B
+    // already emitted the canonical `workoutProfile` key, so schema version is
+    // the only reliable discriminator for old broad state versus the new split.
+    if (schemaVersion < 6) {
+      if (currentStepId == OnboardingStepId.workoutProfile &&
+          WorkoutFlowPlan.targetsOwnedStepIds.contains(workout.currentStepId)) {
+        currentStepId = OnboardingStepId.workoutTargets;
+      }
+      if (completedStepIds.contains(OnboardingStepId.workoutProfile)) {
+        completedStepIds.add(OnboardingStepId.workoutTargets);
+      }
+    }
+
     final targets = json['targets'] is Map<String, dynamic>
         ? _targetsFromJson(json['targets'] as Map<String, dynamic>)
-        : const TargetsOnboardingDraft();
+        : const TargetsOnboardingDraft(
+            hasDailyStepsValue: false,
+            hasSleepTargetMinutesValue: false,
+            hasSleepTimeMinutesValue: false,
+            hasWakeTimeMinutesValue: false,
+            hasWaterMlValue: false,
+          );
 
     final updatedAtStr = json['updated_at'] as String?;
     final updatedAt =
@@ -105,6 +134,7 @@ class OnboardingDraftSnapshotDtoMapper {
       status: status,
       selectedMode: selectedMode,
       workoutIntroChoice: workoutIntroChoice,
+      goalSelection: goalSelection,
       currentStepId: currentStepId,
       completedStepIds: completedStepIds,
       profile: profile,
@@ -116,6 +146,30 @@ class OnboardingDraftSnapshotDtoMapper {
       schemaVersion: schemaVersion,
       draft: draft,
       updatedAt: updatedAt,
+    );
+  }
+
+  Map<String, dynamic> _goalSelectionToJson(GoalIntentSelection selection) => {
+        'primary_goal': selection.primaryGoal?.name,
+        'supporting_goal': selection.supportingGoal?.name,
+        if (selection.tertiaryGoal != null)
+          'tertiary_goal': selection.tertiaryGoal!.name,
+      };
+
+  GoalIntentSelection _goalSelectionFromJson(Map<String, dynamic> j) {
+    final primaryStr = j['primary_goal'] as String?;
+    final supportingStr = j['supporting_goal'] as String?;
+    final tertiaryStr = j['tertiary_goal'] as String?;
+    return GoalIntentSelection(
+      primaryGoal: GoalIntent.values
+          .where((goal) => goal.name == primaryStr)
+          .firstOrNull,
+      supportingGoal: GoalIntent.values
+          .where((goal) => goal.name == supportingStr)
+          .firstOrNull,
+      tertiaryGoal: GoalIntent.values
+          .where((goal) => goal.name == tertiaryStr)
+          .firstOrNull,
     );
   }
 
@@ -132,6 +186,7 @@ class OnboardingDraftSnapshotDtoMapper {
         'volume_unit': p.unitPreferences.volumeUnit.storageValue,
         'current_weight_kg': p.currentWeightKg,
         'target_weight_kg': p.targetWeightKg,
+        'target_weight_direction': p.targetWeightDirection?.name,
         'activity_level': p.activityLevel?.name,
         'health_conditions': p.healthConditions.map((c) => c.name).toList(),
         'other_health_condition': p.otherHealthCondition,
@@ -165,6 +220,11 @@ class OnboardingDraftSnapshotDtoMapper {
         .where((a) => a.name == activityStr)
         .firstOrNull;
 
+    final targetDirectionStr = j['target_weight_direction'] as String?;
+    final targetWeightDirection = GoalWeightDirection.values
+        .where((direction) => direction.name == targetDirectionStr)
+        .firstOrNull;
+
     final conditionsList = (j['health_conditions'] as List<dynamic>?) ?? [];
     final healthConditions = conditionsList
         .map((c) => ProfileHealthCondition.values
@@ -173,7 +233,7 @@ class OnboardingDraftSnapshotDtoMapper {
         .whereType<ProfileHealthCondition>()
         .toSet();
 
-    final unitPreferences = MeasurementUnitPreferences(
+    final unitPreferences = UnitPreferences(
       weightUnit: WeightUnit.fromStorage(_normalizeWeightUnit(j['weight_unit'])),
       heightUnit: HeightUnit.fromStorage(_normalizeHeightUnit(j['height_unit'])),
       distanceUnit: DistanceUnit.fromStorage(j['distance_unit'] as String?),
@@ -190,6 +250,7 @@ class OnboardingDraftSnapshotDtoMapper {
       unitPreferences: unitPreferences,
       currentWeightKg: (j['current_weight_kg'] as num?)?.toDouble(),
       targetWeightKg: (j['target_weight_kg'] as num?)?.toDouble(),
+      targetWeightDirection: targetWeightDirection,
       activityLevel: activity,
       healthConditions: healthConditions,
       otherHealthCondition: j['other_health_condition'] as String? ?? '',
@@ -294,6 +355,11 @@ class OnboardingDraftSnapshotDtoMapper {
         'wake_time_minutes': t.wakeTimeMinutes,
         'water_ml': t.waterMl,
         'goal_pace_kg_per_week': t.goalPaceKgPerWeek,
+        'daily_steps_known': t.hasDailyStepsValue,
+        'sleep_target_minutes_known': t.hasSleepTargetMinutesValue,
+        'sleep_time_minutes_known': t.hasSleepTimeMinutesValue,
+        'wake_time_minutes_known': t.hasWakeTimeMinutesValue,
+        'water_ml_known': t.hasWaterMlValue,
       };
 
   TargetsOnboardingDraft _targetsFromJson(Map<String, dynamic> j) {
@@ -305,13 +371,24 @@ class OnboardingDraftSnapshotDtoMapper {
 
     return TargetsOnboardingDraft(
       currentStepId: currentStep,
-      dailySteps: j['daily_steps'] as int? ?? 10000,
-      sleepTargetMinutes: j['sleep_target_minutes'] as int? ?? 480,
-      sleepTimeMinutes: j['sleep_time_minutes'] as int? ?? 1320,
-      wakeTimeMinutes: j['wake_time_minutes'] as int? ?? 360,
-      waterMl: j['water_ml'] as int? ?? 2500,
+      dailySteps: (j['daily_steps'] as num?)?.toInt() ?? 10000,
+      sleepTargetMinutes:
+          (j['sleep_target_minutes'] as num?)?.toInt() ?? 480,
+      sleepTimeMinutes: (j['sleep_time_minutes'] as num?)?.toInt() ?? 1320,
+      wakeTimeMinutes: (j['wake_time_minutes'] as num?)?.toInt() ?? 360,
+      waterMl: (j['water_ml'] as num?)?.toInt() ?? 2500,
       goalPaceKgPerWeek:
           (j['goal_pace_kg_per_week'] as num?)?.toDouble() ?? 0.5,
+      hasDailyStepsValue:
+          j['daily_steps_known'] as bool? ?? j['daily_steps'] != null,
+      hasSleepTargetMinutesValue: j['sleep_target_minutes_known'] as bool? ??
+          j['sleep_target_minutes'] != null,
+      hasSleepTimeMinutesValue: j['sleep_time_minutes_known'] as bool? ??
+          j['sleep_time_minutes'] != null,
+      hasWakeTimeMinutesValue: j['wake_time_minutes_known'] as bool? ??
+          j['wake_time_minutes'] != null,
+      hasWaterMlValue:
+          j['water_ml_known'] as bool? ?? j['water_ml'] != null,
     );
   }
 }

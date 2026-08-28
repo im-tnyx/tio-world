@@ -8,7 +8,7 @@ void main() {
   const buildWorkoutPlan = BuildWorkoutFlowPlanUseCase();
 
   group('BuildOnboardingProgressPlanUseCase', () {
-    test('workout mode with gym access derives 25 product-onboarding screens', () {
+    test('workout mode with gym access derives 21 product-onboarding screens', () {
       final flowPlan = buildFlowPlan(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
@@ -19,10 +19,17 @@ void main() {
         workoutFlowPlan: workoutPlan,
       );
 
-      // Account Setup owns Mobile, so product onboarding no longer allocates a
-      // progress slot for it. Measurement Units remains a Profile child.
-      expect(progressPlan.totalSteps, 25);
+      expect(progressPlan.totalSteps, 21);
       expect(progressPlan.items.first, isA<ProfileProgressItem>());
+      expect(progressPlan.items.whereType<BodyGoalProgressItem>(), hasLength(4));
+      expect(progressPlan.items.whereType<WellnessProgressItem>(), isEmpty);
+      expect(progressPlan.items.whereType<NutritionProfileProgressItem>(), isEmpty);
+      expect(progressPlan.items.whereType<NutritionGoalsProgressItem>(), isEmpty);
+      expect(
+        progressPlan.items.whereType<HealthConnectionsProgressItem>(),
+        hasLength(1),
+      );
+      expect(progressPlan.items.whereType<TargetsProgressItem>(), isEmpty);
       expect(progressPlan.items.last, isA<ReviewProgressItem>());
       expect(
         progressPlan.items.whereType<WorkoutProgressItem>().map((e) => e.stepId),
@@ -30,7 +37,7 @@ void main() {
       );
     });
 
-    test('workout mode with home gym access derives 26 screens (includes equipment)', () {
+    test('workout mode with home gym access derives 22 screens (includes equipment)', () {
       final flowPlan = buildFlowPlan(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
@@ -41,14 +48,14 @@ void main() {
         workoutFlowPlan: workoutPlan,
       );
 
-      expect(progressPlan.totalSteps, 26);
+      expect(progressPlan.totalSteps, 22);
       expect(
         progressPlan.items.whereType<WorkoutProgressItem>().map((e) => e.stepId),
         contains(WorkoutStepId.equipment),
       );
     });
 
-    test('nutrition mode derives 17 product-onboarding screens', () {
+    test('nutrition mode derives 20 product-onboarding screens', () {
       final flowPlan = buildFlowPlan(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.nutrition,
@@ -59,12 +66,35 @@ void main() {
         workoutFlowPlan: workoutPlan,
       );
 
-      expect(progressPlan.totalSteps, 17);
+      expect(progressPlan.totalSteps, 20);
       expect(progressPlan.items.whereType<WorkoutProgressItem>(), isEmpty);
       expect(progressPlan.items.whereType<NutritionIntroProgressItem>(), isEmpty);
+      expect(progressPlan.items.whereType<WellnessProgressItem>(), hasLength(4));
+      expect(
+        progressPlan.items.whereType<NutritionProfileProgressItem>(),
+        hasLength(2),
+      );
+      expect(
+        progressPlan.items
+            .whereType<NutritionProfileProgressItem>()
+            .map((e) => e.stepId),
+        const [
+          NutritionProfileStepId.dietType,
+          NutritionProfileStepId.allergiesRestrictions,
+        ],
+      );
+      expect(
+        progressPlan.items.whereType<NutritionGoalsProgressItem>(),
+        hasLength(1),
+      );
+      expect(
+        progressPlan.items.whereType<HealthConnectionsProgressItem>(),
+        hasLength(1),
+      );
+      expect(progressPlan.items.whereType<TargetsProgressItem>(), isEmpty);
     });
 
-    test('hybrid setupNow derives 26 (gym) / 27 (home) screens', () {
+    test('hybrid setupNow derives 29 (gym) / 30 (home) screens', () {
       final flowPlan = buildFlowPlan(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.hybrid,
@@ -82,11 +112,15 @@ void main() {
         workoutFlowPlan: homeWorkoutPlan,
       );
 
-      expect(gymProgressPlan.totalSteps, 26);
-      expect(homeProgressPlan.totalSteps, 27);
+      expect(gymProgressPlan.totalSteps, 29);
+      expect(homeProgressPlan.totalSteps, 30);
+      expect(
+        gymProgressPlan.items.whereType<NutritionProfileProgressItem>(),
+        hasLength(2),
+      );
     });
 
-    test('hybrid later derives 18 screens (skips workout preferences)', () {
+    test('hybrid later derives 21 screens (skips workout preferences)', () {
       final flowPlan = buildFlowPlan(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.hybrid,
@@ -98,12 +132,16 @@ void main() {
         workoutFlowPlan: workoutPlan,
       );
 
-      expect(progressPlan.totalSteps, 18);
+      expect(progressPlan.totalSteps, 21);
       expect(progressPlan.items.whereType<WorkoutProgressItem>(), isEmpty);
       expect(progressPlan.items.whereType<WorkoutIntroProgressItem>(), hasLength(1));
+      expect(
+        progressPlan.items.whereType<NutritionProfileProgressItem>(),
+        hasLength(2),
+      );
     });
 
-    test('every Profile child screen strictly increases progress monotonically', () {
+    test('every common Profile child screen strictly increases progress', () {
       final flowPlan = buildFlowPlan(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
@@ -115,7 +153,7 @@ void main() {
       );
 
       double previousProgress = 0.0;
-      for (final profileStep in ProfileStepId.values) {
+      for (final profileStep in ProfileFlowPlan.orderedSteps) {
         final progress = progressPlan.progressFor(
           stepId: OnboardingStepId.profileBasics,
           profileStepId: profileStep,
@@ -124,7 +162,100 @@ void main() {
         );
 
         expect(progress, greaterThan(previousProgress),
-            reason: 'Step $profileStep must increase progress over $previousProgress');
+            reason: 'Profile step $profileStep must increase progress');
+        previousProgress = progress;
+      }
+    });
+
+    test('Body Goal children follow common Profile monotonically', () {
+      final flowPlan = buildFlowPlan(
+        entryPath: OnboardingEntryPath.firstRun,
+        mode: AppMode.workout,
+      );
+      final progressPlan = buildProgressPlan(
+        flowPlan: flowPlan,
+        workoutFlowPlan: buildWorkoutPlan(gymAccess: WorkoutGymAccess.gym),
+      );
+
+      var previousProgress = progressPlan.progressFor(
+        stepId: OnboardingStepId.profileBasics,
+        profileStepId: ProfileStepId.healthConditions,
+        workoutStepId: WorkoutStepId.gymAccess,
+        targetStepId: TargetStepId.bridge,
+      );
+
+      for (final bodyStep in BodyGoalFlowPlan.orderedSteps) {
+        final progress = progressPlan.progressFor(
+          stepId: OnboardingStepId.bodyGoal,
+          profileStepId: bodyStep,
+          workoutStepId: WorkoutStepId.gymAccess,
+          targetStepId: TargetStepId.bridge,
+        );
+        expect(progress, greaterThan(previousProgress),
+            reason: 'Body Goal step $bodyStep must follow common Profile');
+        previousProgress = progress;
+      }
+    });
+
+    test('Nutrition Profile children follow Body Goal monotonically', () {
+      final flowPlan = buildFlowPlan(
+        entryPath: OnboardingEntryPath.firstRun,
+        mode: AppMode.nutrition,
+      );
+      final progressPlan = buildProgressPlan(
+        flowPlan: flowPlan,
+        workoutFlowPlan: buildWorkoutPlan(),
+      );
+
+      var previousProgress = progressPlan.progressFor(
+        stepId: OnboardingStepId.bodyGoal,
+        profileStepId: ProfileStepId.goalPace,
+        workoutStepId: WorkoutStepId.gymAccess,
+        targetStepId: TargetStepId.bridge,
+      );
+
+      for (final nutritionStep in NutritionProfileFlowPlan.orderedSteps) {
+        final progress = progressPlan.progressFor(
+          stepId: OnboardingStepId.nutritionProfile,
+          profileStepId: ProfileStepId.goalPace,
+          nutritionProfileStepId: nutritionStep,
+          workoutStepId: WorkoutStepId.gymAccess,
+          targetStepId: TargetStepId.bridge,
+        );
+        expect(progress, greaterThan(previousProgress),
+            reason: 'Nutrition Profile step $nutritionStep must follow Body Goal');
+        previousProgress = progress;
+      }
+    });
+
+    test('Wellness children follow Nutrition Profile monotonically', () {
+      final flowPlan = buildFlowPlan(
+        entryPath: OnboardingEntryPath.firstRun,
+        mode: AppMode.nutrition,
+      );
+      final progressPlan = buildProgressPlan(
+        flowPlan: flowPlan,
+        workoutFlowPlan: buildWorkoutPlan(),
+      );
+
+      var previousProgress = progressPlan.progressFor(
+        stepId: OnboardingStepId.nutritionProfile,
+        profileStepId: ProfileStepId.goalPace,
+        nutritionProfileStepId: NutritionProfileStepId.allergiesRestrictions,
+        workoutStepId: WorkoutStepId.gymAccess,
+        targetStepId: TargetStepId.bridge,
+      );
+
+      for (final wellnessStep in WellnessFlowPlan.orderedSteps) {
+        final progress = progressPlan.progressFor(
+          stepId: OnboardingStepId.wellnessGoals,
+          profileStepId: ProfileStepId.goalPace,
+          nutritionProfileStepId: NutritionProfileStepId.allergiesRestrictions,
+          workoutStepId: WorkoutStepId.gymAccess,
+          targetStepId: wellnessStep,
+        );
+        expect(progress, greaterThan(previousProgress),
+            reason: 'Wellness step $wellnessStep must follow Nutrition Profile');
         previousProgress = progress;
       }
     });
@@ -141,8 +272,8 @@ void main() {
       );
 
       double previousProgress = progressPlan.progressFor(
-        stepId: OnboardingStepId.profileBasics,
-        profileStepId: ProfileStepId.healthConditions,
+        stepId: OnboardingStepId.bodyGoal,
+        profileStepId: ProfileStepId.goalPace,
         workoutStepId: WorkoutStepId.gymAccess,
         targetStepId: TargetStepId.bridge,
       );
@@ -150,7 +281,7 @@ void main() {
       for (final workoutStep in workoutPlan.steps) {
         final progress = progressPlan.progressFor(
           stepId: OnboardingStepId.workoutPreferences,
-          profileStepId: ProfileStepId.healthConditions,
+          profileStepId: ProfileStepId.goalPace,
           workoutStepId: workoutStep,
           targetStepId: TargetStepId.bridge,
         );
@@ -161,7 +292,34 @@ void main() {
       }
     });
 
-    test('every Targets child screen strictly increases progress monotonically', () {
+    test('Nutrition Target follows Wellness in Nutrition mode', () {
+      final flowPlan = buildFlowPlan(
+        entryPath: OnboardingEntryPath.firstRun,
+        mode: AppMode.nutrition,
+      );
+      final workoutPlan = buildWorkoutPlan();
+      final progressPlan = buildProgressPlan(
+        flowPlan: flowPlan,
+        workoutFlowPlan: workoutPlan,
+      );
+
+      final previousProgress = progressPlan.progressFor(
+        stepId: OnboardingStepId.wellnessGoals,
+        profileStepId: ProfileStepId.goalPace,
+        workoutStepId: WorkoutStepId.gymAccess,
+        targetStepId: TargetStepId.waterTarget,
+      );
+      final targetProgress = progressPlan.progressFor(
+        stepId: OnboardingStepId.nutritionGoals,
+        profileStepId: ProfileStepId.goalPace,
+        workoutStepId: WorkoutStepId.gymAccess,
+        targetStepId: TargetStepId.nutritionTarget,
+      );
+
+      expect(targetProgress, greaterThan(previousProgress));
+    });
+
+    test('Health Connections follows Workout Targets and precedes Review', () {
       final flowPlan = buildFlowPlan(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
@@ -172,25 +330,27 @@ void main() {
         workoutFlowPlan: workoutPlan,
       );
 
-      double previousProgress = progressPlan.progressFor(
-        stepId: OnboardingStepId.workoutPreferences,
-        profileStepId: ProfileStepId.healthConditions,
-        workoutStepId: WorkoutStepId.specialEvent,
+      final workoutProgress = progressPlan.progressFor(
+        stepId: OnboardingStepId.workoutTargets,
+        profileStepId: ProfileStepId.goalPace,
+        workoutStepId: workoutPlan.targetSteps.last,
+        targetStepId: TargetStepId.bridge,
+      );
+      final healthProgress = progressPlan.progressFor(
+        stepId: OnboardingStepId.healthConnections,
+        profileStepId: ProfileStepId.goalPace,
+        workoutStepId: workoutPlan.targetSteps.last,
+        targetStepId: TargetStepId.bridge,
+      );
+      final reviewProgress = progressPlan.progressFor(
+        stepId: OnboardingStepId.review,
+        profileStepId: ProfileStepId.goalPace,
+        workoutStepId: workoutPlan.targetSteps.last,
         targetStepId: TargetStepId.bridge,
       );
 
-      for (final targetStep in TargetsFlowPlan.orderedSteps) {
-        final progress = progressPlan.progressFor(
-          stepId: OnboardingStepId.targets,
-          profileStepId: ProfileStepId.healthConditions,
-          workoutStepId: WorkoutStepId.specialEvent,
-          targetStepId: targetStep,
-        );
-
-        expect(progress, greaterThan(previousProgress),
-            reason: 'Target step $targetStep must increase progress over $previousProgress');
-        previousProgress = progress;
-      }
+      expect(healthProgress, greaterThan(workoutProgress));
+      expect(reviewProgress, greaterThan(healthProgress));
     });
 
     test('Review screen reaches exactly 1.0 progress', () {
@@ -206,9 +366,9 @@ void main() {
 
       final progress = progressPlan.progressFor(
         stepId: OnboardingStepId.review,
-        profileStepId: ProfileStepId.healthConditions,
+        profileStepId: ProfileStepId.goalPace,
         workoutStepId: WorkoutStepId.specialEvent,
-        targetStepId: TargetStepId.nutritionTarget,
+        targetStepId: TargetStepId.bridge,
       );
 
       expect(progress, 1.0);
@@ -245,32 +405,31 @@ void main() {
       );
     });
 
-    test('going backward decreases derived progress naturally without mutable state', () {
+    test('going backward across the Profile/Body boundary decreases progress', () {
       final flowPlan = buildFlowPlan(
         entryPath: OnboardingEntryPath.firstRun,
         mode: AppMode.workout,
       );
-      final workoutPlan = buildWorkoutPlan(gymAccess: WorkoutGymAccess.gym);
       final progressPlan = buildProgressPlan(
         flowPlan: flowPlan,
-        workoutFlowPlan: workoutPlan,
+        workoutFlowPlan: buildWorkoutPlan(gymAccess: WorkoutGymAccess.gym),
       );
 
       final goalProgress = progressPlan.progressFor(
-        stepId: OnboardingStepId.profileBasics,
+        stepId: OnboardingStepId.bodyGoal,
         profileStepId: ProfileStepId.goal,
         workoutStepId: WorkoutStepId.gymAccess,
         targetStepId: TargetStepId.bridge,
       );
 
-      final genderProgress = progressPlan.progressFor(
+      final healthProgress = progressPlan.progressFor(
         stepId: OnboardingStepId.profileBasics,
-        profileStepId: ProfileStepId.gender,
+        profileStepId: ProfileStepId.healthConditions,
         workoutStepId: WorkoutStepId.gymAccess,
         targetStepId: TargetStepId.bridge,
       );
 
-      expect(genderProgress, lessThan(goalProgress));
+      expect(healthProgress, lessThan(goalProgress));
     });
 
     test('dynamically changing gym to home recalculates total without phantom slots', () {
@@ -283,19 +442,19 @@ void main() {
         flowPlan: flowPlan,
         workoutFlowPlan: buildWorkoutPlan(gymAccess: WorkoutGymAccess.gym),
       );
-      expect(gymPlan.totalSteps, 25);
+      expect(gymPlan.totalSteps, 21);
 
       final homePlan = buildProgressPlan(
         flowPlan: flowPlan,
         workoutFlowPlan: buildWorkoutPlan(gymAccess: WorkoutGymAccess.home),
       );
-      expect(homePlan.totalSteps, 26);
+      expect(homePlan.totalSteps, 22);
 
       final backToGymPlan = buildProgressPlan(
         flowPlan: flowPlan,
         workoutFlowPlan: buildWorkoutPlan(gymAccess: WorkoutGymAccess.gym),
       );
-      expect(backToGymPlan.totalSteps, 25);
+      expect(backToGymPlan.totalSteps, 21);
     });
   });
 }

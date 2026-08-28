@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:tio_shared/shared.dart';
 
 import '../../domain/repositories/profile_account_repository.dart';
 
@@ -31,40 +32,10 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
     return username.trim().toLowerCase();
   }
 
-  String _normalizeMobile(String mobile) {
-    final trimmed = mobile.trim();
-    if (trimmed.isEmpty) return '';
-
-    final digits = trimmed.replaceAll(RegExp(r'[^0-9]'), '');
-    if (digits.length == 10) return '+91 $digits';
-    if (digits.startsWith('91') && digits.length == 12) {
-      return '+91 ${digits.substring(2)}';
-    }
-    return trimmed;
-  }
-
   bool _isValidUsername(String username) {
     return username.length >= _usernameMinLength &&
         username.length <= _usernameMaxLength &&
         _usernamePattern.hasMatch(username);
-  }
-
-  String _resolveProfileName(User user) {
-    final metadata = user.userMetadata ?? const <String, dynamic>{};
-    for (final key in const ['full_name', 'display_name', 'name']) {
-      final value = metadata[key];
-      if (value is String && value.trim().isNotEmpty) {
-        return value.trim();
-      }
-    }
-
-    final email = user.email?.trim() ?? '';
-    if (email.contains('@')) {
-      final localPart = email.split('@').first.trim();
-      if (localPart.isNotEmpty) return localPart;
-    }
-
-    return 'Tio User';
   }
 
   UsernameAvailabilityReason? _parseReason(Object? value) {
@@ -158,7 +129,7 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
 
   @override
   Future<void> updateUsername(String username) async {
-    final user = _requireUser();
+    _requireUser();
     final normalizedUsername = _normalizeUsername(username);
     if (!_isValidUsername(normalizedUsername)) {
       throw ArgumentError.value(
@@ -168,30 +139,16 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
       );
     }
 
-    var claim = await _claimUsername(normalizedUsername);
+    final claim = await _claimUsername(normalizedUsername);
     if (claim['claimed'] == true) return;
 
-    if (_parseReason(claim['reason']) !=
+    if (_parseReason(claim['reason']) ==
         UsernameAvailabilityReason.profileMissing) {
-      _throwClaimFailure(claim);
+      throw StateError(
+        'Account root is missing for the authenticated user.',
+      );
     }
 
-    final nowIso = DateTime.now().toUtc().toIso8601String();
-    try {
-      await _client.from('users').insert({
-        'id': user.id,
-        'name': _resolveProfileName(user),
-        if (user.email != null && user.email!.trim().isNotEmpty)
-          'email': user.email!.trim().toLowerCase(),
-        'last_active_at': nowIso,
-        'updated_at': nowIso,
-      });
-    } on PostgrestException catch (error) {
-      if (error.code != '23505') rethrow;
-    }
-
-    claim = await _claimUsername(normalizedUsername);
-    if (claim['claimed'] == true) return;
     _throwClaimFailure(claim);
   }
 
@@ -218,8 +175,8 @@ class SupabaseProfileAccountRepository implements ProfileAccountRepository {
     );
     final usernameChanged = previousUsername != normalizedUsername;
 
-    final normalizedMobile = _normalizeMobile(mobile);
-    final previousMobile = _normalizeMobile(
+    final normalizedMobile = normalizePhoneNumberE164(mobile);
+    final previousMobile = normalizePhoneNumberE164(
       (current['mobile'] as String?)?.trim() ?? '',
     );
     final mobileChanged = previousMobile != normalizedMobile;

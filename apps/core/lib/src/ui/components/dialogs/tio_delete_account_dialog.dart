@@ -49,6 +49,7 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
   Timer? _countdownTimer;
   int _remainingSeconds = 5;
   bool _isDeleting = false;
+  String? _deleteError;
 
   @override
   void initState() {
@@ -81,7 +82,10 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
 
   void _onHoldStarted() {
     if (_isDeleting) return;
-    setState(() => _remainingSeconds = 5);
+    setState(() {
+      _remainingSeconds = 5;
+      _deleteError = null;
+    });
     _holdController.forward(from: 0.0);
   }
 
@@ -92,7 +96,11 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
   }
 
   Future<void> _executeDelete() async {
-    setState(() => _isDeleting = true);
+    if (_isDeleting) return;
+    setState(() {
+      _isDeleting = true;
+      _deleteError = null;
+    });
     try {
       await widget.onDeleteConfirmed();
       if (mounted) {
@@ -103,8 +111,13 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _isDeleting = false);
-        Navigator.of(context).pop(false);
+        _holdController.reset();
+        setState(() {
+          _remainingSeconds = 5;
+          _isDeleting = false;
+          _deleteError =
+              'Account deletion could not be confirmed. Please try again.';
+        });
       }
     }
   }
@@ -113,48 +126,56 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
   Widget build(BuildContext context) {
     final colors = context.tioColors;
 
-    return Scaffold(
-      backgroundColor: colors.background.withAlpha(TioAlpha.alpha245),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // ── Top Right Close Button ──
-            Positioned(
-              top: TioSpacing.md,
-              right: TioSpacing.lg,
-              child: Container(
-                width: TioSize.dp36,
-                height: TioSize.dp36,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: colors.textPrimary.withAlpha(TioAlpha.alpha25),
-                ),
-                child: IconButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  icon: Icon(
-                    Icons.close_rounded,
-                    color: colors.textPrimary,
-                    size: TioSize.dp20,
+    return PopScope(
+      canPop: !_isDeleting,
+      child: Scaffold(
+        backgroundColor: colors.background.withAlpha(TioAlpha.alpha245),
+        body: SafeArea(
+          child: Stack(
+            children: [
+              // ── Top Right Close Button ──
+              Positioned(
+                top: TioSpacing.md,
+                right: TioSpacing.lg,
+                child: Container(
+                  width: TioSize.dp36,
+                  height: TioSize.dp36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: colors.textPrimary.withAlpha(TioAlpha.alpha25),
                   ),
-                  splashRadius: TioSize.dp18,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                  child: IconButton(
+                    key: const ValueKey('delete_account_close_button'),
+                    onPressed: _isDeleting
+                        ? null
+                        : () => Navigator.of(context).pop(false),
+                    icon: Icon(
+                      Icons.close_rounded,
+                      color: colors.textPrimary,
+                      size: TioSize.dp20,
+                    ),
+                    splashRadius: TioSize.dp18,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
                 ),
               ),
-            ),
 
-            // ── Center Content Step ──
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
-                child: switch (_step) {
-                  DeleteAccountStep.confirm => _buildConfirmStep(colors),
-                  DeleteAccountStep.holdToDelete => _buildHoldToDeleteStep(colors),
-                  DeleteAccountStep.completed => _buildCompletedStep(colors),
-                },
+              // ── Center Content Step ──
+              Center(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
+                  child: switch (_step) {
+                    DeleteAccountStep.confirm => _buildConfirmStep(colors),
+                    DeleteAccountStep.holdToDelete =>
+                      _buildHoldToDeleteStep(colors),
+                    DeleteAccountStep.completed => _buildCompletedStep(colors),
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -203,7 +224,9 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
           width: double.infinity,
           height: TioSize.dp54,
           child: FilledButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: _isDeleting
+                ? null
+                : () => Navigator.of(context).pop(false),
             style: FilledButton.styleFrom(
               backgroundColor: colors.textPrimary,
               foregroundColor: colors.background,
@@ -228,7 +251,11 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
           width: double.infinity,
           height: TioSize.dp54,
           child: FilledButton(
-            onPressed: () => setState(() => _step = DeleteAccountStep.holdToDelete),
+            onPressed: _isDeleting
+                ? null
+                : () => setState(
+                      () => _step = DeleteAccountStep.holdToDelete,
+                    ),
             style: FilledButton.styleFrom(
               backgroundColor: colors.danger.withAlpha(TioAlpha.alpha35),
               foregroundColor: colors.danger,
@@ -303,11 +330,11 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
         const SizedBox(height: TioSpacing.md),
 
         // ── Interactive 5-Second Hold Button ──
-        GestureDetector(
+        Listener(
           key: const ValueKey('hold_to_delete_button'),
-          onTapDown: (_) => _onHoldStarted(),
-          onTapUp: (_) => _onHoldReleased(),
-          onTapCancel: () => _onHoldReleased(),
+          onPointerDown: (_) => _onHoldStarted(),
+          onPointerUp: (_) => _onHoldReleased(),
+          onPointerCancel: (_) => _onHoldReleased(),
           child: SizedBox(
             width: TioSize.dp140,
             height: TioSize.dp140,
@@ -369,6 +396,20 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
           ),
         ),
 
+        if (_deleteError case final message?) ...[
+          const SizedBox(height: TioSpacing.md),
+          Text(
+            message,
+            key: const ValueKey('delete_account_error'),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: colors.danger,
+              fontSize: TioFontSize.size13,
+              fontWeight: TioFontWeight.w600,
+            ),
+          ),
+        ],
+
         const SizedBox(height: TioSize.dp56),
 
         // Keep Account Button
@@ -376,7 +417,10 @@ class _TioDeleteAccountOverlayState extends State<TioDeleteAccountOverlay>
           width: double.infinity,
           height: TioSize.dp54,
           child: FilledButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            key: const ValueKey('delete_account_keep_button'),
+            onPressed: _isDeleting
+                ? null
+                : () => Navigator.of(context).pop(false),
             style: FilledButton.styleFrom(
               backgroundColor: colors.textPrimary,
               foregroundColor: colors.background,

@@ -44,7 +44,7 @@ void main() {
             dateOfBirth: DateTime(2000, 1, 1),
             heightCm: 182.88,
             currentWeightKg: 81.6466266,
-            unitPreferences: MeasurementUnitPreferences.imperial,
+            unitPreferences: UnitPreferences.imperial,
             activityLevel: ProfileActivityLevel.active,
             healthConditions: const {ProfileHealthCondition.none},
           ),

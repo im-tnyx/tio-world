@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
-import 'package:tio_shared/shared.dart';
 
 import '../../../domain/domain.dart';
 
@@ -23,10 +22,34 @@ class ReviewScreen extends StatelessWidget {
     final profile = draft.profile;
     final workout = draft.workout;
     final blockers = completionEligibility.blockingSteps;
+    final goalSummary = draft.goalSelection.goals.map(_goalIntentLabel).join(', ');
+    final weightGoalDirection = const WeightGoalFlowPolicy().directionFor(
+      mode: draft.selectedMode,
+      selection: draft.goalSelection,
+    );
+    final targetWeightIsActive = weightGoalDirection != null &&
+        profile.targetWeightDirection == weightGoalDirection;
+    final activeTargetWeightKg =
+        targetWeightIsActive ? profile.targetWeightKg : null;
+    final effectiveProfile = targetWeightIsActive
+        ? profile
+        : profile.copyWith(clearTargetWeightKg: true);
+    final effectiveTargets = weightGoalDirection == null
+        ? draft.targets.copyWith(goalPaceKgPerWeek: 0.0)
+        : draft.targets;
 
-    final hasWorkoutPreferences = draft.selectedMode != AppMode.nutrition &&
-        draft.workoutIntroChoice != WorkoutIntroChoice.later &&
-        workout.gymAccess != null;
+    final hasWellness = flowPlan.contains(OnboardingStepId.wellnessGoals);
+    final hasNutritionTarget = flowPlan.contains(OnboardingStepId.nutritionGoals);
+    final hasDailyTargets = hasWellness || hasNutritionTarget;
+    final nutritionRecommendation = hasNutritionTarget
+        ? const CalculateNutritionTargetRecommendationUseCase()(
+            profile: effectiveProfile,
+            targets: effectiveTargets,
+          )
+        : null;
+    final hasWorkoutPreferences =
+        flowPlan.contains(OnboardingStepId.workoutProfile) &&
+            workout.gymAccess != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,9 +78,7 @@ class ReviewScreen extends StatelessWidget {
             const SizedBox(height: TioSize.dp10),
             _SummaryRow(
               label: 'Goals',
-              value: profile.goals.isEmpty
-                  ? 'Not selected'
-                  : profile.goals.map(_goalLabel).join(', '),
+              value: goalSummary.isEmpty ? 'Not selected' : goalSummary,
             ),
             const SizedBox(height: TioSize.dp10),
             _SummaryRow(
@@ -78,10 +99,18 @@ class ReviewScreen extends StatelessWidget {
               label: 'Weight plan',
               value: profile.currentWeightKg == null
                   ? 'Not selected'
-                  : profile.targetWeightKg != null
-                      ? '${profile.currentWeightKg!.toStringAsFixed(1)} kg ➔ ${profile.targetWeightKg!.toStringAsFixed(1)} kg'
+                  : activeTargetWeightKg != null
+                      ? '${profile.currentWeightKg!.toStringAsFixed(1)} kg ➔ ${activeTargetWeightKg.toStringAsFixed(1)} kg'
                       : '${profile.currentWeightKg!.toStringAsFixed(1)} kg',
             ),
+            if (weightGoalDirection != null) ...[
+              const SizedBox(height: TioSize.dp10),
+              _SummaryRow(
+                label: 'Goal pace',
+                value:
+                    '${draft.targets.goalPaceKgPerWeek.toStringAsFixed(1)} kg / week',
+              ),
+            ],
             const SizedBox(height: TioSize.dp10),
             _SummaryRow(
               label: 'Activity',
@@ -99,52 +128,48 @@ class ReviewScreen extends StatelessWidget {
             ],
           ],
         ),
-        const SizedBox(height: TioSpacing.md),
-        _ReviewCard(
-          title: 'Daily Targets',
-          icon: Icons.track_changes_rounded,
-          children: [
-            _SummaryRow(
-              label: 'Steps',
-              value: '${draft.targets.dailySteps} steps/day',
-            ),
-            const SizedBox(height: TioSize.dp10),
-            _SummaryRow(
-              label: 'Hydration',
-              value: '${draft.targets.waterMl} ml/day',
-            ),
-            const SizedBox(height: TioSize.dp10),
-            _SummaryRow(
-              label: 'Sleep',
-              value:
-                  '${draft.targets.sleepTargetMinutes ~/ 60}h ${(draft.targets.sleepTargetMinutes % 60).toString().padLeft(2, '0')}m / night',
-            ),
-            if (GoalPaceResolver.resolveMode(
-                  currentWeightKg: profile.currentWeightKg,
-                  targetWeightKg: profile.targetWeightKg,
-                ) !=
-                GoalPaceMode.maintenance) ...[
-              const SizedBox(height: TioSize.dp10),
-              _SummaryRow(
-                label: 'Goal pace',
-                value:
-                    '${draft.targets.goalPaceKgPerWeek.toStringAsFixed(1)} kg / week',
-              ),
+        if (hasDailyTargets) ...[
+          const SizedBox(height: TioSpacing.md),
+          _ReviewCard(
+            title: 'Daily Targets',
+            icon: Icons.track_changes_rounded,
+            children: [
+              if (hasWellness) ...[
+                _SummaryRow(
+                  label: 'Steps',
+                  value: draft.targets.hasDailyStepsValue
+                      ? '${draft.targets.dailySteps} steps/day'
+                      : 'Not set',
+                ),
+                const SizedBox(height: TioSize.dp10),
+                _SummaryRow(
+                  label: 'Hydration',
+                  value: draft.targets.hasWaterMlValue
+                      ? '${draft.targets.waterMl} ml/day'
+                      : 'Not set',
+                ),
+                const SizedBox(height: TioSize.dp10),
+                _SummaryRow(
+                  label: 'Sleep',
+                  value: draft.targets.hasSleepTargetMinutesValue
+                      ? '${draft.targets.sleepTargetMinutes ~/ 60}h ${(draft.targets.sleepTargetMinutes % 60).toString().padLeft(2, '0')}m / night'
+                      : 'Not set',
+                ),
+              ],
+              if (nutritionRecommendation
+                  case NutritionTargetRecommendationSuccess(
+                    :final recommendation
+                  )) ...[
+                if (hasWellness) const SizedBox(height: TioSize.dp10),
+                _SummaryRow(
+                  label: 'Target calories',
+                  value:
+                      '${recommendation.caloriesKcal} kcal (${recommendation.proteinGrams}g P / ${recommendation.carbsGrams}g C / ${recommendation.fatGrams}g F)',
+                ),
+              ],
             ],
-            if (const CalculateNutritionTargetRecommendationUseCase()(
-                  profile: profile,
-                  targets: draft.targets,
-                )
-                case NutritionTargetRecommendationSuccess(:final recommendation)) ...[
-              const SizedBox(height: TioSize.dp10),
-              _SummaryRow(
-                label: 'Target calories',
-                value:
-                    '${recommendation.caloriesKcal} kcal (${recommendation.proteinGrams}g P / ${recommendation.carbsGrams}g C / ${recommendation.fatGrams}g F)',
-              ),
-            ],
-          ],
-        ),
+          ),
+        ],
         if (hasWorkoutPreferences) ...[
           const SizedBox(height: TioSpacing.md),
           _ReviewCard(
@@ -347,13 +372,16 @@ String _genderLabel(ProfileGender gender) {
   };
 }
 
-String _goalLabel(ProfileGoal goal) {
+String _goalIntentLabel(GoalIntent goal) {
   return switch (goal) {
-    ProfileGoal.loseWeight => 'Lose weight',
-    ProfileGoal.buildMuscle => 'Build muscle',
-    ProfileGoal.keepFit => 'Keep fit',
-    ProfileGoal.boostStrength => 'Boost strength',
-    ProfileGoal.manageStress => 'Manage stress',
+    GoalIntent.loseWeight => 'Lose weight',
+    GoalIntent.gainWeight => 'Gain weight',
+    GoalIntent.maintainWeight => 'Maintain weight',
+    GoalIntent.recomposition => 'Recomposition',
+    GoalIntent.buildMuscle => 'Build muscle',
+    GoalIntent.getStronger => 'Get stronger',
+    GoalIntent.improveEndurance => 'Improve endurance',
+    GoalIntent.stayFit => 'Stay fit',
   };
 }
 

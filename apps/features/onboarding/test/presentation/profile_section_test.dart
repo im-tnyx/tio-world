@@ -131,7 +131,7 @@ void main() {
     expect(harness.controller.state.draft.profile.name, 'Tio User');
   });
 
-  testWidgets('health Other uses typed draft and final step follows mode plan',
+  testWidgets('final Profile step enters Current Weight then Goal',
       (tester) async {
     final harness = await _pumpProfile(
       tester,
@@ -157,14 +157,25 @@ void main() {
 
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
+    expect(harness.controller.state.stepId, OnboardingStepId.bodyGoal);
+    expect(harness.controller.state.currentSection, OnboardingSectionId.bodyGoal);
+    expect(find.byType(BodyGoalSection), findsOneWidget);
+    expect(find.text('What is your current weight?'), findsOneWidget);
     expect(
-      harness.controller.state.stepId,
-      OnboardingStepId.workoutPreferences,
+      harness.controller.state.draft.profile.currentStepId,
+      ProfileStepId.currentWeight,
     );
-    expect(find.text('Where will you mostly work out?'), findsOneWidget);
+
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(find.text('What do you want to achieve?'), findsOneWidget);
+    expect(
+      harness.controller.state.draft.profile.currentStepId,
+      ProfileStepId.goal,
+    );
   });
 
-  testWidgets('profile subprogress has deterministic accessible semantics',
+  testWidgets('common Profile subprogress has deterministic accessible semantics',
       (tester) async {
     final semantics = tester.ensureSemantics();
     try {
@@ -175,7 +186,7 @@ void main() {
 
       expect(
         find.bySemanticsLabel(
-          "Profile step 9 of 10, What's your typical day like?",
+          "Profile step 6 of 7, What's your typical day like?",
         ),
         findsOneWidget,
       );
@@ -184,17 +195,14 @@ void main() {
     }
   });
 
-  testWidgets('renderer maps every typed ProfileStepId to its screen',
+  testWidgets('Profile renderer maps every common Profile child to its screen',
       (tester) async {
     const titles = {
       ProfileStepId.name: 'What should Tio call you?',
       ProfileStepId.gender: 'How do you describe your gender?',
-      ProfileStepId.goal: "Hi Tio User 👋, what's your main goal?",
       ProfileStepId.age: 'When were you born?',
       ProfileStepId.measurementUnits: 'Choose your units',
       ProfileStepId.height: 'What is your height?',
-      ProfileStepId.currentWeight: 'What is your current weight?',
-      ProfileStepId.targetWeight: 'What is your target weight?',
       ProfileStepId.activity: "What's your typical day like?",
       ProfileStepId.healthConditions: 'Are you managing any health conditions?',
     };
@@ -218,22 +226,55 @@ void main() {
     }
   });
 
-  testWidgets('selected goals render and update the typed draft',
+  testWidgets('Body Goal renderer reuses Goal and weight screens', (tester) async {
+    const titles = {
+      ProfileStepId.goal: 'What do you want to achieve?',
+      ProfileStepId.currentWeight: 'What is your current weight?',
+      ProfileStepId.targetWeight: 'What is your target weight?',
+    };
+
+    final controller = OnboardingController(
+      entryPath: OnboardingEntryPath.firstRun,
+      initialDraft: _bodyGoalOnboardingDraft(ProfileStepId.goal),
+    );
+    addTearDown(controller.dispose);
+    await _pumpDirectBodyGoalSection(tester, controller);
+
+    double? expectedTitleTop;
+    for (final entry in titles.entries) {
+      controller.initialize(_bodyGoalOnboardingDraft(entry.key));
+      await tester.pump();
+      expect(controller.state.stepId, OnboardingStepId.bodyGoal);
+      expect(find.text(entry.value), findsOneWidget, reason: entry.key.name);
+      final titleTop = tester.getTopLeft(find.text(entry.value)).dy;
+      expectedTitleTop ??= titleTop;
+      expect(titleTop, expectedTitleTop, reason: '${entry.key.name} title top');
+    }
+  });
+
+  testWidgets('unified goals render in Body Goal and update ordered selection',
       (tester) async {
-    final harness = await _pumpProfile(
+    final harness = await _pumpBodyGoal(
       tester,
       profile: _validProfile(currentStepId: ProfileStepId.goal),
+      goalSelection: const GoalIntentSelection(
+        primaryGoal: GoalIntent.buildMuscle,
+      ),
     );
-    final keepFit = find.byKey(
-      const ValueKey('goal-keepFit'),
+
+    expect(harness.controller.state.stepId, OnboardingStepId.bodyGoal);
+    expect(find.byType(BodyGoalSection), findsOneWidget);
+
+    final primary = find.byKey(
+      const ValueKey('goal-intent-buildMuscle'),
     );
     expect(
-      find.descendant(of: keepFit, matching: find.byIcon(Icons.check_circle)),
+      find.descendant(of: primary, matching: find.byIcon(Icons.check_circle)),
       findsOneWidget,
     );
 
     final supporting = find.byKey(
-      const ValueKey('goal-boostStrength'),
+      const ValueKey('goal-intent-getStronger'),
     );
     await tester.ensureVisible(supporting);
     await tester.pumpAndSettle();
@@ -241,8 +282,11 @@ void main() {
     await tester.pump();
 
     expect(
-      harness.controller.state.draft.profile.goals,
-      {ProfileGoal.keepFit, ProfileGoal.boostStrength},
+      harness.controller.state.draft.goalSelection,
+      const GoalIntentSelection(
+        primaryGoal: GoalIntent.buildMuscle,
+        supportingGoal: GoalIntent.getStronger,
+      ),
     );
   });
 }
@@ -250,7 +294,22 @@ void main() {
 OnboardingDraft _profileOnboardingDraft(ProfileStepId stepId) {
   return OnboardingDraft(
     selectedMode: AppMode.workout,
+    goalSelection: const GoalIntentSelection(
+      primaryGoal: GoalIntent.loseWeight,
+    ),
     currentStepId: OnboardingStepId.profileBasics,
+    profile: _validProfile(currentStepId: stepId),
+  );
+}
+
+OnboardingDraft _bodyGoalOnboardingDraft(ProfileStepId stepId) {
+  return OnboardingDraft(
+    selectedMode: AppMode.workout,
+    goalSelection: const GoalIntentSelection(
+      primaryGoal: GoalIntent.loseWeight,
+    ),
+    currentStepId: OnboardingStepId.bodyGoal,
+    completedStepIds: const {OnboardingStepId.profileBasics},
     profile: _validProfile(currentStepId: stepId),
   );
 }
@@ -279,9 +338,65 @@ Future<void> _pumpDirectProfileSection(
   await tester.pump();
 }
 
+Future<void> _pumpDirectBodyGoalSection(
+  WidgetTester tester,
+  OnboardingController controller,
+) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      home: TioTheme(
+        child: Scaffold(
+          body: AnimatedBuilder(
+            animation: controller,
+            builder: (context, _) => SingleChildScrollView(
+              child: BodyGoalSection(
+                state: controller.state,
+                controller: controller,
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.pump();
+}
+
 Future<_ProfileHarness> _pumpProfile(
   WidgetTester tester, {
   ProfileOnboardingDraft? profile,
+  GoalIntentSelection goalSelection = const GoalIntentSelection(
+    primaryGoal: GoalIntent.loseWeight,
+  ),
+  Future<void> Function()? onExitRequested,
+}) async {
+  return _pumpSection(
+    tester,
+    currentStepId: OnboardingStepId.profileBasics,
+    profile: profile ?? ProfileOnboardingDraft(),
+    goalSelection: goalSelection,
+    onExitRequested: onExitRequested,
+  );
+}
+
+Future<_ProfileHarness> _pumpBodyGoal(
+  WidgetTester tester, {
+  required ProfileOnboardingDraft profile,
+  required GoalIntentSelection goalSelection,
+}) async {
+  return _pumpSection(
+    tester,
+    currentStepId: OnboardingStepId.bodyGoal,
+    profile: profile,
+    goalSelection: goalSelection,
+  );
+}
+
+Future<_ProfileHarness> _pumpSection(
+  WidgetTester tester, {
+  required OnboardingStepId currentStepId,
+  required ProfileOnboardingDraft profile,
+  required GoalIntentSelection goalSelection,
   Future<void> Function()? onExitRequested,
 }) async {
   final container = ProviderContainer();
@@ -290,8 +405,9 @@ Future<_ProfileHarness> _pumpProfile(
     entryPath: OnboardingEntryPath.firstRun,
     draft: OnboardingDraft(
       selectedMode: AppMode.workout,
-      currentStepId: OnboardingStepId.profileBasics,
-      profile: profile ?? ProfileOnboardingDraft(),
+      goalSelection: goalSelection,
+      currentStepId: currentStepId,
+      profile: profile,
     ),
   );
 
@@ -330,7 +446,8 @@ ProfileOnboardingDraft _validProfile({
     dateOfBirth: DateTime(2000, 1, 1),
     heightCm: 171,
     currentWeightKg: 70,
-    targetWeightKg: 70,
+    targetWeightKg: 65,
+    targetWeightDirection: GoalWeightDirection.loss,
     activityLevel: ProfileActivityLevel.active,
     healthConditions: healthConditions,
   );

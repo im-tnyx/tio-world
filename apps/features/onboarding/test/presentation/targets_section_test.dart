@@ -6,102 +6,134 @@ import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
-  testWidgets(
-      'targets section renders bridge first and advances through all child steps to review',
+  testWidgets('Wellness section renders four active children in exact order',
       (tester) async {
-    final harness = await _pumpTargets(tester);
+    final harness = await _pumpTargets(
+      tester,
+      mode: AppMode.nutrition,
+      initialTargets: const TargetsOnboardingDraft(
+        currentStepId: TargetStepId.bridge,
+      ),
+    );
     final semantics = tester.ensureSemantics();
 
     try {
-      expect(find.byType(TargetsSection), findsOneWidget);
+      expect(harness.controller.state.stepId, OnboardingStepId.wellnessGoals);
+      expect(find.byType(WellnessSection), findsOneWidget);
+      expect(find.byType(TargetsSection), findsNothing);
       expect(find.byType(BridgeScreen), findsOneWidget);
       expect(
-        find.bySemanticsLabel('Target step 1 of 6, Building your targets'),
+        find.bySemanticsLabel('Target step 1 of 4, Building your targets'),
         findsOneWidget,
       );
-      expect(find.text('Continue'), findsOneWidget);
 
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
-
       expect(find.byType(StepTargetScreen), findsOneWidget);
       expect(
-        find.bySemanticsLabel('Target step 2 of 6, Daily step target'),
+        find.bySemanticsLabel('Target step 2 of 4, Daily step target'),
         findsOneWidget,
       );
-      expect(find.text('Continue'), findsOneWidget);
 
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
-
       expect(find.byType(SleepTargetScreen), findsOneWidget);
       expect(
-        find.bySemanticsLabel('Target step 3 of 6, Sleep schedule target'),
+        find.bySemanticsLabel('Target step 3 of 4, Sleep schedule target'),
         findsOneWidget,
       );
-      expect(find.text('Continue'), findsOneWidget);
 
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
-
       expect(find.byType(WaterTargetScreen), findsOneWidget);
       expect(
-        find.bySemanticsLabel('Target step 4 of 6, Daily hydration target'),
+        find.bySemanticsLabel('Target step 4 of 4, Daily hydration target'),
         findsOneWidget,
       );
-      expect(find.text('Continue'), findsOneWidget);
 
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(GoalPaceScreen), findsOneWidget);
       expect(
-        find.bySemanticsLabel(RegExp(r'Target step 5 of 6')),
-        findsOneWidget,
+        harness.controller.state.stepId,
+        OnboardingStepId.nutritionGoals,
       );
-      expect(find.text('Continue'), findsOneWidget);
+      expect(find.byType(NutritionGoalsSection), findsOneWidget);
+    } finally {
+      semantics.dispose();
+    }
+  });
 
-      await tester.tap(find.text('Continue'));
-      await tester.pumpAndSettle();
+  testWidgets(
+      'Nutrition Goals section renders Nutrition Target only and reaches Health Connections',
+      (tester) async {
+    final harness = await _pumpTargets(
+      tester,
+      mode: AppMode.nutrition,
+      initialTargets: const TargetsOnboardingDraft(
+        currentStepId: TargetStepId.nutritionTarget,
+      ),
+    );
+    final semantics = tester.ensureSemantics();
 
+    try {
+      expect(harness.controller.state.stepId, OnboardingStepId.nutritionGoals);
+      expect(
+        harness.controller.state.targetsFlowPlan.steps,
+        const [TargetStepId.nutritionTarget],
+      );
+      expect(find.byType(NutritionGoalsSection), findsOneWidget);
+      expect(find.byType(TargetsSection), findsNothing);
+      expect(find.byType(WellnessSection), findsNothing);
+      expect(find.byType(BridgeScreen), findsNothing);
+      expect(find.byType(StepTargetScreen), findsNothing);
+      expect(find.byType(SleepTargetScreen), findsNothing);
+      expect(find.byType(WaterTargetScreen), findsNothing);
+      expect(find.byType(GoalPaceScreen), findsNothing);
       expect(find.byType(NutritionTargetScreen), findsOneWidget);
       expect(
-        find.bySemanticsLabel('Target step 6 of 6, Nutrition targets'),
+        find.bySemanticsLabel('Target step 1 of 1, Nutrition targets'),
         findsOneWidget,
       );
       expect(find.text('DAILY CALORIE TARGET'), findsOneWidget);
       expect(find.text('Protein'), findsOneWidget);
       expect(find.text('Carbohydrates'), findsOneWidget);
       expect(find.text('Fats'), findsOneWidget);
-      expect(find.text('Review'), findsOneWidget);
+      expect(find.text('Continue'), findsOneWidget);
 
-      await tester.tap(find.text('Review'));
+      await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
 
-      expect(harness.controller.state.stepId, OnboardingStepId.review);
-      expect(find.byType(ReviewSection), findsOneWidget);
+      expect(
+        harness.controller.state.stepId,
+        OnboardingStepId.healthConnections,
+      );
+      expect(find.byType(HealthConnectionsSection), findsOneWidget);
+      expect(find.byType(ReviewSection), findsNothing);
     } finally {
       semantics.dispose();
     }
   });
 
-  testWidgets('switching water display unit does not alter waterMl in domain',
+  testWidgets('switching Wellness water display unit preserves waterMl',
       (tester) async {
     final harness = await _pumpTargets(
       tester,
+      mode: AppMode.nutrition,
       initialTargets: const TargetsOnboardingDraft(
         currentStepId: TargetStepId.waterTarget,
         waterMl: 2500,
       ),
     );
 
+    expect(harness.controller.state.stepId, OnboardingStepId.wellnessGoals);
+    expect(find.byType(WellnessSection), findsOneWidget);
     expect(find.byType(WaterTargetScreen), findsOneWidget);
     expect(find.text('2.5'), findsOneWidget);
     expect(find.text('L/day'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('targets-water-unit-dropdown')));
     await tester.pumpAndSettle();
-
     await tester.tap(find.text('mL').last);
     await tester.pumpAndSettle();
 
@@ -111,7 +143,6 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('targets-water-unit-dropdown')));
     await tester.pumpAndSettle();
-
     await tester.tap(find.text('fl oz').last);
     await tester.pumpAndSettle();
 
@@ -120,7 +151,8 @@ void main() {
     expect(harness.controller.state.draft.targets.waterMl, 2500);
   });
 
-  testWidgets('goal pace screen shows pace slider and warnings in weight loss mode',
+  testWidgets(
+      'legacy Goal Pace cursor renders the existing screen under Body Goal',
       (tester) async {
     final harness = await _pumpTargets(
       tester,
@@ -133,6 +165,7 @@ void main() {
         heightCm: 170,
         currentWeightKg: 85,
         targetWeightKg: 75,
+        targetWeightDirection: GoalWeightDirection.loss,
         activityLevel: ProfileActivityLevel.active,
         healthConditions: const {ProfileHealthCondition.none},
       ),
@@ -142,35 +175,47 @@ void main() {
       ),
     );
 
+    expect(harness.controller.state.stepId, OnboardingStepId.bodyGoal);
+    expect(
+      harness.controller.state.draft.profile.currentStepId,
+      ProfileStepId.goalPace,
+    );
+    expect(find.byType(BodyGoalSection), findsOneWidget);
+    expect(find.byType(TargetsSection), findsNothing);
     expect(find.byType(GoalPaceScreen), findsOneWidget);
     expect(find.text('How fast do you want to \nlose weight?'), findsOneWidget);
     expect(find.textContaining('0.5 kg'), findsWidgets);
     expect(find.text('Medium'), findsOneWidget);
     expect(find.byKey(const ValueKey('targets-goal-pace-slider')), findsOneWidget);
+    expect(find.byKey(const ValueKey('targets-projection-card')), findsOneWidget);
+    expect(find.textContaining('kcal'), findsNothing);
+    expect(find.text('Target Calories'), findsNothing);
 
     harness.controller.updateGoalPaceKgPerWeek(1.2);
     await tester.pumpAndSettle();
 
     expect(find.textContaining('1.2 kg'), findsWidgets);
     expect(find.text('Aggressive Loss Pace'), findsOneWidget);
+    expect(find.textContaining('kcal'), findsNothing);
   });
 }
 
 class _TargetsHarness {
-  const _TargetsHarness({
-    required this.controller,
-  });
-
+  const _TargetsHarness({required this.controller});
   final OnboardingController controller;
 }
 
 Future<_TargetsHarness> _pumpTargets(
   WidgetTester tester, {
+  AppMode mode = AppMode.workout,
   ProfileOnboardingDraft? initialProfile,
   TargetsOnboardingDraft? initialTargets,
 }) async {
   final draft = OnboardingDraft(
-    selectedMode: AppMode.workout,
+    selectedMode: mode,
+    goalSelection: const GoalIntentSelection(
+      primaryGoal: GoalIntent.loseWeight,
+    ),
     currentStepId: OnboardingStepId.targets,
     profile: initialProfile ??
         ProfileOnboardingDraft(
@@ -181,7 +226,8 @@ Future<_TargetsHarness> _pumpTargets(
           dateOfBirth: DateTime(2000, 1, 1),
           heightCm: 170,
           currentWeightKg: 70,
-          targetWeightKg: 70,
+          targetWeightKg: 66,
+          targetWeightDirection: GoalWeightDirection.loss,
           activityLevel: ProfileActivityLevel.active,
           healthConditions: const {ProfileHealthCondition.none},
         ),
@@ -193,10 +239,15 @@ Future<_TargetsHarness> _pumpTargets(
       workoutDuration: WorkoutDuration.sixtyMinutes,
       workoutSplit: WorkoutSplit.auto,
     ),
-    targets: initialTargets ?? const TargetsOnboardingDraft(),
+    targets: initialTargets ??
+        const TargetsOnboardingDraft(
+          currentStepId: TargetStepId.nutritionTarget,
+        ),
     completedStepIds: const {
       OnboardingStepId.mode,
       OnboardingStepId.profileBasics,
+      OnboardingStepId.bodyGoal,
+      OnboardingStepId.wellnessGoals,
       OnboardingStepId.workoutPreferences,
     },
   );

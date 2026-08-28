@@ -16,7 +16,7 @@ void main() {
         heightCm: 178.5,
         currentWeightKg: 75.0,
         targetWeightKg: 80.0,
-        unitPreferences: const MeasurementUnitPreferences(
+        unitPreferences: const UnitPreferences(
           weightUnit: WeightUnit.lb,
           heightUnit: HeightUnit.ftIn,
           distanceUnit: DistanceUnit.km,
@@ -34,7 +34,7 @@ void main() {
       expect(retrieved?.gender, ProfileGender.male);
       expect(
         retrieved?.unitPreferences,
-        const MeasurementUnitPreferences(
+        const UnitPreferences(
           weightUnit: WeightUnit.lb,
           heightUnit: HeightUnit.ftIn,
           distanceUnit: DistanceUnit.km,
@@ -56,7 +56,7 @@ void main() {
         healthConditions: const {ProfileHealthCondition.none},
       );
 
-      expect(data.unitPreferences, MeasurementUnitPreferences.metric);
+      expect(data.unitPreferences, UnitPreferences.metric);
       expect(data.hasExplicitUnitPreferences, isFalse);
     });
 
@@ -79,11 +79,11 @@ void main() {
       await repository.saveProfileSetup(initial);
 
       await repository.updateMeasurementUnitPreferences(
-        MeasurementUnitPreferences.imperial,
+        UnitPreferences.imperial,
       );
 
       final updated = await repository.getProfileSetup();
-      expect(updated?.unitPreferences, MeasurementUnitPreferences.imperial);
+      expect(updated?.unitPreferences, UnitPreferences.imperial);
       expect(updated?.heightCm, 182.88);
       expect(updated?.currentWeightKg, 81.6466266);
       expect(updated?.targetWeightKg, 78.0);

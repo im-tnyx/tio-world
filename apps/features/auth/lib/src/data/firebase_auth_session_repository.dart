@@ -52,12 +52,17 @@ class FirebaseAuthSessionRepository implements AuthSessionRepository {
       return const AuthSessionUnauthenticated();
     }
 
+    final lastSignInTime = user.metadata.lastSignInTime;
+    final creationTime = user.metadata.creationTime;
+    final loginCycleId = (lastSignInTime ?? creationTime)?.toIso8601String();
+
     final session = AuthSession(
       userId: user.uid,
       email: user.email,
       phone: user.phoneNumber,
       displayName: user.displayName,
       photoUrl: user.photoURL,
+      loginCycleId: loginCycleId,
     );
 
     return AuthSessionAuthenticated(session);

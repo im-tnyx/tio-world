@@ -1,3 +1,4 @@
+import '../models/nutrition_profile_step_id.dart';
 import '../models/profile_step_id.dart';
 import '../models/target_step_id.dart';
 import '../models/workout_step_id.dart';
@@ -11,133 +12,179 @@ sealed class OnboardingProgressItem {
 
 class ProfileProgressItem extends OnboardingProgressItem {
   const ProfileProgressItem(this.stepId);
-
   final ProfileStepId stepId;
-
   @override
   String get title => 'About you';
-
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is ProfileProgressItem &&
           runtimeType == other.runtimeType &&
           stepId == other.stepId;
-
   @override
   int get hashCode => stepId.hashCode;
 }
 
+class BodyGoalProgressItem extends OnboardingProgressItem {
+  const BodyGoalProgressItem(this.stepId);
+  final ProfileStepId stepId;
+  @override
+  String get title => 'Body goal';
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BodyGoalProgressItem &&
+          runtimeType == other.runtimeType &&
+          stepId == other.stepId;
+  @override
+  int get hashCode => Object.hash(runtimeType, stepId);
+}
+
+class WellnessProgressItem extends OnboardingProgressItem {
+  const WellnessProgressItem(this.stepId);
+  final TargetStepId stepId;
+  @override
+  String get title => 'Wellness';
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WellnessProgressItem &&
+          runtimeType == other.runtimeType &&
+          stepId == other.stepId;
+  @override
+  int get hashCode => Object.hash(runtimeType, stepId);
+}
+
+class NutritionProfileProgressItem extends OnboardingProgressItem {
+  const NutritionProfileProgressItem(this.stepId);
+  final NutritionProfileStepId stepId;
+  @override
+  String get title => 'Nutrition profile';
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NutritionProfileProgressItem &&
+          runtimeType == other.runtimeType &&
+          stepId == other.stepId;
+  @override
+  int get hashCode => Object.hash(runtimeType, stepId);
+}
+
 class MobileProgressItem extends OnboardingProgressItem {
   const MobileProgressItem();
-
   @override
   String get title => 'Mobile verification';
-
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is MobileProgressItem && runtimeType == other.runtimeType;
-
   @override
   int get hashCode => runtimeType.hashCode;
 }
 
 class WorkoutIntroProgressItem extends OnboardingProgressItem {
   const WorkoutIntroProgressItem();
-
   @override
   String get title => 'Workout setup';
-
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is WorkoutIntroProgressItem && runtimeType == other.runtimeType;
-
   @override
   int get hashCode => runtimeType.hashCode;
 }
 
 class WorkoutProgressItem extends OnboardingProgressItem {
   const WorkoutProgressItem(this.stepId);
-
   final WorkoutStepId stepId;
-
   @override
   String get title => 'Training preferences';
-
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is WorkoutProgressItem &&
           runtimeType == other.runtimeType &&
           stepId == other.stepId;
-
   @override
   int get hashCode => stepId.hashCode;
 }
 
 class NutritionIntroProgressItem extends OnboardingProgressItem {
   const NutritionIntroProgressItem();
-
   @override
   String get title => 'Nutrition setup';
-
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is NutritionIntroProgressItem && runtimeType == other.runtimeType;
-
   @override
   int get hashCode => runtimeType.hashCode;
 }
 
 class NutritionPreferencesProgressItem extends OnboardingProgressItem {
   const NutritionPreferencesProgressItem();
-
   @override
   String get title => 'Nutrition preferences';
-
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is NutritionPreferencesProgressItem &&
           runtimeType == other.runtimeType;
-
   @override
   int get hashCode => runtimeType.hashCode;
 }
 
+class NutritionGoalsProgressItem extends OnboardingProgressItem {
+  const NutritionGoalsProgressItem(this.stepId);
+  final TargetStepId stepId;
+  @override
+  String get title => 'Nutrition target';
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NutritionGoalsProgressItem &&
+          runtimeType == other.runtimeType &&
+          stepId == other.stepId;
+  @override
+  int get hashCode => Object.hash(runtimeType, stepId);
+}
+
+/// Legacy progress identity retained for compatibility tests and inactive plans.
 class TargetsProgressItem extends OnboardingProgressItem {
   const TargetsProgressItem(this.stepId);
-
   final TargetStepId stepId;
-
   @override
-  String get title => 'Your targets';
-
+  String get title => 'Nutrition target';
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is TargetsProgressItem &&
           runtimeType == other.runtimeType &&
           stepId == other.stepId;
-
   @override
   int get hashCode => stepId.hashCode;
 }
 
+class HealthConnectionsProgressItem extends OnboardingProgressItem {
+  const HealthConnectionsProgressItem();
+  @override
+  String get title => 'Health connections';
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is HealthConnectionsProgressItem && runtimeType == other.runtimeType;
+  @override
+  int get hashCode => runtimeType.hashCode;
+}
+
 class ReviewProgressItem extends OnboardingProgressItem {
   const ReviewProgressItem();
-
   @override
   String get title => 'Review setup';
-
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is ReviewProgressItem && runtimeType == other.runtimeType;
-
   @override
   int get hashCode => runtimeType.hashCode;
 }

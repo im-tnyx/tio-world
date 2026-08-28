@@ -14,6 +14,26 @@ void main() {
     );
   }
 
+  testWidgets('uses a neutral name-style username hint by default', (
+    tester,
+  ) async {
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      buildTestApp(
+        TioUsernameInputField(
+          controller: controller,
+          onCheckAvailability: (_) async =>
+              const UsernameAvailabilityResult(isAvailable: true),
+        ),
+      ),
+    );
+
+    expect(find.text('e.g. your.name'), findsOneWidget);
+    expect(find.text('e.g. santosh_99'), findsNothing);
+  });
+
   testWidgets('normalizes input to lowercase and enforces 30 character maximum',
       (tester) async {
     final controller = TextEditingController();

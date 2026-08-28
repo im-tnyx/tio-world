@@ -69,12 +69,12 @@ void main() {
 
       final loaded = await repository.loadDraft();
 
-      expect(loaded?.draft.currentStepId, OnboardingStepId.targets);
+      expect(loaded?.draft.currentStepId, OnboardingStepId.wellnessGoals);
       expect(loaded?.draft.profile.name, 'Tio User');
       expect(loaded?.draft.profile.heightCm, 171);
       expect(loaded?.draft.profile.currentWeightKg, 70);
       expect(remote.saveCalls, 1);
-      expect(remote.saved?.draft.currentStepId, OnboardingStepId.targets);
+      expect(remote.saved?.draft.currentStepId, OnboardingStepId.wellnessGoals);
       expect(local.record, isNull);
       repository.dispose();
     });
@@ -272,6 +272,9 @@ void main() {
         entryPath: OnboardingEntryPath.firstRun,
         initialDraft: OnboardingDraft(
           selectedMode: AppMode.nutrition,
+          goalSelection: const GoalIntentSelection(
+            primaryGoal: GoalIntent.maintainWeight,
+          ),
           currentStepId: OnboardingStepId.profileBasics,
           completedStepIds: const {OnboardingStepId.mode},
           profile: _validProfile(),
@@ -291,7 +294,7 @@ void main() {
       expect(record.draft.draft.profile.name, 'Tio User');
       expect(record.draft.draft.profile.heightCm, 171);
       expect(record.draft.draft.profile.currentWeightKg, 70);
-      expect(record.resumeAfterAuth?.draft.currentStepId, OnboardingStepId.targets);
+      expect(record.resumeAfterAuth?.draft.currentStepId, OnboardingStepId.bodyGoal);
       expect(
         record.resumeAfterAuth?.draft.completedStepIds,
         contains(OnboardingStepId.profileBasics),

@@ -6,7 +6,7 @@ import 'sleep_schedule_helper.dart';
 ///
 /// Navigation validity is separate from product readiness:
 /// - T1 steps (bridge, stepTarget, sleepTarget, waterTarget) have real validation.
-/// - GoalPace validates the selected pace against the resolved mode.
+/// - GoalPace validates only after Target Weight has established loss/gain.
 /// - NutritionTarget remains calculation-blocked (formula authority unresolved).
 ///
 /// [OnboardingCompletionValidator] separately gates overall completion;
@@ -27,13 +27,17 @@ class TargetStepValidator {
   String? validateCurrentStep(
     TargetsOnboardingDraft draft, {
     ProfileOnboardingDraft? profile,
+    GoalWeightDirection? weightGoalDirection,
   }) {
     return switch (draft.currentStepId) {
       TargetStepId.bridge => null,
       TargetStepId.stepTarget => _validateSteps(draft.dailySteps),
       TargetStepId.sleepTarget => _validateSleep(draft.sleepTargetMinutes),
       TargetStepId.waterTarget => _validateWater(draft.waterMl),
-      TargetStepId.goalPace => _validateGoalPace(draft.goalPaceKgPerWeek, profile),
+      TargetStepId.goalPace => _validateGoalPace(
+          draft.goalPaceKgPerWeek,
+          weightGoalDirection,
+        ),
       // NutritionTarget: navigation-passable to Review, but formula-blocked for completion
       TargetStepId.nutritionTarget => null,
     };
@@ -42,8 +46,14 @@ class TargetStepValidator {
   bool isCurrentStepValid(
     TargetsOnboardingDraft draft, {
     ProfileOnboardingDraft? profile,
+    GoalWeightDirection? weightGoalDirection,
   }) =>
-      validateCurrentStep(draft, profile: profile) == null;
+      validateCurrentStep(
+        draft,
+        profile: profile,
+        weightGoalDirection: weightGoalDirection,
+      ) ==
+      null;
 
   String? _validateSteps(int steps) {
     if (steps < minDailySteps || steps > maxDailySteps) {
@@ -67,14 +77,12 @@ class TargetStepValidator {
     return null;
   }
 
-  String? _validateGoalPace(double pace, ProfileOnboardingDraft? profile) {
-    final mode = GoalPaceResolver.resolveMode(
-      currentWeightKg: profile?.currentWeightKg,
-      targetWeightKg: profile?.targetWeightKg,
-    );
-
-    if (mode == GoalPaceMode.maintenance) {
-      return null;
+  String? _validateGoalPace(
+    double pace,
+    GoalWeightDirection? direction,
+  ) {
+    if (direction == null) {
+      return 'Choose a target weight above or below your current weight before setting goal pace.';
     }
 
     if (pace < minGoalPace || pace > maxGoalPace) {

@@ -48,6 +48,28 @@ class SupabaseAuthSessionRepository implements AuthSessionRepository {
     await _client.auth.signOut();
   }
 
+  Set<String> _identityProviders(User user) {
+    final providers = <String>{};
+    final appMetadata = user.appMetadata;
+
+    void addProvider(Object? rawProvider) {
+      final normalized = rawProvider?.toString().trim().toLowerCase();
+      if (normalized != null && normalized.isNotEmpty) {
+        providers.add(normalized);
+      }
+    }
+
+    final rawProviders = appMetadata['providers'];
+    if (rawProviders is Iterable) {
+      for (final provider in rawProviders) {
+        addProvider(provider);
+      }
+    }
+    addProvider(appMetadata['provider']);
+
+    return Set<String>.unmodifiable(providers);
+  }
+
   AuthSession _mapUser(User user) {
     final metadata = user.userMetadata ?? const {};
     final displayName = metadata['full_name'] as String? ??
@@ -55,13 +77,21 @@ class SupabaseAuthSessionRepository implements AuthSessionRepository {
         metadata['display_name'] as String?;
     final photoUrl = metadata['avatar_url'] as String? ??
         metadata['picture'] as String?;
+    final lastSignInAt = user.lastSignInAt?.trim();
+    final loginCycleId = lastSignInAt != null && lastSignInAt.isNotEmpty
+        ? lastSignInAt
+        : user.createdAt;
 
     return AuthSession(
       userId: user.id,
       email: user.email,
       phone: user.phone,
+      isEmailVerified: user.emailConfirmedAt != null,
+      isPhoneVerified: user.phoneConfirmedAt != null,
+      identityProviders: _identityProviders(user),
       displayName: displayName,
       photoUrl: photoUrl,
+      loginCycleId: loginCycleId,
     );
   }
 }

@@ -36,8 +36,8 @@ class OnboardingCompatibilitySection extends StatelessWidget {
       OnboardingStepId.workoutIntro => throw StateError(
           'The workout intro step must render through WorkoutIntroSection.',
         ),
-      OnboardingStepId.workoutPreferences => throw StateError(
-          'The workout preferences step must render through WorkoutSection.',
+      OnboardingStepId.workoutProfile => throw StateError(
+          'The workoutProfile step must render through WorkoutSection.',
         ),
       OnboardingStepId.nutritionIntro => throw StateError(
           'The nutrition intro step must render through NutritionIntroSection.',
@@ -55,7 +55,6 @@ class OnboardingCompatibilitySection extends StatelessWidget {
       OnboardingStepId.bodyGoal => _futureStepNotActive(state.stepId),
       OnboardingStepId.wellnessGoals => _futureStepNotActive(state.stepId),
       OnboardingStepId.nutritionProfile => _futureStepNotActive(state.stepId),
-      OnboardingStepId.workoutProfile => _futureStepNotActive(state.stepId),
       OnboardingStepId.nutritionGoals => _futureStepNotActive(state.stepId),
       OnboardingStepId.workoutTargets => _futureStepNotActive(state.stepId),
       OnboardingStepId.healthConnections => _futureStepNotActive(state.stepId),
@@ -66,6 +65,6 @@ class OnboardingCompatibilitySection extends StatelessWidget {
 
 Never _futureStepNotActive(OnboardingStepId stepId) {
   throw StateError(
-    'Future onboarding step ${stepId.name} is not active in Slice 1.',
+    'Future onboarding step ${stepId.name} is not active in the current slice.',
   );
 }

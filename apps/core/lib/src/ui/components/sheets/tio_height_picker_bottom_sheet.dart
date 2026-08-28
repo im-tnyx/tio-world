@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../units/units.dart';
 import '../../../theme/theme.dart';
 import '../buttons/tio_button.dart';
 
@@ -50,12 +51,9 @@ class _TioHeightPickerBottomSheetState
     final cm = widget.initialHeightCm;
     _cmController = TextEditingController(text: cm.toStringAsFixed(1));
 
-    final totalInches = cm / 2.54;
-    final feet = (totalInches / 12).floor();
-    final inches = (totalInches % 12).round();
-
-    _ftController = TextEditingController(text: feet.toString());
-    _inController = TextEditingController(text: inches.toString());
+    final display = UnitConverters.cmToFeetInches(cm);
+    _ftController = TextEditingController(text: display.feet.toString());
+    _inController = TextEditingController(text: display.inches.toString());
   }
 
   @override
@@ -72,12 +70,24 @@ class _TioHeightPickerBottomSheetState
     if (widget.unit == 'cm') {
       resolvedCm = double.tryParse(_cmController.text.trim());
     } else {
-      final ft = double.tryParse(_ftController.text.trim()) ?? 0;
-      final inch = double.tryParse(_inController.text.trim()) ?? 0;
-      resolvedCm = (ft * 12 + inch) * 2.54;
+      final feet = int.tryParse(_ftController.text.trim());
+      final inches = int.tryParse(_inController.text.trim());
+      if (feet != null &&
+          inches != null &&
+          feet >= 0 &&
+          inches >= 0 &&
+          inches <= 11) {
+        resolvedCm = UnitConverters.feetInchesToCm(
+          feet: feet,
+          inches: inches,
+        );
+      }
     }
 
-    if (resolvedCm != null && resolvedCm >= 50 && resolvedCm <= 260) {
+    if (resolvedCm != null &&
+        resolvedCm.isFinite &&
+        resolvedCm >= 50 &&
+        resolvedCm <= 260) {
       Navigator.of(context).pop(resolvedCm);
     } else {
       Navigator.of(context).pop(widget.initialHeightCm);
@@ -116,7 +126,6 @@ class _TioHeightPickerBottomSheetState
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // ── Header: Title & Close Button ──
               Stack(
                 alignment: Alignment.center,
                 children: [
@@ -162,8 +171,6 @@ class _TioHeightPickerBottomSheetState
               const SizedBox(
                 height: TioMeasurementPickerTokens.headerSubtitleGap,
               ),
-
-              // ── Subtitle ──
               Text(
                 'Height is important for calculating BMI, estimating calorie needs, and personalizing your fitness plan.',
                 textAlign: TextAlign.center,
@@ -174,16 +181,12 @@ class _TioHeightPickerBottomSheetState
                   fontWeight: TioFontWeight.w400,
                 ),
               ),
-
               const SizedBox(
                 height: TioMeasurementPickerTokens.inputSectionGap,
               ),
-
-              // ── Input Fields ──
               if (isFt)
                 Row(
                   children: [
-                    // Feet Box
                     Expanded(
                       child: _HeightInputCapsule(
                         controller: _ftController,
@@ -194,7 +197,6 @@ class _TioHeightPickerBottomSheetState
                     const SizedBox(
                       width: TioMeasurementPickerTokens.dualInputGap,
                     ),
-                    // Inches Box
                     Expanded(
                       child: _HeightInputCapsule(
                         controller: _inController,
@@ -210,12 +212,9 @@ class _TioHeightPickerBottomSheetState
                   suffix: 'cm',
                   colors: colors,
                 ),
-
               const SizedBox(
                 height: TioMeasurementPickerTokens.inputSectionGap,
               ),
-
-              // ── Save Button ──
               TioButton.primary(
                 label: 'Save',
                 expand: true,
@@ -242,6 +241,8 @@ class _HeightInputCapsule extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final supportsDecimal = suffix == 'cm';
+
     return Container(
       height: TioMeasurementPickerTokens.inputHeight,
       decoration: BoxDecoration(
@@ -265,10 +266,16 @@ class _HeightInputCapsule extends StatelessWidget {
             child: TextField(
               controller: controller,
               autofocus: true,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-              ],
+              keyboardType: TextInputType.numberWithOptions(
+                decimal: supportsDecimal,
+              ),
+              inputFormatters: supportsDecimal
+                  ? [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d*\.?\d*'),
+                      ),
+                    ]
+                  : [FilteringTextInputFormatter.digitsOnly],
               cursorColor: colors.primary,
               style: TextStyle(
                 color: colors.textPrimary,

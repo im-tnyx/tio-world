@@ -1,5 +1,6 @@
 import '../models/goal_pace_mode.dart';
 import '../models/goal_pace_warning.dart';
+import '../models/goal_weight_direction.dart';
 import '../models/profile_onboarding_draft.dart';
 
 /// Pure Dart resolver for Goal Pace mode, warnings, and presentation metadata.
@@ -12,7 +13,18 @@ class GoalPaceResolver {
   static const double aggressiveWarningThreshold = 1.0;
   static const double maintenanceDeltaThreshold = 0.5;
 
-  /// Derive the goal pace mode from profile weights and goals.
+  /// Runtime onboarding mode comes from the explicit Goal intent direction.
+  static GoalPaceMode resolveModeForDirection(GoalWeightDirection? direction) {
+    return switch (direction) {
+      GoalWeightDirection.loss => GoalPaceMode.loss,
+      GoalWeightDirection.gain => GoalPaceMode.gain,
+      null => GoalPaceMode.maintenance,
+    };
+  }
+
+  /// Legacy compatibility helper. New onboarding flow code must use
+  /// [resolveModeForDirection] so measurement deltas never decide user intent.
+  @Deprecated('Use resolveModeForDirection with explicit Goal intent.')
   static GoalPaceMode resolveMode({
     required double? currentWeightKg,
     required double? targetWeightKg,
@@ -52,27 +64,45 @@ class GoalPaceResolver {
     return 'Aggressive';
   }
 
-  /// Title for the Goal Pace screen based on profile goals and resolved mode.
+  static String screenTitleForDirection(GoalWeightDirection? direction) {
+    return switch (direction) {
+      GoalWeightDirection.loss => 'How fast do you want to \nlose weight?',
+      GoalWeightDirection.gain => 'How fast do you want to \ngain weight?',
+      null => 'How do you want to \nmaintain your weight?',
+    };
+  }
+
+  static String cardHeaderForDirection(GoalWeightDirection? direction) {
+    return switch (direction) {
+      GoalWeightDirection.loss => 'Fat Loss',
+      GoalWeightDirection.gain => 'Healthy Weight Gain',
+      null => 'Maintenance',
+    };
+  }
+
+  /// Compatibility title helper for legacy callers/tests.
+  @Deprecated('Use screenTitleForDirection.')
   static String screenTitle({
     required ProfileGoal? primaryGoal,
     required GoalPaceMode mode,
   }) {
     return switch (mode) {
-      GoalPaceMode.loss => 'How fast do you want to \nlose weight?',
-      GoalPaceMode.gain => 'How fast do you want to \nbuild muscle?',
-      GoalPaceMode.maintenance => 'How do you want to \nmaintain your weight?',
+      GoalPaceMode.loss => screenTitleForDirection(GoalWeightDirection.loss),
+      GoalPaceMode.gain => screenTitleForDirection(GoalWeightDirection.gain),
+      GoalPaceMode.maintenance => screenTitleForDirection(null),
     };
   }
 
-  /// Header description label inside the card.
+  /// Compatibility header helper for legacy callers/tests.
+  @Deprecated('Use cardHeaderForDirection.')
   static String cardHeader({
     required GoalPaceMode mode,
     required ProfileGoal? primaryGoal,
   }) {
     return switch (mode) {
-      GoalPaceMode.loss => 'Fat Loss',
-      GoalPaceMode.gain => 'Muscle & Weight Gain',
-      GoalPaceMode.maintenance => 'Maintenance',
+      GoalPaceMode.loss => cardHeaderForDirection(GoalWeightDirection.loss),
+      GoalPaceMode.gain => cardHeaderForDirection(GoalWeightDirection.gain),
+      GoalPaceMode.maintenance => cardHeaderForDirection(null),
     };
   }
 }

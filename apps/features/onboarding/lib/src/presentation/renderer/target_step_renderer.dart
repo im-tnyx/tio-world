@@ -25,6 +25,9 @@ class TargetStepRenderer extends StatelessWidget {
     final draft = state.draft.targets;
     final profile = state.draft.profile;
     final errorText = state.validationErrors[draft.currentStepId.name];
+    final effectiveTargets = state.weightGoalDirection == null
+        ? draft.copyWith(goalPaceKgPerWeek: 0.0)
+        : draft;
 
     return switch (draft.currentStepId) {
       TargetStepId.bridge => BridgeScreen(errorText: errorText),
@@ -54,12 +57,12 @@ class TargetStepRenderer extends StatelessWidget {
           goalPaceKgPerWeek: draft.goalPaceKgPerWeek,
           onPaceChanged: controller.updateGoalPaceKgPerWeek,
           profile: profile,
-          stepTarget: draft.dailySteps,
+          weightGoalDirection: state.weightGoalDirection!,
           errorText: errorText,
         ),
       TargetStepId.nutritionTarget => NutritionTargetScreen(
           profile: profile,
-          targets: draft,
+          targets: effectiveTargets,
           errorText: errorText,
         ),
     };
