@@ -60,6 +60,12 @@ void main() {
       findsOneWidget,
     );
 
+    // Duration sits on the SAME top row as the "Sleep Schedule" title, not
+    // stacked as a third line underneath it.
+    final titleY = tester.getCenter(find.text('Sleep Schedule')).dy;
+    final durationY = tester.getCenter(find.text('8h 30m')).dy;
+    expect((titleY - durationY).abs(), lessThan(2.0));
+
     // Sleep Goal / Bedtime / Wake Time no longer exist as independent rows.
     expect(find.text('Sleep Goal'), findsNothing);
     expect(find.byKey(const ValueKey('daily-wellness-sleep-field')),
@@ -546,6 +552,8 @@ void main() {
     (bed: TimeOfDay(hour: 23, minute: 0), wake: TimeOfDay(hour: 7, minute: 0), label: '8h'),
     (bed: TimeOfDay(hour: 22, minute: 30), wake: TimeOfDay(hour: 6, minute: 30), label: '8h'),
     (bed: TimeOfDay(hour: 0, minute: 30), wake: TimeOfDay(hour: 8, minute: 0), label: '7h 30m'),
+    (bed: TimeOfDay(hour: 23, minute: 15), wake: TimeOfDay(hour: 6, minute: 45), label: '7h 30m'),
+    (bed: TimeOfDay(hour: 23, minute: 42), wake: TimeOfDay(hour: 0, minute: 30), label: '48 min'),
   ]) {
     testWidgets(
         'Sleep Schedule computes cross-midnight-safe duration for ${testCase.bed.hour}:${testCase.bed.minute} -> ${testCase.wake.hour}:${testCase.wake.minute}',
@@ -597,6 +605,86 @@ void main() {
     final saveButton = tester
         .widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
     expect(saveButton.onPressed, isNull);
+  });
+
+  testWidgets(
+      'Partial legacy schedule (only Bedtime known) shows the available time without fabricating the missing side',
+      (tester) async {
+    await tester.pumpWidget(
+      buildApp(
+        DailyWellnessSettingsPage(
+          initialTargets: const WellnessTargetsData(bedTimeMinutes: 23 * 60),
+          volumeUnit: VolumeUnit.ml,
+          onSave: (_) async {},
+        ),
+      ),
+    );
+
+    // Duration cannot be derived from a single known time.
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('daily-wellness-sleep-schedule-field')),
+        matching: find.text('Not set'),
+      ),
+      findsOneWidget,
+    );
+
+    expect(
+      find.text(
+        '${const TimeOfDay(hour: 23, minute: 0).format(tester.element(find.byType(DailyWellnessSettingsPage)))} - Not set',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+      'Sleep Schedule bottom sheet renders large time values, the timeline, and both draggable handles',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    try {
+      const initial = WellnessTargetsData(
+        bedTimeMinutes: 23 * 60,
+        wakeTimeMinutes: 7 * 60,
+      );
+
+      await tester.pumpWidget(
+        buildApp(
+          DailyWellnessSettingsPage(
+            initialTargets: initial,
+            volumeUnit: VolumeUnit.ml,
+            onSave: (_) async {},
+          ),
+        ),
+      );
+
+      await tester.tap(
+          find.byKey(const ValueKey('daily-wellness-sleep-schedule-field')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bedtime'), findsOneWidget);
+      expect(find.text('Wake Time'), findsOneWidget);
+      expect(
+        find.text(const TimeOfDay(hour: 23, minute: 0)
+            .format(tester.element(find.byType(DailyWellnessSettingsPage)))),
+        findsOneWidget,
+      );
+      expect(
+        find.text(const TimeOfDay(hour: 7, minute: 0)
+            .format(tester.element(find.byType(DailyWellnessSettingsPage)))),
+        findsOneWidget,
+      );
+      expect(find.text('8h planned sleep'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('sleep-schedule-timeline-track')),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel('Bedtime handle'), findsOneWidget);
+      expect(find.bySemanticsLabel('Wake time handle'), findsOneWidget);
+
+      expect(tester.takeException(), isNull);
+    } finally {
+      semantics.dispose();
+    }
   });
 
   testWidgets(
@@ -804,6 +892,165 @@ void main() {
     expect(savedTargets!.bedTimeMinutes, 23 * 60);
     expect(savedTargets!.wakeTimeMinutes, 8 * 60);
     expect(savedTargets!.sleepTargetMinutes, 9 * 60);
+  });
+
+  // The timeline is displayed 20:00 -> next 20:00; this mirrors the
+  // production _fractionOf mapping so drag targets land exactly where the
+  // widget itself expects them, independent of any particular pixel width.
+  double timelineFraction(TimeOfDay time) {
+    const timelineStartMinutes = 20 * 60;
+    final minuteOfDay = time.hour * 60 + time.minute;
+    return ((minuteOfDay - timelineStartMinutes + 1440) % 1440) / 1440;
+  }
+
+  testWidgets(
+      'Dragging the Bedtime handle updates Bedtime live and leaves Wake Time untouched',
+      (tester) async {
+    const initial = WellnessTargetsData(
+      bedTimeMinutes: 23 * 60, // 11:00 PM
+      wakeTimeMinutes: 7 * 60, // 7:00 AM
+    );
+
+    await tester.pumpWidget(
+      buildApp(
+        DailyWellnessSettingsPage(
+          initialTargets: initial,
+          volumeUnit: VolumeUnit.ml,
+          onSave: (_) async {},
+        ),
+      ),
+    );
+
+    await tester.tap(
+        find.byKey(const ValueKey('daily-wellness-sleep-schedule-field')));
+    await tester.pumpAndSettle();
+
+    final trackRect = tester
+        .getRect(find.byKey(const ValueKey('sleep-schedule-timeline-track')));
+    final startX = trackRect.left +
+        trackRect.width * timelineFraction(const TimeOfDay(hour: 23, minute: 0));
+    final endX = trackRect.left +
+        trackRect.width * timelineFraction(const TimeOfDay(hour: 22, minute: 0));
+
+    await tester.dragFrom(
+      Offset(startX, trackRect.center.dy),
+      Offset(endX - startX, 0),
+    );
+    await tester.pumpAndSettle();
+
+    final context = tester.element(find.byType(DailyWellnessSettingsPage));
+    expect(
+      find.text(const TimeOfDay(hour: 22, minute: 0).format(context)),
+      findsOneWidget,
+    );
+    // Wake Time untouched by the Bedtime drag.
+    expect(
+      find.text(const TimeOfDay(hour: 7, minute: 0).format(context)),
+      findsOneWidget,
+    );
+    // 22:00 -> 07:00 = 9h.
+    expect(find.text('9h planned sleep'), findsOneWidget);
+
+    // Nothing commits to the page until Save Schedule is tapped.
+    expect(find.text('8h 30m'), findsNothing);
+  });
+
+  testWidgets(
+      'Dragging the Wake Time handle to 08:00 updates the preview to 9h and saves 540 minutes',
+      (tester) async {
+    WellnessTargetsData? savedTargets;
+
+    const initial = WellnessTargetsData(
+      bedTimeMinutes: 23 * 60, // 11:00 PM
+      wakeTimeMinutes: 7 * 60, // 7:00 AM
+    );
+
+    await tester.pumpWidget(
+      buildApp(
+        DailyWellnessSettingsPage(
+          initialTargets: initial,
+          volumeUnit: VolumeUnit.ml,
+          onSave: (targets) async => savedTargets = targets,
+        ),
+      ),
+    );
+
+    await tester.tap(
+        find.byKey(const ValueKey('daily-wellness-sleep-schedule-field')));
+    await tester.pumpAndSettle();
+
+    final trackRect = tester
+        .getRect(find.byKey(const ValueKey('sleep-schedule-timeline-track')));
+    final startX = trackRect.left +
+        trackRect.width * timelineFraction(const TimeOfDay(hour: 7, minute: 0));
+    final endX = trackRect.left +
+        trackRect.width * timelineFraction(const TimeOfDay(hour: 8, minute: 0));
+
+    await tester.dragFrom(
+      Offset(startX, trackRect.center.dy),
+      Offset(endX - startX, 0),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('9h planned sleep'), findsOneWidget);
+
+    await tester.tap(find.text('Save Schedule'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('daily-wellness-save')));
+    await tester.pumpAndSettle();
+
+    expect(savedTargets, isNotNull);
+    expect(savedTargets!.bedTimeMinutes, 23 * 60);
+    expect(savedTargets!.wakeTimeMinutes, 8 * 60);
+    expect(savedTargets!.sleepTargetMinutes, 9 * 60);
+  });
+
+  testWidgets(
+      'Dragging a handle snaps the resulting time to the nearest 15-minute increment',
+      (tester) async {
+    WellnessTargetsData? savedTargets;
+
+    const initial = WellnessTargetsData(
+      bedTimeMinutes: 23 * 60,
+      wakeTimeMinutes: 7 * 60,
+    );
+
+    await tester.pumpWidget(
+      buildApp(
+        DailyWellnessSettingsPage(
+          initialTargets: initial,
+          volumeUnit: VolumeUnit.ml,
+          onSave: (targets) async => savedTargets = targets,
+        ),
+      ),
+    );
+
+    await tester.tap(
+        find.byKey(const ValueKey('daily-wellness-sleep-schedule-field')));
+    await tester.pumpAndSettle();
+
+    final trackRect = tester
+        .getRect(find.byKey(const ValueKey('sleep-schedule-timeline-track')));
+    final startX = trackRect.left +
+        trackRect.width * timelineFraction(const TimeOfDay(hour: 7, minute: 0));
+    // 08:08 is not on a 15-minute boundary; nearest boundary is 08:15.
+    final endX = trackRect.left +
+        trackRect.width * timelineFraction(const TimeOfDay(hour: 8, minute: 8));
+
+    await tester.dragFrom(
+      Offset(startX, trackRect.center.dy),
+      Offset(endX - startX, 0),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Save Schedule'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('daily-wellness-save')));
+    await tester.pumpAndSettle();
+
+    expect(savedTargets, isNotNull);
+    expect(savedTargets!.wakeTimeMinutes! % 15, 0);
+    expect(savedTargets!.wakeTimeMinutes, 8 * 60 + 15);
   });
 
   testWidgets('Double tap on Save cannot trigger a second onSave call',

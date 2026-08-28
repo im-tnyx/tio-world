@@ -2,6 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_progress/progress.dart';
 
+/// Sleep duration is a pure function of Bedtime/Wake Time, never an
+/// independent target. Null when either side of the schedule is unset —
+/// never fabricated. Dart's `%` on int is Euclidean (always non-negative
+/// for a positive divisor), so this handles the schedule wrapping past
+/// midnight without a branch.
+int? _computeSleepDuration(int? bed, int? wake) {
+  if (bed == null || wake == null) return null;
+  return (wake - bed) % (24 * 60);
+}
+
+/// Compact duration format for the derived Sleep Schedule summary:
+/// "48 min", "7h", "7h 30m", "8h 15m". Deliberately not decimal hours.
+String _formatSleepDuration(int? totalMinutes) {
+  if (totalMinutes == null) return 'Not set';
+  final hours = totalMinutes ~/ 60;
+  final mins = totalMinutes % 60;
+  if (hours == 0) return '$mins min';
+  if (mins == 0) return '${hours}h';
+  return '${hours}h ${mins}m';
+}
+
+String _formatTimeOfDay(BuildContext context, int? totalMinutes) {
+  if (totalMinutes == null) return 'Not set';
+  final time = TimeOfDay(
+    hour: (totalMinutes ~/ 60) % 24,
+    minute: totalMinutes % 60,
+  );
+  return time.format(context);
+}
+
 class DailyWellnessSettingsPage extends StatefulWidget {
   const DailyWellnessSettingsPage({
     this.initialTargets,
@@ -47,16 +77,6 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
 
   bool get _hasChanges =>
       _dirtySteps || _dirtyWater || _dirtyBedtime || _dirtyWakeTime;
-
-  /// Sleep duration is a pure function of Bedtime/Wake Time, never an
-  /// independent target. Null when either side of the schedule is unset —
-  /// never fabricated. Dart's `%` on int is Euclidean (always non-negative
-  /// for a positive divisor), so this handles the schedule wrapping past
-  /// midnight without a branch.
-  static int? _computeSleepDuration(int? bed, int? wake) {
-    if (bed == null || wake == null) return null;
-    return (wake - bed) % (24 * 60);
-  }
 
   @override
   void initState() {
@@ -121,26 +141,6 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
       decimals: 1,
     );
     return '$_waterMl ml/day ($formatted)';
-  }
-
-  /// Compact duration format for the derived Sleep Schedule summary:
-  /// "48 min", "7h", "7h 30m", "8h 15m". Deliberately not decimal hours.
-  String _formatSleepDuration(int? totalMinutes) {
-    if (totalMinutes == null) return 'Not set';
-    final hours = totalMinutes ~/ 60;
-    final mins = totalMinutes % 60;
-    if (hours == 0) return '$mins min';
-    if (mins == 0) return '${hours}h';
-    return '${hours}h ${mins}m';
-  }
-
-  String _formatTimeOfDay(int? totalMinutes) {
-    if (totalMinutes == null) return 'Not set';
-    final time = TimeOfDay(
-      hour: (totalMinutes ~/ 60) % 24,
-      minute: totalMinutes % 60,
-    );
-    return time.format(context);
   }
 
   Future<void> _pickSteps() async {
@@ -383,184 +383,21 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
   /// the user taps "Save Schedule" — dismissing/backing out of the sheet
   /// leaves the page's Bedtime/Wake Time/derived duration untouched.
   Future<void> _pickSleepSchedule() async {
-    var tempBedTime = _bedTimeMinutes;
-    var tempWakeTime = _wakeTimeMinutes;
     final colors = context.tioColors;
 
     final result = await showModalBottomSheet<(int?, int?)>(
       context: context,
       backgroundColor: colors.surfaceRaised,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(TioRadius.lg),
         ),
       ),
-      builder: (modalContext) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            final previewDuration =
-                _computeSleepDuration(tempBedTime, tempWakeTime);
-
-            Future<void> pickBedTime() async {
-              final current = tempBedTime ?? (22 * 60);
-              final picked = await showTimePicker(
-                context: context,
-                initialTime: TimeOfDay(
-                  hour: current ~/ 60,
-                  minute: current % 60,
-                ),
-              );
-              if (picked != null) {
-                setModalState(() {
-                  tempBedTime = (picked.hour * 60) + picked.minute;
-                });
-              }
-            }
-
-            Future<void> pickWakeTime() async {
-              final current = tempWakeTime ?? (6 * 60 + 30);
-              final picked = await showTimePicker(
-                context: context,
-                initialTime: TimeOfDay(
-                  hour: current ~/ 60,
-                  minute: current % 60,
-                ),
-              );
-              if (picked != null) {
-                setModalState(() {
-                  tempWakeTime = (picked.hour * 60) + picked.minute;
-                });
-              }
-            }
-
-            Widget scheduleTimeColumn({
-              required String label,
-              required int? minutes,
-              required VoidCallback onTap,
-            }) {
-              return Expanded(
-                child: InkWell(
-                  onTap: onTap,
-                  borderRadius: BorderRadius.circular(TioRadius.sm),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: TioSpacing.sm,
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          label,
-                          style: TextStyle(
-                            color: colors.textSecondary,
-                            fontSize: TioFontSize.size13,
-                            fontWeight: TioFontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: TioSpacing.xs),
-                        Text(
-                          _formatTimeOfDay(minutes),
-                          style: TextStyle(
-                            color: colors.textPrimary,
-                            fontWeight: TioFontWeight.w700,
-                            fontSize: TioFontSize.size18,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }
-
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(TioSpacing.lg),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: TioSize.dp36,
-                        height: TioSize.dp4,
-                        decoration: BoxDecoration(
-                          color:
-                              colors.outlineStrong.withAlpha(TioAlpha.alpha50),
-                          borderRadius: BorderRadius.circular(TioSize.dp2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: TioSpacing.md),
-                    Text(
-                      'Sleep Schedule',
-                      style: TextStyle(
-                        color: colors.textPrimary,
-                        fontWeight: TioFontWeight.w700,
-                        fontSize: TioFontSize.size18,
-                      ),
-                    ),
-                    const SizedBox(height: TioSpacing.lg),
-                    Row(
-                      children: [
-                        scheduleTimeColumn(
-                          label: 'Bedtime',
-                          minutes: tempBedTime,
-                          onTap: pickBedTime,
-                        ),
-                        scheduleTimeColumn(
-                          label: 'Wake Time',
-                          minutes: tempWakeTime,
-                          onTap: pickWakeTime,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: TioSpacing.lg),
-                    Center(
-                      child: Text(
-                        previewDuration == null
-                            ? 'Set both times to see sleep duration'
-                            : '${_formatSleepDuration(previewDuration)} planned sleep',
-                        style: TextStyle(
-                          color: colors.primary,
-                          fontWeight: TioFontWeight.w700,
-                          fontSize: TioFontSize.size15,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: TioSpacing.lg),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextButton(
-                            onPressed: () {
-                              setModalState(() {
-                                tempBedTime = null;
-                                tempWakeTime = null;
-                              });
-                            },
-                            child: Text(
-                              'Clear Schedule',
-                              style: TextStyle(color: colors.danger),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: TioSpacing.md),
-                        Expanded(
-                          child: TioButton.primary(
-                            label: 'Save Schedule',
-                            onPressed: () => Navigator.of(modalContext)
-                                .pop((tempBedTime, tempWakeTime)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
+      builder: (_) => _SleepScheduleBottomSheet(
+        initialBedTime: _bedTimeMinutes,
+        initialWakeTime: _wakeTimeMinutes,
+      ),
     );
 
     if (result != null && mounted) {
@@ -676,23 +513,11 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
 
                   // ── SLEEP GROUP ──
                   const _DailyWellnessSectionHeader(title: 'SLEEP'),
-                  _DailyWellnessGroupCard(
-                    children: [
-                      _DailyWellnessRow(
-                        key: const ValueKey(
-                          'daily-wellness-sleep-schedule-field',
-                        ),
-                        icon: Icons.bedtime_outlined,
-                        label: 'Sleep Schedule',
-                        value: _formatSleepDuration(_sleepTargetMinutes),
-                        isUnset: _sleepTargetMinutes == null,
-                        subtitle: _bedTimeMinutes == null &&
-                                _wakeTimeMinutes == null
-                            ? null
-                            : '${_formatTimeOfDay(_bedTimeMinutes)} - ${_formatTimeOfDay(_wakeTimeMinutes)}',
-                        onTap: _pickSleepSchedule,
-                      ),
-                    ],
+                  _SleepScheduleSummaryCard(
+                    durationMinutes: _sleepTargetMinutes,
+                    bedTimeMinutes: _bedTimeMinutes,
+                    wakeTimeMinutes: _wakeTimeMinutes,
+                    onTap: _pickSleepSchedule,
                   ),
                 ],
               ),
@@ -817,7 +642,6 @@ class _DailyWellnessRow extends StatelessWidget {
     required this.value,
     required this.isUnset,
     required this.onTap,
-    this.subtitle,
     super.key,
   });
 
@@ -827,10 +651,6 @@ class _DailyWellnessRow extends StatelessWidget {
 
   /// Explicit unset styling contract instead of sniffing `value == 'Not set'`.
   final bool isUnset;
-
-  /// Optional secondary line rendered below [label]/[value] (e.g. the
-  /// Bedtime–Wake Time range under the Sleep Schedule duration).
-  final String? subtitle;
   final VoidCallback onTap;
 
   @override
@@ -882,17 +702,6 @@ class _DailyWellnessRow extends StatelessWidget {
                           isUnset ? TioFontWeight.w400 : TioFontWeight.w500,
                     ),
                   ),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: TioSpacing.xxs),
-                    Text(
-                      subtitle!,
-                      style: TextStyle(
-                        color: colors.textMuted,
-                        fontSize: TioFontSize.size12,
-                        fontWeight: TioFontWeight.w400,
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -900,6 +709,497 @@ class _DailyWellnessRow extends StatelessWidget {
               Icons.chevron_right_rounded,
               size: TioSize.dp20,
               color: colors.textMuted,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Dedicated Sleep Schedule summary presentation — deliberately not built on
+/// [_DailyWellnessRow], since its two-row hierarchy (duration on the same
+/// line as the title; range + edit affordance on a second line) doesn't fit
+/// that generic single-value-line row shape.
+class _SleepScheduleSummaryCard extends StatelessWidget {
+  const _SleepScheduleSummaryCard({
+    required this.durationMinutes,
+    required this.bedTimeMinutes,
+    required this.wakeTimeMinutes,
+    required this.onTap,
+  });
+
+  final int? durationMinutes;
+  final int? bedTimeMinutes;
+  final int? wakeTimeMinutes;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    final isUnset = durationMinutes == null;
+    final hasAnyTime = bedTimeMinutes != null || wakeTimeMinutes != null;
+    final rangeText = hasAnyTime
+        ? '${_formatTimeOfDay(context, bedTimeMinutes)} - ${_formatTimeOfDay(context, wakeTimeMinutes)}'
+        : 'Set your bedtime and wake time';
+
+    return Material(
+      color: colors.surfaceRaised,
+      borderRadius: BorderRadius.circular(TioRadius.lg),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: const ValueKey('daily-wellness-sleep-schedule-field'),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: TioSpacing.lg,
+            vertical: TioSpacing.md + TioSize.dp4,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: TioSize.dp40,
+                    height: TioSize.dp40,
+                    decoration: BoxDecoration(
+                      color: colors.primary.withAlpha(TioAlpha.alpha18),
+                      borderRadius: BorderRadius.circular(TioRadius.sm),
+                    ),
+                    child: Icon(
+                      Icons.bedtime_outlined,
+                      size: TioSize.dp22,
+                      color: colors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: TioSpacing.lg),
+                  Expanded(
+                    child: Text(
+                      'Sleep Schedule',
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontWeight: TioFontWeight.w700,
+                        fontSize: TioFontSize.size15,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    _formatSleepDuration(durationMinutes),
+                    style: TextStyle(
+                      color: isUnset ? colors.textMuted : colors.primary,
+                      fontWeight: TioFontWeight.w700,
+                      fontSize: TioFontSize.size15,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: TioSpacing.sm),
+              Row(
+                children: [
+                  const SizedBox(width: TioSize.dp40 + TioSpacing.lg),
+                  Expanded(
+                    child: Text(
+                      rangeText,
+                      style: TextStyle(
+                        color: colors.textMuted,
+                        fontSize: TioFontSize.size13,
+                        fontWeight: TioFontWeight.w400,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    Icons.edit_outlined,
+                    size: TioSize.dp18,
+                    color: colors.textMuted,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+enum _SleepScheduleHandle { bed, wake }
+
+/// Dedicated Sleep Schedule editor: a 24-hour horizontal timeline (displayed
+/// 20:00 -> next 20:00, so a typical overnight schedule renders as one
+/// contiguous highlighted interval) with two independently draggable
+/// handles. Dragging is the primary interaction; tapping the large time
+/// values opens the platform time picker as a secondary, precise path. Both
+/// paths update the same temporary state, which only commits to the page
+/// when "Save Schedule" is tapped.
+class _SleepScheduleBottomSheet extends StatefulWidget {
+  const _SleepScheduleBottomSheet({
+    required this.initialBedTime,
+    required this.initialWakeTime,
+  });
+
+  final int? initialBedTime;
+  final int? initialWakeTime;
+
+  @override
+  State<_SleepScheduleBottomSheet> createState() =>
+      _SleepScheduleBottomSheetState();
+}
+
+class _SleepScheduleBottomSheetState
+    extends State<_SleepScheduleBottomSheet> {
+  static const _timelineStartMinutes = 20 * 60;
+  static const _defaultBedTime = 22 * 60; // 10:00 PM
+  static const _defaultWakeTime = 6 * 60 + 30; // 6:30 AM
+  static const _snapMinutes = 15;
+  static const _minutesPerDay = 24 * 60;
+
+  int? _bedTime;
+  int? _wakeTime;
+  _SleepScheduleHandle? _draggingHandle;
+
+  @override
+  void initState() {
+    super.initState();
+    _bedTime = widget.initialBedTime;
+    _wakeTime = widget.initialWakeTime;
+  }
+
+  int get _renderBedTime => _bedTime ?? _defaultBedTime;
+  int get _renderWakeTime => _wakeTime ?? _defaultWakeTime;
+
+  static double _fractionOf(int minuteOfDay) =>
+      ((minuteOfDay - _timelineStartMinutes + _minutesPerDay) %
+          _minutesPerDay) /
+      _minutesPerDay;
+
+  int _snap(int minuteOfDay) {
+    final snapped =
+        (minuteOfDay / _snapMinutes).round() * _snapMinutes % _minutesPerDay;
+    return snapped < 0 ? snapped + _minutesPerDay : snapped;
+  }
+
+  void _setFromFraction(double fraction, _SleepScheduleHandle handle) {
+    final positionMinutes = (fraction.clamp(0.0, 1.0) * _minutesPerDay).round();
+    final absolute = _snap(positionMinutes + _timelineStartMinutes);
+    setState(() {
+      if (handle == _SleepScheduleHandle.bed) {
+        _bedTime = absolute;
+      } else {
+        _wakeTime = absolute;
+      }
+    });
+  }
+
+  void _adjust(_SleepScheduleHandle handle, int deltaMinutes) {
+    final current =
+        handle == _SleepScheduleHandle.bed ? _renderBedTime : _renderWakeTime;
+    final next = _snap(current + deltaMinutes);
+    setState(() {
+      if (handle == _SleepScheduleHandle.bed) {
+        _bedTime = next;
+      } else {
+        _wakeTime = next;
+      }
+    });
+  }
+
+  void _handlePanDown(Offset localPosition, double width) {
+    final bedX = _fractionOf(_renderBedTime) * width;
+    final wakeX = _fractionOf(_renderWakeTime) * width;
+    _draggingHandle = (localPosition.dx - bedX).abs() <=
+            (localPosition.dx - wakeX).abs()
+        ? _SleepScheduleHandle.bed
+        : _SleepScheduleHandle.wake;
+    _setFromFraction(localPosition.dx / width, _draggingHandle!);
+  }
+
+  void _handlePanMove(Offset localPosition, double width) {
+    final handle = _draggingHandle;
+    if (handle == null) return;
+    _setFromFraction(localPosition.dx / width, handle);
+  }
+
+  Future<void> _pickPreciseTime(_SleepScheduleHandle handle) async {
+    final current =
+        handle == _SleepScheduleHandle.bed ? _renderBedTime : _renderWakeTime;
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: current ~/ 60, minute: current % 60),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      final minutes = picked.hour * 60 + picked.minute;
+      if (handle == _SleepScheduleHandle.bed) {
+        _bedTime = minutes;
+      } else {
+        _wakeTime = minutes;
+      }
+    });
+  }
+
+  Widget _largeTimeValue({
+    required String label,
+    required int? minutes,
+    required _SleepScheduleHandle handle,
+  }) {
+    final colors = context.tioColors;
+    return Expanded(
+      child: InkWell(
+        onTap: () => _pickPreciseTime(handle),
+        borderRadius: BorderRadius.circular(TioRadius.sm),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: TioSpacing.sm),
+          child: Column(
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  color: colors.textSecondary,
+                  fontSize: TioFontSize.size13,
+                  fontWeight: TioFontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: TioSpacing.xs),
+              Text(
+                _formatTimeOfDay(context, minutes),
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontWeight: TioFontWeight.w800,
+                  fontSize: TioFontSize.size24,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _timeline(BuildContext context) {
+    final colors = context.tioColors;
+    final bedFraction = _fractionOf(_renderBedTime);
+    final wakeFraction = _fractionOf(_renderWakeTime);
+
+    const labelHours = [20, 0, 4, 8, 12, 16, 20];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final bedX = bedFraction * width;
+        final wakeX = wakeFraction * width;
+
+        final highlights = <({double left, double width})>[
+          if (wakeFraction >= bedFraction)
+            (left: bedX, width: wakeX - bedX)
+          else ...[
+            (left: bedX, width: width - bedX),
+            (left: 0.0, width: wakeX),
+          ],
+        ];
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GestureDetector(
+              key: const ValueKey('sleep-schedule-timeline-track'),
+              behavior: HitTestBehavior.opaque,
+              onHorizontalDragDown: (details) =>
+                  _handlePanDown(details.localPosition, width),
+              onHorizontalDragUpdate: (details) =>
+                  _handlePanMove(details.localPosition, width),
+              onHorizontalDragEnd: (_) => _draggingHandle = null,
+              child: SizedBox(
+                height: TioSize.dp56,
+                width: double.infinity,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: TioSize.dp26,
+                      child: Container(
+                        height: TioSize.dp4,
+                        decoration: BoxDecoration(
+                          color: colors.outlineStrong
+                              .withAlpha(TioAlpha.alpha24),
+                          borderRadius: BorderRadius.circular(TioSize.dp2),
+                        ),
+                      ),
+                    ),
+                    for (final segment in highlights)
+                      Positioned(
+                        left: segment.left,
+                        width: segment.width,
+                        top: TioSize.dp26,
+                        child: Container(
+                          height: TioSize.dp4,
+                          decoration: BoxDecoration(
+                            color: colors.primary,
+                            borderRadius: BorderRadius.circular(TioSize.dp2),
+                          ),
+                        ),
+                      ),
+                    _timelineHandle(
+                      x: bedX,
+                      handle: _SleepScheduleHandle.bed,
+                      semanticLabel: 'Bedtime handle',
+                      semanticValue: _formatTimeOfDay(context, _renderBedTime),
+                    ),
+                    _timelineHandle(
+                      x: wakeX,
+                      handle: _SleepScheduleHandle.wake,
+                      semanticLabel: 'Wake time handle',
+                      semanticValue:
+                          _formatTimeOfDay(context, _renderWakeTime),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: TioSpacing.xs),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                for (final hour in labelHours)
+                  Text(
+                    TimeOfDay(hour: hour, minute: 0).format(context),
+                    style: TextStyle(
+                      color: colors.textMuted,
+                      fontSize: TioFontSize.size11,
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _timelineHandle({
+    required double x,
+    required _SleepScheduleHandle handle,
+    required String semanticLabel,
+    required String semanticValue,
+  }) {
+    final colors = context.tioColors;
+    const handleSize = TioSize.dp24;
+    final current =
+        handle == _SleepScheduleHandle.bed ? _renderBedTime : _renderWakeTime;
+
+    return Positioned(
+      left: x - handleSize / 2,
+      top: TioSize.dp16,
+      child: Semantics(
+        label: semanticLabel,
+        value: semanticValue,
+        increasedValue: _formatTimeOfDay(context, _snap(current + _snapMinutes)),
+        decreasedValue: _formatTimeOfDay(context, _snap(current - _snapMinutes)),
+        onIncrease: () => _adjust(handle, _snapMinutes),
+        onDecrease: () => _adjust(handle, -_snapMinutes),
+        child: Container(
+          width: handleSize,
+          height: handleSize,
+          decoration: BoxDecoration(
+            color: colors.primary,
+            shape: BoxShape.circle,
+            border: Border.all(color: colors.surfaceRaised, width: 2),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    final previewDuration = _computeSleepDuration(_bedTime, _wakeTime);
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(TioSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: TioSize.dp36,
+                height: TioSize.dp4,
+                decoration: BoxDecoration(
+                  color: colors.outlineStrong.withAlpha(TioAlpha.alpha50),
+                  borderRadius: BorderRadius.circular(TioSize.dp2),
+                ),
+              ),
+            ),
+            const SizedBox(height: TioSpacing.md),
+            Text(
+              'Sleep Schedule',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontWeight: TioFontWeight.w700,
+                fontSize: TioFontSize.size18,
+              ),
+            ),
+            const SizedBox(height: TioSpacing.lg),
+            Row(
+              children: [
+                _largeTimeValue(
+                  label: 'Bedtime',
+                  minutes: _bedTime,
+                  handle: _SleepScheduleHandle.bed,
+                ),
+                _largeTimeValue(
+                  label: 'Wake Time',
+                  minutes: _wakeTime,
+                  handle: _SleepScheduleHandle.wake,
+                ),
+              ],
+            ),
+            const SizedBox(height: TioSpacing.sm),
+            Center(
+              child: Text(
+                previewDuration == null
+                    ? 'Set both times to see sleep duration'
+                    : '${_formatSleepDuration(previewDuration)} planned sleep',
+                style: TextStyle(
+                  color: colors.primary,
+                  fontWeight: TioFontWeight.w700,
+                  fontSize: TioFontSize.size15,
+                ),
+              ),
+            ),
+            const SizedBox(height: TioSpacing.lg),
+            _timeline(context),
+            const SizedBox(height: TioSpacing.lg),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _bedTime = null;
+                        _wakeTime = null;
+                      });
+                    },
+                    child: Text(
+                      'Clear Schedule',
+                      style: TextStyle(color: colors.danger),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: TioSpacing.md),
+                Expanded(
+                  child: TioButton.primary(
+                    label: 'Save Schedule',
+                    onPressed: () =>
+                        Navigator.of(context).pop((_bedTime, _wakeTime)),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
