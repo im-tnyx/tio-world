@@ -2,6 +2,8 @@
 
 `tio-world` is a health and fitness product. Treat privacy, safety, and trust as product requirements.
 
+Cross-cutting data classification, minimization, retention, deletion/export, AI/provider, and environment-separation policy lives in [Data & Privacy Governance](DATA_PRIVACY_GOVERNANCE.md).
+
 ## Public Repository Rule
 
 This repository is public. Assume anything committed here can be seen by other people.
