@@ -385,6 +385,92 @@ void main() {
     expect(savedTargets!.wakeTimeMinutes, 420);
   });
 
+  testWidgets(
+      'A dirty field that converges with a refreshed canonical value stops blocking future refreshes',
+      (tester) async {
+    const targetsA = WellnessTargetsData(
+      dailySteps: 8000,
+      waterMl: 2000,
+    );
+
+    // Canonical Steps happens to catch up to exactly the user's draft.
+    const targetsB = WellnessTargetsData(
+      dailySteps: 10000,
+      waterMl: 3000,
+    );
+
+    const targetsC = WellnessTargetsData(
+      dailySteps: 12000,
+      waterMl: 3500,
+    );
+
+    await tester.pumpWidget(
+      buildApp(
+        DailyWellnessSettingsPage(
+          initialTargets: targetsA,
+          volumeUnit: VolumeUnit.ml,
+          onSave: (_) async {},
+        ),
+      ),
+    );
+
+    // User edits Steps to exactly the midpoint of the slider range
+    // (2000-18000), which lands precisely on 10000.
+    await tester.tap(find.byKey(const ValueKey('daily-wellness-steps-field')));
+    await tester.pumpAndSettle();
+    final stepsSliderRect = tester.getRect(find.byType(Slider));
+    await tester.tapAt(
+      Offset(stepsSliderRect.left + stepsSliderRect.width * 0.5,
+          stepsSliderRect.center.dy),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Set Goal'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('10000 steps/day'), findsOneWidget);
+    var saveButton =
+        tester.widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
+    expect(saveButton.onPressed, isNotNull);
+
+    // Provider refreshes to targetsB, whose canonical Steps now equals the
+    // user's draft. The Steps field should converge (no longer dirty) and
+    // Water should hydrate to the fresh canonical value; Save disables.
+    await tester.pumpWidget(
+      buildApp(
+        DailyWellnessSettingsPage(
+          initialTargets: targetsB,
+          volumeUnit: VolumeUnit.ml,
+          onSave: (_) async {},
+        ),
+      ),
+    );
+
+    expect(find.text('10000 steps/day'), findsOneWidget);
+    expect(find.text('3000 ml/day (3 L)'), findsOneWidget);
+    saveButton =
+        tester.widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
+    expect(saveButton.onPressed, isNull);
+
+    // Provider refreshes again to targetsC. Because Steps converged back to
+    // non-dirty at B, it must now hydrate to C rather than staying latched
+    // at the old 10000 draft.
+    await tester.pumpWidget(
+      buildApp(
+        DailyWellnessSettingsPage(
+          initialTargets: targetsC,
+          volumeUnit: VolumeUnit.ml,
+          onSave: (_) async {},
+        ),
+      ),
+    );
+
+    expect(find.text('12000 steps/day'), findsOneWidget);
+    expect(find.text('3500 ml/day (3.5 L)'), findsOneWidget);
+    saveButton =
+        tester.widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
+    expect(saveButton.onPressed, isNull);
+  });
+
   testWidgets('Editing water goal saves canonical ml regardless of display unit',
       (tester) async {
     WellnessTargetsData? savedTargets;

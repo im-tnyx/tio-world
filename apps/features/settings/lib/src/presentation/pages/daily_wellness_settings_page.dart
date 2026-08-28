@@ -27,10 +27,11 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
   int? _wakeTimeMinutes;
 
   // Each flag tracks whether its field's local draft currently diverges from
-  // the latest canonical value. A field is recomputed on every edit rather
-  // than latched permanently, so restoring a field to the canonical value
-  // (or opening a picker and cancelling/reselecting the same value) clears
-  // its dirty status and lets the next canonical refresh hydrate it again.
+  // the latest canonical value. It is recomputed on every edit AND on every
+  // canonical refresh (didUpdateWidget), never latched permanently — so a
+  // dirty field whose draft happens to match a newly arrived canonical value
+  // converges back to non-dirty and stays eligible for future hydration,
+  // instead of blocking every later refresh just because it once diverged.
   var _dirtySteps = false;
   var _dirtyWater = false;
   var _dirtySleep = false;
@@ -63,11 +64,36 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
     if (oldWidget.initialTargets == widget.initialTargets) return;
 
     final newInit = widget.initialTargets;
-    if (!_dirtySteps) _dailySteps = newInit?.dailySteps;
-    if (!_dirtyWater) _waterMl = newInit?.waterMl;
-    if (!_dirtySleep) _sleepTargetMinutes = newInit?.sleepTargetMinutes;
-    if (!_dirtyBedtime) _bedTimeMinutes = newInit?.bedTimeMinutes;
-    if (!_dirtyWakeTime) _wakeTimeMinutes = newInit?.wakeTimeMinutes;
+
+    if (_dirtySteps) {
+      _dirtySteps = _dailySteps != newInit?.dailySteps;
+    } else {
+      _dailySteps = newInit?.dailySteps;
+    }
+
+    if (_dirtyWater) {
+      _dirtyWater = _waterMl != newInit?.waterMl;
+    } else {
+      _waterMl = newInit?.waterMl;
+    }
+
+    if (_dirtySleep) {
+      _dirtySleep = _sleepTargetMinutes != newInit?.sleepTargetMinutes;
+    } else {
+      _sleepTargetMinutes = newInit?.sleepTargetMinutes;
+    }
+
+    if (_dirtyBedtime) {
+      _dirtyBedtime = _bedTimeMinutes != newInit?.bedTimeMinutes;
+    } else {
+      _bedTimeMinutes = newInit?.bedTimeMinutes;
+    }
+
+    if (_dirtyWakeTime) {
+      _dirtyWakeTime = _wakeTimeMinutes != newInit?.wakeTimeMinutes;
+    } else {
+      _wakeTimeMinutes = newInit?.wakeTimeMinutes;
+    }
   }
 
   String _formatSteps() {
