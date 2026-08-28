@@ -252,6 +252,12 @@ public/build/
 .ai/tmp/
 .ai/cache/
 .ai/local/
+.codex-remote-attachments/
+.codex/
+.gemini/
+.claude/
+.cursor/
+scratch/
 *.prompt.local.md
 *.scratch.md
 
