@@ -8,6 +8,7 @@ class AppSettingsPage extends StatelessWidget {
     required this.currentThemeMode,
     required this.onAppModePressed,
     required this.onThemePressed,
+    required this.onMeasurementUnitsPressed,
     super.key,
   });
 
@@ -15,11 +16,12 @@ class AppSettingsPage extends StatelessWidget {
   final TioThemeMode currentThemeMode;
   final VoidCallback onAppModePressed;
   final VoidCallback onThemePressed;
+  final VoidCallback onMeasurementUnitsPressed;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('App Settings')),
+      appBar: AppBar(title: const Text('App Preferences')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(TioSpacing.xl),
@@ -43,6 +45,15 @@ class AppSettingsPage extends StatelessWidget {
                     subtitle: Text(_themeModeLabel(currentThemeMode)),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: onThemePressed,
+                  ),
+                  const Divider(height: TioSize.dp1),
+                  ListTile(
+                    key: const ValueKey('app-settings-units-entry'),
+                    leading: const Icon(Icons.straighten_rounded),
+                    title: const Text('Units'),
+                    subtitle: const Text('Weight, height, distance & volume'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: onMeasurementUnitsPressed,
                   ),
                 ],
               ),

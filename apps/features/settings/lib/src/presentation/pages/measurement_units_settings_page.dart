@@ -72,7 +72,7 @@ class _MeasurementUnitsSettingsPageState
         scrolledUnderElevation: TioElevation.none,
         leading: BackButton(color: colors.textPrimary),
         title: Text(
-          'Measurement Units',
+          'Units',
           style: TextStyle(
             color: colors.textPrimary,
             fontWeight: TioFontWeight.w800,

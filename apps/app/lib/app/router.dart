@@ -668,8 +668,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           onAccountSettingsPressed: () =>
               context.push(AppRoutes.accountSettings.path),
           onAppSettingsPressed: () => context.push(AppRoutes.appSettings.path),
-          onMeasurementUnitsPressed: () =>
-              context.push(AppRoutes.measurementUnitsSettings.path),
           onLogoutPressed: () async {
             await ref.read(authSessionRepositoryProvider).signOut();
             if (context.mounted) context.go(AppRoutes.auth.path);
@@ -860,6 +858,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               currentMode: appThemeController.selectedMode,
               onThemeSelected: (mode) => appThemeController.select(mode),
             ),
+            onMeasurementUnitsPressed: () =>
+                context.push(AppRoutes.measurementUnitsSettings.path),
           );
         },
       ),
