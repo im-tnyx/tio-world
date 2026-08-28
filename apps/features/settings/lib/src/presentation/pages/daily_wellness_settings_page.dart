@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_progress/progress.dart';
 
@@ -26,18 +26,26 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
   int? _bedTimeMinutes;
   int? _wakeTimeMinutes;
 
-  var _isDirty = false;
+  // Each flag tracks whether its field's local draft currently diverges from
+  // the latest canonical value. A field is recomputed on every edit rather
+  // than latched permanently, so restoring a field to the canonical value
+  // (or opening a picker and cancelling/reselecting the same value) clears
+  // its dirty status and lets the next canonical refresh hydrate it again.
+  var _dirtySteps = false;
+  var _dirtyWater = false;
+  var _dirtySleep = false;
+  var _dirtyBedtime = false;
+  var _dirtyWakeTime = false;
+
   var _isSaving = false;
   String? _errorMessage;
 
-  bool get _hasChanges {
-    final init = widget.initialTargets;
-    return _dailySteps != init?.dailySteps ||
-        _waterMl != init?.waterMl ||
-        _sleepTargetMinutes != init?.sleepTargetMinutes ||
-        _bedTimeMinutes != init?.bedTimeMinutes ||
-        _wakeTimeMinutes != init?.wakeTimeMinutes;
-  }
+  bool get _hasChanges =>
+      _dirtySteps ||
+      _dirtyWater ||
+      _dirtySleep ||
+      _dirtyBedtime ||
+      _dirtyWakeTime;
 
   @override
   void initState() {
@@ -52,13 +60,14 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
   @override
   void didUpdateWidget(covariant DailyWellnessSettingsPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!_isDirty && oldWidget.initialTargets != widget.initialTargets) {
-      _dailySteps = widget.initialTargets?.dailySteps;
-      _waterMl = widget.initialTargets?.waterMl;
-      _sleepTargetMinutes = widget.initialTargets?.sleepTargetMinutes;
-      _bedTimeMinutes = widget.initialTargets?.bedTimeMinutes;
-      _wakeTimeMinutes = widget.initialTargets?.wakeTimeMinutes;
-    }
+    if (oldWidget.initialTargets == widget.initialTargets) return;
+
+    final newInit = widget.initialTargets;
+    if (!_dirtySteps) _dailySteps = newInit?.dailySteps;
+    if (!_dirtyWater) _waterMl = newInit?.waterMl;
+    if (!_dirtySleep) _sleepTargetMinutes = newInit?.sleepTargetMinutes;
+    if (!_dirtyBedtime) _bedTimeMinutes = newInit?.bedTimeMinutes;
+    if (!_dirtyWakeTime) _wakeTimeMinutes = newInit?.wakeTimeMinutes;
   }
 
   String _formatSteps() {
@@ -207,8 +216,8 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
 
     if (result != null && mounted) {
       setState(() {
-        _isDirty = true;
         _dailySteps = result == -1 ? null : result;
+        _dirtySteps = _dailySteps != widget.initialTargets?.dailySteps;
         _errorMessage = null;
       });
     }
@@ -327,8 +336,8 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
 
     if (result != null && mounted) {
       setState(() {
-        _isDirty = true;
         _waterMl = result == -1 ? null : result;
+        _dirtyWater = _waterMl != widget.initialTargets?.waterMl;
         _errorMessage = null;
       });
     }
@@ -447,8 +456,9 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
 
     if (result != null && mounted) {
       setState(() {
-        _isDirty = true;
         _sleepTargetMinutes = result == -1 ? null : result;
+        _dirtySleep =
+            _sleepTargetMinutes != widget.initialTargets?.sleepTargetMinutes;
         _errorMessage = null;
       });
     }
@@ -468,8 +478,8 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
 
     if (picked != null && mounted) {
       setState(() {
-        _isDirty = true;
         _bedTimeMinutes = (picked.hour * 60) + picked.minute;
+        _dirtyBedtime = _bedTimeMinutes != widget.initialTargets?.bedTimeMinutes;
         _errorMessage = null;
       });
     }
@@ -489,8 +499,9 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
 
     if (picked != null && mounted) {
       setState(() {
-        _isDirty = true;
         _wakeTimeMinutes = (picked.hour * 60) + picked.minute;
+        _dirtyWakeTime =
+            _wakeTimeMinutes != widget.initialTargets?.wakeTimeMinutes;
         _errorMessage = null;
       });
     }

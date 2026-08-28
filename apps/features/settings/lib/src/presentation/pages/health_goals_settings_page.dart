@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 
 class HealthGoalsSettingsPage extends StatelessWidget {
