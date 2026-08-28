@@ -1,6 +1,6 @@
 # ADR-0003: Supabase-First Data Boundary
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0007](0007-active-supabase-and-future-services-api.md)
 - **Date:** 2026-08-11
 
 ## Context
@@ -31,8 +31,23 @@ Tio needs authenticated user data, private media, and future AI capabilities. Bu
 - There is no live Supabase project, configuration, migration, bucket, credential, or Gemini integration in this repository today.
 - `backend/db` is not an owner for Supabase migrations or RLS.
 
+## Supersession note
+
+This ADR is preserved as the historical 2026-08-11 decision record. Its Supabase-first principle led to the active Supabase foundation, but later accepted architecture decisions changed the repository/server shape materially:
+
+- `supabase/` is now active rather than future-only;
+- the protected server namespace is `services/`, not `backend/`;
+- the first protected API path is `services/api`;
+- Node.js + TypeScript + Fastify is the locked initial backend baseline;
+- Supabase Auth is the canonical identity authority for the future Tio API.
+
+Do not rewrite the historical Context/Decision above as current-state prose. Use [ADR-0007](0007-active-supabase-and-future-services-api.md) and the canonical architecture docs for current direction.
+
 ## Related
 
+- [ADR-0007: Active Supabase and Future `services/api`](0007-active-supabase-and-future-services-api.md)
+- [Architecture](../ARCHITECTURE.md)
+- [Auth Architecture](../AUTH_ARCHITECTURE.md)
 - [Supabase-First Platform Strategy](../SUPABASE_STRATEGY.md)
 - [Data and Sync](../DATA_AND_SYNC.md)
 - [Security](../SECURITY.md)
