@@ -88,21 +88,24 @@ When a durable decision changes materially:
 4. link old → new and new → old;
 5. preserve the old Context/Decision/Consequences instead of rewriting history.
 
+ADR-0003 → ADR-0007 is the first repository example of this lifecycle: the original Supabase-first decision is preserved, while the later `services/api` namespace/Fastify/current-Supabase boundary is recorded separately.
+
 ### Accepted → Deprecated
 
 Use `Deprecated` when the old direction should stop guiding new work but there is no single replacement decision yet. Link the issue/document that owns the transition.
 
-### Historical facts inside accepted ADRs
+### Historical facts inside ADRs
 
-An ADR records the context that existed when the decision was made. Some factual statements may later become stale while the decision itself remains valid.
+An ADR records the context that existed when the decision was made. Some factual statements may later become stale while the decision remains valid, or the decision itself may later be superseded.
 
 Do **not** rewrite historical Context/Consequences only to make them read like current runtime documentation. Instead:
 
 - keep the ADR as the historical decision record;
 - update canonical docs/runtime source for current truth;
-- create a new ADR only if the **decision itself** changes materially.
+- create a new ADR when the **decision itself** changes materially;
+- mark and cross-link the old ADR when it is superseded.
 
-Example: ADR-0003 was accepted on 2026-08-11 and includes then-current statements that no live Supabase project/workspace existed. Supabase is now active, but the Supabase-first decision remains accepted. Current platform status belongs in `SUPABASE_STRATEGY.md`, Auth/platform docs, and runtime source—not by rewriting the old decision context.
+Example: ADR-0003 was accepted on 2026-08-11 and included then-current assumptions that `supabase/` was not live and the future protected server would live under `backend/`. Later accepted decisions made `supabase/` active and locked `services/api` + Fastify. Those material changes are recorded in ADR-0007 rather than rewriting ADR-0003's historical Decision section.
 
 ## Required ADR format
 
@@ -161,23 +164,21 @@ Rules:
 - never renumber accepted historical ADRs;
 - never reuse a removed/abandoned number;
 - filename title should remain short and semantic;
-- the next number is chosen only when a real ADR is approved/proposed for repository review;
-- TNYX-51 does **not** create ADR-0007 merely to document the ADR process itself.
+- the next number is chosen only when a real ADR is approved/proposed for repository review.
 
-## Existing records — reconciled baseline
+## Records
 
-All six existing ADRs remain valid historical records. They are **not** rewritten merely to match the new template; the template applies to new ADRs and material future lifecycle updates.
+Existing ADRs remain historical records and are not rewritten merely to match the newest template.
 
 | ADR | Status | Decision |
 | :--- | :--- | :--- |
 | [0001](0001-flutter-wear-os-and-native-watchos.md) | Accepted | Flutter for Wear OS; native SwiftUI for future Apple Watch. |
 | [0002](0002-shared-app-mode-and-dynamic-navigation.md) | Accepted | One shared AppMode contract drives target phone navigation. |
-| [0003](0003-supabase-first-data-boundary.md) | Accepted | Supabase-first Auth/data/Storage boundary; protected backend work remains a later upgrade. |
+| [0003](0003-supabase-first-data-boundary.md) | Superseded by 0007 | Original Supabase-first boundary with historical future-workspace assumptions. |
 | [0004](0004-material-3-expressive-through-core.md) | Accepted | Material 3 Expressive is delivered through `apps/core` tokens and components. |
 | [0005](0005-adaptive-navigation-and-action-entry.md) | Accepted | A future custom layout adapts Home sections and feature action entry points without moving domain ownership. |
 | [0006](0006-single-route-onboarding-parent-flow.md) | Accepted | One onboarding route owns fixed progress/actions and mode-derived child steps. |
-
-No unresolved durable decision discovered during the TNYX-51 audit requires a new ADR at this time.
+| [0007](0007-active-supabase-and-future-services-api.md) | Accepted | Active Supabase remains the current foundation; future protected backend uses `services/api` with TypeScript/Fastify when explicitly authorized. |
 
 ## Authoring workflow
 
