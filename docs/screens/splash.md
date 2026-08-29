@@ -7,7 +7,7 @@
 
 ## Current Runtime Behavior
 
-- Shows the packaged dark Tio logo and a loading spinner on the Tio background.
+- Shows a bold "TIO" wordmark and a loading spinner on the Tio background.
 - Waits two seconds, then navigates to `/auth`.
 - Does not inspect authentication, App Mode, profile completeness, persistence, network state, or sync state.
 

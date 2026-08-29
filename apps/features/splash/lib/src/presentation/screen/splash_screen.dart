@@ -53,18 +53,17 @@ class _SplashScreenState extends State<SplashScreen> {
       ),
       child: Scaffold(
         backgroundColor: colors.background,
-        body: Center(
+        body: Align(
+          alignment: const Alignment(0, -0.3),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(TioRadius.xl),
-                child: Image.asset(
-                  'assets/dark_logo.jpg',
-                  package: 'tio_feature_splash',
-                  width: TioSize.dp120,
-                  height: TioSize.dp120,
-                  fit: BoxFit.cover,
+              Text(
+                'TIO',
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontSize: TioFontSize.size44,
+                  fontWeight: TioFontWeight.w900,
                 ),
               ),
               const SizedBox(height: TioSize.dp48),

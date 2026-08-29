@@ -9,9 +9,11 @@ void main() {
   Widget buildTestApp({
     String? failureMessage,
     Future<void> Function()? onRetry,
+    TioThemeMode mode = TioThemeMode.dark,
   }) {
     return MaterialApp(
       builder: (context, child) => TioTheme(
+        config: TioThemeConfig(mode: mode),
         child: child ?? const SizedBox.shrink(),
       ),
       home: SplashScreen(
@@ -31,6 +33,43 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       expect(find.text('Retry'), findsNothing);
     });
+
+    testWidgets('shows a bold TIO wordmark instead of the logo image',
+        (tester) async {
+      await tester.pumpWidget(buildTestApp());
+      await tester.pump();
+
+      expect(find.byType(Image), findsNothing);
+      final wordmarkStyle = tester.widget<Text>(find.text('TIO')).style;
+      expect(wordmarkStyle?.fontWeight, FontWeight.w900);
+      expect(wordmarkStyle?.fontSize, TioFontSize.size44);
+    });
+
+    for (final mode in [TioThemeMode.light, TioThemeMode.dark]) {
+      testWidgets('TIO wordmark stays readable against the background on $mode',
+          (tester) async {
+        await tester.pumpWidget(buildTestApp(mode: mode));
+        await tester.pump();
+
+        final context = tester.element(find.byType(SplashScreen));
+        final colors = context.tioColors;
+        final wordmarkColor =
+            tester.widget<Text>(find.text('TIO')).style?.color;
+
+        expect(
+          wordmarkColor,
+          colors.textPrimary,
+          reason: 'the wordmark must use a theme-adaptive color, not a '
+              'fixed tone that can match the theme-adaptive background',
+        );
+        expect(
+          wordmarkColor,
+          isNot(colors.background),
+          reason: 'wordmark must not be the same color as its own background '
+              'on $mode',
+        );
+      });
+    }
 
     testWidgets('failure mode replaces spinner with recoverable feedback',
         (tester) async {
