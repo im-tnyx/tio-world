@@ -93,7 +93,7 @@ void main() {
     final container = await buildContainer(wellness, hydration: hydration);
     addTearDown(container.dispose);
     await openPage(tester, container, wellness);
-    expect(find.text('2800 ml/day (2.8 L)'), findsOneWidget);
+    expect(find.text('2.8 L'), findsOneWidget);
     expect(find.text('Loading…'), findsOneWidget);
     await tester.tap(find.text('Glass Size'));
     await tester.pump();
@@ -102,7 +102,7 @@ void main() {
     hydration.readGate!.complete();
     await tester.pumpAndSettle();
     expect(find.text('Could not load Glass Size'), findsOneWidget);
-    expect(find.text('2800 ml/day (2.8 L)'), findsOneWidget);
+    expect(find.text('2.8 L'), findsOneWidget);
     hydration.failRead = false;
     hydration.value = const HydrationPreferences(defaultGlassSizeMl: 250);
     await tester.tap(find.byKey(const ValueKey('glass-size-load-retry')));
@@ -151,7 +151,7 @@ void main() {
     await tester.pump();
     wellness.completeRead(wellness.value);
     await tester.pumpAndSettle();
-    expect(find.text('3000 ml/day (3 L)'), findsOneWidget);
+    expect(find.text('3 L'), findsOneWidget);
     expect(find.text('300 ml'), findsOneWidget);
   });
 
@@ -305,7 +305,7 @@ void main() {
     repository.completeRead(realTargets);
     await tester.pumpAndSettle();
 
-    expect(find.text('9000 steps/day'), findsOneWidget);
+    expect(find.text('9,000 steps'), findsOneWidget);
     expect(find.byKey(const ValueKey('daily-wellness-save')), findsOneWidget);
   });
 }

@@ -163,7 +163,11 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
 
   String _formatSteps() {
     if (_dailySteps == null) return 'Not set';
-    return '$_dailySteps steps/day';
+    final grouped = _dailySteps!.toString().replaceAllMapped(
+          RegExp(r'\B(?=(\d{3})+(?!\d))'),
+          (_) => ',',
+        );
+    return '$grouped steps';
   }
 
   @override
@@ -204,14 +208,14 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
     if (_waterMl == null) return 'Not set';
     if (widget.volumeUnit == VolumeUnit.flOz) {
       final oz = UnitConverters.mlToFlOz(_waterMl!.toDouble()).round();
-      return '$oz fl oz/day';
+      return '$oz fl oz';
     }
     final formatted = UnitFormatters.formatVolume(
       _waterMl!.toDouble(),
       VolumeUnit.ml,
       decimals: 1,
     );
-    return '$_waterMl ml/day ($formatted)';
+    return formatted;
   }
 
   Future<void> _pickSteps() async {
@@ -491,6 +495,7 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
                   // ── MOVEMENT GROUP ──
                   const _DailyWellnessSectionHeader(title: 'MOVEMENT'),
                   _DailyWellnessGroupCard(
+                    key: const ValueKey('daily-wellness-movement-card'),
                     children: [
                       _DailyWellnessRow(
                         key: const ValueKey('daily-wellness-steps-field'),
@@ -505,6 +510,7 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
                   const SizedBox(height: TioSpacing.lg),
                   const _DailyWellnessSectionHeader(title: 'HYDRATION'),
                   _DailyWellnessGroupCard(
+                    key: const ValueKey('daily-wellness-hydration-card'),
                     children: [
                       _DailyWellnessRow(
                         key: const ValueKey('daily-wellness-water-field'),
@@ -514,7 +520,9 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
                         isUnset: _waterMl == null,
                         onTap: _pickWater,
                       ),
-                      const _DailyWellnessDivider(),
+                      const _DailyWellnessDivider(
+                        key: ValueKey('daily-wellness-hydration-divider'),
+                      ),
                       _DailyWellnessRow(
                         key: const ValueKey('daily-wellness-glass-size-field'),
                         icon: Icons.local_drink_outlined,
@@ -542,6 +550,7 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
                   // ── SLEEP GROUP ──
                   const _DailyWellnessSectionHeader(title: 'SLEEP'),
                   _SleepScheduleSummaryCard(
+                    key: const ValueKey('daily-wellness-sleep-card'),
                     durationMinutes: _sleepTargetMinutes,
                     bedTimeMinutes: _bedTimeMinutes,
                     wakeTimeMinutes: _wakeTimeMinutes,
@@ -633,7 +642,10 @@ class _DailyWellnessSectionHeader extends StatelessWidget {
 }
 
 class _DailyWellnessGroupCard extends StatelessWidget {
-  const _DailyWellnessGroupCard({required this.children});
+  const _DailyWellnessGroupCard({
+    required this.children,
+    super.key,
+  });
   final List<Widget> children;
 
   @override
@@ -649,7 +661,7 @@ class _DailyWellnessGroupCard extends StatelessWidget {
 }
 
 class _DailyWellnessDivider extends StatelessWidget {
-  const _DailyWellnessDivider();
+  const _DailyWellnessDivider({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -755,6 +767,7 @@ class _SleepScheduleSummaryCard extends StatelessWidget {
     required this.bedTimeMinutes,
     required this.wakeTimeMinutes,
     required this.onTap,
+    super.key,
   });
 
   final int? durationMinutes;

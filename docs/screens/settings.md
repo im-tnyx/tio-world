@@ -3,7 +3,7 @@
 **Surface:** Phone full-screen preferences and account controls
 **Current route:** `/settings`
 **Primary owner:** `apps/features/settings`
-**Status:** S0-A and accepted S0-B1 provide the Settings hub and Daily Wellness editing. S0-B2 provides a device-local Default Glass Size convenience preference; no Supabase storage or migration is part of this slice. Local validation passes; exact-head CI and physical-device acceptance remain pending. This does not complete the broader Settings readiness gate.
+**Status:** S0-A and accepted S0-B1 provide the Settings hub and Daily Wellness editing. S0-B2 provides a device-local Default Glass Size convenience preference; no Supabase storage or migration is part of this slice. The Daily Wellness page-layout correction is in progress; updated exact-head CI and physical-device acceptance remain pending. This does not complete the broader Settings readiness gate.
 
 ## Purpose
 
@@ -60,15 +60,27 @@ and `wellnessTargetsDataProvider`.
 
 ```text
 MOVEMENT
-  Step Goal
+┌ Step Goal                       10,000 steps ┐
+└────────────────────────────────────────────────┘
+
 HYDRATION
-  Water Goal
-  Glass Size
+┌ Water Goal                              2.8 L ┐
+├────────────────────────────────────────────────┤
+└ Glass Size                              250 ml ┘
+
 SLEEP
-  Sleep Schedule
+┌ Sleep Schedule                              8h ┐
+│ 11:00 PM - 7:00 AM                            │
+└────────────────────────────────────────────────┘
 ```
 
-Water Goal and Glass Size share one visual card, not a persistence DTO.
+Step Goal is a standalone card. Water Goal and Glass Size share one visual
+card with one divider; this is presentation only, not a persistence DTO. Sleep
+Schedule is a separate summary card. Step summaries use grouped numbers (for
+example, `10,000 steps`) and Water Goal uses the selected display unit (for
+example, `2.8 L` or `85 fl oz`) while canonical storage remains integer ml.
+No Nutrition Targets, calories/macros, Target Weight, or Optimize Targets
+content is part of Daily Wellness.
 The accepted Step/Water editors, Sleep card/timeline, 15-minute snapping and
 haptic behavior are preserved. Page Save Changes still writes only Wellness.
 

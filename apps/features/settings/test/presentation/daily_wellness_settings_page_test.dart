@@ -88,7 +88,7 @@ void main() {
       expect(writes, [const HydrationPreferences(defaultGlassSizeMl: 300)]);
       expect(find.text('Default Glass Size'), findsNothing);
       expect(find.text('300 ml'), findsOneWidget);
-      expect(find.text('2800 ml/day (2.8 L)'), findsOneWidget);
+      expect(find.text('2.8 L'), findsOneWidget);
       expect(
           tester
               .widget<TioButton>(
@@ -577,8 +577,58 @@ void main() {
     expect(find.text('SLEEP'), findsOneWidget);
     expect(find.text('DAILY SCHEDULE'), findsNothing);
 
-    expect(find.text('10000 steps/day'), findsOneWidget);
-    expect(find.text('2500 ml/day (2.5 L)'), findsOneWidget);
+    expect(find.text('10,000 steps'), findsOneWidget);
+    expect(find.text('2.5 L'), findsOneWidget);
+
+    final movementCard =
+        find.byKey(const ValueKey('daily-wellness-movement-card'));
+    final hydrationCard =
+        find.byKey(const ValueKey('daily-wellness-hydration-card'));
+    final sleepCard = find.byKey(const ValueKey('daily-wellness-sleep-card'));
+    expect(movementCard, findsOneWidget);
+    expect(hydrationCard, findsOneWidget);
+    expect(sleepCard, findsOneWidget);
+    expect(
+      find.descendant(of: movementCard, matching: find.text('Step Goal')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: movementCard, matching: find.text('Water Goal')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: hydrationCard, matching: find.text('Water Goal')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: hydrationCard, matching: find.text('Glass Size')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: hydrationCard,
+        matching: find.byKey(
+          const ValueKey('daily-wellness-hydration-divider'),
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: sleepCard, matching: find.text('Sleep Schedule')),
+      findsOneWidget,
+    );
+    for (final absent in [
+      'Current Targets',
+      'Calories',
+      'Protein',
+      'Carbs',
+      'Fat',
+      'Fiber',
+      'Target Weight',
+      'Optimize Targets',
+    ]) {
+      expect(find.text(absent), findsNothing, reason: absent);
+    }
 
     // Sleep duration (22:00 -> 6:30, wraps midnight) = 510 min = 8h 30m.
     expect(find.text('8h 30m'), findsOneWidget);
@@ -662,7 +712,7 @@ void main() {
       ),
     );
 
-    expect(find.text('85 fl oz/day'), findsOneWidget);
+    expect(find.text('85 fl oz'), findsOneWidget);
   });
 
   testWidgets(
@@ -688,8 +738,8 @@ void main() {
       ),
     );
 
-    expect(find.text('8000 steps/day'), findsOneWidget);
-    expect(find.text('2000 ml/day (2 L)'), findsOneWidget);
+    expect(find.text('8,000 steps'), findsOneWidget);
+    expect(find.text('2 L'), findsOneWidget);
     var saveButton = tester
         .widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
     expect(saveButton.onPressed, isNull);
@@ -705,8 +755,8 @@ void main() {
       ),
     );
 
-    expect(find.text('12000 steps/day'), findsOneWidget);
-    expect(find.text('3500 ml/day (3.5 L)'), findsOneWidget);
+    expect(find.text('12,000 steps'), findsOneWidget);
+    expect(find.text('3.5 L'), findsOneWidget);
     saveButton = tester
         .widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
     expect(saveButton.onPressed, isNull);
@@ -756,7 +806,7 @@ void main() {
     );
 
     // User draft is preserved (steps remains null/Not set, not overwritten by 12000)
-    expect(find.text('12000 steps/day'), findsNothing);
+    expect(find.text('12,000 steps'), findsNothing);
   });
 
   testWidgets(
@@ -902,11 +952,11 @@ void main() {
         .widget<Text>(
           find.descendant(
             of: find.byKey(const ValueKey('daily-wellness-steps-field')),
-            matching: find.textContaining('steps/day'),
+            matching: find.textContaining('steps'),
           ),
         )
         .data!;
-    expect(editedSteps, isNot('8000 steps/day'));
+    expect(editedSteps, isNot('8,000 steps'));
 
     // Provider refreshes to targetsB while the step edit is still a draft.
     await tester.pumpWidget(
@@ -920,7 +970,7 @@ void main() {
     );
 
     // Edited field keeps the user's draft, not targetsB's steps value.
-    expect(find.text('12000 steps/day'), findsNothing);
+    expect(find.text('12,000 steps'), findsNothing);
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('daily-wellness-steps-field')),
@@ -931,7 +981,7 @@ void main() {
 
     // Untouched fields adopt the fresh canonical values from targetsB.
     // Schedule 22:30 -> 07:00 wraps to 510 min = 8h 30m either way.
-    expect(find.text('3500 ml/day (3.5 L)'), findsOneWidget);
+    expect(find.text('3.5 L'), findsOneWidget);
     expect(find.text('8h 30m'), findsOneWidget);
     expect(
       find.text(timeRange(
@@ -996,7 +1046,7 @@ void main() {
     await tester.tap(find.text('Set Goal'));
     await tester.pumpAndSettle();
 
-    expect(find.text('10000 steps/day'), findsOneWidget);
+    expect(find.text('10,000 steps'), findsOneWidget);
     var saveButton = tester
         .widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
     expect(saveButton.onPressed, isNotNull);
@@ -1014,8 +1064,8 @@ void main() {
       ),
     );
 
-    expect(find.text('10000 steps/day'), findsOneWidget);
-    expect(find.text('3000 ml/day (3 L)'), findsOneWidget);
+    expect(find.text('10,000 steps'), findsOneWidget);
+    expect(find.text('3 L'), findsOneWidget);
     saveButton = tester
         .widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
     expect(saveButton.onPressed, isNull);
@@ -1033,8 +1083,8 @@ void main() {
       ),
     );
 
-    expect(find.text('12000 steps/day'), findsOneWidget);
-    expect(find.text('3500 ml/day (3.5 L)'), findsOneWidget);
+    expect(find.text('12,000 steps'), findsOneWidget);
+    expect(find.text('3.5 L'), findsOneWidget);
     saveButton = tester
         .widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
     expect(saveButton.onPressed, isNull);
@@ -1057,7 +1107,7 @@ void main() {
     );
 
     // Presentation renders in fl oz while canonical storage stays ml.
-    expect(find.text('68 fl oz/day'), findsOneWidget);
+    expect(find.text('68 fl oz'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('daily-wellness-water-field')));
     await tester.pumpAndSettle();

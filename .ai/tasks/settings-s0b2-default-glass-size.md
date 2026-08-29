@@ -1,6 +1,6 @@
 # S0-B2 — Default Glass Size (local-only correction)
 
-**Status:** In progress — S0-B2 editor-sheet consistency polish underway on Draft PR #170
+**Status:** In progress — S0-B2 Daily Wellness page-layout correction underway on Draft PR #170
 **Primary owner:** `apps/features/settings`
 **Affected platforms:** Flutter phone (Android/iOS), device-local preference
 **Trackers:** TNYX-130 (In Progress); parent TNYX-128 (unchanged, In Progress); TNYX-118 (unchanged)
@@ -274,3 +274,84 @@ invocation fails on `bin/cache/lockfile`; direct `dart test` attempted a
 package fetch and then failed on restricted telemetry-file access. These are
 tooling limitations, not passing validation. New exact-head Flutter CI remains
 the required full-suite gate after publication.
+
+## 9. Daily Wellness page-layout correction — 2026-08-29
+
+### Verified starting state
+
+- Starting branch/HEAD: `codex/settings-s0b2-glass-size` /
+  `b9437cfaba739676dce6aa8d0e82003d5e016933`; working tree was clean.
+- Draft PR #170 is open against `main`; its prior exact-head Flutter CI is
+  successful but does not validate this forward correction.
+- `/settings/health-goals/daily-wellness` is unchanged. It already renders the
+  intended three sections and cards: standalone Step Goal, shared Water
+  Goal/Glass Size card with one divider, and standalone Sleep Schedule card.
+- No current Daily Wellness runtime source renders the reference screenshot's
+  Nutrition Targets, calories/macros, Target Weight, or Optimize Targets
+  composition. Those remain outside this Settings page.
+
+### Frozen correction
+
+Keep the existing three-card composition and all editor/persistence behavior.
+Only correct the top-level summary contract and make the composition explicit
+in widget tests:
+
+```text
+MOVEMENT  -> Step Goal             -> 10,000 steps
+HYDRATION -> Water Goal / divider / Glass Size -> 2.8 L / 250 ml
+SLEEP     -> Sleep Schedule        -> duration plus time range
+```
+
+- Step summaries use grouped numbers and omit `/day`.
+- Water uses compact selected-unit output: Metric uses the existing volume
+  formatter (for example `2.8 L`); Imperial uses `fl oz`, also without `/day`.
+- Canonical Water storage remains integer ml; UnitPreferences, Step/Water/Glass
+  editors, local Glass persistence, Sleep behavior/haptics, routing and the
+  Settings-local editor sheet are unchanged.
+
+### Exact allowlist
+
+```text
+.ai/tasks/settings-s0b2-default-glass-size.md
+apps/features/settings/lib/src/presentation/pages/daily_wellness_settings_page.dart
+apps/features/settings/test/presentation/daily_wellness_settings_page_test.dart
+apps/app/test/app/daily_wellness_route_test.dart
+docs/screens/settings.md
+```
+
+Must not change: `apps/core`, the frozen #112 Units editor/domain/repository,
+HydrationPreferences domain/data/session behavior, Wellness targets model or
+repository, Supabase/schema/migrations, routes/identifiers, App Mode, Profile,
+Nutrition, Workout, Home and Sleep implementation.
+
+### Implementation and validation plan
+
+- Add only stable widget-test keys to the existing three cards/divider; do not
+  alter their visual geometry or surface styling.
+- Update existing Settings/App route expectations and add structural coverage
+  for the exact card grouping and absence of Nutrition Target content.
+- Update this brief and `docs/screens/settings.md` to describe the actual
+  runtime composition.
+- Run focused Settings/App checks if the configured SDK lock becomes available;
+  otherwise retain the user-owned daemon and require a fresh exact-head Flutter
+  CI run after publication. Always run `git diff --check`.
+
+### Implementation and validation results
+
+- Actual changed files are limited to the five-file allowlist above. The page
+  adds nonvisual test keys to its existing Movement, Hydration, divider and
+  Sleep cards; it does not alter routing, surfaces, editor composition or
+  persistence.
+- Existing Settings widget tests now assert the exact three-card hierarchy,
+  shared Hydration divider, compact Metric/Imperial summaries, and absence of
+  Nutrition Target content. The app route test expects the compact summaries
+  through the real route composition.
+- `G:\dev\flutter-sdk\bin\dart.bat format --output=none` for the three
+  touched Dart files: PASS.
+- `git diff --check`: PASS.
+- Fresh Flutter Settings tests were attempted with
+  `G:\dev\flutter-sdk\bin\flutter.bat`; no result was produced because the
+  configured SDK cache is locked by the pre-existing user-owned Android Studio
+  Flutter daemon. The daemon was not terminated. Fresh local analyzer/test
+  results are therefore **not run**, and a new exact-head Flutter CI run is
+  mandatory after publication.
