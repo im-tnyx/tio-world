@@ -68,6 +68,17 @@ void main() {
           reason: 'wordmark must not be the same color as its own background '
               'on $mode',
         );
+
+        final spinnerColor =
+            tester.widget<CircularProgressIndicator>(
+              find.byType(CircularProgressIndicator),
+            ).color;
+        expect(
+          spinnerColor,
+          isNot(colors.background),
+          reason: 'loading spinner must not be the same color as its own '
+              'background on $mode',
+        );
       });
     }
 

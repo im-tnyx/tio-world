@@ -68,8 +68,8 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
               const SizedBox(height: TioSize.dp48),
               if (failureMessage == null || _isRetrying)
-                const CircularProgressIndicator(
-                  color: TioPalette.white,
+                CircularProgressIndicator(
+                  color: colors.textPrimary,
                   strokeWidth: TioStroke.width25,
                 )
               else
