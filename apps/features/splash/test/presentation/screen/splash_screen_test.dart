@@ -130,6 +130,37 @@ void main() {
       );
     });
 
+    testWidgets(
+        'a short landscape/split-screen viewport with a large text scale '
+        'scrolls instead of overflowing', (tester) async {
+      tester.view.physicalSize = const Size(800, 240);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.linear(3.0)),
+          child: buildTestApp(
+            failureMessage: "Couldn't finish signing you in. "
+                'Check your connection and try again.',
+            onRetry: () async {},
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'a short, heavily text-scaled viewport must scroll rather '
+            'than overflow the fixed-header + Expanded layout',
+      );
+      expect(find.byType(SingleChildScrollView), findsOneWidget);
+      expect(find.text('TIO'), findsOneWidget);
+      expect(find.text('Retry'), findsOneWidget);
+    });
+
     for (final mode in [TioThemeMode.light, TioThemeMode.dark]) {
       testWidgets('TIO wordmark stays readable against the background on $mode',
           (tester) async {
