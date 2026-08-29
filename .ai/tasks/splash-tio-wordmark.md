@@ -1,6 +1,6 @@
 # Splash screen — replace logo image with "TIO" wordmark
 
-**Status:** Validated
+**Status:** In progress
 **Primary owner:** `apps/features/splash`
 **Affected platforms:** Flutter phone app (`apps/app` via `tio_feature_splash`)
 
@@ -19,7 +19,8 @@ Replace the splash screen's packaged logo image with a large, bold "TIO" text wo
 - Splash renders "TIO" as text (no `Image` widget) using the largest/boldest core typography tokens.
 - The wordmark and loading spinner stay legible against the splash background in both light and dark theme (owner flagged during review that the initial fixed-white color was invisible on light theme).
 - The status/navigation bar icon brightness matches the active theme instead of assuming a permanently dark background (owner flagged: status bar icons — battery, network — didn't match the theme).
-- The wordmark's vertical position does not depend on which sibling content (spinner vs. failure/retry block) is currently rendering below it; the spinner renders at the exact screen center (owner flagged: TIO visibly shifted position between the loading and failure states because both shared one auto-sized `Column`).
+- The wordmark's vertical position does not depend on which sibling content (spinner vs. failure/retry block) is currently rendering below it (owner flagged: TIO visibly shifted position between the loading and failure states because both shared one auto-sized `Column`).
+- The wordmark and the spinner/failure block can never visually overlap, on any viewport size or system text-scale factor (Codex review flagged that an earlier independent-`Align`-based fix for the point above did not reserve space between the two, so a long, heavily text-scaled failure message could paint over the wordmark).
 - No orphaned design-system primitive left behind.
 - `apps/features/splash` and `apps/core` analyze/test stay green; exact-head Flutter CI passes.
 
@@ -58,12 +59,13 @@ Replace the splash screen's packaged logo image with a large, bold "TIO" text wo
 | Use `colors.textPrimary` (not `onMediaPrimary`) for wordmark + spinner | Made | Splash background is theme-adaptive; a fixed-white foreground was invisible in light theme (owner-reported) | Owner (via review) |
 | Shift wordmark/spinner block slightly above center (`Align(0, -0.3)`) | Made | Explicit owner request during review | Owner |
 | Remove `TioSize.dp120` rather than keep it or add an allowlist | Made | Matches the registry's own documented liveness policy; confirmed via CI failure + repo-wide grep | Agent, confirmed by CI |
+| Give the wordmark a fixed top offset and the spinner/failure block an `Expanded`+`Center`+`SingleChildScrollView` region, instead of two independent `Align`s in a `Stack` | Made | The independent-`Align` version had no reserved, non-overlapping bounds; a Codex review correctly showed the real production failure message, wrapped at a large text-scale factor on a compact viewport, could paint over the wordmark | Agent, per Codex review |
 
 ## 4. Architecture Design
 
 ### Chosen Approach
 
-Swap the `ClipRRect(Image.asset(...))` block for a plain `Text('TIO', ...)` styled with existing `TioFontSize`/`TioFontWeight` tokens and `context.tioColors.textPrimary`; wrap the existing content column in `Align(alignment: Alignment(0, -0.3))` instead of `Center` so it renders shifted above dead-center without changing its internal layout; recolor the sibling `CircularProgressIndicator` the same way for consistency; drop the now-dead asset, pubspec entry, and `TioSize.dp120` primitive.
+Swap the `ClipRRect(Image.asset(...))` block for a plain `Text('TIO', ...)` styled with existing `TioFontSize`/`TioFontWeight` tokens and `context.tioColors.textPrimary`. The wordmark is the first child of a `Column` with a fixed `Padding(top: TioSize.dp100)`, so its position never depends on its sibling. That sibling is `Expanded(child: Center(child: SingleChildScrollView(child: <spinner-or-failure-block>)))`, which fills all remaining space below the wordmark and centers its (possibly scrolling) content within that reserved region — by construction, a `Column`'s `Expanded` regions cannot overlap, and `SingleChildScrollView` means arbitrarily tall/text-scaled content scrolls instead of overflowing upward into the wordmark's area. Recolor the sibling `CircularProgressIndicator` the same way for consistency; drop the now-dead asset, pubspec entry, and `TioSize.dp120` primitive; derive status/navigation bar icon brightness from `colors.isDark`.
 
 ### Ownership and Data Flow
 
@@ -73,6 +75,8 @@ No data flow change — this is a presentation-only, stateless-composition edit 
 
 - Keeping `onMediaPrimary` and instead making the Scaffold background a fixed dark color: rejected as larger-scope (would change the screen's theme-adaptive background contract, not requested).
 - Adding a synthetic reference to keep `TioSize.dp120` alive: rejected — contradicts the registry's own "evidenced by current production UI" policy; the correct action is deletion once truly unused.
+- Two independent `Align` widgets in a `Stack` (wordmark fixed, spinner/failure block at `Alignment.center`): rejected after Codex review — neither `Align` reserves space for the other, so they can overlap on a compact/text-scaled viewport. Superseded by the `Column`+`Expanded`+`SingleChildScrollView` design above.
+- A `LayoutBuilder`/`Positioned`-based explicit split with a computed pixel boundary: considered for exact full-screen-center spinner placement, but rejected as unnecessary complexity — the simpler `Expanded`+`Center` region achieves the same non-overlap guarantee and centers the spinner within the (large majority of screen) space below the wordmark, which is visually indistinguishable from true center for the spinner's small size.
 
 ### Failure and Accessibility States
 
@@ -88,6 +92,7 @@ Unaffected — failure/retry text and button already used theme-adaptive `colors
 - [x] Remove `TioSize.dp120`, orphaned by the image removal, per `apps/core`'s primitive-liveness governance test.
 - [x] Make status/navigation bar icon brightness theme-adaptive (was hardcoded for a permanently dark background).
 - [x] Decouple the wordmark's position from the spinner/failure block's height via an independently-positioned `Stack`; anchor the spinner/failure block at the literal screen center.
+- [x] Replace the `Stack`-of-independent-`Align`s with a `Column` (fixed-offset wordmark, then `Expanded(Center(SingleChildScrollView(...)))`) after a Codex review correctly found the independent-`Align` version could let the wordmark and a long, text-scaled failure message paint over each other on a compact viewport.
 - [x] Update `docs/screens/splash.md` runtime-behavior line.
 - [x] Add/extend widget tests: no `Image` widget remains; wordmark styling; wordmark + spinner color differs from the theme background in both `TioThemeMode.light` and `TioThemeMode.dark`.
 - [x] Write this task brief (retroactively, per Codex review finding — see below).
@@ -98,27 +103,29 @@ Unaffected — failure/retry text and button already used theme-adaptive `colors
 
 ```text
 apps/features/splash: flutter analyze -> No issues found.
-apps/features/splash: flutter test -> 10/10 passed (includes design-system ownership governance test and
+apps/features/splash: flutter test -> 11/11 passed (includes design-system ownership governance test and
   regression coverage for: no Image widget; wordmark styling; wordmark+spinner color differs from
   background on TioThemeMode.light/dark; wordmark position unaffected by spinner-vs-failure state;
-  spinner renders at the exact screen center).
+  spinner horizontally centered and always below the wordmark; wordmark and failure/retry content never
+  overlap on a 320x480 viewport at 2.5x text scale with the real production failure message).
 apps/core: flutter analyze -> No issues found.
 apps/core: flutter test -> 114/114 passed (includes primitive-liveness governance test).
 git diff --check -> clean.
 PR #171 exact-head Flutter CI:
   - commit 18b8e935 (initial wordmark swap): not separately checked pre-review.
   - commit 1ccc3442 (spinner color fix): CI run 33262625451 FAILED -- TioSize.dp120 liveness violation.
-  - commit 56cc00cb (dp120 removal): CI run 33262914450 in progress when superseded by the next commit.
-  - commit aa242a34 (theme-adaptive status bar; decouple wordmark/spinner position): superseded before its
-    own CI run completed.
-  - commit 01164767 (stale task-brief reference corrected): CI run 33263398556 PASS -- final validated head.
+  - commit 56cc00cb (dp120 removal) through commit 0ae4a5a3 (Validated status update): each superseded
+    before/shortly after its own CI run by the next commit; see git log for the full intermediate trail.
+  - commit <overlap-fix HEAD, updated below>: current head, CI pending/result to be recorded on completion.
 ```
 
 ### Review Findings and Resolution
 
 - **GitHub Codex automated review #1 (PR #171, inline comment on `splash_screen.dart:57`, commit `56cc00cb`, P1):** flagged that this is a user-facing visual change (branding, typography, vertical layout) implemented without a focused `.ai/tasks/` brief, per `AGENTS.md:L51-L57`. **Valid finding** — the change touches splash typography/layout and a cross-package `apps/core` primitive-registry edit, which the Task Execution Protocol requires a brief for regardless of how small the visible diff looks. Resolved by writing this brief (commit `d108d889`) and recording the full discovery/decision/validation trail after the fact.
 - **GitHub Codex automated review #2 (PR #171, inline comment on `tio_size.dart:55`, commit `aa242a34`, P1):** flagged that removing `TioSize.dp120` changed a public `apps/core` token contract without updating `apps/core/lib/src/theme/README.md`'s mandatory compatibility guidance, and that `.ai/tasks/design-system-slice-g-remaining-ui.md` (Validated) still documented `dp120` as governed splash-logo geometry evidence. **Valid finding for the stale task-brief reference** — corrected it (commit `01164767`) to mark that specific line superseded, pointing to this brief. The README itself documents `TioSize` only as a category pattern (`TioSize.dpN`), not individual values, so no README line existed to update; this judgment was surfaced back to the reviewer in the reply thread in case a different treatment (e.g. a removed-primitives changelog) is wanted.
-- **Owner review (mid-implementation, via chat):** two more defects were found and fixed before CI passed: (1) the status/navigation bar's `SystemUiOverlayStyle` hardcoded brightness for a permanently dark background, causing status-bar icons to mismatch the light theme; (2) the wordmark and the spinner/failure-retry block shared one auto-sized `Column`, so the wordmark's position shifted depending on which (differently-sized) sibling was rendering below it. Both fixed in commit `aa242a34` — status bar brightness now derives from `colors.isDark`; the wordmark and the spinner/failure block are independently positioned via a `Stack`, with the spinner/failure block anchored at the literal screen center per explicit owner request.
+- **GitHub Codex automated review #3 (PR #171, inline comment on `splash_screen.dart:73`, commit `0ae4a5a3`, P2):** flagged that the independent-`Align`-in-`Stack` fix for the wordmark/spinner position bug (below) didn't reserve space between the two, so the real production failure message (`apps/app/lib/app/router.dart:241-243`) wrapped at a large text-scale factor on a compact viewport could paint over the wordmark. **Valid finding** — redesigned as `Column` (fixed-offset wordmark) + `Expanded(Center(SingleChildScrollView(...)))` (spinner/failure block), which cannot overlap by construction; added a regression test at a 320x480 viewport with 2.5x text scale using the actual production failure string.
+- **GitHub Codex automated review #4 (PR #171, inline comment on `splash-tio-wordmark.md`, commit `01164767`, P1):** flagged that this brief's recorded validation evidence (`8/8` tests, pending CI for `56cc00cb`) predated later commits' theme-adaptive system-bar/layout changes and two new tests, so it didn't actually validate the reviewed tree. **Valid finding, already addressed** by the very next commit (`0ae4a5a3`), which updated the Validation Run/Final Status to the accurate `10/10` count and the real passing CI run for that exact head; this entry documents that resolution for the record.
+- **Owner review (mid-implementation, via chat):** two more defects were found and fixed before CI passed: (1) the status/navigation bar's `SystemUiOverlayStyle` hardcoded brightness for a permanently dark background, causing status-bar icons to mismatch the light theme; (2) the wordmark and the spinner/failure-retry block shared one auto-sized `Column`, so the wordmark's position shifted depending on which (differently-sized) sibling was rendering below it. Both fixed in commit `aa242a34` — status bar brightness now derives from `colors.isDark`; the wordmark/spinner position-coupling was fixed with an independent-`Align`-in-`Stack` design that Codex review #3 (above) then found insufficient and which was superseded by the final `Column`+`Expanded` design.
 
 ## 7. Final Handoff
 
@@ -136,7 +143,7 @@ PR #171 exact-head Flutter CI:
 
 ### Actual Behavior
 
-Splash shows a bold "TIO" text wordmark (no image), fixed at a position slightly above dead-center regardless of what renders below it, and independently a loading spinner or failure/retry UI anchored at the literal screen center. The wordmark, spinner, and status/navigation bar icon brightness are all theme-adaptive (`colors.textPrimary` / `colors.isDark`) so they stay legible and correctly matched in both light and dark theme.
+Splash shows a bold "TIO" text wordmark (no image) at a fixed offset from the top, independent of anything below it, followed by a loading spinner or failure/retry UI that fills and centers within the remaining space (scrolling instead of overflowing if content is too tall for the viewport/text-scale). The wordmark, spinner, and status/navigation bar icon brightness are all theme-adaptive (`colors.textPrimary` / `colors.isDark`) so they stay legible and correctly matched in both light and dark theme, and the wordmark can never visually overlap the content below it.
 
 ### Known Limitations
 
@@ -144,4 +151,4 @@ None known.
 
 ### Final Status
 
-`PASS` — exact-head Flutter CI run [33263398556](https://github.com/im-tnyx/tio-world/actions/runs/33263398556) is SUCCESS for commit `01164767` (the final head incorporating both Codex review fixes and the owner-reported status-bar/layout fixes). PR #171 open, mergeable, not yet merged.
+`REVIEW` — implementation and local validation (analyze + 11/11 splash tests + 114/114 core tests) complete for the overlap-safety redesign; awaiting the exact-head Flutter CI result for the current head before this returns to `Validated`.

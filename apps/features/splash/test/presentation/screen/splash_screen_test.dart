@@ -69,19 +69,65 @@ void main() {
       );
     });
 
-    testWidgets('loading spinner renders at the exact screen center',
-        (tester) async {
+    testWidgets(
+        'loading spinner is horizontally centered and renders below the '
+        'wordmark, never above it', (tester) async {
       await tester.pumpWidget(buildTestApp());
       await tester.pump();
 
-      final screenCenter = tester.getSize(find.byType(Scaffold)).center(
-            Offset.zero,
-          );
+      final screenCenterX =
+          tester.getSize(find.byType(Scaffold)).center(Offset.zero).dx;
       final spinnerCenter =
           tester.getCenter(find.byType(CircularProgressIndicator));
+      final wordmarkBottom = tester.getBottomLeft(find.text('TIO')).dy;
 
-      expect(spinnerCenter.dx, screenCenter.dx);
-      expect(spinnerCenter.dy, screenCenter.dy);
+      expect(spinnerCenter.dx, screenCenterX);
+      expect(
+        spinnerCenter.dy,
+        greaterThan(wordmarkBottom),
+        reason: 'the spinner must render in the reserved area below the '
+            'wordmark, never overlapping it',
+      );
+    });
+
+    testWidgets(
+        'wordmark and failure/retry content never overlap, even with a long '
+        'wrapped message on a compact, text-scaled viewport', (tester) async {
+      tester.view.physicalSize = const Size(320, 480);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.linear(2.5)),
+          child: buildTestApp(
+            failureMessage: "Couldn't finish signing you in. "
+                'Check your connection and try again.',
+            onRetry: () async {},
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final wordmarkRect = tester.getRect(find.text('TIO'));
+      final retryRect = tester.getRect(find.text('Retry'));
+      final failureTextRect = tester.getRect(
+        find.textContaining("Couldn't finish signing you in"),
+      );
+
+      expect(
+        wordmarkRect.overlaps(failureTextRect),
+        isFalse,
+        reason: 'wordmark and the failure message must never paint over '
+            'each other on a compact, heavily text-scaled viewport',
+      );
+      expect(
+        wordmarkRect.overlaps(retryRect),
+        isFalse,
+        reason: 'wordmark and the Retry button must never paint over each '
+            'other on a compact, heavily text-scaled viewport',
+      );
     });
 
     for (final mode in [TioThemeMode.light, TioThemeMode.dark]) {
