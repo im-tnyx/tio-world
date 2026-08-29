@@ -9,6 +9,7 @@ import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
+import 'hydration_preferences_session_boundary.dart';
 import 'profile/canonical_profile_data_reader.dart';
 import 'supabase_runtime_config.dart';
 
@@ -141,27 +142,22 @@ final wellnessTargetsDataProvider =
   return repository.read();
 });
 
-/// Settings-owned preference. No in-memory success path for account-synced data.
+/// Settings-owned, device-local Default Glass Size preference.
 final hydrationPreferencesRepositoryProvider =
-    Provider<HydrationPreferencesRepository?>((ref) {
-  ref.watch(authSessionStateProvider);
-  final client = ref.watch(supabaseClientProvider);
-  if (client == null) return null;
-  final userId = client.auth.currentUser?.id;
-  return SupabaseHydrationPreferencesRepository(
-    client: client,
-    // An old editor cannot write its draft into a newly signed-in account.
-    currentUserId: () => client.auth.currentUser?.id == userId ? userId : null,
-  );
-});
+    Provider<HydrationPreferencesRepository>(
+  (ref) => SharedPreferencesHydrationPreferencesRepository(),
+);
+
+final hydrationPreferencesSessionBoundaryProvider =
+    Provider<HydrationPreferencesSessionBoundary>(
+  (ref) => HydrationPreferencesSessionBoundary(
+    ref.watch(hydrationPreferencesRepositoryProvider),
+  ),
+);
 
 final hydrationPreferencesDataProvider =
-    FutureProvider.autoDispose<HydrationPreferences?>((ref) async {
-  ref.watch(authSessionStateProvider);
+    FutureProvider.autoDispose<HydrationPreferences>((ref) async {
   final repository = ref.watch(hydrationPreferencesRepositoryProvider);
-  if (repository == null) {
-    throw StateError('Glass Size storage is unavailable.');
-  }
   return repository.read();
 });
 

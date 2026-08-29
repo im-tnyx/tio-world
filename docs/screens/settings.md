@@ -3,7 +3,7 @@
 **Surface:** Phone full-screen preferences and account controls
 **Current route:** `/settings`
 **Primary owner:** `apps/features/settings`
-**Status:** S0-A and accepted S0-B1 provide the Settings hub and Daily Wellness editing. S0-B2 adds the Glass Size client implementation and a local CLI-generated migration; local database verification and physical-device acceptance remain pending. This does not complete the broader Settings readiness gate.
+**Status:** S0-A and accepted S0-B1 provide the Settings hub and Daily Wellness editing. S0-B2 provides a device-local Default Glass Size convenience preference; no Supabase storage or migration is part of this slice. Local validation passes; exact-head CI and physical-device acceptance remain pending. This does not complete the broader Settings readiness gate.
 
 ## Purpose
 
@@ -75,19 +75,19 @@ haptic behavior are preserved. Page Save Changes still writes only Wellness.
 ### Default Glass Size — S0-B2
 
 The approved bounded owner is `apps/features/settings`: `HydrationPreferences`
-and `HydrationPreferencesRepository` live in `lib/src/domain`, and
-`SupabaseHydrationPreferencesRepository` lives in `lib/src/data`. App constructs
-and injects these through `hydrationPreferencesRepositoryProvider` and
-`hydrationPreferencesDataProvider`. This is the explicit exception to the generic
-Settings-consumer rule; it does not transfer other feature data to Settings.
-See [ADR-0008](../adr/0008-settings-hydration-preferences-owner.md).
+and `HydrationPreferencesRepository` live in `lib/src/domain`, while
+`SharedPreferencesHydrationPreferencesRepository` lives in `lib/src/data`.
+App only constructs/injects the adapter and coordinates explicit account
+boundaries. This is the narrow exception to the generic Settings-consumer rule;
+it does not transfer other feature data to Settings. See
+[ADR-0009](../adr/0009-settings-local-default-glass-size.md).
 
-- Glass Size is the amount represented by a future +1 glass action, not Water Goal
-  and not Volume Unit. No hydration logging is implemented.
-- Canonical storage is nullable integer ml in the dedicated
-  `public.user_hydration_preferences` table. The repository never reads/writes
-  Wellness, Profile, App Preferences, Nutrition or SharedPreferences.
-- No row/null means **Not set**. There is no implicit 250 ml default or backfill.
+- Glass Size is a device-local convenience default for a future “add one glass”
+  action. It is not Water Goal, Volume Unit, health history, a target or
+  account-synced data. Hydration logging is not implemented.
+- `default_glass_size_ml` stores canonical integer ml in
+  `SharedPreferencesAsync`. Missing, corrupt and reset state all resolve to
+  the real **250 ml** default; corrupt values are removed when read.
 - Row: **Glass Size**. Sheet: **Default Glass Size**. Help:
   **Amount logged when you add one glass of water.**
 - Presets are exactly 200/250/300/350/500 ml. Custom is numeric, 50–2000 ml
@@ -95,25 +95,21 @@ See [ADR-0008](../adr/0008-settings-hydration-preferences-owner.md).
 - Metric summary is e.g. `250 ml`; Imperial summary/presets use existing volume
   formatting, e.g. `~8.5 fl oz`. Preset identities remain canonical ml.
 - Custom input stays explicitly labelled **Custom amount (ml)** in both units;
-  Imperial adds a converted preview. Rounded fl oz is never converted back into
-  persistence. Changing Volume Unit does not write a Glass Size value.
-- Preset/Custom/Clear edit only the sheet draft. Save independently awaits the
-  Hydration repository; unchanged/invalid and duplicate submits are blocked.
-  Clear followed by Save persists null. Cancel/back/barrier discard drafts.
-  Dismissal is blocked while a save is in flight; failures keep the sheet retryable.
-- Pristine refresh adopts canonical data; a dirty draft survives refresh and
-  becomes pristine if canonical data converges. Loading/read failure has its own
-  Glass Size state/retry and does not fabricate Not set or block Water Goal.
-- Future +1 glass must consume this preference as `amountMl`; changing it must
-  never rewrite historical events or create a second Glass Size owner.
-
-**Database deployment boundary:** The reviewed migration
-`supabase/migrations/20260829043204_create_user_hydration_preferences.sql` exists
-locally but has not been applied remotely. Remote migration application has not
-been authorized/performed. Local DB/RLS execution is pending because the local
-Postgres service is unavailable. Account-synced runtime acceptance requires the
-migration to be separately applied; until storage is available, reads/saves fail
-truthfully rather than falling back to local-only success.
+  Imperial adds a converted preview. Changing Volume Unit does not write Glass
+  Size.
+- `Reset to Default` changes the sheet draft to 250 ml. Save independently
+  awaits local persistence; unchanged/invalid and duplicate submits are blocked.
+  Cancel/back/barrier discard drafts. Failures keep the sheet retryable.
+- Ordinary restart and restored sessions retain the device-local value. An
+  explicit successful logout, account-setup/onboarding exit, account deletion or
+  new explicit login clears it to 250 ml. Failed sign-out does not clear it.
+- No `public.user_hydration_preferences` table, migration, RLS policy,
+  `user_app_preferences` field or duplicate profile/nutrition/progress store
+  exists. The earlier Draft PR #170 Supabase-table decision is superseded before
+  merge. Remote migration history from that draft is stale and requires a
+  separate authorized repair; it is not repaired by this slice.
+- Future +1 glass must consume or explicitly supersede this preference without
+  mutating historical events or creating a second owner.
 
 ## Units Ownership And Navigation
 

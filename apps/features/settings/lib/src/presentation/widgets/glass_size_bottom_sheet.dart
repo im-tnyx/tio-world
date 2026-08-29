@@ -5,8 +5,7 @@ import 'package:tio_core/core.dart';
 import '../../domain/hydration_preferences.dart';
 import '../hydration_preferences_editor_controller.dart';
 
-String formatGlassSize(int? millilitres, VolumeUnit unit) {
-  if (millilitres == null) return 'Not set';
+String formatGlassSize(int millilitres, VolumeUnit unit) {
   if (unit == VolumeUnit.ml) return '$millilitres ml';
   return '~${UnitFormatters.formatVolume(millilitres.toDouble(), unit)}';
 }
@@ -20,7 +19,7 @@ class GlassSizeBottomSheet extends StatefulWidget {
     super.key,
   });
 
-  final ValueListenable<HydrationPreferences?> canonical;
+  final ValueListenable<HydrationPreferences> canonical;
   final ValueListenable<VolumeUnit> volumeUnit;
   final Future<void> Function(HydrationPreferences) onSave;
 
@@ -142,22 +141,27 @@ class _GlassSizeBottomSheetState extends State<GlassSizeBottomSheet> {
                         ),
                       ],
                       const SizedBox(height: TioSpacing.md),
-                      Row(children: [
-                        TextButton(
-                          key: const ValueKey('glass-size-clear'),
-                          onPressed: _editor.isSaving ? null : _editor.clear,
-                          child: Text('Clear',
-                              style: TextStyle(color: colors.danger)),
-                        ),
-                        const Spacer(),
-                        TextButton(
-                          key: const ValueKey('glass-size-cancel'),
-                          onPressed: _editor.isSaving
-                              ? null
-                              : () => Navigator.of(context).pop(),
-                          child: const Text('Cancel'),
-                        ),
-                      ]),
+                      Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        runSpacing: TioSpacing.xs,
+                        children: [
+                          TextButton(
+                            key: const ValueKey('glass-size-reset-default'),
+                            onPressed: _editor.isSaving
+                                ? null
+                                : _editor.resetToDefault,
+                            child: Text('Reset to Default',
+                                style: TextStyle(color: colors.danger)),
+                          ),
+                          TextButton(
+                            key: const ValueKey('glass-size-cancel'),
+                            onPressed: _editor.isSaving
+                                ? null
+                                : () => Navigator.of(context).pop(),
+                            child: const Text('Cancel'),
+                          ),
+                        ],
+                      ),
                       TioButton.primary(
                         key: const ValueKey('glass-size-save'),
                         label: 'Save',

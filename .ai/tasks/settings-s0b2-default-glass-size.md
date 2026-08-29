@@ -1,290 +1,162 @@
-# S0-B2 — Default Glass Size
+# S0-B2 — Default Glass Size (local-only correction)
 
-**Status:** Draft PR published — local DB/device acceptance pending
+**Status:** In progress — local validation PASS; Draft PR #170 correction before merge
 **Primary owner:** `apps/features/settings`
-**Affected platforms:** Flutter phone (Android/iOS), account-synced Supabase data
-**Tracker:** TNYX-130; parent TNYX-128; TNYX-118 unchanged
-**Starting HEAD:** `94d46ba8a538c13de40e2fc43b9027c0604c8030`
-**Branch:** `codex/settings-s0b2-glass-size` (existing checkout; no new worktree)
+**Affected platforms:** Flutter phone (Android/iOS), device-local preference
+**Trackers:** TNYX-130 (In Progress); parent TNYX-128 (unchanged, In Progress); TNYX-118 (unchanged)
+**Correction starting HEAD:** `19b885d88344bf9fe497776a5b721ba74afe7681`
+**Branch:** `codex/settings-s0b2-glass-size`
+**Draft PR:** [#170](https://github.com/im-tnyx/tio-world/pull/170)
 
-## 1. Discovery
+## 1. Corrected outcome
 
-Add the account-synced amount represented by a future +1 glass action. Only the
-preference is implemented; hydration logging is excluded.
+Default Glass Size is a **local-device convenience preference**, not account
+health data. It remains Settings-owned and is independent of Water Goal and
+Volume Unit. No hydration logging is delivered.
 
-Frozen contract: nullable integer ml; null = Not set; presets 200/250/300/350/500;
-custom 50–2000 inclusive in increments of 10. Reject invalid values without
-rounding/clamping. Explicit Clear changes the draft to null; Save persists it.
-Cancel/back/barrier discard the draft. Water Goal and Volume Unit stay independent.
+### Classification
 
-## 2. Verified codebase evidence
+| State | Evidence |
+|---|---|
+| CURRENT | Settings UI/editor, `SharedPreferencesAsync` persistence, real 250 ml default, Reset to Default, explicit account-boundary reset, UnitPreferences display conversion, Daily Wellness composition, and Draft PR #170 exist. The Supabase table is absent. |
+| PLANNED | No persistence or UI work in this slice; only CI and physical-device acceptance remain. |
+| DUPLICATE | Supabase Hydration adapter and its client/data path. |
+| STALE | Account sync, nullable/Not set/Clear semantics, dedicated table, and migration claims. |
+| FUTURE | Hydration logging, +1 glass, cloud sync, wearable support, server/backend work. |
 
-- Clean branch at the expected starting SHA was reconfirmed after owner approval.
-- At the starting SHA, `daily_wellness_settings_page.dart` grouped Step/Water under TARGETS
-  and retains the accepted Sleep Schedule card, dual-handle timeline and haptics.
-- Existing S0-B1 widget baseline: 36 tests PASS before edits.
-- `progress`'s Wellness repository/gateway supplies the adapter testing pattern;
-  neither that repository nor its DTO/table will change.
-- `apps/app/lib/app/network_providers.dart` and `router.dart` compose canonical
-  repositories/read state. Settings has no direct Supabase access in UI.
-- Reviewed core theme README and token-consolidation guardrails. Reuse TioSheet,
-  TioInput and TioButton; use existing Daily Wellness rows and governed values.
-- Supabase uses imperative migrations, owner FK to `public.users`,
-  `set_row_updated_at`, explicit grants and authenticated own-row RLS.
-- Current Supabase changelog/docs require explicit Data API grants; RLS alone
-  does not expose a table. No remote schema inspection/mutation is required here.
+## 2. Frozen contract
 
-## 3. Approved decisions
+- Owner: `apps/features/settings`.
+- Storage: `SharedPreferencesAsync`, integer key `default_glass_size_ml`;
+  never user-scoped.
+- Effective missing/corrupt/cleared value: **250 ml**.
+- Presets: 200 / 250 / 300 / 350 / 500 ml.
+- Custom: 50–2000 ml inclusive, 10 ml increments; invalid input is rejected
+  without clamping or rounding.
+- UI: row **Glass Size**, editor **Default Glass Size**, help
+  **Amount logged when you add one glass of water.**, and
+  **Reset to Default**.
+- Restart/restored session retains a saved override. Explicit successful logout,
+  account-setup/onboarding exit, account deletion, and new explicit login reset
+  the local value to 250 ml. Failed sign-out does not clear it.
+- Water Goal stays in its existing Wellness repository; Volume Unit is
+  display-only. #112 Units editor remains frozen.
 
-The explicit S0-B2 owner decision supersedes "Settings is a consumer, not
-canonical owner" ONLY for HydrationPreferences. Domain, repository and adapter
-live in Settings. App constructs/injects them. Future hydration logging must
-consume this preference, never create a duplicate owner.
-
-Rejected: Progress ownership, shared ownership, a new hydration package,
-Wellness aggregate fields, Nutrition/Profile/App Preferences/SharedPreferences.
-
-Imperial custom fallback: numeric entry remains explicitly labelled ml. Existing
-Water Goal editing also edits canonical ml and converts display only; there is
-no safe existing rounded fl-oz-to-10-ml input contract to reuse. Preset labels and
-summary use existing unit formatting; preset identity always remains integer ml.
-
-## 4. Architecture and boundaries
-
-Settings sheet -> draft controller -> injected HydrationPreferencesRepository
--> Settings Supabase adapter -> public.user_hydration_preferences.
-
-Glass Size saves independently inside its sheet. Page Save Changes remains the
-existing Wellness save. Pristine canonical refresh hydrates; dirty draft survives;
-canonical convergence clears dirty. Failed reads are not presented as Not set.
-Writes await persistence, prevent duplicate submits and keep failures retryable.
-
-Target IA: MOVEMENT / Step Goal; HYDRATION / Water Goal + Glass Size; SLEEP /
-accepted Sleep Schedule. No routes, bottom tabs or other feature workflows added.
-
-### Source allowlist
-
-- `apps/features/settings/lib/settings.dart`
-- `apps/features/settings/pubspec.yaml` (+ its tracked lockfile if required)
-- `apps/features/settings/lib/src/domain/hydration_preferences.dart`
-- `apps/features/settings/lib/src/data/supabase_hydration_preferences_repository.dart`
-- `apps/features/settings/lib/src/presentation/hydration_preferences_editor_controller.dart`
-- `apps/features/settings/lib/src/presentation/widgets/glass_size_bottom_sheet.dart`
-- `apps/features/settings/lib/src/presentation/pages/daily_wellness_settings_page.dart`
-- `apps/features/settings/test/domain/hydration_preferences_test.dart`
-- `apps/features/settings/test/data/hydration_preferences_repository_test.dart`
-- `apps/features/settings/test/presentation/hydration_preferences_editor_controller_test.dart`
-- `apps/features/settings/test/presentation/daily_wellness_settings_page_test.dart`
-- `apps/app/lib/app/network_providers.dart`
-- `apps/app/lib/app/router.dart`
-- `apps/app/test/app/daily_wellness_route_test.dart`
-- One new Supabase migration, generated by the CLI; one focused SQL security test.
-- Temporary SQL draft is removed after semantic reconciliation with the generated migration.
-- This brief, `docs/screens/settings.md`, `docs/MODULE_OWNERSHIP.md`, concise ADR
-  and index/decision/changelog entries recording the approved bounded ownership.
-
-Forbidden: Progress/Wellness/Body implementation, shared/core/editor changes,
-Profile/Nutrition/Workout/Onboarding/Watch, historical migrations, Sleep behavior,
-Auth/session behavior, new logging tables/workflows, machine paths/secrets/caches.
-
-## 5. Implementation and validation plan
-
-- [x] Settings domain, adapter and focused tests.
-- [x] One CLI-generated migration and static own-row/constraint contract audit.
-- [ ] Local DB own-row/constraint security verification.
-- [x] App providers, independent read/error handling, Settings sheet and grouping.
-- [x] Refresh/convergence, no-submit/cancel/clear/retry and independent writes tests.
-- [x] Fresh Flutter analyzers/tests; frozen-file diff review completed separately.
-- [x] Commit, normal push, NEW Draft PR after the fresh Flutter gates; local DB
-  and device gates remain explicitly pending.
-
-Portable commands (using the owner's configured existing Flutter SDK):
+## 3. Ownership and boundaries
 
 ```text
-dart format <touched Dart files>
-flutter analyze --no-pub                 # settings, app, core
-flutter test --no-pub --reporter expanded # settings, app, core
-flutter test --no-pub test/data/wellness_targets_repository_test.dart # progress
-git diff --check
-git diff --name-status origin/main...HEAD
-git diff --stat origin/main...HEAD
+Daily Wellness UI
+  -> HydrationPreferencesEditorController
+  -> HydrationPreferencesRepository
+  -> SharedPreferencesHydrationPreferencesRepository
+  -> SharedPreferencesAsync(default_glass_size_ml)
+
+apps/app
+  -> repository/provider composition
+  -> explicit login/logout/account-end boundary only
 ```
 
-## 6. Quality review evidence
+Out of scope: Progress, Nutrition, Profile, shared ownership, a new hydration
+package, `WellnessTargetsData`, `user_wellness_targets`,
+`user_app_preferences`, any Supabase table/migration/RLS, hydration logging,
+watch and backend work.
 
-### Executed checks (2026-08-29)
+The earlier account-synced table decision is superseded during Draft PR review
+before merge. The unmerged local migration
+`20260829043204_create_user_hydration_preferences.sql` is removed. The remote
+draft migration history is stale and the manually removed zero-row table remains
+absent; **remote repair is a separate explicitly authorized operation**.
 
-| Check | Result |
-| --- | --- |
-| Settings full tests | PASS — fresh post-restart run, 124 |
-| App full tests | PASS — fresh post-restart run, 241 |
-| Core full tests | PASS — fresh post-restart run, 114 |
-| Progress Wellness repository tests | PASS — fresh run, 11 |
-| Profile Units repository tests | PASS — fresh run, 2 |
-| Onboarding Measurement Units + Water converter tests | PASS — fresh run, 6 |
-| Settings / App / Core analyze | PASS — fresh post-restart elevated SDK runs, no issues |
-| Format touched Dart files | Executed; unrelated baseline formatting restored |
-| `git diff --check` | PASS |
-| Frozen source / scope review | PASS |
-| CLI migration generation | PASS — Supabase CLI 2.116.0 via temporary `npx --yes`; generated `supabase/migrations/20260829043204_create_user_hydration_preferences.sql` |
-| Draft reconciliation/removal | PASS — normalized SQL semantic equality; temporary draft removed |
-| Local migration / database / RLS runtime tests | NOT RUN — `127.0.0.1:54322` refused; Docker unavailable |
-| Remote migration / database verification | NOT RUN — explicitly prohibited in this checkpoint |
-| Physical-device acceptance | NOT RUN |
-| CI / Draft PR checks | NOT RUN — no publication |
+## 4. Corrected implementation
 
-Final unique test total: **498 PASS**. The 36-test pre-change baseline and
-7-test focused App route run are included in the full suites, not added again.
-Initial new fixture/finder failures were corrected before these final green runs.
+- [x] Replace nullable domain/repository contract with non-null 250 ml default.
+- [x] Replace Settings Supabase adapter with a Settings-local
+  `SharedPreferencesAsync` adapter.
+- [x] Replace Clear/Not set UI with Reset to Default/250 ml behavior.
+- [x] Remove the unmerged local Supabase migration and old adapter.
+- [x] Limit app composition to local provider and explicit account boundaries.
+- [x] Update focused local/domain/editor/route/session coverage.
+- [x] Update ownership, ADR, Settings and decision/status documentation.
+- [x] Run fresh configured Flutter validation and scope audit.
+- [ ] Update Linear/PR, commit forward correction, push and wait for exact-head CI.
 
-Tests cover integer validation, absent/set/update/clear, actual gateway
-table/filter/payload, failed reads/writes, account-change isolation, presets,
-custom input, unchanged/invalid Save, awaited persistence/double-submit guard,
-cancel/barrier/back, retry, pristine refresh/dirty preservation/convergence,
-and compact-width light/dark layout. Mocked transport/repository tests do not
-prove live PostgreSQL RLS or deployed account sync.
+## 5. Source boundary
 
-Mandatory independent-write scenario passes: Water 2800 / Glass 250 -> Glass
-300 keeps Water exactly 2800 with no Wellness write; Water 3000 then keeps Glass
-300 with no extra Hydration write. Reopen reads the confirmed Glass value.
-Volume Unit switching changes only display and preserves exact canonical ml.
-All accepted S0-B1 regression tests remain green.
+Allowed changes:
 
-### Tooling diagnostic evidence
+- `.ai/DECISIONS.md`, `.ai/IMPLEMENTATION_STATUS.md`, this brief
+- `apps/features/settings/lib/settings.dart`
+- `apps/features/settings/pubspec.yaml` and tracked lockfile only if pub resolution changes it
+- Settings Hydration domain, local data adapter, editor, Glass Size sheet, Daily
+  Wellness page and their focused tests
+- `apps/app/lib/app/network_providers.dart`, `router.dart`, the narrow
+  `hydration_preferences_session_boundary.dart`, and focused app tests
+- `docs/screens/settings.md`, `docs/MODULE_OWNERSHIP.md`, ADR-0008/0009 and ADR index
+- deletion only of `supabase/migrations/20260829043204_create_user_hydration_preferences.sql`
 
-Node was `v24.17.0`, npm was `11.13.0`, and the resolved exact CLI version was
-`2.116.0`. Temporary `npx` execution did not modify `package.json` or
-`package-lock.json`. The repository already had `supabase/config.toml`,
-`supabase/migrations/` and the draft staging location.
+Must not change: Units editor/domain/repository, Progress Wellness repository,
+Profile, Nutrition, Workout, Onboarding behavior, Auth feature implementation,
+shared/core UI, router paths, schema/migrations other than the specified
+deletion, or remote Supabase state.
 
-The configured SDK is `G:\dev\flutter-sdk\bin\flutter.bat`. The targeted recovery
-checkpoint authorized cleanup only for confirmed stale failed CLI processes.
-Command-line inspection classified all discovered Dart processes as preserved
-IDE/intentional tooling: Flutter daemon PID 7708 (parent `flutter.bat daemon`),
-Android Studio language server PID 6832, tooling daemon PID 27336, and DevTools
-PID 12628. No category-C stale CLI process was identified or terminated. The
-SDK `G:\dev\flutter-sdk\bin\cache\lockfile` remains untouched.
+## 6. Validation
 
-Raw SDK Dart succeeded: `G:\dev\flutter-sdk\bin\cache\dart-sdk\bin\dart.exe
---version` returned Dart SDK `3.12.2` with exit 0. Flutter
-`G:\dev\flutter-sdk\bin\flutter.bat --version` then produced no output for
-more than two minutes and was terminated; no child Dart process appeared for
-that invocation. Fresh Settings/App/Core analyzers and tests were not run after
-this startup failure. No SDK cache, pub cache, `.dart_tool`, lockfile, IDE,
-ADB, Gradle or emulator process was killed/deleted. Fresh Flutter validation
-therefore remains unverified; the next safe escalation is a machine restart.
+Local validation on the correction worktree passed:
 
-### Post-restart recovery checkpoint (2026-08-29)
+```text
+apps/features/settings: flutter pub get PASS; analyze PASS; full test PASS (123)
+apps/app: analyze PASS; full test PASS (246)
+apps/core: analyze PASS; full test PASS (114)
+apps/features/progress: wellness_targets_repository_test PASS (11)
+apps/features/profile: supabase_measurement_unit_preferences_repository_test PASS (2)
+apps/features/onboarding: measurement_units_screen_test PASS (1);
+water_unit_converter_test PASS (5)
+git diff --check: PASS
+```
 
-The owner reported a machine restart. Post-restart raw Dart succeeded with exit 0
-and Dart SDK `3.12.2`. The first post-restart Flutter wrapper attempt had no
-output and was terminated under the stop rule. Running the same configured SDK
-through elevated access then completed with Flutter `3.44.6`; the exact bundled
-snapshot also completed. Fresh Settings, App, Core and regression suites
-subsequently passed. The apparent hang was an SDK cache access boundary in the
-non-elevated invocation, not a source failure.
+`G:\dev\flutter-sdk\bin\dart.bat format` was run for the touched Dart files.
+Existing line wrapping was then preserved where the SDK formatter would have
+created unrelated churn. Scope audit confirms the frozen core Units editor and
+Progress/Profile/Nutrition/Workout source are unchanged. Physical-device
+acceptance remains pending after exact-head CI; no remote migration repair
+occurs in this checkpoint.
 
-### Implementation decisions and compatibility
+### Actual changed files (29)
 
-- The repository validates canonical integer ml and rejects malformed backend
-  data. No row/null is unset; errors never become a fabricated default.
-- The account-bound repository rejects requests from an editor captured before
-  an account switch. App session state resets the page and read provider; no new
-  Auth/session persistence path is introduced.
-- The sheet uses existing TioSheet/TioInput/TioButton. No shared component/token
-  changes. Cancel does not dirty the Wellness page; successful Glass Save updates
-  only the independent Glass summary/provider.
-- Settings directly pins `supabase_flutter: 2.17.1` to the App's existing version.
-  Its tracked lockfile aligns the already-present Supabase dependency family;
-  App's lockfile is unchanged. `http` is a test dependency for gateway assertions.
-- Existing route identifiers/paths are unchanged. Router edits are confined to
-  Daily Wellness dependency injection and account-bound page identity.
-- The accepted Sleep card/editor source tail is unchanged, including haptics.
-  The frozen #112 shared Units editor Git blob remains
-  `c8bbfe0caa154fb0d7a70d310bc0abfeb9b492ae` at both HEAD and working tree.
-- No Progress, Profile, shared/core, Onboarding, Nutrition, Workout, Home, Auth,
-  Watch, historical migration or hydration-log implementation changed.
+```text
+.ai/DECISIONS.md
+.ai/IMPLEMENTATION_STATUS.md
+.ai/tasks/settings-s0b2-default-glass-size.md
+apps/app/lib/app/hydration_preferences_session_boundary.dart
+apps/app/lib/app/network_providers.dart
+apps/app/lib/app/router.dart
+apps/app/test/app/app_mode_router_test.dart
+apps/app/test/app/daily_wellness_route_test.dart
+apps/app/test/app/hydration_preferences_session_boundary_test.dart
+apps/app/test/app/onboarding_root_logout_router_test.dart
+apps/features/settings/lib/settings.dart
+apps/features/settings/lib/src/data/shared_preferences_hydration_preferences_repository.dart
+apps/features/settings/lib/src/data/supabase_hydration_preferences_repository.dart (deleted)
+apps/features/settings/lib/src/domain/hydration_preferences.dart
+apps/features/settings/lib/src/presentation/hydration_preferences_editor_controller.dart
+apps/features/settings/lib/src/presentation/pages/daily_wellness_settings_page.dart
+apps/features/settings/lib/src/presentation/widgets/glass_size_bottom_sheet.dart
+apps/features/settings/pubspec.lock
+apps/features/settings/pubspec.yaml
+apps/features/settings/test/data/hydration_preferences_repository_test.dart
+apps/features/settings/test/domain/hydration_preferences_test.dart
+apps/features/settings/test/presentation/daily_wellness_settings_page_test.dart
+apps/features/settings/test/presentation/hydration_preferences_editor_controller_test.dart
+docs/MODULE_OWNERSHIP.md
+docs/adr/0008-settings-hydration-preferences-owner.md
+docs/adr/0009-settings-local-default-glass-size.md
+docs/adr/README.md
+docs/screens/settings.md
+supabase/migrations/20260829043204_create_user_hydration_preferences.sql (deleted)
+```
 
-### Database and tooling stop boundary
+## 7. Publication boundary
 
-`supabase/migrations/20260829043204_create_user_hydration_preferences.sql` is the
-single CLI-generated S0-B2 schema artifact. It defines only the new preference
-table, nullable integer constraint, standard owner FK/update trigger, explicit
-grants and own-row select/insert/update RLS. It has no default/backfill and no
-client delete grant; Clear updates null. Existing owner tables and historical
-migrations are unchanged. The temporary draft was removed only after normalized
-semantic equality was confirmed.
-
-Supabase CLI `2.116.0` was resolved with `npm view supabase version` and run
-temporarily using `npx --yes supabase@2.116.0`; no global install and no
-package.json/package-lock change were made. CLI `migration new` created the
-timestamped file above.
-
-The Supabase plugin was subsequently used for a read-only audit of project
-`oykupyiitspujzpwwvuj` (`tio-world`). Its table listing and
-`information_schema.tables` query both confirmed that
-`public.user_hydration_preferences` is not deployed. Its migration listing has
-no S0-B2 migration. The security advisor returned only pre-existing warnings for
-other public `SECURITY DEFINER` functions and Auth leaked-password protection;
-no S0-B2 table exists for a new advisor result.
-The same read-only query confirmed the existing `public.users` owner table and
-`public.set_row_updated_at()` trigger function required by the draft.
-
-**Migration filename:** `20260829043204_create_user_hydration_preferences.sql`.
-**MIGRATION FILE GENERATED = YES.** **REMOTE MIGRATION APPLIED = NO.**
-Local constraint/RLS runtime verification remains unfulfilled because Docker and
-the configured local Postgres port are unavailable. The client is not claimed to
-work against a deployed preference table. Remote application remains prohibited
-by this checkpoint and requires a later explicit authorization.
-
-## 7. Handoff
-
-**Implementation HEAD:** `58e9c12ff811a057d18ea7537a2e8f66aac58fc9`.
-The implementation commit contains 23 approved files. No unrelated user
-changes were present at the clean start, and the parent-to-head audit is
-`main` / `94d46ba8a538c13de40e2fc43b9027c0604c8030` → this implementation HEAD.
-
-### Exact changed files
-
-1. `.ai/DECISIONS.md`
-2. `.ai/IMPLEMENTATION_STATUS.md`
-3. `.ai/tasks/settings-s0b2-default-glass-size.md` (new)
-4. `apps/app/lib/app/network_providers.dart`
-5. `apps/app/lib/app/router.dart`
-6. `apps/app/test/app/daily_wellness_route_test.dart`
-7. `apps/features/settings/lib/settings.dart`
-8. `apps/features/settings/lib/src/data/supabase_hydration_preferences_repository.dart` (new)
-9. `apps/features/settings/lib/src/domain/hydration_preferences.dart` (new)
-10. `apps/features/settings/lib/src/presentation/hydration_preferences_editor_controller.dart` (new)
-11. `apps/features/settings/lib/src/presentation/pages/daily_wellness_settings_page.dart`
-12. `apps/features/settings/lib/src/presentation/widgets/glass_size_bottom_sheet.dart` (new)
-13. `apps/features/settings/pubspec.lock`
-14. `apps/features/settings/pubspec.yaml`
-15. `apps/features/settings/test/data/hydration_preferences_repository_test.dart` (new)
-16. `apps/features/settings/test/domain/hydration_preferences_test.dart` (new)
-17. `apps/features/settings/test/presentation/daily_wellness_settings_page_test.dart`
-18. `apps/features/settings/test/presentation/hydration_preferences_editor_controller_test.dart` (new)
-19. `docs/adr/0008-settings-hydration-preferences-owner.md` (new)
-20. `docs/adr/README.md`
-21. `docs/MODULE_OWNERSHIP.md`
-22. `docs/screens/settings.md`
-23. `supabase/migrations/20260829043204_create_user_hydration_preferences.sql` (new)
-
-TNYX-130 was moved Backlog -> In Progress when source work began. TNYX-128
-remains In Progress; TNYX-118 is unchanged. No tracker was marked Done.
-
-### Publication evidence
-
-- Commit: `58e9c12ff811a057d18ea7537a2e8f66aac58fc9`
-- Remote branch: `origin/codex/settings-s0b2-glass-size` at the same SHA.
-- Draft PR: `https://github.com/im-tnyx/tio-world/pull/170` (base `main`, head
-  `codex/settings-s0b2-glass-size`, Draft, mergeable; CI `Analyze and test`
-  was `IN_PROGRESS` at publication time).
-- Fresh Flutter analyzers/tests are complete and green; local DB/security
-  runtime checks remain incomplete because Docker and the configured local
-  Postgres port are unavailable. Do not apply remotely in this checkpoint.
-- Keep the PR Draft; do not merge or mark the tracker Done.
-
-Physical-device acceptance must cover Hydration grouping, unset/presets/custom,
-validation/Clear/Save, reopen persistence, Metric/Imperial and unchanged Water
-Goal against authorized available storage. Keep the PR Draft until acceptance.
+Create one forward correction commit; do not amend the published history. Keep
+PR #170 Draft. Do not merge, close #170, mark TNYX-130 Done, change TNYX-128 or
+TNYX-118, start the next slice, or repair remote Supabase migration history.

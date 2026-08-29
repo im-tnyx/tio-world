@@ -3,20 +3,20 @@ import '../domain/hydration_preferences.dart';
 
 /// Sheet-local draft. Disposing the sheet discards unsaved changes.
 class HydrationPreferencesEditorController extends ChangeNotifier {
-  HydrationPreferencesEditorController(HydrationPreferences? initial) {
-    _canonicalMl = initial?.defaultGlassSizeMl;
+  HydrationPreferencesEditorController(HydrationPreferences initial) {
+    _canonicalMl = initial.defaultGlassSizeMl;
     _adoptCanonical();
   }
 
-  int? _canonicalMl;
-  int? _draftMl;
+  late int _canonicalMl;
+  late int _draftMl;
   var _custom = false;
   var _customText = '';
   var _saving = false;
   var _disposed = false;
   String? _saveError;
 
-  int? get draftMl => _draftMl;
+  int get draftMl => _draftMl;
   bool get isCustom => _custom;
   String get customText => _customText;
   bool get isSaving => _saving;
@@ -36,18 +36,17 @@ class HydrationPreferencesEditorController extends ChangeNotifier {
   bool get isDirty => validationError != null || _draftMl != _canonicalMl;
   bool get canSave => !_saving && isDirty && validationError == null;
 
-  void refresh(HydrationPreferences? canonical) {
+  void refresh(HydrationPreferences canonical) {
     final wasDirty = isDirty;
-    _canonicalMl = canonical?.defaultGlassSizeMl;
+    _canonicalMl = canonical.defaultGlassSizeMl;
     if (!wasDirty && !_saving) _adoptCanonical();
     notifyListeners();
   }
 
   void _adoptCanonical() {
     _draftMl = _canonicalMl;
-    _custom =
-        _draftMl != null && !HydrationPreferences.presetsMl.contains(_draftMl);
-    _customText = _draftMl?.toString() ?? '';
+    _custom = !HydrationPreferences.presetsMl.contains(_draftMl);
+    _customText = _draftMl.toString();
   }
 
   void selectPreset(int value) {
@@ -64,7 +63,7 @@ class HydrationPreferencesEditorController extends ChangeNotifier {
   void selectCustom() {
     if (_saving) return;
     _custom = true;
-    _customText = _draftMl?.toString() ?? '';
+    _customText = _draftMl.toString();
     _changed();
   }
 
@@ -72,14 +71,14 @@ class HydrationPreferencesEditorController extends ChangeNotifier {
     if (_saving) return;
     _custom = true;
     _customText = text;
-    _draftMl = int.tryParse(text.trim());
+    _draftMl = int.tryParse(text.trim()) ?? _canonicalMl;
     _changed();
   }
 
-  void clear() {
+  void resetToDefault() {
     if (_saving) return;
-    _draftMl = null;
-    _customText = '';
+    _draftMl = HydrationPreferences.defaultGlassSizeMlDefault;
+    _customText = _draftMl.toString();
     _custom = false;
     _changed();
   }

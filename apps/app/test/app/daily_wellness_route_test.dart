@@ -129,7 +129,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(wellness.value!.waterMl, 2800);
     expect(wellness.writes, isEmpty);
-    expect(hydration.value!.defaultGlassSizeMl, 300);
+    expect(hydration.value.defaultGlassSizeMl, 300);
     expect(find.text('300 ml'), findsOneWidget);
 
     await tester.tap(find.text('Water Goal'));
@@ -138,13 +138,13 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('Set Goal'));
     await tester.pumpAndSettle();
-    expect(hydration.value!.defaultGlassSizeMl, 300);
+    expect(hydration.value.defaultGlassSizeMl, 300);
     await tester.tap(find.byKey(const ValueKey('daily-wellness-save')));
     await tester.pumpAndSettle();
     expect(wellness.value!.waterMl, 3000);
     expect(wellness.writes.length, 1);
     expect(hydration.writes.length, 1);
-    expect(hydration.value!.defaultGlassSizeMl, 300);
+    expect(hydration.value.defaultGlassSizeMl, 300);
     expect(find.text('Health & Goals'), findsOneWidget);
     // Reopen through the route: both summaries hydrate the repositories.
     await tester.tap(find.text('Daily Wellness'));
@@ -156,23 +156,23 @@ void main() {
   });
 
   testWidgets(
-      'Glass Save awaits repository, retries failure, and Clear persists on reopen',
+      'Glass Save awaits repository, retries failure, and Reset persists on reopen',
       (tester) async {
     final wellness = _FakeWellnessTargetsRepository();
     final hydration = _FakeHydrationRepository()
-      ..value = const HydrationPreferences(defaultGlassSizeMl: 250)
+      ..value = const HydrationPreferences(defaultGlassSizeMl: 300)
       ..writeGate = Completer<void>();
     final container = await buildContainer(wellness, hydration: hydration);
     addTearDown(container.dispose);
     await openPage(tester, container, wellness);
     await openGlass(tester);
-    await tester.tap(find.byKey(const ValueKey('glass-size-clear')));
+    await tester.tap(find.byKey(const ValueKey('glass-size-reset-default')));
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('glass-size-save')));
     await tester.tap(find.byKey(const ValueKey('glass-size-save')));
     await tester.pump();
     expect(hydration.writes.length, 1);
-    expect(hydration.value!.defaultGlassSizeMl, 250);
+    expect(hydration.value.defaultGlassSizeMl, 300);
     expect(find.text('Default Glass Size'), findsOneWidget);
     hydration.failWrite = true;
     hydration.writeGate!.complete();
@@ -182,7 +182,7 @@ void main() {
     hydration.failWrite = false;
     await tester.tap(find.byKey(const ValueKey('glass-size-save')));
     await tester.pumpAndSettle();
-    expect(hydration.value!.defaultGlassSizeMl, isNull);
+    expect(hydration.value.defaultGlassSizeMl, 250);
     expect(wellness.writes, isEmpty);
     await openGlass(tester);
     expect(
@@ -190,7 +190,7 @@ void main() {
             .widget<Text>(
                 find.byKey(const ValueKey('glass-size-draft-summary')))
             .data,
-        'Not set');
+        '250 ml');
   });
 
   testWidgets('canonical provider refresh reaches open draft and converges',
@@ -340,7 +340,7 @@ class _FakeWellnessTargetsRepository implements WellnessTargetsRepository {
 }
 
 class _FakeHydrationRepository implements HydrationPreferencesRepository {
-  HydrationPreferences? value;
+  HydrationPreferences value = const HydrationPreferences();
   final writes = <HydrationPreferences>[];
   var reads = 0;
   var failRead = false;
@@ -349,7 +349,7 @@ class _FakeHydrationRepository implements HydrationPreferencesRepository {
   Completer<void>? writeGate;
 
   @override
-  Future<HydrationPreferences?> read() async {
+  Future<HydrationPreferences> read() async {
     reads++;
     await readGate?.future;
     if (failRead) throw StateError('read failed');
@@ -357,12 +357,15 @@ class _FakeHydrationRepository implements HydrationPreferencesRepository {
   }
 
   @override
-  Future<void> upsert(HydrationPreferences preferences) async {
+  Future<void> write(HydrationPreferences preferences) async {
     writes.add(preferences);
     await writeGate?.future;
     if (failWrite) throw StateError('write failed');
     value = preferences;
   }
+
+  @override
+  Future<void> clear() async => value = const HydrationPreferences();
 }
 
 class _FixedAppSessionBootstrapController

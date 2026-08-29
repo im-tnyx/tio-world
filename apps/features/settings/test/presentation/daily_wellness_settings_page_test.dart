@@ -38,7 +38,7 @@ void main() {
   }
 
   Widget glassPage({
-    int? initialMl = 250,
+    int initialMl = 250,
     VolumeUnit unit = VolumeUnit.ml,
     required Future<void> Function(HydrationPreferences) save,
   }) =>
@@ -97,21 +97,22 @@ void main() {
           isNull);
     });
 
-    testWidgets(
-        'unset is Not set, with no selected default preset or implicit write',
+    testWidgets('default is 250 ml, selected and has no implicit write',
         (tester) async {
       final writes = <HydrationPreferences>[];
-      await tester.pumpWidget(buildApp(
-          glassPage(initialMl: null, save: (p) async => writes.add(p))));
+      await tester
+          .pumpWidget(buildApp(glassPage(save: (p) async => writes.add(p))));
       final row = find.byKey(const ValueKey('daily-wellness-glass-size-field'));
-      expect(find.descendant(of: row, matching: find.text('Not set')),
+      expect(find.descendant(of: row, matching: find.text('250 ml')),
           findsOneWidget);
       await openGlass(tester);
       expect(
           tester
               .widgetList<ChoiceChip>(find.byType(ChoiceChip))
-              .where((chip) => chip.selected),
-          isEmpty);
+              .singleWhere(
+                  (chip) => chip.key == const ValueKey('glass-size-preset-250'))
+              .selected,
+          isTrue);
       await tapGlass(tester, 'glass-size-cancel');
       expect(writes, isEmpty);
     });
@@ -162,13 +163,13 @@ void main() {
       expect(writes, 0);
     });
 
-    testWidgets('Clear only persists null after Save; reopen remains unset',
+    testWidgets('Reset to Default drafts 250 ml and persists it after Save',
         (tester) async {
       final writes = <HydrationPreferences>[];
-      await tester
-          .pumpWidget(buildApp(glassPage(save: (p) async => writes.add(p))));
+      await tester.pumpWidget(buildApp(
+          glassPage(initialMl: 300, save: (p) async => writes.add(p))));
       await openGlass(tester);
-      await tapGlass(tester, 'glass-size-clear');
+      await tapGlass(tester, 'glass-size-reset-default');
       expect(writes, isEmpty);
       await tapGlass(tester, 'glass-size-save');
       expect(writes, [const HydrationPreferences()]);
@@ -178,7 +179,7 @@ void main() {
               .widget<Text>(
                   find.byKey(const ValueKey('glass-size-draft-summary')))
               .data,
-          'Not set');
+          '250 ml');
       expect(
           tester
               .widget<TioButton>(find.byKey(const ValueKey('glass-size-save')))
@@ -265,7 +266,7 @@ void main() {
     testWidgets(
         'open editor follows pristine refresh, preserves draft, then converges',
         (tester) async {
-      final source = ValueNotifier<HydrationPreferences?>(
+      final source = ValueNotifier<HydrationPreferences>(
           const HydrationPreferences(defaultGlassSizeMl: 250));
       addTearDown(source.dispose);
       await tester.pumpWidget(buildApp(ValueListenableBuilder(

@@ -122,6 +122,25 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ref.read(appSessionBootstrapControllerProvider);
   final appThemeController = ref.read(appThemeControllerProvider);
 
+  Future<void> clearGlassSizeForNewExplicitLogin() async {
+    try {
+      await ref
+          .read(hydrationPreferencesSessionBoundaryProvider)
+          .clearForNewExplicitLogin();
+    } catch (_) {
+      // A completed Auth sign-in still proceeds if local storage is unavailable.
+    } finally {
+      ref.invalidate(hydrationPreferencesDataProvider);
+      await appSessionBootstrapController.refresh();
+    }
+  }
+
+  Future<void> signOutAndClearGlassSize() => ref
+      .read(hydrationPreferencesSessionBoundaryProvider)
+      .clearAfterSuccessfulSignOut(
+        ref.read(authSessionRepositoryProvider).signOut,
+      );
+
   late final GoRouter router;
   router = GoRouter(
     initialLocation: AppRoutes.splash.path,
@@ -269,12 +288,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               signInWithGoogleUseCase: supabaseSignInUseCase,
               googleAuthUseCase: googleAuthUseCase,
               onSignInSuccess: (_) {
-                unawaited(appSessionBootstrapController.refresh());
+                unawaited(clearGlassSizeForNewExplicitLogin());
               },
               onAuthSuccess: (result) {
                 ref.read(backendUserStateProvider.notifier).state =
                     result.backendUserState;
-                unawaited(appSessionBootstrapController.refresh());
+                unawaited(clearGlassSizeForNewExplicitLogin());
               },
             );
           },
@@ -295,12 +314,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               signInWithGoogleUseCase: supabaseSignInUseCase,
               googleAuthUseCase: googleAuthUseCase,
               onSignInSuccess: (_) {
-                unawaited(appSessionBootstrapController.refresh());
+                unawaited(clearGlassSizeForNewExplicitLogin());
               },
               onAuthSuccess: (result) {
                 ref.read(backendUserStateProvider.notifier).state =
                     result.backendUserState;
-                unawaited(appSessionBootstrapController.refresh());
+                unawaited(clearGlassSizeForNewExplicitLogin());
               },
             );
           },
@@ -321,12 +340,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               signInWithGoogleUseCase: supabaseSignInUseCase,
               googleAuthUseCase: googleAuthUseCase,
               onSignUpSuccess: (_) {
-                unawaited(appSessionBootstrapController.refresh());
+                unawaited(clearGlassSizeForNewExplicitLogin());
               },
               onAuthSuccess: (result) {
                 ref.read(backendUserStateProvider.notifier).state =
                     result.backendUserState;
-                unawaited(appSessionBootstrapController.refresh());
+                unawaited(clearGlassSizeForNewExplicitLogin());
               },
             );
           },
@@ -366,7 +385,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             hasTrustedPhoneIdentity:
                 currentPhone != null && currentPhone.isNotEmpty,
             onExitRequested: () async {
-              await ref.read(authSessionRepositoryProvider).signOut();
+              await signOutAndClearGlassSize();
               await appSessionBootstrapController.refresh();
             },
             onCompleted: () async {
@@ -402,7 +421,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                     ),
             ),
             onExitRequested: () async {
-              await ref.read(authSessionRepositoryProvider).signOut();
+              await signOutAndClearGlassSize();
               await appSessionBootstrapController.refresh();
             },
             onAuthRequired: () async {
@@ -673,7 +692,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               context.push(AppRoutes.healthGoalsSettings.path),
           onAppSettingsPressed: () => context.push(AppRoutes.appSettings.path),
           onLogoutPressed: () async {
-            await ref.read(authSessionRepositoryProvider).signOut();
+            await signOutAndClearGlassSize();
             if (context.mounted) context.go(AppRoutes.auth.path);
           },
         ),
@@ -803,12 +822,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               hydrationLoadFailed: hydrationAsync.hasError,
               onRetryHydration: () =>
                   ref.invalidate(hydrationPreferencesDataProvider),
-              onSaveHydration: hydrationRepository == null
-                  ? null
-                  : (preferences) async {
-                      await hydrationRepository.upsert(preferences);
-                      ref.invalidate(hydrationPreferencesDataProvider);
-                    },
+              onSaveHydration: (preferences) async {
+                await hydrationRepository.write(preferences);
+                ref.invalidate(hydrationPreferencesDataProvider);
+              },
               onSave: (targets) async {
                 final repository = ref.read(wellnessTargetsRepositoryProvider);
                 await repository.upsert(targets);
@@ -965,9 +982,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 // The server-side delete is already confirmed at this point.
                 // Local sign-out is best-effort: failure must not turn a real
                 // deletion into a false-negative UI state.
-                try {
-                  await ref.read(authSessionRepositoryProvider).signOut();
-                } catch (_) {}
+                await ref
+                    .read(hydrationPreferencesSessionBoundaryProvider)
+                    .clearAfterConfirmedAccountDeletion(
+                      ref.read(authSessionRepositoryProvider).signOut,
+                    );
+                ref.invalidate(hydrationPreferencesDataProvider);
 
                 appSessionBootstrapController
                     .markUnauthenticatedAfterAccountDeletion();

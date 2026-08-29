@@ -64,9 +64,9 @@ class DailyWellnessSettingsPage extends StatefulWidget {
 }
 
 class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
-  late final ValueNotifier<HydrationPreferences?> _glassCanonical;
+  late final ValueNotifier<HydrationPreferences> _glassCanonical;
   late final ValueNotifier<VolumeUnit> _glassVolumeUnit;
-  HydrationPreferences? _glassPreferences;
+  late HydrationPreferences _glassPreferences;
 
   int? _dailySteps;
   int? _waterMl;
@@ -99,7 +99,8 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
   @override
   void initState() {
     super.initState();
-    _glassPreferences = widget.hydrationPreferences;
+    _glassPreferences =
+        widget.hydrationPreferences ?? const HydrationPreferences();
     _glassCanonical = ValueNotifier(_glassPreferences);
     _glassVolumeUnit = ValueNotifier(widget.volumeUnit);
     _dailySteps = widget.initialTargets?.dailySteps;
@@ -118,7 +119,8 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
         (oldWidget.hydrationPreferences != widget.hydrationPreferences ||
             oldWidget.hydrationLoading ||
             oldWidget.hydrationLoadFailed)) {
-      _glassPreferences = widget.hydrationPreferences;
+      _glassPreferences =
+          widget.hydrationPreferences ?? const HydrationPreferences();
     }
     // A modal is a separate route: notify it after this page finishes building.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -200,7 +202,7 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
     if (widget.hydrationLoadFailed) return 'Could not load Glass Size';
     if (widget.onSaveHydration == null) return 'Unavailable';
     return formatGlassSize(
-        _glassPreferences?.defaultGlassSizeMl, widget.volumeUnit);
+        _glassPreferences.defaultGlassSizeMl, widget.volumeUnit);
   }
 
   String _formatWater() {
@@ -591,7 +593,7 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
                         icon: Icons.local_drink_outlined,
                         label: 'Glass Size',
                         value: _glassSummary(),
-                        isUnset: _glassPreferences?.defaultGlassSizeMl == null,
+                        isUnset: false,
                         onTap: widget.onSaveHydration == null ||
                                 widget.hydrationLoading ||
                                 widget.hydrationLoadFailed

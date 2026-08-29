@@ -1,9 +1,13 @@
 # ADR-0008: Settings owns the bounded HydrationPreferences contract
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0009](0009-settings-local-default-glass-size.md)
 - **Date:** 2026-08-29
 
 ## Context
+
+> Historical record: this account-synced Supabase-table decision was superseded
+> during Draft PR #170 review, before merge. The replacement is local-only
+> `SharedPreferencesAsync` storage in [ADR-0009](0009-settings-local-default-glass-size.md).
 
 S0-B2 needs an account-synced Default Glass Size preference. It is the amount
 represented by a future +1 glass action, independent of Daily Water Goal and

@@ -179,7 +179,8 @@ Existing ADRs remain historical records and are not rewritten merely to match th
 | [0005](0005-adaptive-navigation-and-action-entry.md) | Accepted | A future custom layout adapts Home sections and feature action entry points without moving domain ownership. |
 | [0006](0006-single-route-onboarding-parent-flow.md) | Accepted | One onboarding route owns fixed progress/actions and mode-derived child steps. |
 | [0007](0007-active-supabase-and-future-services-api.md) | Accepted | Active Supabase remains the current foundation; future protected backend uses `services/api` with TypeScript/Fastify when explicitly authorized. |
-| [0008](0008-settings-hydration-preferences-owner.md) | Accepted | Settings owns the bounded HydrationPreferences domain/repository; future hydration logging consumes it. |
+| [0008](0008-settings-hydration-preferences-owner.md) | Superseded by 0009 | Historical account-synced Supabase preference proposal. |
+| [0009](0009-settings-local-default-glass-size.md) | Accepted | Settings owns a local-only Default Glass Size convenience preference. |
 
 ## Authoring workflow
 
