@@ -216,6 +216,25 @@ void main() {
       });
     }
 
+    testWidgets('idle handle drag discards the Glass draft without writing',
+        (tester) async {
+      final writes = <HydrationPreferences>[];
+      await tester
+          .pumpWidget(buildApp(glassPage(save: (p) async => writes.add(p))));
+      await openGlass(tester);
+      await tapGlass(tester, 'glass-size-preset-300');
+
+      await tester.drag(
+        find.byKey(const ValueKey('daily-wellness-editor-sheet-handle')),
+        const Offset(0, 600),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Default Glass Size'), findsNothing);
+      expect(find.text('250 ml'), findsOneWidget);
+      expect(writes, isEmpty);
+    });
+
     testWidgets(
         'failure keeps sheet/draft retryable and does not mutate summary',
         (tester) async {
@@ -255,6 +274,12 @@ void main() {
       await tester.pump();
       expect(find.text('Default Glass Size'), findsOneWidget);
       await tester.binding.handlePopRoute();
+      await tester.pump();
+      expect(find.text('Default Glass Size'), findsOneWidget);
+      await tester.drag(
+        find.byKey(const ValueKey('daily-wellness-editor-sheet-handle')),
+        const Offset(0, 600),
+      );
       await tester.pump();
       expect(find.text('Default Glass Size'), findsOneWidget);
       gate.complete();
@@ -384,6 +409,146 @@ void main() {
         expect(tester.takeException(), isNull);
       });
     }
+  });
+
+  testWidgets('Step, Water and Glass share the local editor-sheet surface',
+      (tester) async {
+    await tester.pumpWidget(
+      buildApp(
+        DailyWellnessSettingsPage(
+          initialTargets: const WellnessTargetsData(
+            dailySteps: 10000,
+            waterMl: 2500,
+          ),
+          hydrationPreferences: const HydrationPreferences(),
+          onSaveHydration: (_) async {},
+          onSave: (_) async {},
+        ),
+      ),
+    );
+
+    for (final entry in [
+      (
+        const ValueKey('daily-wellness-steps-field'),
+        'Daily Step Goal',
+      ),
+      (
+        const ValueKey('daily-wellness-water-field'),
+        'Daily Water Goal',
+      ),
+      (
+        const ValueKey('daily-wellness-glass-size-field'),
+        'Default Glass Size',
+      ),
+    ]) {
+      await tester.tap(find.byKey(entry.$1));
+      await tester.pumpAndSettle();
+
+      expect(find.text(entry.$2), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('daily-wellness-editor-sheet-handle')),
+        findsOneWidget,
+      );
+      final surface = tester.widget<Material>(
+        find.byKey(const ValueKey('daily-wellness-editor-sheet')),
+      );
+      final surfaceContext = tester.element(
+        find.byKey(const ValueKey('daily-wellness-editor-sheet')),
+      );
+      expect(surface.color, surfaceContext.tioColors.surfaceRaised);
+      expect(find.byType(TioSheet), findsNothing);
+
+      final modal = tester.widget<BottomSheet>(find.byType(BottomSheet));
+      expect(modal.backgroundColor, TioPalette.transparent);
+      expect(modal.enableDrag, isFalse);
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text(entry.$2), findsNothing);
+    }
+  });
+
+  group('Step and Water slider haptics', () {
+    late int selectionClickCount;
+
+    setUp(() {
+      selectionClickCount = 0;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'HapticFeedback.vibrate' &&
+            call.arguments == 'HapticFeedbackType.selectionClick') {
+          selectionClickCount++;
+        }
+        return null;
+      });
+    });
+
+    tearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null);
+    });
+
+    Future<void> openEditor(WidgetTester tester, Key field) async {
+      await tester.pumpWidget(
+        buildApp(
+          DailyWellnessSettingsPage(
+            initialTargets: const WellnessTargetsData(
+              dailySteps: 10000,
+              waterMl: 2500,
+            ),
+            onSave: (_) async {},
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(field));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('Step Goal emits once for each changed snapped value',
+        (tester) async {
+      await openEditor(
+        tester,
+        const ValueKey('daily-wellness-steps-field'),
+      );
+      final slider = tester.widget<Slider>(
+        find.byKey(const ValueKey('daily-wellness-steps-slider')),
+      );
+
+      slider.onChanged!(10000);
+      await tester.pump();
+      expect(selectionClickCount, 0);
+
+      slider.onChanged!(10500);
+      await tester.pump();
+      expect(selectionClickCount, 1);
+
+      slider.onChanged!(10500);
+      await tester.pump();
+      expect(selectionClickCount, 1);
+    });
+
+    testWidgets('Water Goal emits once for each changed snapped value',
+        (tester) async {
+      await openEditor(
+        tester,
+        const ValueKey('daily-wellness-water-field'),
+      );
+      final slider = tester.widget<Slider>(
+        find.byKey(const ValueKey('daily-wellness-water-slider')),
+      );
+
+      slider.onChanged!(2500);
+      await tester.pump();
+      expect(selectionClickCount, 0);
+
+      slider.onChanged!(2600);
+      await tester.pump();
+      expect(selectionClickCount, 1);
+
+      slider.onChanged!(2600);
+      await tester.pump();
+      expect(selectionClickCount, 1);
+    });
   });
 
   testWidgets('DailyWellnessSettingsPage renders populated targets cleanly',

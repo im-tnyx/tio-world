@@ -1,6 +1,6 @@
 # S0-B2 — Default Glass Size (local-only correction)
 
-**Status:** In progress — local validation PASS; Draft PR #170 correction before merge
+**Status:** In progress — S0-B2 editor-sheet consistency polish underway on Draft PR #170
 **Primary owner:** `apps/features/settings`
 **Affected platforms:** Flutter phone (Android/iOS), device-local preference
 **Trackers:** TNYX-130 (In Progress); parent TNYX-128 (unchanged, In Progress); TNYX-118 (unchanged)
@@ -160,3 +160,117 @@ supabase/migrations/20260829043204_create_user_hydration_preferences.sql (delete
 Create one forward correction commit; do not amend the published history. Keep
 PR #170 Draft. Do not merge, close #170, mark TNYX-130 Done, change TNYX-128 or
 TNYX-118, start the next slice, or repair remote Supabase migration history.
+
+## 8. Editor-sheet consistency polish — 2026-08-29
+
+### Discovery and verified evidence
+
+- Starting branch/HEAD: `codex/settings-s0b2-glass-size` /
+  `a1c4df249ef5d019e53211701cf48bfbb66b22bc`; working tree clean.
+- Draft PR #170 is open against `main` at that same head. The prior exact-head
+  Flutter CI run `33242485506` passed; a new commit requires a new CI result.
+- Step Goal and Water Goal currently draw separate `surfaceRaised` modal
+  compositions with a manually duplicated handle. Glass Size draws a
+  `surface` modal containing Core `TioSheet`, whose inner Material also uses
+  `surface`; this is the visible flat/merged mismatch.
+- Flutter's route-level drag dismissal can bypass a child `PopScope`. The
+  existing Glass `PopScope(canPop: !_editor.isSaving)` continues to guard
+  back/barrier dismissal while an awaited Save is in flight, but cannot make
+  route-level drag safe by itself.
+
+### Frozen decision
+
+Create one Settings-local `DailyWellnessEditorSheet` and use it for Step Goal,
+Water Goal and Glass Size. Every one uses a transparent `showModalBottomSheet`
+with a single visible `surfaceRaised` Material, `TioRadius.lg`, `SafeArea`, a
+visible drag handle, shared header/help/action spacing and keyboard inset
+handling. The route-level drag stays disabled because Flutter can bypass a
+child `PopScope`; the Settings-local handle dismisses idle drafts itself and is
+disabled while Glass Save is awaited.
+
+The addendum supersedes the earlier suggestion to consume/nest `TioSheet`.
+`apps/core/lib/src/ui/components/sheets/tio_sheet.dart` stays unchanged: its
+global `surface` contract is correct for its existing consumers, while this
+Settings-only visual composition has no cross-feature reuse evidence.
+
+Step and Water sliders retain their current canonical ranges, snapping,
+Clear/Set semantics and formatting, while emitting exactly one
+`HapticFeedback.selectionClick()` only for a changed snapped value. Glass
+keeps its presets, Custom validation, 250 ml default, Reset, awaited save,
+duplicate-submit guard and retry behavior.
+
+### Current / stale / planned classification
+
+| Classification | Evidence |
+|---|---|
+| CURRENT | MOVEMENT/HYDRATION/SLEEP grouping; Step/Water sliders; Glass presets/Custom; Sleep snapped haptics; local-only Glass persistence. |
+| STALE | Duplicated Step/Water sheet chrome and Glass's nested `TioSheet`/`surface` composition; missing Step/Water snapped-value haptics. |
+| PLANNED | Settings-local shared editor shell and focused widget coverage. |
+| FUTURE-NOT YET APPROVED | Glass slider, generic Core goal-slider/sheet, hydration logging, cloud sync and wearable sync. |
+
+### Allowlist and non-goals
+
+Allowed for this polish only:
+
+```text
+.ai/tasks/settings-s0b2-default-glass-size.md
+apps/features/settings/lib/src/presentation/pages/daily_wellness_settings_page.dart
+apps/features/settings/lib/src/presentation/widgets/daily_wellness_editor_sheet.dart (new)
+apps/features/settings/lib/src/presentation/widgets/glass_size_bottom_sheet.dart
+apps/features/settings/test/presentation/daily_wellness_settings_page_test.dart
+```
+
+Must not change: Core source including `tio_sheet.dart`, HydrationPreferences
+domain/repository/session behavior, Wellness targets model/repository,
+Supabase/schema/migration history, #112 Units editor, Sleep implementation,
+routes/navigation, App Mode, Profile, Nutrition, Workout or Home.
+
+### Validation plan
+
+```text
+G:\dev\flutter-sdk\bin\flutter.bat analyze   (apps/features/settings)
+G:\dev\flutter-sdk\bin\flutter.bat test      (apps/features/settings)
+G:\dev\flutter-sdk\bin\flutter.bat analyze   (apps/app)
+G:\dev\flutter-sdk\bin\flutter.bat test      (apps/app)
+git diff --check
+```
+
+Add coverage for the common shell, transparent modal and `surfaceRaised`
+surface, idle handle drag dismissal, in-flight Glass dismissal guard, and one
+haptic per changed snapped Step/Water value.
+
+### Implementation and validation evidence
+
+Implemented only the listed allowlist:
+
+- `DailyWellnessEditorSheet` is Settings-owned and is used by Step Goal,
+  Water Goal and Glass Size. Its outer modal is `TioPalette.transparent`; it
+  exposes one `surfaceRaised` Material with `TioRadius.lg`, SafeArea, shared
+  header/help/action spacing and a functional local handle.
+- Route-level drag is disabled deliberately. The local handle dismisses only
+  an idle sheet; it does nothing while Glass awaits Save, avoiding the Flutter
+  route drag/`PopScope` race.
+- Step and Water retain their ranges/divisions and emit one selection haptic
+  only after a changed snapped draft value. Glass no longer consumes/nests
+  `TioSheet`; its persistence, 250 ml default and editor controller are
+  unchanged.
+
+Completed before the SDK lock was discovered:
+
+```text
+G:\dev\flutter-sdk\bin\flutter.bat test \
+  test/presentation/daily_wellness_settings_page_test.dart
+  (apps/features/settings) — PASS, 58 tests
+G:\dev\flutter-sdk\bin\flutter.bat analyze
+  (apps/features/settings) — PASS, No issues found
+G:\dev\flutter-sdk\bin\flutter.bat analyze
+  (apps/app) — PASS, No issues found
+```
+
+Fresh full Settings/App test attempts cannot acquire the configured Flutter
+SDK lock: an existing Android Studio `flutter.bat daemon` process owns the
+shared cache lock. It is user-owned and was not terminated. Direct cached-tool
+invocation fails on `bin/cache/lockfile`; direct `dart test` attempted a
+package fetch and then failed on restricted telemetry-file access. These are
+tooling limitations, not passing validation. New exact-head Flutter CI remains
+the required full-suite gate after publication.

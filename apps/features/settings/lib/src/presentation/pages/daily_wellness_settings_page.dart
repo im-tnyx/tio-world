@@ -4,6 +4,7 @@ import 'package:tio_core/core.dart';
 import 'package:tio_feature_progress/progress.dart';
 
 import '../../domain/hydration_preferences.dart';
+import '../widgets/daily_wellness_editor_sheet.dart';
 import '../widgets/glass_size_bottom_sheet.dart';
 
 /// Sleep duration is a pure function of Bedtime/Wake Time, never an
@@ -177,14 +178,8 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
     if (save == null || widget.hydrationLoading || widget.hydrationLoadFailed) {
       return;
     }
-    final saved = await showModalBottomSheet<HydrationPreferences>(
+    final saved = await showDailyWellnessEditorSheet<HydrationPreferences>(
       context: context,
-      isScrollControlled: true,
-      enableDrag: false,
-      backgroundColor: context.tioColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(TioRadius.lg)),
-      ),
       builder: (context) => GlassSizeBottomSheet(
         canonical: _glassCanonical,
         volumeUnit: _glassVolumeUnit,
@@ -221,103 +216,69 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
 
   Future<void> _pickSteps() async {
     final current = _dailySteps ?? 10000;
-    var tempValue = current.clamp(2000, 18000);
+    var tempValue = current.clamp(2000, 18000).toInt();
     final colors = context.tioColors;
 
-    final result = await showModalBottomSheet<int?>(
+    final result = await showDailyWellnessEditorSheet<int?>(
       context: context,
-      backgroundColor: colors.surfaceRaised,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(TioRadius.lg),
-        ),
-      ),
       builder: (modalContext) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(TioSpacing.lg),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: TioSize.dp36,
-                        height: TioSize.dp4,
-                        decoration: BoxDecoration(
-                          color:
-                              colors.outlineStrong.withAlpha(TioAlpha.alpha50),
-                          borderRadius: BorderRadius.circular(TioSize.dp2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: TioSpacing.md),
-                    Text(
-                      'Daily Step Goal',
+            void updateDraft(double value) {
+              final snapped = (value / 500).round() * 500;
+              if (snapped == tempValue) return;
+              HapticFeedback.selectionClick();
+              setModalState(() => tempValue = snapped);
+            }
+
+            return DailyWellnessEditorSheet(
+              title: 'Daily Step Goal',
+              supportingText: 'Recommended: 10,000 steps/day',
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Text(
+                      '$tempValue steps',
                       style: TextStyle(
-                        color: colors.textPrimary,
-                        fontWeight: TioFontWeight.w700,
-                        fontSize: TioFontSize.size18,
+                        color: colors.primary,
+                        fontWeight: TioFontWeight.w800,
+                        fontSize: TioFontSize.size24,
                       ),
                     ),
-                    const SizedBox(height: TioSpacing.sm),
-                    Text(
-                      'Recommended: 10,000 steps/day',
-                      style: TextStyle(
-                        color: colors.textSecondary,
-                        fontSize: TioFontSize.size13,
-                      ),
-                    ),
-                    const SizedBox(height: TioSpacing.lg),
-                    Center(
+                  ),
+                  Slider(
+                    key: const ValueKey('daily-wellness-steps-slider'),
+                    value: tempValue.toDouble(),
+                    min: 2000,
+                    max: 18000,
+                    divisions: 32,
+                    activeColor: colors.primary,
+                    onChanged: updateDraft,
+                  ),
+                ],
+              ),
+              actions: Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.of(modalContext).pop(-1),
                       child: Text(
-                        '$tempValue steps',
-                        style: TextStyle(
-                          color: colors.primary,
-                          fontWeight: TioFontWeight.w800,
-                          fontSize: TioFontSize.size24,
-                        ),
+                        'Clear Goal',
+                        style: TextStyle(color: colors.danger),
                       ),
                     ),
-                    Slider(
-                      value: tempValue.toDouble(),
-                      min: 2000,
-                      max: 18000,
-                      divisions: 32,
-                      activeColor: colors.primary,
-                      onChanged: (val) {
-                        setModalState(() {
-                          tempValue = (val / 500).round() * 500;
-                        });
-                      },
+                  ),
+                  const SizedBox(width: TioSpacing.md),
+                  Expanded(
+                    child: TioButton.primary(
+                      label: 'Set Goal',
+                      onPressed: () =>
+                          Navigator.of(modalContext).pop(tempValue),
                     ),
-                    const SizedBox(height: TioSpacing.md),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextButton(
-                            onPressed: () =>
-                                Navigator.of(modalContext).pop(-1),
-                            child: Text(
-                              'Clear Goal',
-                              style: TextStyle(color: colors.danger),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: TioSpacing.md),
-                        Expanded(
-                          child: TioButton.primary(
-                            label: 'Set Goal',
-                            onPressed: () =>
-                                Navigator.of(modalContext).pop(tempValue),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             );
           },
@@ -336,17 +297,11 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
 
   Future<void> _pickWater() async {
     final current = _waterMl ?? 2500;
-    var tempValue = current.clamp(1000, 8000);
+    var tempValue = current.clamp(1000, 8000).toInt();
     final colors = context.tioColors;
 
-    final result = await showModalBottomSheet<int?>(
+    final result = await showDailyWellnessEditorSheet<int?>(
       context: context,
-      backgroundColor: colors.surfaceRaised,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(TioRadius.lg),
-        ),
-      ),
       builder: (modalContext) {
         return StatefulBuilder(
           builder: (context, setModalState) {
@@ -355,89 +310,61 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
                 ? '${UnitConverters.mlToFlOz(tempValue.toDouble()).round()} fl oz'
                 : '$tempValue ml (${UnitFormatters.formatVolume(tempValue.toDouble(), VolumeUnit.ml, decimals: 1)})';
 
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(TioSpacing.lg),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: TioSize.dp36,
-                        height: TioSize.dp4,
-                        decoration: BoxDecoration(
-                          color:
-                              colors.outlineStrong.withAlpha(TioAlpha.alpha50),
-                          borderRadius: BorderRadius.circular(TioSize.dp2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: TioSpacing.md),
-                    Text(
-                      'Daily Water Goal',
+            void updateDraft(double value) {
+              final snapped = (value / 100).round() * 100;
+              if (snapped == tempValue) return;
+              HapticFeedback.selectionClick();
+              setModalState(() => tempValue = snapped);
+            }
+
+            return DailyWellnessEditorSheet(
+              title: 'Daily Water Goal',
+              supportingText: 'Recommended: 2,000 - 4,000 ml/day',
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Text(
+                      displayQty,
                       style: TextStyle(
-                        color: colors.textPrimary,
-                        fontWeight: TioFontWeight.w700,
-                        fontSize: TioFontSize.size18,
+                        color: colors.primary,
+                        fontWeight: TioFontWeight.w800,
+                        fontSize: TioFontSize.size24,
                       ),
                     ),
-                    const SizedBox(height: TioSpacing.sm),
-                    Text(
-                      'Recommended: 2,000 - 4,000 ml/day',
-                      style: TextStyle(
-                        color: colors.textSecondary,
-                        fontSize: TioFontSize.size13,
-                      ),
-                    ),
-                    const SizedBox(height: TioSpacing.lg),
-                    Center(
+                  ),
+                  Slider(
+                    key: const ValueKey('daily-wellness-water-slider'),
+                    value: tempValue.toDouble(),
+                    min: 1000,
+                    max: 8000,
+                    divisions: 70,
+                    activeColor: colors.primary,
+                    onChanged: updateDraft,
+                  ),
+                ],
+              ),
+              actions: Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.of(modalContext).pop(-1),
                       child: Text(
-                        displayQty,
-                        style: TextStyle(
-                          color: colors.primary,
-                          fontWeight: TioFontWeight.w800,
-                          fontSize: TioFontSize.size24,
-                        ),
+                        'Clear Goal',
+                        style: TextStyle(color: colors.danger),
                       ),
                     ),
-                    Slider(
-                      value: tempValue.toDouble(),
-                      min: 1000,
-                      max: 8000,
-                      divisions: 70,
-                      activeColor: colors.primary,
-                      onChanged: (val) {
-                        setModalState(() {
-                          tempValue = (val / 100).round() * 100;
-                        });
-                      },
+                  ),
+                  const SizedBox(width: TioSpacing.md),
+                  Expanded(
+                    child: TioButton.primary(
+                      label: 'Set Goal',
+                      onPressed: () =>
+                          Navigator.of(modalContext).pop(tempValue),
                     ),
-                    const SizedBox(height: TioSpacing.md),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextButton(
-                            onPressed: () =>
-                                Navigator.of(modalContext).pop(-1),
-                            child: Text(
-                              'Clear Goal',
-                              style: TextStyle(color: colors.danger),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: TioSpacing.md),
-                        Expanded(
-                          child: TioButton.primary(
-                            label: 'Set Goal',
-                            onPressed: () =>
-                                Navigator.of(modalContext).pop(tempValue),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             );
           },

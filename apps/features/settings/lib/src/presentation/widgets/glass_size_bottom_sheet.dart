@@ -4,6 +4,7 @@ import 'package:tio_core/core.dart';
 
 import '../../domain/hydration_preferences.dart';
 import '../hydration_preferences_editor_controller.dart';
+import 'daily_wellness_editor_sheet.dart';
 
 String formatGlassSize(int millilitres, VolumeUnit unit) {
   if (unit == VolumeUnit.ml) return '$millilitres ml';
@@ -59,119 +60,114 @@ class _GlassSizeBottomSheetState extends State<GlassSizeBottomSheet> {
           final unit = widget.volumeUnit.value;
           return PopScope(
             canPop: !_editor.isSaving,
-            child: SafeArea(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.viewInsetsOf(context).bottom,
-                ),
-                child: TioSheet(
-                  title: 'Default Glass Size',
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisSize: MainAxisSize.min,
+            child: DailyWellnessEditorSheet(
+              title: 'Default Glass Size',
+              supportingText: 'Amount logged when you add one glass of water.',
+              canDismiss: !_editor.isSaving,
+              content: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Wrap(
+                    spacing: TioSpacing.sm,
+                    runSpacing: TioSpacing.sm,
                     children: [
-                      Text('Amount logged when you add one glass of water.',
-                          style: TextStyle(color: colors.textSecondary)),
-                      const SizedBox(height: TioSpacing.lg),
-                      Wrap(
-                        spacing: TioSpacing.sm,
-                        runSpacing: TioSpacing.sm,
-                        children: [
-                          for (final ml in HydrationPreferences.presetsMl)
-                            ChoiceChip(
-                              key: ValueKey('glass-size-preset-$ml'),
-                              label: Text(formatGlassSize(ml, unit)),
-                              selected:
-                                  !_editor.isCustom && _editor.draftMl == ml,
-                              selectedColor:
-                                  colors.primary.withAlpha(TioAlpha.alpha24),
-                              onSelected: _editor.isSaving
-                                  ? null
-                                  : (_) => _editor.selectPreset(ml),
-                            ),
-                          ChoiceChip(
-                            key: const ValueKey('glass-size-custom'),
-                            label: const Text('Custom'),
-                            selected: _editor.isCustom,
-                            selectedColor:
-                                colors.primary.withAlpha(TioAlpha.alpha24),
-                            onSelected: _editor.isSaving
-                                ? null
-                                : (_) => _editor.selectCustom(),
-                          ),
-                        ],
-                      ),
-                      if (_editor.isCustom) ...[
-                        const SizedBox(height: TioSpacing.lg),
-                        TioInput(
-                          key: const ValueKey('glass-size-custom-input'),
-                          value: _editor.customText,
-                          label: 'Custom amount (ml)',
-                          helperText: '50–2000 ml · increments of 10 ml',
-                          keyboardType: TextInputType.number,
-                          textInputAction: TextInputAction.done,
-                          errorText: _editor.validationError,
-                          enabled: !_editor.isSaving,
-                          onChanged: _editor.setCustomText,
+                      for (final ml in HydrationPreferences.presetsMl)
+                        ChoiceChip(
+                          key: ValueKey('glass-size-preset-$ml'),
+                          label: Text(formatGlassSize(ml, unit)),
+                          selected: !_editor.isCustom && _editor.draftMl == ml,
+                          selectedColor:
+                              colors.primary.withAlpha(TioAlpha.alpha24),
+                          onSelected: _editor.isSaving
+                              ? null
+                              : (_) => _editor.selectPreset(ml),
                         ),
-                        if (unit == VolumeUnit.flOz)
-                          Padding(
-                            padding: const EdgeInsets.only(top: TioSpacing.sm),
-                            child: Text(
-                                'Enter ml to keep the exact amount. '
-                                '${_editor.validationError == null ? formatGlassSize(_editor.draftMl, unit) : ''}',
-                                style: TextStyle(color: colors.textSecondary)),
-                          ),
-                      ],
-                      const SizedBox(height: TioSpacing.md),
-                      Text(
-                        _editor.validationError == null
-                            ? formatGlassSize(_editor.draftMl, unit)
-                            : 'Check custom amount',
-                        key: const ValueKey('glass-size-draft-summary'),
-                        style: TextStyle(color: colors.textPrimary),
-                      ),
-                      if (_editor.saveError != null) ...[
-                        const SizedBox(height: TioSpacing.md),
-                        Semantics(
-                          liveRegion: true,
-                          child: Text(_editor.saveError!,
-                              key: const ValueKey('glass-size-save-error'),
-                              style: TextStyle(color: colors.danger)),
-                        ),
-                      ],
-                      const SizedBox(height: TioSpacing.md),
-                      Wrap(
-                        alignment: WrapAlignment.spaceBetween,
-                        runSpacing: TioSpacing.xs,
-                        children: [
-                          TextButton(
-                            key: const ValueKey('glass-size-reset-default'),
-                            onPressed: _editor.isSaving
-                                ? null
-                                : _editor.resetToDefault,
-                            child: Text('Reset to Default',
-                                style: TextStyle(color: colors.danger)),
-                          ),
-                          TextButton(
-                            key: const ValueKey('glass-size-cancel'),
-                            onPressed: _editor.isSaving
-                                ? null
-                                : () => Navigator.of(context).pop(),
-                            child: const Text('Cancel'),
-                          ),
-                        ],
-                      ),
-                      TioButton.primary(
-                        key: const ValueKey('glass-size-save'),
-                        label: 'Save',
-                        expand: true,
-                        loading: _editor.isSaving,
-                        onPressed: _editor.canSave ? _save : null,
+                      ChoiceChip(
+                        key: const ValueKey('glass-size-custom'),
+                        label: const Text('Custom'),
+                        selected: _editor.isCustom,
+                        selectedColor:
+                            colors.primary.withAlpha(TioAlpha.alpha24),
+                        onSelected: _editor.isSaving
+                            ? null
+                            : (_) => _editor.selectCustom(),
                       ),
                     ],
                   ),
-                ),
+                  if (_editor.isCustom) ...[
+                    const SizedBox(height: TioSpacing.lg),
+                    TioInput(
+                      key: const ValueKey('glass-size-custom-input'),
+                      value: _editor.customText,
+                      label: 'Custom amount (ml)',
+                      helperText: '50–2000 ml · increments of 10 ml',
+                      keyboardType: TextInputType.number,
+                      textInputAction: TextInputAction.done,
+                      errorText: _editor.validationError,
+                      enabled: !_editor.isSaving,
+                      onChanged: _editor.setCustomText,
+                    ),
+                    if (unit == VolumeUnit.flOz)
+                      Padding(
+                        padding: const EdgeInsets.only(top: TioSpacing.sm),
+                        child: Text(
+                            'Enter ml to keep the exact amount. '
+                            '${_editor.validationError == null ? formatGlassSize(_editor.draftMl, unit) : ''}',
+                            style: TextStyle(color: colors.textSecondary)),
+                      ),
+                  ],
+                  const SizedBox(height: TioSpacing.md),
+                  Text(
+                    _editor.validationError == null
+                        ? formatGlassSize(_editor.draftMl, unit)
+                        : 'Check custom amount',
+                    key: const ValueKey('glass-size-draft-summary'),
+                    style: TextStyle(color: colors.textPrimary),
+                  ),
+                  if (_editor.saveError != null) ...[
+                    const SizedBox(height: TioSpacing.md),
+                    Semantics(
+                      liveRegion: true,
+                      child: Text(_editor.saveError!,
+                          key: const ValueKey('glass-size-save-error'),
+                          style: TextStyle(color: colors.danger)),
+                    ),
+                  ],
+                ],
+              ),
+              actions: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    runSpacing: TioSpacing.xs,
+                    children: [
+                      TextButton(
+                        key: const ValueKey('glass-size-reset-default'),
+                        onPressed:
+                            _editor.isSaving ? null : _editor.resetToDefault,
+                        child: Text('Reset to Default',
+                            style: TextStyle(color: colors.danger)),
+                      ),
+                      TextButton(
+                        key: const ValueKey('glass-size-cancel'),
+                        onPressed: _editor.isSaving
+                            ? null
+                            : () => Navigator.of(context).pop(),
+                        child: const Text('Cancel'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: TioSpacing.sm),
+                  TioButton.primary(
+                    key: const ValueKey('glass-size-save'),
+                    label: 'Save',
+                    expand: true,
+                    loading: _editor.isSaving,
+                    onPressed: _editor.canSave ? _save : null,
+                  ),
+                ],
               ),
             ),
           );
