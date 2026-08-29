@@ -721,28 +721,30 @@ class _DailyWellnessRow extends StatelessWidget {
             ),
             const SizedBox(width: TioSpacing.lg),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: colors.textPrimary,
-                      fontWeight: TioFontWeight.w700,
-                      fontSize: TioFontSize.size15,
-                    ),
-                  ),
-                  const SizedBox(height: TioSpacing.xxs),
-                  Text(
-                    value,
-                    style: TextStyle(
-                      color: isUnset ? colors.textMuted : colors.textSecondary,
-                      fontSize: TioFontSize.size13,
-                      fontWeight:
-                          isUnset ? TioFontWeight.w400 : TioFontWeight.w500,
-                    ),
-                  ),
-                ],
+              flex: 3,
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontWeight: TioFontWeight.w700,
+                  fontSize: TioFontSize.size15,
+                ),
+              ),
+            ),
+            const SizedBox(width: TioSpacing.sm),
+            Flexible(
+              flex: 2,
+              child: Text(
+                value,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.end,
+                style: TextStyle(
+                  color: isUnset ? colors.textMuted : colors.textSecondary,
+                  fontSize: TioFontSize.size13,
+                  fontWeight:
+                      isUnset ? TioFontWeight.w400 : TioFontWeight.w500,
+                ),
               ),
             ),
             Icon(

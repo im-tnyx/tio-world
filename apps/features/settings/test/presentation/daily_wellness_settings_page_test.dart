@@ -677,6 +677,63 @@ void main() {
   });
 
   testWidgets(
+      'Daily Wellness aligns Step, Water and Glass summaries on their row',
+      (tester) async {
+    await tester.pumpWidget(
+      buildApp(
+        DailyWellnessSettingsPage(
+          initialTargets: const WellnessTargetsData(
+            dailySteps: 10000,
+            waterMl: 2800,
+            bedTimeMinutes: 23 * 60,
+            wakeTimeMinutes: 7 * 60,
+          ),
+          hydrationPreferences: const HydrationPreferences(),
+          onSaveHydration: (_) async {},
+          onSave: (_) async {},
+        ),
+      ),
+    );
+
+    for (final row in [
+      (
+        const ValueKey('daily-wellness-steps-field'),
+        'Step Goal',
+        '10,000 steps',
+      ),
+      (
+        const ValueKey('daily-wellness-water-field'),
+        'Water Goal',
+        '2.8 L',
+      ),
+      (
+        const ValueKey('daily-wellness-glass-size-field'),
+        'Glass Size',
+        '250 ml',
+      ),
+    ]) {
+      final rowFinder = find.byKey(row.$1);
+      final labelFinder =
+          find.descendant(of: rowFinder, matching: find.text(row.$2));
+      final valueFinder =
+          find.descendant(of: rowFinder, matching: find.text(row.$3));
+      final labelCenter = tester.getCenter(labelFinder);
+      final valueCenter = tester.getCenter(valueFinder);
+
+      expect(
+        (labelCenter.dy - valueCenter.dy).abs(),
+        lessThan(2.0),
+        reason: '${row.$2} value must not render below its label',
+      );
+      expect(
+        valueCenter.dx,
+        greaterThan(labelCenter.dx),
+        reason: '${row.$2} value must align on the right',
+      );
+    }
+  });
+
+  testWidgets(
       'DailyWellnessSettingsPage renders "Not set" when initial targets are null',
       (tester) async {
     await tester.pumpWidget(

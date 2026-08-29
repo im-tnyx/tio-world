@@ -355,3 +355,39 @@ Nutrition, Workout, Home and Sleep implementation.
   Flutter daemon. The daemon was not terminated. Fresh local analyzer/test
   results are therefore **not run**, and a new exact-head Flutter CI run is
   mandatory after publication.
+
+## 10. Daily Wellness value-alignment correction — 2026-08-29
+
+User visual acceptance found that the prior three-card correction was
+incomplete: Step Goal, Water Goal and Glass Size rendered their summary below
+the label. The intended layout is the same single-row hierarchy already used
+by the Sleep Schedule title/duration:
+
+```text
+Step Goal                         10,000 steps
+Water Goal                               2.8 L
+Glass Size                              250 ml
+```
+
+This supersedes only the earlier no-geometry-change note in section 9. The
+bounded visual correction changes `_DailyWellnessRow` in the Settings page so
+normal and unset/error summaries are right-aligned beside their label; a long
+failure summary may use a second right-aligned line rather than overflow. The
+existing icons, tap affordance, cards, Hydration divider, Sleep card, editors,
+routes and persistence remain unchanged.
+
+Allowed files for this follow-up are only this brief,
+`apps/features/settings/lib/src/presentation/pages/daily_wellness_settings_page.dart`,
+and its existing widget test. The widget test must assert both same-line
+vertical alignment and rightward value placement for Step, Water and Glass.
+Run the focused Settings widget test and `git diff --check` when the configured
+SDK is available; otherwise use a fresh exact-head Flutter CI run after the
+forward commit. Keep PR #170 Draft and do not merge or change tracker status.
+
+Implementation result: `_DailyWellnessRow` now uses a 3:2 label/value flex
+row with right-aligned value text. The existing row keeps its icon, chevron and
+tap target. Focused widget coverage checks the normal `10,000 steps`, `2.8 L`
+and `250 ml` values are vertically aligned with their label and positioned to
+its right. `git diff --check` passes. The configured local Flutter SDK remains
+locked by the user-owned daemon, so fresh local test/analyzer output is not
+claimed; exact-head CI is required after the forward commit.
