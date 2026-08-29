@@ -745,24 +745,73 @@ class _DailyWellnessRow extends StatelessWidget {
             const SizedBox(width: TioSpacing.sm),
             Expanded(
               flex: 2,
-              child: Text(
-                value,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.end,
-                style: TextStyle(
-                  color: isUnset ? colors.textMuted : colors.textPrimary,
-                  fontSize: TioFontSize.size15,
-                  fontWeight:
-                      isUnset ? TioFontWeight.w400 : TioFontWeight.w700,
-                ),
-              ),
+              child: _buildValue(colors),
             ),
             const SizedBox(width: TioSpacing.lg),
             const _EditAffordanceIcon(),
           ],
         ),
       ),
+    );
+  }
+
+  /// The leading number in [value] (e.g. "10,000" of "10,000 steps", "2.8"
+  /// of "2.8 L") so it can be highlighted in [colors.textPrimary] while the
+  /// trailing unit renders in a muted, lighter-weight tone -- matching the
+  /// tnyx-hub reference's number/unit split styling.
+  static final _leadingNumber = RegExp(r'^([\d.,]+)(.*)$');
+
+  Widget _buildValue(TioColors colors) {
+    if (isUnset) {
+      return Text(
+        value,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.end,
+        style: TextStyle(
+          color: colors.textMuted,
+          fontSize: TioFontSize.size15,
+          fontWeight: TioFontWeight.w400,
+        ),
+      );
+    }
+
+    final match = _leadingNumber.firstMatch(value);
+    if (match == null) {
+      return Text(
+        value,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.end,
+        style: TextStyle(
+          color: colors.textPrimary,
+          fontSize: TioFontSize.size15,
+          fontWeight: TioFontWeight.w700,
+        ),
+      );
+    }
+
+    return Text.rich(
+      TextSpan(
+        text: match.group(1),
+        children: [
+          TextSpan(
+            text: match.group(2),
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontWeight: TioFontWeight.w400,
+            ),
+          ),
+        ],
+      ),
+      style: TextStyle(
+        color: colors.textPrimary,
+        fontSize: TioFontSize.size15,
+        fontWeight: TioFontWeight.w700,
+      ),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      textAlign: TextAlign.end,
     );
   }
 }
@@ -862,24 +911,26 @@ class _SleepScheduleSummaryCard extends StatelessWidget {
                       fontSize: TioFontSize.size15,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: TioSpacing.sm),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      rangeText,
-                      style: TextStyle(
-                        color: colors.textMuted,
-                        fontSize: TioFontSize.size13,
-                        fontWeight: TioFontWeight.w400,
-                      ),
-                    ),
-                  ),
+                  // Pencil trails the duration on this line, matching the
+                  // Step/Water/Glass rows so all four edit affordances sit
+                  // at the same x-position.
                   const SizedBox(width: TioSpacing.lg),
                   const _EditAffordanceIcon(),
                 ],
+              ),
+              const SizedBox(height: TioSpacing.sm),
+              Padding(
+                // Align under the "Sleep Schedule" label above, not under
+                // the leading icon (icon width + its trailing gap).
+                padding: const EdgeInsets.only(left: TioSize.dp40),
+                child: Text(
+                  rangeText,
+                  style: TextStyle(
+                    color: colors.textMuted,
+                    fontSize: TioFontSize.size13,
+                    fontWeight: TioFontWeight.w400,
+                  ),
+                ),
               ),
             ],
           ),

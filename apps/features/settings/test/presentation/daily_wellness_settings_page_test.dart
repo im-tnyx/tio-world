@@ -23,6 +23,11 @@ void main() {
     return '${bed.format(context)} - ${wake.format(context)}';
   }
 
+  // Daily Wellness values render as Text.rich (number + muted unit spans),
+  // so `.data` is null -- read the flattened text via textSpan instead.
+  String plainText(Text widget) =>
+      widget.data ?? widget.textSpan?.toPlainText() ?? '';
+
   Future<void> openGlass(WidgetTester tester) async {
     final row = find.byKey(const ValueKey('daily-wellness-glass-size-field'));
     await tester.ensureVisible(row);
@@ -735,7 +740,8 @@ void main() {
 
   testWidgets(
       'Daily Wellness aligns the trailing edit affordance at the same '
-      'x-position across Step, Water and Glass Size rows', (tester) async {
+      'x-position across Step, Water, Glass Size and Sleep Schedule rows',
+      (tester) async {
     await tester.pumpWidget(
       buildApp(
         DailyWellnessSettingsPage(
@@ -757,6 +763,7 @@ void main() {
       'daily-wellness-steps-field',
       'daily-wellness-water-field',
       'daily-wellness-glass-size-field',
+      'daily-wellness-sleep-schedule-field',
     ]) {
       final rowFinder = find.byKey(ValueKey(key));
       final pencilFinder = find.descendant(
@@ -777,6 +784,51 @@ void main() {
             'length (found ${entry.value}, expected ~$reference)',
       );
     }
+  });
+
+  testWidgets(
+      'Sleep Schedule time range indents under the "Sleep Schedule" label, '
+      'not under the leading bedtime icon', (tester) async {
+    await tester.pumpWidget(
+      buildApp(
+        DailyWellnessSettingsPage(
+          initialTargets: const WellnessTargetsData(
+            dailySteps: 10000,
+            waterMl: 2800,
+            bedTimeMinutes: 23 * 60,
+            wakeTimeMinutes: 7 * 60,
+          ),
+          hydrationPreferences: const HydrationPreferences(),
+          onSaveHydration: (_) async {},
+          onSave: (_) async {},
+        ),
+      ),
+    );
+
+    final labelLeft = tester.getTopLeft(find.text('Sleep Schedule')).dx;
+    final iconLeft =
+        tester.getTopLeft(find.byIcon(Icons.bedtime_outlined)).dx;
+    final rangeText = find.text(
+      timeRange(
+        tester,
+        const TimeOfDay(hour: 23, minute: 0),
+        const TimeOfDay(hour: 7, minute: 0),
+      ),
+    );
+    final rangeLeft = tester.getTopLeft(rangeText).dx;
+
+    expect(
+      (rangeLeft - labelLeft).abs(),
+      lessThanOrEqualTo(2.0),
+      reason: 'time range must start under the "Sleep Schedule" label '
+          '(label at $labelLeft, range at $rangeLeft)',
+    );
+    expect(
+      rangeLeft,
+      greaterThan(iconLeft + 2.0),
+      reason: 'time range must not sit flush under the leading icon '
+          '(icon at $iconLeft, range at $rangeLeft)',
+    );
   });
 
   testWidgets(
@@ -847,6 +899,21 @@ void main() {
         .widget<Text>(find.text('10,000 steps'))
         .style;
     expect(stepValueStyle?.fontWeight, FontWeight.w700);
+
+    // The unit suffix renders muted/regular-weight so the number stands out,
+    // matching the tnyx-hub reference's number/unit split styling.
+    final stepValueWidget = tester.widget<Text>(find.text('10,000 steps'));
+    final stepUnitSpan = (stepValueWidget.textSpan! as TextSpan)
+        .children!
+        .single as TextSpan;
+    expect(stepUnitSpan.text, ' steps');
+    expect(stepUnitSpan.style?.fontWeight, FontWeight.w400);
+    expect(
+      stepUnitSpan.style?.color,
+      isNot(stepValueWidget.style?.color),
+      reason: 'unit suffix must render in a distinct, muted color from the '
+          'highlighted number',
+    );
 
     // Water + Glass Size share one card with a divider between them, using
     // the recovered row geometry's indent (icon 24 + two 16px gaps = 56).
@@ -1131,14 +1198,14 @@ void main() {
     await tester.tap(find.text('Set Goal'));
     await tester.pumpAndSettle();
 
-    final editedSteps = tester
-        .widget<Text>(
-          find.descendant(
-            of: find.byKey(const ValueKey('daily-wellness-steps-field')),
-            matching: find.textContaining('steps'),
-          ),
-        )
-        .data!;
+    final editedSteps = plainText(
+      tester.widget<Text>(
+        find.descendant(
+          of: find.byKey(const ValueKey('daily-wellness-steps-field')),
+          matching: find.textContaining('steps'),
+        ),
+      ),
+    );
     expect(editedSteps, isNot('8,000 steps'));
 
     // Provider refreshes to targetsB while the step edit is still a draft.
