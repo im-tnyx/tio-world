@@ -499,7 +499,16 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
                     children: [
                       _DailyWellnessRow(
                         key: const ValueKey('daily-wellness-steps-field'),
-                        icon: Icons.directions_walk_rounded,
+                        iconWidget: SvgPicture.asset(
+                          'assets/svg_icon/ic_step.svg',
+                          package: 'tio_core',
+                          height: TioSize.dp24,
+                          width: TioSize.dp24,
+                          colorFilter: ColorFilter.mode(
+                            context.tioColors.textPrimary,
+                            BlendMode.srcIn,
+                          ),
+                        ),
                         label: 'Step Goal',
                         value: _formatSteps(),
                         isUnset: _dailySteps == null,
@@ -669,7 +678,7 @@ class _DailyWellnessDivider extends StatelessWidget {
     return Divider(
       height: TioSize.dp1,
       thickness: TioStroke.width1,
-      indent: TioSize.dp64,
+      indent: TioSize.dp56,
       color: colors.outlineStrong.withAlpha(TioAlpha.alpha20),
     );
   }
@@ -677,15 +686,24 @@ class _DailyWellnessDivider extends StatelessWidget {
 
 class _DailyWellnessRow extends StatelessWidget {
   const _DailyWellnessRow({
-    required this.icon,
     required this.label,
     required this.value,
     required this.isUnset,
     required this.onTap,
+    this.icon,
+    this.iconWidget,
     super.key,
-  });
+  }) : assert(
+          icon != null || iconWidget != null,
+          'Provide either icon or iconWidget',
+        );
 
-  final IconData icon;
+  /// Standard Material glyph. Ignored when [iconWidget] is provided.
+  final IconData? icon;
+
+  /// Recovered asset-backed leading icon (e.g. the Steps footprints SVG).
+  /// Takes precedence over [icon] when both are supplied.
+  final Widget? iconWidget;
   final String label;
   final String value;
 
@@ -706,19 +724,12 @@ class _DailyWellnessRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: TioSize.dp40,
-              height: TioSize.dp40,
-              decoration: BoxDecoration(
-                color: colors.primary.withAlpha(TioAlpha.alpha18),
-                borderRadius: BorderRadius.circular(TioRadius.sm),
-              ),
-              child: Icon(
-                icon,
-                size: TioSize.dp22,
-                color: colors.primary,
-              ),
-            ),
+            iconWidget ??
+                Icon(
+                  icon,
+                  size: TioSize.dp24,
+                  color: colors.textPrimary,
+                ),
             const SizedBox(width: TioSpacing.lg),
             Expanded(
               flex: 3,
@@ -740,20 +751,44 @@ class _DailyWellnessRow extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.end,
                 style: TextStyle(
-                  color: isUnset ? colors.textMuted : colors.textSecondary,
-                  fontSize: TioFontSize.size13,
+                  color: isUnset ? colors.textMuted : colors.textPrimary,
+                  fontSize: TioFontSize.size15,
                   fontWeight:
-                      isUnset ? TioFontWeight.w400 : TioFontWeight.w500,
+                      isUnset ? TioFontWeight.w400 : TioFontWeight.w700,
                 ),
               ),
             ),
-            Icon(
-              Icons.chevron_right_rounded,
-              size: TioSize.dp20,
-              color: colors.textMuted,
-            ),
+            const SizedBox(width: TioSpacing.lg),
+            const _EditAffordanceIcon(),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Shared edit-pencil affordance: a small circular neutral-surface chip
+/// containing a pencil glyph, distinct from any leading content icon (which
+/// stays plain/unboxed). Used by both [_DailyWellnessRow] and
+/// [_SleepScheduleSummaryCard] so every row's edit affordance looks the same.
+class _EditAffordanceIcon extends StatelessWidget {
+  const _EditAffordanceIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    return Container(
+      width: TioSize.dp36,
+      height: TioSize.dp36,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: colors.surfaceVariant,
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        Icons.edit_outlined,
+        size: TioSize.dp16,
+        color: colors.textSecondary,
       ),
     );
   }
@@ -803,18 +838,10 @@ class _SleepScheduleSummaryCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Container(
-                    width: TioSize.dp40,
-                    height: TioSize.dp40,
-                    decoration: BoxDecoration(
-                      color: colors.primary.withAlpha(TioAlpha.alpha18),
-                      borderRadius: BorderRadius.circular(TioRadius.sm),
-                    ),
-                    child: Icon(
-                      Icons.bedtime_outlined,
-                      size: TioSize.dp22,
-                      color: colors.primary,
-                    ),
+                  Icon(
+                    Icons.bedtime_outlined,
+                    size: TioSize.dp24,
+                    color: colors.textPrimary,
                   ),
                   const SizedBox(width: TioSpacing.lg),
                   Expanded(
@@ -830,7 +857,7 @@ class _SleepScheduleSummaryCard extends StatelessWidget {
                   Text(
                     _formatSleepDuration(durationMinutes),
                     style: TextStyle(
-                      color: isUnset ? colors.textMuted : colors.primary,
+                      color: isUnset ? colors.textMuted : colors.textPrimary,
                       fontWeight: TioFontWeight.w700,
                       fontSize: TioFontSize.size15,
                     ),
@@ -840,7 +867,6 @@ class _SleepScheduleSummaryCard extends StatelessWidget {
               const SizedBox(height: TioSpacing.sm),
               Row(
                 children: [
-                  const SizedBox(width: TioSize.dp40 + TioSpacing.lg),
                   Expanded(
                     child: Text(
                       rangeText,
@@ -851,11 +877,8 @@ class _SleepScheduleSummaryCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Icon(
-                    Icons.edit_outlined,
-                    size: TioSize.dp18,
-                    color: colors.textMuted,
-                  ),
+                  const SizedBox(width: TioSpacing.lg),
+                  const _EditAffordanceIcon(),
                 ],
               ),
             ],

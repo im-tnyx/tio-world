@@ -734,6 +734,86 @@ void main() {
   });
 
   testWidgets(
+      'Daily Wellness recovers the tnyx-hub target-row presentation: plain icons, strong values, edit affordance instead of chevron',
+      (tester) async {
+    await tester.pumpWidget(
+      buildApp(
+        DailyWellnessSettingsPage(
+          initialTargets: const WellnessTargetsData(
+            dailySteps: 10000,
+            waterMl: 2800,
+            bedTimeMinutes: 23 * 60,
+            wakeTimeMinutes: 7 * 60,
+          ),
+          hydrationPreferences: const HydrationPreferences(),
+          onSaveHydration: (_) async {},
+          onSave: (_) async {},
+        ),
+      ),
+    );
+
+    // Navigation chevrons are gone entirely -- every row uses an edit
+    // affordance instead. Step Goal, Water Goal, Glass Size, and the Sleep
+    // Schedule header row each contribute exactly one.
+    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+    expect(find.byIcon(Icons.edit_outlined), findsNWidgets(4));
+
+    // Steps recovers the exact tnyx-hub footprints asset (an SvgPicture,
+    // not a stock Material glyph) rather than the old walking-person icon.
+    expect(find.byIcon(Icons.directions_walk_rounded), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('daily-wellness-steps-field')),
+        matching: find.byType(SvgPicture),
+      ),
+      findsOneWidget,
+    );
+
+    // Water/Glass/Sleep leading icons remain plain glyphs -- no tinted
+    // 40x40 rounded-square background container around any of them.
+    for (final key in [
+      'daily-wellness-water-field',
+      'daily-wellness-glass-size-field',
+    ]) {
+      final rowFinder = find.byKey(ValueKey(key));
+      final iconFinder =
+          find.descendant(of: rowFinder, matching: find.byType(Icon));
+      // The leading content icon plus the trailing edit-pencil icon.
+      expect(iconFinder, findsNWidgets(2), reason: '$key icons');
+      final containerDecoration = tester
+          .widgetList<Container>(
+            find.descendant(of: rowFinder, matching: find.byType(Container)),
+          )
+          .map((c) => c.decoration)
+          .whereType<BoxDecoration>()
+          .where((d) => d.borderRadius != null)
+          .toList();
+      expect(
+        containerDecoration,
+        isEmpty,
+        reason: '$key must not wrap its leading icon in a tinted box',
+      );
+    }
+
+    // Target values render bold/prominent, matching the reference's
+    // title-level strong value styling (not the old muted/medium weight).
+    final stepValueStyle = tester
+        .widget<Text>(find.text('10,000 steps'))
+        .style;
+    expect(stepValueStyle?.fontWeight, FontWeight.w700);
+
+    // Water + Glass Size share one card with a divider between them, using
+    // the recovered row geometry's indent (icon 24 + two 16px gaps = 56).
+    final hydrationDivider = tester.widget<Divider>(
+      find.descendant(
+        of: find.byKey(const ValueKey('daily-wellness-hydration-card')),
+        matching: find.byType(Divider),
+      ),
+    );
+    expect(hydrationDivider.indent, 56.0);
+  });
+
+  testWidgets(
       'DailyWellnessSettingsPage renders "Not set" when initial targets are null',
       (tester) async {
     await tester.pumpWidget(
