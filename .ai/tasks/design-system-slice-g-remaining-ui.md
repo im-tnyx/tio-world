@@ -47,7 +47,7 @@ No fake token migration was introduced for these packages.
 
 Governed ownership now covers:
 
-- exact `120dp` brand-logo geometry via `TioSize.dp120`;
+- ~~exact `120dp` brand-logo geometry via `TioSize.dp120`~~ — **superseded**: the brand-logo image was replaced with a text wordmark and `TioSize.dp120` was removed (see below);
 - radius, spacing and loader geometry;
 - loader color/stroke;
 - failure-state typography and line height.
@@ -59,6 +59,8 @@ Static ownership gate:
 `apps/features/splash/test/presentation/splash_design_system_ownership_test.dart`
 
 Validation: **Flutter CI #845** passed Flutter analyze, Dart analyze, Flutter tests and Dart tests.
+
+**Update (PR #171):** the splash logo image was replaced with a bold "TIO" text wordmark; `TioSize.dp120` existed only for that image's geometry and, once orphaned, was removed from `apps/core`'s primitive registry per its own "evidenced by current production UI" policy (enforced by `apps/core/test/theme/final_enforcement_primitive_liveness_test.dart`). See [`splash-tio-wordmark.md`](splash-tio-wordmark.md) for the current governed splash ownership and validation evidence; this slice's own outcome (migrating splash off raw literals onto governed tokens) remains valid and superseded only for the specific `dp120` geometry line above.
 
 ### Wear
 

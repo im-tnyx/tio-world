@@ -43,67 +43,94 @@ class _SplashScreenState extends State<SplashScreen> {
     final failureMessage = widget.failureMessage;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
+      value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
+        statusBarIconBrightness:
+            colors.isDark ? Brightness.light : Brightness.dark,
+        statusBarBrightness: colors.isDark ? Brightness.dark : Brightness.light,
         systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarIconBrightness:
+            colors.isDark ? Brightness.light : Brightness.dark,
         systemNavigationBarDividerColor: Colors.transparent,
       ),
       child: Scaffold(
         backgroundColor: colors.background,
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(TioRadius.xl),
-                child: Image.asset(
-                  'assets/dark_logo.jpg',
-                  package: 'tio_feature_splash',
-                  width: TioSize.dp120,
-                  height: TioSize.dp120,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              const SizedBox(height: TioSize.dp48),
-              if (failureMessage == null || _isRetrying)
-                const CircularProgressIndicator(
-                  color: TioPalette.white,
-                  strokeWidth: TioStroke.width25,
-                )
-              else
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: TioSpacing.xxl,
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        failureMessage,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: colors.textSecondary,
-                          fontSize: TioFontSize.size14,
-                          height: TioLineHeight.height140,
-                        ),
-                      ),
-                      const SizedBox(height: TioSpacing.lg),
-                      TextButton(
-                        onPressed: widget.onRetry == null ? null : _handleRetry,
-                        child: Text(
-                          'Retry',
-                          style: TextStyle(
-                            color: colors.primary,
-                            fontWeight: TioFontWeight.w700,
+        body: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Normally this Column is exactly viewport-height (via the
+              // ConstrainedBox minHeight), so Expanded fills the remaining
+              // space beneath the wordmark as usual. On a short/scaled
+              // viewport where the header alone would exceed that height,
+              // IntrinsicHeight lets the Column grow to fit instead of
+              // overflowing, and the outer SingleChildScrollView makes that
+              // extra height scrollable instead of clipped.
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: TioSize.dp100),
+                          child: Text(
+                            'TIO',
+                            style: TextStyle(
+                              color: colors.textPrimary,
+                              fontSize: TioFontSize.size44,
+                              fontWeight: TioFontWeight.w900,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                        Expanded(
+                          child: Center(
+                            child: (failureMessage == null || _isRetrying)
+                                ? CircularProgressIndicator(
+                                    color: colors.textPrimary,
+                                    strokeWidth: TioStroke.width25,
+                                  )
+                                : Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: TioSpacing.xxl,
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          failureMessage,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            color: colors.textSecondary,
+                                            fontSize: TioFontSize.size14,
+                                            height: TioLineHeight.height140,
+                                          ),
+                                        ),
+                                        const SizedBox(
+                                          height: TioSpacing.lg,
+                                        ),
+                                        TextButton(
+                                          onPressed: widget.onRetry == null
+                                              ? null
+                                              : _handleRetry,
+                                          child: Text(
+                                            'Retry',
+                                            style: TextStyle(
+                                              color: colors.primary,
+                                              fontWeight: TioFontWeight.w700,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-            ],
+              );
+            },
           ),
         ),
       ),
