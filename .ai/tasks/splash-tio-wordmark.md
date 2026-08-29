@@ -1,6 +1,6 @@
 # Splash screen — replace logo image with "TIO" wordmark
 
-**Status:** In progress
+**Status:** Validated
 **Primary owner:** `apps/features/splash`
 **Affected platforms:** Flutter phone app (`apps/app` via `tio_feature_splash`)
 
@@ -120,8 +120,7 @@ its own CI result by the next review-driven fix; see git log for the full interm
   - commit 1ccc3442: CI run 33262625451 FAILED -- TioSize.dp120 liveness violation (fixed by 56cc00cb).
   - commit 01164767: CI run 33263398556 PASS.
   - commit 3e11413f (overlap-safety Column redesign): CI run 33264543488 PASS.
-  - commit <scroll-safety fix HEAD, updated below>: current head, CI pending/result to be recorded on
-    completion.
+  - commit e7cd4598 (scroll-safety fix): CI run 33265051617 PASS -- final validated head.
 ```
 
 ### Review Findings and Resolution
@@ -157,4 +156,4 @@ None known.
 
 ### Final Status
 
-`REVIEW` — implementation and local validation (analyze + 12/12 splash tests + 114/114 core tests) complete for the scroll-safety redesign; awaiting the exact-head Flutter CI result for the current head before this returns to `Validated`.
+`PASS` — exact-head Flutter CI run [33265051617](https://github.com/im-tnyx/tio-world/actions/runs/33265051617) is SUCCESS for commit `e7cd4598`, the final head incorporating all five Codex review findings and the owner-reported fixes. PR #171 open, mergeable, not yet merged.
