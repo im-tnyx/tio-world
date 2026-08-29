@@ -45,6 +45,45 @@ void main() {
       expect(wordmarkStyle?.fontSize, TioFontSize.size44);
     });
 
+    testWidgets(
+        'TIO wordmark position is unaffected by whether the spinner or the '
+        'failure/retry block renders below it', (tester) async {
+      await tester.pumpWidget(buildTestApp());
+      await tester.pump();
+      final loadingWordmarkY = tester.getCenter(find.text('TIO')).dy;
+
+      await tester.pumpWidget(
+        buildTestApp(
+          failureMessage: 'Bootstrap failed.',
+          onRetry: () async {},
+        ),
+      );
+      await tester.pump();
+      final failureWordmarkY = tester.getCenter(find.text('TIO')).dy;
+
+      expect(
+        loadingWordmarkY,
+        failureWordmarkY,
+        reason: 'the wordmark must stay in a fixed position regardless of '
+            "the taller failure/retry block's own height",
+      );
+    });
+
+    testWidgets('loading spinner renders at the exact screen center',
+        (tester) async {
+      await tester.pumpWidget(buildTestApp());
+      await tester.pump();
+
+      final screenCenter = tester.getSize(find.byType(Scaffold)).center(
+            Offset.zero,
+          );
+      final spinnerCenter =
+          tester.getCenter(find.byType(CircularProgressIndicator));
+
+      expect(spinnerCenter.dx, screenCenter.dx);
+      expect(spinnerCenter.dy, screenCenter.dy);
+    });
+
     for (final mode in [TioThemeMode.light, TioThemeMode.dark]) {
       testWidgets('TIO wordmark stays readable against the background on $mode',
           (tester) async {

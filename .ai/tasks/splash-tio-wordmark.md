@@ -18,6 +18,8 @@ Replace the splash screen's packaged logo image with a large, bold "TIO" text wo
 
 - Splash renders "TIO" as text (no `Image` widget) using the largest/boldest core typography tokens.
 - The wordmark and loading spinner stay legible against the splash background in both light and dark theme (owner flagged during review that the initial fixed-white color was invisible on light theme).
+- The status/navigation bar icon brightness matches the active theme instead of assuming a permanently dark background (owner flagged: status bar icons — battery, network — didn't match the theme).
+- The wordmark's vertical position does not depend on which sibling content (spinner vs. failure/retry block) is currently rendering below it; the spinner renders at the exact screen center (owner flagged: TIO visibly shifted position between the loading and failure states because both shared one auto-sized `Column`).
 - No orphaned design-system primitive left behind.
 - `apps/features/splash` and `apps/core` analyze/test stay green; exact-head Flutter CI passes.
 
@@ -41,6 +43,8 @@ Replace the splash screen's packaged logo image with a large, bold "TIO" text wo
 - Repo-wide grep confirmed `apps/features/splash/assets/dark_logo.jpg` was referenced only by the splash screen and its own pubspec; `apps/core/assets/brand/dark_logo.jpg` is a separate physical file used only by `apps/app`/`apps/wear` pubspecs for `flutter_launcher_icons` — unaffected by removing the splash copy.
 - `TioColors.onMediaPrimary` is a fixed white token across every color scheme constant (light/dark/oled), intended for text over the fixed `mediaBackground` (always black) — not appropriate for this screen's Scaffold, which paints `colors.background` (theme-adaptive: light → `slate50`, dark → `neutral950`). `colors.textPrimary` is theme-adaptive and is the correct token here.
 - `TioFontSize.size44` / `TioFontWeight.w900` are the largest/boldest entries in their respective primitive registries.
+- The original `AnnotatedRegion<SystemUiOverlayStyle>` hardcoded `statusBarIconBrightness: Brightness.light` / `statusBarBrightness: Brightness.dark` / `systemNavigationBarIconBrightness: Brightness.light` — correct only for a permanently dark background. Once the background became theme-adaptive (it already was; this was a pre-existing latent bug the wordmark/spinner change exposed), these needed to flip with `colors.isDark` (Android's `statusBarIconBrightness`/`systemNavigationBarIconBrightness` and iOS's `statusBarBrightness` use opposite conventions for the same "is the bar itself dark" question).
+- The wordmark and the spinner/failure block were siblings in one `Column` with `mainAxisSize.min` inside a single `Align`; because the failure/retry block is taller than the spinner, swapping between the two states changed the Column's total height and therefore the wordmark's resolved screen position under the shared `Align`. Fixed by decoupling them into two independently positioned `Align` widgets inside a `Stack`: the wordmark at a fixed `Alignment(0, -0.3)`, and the spinner/failure block at `Alignment.center` (a literal dead-center anchor, per owner's explicit request that the spinner always stay centered).
 - `apps/features/splash/test/presentation/splash_design_system_ownership_test.dart` statically forbids raw `Colors.*`/`Color(0x...)`/numeric `fontWeight`/numeric `fontSize` in this file — confirmed the implementation only uses `TioFontSize`/`TioFontWeight`/`context.tioColors`.
 - `apps/core/test/theme/final_enforcement_primitive_liveness_test.dart` requires every `TioSize`/`TioOpacity`/`TioAlpha`/`TioDuration`/`TioPalette` entry to have at least one production reference outside its own file. Removing the `Image.asset(width/height: TioSize.dp120)` usage left `TioSize.dp120` with zero remaining references anywhere in `apps/` — first Flutter CI run on this branch (`33262625451`) failed on exactly this violation.
 - Existing pattern to follow: `tio_size.dart`'s own doc comment — "Add values only when they are evidenced by current production UI" — so removing the now-dead `dp120` entry is the policy-correct fix, not adding a synthetic reference.
@@ -82,6 +86,8 @@ Unaffected — failure/retry text and button already used theme-adaptive `colors
 - [x] Shift the wordmark/spinner block slightly above center per owner feedback.
 - [x] Fix the loading spinner's matching fixed-white color for the same reason.
 - [x] Remove `TioSize.dp120`, orphaned by the image removal, per `apps/core`'s primitive-liveness governance test.
+- [x] Make status/navigation bar icon brightness theme-adaptive (was hardcoded for a permanently dark background).
+- [x] Decouple the wordmark's position from the spinner/failure block's height via an independently-positioned `Stack`; anchor the spinner/failure block at the literal screen center.
 - [x] Update `docs/screens/splash.md` runtime-behavior line.
 - [x] Add/extend widget tests: no `Image` widget remains; wordmark styling; wordmark + spinner color differs from the theme background in both `TioThemeMode.light` and `TioThemeMode.dark`.
 - [x] Write this task brief (retroactively, per Codex review finding — see below).

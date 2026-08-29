@@ -43,22 +43,23 @@ class _SplashScreenState extends State<SplashScreen> {
     final failureMessage = widget.failureMessage;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
+      value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
+        statusBarIconBrightness:
+            colors.isDark ? Brightness.light : Brightness.dark,
+        statusBarBrightness: colors.isDark ? Brightness.dark : Brightness.light,
         systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarIconBrightness:
+            colors.isDark ? Brightness.light : Brightness.dark,
         systemNavigationBarDividerColor: Colors.transparent,
       ),
       child: Scaffold(
         backgroundColor: colors.background,
-        body: Align(
-          alignment: const Alignment(0, -0.3),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
+        body: Stack(
+          children: [
+            Align(
+              alignment: const Alignment(0, -0.3),
+              child: Text(
                 'TIO',
                 style: TextStyle(
                   color: colors.textPrimary,
@@ -66,44 +67,47 @@ class _SplashScreenState extends State<SplashScreen> {
                   fontWeight: TioFontWeight.w900,
                 ),
               ),
-              const SizedBox(height: TioSize.dp48),
-              if (failureMessage == null || _isRetrying)
-                CircularProgressIndicator(
-                  color: colors.textPrimary,
-                  strokeWidth: TioStroke.width25,
-                )
-              else
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: TioSpacing.xxl,
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        failureMessage,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: colors.textSecondary,
-                          fontSize: TioFontSize.size14,
-                          height: TioLineHeight.height140,
-                        ),
+            ),
+            Align(
+              alignment: Alignment.center,
+              child: (failureMessage == null || _isRetrying)
+                  ? CircularProgressIndicator(
+                      color: colors.textPrimary,
+                      strokeWidth: TioStroke.width25,
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: TioSpacing.xxl,
                       ),
-                      const SizedBox(height: TioSpacing.lg),
-                      TextButton(
-                        onPressed: widget.onRetry == null ? null : _handleRetry,
-                        child: Text(
-                          'Retry',
-                          style: TextStyle(
-                            color: colors.primary,
-                            fontWeight: TioFontWeight.w700,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            failureMessage,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: colors.textSecondary,
+                              fontSize: TioFontSize.size14,
+                              height: TioLineHeight.height140,
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: TioSpacing.lg),
+                          TextButton(
+                            onPressed:
+                                widget.onRetry == null ? null : _handleRetry,
+                            child: Text(
+                              'Retry',
+                              style: TextStyle(
+                                color: colors.primary,
+                                fontWeight: TioFontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
+                    ),
+            ),
+          ],
         ),
       ),
     );
