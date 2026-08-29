@@ -734,6 +734,52 @@ void main() {
   });
 
   testWidgets(
+      'Daily Wellness aligns the trailing edit affordance at the same '
+      'x-position across Step, Water and Glass Size rows', (tester) async {
+    await tester.pumpWidget(
+      buildApp(
+        DailyWellnessSettingsPage(
+          initialTargets: const WellnessTargetsData(
+            dailySteps: 10000,
+            waterMl: 2800,
+            bedTimeMinutes: 23 * 60,
+            wakeTimeMinutes: 7 * 60,
+          ),
+          hydrationPreferences: const HydrationPreferences(),
+          onSaveHydration: (_) async {},
+          onSave: (_) async {},
+        ),
+      ),
+    );
+
+    final centers = <String, double>{};
+    for (final key in [
+      'daily-wellness-steps-field',
+      'daily-wellness-water-field',
+      'daily-wellness-glass-size-field',
+    ]) {
+      final rowFinder = find.byKey(ValueKey(key));
+      final pencilFinder = find.descendant(
+        of: rowFinder,
+        matching: find.byIcon(Icons.edit_outlined),
+      );
+      expect(pencilFinder, findsOneWidget, reason: '$key edit pencil');
+      centers[key] = tester.getCenter(pencilFinder).dx;
+    }
+
+    final reference = centers['daily-wellness-steps-field']!;
+    for (final entry in centers.entries) {
+      expect(
+        (entry.value - reference).abs(),
+        lessThanOrEqualTo(2.0),
+        reason: '${entry.key} edit pencil must align on the same x-position '
+            'as the other Daily Wellness rows regardless of value text '
+            'length (found ${entry.value}, expected ~$reference)',
+      );
+    }
+  });
+
+  testWidgets(
       'Daily Wellness recovers the tnyx-hub target-row presentation: plain icons, strong values, edit affordance instead of chevron',
       (tester) async {
     await tester.pumpWidget(

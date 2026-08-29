@@ -743,7 +743,7 @@ class _DailyWellnessRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: TioSpacing.sm),
-            Flexible(
+            Expanded(
               flex: 2,
               child: Text(
                 value,
