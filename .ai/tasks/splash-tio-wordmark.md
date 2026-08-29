@@ -1,6 +1,6 @@
 # Splash screen — replace logo image with "TIO" wordmark
 
-**Status:** In progress
+**Status:** Validated
 **Primary owner:** `apps/features/splash`
 **Affected platforms:** Flutter phone app (`apps/app` via `tio_feature_splash`)
 
@@ -98,19 +98,27 @@ Unaffected — failure/retry text and button already used theme-adaptive `colors
 
 ```text
 apps/features/splash: flutter analyze -> No issues found.
-apps/features/splash: flutter test -> 8/8 passed (includes design-system ownership governance test).
+apps/features/splash: flutter test -> 10/10 passed (includes design-system ownership governance test and
+  regression coverage for: no Image widget; wordmark styling; wordmark+spinner color differs from
+  background on TioThemeMode.light/dark; wordmark position unaffected by spinner-vs-failure state;
+  spinner renders at the exact screen center).
 apps/core: flutter analyze -> No issues found.
 apps/core: flutter test -> 114/114 passed (includes primitive-liveness governance test).
 git diff --check -> clean.
 PR #171 exact-head Flutter CI:
   - commit 18b8e935 (initial wordmark swap): not separately checked pre-review.
-  - commit 1ccc3442 (spinner color fix): CI run 33262625451 FAILED — TioSize.dp120 liveness violation.
-  - commit 56cc00cb (dp120 removal): CI run 33262914450 pending at the time of writing this brief; update on completion.
+  - commit 1ccc3442 (spinner color fix): CI run 33262625451 FAILED -- TioSize.dp120 liveness violation.
+  - commit 56cc00cb (dp120 removal): CI run 33262914450 in progress when superseded by the next commit.
+  - commit aa242a34 (theme-adaptive status bar; decouple wordmark/spinner position): superseded before its
+    own CI run completed.
+  - commit 01164767 (stale task-brief reference corrected): CI run 33263398556 PASS -- final validated head.
 ```
 
 ### Review Findings and Resolution
 
-- **GitHub Codex automated review (PR #171, inline comment on `splash_screen.dart:57`, commit `56cc00cb`, P1):** flagged that this is a user-facing visual change (branding, typography, vertical layout) implemented without a focused `.ai/tasks/` brief, per `AGENTS.md:L51-L57`. **Valid finding** — the change touches splash typography/layout and a cross-package `apps/core` primitive-registry edit, which the Task Execution Protocol requires a brief for regardless of how small the visible diff looks. Resolved by writing this brief and recording the full discovery/decision/validation trail after the fact.
+- **GitHub Codex automated review #1 (PR #171, inline comment on `splash_screen.dart:57`, commit `56cc00cb`, P1):** flagged that this is a user-facing visual change (branding, typography, vertical layout) implemented without a focused `.ai/tasks/` brief, per `AGENTS.md:L51-L57`. **Valid finding** — the change touches splash typography/layout and a cross-package `apps/core` primitive-registry edit, which the Task Execution Protocol requires a brief for regardless of how small the visible diff looks. Resolved by writing this brief (commit `d108d889`) and recording the full discovery/decision/validation trail after the fact.
+- **GitHub Codex automated review #2 (PR #171, inline comment on `tio_size.dart:55`, commit `aa242a34`, P1):** flagged that removing `TioSize.dp120` changed a public `apps/core` token contract without updating `apps/core/lib/src/theme/README.md`'s mandatory compatibility guidance, and that `.ai/tasks/design-system-slice-g-remaining-ui.md` (Validated) still documented `dp120` as governed splash-logo geometry evidence. **Valid finding for the stale task-brief reference** — corrected it (commit `01164767`) to mark that specific line superseded, pointing to this brief. The README itself documents `TioSize` only as a category pattern (`TioSize.dpN`), not individual values, so no README line existed to update; this judgment was surfaced back to the reviewer in the reply thread in case a different treatment (e.g. a removed-primitives changelog) is wanted.
+- **Owner review (mid-implementation, via chat):** two more defects were found and fixed before CI passed: (1) the status/navigation bar's `SystemUiOverlayStyle` hardcoded brightness for a permanently dark background, causing status-bar icons to mismatch the light theme; (2) the wordmark and the spinner/failure-retry block shared one auto-sized `Column`, so the wordmark's position shifted depending on which (differently-sized) sibling was rendering below it. Both fixed in commit `aa242a34` — status bar brightness now derives from `colors.isDark`; the wordmark and the spinner/failure block are independently positioned via a `Stack`, with the spinner/failure block anchored at the literal screen center per explicit owner request.
 
 ## 7. Final Handoff
 
@@ -123,15 +131,17 @@ PR #171 exact-head Flutter CI:
 - `apps/core/lib/src/theme/tokens/primitive/tio_size.dart`
 - `docs/screens/splash.md`
 - `.ai/tasks/splash-tio-wordmark.md` (this file)
+- `.ai/tasks/README.md`
+- `.ai/tasks/design-system-slice-g-remaining-ui.md`
 
 ### Actual Behavior
 
-Splash shows a bold "TIO" text wordmark (no image) positioned slightly above center, followed by a loading spinner or failure/retry UI; both the wordmark and spinner now use the theme-adaptive `textPrimary` color so they stay legible in light and dark theme.
+Splash shows a bold "TIO" text wordmark (no image), fixed at a position slightly above dead-center regardless of what renders below it, and independently a loading spinner or failure/retry UI anchored at the literal screen center. The wordmark, spinner, and status/navigation bar icon brightness are all theme-adaptive (`colors.textPrimary` / `colors.isDark`) so they stay legible and correctly matched in both light and dark theme.
 
 ### Known Limitations
 
-None known. The failure-message/retry UI was already theme-adaptive and untouched.
+None known.
 
 ### Final Status
 
-`REVIEW` — implementation and local validation complete; awaiting the exact-head Flutter CI result for commit `56cc00cb` before this can move to `Validated`.
+`PASS` — exact-head Flutter CI run [33263398556](https://github.com/im-tnyx/tio-world/actions/runs/33263398556) is SUCCESS for commit `01164767` (the final head incorporating both Codex review fixes and the owner-reported status-bar/layout fixes). PR #171 open, mergeable, not yet merged.
