@@ -12,6 +12,7 @@ Use this file to distinguish validated runtime from remaining Product Onboarding
 
 | Capability | Status | Owner | Current boundary / evidence |
 |---|---|---|---|
+| S0-B2 Default Glass Size | Partial | Settings | Client/domain/adapter and CLI-generated migration added; local DB, fresh validation and device acceptance pending. [Execution evidence](tasks/settings-s0b2-default-glass-size.md). No hydration logging. |
 | Canonical Body/Wellness/Nutrition/Workout schema | Live | Supabase | Canonical owner tables live; legacy duplicate/mixed columns stay until O11/#54 after O10. |
 | Durable App Mode / active_tabs | Validated | App preferences | O1 #11 / CI #1240. |
 | Common User Profile canonical runtime | Validated | Profile + onboarding | O2 #53 / CI #1279. |

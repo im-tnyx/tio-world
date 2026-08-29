@@ -5,6 +5,7 @@ import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_feature_progress/progress.dart';
+import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
@@ -137,6 +138,30 @@ final wellnessTargetsRepositoryProvider =
 final wellnessTargetsDataProvider =
     FutureProvider<WellnessTargetsData?>((ref) async {
   final repository = ref.watch(wellnessTargetsRepositoryProvider);
+  return repository.read();
+});
+
+/// Settings-owned preference. No in-memory success path for account-synced data.
+final hydrationPreferencesRepositoryProvider =
+    Provider<HydrationPreferencesRepository?>((ref) {
+  ref.watch(authSessionStateProvider);
+  final client = ref.watch(supabaseClientProvider);
+  if (client == null) return null;
+  final userId = client.auth.currentUser?.id;
+  return SupabaseHydrationPreferencesRepository(
+    client: client,
+    // An old editor cannot write its draft into a newly signed-in account.
+    currentUserId: () => client.auth.currentUser?.id == userId ? userId : null,
+  );
+});
+
+final hydrationPreferencesDataProvider =
+    FutureProvider.autoDispose<HydrationPreferences?>((ref) async {
+  ref.watch(authSessionStateProvider);
+  final repository = ref.watch(hydrationPreferencesRepositoryProvider);
+  if (repository == null) {
+    throw StateError('Glass Size storage is unavailable.');
+  }
   return repository.read();
 });
 

@@ -3,7 +3,7 @@
 **Surface:** Phone full-screen preferences and account controls
 **Current route:** `/settings`
 **Primary owner:** `apps/features/settings`
-**Status:** S0-A implements the truthful Settings hub, App Preferences navigation and existing Units entry relocation. This does not complete the broader Settings readiness gate.
+**Status:** S0-A and accepted S0-B1 provide the Settings hub and Daily Wellness editing. S0-B2 adds the Glass Size client implementation and a local CLI-generated migration; local database verification and physical-device acceptance remain pending. This does not complete the broader Settings readiness gate.
 
 ## Purpose
 
@@ -12,7 +12,7 @@ Manage app-level preferences and route the user to module-owned configuration. S
 ## Current Implemented Boundary
 
 - Profile exposes the Settings action; Home's app bar keeps only the Profile avatar account entry.
-- Root Settings exposes only Profile Settings, Account Settings, App Preferences and Log Out. Profile and Account continue routing to their existing owner-backed screens; this slice does not expand their business behavior.
+- Root Settings exposes Profile Settings, Account Settings, Health & Goals, App Preferences and Log Out. Profile and Account continue routing to their existing owner-backed screens; this slice does not expand their business behavior.
 - App Preferences contains App Mode, Theme and Units. Its root subtitle is `App Mode, theme & units` and its page heading is `App Preferences`.
 - App Mode editing previews guided tabs, persists through the same controller used by Onboarding, and returns to Home after success.
 - Theme uses the existing Appearance bottom sheet. Units uses the existing shared editor and persistence.
@@ -45,7 +45,7 @@ repository; this IA slice does not change sign-out failure handling.
 ## Health & Goals And Daily Wellness Ownership
 
 Health & Goals delivers the post-onboarding entry point for Daily Wellness targets.
-Settings' user-facing controls are exactly: Step Goal, Water Goal, and Sleep Schedule.
+Settings' user-facing controls are Step Goal, Water Goal, Glass Size and Sleep Schedule.
 Settings does not own Wellness persistence or business logic; it consumes the
 canonical `WellnessTargetsRepository` (`apps/features/progress`) via `wellnessTargetsRepositoryProvider`
 and `wellnessTargetsDataProvider`.
@@ -53,8 +53,67 @@ and `wellnessTargetsDataProvider`.
 - Water Goal respects the user's `UnitPreferences.volumeUnit` for display (`ml` or `fl oz`) while storing canonical `ml`.
 - Sleep Schedule edits Bedtime and Wake Time together in one bottom sheet (local 0..1439 minute-of-day integer values, persisted as SQL TIME). There is no independently editable Sleep Goal in Settings: `sleepTargetMinutes` is always derived from the current Bedtime/Wake Time pair (cross-midnight safe) and recomputed on every save, never fabricated when either side of the schedule is unset.
 - Partial edits preserve all untouched values (including unset `null`s) without fabricating defaults.
-- Default Glass Size is unowned and explicitly deferred (not implemented in S0-B1).
+- Default Glass Size has its own Settings-owned preference/repository, separate from Wellness targets (see below).
 - Body Goal / Weight edit remains deferred post-S0-C; no placeholder Body rows are exposed in Settings.
+
+### Daily Wellness grouping
+
+```text
+MOVEMENT
+  Step Goal
+HYDRATION
+  Water Goal
+  Glass Size
+SLEEP
+  Sleep Schedule
+```
+
+Water Goal and Glass Size share one visual card, not a persistence DTO.
+The accepted Step/Water editors, Sleep card/timeline, 15-minute snapping and
+haptic behavior are preserved. Page Save Changes still writes only Wellness.
+
+### Default Glass Size — S0-B2
+
+The approved bounded owner is `apps/features/settings`: `HydrationPreferences`
+and `HydrationPreferencesRepository` live in `lib/src/domain`, and
+`SupabaseHydrationPreferencesRepository` lives in `lib/src/data`. App constructs
+and injects these through `hydrationPreferencesRepositoryProvider` and
+`hydrationPreferencesDataProvider`. This is the explicit exception to the generic
+Settings-consumer rule; it does not transfer other feature data to Settings.
+See [ADR-0008](../adr/0008-settings-hydration-preferences-owner.md).
+
+- Glass Size is the amount represented by a future +1 glass action, not Water Goal
+  and not Volume Unit. No hydration logging is implemented.
+- Canonical storage is nullable integer ml in the dedicated
+  `public.user_hydration_preferences` table. The repository never reads/writes
+  Wellness, Profile, App Preferences, Nutrition or SharedPreferences.
+- No row/null means **Not set**. There is no implicit 250 ml default or backfill.
+- Row: **Glass Size**. Sheet: **Default Glass Size**. Help:
+  **Amount logged when you add one glass of water.**
+- Presets are exactly 200/250/300/350/500 ml. Custom is numeric, 50–2000 ml
+  inclusive, in increments of 10. Invalid values are rejected, not rounded.
+- Metric summary is e.g. `250 ml`; Imperial summary/presets use existing volume
+  formatting, e.g. `~8.5 fl oz`. Preset identities remain canonical ml.
+- Custom input stays explicitly labelled **Custom amount (ml)** in both units;
+  Imperial adds a converted preview. Rounded fl oz is never converted back into
+  persistence. Changing Volume Unit does not write a Glass Size value.
+- Preset/Custom/Clear edit only the sheet draft. Save independently awaits the
+  Hydration repository; unchanged/invalid and duplicate submits are blocked.
+  Clear followed by Save persists null. Cancel/back/barrier discard drafts.
+  Dismissal is blocked while a save is in flight; failures keep the sheet retryable.
+- Pristine refresh adopts canonical data; a dirty draft survives refresh and
+  becomes pristine if canonical data converges. Loading/read failure has its own
+  Glass Size state/retry and does not fabricate Not set or block Water Goal.
+- Future +1 glass must consume this preference as `amountMl`; changing it must
+  never rewrite historical events or create a second Glass Size owner.
+
+**Database deployment boundary:** The reviewed migration
+`supabase/migrations/20260829043204_create_user_hydration_preferences.sql` exists
+locally but has not been applied remotely. Remote migration application has not
+been authorized/performed. Local DB/RLS execution is pending because the local
+Postgres service is unavailable. Account-synced runtime acceptance requires the
+migration to be separately applied; until storage is available, reads/saves fail
+truthfully rather than falling back to local-only success.
 
 ## Units Ownership And Navigation
 
@@ -134,7 +193,7 @@ Navigation preference changes where sections/actions appear. It does not change 
 ## Acceptance Criteria
 
 - Settings is not a bottom tab and is reachable from Profile or approved in-feature entry points.
-- Root has exactly the implemented Profile Settings, Account Settings, App Preferences and Log Out entries, with no empty unavailable sections.
+- Root has the implemented Profile Settings, Account Settings, Health & Goals, App Preferences and Log Out entries, with no empty unavailable sections.
 - App Preferences exposes App Mode, Theme and Units with truthful copy.
 - Units Save/back returns to its caller, and existing direct Units/Theme routes remain compatible.
 - The #112 shared editor, independent unit values and save/failure behavior remain unchanged.
@@ -146,6 +205,7 @@ Navigation preference changes where sections/actions appear. It does not change 
 ## Related
 
 - [S0-A execution brief](../../.ai/tasks/settings-s0a-truthfulness-units.md)
+- [S0-B2 execution brief](../../.ai/tasks/settings-s0b2-default-glass-size.md)
 - [Frozen Measurement Units UI](../../.ai/tasks/measurement-units-segmented-ui.md)
 - [Onboarding](onboarding.md)
 - [Nutrition](nutrition.md)

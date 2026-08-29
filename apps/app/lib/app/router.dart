@@ -692,6 +692,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => Consumer(
           builder: (context, ref, _) {
             final wellnessAsync = ref.watch(wellnessTargetsDataProvider);
+            final hydrationAsync = ref.watch(hydrationPreferencesDataProvider);
+            final hydrationRepository =
+                ref.watch(hydrationPreferencesRepositoryProvider);
+            final hydrationSession =
+                ref.watch(authSessionStateProvider).valueOrNull;
+            final hydrationUserId = hydrationSession is AuthSessionAuthenticated
+                ? hydrationSession.session.userId
+                : null;
             final profileAsync = ref.watch(profileDataProvider);
             final volumeUnit =
                 profileAsync.valueOrNull?.unitPreferences.volumeUnit ??
@@ -787,8 +795,20 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             }
 
             return DailyWellnessSettingsPage(
+              key: ValueKey(hydrationUserId),
               initialTargets: wellnessAsync.valueOrNull,
               volumeUnit: volumeUnit,
+              hydrationPreferences: hydrationAsync.valueOrNull,
+              hydrationLoading: hydrationAsync.isLoading,
+              hydrationLoadFailed: hydrationAsync.hasError,
+              onRetryHydration: () =>
+                  ref.invalidate(hydrationPreferencesDataProvider),
+              onSaveHydration: hydrationRepository == null
+                  ? null
+                  : (preferences) async {
+                      await hydrationRepository.upsert(preferences);
+                      ref.invalidate(hydrationPreferencesDataProvider);
+                    },
               onSave: (targets) async {
                 final repository = ref.read(wellnessTargetsRepositoryProvider);
                 await repository.upsert(targets);

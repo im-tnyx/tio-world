@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_progress/progress.dart';
 
+import '../../domain/hydration_preferences.dart';
+import '../widgets/glass_size_bottom_sheet.dart';
+
 /// Sleep duration is a pure function of Bedtime/Wake Time, never an
 /// independent target. Null when either side of the schedule is unset —
 /// never fabricated. Dart's `%` on int is Euclidean (always non-negative
@@ -37,12 +40,22 @@ class DailyWellnessSettingsPage extends StatefulWidget {
   const DailyWellnessSettingsPage({
     this.initialTargets,
     this.volumeUnit = VolumeUnit.ml,
+    this.hydrationPreferences,
+    this.onSaveHydration,
+    this.hydrationLoading = false,
+    this.hydrationLoadFailed = false,
+    this.onRetryHydration,
     required this.onSave,
     super.key,
   });
 
   final WellnessTargetsData? initialTargets;
   final VolumeUnit volumeUnit;
+  final HydrationPreferences? hydrationPreferences;
+  final Future<void> Function(HydrationPreferences)? onSaveHydration;
+  final bool hydrationLoading;
+  final bool hydrationLoadFailed;
+  final VoidCallback? onRetryHydration;
   final Future<void> Function(WellnessTargetsData targets) onSave;
 
   @override
@@ -51,6 +64,10 @@ class DailyWellnessSettingsPage extends StatefulWidget {
 }
 
 class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
+  late final ValueNotifier<HydrationPreferences?> _glassCanonical;
+  late final ValueNotifier<VolumeUnit> _glassVolumeUnit;
+  HydrationPreferences? _glassPreferences;
+
   int? _dailySteps;
   int? _waterMl;
   int? _sleepTargetMinutes;
@@ -82,6 +99,9 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
   @override
   void initState() {
     super.initState();
+    _glassPreferences = widget.hydrationPreferences;
+    _glassCanonical = ValueNotifier(_glassPreferences);
+    _glassVolumeUnit = ValueNotifier(widget.volumeUnit);
     _dailySteps = widget.initialTargets?.dailySteps;
     _waterMl = widget.initialTargets?.waterMl;
     _bedTimeMinutes = widget.initialTargets?.bedTimeMinutes;
@@ -93,6 +113,19 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
   @override
   void didUpdateWidget(covariant DailyWellnessSettingsPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!widget.hydrationLoading &&
+        !widget.hydrationLoadFailed &&
+        (oldWidget.hydrationPreferences != widget.hydrationPreferences ||
+            oldWidget.hydrationLoading ||
+            oldWidget.hydrationLoadFailed)) {
+      _glassPreferences = widget.hydrationPreferences;
+    }
+    // A modal is a separate route: notify it after this page finishes building.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _glassCanonical.value = _glassPreferences;
+      _glassVolumeUnit.value = widget.volumeUnit;
+    });
     if (oldWidget.initialTargets == widget.initialTargets) return;
 
     final newInit = widget.initialTargets;
@@ -128,6 +161,46 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
   String _formatSteps() {
     if (_dailySteps == null) return 'Not set';
     return '$_dailySteps steps/day';
+  }
+
+  @override
+  void dispose() {
+    _glassCanonical.dispose();
+    _glassVolumeUnit.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickGlassSize() async {
+    final save = widget.onSaveHydration;
+    if (save == null || widget.hydrationLoading || widget.hydrationLoadFailed) {
+      return;
+    }
+    final saved = await showModalBottomSheet<HydrationPreferences>(
+      context: context,
+      isScrollControlled: true,
+      enableDrag: false,
+      backgroundColor: context.tioColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(TioRadius.lg)),
+      ),
+      builder: (context) => GlassSizeBottomSheet(
+        canonical: _glassCanonical,
+        volumeUnit: _glassVolumeUnit,
+        onSave: save,
+      ),
+    );
+    if (mounted && saved != null) {
+      setState(() => _glassPreferences = saved);
+      _glassCanonical.value = saved;
+    }
+  }
+
+  String _glassSummary() {
+    if (widget.hydrationLoading) return 'Loading…';
+    if (widget.hydrationLoadFailed) return 'Could not load Glass Size';
+    if (widget.onSaveHydration == null) return 'Unavailable';
+    return formatGlassSize(
+        _glassPreferences?.defaultGlassSizeMl, widget.volumeUnit);
   }
 
   String _formatWater() {
@@ -486,8 +559,8 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
                   ),
                   const SizedBox(height: TioSpacing.xl),
 
-                  // ── TARGETS GROUP ──
-                  const _DailyWellnessSectionHeader(title: 'TARGETS'),
+                  // ── MOVEMENT GROUP ──
+                  const _DailyWellnessSectionHeader(title: 'MOVEMENT'),
                   _DailyWellnessGroupCard(
                     children: [
                       _DailyWellnessRow(
@@ -498,7 +571,12 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
                         isUnset: _dailySteps == null,
                         onTap: _pickSteps,
                       ),
-                      const _DailyWellnessDivider(),
+                    ],
+                  ),
+                  const SizedBox(height: TioSpacing.lg),
+                  const _DailyWellnessSectionHeader(title: 'HYDRATION'),
+                  _DailyWellnessGroupCard(
+                    children: [
                       _DailyWellnessRow(
                         key: const ValueKey('daily-wellness-water-field'),
                         icon: Icons.water_drop_outlined,
@@ -507,6 +585,26 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
                         isUnset: _waterMl == null,
                         onTap: _pickWater,
                       ),
+                      const _DailyWellnessDivider(),
+                      _DailyWellnessRow(
+                        key: const ValueKey('daily-wellness-glass-size-field'),
+                        icon: Icons.local_drink_outlined,
+                        label: 'Glass Size',
+                        value: _glassSummary(),
+                        isUnset: _glassPreferences?.defaultGlassSizeMl == null,
+                        onTap: widget.onSaveHydration == null ||
+                                widget.hydrationLoading ||
+                                widget.hydrationLoadFailed
+                            ? null
+                            : _pickGlassSize,
+                      ),
+                      if (widget.hydrationLoadFailed &&
+                          widget.onRetryHydration != null)
+                        TextButton(
+                          key: const ValueKey('glass-size-load-retry'),
+                          onPressed: widget.onRetryHydration,
+                          child: const Text('Retry Glass Size'),
+                        ),
                     ],
                   ),
 
@@ -652,7 +750,7 @@ class _DailyWellnessRow extends StatelessWidget {
 
   /// Explicit unset styling contract instead of sniffing `value == 'Not set'`.
   final bool isUnset;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {

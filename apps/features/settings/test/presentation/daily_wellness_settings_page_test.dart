@@ -23,6 +23,368 @@ void main() {
     return '${bed.format(context)} - ${wake.format(context)}';
   }
 
+  Future<void> openGlass(WidgetTester tester) async {
+    final row = find.byKey(const ValueKey('daily-wellness-glass-size-field'));
+    await tester.ensureVisible(row);
+    await tester.tap(row);
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> tapGlass(WidgetTester tester, String key) async {
+    final target = find.byKey(ValueKey(key));
+    await tester.ensureVisible(target);
+    await tester.tap(target);
+    await tester.pumpAndSettle();
+  }
+
+  Widget glassPage({
+    int? initialMl = 250,
+    VolumeUnit unit = VolumeUnit.ml,
+    required Future<void> Function(HydrationPreferences) save,
+  }) =>
+      DailyWellnessSettingsPage(
+        initialTargets: const WellnessTargetsData(waterMl: 2800),
+        hydrationPreferences:
+            HydrationPreferences(defaultGlassSizeMl: initialMl),
+        volumeUnit: unit,
+        onSaveHydration: save,
+        onSave: (_) async {},
+      );
+
+  group('Glass Size', () {
+    testWidgets(
+        'approved grouping, whole row, exact presets and explicit-save draft',
+        (tester) async {
+      final writes = <HydrationPreferences>[];
+      await tester
+          .pumpWidget(buildApp(glassPage(save: (p) async => writes.add(p))));
+      for (final label in [
+        'MOVEMENT',
+        'HYDRATION',
+        'SLEEP',
+        'Step Goal',
+        'Water Goal',
+        'Glass Size'
+      ]) {
+        expect(find.text(label), findsOneWidget);
+      }
+      expect(find.text('250 ml'), findsOneWidget);
+      await openGlass(tester);
+      expect(find.text('Default Glass Size'), findsOneWidget);
+      expect(find.text('Amount logged when you add one glass of water.'),
+          findsOneWidget);
+      expect(find.byType(ChoiceChip), findsNWidgets(6));
+      for (final ml in [200, 250, 300, 350, 500]) {
+        expect(find.byKey(ValueKey('glass-size-preset-$ml')), findsOneWidget);
+      }
+      expect(
+          tester
+              .widget<TioButton>(find.byKey(const ValueKey('glass-size-save')))
+              .onPressed,
+          isNull);
+      await tapGlass(tester, 'glass-size-preset-300');
+      expect(writes, isEmpty);
+      await tapGlass(tester, 'glass-size-save');
+      expect(writes, [const HydrationPreferences(defaultGlassSizeMl: 300)]);
+      expect(find.text('Default Glass Size'), findsNothing);
+      expect(find.text('300 ml'), findsOneWidget);
+      expect(find.text('2800 ml/day (2.8 L)'), findsOneWidget);
+      expect(
+          tester
+              .widget<TioButton>(
+                  find.byKey(const ValueKey('daily-wellness-save')))
+              .onPressed,
+          isNull);
+    });
+
+    testWidgets(
+        'unset is Not set, with no selected default preset or implicit write',
+        (tester) async {
+      final writes = <HydrationPreferences>[];
+      await tester.pumpWidget(buildApp(
+          glassPage(initialMl: null, save: (p) async => writes.add(p))));
+      final row = find.byKey(const ValueKey('daily-wellness-glass-size-field'));
+      expect(find.descendant(of: row, matching: find.text('Not set')),
+          findsOneWidget);
+      await openGlass(tester);
+      expect(
+          tester
+              .widgetList<ChoiceChip>(find.byType(ChoiceChip))
+              .where((chip) => chip.selected),
+          isEmpty);
+      await tapGlass(tester, 'glass-size-cancel');
+      expect(writes, isEmpty);
+    });
+
+    for (final ml in [50, 260, 750, 2000]) {
+      testWidgets('custom $ml saves exactly, without rounding', (tester) async {
+        final writes = <HydrationPreferences>[];
+        await tester
+            .pumpWidget(buildApp(glassPage(save: (p) async => writes.add(p))));
+        await openGlass(tester);
+        await tapGlass(tester, 'glass-size-custom');
+        await tester.enterText(find.byType(TextField), '$ml');
+        await tester.pumpAndSettle();
+        await tapGlass(tester, 'glass-size-save');
+        expect(writes.single.defaultGlassSizeMl, ml);
+      });
+    }
+
+    testWidgets('invalid custom amounts show validation and cannot save',
+        (tester) async {
+      var writes = 0;
+      await tester.pumpWidget(buildApp(glassPage(save: (_) async {
+        writes++;
+      })));
+      await openGlass(tester);
+      await tapGlass(tester, 'glass-size-custom');
+      for (final text in [
+        '',
+        '40',
+        '49',
+        '55',
+        '255',
+        '2001',
+        '2010',
+        '250.5'
+      ]) {
+        await tester.enterText(find.byType(TextField), text);
+        await tester.pumpAndSettle();
+        expect(find.text('Enter 50–2000 ml in increments of 10 ml.'),
+            findsOneWidget);
+        expect(
+            tester
+                .widget<TioButton>(
+                    find.byKey(const ValueKey('glass-size-save')))
+                .onPressed,
+            isNull);
+      }
+      expect(writes, 0);
+    });
+
+    testWidgets('Clear only persists null after Save; reopen remains unset',
+        (tester) async {
+      final writes = <HydrationPreferences>[];
+      await tester
+          .pumpWidget(buildApp(glassPage(save: (p) async => writes.add(p))));
+      await openGlass(tester);
+      await tapGlass(tester, 'glass-size-clear');
+      expect(writes, isEmpty);
+      await tapGlass(tester, 'glass-size-save');
+      expect(writes, [const HydrationPreferences()]);
+      await openGlass(tester);
+      expect(
+          tester
+              .widget<Text>(
+                  find.byKey(const ValueKey('glass-size-draft-summary')))
+              .data,
+          'Not set');
+      expect(
+          tester
+              .widget<TioButton>(find.byKey(const ValueKey('glass-size-save')))
+              .onPressed,
+          isNull);
+    });
+
+    for (final dismiss in ['cancel', 'barrier', 'back']) {
+      testWidgets(
+          '$dismiss discards selection without changing page or writing',
+          (tester) async {
+        final writes = <HydrationPreferences>[];
+        await tester
+            .pumpWidget(buildApp(glassPage(save: (p) async => writes.add(p))));
+        await openGlass(tester);
+        await tapGlass(tester, 'glass-size-preset-300');
+        if (dismiss == 'cancel') {
+          await tapGlass(tester, 'glass-size-cancel');
+        } else if (dismiss == 'barrier') {
+          await tester.tapAt(const Offset(5, 5));
+        } else {
+          await tester.binding.handlePopRoute();
+        }
+        await tester.pumpAndSettle();
+        expect(find.text('Default Glass Size'), findsNothing);
+        expect(find.text('250 ml'), findsOneWidget);
+        expect(writes, isEmpty);
+        expect(
+            tester
+                .widget<TioButton>(
+                    find.byKey(const ValueKey('daily-wellness-save')))
+                .onPressed,
+            isNull);
+      });
+    }
+
+    testWidgets(
+        'failure keeps sheet/draft retryable and does not mutate summary',
+        (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(buildApp(glassPage(save: (_) async {
+        if (++calls == 1) throw StateError('failed');
+      })));
+      await openGlass(tester);
+      await tapGlass(tester, 'glass-size-preset-300');
+      await tapGlass(tester, 'glass-size-save');
+      expect(find.text('Could not save Glass Size. Please try again.'),
+          findsOneWidget);
+      expect(find.text('Default Glass Size'), findsOneWidget);
+      await tapGlass(tester, 'glass-size-save');
+      expect(calls, 2);
+      expect(find.text('300 ml'), findsOneWidget);
+    });
+
+    testWidgets(
+        'save awaits persistence, guards double submit and cannot dismiss in flight',
+        (tester) async {
+      final gate = Completer<void>();
+      var calls = 0;
+      await tester.pumpWidget(buildApp(glassPage(save: (_) {
+        calls++;
+        return gate.future;
+      })));
+      await openGlass(tester);
+      await tapGlass(tester, 'glass-size-preset-300');
+      final save = find.byKey(const ValueKey('glass-size-save'));
+      await tester.tap(save);
+      await tester.tap(save);
+      await tester.pump();
+      expect(calls, 1);
+      expect(find.text('Default Glass Size'), findsOneWidget);
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pump();
+      expect(find.text('Default Glass Size'), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      expect(find.text('Default Glass Size'), findsOneWidget);
+      gate.complete();
+      await tester.pumpAndSettle();
+      expect(find.text('Default Glass Size'), findsNothing);
+      expect(find.text('300 ml'), findsOneWidget);
+    });
+
+    testWidgets(
+        'open editor follows pristine refresh, preserves draft, then converges',
+        (tester) async {
+      final source = ValueNotifier<HydrationPreferences?>(
+          const HydrationPreferences(defaultGlassSizeMl: 250));
+      addTearDown(source.dispose);
+      await tester.pumpWidget(buildApp(ValueListenableBuilder(
+        valueListenable: source,
+        builder: (context, preferences, child) => DailyWellnessSettingsPage(
+          hydrationPreferences: preferences,
+          onSaveHydration: (_) async {},
+          onSave: (_) async {},
+        ),
+      )));
+      await openGlass(tester);
+      source.value = const HydrationPreferences(defaultGlassSizeMl: 300);
+      await tester.pumpAndSettle();
+      expect(
+          tester
+              .widget<ChoiceChip>(
+                  find.byKey(const ValueKey('glass-size-preset-300')))
+              .selected,
+          isTrue);
+      await tapGlass(tester, 'glass-size-preset-350');
+      source.value = const HydrationPreferences(defaultGlassSizeMl: 500);
+      await tester.pumpAndSettle();
+      expect(
+          tester
+              .widget<ChoiceChip>(
+                  find.byKey(const ValueKey('glass-size-preset-350')))
+              .selected,
+          isTrue);
+      source.value = const HydrationPreferences(defaultGlassSizeMl: 350);
+      await tester.pumpAndSettle();
+      expect(
+          tester
+              .widget<TioButton>(find.byKey(const ValueKey('glass-size-save')))
+              .onPressed,
+          isNull);
+      source.value = const HydrationPreferences(defaultGlassSizeMl: 200);
+      await tester.pumpAndSettle();
+      expect(
+          tester
+              .widget<ChoiceChip>(
+                  find.byKey(const ValueKey('glass-size-preset-200')))
+              .selected,
+          isTrue);
+    });
+
+    testWidgets(
+        'Volume Unit changes only labels; imperial preset saves its exact ml identity',
+        (tester) async {
+      final unit = ValueNotifier(VolumeUnit.ml);
+      final writes = <HydrationPreferences>[];
+      addTearDown(unit.dispose);
+      await tester.pumpWidget(buildApp(ValueListenableBuilder(
+        valueListenable: unit,
+        builder: (context, value, child) =>
+            glassPage(unit: value, save: (p) async => writes.add(p)),
+      )));
+      expect(find.text('250 ml'), findsOneWidget);
+      await openGlass(tester);
+      unit.value = VolumeUnit.flOz;
+      await tester.pumpAndSettle();
+      expect(find.text('~8.5 fl oz'), findsWidgets);
+      expect(
+          tester
+              .widget<ChoiceChip>(
+                  find.byKey(const ValueKey('glass-size-preset-250')))
+              .selected,
+          isTrue);
+      expect(
+          tester
+              .widget<TioButton>(find.byKey(const ValueKey('glass-size-save')))
+              .onPressed,
+          isNull);
+      expect(writes, isEmpty);
+      await tapGlass(tester, 'glass-size-preset-350');
+      await tapGlass(tester, 'glass-size-save');
+      expect(writes.single.defaultGlassSizeMl, 350);
+      unit.value = VolumeUnit.ml;
+      await tester.pumpAndSettle();
+      expect(find.text('350 ml'), findsOneWidget);
+      expect(writes.length, 1);
+    });
+
+    testWidgets(
+        'imperial Custom explicitly accepts ml and saves without conversion drift',
+        (tester) async {
+      final writes = <HydrationPreferences>[];
+      await tester.pumpWidget(buildApp(
+          glassPage(unit: VolumeUnit.flOz, save: (p) async => writes.add(p))));
+      await openGlass(tester);
+      await tapGlass(tester, 'glass-size-custom');
+      expect(find.text('Custom amount (ml)'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), '260');
+      await tester.pumpAndSettle();
+      expect(find.text('~8.8 fl oz'), findsOneWidget);
+      await tapGlass(tester, 'glass-size-save');
+      expect(writes.single.defaultGlassSizeMl, 260);
+    });
+
+    for (final mode in [TioThemeMode.light, TioThemeMode.dark]) {
+      testWidgets(
+          'compact $mode editor supports presets/custom/keyboard without overflow',
+          (tester) async {
+        tester.view.physicalSize = const Size(320, 640);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        await tester
+            .pumpWidget(buildApp(glassPage(save: (_) async {}), mode: mode));
+        await openGlass(tester);
+        await tapGlass(tester, 'glass-size-custom');
+        await tester.enterText(find.byType(TextField), '750');
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        await tapGlass(tester, 'glass-size-save');
+        expect(tester.takeException(), isNull);
+      });
+    }
+  });
+
   testWidgets('DailyWellnessSettingsPage renders populated targets cleanly',
       (tester) async {
     const initial = WellnessTargetsData(
@@ -43,7 +405,9 @@ void main() {
     );
 
     expect(find.text('Daily Wellness'), findsOneWidget);
-    expect(find.text('TARGETS'), findsOneWidget);
+    expect(find.text('MOVEMENT'), findsOneWidget);
+    expect(find.text('HYDRATION'), findsOneWidget);
+    expect(find.text('TARGETS'), findsNothing);
     expect(find.text('SLEEP'), findsOneWidget);
     expect(find.text('DAILY SCHEDULE'), findsNothing);
 
@@ -84,9 +448,10 @@ void main() {
     final button = tester.widget<TioButton>(saveButtonFinder);
     expect(button.onPressed, isNull);
 
-    // Verify Glass Size is strictly absent
+    expect(find.text('Glass Size'), findsOneWidget);
+    // A caller without a hydration save capability must remain truthful.
+    expect(find.text('Unavailable'), findsOneWidget);
     for (final absent in [
-      'Glass Size',
       'Default Glass Size',
       'glass_size',
       'Glass size',
