@@ -12,6 +12,7 @@ Use this file to distinguish validated runtime from remaining Product Onboarding
 
 | Capability | Status | Owner | Current boundary / evidence |
 |---|---|---|---|
+| S0-B2 Default Glass Size | Implemented; local validation PASS, CI/device pending | Settings | Device-local `SharedPreferencesAsync` preference with a real 250 ml default and explicit account-boundary reset. No Supabase table/migration, hydration logging or Water Goal coupling. [Execution evidence](tasks/settings-s0b2-default-glass-size.md). |
 | Canonical Body/Wellness/Nutrition/Workout schema | Live | Supabase | Canonical owner tables live; legacy duplicate/mixed columns stay until O11/#54 after O10. |
 | Durable App Mode / active_tabs | Validated | App preferences | O1 #11 / CI #1240. |
 | Common User Profile canonical runtime | Validated | Profile + onboarding | O2 #53 / CI #1279. |

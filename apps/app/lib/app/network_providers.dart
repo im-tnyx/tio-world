@@ -5,9 +5,11 @@ import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_feature_progress/progress.dart';
+import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_feature_workout/workout.dart';
 import 'package:tio_shared/shared.dart';
 
+import 'hydration_preferences_session_boundary.dart';
 import 'profile/canonical_profile_data_reader.dart';
 import 'supabase_runtime_config.dart';
 
@@ -137,6 +139,25 @@ final wellnessTargetsRepositoryProvider =
 final wellnessTargetsDataProvider =
     FutureProvider<WellnessTargetsData?>((ref) async {
   final repository = ref.watch(wellnessTargetsRepositoryProvider);
+  return repository.read();
+});
+
+/// Settings-owned, device-local Default Glass Size preference.
+final hydrationPreferencesRepositoryProvider =
+    Provider<HydrationPreferencesRepository>(
+  (ref) => SharedPreferencesHydrationPreferencesRepository(),
+);
+
+final hydrationPreferencesSessionBoundaryProvider =
+    Provider<HydrationPreferencesSessionBoundary>(
+  (ref) => HydrationPreferencesSessionBoundary(
+    ref.watch(hydrationPreferencesRepositoryProvider),
+  ),
+);
+
+final hydrationPreferencesDataProvider =
+    FutureProvider.autoDispose<HydrationPreferences>((ref) async {
+  final repository = ref.watch(hydrationPreferencesRepositoryProvider);
   return repository.read();
 });
 

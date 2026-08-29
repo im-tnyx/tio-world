@@ -21,6 +21,23 @@ This log records durable product and architecture choices. It is a concise orien
 | D-015 | Active | Persist the confirmed App Mode device-locally for the first slice. | `apps/shared` owns the pure-Dart preference contract and `apps/app` wires a `SharedPreferencesAsync` adapter. Missing/invalid data returns to mode selection. Supabase account sync is deferred until an approved profile contract exists. |
 | D-016 | Active; routed parent flow implemented | Full onboarding uses one `/onboarding` parent; the unnumbered App Mode gate shows Back-only fixed-height chrome and hides progress, while later children keep fixed Back/progress and a fixed bottom primary action. | Stable mode-derived step IDs and one Riverpod controller own internal flow. App Mode is excluded from progress position/total; every later user-facing child advances progress. Draft mode, confirmed App Mode, and completion status stay separate. Sensitive draft persistence and cross-owner finalization remain implementation-gated. |
 
+## D-017 — Superseded: account-synced S0-B2 HydrationPreferences
+
+The earlier Supabase-table decision was superseded during Draft PR #170 review,
+before merge. It must not guide new work. See
+[ADR-0008](../docs/adr/0008-settings-hydration-preferences-owner.md).
+
+## D-018 — Active: Settings owns local-only Default Glass Size
+
+`apps/features/settings` owns the Default Glass Size domain, repository and
+`SharedPreferencesAsync` adapter. The integer key `default_glass_size_ml` is a
+device-local convenience preference with a real 250 ml default; it is cleared
+only at explicit successful account boundaries and survives ordinary restart or
+restored session. It is not a Supabase record, Water Goal, health target, logging
+history or a new Progress/shared/Nutrition/Profile owner. Future +1 glass must
+consume or explicitly supersede this preference. See
+[ADR-0009](../docs/adr/0009-settings-local-default-glass-size.md).
+
 ## Maintenance Rules
 
 - Add a decision only when it changes product scope, module ownership, platform strategy, data flow, or a durable implementation constraint.

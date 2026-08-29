@@ -10,6 +10,7 @@ import 'package:tio_app/app/session/session.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_onboarding/onboarding.dart';
+import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
@@ -36,6 +37,7 @@ void main() {
       onboardingStatusController: onboardingStatusController,
     );
     final themeController = await _createThemeController();
+    final hydrationRepository = _MemoryHydrationPreferencesRepository(300);
 
     final container = ProviderContainer(
       overrides: [
@@ -48,6 +50,8 @@ void main() {
         appSessionBootstrapControllerProvider
             .overrideWith((ref) => bootstrapController),
         appThemeControllerProvider.overrideWith((ref) => themeController),
+        hydrationPreferencesRepositoryProvider
+            .overrideWithValue(hydrationRepository),
       ],
     );
     addTearDown(container.dispose);
@@ -88,6 +92,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(authRepository.signOutCalls, 1);
+    expect(await hydrationRepository.read(), const HydrationPreferences());
     expect(bootstrapController.refreshCalls, 1);
     expect(router.routeInformationProvider.value.uri.path, AppRoutes.auth.path);
   });
@@ -131,6 +136,27 @@ class _ExitBootstrapController extends AppSessionBootstrapController {
     refreshCalls++;
     _testState = const AppSessionBootstrapUnauthenticated();
     notifyListeners();
+  }
+}
+
+class _MemoryHydrationPreferencesRepository
+    implements HydrationPreferencesRepository {
+  _MemoryHydrationPreferencesRepository(this._value);
+
+  int _value;
+
+  @override
+  Future<void> clear() async {
+    _value = HydrationPreferences.defaultGlassSizeMlDefault;
+  }
+
+  @override
+  Future<HydrationPreferences> read() async =>
+      HydrationPreferences(defaultGlassSizeMl: _value);
+
+  @override
+  Future<void> write(HydrationPreferences preferences) async {
+    _value = preferences.defaultGlassSizeMl;
   }
 }
 

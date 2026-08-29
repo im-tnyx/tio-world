@@ -23,6 +23,539 @@ void main() {
     return '${bed.format(context)} - ${wake.format(context)}';
   }
 
+  // Daily Wellness values render as Text.rich (number + muted unit spans),
+  // so `.data` is null -- read the flattened text via textSpan instead.
+  String plainText(Text widget) =>
+      widget.data ?? widget.textSpan?.toPlainText() ?? '';
+
+  Future<void> openGlass(WidgetTester tester) async {
+    final row = find.byKey(const ValueKey('daily-wellness-glass-size-field'));
+    await tester.ensureVisible(row);
+    await tester.tap(row);
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> tapGlass(WidgetTester tester, String key) async {
+    final target = find.byKey(ValueKey(key));
+    await tester.ensureVisible(target);
+    await tester.tap(target);
+    await tester.pumpAndSettle();
+  }
+
+  Widget glassPage({
+    int initialMl = 250,
+    VolumeUnit unit = VolumeUnit.ml,
+    required Future<void> Function(HydrationPreferences) save,
+  }) =>
+      DailyWellnessSettingsPage(
+        initialTargets: const WellnessTargetsData(waterMl: 2800),
+        hydrationPreferences:
+            HydrationPreferences(defaultGlassSizeMl: initialMl),
+        volumeUnit: unit,
+        onSaveHydration: save,
+        onSave: (_) async {},
+      );
+
+  group('Glass Size', () {
+    testWidgets(
+        'approved grouping, whole row, exact presets and explicit-save draft',
+        (tester) async {
+      final writes = <HydrationPreferences>[];
+      await tester
+          .pumpWidget(buildApp(glassPage(save: (p) async => writes.add(p))));
+      for (final label in [
+        'MOVEMENT',
+        'HYDRATION',
+        'SLEEP',
+        'Step Goal',
+        'Water Goal',
+        'Glass Size'
+      ]) {
+        expect(find.text(label), findsOneWidget);
+      }
+      expect(find.text('250 ml'), findsOneWidget);
+      await openGlass(tester);
+      expect(find.text('Default Glass Size'), findsOneWidget);
+      expect(find.text('Amount logged when you add one glass of water.'),
+          findsOneWidget);
+      expect(find.byType(ChoiceChip), findsNWidgets(6));
+      for (final ml in [200, 250, 300, 350, 500]) {
+        expect(find.byKey(ValueKey('glass-size-preset-$ml')), findsOneWidget);
+      }
+      expect(
+          tester
+              .widget<TioButton>(find.byKey(const ValueKey('glass-size-save')))
+              .onPressed,
+          isNull);
+      await tapGlass(tester, 'glass-size-preset-300');
+      expect(writes, isEmpty);
+      await tapGlass(tester, 'glass-size-save');
+      expect(writes, [const HydrationPreferences(defaultGlassSizeMl: 300)]);
+      expect(find.text('Default Glass Size'), findsNothing);
+      expect(find.text('300 ml'), findsOneWidget);
+      expect(find.text('2.8 L'), findsOneWidget);
+      expect(
+          tester
+              .widget<TioButton>(
+                  find.byKey(const ValueKey('daily-wellness-save')))
+              .onPressed,
+          isNull);
+    });
+
+    testWidgets('default is 250 ml, selected and has no implicit write',
+        (tester) async {
+      final writes = <HydrationPreferences>[];
+      await tester
+          .pumpWidget(buildApp(glassPage(save: (p) async => writes.add(p))));
+      final row = find.byKey(const ValueKey('daily-wellness-glass-size-field'));
+      expect(find.descendant(of: row, matching: find.text('250 ml')),
+          findsOneWidget);
+      await openGlass(tester);
+      expect(
+          tester
+              .widgetList<ChoiceChip>(find.byType(ChoiceChip))
+              .singleWhere(
+                  (chip) => chip.key == const ValueKey('glass-size-preset-250'))
+              .selected,
+          isTrue);
+      await tapGlass(tester, 'glass-size-cancel');
+      expect(writes, isEmpty);
+    });
+
+    for (final ml in [50, 260, 750, 2000]) {
+      testWidgets('custom $ml saves exactly, without rounding', (tester) async {
+        final writes = <HydrationPreferences>[];
+        await tester
+            .pumpWidget(buildApp(glassPage(save: (p) async => writes.add(p))));
+        await openGlass(tester);
+        await tapGlass(tester, 'glass-size-custom');
+        await tester.enterText(find.byType(TextField), '$ml');
+        await tester.pumpAndSettle();
+        await tapGlass(tester, 'glass-size-save');
+        expect(writes.single.defaultGlassSizeMl, ml);
+      });
+    }
+
+    testWidgets('invalid custom amounts show validation and cannot save',
+        (tester) async {
+      var writes = 0;
+      await tester.pumpWidget(buildApp(glassPage(save: (_) async {
+        writes++;
+      })));
+      await openGlass(tester);
+      await tapGlass(tester, 'glass-size-custom');
+      for (final text in [
+        '',
+        '40',
+        '49',
+        '55',
+        '255',
+        '2001',
+        '2010',
+        '250.5'
+      ]) {
+        await tester.enterText(find.byType(TextField), text);
+        await tester.pumpAndSettle();
+        expect(find.text('Enter 50–2000 ml in increments of 10 ml.'),
+            findsOneWidget);
+        expect(
+            tester
+                .widget<TioButton>(
+                    find.byKey(const ValueKey('glass-size-save')))
+                .onPressed,
+            isNull);
+      }
+      expect(writes, 0);
+    });
+
+    testWidgets('Reset to Default drafts 250 ml and persists it after Save',
+        (tester) async {
+      final writes = <HydrationPreferences>[];
+      await tester.pumpWidget(buildApp(
+          glassPage(initialMl: 300, save: (p) async => writes.add(p))));
+      await openGlass(tester);
+      await tapGlass(tester, 'glass-size-reset-default');
+      expect(writes, isEmpty);
+      await tapGlass(tester, 'glass-size-save');
+      expect(writes, [const HydrationPreferences()]);
+      await openGlass(tester);
+      expect(
+          tester
+              .widget<Text>(
+                  find.byKey(const ValueKey('glass-size-draft-summary')))
+              .data,
+          '250 ml');
+      expect(
+          tester
+              .widget<TioButton>(find.byKey(const ValueKey('glass-size-save')))
+              .onPressed,
+          isNull);
+    });
+
+    for (final dismiss in ['cancel', 'barrier', 'back']) {
+      testWidgets(
+          '$dismiss discards selection without changing page or writing',
+          (tester) async {
+        final writes = <HydrationPreferences>[];
+        await tester
+            .pumpWidget(buildApp(glassPage(save: (p) async => writes.add(p))));
+        await openGlass(tester);
+        await tapGlass(tester, 'glass-size-preset-300');
+        if (dismiss == 'cancel') {
+          await tapGlass(tester, 'glass-size-cancel');
+        } else if (dismiss == 'barrier') {
+          await tester.tapAt(const Offset(5, 5));
+        } else {
+          await tester.binding.handlePopRoute();
+        }
+        await tester.pumpAndSettle();
+        expect(find.text('Default Glass Size'), findsNothing);
+        expect(find.text('250 ml'), findsOneWidget);
+        expect(writes, isEmpty);
+        expect(
+            tester
+                .widget<TioButton>(
+                    find.byKey(const ValueKey('daily-wellness-save')))
+                .onPressed,
+            isNull);
+      });
+    }
+
+    testWidgets('idle handle drag discards the Glass draft without writing',
+        (tester) async {
+      final writes = <HydrationPreferences>[];
+      await tester
+          .pumpWidget(buildApp(glassPage(save: (p) async => writes.add(p))));
+      await openGlass(tester);
+      await tapGlass(tester, 'glass-size-preset-300');
+
+      await tester.drag(
+        find.byKey(const ValueKey('daily-wellness-editor-sheet-handle')),
+        const Offset(0, 600),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Default Glass Size'), findsNothing);
+      expect(find.text('250 ml'), findsOneWidget);
+      expect(writes, isEmpty);
+    });
+
+    testWidgets(
+        'failure keeps sheet/draft retryable and does not mutate summary',
+        (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(buildApp(glassPage(save: (_) async {
+        if (++calls == 1) throw StateError('failed');
+      })));
+      await openGlass(tester);
+      await tapGlass(tester, 'glass-size-preset-300');
+      await tapGlass(tester, 'glass-size-save');
+      expect(find.text('Could not save Glass Size. Please try again.'),
+          findsOneWidget);
+      expect(find.text('Default Glass Size'), findsOneWidget);
+      await tapGlass(tester, 'glass-size-save');
+      expect(calls, 2);
+      expect(find.text('300 ml'), findsOneWidget);
+    });
+
+    testWidgets(
+        'save awaits persistence, guards double submit and cannot dismiss in flight',
+        (tester) async {
+      final gate = Completer<void>();
+      var calls = 0;
+      await tester.pumpWidget(buildApp(glassPage(save: (_) {
+        calls++;
+        return gate.future;
+      })));
+      await openGlass(tester);
+      await tapGlass(tester, 'glass-size-preset-300');
+      final save = find.byKey(const ValueKey('glass-size-save'));
+      await tester.tap(save);
+      await tester.tap(save);
+      await tester.pump();
+      expect(calls, 1);
+      expect(find.text('Default Glass Size'), findsOneWidget);
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pump();
+      expect(find.text('Default Glass Size'), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      expect(find.text('Default Glass Size'), findsOneWidget);
+      await tester.drag(
+        find.byKey(const ValueKey('daily-wellness-editor-sheet-handle')),
+        const Offset(0, 600),
+      );
+      await tester.pump();
+      expect(find.text('Default Glass Size'), findsOneWidget);
+      gate.complete();
+      await tester.pumpAndSettle();
+      expect(find.text('Default Glass Size'), findsNothing);
+      expect(find.text('300 ml'), findsOneWidget);
+    });
+
+    testWidgets(
+        'open editor follows pristine refresh, preserves draft, then converges',
+        (tester) async {
+      final source = ValueNotifier<HydrationPreferences>(
+          const HydrationPreferences(defaultGlassSizeMl: 250));
+      addTearDown(source.dispose);
+      await tester.pumpWidget(buildApp(ValueListenableBuilder(
+        valueListenable: source,
+        builder: (context, preferences, child) => DailyWellnessSettingsPage(
+          hydrationPreferences: preferences,
+          onSaveHydration: (_) async {},
+          onSave: (_) async {},
+        ),
+      )));
+      await openGlass(tester);
+      source.value = const HydrationPreferences(defaultGlassSizeMl: 300);
+      await tester.pumpAndSettle();
+      expect(
+          tester
+              .widget<ChoiceChip>(
+                  find.byKey(const ValueKey('glass-size-preset-300')))
+              .selected,
+          isTrue);
+      await tapGlass(tester, 'glass-size-preset-350');
+      source.value = const HydrationPreferences(defaultGlassSizeMl: 500);
+      await tester.pumpAndSettle();
+      expect(
+          tester
+              .widget<ChoiceChip>(
+                  find.byKey(const ValueKey('glass-size-preset-350')))
+              .selected,
+          isTrue);
+      source.value = const HydrationPreferences(defaultGlassSizeMl: 350);
+      await tester.pumpAndSettle();
+      expect(
+          tester
+              .widget<TioButton>(find.byKey(const ValueKey('glass-size-save')))
+              .onPressed,
+          isNull);
+      source.value = const HydrationPreferences(defaultGlassSizeMl: 200);
+      await tester.pumpAndSettle();
+      expect(
+          tester
+              .widget<ChoiceChip>(
+                  find.byKey(const ValueKey('glass-size-preset-200')))
+              .selected,
+          isTrue);
+    });
+
+    testWidgets(
+        'Volume Unit changes only labels; imperial preset saves its exact ml identity',
+        (tester) async {
+      final unit = ValueNotifier(VolumeUnit.ml);
+      final writes = <HydrationPreferences>[];
+      addTearDown(unit.dispose);
+      await tester.pumpWidget(buildApp(ValueListenableBuilder(
+        valueListenable: unit,
+        builder: (context, value, child) =>
+            glassPage(unit: value, save: (p) async => writes.add(p)),
+      )));
+      expect(find.text('250 ml'), findsOneWidget);
+      await openGlass(tester);
+      unit.value = VolumeUnit.flOz;
+      await tester.pumpAndSettle();
+      expect(find.text('~8.5 fl oz'), findsWidgets);
+      expect(
+          tester
+              .widget<ChoiceChip>(
+                  find.byKey(const ValueKey('glass-size-preset-250')))
+              .selected,
+          isTrue);
+      expect(
+          tester
+              .widget<TioButton>(find.byKey(const ValueKey('glass-size-save')))
+              .onPressed,
+          isNull);
+      expect(writes, isEmpty);
+      await tapGlass(tester, 'glass-size-preset-350');
+      await tapGlass(tester, 'glass-size-save');
+      expect(writes.single.defaultGlassSizeMl, 350);
+      unit.value = VolumeUnit.ml;
+      await tester.pumpAndSettle();
+      expect(find.text('350 ml'), findsOneWidget);
+      expect(writes.length, 1);
+    });
+
+    testWidgets(
+        'imperial Custom explicitly accepts ml and saves without conversion drift',
+        (tester) async {
+      final writes = <HydrationPreferences>[];
+      await tester.pumpWidget(buildApp(
+          glassPage(unit: VolumeUnit.flOz, save: (p) async => writes.add(p))));
+      await openGlass(tester);
+      await tapGlass(tester, 'glass-size-custom');
+      expect(find.text('Custom amount (ml)'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), '260');
+      await tester.pumpAndSettle();
+      expect(find.text('~8.8 fl oz'), findsOneWidget);
+      await tapGlass(tester, 'glass-size-save');
+      expect(writes.single.defaultGlassSizeMl, 260);
+    });
+
+    for (final mode in [TioThemeMode.light, TioThemeMode.dark]) {
+      testWidgets(
+          'compact $mode editor supports presets/custom/keyboard without overflow',
+          (tester) async {
+        tester.view.physicalSize = const Size(320, 640);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        await tester
+            .pumpWidget(buildApp(glassPage(save: (_) async {}), mode: mode));
+        await openGlass(tester);
+        await tapGlass(tester, 'glass-size-custom');
+        await tester.enterText(find.byType(TextField), '750');
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        await tapGlass(tester, 'glass-size-save');
+        expect(tester.takeException(), isNull);
+      });
+    }
+  });
+
+  testWidgets('Step, Water and Glass share the local editor-sheet surface',
+      (tester) async {
+    await tester.pumpWidget(
+      buildApp(
+        DailyWellnessSettingsPage(
+          initialTargets: const WellnessTargetsData(
+            dailySteps: 10000,
+            waterMl: 2500,
+          ),
+          hydrationPreferences: const HydrationPreferences(),
+          onSaveHydration: (_) async {},
+          onSave: (_) async {},
+        ),
+      ),
+    );
+
+    for (final entry in [
+      (
+        const ValueKey('daily-wellness-steps-field'),
+        'Daily Step Goal',
+      ),
+      (
+        const ValueKey('daily-wellness-water-field'),
+        'Daily Water Goal',
+      ),
+      (
+        const ValueKey('daily-wellness-glass-size-field'),
+        'Default Glass Size',
+      ),
+    ]) {
+      await tester.tap(find.byKey(entry.$1));
+      await tester.pumpAndSettle();
+
+      expect(find.text(entry.$2), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('daily-wellness-editor-sheet-handle')),
+        findsOneWidget,
+      );
+      final surface = tester.widget<Material>(
+        find.byKey(const ValueKey('daily-wellness-editor-sheet')),
+      );
+      final surfaceContext = tester.element(
+        find.byKey(const ValueKey('daily-wellness-editor-sheet')),
+      );
+      expect(surface.color, surfaceContext.tioColors.surfaceRaised);
+      expect(find.byType(TioSheet), findsNothing);
+
+      final modal = tester.widget<BottomSheet>(find.byType(BottomSheet));
+      expect(modal.backgroundColor, TioPalette.transparent);
+      expect(modal.enableDrag, isFalse);
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text(entry.$2), findsNothing);
+    }
+  });
+
+  group('Step and Water slider haptics', () {
+    late int selectionClickCount;
+
+    setUp(() {
+      selectionClickCount = 0;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'HapticFeedback.vibrate' &&
+            call.arguments == 'HapticFeedbackType.selectionClick') {
+          selectionClickCount++;
+        }
+        return null;
+      });
+    });
+
+    tearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null);
+    });
+
+    Future<void> openEditor(WidgetTester tester, Key field) async {
+      await tester.pumpWidget(
+        buildApp(
+          DailyWellnessSettingsPage(
+            initialTargets: const WellnessTargetsData(
+              dailySteps: 10000,
+              waterMl: 2500,
+            ),
+            onSave: (_) async {},
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(field));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('Step Goal emits once for each changed snapped value',
+        (tester) async {
+      await openEditor(
+        tester,
+        const ValueKey('daily-wellness-steps-field'),
+      );
+      final slider = tester.widget<Slider>(
+        find.byKey(const ValueKey('daily-wellness-steps-slider')),
+      );
+
+      slider.onChanged!(10000);
+      await tester.pump();
+      expect(selectionClickCount, 0);
+
+      slider.onChanged!(10500);
+      await tester.pump();
+      expect(selectionClickCount, 1);
+
+      slider.onChanged!(10500);
+      await tester.pump();
+      expect(selectionClickCount, 1);
+    });
+
+    testWidgets('Water Goal emits once for each changed snapped value',
+        (tester) async {
+      await openEditor(
+        tester,
+        const ValueKey('daily-wellness-water-field'),
+      );
+      final slider = tester.widget<Slider>(
+        find.byKey(const ValueKey('daily-wellness-water-slider')),
+      );
+
+      slider.onChanged!(2500);
+      await tester.pump();
+      expect(selectionClickCount, 0);
+
+      slider.onChanged!(2600);
+      await tester.pump();
+      expect(selectionClickCount, 1);
+
+      slider.onChanged!(2600);
+      await tester.pump();
+      expect(selectionClickCount, 1);
+    });
+  });
+
   testWidgets('DailyWellnessSettingsPage renders populated targets cleanly',
       (tester) async {
     const initial = WellnessTargetsData(
@@ -43,12 +576,64 @@ void main() {
     );
 
     expect(find.text('Daily Wellness'), findsOneWidget);
-    expect(find.text('TARGETS'), findsOneWidget);
+    expect(find.text('MOVEMENT'), findsOneWidget);
+    expect(find.text('HYDRATION'), findsOneWidget);
+    expect(find.text('TARGETS'), findsNothing);
     expect(find.text('SLEEP'), findsOneWidget);
     expect(find.text('DAILY SCHEDULE'), findsNothing);
 
-    expect(find.text('10000 steps/day'), findsOneWidget);
-    expect(find.text('2500 ml/day (2.5 L)'), findsOneWidget);
+    expect(find.text('10,000 steps'), findsOneWidget);
+    expect(find.text('2.5 L'), findsOneWidget);
+
+    final movementCard =
+        find.byKey(const ValueKey('daily-wellness-movement-card'));
+    final hydrationCard =
+        find.byKey(const ValueKey('daily-wellness-hydration-card'));
+    final sleepCard = find.byKey(const ValueKey('daily-wellness-sleep-card'));
+    expect(movementCard, findsOneWidget);
+    expect(hydrationCard, findsOneWidget);
+    expect(sleepCard, findsOneWidget);
+    expect(
+      find.descendant(of: movementCard, matching: find.text('Step Goal')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: movementCard, matching: find.text('Water Goal')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: hydrationCard, matching: find.text('Water Goal')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: hydrationCard, matching: find.text('Glass Size')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: hydrationCard,
+        matching: find.byKey(
+          const ValueKey('daily-wellness-hydration-divider'),
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: sleepCard, matching: find.text('Sleep Schedule')),
+      findsOneWidget,
+    );
+    for (final absent in [
+      'Current Targets',
+      'Calories',
+      'Protein',
+      'Carbs',
+      'Fat',
+      'Fiber',
+      'Target Weight',
+      'Optimize Targets',
+    ]) {
+      expect(find.text(absent), findsNothing, reason: absent);
+    }
 
     // Sleep duration (22:00 -> 6:30, wraps midnight) = 510 min = 8h 30m.
     expect(find.text('8h 30m'), findsOneWidget);
@@ -84,15 +669,261 @@ void main() {
     final button = tester.widget<TioButton>(saveButtonFinder);
     expect(button.onPressed, isNull);
 
-    // Verify Glass Size is strictly absent
+    expect(find.text('Glass Size'), findsOneWidget);
+    // A caller without a hydration save capability must remain truthful.
+    expect(find.text('Unavailable'), findsOneWidget);
     for (final absent in [
-      'Glass Size',
       'Default Glass Size',
       'glass_size',
       'Glass size',
     ]) {
       expect(find.text(absent), findsNothing, reason: absent);
     }
+  });
+
+  testWidgets(
+      'Daily Wellness aligns Step, Water and Glass summaries on their row',
+      (tester) async {
+    await tester.pumpWidget(
+      buildApp(
+        DailyWellnessSettingsPage(
+          initialTargets: const WellnessTargetsData(
+            dailySteps: 10000,
+            waterMl: 2800,
+            bedTimeMinutes: 23 * 60,
+            wakeTimeMinutes: 7 * 60,
+          ),
+          hydrationPreferences: const HydrationPreferences(),
+          onSaveHydration: (_) async {},
+          onSave: (_) async {},
+        ),
+      ),
+    );
+
+    for (final row in [
+      (
+        const ValueKey('daily-wellness-steps-field'),
+        'Step Goal',
+        '10,000 steps',
+      ),
+      (
+        const ValueKey('daily-wellness-water-field'),
+        'Water Goal',
+        '2.8 L',
+      ),
+      (
+        const ValueKey('daily-wellness-glass-size-field'),
+        'Glass Size',
+        '250 ml',
+      ),
+    ]) {
+      final rowFinder = find.byKey(row.$1);
+      final labelFinder =
+          find.descendant(of: rowFinder, matching: find.text(row.$2));
+      final valueFinder =
+          find.descendant(of: rowFinder, matching: find.text(row.$3));
+      final labelCenter = tester.getCenter(labelFinder);
+      final valueCenter = tester.getCenter(valueFinder);
+
+      expect(
+        (labelCenter.dy - valueCenter.dy).abs(),
+        lessThan(2.0),
+        reason: '${row.$2} value must not render below its label',
+      );
+      expect(
+        valueCenter.dx,
+        greaterThan(labelCenter.dx),
+        reason: '${row.$2} value must align on the right',
+      );
+    }
+  });
+
+  testWidgets(
+      'Daily Wellness aligns the trailing edit affordance at the same '
+      'x-position across Step, Water, Glass Size and Sleep Schedule rows',
+      (tester) async {
+    await tester.pumpWidget(
+      buildApp(
+        DailyWellnessSettingsPage(
+          initialTargets: const WellnessTargetsData(
+            dailySteps: 10000,
+            waterMl: 2800,
+            bedTimeMinutes: 23 * 60,
+            wakeTimeMinutes: 7 * 60,
+          ),
+          hydrationPreferences: const HydrationPreferences(),
+          onSaveHydration: (_) async {},
+          onSave: (_) async {},
+        ),
+      ),
+    );
+
+    final centers = <String, double>{};
+    for (final key in [
+      'daily-wellness-steps-field',
+      'daily-wellness-water-field',
+      'daily-wellness-glass-size-field',
+      'daily-wellness-sleep-schedule-field',
+    ]) {
+      final rowFinder = find.byKey(ValueKey(key));
+      final pencilFinder = find.descendant(
+        of: rowFinder,
+        matching: find.byIcon(Icons.edit_outlined),
+      );
+      expect(pencilFinder, findsOneWidget, reason: '$key edit pencil');
+      centers[key] = tester.getCenter(pencilFinder).dx;
+    }
+
+    final reference = centers['daily-wellness-steps-field']!;
+    for (final entry in centers.entries) {
+      expect(
+        (entry.value - reference).abs(),
+        lessThanOrEqualTo(2.0),
+        reason: '${entry.key} edit pencil must align on the same x-position '
+            'as the other Daily Wellness rows regardless of value text '
+            'length (found ${entry.value}, expected ~$reference)',
+      );
+    }
+  });
+
+  testWidgets(
+      'Sleep Schedule time range indents under the "Sleep Schedule" label, '
+      'not under the leading bedtime icon', (tester) async {
+    await tester.pumpWidget(
+      buildApp(
+        DailyWellnessSettingsPage(
+          initialTargets: const WellnessTargetsData(
+            dailySteps: 10000,
+            waterMl: 2800,
+            bedTimeMinutes: 23 * 60,
+            wakeTimeMinutes: 7 * 60,
+          ),
+          hydrationPreferences: const HydrationPreferences(),
+          onSaveHydration: (_) async {},
+          onSave: (_) async {},
+        ),
+      ),
+    );
+
+    final labelLeft = tester.getTopLeft(find.text('Sleep Schedule')).dx;
+    final iconLeft =
+        tester.getTopLeft(find.byIcon(Icons.bedtime_outlined)).dx;
+    final rangeText = find.text(
+      timeRange(
+        tester,
+        const TimeOfDay(hour: 23, minute: 0),
+        const TimeOfDay(hour: 7, minute: 0),
+      ),
+    );
+    final rangeLeft = tester.getTopLeft(rangeText).dx;
+
+    expect(
+      (rangeLeft - labelLeft).abs(),
+      lessThanOrEqualTo(2.0),
+      reason: 'time range must start under the "Sleep Schedule" label '
+          '(label at $labelLeft, range at $rangeLeft)',
+    );
+    expect(
+      rangeLeft,
+      greaterThan(iconLeft + 2.0),
+      reason: 'time range must not sit flush under the leading icon '
+          '(icon at $iconLeft, range at $rangeLeft)',
+    );
+  });
+
+  testWidgets(
+      'Daily Wellness recovers the tnyx-hub target-row presentation: plain icons, strong values, edit affordance instead of chevron',
+      (tester) async {
+    await tester.pumpWidget(
+      buildApp(
+        DailyWellnessSettingsPage(
+          initialTargets: const WellnessTargetsData(
+            dailySteps: 10000,
+            waterMl: 2800,
+            bedTimeMinutes: 23 * 60,
+            wakeTimeMinutes: 7 * 60,
+          ),
+          hydrationPreferences: const HydrationPreferences(),
+          onSaveHydration: (_) async {},
+          onSave: (_) async {},
+        ),
+      ),
+    );
+
+    // Navigation chevrons are gone entirely -- every row uses an edit
+    // affordance instead. Step Goal, Water Goal, Glass Size, and the Sleep
+    // Schedule header row each contribute exactly one.
+    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+    expect(find.byIcon(Icons.edit_outlined), findsNWidgets(4));
+
+    // Steps recovers the exact tnyx-hub footprints asset (an SvgPicture,
+    // not a stock Material glyph) rather than the old walking-person icon.
+    expect(find.byIcon(Icons.directions_walk_rounded), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('daily-wellness-steps-field')),
+        matching: find.byType(SvgPicture),
+      ),
+      findsOneWidget,
+    );
+
+    // Water/Glass/Sleep leading icons remain plain glyphs -- no tinted
+    // 40x40 rounded-square background container around any of them.
+    for (final key in [
+      'daily-wellness-water-field',
+      'daily-wellness-glass-size-field',
+    ]) {
+      final rowFinder = find.byKey(ValueKey(key));
+      final iconFinder =
+          find.descendant(of: rowFinder, matching: find.byType(Icon));
+      // The leading content icon plus the trailing edit-pencil icon.
+      expect(iconFinder, findsNWidgets(2), reason: '$key icons');
+      final containerDecoration = tester
+          .widgetList<Container>(
+            find.descendant(of: rowFinder, matching: find.byType(Container)),
+          )
+          .map((c) => c.decoration)
+          .whereType<BoxDecoration>()
+          .where((d) => d.borderRadius != null)
+          .toList();
+      expect(
+        containerDecoration,
+        isEmpty,
+        reason: '$key must not wrap its leading icon in a tinted box',
+      );
+    }
+
+    // Target values render bold/prominent, matching the reference's
+    // title-level strong value styling (not the old muted/medium weight).
+    final stepValueStyle = tester
+        .widget<Text>(find.text('10,000 steps'))
+        .style;
+    expect(stepValueStyle?.fontWeight, FontWeight.w700);
+
+    // The unit suffix renders muted/regular-weight so the number stands out,
+    // matching the tnyx-hub reference's number/unit split styling.
+    final stepValueWidget = tester.widget<Text>(find.text('10,000 steps'));
+    final stepUnitSpan = (stepValueWidget.textSpan! as TextSpan)
+        .children!
+        .single as TextSpan;
+    expect(stepUnitSpan.text, ' steps');
+    expect(stepUnitSpan.style?.fontWeight, FontWeight.w400);
+    expect(
+      stepUnitSpan.style?.color,
+      isNot(stepValueWidget.style?.color),
+      reason: 'unit suffix must render in a distinct, muted color from the '
+          'highlighted number',
+    );
+
+    // Water + Glass Size share one card with a divider between them, using
+    // the recovered row geometry's indent (icon 24 + two 16px gaps = 56).
+    final hydrationDivider = tester.widget<Divider>(
+      find.descendant(
+        of: find.byKey(const ValueKey('daily-wellness-hydration-card')),
+        matching: find.byType(Divider),
+      ),
+    );
+    expect(hydrationDivider.indent, 56.0);
   });
 
   testWidgets(
@@ -131,7 +962,7 @@ void main() {
       ),
     );
 
-    expect(find.text('85 fl oz/day'), findsOneWidget);
+    expect(find.text('85 fl oz'), findsOneWidget);
   });
 
   testWidgets(
@@ -157,8 +988,8 @@ void main() {
       ),
     );
 
-    expect(find.text('8000 steps/day'), findsOneWidget);
-    expect(find.text('2000 ml/day (2 L)'), findsOneWidget);
+    expect(find.text('8,000 steps'), findsOneWidget);
+    expect(find.text('2 L'), findsOneWidget);
     var saveButton = tester
         .widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
     expect(saveButton.onPressed, isNull);
@@ -174,8 +1005,8 @@ void main() {
       ),
     );
 
-    expect(find.text('12000 steps/day'), findsOneWidget);
-    expect(find.text('3500 ml/day (3.5 L)'), findsOneWidget);
+    expect(find.text('12,000 steps'), findsOneWidget);
+    expect(find.text('3.5 L'), findsOneWidget);
     saveButton = tester
         .widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
     expect(saveButton.onPressed, isNull);
@@ -225,7 +1056,7 @@ void main() {
     );
 
     // User draft is preserved (steps remains null/Not set, not overwritten by 12000)
-    expect(find.text('12000 steps/day'), findsNothing);
+    expect(find.text('12,000 steps'), findsNothing);
   });
 
   testWidgets(
@@ -367,15 +1198,15 @@ void main() {
     await tester.tap(find.text('Set Goal'));
     await tester.pumpAndSettle();
 
-    final editedSteps = tester
-        .widget<Text>(
-          find.descendant(
-            of: find.byKey(const ValueKey('daily-wellness-steps-field')),
-            matching: find.textContaining('steps/day'),
-          ),
-        )
-        .data!;
-    expect(editedSteps, isNot('8000 steps/day'));
+    final editedSteps = plainText(
+      tester.widget<Text>(
+        find.descendant(
+          of: find.byKey(const ValueKey('daily-wellness-steps-field')),
+          matching: find.textContaining('steps'),
+        ),
+      ),
+    );
+    expect(editedSteps, isNot('8,000 steps'));
 
     // Provider refreshes to targetsB while the step edit is still a draft.
     await tester.pumpWidget(
@@ -389,7 +1220,7 @@ void main() {
     );
 
     // Edited field keeps the user's draft, not targetsB's steps value.
-    expect(find.text('12000 steps/day'), findsNothing);
+    expect(find.text('12,000 steps'), findsNothing);
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('daily-wellness-steps-field')),
@@ -400,7 +1231,7 @@ void main() {
 
     // Untouched fields adopt the fresh canonical values from targetsB.
     // Schedule 22:30 -> 07:00 wraps to 510 min = 8h 30m either way.
-    expect(find.text('3500 ml/day (3.5 L)'), findsOneWidget);
+    expect(find.text('3.5 L'), findsOneWidget);
     expect(find.text('8h 30m'), findsOneWidget);
     expect(
       find.text(timeRange(
@@ -465,7 +1296,7 @@ void main() {
     await tester.tap(find.text('Set Goal'));
     await tester.pumpAndSettle();
 
-    expect(find.text('10000 steps/day'), findsOneWidget);
+    expect(find.text('10,000 steps'), findsOneWidget);
     var saveButton = tester
         .widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
     expect(saveButton.onPressed, isNotNull);
@@ -483,8 +1314,8 @@ void main() {
       ),
     );
 
-    expect(find.text('10000 steps/day'), findsOneWidget);
-    expect(find.text('3000 ml/day (3 L)'), findsOneWidget);
+    expect(find.text('10,000 steps'), findsOneWidget);
+    expect(find.text('3 L'), findsOneWidget);
     saveButton = tester
         .widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
     expect(saveButton.onPressed, isNull);
@@ -502,8 +1333,8 @@ void main() {
       ),
     );
 
-    expect(find.text('12000 steps/day'), findsOneWidget);
-    expect(find.text('3500 ml/day (3.5 L)'), findsOneWidget);
+    expect(find.text('12,000 steps'), findsOneWidget);
+    expect(find.text('3.5 L'), findsOneWidget);
     saveButton = tester
         .widget<TioButton>(find.byKey(const ValueKey('daily-wellness-save')));
     expect(saveButton.onPressed, isNull);
@@ -526,7 +1357,7 @@ void main() {
     );
 
     // Presentation renders in fl oz while canonical storage stays ml.
-    expect(find.text('68 fl oz/day'), findsOneWidget);
+    expect(find.text('68 fl oz'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('daily-wellness-water-field')));
     await tester.pumpAndSettle();

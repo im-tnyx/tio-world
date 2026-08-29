@@ -18,7 +18,7 @@ This document defines where code should live in `tio-world`.
 | `apps/features/workout` | Workout feature package and all workout screens/flows. |
 | `apps/features/nutrition` | Nutrition feature package and all nutrition screens/flows. |
 | `apps/features/profile` | Profile launcher, account summary, personal info UI, and fitness hub entry points. |
-| `apps/features/settings` | App preferences, account controls, units, notifications, export, about, and settings navigation. |
+| `apps/features/settings` | App preferences, account controls, units, notifications, export, about, settings navigation, and the bounded S0-B2 HydrationPreferences owner ([ADR-0008](adr/0008-settings-hydration-preferences-owner.md)). |
 | `apps/features/progress` | Weight, measurements, progress photos, streaks, trends, achievements, and analytics screens. |
 | `apps/features/coaching` | Coach UI package and backend-facing coaching contracts. |
 | future `apps/features/recovery` | Recovery, readiness, and rest context after its first approved vertical slice. |
@@ -91,11 +91,12 @@ Create missing paths only when a real implementation slice needs them.
 - Workout owns workout plans, exercises, sets, reps, rest timers, routines, history, and workout settings.
 - Workout is Routine/Program-first: an active session starts from a selected Routine or Program session, not a standalone Quick Start. Workout also owns its local exercise catalog, muscle heatmap, training radar map, and workout calendar when recorded history is available.
 - Workout owns one canonical start/resume workflow. Home, Workout, Routine Library, or a persistent shell entry may launch it, but no other module duplicates its validation or active-session state.
-- Nutrition owns meals, foods, calories, macros, water, targets, and nutrition settings.
+- Nutrition owns meals, foods, calories, macros, nutrition targets, and nutrition settings. Daily Water Goal remains the existing Wellness owner; Default Glass Size is the separate Settings-owned preference, not Nutrition data.
 - Nutrition owns one canonical meal-log workflow. Home, Nutrition, Meal Diary, or future Meal Plan may launch it with context, but no other module duplicates its save or target logic.
 - Profile provides approved personal and fitness context; Nutrition owns Nutrition Target calculations and overrides, while Workout owns Workout Settings and training defaults. Cross-feature reads use stable contracts only.
 - Wear OS may initiate nutrition quick actions through stable nutrition contracts, but it does not own the full nutrition diary or Meal Plan editing.
 - Progress owns weight, measurements, progress photos, streaks, trends, achievements, and analytics.
+- S0-B2 assigns `HydrationPreferences`, its repository contract and device-local `SharedPreferencesAsync` adapter to Settings. `apps/app` only constructs/injects the adapter and clears it at explicit account boundaries. `default_glass_size_ml` is a local convenience key, not account-synced data; no owner belongs in Progress, shared, Wellness targets, Profile, Nutrition or a speculative hydration package. Future hydration logging must consume or explicitly supersede this preference. This narrow exception does not move Water Goal, Units, Profile or other feature ownership into Settings.
 - Recovery will own readiness and rest calculations/presentation when its first vertical slice is approved. No other feature calculates Recovery locally.
 - Coaching may read workout, nutrition, progress, recovery, and profile data through clear contracts.
 - Promoting Routine Library or Meal Plan into a future custom navigation slot does not create a new feature owner or duplicate the route/screen.

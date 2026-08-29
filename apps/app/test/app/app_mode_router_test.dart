@@ -509,6 +509,8 @@ void main() {
       'Settings logout cancel preserves session; confirm signs out to auth',
       (tester) async {
     final fixture = await _pumpSettingsRoute(tester);
+    await fixture.hydration
+        .write(const HydrationPreferences(defaultGlassSizeMl: 300));
     final logout = find.byKey(const ValueKey('settings-logout-entry'));
     await tester.scrollUntilVisible(logout, 200);
     await tester.tap(logout);
@@ -518,6 +520,7 @@ void main() {
     expect(fixture.auth.signOutCalls, 0);
     expect(await fixture.auth.currentSessionState,
         isA<AuthSessionAuthenticated>());
+    expect(fixture.hydration.value.defaultGlassSizeMl, 300);
     expect(fixture.router.routeInformationProvider.value.uri.path,
         AppRoutes.settings.path);
 
@@ -528,6 +531,7 @@ void main() {
     expect(fixture.auth.signOutCalls, 1);
     expect(await fixture.auth.currentSessionState,
         isA<AuthSessionUnauthenticated>());
+    expect(fixture.hydration.value, const HydrationPreferences());
     expect(fixture.router.routeInformationProvider.value.uri.path,
         AppRoutes.auth.path);
     expect(find.byType(SettingsPage), findsNothing);
@@ -618,6 +622,7 @@ Future<
     ({
       GoRouter router,
       _SettingsUnitsRepository units,
+      _SettingsHydrationRepository hydration,
       _SettingsAuthRepository auth,
       AppThemeController theme
     })> _pumpSettingsRoute(
@@ -642,6 +647,7 @@ Future<
   );
   final auth = _SettingsAuthRepository(bootstrap.markSignedOut);
   final units = _SettingsUnitsRepository();
+  final hydration = _SettingsHydrationRepository();
   addTearDown(auth.dispose);
   final container = ProviderContainer(overrides: [
     supabaseClientProvider.overrideWithValue(null),
@@ -653,6 +659,7 @@ Future<
     appSessionBootstrapControllerProvider.overrideWith((ref) => bootstrap),
     authSessionRepositoryProvider.overrideWithValue(auth),
     measurementUnitPreferencesRepositoryProvider.overrideWithValue(units),
+    hydrationPreferencesRepositoryProvider.overrideWithValue(hydration),
     profileDataProvider.overrideWith((ref) => Stream.value(ProfileSetupData(
           name: 'Test Member',
           username: 'test_member',
@@ -673,7 +680,13 @@ Future<
     child: const TioApp(),
   ));
   await tester.pumpAndSettle();
-  return (router: router, units: units, auth: auth, theme: theme);
+  return (
+    router: router,
+    units: units,
+    hydration: hydration,
+    auth: auth,
+    theme: theme,
+  );
 }
 
 class _SettingsUnitsRepository implements MeasurementUnitPreferencesRepository {
@@ -689,6 +702,21 @@ class _SettingsUnitsRepository implements MeasurementUnitPreferencesRepository {
       throw StateError('Test save failure');
     }
     preferences = next;
+  }
+}
+
+class _SettingsHydrationRepository implements HydrationPreferencesRepository {
+  HydrationPreferences value = const HydrationPreferences();
+
+  @override
+  Future<void> clear() async => value = const HydrationPreferences();
+
+  @override
+  Future<HydrationPreferences> read() async => value;
+
+  @override
+  Future<void> write(HydrationPreferences preferences) async {
+    value = preferences;
   }
 }
 

@@ -3,6 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_progress/progress.dart';
 
+import '../../domain/hydration_preferences.dart';
+import '../widgets/daily_wellness_editor_sheet.dart';
+import '../widgets/glass_size_bottom_sheet.dart';
+
 /// Sleep duration is a pure function of Bedtime/Wake Time, never an
 /// independent target. Null when either side of the schedule is unset —
 /// never fabricated. Dart's `%` on int is Euclidean (always non-negative
@@ -37,12 +41,22 @@ class DailyWellnessSettingsPage extends StatefulWidget {
   const DailyWellnessSettingsPage({
     this.initialTargets,
     this.volumeUnit = VolumeUnit.ml,
+    this.hydrationPreferences,
+    this.onSaveHydration,
+    this.hydrationLoading = false,
+    this.hydrationLoadFailed = false,
+    this.onRetryHydration,
     required this.onSave,
     super.key,
   });
 
   final WellnessTargetsData? initialTargets;
   final VolumeUnit volumeUnit;
+  final HydrationPreferences? hydrationPreferences;
+  final Future<void> Function(HydrationPreferences)? onSaveHydration;
+  final bool hydrationLoading;
+  final bool hydrationLoadFailed;
+  final VoidCallback? onRetryHydration;
   final Future<void> Function(WellnessTargetsData targets) onSave;
 
   @override
@@ -51,6 +65,10 @@ class DailyWellnessSettingsPage extends StatefulWidget {
 }
 
 class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
+  late final ValueNotifier<HydrationPreferences> _glassCanonical;
+  late final ValueNotifier<VolumeUnit> _glassVolumeUnit;
+  late HydrationPreferences _glassPreferences;
+
   int? _dailySteps;
   int? _waterMl;
   int? _sleepTargetMinutes;
@@ -82,6 +100,10 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
   @override
   void initState() {
     super.initState();
+    _glassPreferences =
+        widget.hydrationPreferences ?? const HydrationPreferences();
+    _glassCanonical = ValueNotifier(_glassPreferences);
+    _glassVolumeUnit = ValueNotifier(widget.volumeUnit);
     _dailySteps = widget.initialTargets?.dailySteps;
     _waterMl = widget.initialTargets?.waterMl;
     _bedTimeMinutes = widget.initialTargets?.bedTimeMinutes;
@@ -93,6 +115,20 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
   @override
   void didUpdateWidget(covariant DailyWellnessSettingsPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!widget.hydrationLoading &&
+        !widget.hydrationLoadFailed &&
+        (oldWidget.hydrationPreferences != widget.hydrationPreferences ||
+            oldWidget.hydrationLoading ||
+            oldWidget.hydrationLoadFailed)) {
+      _glassPreferences =
+          widget.hydrationPreferences ?? const HydrationPreferences();
+    }
+    // A modal is a separate route: notify it after this page finishes building.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _glassCanonical.value = _glassPreferences;
+      _glassVolumeUnit.value = widget.volumeUnit;
+    });
     if (oldWidget.initialTargets == widget.initialTargets) return;
 
     final newInit = widget.initialTargets;
@@ -127,122 +163,126 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
 
   String _formatSteps() {
     if (_dailySteps == null) return 'Not set';
-    return '$_dailySteps steps/day';
+    final grouped = _dailySteps!.toString().replaceAllMapped(
+          RegExp(r'\B(?=(\d{3})+(?!\d))'),
+          (_) => ',',
+        );
+    return '$grouped steps';
+  }
+
+  @override
+  void dispose() {
+    _glassCanonical.dispose();
+    _glassVolumeUnit.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickGlassSize() async {
+    final save = widget.onSaveHydration;
+    if (save == null || widget.hydrationLoading || widget.hydrationLoadFailed) {
+      return;
+    }
+    final saved = await showDailyWellnessEditorSheet<HydrationPreferences>(
+      context: context,
+      builder: (context) => GlassSizeBottomSheet(
+        canonical: _glassCanonical,
+        volumeUnit: _glassVolumeUnit,
+        onSave: save,
+      ),
+    );
+    if (mounted && saved != null) {
+      setState(() => _glassPreferences = saved);
+      _glassCanonical.value = saved;
+    }
+  }
+
+  String _glassSummary() {
+    if (widget.hydrationLoading) return 'Loading…';
+    if (widget.hydrationLoadFailed) return 'Could not load Glass Size';
+    if (widget.onSaveHydration == null) return 'Unavailable';
+    return formatGlassSize(
+        _glassPreferences.defaultGlassSizeMl, widget.volumeUnit);
   }
 
   String _formatWater() {
     if (_waterMl == null) return 'Not set';
     if (widget.volumeUnit == VolumeUnit.flOz) {
       final oz = UnitConverters.mlToFlOz(_waterMl!.toDouble()).round();
-      return '$oz fl oz/day';
+      return '$oz fl oz';
     }
     final formatted = UnitFormatters.formatVolume(
       _waterMl!.toDouble(),
       VolumeUnit.ml,
       decimals: 1,
     );
-    return '$_waterMl ml/day ($formatted)';
+    return formatted;
   }
 
   Future<void> _pickSteps() async {
     final current = _dailySteps ?? 10000;
-    var tempValue = current.clamp(2000, 18000);
+    var tempValue = current.clamp(2000, 18000).toInt();
     final colors = context.tioColors;
 
-    final result = await showModalBottomSheet<int?>(
+    final result = await showDailyWellnessEditorSheet<int?>(
       context: context,
-      backgroundColor: colors.surfaceRaised,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(TioRadius.lg),
-        ),
-      ),
       builder: (modalContext) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(TioSpacing.lg),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: TioSize.dp36,
-                        height: TioSize.dp4,
-                        decoration: BoxDecoration(
-                          color:
-                              colors.outlineStrong.withAlpha(TioAlpha.alpha50),
-                          borderRadius: BorderRadius.circular(TioSize.dp2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: TioSpacing.md),
-                    Text(
-                      'Daily Step Goal',
+            void updateDraft(double value) {
+              final snapped = (value / 500).round() * 500;
+              if (snapped == tempValue) return;
+              HapticFeedback.selectionClick();
+              setModalState(() => tempValue = snapped);
+            }
+
+            return DailyWellnessEditorSheet(
+              title: 'Daily Step Goal',
+              supportingText: 'Recommended: 10,000 steps/day',
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Text(
+                      '$tempValue steps',
                       style: TextStyle(
-                        color: colors.textPrimary,
-                        fontWeight: TioFontWeight.w700,
-                        fontSize: TioFontSize.size18,
+                        color: colors.primary,
+                        fontWeight: TioFontWeight.w800,
+                        fontSize: TioFontSize.size24,
                       ),
                     ),
-                    const SizedBox(height: TioSpacing.sm),
-                    Text(
-                      'Recommended: 10,000 steps/day',
-                      style: TextStyle(
-                        color: colors.textSecondary,
-                        fontSize: TioFontSize.size13,
-                      ),
-                    ),
-                    const SizedBox(height: TioSpacing.lg),
-                    Center(
+                  ),
+                  Slider(
+                    key: const ValueKey('daily-wellness-steps-slider'),
+                    value: tempValue.toDouble(),
+                    min: 2000,
+                    max: 18000,
+                    divisions: 32,
+                    activeColor: colors.primary,
+                    onChanged: updateDraft,
+                  ),
+                ],
+              ),
+              actions: Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.of(modalContext).pop(-1),
                       child: Text(
-                        '$tempValue steps',
-                        style: TextStyle(
-                          color: colors.primary,
-                          fontWeight: TioFontWeight.w800,
-                          fontSize: TioFontSize.size24,
-                        ),
+                        'Clear Goal',
+                        style: TextStyle(color: colors.danger),
                       ),
                     ),
-                    Slider(
-                      value: tempValue.toDouble(),
-                      min: 2000,
-                      max: 18000,
-                      divisions: 32,
-                      activeColor: colors.primary,
-                      onChanged: (val) {
-                        setModalState(() {
-                          tempValue = (val / 500).round() * 500;
-                        });
-                      },
+                  ),
+                  const SizedBox(width: TioSpacing.md),
+                  Expanded(
+                    child: TioButton.primary(
+                      label: 'Set Goal',
+                      onPressed: () =>
+                          Navigator.of(modalContext).pop(tempValue),
                     ),
-                    const SizedBox(height: TioSpacing.md),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextButton(
-                            onPressed: () =>
-                                Navigator.of(modalContext).pop(-1),
-                            child: Text(
-                              'Clear Goal',
-                              style: TextStyle(color: colors.danger),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: TioSpacing.md),
-                        Expanded(
-                          child: TioButton.primary(
-                            label: 'Set Goal',
-                            onPressed: () =>
-                                Navigator.of(modalContext).pop(tempValue),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             );
           },
@@ -261,17 +301,11 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
 
   Future<void> _pickWater() async {
     final current = _waterMl ?? 2500;
-    var tempValue = current.clamp(1000, 8000);
+    var tempValue = current.clamp(1000, 8000).toInt();
     final colors = context.tioColors;
 
-    final result = await showModalBottomSheet<int?>(
+    final result = await showDailyWellnessEditorSheet<int?>(
       context: context,
-      backgroundColor: colors.surfaceRaised,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(TioRadius.lg),
-        ),
-      ),
       builder: (modalContext) {
         return StatefulBuilder(
           builder: (context, setModalState) {
@@ -280,89 +314,61 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
                 ? '${UnitConverters.mlToFlOz(tempValue.toDouble()).round()} fl oz'
                 : '$tempValue ml (${UnitFormatters.formatVolume(tempValue.toDouble(), VolumeUnit.ml, decimals: 1)})';
 
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(TioSpacing.lg),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: TioSize.dp36,
-                        height: TioSize.dp4,
-                        decoration: BoxDecoration(
-                          color:
-                              colors.outlineStrong.withAlpha(TioAlpha.alpha50),
-                          borderRadius: BorderRadius.circular(TioSize.dp2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: TioSpacing.md),
-                    Text(
-                      'Daily Water Goal',
+            void updateDraft(double value) {
+              final snapped = (value / 100).round() * 100;
+              if (snapped == tempValue) return;
+              HapticFeedback.selectionClick();
+              setModalState(() => tempValue = snapped);
+            }
+
+            return DailyWellnessEditorSheet(
+              title: 'Daily Water Goal',
+              supportingText: 'Recommended: 2,000 - 4,000 ml/day',
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Text(
+                      displayQty,
                       style: TextStyle(
-                        color: colors.textPrimary,
-                        fontWeight: TioFontWeight.w700,
-                        fontSize: TioFontSize.size18,
+                        color: colors.primary,
+                        fontWeight: TioFontWeight.w800,
+                        fontSize: TioFontSize.size24,
                       ),
                     ),
-                    const SizedBox(height: TioSpacing.sm),
-                    Text(
-                      'Recommended: 2,000 - 4,000 ml/day',
-                      style: TextStyle(
-                        color: colors.textSecondary,
-                        fontSize: TioFontSize.size13,
-                      ),
-                    ),
-                    const SizedBox(height: TioSpacing.lg),
-                    Center(
+                  ),
+                  Slider(
+                    key: const ValueKey('daily-wellness-water-slider'),
+                    value: tempValue.toDouble(),
+                    min: 1000,
+                    max: 8000,
+                    divisions: 70,
+                    activeColor: colors.primary,
+                    onChanged: updateDraft,
+                  ),
+                ],
+              ),
+              actions: Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.of(modalContext).pop(-1),
                       child: Text(
-                        displayQty,
-                        style: TextStyle(
-                          color: colors.primary,
-                          fontWeight: TioFontWeight.w800,
-                          fontSize: TioFontSize.size24,
-                        ),
+                        'Clear Goal',
+                        style: TextStyle(color: colors.danger),
                       ),
                     ),
-                    Slider(
-                      value: tempValue.toDouble(),
-                      min: 1000,
-                      max: 8000,
-                      divisions: 70,
-                      activeColor: colors.primary,
-                      onChanged: (val) {
-                        setModalState(() {
-                          tempValue = (val / 100).round() * 100;
-                        });
-                      },
+                  ),
+                  const SizedBox(width: TioSpacing.md),
+                  Expanded(
+                    child: TioButton.primary(
+                      label: 'Set Goal',
+                      onPressed: () =>
+                          Navigator.of(modalContext).pop(tempValue),
                     ),
-                    const SizedBox(height: TioSpacing.md),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextButton(
-                            onPressed: () =>
-                                Navigator.of(modalContext).pop(-1),
-                            child: Text(
-                              'Clear Goal',
-                              style: TextStyle(color: colors.danger),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: TioSpacing.md),
-                        Expanded(
-                          child: TioButton.primary(
-                            label: 'Set Goal',
-                            onPressed: () =>
-                                Navigator.of(modalContext).pop(tempValue),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             );
           },
@@ -486,19 +492,35 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
                   ),
                   const SizedBox(height: TioSpacing.xl),
 
-                  // ── TARGETS GROUP ──
-                  const _DailyWellnessSectionHeader(title: 'TARGETS'),
+                  // ── MOVEMENT GROUP ──
+                  const _DailyWellnessSectionHeader(title: 'MOVEMENT'),
                   _DailyWellnessGroupCard(
+                    key: const ValueKey('daily-wellness-movement-card'),
                     children: [
                       _DailyWellnessRow(
                         key: const ValueKey('daily-wellness-steps-field'),
-                        icon: Icons.directions_walk_rounded,
+                        iconWidget: SvgPicture.asset(
+                          'assets/svg_icon/ic_step.svg',
+                          package: 'tio_core',
+                          height: TioSize.dp24,
+                          width: TioSize.dp24,
+                          colorFilter: ColorFilter.mode(
+                            context.tioColors.textPrimary,
+                            BlendMode.srcIn,
+                          ),
+                        ),
                         label: 'Step Goal',
                         value: _formatSteps(),
                         isUnset: _dailySteps == null,
                         onTap: _pickSteps,
                       ),
-                      const _DailyWellnessDivider(),
+                    ],
+                  ),
+                  const SizedBox(height: TioSpacing.lg),
+                  const _DailyWellnessSectionHeader(title: 'HYDRATION'),
+                  _DailyWellnessGroupCard(
+                    key: const ValueKey('daily-wellness-hydration-card'),
+                    children: [
                       _DailyWellnessRow(
                         key: const ValueKey('daily-wellness-water-field'),
                         icon: Icons.water_drop_outlined,
@@ -507,6 +529,28 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
                         isUnset: _waterMl == null,
                         onTap: _pickWater,
                       ),
+                      const _DailyWellnessDivider(
+                        key: ValueKey('daily-wellness-hydration-divider'),
+                      ),
+                      _DailyWellnessRow(
+                        key: const ValueKey('daily-wellness-glass-size-field'),
+                        icon: Icons.local_drink_outlined,
+                        label: 'Glass Size',
+                        value: _glassSummary(),
+                        isUnset: false,
+                        onTap: widget.onSaveHydration == null ||
+                                widget.hydrationLoading ||
+                                widget.hydrationLoadFailed
+                            ? null
+                            : _pickGlassSize,
+                      ),
+                      if (widget.hydrationLoadFailed &&
+                          widget.onRetryHydration != null)
+                        TextButton(
+                          key: const ValueKey('glass-size-load-retry'),
+                          onPressed: widget.onRetryHydration,
+                          child: const Text('Retry Glass Size'),
+                        ),
                     ],
                   ),
 
@@ -515,6 +559,7 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
                   // ── SLEEP GROUP ──
                   const _DailyWellnessSectionHeader(title: 'SLEEP'),
                   _SleepScheduleSummaryCard(
+                    key: const ValueKey('daily-wellness-sleep-card'),
                     durationMinutes: _sleepTargetMinutes,
                     bedTimeMinutes: _bedTimeMinutes,
                     wakeTimeMinutes: _wakeTimeMinutes,
@@ -606,7 +651,10 @@ class _DailyWellnessSectionHeader extends StatelessWidget {
 }
 
 class _DailyWellnessGroupCard extends StatelessWidget {
-  const _DailyWellnessGroupCard({required this.children});
+  const _DailyWellnessGroupCard({
+    required this.children,
+    super.key,
+  });
   final List<Widget> children;
 
   @override
@@ -622,7 +670,7 @@ class _DailyWellnessGroupCard extends StatelessWidget {
 }
 
 class _DailyWellnessDivider extends StatelessWidget {
-  const _DailyWellnessDivider();
+  const _DailyWellnessDivider({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -630,7 +678,7 @@ class _DailyWellnessDivider extends StatelessWidget {
     return Divider(
       height: TioSize.dp1,
       thickness: TioStroke.width1,
-      indent: TioSize.dp64,
+      indent: TioSize.dp56,
       color: colors.outlineStrong.withAlpha(TioAlpha.alpha20),
     );
   }
@@ -638,21 +686,30 @@ class _DailyWellnessDivider extends StatelessWidget {
 
 class _DailyWellnessRow extends StatelessWidget {
   const _DailyWellnessRow({
-    required this.icon,
     required this.label,
     required this.value,
     required this.isUnset,
     required this.onTap,
+    this.icon,
+    this.iconWidget,
     super.key,
-  });
+  }) : assert(
+          icon != null || iconWidget != null,
+          'Provide either icon or iconWidget',
+        );
 
-  final IconData icon;
+  /// Standard Material glyph. Ignored when [iconWidget] is provided.
+  final IconData? icon;
+
+  /// Recovered asset-backed leading icon (e.g. the Steps footprints SVG).
+  /// Takes precedence over [icon] when both are supplied.
+  final Widget? iconWidget;
   final String label;
   final String value;
 
   /// Explicit unset styling contract instead of sniffing `value == 'Not set'`.
   final bool isUnset;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -667,52 +724,120 @@ class _DailyWellnessRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: TioSize.dp40,
-              height: TioSize.dp40,
-              decoration: BoxDecoration(
-                color: colors.primary.withAlpha(TioAlpha.alpha18),
-                borderRadius: BorderRadius.circular(TioRadius.sm),
-              ),
-              child: Icon(
-                icon,
-                size: TioSize.dp22,
-                color: colors.primary,
-              ),
-            ),
+            iconWidget ??
+                Icon(
+                  icon,
+                  size: TioSize.dp24,
+                  color: colors.textPrimary,
+                ),
             const SizedBox(width: TioSpacing.lg),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: colors.textPrimary,
-                      fontWeight: TioFontWeight.w700,
-                      fontSize: TioFontSize.size15,
-                    ),
-                  ),
-                  const SizedBox(height: TioSpacing.xxs),
-                  Text(
-                    value,
-                    style: TextStyle(
-                      color: isUnset ? colors.textMuted : colors.textSecondary,
-                      fontSize: TioFontSize.size13,
-                      fontWeight:
-                          isUnset ? TioFontWeight.w400 : TioFontWeight.w500,
-                    ),
-                  ),
-                ],
+              flex: 3,
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontWeight: TioFontWeight.w700,
+                  fontSize: TioFontSize.size15,
+                ),
               ),
             ),
-            Icon(
-              Icons.chevron_right_rounded,
-              size: TioSize.dp20,
-              color: colors.textMuted,
+            const SizedBox(width: TioSpacing.sm),
+            Expanded(
+              flex: 2,
+              child: _buildValue(colors),
             ),
+            const SizedBox(width: TioSpacing.lg),
+            const _EditAffordanceIcon(),
           ],
         ),
+      ),
+    );
+  }
+
+  /// The leading number in [value] (e.g. "10,000" of "10,000 steps", "2.8"
+  /// of "2.8 L") so it can be highlighted in [colors.textPrimary] while the
+  /// trailing unit renders in a muted, lighter-weight tone -- matching the
+  /// tnyx-hub reference's number/unit split styling.
+  static final _leadingNumber = RegExp(r'^([\d.,]+)(.*)$');
+
+  Widget _buildValue(TioColors colors) {
+    if (isUnset) {
+      return Text(
+        value,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.end,
+        style: TextStyle(
+          color: colors.textMuted,
+          fontSize: TioFontSize.size15,
+          fontWeight: TioFontWeight.w400,
+        ),
+      );
+    }
+
+    final match = _leadingNumber.firstMatch(value);
+    if (match == null) {
+      return Text(
+        value,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.end,
+        style: TextStyle(
+          color: colors.textPrimary,
+          fontSize: TioFontSize.size15,
+          fontWeight: TioFontWeight.w700,
+        ),
+      );
+    }
+
+    return Text.rich(
+      TextSpan(
+        text: match.group(1),
+        children: [
+          TextSpan(
+            text: match.group(2),
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontWeight: TioFontWeight.w400,
+            ),
+          ),
+        ],
+      ),
+      style: TextStyle(
+        color: colors.textPrimary,
+        fontSize: TioFontSize.size15,
+        fontWeight: TioFontWeight.w700,
+      ),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      textAlign: TextAlign.end,
+    );
+  }
+}
+
+/// Shared edit-pencil affordance: a small circular neutral-surface chip
+/// containing a pencil glyph, distinct from any leading content icon (which
+/// stays plain/unboxed). Used by both [_DailyWellnessRow] and
+/// [_SleepScheduleSummaryCard] so every row's edit affordance looks the same.
+class _EditAffordanceIcon extends StatelessWidget {
+  const _EditAffordanceIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    return Container(
+      width: TioSize.dp36,
+      height: TioSize.dp36,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: colors.surfaceVariant,
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        Icons.edit_outlined,
+        size: TioSize.dp16,
+        color: colors.textSecondary,
       ),
     );
   }
@@ -728,6 +853,7 @@ class _SleepScheduleSummaryCard extends StatelessWidget {
     required this.bedTimeMinutes,
     required this.wakeTimeMinutes,
     required this.onTap,
+    super.key,
   });
 
   final int? durationMinutes;
@@ -761,18 +887,10 @@ class _SleepScheduleSummaryCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Container(
-                    width: TioSize.dp40,
-                    height: TioSize.dp40,
-                    decoration: BoxDecoration(
-                      color: colors.primary.withAlpha(TioAlpha.alpha18),
-                      borderRadius: BorderRadius.circular(TioRadius.sm),
-                    ),
-                    child: Icon(
-                      Icons.bedtime_outlined,
-                      size: TioSize.dp22,
-                      color: colors.primary,
-                    ),
+                  Icon(
+                    Icons.bedtime_outlined,
+                    size: TioSize.dp24,
+                    color: colors.textPrimary,
                   ),
                   const SizedBox(width: TioSpacing.lg),
                   Expanded(
@@ -788,33 +906,31 @@ class _SleepScheduleSummaryCard extends StatelessWidget {
                   Text(
                     _formatSleepDuration(durationMinutes),
                     style: TextStyle(
-                      color: isUnset ? colors.textMuted : colors.primary,
+                      color: isUnset ? colors.textMuted : colors.textPrimary,
                       fontWeight: TioFontWeight.w700,
                       fontSize: TioFontSize.size15,
                     ),
                   ),
+                  // Pencil trails the duration on this line, matching the
+                  // Step/Water/Glass rows so all four edit affordances sit
+                  // at the same x-position.
+                  const SizedBox(width: TioSpacing.lg),
+                  const _EditAffordanceIcon(),
                 ],
               ),
               const SizedBox(height: TioSpacing.sm),
-              Row(
-                children: [
-                  const SizedBox(width: TioSize.dp40 + TioSpacing.lg),
-                  Expanded(
-                    child: Text(
-                      rangeText,
-                      style: TextStyle(
-                        color: colors.textMuted,
-                        fontSize: TioFontSize.size13,
-                        fontWeight: TioFontWeight.w400,
-                      ),
-                    ),
-                  ),
-                  Icon(
-                    Icons.edit_outlined,
-                    size: TioSize.dp18,
+              Padding(
+                // Align under the "Sleep Schedule" label above, not under
+                // the leading icon (icon width + its trailing gap).
+                padding: const EdgeInsets.only(left: TioSize.dp40),
+                child: Text(
+                  rangeText,
+                  style: TextStyle(
                     color: colors.textMuted,
+                    fontSize: TioFontSize.size13,
+                    fontWeight: TioFontWeight.w400,
                   ),
-                ],
+                ),
               ),
             ],
           ),
