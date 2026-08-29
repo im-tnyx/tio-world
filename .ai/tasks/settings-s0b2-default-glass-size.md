@@ -1,6 +1,6 @@
 # S0-B2 — Default Glass Size
 
-**Status:** Ready for bounded Draft PR — local DB/device acceptance pending
+**Status:** Draft PR published — local DB/device acceptance pending
 **Primary owner:** `apps/features/settings`
 **Affected platforms:** Flutter phone (Android/iOS), account-synced Supabase data
 **Tracker:** TNYX-130; parent TNYX-128; TNYX-118 unchanged
@@ -95,7 +95,7 @@ Auth/session behavior, new logging tables/workflows, machine paths/secrets/cache
 - [x] App providers, independent read/error handling, Settings sheet and grouping.
 - [x] Refresh/convergence, no-submit/cancel/clear/retry and independent writes tests.
 - [x] Fresh Flutter analyzers/tests; frozen-file diff review completed separately.
-- [ ] Commit, normal push, NEW Draft PR after the fresh Flutter gates; local DB
+- [x] Commit, normal push, NEW Draft PR after the fresh Flutter gates; local DB
   and device gates remain explicitly pending.
 
 Portable commands (using the owner's configured existing Flutter SDK):
@@ -239,11 +239,10 @@ by this checkpoint and requires a later explicit authorization.
 
 ## 7. Handoff
 
-**Ending HEAD:** `94d46ba8a538c13de40e2fc43b9027c0604c8030` (unchanged).
-The existing branch has 23 uncommitted files: 13 modified + 10 new. No unrelated
-user changes were present at the clean start. Commit-range diff commands are
-empty because no commit exists yet; the working-tree diff and untracked-file
-inventory establish the scope.
+**Implementation HEAD:** `58e9c12ff811a057d18ea7537a2e8f66aac58fc9`.
+The implementation commit contains 23 approved files. No unrelated user
+changes were present at the clean start, and the parent-to-head audit is
+`main` / `94d46ba8a538c13de40e2fc43b9027c0604c8030` → this implementation HEAD.
 
 ### Exact changed files
 
@@ -274,12 +273,17 @@ inventory establish the scope.
 TNYX-130 was moved Backlog -> In Progress when source work began. TNYX-128
 remains In Progress; TNYX-118 is unchanged. No tracker was marked Done.
 
-**Commit / push / NEW Draft PR:** not performed at this pre-publication handoff.
-Fresh Flutter analyzers/tests are complete and green; local DB/security runtime
-checks remain incomplete because Docker and the configured local Postgres port
-are unavailable. No PR number, remote branch publication or CI run is claimed
-until publication. Do not apply remotely in this checkpoint. After the bounded
-commit is published, keep the PR Draft; do not merge or mark the tracker Done.
+### Publication evidence
+
+- Commit: `58e9c12ff811a057d18ea7537a2e8f66aac58fc9`
+- Remote branch: `origin/codex/settings-s0b2-glass-size` at the same SHA.
+- Draft PR: `https://github.com/im-tnyx/tio-world/pull/170` (base `main`, head
+  `codex/settings-s0b2-glass-size`, Draft, mergeable; CI `Analyze and test`
+  was `IN_PROGRESS` at publication time).
+- Fresh Flutter analyzers/tests are complete and green; local DB/security
+  runtime checks remain incomplete because Docker and the configured local
+  Postgres port are unavailable. Do not apply remotely in this checkpoint.
+- Keep the PR Draft; do not merge or mark the tracker Done.
 
 Physical-device acceptance must cover Hydration grouping, unset/presets/custom,
 validation/Clear/Save, reopen persistence, Metric/Imperial and unchanged Water
