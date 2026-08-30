@@ -135,9 +135,10 @@ git diff --check                                                         PASS
   root/core `uses-material-design` warning; neither changed this task's lockfiles
   or affected focused test/analyze outcomes.
 - Product owner reported these defects from a physical-device review on
-  2026-08-30. Re-verification of the corrected build on a physical device has
-  NOT yet been performed. The confirmation-card/logout consistency follow-up is
-  explicitly deferred to a separate scope and does not block this slice.
+  2026-08-30, and on 2026-08-30 confirmed after rechecking the corrected build
+  that all four reported defects now look correct. The confirmation-card/logout
+  consistency follow-up is explicitly deferred to a separate scope and does not
+  block this slice.
 
 ## 7. Final Handoff
 
@@ -164,15 +165,15 @@ git diff --check                                                         PASS
 ### Known Limitations
 
 Automated widget tests cannot prove motor intensity or OEM-specific haptic
-behavior. Physical-device acceptance of the corrected build has NOT been
-performed -- the product owner's 2026-08-30 device review is what produced
-these four defect reports, and the resulting fixes have not been re-checked on
-a device. Exact-head GitHub CI remains the publication check after the forward
-commit.
+behavior; that dimension rests on the product owner's device recheck rather
+than on automation. Exact-head GitHub CI remains the publication check after
+the forward commit.
 
 ### Final Status
 
-`NEEDS PHYSICAL-DEVICE ACCEPTANCE` — focused automation and exact-head CI pass;
-physical-device re-verification of these corrections is still required before
-this slice can be considered accepted. Confirmation card/logout standardization
-is a separate follow-up.
+`PASS` — focused automation and exact-head CI pass, and the product owner
+confirmed on 2026-08-30, after rechecking the corrected build, that all four
+reported defects now look correct. This is acceptance of these corrections
+only; it is not merge authorization. Confirmation card/logout standardization
+is a separate follow-up (GitHub #173), and the shared-wheel pill defect in
+`TioDobWheelPicker` is tracked separately.
