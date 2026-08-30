@@ -50,8 +50,8 @@ class TioWeightWheel extends StatefulWidget {
 }
 
 class _TioWeightWheelState extends State<TioWeightWheel> {
-  static const double _perspective = 0.003;
-  static const double _diameterRatio = 1.6;
+  static const double _perspective = TioWheelPickerTokens.perspective;
+  static const double _diameterRatio = TioWheelPickerTokens.diameterRatio;
   static const double _kgToLbsFactor = 2.20462;
 
   late int _minKg;

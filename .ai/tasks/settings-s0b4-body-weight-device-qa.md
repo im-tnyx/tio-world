@@ -72,6 +72,7 @@ against Save, and each changed Goal Pace slider step emits selection haptics.
 |---|---|---|---|
 | Fix the three reported device defects | Approved | Explicit user-reported visual/tactile corrections | Product owner |
 | Show `Weekly Goal` in Body & Weight Settings | Approved | Product owner confirmed the visible Settings rename after physical-device review; internal contracts remain unchanged | Product owner |
+| Unify drum curvature across every wheel on the tighter DOB curve (`perspective` 0.004, `diameterRatio` 1.3) | Approved | Product owner preferred the DOB drum feel during device review and explicitly chose the "unify all wheels" option. This is an **approved onboarding visual change**: the weight and height wheels previously used 0.003 / 1.6, so onboarding's Height, Current Weight, and Target Weight steps change appearance. Curvature was promoted into `TioWheelPickerTokens` so a future picker cannot silently diverge. Wheel height, item extent, selection-pill geometry, behaviour, and all persistence remain unchanged. | Product owner |
 
 ## 4. Architecture Design
 

@@ -12,7 +12,8 @@ Future<DateTime?> showTioDobPickerBottomSheet({
   int? endYear,
 }) {
   final now = DateTime.now();
-  final resolvedEndYear = endYear ?? (now.year - 12); // Minimum 12-13+ years for fitness
+  final resolvedEndYear =
+      endYear ?? (now.year - 12); // Minimum 12-13+ years for fitness
   final resolvedInitial = initialDate ?? DateTime(2000, 1, 1);
   final clampedInitial = DateTime(
     resolvedInitial.year.clamp(startYear, resolvedEndYear),
@@ -215,8 +216,8 @@ class TioDobWheelPicker extends StatefulWidget {
 }
 
 class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
-  static const double _perspective = 0.004;
-  static const double _diameterRatio = 1.3;
+  static const double _perspective = TioWheelPickerTokens.perspective;
+  static const double _diameterRatio = TioWheelPickerTokens.diameterRatio;
 
   static const List<String> _months = [
     'Jan',
@@ -310,7 +311,8 @@ class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
 
     _isSyncingControllers = true;
     try {
-      if (_dayController.hasClients && _dayController.selectedItem != dayIndex) {
+      if (_dayController.hasClients &&
+          _dayController.selectedItem != dayIndex) {
         _dayController.jumpToItem(dayIndex);
       }
       if (_monthController.hasClients &&

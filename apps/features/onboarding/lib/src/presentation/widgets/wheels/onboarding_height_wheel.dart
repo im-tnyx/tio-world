@@ -24,8 +24,8 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
   static const int _minCm = 100;
   static const int _maxCm = 250;
   static const double _defaultCm = 170.0;
-  static const double _perspective = 0.003;
-  static const double _diameterRatio = 1.6;
+  static const double _perspective = TioWheelPickerTokens.perspective;
+  static const double _diameterRatio = TioWheelPickerTokens.diameterRatio;
 
   late double _selectedCm;
   late int _selectedUnitIndex; // 0: cm, 1: in (ft/in)
@@ -411,8 +411,7 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
             child: Text(
               unitText,
               style: TextStyle(
-                fontSize:
-                    isSelected ? TioFontSize.size18 : TioFontSize.size15,
+                fontSize: isSelected ? TioFontSize.size18 : TioFontSize.size15,
                 fontWeight:
                     isSelected ? TioFontWeight.w800 : TioFontWeight.w500,
                 color: isSelected
