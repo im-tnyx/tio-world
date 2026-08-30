@@ -92,70 +92,29 @@ class SupabaseBodySetupRepository implements BodyRepository {
     });
   }
 
+  /// Delegates the entire same-goal/changed-goal lifecycle to the atomic
+  /// `set_active_body_goal` Postgres RPC (TNYX-136) instead of a client-side
+  /// supersede-then-insert request pair. The two-request sequence could
+  /// leave an account with zero active goals if the process died between
+  /// the two HTTP calls; the RPC runs as one database transaction, so a
+  /// failure always leaves the previously committed state unchanged.
+  ///
+  /// This Dart-side check is narrow defense-in-depth for fast/offline
+  /// feedback only -- the RPC is itself an authenticated API boundary and
+  /// independently re-validates every canonical invariant server-side.
   @override
   Future<void> setActiveBodyGoal(BodyGoalUpdate update) async {
-    final userId = _requireUserId();
+    _requireUserId();
     _validateGoalUpdate(update);
-    final nowIso = DateTime.now().toUtc().toIso8601String();
 
-    final activeRow = await _client
-        .from('user_body_goals')
-        .select('id, goal_type, intent_rank')
-        .eq('user_id', userId)
-        .eq('status', 'active')
-        .maybeSingle();
-
-    final goalStorage = update.goalType.storageValue;
-    final activeId = activeRow?['id'] as String?;
-    final activeType = activeRow?['goal_type'] as String?;
-
-    if (activeId != null && activeId.isNotEmpty && activeType == goalStorage) {
-      // Same active goal type: update target/pace in place. Row identity,
-      // starting_weight_kg, started_at, and intent_rank are left untouched.
-      await _client.from('user_body_goals').update({
-        'target_weight_kg': update.targetWeightKg,
-        'weekly_weight_change_kg': update.weeklyWeightChangeKg,
-        'updated_at': nowIso,
-      }).eq('id', activeId);
-      return;
-    }
-
-    // Changed goal type (or no prior active goal): snapshot the latest
-    // canonical weight as the new goal's starting weight.
-    final isDirectional = update.goalType == BodyGoalType.loseWeight ||
-        update.goalType == BodyGoalType.gainWeight;
-    final latestWeightRow = await _client
-        .from('body_weight_logs')
-        .select('weight_kg')
-        .eq('user_id', userId)
-        .order('measured_at', ascending: false)
-        .limit(1)
-        .maybeSingle();
-    final startingWeight = (latestWeightRow?['weight_kg'] as num?)?.toDouble();
-
-    if (isDirectional && startingWeight == null) {
-      throw StateError(
-        'A directional Body Goal requires a real canonical Current Weight.',
-      );
-    }
-
-    if (activeId != null && activeId.isNotEmpty) {
-      await _client.from('user_body_goals').update({
-        'status': 'superseded',
-        'ended_at': nowIso,
-      }).eq('id', activeId);
-    }
-
-    await _client.from('user_body_goals').insert({
-      'user_id': userId,
-      'goal_type': goalStorage,
-      'starting_weight_kg': startingWeight,
-      'target_weight_kg': update.targetWeightKg,
-      'weekly_weight_change_kg': update.weeklyWeightChangeKg,
-      'intent_rank': activeRow?['intent_rank'],
-      'status': 'active',
-      'started_at': nowIso,
-    });
+    await _client.rpc<void>(
+      'set_active_body_goal',
+      params: {
+        'p_goal_type': update.goalType.storageValue,
+        'p_target_weight_kg': update.targetWeightKg,
+        'p_weekly_weight_change_kg': update.weeklyWeightChangeKg,
+      },
+    );
   }
 
   void _validateGoalUpdate(BodyGoalUpdate update) {
@@ -239,10 +198,7 @@ class SupabaseBodySetupRepository implements BodyRepository {
       return;
     }
 
-    await _client
-        .from('body_weight_logs')
-        .update(payload)
-        .eq('id', existingId);
+    await _client.from('body_weight_logs').update(payload).eq('id', existingId);
   }
 
   Future<void> _reconcileActiveGoal({
@@ -275,7 +231,8 @@ class SupabaseBodySetupRepository implements BodyRepository {
 
     if (activeId != null && activeId.isNotEmpty && activeType == goalStorage) {
       await _client.from('user_body_goals').update({
-        if (activeRow?['starting_weight_kg'] == null && data.currentWeightKg != null)
+        if (activeRow?['starting_weight_kg'] == null &&
+            data.currentWeightKg != null)
           'starting_weight_kg': data.currentWeightKg,
         'target_weight_kg': requested.targetWeightKg,
         'weekly_weight_change_kg': requested.weeklyWeightChangeKg,
