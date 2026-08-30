@@ -1,0 +1,85 @@
+name: Supabase DB Tests
+
+# TNYX-136 real-database proof for public.set_active_body_goal (S0-B4A).
+#
+# Starts a fresh, ephemeral local Supabase stack (Postgres + Auth + PostgREST)
+# inside this disposable GitHub-hosted runner via Docker, applies the repo's
+# own supabase/migrations to it, and runs real HTTP calls against it with
+# synthetic users. Never touches the hosted/production Supabase project, uses
+# no production credentials, and needs no paid Supabase branch -- the runner
+# and everything on it is torn down when the job ends.
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/config.toml'
+      - 'supabase/tests/**'
+      - 'apps/features/progress/lib/src/data/supabase_body_setup_repository.dart'
+      - '.github/workflows/supabase-db-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-db-tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  db-tests:
+    name: Isolated Supabase DB proof (TNYX-136)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Install psql + jq
+        run: sudo apt-get update -y && sudo apt-get install -y --no-install-recommends postgresql-client jq
+
+      - name: Start ephemeral local Supabase stack (Docker-backed, non-production)
+        run: supabase start
+
+      - name: Reset database from repo migrations (explicit clean-apply proof)
+        run: supabase db reset
+
+      - name: Resolve local stack connection details
+        run: |
+          set -euo pipefail
+          STATUS_JSON="$(supabase status -o json)"
+          echo "$STATUS_JSON" > /tmp/supabase_status.json
+          API_URL="$(jq -r '.API_URL // empty' /tmp/supabase_status.json)"
+          ANON_KEY="$(jq -r '.ANON_KEY // empty' /tmp/supabase_status.json)"
+          DB_URL="$(jq -r '.DB_URL // empty' /tmp/supabase_status.json)"
+          if [ -z "$API_URL" ] || [ -z "$ANON_KEY" ] || [ -z "$DB_URL" ]; then
+            echo "supabase status -o json did not yield expected keys; falling back to the well-known local Supabase CLI default values (these are fixed local-dev-only constants, not secrets)."
+            API_URL="${API_URL:-http://127.0.0.1:54321}"
+            DB_URL="${DB_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}"
+            ANON_KEY="${ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0}"
+          fi
+          echo "API_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          echo "DB_URL=$DB_URL" >> "$GITHUB_ENV"
+
+      - name: Apply CI-only rollback-proof trigger (never part of supabase/migrations)
+        run: psql "$DB_URL" -X -f supabase/tests/ci/force_insert_failure.sql
+
+      - name: Run TNYX-136 real-database proof suite
+        run: bash supabase/tests/ci/run_body_goal_db_tests.sh
+
+      - name: Local stack logs (only on failure)
+        if: failure()
+        run: supabase status && docker ps -a
+
+      - name: Stop local stack
+        if: always()
+        run: supabase stop --no-backup
