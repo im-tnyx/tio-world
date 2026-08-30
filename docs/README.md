@@ -16,6 +16,7 @@ This folder is the source of truth for product architecture, module ownership, s
 | [`OBSERVABILITY.md`](OBSERVABILITY.md) | Structured logs, metrics, OpenTelemetry readiness, request/job correlation, dependency signals, and safe telemetry boundaries. |
 | [`QUEUE_STRATEGY.md`](QUEUE_STRATEGY.md) | Supabase Queues/pgmq first-choice boundary, queue use/non-use cases, versioned messages, visibility, acknowledgement, and technology escalation triggers. |
 | [`ASYNC_RELIABILITY.md`](ASYNC_RELIABILITY.md) | Job idempotency, retry classification/backoff, terminal/dead-letter handling, replay, and scheduled-vs-event-driven reliability rules. |
+| [`WORKER_ARCHITECTURE.md`](WORKER_ARCHITECTURE.md) | Future `services/worker` lifecycle, queue-consumer loop, bounded concurrency, graceful shutdown, restart safety, and API/worker deployment boundary. |
 | [`SCALING_READINESS.md`](SCALING_READINESS.md) | Evidence-based API/database/queue/worker/Storage/provider capacity triggers, scale ladder, cache boundary, and sharding-last policy. |
 | [`DATA_PRIVACY_GOVERNANCE.md`](DATA_PRIVACY_GOVERNANCE.md) | Data classification, minimization, logging/analytics, AI/provider, deletion/export, retention, and environment-separation policy. |
 | [`DATABASE_BACKUP_RECOVERY.md`](DATABASE_BACKUP_RECOVERY.md) | Backup/PITR readiness, RPO/RTO, restore ownership, Storage recovery, and migration-safety policy. |
