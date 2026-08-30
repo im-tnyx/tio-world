@@ -134,9 +134,10 @@ git diff --check                                                         PASS
 - Dependency resolution reported available newer packages and an existing
   root/core `uses-material-design` warning; neither changed this task's lockfiles
   or affected focused test/analyze outcomes.
-- Product owner confirmed the corrected screen on a physical device on
-  2026-08-30; the confirmation-card/logout consistency follow-up is explicitly
-  deferred to a separate scope and does not block this slice.
+- Product owner reported these defects from a physical-device review on
+  2026-08-30. Re-verification of the corrected build on a physical device has
+  NOT yet been performed. The confirmation-card/logout consistency follow-up is
+  explicitly deferred to a separate scope and does not block this slice.
 
 ## 7. Final Handoff
 
@@ -163,10 +164,15 @@ git diff --check                                                         PASS
 ### Known Limitations
 
 Automated widget tests cannot prove motor intensity or OEM-specific haptic
-behavior. The product owner completed the required physical-device acceptance;
-exact-head GitHub CI remains the publication check after the forward commit.
+behavior. Physical-device acceptance of the corrected build has NOT been
+performed -- the product owner's 2026-08-30 device review is what produced
+these four defect reports, and the resulting fixes have not been re-checked on
+a device. Exact-head GitHub CI remains the publication check after the forward
+commit.
 
 ### Final Status
 
-`PASS` — focused automation and physical-device acceptance pass; confirmation
-card/logout standardization is a separate follow-up.
+`NEEDS PHYSICAL-DEVICE ACCEPTANCE` — focused automation and exact-head CI pass;
+physical-device re-verification of these corrections is still required before
+this slice can be considered accepted. Confirmation card/logout standardization
+is a separate follow-up.
