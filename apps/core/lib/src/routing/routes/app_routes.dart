@@ -116,6 +116,13 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  static const bodyWeightSettings = TioRouteContract(
+    path: '/settings/health-goals/body-weight',
+    title: 'Body & Weight',
+    description: 'Manage your current weight and active Body Goal.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
   static const themeSettings = TioRouteContract(
     path: '/settings/theme',
     title: 'Theme',

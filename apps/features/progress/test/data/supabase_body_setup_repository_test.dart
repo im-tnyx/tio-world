@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_feature_progress/progress.dart';
@@ -154,7 +156,177 @@ void main() {
     );
   });
 
-  test('in-memory setup exposes canonical Body state without defaults', () async {
+  test('setActiveBodyGoal requires authenticated user', () async {
+    final repository = SupabaseBodySetupRepository(
+      client: _AuthOnlySupabaseClient(currentUser: null),
+    );
+
+    await expectLater(
+      () => repository.setActiveBodyGoal(
+        const BodyGoalUpdate(goalType: BodyGoalType.maintainWeight),
+      ),
+      throwsStateError,
+    );
+  });
+
+  test('setActiveBodyGoal rejects Recomposition before database access',
+      () async {
+    final repository = SupabaseBodySetupRepository(
+      client: _AuthOnlySupabaseClient(currentUser: fakeUser),
+    );
+
+    await expectLater(
+      () => repository.setActiveBodyGoal(
+        const BodyGoalUpdate(goalType: BodyGoalType.recomposition),
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test(
+      'setActiveBodyGoal rejects Maintain carrying Target/Pace before database access',
+      () async {
+    final repository = SupabaseBodySetupRepository(
+      client: _AuthOnlySupabaseClient(currentUser: fakeUser),
+    );
+
+    await expectLater(
+      () => repository.setActiveBodyGoal(
+        const BodyGoalUpdate(
+          goalType: BodyGoalType.maintainWeight,
+          targetWeightKg: 70,
+        ),
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test(
+      'setActiveBodyGoal rejects a directional goal missing Target/Pace before database access',
+      () async {
+    final repository = SupabaseBodySetupRepository(
+      client: _AuthOnlySupabaseClient(currentUser: fakeUser),
+    );
+
+    await expectLater(
+      () => repository.setActiveBodyGoal(
+        const BodyGoalUpdate(goalType: BodyGoalType.loseWeight),
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test(
+      'setActiveBodyGoal rejects non-positive Target Weight before database access',
+      () async {
+    final repository = SupabaseBodySetupRepository(
+      client: _AuthOnlySupabaseClient(currentUser: fakeUser),
+    );
+
+    await expectLater(
+      () => repository.setActiveBodyGoal(
+        const BodyGoalUpdate(
+          goalType: BodyGoalType.loseWeight,
+          targetWeightKg: 0,
+          weeklyWeightChangeKg: 0.5,
+        ),
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test('setActiveBodyGoal rejects negative Goal Pace before database access',
+      () async {
+    final repository = SupabaseBodySetupRepository(
+      client: _AuthOnlySupabaseClient(currentUser: fakeUser),
+    );
+
+    await expectLater(
+      () => repository.setActiveBodyGoal(
+        const BodyGoalUpdate(
+          goalType: BodyGoalType.gainWeight,
+          targetWeightKg: 74,
+          weeklyWeightChangeKg: -0.1,
+        ),
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  group('setActiveBodyGoal RPC cutover (TNYX-136)', () {
+    test(
+        'calls the atomic RPC with exact canonical params, not direct table access',
+        () async {
+      final client = _RpcCapturingSupabaseClient(currentUser: fakeUser);
+      final repository = SupabaseBodySetupRepository(client: client);
+
+      await repository.setActiveBodyGoal(
+        const BodyGoalUpdate(
+          goalType: BodyGoalType.loseWeight,
+          targetWeightKg: 65,
+          weeklyWeightChangeKg: 0.5,
+        ),
+      );
+
+      expect(client.capturedFunction, 'set_active_body_goal');
+      expect(client.capturedParams, {
+        'p_goal_type': 'lose_weight',
+        'p_target_weight_kg': 65.0,
+        'p_weekly_weight_change_kg': 0.5,
+      });
+      // _RpcCapturingSupabaseClient.from() throws if ever called; reaching
+      // this point with no exception proves setActiveBodyGoal issued no
+      // direct table update/insert -- neither a same-goal update, nor an
+      // old-goal supersede, nor a new-goal insert remain in this method.
+    });
+
+    test('Maintain sends null target and pace to the RPC', () async {
+      final client = _RpcCapturingSupabaseClient(currentUser: fakeUser);
+      final repository = SupabaseBodySetupRepository(client: client);
+
+      await repository.setActiveBodyGoal(
+        const BodyGoalUpdate(goalType: BodyGoalType.maintainWeight),
+      );
+
+      expect(client.capturedFunction, 'set_active_body_goal');
+      expect(client.capturedParams, {
+        'p_goal_type': 'maintain_weight',
+        'p_target_weight_kg': null,
+        'p_weekly_weight_change_kg': null,
+      });
+    });
+
+    test('RPC failure surfaces as failure without any compensation write',
+        () async {
+      final client = _RpcCapturingSupabaseClient(
+        currentUser: fakeUser,
+        rpcError: const PostgrestException(
+          message: 'target_weight_must_be_below_current_for_lose',
+          code: 'P0001',
+        ),
+      );
+      final repository = SupabaseBodySetupRepository(client: client);
+
+      await expectLater(
+        () => repository.setActiveBodyGoal(
+          const BodyGoalUpdate(
+            goalType: BodyGoalType.loseWeight,
+            targetWeightKg: 90,
+            weeklyWeightChangeKg: 0.5,
+          ),
+        ),
+        throwsA(isA<PostgrestException>()),
+      );
+
+      // The fake's from() throws unconditionally, so if the repository had
+      // attempted any compensating table write after the RPC failure, this
+      // test would fail with a different exception type than the RPC's own.
+      expect(client.capturedFunction, 'set_active_body_goal');
+    });
+  });
+
+  test('in-memory setup exposes canonical Body state without defaults',
+      () async {
     var now = DateTime.utc(2026, 8, 21, 10);
     final repository = InMemoryBodySetupRepository(now: () => now);
 
@@ -204,7 +376,8 @@ void main() {
     expect(repository.weightEntries.single.source, 'onboarding_setup');
   });
 
-  test('post-onboarding weight command appends history and latest timestamp wins',
+  test(
+      'post-onboarding weight command appends history and latest timestamp wins',
       () async {
     final repository = InMemoryBodySetupRepository(
       now: () => DateTime.utc(2026, 8, 21, 10),
@@ -243,7 +416,8 @@ class _AuthOnlySupabaseClient extends Fake implements SupabaseClient {
 
   @override
   SupabaseQueryBuilder from(String table) {
-    throw StateError('Database access was not expected for validation test: $table');
+    throw StateError(
+        'Database access was not expected for validation test: $table');
   }
 }
 
@@ -252,4 +426,59 @@ class _AuthOnlyGoTrueClient extends Fake implements GoTrueClient {
 
   @override
   final User? currentUser;
+}
+
+/// Captures the exact function/params passed to `.rpc(...)` and, like
+/// [_AuthOnlySupabaseClient], throws on any direct `.from(table)` access --
+/// proving setActiveBodyGoal's TNYX-136 cutover issues one RPC call and no
+/// direct table read/write.
+class _RpcCapturingSupabaseClient extends Fake implements SupabaseClient {
+  _RpcCapturingSupabaseClient({required User? currentUser, this.rpcError})
+      : _auth = _AuthOnlyGoTrueClient(currentUser);
+
+  final _AuthOnlyGoTrueClient _auth;
+  final Object? rpcError;
+  String? capturedFunction;
+  Map<String, dynamic>? capturedParams;
+
+  @override
+  GoTrueClient get auth => _auth;
+
+  @override
+  SupabaseQueryBuilder from(String table) {
+    throw StateError(
+      'Direct table access was not expected: $table. '
+      'setActiveBodyGoal must persist through the set_active_body_goal RPC only.',
+    );
+  }
+
+  @override
+  PostgrestFilterBuilder<T> rpc<T>(
+    String fn, {
+    Map<String, dynamic>? params,
+    dynamic get = false,
+  }) {
+    capturedFunction = fn;
+    capturedParams = params;
+    return _FakeRpcCall<T>(error: rpcError);
+  }
+}
+
+/// A minimal fake of the awaitable value `SupabaseClient.rpc(...)` returns.
+/// `PostgrestFilterBuilder<T>` (via `PostgrestBuilder<T, S, R>`) implements
+/// `Future<T>` by resolving through `then(...)`, so overriding just `then`
+/// is sufficient to make `await client.rpc(...)` behave like a real
+/// success/failure response without needing a live HTTP layer.
+class _FakeRpcCall<T> extends Fake implements PostgrestFilterBuilder<T> {
+  _FakeRpcCall({this.error});
+  final Object? error;
+
+  @override
+  Future<U> then<U>(FutureOr<U> Function(T value) onValue,
+      {Function? onError}) {
+    if (error != null) {
+      return Future<T>.error(error!).then(onValue, onError: onError);
+    }
+    return Future<T>.value(null).then(onValue, onError: onError);
+  }
 }

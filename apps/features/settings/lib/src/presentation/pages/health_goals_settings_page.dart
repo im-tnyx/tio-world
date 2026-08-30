@@ -4,10 +4,12 @@ import 'package:tio_core/core.dart';
 class HealthGoalsSettingsPage extends StatelessWidget {
   const HealthGoalsSettingsPage({
     required this.onDailyWellnessPressed,
+    required this.onBodyWeightPressed,
     super.key,
   });
 
   final VoidCallback onDailyWellnessPressed;
+  final VoidCallback onBodyWeightPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +56,14 @@ class HealthGoalsSettingsPage extends StatelessWidget {
             const _HealthGoalsSectionHeader(title: 'DAILY TARGETS'),
             _HealthGoalsGroupCard(
               children: [
+                _HealthGoalsTile(
+                  key: const ValueKey('health-goals-body-weight-entry'),
+                  icon: Icons.monitor_weight_outlined,
+                  title: 'Body & Weight',
+                  subtitle: 'Current weight, Body Goal & pace',
+                  onTap: onBodyWeightPressed,
+                ),
+                const _HealthGoalsDivider(),
                 _HealthGoalsTile(
                   key: const ValueKey('health-goals-daily-wellness-entry'),
                   icon: Icons.wb_sunny_outlined,
@@ -107,6 +117,21 @@ class _HealthGoalsGroupCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(TioRadius.lg),
       clipBehavior: Clip.antiAlias,
       child: Column(mainAxisSize: MainAxisSize.min, children: children),
+    );
+  }
+}
+
+class _HealthGoalsDivider extends StatelessWidget {
+  const _HealthGoalsDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    return Divider(
+      height: TioSize.dp1,
+      thickness: TioSize.dp1,
+      indent: TioSize.dp72,
+      color: colors.outlineStrong.withAlpha(TioAlpha.alpha24),
     );
   }
 }

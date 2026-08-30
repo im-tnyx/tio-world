@@ -11,9 +11,15 @@ class InMemoryBodySetupRepository implements BodyRepository {
 
   BodySetupData? _data;
   BodyGoalState? _activeGoal;
+  final List<BodyGoalState> _supersededGoals = <BodyGoalState>[];
 
   BodySetupData? get data => _data;
   List<BodyWeightEntry> get weightEntries => List.unmodifiable(_weightEntries);
+
+  /// Test-introspection: goals superseded by [setActiveBodyGoal] transitions,
+  /// oldest first. Not part of the [BodyRepository] contract.
+  List<BodyGoalState> get supersededGoals =>
+      List.unmodifiable(_supersededGoals);
 
   @override
   Future<void> saveBodySetup(BodySetupData data) async {
@@ -83,6 +89,93 @@ class InMemoryBodySetupRepository implements BodyRepository {
         source: record.source.trim(),
       ),
     );
+  }
+
+  @override
+  Future<void> setActiveBodyGoal(BodyGoalUpdate update) async {
+    _validateGoalUpdate(update);
+    final now = _now().toUtc();
+    final previous = _activeGoal;
+
+    if (previous != null && previous.goalType == update.goalType) {
+      _activeGoal = BodyGoalState(
+        goalType: update.goalType,
+        startingWeightKg: previous.startingWeightKg,
+        targetWeightKg: update.targetWeightKg,
+        weeklyWeightChangeKg: update.weeklyWeightChangeKg,
+        intentRank: previous.intentRank,
+        startedAt: previous.startedAt,
+      );
+      return;
+    }
+
+    final isDirectional = update.goalType == BodyGoalType.loseWeight ||
+        update.goalType == BodyGoalType.gainWeight;
+    BodyWeightEntry? latestWeight;
+    for (final entry in _weightEntries) {
+      final current = latestWeight;
+      if (current == null || entry.measuredAt.isAfter(current.measuredAt)) {
+        latestWeight = entry;
+      }
+    }
+    final startingWeight = latestWeight?.weightKg;
+
+    if (isDirectional && startingWeight == null) {
+      throw StateError(
+        'A directional Body Goal requires a real canonical Current Weight.',
+      );
+    }
+
+    if (previous != null) {
+      _supersededGoals.add(previous);
+    }
+
+    _activeGoal = BodyGoalState(
+      goalType: update.goalType,
+      startingWeightKg: startingWeight,
+      targetWeightKg: update.targetWeightKg,
+      weeklyWeightChangeKg: update.weeklyWeightChangeKg,
+      intentRank: previous?.intentRank,
+      startedAt: now,
+    );
+  }
+
+  void _validateGoalUpdate(BodyGoalUpdate update) {
+    if (update.goalType == BodyGoalType.recomposition) {
+      throw ArgumentError.value(
+        update.goalType,
+        'goalType',
+        'Explicit Body Goal editing offers Lose/Gain/Maintain only.',
+      );
+    }
+    final target = update.targetWeightKg;
+    if (target != null && target <= 0) {
+      throw ArgumentError.value(
+        target,
+        'targetWeightKg',
+        'Target weight must be greater than zero.',
+      );
+    }
+    final pace = update.weeklyWeightChangeKg;
+    if (pace != null && pace < 0) {
+      throw ArgumentError.value(
+        pace,
+        'weeklyWeightChangeKg',
+        'Goal pace must be nonnegative.',
+      );
+    }
+    final isDirectional = update.goalType == BodyGoalType.loseWeight ||
+        update.goalType == BodyGoalType.gainWeight;
+    if (!isDirectional && (target != null || pace != null)) {
+      throw ArgumentError(
+        'Maintain cannot persist Target Weight or Goal Pace.',
+      );
+    }
+    if (isDirectional && (target == null || pace == null)) {
+      throw ArgumentError(
+        'Lose/Gain requires both Target Weight and Goal Pace.',
+      );
+    }
   }
 
   void _validateSetup(BodySetupData data) {

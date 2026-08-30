@@ -30,6 +30,7 @@ class DailyWellnessEditorSheet extends StatelessWidget {
     this.supportingText,
     this.actions,
     this.canDismiss = true,
+    this.titleTrailing,
   });
 
   final String title;
@@ -37,6 +38,11 @@ class DailyWellnessEditorSheet extends StatelessWidget {
   final Widget content;
   final Widget? actions;
   final bool canDismiss;
+
+  /// Optional affordance placed on the same row as [title], right-aligned
+  /// (e.g. a wheel/manual mode-switch icon). Existing callers that omit it
+  /// keep the original title-only row unchanged.
+  final Widget? titleTrailing;
 
   @override
   Widget build(BuildContext context) {
@@ -72,14 +78,30 @@ class DailyWellnessEditorSheet extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          title,
-                          style: TextStyle(
-                            color: colors.textPrimary,
-                            fontWeight: TioFontWeight.w700,
-                            fontSize: TioFontSize.size18,
-                          ),
-                        ),
+                        titleTrailing == null
+                            ? Text(
+                                title,
+                                style: TextStyle(
+                                  color: colors.textPrimary,
+                                  fontWeight: TioFontWeight.w700,
+                                  fontSize: TioFontSize.size18,
+                                ),
+                              )
+                            : Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      title,
+                                      style: TextStyle(
+                                        color: colors.textPrimary,
+                                        fontWeight: TioFontWeight.w700,
+                                        fontSize: TioFontSize.size18,
+                                      ),
+                                    ),
+                                  ),
+                                  titleTrailing!,
+                                ],
+                              ),
                         if (supportingText != null) ...[
                           const SizedBox(height: TioSpacing.sm),
                           Text(
@@ -90,7 +112,17 @@ class DailyWellnessEditorSheet extends StatelessWidget {
                             ),
                           ),
                         ],
-                        const SizedBox(height: TioSpacing.lg),
+                        // A titleTrailing affordance is a 48dp minimum tap
+                        // target, so its row is ~22dp taller than a plain
+                        // title and already contributes vertical space below
+                        // the title text. Compensate here so both header
+                        // variants land ~16dp above their content instead of
+                        // the trailing variant drifting to ~27dp.
+                        SizedBox(
+                          height: titleTrailing == null
+                              ? TioSpacing.lg
+                              : TioSpacing.xs,
+                        ),
                         content,
                         if (actions != null) ...[
                           const SizedBox(height: TioSpacing.md),

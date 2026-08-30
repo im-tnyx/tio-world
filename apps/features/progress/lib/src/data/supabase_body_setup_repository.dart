@@ -92,6 +92,69 @@ class SupabaseBodySetupRepository implements BodyRepository {
     });
   }
 
+  /// Delegates the entire same-goal/changed-goal lifecycle to the atomic
+  /// `set_active_body_goal` Postgres RPC (TNYX-136) instead of a client-side
+  /// supersede-then-insert request pair. The two-request sequence could
+  /// leave an account with zero active goals if the process died between
+  /// the two HTTP calls; the RPC runs as one database transaction, so a
+  /// failure always leaves the previously committed state unchanged.
+  ///
+  /// This Dart-side check is narrow defense-in-depth for fast/offline
+  /// feedback only -- the RPC is itself an authenticated API boundary and
+  /// independently re-validates every canonical invariant server-side.
+  @override
+  Future<void> setActiveBodyGoal(BodyGoalUpdate update) async {
+    _requireUserId();
+    _validateGoalUpdate(update);
+
+    await _client.rpc<void>(
+      'set_active_body_goal',
+      params: {
+        'p_goal_type': update.goalType.storageValue,
+        'p_target_weight_kg': update.targetWeightKg,
+        'p_weekly_weight_change_kg': update.weeklyWeightChangeKg,
+      },
+    );
+  }
+
+  void _validateGoalUpdate(BodyGoalUpdate update) {
+    if (update.goalType == BodyGoalType.recomposition) {
+      throw ArgumentError.value(
+        update.goalType,
+        'goalType',
+        'Explicit Body Goal editing offers Lose/Gain/Maintain only.',
+      );
+    }
+    final target = update.targetWeightKg;
+    if (target != null && target <= 0) {
+      throw ArgumentError.value(
+        target,
+        'targetWeightKg',
+        'Target weight must be greater than zero.',
+      );
+    }
+    final pace = update.weeklyWeightChangeKg;
+    if (pace != null && pace < 0) {
+      throw ArgumentError.value(
+        pace,
+        'weeklyWeightChangeKg',
+        'Goal pace must be nonnegative.',
+      );
+    }
+    final isDirectional = update.goalType == BodyGoalType.loseWeight ||
+        update.goalType == BodyGoalType.gainWeight;
+    if (!isDirectional && (target != null || pace != null)) {
+      throw ArgumentError(
+        'Maintain cannot persist Target Weight or Goal Pace.',
+      );
+    }
+    if (isDirectional && (target == null || pace == null)) {
+      throw ArgumentError(
+        'Lose/Gain requires both Target Weight and Goal Pace.',
+      );
+    }
+  }
+
   void _validate(BodySetupData data) {
     final currentWeight = data.currentWeightKg;
     if (currentWeight != null && currentWeight <= 0) {
@@ -135,10 +198,7 @@ class SupabaseBodySetupRepository implements BodyRepository {
       return;
     }
 
-    await _client
-        .from('body_weight_logs')
-        .update(payload)
-        .eq('id', existingId);
+    await _client.from('body_weight_logs').update(payload).eq('id', existingId);
   }
 
   Future<void> _reconcileActiveGoal({
@@ -171,7 +231,8 @@ class SupabaseBodySetupRepository implements BodyRepository {
 
     if (activeId != null && activeId.isNotEmpty && activeType == goalStorage) {
       await _client.from('user_body_goals').update({
-        if (activeRow?['starting_weight_kg'] == null && data.currentWeightKg != null)
+        if (activeRow?['starting_weight_kg'] == null &&
+            data.currentWeightKg != null)
           'starting_weight_kg': data.currentWeightKg,
         'target_weight_kg': requested.targetWeightKg,
         'weekly_weight_change_kg': requested.weeklyWeightChangeKg,

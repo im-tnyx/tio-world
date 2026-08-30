@@ -21,8 +21,8 @@ The intended platform strategy is:
 - `apps/wear`: Flutter Wear OS companion app.
 - `apps/watchos`: Native Swift + SwiftUI Apple Watch app.
 - `apps/shared`, `apps/core`: Shared Dart packages and core UI modules.
-- future `supabase/*`: Auth, Postgres/RLS, Storage, migrations, and approved server functions.
-- future `backend/*`: protected AI coach, advanced integrations, and long-running jobs after the Supabase-first foundation needs an upgrade.
+- `supabase/*` (active, current): Auth, Postgres/RLS, Storage, migrations, and approved server functions.
+- future `services/api`: the sole future protected-backend path (Node.js + TypeScript + Fastify), for AI coaching, advanced integrations, and long-running jobs once a concrete approved slice needs a protected server boundary. See ADR-0007. Do not introduce a `backend/*` namespace.
 - `.github/*`: Contribution, issue, PR, push, and workflow guidance.
 - `.ai/*`: Concise AI orientation files.
 - `docs/*`: Canonical product and architecture documentation.
@@ -81,10 +81,8 @@ Architecture, backend, auth, routing, persistence, and token cleanup do **not** 
 - `apps/core` owns reusable design system tokens, widgets, theme primitives, and routing contracts.
 - `apps/wear` owns Wear OS Flutter UI, watch-specific navigation, and phone bridge sync integration.
 - `apps/watchos` owns Apple Watch native UI, HealthKit integration, complications, and WatchConnectivity.
-- future `supabase/` owns Supabase Auth, Postgres migrations, RLS policies, Storage boundaries, and approved Supabase functions.
-- future `backend/api` owns protected service endpoints and integrations when Supabase functions are no longer sufficient.
-- future `backend/ai-coach` owns server-side coaching orchestration, Gemini/provider adapters, prompts, guardrails, and AI response shaping.
-- future `backend/jobs` owns long-running background workers, notifications, sync jobs, and scheduled tasks.
+- `supabase/` (active, current) owns Supabase Auth, Postgres migrations, RLS policies, Storage boundaries, and approved Supabase functions.
+- future `services/api` owns protected service endpoints, server-side coaching orchestration, Gemini/provider adapters, integrations, and long-running background work when Supabase functions are no longer sufficient. This is the only future protected-backend path (see ADR-0007); do not introduce a `backend/*` namespace.
 - `docs` owns canonical product and architecture docs.
 - `.github` owns contribution, issue, PR, push, CI, and post-merge workflow docs.
 - `.ai` owns concise AI orientation files.
@@ -130,7 +128,7 @@ Architecture, backend, auth, routing, persistence, and token cleanup do **not** 
 - Do not log secrets, tokens, private health data, real user data, or production credentials.
 - Do not expose service-role keys, admin keys, private keys, keystores, signing files, or production secrets in client apps.
 - Client apps may use only client-safe keys and APIs.
-- Privileged operations must stay in approved Supabase server functions or future `backend/*`; never put them in client apps.
+- Privileged operations must stay in approved Supabase server functions or future `services/api`; never put them in client apps.
 - Database tables should be introduced incrementally when a real feature slice needs them.
 - Every client-accessible table needs RLS or equivalent access control.
 - Hardcoded sample data is temporary UI scaffolding, not source of truth.
@@ -143,6 +141,8 @@ Architecture, backend, auth, routing, persistence, and token cleanup do **not** 
 - Validate user-owned data access on the server.
 - Prefer small, testable endpoints and explicit DTOs.
 - Do not imply a Supabase/Postgres migration, RLS policy, RPC, or live schema change unless it is actually included.
+- Supabase is active current infrastructure, not future work; a current Supabase schema/RLS/RPC change is allowed when a concrete active feature genuinely needs it and the bounded task approves it. Do not add Docker/local-database CI, paid Supabase environments, or extra RPC-hardening/verification infrastructure merely for speculative future-safety.
+- `services/api` remains architecture-only (ADR-0007) until a separately approved implementation slice starts it. Documenting or planning it does not authorize writing backend code.
 
 ## Git And Push Workflow
 
