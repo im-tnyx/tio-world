@@ -79,13 +79,15 @@ create_user() {
   echo "$token $uid"
 }
 
-# insert_weight TOKEN WEIGHT_KG -> prints http code
+# insert_weight TOKEN UID WEIGHT_KG -> prints http code
+# user_id has no column default, and the insert-own RLS policy checks
+# auth.uid() = user_id, so it must be supplied explicitly here.
 insert_weight() {
-  local token="$1" weight="$2"
+  local token="$1" uid="$2" weight="$3"
   curl -sS -o /dev/null -w '%{http_code}' -X POST "$API_URL/rest/v1/body_weight_logs" \
     -H "apikey: $ANON_KEY" -H "Authorization: Bearer $token" \
     -H "Content-Type: application/json" -H "Prefer: return=minimal" \
-    -d "{\"weight_kg\": $weight, \"source\": \"db_test_fixture\"}"
+    -d "{\"user_id\": \"$uid\", \"weight_kg\": $weight, \"source\": \"db_test_fixture\"}"
 }
 
 # call_rpc TOKEN GOAL_TYPE TARGET_OR_null PACE_OR_null OUT_FILE -> prints http code
@@ -173,7 +175,7 @@ read -r TOK_RLS_B UID_RLS_B <<<"$(create_user "rls-b-$RUN_ID@example.com")"
 
 echo "== same-goal update preserves identity =="
 
-insert_weight "$TOK_SAME_LOSE" 90 >/dev/null
+insert_weight "$TOK_SAME_LOSE" "$UID_SAME_LOSE" 90 >/dev/null
 out="$(mktemp)"; code="$(call_rpc "$TOK_SAME_LOSE" "lose_weight" 70 0.5 "$out")"; assert_2xx "same-Lose: first-goal creation succeeds" "$code"; rm -f "$out"
 row1="$(psql "$DB_URL" -X -A -t -c "select id, starting_weight_kg, started_at, coalesce(intent_rank::text, 'null') from public.user_body_goals where user_id = '$UID_SAME_LOSE' and status = 'active';")"
 id1="$(echo "$row1" | cut -d'|' -f1)"; start1="$(echo "$row1" | cut -d'|' -f2)"; started1="$(echo "$row1" | cut -d'|' -f3)"; rank1="$(echo "$row1" | cut -d'|' -f4)"
@@ -189,7 +191,7 @@ assert_eq "same-Lose: pace updated" "0.4" "$pace2"
 active_count="$(psql_scalar "select count(*) from public.user_body_goals where user_id = '$UID_SAME_LOSE' and status = 'active';")"
 assert_eq "same-Lose: exactly one active row" "1" "$active_count"
 
-insert_weight "$TOK_SAME_GAIN" 60 >/dev/null
+insert_weight "$TOK_SAME_GAIN" "$UID_SAME_GAIN" 60 >/dev/null
 out="$(mktemp)"; call_rpc "$TOK_SAME_GAIN" "gain_weight" 70 0.5 "$out" >/dev/null; rm -f "$out"
 gid1="$(psql_scalar "select id from public.user_body_goals where user_id = '$UID_SAME_GAIN' and status = 'active';")"
 out="$(mktemp)"; code="$(call_rpc "$TOK_SAME_GAIN" "gain_weight" 75 0.3 "$out")"; assert_2xx "same-Gain: second same-type call succeeds" "$code"; rm -f "$out"
@@ -214,7 +216,7 @@ assert_eq "same-Maintain: pace stays null" "null" "$mpace2"
 
 echo "== changed-goal transitions =="
 
-insert_weight "$TOK_L2G" 90 >/dev/null
+insert_weight "$TOK_L2G" "$UID_L2G" 90 >/dev/null
 out="$(mktemp)"; call_rpc "$TOK_L2G" "lose_weight" 80 0.5 "$out" >/dev/null; rm -f "$out"
 l2g_old_id="$(psql_scalar "select id from public.user_body_goals where user_id = '$UID_L2G' and status = 'active';")"
 out="$(mktemp)"; code="$(call_rpc "$TOK_L2G" "gain_weight" 100 0.5 "$out")"; assert_2xx "Lose to Gain transition succeeds" "$code"; rm -f "$out"
@@ -225,19 +227,19 @@ assert_eq "Lose to Gain: new active row is gain_weight with snapshot + values" "
 l2g_active_count="$(psql_scalar "select count(*) from public.user_body_goals where user_id = '$UID_L2G' and status = 'active';")"
 assert_eq "Lose to Gain: exactly one active row after transition" "1" "$l2g_active_count"
 
-insert_weight "$TOK_G2L" 60 >/dev/null
+insert_weight "$TOK_G2L" "$UID_G2L" 60 >/dev/null
 out="$(mktemp)"; call_rpc "$TOK_G2L" "gain_weight" 70 0.5 "$out" >/dev/null; rm -f "$out"
 out="$(mktemp)"; code="$(call_rpc "$TOK_G2L" "lose_weight" 55 0.4 "$out")"; assert_2xx "Gain to Lose transition succeeds" "$code"; rm -f "$out"
 g2l_new="$(psql "$DB_URL" -X -A -t -c "select goal_type, target_weight_kg, weekly_weight_change_kg from public.user_body_goals where user_id = '$UID_G2L' and status = 'active';")"
 assert_eq "Gain to Lose: new active row correct" "lose_weight|55|0.4" "$g2l_new"
 
-insert_weight "$TOK_D2M" 90 >/dev/null
+insert_weight "$TOK_D2M" "$UID_D2M" 90 >/dev/null
 out="$(mktemp)"; call_rpc "$TOK_D2M" "lose_weight" 80 0.5 "$out" >/dev/null; rm -f "$out"
 out="$(mktemp)"; code="$(call_rpc "$TOK_D2M" "maintain_weight" "null" "null" "$out")"; assert_2xx "directional to Maintain transition succeeds" "$code"; rm -f "$out"
 d2m_new="$(psql "$DB_URL" -X -A -t -c "select goal_type, coalesce(target_weight_kg::text,'null'), coalesce(weekly_weight_change_kg::text,'null') from public.user_body_goals where user_id = '$UID_D2M' and status = 'active';")"
 assert_eq "directional to Maintain: target/pace null on the new active row" "maintain_weight|null|null" "$d2m_new"
 
-insert_weight "$TOK_M2D" 70 >/dev/null
+insert_weight "$TOK_M2D" "$UID_M2D" 70 >/dev/null
 out="$(mktemp)"; call_rpc "$TOK_M2D" "maintain_weight" "null" "null" "$out" >/dev/null; rm -f "$out"
 out="$(mktemp)"; code="$(call_rpc "$TOK_M2D" "lose_weight" 60 0.5 "$out")"; assert_2xx "Maintain to directional transition succeeds" "$code"; rm -f "$out"
 m2d_new="$(psql "$DB_URL" -X -A -t -c "select goal_type, starting_weight_kg, target_weight_kg from public.user_body_goals where user_id = '$UID_M2D' and status = 'active';")"
@@ -246,7 +248,7 @@ assert_eq "Maintain to directional: new active row correct" "lose_weight|70|60" 
 # legacy Recomposition -> supported goal: seed the legacy active row directly,
 # the way historical onboarding data could look; the RPC itself never accepts
 # 'recomposition' as a requested value, only as pre-existing state to move away from.
-insert_weight "$TOK_RECOMP" 75 >/dev/null
+insert_weight "$TOK_RECOMP" "$UID_RECOMP" 75 >/dev/null
 psql "$DB_URL" -X -q -c "insert into public.user_body_goals (user_id, goal_type, starting_weight_kg, status, started_at) values ('$UID_RECOMP', 'recomposition', 75, 'active', now());"
 recomp_old_id="$(psql_scalar "select id from public.user_body_goals where user_id = '$UID_RECOMP' and status = 'active';")"
 out="$(mktemp)"; code="$(call_rpc "$TOK_RECOMP" "lose_weight" 65 0.4 "$out")"; assert_2xx "legacy Recomposition to Lose transition succeeds" "$code"; rm -f "$out"
@@ -274,7 +276,7 @@ assert_err "unknown goal vocabulary is rejected" "$code"
 rm -f "$out"
 assert_eq "bad-vocabulary rejections left zero rows" "0" "$(psql_scalar "select count(*) from public.user_body_goals where user_id = '$UID_BADVOCAB';")"
 
-insert_weight "$TOK_RANGE" 90 >/dev/null
+insert_weight "$TOK_RANGE" "$UID_RANGE" 90 >/dev/null
 out="$(mktemp)"; code="$(call_rpc "$TOK_RANGE" "lose_weight" 10 0.5 "$out")"
 assert_err "target below 30kg range floor is rejected" "$code"
 assert_contains "rejection names target_weight_out_of_range" "$(cat "$out")" "target_weight_out_of_range"
@@ -284,7 +286,7 @@ assert_err "target above 200kg range ceiling is rejected" "$code"
 rm -f "$out"
 assert_eq "target-range rejections left zero rows" "0" "$(psql_scalar "select count(*) from public.user_body_goals where user_id = '$UID_RANGE';")"
 
-insert_weight "$TOK_DIR" 90 >/dev/null
+insert_weight "$TOK_DIR" "$UID_DIR" 90 >/dev/null
 out="$(mktemp)"; code="$(call_rpc "$TOK_DIR" "lose_weight" 95 0.5 "$out")"
 assert_err "Lose target above current weight is rejected" "$code"
 assert_contains "rejection names target_weight_must_be_below_current_for_lose" "$(cat "$out")" "target_weight_must_be_below_current_for_lose"
@@ -294,7 +296,7 @@ assert_err "Gain target below current weight is rejected" "$code"
 assert_contains "rejection names target_weight_must_be_above_current_for_gain" "$(cat "$out")" "target_weight_must_be_above_current_for_gain"
 rm -f "$out"
 
-insert_weight "$TOK_PACERANGE" 90 >/dev/null
+insert_weight "$TOK_PACERANGE" "$UID_PACERANGE" 90 >/dev/null
 out="$(mktemp)"; code="$(call_rpc "$TOK_PACERANGE" "lose_weight" 80 0.05 "$out")"
 assert_err "pace below 0.1 floor is rejected" "$code"
 rm -f "$out"
@@ -302,13 +304,13 @@ out="$(mktemp)"; code="$(call_rpc "$TOK_PACERANGE" "lose_weight" 80 2.0 "$out")"
 assert_err "pace above 1.5 ceiling is rejected" "$code"
 rm -f "$out"
 
-insert_weight "$TOK_PACEINC" 90 >/dev/null
+insert_weight "$TOK_PACEINC" "$UID_PACEINC" 90 >/dev/null
 out="$(mktemp)"; code="$(call_rpc "$TOK_PACEINC" "lose_weight" 80 0.15 "$out")"
 assert_err "pace not aligned to the exact 0.1kg increment is rejected" "$code"
 assert_contains "rejection names goal_pace_invalid_increment" "$(cat "$out")" "goal_pace_invalid_increment"
 rm -f "$out"
 
-insert_weight "$TOK_MAINTREJ" 90 >/dev/null
+insert_weight "$TOK_MAINTREJ" "$UID_MAINTREJ" 90 >/dev/null
 out="$(mktemp)"; code="$(call_rpc "$TOK_MAINTREJ" "maintain_weight" 80 "null" "$out")"
 assert_err "Maintain with a target is rejected" "$code"
 assert_contains "rejection names maintain_goal_cannot_carry_target_or_pace" "$(cat "$out")" "maintain_goal_cannot_carry_target_or_pace"
@@ -321,7 +323,7 @@ rm -f "$out"
 
 echo "== forced-exception rollback (CI-only trigger) =="
 
-insert_weight "$TOK_ROLLBACK" 90 >/dev/null
+insert_weight "$TOK_ROLLBACK" "$UID_ROLLBACK" 90 >/dev/null
 out="$(mktemp)"; call_rpc "$TOK_ROLLBACK" "lose_weight" 80 0.5 "$out" >/dev/null; rm -f "$out"
 rollback_original_id="$(psql_scalar "select id from public.user_body_goals where user_id = '$UID_ROLLBACK' and status = 'active';")"
 
@@ -338,7 +340,7 @@ assert_eq "rollback: no orphaned new row was left behind by the failed insert" "
 
 echo "== concurrency =="
 
-insert_weight "$TOK_CONC_ACTIVE" 90 >/dev/null
+insert_weight "$TOK_CONC_ACTIVE" "$UID_CONC_ACTIVE" 90 >/dev/null
 out="$(mktemp)"; call_rpc "$TOK_CONC_ACTIVE" "lose_weight" 80 0.5 "$out" >/dev/null; rm -f "$out"
 
 conc1_out="$(mktemp)"; conc2_out="$(mktemp)"
@@ -357,7 +359,7 @@ assert_eq "two concurrent transitions from an existing active goal serialize to 
 conc_total_count="$(psql_scalar "select count(*) from public.user_body_goals where user_id = '$UID_CONC_ACTIVE';")"
 assert_eq "two concurrent transitions leave exactly two historical rows total (original + final), no duplicate insert" "2" "$conc_total_count"
 
-insert_weight "$TOK_CONC_FIRST" 90 >/dev/null
+insert_weight "$TOK_CONC_FIRST" "$UID_CONC_FIRST" 90 >/dev/null
 first1_out="$(mktemp)"; first2_out="$(mktemp)"
 ( call_rpc "$TOK_CONC_FIRST" "lose_weight" 80 0.5 "$first1_out" >"$first1_out.code" ) &
 p3=$!
@@ -378,7 +380,7 @@ assert_eq "two concurrent first-goal calls leave exactly one row total, not two 
 
 echo "== retry idempotency =="
 
-insert_weight "$TOK_RETRY" 90 >/dev/null
+insert_weight "$TOK_RETRY" "$UID_RETRY" 90 >/dev/null
 out="$(mktemp)"; call_rpc "$TOK_RETRY" "lose_weight" 80 0.5 "$out" >/dev/null; rm -f "$out"
 out="$(mktemp)"; call_rpc "$TOK_RETRY" "gain_weight" 100 0.5 "$out" >/dev/null; rm -f "$out"
 retry_id_after_first="$(psql_scalar "select id from public.user_body_goals where user_id = '$UID_RETRY' and status = 'active';")"
@@ -394,7 +396,7 @@ assert_eq "retry leaves exactly two historical rows total (original + transition
 
 echo "== RLS cross-user isolation =="
 
-insert_weight "$TOK_RLS_A" 90 >/dev/null
+insert_weight "$TOK_RLS_A" "$UID_RLS_A" 90 >/dev/null
 out="$(mktemp)"; call_rpc "$TOK_RLS_A" "lose_weight" 80 0.5 "$out" >/dev/null; rm -f "$out"
 rls_a_row_id="$(psql_scalar "select id from public.user_body_goals where user_id = '$UID_RLS_A' and status = 'active';")"
 
