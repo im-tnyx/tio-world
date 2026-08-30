@@ -22,6 +22,25 @@ extension BodyGoalTypeStorage on BodyGoalType {
 abstract final class BodyWeightSources {
   static const onboardingSetup = 'onboarding_setup';
   static const profileSettings = 'profile_settings';
+  static const bodyWeightSettings = 'body_weight_settings';
+}
+
+/// Post-onboarding Body Goal mutation payload.
+///
+/// Carries only user-editable goal state. Settings must never supply
+/// [startingWeightKg]/`startedAt`/row identity/status — those remain owned by
+/// [BodyRepository.setActiveBodyGoal]'s reconciliation logic so a Settings
+/// caller cannot fabricate or corrupt goal-lifecycle history.
+class BodyGoalUpdate {
+  const BodyGoalUpdate({
+    required this.goalType,
+    this.targetWeightKg,
+    this.weeklyWeightChangeKg,
+  });
+
+  final BodyGoalType goalType;
+  final double? targetWeightKg;
+  final double? weeklyWeightChangeKg;
 }
 
 /// Active Body Goal data used during onboarding setup persistence.
@@ -135,4 +154,21 @@ abstract interface class BodyRepository implements BodySetupRepository {
   /// for [saveBodySetup] retry/reconciliation semantics and must be rejected by
   /// this command.
   Future<void> recordCurrentWeight(BodyWeightRecord record);
+
+  /// Post-onboarding Body Goal mutation command.
+  ///
+  /// Same goal type as the current active goal: updates the existing active
+  /// goal's target/pace in place, preserving row identity, `starting_weight_kg`
+  /// (including a historical null), `started_at`, and `intent_rank`.
+  ///
+  /// Changed goal type: supersedes the previous active goal and creates a new
+  /// active goal, snapshotting `starting_weight_kg` from the latest canonical
+  /// weight when available and preserving the previous `intent_rank` when
+  /// present. A directional (`loseWeight`/`gainWeight`) new goal requires a
+  /// real canonical current weight to snapshot as its starting weight; when
+  /// none exists, the command rejects rather than fabricating one.
+  ///
+  /// [update.goalType] must be `loseWeight`, `gainWeight`, or `maintainWeight`.
+  /// `recomposition` is legacy decode/display-only and is rejected here.
+  Future<void> setActiveBodyGoal(BodyGoalUpdate update);
 }

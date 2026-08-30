@@ -11,6 +11,7 @@ import 'package:tio_feature_home/home.dart';
 import 'package:tio_feature_onboarding/onboarding.dart'
     hide ProfileGender, ProfileActivityLevel;
 import 'package:tio_feature_profile/profile.dart';
+import 'package:tio_feature_progress/progress.dart';
 import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_feature_splash/splash.dart';
 import 'package:tio_feature_welcome/welcome.dart';
@@ -77,6 +78,7 @@ ChromePolicy shellChromePolicyForPath(String location) {
     AppRoutes.settings,
     AppRoutes.healthGoalsSettings,
     AppRoutes.dailyWellnessSettings,
+    AppRoutes.bodyWeightSettings,
     AppRoutes.profileSettings,
     AppRoutes.accountSettings,
     AppRoutes.appSettings,
@@ -703,6 +705,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => HealthGoalsSettingsPage(
           onDailyWellnessPressed: () =>
               context.push(AppRoutes.dailyWellnessSettings.path),
+          onBodyWeightPressed: () =>
+              context.push(AppRoutes.bodyWeightSettings.path),
         ),
       ),
       GoRoute(
@@ -830,6 +834,129 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 final repository = ref.read(wellnessTargetsRepositoryProvider);
                 await repository.upsert(targets);
                 ref.invalidate(wellnessTargetsDataProvider);
+              },
+            );
+          },
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.bodyWeightSettings.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => Consumer(
+          builder: (context, ref, _) {
+            final bodyAsync = ref.watch(bodyStateDataProvider);
+            final profileAsync = ref.watch(profileDataProvider);
+            final weightUnit =
+                profileAsync.valueOrNull?.unitPreferences.weightUnit ??
+                    WeightUnit.kg;
+            final colors = context.tioColors;
+
+            if (bodyAsync.isLoading && bodyAsync.valueOrNull == null) {
+              return Scaffold(
+                backgroundColor: colors.background,
+                appBar: AppBar(
+                  backgroundColor: colors.background,
+                  elevation: TioElevation.none,
+                  scrolledUnderElevation: TioElevation.none,
+                  leading: BackButton(color: colors.textPrimary),
+                  title: Text(
+                    'Body & Weight',
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontWeight: TioFontWeight.w800,
+                      fontSize: TioFontSize.size20,
+                    ),
+                  ),
+                ),
+                body: SafeArea(
+                  child: Center(
+                    child: CircularProgressIndicator(color: colors.primary),
+                  ),
+                ),
+              );
+            }
+
+            if (bodyAsync.hasError && bodyAsync.valueOrNull == null) {
+              return Scaffold(
+                backgroundColor: colors.background,
+                appBar: AppBar(
+                  backgroundColor: colors.background,
+                  elevation: TioElevation.none,
+                  scrolledUnderElevation: TioElevation.none,
+                  leading: BackButton(color: colors.textPrimary),
+                  title: Text(
+                    'Body & Weight',
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontWeight: TioFontWeight.w800,
+                      fontSize: TioFontSize.size20,
+                    ),
+                  ),
+                ),
+                body: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(TioSpacing.xl),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline_rounded,
+                            size: TioSize.dp48,
+                            color: colors.danger,
+                          ),
+                          const SizedBox(height: TioSpacing.lg),
+                          Text(
+                            'Could not load Body & Weight',
+                            style: TextStyle(
+                              color: colors.textPrimary,
+                              fontSize: TioFontSize.size18,
+                              fontWeight: TioFontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: TioSpacing.sm),
+                          Text(
+                            'Please check your connection and try again.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: colors.textSecondary,
+                              fontSize: TioFontSize.size14,
+                            ),
+                          ),
+                          const SizedBox(height: TioSpacing.xl),
+                          TioButton.primary(
+                            label: 'Retry',
+                            onPressed: () =>
+                                ref.invalidate(bodyStateDataProvider),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            return BodyWeightSettingsPage(
+              bodyState: bodyAsync.valueOrNull ?? const BodyState(),
+              weightUnit: weightUnit,
+              onRecordCurrentWeight: (weightKg) async {
+                final repository = ref.read(bodyRepositoryProvider);
+                await repository.recordCurrentWeight(
+                  BodyWeightRecord(
+                    weightKg: weightKg,
+                    measuredAt: DateTime.now(),
+                    source: BodyWeightSources.bodyWeightSettings,
+                  ),
+                );
+                ref.invalidate(bodyStateDataProvider);
+                ref.invalidate(profileDataProvider);
+              },
+              onSaveBodyGoal: (update) async {
+                final repository = ref.read(bodyRepositoryProvider);
+                await repository.setActiveBodyGoal(update);
+                ref.invalidate(bodyStateDataProvider);
+                ref.invalidate(profileDataProvider);
               },
             );
           },

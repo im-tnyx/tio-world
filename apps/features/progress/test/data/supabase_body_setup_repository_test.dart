@@ -154,6 +154,100 @@ void main() {
     );
   });
 
+  test('setActiveBodyGoal requires authenticated user', () async {
+    final repository = SupabaseBodySetupRepository(
+      client: _AuthOnlySupabaseClient(currentUser: null),
+    );
+
+    await expectLater(
+      () => repository.setActiveBodyGoal(
+        const BodyGoalUpdate(goalType: BodyGoalType.maintainWeight),
+      ),
+      throwsStateError,
+    );
+  });
+
+  test('setActiveBodyGoal rejects Recomposition before database access',
+      () async {
+    final repository = SupabaseBodySetupRepository(
+      client: _AuthOnlySupabaseClient(currentUser: fakeUser),
+    );
+
+    await expectLater(
+      () => repository.setActiveBodyGoal(
+        const BodyGoalUpdate(goalType: BodyGoalType.recomposition),
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test('setActiveBodyGoal rejects Maintain carrying Target/Pace before database access',
+      () async {
+    final repository = SupabaseBodySetupRepository(
+      client: _AuthOnlySupabaseClient(currentUser: fakeUser),
+    );
+
+    await expectLater(
+      () => repository.setActiveBodyGoal(
+        const BodyGoalUpdate(
+          goalType: BodyGoalType.maintainWeight,
+          targetWeightKg: 70,
+        ),
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test('setActiveBodyGoal rejects a directional goal missing Target/Pace before database access',
+      () async {
+    final repository = SupabaseBodySetupRepository(
+      client: _AuthOnlySupabaseClient(currentUser: fakeUser),
+    );
+
+    await expectLater(
+      () => repository.setActiveBodyGoal(
+        const BodyGoalUpdate(goalType: BodyGoalType.loseWeight),
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test('setActiveBodyGoal rejects non-positive Target Weight before database access',
+      () async {
+    final repository = SupabaseBodySetupRepository(
+      client: _AuthOnlySupabaseClient(currentUser: fakeUser),
+    );
+
+    await expectLater(
+      () => repository.setActiveBodyGoal(
+        const BodyGoalUpdate(
+          goalType: BodyGoalType.loseWeight,
+          targetWeightKg: 0,
+          weeklyWeightChangeKg: 0.5,
+        ),
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test('setActiveBodyGoal rejects negative Goal Pace before database access',
+      () async {
+    final repository = SupabaseBodySetupRepository(
+      client: _AuthOnlySupabaseClient(currentUser: fakeUser),
+    );
+
+    await expectLater(
+      () => repository.setActiveBodyGoal(
+        const BodyGoalUpdate(
+          goalType: BodyGoalType.gainWeight,
+          targetWeightKg: 74,
+          weeklyWeightChangeKg: -0.1,
+        ),
+      ),
+      throwsArgumentError,
+    );
+  });
+
   test('in-memory setup exposes canonical Body state without defaults', () async {
     var now = DateTime.utc(2026, 8, 21, 10);
     final repository = InMemoryBodySetupRepository(now: () => now);

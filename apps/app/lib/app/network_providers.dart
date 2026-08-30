@@ -177,6 +177,24 @@ final bodySetupRepositoryProvider = Provider<BodySetupRepository>((ref) {
   );
 });
 
+/// Canonical Body owner used by post-onboarding Settings surfaces (Body &
+/// Weight, Profile Current Weight). Falls back to an in-memory instance
+/// without a Supabase client so non-Supabase test/local harnesses stay
+/// constructible.
+final bodyRepositoryProvider = Provider<BodyRepository>((ref) {
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  if (supabaseClient != null) {
+    return SupabaseBodySetupRepository(client: supabaseClient);
+  }
+  return InMemoryBodySetupRepository();
+});
+
+/// Canonical Body read state provider for UI routes.
+final bodyStateDataProvider = FutureProvider<BodyState>((ref) async {
+  final repository = ref.watch(bodyRepositoryProvider);
+  return repository.getBodyState();
+});
+
 final class _BodyAndWellnessSetupRepository
     implements BodySetupRepository, WellnessTargetsRepository {
   const _BodyAndWellnessSetupRepository({

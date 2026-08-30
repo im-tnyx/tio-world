@@ -164,4 +164,9 @@ final class _BodyRepository implements BodyRepository {
   Future<void> saveBodySetup(BodySetupData data) async {
     throw UnsupportedError('not used by this acceptance');
   }
+
+  @override
+  Future<void> setActiveBodyGoal(BodyGoalUpdate update) async {
+    throw UnsupportedError('not used by this acceptance');
+  }
 }

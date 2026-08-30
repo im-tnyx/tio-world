@@ -4,9 +4,11 @@ import 'package:tio_core/core.dart';
 import 'package:tio_feature_settings/settings.dart';
 
 void main() {
-  testWidgets('HealthGoalsSettingsPage renders cleanly and navigates to Daily Wellness',
+  testWidgets(
+      'HealthGoalsSettingsPage renders cleanly and navigates to Daily Wellness and Body & Weight',
       (tester) async {
     var dailyWellnessTaps = 0;
+    var bodyWeightTaps = 0;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -14,6 +16,7 @@ void main() {
             TioTheme(child: child ?? const SizedBox.shrink()),
         home: HealthGoalsSettingsPage(
           onDailyWellnessPressed: () => dailyWellnessTaps++,
+          onBodyWeightPressed: () => bodyWeightTaps++,
         ),
       ),
     );
@@ -27,10 +30,15 @@ void main() {
     expect(
         find.byKey(const ValueKey('health-goals-daily-wellness-entry')),
         findsOneWidget);
+    expect(find.text('Body & Weight'), findsOneWidget);
+    expect(find.text('Current weight, Body Goal & pace'), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('health-goals-body-weight-entry')),
+        findsOneWidget);
 
-    // Verify absence of fake Body & Weight placeholder rows
+    // Verify absence of fake field-level placeholder rows -- Body & Weight's
+    // own fields must only appear on its detail page, not flattened here.
     for (final absent in [
-      'Body & Weight',
       'Body Goal',
       'Weight Goal',
       'Target Weight',
@@ -41,8 +49,13 @@ void main() {
       expect(find.text(absent), findsNothing, reason: absent);
     }
 
-    await tester.tap(find.byKey(const ValueKey('health-goals-daily-wellness-entry')));
+    await tester
+        .tap(find.byKey(const ValueKey('health-goals-daily-wellness-entry')));
     expect(dailyWellnessTaps, 1);
+
+    await tester
+        .tap(find.byKey(const ValueKey('health-goals-body-weight-entry')));
+    expect(bodyWeightTaps, 1);
   });
 
   for (final mode in [TioThemeMode.light, TioThemeMode.dark]) {
@@ -65,7 +78,10 @@ void main() {
                 child: appChild!,
               ),
             ),
-            home: HealthGoalsSettingsPage(onDailyWellnessPressed: () {}),
+            home: HealthGoalsSettingsPage(
+            onDailyWellnessPressed: () {},
+            onBodyWeightPressed: () {},
+          ),
           ),
         );
         await tester.pumpAndSettle();
