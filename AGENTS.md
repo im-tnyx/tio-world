@@ -50,9 +50,13 @@ Runtime source/config wins for actual behavior. Product docs and ADRs win for in
 
 For any user-facing feature, cross-package change, navigation change, persistence change, auth/session change, or design-system change:
 
+Mandatory Owner Approval applies only before a new independently scoped product task/feature slice, an unapproved product-visible UI/UX change, or a Supabase table/column shape change. Normal implementation subtasks inside an already approved scope are not new-task triggers. See `.ai/FEATURE_DEVELOPMENT.md` for the canonical detailed contract.
+
 - Before source changes, create or update one focused task brief under `.ai/tasks/` using `.ai/tasks/TEMPLATE.md`.
 - Follow `.ai/workflow.md` in order: Discovery → Codebase Exploration → Clarification → Architecture Design → Implementation → Quality Review → Final Handoff.
 - Keep only one implementation slice active at a time. Do not implement a large GitHub issue or epic as one broad change.
+- Keep at most one active `Implementation owner` for a task slice. Only that owner may modify implementation/source files for the slice. Planning and review owners may inspect, reason, and update task/review governance records, but must not modify implementation/source files unless implementation ownership is explicitly transferred.
+- Follow `.ai/tasks/README.md` for planned handoff, unexpected takeover, repository-state reconstruction, and ownership-transfer rules.
 - GitHub Issues are backlog/tracking. `.ai/tasks` files are compact execution context and must not become transcript dumps.
 - Each task brief must record verified evidence, exact in-scope/out-of-scope boundaries, non-goals, decisions, validation, and handoff status.
 - Inspect `git status --short --branch` before implementation and preserve unrelated dirty/untracked work.
