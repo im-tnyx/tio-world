@@ -11,17 +11,6 @@
 --   * keep public.users.name because account/bootstrap still owns that constraint.
 -- ============================================================================
 
--- LOCK TABLE only has effect for the duration of an enclosing transaction, so
--- Postgres rejects it outside one ("LOCK TABLE can only be used in
--- transaction blocks"). This migration always relied on running inside a
--- transaction; the hosted deploy path wraps each migration in one implicitly,
--- but the local Supabase CLI's from-scratch migration replay (`supabase db
--- reset`, used by CI to build an ephemeral test database) does not, which
--- surfaced the missing explicit BEGIN/COMMIT. Wrapping it here only makes
--- explicit what the statement already required; it changes no behavior on
--- the hosted project, where this migration is already applied.
-begin;
-
 lock table public.users,
            public.user_nutrition_profiles,
            public.user_workout_profiles
@@ -159,5 +148,3 @@ alter table public.user_workout_profiles
   drop column workout_duration_mins,
   drop column split_program,
   drop column special_event_goal;
-
-commit;
