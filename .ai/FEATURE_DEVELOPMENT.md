@@ -10,6 +10,20 @@ Use it for user-facing features, cross-package changes, routing, data/persistenc
 
 For a one-file documentation correction or a mechanical formatting fix, record the scope and validation in the final handoff without creating a full task brief.
 
+## Owner Approval Gate
+
+Approval is for product direction and high-risk product/data shape changes, not normal engineering execution.
+
+Mandatory Owner Approval applies only before:
+
+1. **A new independently scoped product task, feature, or product slice.** Before implementation, explain what will be built, why it should be next, what will change, and what will not change. Stop at `AWAITING OWNER APPROVAL` until the owner approves that scope.
+2. **An unapproved product-visible UI/UX change.** This includes layout, visual appearance, spacing, typography, colors, component geometry, visible navigation or interaction behavior, adding or removing visible UI, or redesigning an existing screen or flow. UI/UX already included in the owner-approved task scope does not need repeated approval for each implementation detail. Pixel- and behavior-preserving internal refactors do not require approval.
+3. **A Supabase table or column shape change.** Creating, deleting, renaming, or materially changing a table or column requires approval, including column type, nullability, or semantic ownership changes. Explain the proposed data-model and compatibility impact before implementation. An approval covering the exact shape does not need to be repeated for each migration statement.
+
+`New task` does not mean a normal implementation subtask needed to complete an already approved scope. Tests, scoped bug fixes, repository/provider/controller wiring, internal refactors, validation or CI fixes, review findings, documentation, and internal RPC/RLS/security/correctness work are not new-task approval triggers by themselves.
+
+Other engineering decisions may be resolved and implemented without Owner Approval when they are necessary to complete the approved task and stay within its boundaries. If implementation discovers a new idea that would create a new independently scoped product task, introduce an unapproved visible UI/UX change, or change a Supabase table/column shape, record it as a follow-up and return to the Owner Approval Gate. Do not broaden the active task silently.
+
 ## The Seven Phases
 
 ### 1. Discovery
@@ -22,7 +36,7 @@ Read the current runtime source, configuration, tests, package manifests, nearby
 
 ### 3. Clarification
 
-Stop for choices that would change product scope, persistence, data/privacy ownership, platform strategy, compatibility, or external systems. Record the decision and rationale in the task brief and add a durable decision to [DECISIONS.md](DECISIONS.md) when needed.
+Resolve engineering decisions that are necessary to complete the approved scope and record material rationale in the task brief. Stop for Owner Approval only when a choice triggers one of the three conditions in the Owner Approval Gate. Add a durable decision to [DECISIONS.md](DECISIONS.md) when needed.
 
 ### 4. Architecture Design
 
@@ -30,7 +44,7 @@ Document the owning package, public contracts, route/state flow, data boundary, 
 
 ### 5. Implementation
 
-Implement the smallest complete vertical slice. Keep the task brief's scope and non-goals enforced. Do not add backend schemas, third-party services, or platform migrations without their explicit approved decision.
+Implement the smallest complete vertical slice. Keep the task brief's approved scope and non-goals enforced. Continue normal engineering execution without repeated approval while it remains inside those boundaries. Record any newly discovered product direction, unapproved visible UI/UX change, or Supabase table/column shape change as a follow-up and return to the Owner Approval Gate before implementing it.
 
 ### 6. Quality Review
 
@@ -44,8 +58,10 @@ State the changed files, actual behavior, validation evidence, known limitations
 
 | Gate | Must be true before moving on |
 |---|---|
-| Start implementation | Scope, owner, current behavior, and material decisions are recorded. |
-| Add persistence or external integration | Data ownership, privacy boundary, and synchronization behavior are explicitly approved. |
+| Start a new independently scoped product task/feature slice | What will be built, why it should be next, what will change, and what will not change are explained; the owner has approved that scope. |
+| Make a product-visible UI/UX change | The visible change is included in the owner-approved task scope or has later explicit approval. |
+| Change a Supabase table/column shape | The exact table/column change and its data-model and compatibility impact are explained and approved. |
+| Continue normal implementation | The work is necessary for the approved outcome and remains within its scope and non-goals; no separate Owner Approval is required. |
 | Claim completion | Applicable validation has run, or the exact limitation is recorded. |
 | Archive a task | It is validated or superseded, and durable decisions/status are reflected in canonical docs. |
 
