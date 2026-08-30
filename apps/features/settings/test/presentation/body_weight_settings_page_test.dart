@@ -224,6 +224,56 @@ void main() {
     }
   });
 
+  testWidgets(
+      'both editor header variants leave the same gap above their content',
+      (tester) async {
+    // A titleTrailing affordance is a 48dp minimum tap target, so its header
+    // row is taller than a plain title one. Without compensation the toggle
+    // sheets drifted to ~27dp of title-to-content space while plain sheets
+    // sat at ~16dp. Both must stay visually matched.
+    await tester.pumpWidget(
+      buildApp(
+        BodyWeightSettingsPage(
+          bodyState:
+              stateWith(currentWeightKg: 68.4, activeGoal: activeLoseGoal),
+          weightUnit: WeightUnit.kg,
+          onRecordCurrentWeight: (_) async {},
+          onSaveBodyGoal: (_) async {},
+        ),
+      ),
+    );
+    final sheet = find.byKey(const ValueKey('daily-wellness-editor-sheet'));
+
+    // Header WITH the wheel/manual toggle.
+    await tester
+        .tap(find.byKey(const ValueKey('body-weight-current-weight-field')));
+    await tester.pumpAndSettle();
+    final withToggleGap =
+        tester.getRect(find.byKey(const ValueKey('body-weight-wheel'))).top -
+            tester
+                .getRect(find.descendant(
+                    of: sheet, matching: find.text('Current Weight')))
+                .bottom;
+    Navigator.of(tester.element(sheet)).pop();
+    await tester.pumpAndSettle();
+
+    // Header WITHOUT a trailing affordance.
+    await tester.tap(find.byKey(const ValueKey('body-weight-goal-pace-field')));
+    await tester.pumpAndSettle();
+    final plainGap = tester
+            .getRect(
+                find.byKey(const ValueKey('body-weight-goal-pace-value-text')))
+            .top -
+        tester
+            .getRect(
+                find.descendant(of: sheet, matching: find.text('Weekly Goal')))
+            .bottom;
+
+    expect((withToggleGap - plainGap).abs(), lessThanOrEqualTo(2.0),
+        reason: 'toggle header gap $withToggleGap should match plain header '
+            'gap $plainGap');
+  });
+
   group('Current Weight editor', () {
     Future<void> openEditor(
       WidgetTester tester, {

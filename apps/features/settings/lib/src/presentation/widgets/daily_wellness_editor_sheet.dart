@@ -112,7 +112,17 @@ class DailyWellnessEditorSheet extends StatelessWidget {
                             ),
                           ),
                         ],
-                        const SizedBox(height: TioSpacing.lg),
+                        // A titleTrailing affordance is a 48dp minimum tap
+                        // target, so its row is ~22dp taller than a plain
+                        // title and already contributes vertical space below
+                        // the title text. Compensate here so both header
+                        // variants land ~16dp above their content instead of
+                        // the trailing variant drifting to ~27dp.
+                        SizedBox(
+                          height: titleTrailing == null
+                              ? TioSpacing.lg
+                              : TioSpacing.xs,
+                        ),
                         content,
                         if (actions != null) ...[
                           const SizedBox(height: TioSpacing.md),

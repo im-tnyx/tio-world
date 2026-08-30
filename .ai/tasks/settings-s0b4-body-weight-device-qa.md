@@ -137,9 +137,13 @@ git diff --check                                                         PASS
   or affected focused test/analyze outcomes.
 - Product owner reported these defects from a physical-device review on
   2026-08-30, and on 2026-08-30 confirmed after rechecking the corrected build
-  that all four reported defects now look correct. The confirmation-card/logout
-  consistency follow-up is explicitly deferred to a separate scope and does not
-  block this slice.
+  that all four reported defects now look correct.
+- The follow-on drum-curvature unification (approved separately, see the
+  decisions table) was also verified by the product owner on a physical device
+  on 2026-08-30 and accepted, covering the changed onboarding Height, Current
+  Weight, and Target Weight steps.
+- The confirmation-card/logout consistency follow-up is explicitly deferred to
+  a separate scope and does not block this slice.
 
 ## 7. Final Handoff
 
@@ -173,8 +177,10 @@ the forward commit.
 ### Final Status
 
 `PASS` — focused automation and exact-head CI pass, and the product owner
-confirmed on 2026-08-30, after rechecking the corrected build, that all four
-reported defects now look correct. This is acceptance of these corrections
-only; it is not merge authorization. Confirmation card/logout standardization
-is a separate follow-up (GitHub #173), and the shared-wheel pill defect in
-`TioDobWheelPicker` is tracked separately.
+confirmed on 2026-08-30, after rechecking on a physical device, that both the
+four reported defect corrections and the follow-on drum-curvature unification
+look correct. This is acceptance of these corrections only; it is not merge
+authorization. Confirmation card/logout standardization is a separate
+follow-up (GitHub #173), and the light-theme selection-pill defect still
+present in `TioDobWheelPicker` and `OnboardingHeightWheel` is tracked in
+GitHub #174.
