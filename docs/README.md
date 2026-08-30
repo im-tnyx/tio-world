@@ -18,6 +18,7 @@ This folder is the source of truth for product architecture, module ownership, s
 | [`ASYNC_RELIABILITY.md`](ASYNC_RELIABILITY.md) | Job idempotency, retry classification/backoff, terminal/dead-letter handling, replay, and scheduled-vs-event-driven reliability rules. |
 | [`WORKER_ARCHITECTURE.md`](WORKER_ARCHITECTURE.md) | Future `services/worker` lifecycle, queue-consumer loop, bounded concurrency, graceful shutdown, restart safety, and API/worker deployment boundary. |
 | [`SCALING_READINESS.md`](SCALING_READINESS.md) | Evidence-based API/database/queue/worker/Storage/provider capacity triggers, scale ladder, cache boundary, and sharding-last policy. |
+| [`DEPLOYMENT_AND_ROLLBACK.md`](DEPLOYMENT_AND_ROLLBACK.md) | Provider-neutral API/worker deployment, readiness gates, rollback boundaries, release provenance, and reproducible infrastructure/configuration policy. |
 | [`DATA_PRIVACY_GOVERNANCE.md`](DATA_PRIVACY_GOVERNANCE.md) | Data classification, minimization, logging/analytics, AI/provider, deletion/export, retention, and environment-separation policy. |
 | [`DATABASE_BACKUP_RECOVERY.md`](DATABASE_BACKUP_RECOVERY.md) | Backup/PITR readiness, RPO/RTO, restore ownership, Storage recovery, and migration-safety policy. |
 | [`API_LIFECYCLE.md`](API_LIFECYCLE.md) | `/v1` compatibility, deprecation, minimum-client, capability negotiation, and generated-client traceability policy. |
