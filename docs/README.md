@@ -15,6 +15,7 @@ This folder is the source of truth for product architecture, module ownership, s
 | [`SECRETS_AND_ENVIRONMENTS.md`](SECRETS_AND_ENVIRONMENTS.md) | Client-safe vs server-secret classification, environment isolation, rotation/revocation, and leak-response policy. |
 | [`OBSERVABILITY.md`](OBSERVABILITY.md) | Structured logs, metrics, OpenTelemetry readiness, request/job correlation, dependency signals, and safe telemetry boundaries. |
 | [`QUEUE_STRATEGY.md`](QUEUE_STRATEGY.md) | Supabase Queues/pgmq first-choice boundary, queue use/non-use cases, versioned messages, visibility, acknowledgement, and technology escalation triggers. |
+| [`ASYNC_RELIABILITY.md`](ASYNC_RELIABILITY.md) | Job idempotency, retry classification/backoff, terminal/dead-letter handling, replay, and scheduled-vs-event-driven reliability rules. |
 | [`DATA_PRIVACY_GOVERNANCE.md`](DATA_PRIVACY_GOVERNANCE.md) | Data classification, minimization, logging/analytics, AI/provider, deletion/export, retention, and environment-separation policy. |
 | [`DATABASE_BACKUP_RECOVERY.md`](DATABASE_BACKUP_RECOVERY.md) | Backup/PITR readiness, RPO/RTO, restore ownership, Storage recovery, and migration-safety policy. |
 | [`API_LIFECYCLE.md`](API_LIFECYCLE.md) | `/v1` compatibility, deprecation, minimum-client, capability negotiation, and generated-client traceability policy. |
