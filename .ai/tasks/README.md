@@ -108,11 +108,11 @@ Chat history is not canonical project state. Repository source, canonical docs a
 
 ### Roles And Single Implementation Ownership
 
-- **Planning owner:** shapes scope, decisions, and the implementation approach. Planning work is read-only unless this role also becomes the recorded Implementation owner.
-- **Implementation owner:** the only active role permitted to modify the current task slice.
-- **Review owner:** inspects the implementation and records findings. A reviewer must not silently become an implementer.
+- **Planning owner:** shapes scope, decisions, and the implementation approach. This role may update task records for scope, evidence, decisions, or handoff state, but must not modify implementation/source files unless it also becomes the recorded Implementation owner.
+- **Implementation owner:** the only active role permitted to modify implementation/source files for the current task slice.
+- **Review owner:** inspects the implementation and may update task/review records with findings, evidence, or review status. This role must receive Implementation ownership before modifying implementation/source files to resolve a finding.
 
-At most one active `Implementation owner` may own a task slice at a time. Other agents may inspect, reason, review, identify risks, and propose findings without modifying that slice. Changing the Implementation owner is execution coordination, not product approval, and does not trigger the Owner Approval Gate when the same approved scope continues.
+At most one active `Implementation owner` may own a task slice at a time. Other agents may inspect, reason, review, identify risks, propose or record findings, and update task/review governance records without modifying implementation/source files for that slice. Changing the Implementation owner is execution coordination, not product approval, and does not trigger the Owner Approval Gate when the same approved scope continues.
 
 The `Active Handoff` block in [TEMPLATE.md](TEMPLATE.md) is a compact recovery checkpoint, not a live activity log. Do not update it after every small edit. Refresh it at meaningful durable checkpoints such as a material decision, major implementation milestone, important validation result, important blocker, implementation pause, ownership transfer, or final handoff.
 
