@@ -6,3 +6,4 @@ export 'tio_information_bottom_sheet.dart';
 export 'tio_remove_image_bottom_sheet.dart';
 export 'tio_sheet.dart';
 export 'tio_weight_picker_bottom_sheet.dart';
+export 'tio_weight_wheel.dart';

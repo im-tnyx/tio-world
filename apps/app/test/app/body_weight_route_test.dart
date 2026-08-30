@@ -199,10 +199,10 @@ void main() {
     await tester
         .tap(find.byKey(const ValueKey('body-weight-current-weight-field')));
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const ValueKey('body-weight-current-weight-input')),
-      '69.5',
-    );
+    tester
+        .widget<TioWeightWheel>(find.byKey(const ValueKey('body-weight-wheel')))
+        .onChanged(69.5);
+    await tester.pump();
     repository.nextRead = BodyState(
       latestWeight: BodyWeightEntry(
         weightKg: 69.5,
