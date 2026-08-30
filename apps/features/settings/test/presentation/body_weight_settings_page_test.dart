@@ -379,7 +379,8 @@ void main() {
       expect(saved, 69.2);
     });
 
-    testWidgets('kg/lb conversion: canonical kg storage is unaffected by unit',
+    testWidgets(
+        'shows the accepted onboarding-parity kg/lbs drum, canonical kg storage unaffected by unit',
         (tester) async {
       await openEditor(
         tester,
@@ -392,7 +393,101 @@ void main() {
           find.byKey(const ValueKey('body-weight-wheel')));
       expect(wheel.unit, WeightUnit.lb);
       expect(wheel.valueKg, 68.4); // storage stays kg regardless of display
-      expect(wheel.showUnitSwitcher, isFalse);
+      expect(wheel.showUnitSwitcher, isTrue); // whole/decimal/kg-lbs parity
+    });
+
+    testWidgets(
+        'local kg/lbs switch preserves the canonical kg value and never writes global preference',
+        (tester) async {
+      await openEditor(
+        tester,
+        currentWeightKg: 70,
+        weightUnit: WeightUnit.kg, // global preference starts as kg
+        onSave: (_) async {},
+      );
+
+      final wheel = tester.widget<TioWeightWheel>(
+          find.byKey(const ValueKey('body-weight-wheel')));
+      // Simulate the person scrolling the wheel's own local kg/lbs drum.
+      wheel.onUnitChanged?.call(WeightUnit.lb);
+      await tester.pump();
+
+      final afterSwitch = tester.widget<TioWeightWheel>(
+          find.byKey(const ValueKey('body-weight-wheel')));
+      expect(afterSwitch.unit, WeightUnit.lb); // local editor display changed
+      expect(afterSwitch.valueKg, 70.0); // canonical kg value untouched
+
+      // No global UnitPreferences write exists to assert against here -- the
+      // constructor contract itself proves it: BodyWeightSettingsPage's
+      // `weightUnit` param is supplied once by the caller and is never
+      // written back to by this sheet (no such callback exists on this
+      // widget or _WeightEntrySheet).
+    });
+
+    testWidgets(
+        'reopening the sheet re-initializes from the global weight unit',
+        (tester) async {
+      // First open in kg, switch the local drum to lbs, close without saving.
+      await openEditor(
+        tester,
+        currentWeightKg: 70,
+        weightUnit: WeightUnit.kg,
+        onSave: (_) async {},
+      );
+      tester
+          .widget<TioWeightWheel>(
+              find.byKey(const ValueKey('body-weight-wheel')))
+          .onUnitChanged
+          ?.call(WeightUnit.lb);
+      await tester.pump();
+      dismissOpenSheet(tester);
+      await tester.pumpAndSettle();
+
+      // Reopening builds a brand new sheet instance -- local unit choice
+      // must not have leaked anywhere; it re-initializes from the same
+      // global kg preference.
+      await tester
+          .tap(find.byKey(const ValueKey('body-weight-current-weight-field')));
+      await tester.pumpAndSettle();
+
+      final wheel = tester.widget<TioWeightWheel>(
+          find.byKey(const ValueKey('body-weight-wheel')));
+      expect(wheel.unit, WeightUnit.kg);
+    });
+
+    testWidgets(
+        'title and mode-toggle share one header row, in both wheel and manual mode',
+        (tester) async {
+      await openEditor(tester, currentWeightKg: 70, onSave: (_) async {});
+
+      // Only one toggle affordance exists.
+      expect(find.byKey(const ValueKey('body-weight-wheel-mode-toggle')),
+          findsOneWidget);
+
+      final sheet = find.byKey(const ValueKey('daily-wellness-editor-sheet'));
+      Offset titleCenter() => tester.getCenter(
+          find.descendant(of: sheet, matching: find.text('Current Weight')));
+      Offset toggleCenter() => tester.getCenter(
+          find.byKey(const ValueKey('body-weight-wheel-mode-toggle')));
+
+      // Same header row in wheel mode: title and toggle share a vertical
+      // center, and the toggle sits to the right of the title.
+      expect(
+          (titleCenter().dy - toggleCenter().dy).abs(), lessThanOrEqualTo(2.0));
+      expect(toggleCenter().dx, greaterThan(titleCenter().dx));
+
+      await tester
+          .tap(find.byKey(const ValueKey('body-weight-wheel-mode-toggle')));
+      await tester.pump();
+
+      // Still exactly one toggle affordance, still one header row (not a
+      // second row above the field), same relative title/toggle alignment
+      // -- the field content below changed, the header geometry did not.
+      expect(find.byKey(const ValueKey('body-weight-wheel-mode-toggle')),
+          findsOneWidget);
+      expect(
+          (titleCenter().dy - toggleCenter().dy).abs(), lessThanOrEqualTo(2.0));
+      expect(toggleCenter().dx, greaterThan(titleCenter().dx));
     });
   });
 
@@ -521,6 +616,41 @@ void main() {
       expect(find.text('Target Weight'), findsNothing);
       expect(find.byType(Slider), findsNothing);
       expect(find.byKey(const ValueKey('body-weight-wheel')), findsNothing);
+    });
+
+    testWidgets('choices render as vertically stacked full-width rows',
+        (tester) async {
+      await tester.pumpWidget(
+        buildApp(
+          BodyWeightSettingsPage(
+            bodyState: stateWith(currentWeightKg: 70, activeGoal: null),
+            weightUnit: WeightUnit.kg,
+            onRecordCurrentWeight: (_) async {},
+            onSaveBodyGoal: (_) async {},
+          ),
+        ),
+      );
+
+      await tester
+          .tap(find.byKey(const ValueKey('body-weight-body-goal-field')));
+      await tester.pumpAndSettle();
+
+      final loseRect = tester
+          .getRect(find.byKey(const ValueKey('body-goal-option-loseWeight')));
+      final gainRect = tester
+          .getRect(find.byKey(const ValueKey('body-goal-option-gainWeight')));
+      final maintainRect = tester.getRect(
+          find.byKey(const ValueKey('body-goal-option-maintainWeight')));
+
+      // Stacked vertically: each row sits below the previous one, not beside
+      // it on the same horizontal segmented row.
+      expect(gainRect.top, greaterThan(loseRect.bottom));
+      expect(maintainRect.top, greaterThan(gainRect.bottom));
+      // Full-width: all three rows share the same left/right extent.
+      expect(gainRect.left, loseRect.left);
+      expect(gainRect.right, loseRect.right);
+      expect(maintainRect.left, loseRect.left);
+      expect(maintainRect.right, loseRect.right);
     });
 
     testWidgets(
@@ -691,6 +821,72 @@ void main() {
       expect(find.byKey(const ValueKey('body-weight-wheel')), findsOneWidget);
     });
 
+    testWidgets(
+        'title and mode-toggle share one header row, in both wheel and manual mode',
+        (tester) async {
+      await tester.pumpWidget(
+        buildApp(
+          BodyWeightSettingsPage(
+            bodyState:
+                stateWith(currentWeightKg: 90, activeGoal: activeLoseGoal),
+            weightUnit: WeightUnit.kg,
+            onRecordCurrentWeight: (_) async {},
+            onSaveBodyGoal: (_) async {},
+          ),
+        ),
+      );
+
+      await tester
+          .tap(find.byKey(const ValueKey('body-weight-target-weight-field')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('body-weight-wheel-mode-toggle')),
+          findsOneWidget);
+
+      final sheet = find.byKey(const ValueKey('daily-wellness-editor-sheet'));
+      Offset titleCenter() => tester.getCenter(
+          find.descendant(of: sheet, matching: find.text('Target Weight')));
+      Offset toggleCenter() => tester.getCenter(
+          find.byKey(const ValueKey('body-weight-wheel-mode-toggle')));
+
+      expect(
+          (titleCenter().dy - toggleCenter().dy).abs(), lessThanOrEqualTo(2.0));
+      expect(toggleCenter().dx, greaterThan(titleCenter().dx));
+
+      await tester
+          .tap(find.byKey(const ValueKey('body-weight-wheel-mode-toggle')));
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('body-weight-wheel-mode-toggle')),
+          findsOneWidget);
+      expect(
+          (titleCenter().dy - toggleCenter().dy).abs(), lessThanOrEqualTo(2.0));
+      expect(toggleCenter().dx, greaterThan(titleCenter().dx));
+    });
+
+    testWidgets('shows the accepted onboarding-parity kg/lbs drum',
+        (tester) async {
+      await tester.pumpWidget(
+        buildApp(
+          BodyWeightSettingsPage(
+            bodyState:
+                stateWith(currentWeightKg: 90, activeGoal: activeLoseGoal),
+            weightUnit: WeightUnit.kg,
+            onRecordCurrentWeight: (_) async {},
+            onSaveBodyGoal: (_) async {},
+          ),
+        ),
+      );
+
+      await tester
+          .tap(find.byKey(const ValueKey('body-weight-target-weight-field')));
+      await tester.pumpAndSettle();
+
+      final wheel = tester.widget<TioWeightWheel>(
+          find.byKey(const ValueKey('body-weight-wheel')));
+      expect(wheel.showUnitSwitcher, isTrue);
+    });
+
     testWidgets('Lose direct edit requires target below current weight',
         (tester) async {
       var saveCalls = 0;
@@ -790,6 +986,42 @@ void main() {
       expect(saved?.targetWeightKg, 80.0);
       expect(saved?.weeklyWeightChangeKg, activeLoseGoal.weeklyWeightChangeKg);
     });
+
+    testWidgets(
+        'local kg/lbs switch does not mutate the global preference; save still uses canonical kg',
+        (tester) async {
+      BodyGoalUpdate? saved;
+      await tester.pumpWidget(
+        buildApp(
+          BodyWeightSettingsPage(
+            bodyState:
+                stateWith(currentWeightKg: 90, activeGoal: activeLoseGoal),
+            weightUnit: WeightUnit.kg,
+            onRecordCurrentWeight: (_) async {},
+            onSaveBodyGoal: (update) async => saved = update,
+          ),
+        ),
+      );
+
+      await tester
+          .tap(find.byKey(const ValueKey('body-weight-target-weight-field')));
+      await tester.pumpAndSettle();
+
+      var wheel = tester.widget<TioWeightWheel>(
+          find.byKey(const ValueKey('body-weight-wheel')));
+      wheel.onUnitChanged?.call(WeightUnit.lb); // local drum switch only
+      await tester.pump();
+      wheel = tester.widget<TioWeightWheel>(
+          find.byKey(const ValueKey('body-weight-wheel')));
+      wheel.onChanged(65.0); // still reported in canonical kg
+      await tester.pump();
+      await tester
+          .tap(find.byKey(const ValueKey('body-weight-target-weight-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(
+          saved?.targetWeightKg, 65.0); // canonical kg, direction still valid
+    });
   });
 
   group('Goal Pace direct edit', () {
@@ -843,6 +1075,43 @@ void main() {
       expect(slider.min, 0.1);
       expect(slider.max, 1.5);
       expect(slider.divisions, 14); // (1.5-0.1)/0.1 -> 0.1 increments
+    });
+
+    testWidgets(
+        'shows a prominent centered pace value above the slider, onboarding-parity format',
+        (tester) async {
+      await tester.pumpWidget(
+        buildApp(
+          BodyWeightSettingsPage(
+            bodyState:
+                stateWith(currentWeightKg: 90, activeGoal: activeLoseGoal),
+            weightUnit: WeightUnit.kg,
+            onRecordCurrentWeight: (_) async {},
+            onSaveBodyGoal: (_) async {},
+          ),
+        ),
+      );
+
+      await tester
+          .tap(find.byKey(const ValueKey('body-weight-goal-pace-field')));
+      await tester.pumpAndSettle();
+
+      final valueFinder =
+          find.byKey(const ValueKey('body-weight-goal-pace-value-text'));
+      expect(valueFinder, findsOneWidget);
+      expect(find.text('0.5 kg / week'), findsOneWidget);
+
+      final valueText = tester.widget<Text>(valueFinder);
+      expect(valueText.style?.fontSize, TioFontSize.size32);
+      expect(valueText.style?.fontWeight, TioFontWeight.w800);
+
+      // Value sits above the slider.
+      final valueTop = tester.getTopLeft(valueFinder).dy;
+      final sliderTop = tester
+          .getTopLeft(
+              find.byKey(const ValueKey('body-weight-goal-pace-slider')))
+          .dy;
+      expect(valueTop, lessThan(sliderTop));
     });
 
     testWidgets('direct Pace edit preserves the existing Target Weight',

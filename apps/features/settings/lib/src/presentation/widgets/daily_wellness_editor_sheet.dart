@@ -30,6 +30,7 @@ class DailyWellnessEditorSheet extends StatelessWidget {
     this.supportingText,
     this.actions,
     this.canDismiss = true,
+    this.titleTrailing,
   });
 
   final String title;
@@ -37,6 +38,11 @@ class DailyWellnessEditorSheet extends StatelessWidget {
   final Widget content;
   final Widget? actions;
   final bool canDismiss;
+
+  /// Optional affordance placed on the same row as [title], right-aligned
+  /// (e.g. a wheel/manual mode-switch icon). Existing callers that omit it
+  /// keep the original title-only row unchanged.
+  final Widget? titleTrailing;
 
   @override
   Widget build(BuildContext context) {
@@ -72,14 +78,30 @@ class DailyWellnessEditorSheet extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          title,
-                          style: TextStyle(
-                            color: colors.textPrimary,
-                            fontWeight: TioFontWeight.w700,
-                            fontSize: TioFontSize.size18,
-                          ),
-                        ),
+                        titleTrailing == null
+                            ? Text(
+                                title,
+                                style: TextStyle(
+                                  color: colors.textPrimary,
+                                  fontWeight: TioFontWeight.w700,
+                                  fontSize: TioFontSize.size18,
+                                ),
+                              )
+                            : Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      title,
+                                      style: TextStyle(
+                                        color: colors.textPrimary,
+                                        fontWeight: TioFontWeight.w700,
+                                        fontSize: TioFontSize.size18,
+                                      ),
+                                    ),
+                                  ),
+                                  titleTrailing!,
+                                ],
+                              ),
                         if (supportingText != null) ...[
                           const SizedBox(height: TioSpacing.sm),
                           Text(

@@ -26,6 +26,33 @@ String _goalLabel(BodyGoalType type) => switch (type) {
       BodyGoalType.recomposition => 'Recomposition',
     };
 
+IconData _goalIcon(BodyGoalType type) => switch (type) {
+      BodyGoalType.loseWeight => Icons.trending_down_rounded,
+      BodyGoalType.gainWeight => Icons.trending_up_rounded,
+      BodyGoalType.maintainWeight => Icons.balance_rounded,
+      BodyGoalType.recomposition => Icons.autorenew_rounded,
+    };
+
+/// Direction/range policy for a Target Weight save, shared by the changed-goal
+/// wizard step and the direct Target Weight edit. Returns an error message,
+/// or null when the value is acceptable.
+String? _validateTargetWeight(
+  BodyGoalType goalType,
+  double? currentWeightKg,
+  double targetKg,
+) {
+  if (currentWeightKg == null) {
+    return 'Log your Current Weight before setting a Target Weight.';
+  }
+  if (goalType == BodyGoalType.loseWeight && targetKg >= currentWeightKg) {
+    return 'Target Weight must be below Current Weight.';
+  }
+  if (goalType == BodyGoalType.gainWeight && targetKg <= currentWeightKg) {
+    return 'Target Weight must be above Current Weight.';
+  }
+  return null;
+}
+
 bool _isDirectional(BodyGoalType type) =>
     type == BodyGoalType.loseWeight || type == BodyGoalType.gainWeight;
 
@@ -71,12 +98,16 @@ class BodyWeightSettingsPage extends StatelessWidget {
   final Future<void> Function(BodyGoalUpdate update) onSaveBodyGoal;
 
   Future<void> _pickCurrentWeight(BuildContext context) async {
-    await showDailyWellnessEditorSheet<void>(
+    await showDailyWellnessEditorSheet<double>(
       context: context,
-      builder: (context) => _CurrentWeightEditorSheet(
-        currentWeightKg: bodyState.latestWeight?.weightKg,
+      builder: (context) => _WeightEntrySheet(
+        title: 'Current Weight',
+        initialKg: bodyState.latestWeight?.weightKg ??
+            _BodyWeightLimits.defaultWeightKg,
         weightUnit: weightUnit,
-        onSave: onRecordCurrentWeight,
+        confirmLabel: 'Save',
+        confirmKey: const ValueKey('body-weight-current-weight-save'),
+        onConfirm: onRecordCurrentWeight,
       ),
     );
   }
@@ -117,12 +148,16 @@ class BodyWeightSettingsPage extends StatelessWidget {
     final currentWeightKg = bodyState.latestWeight?.weightKg;
     final targetKg = await showDailyWellnessEditorSheet<double>(
       context: context,
-      builder: (context) => _TargetWeightStepSheet(
-        goalType: selectedType,
-        currentWeightKg: currentWeightKg,
-        initialTargetKg: bodyState.activeGoal?.targetWeightKg,
+      builder: (context) => _WeightEntrySheet(
+        title: 'Target Weight',
+        initialKg: bodyState.activeGoal?.targetWeightKg ??
+            currentWeightKg ??
+            _BodyWeightLimits.defaultWeightKg,
         weightUnit: weightUnit,
         confirmLabel: 'Next',
+        confirmKey: const ValueKey('body-weight-target-weight-confirm'),
+        validate: (targetKg) =>
+            _validateTargetWeight(selectedType, currentWeightKg, targetKg),
         onConfirm: (_) async {},
       ),
     );
@@ -148,14 +183,19 @@ class BodyWeightSettingsPage extends StatelessWidget {
 
   Future<void> _pickTargetWeight(BuildContext context) async {
     final activeGoal = bodyState.activeGoal!;
+    final currentWeightKg = bodyState.latestWeight?.weightKg;
     await showDailyWellnessEditorSheet<double>(
       context: context,
-      builder: (context) => _TargetWeightStepSheet(
-        goalType: activeGoal.goalType,
-        currentWeightKg: bodyState.latestWeight?.weightKg,
-        initialTargetKg: activeGoal.targetWeightKg,
+      builder: (context) => _WeightEntrySheet(
+        title: 'Target Weight',
+        initialKg: activeGoal.targetWeightKg ??
+            currentWeightKg ??
+            _BodyWeightLimits.defaultWeightKg,
         weightUnit: weightUnit,
         confirmLabel: 'Save',
+        confirmKey: const ValueKey('body-weight-target-weight-confirm'),
+        validate: (targetKg) => _validateTargetWeight(
+            activeGoal.goalType, currentWeightKg, targetKg),
         onConfirm: (targetKg) => onSaveBodyGoal(
           BodyGoalUpdate(
             goalType: activeGoal.goalType,
@@ -506,53 +546,84 @@ class _EditAffordanceIcon extends StatelessWidget {
   }
 }
 
-/// Weight-entry field shared by the Current Weight and Target Weight editors:
-/// a [TioWeightWheel] by default, with a small pencil affordance that swaps
-/// in a manual numeric entry field. Switching modes only updates the local
-/// draft -- it never persists anything itself.
-class _WeightWheelField extends StatefulWidget {
-  const _WeightWheelField({
-    required this.valueKg,
-    required this.onChanged,
+/// Shared weight-entry sheet for Current Weight and Target Weight: a
+/// [TioWeightWheel] by default (whole/decimal/kg-lbs drums, matching the
+/// accepted onboarding presentation), with a small pencil affordance in the
+/// sheet's own title row that swaps in manual numeric entry. Switching modes
+/// only updates the local draft -- only [confirmLabel]'s button persists.
+///
+/// The kg/lbs drum here is a local, editor-only input/display choice: it
+/// starts from [weightUnit] (the app-global preference) but never writes
+/// back to it. Canonical values always flow through [onConfirm] in kg.
+class _WeightEntrySheet extends StatefulWidget {
+  const _WeightEntrySheet({
+    required this.title,
+    required this.initialKg,
     required this.weightUnit,
+    required this.confirmLabel,
+    required this.confirmKey,
+    required this.onConfirm,
+    this.validate,
   });
 
-  final double valueKg;
-  final ValueChanged<double> onChanged;
+  final String title;
+  final double initialKg;
   final WeightUnit weightUnit;
+  final String confirmLabel;
+  final Key confirmKey;
+  final Future<void> Function(double weightKg) onConfirm;
+
+  /// Returns an error message to block the save, or null when acceptable.
+  final String? Function(double weightKg)? validate;
 
   @override
-  State<_WeightWheelField> createState() => _WeightWheelFieldState();
+  State<_WeightEntrySheet> createState() => _WeightEntrySheetState();
 }
 
-class _WeightWheelFieldState extends State<_WeightWheelField> {
-  var _isManualMode = false;
+class _WeightEntrySheetState extends State<_WeightEntrySheet> {
   late double _draftKg;
+  late WeightUnit _localUnit;
+  var _isManualMode = false;
   late final TextEditingController _manualController;
+  var _isSaving = false;
+  String? _errorText;
 
   @override
   void initState() {
     super.initState();
-    _draftKg = widget.valueKg;
+    _draftKg = widget.initialKg;
+    _localUnit = widget.weightUnit;
     _manualController = TextEditingController(text: _formatDisplay(_draftKg));
   }
 
   String _formatDisplay(double kg) =>
-      _kgToDisplay(kg, widget.weightUnit).toStringAsFixed(1);
+      _kgToDisplay(kg, _localUnit).toStringAsFixed(1);
 
   void _handleWheelChanged(double kg) {
-    setState(() => _draftKg = kg);
+    setState(() {
+      _draftKg = kg;
+      _errorText = null;
+    });
     _manualController.text = _formatDisplay(kg);
-    widget.onChanged(kg);
+  }
+
+  void _handleLocalUnitChanged(WeightUnit unit) {
+    // Editor-local display choice only -- never writes UnitPreferences.
+    setState(() {
+      _localUnit = unit;
+      _manualController.text = _formatDisplay(_draftKg);
+    });
   }
 
   void _handleManualChanged(String text) {
     final parsed = double.tryParse(text.trim());
     if (parsed == null) return;
-    final kg = _displayToKg(parsed, widget.weightUnit)
+    final kg = _displayToKg(parsed, _localUnit)
         .clamp(_BodyWeightLimits.minWeightKg, _BodyWeightLimits.maxWeightKg);
-    setState(() => _draftKg = kg);
-    widget.onChanged(kg);
+    setState(() {
+      _draftKg = kg;
+      _errorText = null;
+    });
   }
 
   void _toggleMode() {
@@ -568,85 +639,20 @@ class _WeightWheelFieldState extends State<_WeightWheelField> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.tioColors;
-    final unitLabel = widget.weightUnit == WeightUnit.kg ? 'kg' : 'lb';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: IconButton(
-            key: const ValueKey('body-weight-wheel-mode-toggle'),
-            icon: Icon(_isManualMode ? Icons.tune : Icons.edit_outlined),
-            color: colors.textSecondary,
-            onPressed: _toggleMode,
-          ),
-        ),
-        if (_isManualMode)
-          TextField(
-            key: const ValueKey('body-weight-wheel-manual-input'),
-            controller: _manualController,
-            autofocus: true,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            onChanged: _handleManualChanged,
-            style: TextStyle(
-                color: colors.textPrimary, fontSize: TioFontSize.size18),
-            decoration: InputDecoration(suffixText: unitLabel),
-          )
-        else
-          TioWeightWheel(
-            key: const ValueKey('body-weight-wheel'),
-            valueKg: _draftKg,
-            unit: widget.weightUnit,
-            showUnitSwitcher: false,
-            minKg: _BodyWeightLimits.minWeightKg,
-            maxKg: _BodyWeightLimits.maxWeightKg,
-            onChanged: _handleWheelChanged,
-          ),
-      ],
-    );
-  }
-}
-
-class _CurrentWeightEditorSheet extends StatefulWidget {
-  const _CurrentWeightEditorSheet({
-    required this.currentWeightKg,
-    required this.weightUnit,
-    required this.onSave,
-  });
-
-  final double? currentWeightKg;
-  final WeightUnit weightUnit;
-  final Future<void> Function(double weightKg) onSave;
-
-  @override
-  State<_CurrentWeightEditorSheet> createState() =>
-      _CurrentWeightEditorSheetState();
-}
-
-class _CurrentWeightEditorSheetState extends State<_CurrentWeightEditorSheet> {
-  late double _draftKg;
-  var _isSaving = false;
-  String? _errorText;
-
-  @override
-  void initState() {
-    super.initState();
-    _draftKg = widget.currentWeightKg ?? _BodyWeightLimits.defaultWeightKg;
-  }
-
-  Future<void> _handleSave() async {
+  Future<void> _handleConfirm() async {
     if (_isSaving) return;
+    final validationError = widget.validate?.call(_draftKg);
+    if (validationError != null) {
+      setState(() => _errorText = validationError);
+      return;
+    }
     setState(() {
       _isSaving = true;
       _errorText = null;
     });
     try {
-      await widget.onSave(_draftKg);
-      if (mounted) Navigator.of(context).pop();
+      await widget.onConfirm(_draftKg);
+      if (mounted) Navigator.of(context).pop(_draftKg);
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -661,16 +667,41 @@ class _CurrentWeightEditorSheetState extends State<_CurrentWeightEditorSheet> {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     return DailyWellnessEditorSheet(
-      title: 'Current Weight',
+      title: widget.title,
       canDismiss: !_isSaving,
+      titleTrailing: IconButton(
+        key: const ValueKey('body-weight-wheel-mode-toggle'),
+        icon: Icon(_isManualMode ? Icons.tune : Icons.edit_outlined),
+        color: colors.textSecondary,
+        onPressed: _toggleMode,
+      ),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _WeightWheelField(
-            valueKg: _draftKg,
-            weightUnit: widget.weightUnit,
-            onChanged: (kg) => setState(() => _draftKg = kg),
-          ),
+          if (_isManualMode)
+            TextField(
+              key: const ValueKey('body-weight-wheel-manual-input'),
+              controller: _manualController,
+              autofocus: true,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              onChanged: _handleManualChanged,
+              style: TextStyle(
+                  color: colors.textPrimary, fontSize: TioFontSize.size18),
+              decoration: InputDecoration(
+                suffixText: _localUnit == WeightUnit.kg ? 'kg' : 'lb',
+              ),
+            )
+          else
+            TioWeightWheel(
+              key: const ValueKey('body-weight-wheel'),
+              valueKg: _draftKg,
+              unit: _localUnit,
+              onUnitChanged: _handleLocalUnitChanged,
+              minKg: _BodyWeightLimits.minWeightKg,
+              maxKg: _BodyWeightLimits.maxWeightKg,
+              onChanged: _handleWheelChanged,
+            ),
           if (_errorText != null) ...[
             const SizedBox(height: TioSpacing.sm),
             Text(
@@ -682,10 +713,10 @@ class _CurrentWeightEditorSheetState extends State<_CurrentWeightEditorSheet> {
         ],
       ),
       actions: TioButton.primary(
-        key: const ValueKey('body-weight-current-weight-save'),
-        label: 'Save',
+        key: widget.confirmKey,
+        label: widget.confirmLabel,
         loading: _isSaving,
-        onPressed: _isSaving ? null : _handleSave,
+        onPressed: _isSaving ? null : _handleConfirm,
         expand: true,
       ),
     );
@@ -772,24 +803,22 @@ class _BodyGoalSelectionSheetState extends State<_BodyGoalSelectionSheet> {
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Wrap(
-            spacing: TioSpacing.sm,
-            runSpacing: TioSpacing.sm,
-            children: [
-              for (final type in _selectableTypes)
-                _BodyGoalTypeChip(
-                  key: ValueKey('body-goal-option-${type.name}'),
-                  label: _goalLabel(type),
-                  selected: _selectedType == type,
-                  onTap: _isSaving
-                      ? null
-                      : () => setState(() {
-                            _selectedType = type;
-                            _errorText = null;
-                          }),
-                ),
-            ],
-          ),
+          for (final type in _selectableTypes) ...[
+            if (type != _selectableTypes.first)
+              const SizedBox(height: TioSpacing.sm),
+            _BodyGoalOptionTile(
+              key: ValueKey('body-goal-option-${type.name}'),
+              icon: _goalIcon(type),
+              label: _goalLabel(type),
+              selected: _selectedType == type,
+              onTap: _isSaving
+                  ? null
+                  : () => setState(() {
+                        _selectedType = type;
+                        _errorText = null;
+                      }),
+            ),
+          ],
           if (_errorText != null) ...[
             const SizedBox(height: TioSpacing.sm),
             Text(
@@ -805,120 +834,6 @@ class _BodyGoalSelectionSheetState extends State<_BodyGoalSelectionSheet> {
         label: isMaintainSelected ? 'Save' : 'Next',
         loading: _isSaving,
         onPressed: _isSaving ? null : _handleContinue,
-        expand: true,
-      ),
-    );
-  }
-}
-
-/// Target Weight-only sheet: no Body Goal selector, no Goal Pace control, no
-/// confirmation. [onConfirm] either performs the real save (direct edit) or
-/// is a no-op (an intermediate step in the changed-goal wizard, where only
-/// the terminal Goal Pace step performs the actual save) -- either way this
-/// sheet pops itself with the chosen kg value on success.
-class _TargetWeightStepSheet extends StatefulWidget {
-  const _TargetWeightStepSheet({
-    required this.goalType,
-    required this.currentWeightKg,
-    required this.initialTargetKg,
-    required this.weightUnit,
-    required this.confirmLabel,
-    required this.onConfirm,
-  });
-
-  final BodyGoalType goalType;
-  final double? currentWeightKg;
-  final double? initialTargetKg;
-  final WeightUnit weightUnit;
-  final String confirmLabel;
-  final Future<void> Function(double targetKg) onConfirm;
-
-  @override
-  State<_TargetWeightStepSheet> createState() => _TargetWeightStepSheetState();
-}
-
-class _TargetWeightStepSheetState extends State<_TargetWeightStepSheet> {
-  late double _draftKg;
-  var _isSaving = false;
-  String? _errorText;
-
-  @override
-  void initState() {
-    super.initState();
-    _draftKg = widget.initialTargetKg ??
-        widget.currentWeightKg ??
-        _BodyWeightLimits.defaultWeightKg;
-  }
-
-  Future<void> _handleConfirm() async {
-    if (_isSaving) return;
-    final current = widget.currentWeightKg;
-    if (current == null) {
-      setState(() {
-        _errorText = 'Log your Current Weight before setting a Target Weight.';
-      });
-      return;
-    }
-    if (widget.goalType == BodyGoalType.loseWeight && _draftKg >= current) {
-      setState(
-          () => _errorText = 'Target Weight must be below Current Weight.');
-      return;
-    }
-    if (widget.goalType == BodyGoalType.gainWeight && _draftKg <= current) {
-      setState(
-          () => _errorText = 'Target Weight must be above Current Weight.');
-      return;
-    }
-
-    setState(() {
-      _isSaving = true;
-      _errorText = null;
-    });
-    try {
-      await widget.onConfirm(_draftKg);
-      if (mounted) Navigator.of(context).pop(_draftKg);
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _isSaving = false;
-          _errorText = "Couldn't save. Check your connection and try again.";
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.tioColors;
-    return DailyWellnessEditorSheet(
-      title: 'Target Weight',
-      canDismiss: !_isSaving,
-      content: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _WeightWheelField(
-            valueKg: _draftKg,
-            weightUnit: widget.weightUnit,
-            onChanged: (kg) => setState(() {
-              _draftKg = kg;
-              _errorText = null;
-            }),
-          ),
-          if (_errorText != null) ...[
-            const SizedBox(height: TioSpacing.sm),
-            Text(
-              _errorText!,
-              style:
-                  TextStyle(color: colors.danger, fontSize: TioFontSize.size13),
-            ),
-          ],
-        ],
-      ),
-      actions: TioButton.primary(
-        key: const ValueKey('body-weight-target-weight-confirm'),
-        label: widget.confirmLabel,
-        loading: _isSaving,
-        onPressed: _isSaving ? null : _handleConfirm,
         expand: true,
       ),
     );
@@ -991,14 +906,19 @@ class _GoalPaceStepSheetState extends State<_GoalPaceStepSheet> {
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            '${paceDisplay.toStringAsFixed(1)} $unitLabel/week',
-            style: TextStyle(
-              color: colors.textPrimary,
-              fontWeight: TioFontWeight.w700,
-              fontSize: TioFontSize.size15,
+          Center(
+            child: Text(
+              '${paceDisplay.toStringAsFixed(1)} $unitLabel / week',
+              key: const ValueKey('body-weight-goal-pace-value-text'),
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontWeight: TioFontWeight.w800,
+                fontSize: TioFontSize.size32,
+                letterSpacing: TioLetterSpacing.negative05,
+              ),
             ),
           ),
+          const SizedBox(height: TioSpacing.sm),
           Slider(
             key: const ValueKey('body-weight-goal-pace-slider'),
             value: _paceKgPerWeek,
@@ -1036,14 +956,19 @@ class _GoalPaceStepSheetState extends State<_GoalPaceStepSheet> {
   }
 }
 
-class _BodyGoalTypeChip extends StatelessWidget {
-  const _BodyGoalTypeChip({
+/// Full-width vertically-stacked Body Goal option, matching the accepted
+/// Settings selection-row visual language already used by Appearance/Theme
+/// selection (bordered card, leading icon circle, trailing checkmark).
+class _BodyGoalOptionTile extends StatelessWidget {
+  const _BodyGoalOptionTile({
+    required this.icon,
     required this.label,
     required this.selected,
     required this.onTap,
     super.key,
   });
 
+  final IconData icon;
   final String label;
   final bool selected;
   final VoidCallback? onTap;
@@ -1051,24 +976,83 @@ class _BodyGoalTypeChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(TioRadius.full),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: TioSpacing.md,
-          vertical: TioSpacing.sm,
-        ),
-        decoration: BoxDecoration(
-          color: selected ? colors.primary : colors.surfaceVariant,
-          borderRadius: BorderRadius.circular(TioRadius.full),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? colors.onPrimary : colors.textPrimary,
-            fontWeight: TioFontWeight.w700,
-            fontSize: TioFontSize.size13,
+    final borderColor = selected
+        ? colors.primary
+        : colors.outlineStrong.withAlpha(TioAlpha.alpha40);
+    final backgroundColor = selected
+        ? colors.primary.withAlpha(TioAlpha.alpha12)
+        : colors.surfaceRaised;
+
+    return Material(
+      color: TioPalette.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(TioRadius.lg),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: TioSpacing.lg,
+            vertical: TioSize.dp14,
+          ),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(TioRadius.lg),
+            border: Border.all(
+              color: borderColor,
+              width: selected ? TioStroke.width15 : TioStroke.width1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: TioSize.dp42,
+                height: TioSize.dp42,
+                decoration: BoxDecoration(
+                  color: selected
+                      ? colors.primary.withAlpha(TioAlpha.alpha24)
+                      : colors.surfaceVariant,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: selected ? colors.primary : colors.textSecondary,
+                  size: TioSize.dp22,
+                ),
+              ),
+              const SizedBox(width: TioSize.dp14),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontWeight:
+                        selected ? TioFontWeight.w700 : TioFontWeight.w600,
+                    fontSize: TioFontSize.size15,
+                  ),
+                ),
+              ),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: TioMotion.selectionMs),
+                width: TioSize.dp22,
+                height: TioSize.dp22,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: selected
+                        ? colors.primary
+                        : colors.outlineStrong.withAlpha(TioAlpha.alpha100),
+                    width: TioStroke.width2,
+                  ),
+                  color: selected ? colors.primary : TioPalette.transparent,
+                ),
+                child: selected
+                    ? Icon(
+                        Icons.check_rounded,
+                        size: TioSize.dp14,
+                        color: colors.onPrimary,
+                      )
+                    : null,
+              ),
+            ],
           ),
         ),
       ),
