@@ -350,12 +350,16 @@ class _TioWeightWheelState extends State<TioWeightWheel> {
         alignment: Alignment.center,
         children: [
           Container(
+            key: const ValueKey('tio-weight-wheel-selection-pill'),
             height: TioWheelPickerTokens.selectionHeight,
             margin: const EdgeInsets.symmetric(
               horizontal: TioWheelPickerTokens.selectionHorizontalMargin,
             ),
             decoration: BoxDecoration(
-              color: colors.surface.withAlpha(
+              // `surface` and `surfaceRaised` are both white in light mode.
+              // `surfaceVariant` remains distinct from the raised sheet across
+              // every supported theme, so the selected row stays visible.
+              color: colors.surfaceVariant.withAlpha(
                 TioWheelPickerTokens.selectionSurfaceAlpha,
               ),
               borderRadius: BorderRadius.circular(TioRadius.md),

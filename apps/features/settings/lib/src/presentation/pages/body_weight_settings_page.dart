@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_progress/progress.dart';
 
@@ -313,7 +314,7 @@ class BodyWeightSettingsPage extends StatelessWidget {
                   _BodyWeightRow(
                     key: const ValueKey('body-weight-goal-pace-field'),
                     icon: Icons.speed_outlined,
-                    label: 'Goal Pace',
+                    label: 'Weekly Goal',
                     value: activeGoal.weeklyWeightChangeKg == null
                         ? 'Not set'
                         : '${UnitFormatters.formatWeight(activeGoal.weeklyWeightChangeKg!, weightUnit, decimals: 1)}/week',
@@ -702,6 +703,7 @@ class _WeightEntrySheetState extends State<_WeightEntrySheet> {
               maxKg: _BodyWeightLimits.maxWeightKg,
               onChanged: _handleWheelChanged,
             ),
+          if (_isManualMode) const SizedBox(height: TioSpacing.lg),
           if (_errorText != null) ...[
             const SizedBox(height: TioSpacing.sm),
             Text(
@@ -862,6 +864,7 @@ class _GoalPaceStepSheet extends StatefulWidget {
 
 class _GoalPaceStepSheetState extends State<_GoalPaceStepSheet> {
   late double _paceKgPerWeek;
+  late double _lastVibratedPace;
   var _isSaving = false;
   String? _errorText;
 
@@ -869,6 +872,7 @@ class _GoalPaceStepSheetState extends State<_GoalPaceStepSheet> {
   void initState() {
     super.initState();
     _paceKgPerWeek = widget.initialPaceKg;
+    _lastVibratedPace = _paceKgPerWeek;
   }
 
   Future<void> _handleConfirm() async {
@@ -901,7 +905,7 @@ class _GoalPaceStepSheetState extends State<_GoalPaceStepSheet> {
         .round();
 
     return DailyWellnessEditorSheet(
-      title: 'Goal Pace',
+      title: 'Weekly Goal',
       canDismiss: !_isSaving,
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -933,6 +937,10 @@ class _GoalPaceStepSheetState extends State<_GoalPaceStepSheet> {
                       _paceKgPerWeek = rounded;
                       _errorText = null;
                     });
+                    if ((rounded - _lastVibratedPace).abs() >= 0.09) {
+                      HapticFeedback.selectionClick();
+                      _lastVibratedPace = rounded;
+                    }
                   },
           ),
           if (_errorText != null) ...[

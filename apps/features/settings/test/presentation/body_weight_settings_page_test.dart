@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_progress/progress.dart';
@@ -94,6 +95,8 @@ void main() {
     expect(find.text('Lose Weight'), findsOneWidget);
     expect(find.text('65 kg'), findsOneWidget);
     expect(find.text('0.5 kg/week'), findsOneWidget);
+    expect(find.text('Weekly Goal'), findsOneWidget);
+    expect(find.text('Goal Pace'), findsNothing);
     expect(find.text('71 kg'), findsOneWidget);
     expect(find.text('2 Apr 2026'), findsOneWidget);
 
@@ -274,6 +277,23 @@ void main() {
       expect(find.byKey(const ValueKey('body-weight-wheel')), findsOneWidget);
       expect(find.byKey(const ValueKey('body-weight-wheel-manual-input')),
           findsNothing);
+    });
+
+    testWidgets('manual entry keeps governed space before Save',
+        (tester) async {
+      await openEditor(tester, currentWeightKg: 70, onSave: (_) async {});
+
+      await tester
+          .tap(find.byKey(const ValueKey('body-weight-wheel-mode-toggle')));
+      await tester.pump();
+
+      final field =
+          find.byKey(const ValueKey('body-weight-wheel-manual-input'));
+      final save =
+          find.byKey(const ValueKey('body-weight-current-weight-save'));
+      final gap = tester.getTopLeft(save).dy - tester.getBottomLeft(field).dy;
+
+      expect(gap, greaterThanOrEqualTo(TioSpacing.lg + TioSpacing.md));
     });
 
     testWidgets('typed value syncs back to the wheel', (tester) async {
@@ -1025,6 +1045,25 @@ void main() {
   });
 
   group('Goal Pace direct edit', () {
+    late int selectionClickCount;
+
+    setUp(() {
+      selectionClickCount = 0;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'HapticFeedback.vibrate' &&
+            call.arguments == 'HapticFeedbackType.selectionClick') {
+          selectionClickCount++;
+        }
+        return null;
+      });
+    });
+
+    tearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null);
+    });
+
     testWidgets('opens a Goal Pace-only sheet with no confirmation',
         (tester) async {
       await tester.pumpWidget(
@@ -1049,6 +1088,14 @@ void main() {
       expect(find.byKey(const ValueKey('body-weight-wheel')), findsNothing);
       expect(find.byKey(const ValueKey('body-weight-goal-pace-slider')),
           findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('daily-wellness-editor-sheet')),
+          matching: find.text('Weekly Goal'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Goal Pace'), findsNothing);
     });
 
     testWidgets('stays within the 0.1-1.5 kg/week range with 0.1 increments',
@@ -1075,6 +1122,46 @@ void main() {
       expect(slider.min, 0.1);
       expect(slider.max, 1.5);
       expect(slider.divisions, 14); // (1.5-0.1)/0.1 -> 0.1 increments
+    });
+
+    testWidgets('emits one haptic for each changed snapped pace value',
+        (tester) async {
+      await tester.pumpWidget(
+        buildApp(
+          BodyWeightSettingsPage(
+            bodyState:
+                stateWith(currentWeightKg: 90, activeGoal: activeLoseGoal),
+            weightUnit: WeightUnit.kg,
+            onRecordCurrentWeight: (_) async {},
+            onSaveBodyGoal: (_) async {},
+          ),
+        ),
+      );
+
+      await tester
+          .tap(find.byKey(const ValueKey('body-weight-goal-pace-field')));
+      await tester.pumpAndSettle();
+
+      var slider = tester.widget<Slider>(
+        find.byKey(const ValueKey('body-weight-goal-pace-slider')),
+      );
+      slider.onChanged!(0.5);
+      await tester.pump();
+      expect(selectionClickCount, 0);
+
+      slider = tester.widget<Slider>(
+        find.byKey(const ValueKey('body-weight-goal-pace-slider')),
+      );
+      slider.onChanged!(0.6);
+      await tester.pump();
+      expect(selectionClickCount, 1);
+
+      slider = tester.widget<Slider>(
+        find.byKey(const ValueKey('body-weight-goal-pace-slider')),
+      );
+      slider.onChanged!(0.6);
+      await tester.pump();
+      expect(selectionClickCount, 1);
     });
 
     testWidgets(
