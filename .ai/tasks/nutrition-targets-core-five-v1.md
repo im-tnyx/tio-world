@@ -121,6 +121,31 @@ carries only `{source, bmr, tdee}`, never the recommended calorie value, so
 after the first edit the original recommendation is unrecoverable. Showing
 "Recommended: X" would have required fabricating it.
 
+### Macronutrients editor (final UX)
+
+The three macros are edited in **one combined sheet**, not one at a time. They
+are not independent: each macro's share and the calorie reconciliation are
+defined by the other two, so a per-macro editor would show numbers that are
+true only until the next field is opened.
+
+Summary carries **one pencil for the whole Macronutrients card**; the editor
+carries three, one per macro. That asymmetry is deliberate -- the summary edits
+"the macros", the editor edits a specific macro.
+
+Each editor row has a slider plus an inline exact-entry field revealed by its
+pencil. There is one logical gram value per macro: slider and text drive the
+same state, so neither can drift from the other. Percentages, macro calories
+and the difference all recalculate live from the draft.
+
+**Slider range is UX, not a limit.** It spans zero to the grams that would
+consume the entire calorie target (falling back to twice the current value when
+no target exists), always extended to cover an already-stored larger value.
+Exact manual entry may exceed it: nothing here rejects a value persistence
+accepts, and no medical maximum was invented.
+
+Moving one macro never changes another's grams. Percentages move because they
+are relative; that is derivation, not rebalancing.
+
 ### Deliberate divergence worth reviewing
 
 The coherence warning appears **on the page**, not only inside an editor. A row

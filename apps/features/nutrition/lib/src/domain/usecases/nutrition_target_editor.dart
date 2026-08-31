@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../models/nutrition_target_field.dart';
 import '../models/nutrition_targets_data.dart';
 
@@ -188,6 +190,87 @@ abstract final class NutritionTargetEditor {
       customizedFields: customizedFields,
       // Never rewritten by an edit. Regenerating or clearing it would destroy
       // the provenance of the original recommendation.
+      recommendationMetadata: current.recommendationMetadata,
+    );
+
+    return NutritionTargetsData(
+      caloriesKcal: next.caloriesKcal,
+      proteinGrams: next.proteinGrams,
+      carbohydrateGrams: next.carbohydrateGrams,
+      fatGrams: next.fatGrams,
+      fiberGrams: next.fiberGrams,
+      customizationState: _resolveState(next),
+      customizedFields: customizedFields,
+      recommendationMetadata: next.recommendationMetadata,
+    );
+  }
+
+  /// Energy density of a macro, used for both coherence and slider framing.
+  static int kcalPerGram(NutritionTargetField field) {
+    return switch (field) {
+      NutritionTargetField.protein => _proteinKcalPerGram,
+      NutritionTargetField.carbohydrate => _carbohydrateKcalPerGram,
+      NutritionTargetField.fat => _fatKcalPerGram,
+      _ => 0,
+    };
+  }
+
+  /// Upper end of a macro's slider, in grams.
+  ///
+  /// This is a **UX range, not a limit**. It spans up to the grams that would
+  /// consume the user's entire calorie target, because a single macro larger
+  /// than the whole budget has nothing left to slide toward. With no calorie
+  /// target it falls back to twice the current value.
+  ///
+  /// The range always covers [current] so an already-stored larger value stays
+  /// representable, and exact manual entry may still exceed it: nothing here
+  /// rejects a value that persistence accepts.
+  static double sliderMaxGrams(
+    NutritionTargetField field, {
+    required int? caloriesKcal,
+    required double current,
+  }) {
+    const fallbackFloor = 100.0;
+    final perGram = kcalPerGram(field);
+
+    final contextual = caloriesKcal != null && perGram > 0
+        ? caloriesKcal / perGram
+        : math.max(current * 2, fallbackFloor);
+
+    return math.max(contextual, current).ceilToDouble();
+  }
+
+  /// Applies the three macro values together, preserving everything else.
+  ///
+  /// Only macros the user actually moved are recorded as customized. Opening
+  /// the editor and changing one value must not silently claim the other two
+  /// as the user's own.
+  static NutritionTargetsData applyMacroEdits(
+    NutritionTargetsData current, {
+    required double? proteinGrams,
+    required double? carbohydrateGrams,
+    required double? fatGrams,
+  }) {
+    final changed = <NutritionTargetField>{
+      if (proteinGrams != current.proteinGrams) NutritionTargetField.protein,
+      if (carbohydrateGrams != current.carbohydrateGrams)
+        NutritionTargetField.carbohydrate,
+      if (fatGrams != current.fatGrams) NutritionTargetField.fat,
+    };
+
+    final customizedFields = <String>{
+      ...current.customizedFields,
+      for (final field in changed) field.storageValue,
+    };
+
+    final next = NutritionTargetsData(
+      caloriesKcal: current.caloriesKcal,
+      proteinGrams: proteinGrams,
+      carbohydrateGrams: carbohydrateGrams,
+      fatGrams: fatGrams,
+      fiberGrams: current.fiberGrams,
+      customizationState: current.customizationState,
+      customizedFields: customizedFields,
       recommendationMetadata: current.recommendationMetadata,
     );
 

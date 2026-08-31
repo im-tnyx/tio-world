@@ -7,23 +7,73 @@ import 'package:tio_core/core.dart';
 /// rather than each hand-rolling its own rows, which is how selection-card and
 /// sheet treatments drifted apart elsewhere in the app.
 class NutritionSettingsSectionHeader extends StatelessWidget {
-  const NutritionSettingsSectionHeader({required this.title, super.key});
+  const NutritionSettingsSectionHeader({
+    required this.title,
+    super.key,
+    this.trailing,
+  });
 
   final String title;
+
+  /// Optional action for the section as a whole, such as the single pencil
+  /// that edits every macro together.
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
+    final label = Text(
+      title,
+      style: TextStyle(
+        color: colors.textMuted,
+        fontWeight: TioFontWeight.w700,
+        fontSize: TioFontSize.size11,
+        letterSpacing: TioLetterSpacing.positive08,
+      ),
+    );
+
     return Padding(
-      padding:
-          const EdgeInsets.only(left: TioSpacing.sm, bottom: TioSpacing.sm),
-      child: Text(
-        title,
-        style: TextStyle(
-          color: colors.textMuted,
-          fontWeight: TioFontWeight.w700,
-          fontSize: TioFontSize.size11,
-          letterSpacing: TioLetterSpacing.positive08,
+      padding: const EdgeInsets.only(
+        left: TioSpacing.sm,
+        right: TioSpacing.sm,
+        bottom: TioSpacing.sm,
+      ),
+      child: trailing == null
+          ? label
+          : Row(
+              children: [
+                Expanded(child: label),
+                trailing!,
+              ],
+            ),
+    );
+  }
+}
+
+/// The single pencil affordance shared by section headers and rows.
+class NutritionEditPencil extends StatelessWidget {
+  const NutritionEditPencil({required this.onPressed, super.key});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    return InkResponse(
+      onTap: onPressed,
+      radius: TioSize.dp24,
+      child: Container(
+        width: TioSize.dp36,
+        height: TioSize.dp36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: colors.surfaceVariant,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.edit_outlined,
+          size: TioSize.dp16,
+          color: colors.textSecondary,
         ),
       ),
     );
@@ -61,6 +111,7 @@ class NutritionValueRow extends StatelessWidget {
     required this.onTap,
     super.key,
     this.annotation,
+    this.showEditAffordance = true,
   });
 
   final IconData icon;
@@ -72,6 +123,12 @@ class NutritionValueRow extends StatelessWidget {
   /// Optional derived detail shown beside the label, such as a macro's read-only
   /// share of macro energy. Purely presentational and never persisted.
   final String? annotation;
+
+  /// Whether this row shows its own pencil.
+  ///
+  /// Rows edited together through one section-level pencil set this false, so
+  /// the screen never offers two competing edit affordances for one action.
+  final bool showEditAffordance;
 
   @override
   Widget build(BuildContext context) {
@@ -132,21 +189,23 @@ class NutritionValueRow extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: TioSpacing.lg),
-            Container(
-              width: TioSize.dp36,
-              height: TioSize.dp36,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: colors.surfaceVariant,
-                shape: BoxShape.circle,
+            if (showEditAffordance) ...[
+              const SizedBox(width: TioSpacing.lg),
+              Container(
+                width: TioSize.dp36,
+                height: TioSize.dp36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: colors.surfaceVariant,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.edit_outlined,
+                  size: TioSize.dp16,
+                  color: colors.textSecondary,
+                ),
               ),
-              child: Icon(
-                Icons.edit_outlined,
-                size: TioSize.dp16,
-                color: colors.textSecondary,
-              ),
-            ),
+            ],
           ],
         ),
       ),

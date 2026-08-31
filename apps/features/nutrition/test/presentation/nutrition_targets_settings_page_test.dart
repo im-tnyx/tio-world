@@ -125,12 +125,41 @@ void main() {
       expect(find.byType(NutritionSettingsGroupCard), findsNWidgets(3));
     });
 
-    testWidgets('every row carries a pencil edit affordance', (tester) async {
+    testWidgets('Calories and Fiber own a pencil; macros share one',
+        (tester) async {
       await pumpPage(tester, targets: recommended, onSave: (_) async {});
 
-      expect(find.byIcon(Icons.edit_outlined), findsNWidgets(5));
+      // Calories, Fiber, and one section-level pencil for all three macros --
+      // never a per-macro pencil competing with the shared one.
+      expect(find.byIcon(Icons.edit_outlined), findsNWidgets(3));
+      expect(
+        find.byKey(const ValueKey('nutrition-target-macros-pencil')),
+        findsOneWidget,
+      );
       // A pencil already means "edit"; a chevron beside it would be redundant.
       expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+    });
+
+    testWidgets('the macros pencil opens the combined editor', (tester) async {
+      await pumpPage(tester, targets: recommended, onSave: (_) async {});
+
+      await tester
+          .tap(find.byKey(const ValueKey('nutrition-target-macros-pencil')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(NutritionMacrosEditorSheet), findsOneWidget);
+    });
+
+    testWidgets('tapping a macro row opens the same combined editor',
+        (tester) async {
+      await pumpPage(tester, targets: recommended, onSave: (_) async {});
+
+      await tester
+          .tap(find.byKey(const ValueKey('nutrition-target-protein-field')));
+      await tester.pumpAndSettle();
+
+      // One destination for all three, not a per-macro editor.
+      expect(find.byType(NutritionMacrosEditorSheet), findsOneWidget);
     });
   });
 
@@ -350,13 +379,13 @@ void main() {
         onSave: (_) async => saves++,
       );
 
-      await openEditor(tester, NutritionTargetField.protein);
-      await type(tester, NutritionTargetField.protein, '999');
+      await openEditor(tester, NutritionTargetField.fiber);
+      await type(tester, NutritionTargetField.fiber, '999');
       Navigator.of(tester.element(find.byType(TextField))).pop();
       await tester.pumpAndSettle();
 
       expect(saves, 0);
-      expect(find.text('150 g'), findsOneWidget);
+      expect(find.text('28 g'), findsOneWidget);
     });
   });
 

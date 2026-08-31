@@ -4,6 +4,7 @@ import 'package:tio_core/core.dart';
 
 import '../../domain/domain.dart';
 import '../widgets/nutrition_settings_widgets.dart';
+import 'nutrition_macros_editor_sheet.dart';
 import 'nutrition_profile_settings_page.dart'
     show NutritionEditorSheet, showNutritionEditorSheet;
 
@@ -64,12 +65,24 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
     );
   }
 
+  Future<void> _editMacros(BuildContext context) async {
+    await showNutritionEditorSheet<void>(
+      context: context,
+      builder: (context) => NutritionMacrosEditorSheet(
+        current: targets,
+        onSave: onSave,
+      ),
+    );
+  }
+
   Widget _row(
     BuildContext context,
     NutritionTargetField field,
     String label,
     IconData icon, {
     String? annotation,
+    VoidCallback? onTap,
+    bool showEditAffordance = true,
   }) {
     final unit = unitFor(field);
     return NutritionValueRow(
@@ -79,7 +92,8 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
       annotation: annotation,
       value: _summaryFor(field, unit),
       isUnset: NutritionTargetEditor.valueOf(targets, field) == null,
-      onTap: () => _edit(context, field, label, unit),
+      showEditAffordance: showEditAffordance,
+      onTap: onTap ?? () => _edit(context, field, label, unit),
     );
   }
 
@@ -122,14 +136,24 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
               ],
             ),
             const SizedBox(height: TioSpacing.lg),
-            const NutritionSettingsSectionHeader(title: 'MACRONUTRIENTS'),
+            NutritionSettingsSectionHeader(
+              title: 'MACRONUTRIENTS',
+              // One pencil for the whole card: the three macros define each
+              // other's share and the calorie check, so they are edited
+              // together rather than one at a time.
+              trailing: NutritionEditPencil(
+                key: const ValueKey('nutrition-target-macros-pencil'),
+                onPressed: () => _editMacros(context),
+              ),
+            ),
             NutritionSettingsGroupCard(
               children: [
                 for (final (field, label, icon) in _macros)
                   _row(context, field, label, icon,
-                      annotation: percentages == null
-                          ? null
-                          : '${percentages[field]}%'),
+                      annotation:
+                          percentages == null ? null : '${percentages[field]}%',
+                      showEditAffordance: false,
+                      onTap: () => _editMacros(context)),
               ],
             ),
             const SizedBox(height: TioSpacing.lg),

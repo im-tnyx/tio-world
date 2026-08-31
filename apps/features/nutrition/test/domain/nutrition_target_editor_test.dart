@@ -253,6 +253,104 @@ void main() {
     });
   });
 
+  group('applyMacroEdits', () {
+    test('claims only the macros the user actually moved', () {
+      final edited = NutritionTargetEditor.applyMacroEdits(
+        recommendedBaseline,
+        proteinGrams: 170,
+        carbohydrateGrams: recommendedBaseline.carbohydrateGrams,
+        fatGrams: recommendedBaseline.fatGrams,
+      );
+
+      // Opening the combined editor must not claim untouched macros as custom.
+      expect(edited.customizedFields, {'protein'});
+      expect(
+          edited.customizationState, NutritionTargetCustomizationState.mixed);
+    });
+
+    test('preserves calories, fiber and recommendation metadata', () {
+      final edited = NutritionTargetEditor.applyMacroEdits(
+        recommendedBaseline,
+        proteinGrams: 170,
+        carbohydrateGrams: 210,
+        fatGrams: 50,
+      );
+
+      expect(edited.caloriesKcal, 2000);
+      expect(edited.fiberGrams, 28);
+      expect(edited.recommendationMetadata,
+          {'source': 'onboarding', 'bmr': 1600, 'tdee': 2100});
+    });
+
+    test('records all three when all three move', () {
+      final edited = NutritionTargetEditor.applyMacroEdits(
+        recommendedBaseline,
+        proteinGrams: 170,
+        carbohydrateGrams: 210,
+        fatGrams: 50,
+      );
+
+      expect(edited.customizedFields, {'protein', 'carbohydrate', 'fat'});
+    });
+  });
+
+  group('slider range', () {
+    test('spans up to the grams that would use the whole calorie target', () {
+      // 2000 kcal / 9 kcal per gram of fat.
+      expect(
+        NutritionTargetEditor.sliderMaxGrams(
+          NutritionTargetField.fat,
+          caloriesKcal: 2000,
+          current: 55,
+        ),
+        223,
+      );
+      expect(
+        NutritionTargetEditor.sliderMaxGrams(
+          NutritionTargetField.protein,
+          caloriesKcal: 2000,
+          current: 150,
+        ),
+        500,
+      );
+    });
+
+    test('always covers an already-stored larger value', () {
+      // A stored target beyond the contextual range must stay representable
+      // rather than being clamped out of view.
+      expect(
+        NutritionTargetEditor.sliderMaxGrams(
+          NutritionTargetField.fat,
+          caloriesKcal: 2000,
+          current: 400,
+        ),
+        greaterThanOrEqualTo(400),
+      );
+    });
+
+    test('falls back to twice the current value with no calorie target', () {
+      expect(
+        NutritionTargetEditor.sliderMaxGrams(
+          NutritionTargetField.protein,
+          caloriesKcal: null,
+          current: 300,
+        ),
+        600,
+      );
+    });
+
+    test('stays usable when the current value is zero', () {
+      final max = NutritionTargetEditor.sliderMaxGrams(
+        NutritionTargetField.protein,
+        caloriesKcal: null,
+        current: 0,
+      );
+
+      // A zero-gram macro still needs somewhere to slide to.
+      expect(max, greaterThan(0));
+    });
+  });
+
   group('provenance', () {
     test('recommended baseline plus one manual edit becomes mixed', () {
       final edited = NutritionTargetEditor.applyEdit(
