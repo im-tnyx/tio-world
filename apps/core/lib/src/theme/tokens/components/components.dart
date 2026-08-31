@@ -8,5 +8,6 @@ export 'tio_measurement_picker_tokens.dart';
 export 'tio_navigation_tokens.dart';
 export 'tio_otp_dialog_tokens.dart';
 export 'tio_remove_image_sheet_tokens.dart';
+export 'tio_editor_sheet_tokens.dart';
 export 'tio_sheet_tokens.dart';
 export 'tio_wheel_picker_tokens.dart';
