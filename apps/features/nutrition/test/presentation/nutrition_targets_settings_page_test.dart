@@ -553,7 +553,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-        find.byKey(const ValueKey('nutrition-editor-sheet')), findsOneWidget);
+        find.byKey(const ValueKey('tio-editor-sheet')), findsOneWidget);
     expect(
       find.text("Couldn't save. Check your connection and try again."),
       findsOneWidget,

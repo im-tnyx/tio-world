@@ -129,7 +129,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-          find.byKey(const ValueKey('nutrition-editor-sheet')), findsOneWidget);
+          find.byKey(const ValueKey('tio-editor-sheet')), findsOneWidget);
       // Only the macro being edited gets a field.
       expect(find.byType(TextField), findsOneWidget);
     });

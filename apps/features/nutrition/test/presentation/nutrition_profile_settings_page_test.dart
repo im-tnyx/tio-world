@@ -101,7 +101,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-          find.byKey(const ValueKey('nutrition-editor-sheet')), findsOneWidget);
+          find.byKey(const ValueKey('tio-editor-sheet')), findsOneWidget);
       for (final value in [
         'vegetarian',
         'non_vegetarian',
@@ -176,7 +176,7 @@ void main() {
       expect(saved!.dislikedFoods, {'okra'});
       expect(saved!.medicalConditions, {'diabetes'});
       expect(
-          find.byKey(const ValueKey('nutrition-editor-sheet')), findsNothing);
+          find.byKey(const ValueKey('tio-editor-sheet')), findsNothing);
     });
 
     testWidgets('a failed save keeps the sheet open and surfaces the error',
@@ -197,7 +197,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-          find.byKey(const ValueKey('nutrition-editor-sheet')), findsOneWidget);
+          find.byKey(const ValueKey('tio-editor-sheet')), findsOneWidget);
       expect(
         find.text("Couldn't save. Check your connection and try again."),
         findsOneWidget,

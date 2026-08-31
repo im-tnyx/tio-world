@@ -3,8 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_progress/progress.dart';
 
-import '../widgets/daily_wellness_editor_sheet.dart';
-
 /// Canonical Body Goal range/increment constants for this screen.
 ///
 /// No shared home exists for these yet (onboarding keeps its own copies in
@@ -99,7 +97,7 @@ class BodyWeightSettingsPage extends StatelessWidget {
   final Future<void> Function(BodyGoalUpdate update) onSaveBodyGoal;
 
   Future<void> _pickCurrentWeight(BuildContext context) async {
-    await showDailyWellnessEditorSheet<double>(
+    await showTioEditorSheet<double>(
       context: context,
       builder: (context) => _WeightEntrySheet(
         title: 'Current Weight',
@@ -130,7 +128,7 @@ class BodyWeightSettingsPage extends StatelessWidget {
   }
 
   Future<void> _openBodyGoalSelection(BuildContext context) async {
-    final selectedType = await showDailyWellnessEditorSheet<BodyGoalType>(
+    final selectedType = await showTioEditorSheet<BodyGoalType>(
       context: context,
       builder: (context) => _BodyGoalSelectionSheet(
         activeGoal: bodyState.activeGoal,
@@ -147,7 +145,7 @@ class BodyWeightSettingsPage extends StatelessWidget {
     }
 
     final currentWeightKg = bodyState.latestWeight?.weightKg;
-    final targetKg = await showDailyWellnessEditorSheet<double>(
+    final targetKg = await showTioEditorSheet<double>(
       context: context,
       builder: (context) => _WeightEntrySheet(
         title: 'Target Weight',
@@ -164,7 +162,7 @@ class BodyWeightSettingsPage extends StatelessWidget {
     );
     if (targetKg == null || !context.mounted) return;
 
-    await showDailyWellnessEditorSheet<double>(
+    await showTioEditorSheet<double>(
       context: context,
       builder: (context) => _GoalPaceStepSheet(
         initialPaceKg: bodyState.activeGoal?.weeklyWeightChangeKg ??
@@ -185,7 +183,7 @@ class BodyWeightSettingsPage extends StatelessWidget {
   Future<void> _pickTargetWeight(BuildContext context) async {
     final activeGoal = bodyState.activeGoal!;
     final currentWeightKg = bodyState.latestWeight?.weightKg;
-    await showDailyWellnessEditorSheet<double>(
+    await showTioEditorSheet<double>(
       context: context,
       builder: (context) => _WeightEntrySheet(
         title: 'Target Weight',
@@ -210,7 +208,7 @@ class BodyWeightSettingsPage extends StatelessWidget {
 
   Future<void> _pickGoalPace(BuildContext context) async {
     final activeGoal = bodyState.activeGoal!;
-    await showDailyWellnessEditorSheet<double>(
+    await showTioEditorSheet<double>(
       context: context,
       builder: (context) => _GoalPaceStepSheet(
         initialPaceKg: activeGoal.weeklyWeightChangeKg ??
@@ -667,7 +665,7 @@ class _WeightEntrySheetState extends State<_WeightEntrySheet> {
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
-    return DailyWellnessEditorSheet(
+    return TioEditorSheet(
       title: widget.title,
       canDismiss: !_isSaving,
       titleTrailing: IconButton(
@@ -799,7 +797,7 @@ class _BodyGoalSelectionSheetState extends State<_BodyGoalSelectionSheet> {
     final colors = context.tioColors;
     final isMaintainSelected = _selectedType == BodyGoalType.maintainWeight;
 
-    return DailyWellnessEditorSheet(
+    return TioEditorSheet(
       title: 'Body Goal',
       canDismiss: !_isSaving,
       content: Column(
@@ -904,7 +902,7 @@ class _GoalPaceStepSheetState extends State<_GoalPaceStepSheet> {
             _BodyWeightLimits.paceIncrementKg)
         .round();
 
-    return DailyWellnessEditorSheet(
+    return TioEditorSheet(
       title: 'Weekly Goal',
       canDismiss: !_isSaving,
       content: Column(

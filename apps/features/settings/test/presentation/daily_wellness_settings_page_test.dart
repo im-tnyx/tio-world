@@ -230,7 +230,7 @@ void main() {
       await tapGlass(tester, 'glass-size-preset-300');
 
       await tester.drag(
-        find.byKey(const ValueKey('daily-wellness-editor-sheet-handle')),
+        find.byKey(const ValueKey('tio-editor-sheet-handle')),
         const Offset(0, 600),
       );
       await tester.pumpAndSettle();
@@ -282,7 +282,7 @@ void main() {
       await tester.pump();
       expect(find.text('Default Glass Size'), findsOneWidget);
       await tester.drag(
-        find.byKey(const ValueKey('daily-wellness-editor-sheet-handle')),
+        find.byKey(const ValueKey('tio-editor-sheet-handle')),
         const Offset(0, 600),
       );
       await tester.pump();
@@ -451,14 +451,14 @@ void main() {
 
       expect(find.text(entry.$2), findsOneWidget);
       expect(
-        find.byKey(const ValueKey('daily-wellness-editor-sheet-handle')),
+        find.byKey(const ValueKey('tio-editor-sheet-handle')),
         findsOneWidget,
       );
       final surface = tester.widget<Material>(
-        find.byKey(const ValueKey('daily-wellness-editor-sheet')),
+        find.byKey(const ValueKey('tio-editor-sheet')),
       );
       final surfaceContext = tester.element(
-        find.byKey(const ValueKey('daily-wellness-editor-sheet')),
+        find.byKey(const ValueKey('tio-editor-sheet')),
       );
       expect(surface.color, surfaceContext.tioColors.surfaceRaised);
       expect(find.byType(TioSheet), findsNothing);

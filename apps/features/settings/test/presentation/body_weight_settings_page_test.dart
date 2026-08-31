@@ -47,7 +47,7 @@ void main() {
   /// (private) widget type.
   void dismissOpenSheet(WidgetTester tester) {
     final sheetElement = tester
-        .element(find.byKey(const ValueKey('daily-wellness-editor-sheet')));
+        .element(find.byKey(const ValueKey('tio-editor-sheet')));
     Navigator.of(sheetElement).pop();
   }
 
@@ -242,7 +242,7 @@ void main() {
         ),
       ),
     );
-    final sheet = find.byKey(const ValueKey('daily-wellness-editor-sheet'));
+    final sheet = find.byKey(const ValueKey('tio-editor-sheet'));
 
     // Header WITH the wheel/manual toggle.
     await tester
@@ -344,6 +344,61 @@ void main() {
       final gap = tester.getTopLeft(save).dy - tester.getBottomLeft(field).dy;
 
       expect(gap, greaterThanOrEqualTo(TioSpacing.lg + TioSpacing.md));
+    });
+
+    testWidgets(
+        'Save stays reachable above the keyboard in manual entry '
+        '(live #183 exposure)', (tester) async {
+      // The manual-entry TextField is `autofocus: true`, so on a real device
+      // opening it raises the keyboard immediately. This is the exposure
+      // #183 flagged as live (not merely latent): TioEditorSheet must keep
+      // Save pinned outside the scrolling content, or the keyboard pushes it
+      // off-screen exactly as it once did for a Nutrition sheet.
+      var insets = EdgeInsets.zero;
+      late StateSetter setOuter;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => StatefulBuilder(
+            builder: (context, setState) {
+              setOuter = setState;
+              return MediaQuery(
+                data: MediaQuery.of(context).copyWith(viewInsets: insets),
+                child: TioTheme(child: child ?? const SizedBox.shrink()),
+              );
+            },
+          ),
+          home: BodyWeightSettingsPage(
+            bodyState: stateWith(currentWeightKg: 70),
+            weightUnit: WeightUnit.kg,
+            onRecordCurrentWeight: (_) async {},
+            onSaveBodyGoal: (_) async {},
+          ),
+        ),
+      );
+
+      await tester
+          .tap(find.byKey(const ValueKey('body-weight-current-weight-field')));
+      await tester.pumpAndSettle();
+      await tester
+          .tap(find.byKey(const ValueKey('body-weight-wheel-mode-toggle')));
+      await tester.pump();
+
+      final screenHeight =
+          tester.view.physicalSize.height / tester.view.devicePixelRatio;
+      const keyboardHeight = 300.0;
+
+      setOuter(() => insets = const EdgeInsets.only(bottom: keyboardHeight));
+      await tester.pumpAndSettle();
+
+      final save =
+          find.byKey(const ValueKey('body-weight-current-weight-save'));
+      expect(save, findsOneWidget);
+
+      final rect = tester.getRect(save);
+      expect(rect.bottom, lessThanOrEqualTo(screenHeight - keyboardHeight),
+          reason: 'Save must sit above the raised keyboard, not behind it');
+      expect(rect.top, greaterThanOrEqualTo(0));
     });
 
     testWidgets('typed value syncs back to the wheel', (tester) async {
@@ -534,7 +589,7 @@ void main() {
       expect(find.byKey(const ValueKey('body-weight-wheel-mode-toggle')),
           findsOneWidget);
 
-      final sheet = find.byKey(const ValueKey('daily-wellness-editor-sheet'));
+      final sheet = find.byKey(const ValueKey('tio-editor-sheet'));
       Offset titleCenter() => tester.getCenter(
           find.descendant(of: sheet, matching: find.text('Current Weight')));
       Offset toggleCenter() => tester.getCenter(
@@ -913,7 +968,7 @@ void main() {
       expect(find.byKey(const ValueKey('body-weight-wheel-mode-toggle')),
           findsOneWidget);
 
-      final sheet = find.byKey(const ValueKey('daily-wellness-editor-sheet'));
+      final sheet = find.byKey(const ValueKey('tio-editor-sheet'));
       Offset titleCenter() => tester.getCenter(
           find.descendant(of: sheet, matching: find.text('Target Weight')));
       Offset toggleCenter() => tester.getCenter(
@@ -1140,7 +1195,7 @@ void main() {
           findsOneWidget);
       expect(
         find.descendant(
-          of: find.byKey(const ValueKey('daily-wellness-editor-sheet')),
+          of: find.byKey(const ValueKey('tio-editor-sheet')),
           matching: find.text('Weekly Goal'),
         ),
         findsOneWidget,
