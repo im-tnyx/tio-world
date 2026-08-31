@@ -9,10 +9,12 @@ import 'package:tio_core/core.dart';
 class NutritionSettingsPage extends StatelessWidget {
   const NutritionSettingsPage({
     required this.onNutritionProfilePressed,
+    required this.onNutritionTargetsPressed,
     super.key,
   });
 
   final VoidCallback onNutritionProfilePressed;
+  final VoidCallback onNutritionTargetsPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +68,19 @@ class NutritionSettingsPage extends StatelessWidget {
                   title: 'Nutrition Profile',
                   subtitle: 'Diet Type, allergies & restrictions',
                   onTap: onNutritionProfilePressed,
+                ),
+              ],
+            ),
+            const SizedBox(height: TioSpacing.lg),
+            const _NutritionSettingsSectionHeader(title: 'DAILY TARGETS'),
+            _NutritionSettingsGroupCard(
+              children: [
+                _NutritionSettingsTile(
+                  key: const ValueKey('nutrition-settings-targets-entry'),
+                  icon: Icons.track_changes_rounded,
+                  title: 'Nutrition Targets',
+                  subtitle: 'Calories, protein, carbs, fat & fiber',
+                  onTap: onNutritionTargetsPressed,
                 ),
               ],
             ),

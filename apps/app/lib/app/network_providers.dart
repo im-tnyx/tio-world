@@ -101,7 +101,8 @@ final userProfileRepositoryProvider = Provider<UserProfileRepository?>((ref) {
 
 /// Narrow avatar-only Supabase boundary. It writes only `users.avatar_url` and
 /// carries no legacy Profile/Body schema dependency.
-final profileAvatarRepositoryProvider = Provider<ProfileAvatarRepository?>((ref) {
+final profileAvatarRepositoryProvider =
+    Provider<ProfileAvatarRepository?>((ref) {
   final client = ref.watch(supabaseClientProvider);
   if (client == null) return null;
   return SupabaseProfileAvatarRepository(client: client);
@@ -271,6 +272,16 @@ final nutritionProfileDataProvider =
   return await repository.read() ?? const NutritionProfileData();
 });
 
+/// Canonical Nutrition Targets read model for post-onboarding Settings.
+///
+/// A missing canonical row resolves to an all-null target set so first-time
+/// editing works without a separate setup workflow.
+final nutritionTargetsDataProvider =
+    FutureProvider<NutritionTargetsData>((ref) async {
+  final repository = ref.watch(nutritionTargetsRepositoryProvider);
+  return await repository.read() ?? const NutritionTargetsData();
+});
+
 /// Canonical Nutrition Targets owner used by Product Onboarding completion.
 final nutritionTargetsRepositoryProvider =
     Provider<NutritionTargetsRepository>((ref) {
@@ -310,8 +321,7 @@ OnboardingCompletionValidator buildAppOnboardingCompletionValidator({
 }) {
   return OnboardingCompletionValidator(
     hasDurableOwnerPersistence: hasSupabaseClient,
-    backendUserReady:
-        hasSupabaseClient && hasAuthenticatedSupabaseUser,
+    backendUserReady: hasSupabaseClient && hasAuthenticatedSupabaseUser,
   );
 }
 
@@ -320,8 +330,7 @@ final appOnboardingCompletionValidatorProvider =
   final supabaseClient = ref.watch(supabaseClientProvider);
   return buildAppOnboardingCompletionValidator(
     hasSupabaseClient: supabaseClient != null,
-    hasAuthenticatedSupabaseUser:
-        supabaseClient?.auth.currentUser != null,
+    hasAuthenticatedSupabaseUser: supabaseClient?.auth.currentUser != null,
   );
 });
 
@@ -329,7 +338,8 @@ final deviceIdentityProviderProvider = Provider<DeviceIdentityProvider>((ref) {
   return FlutterDeviceIdentityProvider();
 });
 
-final backendUserSyncRepositoryProvider = Provider<BackendUserSyncRepository>((ref) {
+final backendUserSyncRepositoryProvider =
+    Provider<BackendUserSyncRepository>((ref) {
   final apiClient = ref.watch(publicApiClientProvider);
   return RemoteBackendUserSyncRepository(
     remoteDataSource: BackendUserSyncRemoteDataSource(apiClient),
@@ -384,7 +394,8 @@ final authSignInRepositoryProvider = Provider<AuthSignInRepository?>((ref) {
   return null;
 });
 
-final signInWithGoogleUseCaseProvider = Provider<SignInWithGoogleUseCase?>((ref) {
+final signInWithGoogleUseCaseProvider =
+    Provider<SignInWithGoogleUseCase?>((ref) {
   final repo = ref.watch(authSignInRepositoryProvider);
   if (repo != null) {
     return SignInWithGoogleUseCase(signInRepository: repo);
