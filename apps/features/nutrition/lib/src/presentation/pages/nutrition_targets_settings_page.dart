@@ -136,11 +136,10 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
             const SizedBox(height: TioSpacing.lg),
             NutritionSettingsSectionHeader(
               title: 'MACRONUTRIENTS',
-              // One pencil for the whole card: the three macros define each
-              // other's share and the calorie check, so they are edited
-              // together rather than one at a time.
-              trailing: NutritionEditPencil(
-                key: const ValueKey('nutrition-target-macros-pencil'),
+              // A chevron, not a pencil: the three macros open their own
+              // screen. A pencil would promise editing right here.
+              trailing: NutritionOpenChevron(
+                key: const ValueKey('nutrition-target-macros-open'),
                 onPressed: onEditMacros,
               ),
             ),

@@ -132,27 +132,32 @@ void main() {
       expect(find.byType(NutritionSettingsGroupCard), findsNWidgets(3));
     });
 
-    testWidgets('Calories and Fiber own a pencil; macros share one',
+    testWidgets('pencils edit in place; the macros carry a chevron instead',
         (tester) async {
       await pumpPage(tester, targets: recommended, onSave: (_) async {});
 
-      // Calories, Fiber, and one section-level pencil for all three macros --
-      // never a per-macro pencil competing with the shared one.
-      expect(find.byIcon(Icons.edit_outlined), findsNWidgets(3));
+      // Calories and Fiber open a focused editor on this surface, so they get
+      // a pencil. The macros open their own screen, so they get a chevron --
+      // the affordance has to match what a tap actually does.
+      expect(find.byIcon(Icons.edit_outlined), findsNWidgets(2));
+      expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);
       expect(
-        find.byKey(const ValueKey('nutrition-target-macros-pencil')),
+        find.byKey(const ValueKey('nutrition-target-macros-open')),
         findsOneWidget,
       );
-      // A pencil already means "edit"; a chevron beside it would be redundant.
-      expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+      // No macro row offers its own competing affordance.
+      expect(
+        find.byKey(const ValueKey('nutrition-target-macros-pencil')),
+        findsNothing,
+      );
     });
 
-    testWidgets('the macros pencil requests the Macronutrients screen',
+    testWidgets('the macros chevron requests the Macronutrients screen',
         (tester) async {
       await pumpPage(tester, targets: recommended, onSave: (_) async {});
 
       await tester
-          .tap(find.byKey(const ValueKey('nutrition-target-macros-pencil')));
+          .tap(find.byKey(const ValueKey('nutrition-target-macros-open')));
       await tester.pumpAndSettle();
 
       expect(macroEdits, 1);

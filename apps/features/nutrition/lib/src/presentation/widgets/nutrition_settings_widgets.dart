@@ -50,10 +50,46 @@ class NutritionSettingsSectionHeader extends StatelessWidget {
   }
 }
 
-/// The single pencil affordance shared by section headers and rows.
+/// Edit-in-place affordance: opens a focused editor for a value without
+/// leaving the current surface.
 class NutritionEditPencil extends StatelessWidget {
   const NutritionEditPencil({required this.onPressed, super.key});
 
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return _NutritionCircularAction(
+      icon: Icons.edit_outlined,
+      onPressed: onPressed,
+    );
+  }
+}
+
+/// Navigation affordance: opens a separate screen.
+///
+/// Deliberately distinct from [NutritionEditPencil]. A pencil promises editing
+/// right here; a chevron promises going somewhere. Using the wrong one makes
+/// the screen lie about what a tap will do.
+class NutritionOpenChevron extends StatelessWidget {
+  const NutritionOpenChevron({required this.onPressed, super.key});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return _NutritionCircularAction(
+      icon: Icons.chevron_right_rounded,
+      onPressed: onPressed,
+    );
+  }
+}
+
+/// Shared shape for the two affordances, so only the glyph carries meaning.
+class _NutritionCircularAction extends StatelessWidget {
+  const _NutritionCircularAction({required this.icon, required this.onPressed});
+
+  final IconData icon;
   final VoidCallback onPressed;
 
   @override
@@ -71,7 +107,7 @@ class NutritionEditPencil extends StatelessWidget {
           shape: BoxShape.circle,
         ),
         child: Icon(
-          Icons.edit_outlined,
+          icon,
           size: TioSize.dp16,
           color: colors.textSecondary,
         ),
