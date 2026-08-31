@@ -21,7 +21,9 @@ void main() {
   Future<ProviderContainer> buildContainer({
     required AppMode appMode,
     required _FakeNutritionProfileRepository repository,
+    _FakeNutritionTargetsRepository? targets,
   }) async {
+    final targetsRepository = targets ?? _FakeNutritionTargetsRepository();
     final preference = _MemoryAppModePreference(appMode);
     final appModeController = AppModeController(preference);
     await appModeController.load();
@@ -53,6 +55,8 @@ void main() {
           ),
         ),
         nutritionProfileRepositoryProvider.overrideWith((ref) => repository),
+        nutritionTargetsRepositoryProvider
+            .overrideWith((ref) => targetsRepository),
       ],
     );
   }
@@ -178,6 +182,94 @@ void main() {
 
     expect(find.text('Vegetarian'), findsOneWidget);
     expect(find.text('Gluten'), findsOneWidget);
+  });
+
+  testWidgets('Nutrition hub navigates to Nutrition Targets and loads values',
+      (tester) async {
+    final repository = _FakeNutritionProfileRepository();
+    final targets = _FakeNutritionTargetsRepository(
+      stored: const NutritionTargetsData(
+        caloriesKcal: 1900,
+        proteinGrams: 150,
+        carbohydrateGrams: 200,
+        fatGrams: 55.6,
+        fiberGrams: 28,
+        customizationState: NutritionTargetCustomizationState.recommended,
+        recommendationMetadata: {'source': 'onboarding'},
+      ),
+    );
+    final container = await buildContainer(
+      appMode: AppMode.nutrition,
+      repository: repository,
+      targets: targets,
+    );
+    addTearDown(container.dispose);
+
+    await openSettings(tester, container);
+    await tester.tap(find.byKey(const ValueKey('settings-nutrition-entry')));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('nutrition-settings-targets-entry')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('1900 kcal'), findsOneWidget);
+    expect(find.text('150 g'), findsOneWidget);
+    expect(find.text('28 g'), findsOneWidget);
+  });
+
+  testWidgets('a target save preserves the rest of the canonical row',
+      (tester) async {
+    final repository = _FakeNutritionProfileRepository();
+    final targets = _FakeNutritionTargetsRepository(
+      stored: const NutritionTargetsData(
+        caloriesKcal: 1900,
+        proteinGrams: 150,
+        carbohydrateGrams: 200,
+        fatGrams: 55.6,
+        fiberGrams: 28,
+        customizationState: NutritionTargetCustomizationState.recommended,
+        recommendationMetadata: {'source': 'onboarding', 'bmr': 1600},
+      ),
+    );
+    final container = await buildContainer(
+      appMode: AppMode.hybrid,
+      repository: repository,
+      targets: targets,
+    );
+    addTearDown(container.dispose);
+
+    await openSettings(tester, container);
+    await tester.tap(find.byKey(const ValueKey('settings-nutrition-entry')));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('nutrition-settings-targets-entry')));
+    await tester.pumpAndSettle();
+
+    await tester
+        .tap(find.byKey(const ValueKey('nutrition-target-fiber-field')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('nutrition-target-fiber-input')),
+      '32',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('nutrition-target-fiber-save')));
+    await tester.pumpAndSettle();
+
+    expect(targets.writes, hasLength(1));
+    final written = targets.writes.single;
+    expect(written.fiberGrams, 32);
+    expect(written.caloriesKcal, 1900);
+    expect(written.proteinGrams, 150);
+    expect(written.carbohydrateGrams, 200);
+    expect(written.fatGrams, 55.6);
+    expect(written.recommendationMetadata,
+        {'source': 'onboarding', 'bmr': 1600});
+    expect(written.customizedFields, {'fiber'});
+
+    // The route re-read the canonical owner, so the row is not stale.
+    expect(targets.readCount, greaterThan(1));
+    expect(find.text('32 g'), findsOneWidget);
   });
 
   testWidgets('a canonical save preserves unrendered fields and refreshes',
@@ -326,5 +418,25 @@ class _MemoryOnboardingStatusRepository implements OnboardingStatusRepository {
   Future<void> write(OnboardingStatus status) async {
     await ensureInitialized();
     this.status = status;
+  }
+}
+
+class _FakeNutritionTargetsRepository implements NutritionTargetsRepository {
+  _FakeNutritionTargetsRepository({this.stored});
+
+  NutritionTargetsData? stored;
+  final writes = <NutritionTargetsData>[];
+  var readCount = 0;
+
+  @override
+  Future<NutritionTargetsData?> read() async {
+    readCount++;
+    return stored;
+  }
+
+  @override
+  Future<void> upsert(NutritionTargetsData targets) async {
+    writes.add(targets);
+    stored = targets;
   }
 }

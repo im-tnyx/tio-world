@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 
 import '../../domain/models/models.dart';
+import '../widgets/nutrition_settings_widgets.dart';
 
 /// Nutrition-owned post-onboarding Nutrition Profile editor.
 ///
@@ -133,10 +134,10 @@ class NutritionProfileSettingsPage extends StatelessWidget {
             TioSpacing.xl,
           ),
           children: [
-            const _NutritionSectionHeader(title: 'DIET'),
-            _NutritionGroupCard(
+            const NutritionSettingsSectionHeader(title: 'DIET'),
+            NutritionSettingsGroupCard(
               children: [
-                _NutritionRow(
+                NutritionValueRow(
                   key: const ValueKey('nutrition-profile-diet-type-field'),
                   icon: Icons.local_dining_rounded,
                   label: 'Diet Type',
@@ -147,10 +148,10 @@ class NutritionProfileSettingsPage extends StatelessWidget {
               ],
             ),
             const SizedBox(height: TioSpacing.lg),
-            const _NutritionSectionHeader(title: 'RESTRICTIONS'),
-            _NutritionGroupCard(
+            const NutritionSettingsSectionHeader(title: 'RESTRICTIONS'),
+            NutritionSettingsGroupCard(
               children: [
-                _NutritionRow(
+                NutritionValueRow(
                   key: const ValueKey('nutrition-profile-allergies-field'),
                   icon: Icons.no_food_rounded,
                   label: 'Allergies & Restrictions',
@@ -262,7 +263,11 @@ class NutritionEditorSheet extends StatelessWidget {
                 // with the keyboard raised pushes the button below the fold,
                 // so the user cannot commit what they just typed without
                 // discovering a scroll first.
-                const SizedBox(height: TioSpacing.md),
+                //
+                // The commit action gets more room than the sheet's internal
+                // spacing: it is a separate step, and sitting tight under the
+                // input reads as part of it and invites a mistap.
+                const SizedBox(height: TioSpacing.xl),
                 actions,
               ],
             ),
@@ -756,123 +761,6 @@ class _NutritionChoiceTileState extends State<_NutritionChoiceTile> {
               ],
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NutritionSectionHeader extends StatelessWidget {
-  const _NutritionSectionHeader({required this.title});
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.tioColors;
-    return Padding(
-      padding:
-          const EdgeInsets.only(left: TioSpacing.sm, bottom: TioSpacing.sm),
-      child: Text(
-        title,
-        style: TextStyle(
-          color: colors.textMuted,
-          fontWeight: TioFontWeight.w700,
-          fontSize: TioFontSize.size11,
-          letterSpacing: TioLetterSpacing.positive08,
-        ),
-      ),
-    );
-  }
-}
-
-class _NutritionGroupCard extends StatelessWidget {
-  const _NutritionGroupCard({required this.children});
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.tioColors;
-    return Material(
-      color: colors.surfaceRaised,
-      borderRadius: BorderRadius.circular(TioRadius.lg),
-      clipBehavior: Clip.antiAlias,
-      child: Column(mainAxisSize: MainAxisSize.min, children: children),
-    );
-  }
-}
-
-class _NutritionRow extends StatelessWidget {
-  const _NutritionRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.isUnset,
-    required this.onTap,
-    super.key,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final bool isUnset;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.tioColors;
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: TioSpacing.lg,
-          vertical: TioSpacing.md + TioSize.dp4,
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: TioSize.dp24, color: colors.textPrimary),
-            const SizedBox(width: TioSpacing.lg),
-            Expanded(
-              flex: 3,
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: colors.textPrimary,
-                  fontWeight: TioFontWeight.w700,
-                  fontSize: TioFontSize.size15,
-                ),
-              ),
-            ),
-            const SizedBox(width: TioSpacing.sm),
-            Expanded(
-              flex: 2,
-              child: Text(
-                value,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.end,
-                style: TextStyle(
-                  color: isUnset ? colors.textMuted : colors.textPrimary,
-                  fontSize: TioFontSize.size15,
-                  fontWeight: isUnset ? TioFontWeight.w400 : TioFontWeight.w700,
-                ),
-              ),
-            ),
-            const SizedBox(width: TioSpacing.lg),
-            Container(
-              width: TioSize.dp36,
-              height: TioSize.dp36,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: colors.surfaceVariant,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.edit_outlined,
-                size: TioSize.dp16,
-                color: colors.textSecondary,
-              ),
-            ),
-          ],
         ),
       ),
     );
