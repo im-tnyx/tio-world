@@ -1735,6 +1735,218 @@ void main() {
     return ((minuteOfDay - timelineStartMinutes + 1440) % 1440) / 1440;
   }
 
+  Future<Rect> openSleepSchedule(
+    WidgetTester tester, {
+    required WellnessTargetsData initial,
+    Future<void> Function(WellnessTargetsData targets)? onSave,
+  }) async {
+    await tester.pumpWidget(
+      buildApp(
+        DailyWellnessSettingsPage(
+          initialTargets: initial,
+          volumeUnit: VolumeUnit.ml,
+          onSave: onSave ?? (_) async {},
+        ),
+      ),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('daily-wellness-sleep-schedule-field')),
+    );
+    await tester.pumpAndSettle();
+    return tester.getRect(
+      find.byKey(const ValueKey('sleep-schedule-timeline-track')),
+    );
+  }
+
+  Offset timelinePoint(Rect track, TimeOfDay time) => Offset(
+        track.left + track.width * timelineFraction(time),
+        track.center.dy,
+      );
+
+  group('Sleep Schedule handle ordering', () {
+    testWidgets(
+        'Bedtime drag clamps 15 minutes before Wake without swapping identities and saves the constrained times',
+        (tester) async {
+      WellnessTargetsData? savedTargets;
+      final track = await openSleepSchedule(
+        tester,
+        initial: const WellnessTargetsData(
+          bedTimeMinutes: 23 * 60,
+          wakeTimeMinutes: 7 * 60,
+        ),
+        onSave: (targets) async => savedTargets = targets,
+      );
+
+      await tester.dragFrom(
+        timelinePoint(track, const TimeOfDay(hour: 23, minute: 0)),
+        timelinePoint(track, const TimeOfDay(hour: 8, minute: 0)) -
+            timelinePoint(track, const TimeOfDay(hour: 23, minute: 0)),
+      );
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(DailyWellnessSettingsPage));
+      expect(
+        find.text(const TimeOfDay(hour: 6, minute: 45).format(context)),
+        findsOneWidget,
+      );
+      expect(
+        find.text(const TimeOfDay(hour: 7, minute: 0).format(context)),
+        findsOneWidget,
+      );
+      expect(find.text('15 min planned sleep'), findsOneWidget);
+      expect(find.bySemanticsLabel('Bedtime handle'), findsOneWidget);
+      expect(find.bySemanticsLabel('Wake time handle'), findsOneWidget);
+
+      await tester.tap(find.text('Save Schedule'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('daily-wellness-save')));
+      await tester.pumpAndSettle();
+
+      expect(savedTargets, isNotNull);
+      expect(savedTargets!.bedTimeMinutes, 6 * 60 + 45);
+      expect(savedTargets!.wakeTimeMinutes, 7 * 60);
+      expect(savedTargets!.sleepTargetMinutes, 15);
+    });
+
+    testWidgets(
+        'Wake drag clamps 15 minutes after Bedtime without swapping identities',
+        (tester) async {
+      final track = await openSleepSchedule(
+        tester,
+        initial: const WellnessTargetsData(
+          bedTimeMinutes: 23 * 60,
+          wakeTimeMinutes: 7 * 60,
+        ),
+      );
+
+      await tester.dragFrom(
+        timelinePoint(track, const TimeOfDay(hour: 7, minute: 0)),
+        timelinePoint(track, const TimeOfDay(hour: 22, minute: 0)) -
+            timelinePoint(track, const TimeOfDay(hour: 7, minute: 0)),
+      );
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(DailyWellnessSettingsPage));
+      expect(
+        find.text(const TimeOfDay(hour: 23, minute: 0).format(context)),
+        findsOneWidget,
+      );
+      expect(
+        find.text(const TimeOfDay(hour: 23, minute: 15).format(context)),
+        findsOneWidget,
+      );
+      expect(find.text('15 min planned sleep'), findsOneWidget);
+      expect(find.bySemanticsLabel('Bedtime handle'), findsOneWidget);
+      expect(find.bySemanticsLabel('Wake time handle'), findsOneWidget);
+    });
+
+    testWidgets('ordinary overnight 22:00 to 06:30 remains valid',
+        (tester) async {
+      await openSleepSchedule(
+        tester,
+        initial: const WellnessTargetsData(
+          bedTimeMinutes: 22 * 60,
+          wakeTimeMinutes: 6 * 60 + 30,
+        ),
+      );
+
+      final context = tester.element(find.byType(DailyWellnessSettingsPage));
+      expect(
+        find.text(const TimeOfDay(hour: 22, minute: 0).format(context)),
+        findsOneWidget,
+      );
+      expect(
+        find.text(const TimeOfDay(hour: 6, minute: 30).format(context)),
+        findsOneWidget,
+      );
+      expect(find.text('8h 30m planned sleep'), findsOneWidget);
+    });
+
+    testWidgets(
+        'accessibility increase and decrease stop at the same 15-minute boundary',
+        (tester) async {
+      final semantics = tester.ensureSemantics();
+      try {
+        await openSleepSchedule(
+          tester,
+          initial: const WellnessTargetsData(
+            bedTimeMinutes: 6 * 60 + 45,
+            wakeTimeMinutes: 7 * 60,
+          ),
+        );
+
+        final context = tester.element(find.byType(DailyWellnessSettingsPage));
+        final bedSemantics = find.semantics
+            .byLabel('Bedtime handle')
+            .evaluate()
+            .single
+            .getSemanticsData();
+        final wakeSemantics = find.semantics
+            .byLabel('Wake time handle')
+            .evaluate()
+            .single
+            .getSemanticsData();
+        expect(
+          bedSemantics.increasedValue,
+          const TimeOfDay(hour: 6, minute: 45).format(context),
+        );
+        expect(
+          wakeSemantics.decreasedValue,
+          const TimeOfDay(hour: 7, minute: 0).format(context),
+        );
+
+        tester.semantics.increase(find.semantics.byLabel('Bedtime handle'));
+        await tester.pump();
+        tester.semantics.decrease(find.semantics.byLabel('Wake time handle'));
+        await tester.pump();
+
+        expect(
+          find.text(const TimeOfDay(hour: 6, minute: 45).format(context)),
+          findsOneWidget,
+        );
+        expect(
+          find.text(const TimeOfDay(hour: 7, minute: 0).format(context)),
+          findsOneWidget,
+        );
+        expect(find.text('15 min planned sleep'), findsOneWidget);
+      } finally {
+        semantics.dispose();
+      }
+    });
+
+    testWidgets('precise Bedtime picker clamps a crossing choice',
+        (tester) async {
+      await openSleepSchedule(
+        tester,
+        initial: const WellnessTargetsData(
+          bedTimeMinutes: 23 * 60,
+          wakeTimeMinutes: 7 * 60,
+        ),
+      );
+
+      await tester.tap(find.text('Bedtime'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Switch to text input mode'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField).first, '8');
+      await tester.enterText(find.byType(TextFormField).last, '00');
+      await tester.tap(find.text('AM'));
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(DailyWellnessSettingsPage));
+      expect(
+        find.text(const TimeOfDay(hour: 6, minute: 45).format(context)),
+        findsOneWidget,
+      );
+      expect(
+        find.text(const TimeOfDay(hour: 7, minute: 0).format(context)),
+        findsOneWidget,
+      );
+      expect(find.text('15 min planned sleep'), findsOneWidget);
+    });
+  });
+
   testWidgets(
       'Dragging the Bedtime handle updates Bedtime live and leaves Wake Time untouched',
       (tester) async {
@@ -2050,6 +2262,47 @@ void main() {
       // than the number of distinct 15-minute marks between start and end.
       expect(selectionClickCount, greaterThanOrEqualTo(1));
       expect(selectionClickCount, lessThanOrEqualTo(4));
+    });
+
+    testWidgets(
+        'repeated pointer movement beyond the clamp does not add value changes or haptics',
+        (tester) async {
+      final trackRect = await openSheet(
+        tester,
+        bedTimeMinutes: 6 * 60,
+        wakeTimeMinutes: 7 * 60,
+      );
+      Offset point(TimeOfDay time) => Offset(
+            trackRect.left + trackRect.width * timelineFraction(time),
+            trackRect.center.dy,
+          );
+
+      final gesture =
+          await tester.startGesture(point(const TimeOfDay(hour: 6, minute: 0)));
+      // The first move clears Flutter's horizontal-drag touch slop; the next
+      // move is then delivered as the value-changing drag update.
+      await gesture.moveTo(point(const TimeOfDay(hour: 6, minute: 15)));
+      await tester.pump();
+      await gesture.moveTo(point(const TimeOfDay(hour: 8, minute: 0)));
+      await tester.pump();
+      await gesture.moveTo(point(const TimeOfDay(hour: 8, minute: 15)));
+      await tester.pump();
+      final hapticsAtBoundary = selectionClickCount;
+      expect(hapticsAtBoundary, greaterThanOrEqualTo(1));
+
+      await gesture.moveTo(point(const TimeOfDay(hour: 9, minute: 0)));
+      await tester.pump();
+      await gesture.moveTo(point(const TimeOfDay(hour: 10, minute: 0)));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(DailyWellnessSettingsPage));
+      expect(
+        find.text(const TimeOfDay(hour: 6, minute: 45).format(context)),
+        findsOneWidget,
+      );
+      expect(selectionClickCount, hapticsAtBoundary);
     });
   });
 
