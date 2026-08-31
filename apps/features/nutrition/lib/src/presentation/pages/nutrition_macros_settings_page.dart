@@ -235,7 +235,6 @@ class _NutritionMacrosSettingsPageState
                   ),
                   const SizedBox(width: TioSpacing.md),
                   Expanded(
-                    flex: 2,
                     child: TioButton.primary(
                       key: const ValueKey('nutrition-macros-save'),
                       label: 'Save',
