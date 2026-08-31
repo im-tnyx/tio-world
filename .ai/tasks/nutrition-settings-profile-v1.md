@@ -1,6 +1,6 @@
 # Nutrition Settings V1 — Nutrition Profile Edit Parity
 
-**Status:** Implemented — awaiting CI and physical-device acceptance
+**Status:** Validated — CI green, migration applied, device acceptance PASS
 **Primary owner:** Flutter mobile / Nutrition feature (Settings is navigation only)
 **Affected platforms:** Flutter Android and iOS
 
@@ -87,7 +87,8 @@ approved.
 |---|---|---|
 | Settings entry gated on canonical App Mode | Approved | Nutrition is a Nutrition/Hybrid capability |
 | Nutrition feature owns its own selection vocabulary | Approved | Settings must never import Onboarding presentation |
-| No free-text "Other" detail in V1 | Approved | No canonical column; writing it would be a silent data loss |
+| ~~No free-text "Other" detail in V1~~ | Superseded | Held only while no column existed. The owner ruled that "Other" without its text records nothing, so the columns were added instead |
+| Keep the `other` token when its text is blank | Approved | Dropping it would make Diet Type unsaveable and would turn an answered allergy into "None" |
 | Explicit merge on save (no `copyWith`) | Approved | `null` is meaningful, so a copy helper would hide intent |
 | Hub shows only implemented capability | Approved | Placeholder rows advertise capability that does not exist |
 
@@ -118,18 +119,36 @@ approved.
       fields, adapter read/write, and the inline "Other" field in both editors.
 - [x] Carry the onboarding free text through `NutritionProfileMapper`.
 - [x] `dart format`, `flutter analyze`, package test suites.
-- [ ] CI on the exact PR head.
-- [ ] Apply the migration to hosted Supabase — a separate step needing its own
-      owner confirmation. Not done as part of this slice.
-- [ ] Physical-device acceptance by the owner.
+- [x] CI on the exact PR head.
+- [x] Apply the migration to hosted Supabase (owner-approved after the code's
+      read began requesting the new columns and broke the app against it).
+- [x] Physical-device acceptance by the owner — PASS.
 
 ## 6. Quality Review
 
 - `flutter analyze`: clean on `apps/core`, `apps/features/nutrition`,
-  `apps/features/settings`, `apps/app`.
-- Tests: nutrition 38, settings 175, core 116, app 263 — all passing locally.
-- Data safety is covered at two levels: a widget test on the page's merge, and
-  a route test asserting the repository received the untouched fields.
+  `apps/features/settings`, `apps/features/onboarding`, `apps/app`.
+- Tests: nutrition 52, onboarding 447, settings 175, core 116, app 264. CI runs
+  analyze plus tests across every package via melos, and is green on the head.
+- Data safety is covered at three levels: the page's merge, the adapter
+  payload, and a route test asserting the repository received the untouched
+  fields.
+
+### Defects found during device acceptance, fixed here
+
+- **Nutrition Profile would not load.** The adapter's `select` was extended to
+  the new columns while the migration was deliberately deferred, so every read
+  failed against hosted Supabase and surfaced as a connection error. Deferring
+  the migration *was* the break: schema and reader had to ship together.
+- **Save sat under the keyboard** in the taller Allergies sheet, and selecting
+  "Other" left its field below the fold. Save is now pinned outside the scroll
+  view, and the row scrolls itself into view as Product Onboarding already did.
+
+### Known limitation, not fixed
+
+A signed-out save surfaces "Couldn't save. Check your connection and try
+again." although the real cause is authentication. The route sits behind the
+session gate, so it should be unreachable; recorded rather than papered over.
 
 ## 7. Final Handoff
 
@@ -163,7 +182,17 @@ approved.
 Nutrition and Hybrid users see a `NUTRITION` section in Settings leading to a
 Nutrition & Diet hub and a Nutrition Profile screen where Diet Type and
 Allergies & Restrictions can be edited. Workout users see no Nutrition section.
-Saving either field writes a fully merged canonical row.
+Choosing "Other" reveals a text field, and what the user types is stored and
+shown back in place of the generic label. Saving either field writes a fully
+merged canonical row.
 
-**Current status:** IMPLEMENTED — local validation complete; CI and physical-device
-acceptance pending.
+### Follow-ups raised, deliberately not done here
+
+- **TNYX-139** — selection cards are hand-rolled per surface, so App Mode
+  Settings, Account Setup and this slice's editor tiles all differ. The owner
+  ruled it an audit-first design-system effort rather than a patch here.
+- `medical_conditions` and `disliked_foods` columns exist and no product flow
+  writes either. `medical_conditions` is diet-plan-safety relevant.
+
+**Current status:** VALIDATED — CI green, migration applied to hosted Supabase,
+owner device acceptance PASS. Awaiting merge authorization.
