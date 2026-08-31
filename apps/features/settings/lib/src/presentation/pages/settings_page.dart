@@ -7,6 +7,8 @@ class SettingsPage extends StatelessWidget {
     this.onProfileSettingsPressed,
     this.onAccountSettingsPressed,
     this.onHealthGoalsPressed,
+    this.onNutritionPressed,
+    this.showNutritionSection = false,
     this.onLogoutPressed,
     super.key,
   });
@@ -15,6 +17,15 @@ class SettingsPage extends StatelessWidget {
   final VoidCallback? onProfileSettingsPressed;
   final VoidCallback? onAccountSettingsPressed;
   final VoidCallback? onHealthGoalsPressed;
+  final VoidCallback? onNutritionPressed;
+
+  /// App Mode capability gate supplied by app composition.
+  ///
+  /// Nutrition is a Nutrition/Hybrid capability, so the whole section is
+  /// absent in Workout mode rather than rendered empty or disabled. This is
+  /// presentation-only: hiding it never touches canonical Nutrition data.
+  final bool showNutritionSection;
+
   final VoidCallback? onLogoutPressed;
 
   void _showLogoutDialog(BuildContext context) {
@@ -122,6 +133,21 @@ class SettingsPage extends StatelessWidget {
                 ),
               ],
             ),
+            if (showNutritionSection) ...[
+              const SizedBox(height: TioSpacing.lg),
+              const _SettingsSectionHeader(title: 'NUTRITION'),
+              _SettingsGroupCard(
+                children: [
+                  _SettingsTile(
+                    key: const ValueKey('settings-nutrition-entry'),
+                    icon: Icons.restaurant_menu_rounded,
+                    title: 'Nutrition & Diet',
+                    subtitle: 'Diet Type, allergies & restrictions',
+                    onTap: onNutritionPressed,
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: TioSpacing.lg),
             const _SettingsSectionHeader(title: 'PREFERENCES'),
             _SettingsGroupCard(
