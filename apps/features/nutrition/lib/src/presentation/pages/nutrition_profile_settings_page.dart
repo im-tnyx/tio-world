@@ -263,7 +263,11 @@ class NutritionEditorSheet extends StatelessWidget {
                 // with the keyboard raised pushes the button below the fold,
                 // so the user cannot commit what they just typed without
                 // discovering a scroll first.
-                const SizedBox(height: TioSpacing.md),
+                //
+                // The commit action gets more room than the sheet's internal
+                // spacing: it is a separate step, and sitting tight under the
+                // input reads as part of it and invites a mistap.
+                const SizedBox(height: TioSpacing.xl),
                 actions,
               ],
             ),

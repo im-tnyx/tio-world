@@ -416,10 +416,11 @@ class _TargetEditorSheetState extends State<_TargetEditorSheet> {
             onSubmitted: (_) => _handleSave(),
             style: TextStyle(
               color: colors.textPrimary,
-              fontSize: TioFontSize.size24,
+              fontSize: TioFontSize.size18,
               fontWeight: TioFontWeight.w700,
             ),
             decoration: InputDecoration(
+              isDense: true,
               suffixText: widget.unit,
               suffixStyle: TextStyle(
                 color: colors.textSecondary,
@@ -428,7 +429,7 @@ class _TargetEditorSheetState extends State<_TargetEditorSheet> {
               hintText: 'Not set',
               hintStyle: TextStyle(
                 color: colors.textMuted,
-                fontSize: TioFontSize.size24,
+                fontSize: TioFontSize.size18,
                 fontWeight: TioFontWeight.w400,
               ),
             ),
