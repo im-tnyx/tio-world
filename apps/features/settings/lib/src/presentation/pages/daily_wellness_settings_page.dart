@@ -984,42 +984,151 @@ class _SleepScheduleBottomSheetState
   int get _renderBedTime => _bedTime ?? _defaultBedTime;
   int get _renderWakeTime => _wakeTime ?? _defaultWakeTime;
 
-  static double _fractionOf(int minuteOfDay) =>
-      ((minuteOfDay - _timelineStartMinutes + _minutesPerDay) %
-          _minutesPerDay) /
-      _minutesPerDay;
+  /// Position on the rendered 20:00 -> 20:00 timeline, in minutes from its
+  /// left edge.
+  ///
+  /// Ordering is decided here rather than on raw clock values: a 22:00
+  /// bedtime is numerically greater than a 06:30 wake time, yet sits to its
+  /// left on this timeline. Comparing minute-of-day directly would call a
+  /// perfectly ordinary overnight schedule "crossed".
+  static int _positionOf(int minuteOfDay) =>
+      (minuteOfDay - _timelineStartMinutes + _minutesPerDay) % _minutesPerDay;
 
-  int _snap(int minuteOfDay) {
-    final snapped =
-        (minuteOfDay / _snapMinutes).round() * _snapMinutes % _minutesPerDay;
-    return snapped < 0 ? snapped + _minutesPerDay : snapped;
+  static int _minuteOfDayAt(int position) =>
+      (position + _timelineStartMinutes) % _minutesPerDay;
+
+  static int _positionForHandle(
+    _SleepScheduleHandle handle,
+    int minuteOfDay,
+  ) {
+    final position = _positionOf(minuteOfDay);
+    return handle == _SleepScheduleHandle.wake && position == 0
+        ? _minutesPerDay
+        : position;
   }
 
-  void _setFromFraction(double fraction, _SleepScheduleHandle handle) {
-    final positionMinutes = (fraction.clamp(0.0, 1.0) * _minutesPerDay).round();
-    final absolute = _snap(positionMinutes + _timelineStartMinutes);
-    final previous =
-        handle == _SleepScheduleHandle.bed ? _bedTime : _wakeTime;
-    // Fire exactly once per crossing into a different snapped 15-minute
-    // value — never on every raw pointer update, and never merely for
-    // touching/selecting a handle (the down event's own value is usually
-    // unchanged from the handle's current position, so it stays silent).
-    if (previous != absolute) {
-      HapticFeedback.selectionClick();
+  static double _fractionOf(int minuteOfDay) =>
+      _positionOf(minuteOfDay) / _minutesPerDay;
+
+  /// Wake time's timeline position, with the right edge preferred.
+  ///
+  /// Position 0 and position 1440 are the same clock time (20:00) at opposite
+  /// ends of the window, and [_positionOf] collapses both to 0. Wake time is
+  /// always to the right of bedtime here, so a 20:00 wake time is the right
+  /// edge -- without this it would read as the left edge and the handle would
+  /// jump across, which is the very defect this ordering rule exists to stop.
+  int get _wakePosition =>
+      _positionForHandle(_SleepScheduleHandle.wake, _renderWakeTime);
+
+  /// Gap the two handles keep on the timeline: one existing snap interval.
+  ///
+  /// Not a sleep-duration judgement. At exact overlap `_handlePanDown`
+  /// resolves its equal-distance tie to the bedtime handle every time, which
+  /// would leave the wake handle permanently unreachable; the schedule would
+  /// also derive to a zero-minute duration and render as two stacked circles
+  /// the user cannot tell apart.
+  static const _minimumHandleGapMinutes = _snapMinutes;
+
+  static int _snapPosition(int position) =>
+      (position / _snapMinutes).round() * _snapMinutes;
+
+  static int _snapDown(int position) => position ~/ _snapMinutes * _snapMinutes;
+
+  static int _snapUp(int position) =>
+      ((position + _snapMinutes - 1) ~/ _snapMinutes) * _snapMinutes;
+
+  /// The one ordering rule. Every path that can move a handle goes through
+  /// it, so drag, accessibility actions and the precise time picker cannot
+  /// disagree about what is reachable.
+  ///
+  /// Takes a candidate timeline position and returns the clock time it
+  /// resolves to, clamped so bedtime stays left of wake time. A handle pushed
+  /// past its boundary stops there; identities are never swapped.
+  int _constrainedMinuteAt(
+    _SleepScheduleHandle handle,
+    int candidatePosition, {
+    required bool snapToInterval,
+  }) {
+    final snappedCandidate =
+        snapToInterval ? _snapPosition(candidatePosition) : candidatePosition;
+    final int constrainedPosition;
+    if (handle == _SleepScheduleHandle.bed) {
+      final limit = _wakePosition - _minimumHandleGapMinutes;
+      final maxPosition = snapToInterval ? _snapDown(limit) : limit;
+      constrainedPosition = snappedCandidate.clamp(
+        0,
+        maxPosition.clamp(0, _minutesPerDay),
+      );
+    } else {
+      final limit = _positionOf(_renderBedTime) + _minimumHandleGapMinutes;
+      final minPosition = snapToInterval ? _snapUp(limit) : limit;
+      constrainedPosition = snappedCandidate.clamp(
+        minPosition.clamp(0, _minutesPerDay),
+        _minutesPerDay,
+      );
     }
+    return _minuteOfDayAt(constrainedPosition);
+  }
+
+  void _applyConstrained(
+    _SleepScheduleHandle handle,
+    int candidatePosition, {
+    required bool snapToInterval,
+  }) {
+    final next = _constrainedMinuteAt(
+      handle,
+      candidatePosition,
+      snapToInterval: snapToInterval,
+    );
+    final current = handle == _SleepScheduleHandle.bed ? _bedTime : _wakeTime;
+    if (current == next) return;
     setState(() {
       if (handle == _SleepScheduleHandle.bed) {
-        _bedTime = absolute;
+        _bedTime = next;
       } else {
-        _wakeTime = absolute;
+        _wakeTime = next;
       }
     });
   }
 
-  void _adjust(_SleepScheduleHandle handle, int deltaMinutes) {
-    final current =
+  void _setFromFraction(double fraction, _SleepScheduleHandle handle) {
+    final candidate = (fraction.clamp(0.0, 1.0) * _minutesPerDay).round();
+    final absolute = _constrainedMinuteAt(
+      handle,
+      candidate,
+      snapToInterval: true,
+    );
+    final previous =
         handle == _SleepScheduleHandle.bed ? _renderBedTime : _renderWakeTime;
-    final next = _snap(current + deltaMinutes);
+    // Fire exactly once per crossing into a different snapped 15-minute
+    // value — never on every raw pointer update, and never merely for
+    // touching/selecting a handle (the down event's own value is usually
+    // unchanged from the handle's current position, so it stays silent).
+    // A pointer pushing past the boundary keeps resolving to the same
+    // clamped value, so it stays silent too rather than buzzing on every
+    // frame.
+    if (previous != absolute) {
+      HapticFeedback.selectionClick();
+    }
+    _applyConstrained(handle, candidate, snapToInterval: true);
+  }
+
+  /// Where one accessibility step would actually land, after constraining.
+  ///
+  /// [steps] is in snap intervals: +1 increase, -1 decrease.
+  int _adjustedValue(_SleepScheduleHandle handle, int steps) {
+    final basePosition = handle == _SleepScheduleHandle.wake
+        ? _wakePosition
+        : _positionOf(_renderBedTime);
+    return _constrainedMinuteAt(
+      handle,
+      basePosition + steps * _snapMinutes,
+      snapToInterval: true,
+    );
+  }
+
+  void _adjust(_SleepScheduleHandle handle, int steps) {
+    final next = _adjustedValue(handle, steps);
     setState(() {
       if (handle == _SleepScheduleHandle.bed) {
         _bedTime = next;
@@ -1031,7 +1140,7 @@ class _SleepScheduleBottomSheetState
 
   void _handlePanDown(Offset localPosition, double width) {
     final bedX = _fractionOf(_renderBedTime) * width;
-    final wakeX = _fractionOf(_renderWakeTime) * width;
+    final wakeX = _wakePosition / _minutesPerDay * width;
     _draggingHandle = (localPosition.dx - bedX).abs() <=
             (localPosition.dx - wakeX).abs()
         ? _SleepScheduleHandle.bed
@@ -1053,14 +1162,16 @@ class _SleepScheduleBottomSheetState
       initialTime: TimeOfDay(hour: current ~/ 60, minute: current % 60),
     );
     if (picked == null || !mounted) return;
-    setState(() {
-      final minutes = picked.hour * 60 + picked.minute;
-      if (handle == _SleepScheduleHandle.bed) {
-        _bedTime = minutes;
-      } else {
-        _wakeTime = minutes;
-      }
-    });
+    // Same ordering rule as dragging, so the picker cannot produce a state
+    // the timeline itself forbids. A crossing choice clamps to the nearest
+    // valid boundary rather than opening a second modal to argue about it.
+    // Deliberately not snapped to 15 minutes: the picker has always allowed
+    // an exact time, and this fix is about ordering, not granularity.
+    _applyConstrained(
+      handle,
+      _positionForHandle(handle, picked.hour * 60 + picked.minute),
+      snapToInterval: false,
+    );
   }
 
   Widget _largeTimeValue({
@@ -1104,7 +1215,9 @@ class _SleepScheduleBottomSheetState
   Widget _timeline(BuildContext context) {
     final colors = context.tioColors;
     final bedFraction = _fractionOf(_renderBedTime);
-    final wakeFraction = _fractionOf(_renderWakeTime);
+    // Right-edge normalisation, matching the ordering rule: a 20:00 wake time
+    // belongs at the end of the window, not the start.
+    final wakeFraction = _wakePosition / _minutesPerDay;
 
     const labelHours = [20, 0, 4, 8, 12, 16, 20];
 
@@ -1211,8 +1324,6 @@ class _SleepScheduleBottomSheetState
   }) {
     final colors = context.tioColors;
     const handleSize = TioSize.dp24;
-    final current =
-        handle == _SleepScheduleHandle.bed ? _renderBedTime : _renderWakeTime;
 
     return Positioned(
       left: x - handleSize / 2,
@@ -1220,10 +1331,13 @@ class _SleepScheduleBottomSheetState
       child: Semantics(
         label: semanticLabel,
         value: semanticValue,
-        increasedValue: _formatTimeOfDay(context, _snap(current + _snapMinutes)),
-        decreasedValue: _formatTimeOfDay(context, _snap(current - _snapMinutes)),
-        onIncrease: () => _adjust(handle, _snapMinutes),
-        onDecrease: () => _adjust(handle, -_snapMinutes),
+        // Announce what the action will actually produce. Reporting an
+        // unconstrained next value would tell a screen-reader user the handle
+        // is about to move somewhere it cannot go.
+        increasedValue: _formatTimeOfDay(context, _adjustedValue(handle, 1)),
+        decreasedValue: _formatTimeOfDay(context, _adjustedValue(handle, -1)),
+        onIncrease: () => _adjust(handle, 1),
+        onDecrease: () => _adjust(handle, -1),
         child: Container(
           width: handleSize,
           height: handleSize,
