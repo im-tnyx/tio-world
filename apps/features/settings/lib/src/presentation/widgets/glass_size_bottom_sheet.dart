@@ -4,7 +4,6 @@ import 'package:tio_core/core.dart';
 
 import '../../domain/hydration_preferences.dart';
 import '../hydration_preferences_editor_controller.dart';
-import 'daily_wellness_editor_sheet.dart';
 
 String formatGlassSize(int millilitres, VolumeUnit unit) {
   if (unit == VolumeUnit.ml) return '$millilitres ml';
@@ -60,7 +59,7 @@ class _GlassSizeBottomSheetState extends State<GlassSizeBottomSheet> {
           final unit = widget.volumeUnit.value;
           return PopScope(
             canPop: !_editor.isSaving,
-            child: DailyWellnessEditorSheet(
+            child: TioEditorSheet(
               title: 'Default Glass Size',
               supportingText: 'Amount logged when you add one glass of water.',
               canDismiss: !_editor.isSaving,

@@ -4,8 +4,6 @@ import 'package:tio_core/core.dart';
 
 import '../../domain/domain.dart';
 import '../widgets/nutrition_settings_widgets.dart';
-import 'nutrition_profile_settings_page.dart'
-    show NutritionEditorSheet, showNutritionEditorSheet;
 
 /// Nutrition-owned editor for the canonical core five daily targets.
 ///
@@ -61,7 +59,7 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
     String label,
     String unit,
   ) async {
-    await showNutritionEditorSheet<void>(
+    await showTioEditorSheet<void>(
       context: context,
       builder: (context) => _TargetEditorSheet(
         field: field,
@@ -395,7 +393,7 @@ class _TargetEditorSheetState extends State<_TargetEditorSheet> {
     final validation = _validate();
     final message = _errorText ?? validation;
 
-    return NutritionEditorSheet(
+    return TioEditorSheet(
       title: widget.label,
       supportingText: 'Leave blank to keep this target unset.',
       content: Column(

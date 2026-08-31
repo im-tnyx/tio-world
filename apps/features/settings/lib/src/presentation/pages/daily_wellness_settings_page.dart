@@ -4,7 +4,6 @@ import 'package:tio_core/core.dart';
 import 'package:tio_feature_progress/progress.dart';
 
 import '../../domain/hydration_preferences.dart';
-import '../widgets/daily_wellness_editor_sheet.dart';
 import '../widgets/glass_size_bottom_sheet.dart';
 
 /// Sleep duration is a pure function of Bedtime/Wake Time, never an
@@ -182,7 +181,7 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
     if (save == null || widget.hydrationLoading || widget.hydrationLoadFailed) {
       return;
     }
-    final saved = await showDailyWellnessEditorSheet<HydrationPreferences>(
+    final saved = await showTioEditorSheet<HydrationPreferences>(
       context: context,
       builder: (context) => GlassSizeBottomSheet(
         canonical: _glassCanonical,
@@ -223,7 +222,7 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
     var tempValue = current.clamp(2000, 18000).toInt();
     final colors = context.tioColors;
 
-    final result = await showDailyWellnessEditorSheet<int?>(
+    final result = await showTioEditorSheet<int?>(
       context: context,
       builder: (modalContext) {
         return StatefulBuilder(
@@ -235,7 +234,7 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
               setModalState(() => tempValue = snapped);
             }
 
-            return DailyWellnessEditorSheet(
+            return TioEditorSheet(
               title: 'Daily Step Goal',
               supportingText: 'Recommended: 10,000 steps/day',
               content: Column(
@@ -304,7 +303,7 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
     var tempValue = current.clamp(1000, 8000).toInt();
     final colors = context.tioColors;
 
-    final result = await showDailyWellnessEditorSheet<int?>(
+    final result = await showTioEditorSheet<int?>(
       context: context,
       builder: (modalContext) {
         return StatefulBuilder(
@@ -321,7 +320,7 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
               setModalState(() => tempValue = snapped);
             }
 
-            return DailyWellnessEditorSheet(
+            return TioEditorSheet(
               title: 'Daily Water Goal',
               supportingText: 'Recommended: 2,000 - 4,000 ml/day',
               content: Column(

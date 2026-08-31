@@ -57,7 +57,7 @@ class NutritionProfileSettingsPage extends StatelessWidget {
   }
 
   Future<void> _editDietType(BuildContext context) async {
-    await showNutritionEditorSheet<void>(
+    await showTioEditorSheet<void>(
       context: context,
       builder: (context) => _DietTypeEditorSheet(
         initialStorageValue: profile.preferredDiet,
@@ -68,7 +68,7 @@ class NutritionProfileSettingsPage extends StatelessWidget {
   }
 
   Future<void> _editAllergies(BuildContext context) async {
-    await showNutritionEditorSheet<void>(
+    await showTioEditorSheet<void>(
       context: context,
       builder: (context) => _AllergiesEditorSheet(
         initialAllergies: profile.allergies,
@@ -168,116 +168,6 @@ class NutritionProfileSettingsPage extends StatelessWidget {
   }
 }
 
-/// Opens a Nutrition-owned editor sheet.
-Future<T?> showNutritionEditorSheet<T>({
-  required BuildContext context,
-  required WidgetBuilder builder,
-}) =>
-    showModalBottomSheet<T>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: TioPalette.transparent,
-      enableDrag: false,
-      showDragHandle: false,
-      builder: builder,
-    );
-
-/// Shared visual shell for the Nutrition Profile editors.
-class NutritionEditorSheet extends StatelessWidget {
-  const NutritionEditorSheet({
-    required this.title,
-    required this.content,
-    required this.actions,
-    super.key,
-    this.supportingText,
-  });
-
-  final String title;
-  final String? supportingText;
-  final Widget content;
-  final Widget actions;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.tioColors;
-
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: Material(
-        key: const ValueKey('nutrition-editor-sheet'),
-        color: colors.surfaceRaised,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(TioRadius.lg),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(TioSpacing.lg),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: TioSize.dp36,
-                    height: TioSize.dp4,
-                    decoration: BoxDecoration(
-                      color: colors.outlineStrong.withAlpha(TioAlpha.alpha50),
-                      borderRadius: BorderRadius.circular(TioSize.dp2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: TioSpacing.md),
-                Flexible(
-                  fit: FlexFit.loose,
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          title,
-                          style: TextStyle(
-                            color: colors.textPrimary,
-                            fontWeight: TioFontWeight.w700,
-                            fontSize: TioFontSize.size18,
-                          ),
-                        ),
-                        if (supportingText != null) ...[
-                          const SizedBox(height: TioSpacing.sm),
-                          Text(
-                            supportingText!,
-                            style: TextStyle(
-                              color: colors.textSecondary,
-                              fontSize: TioFontSize.size13,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: TioSpacing.lg),
-                        content,
-                      ],
-                    ),
-                  ),
-                ),
-                // Save stays outside the scroll view. Inside it, a tall sheet
-                // with the keyboard raised pushes the button below the fold,
-                // so the user cannot commit what they just typed without
-                // discovering a scroll first.
-                //
-                // The commit action gets more room than the sheet's internal
-                // spacing: it is a separate step, and sitting tight under the
-                // input reads as part of it and invites a mistap.
-                const SizedBox(height: TioSpacing.xl),
-                actions,
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _DietTypeEditorSheet extends StatefulWidget {
   const _DietTypeEditorSheet({
     required this.initialStorageValue,
@@ -353,7 +243,7 @@ class _DietTypeEditorSheetState extends State<_DietTypeEditorSheet> {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
 
-    return NutritionEditorSheet(
+    return TioEditorSheet(
       title: 'Diet Type',
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -511,7 +401,7 @@ class _AllergiesEditorSheetState extends State<_AllergiesEditorSheet> {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
 
-    return NutritionEditorSheet(
+    return TioEditorSheet(
       title: 'Allergies & Restrictions',
       supportingText: 'Select all that apply, or choose None.',
       content: Column(

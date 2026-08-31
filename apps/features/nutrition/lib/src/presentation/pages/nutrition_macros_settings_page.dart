@@ -4,8 +4,6 @@ import 'package:tio_core/core.dart';
 
 import '../../domain/domain.dart';
 import '../widgets/nutrition_settings_widgets.dart';
-import 'nutrition_profile_settings_page.dart'
-    show NutritionEditorSheet, showNutritionEditorSheet;
 
 /// Full-screen editor for the three energy macros.
 ///
@@ -102,7 +100,7 @@ class _NutritionMacrosSettingsPageState
   }
 
   Future<void> _editExact(NutritionTargetField field, String label) async {
-    final result = await showNutritionEditorSheet<_ExactValue>(
+    final result = await showTioEditorSheet<_ExactValue>(
       context: context,
       builder: (context) => _ExactMacroValueSheet(
         field: field,
@@ -401,7 +399,7 @@ class _ExactMacroValueSheetState extends State<_ExactMacroValueSheet> {
     final colors = context.tioColors;
     final validation = _validation;
 
-    return NutritionEditorSheet(
+    return TioEditorSheet(
       title: widget.label,
       supportingText: 'Leave blank to keep this macro unset.',
       content: Column(
