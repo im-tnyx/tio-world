@@ -254,12 +254,16 @@ class NutritionEditorSheet extends StatelessWidget {
                         ],
                         const SizedBox(height: TioSpacing.lg),
                         content,
-                        const SizedBox(height: TioSpacing.md),
-                        actions,
                       ],
                     ),
                   ),
                 ),
+                // Save stays outside the scroll view. Inside it, a tall sheet
+                // with the keyboard raised pushes the button below the fold,
+                // so the user cannot commit what they just typed without
+                // discovering a scroll first.
+                const SizedBox(height: TioSpacing.md),
+                actions,
               ],
             ),
           ),
@@ -620,7 +624,17 @@ class _NutritionChoiceTileState extends State<_NutritionChoiceTile> {
     }
     if (widget.selected && !oldWidget.selected) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _focusNode!.requestFocus();
+        if (!mounted) return;
+        _focusNode!.requestFocus();
+        // Selecting Other grows this row by a text field. Without this the
+        // row can stay below the fold in the taller sheet, so the user is
+        // typing into something they cannot see.
+        Scrollable.ensureVisible(
+          context,
+          alignment: 1,
+          duration: const Duration(milliseconds: TioDuration.ms200),
+          curve: Curves.easeOutCubic,
+        );
       });
     } else if (!widget.selected && oldWidget.selected) {
       _focusNode!.unfocus();

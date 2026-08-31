@@ -564,6 +564,51 @@ void main() {
       expect(find.text('Other'), findsNWidgets(2));
     });
 
+    testWidgets('Save stays reachable above a raised keyboard', (tester) async {
+      // The tallest sheet (None + five options + supporting text) with the
+      // keyboard up is the case that used to hide Save below the fold.
+      const screenHeight = 700.0;
+      const keyboardInset = 300.0;
+      tester.view.physicalSize = const Size(390, screenHeight);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            viewInsets: const EdgeInsets.only(bottom: keyboardInset),
+          ),
+          child: TioTheme(child: child ?? const SizedBox.shrink()),
+        ),
+        home: NutritionProfileSettingsPage(
+          profile: const NutritionProfileData(),
+          onSave: (_) async {},
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(allergyField));
+      await tester.pumpAndSettle();
+
+      // Options scroll; reaching a lower one is expected.
+      await tester.ensureVisible(find.byKey(allergyOther));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(allergyOther));
+      await tester.pumpAndSettle();
+
+      // Selecting Other must bring its field fully into view on its own.
+      expect(find.byKey(allergyOtherText), findsOneWidget);
+      final field = tester.getRect(find.byKey(allergyOtherText));
+      expect(field.bottom, lessThanOrEqualTo(screenHeight - keyboardInset));
+
+      // Save must never be the thing that ends up under the keyboard.
+      final save = tester.getRect(find.byKey(allergySave));
+      expect(save.bottom, lessThanOrEqualTo(screenHeight - keyboardInset));
+      expect(save.top, greaterThanOrEqualTo(field.bottom));
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('editing one field preserves the other field\'s elaboration',
         (tester) async {
       NutritionProfileData? saved;
