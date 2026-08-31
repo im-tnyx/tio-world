@@ -93,8 +93,59 @@ void main() {
           'allergies': ['gluten', 'nuts'],
           'disliked_foods': ['okra'],
           'medical_conditions': null,
+          'other_diet_type': null,
+          'other_allergy_restriction': null,
         }
       ]);
+    });
+
+    test(
+        'blank "Other" elaboration is stored as NULL, never as an empty string',
+        () async {
+      final gateway = _FakeProfileGateway();
+      final repository = _profileRepository(gateway: gateway);
+
+      await repository.upsert(
+        const NutritionProfileData(
+          preferredDiet: 'other',
+          allergies: {'other'},
+          otherDietType: '   ',
+          otherAllergyRestriction: '',
+        ),
+      );
+
+      final payload = gateway.upsertPayloads.single;
+      expect(payload['other_diet_type'], isNull);
+      expect(payload['other_allergy_restriction'], isNull);
+      // The selection itself survives: "Other" with no words is still an
+      // answer, and dropping the token would silently unanswer the question.
+      expect(payload['preferred_diet'], 'other');
+      expect(payload['allergies'], ['other']);
+    });
+
+    test('"Other" elaboration is trimmed and round-trips through the row',
+        () async {
+      final gateway = _FakeProfileGateway();
+      final repository = _profileRepository(gateway: gateway);
+
+      await repository.upsert(
+        const NutritionProfileData(
+          preferredDiet: 'other',
+          allergies: {'other'},
+          otherDietType: '  Jain  ',
+          otherAllergyRestriction: ' Sesame ',
+        ),
+      );
+
+      final payload = gateway.upsertPayloads.single;
+      expect(payload['other_diet_type'], 'Jain');
+      expect(payload['other_allergy_restriction'], 'Sesame');
+
+      final readBack = await _profileRepository(
+        gateway: _FakeProfileGateway(readResult: payload),
+      ).read();
+      expect(readBack!.otherDietType, 'Jain');
+      expect(readBack.otherAllergyRestriction, 'Sesame');
     });
   });
 
@@ -165,7 +216,8 @@ void main() {
       expect(data?.carbohydrateGrams, isNull);
       expect(data?.fatGrams, isNull);
       expect(data?.fiberGrams, isNull);
-      expect(data?.customizationState, NutritionTargetCustomizationState.unknown);
+      expect(
+          data?.customizationState, NutritionTargetCustomizationState.unknown);
     });
 
     test('rejects malformed canonical Targets rows instead of fabricating data',

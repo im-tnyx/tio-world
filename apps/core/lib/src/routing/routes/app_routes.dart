@@ -109,6 +109,20 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  static const nutritionSettings = TioRouteContract(
+    path: '/settings/nutrition',
+    title: 'Nutrition & Diet',
+    description: 'Manage your diet context and nutrition preferences.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
+  static const nutritionProfileSettings = TioRouteContract(
+    path: '/settings/nutrition/profile',
+    title: 'Nutrition Profile',
+    description: 'Manage your Diet Type, allergies and restrictions.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
   static const dailyWellnessSettings = TioRouteContract(
     path: '/settings/health-goals/daily-wellness',
     title: 'Daily Wellness',

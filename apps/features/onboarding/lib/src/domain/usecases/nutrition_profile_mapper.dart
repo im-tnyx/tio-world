@@ -34,6 +34,10 @@ class NutritionProfileMapper {
       );
     }
 
+    final selectedOtherDiet = draft.dietType == NutritionDietType.other;
+    final selectedOtherAllergy =
+        restrictions?.contains(NutritionAllergyRestriction.other) ?? false;
+
     return nutrition_owner.NutritionProfileData(
       preferredDiet: draft.dietType?.storageValue,
       allergies: allergies,
@@ -42,6 +46,21 @@ class NutritionProfileMapper {
       // defaults.
       dislikedFoods: null,
       medicalConditions: null,
+      // The elaboration is only meaningful alongside its `other` selection.
+      // Carrying it unconditionally would resurrect stale text after the user
+      // switched away from Other. Blank stays null; the `other` token itself
+      // is preserved either way, because dropping it would turn an answered
+      // allergy question back into "None".
+      otherDietType:
+          selectedOtherDiet ? _trimmedOrNull(draft.otherDietType) : null,
+      otherAllergyRestriction: selectedOtherAllergy
+          ? _trimmedOrNull(draft.otherAllergyRestriction)
+          : null,
     );
   }
+}
+
+String? _trimmedOrNull(String value) {
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
 }

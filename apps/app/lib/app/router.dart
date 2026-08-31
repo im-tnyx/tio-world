@@ -8,6 +8,7 @@ import 'package:tio_core/core.dart';
 import 'package:tio_feature_account_setup/account_setup.dart';
 import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_home/home.dart';
+import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_feature_onboarding/onboarding.dart'
     hide ProfileGender, ProfileActivityLevel;
 import 'package:tio_feature_profile/profile.dart';
@@ -15,6 +16,7 @@ import 'package:tio_feature_progress/progress.dart';
 import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_feature_splash/splash.dart';
 import 'package:tio_feature_welcome/welcome.dart';
+import 'package:tio_shared/shared.dart';
 
 import 'account_setup/account_setup.dart';
 import 'app_mode/app_mode.dart';
@@ -79,6 +81,8 @@ ChromePolicy shellChromePolicyForPath(String location) {
     AppRoutes.healthGoalsSettings,
     AppRoutes.dailyWellnessSettings,
     AppRoutes.bodyWeightSettings,
+    AppRoutes.nutritionSettings,
+    AppRoutes.nutritionProfileSettings,
     AppRoutes.profileSettings,
     AppRoutes.accountSettings,
     AppRoutes.appSettings,
@@ -685,17 +689,114 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.settings.path,
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => SettingsPage(
-          onProfileSettingsPressed: () =>
-              context.push(AppRoutes.profileSettings.path),
-          onAccountSettingsPressed: () =>
-              context.push(AppRoutes.accountSettings.path),
-          onHealthGoalsPressed: () =>
-              context.push(AppRoutes.healthGoalsSettings.path),
-          onAppSettingsPressed: () => context.push(AppRoutes.appSettings.path),
-          onLogoutPressed: () async {
-            await signOutAndClearGlassSize();
-            if (context.mounted) context.go(AppRoutes.auth.path);
+        builder: (context, state) => Consumer(
+          builder: (context, ref, _) {
+            // Nutrition is a Nutrition/Hybrid capability. Watching canonical
+            // App Mode keeps the launcher in sync when the mode changes; it
+            // never reads or writes Nutrition data.
+            final selectedMode =
+                ref.watch(appModeControllerProvider).selectedMode;
+            final showNutrition = selectedMode == AppMode.nutrition ||
+                selectedMode == AppMode.hybrid;
+
+            return SettingsPage(
+              onProfileSettingsPressed: () =>
+                  context.push(AppRoutes.profileSettings.path),
+              onAccountSettingsPressed: () =>
+                  context.push(AppRoutes.accountSettings.path),
+              onHealthGoalsPressed: () =>
+                  context.push(AppRoutes.healthGoalsSettings.path),
+              showNutritionSection: showNutrition,
+              onNutritionPressed: () =>
+                  context.push(AppRoutes.nutritionSettings.path),
+              onAppSettingsPressed: () =>
+                  context.push(AppRoutes.appSettings.path),
+              onLogoutPressed: () async {
+                await signOutAndClearGlassSize();
+                if (context.mounted) context.go(AppRoutes.auth.path);
+              },
+            );
+          },
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.nutritionSettings.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => NutritionSettingsPage(
+          onNutritionProfilePressed: () =>
+              context.push(AppRoutes.nutritionProfileSettings.path),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.nutritionProfileSettings.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => Consumer(
+          builder: (context, ref, _) {
+            final colors = context.tioColors;
+            final profileAsync = ref.watch(nutritionProfileDataProvider);
+
+            if (profileAsync.isLoading && !profileAsync.hasValue) {
+              return const Scaffold(
+                body: SafeArea(
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              );
+            }
+
+            if (profileAsync.hasError && !profileAsync.hasValue) {
+              return Scaffold(
+                body: SafeArea(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(TioSpacing.xl),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline_rounded,
+                            size: TioSize.dp48,
+                            color: colors.danger,
+                          ),
+                          const SizedBox(height: TioSpacing.lg),
+                          Text(
+                            'Could not load Nutrition Profile',
+                            style: TextStyle(
+                              color: colors.textPrimary,
+                              fontSize: TioFontSize.size18,
+                              fontWeight: TioFontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: TioSpacing.sm),
+                          Text(
+                            'Please check your connection and try again.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: colors.textSecondary,
+                              fontSize: TioFontSize.size14,
+                            ),
+                          ),
+                          const SizedBox(height: TioSpacing.xl),
+                          TioButton.primary(
+                            label: 'Retry',
+                            onPressed: () =>
+                                ref.invalidate(nutritionProfileDataProvider),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            return NutritionProfileSettingsPage(
+              profile: profileAsync.valueOrNull ?? const NutritionProfileData(),
+              onSave: (profile) async {
+                final repository = ref.read(nutritionProfileRepositoryProvider);
+                await repository.upsert(profile);
+                ref.invalidate(nutritionProfileDataProvider);
+              },
+            );
           },
         ),
       ),

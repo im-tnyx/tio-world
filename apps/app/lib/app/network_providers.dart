@@ -261,6 +261,16 @@ final nutritionProfileRepositoryProvider =
   return InMemoryNutritionProfileRepository();
 });
 
+/// Canonical Nutrition Profile read model for post-onboarding Settings.
+///
+/// A missing canonical row resolves to an all-null profile so first-time
+/// editing works without a separate setup workflow.
+final nutritionProfileDataProvider =
+    FutureProvider<NutritionProfileData>((ref) async {
+  final repository = ref.watch(nutritionProfileRepositoryProvider);
+  return await repository.read() ?? const NutritionProfileData();
+});
+
 /// Canonical Nutrition Targets owner used by Product Onboarding completion.
 final nutritionTargetsRepositoryProvider =
     Provider<NutritionTargetsRepository>((ref) {
