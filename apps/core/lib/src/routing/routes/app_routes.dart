@@ -130,6 +130,13 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  static const nutritionMacrosSettings = TioRouteContract(
+    path: '/settings/nutrition/targets/macros',
+    title: 'Macronutrients',
+    description: 'Manage your daily protein, carbohydrate and fat targets.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
   static const dailyWellnessSettings = TioRouteContract(
     path: '/settings/health-goals/daily-wellness',
     title: 'Daily Wellness',

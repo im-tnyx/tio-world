@@ -4,7 +4,6 @@ import 'package:tio_core/core.dart';
 
 import '../../domain/domain.dart';
 import '../widgets/nutrition_settings_widgets.dart';
-import 'nutrition_macros_editor_sheet.dart';
 import 'nutrition_profile_settings_page.dart'
     show NutritionEditorSheet, showNutritionEditorSheet;
 
@@ -17,6 +16,7 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
   const NutritionTargetsSettingsPage({
     required this.targets,
     required this.onSave,
+    required this.onEditMacros,
     super.key,
   });
 
@@ -26,6 +26,14 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
 
   /// Persists a fully merged target row through the canonical owner.
   final Future<void> Function(NutritionTargetsData targets) onSave;
+
+  /// Opens the dedicated Macronutrients screen.
+  ///
+  /// The three macros need a full screen: their sliders, live shares and the
+  /// calorie reconciliation fill the height, and exact entry still needs a
+  /// keyboard on top of that. Routing is supplied by app composition rather
+  /// than performed here.
+  final VoidCallback onEditMacros;
 
   /// Carbohydrates first, matching how the three macro shares are read.
   static const _macros = <(NutritionTargetField, String, IconData)>[
@@ -59,16 +67,6 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
         field: field,
         label: label,
         unit: unit,
-        current: targets,
-        onSave: onSave,
-      ),
-    );
-  }
-
-  Future<void> _editMacros(BuildContext context) async {
-    await showNutritionEditorSheet<void>(
-      context: context,
-      builder: (context) => NutritionMacrosEditorSheet(
         current: targets,
         onSave: onSave,
       ),
@@ -143,7 +141,7 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
               // together rather than one at a time.
               trailing: NutritionEditPencil(
                 key: const ValueKey('nutrition-target-macros-pencil'),
-                onPressed: () => _editMacros(context),
+                onPressed: onEditMacros,
               ),
             ),
             NutritionSettingsGroupCard(
@@ -153,7 +151,7 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
                       annotation:
                           percentages == null ? null : '${percentages[field]}%',
                       showEditAffordance: false,
-                      onTap: () => _editMacros(context)),
+                      onTap: onEditMacros),
               ],
             ),
             const SizedBox(height: TioSpacing.lg),

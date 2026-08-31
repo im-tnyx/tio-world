@@ -85,6 +85,7 @@ ChromePolicy shellChromePolicyForPath(String location) {
     AppRoutes.nutritionSettings,
     AppRoutes.nutritionProfileSettings,
     AppRoutes.nutritionTargetsSettings,
+    AppRoutes.nutritionMacrosSettings,
     AppRoutes.profileSettings,
     AppRoutes.accountSettings,
     AppRoutes.appSettings,
@@ -764,6 +765,41 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             }
 
             return NutritionTargetsSettingsPage(
+              targets: targetsAsync.valueOrNull ?? const NutritionTargetsData(),
+              onEditMacros: () =>
+                  context.push(AppRoutes.nutritionMacrosSettings.path),
+              onSave: (targets) async {
+                final repository = ref.read(nutritionTargetsRepositoryProvider);
+                await repository.upsert(targets);
+                ref.invalidate(nutritionTargetsDataProvider);
+              },
+            );
+          },
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.nutritionMacrosSettings.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => Consumer(
+          builder: (context, ref, _) {
+            final targetsAsync = ref.watch(nutritionTargetsDataProvider);
+
+            if (targetsAsync.isLoading && !targetsAsync.hasValue) {
+              return const Scaffold(
+                body: SafeArea(
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              );
+            }
+
+            if (targetsAsync.hasError && !targetsAsync.hasValue) {
+              return _NutritionLoadFailure(
+                title: 'Could not load Macronutrients',
+                onRetry: () => ref.invalidate(nutritionTargetsDataProvider),
+              );
+            }
+
+            return NutritionMacrosSettingsPage(
               targets: targetsAsync.valueOrNull ?? const NutritionTargetsData(),
               onSave: (targets) async {
                 final repository = ref.read(nutritionTargetsRepositoryProvider);

@@ -19,6 +19,9 @@ void main() {
     recommendationMetadata: {'source': 'onboarding', 'bmr': 1600},
   );
 
+  var macroEdits = 0;
+  setUp(() => macroEdits = 0);
+
   Future<void> pumpPage(
     WidgetTester tester, {
     required NutritionTargetsData targets,
@@ -32,7 +35,11 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       builder: (context, child) =>
           TioTheme(child: child ?? const SizedBox.shrink()),
-      home: NutritionTargetsSettingsPage(targets: targets, onSave: onSave),
+      home: NutritionTargetsSettingsPage(
+        targets: targets,
+        onSave: onSave,
+        onEditMacros: () => macroEdits++,
+      ),
     ));
     await tester.pumpAndSettle();
   }
@@ -140,18 +147,18 @@ void main() {
       expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
     });
 
-    testWidgets('the macros pencil opens the combined editor', (tester) async {
+    testWidgets('the macros pencil requests the Macronutrients screen',
+        (tester) async {
       await pumpPage(tester, targets: recommended, onSave: (_) async {});
 
       await tester
           .tap(find.byKey(const ValueKey('nutrition-target-macros-pencil')));
       await tester.pumpAndSettle();
 
-      expect(find.byType(NutritionMacrosEditorSheet), findsOneWidget);
+      expect(macroEdits, 1);
     });
 
-    testWidgets('tapping a macro row opens the same combined editor',
-        (tester) async {
+    testWidgets('tapping a macro row requests the same screen', (tester) async {
       await pumpPage(tester, targets: recommended, onSave: (_) async {});
 
       await tester
@@ -159,7 +166,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // One destination for all three, not a per-macro editor.
-      expect(find.byType(NutritionMacrosEditorSheet), findsOneWidget);
+      expect(macroEdits, 1);
     });
   });
 

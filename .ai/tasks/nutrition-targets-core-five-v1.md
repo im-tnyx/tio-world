@@ -132,10 +132,20 @@ Summary carries **one pencil for the whole Macronutrients card**; the editor
 carries three, one per macro. That asymmetry is deliberate -- the summary edits
 "the macros", the editor edits a specific macro.
 
-Each editor row has a slider plus an inline exact-entry field revealed by its
-pencil. There is one logical gram value per macro: slider and text drive the
-same state, so neither can drift from the other. Percentages, macro calories
-and the difference all recalculate live from the draft.
+The macros live on their own **screen**, not a sheet. Three rows of sliders plus
+the live calorie reconciliation already fill the height, and exact entry still
+needs a keyboard on top of that -- a sheet would have had to compete with the
+keyboard for the same space. Showing a slider and a text field for the same
+value simultaneously was also confusing, so exact entry is a separate step.
+
+Tapping a macro's pencil opens one small sheet holding a single number, which
+sits above the keyboard and returns its value to the screen's draft rather than
+saving on its own. The user can adjust all three and review coherence before a
+single Save, which stays pinned below the scrolling content.
+
+There is one logical gram value per macro: slider and exact entry drive the same
+state, so neither can drift from the other. Percentages, macro calories and the
+difference all recalculate live from the draft.
 
 **Slider range is UX, not a limit.** It spans zero to the grams that would
 consume the entire calorie target (falling back to twice the current value when
