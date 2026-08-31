@@ -69,6 +69,26 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  test('both Nutrition routes are registered in the shell chrome policy', () {
+    // Missing entries silently fall through to `noBottomBar`, which would
+    // leave these full-screen Settings sub-pages rendering shell chrome.
+    expect(
+      shellChromePolicyForPath(AppRoutes.nutritionSettings.path),
+      ChromePolicy.fullScreen,
+    );
+    expect(
+      shellChromePolicyForPath(AppRoutes.nutritionProfileSettings.path),
+      ChromePolicy.fullScreen,
+    );
+    // Negative control: the fallback is a different policy, so the two
+    // assertions above genuinely prove registration rather than passing by
+    // coincidence.
+    expect(
+      shellChromePolicyForPath('/settings/nutrition/not-registered'),
+      ChromePolicy.noBottomBar,
+    );
+  });
+
   for (final mode in [AppMode.nutrition, AppMode.hybrid]) {
     testWidgets('Settings exposes Nutrition in $mode mode', (tester) async {
       final repository = _FakeNutritionProfileRepository();
