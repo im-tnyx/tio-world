@@ -50,9 +50,10 @@ String _linkedAuthProvidersLabel(AuthSession? session) {
   const orderedKnownProviders = <String>['phone', 'email', 'google'];
   final ordered = <String>[
     ...orderedKnownProviders.where(providers.contains),
-    ...(providers.where((provider) => !orderedKnownProviders.contains(provider))
-          .toList()
-        ..sort()),
+    ...(providers
+        .where((provider) => !orderedKnownProviders.contains(provider))
+        .toList()
+      ..sort()),
   ];
 
   String label(String provider) => switch (provider) {
@@ -83,6 +84,7 @@ ChromePolicy shellChromePolicyForPath(String location) {
     AppRoutes.bodyWeightSettings,
     AppRoutes.nutritionSettings,
     AppRoutes.nutritionProfileSettings,
+    AppRoutes.nutritionTargetsSettings,
     AppRoutes.profileSettings,
     AppRoutes.accountSettings,
     AppRoutes.appSettings,
@@ -186,7 +188,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               final modeState = ref.watch(appModeControllerProvider);
               final selectedMode = modeState.selectedMode;
               final visibleTabs = selectedMode == null
-                  ? (onboardingStatusController.status == OnboardingStatus.completed
+                  ? (onboardingStatusController.status ==
+                          OnboardingStatus.completed
                       ? missingModeCompatibilityShellTabs
                       : const [ShellTab.home])
                   : shellTabsForDestinations(
@@ -204,7 +207,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               };
 
               return TioShell(
-                key: ValueKey('shell-${profileData?.avatarUrl}-${profileData?.plan}'),
+                key: ValueKey(
+                    'shell-${profileData?.avatarUrl}-${profileData?.plan}'),
                 state: ShellUiState(
                   selectedTab:
                       ShellTab.fromBranchIndex(navigationShell.currentIndex),
@@ -447,11 +451,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               }
 
               if (!context.mounted) return false;
-              final result = await context.push<bool>(AppRoutes.emailSignup.path);
+              final result =
+                  await context.push<bool>(AppRoutes.emailSignup.path);
               return result ?? false;
             },
             onFinishRequested: (draft) async {
-              debugPrint('[Router] onFinishRequested invoked. Profile name: "${draft.profile.name}"');
+              debugPrint(
+                  '[Router] onFinishRequested invoked. Profile name: "${draft.profile.name}"');
               try {
                 final authRepository = ref.read(authSessionRepositoryProvider);
                 final hasDurableProfileOwner =
@@ -498,7 +504,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   flowPlan: flowPlan,
                 );
                 debugPrint('[Router] completeOnboarding SUCCESS!');
-                final finalSessionState = await authRepository.currentSessionState;
+                final finalSessionState =
+                    await authRepository.currentSessionState;
                 final completedUserId =
                     finalSessionState is AuthSessionAuthenticated
                         ? finalSessionState.session.userId
@@ -573,26 +580,27 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             return ProfilePage(
               profileData: profileData,
               completionSummary: visibleCompletion,
-              onCompletionPressed: visibleCompletion == null ||
-                      reminderScope == null
-                  ? null
-                  : () async {
-                      await ref
-                          .read(profileCompletionReminderPreferenceProvider)
-                          .dismiss(reminderScope);
-                      ref.invalidate(
-                        profileCompletionReminderDismissedProvider(
-                          reminderScope,
-                        ),
-                      );
+              onCompletionPressed:
+                  visibleCompletion == null || reminderScope == null
+                      ? null
+                      : () async {
+                          await ref
+                              .read(profileCompletionReminderPreferenceProvider)
+                              .dismiss(reminderScope);
+                          ref.invalidate(
+                            profileCompletionReminderDismissedProvider(
+                              reminderScope,
+                            ),
+                          );
 
-                      final route = visibleCompletion.hasProfileOwnedMissingField
-                          ? AppRoutes.profileSettings.path
-                          : AppRoutes.accountSettings.path;
-                      if (context.mounted) {
-                        await context.push<void>(route);
-                      }
-                    },
+                          final route =
+                              visibleCompletion.hasProfileOwnedMissingField
+                                  ? AppRoutes.profileSettings.path
+                                  : AppRoutes.accountSettings.path;
+                          if (context.mounted) {
+                            await context.push<void>(route);
+                          }
+                        },
               isLoading: profileAsync.isLoading,
               avatarFrame: avatarFrame,
               onAvatarPressed: () => context.push(AppRoutes.profileAvatar.path),
@@ -614,7 +622,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 final avatarRepository =
                     ref.read(profileAvatarRepositoryProvider);
                 if (avatarRepository == null) {
-                  throw StateError('Profile avatar persistence is unavailable.');
+                  throw StateError(
+                      'Profile avatar persistence is unavailable.');
                 }
                 await avatarRepository.uploadAvatarImage(
                   fileName: picked.name,
@@ -626,7 +635,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 final avatarRepository =
                     ref.read(profileAvatarRepositoryProvider);
                 if (avatarRepository == null) {
-                  throw StateError('Profile avatar persistence is unavailable.');
+                  throw StateError(
+                      'Profile avatar persistence is unavailable.');
                 }
                 await avatarRepository.deleteAvatarImage();
                 ref.invalidate(profileDataProvider);
@@ -664,7 +674,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 final avatarRepository =
                     ref.read(profileAvatarRepositoryProvider);
                 if (avatarRepository == null) {
-                  throw StateError('Profile avatar persistence is unavailable.');
+                  throw StateError(
+                      'Profile avatar persistence is unavailable.');
                 }
                 await avatarRepository.uploadAvatarImage(
                   fileName: picked.name,
@@ -676,7 +687,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 final avatarRepository =
                     ref.read(profileAvatarRepositoryProvider);
                 if (avatarRepository == null) {
-                  throw StateError('Profile avatar persistence is unavailable.');
+                  throw StateError(
+                      'Profile avatar persistence is unavailable.');
                 }
                 await avatarRepository.deleteAvatarImage();
                 ref.invalidate(profileDataProvider);
@@ -725,6 +737,41 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => NutritionSettingsPage(
           onNutritionProfilePressed: () =>
               context.push(AppRoutes.nutritionProfileSettings.path),
+          onNutritionTargetsPressed: () =>
+              context.push(AppRoutes.nutritionTargetsSettings.path),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.nutritionTargetsSettings.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => Consumer(
+          builder: (context, ref, _) {
+            final targetsAsync = ref.watch(nutritionTargetsDataProvider);
+
+            if (targetsAsync.isLoading && !targetsAsync.hasValue) {
+              return const Scaffold(
+                body: SafeArea(
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              );
+            }
+
+            if (targetsAsync.hasError && !targetsAsync.hasValue) {
+              return _NutritionLoadFailure(
+                title: 'Could not load Nutrition Targets',
+                onRetry: () => ref.invalidate(nutritionTargetsDataProvider),
+              );
+            }
+
+            return NutritionTargetsSettingsPage(
+              targets: targetsAsync.valueOrNull ?? const NutritionTargetsData(),
+              onSave: (targets) async {
+                final repository = ref.read(nutritionTargetsRepositoryProvider);
+                await repository.upsert(targets);
+                ref.invalidate(nutritionTargetsDataProvider);
+              },
+            );
+          },
         ),
       ),
       GoRoute(
@@ -732,7 +779,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => Consumer(
           builder: (context, ref, _) {
-            final colors = context.tioColors;
             final profileAsync = ref.watch(nutritionProfileDataProvider);
 
             if (profileAsync.isLoading && !profileAsync.hasValue) {
@@ -744,48 +790,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             }
 
             if (profileAsync.hasError && !profileAsync.hasValue) {
-              return Scaffold(
-                body: SafeArea(
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(TioSpacing.xl),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.error_outline_rounded,
-                            size: TioSize.dp48,
-                            color: colors.danger,
-                          ),
-                          const SizedBox(height: TioSpacing.lg),
-                          Text(
-                            'Could not load Nutrition Profile',
-                            style: TextStyle(
-                              color: colors.textPrimary,
-                              fontSize: TioFontSize.size18,
-                              fontWeight: TioFontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: TioSpacing.sm),
-                          Text(
-                            'Please check your connection and try again.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: colors.textSecondary,
-                              fontSize: TioFontSize.size14,
-                            ),
-                          ),
-                          const SizedBox(height: TioSpacing.xl),
-                          TioButton.primary(
-                            label: 'Retry',
-                            onPressed: () =>
-                                ref.invalidate(nutritionProfileDataProvider),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+              return _NutritionLoadFailure(
+                title: 'Could not load Nutrition Profile',
+                onRetry: () => ref.invalidate(nutritionProfileDataProvider),
               );
             }
 
@@ -1141,7 +1148,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   context: context,
                   targetLabel: 'email ($email)',
                   title: 'Please enter your Code',
-                  subtitle: 'Please check your email for the verification code.',
+                  subtitle:
+                      'Please check your email for the verification code.',
                 );
                 if (token == null) return false;
 
@@ -1168,7 +1176,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                   context: context,
                   targetLabel: 'mobile number ($phoneNumber)',
                   title: 'Please enter your Code',
-                  subtitle: 'Please check your mobile for the verification code.',
+                  subtitle:
+                      'Please check your mobile for the verification code.',
                 );
                 if (token == null) return false;
 
@@ -1287,3 +1296,60 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   ref.onDispose(router.dispose);
   return router;
 });
+
+/// Shared retryable failure state for the Nutrition Settings routes.
+///
+/// Both Nutrition surfaces load a canonical row before they can render, so the
+/// same failure UI serves both rather than each route hand-rolling one.
+class _NutritionLoadFailure extends StatelessWidget {
+  const _NutritionLoadFailure({required this.title, required this.onRetry});
+
+  final String title;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(TioSpacing.xl),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline_rounded,
+                  size: TioSize.dp48,
+                  color: colors.danger,
+                ),
+                const SizedBox(height: TioSpacing.lg),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: TioFontSize.size18,
+                    fontWeight: TioFontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: TioSpacing.sm),
+                Text(
+                  'Please check your connection and try again.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: colors.textSecondary,
+                    fontSize: TioFontSize.size14,
+                  ),
+                ),
+                const SizedBox(height: TioSpacing.xl),
+                TioButton.primary(label: 'Retry', onPressed: onRetry),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
