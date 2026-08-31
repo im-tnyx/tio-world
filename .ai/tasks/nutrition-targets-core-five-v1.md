@@ -106,8 +106,15 @@ each independently would display 99% or 101%, which reads as a bug. When any
 macro is unknown, or the macros carry no energy at all, no percentage is shown
 rather than a fabricated `0%`.
 
-A quiet "Calories from macros" line appears when the row is coherent; beyond
-tolerance it is replaced by the existing warning.
+The summary stays silent while the row is coherent. A "calories from macros"
+readout there would only echo the Calories target a line above, differing by a
+kcal or two, which reads as a defect rather than a confirmation -- and sitting
+below the Fiber card it also implied Fiber was part of a calculation that
+excludes it. Beyond tolerance the mismatch warning still appears, because that
+is genuinely new information rather than a restatement.
+
+The full reconciliation lives on the Macronutrients screen, where the user is
+actively changing the numbers it describes and it is actionable.
 
 **Limit policy.** One new hard rule, and it is a storage constraint rather than
 a health judgement: `calories_kcal` is a Postgres `integer`, so a larger value

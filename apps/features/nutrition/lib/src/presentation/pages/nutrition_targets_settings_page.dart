@@ -163,57 +163,17 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
                     Icons.grass_rounded),
               ],
             ),
-            if (coherence.isEvaluable && !coherence.blocksSave) ...[
-              const SizedBox(height: TioSpacing.lg),
-              _MacroCaloriesFooter(coherence: coherence),
-            ],
+            // No "calories from macros" readout while the row is coherent: it
+            // would echo the Calories target a line above, differing by a kcal
+            // or two, which reads as a defect rather than a confirmation. The
+            // live reconciliation lives on the Macronutrients screen, where the
+            // user is actually changing the numbers it describes.
             if (coherence.blocksSave) ...[
               const SizedBox(height: TioSpacing.lg),
               _CoherenceWarning(coherence: coherence),
             ],
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// Quiet confirmation that the macros and the calorie target agree.
-///
-/// Informational only: within tolerance there is nothing for the user to fix,
-/// so this deliberately carries no warning treatment.
-class _MacroCaloriesFooter extends StatelessWidget {
-  const _MacroCaloriesFooter({required this.coherence});
-
-  final NutritionTargetCoherence coherence;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.tioColors;
-
-    return Padding(
-      key: const ValueKey('nutrition-targets-macro-calories'),
-      padding: const EdgeInsets.symmetric(horizontal: TioSpacing.sm),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              'Calories from macros',
-              style: TextStyle(
-                color: colors.textSecondary,
-                fontSize: TioFontSize.size13,
-              ),
-            ),
-          ),
-          Text(
-            '${_formatNumber(coherence.macroCalories!)} kcal',
-            style: TextStyle(
-              color: colors.textSecondary,
-              fontWeight: TioFontWeight.w600,
-              fontSize: TioFontSize.size13,
-            ),
-          ),
-        ],
       ),
     );
   }

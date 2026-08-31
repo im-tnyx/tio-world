@@ -262,26 +262,25 @@ void main() {
     });
   });
 
-  group('calories from macros', () {
-    testWidgets('shows a quiet informational line when coherent',
-        (tester) async {
+  group('coherence surfacing', () {
+    testWidgets('stays silent when the row is coherent', (tester) async {
       await pumpPage(tester, targets: recommended, onSave: (_) async {});
 
+      // Nothing to fix, so nothing to say. A "calories from macros" readout
+      // here would only echo the Calories target a line above, differing by a
+      // kcal or two -- which reads as a defect rather than a confirmation.
+      expect(find.text('Calories from macros'), findsNothing);
       expect(
         find.byKey(const ValueKey('nutrition-targets-macro-calories')),
-        findsOneWidget,
+        findsNothing,
       );
-      expect(find.text('Calories from macros'), findsOneWidget);
-      expect(find.text('1900.4 kcal'), findsOneWidget);
-      // Coherent means nothing to fix, so no warning treatment.
       expect(
         find.byKey(const ValueKey('nutrition-targets-coherence-warning')),
         findsNothing,
       );
     });
 
-    testWidgets('is replaced by the warning when the mismatch is material',
-        (tester) async {
+    testWidgets('speaks up only when the mismatch is material', (tester) async {
       await pumpPage(
         tester,
         targets: const NutritionTargetsData(
@@ -294,27 +293,18 @@ void main() {
       );
 
       expect(
-        find.byKey(const ValueKey('nutrition-targets-macro-calories')),
-        findsNothing,
-      );
-      expect(
         find.byKey(const ValueKey('nutrition-targets-coherence-warning')),
         findsOneWidget,
       );
     });
 
-    testWidgets('neither appears while the macros are incomplete',
-        (tester) async {
+    testWidgets('says nothing while the macros are incomplete', (tester) async {
       await pumpPage(
         tester,
         targets: const NutritionTargetsData(caloriesKcal: 2000),
         onSave: (_) async {},
       );
 
-      expect(
-        find.byKey(const ValueKey('nutrition-targets-macro-calories')),
-        findsNothing,
-      );
       expect(
         find.byKey(const ValueKey('nutrition-targets-coherence-warning')),
         findsNothing,
