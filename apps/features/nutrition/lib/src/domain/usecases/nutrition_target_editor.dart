@@ -20,9 +20,23 @@ class NutritionTargetCoherence {
   final int? targetCalories;
 
   /// Absolute distance between the calorie target and what the macros imply.
+  ///
+  /// This is the value the tolerance rule is measured against; direction does
+  /// not change whether a row is coherent.
   double? get differenceKcal {
     if (!isEvaluable) return null;
     return (macroCalories! - targetCalories!).abs();
+  }
+
+  /// Signed distance: positive when the macros exceed the calorie target,
+  /// negative when they fall short.
+  ///
+  /// Display needs the direction. Showing only the magnitude leaves the user
+  /// unable to tell whether to add or remove, which is the one thing they need
+  /// in order to fix it.
+  double? get signedDifferenceKcal {
+    if (!isEvaluable) return null;
+    return macroCalories! - targetCalories!;
   }
 
   /// Beyond the tolerance the row is materially inconsistent and cannot save.

@@ -78,9 +78,21 @@ class NutritionOpenChevron extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _NutritionCircularAction(
-      icon: Icons.chevron_right_rounded,
-      onPressed: onPressed,
+    final colors = context.tioColors;
+    // A bare glyph, unlike the pencil. The circular affordance reads as a
+    // button you press in place; navigation is a lighter promise and matches
+    // how chevrons appear elsewhere in Settings.
+    return InkResponse(
+      onTap: onPressed,
+      radius: TioSize.dp24,
+      child: Padding(
+        padding: const EdgeInsets.all(TioSpacing.xs),
+        child: Icon(
+          Icons.chevron_right_rounded,
+          size: TioSize.dp20,
+          color: colors.textMuted,
+        ),
+      ),
     );
   }
 }

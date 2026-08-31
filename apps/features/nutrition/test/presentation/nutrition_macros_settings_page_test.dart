@@ -245,15 +245,15 @@ void main() {
               find.byKey(const ValueKey('nutrition-macros-difference')))
           .data!;
 
-      // 161*4 + 403*4 + 107*9 = 3219 against a 3220 kcal target.
+      // 161*4 + 403*4 + 107*9 = 3219 against a 3220 kcal target: 1 kcal short.
       expect(derived(), '3219 kcal');
-      expect(difference(), '1 kcal');
+      expect(difference(), '-1 kcal');
 
       await moveSlider(tester, 'protein', 180);
 
-      // Only protein moved: 180*4 + 403*4 + 107*9 = 3295.
+      // Only protein moved: 180*4 + 403*4 + 107*9 = 3295, now over.
       expect(derived(), '3295 kcal');
-      expect(difference(), '75 kcal');
+      expect(difference(), '+75 kcal');
     });
   });
 
@@ -321,6 +321,54 @@ void main() {
       await pumpPage(tester, targets: coherent, onSave: (_) async {});
 
       expect(tester.widget<TioButton>(save()).onPressed, isNull);
+    });
+
+    testWidgets('the difference is signed so direction is visible',
+        (tester) async {
+      await pumpPage(tester, targets: coherent, onSave: (_) async {});
+
+      String difference() => tester
+          .widget<Text>(
+              find.byKey(const ValueKey('nutrition-macros-difference')))
+          .data!;
+
+      // Over the target.
+      await moveSlider(tester, 'protein', 200);
+      expect(difference(), startsWith('+'));
+
+      // Under it. Magnitude alone would look identical to the case above.
+      await moveSlider(tester, 'protein', 100);
+      expect(difference(), startsWith('-'));
+    });
+
+    testWidgets('Reset restores the stored values and unblocks the screen',
+        (tester) async {
+      var saves = 0;
+      await pumpPage(tester, targets: coherent, onSave: (_) async => saves++);
+
+      final reset = find.byKey(const ValueKey('nutrition-macros-reset'));
+      // Nothing to discard yet.
+      expect(tester.widget<TioButton>(reset).onPressed, isNull);
+
+      await moveSlider(tester, 'protein', 300);
+      expect(gramsOf(tester, 'protein'), '300 g');
+      expect(tester.widget<TioButton>(reset).onPressed, isNotNull);
+
+      await tester.tap(reset);
+      await tester.pumpAndSettle();
+
+      // Back to what is saved -- not to a recommendation, and without writing.
+      expect(gramsOf(tester, 'protein'), '161 g');
+      expect(gramsOf(tester, 'carbohydrate'), '403 g');
+      expect(gramsOf(tester, 'fat'), '107 g');
+      expect(saves, 0);
+      expect(
+        tester
+            .widget<TioButton>(
+                find.byKey(const ValueKey('nutrition-macros-save')))
+            .onPressed,
+        isNull,
+      );
     });
 
     testWidgets('a mismatch over the tolerance blocks Save', (tester) async {

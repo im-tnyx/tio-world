@@ -75,6 +75,20 @@ class _NutritionMacrosSettingsPageState
       !_isSaving &&
       !NutritionTargetEditor.coherenceOf(_draft).blocksSave;
 
+  /// Restores the stored values, discarding this session's edits.
+  ///
+  /// This is not "reset to recommended" -- it returns to what is saved, which
+  /// is the escape a user needs when an incoherent draft has blocked Save.
+  void _resetDraft() {
+    setState(() {
+      for (final (field, _) in _macros) {
+        _grams[field] =
+            NutritionTargetEditor.valueOf(widget.targets, field)?.toDouble();
+      }
+      _errorText = null;
+    });
+  }
+
   void _handleSlider(NutritionTargetField field, double value) {
     final rounded = value.roundToDouble();
     setState(() {
@@ -209,12 +223,28 @@ class _NutritionMacrosSettingsPageState
                 TioSpacing.lg,
                 TioSpacing.lg,
               ),
-              child: TioButton.primary(
-                key: const ValueKey('nutrition-macros-save'),
-                label: 'Save',
-                loading: _isSaving,
-                onPressed: _canSave ? _handleSave : null,
-                expand: true,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TioButton.secondary(
+                      key: const ValueKey('nutrition-macros-reset'),
+                      label: 'Reset',
+                      onPressed: (_isDirty && !_isSaving) ? _resetDraft : null,
+                      expand: true,
+                    ),
+                  ),
+                  const SizedBox(width: TioSpacing.md),
+                  Expanded(
+                    flex: 2,
+                    child: TioButton.primary(
+                      key: const ValueKey('nutrition-macros-save'),
+                      label: 'Save',
+                      loading: _isSaving,
+                      onPressed: _canSave ? _handleSave : null,
+                      expand: true,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -392,10 +422,11 @@ class _ExactMacroValueSheetState extends State<_ExactMacroValueSheet> {
             onSubmitted: (_) => _apply(),
             style: TextStyle(
               color: colors.textPrimary,
-              fontSize: TioFontSize.size24,
+              fontSize: TioFontSize.size18,
               fontWeight: TioFontWeight.w700,
             ),
             decoration: InputDecoration(
+              isDense: true,
               suffixText: 'g',
               suffixStyle: TextStyle(
                 color: colors.textSecondary,
@@ -404,7 +435,7 @@ class _ExactMacroValueSheetState extends State<_ExactMacroValueSheet> {
               hintText: 'Not set',
               hintStyle: TextStyle(
                 color: colors.textMuted,
-                fontSize: TioFontSize.size24,
+                fontSize: TioFontSize.size18,
                 fontWeight: TioFontWeight.w400,
               ),
             ),
@@ -478,7 +509,9 @@ class _CoherenceReadout extends StatelessWidget {
           ),
           _Line(
             label: 'Difference',
-            value: '${_formatNumber(coherence.differenceKcal!)} kcal',
+            // Signed, so the user can tell whether to add or remove. The
+            // magnitude alone leaves the one useful fact out.
+            value: _formatSignedKcal(coherence.signedDifferenceKcal!),
             valueKey: const ValueKey('nutrition-macros-difference'),
             emphasised: blocked,
           ),
@@ -546,4 +579,12 @@ class _Line extends StatelessWidget {
 String _formatNumber(num value) {
   if (value == value.roundToDouble()) return '${value.round()}';
   return value.toStringAsFixed(1);
+}
+
+/// Renders a signed kcal delta, so direction is never lost.
+String _formatSignedKcal(double value) {
+  final magnitude = _formatNumber(value.abs());
+  if (value > 0) return '+$magnitude kcal';
+  if (value < 0) return '-$magnitude kcal';
+  return '0 kcal';
 }
