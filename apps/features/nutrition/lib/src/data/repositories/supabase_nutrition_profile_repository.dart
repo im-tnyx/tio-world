@@ -22,7 +22,8 @@ final class SupabaseNutritionProfileTableGateway
     return _client
         .from('user_nutrition_profiles')
         .select(
-          'preferred_diet, allergies, disliked_foods, medical_conditions',
+          'preferred_diet, allergies, disliked_foods, medical_conditions, '
+          'other_diet_type, other_allergy_restriction',
         )
         .eq('user_id', userId)
         .maybeSingle();
@@ -61,13 +62,20 @@ final class SupabaseNutritionProfileRepository
     if (row == null) return null;
 
     return NutritionProfileData(
-      preferredDiet: _parseOptionalString(row['preferred_diet'], 'preferred_diet'),
+      preferredDiet:
+          _parseOptionalString(row['preferred_diet'], 'preferred_diet'),
       allergies: _parseOptionalStringSet(row['allergies'], 'allergies'),
       dislikedFoods:
           _parseOptionalStringSet(row['disliked_foods'], 'disliked_foods'),
       medicalConditions: _parseOptionalStringSet(
         row['medical_conditions'],
         'medical_conditions',
+      ),
+      otherDietType:
+          _parseOptionalString(row['other_diet_type'], 'other_diet_type'),
+      otherAllergyRestriction: _parseOptionalString(
+        row['other_allergy_restriction'],
+        'other_allergy_restriction',
       ),
     );
   }
@@ -82,6 +90,11 @@ final class SupabaseNutritionProfileRepository
       'allergies': _sortedList(profile.allergies),
       'disliked_foods': _sortedList(profile.dislikedFoods),
       'medical_conditions': _sortedList(profile.medicalConditions),
+      // Blank elaboration is stored as NULL rather than '', matching the
+      // existing `other_health_condition` convention.
+      'other_diet_type': _trimmedOrNull(profile.otherDietType),
+      'other_allergy_restriction':
+          _trimmedOrNull(profile.otherAllergyRestriction),
     });
   }
 
@@ -122,6 +135,12 @@ Set<String>? _parseOptionalStringSet(Object? raw, String key) {
     values.add(value);
   }
   return Set.unmodifiable(values);
+}
+
+String? _trimmedOrNull(String? value) {
+  final trimmed = value?.trim();
+  if (trimmed == null || trimmed.isEmpty) return null;
+  return trimmed;
 }
 
 List<String>? _sortedList(Set<String>? values) {

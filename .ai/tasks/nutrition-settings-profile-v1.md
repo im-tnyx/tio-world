@@ -42,8 +42,21 @@ without redoing onboarding.
 
 - Nutrition Targets (calories/macros) editing.
 - Diet Plan, Meal Diary, Eating Style, Nutrition Approach.
-- Onboarding's free-text "Other" elaborations (no canonical column exists).
-- Any schema, RLS, RPC, or migration change. No backend service work.
+- Any RLS or RPC change. No backend service work.
+
+### Owner-approved extension (added after the initial slice was implemented)
+
+The owner reviewed the editors and rejected offering "Other" without a way to
+say what it means: a bare `other` records that an answer exists without
+recording the answer, and for allergies it tells later diet planning that a
+restriction exists without saying which — worse than storing nothing.
+
+Investigating that surfaced an existing defect: Product Onboarding already
+collects this text and discards it at completion, because no column existed.
+
+The slice therefore grew by one additive migration and the free-text wiring on
+both surfaces. This is the only scope expansion, and it was explicitly
+approved.
 
 ## 2. Codebase Exploration
 
@@ -55,8 +68,16 @@ without redoing onboarding.
   unknown, `{}` is an explicitly answered "None".
 - Onboarding's `nutrition_profile_mapper` never populates `dislikedFoods` or
   `medicalConditions`, and enforces None-exclusivity plus a non-empty answer.
-- Onboarding's free-text `otherDietType` / `otherAllergyRestriction` live only
-  in the local draft and have no canonical column.
+- Onboarding's free-text `otherDietType` / `otherAllergyRestriction` lived only
+  in the local draft and were dropped by `NutritionProfileMapper`, because no
+  canonical column existed. This slice adds the columns and carries the text.
+- `users.other_health_condition TEXT` is the established house pattern for this
+  concept: one nullable TEXT column, blank stored as NULL. The new columns
+  follow it rather than inventing a shape.
+- That precedent also drops its `other` token when the text is blank. This
+  slice deliberately does not: for a single-valued diet it would make "Other"
+  unsaveable, and for allergies an empty set already means the positive answer
+  "None", so dropping the token would silently change the user's answer.
 - Settings is presentation/navigation only; domain features own business state
   and persistence.
 
@@ -93,8 +114,13 @@ without redoing onboarding.
 - [x] Add `nutritionProfileDataProvider` and wire both routes in `router.dart`.
 - [x] Add focused tests: gate, hub, editors, canonical semantics, data safety,
       route navigation, mode change, vocabulary parity.
+- [x] Add `other_diet_type` / `other_allergy_restriction` migration, model
+      fields, adapter read/write, and the inline "Other" field in both editors.
+- [x] Carry the onboarding free text through `NutritionProfileMapper`.
 - [x] `dart format`, `flutter analyze`, package test suites.
 - [ ] CI on the exact PR head.
+- [ ] Apply the migration to hosted Supabase — a separate step needing its own
+      owner confirmation. Not done as part of this slice.
 - [ ] Physical-device acceptance by the owner.
 
 ## 6. Quality Review
@@ -110,6 +136,12 @@ without redoing onboarding.
 ### Changed Files
 
 - `.ai/tasks/nutrition-settings-profile-v1.md` (this file)
+- `supabase/migrations/20260831064500_add_nutrition_other_free_text.sql`
+- `apps/features/nutrition/lib/src/domain/models/nutrition_profile_data.dart`
+- `apps/features/nutrition/lib/src/data/repositories/supabase_nutrition_profile_repository.dart`
+- `apps/features/onboarding/lib/src/domain/usecases/nutrition_profile_mapper.dart`
+- `apps/features/onboarding/test/domain/nutrition_profile_mapper_test.dart`
+- `apps/features/nutrition/test/data/supabase_canonical_nutrition_repositories_test.dart`
 - `apps/core/lib/src/routing/routes/app_routes.dart`
 - `apps/features/nutrition/lib/src/domain/models/nutrition_profile_vocabulary.dart`
 - `apps/features/nutrition/lib/src/domain/models/models.dart`

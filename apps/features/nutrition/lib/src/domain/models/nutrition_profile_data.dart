@@ -12,10 +12,26 @@ class NutritionProfileData {
     this.allergies,
     this.dislikedFoods,
     this.medicalConditions,
+    this.otherDietType,
+    this.otherAllergyRestriction,
   });
 
   final String? preferredDiet;
   final Set<String>? allergies;
   final Set<String>? dislikedFoods;
   final Set<String>? medicalConditions;
+
+  /// Free-text elaboration for [preferredDiet] when it is `other`.
+  ///
+  /// A bare `other` selection records that a diet exists without recording
+  /// which one, so this carries the answer itself. `null` means unanswered or
+  /// deliberately left blank; an empty string is never stored.
+  final String? otherDietType;
+
+  /// Free-text elaboration for the `other` entry in [allergies].
+  ///
+  /// This is the only place an unlisted restriction (sesame, soy, shellfish)
+  /// can be recorded, so downstream diet planning must treat it as real
+  /// restriction data rather than a display-only note.
+  final String? otherAllergyRestriction;
 }

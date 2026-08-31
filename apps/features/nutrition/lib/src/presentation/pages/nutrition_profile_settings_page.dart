@@ -27,21 +27,31 @@ class NutritionProfileSettingsPage extends StatelessWidget {
 
   /// Rebuilds the whole canonical object, changing one field and preserving
   /// every other field exactly -- including the two this screen never shows.
-  NutritionProfileData _mergedWithDiet(String? preferredDiet) {
+  NutritionProfileData _mergedWithDiet(
+    String? preferredDiet,
+    String? otherDietType,
+  ) {
     return NutritionProfileData(
       preferredDiet: preferredDiet,
       allergies: profile.allergies,
       dislikedFoods: profile.dislikedFoods,
       medicalConditions: profile.medicalConditions,
+      otherDietType: otherDietType,
+      otherAllergyRestriction: profile.otherAllergyRestriction,
     );
   }
 
-  NutritionProfileData _mergedWithAllergies(Set<String> allergies) {
+  NutritionProfileData _mergedWithAllergies(
+    Set<String> allergies,
+    String? otherAllergyRestriction,
+  ) {
     return NutritionProfileData(
       preferredDiet: profile.preferredDiet,
       allergies: allergies,
       dislikedFoods: profile.dislikedFoods,
       medicalConditions: profile.medicalConditions,
+      otherDietType: profile.otherDietType,
+      otherAllergyRestriction: otherAllergyRestriction,
     );
   }
 
@@ -50,7 +60,8 @@ class NutritionProfileSettingsPage extends StatelessWidget {
       context: context,
       builder: (context) => _DietTypeEditorSheet(
         initialStorageValue: profile.preferredDiet,
-        onSave: (value) => onSave(_mergedWithDiet(value)),
+        initialOtherText: profile.otherDietType,
+        onSave: (value, otherText) => onSave(_mergedWithDiet(value, otherText)),
       ),
     );
   }
@@ -60,20 +71,35 @@ class NutritionProfileSettingsPage extends StatelessWidget {
       context: context,
       builder: (context) => _AllergiesEditorSheet(
         initialAllergies: profile.allergies,
-        onSave: (value) => onSave(_mergedWithAllergies(value)),
+        initialOtherText: profile.otherAllergyRestriction,
+        onSave: (value, otherText) =>
+            onSave(_mergedWithAllergies(value, otherText)),
       ),
     );
   }
 
-  String _dietSummary() =>
-      NutritionProfileVocabulary.dietTypeLabel(profile.preferredDiet) ??
-      'Not set';
+  /// A bare `other` says a diet exists without saying which, so the user's own
+  /// words replace the generic label whenever they gave any.
+  String _dietSummary() {
+    if (profile.preferredDiet == NutritionProfileVocabulary.otherValue) {
+      final text = profile.otherDietType?.trim();
+      if (text != null && text.isNotEmpty) return text;
+    }
+    return NutritionProfileVocabulary.dietTypeLabel(profile.preferredDiet) ??
+        'Not set';
+  }
 
   String _allergiesSummary() {
     final allergies = profile.allergies;
     if (allergies == null) return 'Not set';
     if (allergies.isEmpty) return 'None';
-    final labels = NutritionProfileVocabulary.allergyLabels(allergies);
+
+    final otherText = profile.otherAllergyRestriction?.trim();
+    final labels = NutritionProfileVocabulary.allergyLabels(
+      allergies,
+      otherLabelOverride:
+          (otherText != null && otherText.isNotEmpty) ? otherText : null,
+    );
     if (labels.isEmpty) return 'Not set';
     return labels.join(', ');
   }
@@ -246,11 +272,13 @@ class NutritionEditorSheet extends StatelessWidget {
 class _DietTypeEditorSheet extends StatefulWidget {
   const _DietTypeEditorSheet({
     required this.initialStorageValue,
+    required this.initialOtherText,
     required this.onSave,
   });
 
   final String? initialStorageValue;
-  final Future<void> Function(String storageValue) onSave;
+  final String? initialOtherText;
+  final Future<void> Function(String storageValue, String? otherText) onSave;
 
   @override
   State<_DietTypeEditorSheet> createState() => _DietTypeEditorSheetState();
@@ -258,6 +286,7 @@ class _DietTypeEditorSheet extends StatefulWidget {
 
 class _DietTypeEditorSheetState extends State<_DietTypeEditorSheet> {
   String? _selected;
+  late String _otherText;
   var _isSaving = false;
   String? _errorText;
 
@@ -265,10 +294,32 @@ class _DietTypeEditorSheetState extends State<_DietTypeEditorSheet> {
   void initState() {
     super.initState();
     _selected = widget.initialStorageValue;
+    _otherText = widget.initialOtherText ?? '';
   }
 
-  bool get _canSave =>
-      _selected != null && _selected != widget.initialStorageValue;
+  bool get _isOther => _selected == NutritionProfileVocabulary.otherValue;
+
+  /// Blank is a valid answer: "Other" alone still records that the diet is
+  /// outside the listed options.
+  String? get _result => _isOther ? _trimmedOrNull(_otherText) : null;
+
+  bool get _changed {
+    if (_selected != widget.initialStorageValue) return true;
+    return _isOther && _result != _trimmedOrNull(widget.initialOtherText ?? '');
+  }
+
+  bool get _canSave => _selected != null && _changed;
+
+  void _select(String storageValue) {
+    setState(() {
+      _selected = storageValue;
+      // Switching away from Other must not leave stale text behind.
+      if (storageValue != NutritionProfileVocabulary.otherValue) {
+        _otherText = '';
+      }
+      _errorText = null;
+    });
+  }
 
   Future<void> _handleSave() async {
     if (_isSaving || !_canSave) return;
@@ -277,7 +328,7 @@ class _DietTypeEditorSheetState extends State<_DietTypeEditorSheet> {
       _errorText = null;
     });
     try {
-      await widget.onSave(_selected!);
+      await widget.onSave(_selected!, _result);
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
       if (mounted) {
@@ -305,10 +356,17 @@ class _DietTypeEditorSheetState extends State<_DietTypeEditorSheet> {
               key: ValueKey('nutrition-diet-option-${choice.storageValue}'),
               label: choice.label,
               selected: _selected == choice.storageValue,
-              onTap: _isSaving
+              onTap: _isSaving ? null : () => _select(choice.storageValue),
+              fieldKey:
+                  choice.storageValue == NutritionProfileVocabulary.otherValue
+                      ? const ValueKey('nutrition-diet-option-other-text-field')
+                      : null,
+              fieldValue: _otherText,
+              fieldHint: 'e.g. Jain, Pescatarian, Keto...',
+              onFieldChanged: _isSaving
                   ? null
-                  : () => setState(() {
-                        _selected = choice.storageValue;
+                  : (value) => setState(() {
+                        _otherText = value;
                         _errorText = null;
                       }),
             ),
@@ -337,12 +395,14 @@ class _DietTypeEditorSheetState extends State<_DietTypeEditorSheet> {
 class _AllergiesEditorSheet extends StatefulWidget {
   const _AllergiesEditorSheet({
     required this.initialAllergies,
+    required this.initialOtherText,
     required this.onSave,
   });
 
   /// `null` unanswered, empty set explicitly None, otherwise selections.
   final Set<String>? initialAllergies;
-  final Future<void> Function(Set<String> allergies) onSave;
+  final String? initialOtherText;
+  final Future<void> Function(Set<String> allergies, String? otherText) onSave;
 
   @override
   State<_AllergiesEditorSheet> createState() => _AllergiesEditorSheetState();
@@ -351,6 +411,7 @@ class _AllergiesEditorSheet extends StatefulWidget {
 class _AllergiesEditorSheetState extends State<_AllergiesEditorSheet> {
   late Set<String> _selected;
   late bool _noneSelected;
+  late String _otherText;
   var _isSaving = false;
   String? _errorText;
 
@@ -360,7 +421,14 @@ class _AllergiesEditorSheetState extends State<_AllergiesEditorSheet> {
     final initial = widget.initialAllergies;
     _noneSelected = initial != null && initial.isEmpty;
     _selected = {...?initial};
+    _otherText = widget.initialOtherText ?? '';
   }
+
+  bool get _isOtherSelected =>
+      _selected.contains(NutritionProfileVocabulary.otherValue);
+
+  String? get _otherResult =>
+      _isOtherSelected ? _trimmedOrNull(_otherText) : null;
 
   /// Mirrors the canonical rule: an answered selection is either explicit
   /// None (empty set) or a non-empty restriction set. Never both, never empty.
@@ -373,7 +441,10 @@ class _AllergiesEditorSheetState extends State<_AllergiesEditorSheet> {
     final initial = widget.initialAllergies;
     if (initial == null) return true;
     final result = _result;
-    return initial.length != result.length || !initial.containsAll(result);
+    if (initial.length != result.length || !initial.containsAll(result)) {
+      return true;
+    }
+    return _otherResult != _trimmedOrNull(widget.initialOtherText ?? '');
   }
 
   bool get _canSave => _isAnswered && _changed;
@@ -381,8 +452,12 @@ class _AllergiesEditorSheetState extends State<_AllergiesEditorSheet> {
   void _toggleNone() {
     setState(() {
       _noneSelected = !_noneSelected;
-      // None is exclusive: choosing it clears every restriction.
-      if (_noneSelected) _selected = <String>{};
+      // None is exclusive: choosing it clears every restriction, and with
+      // them the elaboration that only described one.
+      if (_noneSelected) {
+        _selected = <String>{};
+        _otherText = '';
+      }
       _errorText = null;
     });
   }
@@ -393,6 +468,10 @@ class _AllergiesEditorSheetState extends State<_AllergiesEditorSheet> {
       _noneSelected = false;
       if (_selected.contains(storageValue)) {
         _selected.remove(storageValue);
+        // Deselecting Other must not leave its text behind.
+        if (storageValue == NutritionProfileVocabulary.otherValue) {
+          _otherText = '';
+        }
       } else {
         _selected.add(storageValue);
       }
@@ -407,7 +486,7 @@ class _AllergiesEditorSheetState extends State<_AllergiesEditorSheet> {
       _errorText = null;
     });
     try {
-      await widget.onSave(_result);
+      await widget.onSave(_result, _otherResult);
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
       if (mounted) {
@@ -444,6 +523,18 @@ class _AllergiesEditorSheetState extends State<_AllergiesEditorSheet> {
               onTap: _isSaving
                   ? null
                   : () => _toggleRestriction(choice.storageValue),
+              fieldKey: choice.storageValue ==
+                      NutritionProfileVocabulary.otherValue
+                  ? const ValueKey('nutrition-allergy-option-other-text-field')
+                  : null,
+              fieldValue: _otherText,
+              fieldHint: 'e.g. Soy, Sesame, specific foods...',
+              onFieldChanged: _isSaving
+                  ? null
+                  : (value) => setState(() {
+                        _otherText = value;
+                        _errorText = null;
+                      }),
             ),
           ],
           if (_errorText != null) ...[
@@ -467,22 +558,88 @@ class _AllergiesEditorSheetState extends State<_AllergiesEditorSheet> {
   }
 }
 
+String? _trimmedOrNull(String value) {
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
+}
+
 /// Full-width selectable row used by both Nutrition Profile editors.
-class _NutritionChoiceTile extends StatelessWidget {
+///
+/// Passing [fieldKey] turns the row into an "Other" row: an inline text field
+/// appears while the row is selected, mirroring Product Onboarding. Without
+/// the field, "Other" would record that an answer exists without recording
+/// what it is.
+class _NutritionChoiceTile extends StatefulWidget {
   const _NutritionChoiceTile({
     required this.label,
     required this.selected,
     required this.onTap,
     super.key,
+    this.fieldKey,
+    this.fieldValue = '',
+    this.fieldHint = '',
+    this.onFieldChanged,
   });
 
   final String label;
   final bool selected;
   final VoidCallback? onTap;
+  final Key? fieldKey;
+  final String fieldValue;
+  final String fieldHint;
+  final ValueChanged<String>? onFieldChanged;
+
+  @override
+  State<_NutritionChoiceTile> createState() => _NutritionChoiceTileState();
+}
+
+class _NutritionChoiceTileState extends State<_NutritionChoiceTile> {
+  TextEditingController? _controller;
+  FocusNode? _focusNode;
+
+  bool get _hasField => widget.fieldKey != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_hasField) {
+      _controller = TextEditingController(text: widget.fieldValue);
+      _focusNode = FocusNode();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _NutritionChoiceTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_hasField) return;
+
+    // The parent owns the value; only overwrite when it genuinely diverged,
+    // so typing does not fight the controller or reset the caret.
+    if (widget.fieldValue != _controller!.text) {
+      _controller!.text = widget.fieldValue;
+    }
+    if (widget.selected && !oldWidget.selected) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focusNode!.requestFocus();
+      });
+    } else if (!widget.selected && oldWidget.selected) {
+      _focusNode!.unfocus();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    _focusNode?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
+    final label = widget.label;
+    final selected = widget.selected;
+    final onTap = widget.onTap;
     final borderColor = selected
         ? colors.primary
         : colors.outlineStrong.withAlpha(TioAlpha.alpha40);
@@ -508,41 +665,81 @@ class _NutritionChoiceTile extends StatelessWidget {
               width: selected ? TioStroke.width15 : TioStroke.width1,
             ),
           ),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: Text(
-                  label,
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontWeight:
+                            selected ? TioFontWeight.w700 : TioFontWeight.w600,
+                        fontSize: TioFontSize.size15,
+                      ),
+                    ),
+                  ),
+                  AnimatedContainer(
+                    duration:
+                        const Duration(milliseconds: TioMotion.selectionMs),
+                    width: TioSize.dp22,
+                    height: TioSize.dp22,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: selected
+                            ? colors.primary
+                            : colors.outlineStrong.withAlpha(TioAlpha.alpha100),
+                        width: TioStroke.width2,
+                      ),
+                      color: selected ? colors.primary : TioPalette.transparent,
+                    ),
+                    child: selected
+                        ? Icon(
+                            Icons.check_rounded,
+                            size: TioSize.dp14,
+                            color: colors.onPrimary,
+                          )
+                        : null,
+                  ),
+                ],
+              ),
+              if (_hasField && selected) ...[
+                const SizedBox(height: TioSpacing.sm),
+                TextField(
+                  key: widget.fieldKey,
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  enabled: widget.onFieldChanged != null,
+                  minLines: 1,
+                  maxLines: 2,
+                  textInputAction: TextInputAction.done,
+                  textCapitalization: TextCapitalization.sentences,
+                  cursorColor: colors.primary,
                   style: TextStyle(
+                    fontSize: TioFontSize.size14,
                     color: colors.textPrimary,
-                    fontWeight:
-                        selected ? TioFontWeight.w700 : TioFontWeight.w600,
-                    fontSize: TioFontSize.size15,
+                    height: TioLineHeight.height130,
                   ),
-                ),
-              ),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: TioMotion.selectionMs),
-                width: TioSize.dp22,
-                height: TioSize.dp22,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: selected
-                        ? colors.primary
-                        : colors.outlineStrong.withAlpha(TioAlpha.alpha100),
-                    width: TioStroke.width2,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    filled: false,
+                    contentPadding: EdgeInsets.zero,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    hintText: widget.fieldHint,
+                    hintStyle: TextStyle(
+                      fontSize: TioFontSize.size13,
+                      color: colors.textSecondary.withAlpha(TioAlpha.alpha140),
+                    ),
                   ),
-                  color: selected ? colors.primary : TioPalette.transparent,
+                  onChanged: widget.onFieldChanged,
                 ),
-                child: selected
-                    ? Icon(
-                        Icons.check_rounded,
-                        size: TioSize.dp14,
-                        color: colors.onPrimary,
-                      )
-                    : null,
-              ),
+              ],
             ],
           ),
         ),

@@ -48,12 +48,28 @@ abstract final class NutritionProfileVocabulary {
     return null;
   }
 
+  /// The shared storage value meaning "an answer outside this vocabulary".
+  ///
+  /// It is only informative alongside its free-text elaboration, so both
+  /// editors keep the two in step.
+  static const otherValue = 'other';
+
   /// Human labels for persisted allergy values, preserving display order and
   /// dropping unrecognised historical tokens from the summary only.
-  static List<String> allergyLabels(Set<String> storageValues) {
+  ///
+  /// [otherLabelOverride] replaces the generic "Other" with what the user
+  /// actually typed, so a summary never reports a restriction it cannot name.
+  static List<String> allergyLabels(
+    Set<String> storageValues, {
+    String? otherLabelOverride,
+  }) {
     return [
       for (final choice in allergies)
-        if (storageValues.contains(choice.storageValue)) choice.label,
+        if (storageValues.contains(choice.storageValue))
+          if (choice.storageValue == otherValue && otherLabelOverride != null)
+            otherLabelOverride
+          else
+            choice.label,
     ];
   }
 }

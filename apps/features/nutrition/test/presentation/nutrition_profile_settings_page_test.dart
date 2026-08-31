@@ -115,7 +115,7 @@ void main() {
           reason: value,
         );
       }
-      // V1 has no canonical column for onboarding's free-text "Other" detail.
+      // The field belongs to "Other" alone, and only once it is selected.
       expect(find.byType(TextField), findsNothing);
     });
 
@@ -333,6 +333,265 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(saved!.allergies, isNot(contains('none')));
+    });
+  });
+
+  group('"Other" free text', () {
+    const dietField = ValueKey('nutrition-profile-diet-type-field');
+    const dietOther = ValueKey('nutrition-diet-option-other');
+    const dietOtherText = ValueKey('nutrition-diet-option-other-text-field');
+    const dietSave = ValueKey('nutrition-diet-type-save');
+    const allergyField = ValueKey('nutrition-profile-allergies-field');
+    const allergyOther = ValueKey('nutrition-allergy-option-other');
+    const allergyOtherText =
+        ValueKey('nutrition-allergy-option-other-text-field');
+    const allergySave = ValueKey('nutrition-allergies-save');
+
+    testWidgets('the Diet Type field appears only once Other is selected',
+        (tester) async {
+      await pumpPage(
+        tester,
+        profile: const NutritionProfileData(),
+        onSave: (_) async {},
+      );
+      await tester.tap(find.byKey(dietField));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(dietOtherText), findsNothing);
+
+      await tester.tap(find.byKey(dietOther));
+      await tester.pumpAndSettle();
+      expect(find.byKey(dietOtherText), findsOneWidget);
+
+      // Choosing a listed diet retires the field again.
+      await tester
+          .tap(find.byKey(const ValueKey('nutrition-diet-option-vegan')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(dietOtherText), findsNothing);
+    });
+
+    testWidgets('Other with typed text saves both the token and the words',
+        (tester) async {
+      NutritionProfileData? saved;
+      await pumpPage(
+        tester,
+        profile: const NutritionProfileData(),
+        onSave: (profile) async => saved = profile,
+      );
+      await tester.tap(find.byKey(dietField));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(dietOther));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(dietOtherText), '  Jain  ');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(dietSave));
+      await tester.pumpAndSettle();
+
+      expect(saved!.preferredDiet, 'other');
+      expect(saved!.otherDietType, 'Jain');
+    });
+
+    testWidgets('Other left blank still saves, as Other alone', (tester) async {
+      NutritionProfileData? saved;
+      await pumpPage(
+        tester,
+        profile: const NutritionProfileData(),
+        onSave: (profile) async => saved = profile,
+      );
+      await tester.tap(find.byKey(dietField));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(dietOther));
+      await tester.pumpAndSettle();
+
+      expect(
+          tester.widget<TioButton>(find.byKey(dietSave)).onPressed, isNotNull);
+      await tester.tap(find.byKey(dietSave));
+      await tester.pumpAndSettle();
+
+      expect(saved!.preferredDiet, 'other');
+      expect(saved!.otherDietType, isNull);
+    });
+
+    testWidgets('editing only the words is enough to enable Save',
+        (tester) async {
+      NutritionProfileData? saved;
+      await pumpPage(
+        tester,
+        profile: const NutritionProfileData(
+          preferredDiet: 'other',
+          otherDietType: 'Jain',
+        ),
+        onSave: (profile) async => saved = profile,
+      );
+      await tester.tap(find.byKey(dietField));
+      await tester.pumpAndSettle();
+
+      // Selection is unchanged, so only the text can make this dirty.
+      expect(tester.widget<TioButton>(find.byKey(dietSave)).onPressed, isNull);
+
+      await tester.enterText(find.byKey(dietOtherText), 'Pescatarian');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(dietSave));
+      await tester.pumpAndSettle();
+
+      expect(saved!.otherDietType, 'Pescatarian');
+    });
+
+    testWidgets('switching away from Other clears its text', (tester) async {
+      NutritionProfileData? saved;
+      await pumpPage(
+        tester,
+        profile: const NutritionProfileData(
+          preferredDiet: 'other',
+          otherDietType: 'Jain',
+        ),
+        onSave: (profile) async => saved = profile,
+      );
+      await tester.tap(find.byKey(dietField));
+      await tester.pumpAndSettle();
+      await tester
+          .tap(find.byKey(const ValueKey('nutrition-diet-option-vegan')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(dietSave));
+      await tester.pumpAndSettle();
+
+      expect(saved!.preferredDiet, 'vegan');
+      // Stale text must not survive as an orphan describing nothing.
+      expect(saved!.otherDietType, isNull);
+    });
+
+    testWidgets('an unlisted allergy is recorded rather than lost',
+        (tester) async {
+      NutritionProfileData? saved;
+      await pumpPage(
+        tester,
+        profile: const NutritionProfileData(),
+        onSave: (profile) async => saved = profile,
+      );
+      await tester.tap(find.byKey(allergyField));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(allergyOtherText), findsNothing);
+      await tester.tap(find.byKey(allergyOther));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(allergyOtherText), 'Sesame');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(allergySave));
+      await tester.pumpAndSettle();
+
+      expect(saved!.allergies, {'other'});
+      expect(saved!.otherAllergyRestriction, 'Sesame');
+    });
+
+    testWidgets('deselecting Other drops its text with it', (tester) async {
+      NutritionProfileData? saved;
+      await pumpPage(
+        tester,
+        profile: const NutritionProfileData(
+          allergies: {'other', 'nuts'},
+          otherAllergyRestriction: 'Sesame',
+        ),
+        onSave: (profile) async => saved = profile,
+      );
+      await tester.tap(find.byKey(allergyField));
+      await tester.pumpAndSettle();
+      // Tap the label, not the tile centre: while Other is selected the tile
+      // also contains its text field, which would swallow a centred tap.
+      await tester.tap(find.descendant(
+        of: find.byKey(allergyOther),
+        matching: find.text('Other'),
+      ));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(allergySave));
+      await tester.pumpAndSettle();
+
+      expect(saved!.allergies, {'nuts'});
+      expect(saved!.otherAllergyRestriction, isNull);
+    });
+
+    testWidgets('choosing None clears an unlisted allergy too', (tester) async {
+      NutritionProfileData? saved;
+      await pumpPage(
+        tester,
+        profile: const NutritionProfileData(
+          allergies: {'other'},
+          otherAllergyRestriction: 'Sesame',
+        ),
+        onSave: (profile) async => saved = profile,
+      );
+      await tester.tap(find.byKey(allergyField));
+      await tester.pumpAndSettle();
+      await tester
+          .tap(find.byKey(const ValueKey('nutrition-allergy-option-none')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(allergySave));
+      await tester.pumpAndSettle();
+
+      expect(saved!.allergies, isEmpty);
+      expect(saved!.otherAllergyRestriction, isNull);
+    });
+
+    testWidgets('summaries show the user\'s own words, not a bare "Other"',
+        (tester) async {
+      await pumpPage(
+        tester,
+        profile: const NutritionProfileData(
+          preferredDiet: 'other',
+          otherDietType: 'Jain',
+          allergies: {'nuts', 'other'},
+          otherAllergyRestriction: 'Sesame',
+        ),
+        onSave: (_) async {},
+      );
+
+      expect(find.text('Jain'), findsOneWidget);
+      expect(find.text('Nuts, Sesame'), findsOneWidget);
+      expect(find.text('Other'), findsNothing);
+    });
+
+    testWidgets('a blank elaboration falls back to the generic label',
+        (tester) async {
+      await pumpPage(
+        tester,
+        profile: const NutritionProfileData(
+          preferredDiet: 'other',
+          allergies: {'other'},
+        ),
+        onSave: (_) async {},
+      );
+
+      // Nothing better exists to show, and inventing detail would be worse.
+      expect(find.text('Other'), findsNWidgets(2));
+    });
+
+    testWidgets('editing one field preserves the other field\'s elaboration',
+        (tester) async {
+      NutritionProfileData? saved;
+      await pumpPage(
+        tester,
+        profile: const NutritionProfileData(
+          preferredDiet: 'other',
+          otherDietType: 'Jain',
+          allergies: {'other'},
+          otherAllergyRestriction: 'Sesame',
+          dislikedFoods: {'okra'},
+        ),
+        onSave: (profile) async => saved = profile,
+      );
+      await tester.tap(find.byKey(dietField));
+      await tester.pumpAndSettle();
+      await tester
+          .tap(find.byKey(const ValueKey('nutrition-diet-option-vegan')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(dietSave));
+      await tester.pumpAndSettle();
+
+      expect(saved!.preferredDiet, 'vegan');
+      expect(saved!.otherDietType, isNull);
+      // The allergy side is untouched by a diet edit.
+      expect(saved!.allergies, {'other'});
+      expect(saved!.otherAllergyRestriction, 'Sesame');
+      expect(saved!.dislikedFoods, {'okra'});
     });
   });
 }
