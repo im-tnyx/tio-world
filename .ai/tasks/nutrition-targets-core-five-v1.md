@@ -93,6 +93,34 @@ NutritionSnapshot, providers, reference-sex, life-stage, and any schema change.
 - Preservation is covered at two levels: the pure editor, and a route test
   asserting the repository received the untouched fields and metadata.
 
+### Presentation & limit policy (added after owner UI review)
+
+Card hierarchy is frozen as three sections: **DAILY CALORIE GOAL**,
+**MACRONUTRIENTS** (C/P/F grouped), and **FIBER** separate. Fiber is not
+grouped with the energy macros because it is excluded from their relationship.
+
+Macro rows carry a **read-only** derived share of macro energy. It is not
+persisted, not editable, and adds no percentage/grams mode -- that remains N12.
+Shares use largest-remainder apportionment so they total exactly 100; rounding
+each independently would display 99% or 101%, which reads as a bug. When any
+macro is unknown, or the macros carry no energy at all, no percentage is shown
+rather than a fabricated `0%`.
+
+A quiet "Calories from macros" line appears when the row is coherent; beyond
+tolerance it is replaced by the existing warning.
+
+**Limit policy.** One new hard rule, and it is a storage constraint rather than
+a health judgement: `calories_kcal` is a Postgres `integer`, so a larger value
+would fail at the database. Everything else was deliberately left alone --
+recommended is not the same as allowed, and no defensible universal upper bound
+exists for any target. The calculator's 25-50 fiber clamp is a *recommendation
+heuristic*, not a constraint, and must never become one.
+
+Recommendation context was audited and **not** added: `recommendationMetadata`
+carries only `{source, bmr, tdee}`, never the recommended calorie value, so
+after the first edit the original recommendation is unrecoverable. Showing
+"Recommended: X" would have required fabricating it.
+
 ### Deliberate divergence worth reviewing
 
 The coherence warning appears **on the page**, not only inside an editor. A row

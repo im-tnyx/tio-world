@@ -26,23 +26,19 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
   /// Persists a fully merged target row through the canonical owner.
   final Future<void> Function(NutritionTargetsData targets) onSave;
 
-  static const _rows = <(NutritionTargetField, String, IconData, String)>[
-    (
-      NutritionTargetField.calories,
-      'Calories',
-      Icons.local_fire_department_rounded,
-      'kcal'
-    ),
-    (NutritionTargetField.protein, 'Protein', Icons.egg_alt_rounded, 'g'),
+  /// Carbohydrates first, matching how the three macro shares are read.
+  static const _macros = <(NutritionTargetField, String, IconData)>[
     (
       NutritionTargetField.carbohydrate,
       'Carbohydrates',
-      Icons.bakery_dining_rounded,
-      'g'
+      Icons.bakery_dining_rounded
     ),
-    (NutritionTargetField.fat, 'Fat', Icons.water_drop_rounded, 'g'),
-    (NutritionTargetField.fiber, 'Fiber', Icons.grass_rounded, 'g'),
+    (NutritionTargetField.protein, 'Protein', Icons.egg_alt_rounded),
+    (NutritionTargetField.fat, 'Fat', Icons.water_drop_rounded),
   ];
+
+  static String unitFor(NutritionTargetField field) =>
+      field == NutritionTargetField.calories ? 'kcal' : 'g';
 
   String _summaryFor(NutritionTargetField field, String unit) {
     final value = NutritionTargetEditor.valueOf(targets, field);
@@ -68,10 +64,30 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
     );
   }
 
+  Widget _row(
+    BuildContext context,
+    NutritionTargetField field,
+    String label,
+    IconData icon, {
+    String? annotation,
+  }) {
+    final unit = unitFor(field);
+    return NutritionValueRow(
+      key: ValueKey('nutrition-target-${field.storageValue}-field'),
+      icon: icon,
+      label: label,
+      annotation: annotation,
+      value: _summaryFor(field, unit),
+      isUnset: NutritionTargetEditor.valueOf(targets, field) == null,
+      onTap: () => _edit(context, field, label, unit),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final coherence = NutritionTargetEditor.coherenceOf(targets);
+    final percentages = NutritionTargetEditor.macroPercentages(targets);
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -98,28 +114,85 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
             TioSpacing.xl,
           ),
           children: [
-            const NutritionSettingsSectionHeader(title: 'DAILY TARGETS'),
+            const NutritionSettingsSectionHeader(title: 'DAILY CALORIE GOAL'),
             NutritionSettingsGroupCard(
               children: [
-                for (final (field, label, icon, unit) in _rows)
-                  NutritionValueRow(
-                    key: ValueKey(
-                        'nutrition-target-${field.storageValue}-field'),
-                    icon: icon,
-                    label: label,
-                    value: _summaryFor(field, unit),
-                    isUnset:
-                        NutritionTargetEditor.valueOf(targets, field) == null,
-                    onTap: () => _edit(context, field, label, unit),
-                  ),
+                _row(context, NutritionTargetField.calories, 'Calories',
+                    Icons.local_fire_department_rounded)
               ],
             ),
+            const SizedBox(height: TioSpacing.lg),
+            const NutritionSettingsSectionHeader(title: 'MACRONUTRIENTS'),
+            NutritionSettingsGroupCard(
+              children: [
+                for (final (field, label, icon) in _macros)
+                  _row(context, field, label, icon,
+                      annotation: percentages == null
+                          ? null
+                          : '${percentages[field]}%'),
+              ],
+            ),
+            const SizedBox(height: TioSpacing.lg),
+            // Fiber is deliberately its own card: it is an independent target
+            // and is excluded from the C/P/F energy relationship.
+            const NutritionSettingsSectionHeader(title: 'FIBER'),
+            NutritionSettingsGroupCard(
+              children: [
+                _row(context, NutritionTargetField.fiber, 'Fiber',
+                    Icons.grass_rounded),
+              ],
+            ),
+            if (coherence.isEvaluable && !coherence.blocksSave) ...[
+              const SizedBox(height: TioSpacing.lg),
+              _MacroCaloriesFooter(coherence: coherence),
+            ],
             if (coherence.blocksSave) ...[
               const SizedBox(height: TioSpacing.lg),
               _CoherenceWarning(coherence: coherence),
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Quiet confirmation that the macros and the calorie target agree.
+///
+/// Informational only: within tolerance there is nothing for the user to fix,
+/// so this deliberately carries no warning treatment.
+class _MacroCaloriesFooter extends StatelessWidget {
+  const _MacroCaloriesFooter({required this.coherence});
+
+  final NutritionTargetCoherence coherence;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+
+    return Padding(
+      key: const ValueKey('nutrition-targets-macro-calories'),
+      padding: const EdgeInsets.symmetric(horizontal: TioSpacing.sm),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Calories from macros',
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: TioFontSize.size13,
+              ),
+            ),
+          ),
+          Text(
+            '${_formatNumber(coherence.macroCalories!)} kcal',
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontWeight: TioFontWeight.w600,
+              fontSize: TioFontSize.size13,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -285,6 +358,11 @@ class _TargetEditorSheetState extends State<_TargetEditorSheet> {
     }
     if (widget.field == NutritionTargetField.calories) {
       if (value <= 0) return 'Calories must be greater than zero.';
+      // A storage limit, not a health judgement: `calories_kcal` is a Postgres
+      // integer, so a larger value would fail at the database rather than here.
+      if (value > NutritionTargetEditor.maxStorableCalories) {
+        return 'That value is too large to store.';
+      }
     } else if (value < 0) {
       return '${widget.label} cannot be negative.';
     }

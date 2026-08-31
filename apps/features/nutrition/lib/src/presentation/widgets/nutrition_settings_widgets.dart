@@ -60,6 +60,7 @@ class NutritionValueRow extends StatelessWidget {
     required this.isUnset,
     required this.onTap,
     super.key,
+    this.annotation,
   });
 
   final IconData icon;
@@ -67,6 +68,10 @@ class NutritionValueRow extends StatelessWidget {
   final String value;
   final bool isUnset;
   final VoidCallback onTap;
+
+  /// Optional derived detail shown beside the label, such as a macro's read-only
+  /// share of macro energy. Purely presentational and never persisted.
+  final String? annotation;
 
   @override
   Widget build(BuildContext context) {
@@ -84,13 +89,32 @@ class NutritionValueRow extends StatelessWidget {
             const SizedBox(width: TioSpacing.lg),
             Expanded(
               flex: 3,
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: colors.textPrimary,
-                  fontWeight: TioFontWeight.w700,
-                  fontSize: TioFontSize.size15,
-                ),
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontWeight: TioFontWeight.w700,
+                        fontSize: TioFontSize.size15,
+                      ),
+                    ),
+                  ),
+                  if (annotation != null) ...[
+                    const SizedBox(width: TioSpacing.sm),
+                    Text(
+                      annotation!,
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontWeight: TioFontWeight.w600,
+                        fontSize: TioFontSize.size13,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
             const SizedBox(width: TioSpacing.sm),

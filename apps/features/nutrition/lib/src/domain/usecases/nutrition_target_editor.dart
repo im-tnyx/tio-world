@@ -76,6 +76,68 @@ abstract final class NutritionTargetEditor {
     );
   }
 
+  /// Largest value `calories_kcal` can hold: the column is a Postgres
+  /// `integer`. This is a storage limit, not a health judgement.
+  static const maxStorableCalories = 2147483647;
+
+  /// Read-only share of macro energy per macro, as whole percents summing to
+  /// exactly 100.
+  ///
+  /// Returns null when any of the three macros is unknown or when they carry
+  /// no energy at all: a percentage of nothing is not zero, it is undefined,
+  /// and fabricating `0%` would read as a real answer.
+  ///
+  /// Fiber is excluded, matching the coherence rule.
+  static Map<NutritionTargetField, int>? macroPercentages(
+    NutritionTargetsData targets,
+  ) {
+    final protein = targets.proteinGrams;
+    final carbohydrate = targets.carbohydrateGrams;
+    final fat = targets.fatGrams;
+
+    if (protein == null || carbohydrate == null || fat == null) return null;
+
+    final energies = <NutritionTargetField, double>{
+      NutritionTargetField.carbohydrate:
+          carbohydrate * _carbohydrateKcalPerGram,
+      NutritionTargetField.protein: protein * _proteinKcalPerGram,
+      NutritionTargetField.fat: fat * _fatKcalPerGram,
+    };
+
+    final total = energies.values.fold<double>(0, (sum, e) => sum + e);
+    if (total <= 0) return null;
+
+    // Largest-remainder apportionment. Rounding each share independently can
+    // display 99% or 101%, which reads as a bug to the user; distributing the
+    // leftover points by largest fraction always totals exactly 100.
+    final exact = <NutritionTargetField, double>{
+      for (final entry in energies.entries)
+        entry.key: entry.value / total * 100,
+    };
+    final result = <NutritionTargetField, int>{
+      for (final entry in exact.entries) entry.key: entry.value.floor(),
+    };
+
+    var remaining = 100 - result.values.fold<int>(0, (sum, v) => sum + v);
+    final byFraction = exact.keys.toList()
+      ..sort((a, b) {
+        final fractionA = exact[a]! - exact[a]!.floor();
+        final fractionB = exact[b]! - exact[b]!.floor();
+        final byRemainder = fractionB.compareTo(fractionA);
+        // Ties resolve by declaration order so the result is deterministic.
+        if (byRemainder != 0) return byRemainder;
+        return a.index.compareTo(b.index);
+      });
+
+    for (final field in byFraction) {
+      if (remaining <= 0) break;
+      result[field] = result[field]! + 1;
+      remaining--;
+    }
+
+    return result;
+  }
+
   /// Current value of [field], or null when unset.
   static num? valueOf(
       NutritionTargetsData targets, NutritionTargetField field) {

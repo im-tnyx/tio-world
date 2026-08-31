@@ -113,6 +113,90 @@ void main() {
     });
   });
 
+  group('derived macro percentages', () {
+    test('splits macro energy and always totals exactly 100', () {
+      // 403*4 + 161*4 + 107*9 = 1612 + 644 + 963 = 3219 kcal of macro energy.
+      const targets = NutritionTargetsData(
+        caloriesKcal: 3220,
+        proteinGrams: 161,
+        carbohydrateGrams: 403,
+        fatGrams: 107,
+      );
+
+      final percentages = NutritionTargetEditor.macroPercentages(targets)!;
+      expect(percentages[NutritionTargetField.carbohydrate], 50);
+      expect(percentages[NutritionTargetField.protein], 20);
+      expect(percentages[NutritionTargetField.fat], 30);
+      expect(percentages.values.reduce((a, b) => a + b), 100);
+    });
+
+    test('never displays a total of 99 or 101', () {
+      // Independent rounding of these thirds would show 33/33/33.
+      const awkward = NutritionTargetsData(
+        proteinGrams: 100,
+        carbohydrateGrams: 100,
+        fatGrams: 400 / 9,
+      );
+
+      final percentages = NutritionTargetEditor.macroPercentages(awkward)!;
+      expect(percentages.values.reduce((a, b) => a + b), 100);
+    });
+
+    test('is deterministic across repeated calls', () {
+      const targets = NutritionTargetsData(
+        proteinGrams: 100,
+        carbohydrateGrams: 100,
+        fatGrams: 400 / 9,
+      );
+
+      expect(
+        NutritionTargetEditor.macroPercentages(targets),
+        NutritionTargetEditor.macroPercentages(targets),
+      );
+    });
+
+    test('is unavailable when any macro is unknown', () {
+      for (final partial in [
+        const NutritionTargetsData(),
+        const NutritionTargetsData(proteinGrams: 150),
+        const NutritionTargetsData(proteinGrams: 150, carbohydrateGrams: 200),
+      ]) {
+        // A percentage of an unknown is undefined, not zero.
+        expect(NutritionTargetEditor.macroPercentages(partial), isNull);
+      }
+    });
+
+    test('is unavailable when the macros carry no energy at all', () {
+      const allZero = NutritionTargetsData(
+        proteinGrams: 0,
+        carbohydrateGrams: 0,
+        fatGrams: 0,
+      );
+
+      // Avoids a division by zero and avoids showing a fabricated 0/0/0 split.
+      expect(NutritionTargetEditor.macroPercentages(allZero), isNull);
+    });
+
+    test('fiber never affects the split', () {
+      const withoutFiber = NutritionTargetsData(
+        proteinGrams: 161,
+        carbohydrateGrams: 403,
+        fatGrams: 107,
+      );
+      const withFiber = NutritionTargetsData(
+        proteinGrams: 161,
+        carbohydrateGrams: 403,
+        fatGrams: 107,
+        fiberGrams: 30,
+      );
+
+      expect(
+        NutritionTargetEditor.macroPercentages(withFiber),
+        NutritionTargetEditor.macroPercentages(withoutFiber),
+      );
+    });
+  });
+
   group('applyEdit preservation', () {
     test('editing one target leaves every other field untouched', () {
       final edited = NutritionTargetEditor.applyEdit(

@@ -109,6 +109,178 @@ void main() {
     });
   });
 
+  group('card hierarchy', () {
+    testWidgets('Calories, Macronutrients and Fiber are separate sections',
+        (tester) async {
+      await pumpPage(tester, targets: recommended, onSave: (_) async {});
+
+      final calories = tester.getTopLeft(find.text('DAILY CALORIE GOAL')).dy;
+      final macros = tester.getTopLeft(find.text('MACRONUTRIENTS')).dy;
+      final fiber = tester.getTopLeft(find.text('FIBER')).dy;
+
+      expect(macros, greaterThan(calories));
+      expect(fiber, greaterThan(macros));
+
+      // Fiber must not be grouped with the three energy macros.
+      expect(find.byType(NutritionSettingsGroupCard), findsNWidgets(3));
+    });
+
+    testWidgets('every row carries a pencil edit affordance', (tester) async {
+      await pumpPage(tester, targets: recommended, onSave: (_) async {});
+
+      expect(find.byIcon(Icons.edit_outlined), findsNWidgets(5));
+      // A pencil already means "edit"; a chevron beside it would be redundant.
+      expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+    });
+  });
+
+  group('derived percentages', () {
+    testWidgets('macro rows show a read-only share totalling 100%',
+        (tester) async {
+      await pumpPage(
+        tester,
+        targets: const NutritionTargetsData(
+          caloriesKcal: 3220,
+          proteinGrams: 161,
+          carbohydrateGrams: 403,
+          fatGrams: 107,
+          fiberGrams: 30,
+        ),
+        onSave: (_) async {},
+      );
+
+      expect(find.text('50%'), findsOneWidget);
+      expect(find.text('20%'), findsOneWidget);
+      expect(find.text('30%'), findsOneWidget);
+    });
+
+    testWidgets('Calories and Fiber never show a percentage', (tester) async {
+      await pumpPage(
+        tester,
+        targets: const NutritionTargetsData(
+          caloriesKcal: 3220,
+          proteinGrams: 161,
+          carbohydrateGrams: 403,
+          fatGrams: 107,
+          fiberGrams: 30,
+        ),
+        onSave: (_) async {},
+      );
+
+      final caloriesRow = tester.widget<NutritionValueRow>(
+        find.byKey(const ValueKey('nutrition-target-calories-field')),
+      );
+      final fiberRow = tester.widget<NutritionValueRow>(
+        find.byKey(const ValueKey('nutrition-target-fiber-field')),
+      );
+
+      expect(caloriesRow.annotation, isNull);
+      expect(fiberRow.annotation, isNull);
+    });
+
+    testWidgets('an unknown macro shows no fabricated percentage',
+        (tester) async {
+      await pumpPage(
+        tester,
+        targets: const NutritionTargetsData(
+          caloriesKcal: 2000,
+          proteinGrams: 150,
+          carbohydrateGrams: 200,
+        ),
+        onSave: (_) async {},
+      );
+
+      expect(find.textContaining('%'), findsNothing);
+      expect(find.text('0%'), findsNothing);
+    });
+
+    testWidgets('percentages are display-only and never persisted',
+        (tester) async {
+      NutritionTargetsData? saved;
+      await pumpPage(
+        tester,
+        targets: const NutritionTargetsData(
+          caloriesKcal: 3220,
+          proteinGrams: 161,
+          carbohydrateGrams: 403,
+          fatGrams: 107,
+        ),
+        onSave: (targets) async => saved = targets,
+      );
+
+      await openEditor(tester, NutritionTargetField.fiber);
+      await type(tester, NutritionTargetField.fiber, '30');
+      await tester.tap(saveOf(NutritionTargetField.fiber));
+      await tester.pumpAndSettle();
+
+      // Only the five canonical fields exist; nothing percentage-shaped is
+      // written, and no percentage editing surface was introduced.
+      expect(saved!.customizedFields, {'fiber'});
+      expect(find.text('Percentage'), findsNothing);
+      expect(find.text('Grams'), findsNothing);
+    });
+  });
+
+  group('calories from macros', () {
+    testWidgets('shows a quiet informational line when coherent',
+        (tester) async {
+      await pumpPage(tester, targets: recommended, onSave: (_) async {});
+
+      expect(
+        find.byKey(const ValueKey('nutrition-targets-macro-calories')),
+        findsOneWidget,
+      );
+      expect(find.text('Calories from macros'), findsOneWidget);
+      expect(find.text('1900.4 kcal'), findsOneWidget);
+      // Coherent means nothing to fix, so no warning treatment.
+      expect(
+        find.byKey(const ValueKey('nutrition-targets-coherence-warning')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('is replaced by the warning when the mismatch is material',
+        (tester) async {
+      await pumpPage(
+        tester,
+        targets: const NutritionTargetsData(
+          caloriesKcal: 1200,
+          proteinGrams: 150,
+          carbohydrateGrams: 200,
+          fatGrams: 55.6,
+        ),
+        onSave: (_) async {},
+      );
+
+      expect(
+        find.byKey(const ValueKey('nutrition-targets-macro-calories')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('nutrition-targets-coherence-warning')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('neither appears while the macros are incomplete',
+        (tester) async {
+      await pumpPage(
+        tester,
+        targets: const NutritionTargetsData(caloriesKcal: 2000),
+        onSave: (_) async {},
+      );
+
+      expect(
+        find.byKey(const ValueKey('nutrition-targets-macro-calories')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('nutrition-targets-coherence-warning')),
+        findsNothing,
+      );
+    });
+  });
+
   group('editing', () {
     testWidgets('Save stays disabled until the value changes', (tester) async {
       await pumpPage(tester, targets: recommended, onSave: (_) async {});
@@ -201,6 +373,40 @@ void main() {
             .onPressed,
         isNull,
       );
+    });
+
+    testWidgets('a value too large to store is blocked', (tester) async {
+      await pumpPage(tester, targets: recommended, onSave: (_) async {});
+      await openEditor(tester, NutritionTargetField.calories);
+      await type(tester, NutritionTargetField.calories, '99999999999');
+
+      // A storage limit, not a health judgement: the column is an integer.
+      expect(find.text('That value is too large to store.'), findsOneWidget);
+      expect(
+        tester
+            .widget<TioButton>(saveOf(NutritionTargetField.calories))
+            .onPressed,
+        isNull,
+      );
+    });
+
+    testWidgets('an unusually high but storable target is allowed',
+        (tester) async {
+      NutritionTargetsData? saved;
+      await pumpPage(
+        tester,
+        targets: const NutritionTargetsData(caloriesKcal: 2000),
+        onSave: (targets) async => saved = targets,
+      );
+
+      await openEditor(tester, NutritionTargetField.calories);
+      await type(tester, NutritionTargetField.calories, '9000');
+      await tester.tap(saveOf(NutritionTargetField.calories));
+      await tester.pumpAndSettle();
+
+      // Recommended is not the same as allowed. No invented upper bound blocks
+      // a legitimately unusual target.
+      expect(saved!.caloriesKcal, 9000);
     });
 
     testWidgets('zero is a valid macro target', (tester) async {
