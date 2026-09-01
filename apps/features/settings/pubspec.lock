@@ -700,13 +700,6 @@ packages:
       relative: true
     source: path
     version: "0.0.0"
-  tio_feature_profile:
-    dependency: "direct main"
-    description:
-      path: "../profile"
-      relative: true
-    source: path
-    version: "0.0.0"
   tio_feature_progress:
     dependency: "direct main"
     description:

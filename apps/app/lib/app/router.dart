@@ -58,6 +58,18 @@ String _accountSettingsUsernameMessage(UsernameAvailabilityReason? reason) {
   };
 }
 
+String _accountSettingsUsernameConflictMessage(
+  UsernameUnavailableException error,
+) {
+  return switch (error.reason) {
+    UsernameAvailabilityReason.reserved =>
+      'That username is reserved. Please choose another.',
+    UsernameAvailabilityReason.invalid =>
+      'That username is no longer valid. Please choose another.',
+    _ => 'That username was just taken. Please choose another.',
+  };
+}
+
 String _linkedAuthProvidersLabel(AuthSession? session) {
   final providers = session?.identityProviders ?? const <String>{};
   if (providers.isEmpty) return 'Current session';
@@ -1281,7 +1293,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
                 // Phone persistence is Auth-owned and occurs only after real
                 // provider verification. Save Changes owns username only.
-                await accountRepository.updateUsername(username);
+                try {
+                  await accountRepository.updateUsername(username);
+                } on UsernameUnavailableException catch (error) {
+                  throw TioUsernameConflictException(
+                    _accountSettingsUsernameConflictMessage(error),
+                  );
+                }
                 ref.invalidate(profileDataProvider);
                 ref.invalidate(profileCompletionSummaryProvider);
               },

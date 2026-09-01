@@ -60,6 +60,61 @@ void main() {
     expect(repository.checked, isEmpty);
   });
 
+  testWidgets(
+      '#24-D regression: editing away then back to the persisted username '
+      'still resolves available via a real recheck, unaffected by Account '
+      "Settings' idle-on-currentUsername-match change (UsernameStep never "
+      'wires currentUsername, so that default cannot apply here)',
+      (tester) async {
+    final key = GlobalKey<UsernameStepState>();
+    final repository = _FakeProfileAccountRepository();
+    final continueStates = <bool>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(extensions: const [TioColors.light]),
+        home: Scaffold(
+          body: UsernameStep(
+            key: key,
+            repository: repository,
+            initialUsername: 'existing.user',
+            enabled: true,
+            onCanContinueChanged: continueStates.add,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // Hydration: Continue already enabled, no network check yet.
+    expect(continueStates.last, isTrue);
+    expect(repository.checked, isEmpty);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('tio-username-input')),
+      'new.user',
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump();
+    expect(repository.checked, ['new.user']);
+    expect(continueStates.last, isTrue);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('tio-username-input')),
+      'existing.user',
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump();
+
+    // A real recheck fires (no currentUsername-match shortcut here), and it
+    // resolves available -- the field renders the check mark for the
+    // persisted username in Account Setup, exactly as before #24-D.
+    expect(repository.checked, ['new.user', 'existing.user']);
+    expect(continueStates.last, isTrue);
+    expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+    expect(await key.currentState!.submit(), isTrue);
+  });
+
   testWidgets('renders server-verified alternatives when username is taken',
       (tester) async {
     final key = GlobalKey<UsernameStepState>();

@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
-import 'package:tio_feature_profile/profile.dart'
-    show UsernameAvailabilityReason, UsernameUnavailableException;
 
 import '../google_identity_link_controller.dart';
 
@@ -161,16 +159,6 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
     );
   }
 
-  String _usernameSaveConflictMessage(UsernameUnavailableException error) {
-    return switch (error.reason) {
-      UsernameAvailabilityReason.reserved =>
-        'That username is reserved. Please choose another.',
-      UsernameAvailabilityReason.invalid =>
-        'That username is no longer valid. Please choose another.',
-      _ => 'That username was just taken. Please choose another.',
-    };
-  }
-
   Future<void> _handleVerifyEmail() async {
     final email = _emailController.text.trim();
     if (_normalizedEmail(email) == null) {
@@ -281,13 +269,13 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
         _showMessage('Account settings saved!');
         Navigator.of(context).pop();
       }
-    } on UsernameUnavailableException catch (error) {
+    } on TioUsernameConflictException catch (error) {
       if (mounted) {
         setState(() {
           _usernameStatus = TioUsernameStatus.unavailable;
           _usernameAvailabilityRefreshToken++;
         });
-        _showMessage(_usernameSaveConflictMessage(error));
+        _showMessage(error.message);
       }
     } catch (_) {
       _showMessage('Could not save account settings. Please try again.');

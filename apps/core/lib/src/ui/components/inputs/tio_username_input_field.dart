@@ -21,6 +21,23 @@ class UsernameAvailabilityResult {
   final String? message;
 }
 
+/// Domain-neutral signal that a username save failed because the username
+/// itself is no longer usable (a final server-side uniqueness/policy
+/// conflict), as opposed to a generic persistence failure. Lets a save
+/// callback report this distinction to [TioUsernameInputField] consumers
+/// without those consumers depending on any specific repository package's
+/// own exception type -- the composition layer that owns the real
+/// repository call is responsible for catching its domain exception and
+/// re-throwing this one with an already-resolved, user-facing [message].
+class TioUsernameConflictException implements Exception {
+  const TioUsernameConflictException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => 'TioUsernameConflictException: $message';
+}
+
 enum TioUsernameStatus { idle, checking, available, unavailable }
 
 /// Visual contract for [TioUsernameInputField].
@@ -59,6 +76,11 @@ class TioUsernameInputField extends StatefulWidget {
   });
 
   final TextEditingController controller;
+
+  /// The account's already-persisted username, if any. When the typed value
+  /// matches this exactly, the field renders idle (no check/cross, no
+  /// network call) rather than available -- there is nothing to check or
+  /// save. Evidenced by Account Settings, the only current consumer.
   final String? currentUsername;
   final ValueChanged<String>? onChanged;
   final ValueChanged<TioUsernameStatus>? onStatusChanged;
@@ -99,14 +121,13 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
   String get _normalizedCurrentUsername =>
       (widget.currentUsername ?? '').trim().toLowerCase();
 
-  @override
-  void initState() {
-    super.initState();
-    final initial = widget.controller.text.trim().toLowerCase();
-    if (initial.isNotEmpty && initial == _normalizedCurrentUsername) {
-      _status = TioUsernameStatus.available;
-    }
-  }
+  // Matching the current/persisted value means there is nothing to check or
+  // save -- idle, not available (see _onInputChanged). The initial render
+  // uses the same idle default with no special-case derivation, so a
+  // pre-filled current username and a value typed back to match it behave
+  // identically. Evidenced by Account Settings, the only current consumer of
+  // [currentUsername]: showing an available check mark for a username the
+  // account already has would claim a change that was never made.
 
   @override
   void didUpdateWidget(covariant TioUsernameInputField oldWidget) {
@@ -147,7 +168,7 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
 
     if (raw == _normalizedCurrentUsername && raw.isNotEmpty) {
       _updateState(
-        status: TioUsernameStatus.available,
+        status: TioUsernameStatus.idle,
         suggestions: const [],
         feedback: null,
       );

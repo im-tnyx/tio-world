@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
-import 'package:tio_feature_profile/profile.dart'
-    show UsernameAvailabilityReason, UsernameUnavailableException;
 import 'package:tio_feature_settings/settings.dart';
 
 void main() {
@@ -359,6 +357,38 @@ void main() {
       expect(find.text('Username'), findsNothing);
     });
 
+    testWidgets(
+        'renders the persisted username in a neutral idle state, matching '
+        'the pre-#24-D contract', (tester) async {
+      await tester.pumpWidget(
+        themedApp(
+          home: const AccountSettingsPage(
+            username: 'member_initial',
+            linkedProvider: 'phone + email',
+          ),
+        ),
+      );
+
+      // No status icon of any kind for the account's own already-persisted
+      // username -- nothing to check, nothing to save.
+      expect(find.byIcon(Icons.check_circle_rounded), findsNothing);
+      expect(find.byIcon(Icons.error_outline_rounded), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+
+      final container = tester.widget<Container>(
+        find
+            .ancestor(
+              of: find.byKey(const ValueKey('tio-username-input')),
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      final decoration = container.decoration! as BoxDecoration;
+      final border = decoration.border! as Border;
+      // Normal (non status-tinted) border: alpha40, hairline width.
+      expect(border.top.width, TioStroke.width1);
+    });
+
     testWidgets('extraInputFormatters still blocks disallowed characters',
         (tester) async {
       await tester.pumpWidget(
@@ -602,14 +632,19 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+      // Reverting to the persisted username is idle/neutral, not available --
+      // nothing actually changed, matching the pre-#24-D Account Settings
+      // contract. See the "renders the persisted username in a neutral idle
+      // state" test above for the initial-mount counterpart.
+      expect(find.byIcon(Icons.check_circle_rounded), findsNothing);
+      expect(find.byIcon(Icons.error_outline_rounded), findsNothing);
 
       pending['temporary_handle']!.complete(
         const UsernameAvailabilityResult(isAvailable: false),
       );
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.check_circle_rounded), findsNothing);
       expect(find.byIcon(Icons.error_outline_rounded), findsNothing);
     });
 
@@ -629,8 +664,8 @@ void main() {
               return const UsernameAvailabilityResult(isAvailable: true);
             },
             onSave: ({required username, required phoneNumber}) async {
-              throw const UsernameUnavailableException(
-                reason: UsernameAvailabilityReason.taken,
+              throw const TioUsernameConflictException(
+                'That username was just taken. Please choose another.',
               );
             },
           ),
