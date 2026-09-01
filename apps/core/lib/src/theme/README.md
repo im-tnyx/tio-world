@@ -391,6 +391,29 @@ core reusable dialogs/pickers/sheets
 
 `TioConfirmationCard` is the generic themed confirm/cancel card composition. Product-specific copy, consequences, persistence, and navigation remain feature-owned. Present the card through the surface that fits the workflow, such as a modal sheet, rather than creating a product-action-specific dialog/token bag.
 
+### Editable field capabilities
+
+`TioInput` is the generic editable field. Alongside the label/hint/error, leading/trailing, focus, controller and line-count options it already owned, it now forwards five optional capabilities to the underlying field:
+
+- `validator` — form validation callback
+- `autofillHints` — platform autofill hints
+- `inputFormatters` — input formatter list
+- `textCapitalization` — defaults to `TextCapitalization.none`
+- `suffixText` — static text after the input, such as a unit
+
+These are **plumbing only**. Features own the validation rules, the formatter list, which autofill hints apply, the capitalisation choice, and any suffix content. Core adds no formatter, no validation rule, and attaches no unit or domain meaning to suffix text.
+
+No matching prefix parameter is exposed. No editable-field consumer needs one, and this component does not ship API ahead of evidence.
+
+Every one is optional and omitting it preserves current behaviour, so the default `TioInput` appearance is unchanged.
+
+Two details worth knowing before relying on them:
+
+- No `autovalidateMode` is exposed, so a `validator` runs only when an enclosing `Form` asks it to. Exposing the callback adds no validation timing of its own.
+- `errorText` still drives the component's error **styling** (border, cursor, label colour). A validator-only error renders its message but not those colours. The first consumer that needs both should carry that change.
+
+The generic `TioInput` contract (14dp radius, 52dp minimum height) and the specialised boxed-field family — `TioUsernameInputField` and `TioMobileNumberField` at 16dp — are both current and are deliberately **not** unified.
+
 ### Neutral Settings grouping and rows
 
 `TioGroupCard` is the neutral, **non-selectable** grouping surface for canonical grouped Settings and Nutrition rows. It owns the `surfaceRaised` material, shared radius, clipping, and child ordering while callers compose their own rows and separators. It does not represent selected or unselected state; selection cards remain a separate component contract.
