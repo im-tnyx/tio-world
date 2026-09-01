@@ -13,6 +13,10 @@ enum TioInputVariant {
 
   /// Dense, left-aligned number field for exact-value editor surfaces.
   numericEditor,
+
+  /// Multi-line notes field using the evidenced 16dp rounded-surface
+  /// contract, distinct from [standard]'s 14dp generic field.
+  multiline,
 }
 
 /// Reusable input field adhering to AGENTS.md and Material 3 design tokens.
@@ -21,6 +25,7 @@ enum TioInputVariant {
 /// - [TioInputVariant.standard] for general form entries.
 /// - [TioInputVariant.compactNumber] for fast table inputs with `selectAllOnFocus`.
 /// - [TioInputVariant.numericEditor] for dense exact-value editor surfaces.
+/// - [TioInputVariant.multiline] for longer free-text notes fields.
 class TioInput extends StatefulWidget {
   const TioInput({
     required this.onChanged,
@@ -45,6 +50,8 @@ class TioInput extends StatefulWidget {
     this.maxLength,
     this.textAlign = TextAlign.start,
     this.textStyle,
+    this.hintStyle,
+    this.textAlignVertical,
     this.contentPadding,
     this.selectAllOnFocus = false,
     this.variant = TioInputVariant.standard,
@@ -88,7 +95,9 @@ class TioInput extends StatefulWidget {
     this.textCapitalization = TextCapitalization.none,
     this.suffixText,
     super.key,
-  }) : variant = TioInputVariant.compactNumber;
+  })  : variant = TioInputVariant.compactNumber,
+        hintStyle = null,
+        textAlignVertical = null;
 
   /// Dense numeric field for exact-value editor surfaces.
   ///
@@ -128,7 +137,57 @@ class TioInput extends StatefulWidget {
         maxLength = null,
         textAlign = TextAlign.start,
         selectAllOnFocus = false,
+        hintStyle = null,
+        textAlignVertical = null,
         variant = TioInputVariant.numericEditor;
+
+  /// Multi-line notes field for longer free-text entries such as health
+  /// notes or event details.
+  ///
+  /// Uses the evidenced 16dp rounded-surface contract
+  /// ([TioInputTokens.multilineRadius]), distinct from [standard]'s generic
+  /// 14dp field -- the two are separate current contracts and this
+  /// constructor does not normalize one into the other.
+  ///
+  /// [maxLines] and [minLines] are required: every current consumer needs
+  /// its own value (4/3, 4/3, 6/4), and there is no single sensible default
+  /// for a notes field. Defaults [textCapitalization] to
+  /// [TextCapitalization.sentences], matching every current consumer; still
+  /// overridable.
+  const TioInput.multiline({
+    required this.onChanged,
+    required this.maxLines,
+    required this.minLines,
+    this.value,
+    this.controller,
+    this.label,
+    this.hint,
+    this.hintStyle,
+    this.helperText,
+    this.errorText,
+    this.leading,
+    this.trailing,
+    this.enabled = true,
+    this.readOnly = false,
+    this.keyboardType,
+    this.textInputAction,
+    this.onSubmitted,
+    this.focusNode,
+    this.autofocus = false,
+    this.maxLength,
+    this.textStyle,
+    this.textAlignVertical,
+    this.contentPadding,
+    this.validator,
+    this.autofillHints,
+    this.inputFormatters,
+    this.textCapitalization = TextCapitalization.sentences,
+    this.suffixText,
+    super.key,
+  })  : obscureText = false,
+        textAlign = TextAlign.start,
+        selectAllOnFocus = false,
+        variant = TioInputVariant.multiline;
 
   final String? value;
   final TextEditingController? controller;
@@ -143,7 +202,14 @@ class TioInput extends StatefulWidget {
   final bool readOnly;
   final bool obscureText;
   final TextInputType? keyboardType;
-  final TextInputAction textInputAction;
+
+  /// Nullable so [TioInput.multiline] can omit it and let Flutter's own
+  /// implicit default apply (`newline` when [keyboardType] is
+  /// [TextInputType.multiline], `done` otherwise) -- exactly what the raw
+  /// fields it replaces did before migration. [standard], [compactNumber]
+  /// and [numericEditor] all supply an explicit non-null default and are
+  /// unaffected by the wider type.
+  final TextInputAction? textInputAction;
   final ValueChanged<String>? onSubmitted;
   final FocusNode? focusNode;
   final bool autofocus;
@@ -152,6 +218,21 @@ class TioInput extends StatefulWidget {
   final int? maxLength;
   final TextAlign textAlign;
   final TextStyle? textStyle;
+
+  /// Overrides the computed hint style entirely when non-null. Plumbing
+  /// only: [TioInput.multiline] consumers need genuinely different hint
+  /// colour/opacity/size per screen (evidenced, not speculative), and no
+  /// single default could reproduce all of them. [standard] and
+  /// [compactNumber] ignore this unless a caller opts in; it falls back to
+  /// today's computed hint style when null.
+  final TextStyle? hintStyle;
+
+  /// Vertical text alignment within the field. Null preserves Flutter's own
+  /// default (used by [compactNumber], which always forces
+  /// [TextAlignVertical.center] regardless of this value, and by
+  /// [TioInput.multiline] consumers that don't set it).
+  final TextAlignVertical? textAlignVertical;
+
   final EdgeInsetsGeometry? contentPadding;
   final bool selectAllOnFocus;
   final TioInputVariant variant;
@@ -271,6 +352,7 @@ class _TioInputState extends State<TioInput> {
     final textTheme = Theme.of(context).textTheme;
     final isCompact = widget.variant == TioInputVariant.compactNumber;
     final isNumericEditor = widget.variant == TioInputVariant.numericEditor;
+    final isMultiline = widget.variant == TioInputVariant.multiline;
     final isDark = colors.isDark;
     final hasError = widget.errorText != null;
 
@@ -287,16 +369,25 @@ class _TioInputState extends State<TioInput> {
           fontSize: TioInputTokens.numericEditorTextFontSize,
           fontWeight: TioFontWeight.w700,
         ),
-      TioInputVariant.standard => textTheme.bodyLarge?.copyWith(
+      TioInputVariant.standard ||
+      TioInputVariant.multiline =>
+        textTheme.bodyLarge?.copyWith(
           color: hasError ? colors.danger : colors.textPrimary,
         ),
     };
 
-    final inputBorderRadius = BorderRadius.circular(TioInputTokens.radius);
+    // Multiline uses the evidenced 16dp notes-field contract; every other
+    // variant keeps the generic 14dp field radius. The two are separate
+    // current contracts, not unified.
+    final inputBorderRadius = BorderRadius.circular(
+      isMultiline ? TioInputTokens.multilineRadius : TioInputTokens.radius,
+    );
     final unfocusedBorderColor = colors.outlineStrong.withValues(
-      alpha: isDark
-          ? TioInputTokens.darkUnfocusedOutlineOpacity
-          : TioInputTokens.lightUnfocusedOutlineOpacity,
+      alpha: isMultiline
+          ? TioInputTokens.multilineUnfocusedOutlineOpacity
+          : (isDark
+              ? TioInputTokens.darkUnfocusedOutlineOpacity
+              : TioInputTokens.lightUnfocusedOutlineOpacity),
     );
     final focusedBorderColor = colors.primary;
 
@@ -347,7 +438,8 @@ class _TioInputState extends State<TioInput> {
       minLines: widget.minLines,
       maxLength: widget.maxLength,
       textAlign: widget.textAlign,
-      textAlignVertical: isCompact ? TextAlignVertical.center : null,
+      textAlignVertical:
+          isCompact ? TextAlignVertical.center : widget.textAlignVertical,
       style: widget.textStyle ?? defaultTextStyle,
       cursorColor: hasError ? colors.danger : colors.primary,
       decoration: isNumericEditor
@@ -393,13 +485,17 @@ class _TioInputState extends State<TioInput> {
                 fontSize: TioInputTokens.labelFontSize,
                 fontWeight: TioFontWeight.w500,
               ),
-              hintStyle: TextStyle(
-                color: colors.textMuted,
-                fontSize: isCompact
-                    ? TioInputTokens.compactHintFontSize
-                    : TioInputTokens.standardHintFontSize,
-                fontWeight: isCompact ? TioFontWeight.w600 : TioFontWeight.w400,
-              ),
+              // Null unless a caller opts in, so standard/compactNumber render
+              // exactly the same computed hint style as before.
+              hintStyle: widget.hintStyle ??
+                  TextStyle(
+                    color: colors.textMuted,
+                    fontSize: isCompact
+                        ? TioInputTokens.compactHintFontSize
+                        : TioInputTokens.standardHintFontSize,
+                    fontWeight:
+                        isCompact ? TioFontWeight.w600 : TioFontWeight.w400,
+                  ),
               enabledBorder: effectiveBorder,
               focusedBorder: effectiveFocusedBorder,
               errorBorder: effectiveBorder,

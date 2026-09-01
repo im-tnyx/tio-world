@@ -415,4 +415,400 @@ void main() {
       });
     });
   });
+
+  // Phase #24-C: TioInput.multiline, migrating the Workout notes-field
+  // family (Equipment, Special Event, Health Concerns). Every property here
+  // is evidenced by at least one real consumer -- see the task brief.
+  group('TioInput.multiline', () {
+    testWidgets('forwards maxLines and minLines exactly', (tester) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          TioInput.multiline(onChanged: (_) {}, maxLines: 6, minLines: 4),
+        ),
+      );
+
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.maxLines, 6);
+      expect(field.minLines, 4);
+    });
+
+    testWidgets('defaults textCapitalization to sentences', (tester) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          TioInput.multiline(onChanged: (_) {}, maxLines: 4, minLines: 3),
+        ),
+      );
+
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).textCapitalization,
+        TextCapitalization.sentences,
+      );
+    });
+
+    testWidgets('textCapitalization default is still overridable',
+        (tester) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          TioInput.multiline(
+            onChanged: (_) {},
+            maxLines: 4,
+            minLines: 3,
+            textCapitalization: TextCapitalization.none,
+          ),
+        ),
+      );
+
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).textCapitalization,
+        TextCapitalization.none,
+      );
+    });
+
+    testWidgets(
+        'uses the evidenced 16dp radius, distinct from the standard 14dp field',
+        (tester) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          TioInput.multiline(onChanged: (_) {}, maxLines: 4, minLines: 3),
+        ),
+      );
+
+      final border = tester
+          .widget<TextField>(find.byType(TextField))
+          .decoration!
+          .enabledBorder! as OutlineInputBorder;
+      expect(
+        border.borderRadius,
+        BorderRadius.circular(TioInputTokens.multilineRadius),
+      );
+      expect(TioInputTokens.multilineRadius, isNot(TioInputTokens.radius),
+          reason: 'multiline and standard are separate current contracts');
+    });
+
+    testWidgets('unfocused border uses a fixed alpha with no light/dark branch',
+        (tester) async {
+      Future<OutlineInputBorder> borderFor(TioThemeMode mode) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            builder: (context, child) => TioTheme(
+              config: TioThemeConfig(mode: mode),
+              child: child ?? const SizedBox.shrink(),
+            ),
+            home: Scaffold(
+              body: TioInput.multiline(
+                onChanged: (_) {},
+                maxLines: 4,
+                minLines: 3,
+              ),
+            ),
+          ),
+        );
+        return tester
+            .widget<TextField>(find.byType(TextField))
+            .decoration!
+            .enabledBorder! as OutlineInputBorder;
+      }
+
+      final lightBorder = await borderFor(TioThemeMode.light);
+      final darkBorder = await borderFor(TioThemeMode.dark);
+
+      // outlineStrong's own base colour legitimately differs between themes
+      // -- only the alpha this component applies must stay theme-independent.
+      expect(lightBorder.borderSide.color.a, darkBorder.borderSide.color.a,
+          reason: 'the notes-field border alpha does not branch on theme, '
+              'unlike the standard field');
+      expect(lightBorder.borderSide.color.a, TioOpacity.opacity40);
+    });
+
+    testWidgets(
+        'fills with the surface colour, matching the raw fields it replaces',
+        (tester) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          TioInput.multiline(onChanged: (_) {}, maxLines: 4, minLines: 3),
+        ),
+      );
+
+      final decoration =
+          tester.widget<TextField>(find.byType(TextField)).decoration!;
+      expect(decoration.filled, isTrue);
+      expect(decoration.fillColor, TioColors.light.surface);
+    });
+
+    testWidgets(
+        'default content padding equals EdgeInsets.all(lg), matching two of '
+        'three current consumers without an override', (tester) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          TioInput.multiline(onChanged: (_) {}, maxLines: 4, minLines: 3),
+        ),
+      );
+
+      final decoration =
+          tester.widget<TextField>(find.byType(TextField)).decoration!;
+      expect(decoration.contentPadding, const EdgeInsets.all(TioSpacing.lg));
+    });
+
+    testWidgets(
+        'contentPadding remains overridable for the one consumer '
+        'that needs a different shape', (tester) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          TioInput.multiline(
+            onChanged: (_) {},
+            maxLines: 4,
+            minLines: 3,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: TioSpacing.lg,
+              vertical: TioSpacing.md,
+            ),
+          ),
+        ),
+      );
+
+      final decoration =
+          tester.widget<TextField>(find.byType(TextField)).decoration!;
+      expect(
+        decoration.contentPadding,
+        const EdgeInsets.symmetric(
+          horizontal: TioSpacing.lg,
+          vertical: TioSpacing.md,
+        ),
+      );
+    });
+
+    testWidgets('hintStyle override replaces the computed default exactly',
+        (tester) async {
+      const override = TextStyle(fontSize: 14, color: Color(0xFF123456));
+      await tester.pumpWidget(
+        buildTestApp(
+          TioInput.multiline(
+            onChanged: (_) {},
+            maxLines: 4,
+            minLines: 3,
+            hint: 'e.g. Knee pain, back ache, asthma...',
+            hintStyle: override,
+          ),
+        ),
+      );
+
+      final decoration =
+          tester.widget<TextField>(find.byType(TextField)).decoration!;
+      expect(decoration.hintStyle, override);
+    });
+
+    testWidgets('omitting hintStyle falls back to the standard computed hint',
+        (tester) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          TioInput.multiline(onChanged: (_) {}, maxLines: 4, minLines: 3),
+        ),
+      );
+
+      final decoration =
+          tester.widget<TextField>(find.byType(TextField)).decoration!;
+      expect(
+          decoration.hintStyle!.fontSize, TioInputTokens.standardHintFontSize);
+      expect(decoration.hintStyle!.color, TioColors.light.textMuted);
+    });
+
+    testWidgets(
+        'textAlignVertical is null by default, matching the '
+        'Equipment consumer that never set one', (tester) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          TioInput.multiline(onChanged: (_) {}, maxLines: 4, minLines: 3),
+        ),
+      );
+
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).textAlignVertical,
+        isNull,
+      );
+    });
+
+    testWidgets('textAlignVertical.top is honored when supplied',
+        (tester) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          TioInput.multiline(
+            onChanged: (_) {},
+            maxLines: 4,
+            minLines: 3,
+            textAlignVertical: TextAlignVertical.top,
+          ),
+        ),
+      );
+
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).textAlignVertical,
+        TextAlignVertical.top,
+      );
+    });
+
+    testWidgets(
+        'textInputAction is null by default, letting Flutter choose newline '
+        'vs done from keyboardType exactly as the raw fields did',
+        (tester) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          TioInput.multiline(onChanged: (_) {}, maxLines: 4, minLines: 3),
+        ),
+      );
+
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).textInputAction,
+        isNull,
+      );
+    });
+
+    testWidgets(
+        'keyboardType defaults to text, matching the Equipment '
+        'consumer that never set one', (tester) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          TioInput.multiline(onChanged: (_) {}, maxLines: 4, minLines: 3),
+        ),
+      );
+
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).keyboardType,
+        TextInputType.text,
+      );
+    });
+
+    testWidgets('keyboardType.multiline is honored when supplied',
+        (tester) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          TioInput.multiline(
+            onChanged: (_) {},
+            maxLines: 4,
+            minLines: 3,
+            keyboardType: TextInputType.multiline,
+          ),
+        ),
+      );
+
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).keyboardType,
+        TextInputType.multiline,
+      );
+    });
+
+    testWidgets(
+        'controller and value forwarding works like every other variant',
+        (tester) async {
+      var changed = '';
+      final controller = TextEditingController(text: 'existing notes');
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        buildTestApp(
+          TioInput.multiline(
+            controller: controller,
+            onChanged: (v) => changed = v,
+            maxLines: 4,
+            minLines: 3,
+          ),
+        ),
+      );
+
+      expect(find.text('existing notes'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextFormField), 'updated notes');
+      expect(changed, 'updated notes');
+      expect(controller.text, 'updated notes');
+    });
+
+    testWidgets('enabled false disables the field', (tester) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          TioInput.multiline(
+            onChanged: (_) {},
+            maxLines: 4,
+            minLines: 3,
+            enabled: false,
+          ),
+        ),
+      );
+
+      expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
+    });
+
+    testWidgets('readOnly true prevents edits but keeps the field enabled',
+        (tester) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          TioInput.multiline(
+            onChanged: (_) {},
+            maxLines: 4,
+            minLines: 3,
+            readOnly: true,
+          ),
+        ),
+      );
+
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.readOnly, isTrue);
+      expect(field.enabled, isTrue);
+    });
+
+    testWidgets(
+        'inputFormatters and validator are forwarded like every other variant',
+        (tester) async {
+      var changed = '';
+      await tester.pumpWidget(
+        buildTestApp(
+          Form(
+            child: TioInput.multiline(
+              onChanged: (v) => changed = v,
+              maxLines: 4,
+              minLines: 3,
+              inputFormatters: [FilteringTextInputFormatter.deny(RegExp('x'))],
+              validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+            ),
+          ),
+        ),
+      );
+
+      await tester.enterText(find.byType(TextFormField), 'oxk');
+      expect(changed, 'ok', reason: 'the x is filtered out');
+
+      final form = tester.state<FormState>(find.byType(Form));
+      await tester.enterText(find.byType(TextFormField), '');
+      expect(form.validate(), isFalse);
+      await tester.pump();
+      expect(find.text('Required'), findsOneWidget);
+    });
+
+    testWidgets(
+        'does not affect standard, compactNumber or numericEditor defaults',
+        (tester) async {
+      // Regression: adding the multiline variant, and widening
+      // textInputAction to nullable, must not change any existing variant's
+      // rendered behaviour.
+      await tester.pumpWidget(buildTestApp(TioInput(onChanged: (_) {})));
+      var field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.textInputAction, TextInputAction.next);
+      expect(
+        (field.decoration!.enabledBorder! as OutlineInputBorder).borderRadius,
+        BorderRadius.circular(TioInputTokens.radius),
+      );
+
+      await tester.pumpWidget(
+        buildTestApp(TioInput.compactNumber(value: '1', onChanged: (_) {})),
+      );
+      field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.textInputAction, TextInputAction.next);
+
+      await tester.pumpWidget(
+        buildTioThemedTestApp(
+          TioInput.numericEditor(value: '1', onChanged: (_) {}),
+        ),
+      );
+      field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.textInputAction, TextInputAction.done);
+    });
+  });
 }
