@@ -218,14 +218,12 @@ void main() {
       );
     });
 
-    testWidgets('prefixText and suffixText are configured when supplied',
-        (tester) async {
+    testWidgets('suffixText is configured when supplied', (tester) async {
       await tester.pumpWidget(
         buildTestApp(
           TioInput(
             value: '2000',
             onChanged: (_) {},
-            prefixText: '~',
             suffixText: 'kcal',
           ),
         ),
@@ -233,19 +231,19 @@ void main() {
 
       final decoration =
           tester.widget<TextField>(find.byType(TextField)).decoration!;
-      expect(decoration.prefixText, '~');
       expect(decoration.suffixText, 'kcal');
     });
 
-    testWidgets('no prefix or suffix is added by default', (tester) async {
+    testWidgets('no suffix or prefix is added by default', (tester) async {
       await tester.pumpWidget(
         buildTestApp(TioInput(value: '2000', onChanged: (_) {})),
       );
 
       final decoration =
           tester.widget<TextField>(find.byType(TextField)).decoration!;
-      expect(decoration.prefixText, isNull);
       expect(decoration.suffixText, isNull);
+      // No prefix parameter is exposed, so the decoration must never gain one.
+      expect(decoration.prefixText, isNull);
     });
 
     group('regression — defaults unchanged', () {

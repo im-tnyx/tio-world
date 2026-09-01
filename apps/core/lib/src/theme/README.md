@@ -399,9 +399,11 @@ core reusable dialogs/pickers/sheets
 - `autofillHints` — platform autofill hints
 - `inputFormatters` — input formatter list
 - `textCapitalization` — defaults to `TextCapitalization.none`
-- `prefixText` / `suffixText` — static text before or after the input
+- `suffixText` — static text after the input, such as a unit
 
-These are **plumbing only**. Features own the validation rules, the formatter list, which autofill hints apply, the capitalisation choice, and any prefix/suffix content. Core adds no formatter, no validation rule, and attaches no unit or domain meaning to prefix/suffix text.
+These are **plumbing only**. Features own the validation rules, the formatter list, which autofill hints apply, the capitalisation choice, and any suffix content. Core adds no formatter, no validation rule, and attaches no unit or domain meaning to suffix text.
+
+No matching prefix parameter is exposed. No editable-field consumer needs one, and this component does not ship API ahead of evidence.
 
 Every one is optional and omitting it preserves current behaviour, so the default `TioInput` appearance is unchanged.
 

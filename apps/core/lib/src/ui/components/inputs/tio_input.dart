@@ -48,7 +48,6 @@ class TioInput extends StatefulWidget {
     this.autofillHints,
     this.inputFormatters,
     this.textCapitalization = TextCapitalization.none,
-    this.prefixText,
     this.suffixText,
     super.key,
   });
@@ -83,7 +82,6 @@ class TioInput extends StatefulWidget {
     this.autofillHints,
     this.inputFormatters,
     this.textCapitalization = TextCapitalization.none,
-    this.prefixText,
     this.suffixText,
     super.key,
   }) : variant = TioInputVariant.compactNumber;
@@ -147,12 +145,11 @@ class TioInput extends StatefulWidget {
   /// is the behaviour every existing consumer already gets.
   final TextCapitalization textCapitalization;
 
-  /// Static text shown before the input. Presentation plumbing only: core
-  /// attaches no unit or domain meaning to it.
-  final String? prefixText;
-
   /// Static text shown after the input, such as a unit. Presentation plumbing
   /// only: core attaches no unit or domain meaning to it.
+  ///
+  /// No matching prefix parameter is exposed: no editable-field consumer needs
+  /// one today, and this component does not ship API ahead of evidence.
   final String? suffixText;
 
   @override
@@ -309,9 +306,8 @@ class _TioInputState extends State<TioInput> {
         errorText: widget.errorText,
         prefixIcon: widget.leading,
         suffixIcon: widget.trailing,
-        // Null unless a consumer opts in, so no field gains a prefix or
-        // suffix by default and nothing currently rendered changes.
-        prefixText: widget.prefixText,
+        // Null unless a consumer opts in, so no field gains a suffix by
+        // default and nothing currently rendered changes.
         suffixText: widget.suffixText,
         counterText: isCompact ? '' : null,
         filled: !isCompact,

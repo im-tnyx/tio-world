@@ -7,7 +7,7 @@
 ## Owner Approval and Scope Boundary
 
 **Approval status:** Approved as a bounded core-foundation slice after the #24 fresh audit returned PASS.
-**Approved boundaries:** Add only the six currently evidenced optional `TioInput` parameters, with focused core tests and public design-system documentation.
+**Approved boundaries:** Add only the currently evidenced optional `TioInput` parameters, with focused core tests and public design-system documentation.
 **Explicit non-changes:** No consumer migration of any kind. No `TioSelectionField`, no multiline widget, no username race fix, no mobile refactor, no `TioUsernameInputField` / `TioMobileNumberField` change, no 14dp/16dp unification, no new token ownership, no #183 Phase-2C, no #173, no schema, Supabase, domain, repository, route or App Mode change.
 
 ## Active Handoff
@@ -15,8 +15,8 @@
 **Implementation owner:** Claude (Claude Code). Recorded before source mutation; the earlier Phase-2B remediation was Codex-owned. Automated GitHub code review remains Codex-owned.
 **Branch:** `claude/issue-24-tio-input-api-foundation`
 **Base:** `main` @ `c2c6762b9b326b0897e267ca5aef30ff41cc31a0`
-**Current state:** Implemented, validated locally, ready to publish as a Draft PR.
-**Validation remaining:** Exact-head repository Flutter CI, then review.
+**Current state:** Implemented, reviewed, one P2 finding resolved; awaiting exact-head CI on the updated head.
+**Validation remaining:** Exact-head repository Flutter CI on the post-review head.
 
 ## 1. Discovery
 
@@ -24,11 +24,11 @@
 
 Give the reusable field foundation the capabilities its future consumers actually need, without migrating any consumer yet.
 
-### Why only six
+### Why only five
 
 The #24 fresh audit compared the issue's candidate-capability list against the real `TioInput` API. Most of that list already shipped: `leading`, `trailing`, `enabled`, `readOnly`, `obscureText`, `onSubmitted`, `maxLines`, `minLines`, `focusNode`, `controller`, `maxLength`, `textAlign`, `contentPadding`, `keyboardType` and `textInputAction` are all present today.
 
-Six capabilities were genuinely missing **and** have current consumers:
+Five capabilities were genuinely missing **and** have current consumers:
 
 | Capability | Evidenced by |
 |---|---|
@@ -36,9 +36,11 @@ Six capabilities were genuinely missing **and** have current consumers:
 | `autofillHints` | `forgot_password_page.dart` |
 | `inputFormatters` | Nutrition ×3, `account_settings_page.dart`, onboarding |
 | `textCapitalization` | 3 workout multiline screens |
-| `prefixText` / `suffixText` | Nutrition targets/macros (`suffixText: unit`) |
+| `suffixText` | Nutrition macros `'g'`, Nutrition targets `unit`, onboarding step target `'steps'`, Body & Weight `'kg'/'lb'` |
 
-Two candidates were deliberately **excluded**: `autovalidateMode` and `scrollPadding` have **zero** current consumers repository-wide. Adding them would be speculative API surface, which `apps/core/lib/src/theme/README.md` forbids.
+Three candidates were deliberately **excluded** for having **zero** current consumers repository-wide: `autovalidateMode`, `scrollPadding`, and `prefixText`. Adding them would be speculative API surface, which `apps/core/lib/src/theme/README.md` forbids.
+
+`prefixText` was cut during review — see the review findings below. It was originally carried in because the audit grouped it with `suffixText` as one "prefix/suffix" family, but the audit's own evidence column only ever cited `suffixText`.
 
 ### Non-Goals
 
@@ -57,9 +59,9 @@ Any consumer migration; unifying the 14dp and 16dp field families; adding valida
 
 | Decision | Status | Rationale |
 |---|---|---|
-| Expose exactly six parameters | Made | Each has a current consumer; the rest of #24's list already exists. |
-| Exclude `autovalidateMode` and `scrollPadding` | Made | Zero current consumers; speculative surface is forbidden by the theme README. |
-| Keep `prefixText`/`suffixText` as plain plumbing | Made | Core must not own unit or domain semantics. |
+| Expose exactly five parameters | Made | Each has a current consumer; the rest of #24's list already exists. |
+| Exclude `autovalidateMode`, `scrollPadding`, `prefixText` | Made | Zero current consumers; speculative surface is forbidden by the theme README. |
+| Keep `suffixText` as plain plumbing | Made | Core must not own unit or domain semantics. |
 | Do not unify 14dp and 16dp | Made | Both are evidenced current contracts inside core itself. |
 | Leave the validator/`errorText` styling asymmetry as-is | Made | See Known Limitations — fixing it is a larger change than this additive slice. |
 
@@ -77,7 +79,7 @@ No controller, repository, data-source or schema flow is involved. This is prese
 
 ## 5. Implementation
 
-- [x] Add six optional parameters to both `TioInput` constructors, defaulting to today's behaviour.
+- [x] Add five optional parameters to both `TioInput` constructors, defaulting to today's behaviour.
 - [x] Forward them to the `TextFormField` and its `InputDecoration`.
 - [x] Add focused contract tests for each, plus regression assertions.
 - [x] Document the new public capabilities and their limits.
@@ -111,7 +113,7 @@ PASS
 
 Per capability: forwarded correctly when supplied, and today's behaviour preserved when omitted. `inputFormatters` is proven behaviourally — typing `a1b2c3` through a digits-only formatter yields `123` — rather than by asserting the property alone.
 
-Regression assertions pin that this slice changes nothing rendered: 14dp radius and 52dp minimum height, `leading`/`trailing` still reaching the decoration, `compactNumber` still centred with a decimal keyboard, and **no default prefix, suffix, or validation behaviour**.
+Regression assertions pin that this slice changes nothing rendered: 14dp radius and 52dp minimum height, `leading`/`trailing` still reaching the decoration, `compactNumber` still centred with a decimal keyboard, and **no default suffix or validation behaviour**. One assertion also pins that the decoration never gains a `prefixText`, since no parameter exposes one.
 
 ## 7. Final Handoff
 
@@ -124,7 +126,15 @@ Regression assertions pin that this slice changes nothing rendered: 14dp radius 
 
 ### Actual Behavior
 
-`TioInput` accepts six more optional capabilities. Every existing call site renders exactly as before, because each new parameter defaults to the behaviour already in effect.
+`TioInput` accepts five more optional capabilities. Every existing call site renders exactly as before, because each new parameter defaults to the behaviour already in effect.
+
+### Review Findings and Resolution
+
+| ID | Severity | Status | Finding | Resolution |
+|---|---|---|---|---|
+| `5077853844` | P2 | Resolved | `prefixText` had no editable-field consumer evidence. The only `prefixText` on `main` is an unrelated `String` field on `TioTermsDisclaimer` used in a `TextSpan`, not `InputDecoration`. Shipping it conflicts with the repository's no-speculative-public-API rule. | Removed from both constructors, the field list, the decoration, the tests and the README. `suffixText` stays: verified **four** editable-field consumers. A regression test now pins that the decoration never gains a prefix. |
+
+The `validator` / `errorText` styling asymmetry was correctly **not** re-raised: it is documented in the component, the README and this brief, and no consumer is migrated in this slice.
 
 ### Known Limitations
 
