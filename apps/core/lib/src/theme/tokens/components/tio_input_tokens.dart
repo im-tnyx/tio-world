@@ -70,4 +70,21 @@ class TioInputTokens {
   static const usernameSuggestionVerticalPadding = TioSize.dp6;
   static const usernameSuggestionOutlineAlpha = TioAlpha.alpha80;
   static const usernameSuggestionFontSize = TioFontSize.size13;
+
+  /// Fixed-height filled capsule row appearance
+  /// ([TioUsernameFieldAppearance.capsule]), evidenced by Account Settings
+  /// and matching the same shape [TioMobileNumberField] already uses.
+  /// Deliberately a separate token family from the `username*` outlined
+  /// values above -- the two are evidenced current contracts, not unified.
+  static const usernameCapsuleHeight = TioSize.dp56;
+  static const usernameCapsuleIconSize = TioSize.dp22;
+  static const usernameCapsuleIconGap = TioSize.dp14;
+  static const usernameCapsuleTextFontSize = TioFontSize.size16;
+  static const usernameCapsuleCheckingIndicatorSize = TioSize.dp18;
+  static const usernameCapsuleNormalBorderAlpha = TioAlpha.alpha40;
+  static const usernameCapsuleStatusBorderAlpha = TioAlpha.alpha80;
+  static const usernameCapsuleNormalBorderWidth = TioStroke.width1;
+  static const usernameCapsuleStatusBorderWidth = TioStroke.width15;
+  static const usernameCapsuleFeedbackFontSize = TioFontSize.size13;
+  static const usernameCapsuleSuggestionOutlineAlpha = TioAlpha.alpha50;
 }

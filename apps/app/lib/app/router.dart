@@ -43,6 +43,21 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
   return _page(branch.route);
 }
 
+String _accountSettingsUsernameMessage(UsernameAvailabilityReason? reason) {
+  return switch (reason) {
+    UsernameAvailabilityReason.reserved =>
+      'That username is reserved. Try one of these instead:',
+    UsernameAvailabilityReason.invalid =>
+      'Choose a valid username using lowercase letters, numbers, dots, and underscores.',
+    UsernameAvailabilityReason.taken =>
+      'This username is already taken. Try one of these instead:',
+    UsernameAvailabilityReason.profileMissing ||
+    UsernameAvailabilityReason.unknown =>
+      'Could not verify this username. Please try again.',
+    null => 'This username is unavailable. Please try another.',
+  };
+}
+
 String _linkedAuthProvidersLabel(AuthSession? session) {
   final providers = session?.identityProviders ?? const <String>{};
   if (providers.isEmpty) return 'Current session';
@@ -1168,6 +1183,35 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               isEmailVerified: authSession?.isEmailVerified ?? false,
               isPhoneVerified: authSession?.isPhoneVerified ?? false,
               linkedProvider: _linkedAuthProvidersLabel(authSession),
+              onCheckUsernameAvailability: (handle) async {
+                final accountRepository =
+                    ref.read(profileAccountRepositoryProvider);
+                if (accountRepository == null) {
+                  return const UsernameAvailabilityResult(
+                    isAvailable: false,
+                    message:
+                        'Could not verify this username. Please try again.',
+                  );
+                }
+
+                try {
+                  final check =
+                      await accountRepository.checkUsernameAvailability(handle);
+                  return UsernameAvailabilityResult(
+                    isAvailable: check.isAvailable,
+                    suggestions: check.suggestions,
+                    message: check.isAvailable
+                        ? null
+                        : _accountSettingsUsernameMessage(check.reason),
+                  );
+                } catch (_) {
+                  return const UsernameAvailabilityResult(
+                    isAvailable: false,
+                    message:
+                        'Could not verify this username. Please try again.',
+                  );
+                }
+              },
               onVerifyEmailPressed: (email) async {
                 final verificationRepository =
                     ref.read(accountContactVerificationRepositoryProvider);
