@@ -28,12 +28,12 @@
 **Review owner:** Not assigned
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
-**Repository state last verified:** Phase-2B changes only; ready for commit after local validation
+**Repository state last verified:** clean after Phase-2B publication
 **Branch:** `codex/core-group-card-settings-row`
-**HEAD SHA:** `fbee66e36e3ddcf2b5ba64be222e2fa09bd4275b` (pre-commit)
-**Observed working-tree state:** task brief, core group/row components and approved Settings/Nutrition presentation/test migrations only
+**HEAD SHA:** `b76e334b54e30cd515acafce607223b9d1e94c08`
+**Observed working-tree state:** clean after published Phase-2B commit
 **Open findings:** None
-**Next action:** commit, push, create a Draft PR, update #183/TNYX-139 and observe exact-head CI. No merge.
+**Next action:** await Draft PR review. Do not merge from this task.
 
 ## Implementation Checklist
 
@@ -54,6 +54,13 @@ Keep `surfaceRaised`, `TioRadius.lg`, clipping, child order, row padding, typogr
 - `apps/features/settings`: `flutter analyze` PASS; root, Health & Goals, Body & Weight and Daily Wellness focused suite PASS (120 tests).
 - `apps/features/nutrition`: `flutter analyze` PASS; Nutrition hub/Profile/Targets focused suite PASS (56 tests).
 - `git diff --check` PASS.
+
+## Publication Checkpoint
+
+- Commit: `b76e334b` — `refactor(core-ui): unify settings group cards and rows`.
+- Draft PR: #191, `refactor(core-ui): unify settings group cards and rows`.
+- GitHub #183 and Linear TNYX-139 received Phase-2B evidence comments; both remain open for later Phase-2C.
+- Exact-head Flutter CI for `b76e334b` PASS: Analyze and test completed successfully on 2026-09-01.
 
 ## Intentional Exceptions
 
