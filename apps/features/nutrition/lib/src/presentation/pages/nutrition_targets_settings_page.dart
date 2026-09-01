@@ -81,13 +81,20 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
     bool showEditAffordance = true,
   }) {
     final unit = unitFor(field);
-    return NutritionValueRow(
+    return TioSettingsValueRow(
       key: ValueKey('nutrition-target-${field.storageValue}-field'),
-      icon: icon,
+      leading: Icon(
+        icon,
+        size: TioSize.dp24,
+        color: context.tioColors.textPrimary,
+      ),
       label: label,
       annotation: annotation,
-      value: _summaryFor(field, unit),
-      isUnset: NutritionTargetEditor.valueOf(targets, field) == null,
+      labelSingleLine: true,
+      value: TioSettingsValueText(
+        value: _summaryFor(field, unit),
+        isUnset: NutritionTargetEditor.valueOf(targets, field) == null,
+      ),
       showEditAffordance: showEditAffordance,
       onTap: onTap ?? () => _edit(context, field, label, unit),
     );
@@ -125,7 +132,7 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
           ),
           children: [
             const NutritionSettingsSectionHeader(title: 'DAILY CALORIE GOAL'),
-            NutritionSettingsGroupCard(
+            TioGroupCard(
               children: [
                 _row(context, NutritionTargetField.calories, 'Calories',
                     Icons.local_fire_department_rounded)
@@ -141,7 +148,7 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
                 onPressed: onEditMacros,
               ),
             ),
-            NutritionSettingsGroupCard(
+            TioGroupCard(
               children: [
                 for (final (field, label, icon) in _macros)
                   _row(context, field, label, icon,
@@ -155,7 +162,7 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
             // Fiber is deliberately its own card: it is an independent target
             // and is excluded from the C/P/F energy relationship.
             const NutritionSettingsSectionHeader(title: 'FIBER'),
-            NutritionSettingsGroupCard(
+            TioGroupCard(
               children: [
                 _row(context, NutritionTargetField.fiber, 'Fiber',
                     Icons.grass_rounded),

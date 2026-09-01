@@ -260,63 +260,87 @@ class BodyWeightSettingsPage extends StatelessWidget {
           ),
           children: [
             const _BodyWeightSectionHeader(title: 'CURRENT'),
-            _BodyWeightGroupCard(
+            TioGroupCard(
               key: const ValueKey('body-weight-current-card'),
               children: [
-                _BodyWeightRow(
+                TioSettingsValueRow(
                   key: const ValueKey('body-weight-current-weight-field'),
-                  icon: Icons.monitor_weight_outlined,
+                  leading: Icon(
+                    Icons.monitor_weight_outlined,
+                    size: TioSize.dp24,
+                    color: colors.textPrimary,
+                  ),
                   label: 'Current Weight',
-                  value: currentWeightKg == null
-                      ? 'Not set'
-                      : UnitFormatters.formatWeight(
-                          currentWeightKg,
-                          weightUnit,
-                        ),
-                  isUnset: currentWeightKg == null,
+                  value: TioSettingsValueText(
+                    value: currentWeightKg == null
+                        ? 'Not set'
+                        : UnitFormatters.formatWeight(
+                            currentWeightKg,
+                            weightUnit,
+                          ),
+                    isUnset: currentWeightKg == null,
+                  ),
                   onTap: () => _pickCurrentWeight(context),
                 ),
               ],
             ),
             const SizedBox(height: TioSpacing.lg),
             const _BodyWeightSectionHeader(title: 'ACTIVE GOAL'),
-            _BodyWeightGroupCard(
+            TioGroupCard(
               key: const ValueKey('body-weight-active-goal-card'),
               children: [
-                _BodyWeightRow(
+                TioSettingsValueRow(
                   key: const ValueKey('body-weight-body-goal-field'),
-                  icon: Icons.flag_outlined,
+                  leading: Icon(
+                    Icons.flag_outlined,
+                    size: TioSize.dp24,
+                    color: colors.textPrimary,
+                  ),
                   label: 'Body Goal',
-                  value: activeGoal == null
-                      ? 'Not set'
-                      : _goalLabel(activeGoal.goalType),
-                  isUnset: activeGoal == null,
+                  value: TioSettingsValueText(
+                    value: activeGoal == null
+                        ? 'Not set'
+                        : _goalLabel(activeGoal.goalType),
+                    isUnset: activeGoal == null,
+                  ),
                   onTap: () => _pickBodyGoal(context),
                 ),
                 if (isDirectional) ...[
                   const _BodyWeightDivider(),
-                  _BodyWeightRow(
+                  TioSettingsValueRow(
                     key: const ValueKey('body-weight-target-weight-field'),
-                    icon: Icons.adjust_outlined,
+                    leading: Icon(
+                      Icons.adjust_outlined,
+                      size: TioSize.dp24,
+                      color: colors.textPrimary,
+                    ),
                     label: 'Target Weight',
-                    value: activeGoal.targetWeightKg == null
-                        ? 'Not set'
-                        : UnitFormatters.formatWeight(
-                            activeGoal.targetWeightKg!,
-                            weightUnit,
-                          ),
-                    isUnset: activeGoal.targetWeightKg == null,
+                    value: TioSettingsValueText(
+                      value: activeGoal.targetWeightKg == null
+                          ? 'Not set'
+                          : UnitFormatters.formatWeight(
+                              activeGoal.targetWeightKg!,
+                              weightUnit,
+                            ),
+                      isUnset: activeGoal.targetWeightKg == null,
+                    ),
                     onTap: () => _pickTargetWeight(context),
                   ),
                   const _BodyWeightDivider(),
-                  _BodyWeightRow(
+                  TioSettingsValueRow(
                     key: const ValueKey('body-weight-goal-pace-field'),
-                    icon: Icons.speed_outlined,
+                    leading: Icon(
+                      Icons.speed_outlined,
+                      size: TioSize.dp24,
+                      color: colors.textPrimary,
+                    ),
                     label: 'Weekly Goal',
-                    value: activeGoal.weeklyWeightChangeKg == null
-                        ? 'Not set'
-                        : '${UnitFormatters.formatWeight(activeGoal.weeklyWeightChangeKg!, weightUnit, decimals: 1)}/week',
-                    isUnset: activeGoal.weeklyWeightChangeKg == null,
+                    value: TioSettingsValueText(
+                      value: activeGoal.weeklyWeightChangeKg == null
+                          ? 'Not set'
+                          : '${UnitFormatters.formatWeight(activeGoal.weeklyWeightChangeKg!, weightUnit, decimals: 1)}/week',
+                      isUnset: activeGoal.weeklyWeightChangeKg == null,
+                    ),
                     onTap: () => _pickGoalPace(context),
                   ),
                 ],
@@ -324,10 +348,10 @@ class BodyWeightSettingsPage extends StatelessWidget {
             ),
             const SizedBox(height: TioSpacing.lg),
             const _BodyWeightSectionHeader(title: 'GOAL DETAILS'),
-            _BodyWeightGroupCard(
+            TioGroupCard(
               key: const ValueKey('body-weight-goal-details-card'),
               children: [
-                _BodyWeightReadOnlyRow(
+                TioSettingsReadOnlyRow(
                   key: const ValueKey('body-weight-starting-weight-field'),
                   label: 'Starting Weight',
                   value: activeGoal?.startingWeightKg == null
@@ -336,14 +360,16 @@ class BodyWeightSettingsPage extends StatelessWidget {
                           activeGoal!.startingWeightKg!,
                           weightUnit,
                         ),
+                  isUnset: activeGoal?.startingWeightKg == null,
                 ),
                 const _BodyWeightDivider(indent: TioSpacing.lg),
-                _BodyWeightReadOnlyRow(
+                TioSettingsReadOnlyRow(
                   key: const ValueKey('body-weight-goal-started-field'),
                   label: 'Goal Started',
                   value: activeGoal?.startedAt == null
                       ? 'Not set'
                       : _formatGoalStartedDate(activeGoal!.startedAt!),
+                  isUnset: activeGoal?.startedAt == null,
                 ),
               ],
             ),
@@ -377,22 +403,6 @@ class _BodyWeightSectionHeader extends StatelessWidget {
   }
 }
 
-class _BodyWeightGroupCard extends StatelessWidget {
-  const _BodyWeightGroupCard({required this.children, super.key});
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.tioColors;
-    return Material(
-      color: colors.surfaceRaised,
-      borderRadius: BorderRadius.circular(TioRadius.lg),
-      clipBehavior: Clip.antiAlias,
-      child: Column(mainAxisSize: MainAxisSize.min, children: children),
-    );
-  }
-}
-
 class _BodyWeightDivider extends StatelessWidget {
   const _BodyWeightDivider({this.indent = TioSize.dp56});
   final double indent;
@@ -405,142 +415,6 @@ class _BodyWeightDivider extends StatelessWidget {
       thickness: TioSize.dp1,
       indent: indent,
       color: colors.outlineStrong.withAlpha(TioAlpha.alpha24),
-    );
-  }
-}
-
-/// Tappable field row: fixed leading icon, label, right-aligned value, and a
-/// trailing edit-pencil affordance -- the accepted Daily Wellness pattern.
-class _BodyWeightRow extends StatelessWidget {
-  const _BodyWeightRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.isUnset,
-    required this.onTap,
-    super.key,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final bool isUnset;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.tioColors;
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: TioSpacing.lg,
-          vertical: TioSpacing.md + TioSize.dp4,
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: TioSize.dp24, color: colors.textPrimary),
-            const SizedBox(width: TioSpacing.lg),
-            Expanded(
-              flex: 3,
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: colors.textPrimary,
-                  fontWeight: TioFontWeight.w700,
-                  fontSize: TioFontSize.size15,
-                ),
-              ),
-            ),
-            const SizedBox(width: TioSpacing.sm),
-            Expanded(
-              flex: 2,
-              child: Text(
-                value,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.end,
-                style: TextStyle(
-                  color: isUnset ? colors.textMuted : colors.textPrimary,
-                  fontSize: TioFontSize.size15,
-                  fontWeight: isUnset ? TioFontWeight.w400 : TioFontWeight.w700,
-                ),
-              ),
-            ),
-            const SizedBox(width: TioSpacing.lg),
-            const _EditAffordanceIcon(),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Read-only Goal Details row -- same geometry as [_BodyWeightRow] minus the
-/// tap target and edit affordance, so it cannot look editable.
-class _BodyWeightReadOnlyRow extends StatelessWidget {
-  const _BodyWeightReadOnlyRow({
-    required this.label,
-    required this.value,
-    super.key,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.tioColors;
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: TioSpacing.lg,
-        vertical: TioSpacing.md + TioSize.dp4,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: colors.textPrimary,
-                fontWeight: TioFontWeight.w700,
-                fontSize: TioFontSize.size15,
-              ),
-            ),
-          ),
-          const SizedBox(width: TioSpacing.sm),
-          Text(
-            value,
-            style: TextStyle(
-              color:
-                  value == 'Not set' ? colors.textMuted : colors.textSecondary,
-              fontSize: TioFontSize.size15,
-              fontWeight: TioFontWeight.w400,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Shared edit-pencil affordance, matching the Daily Wellness screen.
-class _EditAffordanceIcon extends StatelessWidget {
-  const _EditAffordanceIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.tioColors;
-    return Container(
-      width: TioSize.dp36,
-      height: TioSize.dp36,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: colors.surfaceVariant,
-        shape: BoxShape.circle,
-      ),
-      child: Icon(Icons.edit_outlined,
-          size: TioSize.dp16, color: colors.textSecondary),
     );
   }
 }

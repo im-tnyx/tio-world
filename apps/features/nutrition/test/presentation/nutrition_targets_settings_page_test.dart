@@ -129,7 +129,7 @@ void main() {
       expect(fiber, greaterThan(macros));
 
       // Fiber must not be grouped with the three energy macros.
-      expect(find.byType(NutritionSettingsGroupCard), findsNWidgets(3));
+      expect(find.byType(TioGroupCard), findsNWidgets(3));
     });
 
     testWidgets('pencils edit in place; the macros carry a chevron instead',
@@ -208,10 +208,10 @@ void main() {
         onSave: (_) async {},
       );
 
-      final caloriesRow = tester.widget<NutritionValueRow>(
+      final caloriesRow = tester.widget<TioSettingsValueRow>(
         find.byKey(const ValueKey('nutrition-target-calories-field')),
       );
-      final fiberRow = tester.widget<NutritionValueRow>(
+      final fiberRow = tester.widget<TioSettingsValueRow>(
         find.byKey(const ValueKey('nutrition-target-fiber-field')),
       );
 
@@ -552,8 +552,7 @@ void main() {
     await tester.tap(saveOf(NutritionTargetField.fiber));
     await tester.pumpAndSettle();
 
-    expect(
-        find.byKey(const ValueKey('tio-editor-sheet')), findsOneWidget);
+    expect(find.byKey(const ValueKey('tio-editor-sheet')), findsOneWidget);
     expect(
       find.text("Couldn't save. Check your connection and try again."),
       findsOneWidget,
