@@ -165,6 +165,7 @@ class NutritionProfileSettingsPage extends StatelessWidget {
                     color: colors.textPrimary,
                   ),
                   label: 'Allergies & Restrictions',
+                  labelSingleLine: true,
                   value: TioSettingsValueText(
                     value: _allergiesSummary(),
                     isUnset: profile.allergies == null,
