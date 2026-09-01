@@ -67,6 +67,93 @@ void main() {
     expect(find.byType(GymAccessScreen), findsOneWidget);
   });
 
+  // Equipment's additional-info field had no dedicated coverage before the
+  // #24-C migration to TioInput.multiline. workout_step_renderer.dart never
+  // wires onAdditionalInfoChanged in production today (a pre-existing,
+  // out-of-scope finding -- not something this migration fixes), so this
+  // exercises the screen directly rather than through the full onboarding
+  // flow harness.
+  testWidgets(
+      'Equipment additional-info field forwards text and honors '
+      'its stable key', (tester) async {
+    var changed = '';
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TioTheme(
+          child: Scaffold(
+            // EquipmentScreen renders an unscrolled Column; the real app
+            // reaches it through a scrollable onboarding shell. Match that
+            // here so the test viewport doesn't overflow on content this
+            // screen was never meant to fit unaided.
+            body: SingleChildScrollView(
+              child: EquipmentScreen(
+                selectedEquipment: const {},
+                flowPlan: const WorkoutFlowPlan(
+                  steps: [WorkoutStepId.equipment],
+                ),
+                onToggled: (_) {},
+                onAdditionalInfoChanged: (value) => changed = value,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final field = find.descendant(
+      of: find.byKey(const ValueKey('workout-equipment-input')),
+      matching: find.byType(TextFormField),
+    );
+    expect(field, findsOneWidget);
+
+    await tester.enterText(field, 'Rowing machine');
+    expect(changed, 'Rowing machine');
+
+    final editableText = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byKey(const ValueKey('workout-equipment-input')),
+        matching: find.byType(EditableText),
+      ),
+    );
+    expect(editableText.maxLines, 4);
+    expect(editableText.minLines, 3);
+  });
+
+  testWidgets(
+      'Equipment additional-info field tolerates a null callback '
+      '(today\'s actual production wiring)', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TioTheme(
+          child: Scaffold(
+            // EquipmentScreen renders an unscrolled Column; the real app
+            // reaches it through a scrollable onboarding shell. Match that
+            // here so the test viewport doesn't overflow on content this
+            // screen was never meant to fit unaided.
+            body: SingleChildScrollView(
+              child: EquipmentScreen(
+                selectedEquipment: const {},
+                flowPlan: const WorkoutFlowPlan(
+                  steps: [WorkoutStepId.equipment],
+                ),
+                onToggled: (_) {},
+                // onAdditionalInfoChanged intentionally omitted: this is
+                // what workout_step_renderer.dart actually passes today.
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final field = find.descendant(
+      of: find.byKey(const ValueKey('workout-equipment-input')),
+      matching: find.byType(TextFormField),
+    );
+    await tester.enterText(field, 'Kettlebells');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
       'FocusAreas full_body selection reaches the typed draft centrally',
       (tester) async {
@@ -148,7 +235,8 @@ void main() {
       ),
     );
 
-    expect(durationHarness.controller.state.stepId, OnboardingStepId.workoutTargets);
+    expect(durationHarness.controller.state.stepId,
+        OnboardingStepId.workoutTargets);
     expect(find.byType(WorkoutDurationScreen), findsOneWidget);
     await tester.tap(
       find.byKey(
@@ -174,7 +262,8 @@ void main() {
       ),
     );
 
-    expect(splitHarness.controller.state.stepId, OnboardingStepId.workoutTargets);
+    expect(
+        splitHarness.controller.state.stepId, OnboardingStepId.workoutTargets);
     expect(find.byType(WorkoutSplitScreen), findsOneWidget);
     await tester.tap(
       find.byKey(const ValueKey('workout-choice-workout-split-upperLower')),
@@ -260,8 +349,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(harness.controller.state.draft.workout.specialEvent, 'City 10K');
 
-    final titleTopBefore =
-        tester.getTopLeft(find.text('Are you training for a special event?')).dy;
+    final titleTopBefore = tester
+        .getTopLeft(find.text('Are you training for a special event?'))
+        .dy;
     tester.view.viewInsets = const FakeViewPadding(bottom: 280);
     addTearDown(tester.view.resetViewInsets);
     await tester.pumpAndSettle();

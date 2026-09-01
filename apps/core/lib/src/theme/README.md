@@ -409,6 +409,15 @@ Every one is optional and omitting it preserves current behaviour, so the defaul
 
 `TioInput.numericEditor` is the governed dense exact-value editor variant. It remains left-aligned, uses a decimal keyboard and Done action by default, does not select all on focus, and retains the dense `InputDecoration` defaults used by exact-value editors while the active theme supplies fill, border, radius, and padding. It owns only the reusable `18px` bold value, `18px` regular hint, and `15px` secondary suffix hierarchy. Features still own formatter rules, validation, unit content, controller state, and submit behavior. This is separate from the centered, underline-oriented `compactNumber` table-input contract; neither variant changes the generic standard input's `14dp`/`52dp` contract.
 
+`TioInput.multiline` is the governed notes-field variant for longer free-text entries (health notes, event details, and similar). It uses the evidenced `16dp` rounded-surface radius and a fixed-alpha unfocused border that does not branch on theme brightness — a separate current contract from the generic `14dp` standard field, not a unification of the two. `maxLines`/`minLines` are required, since every current consumer needs its own value; `textCapitalization` defaults to `TextCapitalization.sentences`, matching every current consumer, and stays overridable. Default content padding equals `EdgeInsets.all(TioSpacing.lg)`, matching most current consumers without an override; callers that need a different shape still use the existing `contentPadding` override.
+
+Two capabilities were added specifically to reproduce this variant's evidenced contract without forcing every consumer into identical styling:
+
+- `hintStyle` — overrides the computed hint style entirely when supplied. Different notes fields use genuinely different hint colour/opacity/size today; `standard` and `compactNumber` are unaffected unless a caller opts in.
+- `textAlignVertical` — null preserves Flutter's own default; `compactNumber` still always forces centering regardless of this value.
+
+`textInputAction` is nullable so `TioInput.multiline` consumers can omit it entirely and let Flutter's own implicit default apply (`newline` when `keyboardType` is `TextInputType.multiline`, `done` otherwise) — exactly what the raw fields it replaces did before migration. `standard`, `compactNumber`, and `numericEditor` all continue to supply an explicit non-null default and are unaffected by the wider type.
+
 Two details worth knowing before relying on them:
 
 - No `autovalidateMode` is exposed, so a `validator` runs only when an enclosing `Form` asks it to. Exposing the callback adds no validation timing of its own.

@@ -60,60 +60,26 @@ class _SpecialEventScreenState extends State<SpecialEventScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
+          TioInput.multiline(
             key: const ValueKey('workout-special-event-input'),
-            child: TextFormField(
-              controller: _controller,
-              onChanged: widget.onChanged,
-              maxLines: 4,
-              minLines: 3,
-              textAlignVertical: TextAlignVertical.top,
-              textCapitalization: TextCapitalization.sentences,
-              keyboardType: TextInputType.multiline,
-              style: textTheme.bodyLarge?.copyWith(
-                fontSize: TioFontSize.size15,
-                color: colors.textPrimary,
-                height: TioLineHeight.height140,
+            controller: _controller,
+            onChanged: widget.onChanged,
+            maxLines: 4,
+            minLines: 3,
+            textAlignVertical: TextAlignVertical.top,
+            keyboardType: TextInputType.multiline,
+            hint: 'e.g., Hyrox, Marathon, Triathlon, Spartan Race, Ironman...',
+            hintStyle: textTheme.bodyLarge?.copyWith(
+              fontSize: TioFontSize.size14,
+              color: colors.textSecondary.withValues(
+                alpha: TioOpacity.opacity50,
               ),
-              decoration: InputDecoration(
-                hintText:
-                    'e.g., Hyrox, Marathon, Triathlon, Spartan Race, Ironman...',
-                hintStyle: textTheme.bodyLarge?.copyWith(
-                  fontSize: TioFontSize.size14,
-                  color: colors.textSecondary.withValues(
-                    alpha: TioOpacity.opacity50,
-                  ),
-                  height: TioLineHeight.height140,
-                ),
-                contentPadding: const EdgeInsets.all(TioSpacing.lg),
-                filled: true,
-                fillColor: colors.surface,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(TioRadius.lg),
-                  borderSide: BorderSide(
-                    color: colors.outlineStrong.withValues(
-                      alpha: TioCardTokens.unselectedOutlineAlpha,
-                    ),
-                    width: TioCardTokens.unselectedBorderWidth,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(TioRadius.lg),
-                  borderSide: BorderSide(
-                    color: colors.outlineStrong.withValues(
-                      alpha: TioCardTokens.unselectedOutlineAlpha,
-                    ),
-                    width: TioCardTokens.unselectedBorderWidth,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(TioRadius.lg),
-                  borderSide: BorderSide(
-                    color: colors.primary,
-                    width: TioCardTokens.selectedBorderWidth,
-                  ),
-                ),
-              ),
+              height: TioLineHeight.height140,
+            ),
+            textStyle: textTheme.bodyLarge?.copyWith(
+              fontSize: TioFontSize.size15,
+              color: colors.textPrimary,
+              height: TioLineHeight.height140,
             ),
           ),
           const SizedBox(height: TioSpacing.md),

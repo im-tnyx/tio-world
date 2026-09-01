@@ -1,3 +1,4 @@
+import '../foundation/tio_radius.dart';
 import '../foundation/tio_spacing.dart';
 import '../foundation/tio_stroke.dart';
 import '../primitive/tio_alpha.dart';
@@ -23,6 +24,19 @@ class TioInputTokens {
   static const numericEditorTextFontSize = TioFontSize.size18;
   static const numericEditorHintFontSize = TioFontSize.size18;
   static const numericEditorSuffixFontSize = TioFontSize.size15;
+
+  /// Radius for the multiline notes-field surface (Equipment, Special Event,
+  /// Health Concerns). Deliberately a separate token from [radius]: the two
+  /// are evidenced current contracts (14dp generic, 16dp notes) and are not
+  /// unified by giving one a token and leaving the other a literal.
+  static const multilineRadius = TioRadius.lg;
+
+  /// Unfocused border opacity for the multiline notes-field surface. Fixed
+  /// regardless of theme brightness, unlike [darkUnfocusedOutlineOpacity] /
+  /// [lightUnfocusedOutlineOpacity] -- the three current notes-field
+  /// consumers apply this alpha without a light/dark branch.
+  static const multilineUnfocusedOutlineOpacity = TioOpacity.opacity40;
+
   static const compactContentVerticalPadding = TioSize.dp10;
   static const compactContentHorizontalPadding = TioSpacing.sm;
   static const standardContentVerticalPadding = TioSpacing.lg;

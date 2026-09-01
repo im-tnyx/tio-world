@@ -66,7 +66,8 @@ class _EquipmentScreenState extends State<EquipmentScreen> {
   @override
   void initState() {
     super.initState();
-    _additionalInfoController = TextEditingController(text: widget.additionalInfo);
+    _additionalInfoController =
+        TextEditingController(text: widget.additionalInfo);
   }
 
   @override
@@ -133,8 +134,7 @@ class _EquipmentScreenState extends State<EquipmentScreen> {
                         color: isSelected
                             ? colors.primary
                             : colors.outlineStrong.withValues(
-                                alpha:
-                                    TioCardTokens.unselectedOutlineAlpha,
+                                alpha: TioCardTokens.unselectedOutlineAlpha,
                               ),
                         width: isSelected
                             ? TioCardTokens.selectedBorderWidth
@@ -191,53 +191,25 @@ class _EquipmentScreenState extends State<EquipmentScreen> {
             ),
           ),
           const SizedBox(height: TioSpacing.sm),
-          TextField(
+          TioInput.multiline(
+            key: const ValueKey('workout-equipment-input'),
             controller: _additionalInfoController,
-            onChanged: widget.onAdditionalInfoChanged,
+            onChanged: (value) => widget.onAdditionalInfoChanged?.call(value),
             maxLines: 4,
             minLines: 3,
-            textCapitalization: TextCapitalization.sentences,
-            style: textTheme.bodyMedium?.copyWith(color: colors.textPrimary),
-            decoration: InputDecoration(
-              hintText:
-                  'e.g., rowing machine, kettlebells, cable machine, any specialized equipment...',
-              hintStyle: textTheme.bodyMedium?.copyWith(
-                color: colors.textSecondary.withValues(
-                  alpha: TioOpacity.opacity60,
-                ),
-                height: TioLineHeight.height140,
+            hint:
+                'e.g., rowing machine, kettlebells, cable machine, any specialized equipment...',
+            hintStyle: textTheme.bodyMedium?.copyWith(
+              color: colors.textSecondary.withValues(
+                alpha: TioOpacity.opacity60,
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: TioSpacing.lg,
-                vertical: TioSpacing.md,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(TioRadius.lg),
-                borderSide: BorderSide(
-                  color: colors.outlineStrong.withValues(
-                    alpha: TioCardTokens.unselectedOutlineAlpha,
-                  ),
-                  width: TioCardTokens.unselectedBorderWidth,
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(TioRadius.lg),
-                borderSide: BorderSide(
-                  color: colors.outlineStrong.withValues(
-                    alpha: TioCardTokens.unselectedOutlineAlpha,
-                  ),
-                  width: TioCardTokens.unselectedBorderWidth,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(TioRadius.lg),
-                borderSide: BorderSide(
-                  color: colors.primary,
-                  width: TioCardTokens.selectedBorderWidth,
-                ),
-              ),
-              filled: true,
-              fillColor: colors.surface,
+              height: TioLineHeight.height140,
+            ),
+            textStyle:
+                textTheme.bodyMedium?.copyWith(color: colors.textPrimary),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: TioSpacing.lg,
+              vertical: TioSpacing.md,
             ),
           ),
           const SizedBox(height: TioSpacing.md),
