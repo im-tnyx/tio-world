@@ -1,6 +1,6 @@
 # GitHub #24 Phase #24-B — Nutrition Numeric Input Migration
 
-**Status:** In progress
+**Status:** Validated
 **Primary owner:** `apps/core` input contract + `apps/features/nutrition` presentation
 **Affected platforms:** Flutter phone app
 
@@ -17,21 +17,25 @@
 **Planning owner:** Codex
 **Implementation owner:** Codex
 **Review owner:** Codex self-review after implementation
-**Implementation ownership state:** Active
+**Implementation ownership state:** Review remediation
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-01
 **Branch:** `codex/nutrition-numeric-tio-input`
-**HEAD SHA:** `bfe2ad9a1426fe08451ad129e60fbdb7828e3986`
-**Observed working-tree state:** Clean before this task brief
-**Observed uncommitted/dirty files:** None before this task brief
-**PR / tracker:** GitHub #24 OPEN; Linear TNYX-146 In Progress; no overlapping open PR
-**Current implementation state:** Implementation and local validation complete; publication and exact-head CI pending
+**HEAD SHA:** `654ec83cd83513a1a25e5a99dff5950e8f9a9c91` (reviewed head before audit-record remediation)
+**Current local rebased head:** `f485fb021ee676b81f00466dda5e85b42a3256b7` (same 10-file implementation delta on rewritten `origin/main`)
+**Observed working-tree state:** Clean before this audit-record remediation
+**Observed uncommitted/dirty files:** None before this audit-record remediation
+**PR / tracker:** GitHub #195 OPEN, Draft; Linear TNYX-146 In Review; no overlapping open PR
+**Current implementation state:** Runtime implementation complete and substantively reviewed; PR #195 published; this audit-record remediation addresses the sole remaining P2 finding
 **Relevant execution surface:** `TioInput`, Nutrition target exact editor, Nutrition macro exact-entry editor, focused widget tests
-**Validation completed at SHA:** Uncommitted working tree based on `bfe2ad9a1426fe08451ad129e60fbdb7828e3986`
-**Validation remaining:** Final post-record `git diff --check`, commit/push, Draft PR, exact-head CI
+**Reviewed head before remediation:** `654ec83cd83513a1a25e5a99dff5950e8f9a9c91`
+**Exact-head Flutter CI:** Run `33519625981` — `SUCCESS` on the reviewed head
+**Local validation:** Core analyze PASS; core focused tests 18 PASS; core full suite 151 PASS; Nutrition analyze PASS; Nutrition focused tests 51 PASS; Nutrition full suite 133 PASS; `git diff --check` PASS
+**Substantive runtime review:** PASS; only remaining finding was audit-record accuracy
+**Validation remaining:** Commit/push this record refresh, rerun exact-head Flutter CI on the resulting head, resolve the review thread, and complete final merge gates
 **Current blocker:** None
-**Open review finding IDs:** None
-**Next exact action:** Record tracker progress, commit/push the reviewed diff, open a Draft PR, and verify exact-head CI.
+**Open review finding IDs:** None; P2 audit-record accuracy finding resolved by this remediation
+**Next exact action:** Commit/push the two-record refresh, verify new-head CI/review/thread state, then proceed through the approved PR #195 merge gate.
 
 ## Global UI / Design-System Guardrail
 
@@ -114,7 +118,9 @@ Existing validation copy, external error placement, disabled saving state, keybo
 - [x] Pin the new core contract and existing variant regressions in core tests.
 - [x] Migrate both approved Nutrition editors while retaining stable keys and behavior.
 - [x] Replace brittle raw `TextField` test coupling with stable-key/public-contract assertions.
-- [ ] Run focused and relevant validation, self-review, tracker updates, commit/push, and open a Draft PR.
+- [x] Run focused and relevant validation, complete substantive self-review, and publish Draft PR #195.
+- [x] Refresh the durable task records to the published/reviewed state and resolve the audit-record accuracy finding.
+- [ ] Commit/push this remediation, verify exact-head CI on the new head, resolve the review thread, and complete merge gates.
 
 ## 6. Quality Review
 
@@ -136,7 +142,8 @@ App tests — not applicable; no app composition, route, or key change
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| SR-1 | — | Resolved | No substantive correctness, behavior, visual-contract, or scope-leakage finding | Uncommitted tree based on `bfe2ad9a1426fe08451ad129e60fbdb7828e3986` | Complete diff inspected; focused and package suites green |
+| SR-1 | — | Resolved | No substantive correctness, behavior, visual-contract, or scope-leakage finding | `654ec83cd83513a1a25e5a99dff5950e8f9a9c91` | Runtime/core/Nutrition review PASS; exact-head Flutter CI run `33519625981` SUCCESS |
+| AR-1 | P2 | Resolved | Durable task records still described the pre-publication/pre-CI state | `654ec83cd83513a1a25e5a99dff5950e8f9a9c91` | This remediation records branch, PR #195, reviewed head, validation evidence, CI success, scope boundary, and current merge-gate state |
 
 ## 7. Final Handoff
 
@@ -163,4 +170,4 @@ Consumer migrations outside this two-editor slice remain under GitHub #24. The N
 
 ### Final Status
 
-`REVIEW`
+`VALIDATED` — PR #195 remains OPEN/Draft pending new-head CI, review-thread resolution, and final merge gates.
