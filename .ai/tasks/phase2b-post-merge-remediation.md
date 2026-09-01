@@ -119,18 +119,18 @@ Navigation and tap behavior remain unchanged. Ellipsis restores compact-width st
 ### Validation Run
 
 ```text
-G:\dev\flutter-sdk\bin\dart.bat format
+dart format
   lib/src/presentation/pages/nutrition_profile_settings_page.dart
   test/presentation/nutrition_profile_settings_page_test.dart
 PASS
 
-G:\dev\flutter-sdk\bin\flutter.bat analyze  # apps/features/nutrition
+flutter analyze  # working directory: apps/features/nutrition
 PASS — No issues found
 
-G:\dev\flutter-sdk\bin\flutter.bat analyze  # apps/core
+flutter analyze  # working directory: apps/core
 PASS — No issues found
 
-G:\dev\flutter-sdk\bin\flutter.bat test
+flutter test  # working directory: apps/features/nutrition
   test/presentation/nutrition_profile_settings_page_test.dart
 PASS — 27 tests
 
@@ -144,6 +144,7 @@ PASS
 |---|---|---|---|---|---|
 | `discussion_r3903038287` | P2 | Resolved | Restrictions label lost its prior single-line ellipsis contract. | `54ed532ec8393be8b9e3d63ff0e3dba242b6c881` | Consumer fix plus compact-width contract test; original thread stays open until remediation merge. |
 | `discussion_r3903038295` | P2 | Resolved | New public GroupCard/Settings-row contracts were not documented. | `54ed532ec8393be8b9e3d63ff0e3dba242b6c881` | Canonical core theme README now documents every shipped Phase-2B contract; original thread stays open until remediation merge. |
+| `discussion_r3903298318` | P1 | Resolved | The task brief recorded machine-specific Flutter SDK paths. | `2046e24741c25a82a7eadeebca1bfbdd537e2fb5` | Validation commands now use portable tool names with explicit repository working directories. |
 
 ## 7. Final Handoff
 
