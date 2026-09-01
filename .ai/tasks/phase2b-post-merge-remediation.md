@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-01; clean `main` matched `origin/main` before branch creation.
 **Branch:** `codex/phase2b-post-merge-remediation`
-**HEAD SHA:** `265dfae3b8a1badadb3cffc8308a87ec09129078`
-**Observed working-tree state:** Four scoped remediation files modified/untracked; no unrelated files.
-**Observed uncommitted/dirty files:** This task brief, Nutrition Profile source/test, and core theme README.
-**PR / tracker:** Follow-up to PR #191; GitHub #183 and Linear TNYX-139 remain open.
-**Current implementation state:** Both findings implemented and locally validated; publication, exact-head CI, and Codex review gates remain.
+**HEAD SHA:** `ea457d8ceb090dc351b3884ef9db5f2e4caec607`
+**Observed working-tree state:** Clean after scoped implementation commit; this checkpoint update is the only subsequent change.
+**Observed uncommitted/dirty files:** This task brief checkpoint only.
+**PR / tracker:** Draft PR #192, follow-up to PR #191; GitHub #183 and Linear TNYX-139 remain open.
+**Current implementation state:** Both findings implemented, locally validated, and published; exact-head CI and Codex review gates remain.
 **Relevant execution surface:** Nutrition Profile restrictions summary row and core theme/design-system component guidance.
-**Validation completed at SHA:** Scoped working tree atop `265dfae3b8a1badadb3cffc8308a87ec09129078`: focused format; Nutrition/Core analyze PASS; Nutrition Profile 27/27 PASS; `git diff --check` PASS.
+**Validation completed at SHA:** `ea457d8ceb090dc351b3884ef9db5f2e4caec607`: focused format; Nutrition/Core analyze PASS; Nutrition Profile 27/27 PASS; `git diff --check` PASS.
 **Validation remaining:** Exact-head CI and asynchronous Codex review gate after publication.
 **Current blocker:** None.
 **Open review finding IDs:** `discussion_r3903038287`, `discussion_r3903038295`
-**Next exact action:** Commit and publish the four-file remediation as a Draft PR.
+**Next exact action:** Push this checkpoint, wait for exact-head CI, mark PR #192 Ready, then wait for completed Codex review and zero unresolved current threads.
 
 ## Global UI / Design-System Guardrail
 
@@ -110,7 +110,8 @@ Navigation and tap behavior remain unchanged. Ellipsis restores compact-width st
 - [x] Add compact-width contract coverage.
 - [x] Document all shipped Phase-2B group/settings row components.
 - [x] Run focused validation and inspect the final diff.
-- [ ] Publish a Draft PR, then wait for exact-head CI and asynchronous Codex review before merge.
+- [x] Publish Draft PR #192 and reply to both original PR #191 findings without resolving them.
+- [ ] Wait for exact-head CI and asynchronous Codex review before merge.
 - [ ] Resolve original PR #191 threads only after verified merge.
 
 ## 6. Quality Review
