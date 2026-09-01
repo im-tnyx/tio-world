@@ -256,6 +256,9 @@ public/build/
 .codex/
 .gemini/
 .claude/
+!.claude/
+.claude/*
+!.claude/settings.json
 .cursor/
 scratch/
 *.prompt.local.md

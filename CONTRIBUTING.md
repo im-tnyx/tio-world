@@ -274,6 +274,11 @@ Branch rules:
 - Keep PRs reviewable. Chhota PR fast review hota hai.
 - Do not commit generated outputs, local IDE files, `.env`, APK/AAB artifacts, `.ipa`, archives, keystores, provisioning profiles, or private keys.
 
+### Commit attribution
+
+- Commit authorship must identify the human or account that actually commits the change.
+- Do not add Claude, Anthropic, Codex, OpenAI, or other AI `Co-Authored-By` or attribution trailers unless the repository owner explicitly requests them.
+
 ## Pull Request Process
 
 Before opening a PR:
