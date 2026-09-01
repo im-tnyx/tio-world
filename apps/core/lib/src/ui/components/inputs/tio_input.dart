@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../theme/theme.dart';
 
@@ -43,6 +44,12 @@ class TioInput extends StatefulWidget {
     this.contentPadding,
     this.selectAllOnFocus = false,
     this.variant = TioInputVariant.standard,
+    this.validator,
+    this.autofillHints,
+    this.inputFormatters,
+    this.textCapitalization = TextCapitalization.none,
+    this.prefixText,
+    this.suffixText,
     super.key,
   });
 
@@ -72,6 +79,12 @@ class TioInput extends StatefulWidget {
     this.textStyle,
     this.contentPadding,
     this.selectAllOnFocus = true,
+    this.validator,
+    this.autofillHints,
+    this.inputFormatters,
+    this.textCapitalization = TextCapitalization.none,
+    this.prefixText,
+    this.suffixText,
     super.key,
   }) : variant = TioInputVariant.compactNumber;
 
@@ -101,6 +114,47 @@ class TioInput extends StatefulWidget {
   final bool selectAllOnFocus;
   final TioInputVariant variant;
 
+  /// Form validation callback, forwarded to the underlying [TextFormField].
+  ///
+  /// Plumbing only: this component owns no validation rule. Exposing the
+  /// callback introduces no validation timing of its own — with no
+  /// `autovalidateMode`, the field validates only when an enclosing [Form]
+  /// asks it to, exactly as before.
+  ///
+  /// One asymmetry worth knowing before relying on it: a validator error
+  /// renders its message through the decoration, but [errorText] is what
+  /// drives this component's error *styling* (border, cursor, label colour).
+  /// A validator-only error therefore shows the message without the error
+  /// colours. Unifying the two would mean reading `FormFieldState` inside the
+  /// build, which is a larger change than this additive API; the first
+  /// consumer that needs both should carry it.
+  final String? Function(String?)? validator;
+
+  /// Autofill hints forwarded to the platform, e.g. `[AutofillHints.email]`.
+  ///
+  /// Features choose the hints; core does not infer them from the label or
+  /// keyboard type.
+  final Iterable<String>? autofillHints;
+
+  /// Input formatters forwarded to the underlying field.
+  ///
+  /// Plumbing only. Core adds no formatter of its own — no numeric rule, no
+  /// decimal policy, no normalisation, no unit handling. The consumer owns
+  /// the list.
+  final List<TextInputFormatter>? inputFormatters;
+
+  /// Capitalisation behaviour. Defaults to [TextCapitalization.none], which
+  /// is the behaviour every existing consumer already gets.
+  final TextCapitalization textCapitalization;
+
+  /// Static text shown before the input. Presentation plumbing only: core
+  /// attaches no unit or domain meaning to it.
+  final String? prefixText;
+
+  /// Static text shown after the input, such as a unit. Presentation plumbing
+  /// only: core attaches no unit or domain meaning to it.
+  final String? suffixText;
+
   @override
   State<TioInput> createState() => _TioInputState();
 }
@@ -115,7 +169,8 @@ class _TioInputState extends State<TioInput> {
   void initState() {
     super.initState();
     _focusNode = widget.focusNode ?? FocusNode();
-    _controller = widget.controller ?? TextEditingController(text: widget.value ?? '');
+    _controller =
+        widget.controller ?? TextEditingController(text: widget.value ?? '');
     _ownsController = widget.controller == null;
     _focusNode.addListener(_handleFocusChange);
   }
@@ -125,9 +180,12 @@ class _TioInputState extends State<TioInput> {
     super.didUpdateWidget(oldWidget);
     if (widget.controller != oldWidget.controller) {
       if (_ownsController) _controller.dispose();
-      _controller = widget.controller ?? TextEditingController(text: widget.value ?? '');
+      _controller =
+          widget.controller ?? TextEditingController(text: widget.value ?? '');
       _ownsController = widget.controller == null;
-    } else if (_ownsController && widget.value != null && widget.value != oldWidget.value) {
+    } else if (_ownsController &&
+        widget.value != null &&
+        widget.value != oldWidget.value) {
       if (_controller.text != widget.value) {
         _controller.value = TextEditingValue(
           text: widget.value!,
@@ -153,7 +211,9 @@ class _TioInputState extends State<TioInput> {
       _isFocused = _focusNode.hasFocus;
     });
 
-    if (_focusNode.hasFocus && widget.selectAllOnFocus && _controller.text.isNotEmpty) {
+    if (_focusNode.hasFocus &&
+        widget.selectAllOnFocus &&
+        _controller.text.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_focusNode.hasFocus) return;
         _controller.selection = TextSelection(
@@ -224,9 +284,15 @@ class _TioInputState extends State<TioInput> {
       autofocus: widget.autofocus,
       obscureText: widget.obscureText,
       keyboardType: widget.keyboardType ??
-          (isCompact ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text),
+          (isCompact
+              ? const TextInputType.numberWithOptions(decimal: true)
+              : TextInputType.text),
       textInputAction: widget.textInputAction,
       onFieldSubmitted: widget.onSubmitted,
+      validator: widget.validator,
+      autofillHints: widget.autofillHints,
+      inputFormatters: widget.inputFormatters,
+      textCapitalization: widget.textCapitalization,
       enabled: widget.enabled,
       readOnly: widget.readOnly,
       maxLines: widget.obscureText ? 1 : widget.maxLines,
@@ -243,6 +309,10 @@ class _TioInputState extends State<TioInput> {
         errorText: widget.errorText,
         prefixIcon: widget.leading,
         suffixIcon: widget.trailing,
+        // Null unless a consumer opts in, so no field gains a prefix or
+        // suffix by default and nothing currently rendered changes.
+        prefixText: widget.prefixText,
+        suffixText: widget.suffixText,
         counterText: isCompact ? '' : null,
         filled: !isCompact,
         fillColor: colors.surface,
