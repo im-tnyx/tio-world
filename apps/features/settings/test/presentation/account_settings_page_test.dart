@@ -385,7 +385,14 @@ void main() {
       );
       final decoration = container.decoration! as BoxDecoration;
       final border = decoration.border! as Border;
-      // Normal (non status-tinted) border: alpha40, hairline width.
+      // Normal (non status-tinted) border: neutral outline at alpha40,
+      // hairline width. The colour matters as much as the width here -- it is
+      // what makes the persisted username read as "unchanged" rather than as
+      // an available (primary) or rejected (danger) result.
+      expect(
+        border.top.color,
+        TioColors.light.outlineStrong.withAlpha(TioAlpha.alpha40),
+      );
       expect(border.top.width, TioStroke.width1);
     });
 

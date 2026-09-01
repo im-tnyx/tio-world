@@ -96,8 +96,7 @@ No 14dp↔16dp normalization performed. No Supabase RPC, DB policy, or schema ch
 - [x] `outlined` appearance (Account Setup) unchanged — regression-tested explicitly.
 - [x] `AccountSettingsPage`: removed the duplicate local `UsernameAvailabilityResult` class, `_UsernameStatus` enum, `_debounceTimer`, `_suggestions`, `_usernameFeedback` state, `_onUsernameInput`/`_performAvailabilityCheck`/`_applySuggestion` methods, and the raw `Container`+`TextField` username block. Replaced with `TioUsernameInputField(appearance: .capsule, ...)`, retaining only page-level `_usernameStatus` (via `onStatusChanged`) and `_usernameAvailabilityRefreshToken` for Save-button gating and post-conflict recheck.
 - [x] `onCheckUsernameAvailability`'s type now resolves to core's `UsernameAvailabilityResult` (the local duplicate was a byte-for-byte copy with zero other consumers — confirmed via repository-wide grep before deletion).
-- [x] `_handleSave` now catches `UsernameUnavailableException`, mirroring `UsernameStep.submit()`'s reason-based message mapping, and bumps the refresh token.
-- [x] `apps/features/settings/pubspec.yaml`: added `tio_feature_profile` dependency (needed for `UsernameUnavailableException`/`UsernameAvailabilityReason`, following the same precedent `apps/features/account_setup` already uses).
+- [x] `_handleSave` now catches a save-time username conflict and bumps the refresh token, mirroring `UsernameStep.submit()`. (The first pass caught `UsernameUnavailableException` directly and added a `tio_feature_profile` dependency to do so; the correction pass replaced this with core's `TioUsernameConflictException` and removed that dependency again — see Correction Pass Finding 2. Net effect on `main`: no change to `apps/features/settings/pubspec.yaml`.)
 - [x] `router.dart`: wired `onCheckUsernameAvailability` to `profileAccountRepositoryProvider.checkUsernameAvailability`, with a reason-based message mapping mirroring `UsernameStep._availabilityMessage` exactly (`_accountSettingsUsernameMessage`).
 - [x] Existing Settings tests (`account_settings_page_test.dart`, `account_settings_save_failure_test.dart`, and unrelated Settings suites) preserved unmodified and pass unchanged — the positional `find.byType(TextField)` indexing still resolves correctly because the field's own internal `TextField` occupies the same tree position.
 - [x] New focused tests: capsule rendering, `extraInputFormatters` enforcement, no-callback-cannot-fake-success, checking→available, unavailable+suggestions, suggestion-tap-rechecks, stale-check-cannot-overwrite-newer-input, **revert-to-current-username-while-stale-check-in-flight**, save-time conflict handling with refresh-token-driven recheck.
@@ -205,14 +204,13 @@ duplication.
 - `apps/core/lib/src/ui/components/inputs/tio_username_input_field.dart`
 - `apps/core/test/ui/components/tio_username_input_field_test.dart`
 - `apps/features/settings/lib/src/presentation/pages/account_settings_page.dart`
-- `apps/features/settings/pubspec.yaml` / `pubspec.lock`
 - `apps/features/settings/test/presentation/account_settings_page_test.dart`
 - `apps/features/account_setup/test/presentation/username_step_test.dart`
 - `apps/app/lib/app/router.dart`
 - `apps/app/test/app/account_settings_route_test.dart` (new)
 - `.ai/tasks/issue-24d-account-settings-username-migration.md`
 
-9 files changed by the correction pass on top of the original 8 (net 9 unique files across both commits, since `account_settings_route_test.dart` is new and the rest overlap).
+9 files in the PR's net diff against `main`. `apps/features/settings/pubspec.yaml` / `pubspec.lock` appear in neither: the first commit added the `tio_feature_profile` dependency and the correction pass removed it, so the dependency never lands on `main`.
 
 ### Actual Behavior
 
