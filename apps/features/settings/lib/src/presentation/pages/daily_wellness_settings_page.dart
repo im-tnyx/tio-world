@@ -493,12 +493,12 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
 
                   // ── MOVEMENT GROUP ──
                   const _DailyWellnessSectionHeader(title: 'MOVEMENT'),
-                  _DailyWellnessGroupCard(
+                  TioGroupCard(
                     key: const ValueKey('daily-wellness-movement-card'),
                     children: [
-                      _DailyWellnessRow(
+                      TioSettingsValueRow(
                         key: const ValueKey('daily-wellness-steps-field'),
-                        iconWidget: SvgPicture.asset(
+                        leading: SvgPicture.asset(
                           'assets/svg_icon/ic_step.svg',
                           package: 'tio_core',
                           height: TioSize.dp24,
@@ -509,34 +509,48 @@ class _DailyWellnessSettingsPageState extends State<DailyWellnessSettingsPage> {
                           ),
                         ),
                         label: 'Step Goal',
-                        value: _formatSteps(),
-                        isUnset: _dailySteps == null,
+                        value: _DailyWellnessValue(
+                          value: _formatSteps(),
+                          isUnset: _dailySteps == null,
+                        ),
                         onTap: _pickSteps,
                       ),
                     ],
                   ),
                   const SizedBox(height: TioSpacing.lg),
                   const _DailyWellnessSectionHeader(title: 'HYDRATION'),
-                  _DailyWellnessGroupCard(
+                  TioGroupCard(
                     key: const ValueKey('daily-wellness-hydration-card'),
                     children: [
-                      _DailyWellnessRow(
+                      TioSettingsValueRow(
                         key: const ValueKey('daily-wellness-water-field'),
-                        icon: Icons.water_drop_outlined,
+                        leading: Icon(
+                          Icons.water_drop_outlined,
+                          size: TioSize.dp24,
+                          color: context.tioColors.textPrimary,
+                        ),
                         label: 'Water Goal',
-                        value: _formatWater(),
-                        isUnset: _waterMl == null,
+                        value: _DailyWellnessValue(
+                          value: _formatWater(),
+                          isUnset: _waterMl == null,
+                        ),
                         onTap: _pickWater,
                       ),
                       const _DailyWellnessDivider(
                         key: ValueKey('daily-wellness-hydration-divider'),
                       ),
-                      _DailyWellnessRow(
+                      TioSettingsValueRow(
                         key: const ValueKey('daily-wellness-glass-size-field'),
-                        icon: Icons.local_drink_outlined,
+                        leading: Icon(
+                          Icons.local_drink_outlined,
+                          size: TioSize.dp24,
+                          color: context.tioColors.textPrimary,
+                        ),
                         label: 'Glass Size',
-                        value: _glassSummary(),
-                        isUnset: false,
+                        value: _DailyWellnessValue(
+                          value: _glassSummary(),
+                          isUnset: false,
+                        ),
                         onTap: widget.onSaveHydration == null ||
                                 widget.hydrationLoading ||
                                 widget.hydrationLoadFailed
@@ -649,25 +663,6 @@ class _DailyWellnessSectionHeader extends StatelessWidget {
   }
 }
 
-class _DailyWellnessGroupCard extends StatelessWidget {
-  const _DailyWellnessGroupCard({
-    required this.children,
-    super.key,
-  });
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.tioColors;
-    return Material(
-      color: colors.surfaceRaised,
-      borderRadius: BorderRadius.circular(TioRadius.lg),
-      clipBehavior: Clip.antiAlias,
-      child: Column(mainAxisSize: MainAxisSize.min, children: children),
-    );
-  }
-}
-
 class _DailyWellnessDivider extends StatelessWidget {
   const _DailyWellnessDivider({super.key});
 
@@ -683,84 +678,18 @@ class _DailyWellnessDivider extends StatelessWidget {
   }
 }
 
-class _DailyWellnessRow extends StatelessWidget {
-  const _DailyWellnessRow({
-    required this.label,
-    required this.value,
-    required this.isUnset,
-    required this.onTap,
-    this.icon,
-    this.iconWidget,
-    super.key,
-  }) : assert(
-          icon != null || iconWidget != null,
-          'Provide either icon or iconWidget',
-        );
+/// Preserves Daily Wellness's number/unit treatment inside the shared row.
+class _DailyWellnessValue extends StatelessWidget {
+  const _DailyWellnessValue({required this.value, required this.isUnset});
 
-  /// Standard Material glyph. Ignored when [iconWidget] is provided.
-  final IconData? icon;
-
-  /// Recovered asset-backed leading icon (e.g. the Steps footprints SVG).
-  /// Takes precedence over [icon] when both are supplied.
-  final Widget? iconWidget;
-  final String label;
   final String value;
-
-  /// Explicit unset styling contract instead of sniffing `value == 'Not set'`.
   final bool isUnset;
-  final VoidCallback? onTap;
+
+  static final _leadingNumber = RegExp(r'^([\d.,]+)(.*)$');
 
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
-
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: TioSpacing.lg,
-          vertical: TioSpacing.md + TioSize.dp4,
-        ),
-        child: Row(
-          children: [
-            iconWidget ??
-                Icon(
-                  icon,
-                  size: TioSize.dp24,
-                  color: colors.textPrimary,
-                ),
-            const SizedBox(width: TioSpacing.lg),
-            Expanded(
-              flex: 3,
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: colors.textPrimary,
-                  fontWeight: TioFontWeight.w700,
-                  fontSize: TioFontSize.size15,
-                ),
-              ),
-            ),
-            const SizedBox(width: TioSpacing.sm),
-            Expanded(
-              flex: 2,
-              child: _buildValue(colors),
-            ),
-            const SizedBox(width: TioSpacing.lg),
-            const _EditAffordanceIcon(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// The leading number in [value] (e.g. "10,000" of "10,000 steps", "2.8"
-  /// of "2.8 L") so it can be highlighted in [colors.textPrimary] while the
-  /// trailing unit renders in a muted, lighter-weight tone -- matching the
-  /// tnyx-hub reference's number/unit split styling.
-  static final _leadingNumber = RegExp(r'^([\d.,]+)(.*)$');
-
-  Widget _buildValue(TioColors colors) {
     if (isUnset) {
       return Text(
         value,
@@ -815,35 +744,8 @@ class _DailyWellnessRow extends StatelessWidget {
   }
 }
 
-/// Shared edit-pencil affordance: a small circular neutral-surface chip
-/// containing a pencil glyph, distinct from any leading content icon (which
-/// stays plain/unboxed). Used by both [_DailyWellnessRow] and
-/// [_SleepScheduleSummaryCard] so every row's edit affordance looks the same.
-class _EditAffordanceIcon extends StatelessWidget {
-  const _EditAffordanceIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.tioColors;
-    return Container(
-      width: TioSize.dp36,
-      height: TioSize.dp36,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: colors.surfaceVariant,
-        shape: BoxShape.circle,
-      ),
-      child: Icon(
-        Icons.edit_outlined,
-        size: TioSize.dp16,
-        color: colors.textSecondary,
-      ),
-    );
-  }
-}
-
 /// Dedicated Sleep Schedule summary presentation — deliberately not built on
-/// [_DailyWellnessRow], since its two-row hierarchy (duration on the same
+/// [TioSettingsValueRow], since its two-row hierarchy (duration on the same
 /// line as the title; range + edit affordance on a second line) doesn't fit
 /// that generic single-value-line row shape.
 class _SleepScheduleSummaryCard extends StatelessWidget {
@@ -914,7 +816,7 @@ class _SleepScheduleSummaryCard extends StatelessWidget {
                   // Step/Water/Glass rows so all four edit affordances sit
                   // at the same x-position.
                   const SizedBox(width: TioSpacing.lg),
-                  const _EditAffordanceIcon(),
+                  const TioSettingsEditAffordance(),
                 ],
               ),
               const SizedBox(height: TioSpacing.sm),

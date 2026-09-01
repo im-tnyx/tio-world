@@ -54,21 +54,25 @@ class HealthGoalsSettingsPage extends StatelessWidget {
               ),
             ),
             const _HealthGoalsSectionHeader(title: 'DAILY TARGETS'),
-            _HealthGoalsGroupCard(
+            TioGroupCard(
               children: [
-                _HealthGoalsTile(
+                TioSettingsNavigationRow(
                   key: const ValueKey('health-goals-body-weight-entry'),
-                  icon: Icons.monitor_weight_outlined,
+                  leading: const TioSettingsLeadingIcon(
+                    icon: Icons.monitor_weight_outlined,
+                  ),
                   title: 'Body & Weight',
-                  subtitle: 'Current weight, Body Goal & pace',
+                  supportingText: 'Current weight, Body Goal & pace',
                   onTap: onBodyWeightPressed,
                 ),
                 const _HealthGoalsDivider(),
-                _HealthGoalsTile(
+                TioSettingsNavigationRow(
                   key: const ValueKey('health-goals-daily-wellness-entry'),
-                  icon: Icons.wb_sunny_outlined,
+                  leading: const TioSettingsLeadingIcon(
+                    icon: Icons.wb_sunny_outlined,
+                  ),
                   title: 'Daily Wellness',
-                  subtitle: 'Steps, water, sleep & schedule',
+                  supportingText: 'Steps, water, sleep & schedule',
                   onTap: onDailyWellnessPressed,
                 ),
               ],
@@ -105,22 +109,6 @@ class _HealthGoalsSectionHeader extends StatelessWidget {
   }
 }
 
-class _HealthGoalsGroupCard extends StatelessWidget {
-  const _HealthGoalsGroupCard({required this.children});
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.tioColors;
-    return Material(
-      color: colors.surfaceRaised,
-      borderRadius: BorderRadius.circular(TioRadius.lg),
-      clipBehavior: Clip.antiAlias,
-      child: Column(mainAxisSize: MainAxisSize.min, children: children),
-    );
-  }
-}
-
 class _HealthGoalsDivider extends StatelessWidget {
   const _HealthGoalsDivider();
 
@@ -132,82 +120,6 @@ class _HealthGoalsDivider extends StatelessWidget {
       thickness: TioSize.dp1,
       indent: TioSize.dp72,
       color: colors.outlineStrong.withAlpha(TioAlpha.alpha24),
-    );
-  }
-}
-
-class _HealthGoalsTile extends StatelessWidget {
-  const _HealthGoalsTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-    super.key,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.tioColors;
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: TioSpacing.lg,
-          vertical: TioSpacing.md + TioSize.dp4,
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: TioSize.dp40,
-              height: TioSize.dp40,
-              decoration: BoxDecoration(
-                color: colors.primary.withAlpha(TioAlpha.alpha18),
-                borderRadius: BorderRadius.circular(TioRadius.sm),
-              ),
-              child: Icon(
-                icon,
-                size: TioSize.dp22,
-                color: colors.primary,
-              ),
-            ),
-            const SizedBox(width: TioSpacing.lg),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: colors.textPrimary,
-                      fontWeight: TioFontWeight.w700,
-                      fontSize: TioFontSize.size15,
-                    ),
-                  ),
-                  const SizedBox(height: TioSpacing.xxs),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: colors.textSecondary,
-                      fontSize: TioFontSize.size12,
-                      fontWeight: TioFontWeight.w400,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.chevron_right_rounded,
-              size: TioSize.dp20,
-              color: colors.textMuted,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

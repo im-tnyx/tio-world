@@ -135,28 +135,40 @@ class NutritionProfileSettingsPage extends StatelessWidget {
           ),
           children: [
             const NutritionSettingsSectionHeader(title: 'DIET'),
-            NutritionSettingsGroupCard(
+            TioGroupCard(
               children: [
-                NutritionValueRow(
+                TioSettingsValueRow(
                   key: const ValueKey('nutrition-profile-diet-type-field'),
-                  icon: Icons.local_dining_rounded,
+                  leading: Icon(
+                    Icons.local_dining_rounded,
+                    size: TioSize.dp24,
+                    color: colors.textPrimary,
+                  ),
                   label: 'Diet Type',
-                  value: _dietSummary(),
-                  isUnset: profile.preferredDiet == null,
+                  value: TioSettingsValueText(
+                    value: _dietSummary(),
+                    isUnset: profile.preferredDiet == null,
+                  ),
                   onTap: () => _editDietType(context),
                 ),
               ],
             ),
             const SizedBox(height: TioSpacing.lg),
             const NutritionSettingsSectionHeader(title: 'RESTRICTIONS'),
-            NutritionSettingsGroupCard(
+            TioGroupCard(
               children: [
-                NutritionValueRow(
+                TioSettingsValueRow(
                   key: const ValueKey('nutrition-profile-allergies-field'),
-                  icon: Icons.no_food_rounded,
+                  leading: Icon(
+                    Icons.no_food_rounded,
+                    size: TioSize.dp24,
+                    color: colors.textPrimary,
+                  ),
                   label: 'Allergies & Restrictions',
-                  value: _allergiesSummary(),
-                  isUnset: profile.allergies == null,
+                  value: TioSettingsValueText(
+                    value: _allergiesSummary(),
+                    isUnset: profile.allergies == null,
+                  ),
                   onTap: () => _editAllergies(context),
                 ),
               ],
