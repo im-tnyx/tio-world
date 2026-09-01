@@ -106,7 +106,7 @@ void main() {
 
       // A slider and a text field for the same value must never compete for
       // attention on the same row.
-      expect(find.byType(TextField), findsNothing);
+      expect(find.byType(TioInput), findsNothing);
     });
 
     testWidgets('Fiber and Calories are not edited here', (tester) async {
@@ -131,7 +131,11 @@ void main() {
       expect(
           find.byKey(const ValueKey('tio-editor-sheet')), findsOneWidget);
       // Only the macro being edited gets a field.
-      expect(find.byType(TextField), findsOneWidget);
+      expect(find.byType(TioInput), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('nutrition-macros-protein-input')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('applying a value updates the same single gram value',
@@ -162,10 +166,29 @@ void main() {
         '999',
       );
       await tester.pumpAndSettle();
-      Navigator.of(tester.element(find.byType(TextField))).pop();
+      Navigator.of(tester.element(find.byKey(
+        const ValueKey('nutrition-macros-protein-input'),
+      ))).pop();
       await tester.pumpAndSettle();
 
       expect(gramsOf(tester, 'protein'), '161 g');
+    });
+
+    testWidgets('keyboard Done applies through the existing exact-entry path',
+        (tester) async {
+      await pumpPage(tester, targets: coherent, onSave: (_) async {});
+
+      await tester
+          .tap(find.byKey(const ValueKey('nutrition-macros-protein-pencil')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('nutrition-macros-protein-input')),
+        '202',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(gramsOf(tester, 'protein'), '202 g');
     });
 
     testWidgets('a blank entry clears the macro to unset, not zero',
@@ -193,7 +216,7 @@ void main() {
       // The formatter strips the sign, so the field can never hold one.
       expect(
         tester
-            .widget<TextField>(
+            .widget<TioInput>(
                 find.byKey(const ValueKey('nutrition-macros-protein-input')))
             .controller!
             .text,

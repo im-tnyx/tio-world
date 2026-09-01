@@ -405,37 +405,19 @@ class _ExactMacroValueSheetState extends State<_ExactMacroValueSheet> {
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TextField(
+          TioInput.numericEditor(
             key: ValueKey(
               'nutrition-macros-${widget.field.storageValue}-input',
             ),
             controller: _controller,
             autofocus: true,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
             ],
-            textInputAction: TextInputAction.done,
             onSubmitted: (_) => _apply(),
-            style: TextStyle(
-              color: colors.textPrimary,
-              fontSize: TioFontSize.size18,
-              fontWeight: TioFontWeight.w700,
-            ),
-            decoration: InputDecoration(
-              isDense: true,
-              suffixText: 'g',
-              suffixStyle: TextStyle(
-                color: colors.textSecondary,
-                fontSize: TioFontSize.size15,
-              ),
-              hintText: 'Not set',
-              hintStyle: TextStyle(
-                color: colors.textMuted,
-                fontSize: TioFontSize.size18,
-                fontWeight: TioFontWeight.w400,
-              ),
-            ),
+            onChanged: (_) {},
+            suffixText: 'g',
+            hint: 'Not set',
           ),
           if (validation != null) ...[
             const SizedBox(height: TioSpacing.sm),

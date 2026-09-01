@@ -407,6 +407,8 @@ No matching prefix parameter is exposed. No editable-field consumer needs one, a
 
 Every one is optional and omitting it preserves current behaviour, so the default `TioInput` appearance is unchanged.
 
+`TioInput.numericEditor` is the governed dense exact-value editor variant. It remains left-aligned, uses a decimal keyboard and Done action by default, does not select all on focus, and retains the dense `InputDecoration` defaults used by exact-value editors while the active theme supplies fill, border, radius, and padding. It owns only the reusable `18px` bold value, `18px` regular hint, and `15px` secondary suffix hierarchy. Features still own formatter rules, validation, unit content, controller state, and submit behavior. This is separate from the centered, underline-oriented `compactNumber` table-input contract; neither variant changes the generic standard input's `14dp`/`52dp` contract.
+
 Two details worth knowing before relying on them:
 
 - No `autovalidateMode` is exposed, so a `validator` runs only when an enclosing `Form` asks it to. Exposing the callback adds no validation timing of its own.

@@ -406,38 +406,20 @@ class _TargetEditorSheetState extends State<_TargetEditorSheet> {
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TextField(
+          TioInput.numericEditor(
             key: ValueKey(
               'nutrition-target-${widget.field.storageValue}-input',
             ),
             controller: _controller,
             enabled: !_isSaving,
             autofocus: true,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
             ],
-            textInputAction: TextInputAction.done,
             onSubmitted: (_) => _handleSave(),
-            style: TextStyle(
-              color: colors.textPrimary,
-              fontSize: TioFontSize.size18,
-              fontWeight: TioFontWeight.w700,
-            ),
-            decoration: InputDecoration(
-              isDense: true,
-              suffixText: widget.unit,
-              suffixStyle: TextStyle(
-                color: colors.textSecondary,
-                fontSize: TioFontSize.size15,
-              ),
-              hintText: 'Not set',
-              hintStyle: TextStyle(
-                color: colors.textMuted,
-                fontSize: TioFontSize.size18,
-                fontWeight: TioFontWeight.w400,
-              ),
-            ),
+            onChanged: (_) {},
+            suffixText: widget.unit,
+            hint: 'Not set',
           ),
           if (message != null) ...[
             const SizedBox(height: TioSpacing.sm),

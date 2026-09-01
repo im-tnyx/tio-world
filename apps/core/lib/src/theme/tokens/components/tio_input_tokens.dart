@@ -20,6 +20,9 @@ class TioInputTokens {
   static const labelFontSize = TioFontSize.size14;
   static const compactHintFontSize = TioFontSize.size15;
   static const standardHintFontSize = TioFontSize.size14;
+  static const numericEditorTextFontSize = TioFontSize.size18;
+  static const numericEditorHintFontSize = TioFontSize.size18;
+  static const numericEditorSuffixFontSize = TioFontSize.size15;
   static const compactContentVerticalPadding = TioSize.dp10;
   static const compactContentHorizontalPadding = TioSpacing.sm;
   static const standardContentVerticalPadding = TioSpacing.lg;

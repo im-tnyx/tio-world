@@ -15,6 +15,14 @@ void main() {
     );
   }
 
+  Widget buildTioThemedTestApp(Widget child) {
+    return MaterialApp(
+      builder: (context, child) =>
+          TioTheme(child: child ?? const SizedBox.shrink()),
+      home: Scaffold(body: child),
+    );
+  }
+
   group('TioInput', () {
     testWidgets('renders standard input field with label and placeholder',
         (tester) async {
@@ -79,6 +87,101 @@ void main() {
           tester.widget<EditableText>(find.byType(EditableText));
       expect(editableText.controller.selection.baseOffset, 0);
       expect(editableText.controller.selection.extentOffset, 2);
+    });
+
+    testWidgets(
+        'numericEditor preserves dense exact-entry presentation and behavior',
+        (tester) async {
+      var submitted = '';
+      await tester.pumpWidget(
+        buildTioThemedTestApp(
+          TioInput.numericEditor(
+            value: '28',
+            hint: 'Not set',
+            suffixText: 'g',
+            autofocus: true,
+            onChanged: (_) {},
+            onSubmitted: (value) => submitted = value,
+          ),
+        ),
+      );
+
+      final component = tester.widget<TioInput>(find.byType(TioInput));
+      final field = tester.widget<TextField>(find.byType(TextField));
+      final decoration = field.decoration!;
+
+      expect(component.variant, TioInputVariant.numericEditor);
+      expect(field.textAlign, TextAlign.start);
+      expect(
+        field.keyboardType,
+        const TextInputType.numberWithOptions(decimal: true),
+      );
+      expect(field.textInputAction, TextInputAction.done);
+      expect(field.autofocus, isTrue);
+      expect(field.enabled, isTrue);
+      expect(decoration.isDense, isTrue);
+      expect(decoration.hintText, 'Not set');
+      expect(decoration.hintStyle!.fontSize,
+          TioInputTokens.numericEditorHintFontSize);
+      expect(decoration.hintStyle!.color, TioColors.light.textMuted);
+      expect(decoration.suffixText, 'g');
+      expect(decoration.suffixStyle!.fontSize,
+          TioInputTokens.numericEditorSuffixFontSize);
+      expect(decoration.suffixStyle!.color, TioColors.light.textSecondary);
+      expect(field.style!.fontSize, TioInputTokens.numericEditorTextFontSize);
+      expect(field.style!.fontWeight, TioFontWeight.w700);
+      expect(field.style!.color, TioColors.light.textPrimary);
+      expect(decoration.filled, isTrue,
+          reason: 'retains the active TioTheme fill behavior');
+      expect(decoration.contentPadding, isNull,
+          reason: 'dense padding remains owned by the active theme');
+
+      final effectiveDecoration =
+          tester.widget<InputDecorator>(find.byType(InputDecorator)).decoration;
+      final effectiveBorder =
+          effectiveDecoration.enabledBorder! as OutlineInputBorder;
+      expect(
+        effectiveBorder.borderRadius,
+        BorderRadius.circular(TioInputTokens.radius),
+      );
+      expect(effectiveDecoration.filled, isTrue,
+          reason: 'matches the previous raw dense editor fill behavior');
+
+      final editableText =
+          tester.widget<EditableText>(find.byType(EditableText));
+      expect(editableText.controller.selection,
+          const TextSelection.collapsed(offset: 2),
+          reason: 'numericEditor must not inherit select-all table behavior');
+
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      expect(submitted, '28');
+    });
+
+    testWidgets('numericEditor forwards formatter and enabled state',
+        (tester) async {
+      var changed = '';
+      await tester.pumpWidget(
+        buildTestApp(
+          TioInput.numericEditor(
+            onChanged: (value) => changed = value,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          ),
+        ),
+      );
+
+      await tester.enterText(find.byType(TextFormField), '1a2b');
+      expect(changed, '12');
+
+      await tester.pumpWidget(
+        buildTestApp(
+          TioInput.numericEditor(
+            enabled: false,
+            onChanged: (_) {},
+          ),
+        ),
+      );
+
+      expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
     });
 
     testWidgets('renders error text when provided', (tester) async {
@@ -298,6 +401,17 @@ void main() {
         );
         expect(field.textCapitalization, TextCapitalization.none);
         expect(field.decoration!.suffixText, isNull);
+      });
+
+      testWidgets('standard variant remains the default', (tester) async {
+        await tester.pumpWidget(
+          buildTestApp(TioInput(onChanged: (_) {})),
+        );
+
+        expect(
+          tester.widget<TioInput>(find.byType(TioInput)).variant,
+          TioInputVariant.standard,
+        );
       });
     });
   });

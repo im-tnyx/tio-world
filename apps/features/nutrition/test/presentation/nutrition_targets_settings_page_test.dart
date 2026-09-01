@@ -383,11 +383,30 @@ void main() {
 
       await openEditor(tester, NutritionTargetField.fiber);
       await type(tester, NutritionTargetField.fiber, '999');
-      Navigator.of(tester.element(find.byType(TextField))).pop();
+      Navigator.of(tester.element(find.byKey(
+        const ValueKey('nutrition-target-fiber-input'),
+      ))).pop();
       await tester.pumpAndSettle();
 
       expect(saves, 0);
       expect(find.text('28 g'), findsOneWidget);
+    });
+
+    testWidgets('keyboard Done submits through the existing save path',
+        (tester) async {
+      NutritionTargetsData? saved;
+      await pumpPage(
+        tester,
+        targets: recommended,
+        onSave: (targets) async => saved = targets,
+      );
+
+      await openEditor(tester, NutritionTargetField.fiber);
+      await type(tester, NutritionTargetField.fiber, '31');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(saved!.fiberGrams, 31);
     });
   });
 
