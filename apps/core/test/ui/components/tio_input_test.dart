@@ -96,7 +96,7 @@ void main() {
     });
   });
 
-  // Phase #24-A: six additive optional parameters. Each test proves the value
+  // Phase #24-A: five additive optional parameters. Each test proves the value
   // reaches the underlying field, and that omitting it leaves today's
   // behaviour untouched — this slice migrates no consumer and is intended to
   // change nothing that currently renders.

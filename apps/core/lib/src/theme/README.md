@@ -393,7 +393,7 @@ core reusable dialogs/pickers/sheets
 
 ### Editable field capabilities
 
-`TioInput` is the generic editable field. Alongside the label/hint/error, leading/trailing, focus, controller and line-count options it already owned, it now forwards six optional capabilities to the underlying field:
+`TioInput` is the generic editable field. Alongside the label/hint/error, leading/trailing, focus, controller and line-count options it already owned, it now forwards five optional capabilities to the underlying field:
 
 - `validator` — form validation callback
 - `autofillHints` — platform autofill hints
