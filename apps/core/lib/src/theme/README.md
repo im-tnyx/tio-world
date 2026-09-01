@@ -44,7 +44,7 @@ final shadows = context.tioShadows;
 final textTheme = Theme.of(context).textTheme;
 ```
 
-Prefer reusable core UI such as `TioButton`, `TioSocialButton`, `TioInlineInfoAction`, `TioInput`, `TioUsernameInputField`, `TioMobileNumberField`, `TioCard`, `TioConfirmationCard`, `TioAvatar`, and shared dialogs/pickers/sheets before rebuilding the same contract in a feature.
+Prefer reusable core UI such as `TioButton`, `TioSocialButton`, `TioInlineInfoAction`, `TioInput`, `TioUsernameInputField`, `TioMobileNumberField`, `TioCard`, `TioConfirmationCard`, `TioGroupCard`, the `TioSettings*` row family, `TioAvatar`, and shared dialogs/pickers/sheets before rebuilding the same contract in a feature.
 
 A normal feature edit should not require opening internal token source. Inspect `apps/core/lib/src/theme/tokens/**` only when a documented role is missing/ambiguous, runtime source and this README disagree, or the task intentionally changes the core design-system contract.
 
@@ -390,6 +390,21 @@ core reusable dialogs/pickers/sheets
 `TioInlineInfoAction` owns the compact contextual-info treatment used in feature footers: a `12px` `w500` label, `16px` icon, theme-resolved secondary text color, and compact governed padding without the global `TextButton` minimum height. Features provide only the label, optional icon, and callback.
 
 `TioConfirmationCard` is the generic themed confirm/cancel card composition. Product-specific copy, consequences, persistence, and navigation remain feature-owned. Present the card through the surface that fits the workflow, such as a modal sheet, rather than creating a product-action-specific dialog/token bag.
+
+### Neutral Settings grouping and rows
+
+`TioGroupCard` is the neutral, **non-selectable** grouping surface for canonical grouped Settings and Nutrition rows. It owns the `surfaceRaised` material, shared radius, clipping, and child ordering while callers compose their own rows and separators. It does not represent selected or unselected state; selection cards remain a separate component contract.
+
+Use the public Settings-row family when its demonstrated contract matches instead of recreating the same card/row geometry in a feature:
+
+- `TioSettingsNavigationRow` provides a tappable navigation row with a caller-supplied leading widget, title, supporting text, and optional chevron.
+- `TioSettingsLeadingIcon` provides the canonical themed leading-icon treatment for navigation rows.
+- `TioSettingsValueRow` provides a tappable label/value editor row. Its value remains caller-composed, it supports an optional annotation and `labelSingleLine` behavior, and callers may use either the built-in edit affordance or a custom trailing widget, never both.
+- `TioSettingsValueText` provides the standard right-aligned value presentation for `TioSettingsValueRow`.
+- `TioSettingsEditAffordance` provides the standard neutral edit affordance.
+- `TioSettingsReadOnlyRow` provides a non-interactive label/value detail row without tap or edit affordances.
+
+Features still own callbacks, navigation, values, keys, domain copy, and intentionally specialised value presentation. Keep a feature-local composition only when its hierarchy or behavior does not match these public contracts.
 
 `showTioInformationBottomSheet` is the reusable presenter for standard explanatory/informational content. It owns the modal shell, safe-area handling, close action, icon slot, title/body layout, and governed primary dismiss button. Features supply only the title, message, action label, and optional icon. Do not rebuild a bespoke information sheet when this presenter matches the intent.
 

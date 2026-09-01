@@ -19,8 +19,9 @@ void main() {
     WidgetTester tester, {
     required NutritionProfileData profile,
     required Future<void> Function(NutritionProfileData) onSave,
+    Size physicalSize = const Size(390, 1400),
   }) async {
-    tester.view.physicalSize = const Size(390, 1400);
+    tester.view.physicalSize = physicalSize;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -57,6 +58,29 @@ void main() {
       expect(find.text('None'), findsOneWidget);
       // Diet Type is still genuinely unknown.
       expect(find.text('Not set'), findsOneWidget);
+    });
+
+    testWidgets('restrictions label stays single-line at compact phone width',
+        (tester) async {
+      await pumpPage(
+        tester,
+        profile: const NutritionProfileData(),
+        onSave: (_) async {},
+        physicalSize: const Size(320, 700),
+      );
+
+      final labelFinder = find.descendant(
+        of: find.byKey(
+          const ValueKey('nutrition-profile-allergies-field'),
+        ),
+        matching: find.text('Allergies & Restrictions'),
+      );
+      expect(labelFinder, findsOneWidget);
+
+      final label = tester.widget<Text>(labelFinder);
+      expect(label.maxLines, 1);
+      expect(label.overflow, TextOverflow.ellipsis);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('answered values render canonical labels', (tester) async {
