@@ -101,34 +101,41 @@ class SettingsPage extends StatelessWidget {
           ),
           children: [
             const _SettingsSectionHeader(title: 'ACCOUNT & PROFILE'),
-            _SettingsGroupCard(
+            TioGroupCard(
               children: [
-                _SettingsTile(
+                TioSettingsNavigationRow(
                   key: const ValueKey('settings-profile-settings-entry'),
-                  icon: Icons.person_outline_rounded,
+                  leading: const TioSettingsLeadingIcon(
+                    icon: Icons.person_outline_rounded,
+                  ),
                   title: 'Profile Settings',
-                  subtitle: 'Name, username, demographics & body metrics',
+                  supportingText: 'Name, username, demographics & body metrics',
                   onTap: onProfileSettingsPressed,
                 ),
                 const _SettingsDivider(),
-                _SettingsTile(
+                TioSettingsNavigationRow(
                   key: const ValueKey('settings-account-settings-entry'),
-                  icon: Icons.shield_outlined,
+                  leading: const TioSettingsLeadingIcon(
+                    icon: Icons.shield_outlined,
+                  ),
                   title: 'Account Settings',
-                  subtitle: 'Email, mobile, linked account & delete account',
+                  supportingText:
+                      'Email, mobile, linked account & delete account',
                   onTap: onAccountSettingsPressed,
                 ),
               ],
             ),
             const SizedBox(height: TioSpacing.lg),
             const _SettingsSectionHeader(title: 'HEALTH & GOALS'),
-            _SettingsGroupCard(
+            TioGroupCard(
               children: [
-                _SettingsTile(
+                TioSettingsNavigationRow(
                   key: const ValueKey('settings-health-goals-entry'),
-                  icon: Icons.track_changes_rounded,
+                  leading: const TioSettingsLeadingIcon(
+                    icon: Icons.track_changes_rounded,
+                  ),
                   title: 'Health & Goals',
-                  subtitle: 'Daily Wellness targets',
+                  supportingText: 'Daily Wellness targets',
                   onTap: onHealthGoalsPressed,
                 ),
               ],
@@ -136,13 +143,15 @@ class SettingsPage extends StatelessWidget {
             if (showNutritionSection) ...[
               const SizedBox(height: TioSpacing.lg),
               const _SettingsSectionHeader(title: 'NUTRITION'),
-              _SettingsGroupCard(
+              TioGroupCard(
                 children: [
-                  _SettingsTile(
+                  TioSettingsNavigationRow(
                     key: const ValueKey('settings-nutrition-entry'),
-                    icon: Icons.restaurant_menu_rounded,
+                    leading: const TioSettingsLeadingIcon(
+                      icon: Icons.restaurant_menu_rounded,
+                    ),
                     title: 'Nutrition & Diet',
-                    subtitle: 'Diet Type, allergies & restrictions',
+                    supportingText: 'Diet Type, allergies & restrictions',
                     onTap: onNutritionPressed,
                   ),
                 ],
@@ -150,28 +159,32 @@ class SettingsPage extends StatelessWidget {
             ],
             const SizedBox(height: TioSpacing.lg),
             const _SettingsSectionHeader(title: 'PREFERENCES'),
-            _SettingsGroupCard(
+            TioGroupCard(
               children: [
-                _SettingsTile(
+                TioSettingsNavigationRow(
                   key: const ValueKey('settings-app-settings-entry'),
-                  icon: Icons.tune_rounded,
+                  leading: const TioSettingsLeadingIcon(
+                    icon: Icons.tune_rounded,
+                  ),
                   title: 'App Preferences',
-                  subtitle: 'App Mode, theme & units',
+                  supportingText: 'App Mode, theme & units',
                   onTap: onAppSettingsPressed,
                 ),
               ],
             ),
             const SizedBox(height: TioSpacing.lg),
             const _SettingsSectionHeader(title: 'SESSION'),
-            _SettingsGroupCard(
+            TioGroupCard(
               children: [
-                _SettingsTile(
+                TioSettingsNavigationRow(
                   key: const ValueKey('settings-logout-entry'),
-                  icon: Icons.logout_rounded,
-                  iconColor: colors.danger,
+                  leading: TioSettingsLeadingIcon(
+                    icon: Icons.logout_rounded,
+                    color: colors.danger,
+                  ),
                   titleColor: colors.danger,
                   title: 'Log Out',
-                  subtitle: 'Sign out of your Tio account on this device',
+                  supportingText: 'Sign out of your Tio account on this device',
                   showChevron: false,
                   onTap: () => _showLogoutDialog(context),
                 ),
@@ -210,22 +223,6 @@ class _SettingsSectionHeader extends StatelessWidget {
   }
 }
 
-class _SettingsGroupCard extends StatelessWidget {
-  const _SettingsGroupCard({required this.children});
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.tioColors;
-    return Material(
-      color: colors.surfaceRaised,
-      borderRadius: BorderRadius.circular(TioRadius.lg),
-      clipBehavior: Clip.antiAlias,
-      child: Column(mainAxisSize: MainAxisSize.min, children: children),
-    );
-  }
-}
-
 class _SettingsDivider extends StatelessWidget {
   const _SettingsDivider();
 
@@ -237,90 +234,6 @@ class _SettingsDivider extends StatelessWidget {
       thickness: TioStroke.width1,
       indent: TioSize.dp64,
       color: colors.outlineStrong.withAlpha(TioAlpha.alpha20),
-    );
-  }
-}
-
-class _SettingsTile extends StatelessWidget {
-  const _SettingsTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    this.iconColor,
-    this.titleColor,
-    this.showChevron = true,
-    this.onTap,
-    super.key,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color? iconColor;
-  final Color? titleColor;
-  final bool showChevron;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.tioColors;
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: TioSpacing.lg,
-          vertical: TioSpacing.md + TioSize.dp4,
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: TioSize.dp40,
-              height: TioSize.dp40,
-              decoration: BoxDecoration(
-                color:
-                    (iconColor ?? colors.primary).withAlpha(TioAlpha.alpha18),
-                borderRadius: BorderRadius.circular(TioRadius.sm),
-              ),
-              child: Icon(
-                icon,
-                size: TioSize.dp22,
-                color: iconColor ?? colors.primary,
-              ),
-            ),
-            const SizedBox(width: TioSpacing.lg),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: titleColor ?? colors.textPrimary,
-                      fontWeight: TioFontWeight.w700,
-                      fontSize: TioFontSize.size15,
-                    ),
-                  ),
-                  const SizedBox(height: TioSpacing.xxs),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: colors.textSecondary,
-                      fontSize: TioFontSize.size12,
-                      fontWeight: TioFontWeight.w400,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (showChevron)
-              Icon(
-                Icons.chevron_right_rounded,
-                size: TioSize.dp20,
-                color: colors.textMuted,
-              ),
-          ],
-        ),
-      ),
     );
   }
 }
