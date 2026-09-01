@@ -10,6 +10,9 @@ enum TioInputVariant {
 
   /// Compact, high-visibility number field for workout sets/reps, weights, and timers.
   compactNumber,
+
+  /// Dense, left-aligned number field for exact-value editor surfaces.
+  numericEditor,
 }
 
 /// Reusable input field adhering to AGENTS.md and Material 3 design tokens.
@@ -17,6 +20,7 @@ enum TioInputVariant {
 /// Supports:
 /// - [TioInputVariant.standard] for general form entries.
 /// - [TioInputVariant.compactNumber] for fast table inputs with `selectAllOnFocus`.
+/// - [TioInputVariant.numericEditor] for dense exact-value editor surfaces.
 class TioInput extends StatefulWidget {
   const TioInput({
     required this.onChanged,
@@ -85,6 +89,46 @@ class TioInput extends StatefulWidget {
     this.suffixText,
     super.key,
   }) : variant = TioInputVariant.compactNumber;
+
+  /// Dense numeric field for exact-value editor surfaces.
+  ///
+  /// Unlike [TioInput.compactNumber], this variant remains left-aligned, does
+  /// not select all on focus, and retains the dense [InputDecoration] defaults
+  /// used by exact-value editors. The active input-decoration theme continues
+  /// to supply fill, border, radius, and padding. Callers continue to own the
+  /// numeric formatter, unit text, validation, and submit behavior.
+  const TioInput.numericEditor({
+    required this.onChanged,
+    this.value,
+    this.controller,
+    this.hint,
+    this.helperText,
+    this.errorText,
+    this.enabled = true,
+    this.readOnly = false,
+    this.keyboardType = const TextInputType.numberWithOptions(decimal: true),
+    this.textInputAction = TextInputAction.done,
+    this.onSubmitted,
+    this.focusNode,
+    this.autofocus = false,
+    this.textStyle,
+    this.contentPadding,
+    this.validator,
+    this.autofillHints,
+    this.inputFormatters,
+    this.textCapitalization = TextCapitalization.none,
+    this.suffixText,
+    super.key,
+  })  : label = null,
+        leading = null,
+        trailing = null,
+        obscureText = false,
+        maxLines = 1,
+        minLines = null,
+        maxLength = null,
+        textAlign = TextAlign.start,
+        selectAllOnFocus = false,
+        variant = TioInputVariant.numericEditor;
 
   final String? value;
   final TextEditingController? controller;
@@ -226,20 +270,27 @@ class _TioInputState extends State<TioInput> {
     final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
     final isCompact = widget.variant == TioInputVariant.compactNumber;
+    final isNumericEditor = widget.variant == TioInputVariant.numericEditor;
     final isDark = colors.isDark;
     final hasError = widget.errorText != null;
 
-    final defaultTextStyle = isCompact
-        ? TextStyle(
-            color: hasError
-                ? colors.danger
-                : (widget.enabled ? colors.textPrimary : colors.textMuted),
-            fontSize: TioInputTokens.compactTextFontSize,
-            fontWeight: TioFontWeight.w700,
-          )
-        : textTheme.bodyLarge?.copyWith(
-            color: hasError ? colors.danger : colors.textPrimary,
-          );
+    final defaultTextStyle = switch (widget.variant) {
+      TioInputVariant.compactNumber => TextStyle(
+          color: hasError
+              ? colors.danger
+              : (widget.enabled ? colors.textPrimary : colors.textMuted),
+          fontSize: TioInputTokens.compactTextFontSize,
+          fontWeight: TioFontWeight.w700,
+        ),
+      TioInputVariant.numericEditor => TextStyle(
+          color: colors.textPrimary,
+          fontSize: TioInputTokens.numericEditorTextFontSize,
+          fontWeight: TioFontWeight.w700,
+        ),
+      TioInputVariant.standard => textTheme.bodyLarge?.copyWith(
+          color: hasError ? colors.danger : colors.textPrimary,
+        ),
+    };
 
     final inputBorderRadius = BorderRadius.circular(TioInputTokens.radius);
     final unfocusedBorderColor = colors.outlineStrong.withValues(
@@ -281,7 +332,7 @@ class _TioInputState extends State<TioInput> {
       autofocus: widget.autofocus,
       obscureText: widget.obscureText,
       keyboardType: widget.keyboardType ??
-          (isCompact
+          (isCompact || isNumericEditor
               ? const TextInputType.numberWithOptions(decimal: true)
               : TextInputType.text),
       textInputAction: widget.textInputAction,
@@ -299,52 +350,74 @@ class _TioInputState extends State<TioInput> {
       textAlignVertical: isCompact ? TextAlignVertical.center : null,
       style: widget.textStyle ?? defaultTextStyle,
       cursorColor: hasError ? colors.danger : colors.primary,
-      decoration: InputDecoration(
-        labelText: isCompact ? null : widget.label,
-        hintText: widget.hint,
-        helperText: hasError ? null : widget.helperText,
-        errorText: widget.errorText,
-        prefixIcon: widget.leading,
-        suffixIcon: widget.trailing,
-        // Null unless a consumer opts in, so no field gains a suffix by
-        // default and nothing currently rendered changes.
-        suffixText: widget.suffixText,
-        counterText: isCompact ? '' : null,
-        filled: !isCompact,
-        fillColor: colors.surface,
-        labelStyle: TextStyle(
-          color: hasError
-              ? colors.danger
-              : (_isFocused ? colors.textPrimary : colors.textSecondary),
-          fontSize: TioInputTokens.labelFontSize,
-        ),
-        floatingLabelStyle: TextStyle(
-          color: hasError ? colors.danger : colors.textPrimary,
-          fontSize: TioInputTokens.labelFontSize,
-          fontWeight: TioFontWeight.w500,
-        ),
-        hintStyle: TextStyle(
-          color: colors.textMuted,
-          fontSize: isCompact
-              ? TioInputTokens.compactHintFontSize
-              : TioInputTokens.standardHintFontSize,
-          fontWeight: isCompact ? TioFontWeight.w600 : TioFontWeight.w400,
-        ),
-        enabledBorder: effectiveBorder,
-        focusedBorder: effectiveFocusedBorder,
-        errorBorder: effectiveBorder,
-        focusedErrorBorder: effectiveFocusedBorder,
-        contentPadding: widget.contentPadding ??
-            (isCompact
-                ? const EdgeInsets.symmetric(
-                    vertical: TioInputTokens.compactContentVerticalPadding,
-                    horizontal: TioInputTokens.compactContentHorizontalPadding,
-                  )
-                : const EdgeInsets.symmetric(
-                    horizontal: TioInputTokens.horizontalPadding,
-                    vertical: TioInputTokens.standardContentVerticalPadding,
-                  )),
-      ),
+      decoration: isNumericEditor
+          ? InputDecoration(
+              isDense: true,
+              hintText: widget.hint,
+              helperText: hasError ? null : widget.helperText,
+              errorText: widget.errorText,
+              suffixText: widget.suffixText,
+              suffixStyle: TextStyle(
+                color: colors.textSecondary,
+                fontSize: TioInputTokens.numericEditorSuffixFontSize,
+              ),
+              hintStyle: TextStyle(
+                color: colors.textMuted,
+                fontSize: TioInputTokens.numericEditorHintFontSize,
+                fontWeight: TioFontWeight.w400,
+              ),
+              // Null preserves the active theme's existing dense padding.
+              contentPadding: widget.contentPadding,
+            )
+          : InputDecoration(
+              labelText: isCompact ? null : widget.label,
+              hintText: widget.hint,
+              helperText: hasError ? null : widget.helperText,
+              errorText: widget.errorText,
+              prefixIcon: widget.leading,
+              suffixIcon: widget.trailing,
+              // Null unless a consumer opts in, so no field gains a suffix by
+              // default and nothing currently rendered changes.
+              suffixText: widget.suffixText,
+              counterText: isCompact ? '' : null,
+              filled: !isCompact,
+              fillColor: colors.surface,
+              labelStyle: TextStyle(
+                color: hasError
+                    ? colors.danger
+                    : (_isFocused ? colors.textPrimary : colors.textSecondary),
+                fontSize: TioInputTokens.labelFontSize,
+              ),
+              floatingLabelStyle: TextStyle(
+                color: hasError ? colors.danger : colors.textPrimary,
+                fontSize: TioInputTokens.labelFontSize,
+                fontWeight: TioFontWeight.w500,
+              ),
+              hintStyle: TextStyle(
+                color: colors.textMuted,
+                fontSize: isCompact
+                    ? TioInputTokens.compactHintFontSize
+                    : TioInputTokens.standardHintFontSize,
+                fontWeight: isCompact ? TioFontWeight.w600 : TioFontWeight.w400,
+              ),
+              enabledBorder: effectiveBorder,
+              focusedBorder: effectiveFocusedBorder,
+              errorBorder: effectiveBorder,
+              focusedErrorBorder: effectiveFocusedBorder,
+              contentPadding: widget.contentPadding ??
+                  (isCompact
+                      ? const EdgeInsets.symmetric(
+                          vertical:
+                              TioInputTokens.compactContentVerticalPadding,
+                          horizontal:
+                              TioInputTokens.compactContentHorizontalPadding,
+                        )
+                      : const EdgeInsets.symmetric(
+                          horizontal: TioInputTokens.horizontalPadding,
+                          vertical:
+                              TioInputTokens.standardContentVerticalPadding,
+                        )),
+            ),
     );
   }
 }
