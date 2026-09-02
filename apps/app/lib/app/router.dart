@@ -113,6 +113,7 @@ ChromePolicy shellChromePolicyForPath(String location) {
     AppRoutes.nutritionProfileSettings,
     AppRoutes.nutritionTargetsSettings,
     AppRoutes.nutritionMacrosSettings,
+    AppRoutes.nutritionAdditionalGoalsSettings,
     AppRoutes.profileSettings,
     AppRoutes.accountSettings,
     AppRoutes.appSettings,
@@ -795,6 +796,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               targets: targetsAsync.valueOrNull ?? const NutritionTargetsData(),
               onEditMacros: () =>
                   context.push(AppRoutes.nutritionMacrosSettings.path),
+              onEditAdditionalGoals: () =>
+                  context.push(AppRoutes.nutritionAdditionalGoalsSettings.path),
               onSave: (targets) async {
                 final repository = ref.read(nutritionTargetsRepositoryProvider);
                 await repository.upsert(targets);
@@ -831,6 +834,48 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               onSave: (targets) async {
                 final repository = ref.read(nutritionTargetsRepositoryProvider);
                 await repository.upsert(targets);
+                ref.invalidate(nutritionTargetsDataProvider);
+              },
+            );
+          },
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.nutritionAdditionalGoalsSettings.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => Consumer(
+          builder: (context, ref, _) {
+            final targetsAsync = ref.watch(nutritionTargetsDataProvider);
+
+            if (targetsAsync.isLoading && !targetsAsync.hasValue) {
+              return const Scaffold(
+                body: SafeArea(
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              );
+            }
+
+            if (targetsAsync.hasError && !targetsAsync.hasValue) {
+              return _NutritionLoadFailure(
+                title: 'Could not load Additional Nutrient Goals',
+                onRetry: () => ref.invalidate(nutritionTargetsDataProvider),
+              );
+            }
+
+            final targets =
+                targetsAsync.valueOrNull ?? const NutritionTargetsData();
+            // Date of birth is read, never copied into goal storage. A profile
+            // that has not loaded simply makes the age-gated recommendations
+            // underivable, which the screen shows explicitly.
+            final profile = ref.watch(profileDataProvider).valueOrNull;
+
+            return AdditionalNutrientGoalsPage(
+              goals: targets.additionalNutrientGoals,
+              caloriesKcal: targets.caloriesKcal,
+              dateOfBirth: profile?.dateOfBirth,
+              onSave: (goals) async {
+                final repository = ref.read(nutritionTargetsRepositoryProvider);
+                await repository.updateAdditionalNutrientGoals(goals);
                 ref.invalidate(nutritionTargetsDataProvider);
               },
             );

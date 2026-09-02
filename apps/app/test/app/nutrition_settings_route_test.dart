@@ -84,6 +84,18 @@ void main() {
       shellChromePolicyForPath(AppRoutes.nutritionProfileSettings.path),
       ChromePolicy.fullScreen,
     );
+    expect(
+      shellChromePolicyForPath(AppRoutes.nutritionTargetsSettings.path),
+      ChromePolicy.fullScreen,
+    );
+    expect(
+      shellChromePolicyForPath(AppRoutes.nutritionMacrosSettings.path),
+      ChromePolicy.fullScreen,
+    );
+    expect(
+      shellChromePolicyForPath(AppRoutes.nutritionAdditionalGoalsSettings.path),
+      ChromePolicy.fullScreen,
+    );
     // Negative control: the fallback is a different policy, so the two
     // assertions above genuinely prove registration rather than passing by
     // coincidence.
@@ -263,8 +275,8 @@ void main() {
     expect(written.proteinGrams, 150);
     expect(written.carbohydrateGrams, 200);
     expect(written.fatGrams, 55.6);
-    expect(written.recommendationMetadata,
-        {'source': 'onboarding', 'bmr': 1600});
+    expect(
+        written.recommendationMetadata, {'source': 'onboarding', 'bmr': 1600});
     expect(written.customizedFields, {'fiber'});
 
     // The route re-read the canonical owner, so the row is not stale.
@@ -426,6 +438,7 @@ class _FakeNutritionTargetsRepository implements NutritionTargetsRepository {
 
   NutritionTargetsData? stored;
   final writes = <NutritionTargetsData>[];
+  final additionalGoalWrites = <AdditionalNutrientGoalSet>[];
   var readCount = 0;
 
   @override
@@ -438,5 +451,16 @@ class _FakeNutritionTargetsRepository implements NutritionTargetsRepository {
   Future<void> upsert(NutritionTargetsData targets) async {
     writes.add(targets);
     stored = targets;
+  }
+
+  @override
+  Future<void> updateAdditionalNutrientGoals(
+    AdditionalNutrientGoalSet goals,
+  ) async {
+    // Mirrors the real adapter's separation: this write touches only the
+    // Additional Nutrient Goals, leaving every core-five value in place.
+    additionalGoalWrites.add(goals);
+    stored = (stored ?? const NutritionTargetsData())
+        .withAdditionalNutrientGoals(goals);
   }
 }
