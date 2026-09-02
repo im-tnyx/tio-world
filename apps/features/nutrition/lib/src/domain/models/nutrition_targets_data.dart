@@ -1,3 +1,5 @@
+import 'additional_nutrient_goal.dart';
+
 enum NutritionTargetCustomizationState {
   unknown,
   recommended,
@@ -44,6 +46,7 @@ class NutritionTargetsData {
     this.customizationState = NutritionTargetCustomizationState.unknown,
     this.customizedFields = const {},
     this.recommendationMetadata = const {},
+    this.additionalNutrientGoals = const AdditionalNutrientGoalSet.empty(),
   });
 
   final int? caloriesKcal;
@@ -54,6 +57,7 @@ class NutritionTargetsData {
   final NutritionTargetCustomizationState customizationState;
   final Set<String> customizedFields;
   final Map<String, Object?> recommendationMetadata;
+  final AdditionalNutrientGoalSet additionalNutrientGoals;
 
   /// Mirrors live storage-level constraints without inventing narrower product
   /// or clinical ranges.
@@ -69,7 +73,23 @@ class NutritionTargetsData {
     _requireNonnegativeFinite(carbohydrateGrams, 'carbohydrateGrams');
     _requireNonnegativeFinite(fatGrams, 'fatGrams');
     _requireNonnegativeFinite(fiberGrams, 'fiberGrams');
+    additionalNutrientGoals.validate();
   }
+
+  NutritionTargetsData withAdditionalNutrientGoals(
+    AdditionalNutrientGoalSet goals,
+  ) =>
+      NutritionTargetsData(
+        caloriesKcal: caloriesKcal,
+        proteinGrams: proteinGrams,
+        carbohydrateGrams: carbohydrateGrams,
+        fatGrams: fatGrams,
+        fiberGrams: fiberGrams,
+        customizationState: customizationState,
+        customizedFields: customizedFields,
+        recommendationMetadata: recommendationMetadata,
+        additionalNutrientGoals: goals,
+      );
 }
 
 void _requireNonnegativeFinite(double? value, String name) {

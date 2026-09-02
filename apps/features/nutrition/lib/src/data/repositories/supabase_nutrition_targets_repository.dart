@@ -1,7 +1,9 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/models/nutrition_targets_data.dart';
+import '../../domain/models/additional_nutrient_goal.dart';
 import '../../domain/repositories/nutrition_targets_repository.dart';
+import '../additional_nutrient_goals_v1_codec.dart';
 
 typedef CurrentNutritionTargetsUserId = String? Function();
 
@@ -24,7 +26,7 @@ final class SupabaseNutritionTargetsTableGateway
         .select(
           'calories_kcal, protein_grams, carbohydrate_grams, fat_grams, '
           'fiber_grams, customization_state, customized_fields, '
-          'recommendation_metadata',
+          'recommendation_metadata, additional_nutrient_goals',
         )
         .eq('user_id', userId)
         .maybeSingle();
@@ -87,6 +89,9 @@ final class SupabaseNutritionTargetsRepository
         row['recommendation_metadata'],
         'recommendation_metadata',
       ),
+      additionalNutrientGoals: AdditionalNutrientGoalsV1Codec.decode(
+        row['additional_nutrient_goals'],
+      ).goals,
     );
 
     try {
@@ -118,6 +123,29 @@ final class SupabaseNutritionTargetsRepository
       'customized_fields': customizedFields,
       'recommendation_metadata':
           Map<String, Object?>.from(targets.recommendationMetadata),
+      // Deliberately omitted: a core-five/old-client write must preserve the
+      // existing additional_nutrient_goals value in PostgREST.
+    });
+  }
+
+  @override
+  Future<void> updateAdditionalNutrientGoals(
+    AdditionalNutrientGoalSet goals,
+  ) async {
+    final userId = _requireUserId();
+    goals.validate();
+
+    // Re-read immediately before the merge so opaque fields added by another
+    // client are not replaced from stale UI state.
+    final current = await _gateway.readRow(userId);
+    final decoded = AdditionalNutrientGoalsV1Codec.decode(
+      current?['additional_nutrient_goals'],
+    );
+    final payload = AdditionalNutrientGoalsV1Codec.encodeUpdated(decoded, goals);
+
+    await _gateway.upsertRow({
+      'user_id': userId,
+      'additional_nutrient_goals': payload,
     });
   }
 

@@ -205,6 +205,7 @@ abstract final class NutritionTargetEditor {
       // Never rewritten by an edit. Regenerating or clearing it would destroy
       // the provenance of the original recommendation.
       recommendationMetadata: current.recommendationMetadata,
+      additionalNutrientGoals: current.additionalNutrientGoals,
     );
 
     return NutritionTargetsData(
@@ -216,6 +217,7 @@ abstract final class NutritionTargetEditor {
       customizationState: _resolveState(next),
       customizedFields: customizedFields,
       recommendationMetadata: next.recommendationMetadata,
+      additionalNutrientGoals: next.additionalNutrientGoals,
     );
   }
 
@@ -286,6 +288,7 @@ abstract final class NutritionTargetEditor {
       customizationState: current.customizationState,
       customizedFields: customizedFields,
       recommendationMetadata: current.recommendationMetadata,
+      additionalNutrientGoals: current.additionalNutrientGoals,
     );
 
     return NutritionTargetsData(
@@ -297,6 +300,7 @@ abstract final class NutritionTargetEditor {
       customizationState: _resolveState(next),
       customizedFields: customizedFields,
       recommendationMetadata: next.recommendationMetadata,
+      additionalNutrientGoals: next.additionalNutrientGoals,
     );
   }
 
