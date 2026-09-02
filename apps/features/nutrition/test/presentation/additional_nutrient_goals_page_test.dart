@@ -14,7 +14,8 @@ void main() {
   final adultDob = DateTime(1990, 1, 1);
   final minorDob = DateTime(2015, 1, 1);
 
-  late List<AdditionalNutrientGoalSet> saved;
+  /// Each entry is one nutrient delta, matching the repository contract.
+  late List<(NutrientId, AdditionalNutrientGoal?)> saved;
 
   setUp(() => saved = []);
 
@@ -27,7 +28,7 @@ void main() {
     // absent", and defaulting a null back to an adult date of birth silently
     // turns a no-DOB test into an adult one.
     bool withoutDateOfBirth = false,
-    Future<void> Function(AdditionalNutrientGoalSet)? onSave,
+    Future<void> Function(NutrientId, AdditionalNutrientGoal?)? onSave,
   }) async {
     tester.view.physicalSize = const Size(390, 1400);
     tester.view.devicePixelRatio = 1;
@@ -42,7 +43,8 @@ void main() {
         caloriesKcal: caloriesKcal,
         dateOfBirth: withoutDateOfBirth ? null : (dateOfBirth ?? adultDob),
         now: now,
-        onSave: onSave ?? (updated) async => saved.add(updated),
+        onSave: onSave ??
+            (nutrientId, goal) async => saved.add((nutrientId, goal)),
       ),
     ));
     await tester.pumpAndSettle();
@@ -263,7 +265,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          saved.single[NutrientId.transFat]!.customValue,
+          saved.single.$2!.customValue,
           value,
           reason: 'Reopening and saving silently rewrote $value',
         );
@@ -357,14 +359,14 @@ void main() {
       )));
       await tester.pumpAndSettle();
 
-      final result = saved.single;
-      expect(result.contains(NutrientId.vitaminD), isTrue);
+      final (nutrientId, goal) = saved.single;
+      expect(nutrientId, NutrientId.vitaminD);
       expect(
-        result[NutrientId.vitaminD]!.customValue,
+        goal!.customValue,
         isNull,
         reason: 'custom_value null is the stored Recommended state.',
       );
-      expect(result[NutrientId.vitaminD]!.usesRecommendation, isTrue);
+      expect(goal.usesRecommendation, isTrue);
     });
 
     testWidgets('the resulting row reads Recommended, not Custom',
@@ -435,11 +437,11 @@ void main() {
       await tester.tap(rowFor(nutrientId));
       await tester.pumpAndSettle();
 
+      // Guidance is the canonical sheet's own supporting-text slot, so read
+      // it off the component rather than from a feature-owned Text.
       return tester
-          .widget<Text>(
-            find.byKey(const ValueKey('additional-nutrient-goal-guidance')),
-          )
-          .data!;
+          .widget<TioEditorSheet>(find.byType(TioEditorSheet))
+          .supportingText!;
     }
 
     testWidgets('sodium never mentions Calories, which its rule does not use',
@@ -569,8 +571,10 @@ void main() {
         reason: 'A custom value must not bypass the eligibility rule.',
       );
       expect(
-        find.byKey(const ValueKey('additional-nutrient-goal-guidance')),
-        findsOneWidget,
+        tester
+            .widget<TioEditorSheet>(find.byType(TioEditorSheet))
+            .supportingText,
+        isNotNull,
       );
       expect(saved, isEmpty, reason: 'Nothing may be written.');
     });
@@ -622,7 +626,8 @@ void main() {
       )));
       await tester.pumpAndSettle();
 
-      expect(saved.single.contains(NutrientId.vitaminD), isFalse);
+      expect(saved.single.$1, NutrientId.vitaminD);
+      expect(saved.single.$2, isNull, reason: 'A null goal removes it.');
     });
   });
 
@@ -662,7 +667,7 @@ void main() {
       )));
       await tester.pumpAndSettle();
 
-      expect(saved.single[NutrientId.vitaminD]!.customValue, 18);
+      expect(saved.single.$2!.customValue, 18);
     });
 
     testWidgets('saves an explicit zero rather than rejecting it',
@@ -680,7 +685,7 @@ void main() {
       )));
       await tester.pumpAndSettle();
 
-      expect(saved.single[NutrientId.transFat]!.customValue, 0);
+      expect(saved.single.$2!.customValue, 0);
     });
 
     testWidgets('rejects a non-numeric value without saving', (tester) async {
@@ -727,9 +732,9 @@ void main() {
       )));
       await tester.pumpAndSettle();
 
-      final result = saved.single;
-      expect(result.contains(NutrientId.vitaminD), isTrue);
-      expect(result[NutrientId.vitaminD]!.customValue, isNull);
+      final (nutrientId, goal) = saved.single;
+      expect(nutrientId, NutrientId.vitaminD);
+      expect(goal!.customValue, isNull);
     });
 
     testWidgets('Turn off removes the goal', (tester) async {
@@ -747,7 +752,8 @@ void main() {
       )));
       await tester.pumpAndSettle();
 
-      expect(saved.single.contains(NutrientId.sodium), isFalse);
+      expect(saved.single.$1, NutrientId.sodium);
+      expect(saved.single.$2, isNull, reason: 'A null goal removes it.');
     });
 
     testWidgets('offers no value entry when the recommendation is underivable',
@@ -762,8 +768,10 @@ void main() {
         reason: 'A custom value must not be used to bypass eligibility.',
       );
       expect(
-        find.byKey(const ValueKey('additional-nutrient-goal-guidance')),
-        findsOneWidget,
+        tester
+            .widget<TioEditorSheet>(find.byType(TioEditorSheet))
+            .supportingText,
+        isNotNull,
       );
     });
 
@@ -771,7 +779,7 @@ void main() {
         (tester) async {
       await pumpPage(
         tester,
-        onSave: (_) async => throw StateError('offline'),
+        onSave: (_, __) async => throw StateError('offline'),
       );
       await tester.tap(rowFor(NutrientId.vitaminD));
       await tester.pumpAndSettle();
@@ -794,6 +802,131 @@ void main() {
         findsOneWidget,
         reason: 'The editor stays open so the user can retry.',
       );
+    });
+  });
+
+  group('canonical editor surface (Codex finding: TioEditorSheet)', () {
+    testWidgets('the editor is the canonical sheet, not a raw column',
+        (tester) async {
+      await pumpPage(tester);
+      await tester.tap(rowFor(NutrientId.vitaminD));
+      await tester.pumpAndSettle();
+
+      // The chrome this asserts is what keeps Save reachable above a raised
+      // keyboard: the sheet owns viewInsets padding, the scrollable body and
+      // the pinned action region.
+      expect(find.byType(TioEditorSheet), findsOneWidget);
+      expect(find.byKey(const ValueKey('tio-editor-sheet')), findsOneWidget);
+    });
+
+    testWidgets('the title and guidance use the canonical slots',
+        (tester) async {
+      await pumpPage(tester);
+      await tester.tap(rowFor(NutrientId.vitaminD));
+      await tester.pumpAndSettle();
+
+      final sheet = tester.widget<TioEditorSheet>(find.byType(TioEditorSheet));
+      expect(sheet.title, 'Vitamin D');
+      expect(sheet.supportingText, contains('Recommended'));
+    });
+
+    testWidgets('the commit actions are pinned outside the scroll view',
+        (tester) async {
+      await pumpPage(tester);
+      await tester.tap(rowFor(NutrientId.vitaminD));
+      await tester.pumpAndSettle();
+
+      final sheet = tester.widget<TioEditorSheet>(find.byType(TioEditorSheet));
+      expect(sheet.actions, isNotNull);
+      expect(
+        find.descendant(
+          of: find.byType(SingleChildScrollView),
+          matching: find.byKey(const ValueKey('additional-nutrient-goal-save')),
+        ),
+        findsNothing,
+        reason: 'Save inside the scroll view can fall below the fold.',
+      );
+    });
+  });
+
+  group('locale decimal separator (Codex finding)', () {
+    testWidgets('a comma decimal is accepted and normalised', (tester) async {
+      await pumpPage(tester);
+      await tester.tap(rowFor(NutrientId.saturatedFat));
+      await tester.pumpAndSettle();
+
+      // What a comma-decimal keyboard sends for 22.5.
+      await tester.enterText(
+        find.byKey(const ValueKey('additional-nutrient-goal-input')),
+        '22,5',
+      );
+      await tester.tap(find.byKey(const ValueKey(
+        'additional-nutrient-goal-save',
+      )));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('additional-nutrient-goal-error')),
+        findsNothing,
+      );
+      expect(saved.single.$2!.customValue, 22.5);
+    });
+
+    testWidgets('the field does not silently drop the typed comma',
+        (tester) async {
+      await pumpPage(tester);
+      await tester.tap(rowFor(NutrientId.saturatedFat));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const ValueKey('additional-nutrient-goal-input')),
+        '22,5',
+      );
+      await tester.pump();
+
+      expect(
+        tester
+            .widget<EditableText>(find.byType(EditableText).first)
+            .controller
+            .text,
+        '22,5',
+        reason: 'A stripped comma would turn 22,5 into an unintended 225.',
+      );
+    });
+  });
+
+  group('very small custom values (Codex finding)', () {
+    testWidgets('a value far below the display default is never shown as 0',
+        (tester) async {
+      await pumpPage(
+        tester,
+        goals: const AdditionalNutrientGoalSet.empty().withGoal(
+          const AdditionalNutrientGoal(
+            nutrientId: NutrientId.saturatedFat,
+            customValue: 0.0000001,
+          ),
+        ),
+      );
+
+      expect(
+        find.text('0 g'),
+        findsNothing,
+        reason: 'An explicit zero means something else entirely here.',
+      );
+      expect(find.text('0.0000001 g'), findsOneWidget);
+    });
+
+    test('formatting stays nonzero past fixed notation', () {
+      // Smaller than toStringAsFixed can express at all: the fallback is
+      // Dart's shortest round-trippable form rather than a misleading "0".
+      final text = formatNutrientAmount(NutrientId.saturatedFat, 1e-21);
+
+      expect(text, isNot('0 g'));
+      expect(double.parse(text.split(' ').first), 1e-21);
+    });
+
+    test('an explicit zero still formats as zero', () {
+      expect(formatNutrientAmount(NutrientId.saturatedFat, 0), '0 g');
     });
   });
 }

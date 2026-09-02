@@ -618,8 +618,9 @@ class _FailingNutritionTargetsRepository
   }
 
   @override
-  Future<void> updateAdditionalNutrientGoals(
-    nutrition_owner.AdditionalNutrientGoalSet goals,
+  Future<void> updateAdditionalNutrientGoal(
+    NutrientId nutrientId,
+    nutrition_owner.AdditionalNutrientGoal? goal,
   ) async {
     // Onboarding never configures Additional Nutrient Goals. Failing loudly
     // keeps that boundary honest if it ever changes.

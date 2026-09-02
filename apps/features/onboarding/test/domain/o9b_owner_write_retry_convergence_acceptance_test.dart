@@ -158,10 +158,11 @@ class _FailOnceNutritionTargetsRepository
   }
 
   @override
-  Future<void> updateAdditionalNutrientGoals(
-    nutrition_owner.AdditionalNutrientGoalSet goals,
+  Future<void> updateAdditionalNutrientGoal(
+    NutrientId nutrientId,
+    nutrition_owner.AdditionalNutrientGoal? goal,
   ) =>
-      _delegate.updateAdditionalNutrientGoals(goals);
+      _delegate.updateAdditionalNutrientGoal(nutrientId, goal);
 }
 
 class _FakeCompletionRepository implements OnboardingCompletionRepository {

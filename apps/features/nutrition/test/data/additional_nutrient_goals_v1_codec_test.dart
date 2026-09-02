@@ -9,13 +9,17 @@ import 'package:tio_shared/shared.dart';
 /// read-modify-write must not silently drop anything it did not understand,
 /// and it must never rewrite a payload written by a newer schema.
 void main() {
+  /// Applies one nutrient's change onto a stored envelope, the way the
+  /// repository does.
   Map<String, Object?> roundTrip(
     Object? stored,
-    AdditionalNutrientGoalSet updated,
+    NutrientId nutrientId,
+    AdditionalNutrientGoal? goal,
   ) =>
-      AdditionalNutrientGoalsV1Codec.encodeUpdated(
+      AdditionalNutrientGoalsV1Codec.encodeGoalDelta(
         AdditionalNutrientGoalsV1Codec.decode(stored),
-        updated,
+        nutrientId,
+        goal,
       );
 
   group('decode', () {
@@ -161,12 +165,8 @@ void main() {
             'added_sugar': {'custom_value': 25, 'future_flag': true},
           },
         },
-        AdditionalNutrientGoalSet.fromGoals([
-          const AdditionalNutrientGoal(
-            nutrientId: NutrientId.sodium,
-            customValue: 1200,
-          ),
-        ]),
+        NutrientId.sodium,
+        const AdditionalNutrientGoal(nutrientId: NutrientId.sodium, customValue: 1200),
       );
 
       final goals = encoded['goals']! as Map<String, Object?>;
@@ -186,9 +186,8 @@ void main() {
           'written_by': 'future-client',
           'future_settings': {'nested': true},
         },
-        const AdditionalNutrientGoalSet.empty().withGoal(
-          const AdditionalNutrientGoal(nutrientId: NutrientId.vitaminD),
-        ),
+        NutrientId.vitaminD,
+        const AdditionalNutrientGoal(nutrientId: NutrientId.vitaminD),
       );
 
       expect(encoded['written_by'], 'future-client');
@@ -208,12 +207,8 @@ void main() {
             },
           },
         },
-        AdditionalNutrientGoalSet.fromGoals([
-          const AdditionalNutrientGoal(
-            nutrientId: NutrientId.vitaminD,
-            customValue: 20,
-          ),
-        ]),
+        NutrientId.vitaminD,
+        const AdditionalNutrientGoal(nutrientId: NutrientId.vitaminD, customValue: 20),
       );
 
       final entry =
@@ -235,9 +230,11 @@ void main() {
       };
 
       final decoded = AdditionalNutrientGoalsV1Codec.decode(stored);
-      final encoded = AdditionalNutrientGoalsV1Codec.encodeUpdated(
+      // Re-write sodium exactly as decoded: nothing else may move.
+      final encoded = AdditionalNutrientGoalsV1Codec.encodeGoalDelta(
         decoded,
-        decoded.goals,
+        NutrientId.sodium,
+        decoded.goals[NutrientId.sodium],
       );
 
       expect(encoded['unknown_root'], [1, 2, 3]);
@@ -257,9 +254,8 @@ void main() {
             'vitamin_d': {'custom_value': 18},
           },
         },
-        const AdditionalNutrientGoalSet.empty().withGoal(
-          const AdditionalNutrientGoal(nutrientId: NutrientId.vitaminD),
-        ),
+        NutrientId.vitaminD,
+        const AdditionalNutrientGoal(nutrientId: NutrientId.vitaminD),
       );
 
       final goals = encoded['goals']! as Map<String, Object?>;
@@ -267,7 +263,7 @@ void main() {
       expect((goals['vitamin_d']! as Map)['custom_value'], isNull);
     });
 
-    test('disabling removes the nutrient key', () {
+    test('a null goal removes that nutrient key and only that one', () {
       final encoded = roundTrip(
         {
           'schema_version': 1,
@@ -276,28 +272,41 @@ void main() {
             'vitamin_d': {'custom_value': 18},
           },
         },
-        AdditionalNutrientGoalSet.fromGoals([
-          const AdditionalNutrientGoal(
-            nutrientId: NutrientId.vitaminD,
-            customValue: 18,
-          ),
-        ]),
+        NutrientId.vitaminD,
+        null,
       );
 
       final goals = encoded['goals']! as Map<String, Object?>;
-      expect(goals.containsKey('sodium'), isFalse);
-      expect(goals.containsKey('vitamin_d'), isTrue);
+      expect(goals.containsKey('vitamin_d'), isFalse);
+      expect(
+        goals['sodium'],
+        {'custom_value': 1500},
+        reason: 'Turning one nutrient off is not a set replacement.',
+      );
+    });
+
+    test('removing an absent nutrient is a no-op, not an error', () {
+      final encoded = roundTrip(
+        {
+          'schema_version': 1,
+          'goals': {
+            'sodium': {'custom_value': 1500},
+          },
+        },
+        NutrientId.vitaminD,
+        null,
+      );
+
+      expect(encoded['goals'], {
+        'sodium': {'custom_value': 1500},
+      });
     });
 
     test('writes an explicit zero rather than dropping it', () {
       final encoded = roundTrip(
         null,
-        AdditionalNutrientGoalSet.fromGoals([
-          const AdditionalNutrientGoal(
-            nutrientId: NutrientId.transFat,
-            customValue: 0,
-          ),
-        ]),
+        NutrientId.transFat,
+        const AdditionalNutrientGoal(nutrientId: NutrientId.transFat, customValue: 0),
       );
 
       final entry =
@@ -309,9 +318,8 @@ void main() {
     test('creates a valid V1 envelope from a null column', () {
       final encoded = roundTrip(
         null,
-        const AdditionalNutrientGoalSet.empty().withGoal(
-          const AdditionalNutrientGoal(nutrientId: NutrientId.sodium),
-        ),
+        NutrientId.sodium,
+        const AdditionalNutrientGoal(nutrientId: NutrientId.sodium),
       );
 
       expect(encoded['schema_version'], 1);
@@ -329,9 +337,10 @@ void main() {
       });
 
       expect(
-        () => AdditionalNutrientGoalsV1Codec.encodeUpdated(
+        () => AdditionalNutrientGoalsV1Codec.encodeGoalDelta(
           decoded,
-          const AdditionalNutrientGoalSet.empty(),
+          NutrientId.sodium,
+          const AdditionalNutrientGoal(nutrientId: NutrientId.sodium),
         ),
         throwsStateError,
         reason: 'An older client must never downgrade newer data.',
@@ -341,12 +350,8 @@ void main() {
     test('does not add an enabled flag alongside custom_value', () {
       final encoded = roundTrip(
         null,
-        AdditionalNutrientGoalSet.fromGoals([
-          const AdditionalNutrientGoal(
-            nutrientId: NutrientId.sodium,
-            customValue: 1500,
-          ),
-        ]),
+        NutrientId.sodium,
+        const AdditionalNutrientGoal(nutrientId: NutrientId.sodium, customValue: 1500),
       );
 
       final entry =
@@ -357,9 +362,8 @@ void main() {
     test('does not persist derived or canonical truth', () {
       final encoded = roundTrip(
         null,
-        AdditionalNutrientGoalSet.fromGoals([
-          const AdditionalNutrientGoal(nutrientId: NutrientId.saturatedFat),
-        ]),
+        NutrientId.saturatedFat,
+        const AdditionalNutrientGoal(nutrientId: NutrientId.saturatedFat),
       );
 
       final entry =

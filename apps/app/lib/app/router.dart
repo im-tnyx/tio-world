@@ -864,18 +864,40 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
             final targets =
                 targetsAsync.valueOrNull ?? const NutritionTargetsData();
-            // Date of birth is read, never copied into goal storage. A profile
-            // that has not loaded simply makes the age-gated recommendations
-            // underivable, which the screen shows explicitly.
-            final profile = ref.watch(profileDataProvider).valueOrNull;
+
+            // Date of birth is read, never copied into goal storage. It gates
+            // every recommendation on this screen, so a profile that failed to
+            // load is not interchangeable with one that has no date of birth:
+            // `valueOrNull` alone would render a transient network error as
+            // four permanently "Unavailable" nutrients and, under the frozen
+            // eligibility rule, silently block editing — with nothing on
+            // screen saying why or offering a retry.
+            final profileAsync = ref.watch(profileDataProvider);
+
+            if (profileAsync.isLoading && !profileAsync.hasValue) {
+              return const Scaffold(
+                body: SafeArea(
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              );
+            }
+
+            if (profileAsync.hasError && !profileAsync.hasValue) {
+              return _NutritionLoadFailure(
+                title: 'Could not load your profile',
+                onRetry: () => ref.invalidate(profileDataProvider),
+              );
+            }
+
+            final profile = profileAsync.valueOrNull;
 
             return AdditionalNutrientGoalsPage(
               goals: targets.additionalNutrientGoals,
               caloriesKcal: targets.caloriesKcal,
               dateOfBirth: profile?.dateOfBirth,
-              onSave: (goals) async {
+              onSave: (nutrientId, goal) async {
                 final repository = ref.read(nutritionTargetsRepositoryProvider);
-                await repository.updateAdditionalNutrientGoals(goals);
+                await repository.updateAdditionalNutrientGoal(nutrientId, goal);
                 ref.invalidate(nutritionTargetsDataProvider);
               },
             );

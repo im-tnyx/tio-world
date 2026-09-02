@@ -1,3 +1,5 @@
+import 'package:tio_shared/shared.dart';
+
 import '../domain/models/nutrition_targets_data.dart';
 import '../domain/models/additional_nutrient_goal.dart';
 import '../domain/repositories/nutrition_targets_repository.dart';
@@ -20,11 +22,16 @@ class InMemoryNutritionTargetsRepository
   }
 
   @override
-  Future<void> updateAdditionalNutrientGoals(
-    AdditionalNutrientGoalSet goals,
+  Future<void> updateAdditionalNutrientGoal(
+    NutrientId nutrientId,
+    AdditionalNutrientGoal? goal,
   ) async {
-    goals.validate();
-    _data = (_data ?? const NutritionTargetsData())
-        .withAdditionalNutrientGoals(goals);
+    goal?.validate();
+    final current = _data ?? const NutritionTargetsData();
+    final existing = current.additionalNutrientGoals;
+    // Mirrors the real adapter: only this nutrient's key changes.
+    _data = current.withAdditionalNutrientGoals(
+      goal == null ? existing.without(nutrientId) : existing.withGoal(goal),
+    );
   }
 }

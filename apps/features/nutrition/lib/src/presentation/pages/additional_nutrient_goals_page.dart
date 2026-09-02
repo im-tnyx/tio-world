@@ -34,8 +34,16 @@ class AdditionalNutrientGoalsPage extends StatelessWidget {
   /// Vitamin D band. It is never copied into goal storage.
   final DateTime? dateOfBirth;
 
-  /// Persists the merged goal set through the canonical owner.
-  final Future<void> Function(AdditionalNutrientGoalSet goals) onSave;
+  /// Persists one nutrient's change through the canonical owner.
+  ///
+  /// Deliberately a single-nutrient delta rather than the whole set: [goals]
+  /// is a snapshot from when this screen loaded, so writing all of it back
+  /// would delete anything another client configured in the meantime. A null
+  /// goal removes the nutrient.
+  final Future<void> Function(
+    NutrientId nutrientId,
+    AdditionalNutrientGoal? goal,
+  ) onSave;
 
   /// Injectable clock so age boundaries are testable.
   final DateTime? now;
@@ -62,22 +70,29 @@ class AdditionalNutrientGoalsPage extends StatelessWidget {
     NutrientId nutrientId,
     String label,
   ) async {
+    final goal = goals[nutrientId];
+    final recommendation = _recommendationFor(nutrientId);
+
     await showTioEditorSheet<void>(
       context: context,
       builder: (context) => _GoalEditorSheet(
         nutrientId: nutrientId,
         label: label,
-        goal: goals[nutrientId],
-        recommendation: _recommendationFor(nutrientId),
+        goal: goal,
+        recommendation: recommendation,
+        // The eligibility rule lives in the domain, so this editor and any
+        // future surface offering the same actions cannot drift apart.
+        capability: AdditionalNutrientGoalEditCapability.forGoal(
+          goal: goal,
+          recommendation: recommendation,
+        ),
         blockers: AdditionalNutrientRecommendationPolicy.blockersFor(
           nutrientId: nutrientId,
           caloriesKcal: caloriesKcal,
           dateOfBirth: dateOfBirth,
           now: now ?? DateTime.now(),
         ),
-        onApply: (updated) => onSave(updated == null
-            ? goals.without(nutrientId)
-            : goals.withGoal(updated)),
+        onApply: (updated) => onSave(nutrientId, updated),
       ),
     );
   }
@@ -342,18 +357,33 @@ String formatNutrientGoalAmount(
 /// precision is widened as needed rather than rendering a real value as "0" —
 /// showing "0 g" for a stored 0.04 g would misreport the user's own goal, and
 /// an explicit zero has its own distinct meaning here.
+///
+/// The widening is not capped at an arbitrary decimal count. `toStringAsFixed`
+/// itself stops at 20 fraction digits, so a goal smaller than 1e-20 — or one
+/// whose magnitude simply outruns fixed notation — falls back to Dart's own
+/// shortest round-trippable form (`1e-21`). That is unfamiliar, but it is
+/// honest: the alternative renders a nonzero goal identically to the explicit
+/// zero that means something entirely different here.
 String formatNutrientAmount(NutrientId nutrientId, double value) {
   final unit = nutrientId.canonicalUnit;
   final defaultDecimals = unit == NutrientUnit.g ? 1 : 0;
 
   var text = _trimTrailingZero(value.toStringAsFixed(defaultDecimals));
   if (value != 0 && double.tryParse(text) == 0) {
-    for (var decimals = defaultDecimals + 1; decimals <= 6; decimals++) {
-      text = _trimTrailingZero(value.toStringAsFixed(decimals));
-      if (double.tryParse(text) != 0) break;
-    }
+    text = _shortestNonZero(value, defaultDecimals);
   }
   return '$text ${unit.storageValue}';
+}
+
+/// The shortest fixed-notation rendering of [value] that is not itself zero,
+/// falling back to `double.toString()` when no fixed rendering qualifies.
+String _shortestNonZero(double value, int fromDecimals) {
+  // 20 is toStringAsFixed's documented maximum; past it the call throws.
+  for (var decimals = fromDecimals + 1; decimals <= 20; decimals++) {
+    final text = _trimTrailingZero(value.toStringAsFixed(decimals));
+    if (double.tryParse(text) != 0) return text;
+  }
+  return value.toString();
 }
 
 String _trimTrailingZero(String value) =>
@@ -367,6 +397,7 @@ class _GoalEditorSheet extends StatefulWidget {
     required this.label,
     required this.goal,
     required this.recommendation,
+    required this.capability,
     required this.blockers,
     required this.onApply,
   });
@@ -375,6 +406,10 @@ class _GoalEditorSheet extends StatefulWidget {
   final String label;
   final AdditionalNutrientGoal? goal;
   final NutrientRecommendation recommendation;
+
+  /// Which actions the domain permits. This widget renders it; it does not
+  /// decide it.
+  final AdditionalNutrientGoalEditCapability capability;
 
   /// Unmet prerequisites for this nutrient, so the copy can name the input
   /// that would actually unblock it rather than every input V1 knows about.
@@ -392,13 +427,7 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
   bool _isSaving = false;
   String? _error;
 
-  bool get _isConfigured => widget.goal != null;
-  bool get _canOverride => widget.recommendation.isAvailable;
-
-  /// Already enabled and following the recommendation, so there is nothing for
-  /// "Use Recommended" to change.
-  bool get _isOnRecommendation =>
-      widget.goal != null && widget.goal!.usesRecommendation;
+  AdditionalNutrientGoalEditCapability get _capability => widget.capability;
 
   @override
   void initState() {
@@ -434,7 +463,10 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
   }
 
   Future<void> _saveCustom() async {
-    final raw = _controller.text.trim();
+    // Comma-decimal keyboards send "22,5" for the same value a dot keyboard
+    // sends as "22.5". Storage is always the canonical dot form, so the comma
+    // is normalised on the way in rather than rejected as non-numeric.
+    final raw = _controller.text.trim().replaceAll(',', '.');
     final parsed = double.tryParse(raw);
     if (parsed == null || !parsed.isFinite || parsed < 0) {
       // Zero is a valid, meaningful goal here (a trans-fat target of 0), so
@@ -455,118 +487,123 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
     final unit = widget.nutrientId.canonicalUnit.storageValue;
     final recommended = widget.recommendation.recommendedValue;
 
+    // The canonical editor surface owns keyboard insets, the scrollable body
+    // and the pinned action region. Content and actions are supplied as its
+    // two slots so a raised keyboard can never push Save below the fold.
+    return TioEditorSheet(
+      title: widget.label,
+      supportingText: _guidance(recommended, unit),
+      // A drag must not discard a write already in flight.
+      canDismiss: !_isSaving,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_capability.canSetCustomValue)
+            TioInput(
+              key: const ValueKey('additional-nutrient-goal-input'),
+              controller: _controller,
+              label: 'Your value',
+              hint: recommended == null ? '' : _readableNumber(recommended),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                // Comma is allowed through because comma-decimal keyboards
+                // have no other way to type a fraction; it is normalised to
+                // the canonical dot on save.
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+              ],
+              trailing: Text(
+                unit,
+                style: TextStyle(
+                  color: colors.textSecondary,
+                  fontWeight: TioFontWeight.w600,
+                ),
+              ),
+              onChanged: (_) {
+                if (_error != null) setState(() => _error = null);
+              },
+            ),
+          // The stored override is still shown when it can no longer be
+          // edited, so a user whose prerequisites went away can see the value
+          // they saved rather than an empty sheet.
+          if (_capability.isValuePreserved &&
+              widget.goal!.customValue != null) ...[
+            const SizedBox(height: TioSpacing.md),
+            _PreservedCustomValue(
+              key: const ValueKey('additional-nutrient-goal-preserved-custom'),
+              nutrientId: widget.nutrientId,
+              value: widget.goal!.customValue!,
+              comparison: widget.recommendation.comparison,
+            ),
+          ],
+          if (_error case final error?) ...[
+            const SizedBox(height: TioSpacing.md),
+            Text(
+              error,
+              key: const ValueKey('additional-nutrient-goal-error'),
+              style: TextStyle(
+                color: colors.danger,
+                fontSize: TioFontSize.size13,
+                fontWeight: TioFontWeight.w600,
+              ),
+            ),
+          ],
+        ],
+      ),
+      actions: _actions(colors),
+    );
+  }
+
+  /// The commit region. Which actions exist is the domain's decision, read off
+  /// [AdditionalNutrientGoalEditCapability]; this only lays them out.
+  Widget? _actions(TioColors colors) {
+    final buttons = <Widget>[
+      if (_capability.canSetCustomValue)
+        TioButton.primary(
+          key: const ValueKey('additional-nutrient-goal-save'),
+          label: 'Save',
+          loading: _isSaving,
+          expand: true,
+          onPressed: _saveCustom,
+        ),
+      // Covers two paths to the same stored state: an unconfigured nutrient
+      // opting in (Not set -> Recommended, without being forced to invent a
+      // Custom value first), and a custom goal reverting. Both persist
+      // `custom_value: null`.
+      if (_capability.canUseRecommendation)
+        TioButton.secondary(
+          key: const ValueKey('additional-nutrient-goal-use-recommended'),
+          label: 'Use Recommended',
+          expand: true,
+          onPressed: _isSaving
+              ? null
+              : () => _apply(
+                    AdditionalNutrientGoal(nutrientId: widget.nutrientId),
+                  ),
+        ),
+      if (_capability.canTurnOff)
+        TextButton(
+          key: const ValueKey('additional-nutrient-goal-remove'),
+          onPressed: _isSaving ? null : () => _apply(null),
+          child: Text(
+            'Turn off',
+            style: TextStyle(
+              color: colors.danger,
+              fontWeight: TioFontWeight.w700,
+            ),
+          ),
+        ),
+    ];
+    if (buttons.isEmpty) return null;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          widget.label,
-          style: TextStyle(
-            color: colors.textPrimary,
-            fontWeight: TioFontWeight.w800,
-            fontSize: TioFontSize.size18,
-          ),
-        ),
-        const SizedBox(height: TioSpacing.sm),
-        Text(
-          _guidance(recommended, unit),
-          key: const ValueKey('additional-nutrient-goal-guidance'),
-          style: TextStyle(
-            color: colors.textSecondary,
-            fontSize: TioFontSize.size13,
-            height: TioLineHeight.height140,
-          ),
-        ),
-        const SizedBox(height: TioSpacing.lg),
-        if (_canOverride) ...[
-          TioInput(
-            key: const ValueKey('additional-nutrient-goal-input'),
-            controller: _controller,
-            label: 'Your value',
-            hint: recommended == null ? '' : _readableNumber(recommended),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-            ],
-            trailing: Text(
-              unit,
-              style: TextStyle(
-                color: colors.textSecondary,
-                fontWeight: TioFontWeight.w600,
-              ),
-            ),
-            onChanged: (_) {
-              if (_error != null) setState(() => _error = null);
-            },
-          ),
-          const SizedBox(height: TioSpacing.md),
-        ],
-        if (_error case final error?) ...[
-          Text(
-            error,
-            key: const ValueKey('additional-nutrient-goal-error'),
-            style: TextStyle(
-              color: colors.danger,
-              fontSize: TioFontSize.size13,
-              fontWeight: TioFontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: TioSpacing.md),
-        ],
-        // Owner decision: an unconfigured nutrient whose recommendation cannot
-        // be derived is not enableable. Turning it on would create a goal with
-        // nothing to show and no permitted way to set it, and letting the user
-        // type a value instead would use Custom to bypass the eligibility rule
-        // the policy exists to enforce. An already-configured goal keeps its
-        // stored value and can still be turned off, below.
-        if (_canOverride)
-          TioButton.primary(
-            key: const ValueKey('additional-nutrient-goal-save'),
-            label: 'Save',
-            loading: _isSaving,
-            expand: true,
-            onPressed: _saveCustom,
-          )
-        else if (_isConfigured && widget.goal!.customValue != null)
-          _PreservedCustomValue(
-            key: const ValueKey('additional-nutrient-goal-preserved-custom'),
-            nutrientId: widget.nutrientId,
-            value: widget.goal!.customValue!,
-            comparison: widget.recommendation.comparison,
-          ),
-        // Offered whenever the goal is not already sitting on the
-        // recommendation, which covers two paths to the same state: an
-        // unconfigured nutrient opting in (Not set -> Recommended, without
-        // being forced to invent a Custom value first), and a custom goal
-        // reverting. Both persist `custom_value: null`, which is the stored
-        // Recommended state. Gated on `_canOverride`, so an unavailable
-        // recommendation still offers no way to enable anything.
-        if (_canOverride && !_isOnRecommendation) ...[
-          const SizedBox(height: TioSpacing.sm),
-          TioButton.secondary(
-            key: const ValueKey('additional-nutrient-goal-use-recommended'),
-            label: 'Use Recommended',
-            expand: true,
-            onPressed: _isSaving
-                ? null
-                : () => _apply(
-                      AdditionalNutrientGoal(nutrientId: widget.nutrientId),
-                    ),
-          ),
-        ],
-        if (_isConfigured) ...[
-          const SizedBox(height: TioSpacing.sm),
-          TextButton(
-            key: const ValueKey('additional-nutrient-goal-remove'),
-            onPressed: _isSaving ? null : () => _apply(null),
-            child: Text(
-              'Turn off',
-              style: TextStyle(
-                color: colors.danger,
-                fontWeight: TioFontWeight.w700,
-              ),
-            ),
-          ),
+        for (final (index, button) in buttons.indexed) ...[
+          if (index > 0) const SizedBox(height: TioSpacing.sm),
+          button,
         ],
       ],
     );

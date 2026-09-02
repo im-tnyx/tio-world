@@ -1,3 +1,5 @@
+import 'package:tio_shared/shared.dart';
+
 import '../domain/models/additional_nutrient_goal.dart';
 
 /// Decode result keeps the opaque persistence envelope inside the data layer.
@@ -93,16 +95,35 @@ final class AdditionalNutrientGoalsV1Codec {
     );
   }
 
-  static Map<String, Object?> encodeUpdated(
+  /// Applies a single nutrient's change onto the freshly decoded envelope.
+  ///
+  /// Deliberately a one-nutrient delta rather than a full-set replacement.
+  /// A screen's goal set is a snapshot from whenever it loaded, so writing all
+  /// four authorized keys from it would delete a nutrient another client added
+  /// in the meantime — re-reading first does not help, because the stale set
+  /// still says "absent" for that nutrient. Only the key being edited is
+  /// touched; every other entry, authorized or not, is carried through from
+  /// the fresh envelope untouched.
+  ///
+  /// A null [goal] removes the nutrient; otherwise it is created or updated.
+  static Map<String, Object?> encodeGoalDelta(
     AdditionalNutrientGoalsDecodeResult decoded,
-    AdditionalNutrientGoalSet updated,
+    NutrientId nutrientId,
+    AdditionalNutrientGoal? goal,
   ) {
-    if (!decoded.goals.isWritable || !updated.isWritable) {
+    if (!decoded.goals.isWritable) {
       throw StateError(
         'This Additional Nutrient Goals schema is newer and read-only.',
       );
     }
-    updated.validate();
+    if (!AdditionalNutrientGoalSet.authorizedNutrients.contains(nutrientId)) {
+      throw ArgumentError.value(
+        nutrientId,
+        'nutrientId',
+        'Nutrient is outside Additional Nutrient Goals V1.',
+      );
+    }
+    goal?.validate();
 
     final envelope = <String, Object?>{
       ...?decoded._rawEnvelope,
@@ -113,14 +134,10 @@ final class AdditionalNutrientGoalsV1Codec {
         ? _requireObject(existingGoals, 'additional_nutrient_goals.goals')
         : <String, Object?>{};
 
-    for (final nutrientId in AdditionalNutrientGoalSet.authorizedNutrients) {
-      final storageValue = nutrientId.storageValue;
-      final goal = updated[nutrientId];
-      if (goal == null) {
-        goals.remove(storageValue);
-        continue;
-      }
-
+    final storageValue = nutrientId.storageValue;
+    if (goal == null) {
+      goals.remove(storageValue);
+    } else {
       final previous = goals[storageValue];
       final entry = previous is Map
           ? _requireObject(

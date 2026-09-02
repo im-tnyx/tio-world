@@ -118,13 +118,9 @@ void main() {
       });
       final repository = _repository(gateway: gateway);
 
-      await repository.updateAdditionalNutrientGoals(
-        AdditionalNutrientGoalSet.fromGoals([
-          const AdditionalNutrientGoal(
-            nutrientId: NutrientId.sodium,
-            customValue: 1500,
-          ),
-        ]),
+      await repository.updateAdditionalNutrientGoal(
+        NutrientId.sodium,
+        const AdditionalNutrientGoal(nutrientId: NutrientId.sodium, customValue: 1500),
       );
 
       final payload = gateway.upsertPayloads.single;
@@ -160,10 +156,9 @@ void main() {
       });
       final repository = _repository(gateway: gateway);
 
-      await repository.updateAdditionalNutrientGoals(
-        AdditionalNutrientGoalSet.fromGoals([
-          const AdditionalNutrientGoal(nutrientId: NutrientId.vitaminD),
-        ]),
+      await repository.updateAdditionalNutrientGoal(
+        NutrientId.vitaminD,
+        const AdditionalNutrientGoal(nutrientId: NutrientId.vitaminD),
       );
 
       expect(
@@ -194,10 +189,9 @@ void main() {
       final repository = _repository(gateway: gateway);
 
       await expectLater(
-        () => repository.updateAdditionalNutrientGoals(
-          AdditionalNutrientGoalSet.fromGoals([
-            const AdditionalNutrientGoal(nutrientId: NutrientId.sodium),
-          ]),
+        () => repository.updateAdditionalNutrientGoal(
+          NutrientId.sodium,
+          const AdditionalNutrientGoal(nutrientId: NutrientId.sodium),
         ),
         throwsStateError,
       );
@@ -214,13 +208,156 @@ void main() {
       final repository = _repository(gateway: gateway, userId: null);
 
       await expectLater(
-        () => repository.updateAdditionalNutrientGoals(
-          const AdditionalNutrientGoalSet.empty(),
+        () => repository.updateAdditionalNutrientGoal(
+          NutrientId.sodium,
+          const AdditionalNutrientGoal(nutrientId: NutrientId.sodium),
         ),
         throwsStateError,
       );
       expect(gateway.readUserIds, isEmpty);
       expect(gateway.upsertPayloads, isEmpty);
+    });
+  });
+
+  group('concurrent edits from another client are never lost', () {
+    // The screen holds a snapshot of the goal set from whenever it loaded.
+    // The bug class this group pins is a full-set replacement: re-reading
+    // before the write does not fix it, because the stale snapshot still
+    // says "absent" for a nutrient another client has since configured, and
+    // an absent authorized key means "delete this nutrient".
+    const staleSnapshot = AdditionalNutrientGoalSet.empty();
+
+    Map<String, dynamic> rowWithSodium() => {
+          'additional_nutrient_goals': {
+            'schema_version': 1,
+            'goals': {
+              'sodium': {'custom_value': 1500},
+            },
+          },
+        };
+
+    Map<String, Object?> goalsOf(_FakeTargetsGateway gateway) =>
+        ((gateway.upsertPayloads.single['additional_nutrient_goals']
+                as Map<String, Object?>)['goals']! as Map)
+            .cast<String, Object?>();
+
+    test('Sodium added by another client survives a local Vitamin D enable',
+        () async {
+      expect(
+        staleSnapshot.contains(NutrientId.sodium),
+        isFalse,
+        reason: 'The screen loaded before the other client wrote Sodium.',
+      );
+      final gateway = _FakeTargetsGateway(readResult: rowWithSodium());
+      final repository = _repository(gateway: gateway);
+
+      await repository.updateAdditionalNutrientGoal(
+        NutrientId.vitaminD,
+        const AdditionalNutrientGoal(nutrientId: NutrientId.vitaminD),
+      );
+
+      final goals = goalsOf(gateway);
+      expect(
+        goals['sodium'],
+        {'custom_value': 1500},
+        reason: 'Editing Vitamin D must not touch Sodium.',
+      );
+      expect(goals['vitamin_d'], {'custom_value': null});
+    });
+
+    test('Sodium added by another client survives a local Vitamin D disable',
+        () async {
+      final gateway = _FakeTargetsGateway(readResult: {
+        'additional_nutrient_goals': {
+          'schema_version': 1,
+          'goals': {
+            'sodium': {'custom_value': 1500},
+            'vitamin_d': {'custom_value': 18},
+          },
+        },
+      });
+      final repository = _repository(gateway: gateway);
+
+      await repository.updateAdditionalNutrientGoal(NutrientId.vitaminD, null);
+
+      final goals = goalsOf(gateway);
+      expect(goals.containsKey('vitamin_d'), isFalse);
+      expect(
+        goals['sodium'],
+        {'custom_value': 1500},
+        reason: 'Turning one nutrient off is not a set replacement.',
+      );
+    });
+
+    test('a local Sodium edit changes Sodium and nothing else', () async {
+      final gateway = _FakeTargetsGateway(readResult: {
+        'additional_nutrient_goals': {
+          'schema_version': 1,
+          'goals': {
+            'sodium': {'custom_value': 1500},
+            'vitamin_d': {'custom_value': 18},
+            'saturated_fat': {'custom_value': null},
+          },
+        },
+      });
+      final repository = _repository(gateway: gateway);
+
+      await repository.updateAdditionalNutrientGoal(
+        NutrientId.sodium,
+        const AdditionalNutrientGoal(
+          nutrientId: NutrientId.sodium,
+          customValue: 1200,
+        ),
+      );
+
+      final goals = goalsOf(gateway);
+      expect((goals['sodium']! as Map)['custom_value'], 1200);
+      expect(goals['vitamin_d'], {'custom_value': 18});
+      expect(goals['saturated_fat'], {'custom_value': null});
+    });
+
+    test('a local Sodium removal removes Sodium and nothing else', () async {
+      final gateway = _FakeTargetsGateway(readResult: {
+        'additional_nutrient_goals': {
+          'schema_version': 1,
+          'goals': {
+            'sodium': {'custom_value': 1500},
+            'vitamin_d': {'custom_value': 18},
+          },
+        },
+      });
+      final repository = _repository(gateway: gateway);
+
+      await repository.updateAdditionalNutrientGoal(NutrientId.sodium, null);
+
+      final goals = goalsOf(gateway);
+      expect(goals.containsKey('sodium'), isFalse);
+      expect(goals['vitamin_d'], {'custom_value': 18});
+    });
+
+    test('the in-memory repository loses nothing either', () async {
+      // Test doubles that replace the whole set would let the production
+      // regression pass unnoticed in every screen-level test.
+      final repository = InMemoryNutritionTargetsRepository();
+      await repository.upsert(const NutritionTargetsData(
+        additionalNutrientGoals: AdditionalNutrientGoalSet.empty(),
+      ));
+      await repository.updateAdditionalNutrientGoal(
+        NutrientId.sodium,
+        const AdditionalNutrientGoal(
+          nutrientId: NutrientId.sodium,
+          customValue: 1500,
+        ),
+      );
+
+      await repository.updateAdditionalNutrientGoal(
+        NutrientId.vitaminD,
+        const AdditionalNutrientGoal(nutrientId: NutrientId.vitaminD),
+      );
+
+      final goals = (await repository.read())!.additionalNutrientGoals;
+      expect(goals[NutrientId.sodium]!.customValue, 1500);
+      expect(goals.contains(NutrientId.vitaminD), isTrue);
     });
   });
 

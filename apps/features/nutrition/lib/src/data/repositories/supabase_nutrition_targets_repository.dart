@@ -1,3 +1,4 @@
+import 'package:tio_shared/shared.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/models/nutrition_targets_data.dart';
@@ -129,19 +130,25 @@ final class SupabaseNutritionTargetsRepository
   }
 
   @override
-  Future<void> updateAdditionalNutrientGoals(
-    AdditionalNutrientGoalSet goals,
+  Future<void> updateAdditionalNutrientGoal(
+    NutrientId nutrientId,
+    AdditionalNutrientGoal? goal,
   ) async {
     final userId = _requireUserId();
-    goals.validate();
 
-    // Re-read immediately before the merge so opaque fields added by another
-    // client are not replaced from stale UI state.
+    // Re-read immediately before the merge, then apply only this nutrient's
+    // delta. Re-reading alone is not enough: a caller's set is a snapshot, so
+    // replacing all four authorized keys from it would still delete whatever
+    // another client configured after that snapshot was taken.
     final current = await _gateway.readRow(userId);
     final decoded = AdditionalNutrientGoalsV1Codec.decode(
       current?['additional_nutrient_goals'],
     );
-    final payload = AdditionalNutrientGoalsV1Codec.encodeUpdated(decoded, goals);
+    final payload = AdditionalNutrientGoalsV1Codec.encodeGoalDelta(
+      decoded,
+      nutrientId,
+      goal,
+    );
 
     await _gateway.upsertRow({
       'user_id': userId,

@@ -12,6 +12,7 @@ import 'package:tio_core/core.dart';
 import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_feature_onboarding/onboarding.dart';
+import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_shared/shared.dart';
 
 /// Route-level coverage for Nutrition Settings: App Mode gating of the
@@ -22,6 +23,10 @@ void main() {
     required AppMode appMode,
     required _FakeNutritionProfileRepository repository,
     _FakeNutritionTargetsRepository? targets,
+    /// Canonical Profile stream. Supplied so a route can be exercised against
+    /// a profile that failed to load, which is a different state from one
+    /// that simply has no date of birth.
+    Stream<ProfileSetupData?>? profileStream,
   }) async {
     final targetsRepository = targets ?? _FakeNutritionTargetsRepository();
     final preference = _MemoryAppModePreference(appMode);
@@ -57,6 +62,8 @@ void main() {
         nutritionProfileRepositoryProvider.overrideWith((ref) => repository),
         nutritionTargetsRepositoryProvider
             .overrideWith((ref) => targetsRepository),
+        if (profileStream != null)
+          profileDataProvider.overrideWith((ref) => profileStream),
       ],
     );
   }
@@ -326,6 +333,73 @@ void main() {
     expect(repository.readCount, greaterThan(1));
     expect(find.text('Vegan'), findsOneWidget);
   });
+  group('Additional Nutrient Goals route composition', () {
+    Future<void> openAdditionalGoals(
+      WidgetTester tester,
+      ProviderContainer container,
+    ) async {
+      final router = container.read(goRouterProvider);
+      router.go(AppRoutes.nutritionAdditionalGoalsSettings.path);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(container: container, child: const TioApp()),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    _FakeNutritionTargetsRepository targetsWithCalories() =>
+        _FakeNutritionTargetsRepository(
+          stored: const NutritionTargetsData(
+            caloriesKcal: 2000,
+            customizationState: NutritionTargetCustomizationState.recommended,
+          ),
+        );
+
+    testWidgets('a profile load failure is reported, not read as no DOB',
+        (tester) async {
+      final container = await buildContainer(
+        appMode: AppMode.nutrition,
+        repository: _FakeNutritionProfileRepository(),
+        targets: targetsWithCalories(),
+        profileStream: Stream<ProfileSetupData?>.error(
+          StateError('offline'),
+        ),
+      );
+      addTearDown(container.dispose);
+
+      await openAdditionalGoals(tester, container);
+
+      // Collapsing the error into a null date of birth would render four
+      // permanently "Unavailable" nutrients and, under the frozen eligibility
+      // rule, block editing — with nothing on screen explaining why.
+      expect(find.text('Could not load your profile'), findsOneWidget);
+      expect(find.text('Retry'), findsOneWidget);
+      expect(
+        find.text('Unavailable'),
+        findsNothing,
+        reason: 'A network error is not an eligibility outcome.',
+      );
+    });
+
+    testWidgets('a profile with no date of birth still renders the screen',
+        (tester) async {
+      final container = await buildContainer(
+        appMode: AppMode.nutrition,
+        repository: _FakeNutritionProfileRepository(),
+        targets: targetsWithCalories(),
+        profileStream: Stream<ProfileSetupData?>.value(null),
+      );
+      addTearDown(container.dispose);
+
+      await openAdditionalGoals(tester, container);
+
+      // The genuinely-absent case is an eligibility outcome, shown on the
+      // screen rather than as a load failure.
+      expect(find.text('Could not load your profile'), findsNothing);
+      expect(find.text('Additional Nutrient Goals'), findsWidgets);
+      expect(find.text('Saturated Fat'), findsOneWidget);
+    });
+  });
+
 }
 
 class _FakeNutritionProfileRepository implements NutritionProfileRepository {
@@ -438,7 +512,8 @@ class _FakeNutritionTargetsRepository implements NutritionTargetsRepository {
 
   NutritionTargetsData? stored;
   final writes = <NutritionTargetsData>[];
-  final additionalGoalWrites = <AdditionalNutrientGoalSet>[];
+  /// One entry per nutrient delta, matching the repository contract.
+  final additionalGoalWrites = <(NutrientId, AdditionalNutrientGoal?)>[];
   var readCount = 0;
 
   @override
@@ -454,13 +529,18 @@ class _FakeNutritionTargetsRepository implements NutritionTargetsRepository {
   }
 
   @override
-  Future<void> updateAdditionalNutrientGoals(
-    AdditionalNutrientGoalSet goals,
+  Future<void> updateAdditionalNutrientGoal(
+    NutrientId nutrientId,
+    AdditionalNutrientGoal? goal,
   ) async {
-    // Mirrors the real adapter's separation: this write touches only the
-    // Additional Nutrient Goals, leaving every core-five value in place.
-    additionalGoalWrites.add(goals);
-    stored = (stored ?? const NutritionTargetsData())
-        .withAdditionalNutrientGoals(goals);
+    // Mirrors the real adapter's separation twice over: this write touches
+    // only the Additional Nutrient Goals, leaving every core-five value in
+    // place, and within them it touches only the one nutrient being edited.
+    additionalGoalWrites.add((nutrientId, goal));
+    final current = stored ?? const NutritionTargetsData();
+    final existing = current.additionalNutrientGoals;
+    stored = current.withAdditionalNutrientGoals(
+      goal == null ? existing.without(nutrientId) : existing.withGoal(goal),
+    );
   }
 }
