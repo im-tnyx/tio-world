@@ -21,16 +21,16 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-02
 **Branch:** `codex/tnyx-141-additional-nutrient-goals-v1`
-**HEAD SHA:** `936c0939131936f14621997637362539f3721aa0`
+**HEAD SHA:** `d5021d85631abaa0c9623c9596180509fad772c4`
 **Observed working-tree state:** Clean before this task brief
 **Observed uncommitted/dirty files:** None before implementation
 **PR / tracker:** No open PR at baseline; Linear TNYX-141 is `In Progress`; GitHub #24 remains OPEN/PAUSED and untouched
-**Current implementation state:** Complete. All six valid Codex code findings resolved (C1-C6); three threads triaged as stale-duplicate or already-fixed; one thread deliberately left open as a deployment gate.
+**Current implementation state:** Complete. Codex C1-C6 resolved, C7-C9 triaged as stale-duplicate or already-fixed, C10 open as a deployment gate. Final manual re-review then found three more: M1 (P1, the delta write was still not atomic), M2 (P2, delta identity), M3 (P2, route dismissal during save). All three fixed and mutation-verified.
 **Relevant execution surface:** `apps/features/nutrition`, `apps/app`, `apps/core` route contract, `supabase/migrations`
-**Validation completed at SHA:** Full-workspace `flutter analyze` (16/16 packages) and `flutter test` (14/14 test-bearing packages, 1732 tests) at `936c0939`; `git diff --check origin/main...HEAD` exits 0; exact-head CI green.
+**Validation completed at SHA:** Full-workspace `flutter analyze` (16/16 packages) and `flutter test` (14/14 test-bearing packages, 1745 tests) at `d5021d85`; `dart format` clean; `git diff --check origin/main...HEAD` exits 0; exact-head CI SUCCESS.
 **Validation remaining:** Physical-device acceptance and hosted migration authorization. Both are outside this task's authorization.
 **Current blocker:** None for implementation. Hosted rollout is gated on migration-ledger repair (see below) and separate owner authorization.
-**Open review finding IDs:** `C10` only — the migration-before-client deployment gate, left unresolved on purpose so it cannot be lost. Every other thread is fixed or answered.
+**Open review finding IDs:** `C10` only — the migration-before-client deployment gate, left unresolved on purpose so it cannot be lost. M1-M3 are fixed, replied to and resolved; every Codex thread is fixed or answered.
 **Next exact action:** Owner physical-device acceptance, then hosted migration authorization (ledger repair first). PR #202 stays Draft. Do not merge, mark Ready, or apply hosted DDL.
 
 ## Global UI / Design-System Guardrail
@@ -233,17 +233,17 @@ flutter analyze  -- all 16 packages                        PASS (0 failures)
 
 flutter test  -- all 14 test-bearing packages              PASS (0 failures)
   onboarding      450        auth            159
-  app             269        profile          59
-  nutrition       265        progress         51
+  nutrition       278        profile          59
+  app             269        progress         51
   settings        192        account_setup    38
   core            177        shared           36
   workout          14        splash           12
   wear              9        home              1
                                               -----
-                                        total 1732
+                                        total 1745
 ```
 
-`apps/features/nutrition` went 133 → 265 (+132) and `apps/app` 267 → 269 (+2,
+`apps/features/nutrition` went 133 → 278 (+145) and `apps/app` 267 → 269 (+2,
 the profile-error route composition). Every other package's total is unchanged
 from baseline, which is the point: the interface change had to be absorbed by
 their test doubles without altering their behaviour.
@@ -288,7 +288,7 @@ a live defect, and fixing them anyway would have churned working code.
 | C6 | P2 | Valid | Fixed | **Locale decimal separator rejected.** Comma-decimal keyboards send `22,5`; the input formatter stripped the comma (turning it into `225`) and the parser never normalised it. | The formatter admits `,` and `_saveCustom` normalises it to the canonical dot before parsing. A regression asserts the typed comma is not silently dropped, which is the more dangerous half. |
 | C7 | P2 | Stale duplicate | Replied, resolved | "Enable a new goal directly on Recommended." Already fixed as **R6** in the previous pass; the thread is marked outdated by GitHub and was written against superseded code. | No code change. |
 | C8 | P2 | Stale duplicate | Replied, resolved | "State nutrient-specific prerequisites." Already fixed as **R7**; thread marked outdated. | No code change. |
-| C9 | P1 | Already fixed | Replied, resolved | "Do not record a failing diff check as PASS." Correct when written, and already self-reported and fixed as **R8** at `dfb0ad4e`. | Re-verified: `git diff --check origin/main...HEAD` exits 0 at `936c0939`. |
+| C9 | P1 | Already fixed | Replied, resolved | "Do not record a failing diff check as PASS." Correct when written, and already self-reported and fixed as **R8** at `dfb0ad4e`. | Re-verified: `git diff --check origin/main...HEAD` exits 0 at `d5021d85`. |
 | C10 | P1 | **Deployment gate** | **Left unresolved deliberately** | **Migration must be applied before this client ships.** `readRow` selects `additional_nutrient_goals`; on an unmigrated database PostgREST fails the whole request rather than returning null, and that same `readRow` backs the Nutrition Targets and Macros routes — so all three screens would break, not just the new one. Confirmed by direct inspection. | Not a code defect and not fixable in code. It is a rollout ordering constraint, and hosted migration is outside this task's authorization. The thread stays open as `DEPLOYMENT BLOCKER — NOT YET RESOLVED` so it cannot be lost. See the migration-ledger reconciliation above: a plain `supabase db push` would replay 11 unrecorded migrations against existing objects, so **ledger repair is part of this gate**. |
 
 Nine regression tests were added for C1 alone, covering the required scenarios:
@@ -298,6 +298,54 @@ keys, unknown top-level fields and unknown fields inside entries all survive; an
 unsupported future schema stays fail-closed; and the core-five write still omits
 the column entirely. The stale-full-set scenario is proved gone by asserting the
 stale snapshot's `contains(sodium) == false` and that Sodium survives anyway.
+
+### Final manual review findings (Draft PR #202, at head `030af057`)
+
+Recorded separately from Codex C1–C10 above, because these came from manual
+re-review of the *fixes* made in that pass. Two of the three found that an
+earlier fix was necessary but not sufficient — worth stating plainly, since
+"we already addressed that" was the wrong conclusion both times.
+
+| ID | Severity | Status | Finding | Resolution |
+|---|---|---|---|---|
+| M1 | **P1 merge blocker** | Fixed | **The per-nutrient delta did not make the write atomic.** C1 fixed the stale-snapshot deletion, but the read-modify-write race underneath survived: clients A and B can both read envelope E0, A adds Vitamin D, B adds Sodium, and each writes the whole `additional_nutrient_goals` value back — whichever upsert lands last silently erases the other. The C1 regressions only covered the case where the competing write was already visible *before* the re-read, so they could not catch this. | Optimistic compare-and-swap against the row's existing `updated_at`, which an existing BEFORE UPDATE trigger already refreshes. Each attempt re-reads with its version, applies one delta, and updates only `WHERE user_id = ? AND updated_at = ?`; a swap that matches no row means another writer won, so the attempt re-reads and rebuilds the delta on what actually landed. Retries bounded at four. The missing-row race is handled by INSERT, not upsert — two blind upserts race identically — and a `23505` on the `user_id` primary key is treated as "someone created it, merge onto theirs" while unrelated PostgREST failures are rethrown. No schema change and no RPC; the gateway gains three primitives (versioned read, conditional swap, insert-if-absent) and PostgREST mechanics stay out of domain and UI. |
+| M2 | P2 | Fixed | **A delta's key and its goal could disagree.** `goal.validate()` only proves the goal's own nutrient is authorized, not that it equals the separate `nutrientId` argument, so `encodeGoalDelta(decoded, sodium, goal(vitaminD, 18))` stored 18 under the Sodium key. The in-memory owner had the *opposite* failure mode, because `withGoal` follows `goal.nutrientId` — it would have written Vitamin D. Divergent behaviour on the same bad call is worse than either outcome alone. | `AdditionalNutrientGoalsV1Codec.requireGoalIdentity` enforces `goal == null \|\| goal.nutrientId == nutrientId`, called from the codec and from both repositories. The Supabase repository checks before any I/O, so a caller bug never reaches the gateway. |
+| M3 | P2 | Fixed | **`canDismiss` did not block route dismissal.** It governs the `TioEditorSheet` handle only; `showModalBottomSheet` leaves the route back- and barrier-dismissible, so a back press could close the editor after the write had started — directly contradicting the comment claiming an in-flight write could not be discarded. | Wrapped in `PopScope<Object?>(canPop: !_isSaving)` while retaining `canDismiss`, matching the established usage on the app's other editor sheets. Layout, keyboard-safe insets, pinned actions and save behaviour are unchanged. |
+
+**Mutation-verified, because these tests are the whole evidence.** Reverting
+the compare-and-swap to the previous read-then-upsert fails 8 tests, including
+both same-predecessor races. Forcing `canPop: true` fails the in-flight
+back-press test. Without that check two of them would have been vacuous, and
+two genuinely were until it was run:
+
+- The table double stamped its seeded row with a hand-written version string
+  that collided with its own first generated version, so a stale
+  compare-and-swap passed. The double now stamps seeded rows from the same
+  counter as every later write.
+- The first back-press test used `tester.binding.handlePopRoute()`, which never
+  reached the route — it passed with the guard removed. `Navigator.maybePop` is
+  the path `PopScope` actually gates. A follow-on trap: `maybePop` returns
+  `true` for `doNotPop` as well, because it reports that the pop was *handled*,
+  so only the sheet's presence afterwards distinguishes a refused pop — and one
+  pump only *starts* a dismissal animation, leaving the sheet still mounted.
+
+**Required concurrency coverage**, all against a double that models one row per
+user, a version stamp refreshed on every write, `23505` on a duplicate primary
+key, and a version-predicate UPDATE that matches no row:
+
+- same predecessor, A adds Vitamin D and B adds Sodium — both survive
+- the same race reversed
+- a concurrent disable does not resurrect the disabled nutrient
+- compare-and-swap conflicts are retried (asserted on the operation sequence,
+  not inferred from the final value)
+- bounded retry exhaustion fails without overwriting the latest data
+- a missing row is created by insert, never by upsert
+- losing the row-creation race merges instead of clobbering
+- an unrelated insert failure is not mistaken for a lost race
+- unknown nutrient keys, unknown top-level fields and unknown fields inside
+  known entries all survive a retry
+- a schema that turns unsupported mid-retry still fails closed
+- core-five writes remain independent in both directions
 
 ### Owner UX decision — recorded as frozen
 
@@ -391,7 +439,8 @@ value, provenance and write path.
 
 ### Final Status
 
-`AWAITING REVIEW` — implementation, review resolution and validation complete.
-PR #202 remains Draft. Two gates remain and neither is a code change: owner
-physical-device acceptance, and hosted migration authorization with ledger
-repair (Codex finding C10, still open by design).
+`AWAITING REVIEW` — implementation, review resolution and validation complete
+through the final manual re-review (M1-M3). PR #202 remains Draft. Two gates
+remain and neither is a code change: owner physical-device acceptance, and
+hosted migration authorization with ledger repair (Codex finding C10, still
+open by design). Next gate is a final manual substantive re-review.
