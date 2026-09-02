@@ -105,7 +105,8 @@ void main() {
       expect(controller.state.draft.targets.dailySteps, 10000);
       expect(controller.state.draft.targets.waterMl, 2500);
       expect(controller.state.draft.targets.hasDailyStepsValue, isFalse);
-      expect(controller.state.draft.targets.hasSleepTargetMinutesValue, isFalse);
+      expect(
+          controller.state.draft.targets.hasSleepTargetMinutesValue, isFalse);
       expect(controller.state.draft.targets.hasSleepTimeMinutesValue, isFalse);
       expect(controller.state.draft.targets.hasWakeTimeMinutesValue, isFalse);
       expect(controller.state.draft.targets.hasWaterMlValue, isFalse);
@@ -399,6 +400,16 @@ class _RecordingNutritionTargetsRepository
   Future<void> upsert(nutrition_owner.NutritionTargetsData targets) async {
     upsertCalls += 1;
     operations.add('nutritionTargets.upsert');
+  }
+
+  @override
+  Future<void> updateAdditionalNutrientGoals(
+    nutrition_owner.AdditionalNutrientGoalSet goals,
+  ) async {
+    // Onboarding never configures Additional Nutrient Goals. Failing loudly
+    // keeps that boundary honest if it ever changes.
+    throw UnsupportedError(
+        'Onboarding does not write Additional Nutrient Goals.');
   }
 }
 

@@ -116,8 +116,7 @@ void main() {
       ];
 
       for (final testCase in cases) {
-        final repository =
-            nutrition_owner.InMemoryNutritionProfileRepository();
+        final repository = nutrition_owner.InMemoryNutritionProfileRepository();
         final persist = _persistUseCase(nutritionProfileRepository: repository);
         final draft = _validDraft(
           mode: AppMode.nutrition,
@@ -186,10 +185,10 @@ void main() {
         nutrition_owner.NutritionTargetCustomizationState.custom,
         nutrition_owner.NutritionTargetCustomizationState.mixed,
       ]) {
-        final customizedFields =
-            state == nutrition_owner.NutritionTargetCustomizationState.recommended
-                ? <String>{}
-                : <String>{'protein_grams'};
+        final customizedFields = state ==
+                nutrition_owner.NutritionTargetCustomizationState.recommended
+            ? <String>{}
+            : <String>{'protein_grams'};
         final value = nutrition_owner.NutritionTargetsData(
           caloriesKcal: 2100,
           proteinGrams: 135,
@@ -210,7 +209,8 @@ void main() {
       }
     });
 
-    test('legacy Nutrition Target resume completes through canonical owners only',
+    test(
+        'legacy Nutrition Target resume completes through canonical owners only',
         () async {
       final nutritionProfile =
           nutrition_owner.InMemoryNutritionProfileRepository();
@@ -245,7 +245,8 @@ void main() {
       addTearDown(controller.dispose);
 
       expect(controller.state.stepId, OnboardingStepId.nutritionGoals);
-      expect(controller.state.currentSection, OnboardingSectionId.nutritionGoals);
+      expect(
+          controller.state.currentSection, OnboardingSectionId.nutritionGoals);
 
       final persist = _persistUseCase(
         nutritionProfileRepository: nutritionProfile,
@@ -652,6 +653,16 @@ class _RecordingNutritionTargetsRepository
     }
     targets.validate();
     data = targets;
+  }
+
+  @override
+  Future<void> updateAdditionalNutrientGoals(
+    nutrition_owner.AdditionalNutrientGoalSet goals,
+  ) async {
+    // Onboarding never configures Additional Nutrient Goals. Failing loudly
+    // keeps that boundary honest if it ever changes.
+    throw UnsupportedError(
+        'Onboarding does not write Additional Nutrient Goals.');
   }
 }
 

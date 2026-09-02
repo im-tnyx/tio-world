@@ -156,6 +156,12 @@ class _FailOnceNutritionTargetsRepository
     }
     await _delegate.upsert(targets);
   }
+
+  @override
+  Future<void> updateAdditionalNutrientGoals(
+    nutrition_owner.AdditionalNutrientGoalSet goals,
+  ) =>
+      _delegate.updateAdditionalNutrientGoals(goals);
 }
 
 class _FakeCompletionRepository implements OnboardingCompletionRepository {

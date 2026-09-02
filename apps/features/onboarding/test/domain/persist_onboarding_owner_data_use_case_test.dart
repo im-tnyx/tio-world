@@ -616,6 +616,16 @@ class _FailingNutritionTargetsRepository
   Future<void> upsert(nutrition_owner.NutritionTargetsData targets) async {
     throw StateError('Nutrition Targets database write failed');
   }
+
+  @override
+  Future<void> updateAdditionalNutrientGoals(
+    nutrition_owner.AdditionalNutrientGoalSet goals,
+  ) async {
+    // Onboarding never configures Additional Nutrient Goals. Failing loudly
+    // keeps that boundary honest if it ever changes.
+    throw UnsupportedError(
+        'Onboarding does not write Additional Nutrient Goals.');
+  }
 }
 
 ProfileOnboardingDraft _validProfile() {

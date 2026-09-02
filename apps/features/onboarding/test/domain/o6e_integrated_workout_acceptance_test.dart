@@ -459,6 +459,16 @@ class _RecordingNutritionTargetsRepository
     targets.validate();
     data = targets;
   }
+
+  @override
+  Future<void> updateAdditionalNutrientGoals(
+    nutrition_owner.AdditionalNutrientGoalSet goals,
+  ) async {
+    // Onboarding never configures Additional Nutrient Goals. Failing loudly
+    // keeps that boundary honest if it ever changes.
+    throw UnsupportedError(
+        'Onboarding does not write Additional Nutrient Goals.');
+  }
 }
 
 class _RecordingAppPreferencesRepository implements AppPreferencesRepository {
