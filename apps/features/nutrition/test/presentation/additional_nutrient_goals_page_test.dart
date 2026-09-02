@@ -23,6 +23,10 @@ void main() {
     AdditionalNutrientGoalSet goals = const AdditionalNutrientGoalSet.empty(),
     int? caloriesKcal = 2000,
     DateTime? dateOfBirth,
+    // A nullable parameter cannot distinguish "not specified" from "explicitly
+    // absent", and defaulting a null back to an adult date of birth silently
+    // turns a no-DOB test into an adult one.
+    bool withoutDateOfBirth = false,
     Future<void> Function(AdditionalNutrientGoalSet)? onSave,
   }) async {
     tester.view.physicalSize = const Size(390, 1400);
@@ -36,7 +40,7 @@ void main() {
       home: AdditionalNutrientGoalsPage(
         goals: goals,
         caloriesKcal: caloriesKcal,
-        dateOfBirth: dateOfBirth ?? adultDob,
+        dateOfBirth: withoutDateOfBirth ? null : (dateOfBirth ?? adultDob),
         now: now,
         onSave: onSave ?? (updated) async => saved.add(updated),
       ),
@@ -134,7 +138,7 @@ void main() {
         (tester) async {
       await pumpPage(
         tester,
-        dateOfBirth: null,
+        withoutDateOfBirth: true,
         goals: const AdditionalNutrientGoalSet.empty().withGoal(
           const AdditionalNutrientGoal(
             nutrientId: NutrientId.vitaminD,
@@ -160,6 +164,244 @@ void main() {
       );
 
       expect(find.text('20 mcg'), findsOneWidget);
+    });
+  });
+
+  group('sodium comparator (review finding 2)', () {
+    testWidgets('the row carries the strict comparator, not a bare boundary',
+        (tester) async {
+      await pumpPage(
+        tester,
+        goals: const AdditionalNutrientGoalSet.empty().withGoal(
+          const AdditionalNutrientGoal(nutrientId: NutrientId.sodium),
+        ),
+      );
+
+      expect(
+        find.text('< 2000 mg'),
+        findsOneWidget,
+        reason: 'A bare "2000 mg" presents the forbidden boundary as the goal.',
+      );
+      expect(find.text('2000 mg'), findsNothing);
+    });
+
+    testWidgets('a custom sodium value keeps the comparator too',
+        (tester) async {
+      await pumpPage(
+        tester,
+        goals: const AdditionalNutrientGoalSet.empty().withGoal(
+          const AdditionalNutrientGoal(
+            nutrientId: NutrientId.sodium,
+            customValue: 1500,
+          ),
+        ),
+      );
+
+      // The comparator belongs to the nutrient's policy, not to where the
+      // number came from.
+      expect(find.text('< 1500 mg'), findsOneWidget);
+    });
+
+    testWidgets('nutrients without a strict boundary show no comparator',
+        (tester) async {
+      await pumpPage(
+        tester,
+        goals: const AdditionalNutrientGoalSet.empty().withGoal(
+          const AdditionalNutrientGoal(nutrientId: NutrientId.vitaminD),
+        ),
+      );
+
+      expect(find.text('15 mcg'), findsOneWidget);
+      expect(find.text('< 15 mcg'), findsNothing);
+    });
+  });
+
+  group('custom value precision (review finding 1)', () {
+    testWidgets(
+        'a fractional value below the display default is not shown as 0',
+        (tester) async {
+      await pumpPage(
+        tester,
+        goals: const AdditionalNutrientGoalSet.empty().withGoal(
+          const AdditionalNutrientGoal(
+            nutrientId: NutrientId.transFat,
+            customValue: 0.04,
+          ),
+        ),
+      );
+
+      expect(
+        find.text('0 g'),
+        findsNothing,
+        reason: 'Rendering a real 0.04 g goal as "0 g" misreports it, and zero '
+            'has its own distinct meaning here.',
+      );
+      expect(find.text('0.04 g'), findsOneWidget);
+    });
+
+    testWidgets('reopening and saving does not change the stored value',
+        (tester) async {
+      for (final value in <double>[0.04, 0.45, 1.25, 12.345, 0.001]) {
+        saved = [];
+        await pumpPage(
+          tester,
+          goals: const AdditionalNutrientGoalSet.empty().withGoal(
+            AdditionalNutrientGoal(
+              nutrientId: NutrientId.transFat,
+              customValue: value,
+            ),
+          ),
+        );
+
+        await tester.tap(rowFor(NutrientId.transFat));
+        await tester.pumpAndSettle();
+
+        // Save without touching the field: the round trip must be lossless.
+        await tester.tap(find.byKey(const ValueKey(
+          'additional-nutrient-goal-save',
+        )));
+        await tester.pumpAndSettle();
+
+        expect(
+          saved.single[NutrientId.transFat]!.customValue,
+          value,
+          reason: 'Reopening and saving silently rewrote $value',
+        );
+      }
+    });
+
+    testWidgets('the editor prefills the exact stored value', (tester) async {
+      await pumpPage(
+        tester,
+        goals: const AdditionalNutrientGoalSet.empty().withGoal(
+          const AdditionalNutrientGoal(
+            nutrientId: NutrientId.transFat,
+            customValue: 0.45,
+          ),
+        ),
+      );
+
+      await tester.tap(rowFor(NutrientId.transFat));
+      await tester.pumpAndSettle();
+
+      expect(find.text('0.45'), findsOneWidget);
+      expect(find.text('0.5'), findsNothing);
+    });
+  });
+
+  group('unsupported future schema (review finding 3)', () {
+    testWidgets('renders a read-only notice instead of editable rows',
+        (tester) async {
+      await pumpPage(
+        tester,
+        goals: const AdditionalNutrientGoalSet.unsupported(),
+      );
+
+      expect(
+        find.byKey(const ValueKey('additional-nutrient-unsupported-schema')),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Not set'),
+        findsNothing,
+        reason: 'Newer-schema data must not masquerade as unconfigured goals.',
+      );
+    });
+
+    testWidgets('offers no row to tap, so no edit can be started',
+        (tester) async {
+      await pumpPage(
+        tester,
+        goals: const AdditionalNutrientGoalSet.unsupported(),
+      );
+
+      for (final nutrientId in [
+        NutrientId.saturatedFat,
+        NutrientId.transFat,
+        NutrientId.sodium,
+        NutrientId.vitaminD,
+      ]) {
+        expect(rowFor(nutrientId), findsNothing, reason: '$nutrientId');
+      }
+      expect(
+        find.byKey(const ValueKey('additional-nutrient-goal-input')),
+        findsNothing,
+      );
+      expect(saved, isEmpty);
+    });
+  });
+
+  group('unavailable recommendation (frozen owner decision)', () {
+    testWidgets('an unconfigured nutrient cannot be turned on', (tester) async {
+      await pumpPage(tester, dateOfBirth: minorDob);
+      await tester.tap(rowFor(NutrientId.vitaminD));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('additional-nutrient-goal-enable')),
+        findsNothing,
+        reason: 'Turning it on would create a goal that cannot be set.',
+      );
+      expect(
+        find.byKey(const ValueKey('additional-nutrient-goal-input')),
+        findsNothing,
+        reason: 'A custom value must not bypass the eligibility rule.',
+      );
+      expect(
+        find.byKey(const ValueKey('additional-nutrient-goal-guidance')),
+        findsOneWidget,
+      );
+      expect(saved, isEmpty, reason: 'Nothing may be written.');
+    });
+
+    testWidgets('an already-configured custom goal keeps and shows its value',
+        (tester) async {
+      await pumpPage(
+        tester,
+        withoutDateOfBirth: true,
+        goals: const AdditionalNutrientGoalSet.empty().withGoal(
+          const AdditionalNutrientGoal(
+            nutrientId: NutrientId.vitaminD,
+            customValue: 18,
+          ),
+        ),
+      );
+      await tester.tap(rowFor(NutrientId.vitaminD));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('additional-nutrient-goal-preserved-custom')),
+        findsOneWidget,
+      );
+      expect(find.text('18 mcg'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('additional-nutrient-goal-use-recommended')),
+        findsNothing,
+        reason: 'There is no recommendation to revert to.',
+      );
+    });
+
+    testWidgets('an already-configured goal can still be turned off',
+        (tester) async {
+      await pumpPage(
+        tester,
+        withoutDateOfBirth: true,
+        goals: const AdditionalNutrientGoalSet.empty().withGoal(
+          const AdditionalNutrientGoal(
+            nutrientId: NutrientId.vitaminD,
+            customValue: 18,
+          ),
+        ),
+      );
+      await tester.tap(rowFor(NutrientId.vitaminD));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey(
+        'additional-nutrient-goal-remove',
+      )));
+      await tester.pumpAndSettle();
+
+      expect(saved.single.contains(NutrientId.vitaminD), isFalse);
     });
   });
 
@@ -239,6 +481,10 @@ void main() {
         find.byKey(const ValueKey('additional-nutrient-goal-error')),
         findsOneWidget,
       );
+      // Zero is a valid goal, so the copy must not imply it is rejected.
+      expect(find.textContaining('more than zero'), findsNothing);
+      expect(
+          find.textContaining('Enter zero or a higher number'), findsOneWidget);
     });
 
     testWidgets('Use Recommended clears the override but keeps the goal',

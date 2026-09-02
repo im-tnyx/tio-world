@@ -217,29 +217,35 @@ the hosted migration is authorized.
 
 ### Validation Run
 
+This PR changes a repository interface, so affected packages are **not**
+inferred from production imports — `NutritionTargetsRepository` is also
+implemented by test doubles in packages that never import the new code. The
+full workspace is analyzed and tested, matching CI.
+
 ```text
 dart format   (all changed source and test files)          PASS
-
-flutter analyze  apps/shared                               PASS - No issues found
-flutter test     apps/shared                               PASS - 36 tests
-
-flutter analyze  apps/core                                 PASS - No issues found
-flutter test     apps/core                                 PASS - 177 tests
-
-flutter analyze  apps/features/nutrition                   PASS - No issues found
-flutter test     apps/features/nutrition                   PASS - 223 tests
-                                                           (was 133 at baseline; +90)
-
-flutter analyze  apps/app                                  PASS - No issues found
-flutter test     apps/app                                  PASS - 267 tests
-
 git diff --check                                           PASS
+
+flutter analyze  -- all 16 packages                        PASS (0 failures)
+  shared · core · app · wear · account_setup · auth · coaching · home
+  nutrition · onboarding · profile · progress · settings · splash
+  welcome · workout
+
+flutter test  -- all 14 test-bearing packages              PASS (0 failures)
+  onboarding      450        auth            159
+  app             267        profile          59
+  nutrition       234        progress         51
+  settings        192        account_setup    38
+  core            177        shared           36
+  workout          14        splash           12
+  wear              9        home              1
+                                              -----
+                                        total 1699
 ```
 
-Affected packages were determined from actual imports: the new domain, codec
-and screen live in `apps/features/nutrition`; `apps/core` owns the new route
-contract; `apps/app` composes the route and supplies canonical Calories and
-date of birth; `apps/shared` owns `NutrientId` and was read but not modified.
+`apps/features/nutrition` went 133 → 234 (+101). Every other package's total is
+unchanged from baseline, which is the point: the interface change had to be
+absorbed by their test doubles without altering their behaviour.
 
 ### Review Findings and Resolution
 
@@ -250,6 +256,27 @@ date of birth; `apps/shared` owns `NutrientId` and was read but not modified.
 | F3 | High | Fixed | The new route was missing from `shellChromePolicyForPath`, so it fell through to `noBottomBar` and would have rendered shell chrome over a full-screen settings page. Added, and the existing policy test extended to cover all three nutrition sub-routes rather than two. | `router.dart`, `nutrition_settings_route_test.dart` |
 | F4 | Medium | Fixed | The row overflowed by 18px at 390dp: "Recommended" beside a label like "Saturated Fat" does not fit the core settings row's label/annotation pair. Moved the state caption under the amount in the value column, which also keeps both states visible. | `additional_nutrient_goals_page.dart` |
 | F5 | Medium | Fixed | Thousands grouping was initially applied by a single formatter used for both prose and the editor's text field, so a custom value of 1500 would have rendered as "1,500" and then failed `double.tryParse` on save. Split into a grouped formatter for prose and an ungrouped one for anything parsed back. | `additional_nutrient_goals_page.dart` |
+| F6 | Blocking | Fixed | **Caught by CI, not by local validation.** Affected packages were chosen from production imports, but `NutritionTargetsRepository` is also implemented by five test doubles in `tio_feature_onboarding`, so adding a method to the interface broke analysis there. The fakes now implement it — throwing `UnsupportedError`, since onboarding never configures these goals and a silent no-op would hide a real future mistake; the delegating fake forwards instead. Validation is now full-workspace. | five files under `apps/features/onboarding/test/domain/` |
+
+### Manual review findings (Draft PR #202, at head `7b8e449c`)
+
+| ID | Severity | Status | Finding | Resolution |
+|---|---|---|---|---|
+| R1 | P1 | Fixed | `_editableNumber()` rounded every non-integer to one decimal before refilling the editor, so a stored `0.04` reopened as `0` and pressing Save silently overwrote it; `0.45` became `0.5`. The domain accepts any finite nonnegative double, so this was silent data loss on a no-op interaction. | The editable field now uses `toString()` for non-integers — the shortest exactly round-tripping form — while prose guidance keeps a separate readable rounding. Regression covers 0.04, 0.45, 1.25, 12.345 and 0.001 through reopen-and-save. |
+| R2 | P1 | Fixed | The row summary dropped `comparison` and rendered sodium's recommendation as a bare `2000 mg`, presenting the forbidden boundary as the goal itself. | Summary formatting carries the comparator: `< 2000 mg`. Applied for custom values too, since the comparison belongs to the nutrient's policy rather than to where the number came from. Row-level regressions added for the recommended state, the custom state, and a non-strict nutrient as a negative control. Editor guidance still reads "less than 2,000 mg/day". |
+| R3 | P2 | Fixed | The codec correctly decoded a future `schema_version` as `unsupported()`, but the page rendered that empty typed set as four tappable `Not set` rows — so a user with newer-client data would only discover the incompatibility as a generic save failure. | When `!goals.isWritable` the page shows an explicit read-only notice and renders no rows at all, so no edit can be started and the payload is never rewritten. Regressions assert the notice appears, no `Not set` text appears, no nutrient row exists, and nothing is written. |
+| R4 | Minor | Fixed | Invalid-number copy said "or more than zero" even though an explicit zero is a valid goal. | Now reads "Enter zero or a higher number of &lt;unit&gt;." Pinned by a test that also asserts the old wording is gone. |
+| R5 | Medium | Fixed | **Found while fixing R3/R4, in the test helper rather than the product.** `pumpPage`'s `dateOfBirth: dateOfBirth ?? adultDob` could not distinguish "not specified" from "explicitly absent", so passing `null` silently produced an adult date of birth — meaning the existing "override survives the recommendation going away" test was passing for the wrong reason. Replaced with an explicit `withoutDateOfBirth` flag. | `additional_nutrient_goals_page_test.dart` |
+
+### Owner UX decision — recorded as frozen
+
+When a recommendation is unavailable and the nutrient is **not** configured: no
+`Turn on`, no key created, no arbitrary custom value accepted; the state is
+explained and the nutrient stays unconfigured. When an already-configured goal
+later becomes underivable: the stored custom override is preserved and still
+displayed, `Turn off` remains available, and `Use Recommended` stays hidden
+until a recommendation can be derived again. This closes the dead end
+previously recorded as an open question.
 
 ### Contract deviation recorded for review
 
@@ -262,17 +289,8 @@ assertion was inverted to match the new contract, and a navigation test was
 added. Flagging it because it is a deliberate change to an existing guard
 rather than an incidental test update.
 
-### Open UX question for owner review
-
-Section 15 forbids using a new arbitrary Custom value to bypass an unavailable
-recommendation. The implementation follows that literally: when a
-recommendation is underivable the editor offers turn-on and turn-off but no
-value entry, and the row reads "Unavailable". A user under 19, or with no date
-of birth, can therefore enable a goal that shows nothing and cannot be set.
-That is the behaviour the frozen policy implies, but it is a dead end worth an
-explicit product decision — either accept it, or decide such nutrients should
-not be enableable at all until the inputs exist. No behaviour was invented
-beyond the contract.
+*(The previously open unavailable-recommendation question is now resolved —
+see "Owner UX decision" above.)*
 
 ## 7. Final Handoff
 
@@ -331,8 +349,9 @@ value, provenance and write path.
 - Old-client preservation is proven at the request-payload boundary rather than
   against a live PostgREST instance, because the local Supabase stack cannot
   run in this environment.
-- The unavailable-recommendation enable path is a product question, recorded
-  above.
+- A stored custom value whose recommendation is underivable can be viewed and
+  turned off, but not edited, until the recommendation becomes derivable again.
+  That is the frozen owner decision, not an accident.
 
 ### Final Status
 

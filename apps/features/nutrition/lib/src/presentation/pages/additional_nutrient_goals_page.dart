@@ -105,24 +105,35 @@ class AdditionalNutrientGoalsPage extends StatelessWidget {
             TioSpacing.xl,
           ),
           children: [
-            const NutritionSettingsSectionHeader(title: 'DAILY GOALS'),
-            TioGroupCard(
-              children: [
-                for (final (nutrientId, label, icon) in _nutrients)
-                  _row(context, nutrientId, label, icon),
-              ],
-            ),
-            const SizedBox(height: TioSpacing.lg),
-            Text(
-              'Recommendations use your Calories target and date of birth, and '
-              'are shown for ages 19 and over. Your own value always takes '
-              'priority when you set one.',
-              style: TextStyle(
-                color: colors.textSecondary,
-                fontSize: TioFontSize.size13,
-                height: TioLineHeight.height140,
+            // A payload written by a newer schema is decoded as read-only. It
+            // must not be rendered as four unconfigured goals: that would
+            // invite edits this build cannot express, and the first the user
+            // would hear of the incompatibility is a generic save failure.
+            if (!goals.isWritable) ...[
+              const _UnsupportedSchemaNotice(
+                key: ValueKey('additional-nutrient-unsupported-schema'),
               ),
-            ),
+              const SizedBox(height: TioSpacing.lg),
+            ] else ...[
+              const NutritionSettingsSectionHeader(title: 'DAILY GOALS'),
+              TioGroupCard(
+                children: [
+                  for (final (nutrientId, label, icon) in _nutrients)
+                    _row(context, nutrientId, label, icon),
+                ],
+              ),
+              const SizedBox(height: TioSpacing.lg),
+              Text(
+                'Recommendations use your Calories target and date of birth, '
+                'and are shown for ages 19 and over. Your own value always '
+                'takes priority when you set one.',
+                style: TextStyle(
+                  color: colors.textSecondary,
+                  fontSize: TioFontSize.size13,
+                  height: TioLineHeight.height140,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -158,7 +169,7 @@ class AdditionalNutrientGoalsPage extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           TioSettingsValueText(
-            value: _summaryFor(nutrientId, goal, effective),
+            value: _summaryFor(nutrientId, goal, effective, recommendation),
             isUnset: effective == null,
           ),
           if (_stateCaptionFor(goal, recommendation) case final caption?)
@@ -191,23 +202,151 @@ class AdditionalNutrientGoalsPage extends StatelessWidget {
     NutrientId nutrientId,
     AdditionalNutrientGoal? goal,
     double? effective,
+    NutrientRecommendation recommendation,
   ) {
     if (goal == null) return 'Not set';
     if (effective == null) return 'Unavailable';
-    return formatNutrientAmount(nutrientId, effective);
+    return formatNutrientGoalAmount(
+      nutrientId,
+      effective,
+      recommendation.comparison,
+    );
   }
+}
+
+/// Shows a stored custom value that currently has no derivable recommendation
+/// behind it.
+///
+/// The value stays visible and stays stored: losing a number the user chose,
+/// just because a date of birth went missing, would be the worse failure. It
+/// is not editable here, because editing would require a recommendation to
+/// override.
+class _PreservedCustomValue extends StatelessWidget {
+  const _PreservedCustomValue({
+    required this.nutrientId,
+    required this.value,
+    required this.comparison,
+    super.key,
+  });
+
+  final NutrientId nutrientId;
+  final double value;
+  final NutrientGoalComparison comparison;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+
+    return Container(
+      padding: const EdgeInsets.all(TioSpacing.lg),
+      decoration: BoxDecoration(
+        color: colors.surfaceRaised,
+        borderRadius: BorderRadius.circular(TioRadius.lg),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'Your saved goal',
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: TioFontSize.size13,
+              fontWeight: TioFontWeight.w600,
+            ),
+          ),
+          Text(
+            formatNutrientGoalAmount(nutrientId, value, comparison),
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: TioFontSize.size16,
+              fontWeight: TioFontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shown instead of the goal rows when the stored payload comes from a newer
+/// schema. Read-only by construction: there is nothing to tap, so no edit can
+/// be started and the payload is never rewritten.
+class _UnsupportedSchemaNotice extends StatelessWidget {
+  const _UnsupportedSchemaNotice({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+
+    return Container(
+      padding: const EdgeInsets.all(TioSpacing.lg),
+      decoration: BoxDecoration(
+        color: colors.info.withAlpha(TioAlpha.alpha12),
+        borderRadius: BorderRadius.circular(TioRadius.lg),
+        border: Border.all(color: colors.info.withAlpha(TioAlpha.alpha40)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Saved on a newer version',
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontWeight: TioFontWeight.w700,
+              fontSize: TioFontSize.size15,
+            ),
+          ),
+          const SizedBox(height: TioSpacing.sm),
+          Text(
+            'Your Additional Nutrient Goals were saved by a newer version of '
+            'Tio, so they cannot be shown or edited here. Nothing has been '
+            'changed. Update the app to manage them again.',
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: TioFontSize.size13,
+              height: TioLineHeight.height140,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A goal amount with its comparator, for a summary line.
+///
+/// Sodium's contract is strictly *below* 2000 mg, so rendering a bare
+/// "2,000 mg" would present the forbidden boundary as the goal itself. The
+/// comparator belongs to the nutrient's policy rather than to the value's
+/// source, so it is carried whether the amount is recommended or custom.
+String formatNutrientGoalAmount(
+  NutrientId nutrientId,
+  double value,
+  NutrientGoalComparison comparison,
+) {
+  final amount = formatNutrientAmount(nutrientId, value);
+  return comparison == NutrientGoalComparison.lessThan ? '< $amount' : amount;
 }
 
 /// Display precision for a goal amount.
 ///
-/// Grams keep one decimal because the derived maxima land on values like
-/// 22.2 g; milligrams and micrograms are whole numbers at these magnitudes.
-/// Rounding happens only here, never before effective-value resolution.
+/// Grams normally keep one decimal because the derived maxima land on values
+/// like 22.2 g, and milligrams and micrograms are whole numbers at these
+/// magnitudes. A custom override may be far smaller than that default, so the
+/// precision is widened as needed rather than rendering a real value as "0" —
+/// showing "0 g" for a stored 0.04 g would misreport the user's own goal, and
+/// an explicit zero has its own distinct meaning here.
 String formatNutrientAmount(NutrientId nutrientId, double value) {
   final unit = nutrientId.canonicalUnit;
-  final text = unit == NutrientUnit.g
-      ? _trimTrailingZero(value.toStringAsFixed(1))
-      : _trimTrailingZero(value.toStringAsFixed(0));
+  final defaultDecimals = unit == NutrientUnit.g ? 1 : 0;
+
+  var text = _trimTrailingZero(value.toStringAsFixed(defaultDecimals));
+  if (value != 0 && double.tryParse(text) == 0) {
+    for (var decimals = defaultDecimals + 1; decimals <= 6; decimals++) {
+      text = _trimTrailingZero(value.toStringAsFixed(decimals));
+      if (double.tryParse(text) != 0) break;
+    }
+  }
   return '$text ${unit.storageValue}';
 }
 
@@ -282,8 +421,10 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
     final raw = _controller.text.trim();
     final parsed = double.tryParse(raw);
     if (parsed == null || !parsed.isFinite || parsed < 0) {
-      setState(() => _error = 'Enter a number of '
-          '${widget.nutrientId.canonicalUnit.storageValue} or more than zero.');
+      // Zero is a valid, meaningful goal here (a trans-fat target of 0), so
+      // the copy must not imply it is rejected.
+      setState(() => _error = 'Enter zero or a higher number of '
+          '${widget.nutrientId.canonicalUnit.storageValue}.');
       return;
     }
     await _apply(AdditionalNutrientGoal(
@@ -326,7 +467,7 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
             key: const ValueKey('additional-nutrient-goal-input'),
             controller: _controller,
             label: 'Your value',
-            hint: recommended == null ? '' : _editableNumber(recommended),
+            hint: recommended == null ? '' : _readableNumber(recommended),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
@@ -356,6 +497,12 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
           ),
           const SizedBox(height: TioSpacing.md),
         ],
+        // Owner decision: an unconfigured nutrient whose recommendation cannot
+        // be derived is not enableable. Turning it on would create a goal with
+        // nothing to show and no permitted way to set it, and letting the user
+        // type a value instead would use Custom to bypass the eligibility rule
+        // the policy exists to enforce. An already-configured goal keeps its
+        // stored value and can still be turned off, below.
         if (_canOverride)
           TioButton.primary(
             key: const ValueKey('additional-nutrient-goal-save'),
@@ -364,15 +511,12 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
             expand: true,
             onPressed: _saveCustom,
           )
-        else if (!_isConfigured)
-          TioButton.primary(
-            key: const ValueKey('additional-nutrient-goal-enable'),
-            label: 'Turn on',
-            loading: _isSaving,
-            expand: true,
-            onPressed: () => _apply(
-              AdditionalNutrientGoal(nutrientId: widget.nutrientId),
-            ),
+        else if (_isConfigured && widget.goal!.customValue != null)
+          _PreservedCustomValue(
+            key: const ValueKey('additional-nutrient-goal-preserved-custom'),
+            nutrientId: widget.nutrientId,
+            value: widget.goal!.customValue!,
+            comparison: widget.recommendation.comparison,
           ),
         if (_canOverride &&
             _isConfigured &&
@@ -426,17 +570,29 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
 }
 
 /// Guidance copy reads as prose, so four-digit amounts are grouped: "less than
-/// 2,000 mg/day" rather than "2000".
-String _plainNumber(double value) => _groupThousands(_editableNumber(value));
+/// 2,000 mg/day" rather than "2000". Prose is also rounded for readability —
+/// a recommendation of 22.222... reads as 22.2 here. This is display only and
+/// never reaches storage or the editable field.
+String _plainNumber(double value) => _groupThousands(_readableNumber(value));
 
-/// The same number without grouping, for anything that will be parsed back.
-/// A grouped "1,500" would fail `double.tryParse` on save.
-String _editableNumber(double value) {
+String _readableNumber(double value) {
   final text = value == value.roundToDouble()
       ? value.toStringAsFixed(0)
       : value.toStringAsFixed(1);
   return _trimTrailingZero(text);
 }
+
+/// The same number without grouping, for anything that will be parsed back.
+/// A grouped "1,500" would fail `double.tryParse` on save.
+///
+/// Non-integers use `toString()`, which is the shortest representation that
+/// round-trips exactly. Rounding here would be a silent data change: the
+/// domain accepts any finite nonnegative value, so a stored 0.04 must reopen
+/// as 0.04 and not as 0, or merely reopening and saving the editor would
+/// overwrite the user's number.
+String _editableNumber(double value) => value == value.roundToDouble()
+    ? value.toStringAsFixed(0)
+    : value.toString();
 
 String _groupThousands(String value) {
   final parts = value.split('.');
