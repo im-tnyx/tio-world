@@ -490,68 +490,76 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
     // The canonical editor surface owns keyboard insets, the scrollable body
     // and the pinned action region. Content and actions are supplied as its
     // two slots so a raised keyboard can never push Save below the fold.
-    return TioEditorSheet(
-      title: widget.label,
-      supportingText: _guidance(recommended, unit),
-      // A drag must not discard a write already in flight.
-      canDismiss: !_isSaving,
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (_capability.canSetCustomValue)
-            TioInput(
-              key: const ValueKey('additional-nutrient-goal-input'),
-              controller: _controller,
-              label: 'Your value',
-              hint: recommended == null ? '' : _readableNumber(recommended),
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                // Comma is allowed through because comma-decimal keyboards
-                // have no other way to type a fraction; it is normalised to
-                // the canonical dot on save.
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-              ],
-              trailing: Text(
-                unit,
+    //
+    // `canDismiss` governs the sheet's own handle; the modal route stays
+    // back- and barrier-dismissible regardless. Both are needed, and this
+    // pairing is the established usage across the app's editor sheets.
+    return PopScope<Object?>(
+      canPop: !_isSaving,
+      child: TioEditorSheet(
+        title: widget.label,
+        supportingText: _guidance(recommended, unit),
+        // A drag must not discard a write already in flight.
+        canDismiss: !_isSaving,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (_capability.canSetCustomValue)
+              TioInput(
+                key: const ValueKey('additional-nutrient-goal-input'),
+                controller: _controller,
+                label: 'Your value',
+                hint: recommended == null ? '' : _readableNumber(recommended),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  // Comma is allowed through because comma-decimal keyboards
+                  // have no other way to type a fraction; it is normalised to
+                  // the canonical dot on save.
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                ],
+                trailing: Text(
+                  unit,
+                  style: TextStyle(
+                    color: colors.textSecondary,
+                    fontWeight: TioFontWeight.w600,
+                  ),
+                ),
+                onChanged: (_) {
+                  if (_error != null) setState(() => _error = null);
+                },
+              ),
+            // The stored override is still shown when it can no longer be
+            // edited, so a user whose prerequisites went away can see the value
+            // they saved rather than an empty sheet.
+            if (_capability.isValuePreserved &&
+                widget.goal!.customValue != null) ...[
+              const SizedBox(height: TioSpacing.md),
+              _PreservedCustomValue(
+                key:
+                    const ValueKey('additional-nutrient-goal-preserved-custom'),
+                nutrientId: widget.nutrientId,
+                value: widget.goal!.customValue!,
+                comparison: widget.recommendation.comparison,
+              ),
+            ],
+            if (_error case final error?) ...[
+              const SizedBox(height: TioSpacing.md),
+              Text(
+                error,
+                key: const ValueKey('additional-nutrient-goal-error'),
                 style: TextStyle(
-                  color: colors.textSecondary,
+                  color: colors.danger,
+                  fontSize: TioFontSize.size13,
                   fontWeight: TioFontWeight.w600,
                 ),
               ),
-              onChanged: (_) {
-                if (_error != null) setState(() => _error = null);
-              },
-            ),
-          // The stored override is still shown when it can no longer be
-          // edited, so a user whose prerequisites went away can see the value
-          // they saved rather than an empty sheet.
-          if (_capability.isValuePreserved &&
-              widget.goal!.customValue != null) ...[
-            const SizedBox(height: TioSpacing.md),
-            _PreservedCustomValue(
-              key: const ValueKey('additional-nutrient-goal-preserved-custom'),
-              nutrientId: widget.nutrientId,
-              value: widget.goal!.customValue!,
-              comparison: widget.recommendation.comparison,
-            ),
+            ],
           ],
-          if (_error case final error?) ...[
-            const SizedBox(height: TioSpacing.md),
-            Text(
-              error,
-              key: const ValueKey('additional-nutrient-goal-error'),
-              style: TextStyle(
-                color: colors.danger,
-                fontSize: TioFontSize.size13,
-                fontWeight: TioFontWeight.w600,
-              ),
-            ),
-          ],
-        ],
+        ),
+        actions: _actions(colors),
       ),
-      actions: _actions(colors),
     );
   }
 

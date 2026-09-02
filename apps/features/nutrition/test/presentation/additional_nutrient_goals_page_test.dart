@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
@@ -43,8 +44,8 @@ void main() {
         caloriesKcal: caloriesKcal,
         dateOfBirth: withoutDateOfBirth ? null : (dateOfBirth ?? adultDob),
         now: now,
-        onSave: onSave ??
-            (nutrientId, goal) async => saved.add((nutrientId, goal)),
+        onSave:
+            onSave ?? (nutrientId, goal) async => saved.add((nutrientId, goal)),
       ),
     ));
     await tester.pumpAndSettle();
@@ -929,4 +930,133 @@ void main() {
       expect(formatNutrientAmount(NutrientId.saturatedFat, 0), '0 g');
     });
   });
+  group('save-in-flight dismissal', () {
+    /// A save the test controls the completion of, so the sheet can be
+    /// inspected mid-write rather than only before and after.
+    ({
+      Completer<void> completer,
+      Future<void> Function(NutrientId, AdditionalNutrientGoal?) onSave,
+    }) pendingSave() {
+      final completer = Completer<void>();
+      return (
+        completer: completer,
+        onSave: (NutrientId _, AdditionalNutrientGoal? __) => completer.future,
+      );
+    }
+
+    Future<void> openAndSave(WidgetTester tester, Completer<void> save) async {
+      await tester.tap(rowFor(NutrientId.vitaminD));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('additional-nutrient-goal-input')),
+        '18',
+      );
+      await tester.tap(find.byKey(const ValueKey(
+        'additional-nutrient-goal-save',
+      )));
+      // Pump without settling: settling would wait for the save to finish,
+      // which is exactly the state under test.
+      await tester.pump();
+    }
+
+    testWidgets('a back press cannot close the sheet mid-write',
+        (tester) async {
+      final save = pendingSave();
+      await pumpPage(tester, onSave: save.onSave);
+      await openAndSave(tester, save.completer);
+
+      expect(
+        tester.widget<TioEditorSheet>(find.byType(TioEditorSheet)).canDismiss,
+        isFalse,
+        reason: 'The handle is locked while the write is in flight.',
+      );
+
+      // `canDismiss` governs only the sheet's own handle. The modal route
+      // stays back- and barrier-dismissible unless a PopScope says otherwise,
+      // which is what this actually exercises.
+      await _maybePop(tester);
+
+      expect(
+        find.byType(TioEditorSheet),
+        findsOneWidget,
+        reason: 'A back press must not discard a write already started.',
+      );
+
+      save.completer.complete();
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byType(TioEditorSheet),
+        findsNothing,
+        reason: 'Normal completion still closes the editor.',
+      );
+    });
+
+    testWidgets('the guard is armed by the save, not always on',
+        (tester) async {
+      await pumpPage(tester);
+      await tester.tap(rowFor(NutrientId.vitaminD));
+      await tester.pumpAndSettle();
+
+      final popScope = tester.widget<PopScope<Object?>>(
+        find.ancestor(
+          of: find.byType(TioEditorSheet),
+          matching: find.byType(PopScope<Object?>),
+        ),
+      );
+      expect(
+        popScope.canPop,
+        isTrue,
+        reason: 'An idle editor must stay dismissible.',
+      );
+
+      await _maybePop(tester);
+
+      expect(find.byType(TioEditorSheet), findsNothing);
+    });
+
+    testWidgets('a failed save returns the sheet to a dismissible state',
+        (tester) async {
+      final completer = Completer<void>();
+      await pumpPage(
+        tester,
+        onSave: (_, __) => completer.future,
+      );
+      await openAndSave(tester, completer);
+
+      completer.completeError(StateError('offline'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('additional-nutrient-goal-error')),
+        findsOneWidget,
+      );
+      expect(
+        tester.widget<TioEditorSheet>(find.byType(TioEditorSheet)).canDismiss,
+        isTrue,
+        reason: 'A failure must leave the editor retryable and closable.',
+      );
+
+      await _maybePop(tester);
+
+      expect(find.byType(TioEditorSheet), findsNothing);
+    });
+  });
+}
+
+/// Attempts the pop a system back press or a barrier tap performs.
+///
+/// `Navigator.maybePop` is the path `PopScope` actually gates, so a test that
+/// does not go through it proves nothing about route dismissal. Its return
+/// value is deliberately ignored: it reports that the pop was *handled*, and
+/// is true for `doNotPop` as well, so only the sheet's presence afterwards
+/// distinguishes a blocked pop from a completed one.
+Future<void> _maybePop(WidgetTester tester) async {
+  final navigator = Navigator.of(tester.element(find.byType(TioEditorSheet)));
+  await navigator.maybePop();
+  // Advance past any dismissal transition. A single pump only *starts* it, and
+  // the sheet is still mounted mid-animation — so a presence check taken then
+  // passes whether the pop was refused or is merely still playing out.
+  await tester.pump();
+  await tester.pump(const Duration(seconds: 1));
 }

@@ -106,6 +106,12 @@ final class AdditionalNutrientGoalsV1Codec {
   /// the fresh envelope untouched.
   ///
   /// A null [goal] removes the nutrient; otherwise it is created or updated.
+  ///
+  /// [goal] must be a goal *for* [nutrientId]. The two arguments carry the
+  /// same fact, and `goal.validate()` only proves the goal's own nutrient is
+  /// authorized — not that it is the one being written. Without this check,
+  /// `encodeGoalDelta(decoded, sodium, goal(vitaminD, 18))` would store 18
+  /// under the Sodium key.
   static Map<String, Object?> encodeGoalDelta(
     AdditionalNutrientGoalsDecodeResult decoded,
     NutrientId nutrientId,
@@ -123,6 +129,7 @@ final class AdditionalNutrientGoalsV1Codec {
         'Nutrient is outside Additional Nutrient Goals V1.',
       );
     }
+    requireGoalIdentity(nutrientId, goal);
     goal?.validate();
 
     final envelope = <String, Object?>{
@@ -151,6 +158,24 @@ final class AdditionalNutrientGoalsV1Codec {
 
     envelope['goals'] = goals;
     return envelope;
+  }
+
+  /// Asserts that a delta's key and its goal describe the same nutrient.
+  ///
+  /// Exposed so callers that never reach the codec — the in-memory owner, or a
+  /// repository failing fast before any I/O — enforce the identical invariant
+  /// rather than each implementation diverging on a mismatch.
+  static void requireGoalIdentity(
+    NutrientId nutrientId,
+    AdditionalNutrientGoal? goal,
+  ) {
+    if (goal == null || goal.nutrientId == nutrientId) return;
+    throw ArgumentError.value(
+      goal.nutrientId,
+      'goal.nutrientId',
+      'Goal is for ${goal.nutrientId.storageValue} but the delta writes '
+          '${nutrientId.storageValue}.',
+    );
   }
 }
 
