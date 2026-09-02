@@ -21,7 +21,7 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-02
 **Branch:** `codex/tnyx-141-additional-nutrient-goals-v1`
-**HEAD SHA:** `d5021d85631abaa0c9623c9596180509fad772c4`
+**HEAD SHA:** `d5021d85631abaa0c9623c9596180509fad772c4` — the last commit that changes code. Anything after it on this branch is documentation only, so this stays the SHA every validation figure below was measured at rather than a number that goes stale the moment the brief is edited.
 **Observed working-tree state:** Clean before this task brief
 **Observed uncommitted/dirty files:** None before implementation
 **PR / tracker:** No open PR at baseline; Linear TNYX-141 is `In Progress`; GitHub #24 remains OPEN/PAUSED and untouched
