@@ -69,6 +69,12 @@ class AdditionalNutrientGoalsPage extends StatelessWidget {
         label: label,
         goal: goals[nutrientId],
         recommendation: _recommendationFor(nutrientId),
+        blockers: AdditionalNutrientRecommendationPolicy.blockersFor(
+          nutrientId: nutrientId,
+          caloriesKcal: caloriesKcal,
+          dateOfBirth: dateOfBirth,
+          now: now ?? DateTime.now(),
+        ),
         onApply: (updated) => onSave(updated == null
             ? goals.without(nutrientId)
             : goals.withGoal(updated)),
@@ -361,6 +367,7 @@ class _GoalEditorSheet extends StatefulWidget {
     required this.label,
     required this.goal,
     required this.recommendation,
+    required this.blockers,
     required this.onApply,
   });
 
@@ -368,6 +375,10 @@ class _GoalEditorSheet extends StatefulWidget {
   final String label;
   final AdditionalNutrientGoal? goal;
   final NutrientRecommendation recommendation;
+
+  /// Unmet prerequisites for this nutrient, so the copy can name the input
+  /// that would actually unblock it rather than every input V1 knows about.
+  final Set<NutrientRecommendationBlocker> blockers;
 
   /// Null removes the goal; a value enables or updates it.
   final Future<void> Function(AdditionalNutrientGoal? goal) onApply;
@@ -383,6 +394,11 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
 
   bool get _isConfigured => widget.goal != null;
   bool get _canOverride => widget.recommendation.isAvailable;
+
+  /// Already enabled and following the recommendation, so there is nothing for
+  /// "Use Recommended" to change.
+  bool get _isOnRecommendation =>
+      widget.goal != null && widget.goal!.usesRecommendation;
 
   @override
   void initState() {
@@ -518,9 +534,14 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
             value: widget.goal!.customValue!,
             comparison: widget.recommendation.comparison,
           ),
-        if (_canOverride &&
-            _isConfigured &&
-            !widget.goal!.usesRecommendation) ...[
+        // Offered whenever the goal is not already sitting on the
+        // recommendation, which covers two paths to the same state: an
+        // unconfigured nutrient opting in (Not set -> Recommended, without
+        // being forced to invent a Custom value first), and a custom goal
+        // reverting. Both persist `custom_value: null`, which is the stored
+        // Recommended state. Gated on `_canOverride`, so an unavailable
+        // recommendation still offers no way to enable anything.
+        if (_canOverride && !_isOnRecommendation) ...[
           const SizedBox(height: TioSpacing.sm),
           TioButton.secondary(
             key: const ValueKey('additional-nutrient-goal-use-recommended'),
@@ -552,11 +573,7 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
   }
 
   String _guidance(double? recommended, String unit) {
-    if (recommended == null) {
-      return 'A recommendation needs your Calories target and a date of birth '
-          'of 19 years or older. You can still turn this goal on and set it '
-          'once that information is available.';
-    }
+    if (recommended == null) return _unavailableGuidance();
     return switch (widget.recommendation.comparison) {
       // Sodium is a strict boundary, and the wording has to say so.
       NutrientGoalComparison.lessThan =>
@@ -566,6 +583,39 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
       NutrientGoalComparison.target =>
         'Recommended: ${_plainNumber(recommended)} $unit/day.',
     };
+  }
+
+  /// Names only the prerequisites this nutrient actually uses.
+  ///
+  /// Sodium and Vitamin D are fixed amounts gated on age alone, so pointing
+  /// those users at a Calories target would send them to fix something
+  /// unrelated. Age below the minimum is stated as an eligibility fact rather
+  /// than as something to correct — the date of birth is not wrong.
+  String _unavailableGuidance() {
+    const eligibility = 'Recommendations are available for ages '
+        '${AdditionalNutrientRecommendationPolicy.minimumAge} and over.';
+    final needsCalories =
+        widget.blockers.contains(NutrientRecommendationBlocker.caloriesMissing);
+
+    if (widget.blockers
+        .contains(NutrientRecommendationBlocker.dateOfBirthMissing)) {
+      final calories =
+          needsCalories ? ' You will also need a Calories target.' : '';
+      return 'Add your date of birth to check eligibility. $eligibility'
+          '$calories';
+    }
+
+    if (widget.blockers
+        .contains(NutrientRecommendationBlocker.ageBelowMinimum)) {
+      return 'This recommendation is available for ages '
+          '${AdditionalNutrientRecommendationPolicy.minimumAge} and over.';
+    }
+
+    if (needsCalories) {
+      return 'Set your Calories target to see this recommendation.';
+    }
+
+    return 'This recommendation is not available right now.';
   }
 }
 

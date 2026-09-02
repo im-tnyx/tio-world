@@ -331,6 +331,227 @@ void main() {
     });
   });
 
+  group('Not set -> Recommended (review finding 6)', () {
+    testWidgets('an unconfigured nutrient can opt into the recommendation',
+        (tester) async {
+      await pumpPage(tester);
+      await tester.tap(rowFor(NutrientId.vitaminD));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('additional-nutrient-goal-use-recommended')),
+        findsOneWidget,
+        reason: 'Reaching the Recommended state must not require inventing a '
+            'Custom value first.',
+      );
+    });
+
+    testWidgets('it writes a key with a null custom value, fabricating nothing',
+        (tester) async {
+      await pumpPage(tester);
+      await tester.tap(rowFor(NutrientId.vitaminD));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey(
+        'additional-nutrient-goal-use-recommended',
+      )));
+      await tester.pumpAndSettle();
+
+      final result = saved.single;
+      expect(result.contains(NutrientId.vitaminD), isTrue);
+      expect(
+        result[NutrientId.vitaminD]!.customValue,
+        isNull,
+        reason: 'custom_value null is the stored Recommended state.',
+      );
+      expect(result[NutrientId.vitaminD]!.usesRecommendation, isTrue);
+    });
+
+    testWidgets('the resulting row reads Recommended, not Custom',
+        (tester) async {
+      // Re-render with the set the save above would have produced.
+      await pumpPage(
+        tester,
+        goals: const AdditionalNutrientGoalSet.empty().withGoal(
+          const AdditionalNutrientGoal(nutrientId: NutrientId.vitaminD),
+        ),
+      );
+
+      expect(find.text('Recommended'), findsOneWidget);
+      expect(find.text('Custom'), findsNothing);
+      expect(find.text('15 mcg'), findsOneWidget);
+    });
+
+    testWidgets('a goal already on the recommendation offers no repeat action',
+        (tester) async {
+      await pumpPage(
+        tester,
+        goals: const AdditionalNutrientGoalSet.empty().withGoal(
+          const AdditionalNutrientGoal(nutrientId: NutrientId.vitaminD),
+        ),
+      );
+      await tester.tap(rowFor(NutrientId.vitaminD));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('additional-nutrient-goal-use-recommended')),
+        findsNothing,
+        reason: 'It is already in that state; the action would change nothing.',
+      );
+    });
+
+    testWidgets('an unavailable recommendation still offers no enable action',
+        (tester) async {
+      await pumpPage(tester, dateOfBirth: minorDob);
+      await tester.tap(rowFor(NutrientId.vitaminD));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('additional-nutrient-goal-use-recommended')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('additional-nutrient-goal-enable')),
+        findsNothing,
+      );
+      expect(saved, isEmpty);
+    });
+  });
+
+  group('nutrient-aware unavailable guidance (review finding 7)', () {
+    Future<String> guidanceFor(
+      WidgetTester tester,
+      NutrientId nutrientId, {
+      int? caloriesKcal = 2000,
+      DateTime? dateOfBirth,
+      bool withoutDateOfBirth = false,
+    }) async {
+      await pumpPage(
+        tester,
+        caloriesKcal: caloriesKcal,
+        dateOfBirth: dateOfBirth,
+        withoutDateOfBirth: withoutDateOfBirth,
+      );
+      await tester.tap(rowFor(nutrientId));
+      await tester.pumpAndSettle();
+
+      return tester
+          .widget<Text>(
+            find.byKey(const ValueKey('additional-nutrient-goal-guidance')),
+          )
+          .data!;
+    }
+
+    testWidgets('sodium never mentions Calories, which its rule does not use',
+        (tester) async {
+      final guidance = await guidanceFor(
+        tester,
+        NutrientId.sodium,
+        withoutDateOfBirth: true,
+      );
+
+      expect(guidance, contains('date of birth'));
+      expect(
+        guidance.toLowerCase(),
+        isNot(contains('calorie')),
+        reason: 'Sodium is a fixed amount gated on age alone.',
+      );
+    });
+
+    testWidgets('vitamin D never mentions Calories either', (tester) async {
+      final guidance = await guidanceFor(
+        tester,
+        NutrientId.vitaminD,
+        caloriesKcal: null,
+        withoutDateOfBirth: true,
+      );
+
+      expect(guidance.toLowerCase(), isNot(contains('calorie')));
+    });
+
+    testWidgets('a calorie-derived nutrient names the Calories target',
+        (tester) async {
+      final guidance = await guidanceFor(
+        tester,
+        NutrientId.saturatedFat,
+        caloriesKcal: null,
+      );
+
+      expect(guidance, contains('Calories target'));
+      expect(
+        guidance,
+        isNot(contains('date of birth')),
+        reason: 'The date of birth is present and fine; only Calories blocks.',
+      );
+    });
+
+    testWidgets('under 19 states eligibility without blaming the date',
+        (tester) async {
+      final guidance = await guidanceFor(
+        tester,
+        NutrientId.vitaminD,
+        dateOfBirth: minorDob,
+      );
+
+      expect(guidance, contains('ages 19 and over'));
+      expect(
+        guidance,
+        isNot(contains('Add your date of birth')),
+        reason: 'The date of birth is known and correct; nothing to fix.',
+      );
+      expect(guidance.toLowerCase(), isNot(contains('calorie')));
+    });
+
+    testWidgets('a calorie nutrient with no date of birth names both inputs',
+        (tester) async {
+      final guidance = await guidanceFor(
+        tester,
+        NutrientId.transFat,
+        caloriesKcal: null,
+        withoutDateOfBirth: true,
+      );
+
+      expect(guidance, contains('date of birth'));
+      expect(guidance, contains('Calories target'));
+    });
+
+    testWidgets('no unavailable state allows enabling anything',
+        (tester) async {
+      for (final (nutrientId, calories, noDob) in <(NutrientId, int?, bool)>[
+        (NutrientId.sodium, 2000, true),
+        (NutrientId.vitaminD, 2000, true),
+        (NutrientId.saturatedFat, null, false),
+        (NutrientId.transFat, null, true),
+      ]) {
+        saved = [];
+        await pumpPage(
+          tester,
+          caloriesKcal: calories,
+          withoutDateOfBirth: noDob,
+        );
+        await tester.tap(rowFor(nutrientId));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(
+            const ValueKey('additional-nutrient-goal-use-recommended'),
+          ),
+          findsNothing,
+          reason: '$nutrientId',
+        );
+        expect(
+          find.byKey(const ValueKey('additional-nutrient-goal-input')),
+          findsNothing,
+          reason: '$nutrientId',
+        );
+        expect(saved, isEmpty, reason: '$nutrientId');
+
+        await tester.tap(find.byType(BackButton).first);
+        await tester.pumpAndSettle();
+      }
+    });
+  });
+
   group('unavailable recommendation (frozen owner decision)', () {
     testWidgets('an unconfigured nutrient cannot be turned on', (tester) async {
       await pumpPage(tester, dateOfBirth: minorDob);

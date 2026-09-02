@@ -3,9 +3,29 @@ import 'package:tio_shared/shared.dart';
 import '../models/additional_nutrient_goal.dart';
 import '../models/nutrient_recommendation.dart';
 
+/// Why a recommendation could not be derived.
+///
+/// Which of these can apply depends on the nutrient: every V1 nutrient needs
+/// adult eligibility, but only the calorie-percentage rules need a Calories
+/// target. Callers use this to explain the actual blocker instead of listing
+/// inputs the nutrient does not use.
+enum NutrientRecommendationBlocker {
+  /// No usable date of birth, so eligibility cannot be established.
+  dateOfBirthMissing,
+
+  /// Known age, but below the adults-only V1 population.
+  ageBelowMinimum,
+
+  /// A calorie-derived nutrient with no canonical Calories target.
+  caloriesMissing,
+}
+
 /// Frozen TNYX-141 V1 policy for the four authorized nutrients.
 final class AdditionalNutrientRecommendationPolicy {
   const AdditionalNutrientRecommendationPolicy._();
+
+  /// Minimum age for every V1 recommendation. There is no pediatric policy.
+  static const minimumAge = 19;
 
   static NutrientRecommendation derive({
     required NutrientId nutrientId,
@@ -18,7 +38,9 @@ final class AdditionalNutrientRecommendationPolicy {
 
     // The frozen V1 population is adults only. A missing/invalid DOB and an
     // age below 19 are unavailable rather than guessed.
-    if (age == null || age < 19) return definition.unavailable(nutrientId);
+    if (age == null || age < minimumAge) {
+      return definition.unavailable(nutrientId);
+    }
 
     final value = switch (nutrientId) {
       NutrientId.saturatedFat =>
@@ -38,6 +60,41 @@ final class AdditionalNutrientRecommendationPolicy {
         ? definition.unavailable(nutrientId)
         : definition.available(nutrientId, value);
   }
+
+  /// The unmet prerequisites for [nutrientId], in the order worth reporting.
+  ///
+  /// Empty when the recommendation is derivable. Only inputs this nutrient
+  /// actually uses are ever reported: telling a Vitamin D user to set a
+  /// Calories target would name an input its rule never reads.
+  static Set<NutrientRecommendationBlocker> blockersFor({
+    required NutrientId nutrientId,
+    required int? caloriesKcal,
+    required DateTime? dateOfBirth,
+    required DateTime now,
+  }) {
+    final blockers = <NutrientRecommendationBlocker>{};
+    final age = ageOn(dateOfBirth: dateOfBirth, now: now);
+
+    if (age == null) {
+      blockers.add(NutrientRecommendationBlocker.dateOfBirthMissing);
+    } else if (age < minimumAge) {
+      blockers.add(NutrientRecommendationBlocker.ageBelowMinimum);
+    }
+
+    if (dependsOnCalories(nutrientId) && caloriesKcal == null) {
+      blockers.add(NutrientRecommendationBlocker.caloriesMissing);
+    }
+
+    return blockers;
+  }
+
+  /// Whether the nutrient's rule reads the canonical Calories target.
+  ///
+  /// Only the two percentage-of-energy rules do. Sodium and Vitamin D are
+  /// fixed amounts gated on age alone.
+  static bool dependsOnCalories(NutrientId nutrientId) =>
+      nutrientId == NutrientId.saturatedFat ||
+      nutrientId == NutrientId.transFat;
 
   /// Age on [now]'s calendar date. Leap-day birthdays turn a year older on
   /// March 1 in non-leap years because February 29 has not occurred.
@@ -98,4 +155,3 @@ final class _PolicyDefinition {
         comparison: comparison,
       );
 }
-
