@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -7,21 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
 
 import '../google_identity_link_controller.dart';
-
-/// Result returned from checking username availability.
-class UsernameAvailabilityResult {
-  const UsernameAvailabilityResult({
-    required this.isAvailable,
-    this.suggestions = const [],
-    this.message,
-  });
-
-  final bool isAvailable;
-  final List<String> suggestions;
-  final String? message;
-}
-
-enum _UsernameStatus { idle, checking, available, unavailable }
 
 const _googleEmailMismatchGuardMessage =
     'Use the Google account matching your Tio email.';
@@ -95,10 +79,8 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
 
-  Timer? _debounceTimer;
-  _UsernameStatus _usernameStatus = _UsernameStatus.idle;
-  List<String> _suggestions = const [];
-  String? _usernameFeedback;
+  TioUsernameStatus _usernameStatus = TioUsernameStatus.idle;
+  int _usernameAvailabilityRefreshToken = 0;
   String? _verifiedEmail;
   String? _verifiedPhoneDigits;
 
@@ -131,8 +113,7 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
       _verifiedEmail = verifiedEmail;
       _emailController.text = widget.email ?? '';
     }
-    if (widget.isPhoneVerified &&
-        widget.phoneNumber != oldWidget.phoneNumber) {
+    if (widget.isPhoneVerified && widget.phoneNumber != oldWidget.phoneNumber) {
       final verifiedDigits = _nationalPhoneDigits(widget.phoneNumber);
       _verifiedPhoneDigits = verifiedDigits;
       _phoneController.text = verifiedDigits;
@@ -144,7 +125,6 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
 
   @override
   void dispose() {
-    _debounceTimer?.cancel();
     _usernameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
@@ -177,95 +157,6 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
-  }
-
-  void _onUsernameInput(String val) {
-    widget.onUsernameChanged?.call(val);
-    final raw = val.trim().toLowerCase();
-
-    _debounceTimer?.cancel();
-
-    if (raw.isEmpty || raw == (widget.username ?? '').trim().toLowerCase()) {
-      setState(() {
-        _usernameStatus = _UsernameStatus.idle;
-        _suggestions = const [];
-        _usernameFeedback = null;
-      });
-      return;
-    }
-
-    if (raw.length < 3) {
-      setState(() {
-        _usernameStatus = _UsernameStatus.unavailable;
-        _suggestions = const [];
-        _usernameFeedback = 'Username must be at least 3 characters.';
-      });
-      return;
-    }
-
-    setState(() {
-      _usernameStatus = _UsernameStatus.checking;
-      _suggestions = const [];
-      _usernameFeedback = null;
-    });
-
-    _debounceTimer = Timer(const Duration(milliseconds: 450), () async {
-      final result = await _performAvailabilityCheck(raw);
-      if (!mounted) return;
-
-      setState(() {
-        if (result.isAvailable) {
-          _usernameStatus = _UsernameStatus.available;
-          _suggestions = const [];
-          _usernameFeedback = '@$raw is available!';
-        } else {
-          _usernameStatus = _UsernameStatus.unavailable;
-          _suggestions = result.suggestions;
-          _usernameFeedback =
-              result.message ?? 'This username is already taken. Try another.';
-        }
-      });
-    });
-  }
-
-  Future<UsernameAvailabilityResult> _performAvailabilityCheck(
-    String handle,
-  ) async {
-    if (widget.onCheckUsernameAvailability != null) {
-      return widget.onCheckUsernameAvailability!(handle);
-    }
-
-    // Local fallback is generic only. Production availability comes from the
-    // injected repository callback and must never contain personal-name hints.
-    await Future<void>.delayed(const Duration(milliseconds: 250));
-    final takenList = {'admin', 'tio', 'fitness', 'user', 'coach', 'member'};
-
-    if (takenList.contains(handle)) {
-      return UsernameAvailabilityResult(
-        isAvailable: false,
-        message: 'This username is already taken. Try another.',
-        suggestions: [
-          '${handle}_fit',
-          '${handle}_95',
-          '${handle}_tio',
-        ],
-      );
-    }
-
-    return const UsernameAvailabilityResult(isAvailable: true);
-  }
-
-  void _applySuggestion(String suggestion) {
-    _debounceTimer?.cancel();
-    final clean = suggestion.replaceAll('@', '').trim();
-    _usernameController.text = clean;
-    widget.onUsernameChanged?.call(clean);
-
-    setState(() {
-      _usernameStatus = _UsernameStatus.available;
-      _suggestions = const [];
-      _usernameFeedback = '@$clean is available!';
-    });
   }
 
   Future<void> _handleVerifyEmail() async {
@@ -345,8 +236,8 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
 
   Future<void> _handleSave() async {
     if (_isSaving ||
-        _usernameStatus == _UsernameStatus.unavailable ||
-        _usernameStatus == _UsernameStatus.checking) {
+        _usernameStatus == TioUsernameStatus.unavailable ||
+        _usernameStatus == TioUsernameStatus.checking) {
       return;
     }
 
@@ -377,6 +268,14 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
       if (mounted) {
         _showMessage('Account settings saved!');
         Navigator.of(context).pop();
+      }
+    } on TioUsernameConflictException catch (error) {
+      if (mounted) {
+        setState(() {
+          _usernameStatus = TioUsernameStatus.unavailable;
+          _usernameAvailabilityRefreshToken++;
+        });
+        _showMessage(error.message);
       }
     } catch (_) {
       _showMessage('Could not save account settings. Please try again.');
@@ -449,162 +348,24 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
                   ),
                 ),
                 const SizedBox(height: TioSpacing.sm),
-                Container(
-                  height: TioSize.dp56,
-                  decoration: BoxDecoration(
-                    color: colors.surfaceRaised,
-                    borderRadius: BorderRadius.circular(TioRadius.lg),
-                    border: Border.all(
-                      color: _usernameStatus == _UsernameStatus.unavailable
-                          ? colors.danger.withAlpha(TioAlpha.alpha80)
-                          : _usernameStatus == _UsernameStatus.available
-                              ? colors.primary.withAlpha(TioAlpha.alpha80)
-                              : colors.outlineStrong
-                                  .withAlpha(TioAlpha.alpha40),
-                      width: _usernameStatus == _UsernameStatus.unavailable ||
-                              _usernameStatus == _UsernameStatus.available
-                          ? TioStroke.width15
-                          : TioStroke.width1,
+                TioUsernameInputField(
+                  controller: _usernameController,
+                  currentUsername: widget.username,
+                  appearance: TioUsernameFieldAppearance.capsule,
+                  hintText: 'username',
+                  onCheckAvailability: widget.onCheckUsernameAvailability,
+                  availabilityRefreshToken: _usernameAvailabilityRefreshToken,
+                  extraInputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'[a-zA-Z0-9_.]'),
                     ),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: TioSpacing.lg,
-                  ),
-                  alignment: Alignment.center,
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.alternate_email_rounded,
-                        size: TioSize.dp22,
-                        color: _usernameStatus == _UsernameStatus.unavailable
-                            ? colors.danger
-                            : _usernameStatus == _UsernameStatus.available
-                                ? colors.primary
-                                : colors.textPrimary,
-                      ),
-                      const SizedBox(width: TioSize.dp14),
-                      Expanded(
-                        child: TextField(
-                          controller: _usernameController,
-                          cursorColor: colors.primary,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'[a-zA-Z0-9_.]'),
-                            ),
-                            LengthLimitingTextInputFormatter(30),
-                          ],
-                          onChanged: _onUsernameInput,
-                          style: TextStyle(
-                            color: colors.textPrimary,
-                            fontSize: TioFontSize.size16,
-                            fontWeight: TioFontWeight.w500,
-                          ),
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            errorBorder: InputBorder.none,
-                            disabledBorder: InputBorder.none,
-                            focusedErrorBorder: InputBorder.none,
-                            filled: false,
-                            fillColor: TioPalette.transparent,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                            hintText: 'username',
-                            hintStyle: TextStyle(
-                              color: colors.textMuted,
-                              fontWeight: TioFontWeight.w400,
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (_usernameStatus == _UsernameStatus.checking)
-                        SizedBox(
-                          width: TioSize.dp18,
-                          height: TioSize.dp18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: TioStroke.width2,
-                            color: colors.primary,
-                          ),
-                        )
-                      else if (_usernameStatus == _UsernameStatus.available)
-                        Icon(
-                          Icons.check_circle_rounded,
-                          size: TioSize.dp22,
-                          color: colors.primary,
-                        )
-                      else if (_usernameStatus == _UsernameStatus.unavailable)
-                        Icon(
-                          Icons.error_outline_rounded,
-                          size: TioSize.dp22,
-                          color: colors.danger,
-                        ),
-                    ],
-                  ),
+                  ],
+                  onChanged: widget.onUsernameChanged,
+                  onStatusChanged: (status) {
+                    if (!mounted) return;
+                    setState(() => _usernameStatus = status);
+                  },
                 ),
-                if (_usernameFeedback case final msg?) ...[
-                  const SizedBox(height: TioSize.dp6),
-                  Padding(
-                    padding: const EdgeInsets.only(left: TioSpacing.xs),
-                    child: Text(
-                      msg,
-                      style: TextStyle(
-                        color: _usernameStatus == _UsernameStatus.available
-                            ? colors.primary
-                            : colors.danger,
-                        fontSize: TioFontSize.size13,
-                        fontWeight: TioFontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-                if (_suggestions.isNotEmpty) ...[
-                  const SizedBox(height: TioSize.dp10),
-                  Padding(
-                    padding: const EdgeInsets.only(left: TioSpacing.xs),
-                    child: Text(
-                      'Suggestions:',
-                      style: TextStyle(
-                        color: colors.textSecondary,
-                        fontSize: TioFontSize.size12,
-                        fontWeight: TioFontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: TioSize.dp6),
-                  Wrap(
-                    spacing: TioSpacing.sm,
-                    runSpacing: TioSpacing.sm,
-                    children: _suggestions.map((suggestion) {
-                      return InkWell(
-                        onTap: () => _applySuggestion(suggestion),
-                        borderRadius: BorderRadius.circular(TioSize.dp20),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: TioSpacing.md,
-                            vertical: TioSize.dp6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: colors.surfaceRaised,
-                            borderRadius: BorderRadius.circular(TioSize.dp20),
-                            border: Border.all(
-                              color: colors.primary.withAlpha(TioAlpha.alpha50),
-                              width: TioStroke.width1,
-                            ),
-                          ),
-                          child: Text(
-                            '@$suggestion',
-                            style: TextStyle(
-                              color: colors.primary,
-                              fontSize: TioFontSize.size13,
-                              fontWeight: TioFontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
               ],
             ),
             const SizedBox(height: TioSpacing.lg),
@@ -690,8 +451,7 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
                               vertical: TioSize.dp5,
                             ),
                             decoration: BoxDecoration(
-                              color:
-                                  colors.primary.withAlpha(TioAlpha.alpha22),
+                              color: colors.primary.withAlpha(TioAlpha.alpha22),
                               borderRadius: BorderRadius.circular(TioRadius.sm),
                             ),
                             child: Text(
@@ -813,8 +573,7 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
                               vertical: TioSize.dp5,
                             ),
                             decoration: BoxDecoration(
-                              color:
-                                  colors.primary.withAlpha(TioAlpha.alpha20),
+                              color: colors.primary.withAlpha(TioAlpha.alpha20),
                               borderRadius: BorderRadius.circular(TioRadius.sm),
                             ),
                             child: _isLinkingGoogle
@@ -878,8 +637,8 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
                     label: 'Save Changes',
                     loading: _isSaving,
                     loadingLabel: 'Saving',
-                    enabled: _usernameStatus != _UsernameStatus.unavailable &&
-                        _usernameStatus != _UsernameStatus.checking,
+                    enabled: _usernameStatus != TioUsernameStatus.unavailable &&
+                        _usernameStatus != TioUsernameStatus.checking,
                     expand: true,
                     onPressed: _handleSave,
                   ),
@@ -912,7 +671,8 @@ class _AccountSettingsPageState extends ConsumerState<AccountSettingsPage> {
 }
 
 String _googleConnectFailureMessage(Object error) {
-  if (error is StateError && error.message == _googleEmailMismatchGuardMessage) {
+  if (error is StateError &&
+      error.message == _googleEmailMismatchGuardMessage) {
     return _googleEmailMismatchUserMessage;
   }
   return _googleConnectGenericError;

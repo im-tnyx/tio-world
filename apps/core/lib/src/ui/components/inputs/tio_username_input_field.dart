@@ -21,7 +21,35 @@ class UsernameAvailabilityResult {
   final String? message;
 }
 
+/// Domain-neutral signal that a username save failed because the username
+/// itself is no longer usable (a final server-side uniqueness/policy
+/// conflict), as opposed to a generic persistence failure. Lets a save
+/// callback report this distinction to [TioUsernameInputField] consumers
+/// without those consumers depending on any specific repository package's
+/// own exception type -- the composition layer that owns the real
+/// repository call is responsible for catching its domain exception and
+/// re-throwing this one with an already-resolved, user-facing [message].
+class TioUsernameConflictException implements Exception {
+  const TioUsernameConflictException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => 'TioUsernameConflictException: $message';
+}
+
 enum TioUsernameStatus { idle, checking, available, unavailable }
+
+/// Visual contract for [TioUsernameInputField].
+enum TioUsernameFieldAppearance {
+  /// Floating-label outlined field. Current default, matching Account Setup.
+  outlined,
+
+  /// Fixed-height filled capsule row with an externally-supplied label,
+  /// matching the same shape [TioMobileNumberField] already uses. Evidenced
+  /// by Account Settings.
+  capsule,
+}
 
 /// Reusable Username input field following AGENTS.md design tokens:
 /// - Canonical lowercase input with a 3-30 character contract
@@ -43,9 +71,16 @@ class TioUsernameInputField extends StatefulWidget {
     this.onSubmitted,
     this.labelText = 'Username',
     this.hintText = 'e.g. your.name',
+    this.appearance = TioUsernameFieldAppearance.outlined,
+    this.extraInputFormatters,
   });
 
   final TextEditingController controller;
+
+  /// The account's already-persisted username, if any. When the typed value
+  /// matches this exactly, the field renders idle (no check/cross, no
+  /// network call) rather than available -- there is nothing to check or
+  /// save. Evidenced by Account Settings, the only current consumer.
   final String? currentUsername;
   final ValueChanged<String>? onChanged;
   final ValueChanged<TioUsernameStatus>? onStatusChanged;
@@ -61,6 +96,17 @@ class TioUsernameInputField extends StatefulWidget {
   final String labelText;
   final String hintText;
 
+  /// Visual contract. Defaults to [TioUsernameFieldAppearance.outlined],
+  /// preserving current Account Setup behavior exactly.
+  final TioUsernameFieldAppearance appearance;
+
+  /// Additional formatters applied after the built-in lowercase and
+  /// max-length formatters, e.g. a character allow-list. Plumbing only: core
+  /// enforces no character policy of its own beyond lowercase/length: this is
+  /// how Account Settings preserves its keystroke-level character filtering
+  /// without forcing it onto every consumer.
+  final List<TextInputFormatter>? extraInputFormatters;
+
   @override
   State<TioUsernameInputField> createState() => _TioUsernameInputFieldState();
 }
@@ -75,14 +121,13 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
   String get _normalizedCurrentUsername =>
       (widget.currentUsername ?? '').trim().toLowerCase();
 
-  @override
-  void initState() {
-    super.initState();
-    final initial = widget.controller.text.trim().toLowerCase();
-    if (initial.isNotEmpty && initial == _normalizedCurrentUsername) {
-      _status = TioUsernameStatus.available;
-    }
-  }
+  // Matching the current/persisted value means there is nothing to check or
+  // save -- idle, not available (see _onInputChanged). The initial render
+  // uses the same idle default with no special-case derivation, so a
+  // pre-filled current username and a value typed back to match it behave
+  // identically. Evidenced by Account Settings, the only current consumer of
+  // [currentUsername]: showing an available check mark for a username the
+  // account already has would claim a change that was never made.
 
   @override
   void didUpdateWidget(covariant TioUsernameInputField oldWidget) {
@@ -123,7 +168,7 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
 
     if (raw == _normalizedCurrentUsername && raw.isNotEmpty) {
       _updateState(
-        status: TioUsernameStatus.available,
+        status: TioUsernameStatus.idle,
         suggestions: const [],
         feedback: null,
       );
@@ -134,8 +179,7 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
       _updateState(
         status: TioUsernameStatus.unavailable,
         suggestions: const [],
-        feedback:
-            'Username must be at least $tioUsernameMinLength characters.',
+        feedback: 'Username must be at least $tioUsernameMinLength characters.',
       );
       return;
     }
@@ -144,8 +188,7 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
       _updateState(
         status: TioUsernameStatus.unavailable,
         suggestions: const [],
-        feedback:
-            'Username must be at most $tioUsernameMaxLength characters.',
+        feedback: 'Username must be at most $tioUsernameMaxLength characters.',
       );
       return;
     }
@@ -232,7 +275,7 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
     widget.onStatusChanged?.call(status);
   }
 
-  Widget? _buildSuffixIcon(TioColors colors) {
+  Widget? _buildOutlinedSuffixIcon(TioColors colors) {
     switch (_status) {
       case TioUsernameStatus.checking:
         return const SizedBox(
@@ -265,10 +308,78 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
     }
   }
 
+  /// Suggestion pills, shared by both appearances. Only the border alpha and
+  /// the optional "Suggestions:" caption are evidenced as appearance-specific
+  /// -- everything else (radius, padding, font, tap behavior) is identical.
+  Widget _buildSuggestions(
+    TioColors colors, {
+    required int borderAlpha,
+    required bool showCaption,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (showCaption) ...[
+          Text(
+            'Suggestions:',
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: TioFontSize.size12,
+              fontWeight: TioFontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: TioSize.dp6),
+        ],
+        Wrap(
+          spacing: TioSpacing.sm,
+          runSpacing: TioSpacing.sm,
+          children: _suggestions.map((suggestion) {
+            return InkWell(
+              onTap: () => _applySuggestion(suggestion),
+              borderRadius: BorderRadius.circular(
+                TioInputTokens.usernameSuggestionRadius,
+              ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: TioSpacing.md,
+                  vertical: TioInputTokens.usernameSuggestionVerticalPadding,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.surfaceRaised,
+                  borderRadius: BorderRadius.circular(
+                    TioInputTokens.usernameSuggestionRadius,
+                  ),
+                  border: Border.all(
+                    color: colors.primary.withAlpha(borderAlpha),
+                  ),
+                ),
+                child: Text(
+                  '@$suggestion',
+                  style: TextStyle(
+                    color: colors.primary,
+                    fontSize: TioInputTokens.usernameSuggestionFontSize,
+                    fontWeight: TioFontWeight.w600,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
+    return switch (widget.appearance) {
+      TioUsernameFieldAppearance.outlined => _buildOutlined(colors),
+      TioUsernameFieldAppearance.capsule => _buildCapsule(colors),
+    };
+  }
 
+  Widget _buildOutlined(TioColors colors) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -282,6 +393,7 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
           inputFormatters: [
             const _LowercaseTextInputFormatter(),
             LengthLimitingTextInputFormatter(tioUsernameMaxLength),
+            ...?widget.extraInputFormatters,
           ],
           onChanged: _onInputChanged,
           onSubmitted: widget.onSubmitted,
@@ -294,7 +406,7 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
               color: colors.textMuted,
               size: TioInputTokens.usernameIconSize,
             ),
-            suffixIcon: _buildSuffixIcon(colors),
+            suffixIcon: _buildOutlinedSuffixIcon(colors),
             labelStyle: TextStyle(color: colors.textMuted),
             hintStyle: TextStyle(
               color: colors.textMuted.withValues(
@@ -359,42 +471,153 @@ class _TioUsernameInputFieldState extends State<TioUsernameInputField> {
         ],
         if (_suggestions.isNotEmpty) ...[
           const SizedBox(height: TioInputTokens.usernameSupportingGap),
-          Wrap(
-            spacing: TioSpacing.sm,
-            runSpacing: TioSpacing.sm,
-            children: _suggestions.map((suggestion) {
-              return InkWell(
-                onTap: () => _applySuggestion(suggestion),
-                borderRadius: BorderRadius.circular(
-                  TioInputTokens.usernameSuggestionRadius,
+          _buildSuggestions(
+            colors,
+            borderAlpha: TioInputTokens.usernameSuggestionOutlineAlpha,
+            showCaption: false,
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// Fixed-height filled capsule row, evidenced by Account Settings and
+  /// matching [TioMobileNumberField]'s existing structure: an outer
+  /// decorated [Container] with a borderless, transparent inner [TextField]
+  /// -- not Material's own [InputDecoration] border/fill system. The
+  /// external label ("USERNAME") stays page-owned, matching the current
+  /// Account Settings composition; this appearance renders no floating
+  /// label of its own.
+  Widget _buildCapsule(TioColors colors) {
+    final isUnavailable = _status == TioUsernameStatus.unavailable;
+    final isAvailable = _status == TioUsernameStatus.available;
+    final borderColor = isUnavailable
+        ? colors.danger
+        : isAvailable
+            ? colors.primary
+            : colors.outlineStrong;
+    final borderAlpha = (isUnavailable || isAvailable)
+        ? TioInputTokens.usernameCapsuleStatusBorderAlpha
+        : TioInputTokens.usernameCapsuleNormalBorderAlpha;
+    final borderWidth = (isUnavailable || isAvailable)
+        ? TioInputTokens.usernameCapsuleStatusBorderWidth
+        : TioInputTokens.usernameCapsuleNormalBorderWidth;
+    final iconColor = isUnavailable
+        ? colors.danger
+        : isAvailable
+            ? colors.primary
+            : colors.textPrimary;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          height: TioInputTokens.usernameCapsuleHeight,
+          decoration: BoxDecoration(
+            color: colors.surfaceRaised,
+            borderRadius: BorderRadius.circular(TioRadius.lg),
+            border: Border.all(
+              color: borderColor.withAlpha(borderAlpha),
+              width: borderWidth,
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
+          alignment: Alignment.center,
+          child: Row(
+            children: [
+              Icon(
+                Icons.alternate_email_rounded,
+                size: TioInputTokens.usernameCapsuleIconSize,
+                color: iconColor,
+              ),
+              const SizedBox(width: TioInputTokens.usernameCapsuleIconGap),
+              Expanded(
+                child: TextField(
+                  key: const ValueKey('tio-username-input'),
+                  controller: widget.controller,
+                  keyboardType: TextInputType.text,
+                  textInputAction: widget.textInputAction,
+                  enabled: widget.enabled,
+                  cursorColor: colors.primary,
+                  inputFormatters: [
+                    const _LowercaseTextInputFormatter(),
+                    LengthLimitingTextInputFormatter(tioUsernameMaxLength),
+                    ...?widget.extraInputFormatters,
+                  ],
+                  onChanged: _onInputChanged,
+                  onSubmitted: widget.onSubmitted,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: TioInputTokens.usernameCapsuleTextFontSize,
+                    fontWeight: TioFontWeight.w500,
+                  ),
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    filled: false,
+                    fillColor: TioPalette.transparent,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                    hintText: widget.hintText,
+                    hintStyle: TextStyle(
+                      color: colors.textMuted,
+                      fontWeight: TioFontWeight.w400,
+                    ),
+                  ),
                 ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: TioSpacing.md,
-                    vertical: TioInputTokens.usernameSuggestionVerticalPadding,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colors.surfaceRaised,
-                    borderRadius: BorderRadius.circular(
-                      TioInputTokens.usernameSuggestionRadius,
-                    ),
-                    border: Border.all(
-                      color: colors.primary.withAlpha(
-                        TioInputTokens.usernameSuggestionOutlineAlpha,
-                      ),
-                    ),
-                  ),
-                  child: Text(
-                    '@$suggestion',
-                    style: TextStyle(
+              ),
+              switch (_status) {
+                TioUsernameStatus.checking => SizedBox(
+                    width: TioInputTokens.usernameCapsuleCheckingIndicatorSize,
+                    height: TioInputTokens.usernameCapsuleCheckingIndicatorSize,
+                    child: CircularProgressIndicator(
+                      strokeWidth: TioInputTokens.usernameCheckingStrokeWidth,
                       color: colors.primary,
-                      fontSize: TioInputTokens.usernameSuggestionFontSize,
-                      fontWeight: TioFontWeight.w600,
                     ),
                   ),
-                ),
-              );
-            }).toList(),
+                TioUsernameStatus.available => Icon(
+                    Icons.check_circle_rounded,
+                    size: TioInputTokens.usernameCapsuleIconSize,
+                    color: colors.primary,
+                  ),
+                TioUsernameStatus.unavailable => Icon(
+                    Icons.error_outline_rounded,
+                    size: TioInputTokens.usernameCapsuleIconSize,
+                    color: colors.danger,
+                  ),
+                TioUsernameStatus.idle => const SizedBox.shrink(),
+              },
+            ],
+          ),
+        ),
+        if (_feedbackMessage != null) ...[
+          const SizedBox(height: TioSize.dp6),
+          Padding(
+            padding: const EdgeInsets.only(left: TioSpacing.xs),
+            child: Text(
+              _feedbackMessage!,
+              style: TextStyle(
+                color: isAvailable ? colors.primary : colors.danger,
+                fontSize: TioInputTokens.usernameCapsuleFeedbackFontSize,
+                fontWeight: TioFontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+        if (_suggestions.isNotEmpty) ...[
+          const SizedBox(height: TioSize.dp10),
+          Padding(
+            padding: const EdgeInsets.only(left: TioSpacing.xs),
+            child: _buildSuggestions(
+              colors,
+              borderAlpha: TioInputTokens.usernameCapsuleSuggestionOutlineAlpha,
+              showCaption: true,
+            ),
           ),
         ],
       ],

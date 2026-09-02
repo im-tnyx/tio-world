@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -324,6 +326,381 @@ void main() {
     expect(find.text('Google'), findsOneWidget);
     expect(find.text('Connected'), findsOneWidget);
     expect(find.text('Connect'), findsNothing);
+  });
+
+  group('username field (#24-D, TioUsernameInputField capsule appearance)', () {
+    testWidgets(
+        'renders as a fixed-height capsule row, not a floating-label field',
+        (tester) async {
+      await tester.pumpWidget(
+        themedApp(
+          home: const AccountSettingsPage(
+            username: 'member_initial',
+            linkedProvider: 'phone + email',
+          ),
+        ),
+      );
+
+      final container = tester.widget<Container>(
+        find
+            .ancestor(
+              of: find.byKey(const ValueKey('tio-username-input')),
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      expect(
+        container.constraints,
+        const BoxConstraints.tightFor(height: 56),
+      );
+      expect(find.byIcon(Icons.alternate_email_rounded), findsOneWidget);
+      expect(find.text('Username'), findsNothing);
+    });
+
+    testWidgets(
+        'renders the persisted username in a neutral idle state, matching '
+        'the pre-#24-D contract', (tester) async {
+      await tester.pumpWidget(
+        themedApp(
+          home: const AccountSettingsPage(
+            username: 'member_initial',
+            linkedProvider: 'phone + email',
+          ),
+        ),
+      );
+
+      // No status icon of any kind for the account's own already-persisted
+      // username -- nothing to check, nothing to save.
+      expect(find.byIcon(Icons.check_circle_rounded), findsNothing);
+      expect(find.byIcon(Icons.error_outline_rounded), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+
+      final container = tester.widget<Container>(
+        find
+            .ancestor(
+              of: find.byKey(const ValueKey('tio-username-input')),
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      final decoration = container.decoration! as BoxDecoration;
+      final border = decoration.border! as Border;
+      // Normal (non status-tinted) border: neutral outline at alpha40,
+      // hairline width. The colour matters as much as the width here -- it is
+      // what makes the persisted username read as "unchanged" rather than as
+      // an available (primary) or rejected (danger) result.
+      expect(
+        border.top.color,
+        TioColors.light.outlineStrong.withAlpha(TioAlpha.alpha40),
+      );
+      expect(border.top.width, TioStroke.width1);
+    });
+
+    testWidgets('extraInputFormatters still blocks disallowed characters',
+        (tester) async {
+      await tester.pumpWidget(
+        themedApp(
+          home: const AccountSettingsPage(username: 'member_initial'),
+        ),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('tio-username-input')),
+        'bad name!#',
+      );
+      await tester.pump();
+
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey('tio-username-input')),
+            )
+            .controller
+            ?.text,
+        'badname',
+      );
+    });
+
+    testWidgets(
+        'without a real availability callback, checking never claims false success',
+        (tester) async {
+      await tester.pumpWidget(
+        themedApp(
+          home: const AccountSettingsPage(username: 'member_initial'),
+        ),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('tio-username-input')),
+        'brand_new_handle',
+      );
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.check_circle_rounded), findsNothing);
+      expect(
+        find.text('Username availability could not be verified.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+        'checking -> available via injected callback shows check and enables Save',
+        (tester) async {
+      var saveCalls = 0;
+
+      await tester.pumpWidget(
+        themedApp(
+          home: AccountSettingsPage(
+            username: 'member_initial',
+            onCheckUsernameAvailability: (handle) async {
+              return const UsernameAvailabilityResult(isAvailable: true);
+            },
+            onSave: ({required username, required phoneNumber}) async {
+              saveCalls++;
+            },
+          ),
+        ),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('tio-username-input')),
+        'brand_new_handle',
+      );
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+
+      await tester.tap(find.text('Save Changes'));
+      await tester.pumpAndSettle();
+
+      expect(saveCalls, 1);
+    });
+
+    testWidgets('unavailable result blocks Save and surfaces suggestions',
+        (tester) async {
+      var saveCalls = 0;
+
+      await tester.pumpWidget(
+        themedApp(
+          home: AccountSettingsPage(
+            username: 'member_initial',
+            onCheckUsernameAvailability: (handle) async {
+              return const UsernameAvailabilityResult(
+                isAvailable: false,
+                message: 'This username is already taken. Try another.',
+                suggestions: ['taken_fit', 'taken_95'],
+              );
+            },
+            onSave: ({required username, required phoneNumber}) async {
+              saveCalls++;
+            },
+          ),
+        ),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('tio-username-input')),
+        'taken',
+      );
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.error_outline_rounded), findsOneWidget);
+      expect(find.text('@taken_fit'), findsOneWidget);
+      expect(find.text('@taken_95'), findsOneWidget);
+
+      await tester.tap(find.text('Save Changes'));
+      await tester.pumpAndSettle();
+
+      expect(saveCalls, 0);
+    });
+
+    testWidgets('tapping a suggestion applies it and rechecks availability',
+        (tester) async {
+      final checked = <String>[];
+
+      await tester.pumpWidget(
+        themedApp(
+          home: AccountSettingsPage(
+            username: 'member_initial',
+            onCheckUsernameAvailability: (handle) async {
+              checked.add(handle);
+              if (handle == 'taken') {
+                return const UsernameAvailabilityResult(
+                  isAvailable: false,
+                  suggestions: ['taken_fit'],
+                );
+              }
+              return const UsernameAvailabilityResult(isAvailable: true);
+            },
+          ),
+        ),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('tio-username-input')),
+        'taken',
+      );
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('@taken_fit'));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
+
+      expect(checked, ['taken', 'taken_fit']);
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey('tio-username-input')),
+            )
+            .controller
+            ?.text,
+        'taken_fit',
+      );
+      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+    });
+
+    testWidgets('a stale in-flight check cannot overwrite a newer typed value',
+        (tester) async {
+      final pending = <String, Completer<UsernameAvailabilityResult>>{};
+
+      await tester.pumpWidget(
+        themedApp(
+          home: AccountSettingsPage(
+            username: 'member_initial',
+            onCheckUsernameAvailability: (handle) {
+              final completer = Completer<UsernameAvailabilityResult>();
+              pending[handle] = completer;
+              return completer.future;
+            },
+          ),
+        ),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('tio-username-input')),
+        'first_handle',
+      );
+      await tester.pump(const Duration(milliseconds: 500));
+
+      await tester.enterText(
+        find.byKey(const ValueKey('tio-username-input')),
+        'second_handle',
+      );
+      await tester.pump(const Duration(milliseconds: 500));
+
+      pending['first_handle']!.complete(
+        const UsernameAvailabilityResult(isAvailable: true),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byIcon(Icons.check_circle_rounded), findsNothing);
+
+      pending['second_handle']!.complete(
+        const UsernameAvailabilityResult(isAvailable: true),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+    });
+
+    testWidgets(
+        'reverting to the current username while an older check is in flight '
+        'cannot be overwritten by that check', (tester) async {
+      final pending = <String, Completer<UsernameAvailabilityResult>>{};
+
+      await tester.pumpWidget(
+        themedApp(
+          home: AccountSettingsPage(
+            username: 'member_initial',
+            onCheckUsernameAvailability: (handle) {
+              final completer = Completer<UsernameAvailabilityResult>();
+              pending[handle] = completer;
+              return completer.future;
+            },
+          ),
+        ),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('tio-username-input')),
+        'temporary_handle',
+      );
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(pending.containsKey('temporary_handle'), isTrue);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('tio-username-input')),
+        'member_initial',
+      );
+      await tester.pump();
+
+      // Reverting to the persisted username is idle/neutral, not available --
+      // nothing actually changed, matching the pre-#24-D Account Settings
+      // contract. See the "renders the persisted username in a neutral idle
+      // state" test above for the initial-mount counterpart.
+      expect(find.byIcon(Icons.check_circle_rounded), findsNothing);
+      expect(find.byIcon(Icons.error_outline_rounded), findsNothing);
+
+      pending['temporary_handle']!.complete(
+        const UsernameAvailabilityResult(isAvailable: false),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.check_circle_rounded), findsNothing);
+      expect(find.byIcon(Icons.error_outline_rounded), findsNothing);
+    });
+
+    testWidgets(
+        'a late server conflict on Save blocks the field and offers a fresh recheck',
+        (tester) async {
+      final onCheckCalls = <String>[];
+
+      await tester.pumpWidget(
+        themedApp(
+          home: AccountSettingsPage(
+            username: 'member_initial',
+            phoneNumber: '9876543210',
+            isPhoneVerified: true,
+            onCheckUsernameAvailability: (handle) async {
+              onCheckCalls.add(handle);
+              return const UsernameAvailabilityResult(isAvailable: true);
+            },
+            onSave: ({required username, required phoneNumber}) async {
+              throw const TioUsernameConflictException(
+                'That username was just taken. Please choose another.',
+              );
+            },
+          ),
+        ),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('tio-username-input')),
+        'just_taken',
+      );
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
+      expect(onCheckCalls, ['just_taken']);
+
+      await tester.tap(find.text('Save Changes'));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('That username was just taken. Please choose another.'),
+        findsOneWidget,
+      );
+
+      // The refresh token bump reissues a fresh check for the same handle.
+      expect(onCheckCalls, ['just_taken', 'just_taken']);
+    });
   });
 }
 
