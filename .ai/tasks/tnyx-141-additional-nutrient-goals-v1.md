@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-02
 **Branch:** `codex/tnyx-141-additional-nutrient-goals-v1`
-**HEAD SHA:** `b1747a9d00bd492b1d894eec87c5e5ef6433f736`
+**HEAD SHA:** `936c0939131936f14621997637362539f3721aa0`
 **Observed working-tree state:** Clean before this task brief
 **Observed uncommitted/dirty files:** None before implementation
 **PR / tracker:** No open PR at baseline; Linear TNYX-141 is `In Progress`; GitHub #24 remains OPEN/PAUSED and untouched
-**Current implementation state:** Domain, persistence, migration file, UI and routing complete; validated locally
+**Current implementation state:** Complete. All six valid Codex code findings resolved (C1-C6); three threads triaged as stale-duplicate or already-fixed; one thread deliberately left open as a deployment gate.
 **Relevant execution surface:** `apps/features/nutrition`, `apps/app`, `apps/core` route contract, `supabase/migrations`
-**Validation completed at SHA:** Analyzer, formatting and full test suites for `apps/shared`, `apps/core`, `apps/features/nutrition`, `apps/app`; `git diff --check`
-**Validation remaining:** Physical-device acceptance, exact-head CI, hosted migration authorization
+**Validation completed at SHA:** Full-workspace `flutter analyze` (16/16 packages) and `flutter test` (14/14 test-bearing packages, 1732 tests) at `936c0939`; `git diff --check origin/main...HEAD` exits 0; exact-head CI green.
+**Validation remaining:** Physical-device acceptance and hosted migration authorization. Both are outside this task's authorization.
 **Current blocker:** None for implementation. Hosted rollout is gated on migration-ledger repair (see below) and separate owner authorization.
-**Open review finding IDs:** None open; three found and fixed during implementation (see Review Findings)
-**Next exact action:** Push the branch, open the Draft PR, and attach evidence to Linear. Do not apply hosted DDL or merge.
+**Open review finding IDs:** `C10` only — the migration-before-client deployment gate, left unresolved on purpose so it cannot be lost. Every other thread is fixed or answered.
+**Next exact action:** Owner physical-device acceptance, then hosted migration authorization (ledger repair first). PR #202 stays Draft. Do not merge, mark Ready, or apply hosted DDL.
 
 ## Global UI / Design-System Guardrail
 
@@ -233,19 +233,20 @@ flutter analyze  -- all 16 packages                        PASS (0 failures)
 
 flutter test  -- all 14 test-bearing packages              PASS (0 failures)
   onboarding      450        auth            159
-  app             267        profile          59
-  nutrition       245        progress         51
+  app             269        profile          59
+  nutrition       265        progress         51
   settings        192        account_setup    38
   core            177        shared           36
   workout          14        splash           12
   wear              9        home              1
                                               -----
-                                        total 1710
+                                        total 1732
 ```
 
-`apps/features/nutrition` went 133 → 245 (+112). Every other package's total is
-unchanged from baseline, which is the point: the interface change had to be
-absorbed by their test doubles without altering their behaviour.
+`apps/features/nutrition` went 133 → 265 (+132) and `apps/app` 267 → 269 (+2,
+the profile-error route composition). Every other package's total is unchanged
+from baseline, which is the point: the interface change had to be absorbed by
+their test doubles without altering their behaviour.
 
 ### Review Findings and Resolution
 
@@ -270,6 +271,33 @@ absorbed by their test doubles without altering their behaviour.
 | R7 | P2 | Fixed | Unavailable guidance claimed every recommendation needs Calories *and* a date of birth. Only the two percentage rules read Calories; sodium and Vitamin D are fixed amounts gated on age alone, so those users were told to fix an input their nutrient never uses. Guidance is now driven by `AdditionalNutrientRecommendationPolicy.blockersFor()`, which reports only the prerequisites that nutrient actually has, and distinguishes missing date of birth, age below the minimum, missing Calories, and both. Age below the minimum is stated as eligibility rather than as something to correct. | policy + `additional_nutrient_goals_page.dart` |
 | R8 | Medium | Fixed | **A false PASS in my own evidence.** Earlier rounds recorded `git diff --check PASS`, but I had only ever run it against the working tree, which passes trivially once the offending lines are committed. Run correctly against the branch's whole contribution (`git diff --check origin/main...HEAD`) it exited 2: two files carried a trailing blank line at EOF, inherited from the first checkpoint commit. Files fixed and the evidence now names the exact command so it cannot be satisfied by a weaker check. | two domain model files |
 | R5 | Medium | Fixed | **Found while fixing R3/R4, in the test helper rather than the product.** `pumpPage`'s `dateOfBirth: dateOfBirth ?? adultDob` could not distinguish "not specified" from "explicitly absent", so passing `null` silently produced an adult date of birth — meaning the existing "override survives the recommendation going away" test was passing for the wrong reason. Replaced with an explicit `withoutDateOfBirth` flag. | `additional_nutrient_goals_page_test.dart` |
+
+### Codex review findings (Draft PR #202, at head `dfb0ad4e`)
+
+Ten unresolved threads were fetched fresh from GitHub and triaged. Classifying
+each one before fixing anything matters here: three of the ten did not describe
+a live defect, and fixing them anyway would have churned working code.
+
+| ID | Severity | Classification | Status | Finding | Resolution |
+|---|---|---|---|---|---|
+| C1 | P1 | Valid | Fixed | **Concurrent lost update.** `encodeUpdated` replaced the whole goal set, removing every authorized nutrient absent from `updated`. Confirmed by direct inspection, not by relaying the bot: a screen loads with no goals, another client adds Sodium, the user enables Vitamin D, and Sodium is silently deleted. Re-reading first does not help — the caller's snapshot still says "absent" for Sodium. | Converted to a per-nutrient delta end to end: `NutritionTargetsRepository.updateAdditionalNutrientGoal(NutrientId, AdditionalNutrientGoal?)` and `AdditionalNutrientGoalsV1Codec.encodeGoalDelta`. Only the edited key is written; every other entry, authorized or not, is carried through from the freshly decoded envelope. Both repository implementations, the page callback and the router composition follow. |
+| C2 | P1 | Valid | Fixed | **Edit eligibility lived in the widget.** The frozen rule about what an unavailable recommendation permits was expressed as layout conditions inside the editor, so any second surface offering these actions would have re-derived it and drifted. | Extracted to `AdditionalNutrientGoalEditCapability.forGoal()` in the domain, exposing `canSetCustomValue`, `canUseRecommendation`, `canTurnOff` and `isValuePreserved`. The editor now renders the capability rather than deciding it. |
+| C3 | P1 | Valid | Fixed | **Canonical editor surface bypassed.** `showTioEditorSheet` configures the modal route only; the builder returned a raw `Column`, skipping `TioEditorSheet` and with it viewInsets padding, the scrollable body, the pinned action region and SafeArea. On a compact phone with the keyboard raised, Save could sit below the fold — the exact defect that component exists to prevent. | Rebuilt as `TioEditorSheet` slots: `title`, `supportingText`, `content`, `actions`, with `canDismiss: !_isSaving` so a drag cannot discard an in-flight write. |
+| C4 | P2 | Valid | Fixed | **Profile load errors read as a missing date of birth.** `ref.watch(profileDataProvider).valueOrNull` collapsed error and absent into the same `null`. A transient network error would render four permanently "Unavailable" nutrients and, under the frozen eligibility rule, block editing — with nothing on screen explaining why or offering a retry. | The route now handles the profile's loading and error states explicitly, reusing `_NutritionLoadFailure` with a retry that invalidates the profile provider. Two route-level regressions distinguish the failed load from a genuinely absent date of birth. |
+| C5 | P2 | Valid | Fixed | **Tiny nonzero goals rendered as zero.** The precision-widening loop stopped at six decimals, so a stored `0.0000001` displayed as `0 g` — identical to the explicit zero that means something entirely different in this feature. | Widening now runs to `toStringAsFixed`'s documented 20-digit limit and then falls back to `double.toString()`'s shortest round-trippable form. Unfamiliar for a value that small, but honest. |
+| C6 | P2 | Valid | Fixed | **Locale decimal separator rejected.** Comma-decimal keyboards send `22,5`; the input formatter stripped the comma (turning it into `225`) and the parser never normalised it. | The formatter admits `,` and `_saveCustom` normalises it to the canonical dot before parsing. A regression asserts the typed comma is not silently dropped, which is the more dangerous half. |
+| C7 | P2 | Stale duplicate | Replied, resolved | "Enable a new goal directly on Recommended." Already fixed as **R6** in the previous pass; the thread is marked outdated by GitHub and was written against superseded code. | No code change. |
+| C8 | P2 | Stale duplicate | Replied, resolved | "State nutrient-specific prerequisites." Already fixed as **R7**; thread marked outdated. | No code change. |
+| C9 | P1 | Already fixed | Replied, resolved | "Do not record a failing diff check as PASS." Correct when written, and already self-reported and fixed as **R8** at `dfb0ad4e`. | Re-verified: `git diff --check origin/main...HEAD` exits 0 at `936c0939`. |
+| C10 | P1 | **Deployment gate** | **Left unresolved deliberately** | **Migration must be applied before this client ships.** `readRow` selects `additional_nutrient_goals`; on an unmigrated database PostgREST fails the whole request rather than returning null, and that same `readRow` backs the Nutrition Targets and Macros routes — so all three screens would break, not just the new one. Confirmed by direct inspection. | Not a code defect and not fixable in code. It is a rollout ordering constraint, and hosted migration is outside this task's authorization. The thread stays open as `DEPLOYMENT BLOCKER — NOT YET RESOLVED` so it cannot be lost. See the migration-ledger reconciliation above: a plain `supabase db push` would replay 11 unrecorded migrations against existing objects, so **ledger repair is part of this gate**. |
+
+Nine regression tests were added for C1 alone, covering the required scenarios:
+Sodium survives a local Vitamin D enable and a local Vitamin D disable; a local
+Sodium edit and a local Sodium removal each touch only Sodium; unknown nutrient
+keys, unknown top-level fields and unknown fields inside entries all survive; an
+unsupported future schema stays fail-closed; and the core-five write still omits
+the column entirely. The stale-full-set scenario is proved gone by asserting the
+stale snapshot's `contains(sodium) == false` and that Sodium survives anyway.
 
 ### Owner UX decision — recorded as frozen
 
@@ -346,9 +374,14 @@ value, provenance and write path.
 
 ### Known Limitations
 
-- Hosted Supabase is unmigrated; the column does not exist in production yet,
-  so the screen will read an absent column as "no goals configured" until the
-  migration is authorized and the ledger repaired.
+- **Hosted Supabase is unmigrated, and this is a hard release gate, not a
+  graceful degradation.** An earlier draft of this note claimed the screen
+  would read an absent column as "no goals configured". That was wrong, and
+  Codex finding C10 caught it: PostgREST fails the entire request when a
+  selected column does not exist, and the same `readRow` backs the Nutrition
+  Targets and Macros routes — so shipping this client against the current
+  production schema would break three screens, not degrade one. The migration
+  must be applied and the ledger repaired before any client rollout.
 - Old-client preservation is proven at the request-payload boundary rather than
   against a live PostgREST instance, because the local Supabase stack cannot
   run in this environment.
@@ -358,5 +391,7 @@ value, provenance and write path.
 
 ### Final Status
 
-`AWAITING REVIEW` — implementation and validation complete; Draft PR, hosted
-migration authorization and physical-device acceptance remain.
+`AWAITING REVIEW` — implementation, review resolution and validation complete.
+PR #202 remains Draft. Two gates remain and neither is a code change: owner
+physical-device acceptance, and hosted migration authorization with ledger
+repair (Codex finding C10, still open by design).
