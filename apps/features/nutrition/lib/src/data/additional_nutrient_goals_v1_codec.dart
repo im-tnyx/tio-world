@@ -1,5 +1,3 @@
-import 'package:tio_shared/shared.dart';
-
 import '../domain/models/additional_nutrient_goal.dart';
 
 /// Decode result keeps the opaque persistence envelope inside the data layer.
@@ -65,13 +63,19 @@ final class AdditionalNutrientGoalsV1Codec {
           'missing custom_value.',
         );
       }
+      // An explicit null means "use the recommendation"; any other non-numeric
+      // value is malformed V1 rather than something to coerce or ignore.
       final rawCustom = entry['custom_value'];
-      if (rawCustom != null && rawCustom is! num) {
+      final double? customValue;
+      if (rawCustom == null) {
+        customValue = null;
+      } else if (rawCustom is num) {
+        customValue = rawCustom.toDouble();
+      } else {
         throw FormatException(
           'Invalid additional_nutrient_goals.goals.$storageValue.custom_value.',
         );
       }
-      final customValue = rawCustom?.toDouble();
       if (customValue != null && (!customValue.isFinite || customValue < 0)) {
         throw FormatException(
           'Invalid additional_nutrient_goals.goals.$storageValue.custom_value.',
@@ -146,4 +150,3 @@ Map<String, Object?> _requireObject(Object? raw, String path) {
   }
   return result;
 }
-
