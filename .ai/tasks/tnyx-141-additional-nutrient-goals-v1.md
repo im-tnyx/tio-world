@@ -224,7 +224,7 @@ full workspace is analyzed and tested, matching CI.
 
 ```text
 dart format   (all changed source and test files)          PASS
-git diff --check                                           PASS
+git diff --check origin/main...HEAD                        PASS
 
 flutter analyze  -- all 16 packages                        PASS (0 failures)
   shared · core · app · wear · account_setup · auth · coaching · home
@@ -268,6 +268,7 @@ absorbed by their test doubles without altering their behaviour.
 | R4 | Minor | Fixed | Invalid-number copy said "or more than zero" even though an explicit zero is a valid goal. | Now reads "Enter zero or a higher number of &lt;unit&gt;." Pinned by a test that also asserts the old wording is gone. |
 | R6 | P1 | Fixed | The Recommended state was unreachable from scratch. With a derivable recommendation and no goal yet, the editor offered only the custom input and Save, so `Not set -> Recommended` was impossible — a new user had to invent a Custom override first, even though key-present + `custom_value: null` is the contract's enabled-Recommended state. `Use Recommended` now appears whenever the goal is not already on the recommendation, covering both opting in and reverting; both persist `custom_value: null`. Still gated on the recommendation being derivable, so nothing became enableable when it is not. | `additional_nutrient_goals_page.dart` |
 | R7 | P2 | Fixed | Unavailable guidance claimed every recommendation needs Calories *and* a date of birth. Only the two percentage rules read Calories; sodium and Vitamin D are fixed amounts gated on age alone, so those users were told to fix an input their nutrient never uses. Guidance is now driven by `AdditionalNutrientRecommendationPolicy.blockersFor()`, which reports only the prerequisites that nutrient actually has, and distinguishes missing date of birth, age below the minimum, missing Calories, and both. Age below the minimum is stated as eligibility rather than as something to correct. | policy + `additional_nutrient_goals_page.dart` |
+| R8 | Medium | Fixed | **A false PASS in my own evidence.** Earlier rounds recorded `git diff --check PASS`, but I had only ever run it against the working tree, which passes trivially once the offending lines are committed. Run correctly against the branch's whole contribution (`git diff --check origin/main...HEAD`) it exited 2: two files carried a trailing blank line at EOF, inherited from the first checkpoint commit. Files fixed and the evidence now names the exact command so it cannot be satisfied by a weaker check. | two domain model files |
 | R5 | Medium | Fixed | **Found while fixing R3/R4, in the test helper rather than the product.** `pumpPage`'s `dateOfBirth: dateOfBirth ?? adultDob` could not distinguish "not specified" from "explicitly absent", so passing `null` silently produced an adult date of birth — meaning the existing "override survives the recommendation going away" test was passing for the wrong reason. Replaced with an explicit `withoutDateOfBirth` flag. | `additional_nutrient_goals_page_test.dart` |
 
 ### Owner UX decision — recorded as frozen

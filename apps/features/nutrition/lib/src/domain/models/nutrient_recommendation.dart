@@ -44,4 +44,3 @@ final class NutrientRecommendation {
   double? effectiveValueFor(AdditionalNutrientGoal? goal) =>
       goal?.customValue ?? recommendedValue;
 }
-
