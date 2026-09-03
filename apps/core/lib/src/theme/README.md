@@ -438,6 +438,8 @@ The generic `TioInput` contract (14dp radius, 52dp minimum height) and the speci
 
 Selection is state, not a fill variant, which is why it is a separate component rather than a flag on `TioCard`.
 
+`onTap` is required. An option that cannot be chosen is `enabled: false` — which suppresses the tap, dims the card at `TioOpacity.opacity64`, and reports disabled to assistive technology — so there is one reusable way to be non-interactive rather than two. Padding is fixed at `TioCardTokens.padding`; a surface needing different inner spacing composes it into its own `child`.
+
 Features should not rebuild selection-card `BoxDecoration` locally. Product-specific selection rules, persistence, capability gating, navigation, and analytics remain feature-owned.
 
 Use the public Settings-row family when its demonstrated contract matches instead of recreating the same card/row geometry in a feature:

@@ -28,8 +28,8 @@ class TioSelectableCard extends StatelessWidget {
   const TioSelectableCard({
     required this.selected,
     required this.child,
+    required this.onTap,
     super.key,
-    this.onTap,
     this.enabled = true,
     this.semanticLabel,
   });
@@ -42,12 +42,14 @@ class TioSelectableCard extends StatelessWidget {
   /// grows feature-shaped parameters for icons, titles or trailing marks.
   final Widget child;
 
-  /// Chooses this option. Null renders a non-interactive card.
-  final VoidCallback? onTap;
+  /// Chooses this option. Required, because an option that cannot be chosen
+  /// is [enabled] false, not a card with a missing callback — one reusable
+  /// way to be non-interactive, not two.
+  final VoidCallback onTap;
 
-  /// Whether the option may be chosen at all. False suppresses the tap and
-  /// dims the card, for surfaces that show an option their user cannot pick
-  /// yet rather than hiding it.
+  /// Whether the option may be chosen at all. False suppresses the tap, dims
+  /// the card and reports disabled to assistive technology, for surfaces that
+  /// show an option their user cannot pick yet rather than hiding it.
   final bool enabled;
 
   /// Accessibility label for the whole option. Null leaves the composed

@@ -46,11 +46,17 @@ The Phase 1 audit found **14 production selection-card surfaces**. `TioCardToken
 
 **Single semantics node.** The ink well is excluded from semantics and the wrapping `Semantics` owns button/selected/enabled plus the tap action, so an option is announced once rather than twice.
 
-## Known gap, deliberately not closed here
+## Manual review correction (owner, after first CI-green head)
 
-`_NutritionChoiceTile` and `_ThemeOptionCard` currently use `EdgeInsets.symmetric(horizontal: TioSpacing.lg, vertical: TioSize.dp14)`, while the canonical padding is `EdgeInsets.all(TioCardTokens.padding)` (16). No padding override was added, because the owner froze canonical padding and an override would re-open the drift.
+`onTap` was nullable while `enabled` defaulted to true, so `onTap: null` with `enabled: true` could publish an enabled button carrying no tap action — two ways to be non-interactive, one of them lying to assistive technology.
 
-**Consequence for Phase 2D:** migrating those two surfaces changes their vertical padding 14 → 16. That is a 2dp visual delta on two surfaces and must be declared in that slice, not absorbed silently. If the owner decides those surfaces must keep 14, that is a documented gap to revisit before 2D — not something this slice pre-authorizes.
+`onTap` is now **required**. `enabled: false` is the single reusable non-interactive capability: it suppresses the tap, dims at `TioOpacity.opacity64`, and reports disabled. The "null callback leaves the card inert" test is removed as unreachable; the enabled-has-tap-action and disabled-has-no-tap-action assertions remain as the evidence.
+
+## Padding — frozen
+
+Canonical padding remains `TioCardTokens.padding` (16dp) and **no override is added**, because an override is exactly how the current drift became representable.
+
+`_NutritionChoiceTile` and `_ThemeOptionCard` today use `EdgeInsets.symmetric(horizontal: TioSpacing.lg, vertical: TioSize.dp14)`. Phase 2D therefore migrates their vertical padding 14dp → 16dp, and must declare and device-check that 2dp delta rather than absorb it. A surface needing different inner spacing composes it into its own `child`.
 
 ## Scope
 

@@ -13,6 +13,9 @@ Future<TioColors> _pump(
   required bool selected,
   VoidCallback? onTap,
   bool enabled = true,
+  // The widget requires a callback; cases that do not care about the tap
+  // still have to hand it one.
+
   String? semanticLabel,
   Brightness brightness = Brightness.light,
 }) async {
@@ -29,7 +32,7 @@ Future<TioColors> _pump(
             colors = context.tioColors;
             return TioSelectableCard(
               selected: selected,
-              onTap: onTap,
+              onTap: onTap ?? () {},
               enabled: enabled,
               semanticLabel: semanticLabel,
               child: const Text('Option content'),
@@ -175,15 +178,6 @@ void main() {
             .opacity,
         TioOpacity.opacity64,
       );
-    });
-
-    testWidgets('a null callback leaves the card inert', (tester) async {
-      await _pump(tester, selected: false);
-
-      await tester.tap(find.byType(TioSelectableCard), warnIfMissed: false);
-      await tester.pumpAndSettle();
-
-      expect(tester.takeException(), isNull);
     });
   });
 
