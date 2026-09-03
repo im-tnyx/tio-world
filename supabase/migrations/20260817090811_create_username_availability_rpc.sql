@@ -1,5 +1,5 @@
 -- ============================================================================
--- Migration: 20260817000001_create_username_availability_rpc.sql
+-- Migration: 20260817090811_create_username_availability_rpc.sql
 -- Description: Expose a narrow authenticated-only username availability check without broad users-table reads.
 -- ============================================================================
 

@@ -33,7 +33,7 @@ The broader source-of-truth contract is frozen in `.ai/tasks/auth-provider-aware
 
 ### Supabase forward migration
 
-`supabase/migrations/20260826072000_refine_username_suggestions.sql`
+`supabase/migrations/20260826075218_refine_username_suggestions.sql`
 
 The migration replaces only `private.username_suggestions(text, uuid)` and does not add/remove/alter application tables, columns, indexes, or stored user rows.
 

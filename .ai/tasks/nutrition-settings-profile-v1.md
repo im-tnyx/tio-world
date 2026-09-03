@@ -155,7 +155,7 @@ session gate, so it should be unreachable; recorded rather than papered over.
 ### Changed Files
 
 - `.ai/tasks/nutrition-settings-profile-v1.md` (this file)
-- `supabase/migrations/20260831064500_add_nutrition_other_free_text.sql`
+- `supabase/migrations/20260831064841_add_nutrition_other_free_text.sql`
 - `apps/features/nutrition/lib/src/domain/models/nutrition_profile_data.dart`
 - `apps/features/nutrition/lib/src/data/repositories/supabase_nutrition_profile_repository.dart`
 - `apps/features/onboarding/lib/src/domain/usecases/nutrition_profile_mapper.dart`
