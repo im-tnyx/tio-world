@@ -60,6 +60,7 @@ class TioSelectableCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
+    final motion = context.tioMotion;
     final radius = BorderRadius.circular(TioCardTokens.radius);
     final tappable = enabled ? onTap : null;
 
@@ -69,6 +70,12 @@ class TioSelectableCard extends StatelessWidget {
               alpha: TioCardTokens.selectedContainerAlpha,
             )
           : colors.surface,
+      // The fill lives on the material and the border on the container below,
+      // so both are given the same resolved duration. Left at Flutter's
+      // default the fill would cross-fade over its own 200ms while the border
+      // snapped, and would keep animating even when the motion scheme is
+      // reduced to zero.
+      animationDuration: motion.fast,
       borderRadius: radius,
       child: InkWell(
         onTap: tappable,
@@ -78,7 +85,7 @@ class TioSelectableCard extends StatelessWidget {
         // node, so assistive technology announces one option twice.
         excludeFromSemantics: true,
         child: AnimatedContainer(
-          duration: context.tioMotion.fast,
+          duration: motion.fast,
           padding: const EdgeInsets.all(TioCardTokens.padding),
           decoration: BoxDecoration(
             borderRadius: radius,

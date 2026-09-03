@@ -4,28 +4,30 @@ import 'package:tio_core/core.dart';
 
 /// Pumps a [TioSelectableCard] inside the real theme.
 ///
-/// The colors this component resolves are runtime theme values, so the cases
-/// below compare against `context.tioColors` read from the same tree rather
-/// than against a hard-coded palette constant — that is the difference between
-/// asserting the contract and re-typing the implementation.
+/// Light/dark is selected through [TioThemeConfig.mode], because that is what
+/// `TioTheme` actually reads. An outer `ThemeData(brightness:)` would leave
+/// every case resolving `TioColors.light`, and a test comparing a render
+/// against the colors that same render produced would still pass with dark
+/// resolution completely broken.
 Future<TioColors> _pump(
   WidgetTester tester, {
   required bool selected,
-  VoidCallback? onTap,
-  bool enabled = true,
   // The widget requires a callback; cases that do not care about the tap
   // still have to hand it one.
-
+  VoidCallback? onTap,
+  bool enabled = true,
   String? semanticLabel,
-  Brightness brightness = Brightness.light,
+  TioThemeMode mode = TioThemeMode.light,
+  bool reducedMotion = false,
 }) async {
   late TioColors colors;
 
   await tester.pumpWidget(
     MaterialApp(
-      theme: ThemeData(brightness: brightness),
-      builder: (context, child) =>
-          TioTheme(child: child ?? const SizedBox.shrink()),
+      builder: (context, child) => TioTheme(
+        config: TioThemeConfig(mode: mode, reducedMotion: reducedMotion),
+        child: child ?? const SizedBox.shrink(),
+      ),
       home: Scaffold(
         body: Builder(
           builder: (context) {
@@ -47,15 +49,16 @@ Future<TioColors> _pump(
   return colors;
 }
 
-BoxDecoration _decoration(WidgetTester tester) {
-  final container = tester.widget<AnimatedContainer>(
-    find.descendant(
-      of: find.byType(TioSelectableCard),
-      matching: find.byType(AnimatedContainer),
-    ),
-  );
-  return container.decoration! as BoxDecoration;
-}
+AnimatedContainer _animatedContainer(WidgetTester tester) =>
+    tester.widget<AnimatedContainer>(
+      find.descendant(
+        of: find.byType(TioSelectableCard),
+        matching: find.byType(AnimatedContainer),
+      ),
+    );
+
+BoxDecoration _decoration(WidgetTester tester) =>
+    _animatedContainer(tester).decoration! as BoxDecoration;
 
 Material _surface(WidgetTester tester) => tester.widget<Material>(
       find.descendant(
@@ -130,14 +133,8 @@ void main() {
         _decoration(tester).borderRadius,
         BorderRadius.circular(TioCardTokens.radius),
       );
-      final container = tester.widget<AnimatedContainer>(
-        find.descendant(
-          of: find.byType(TioSelectableCard),
-          matching: find.byType(AnimatedContainer),
-        ),
-      );
       expect(
-        container.padding,
+        _animatedContainer(tester).padding,
         const EdgeInsets.all(TioCardTokens.padding),
       );
     });
@@ -265,25 +262,70 @@ void main() {
   });
 
   group('theme behavior', () {
-    testWidgets('resolves runtime colors per brightness', (tester) async {
+    testWidgets('light and dark resolve their own TioColors', (tester) async {
       final light = await _pump(tester, selected: true);
       final lightFill = _surface(tester).color;
 
-      final dark = await _pump(
-        tester,
-        selected: true,
-        brightness: Brightness.dark,
-      );
+      final dark = await _pump(tester, selected: true, mode: TioThemeMode.dark);
       final darkFill = _surface(tester).color;
+
+      // Compared against the canonical schemes, not against whatever the same
+      // render happened to produce, so a broken dark resolution cannot pass.
+      expect(light.primary, TioColors.light.primary);
+      expect(dark.primary, TioColors.dark.primary);
+      expect(light.surface, TioColors.light.surface);
+      expect(dark.surface, TioColors.dark.surface);
 
       expect(
         lightFill,
-        light.primary.withValues(alpha: TioCardTokens.selectedContainerAlpha),
+        TioColors.light.primary.withValues(
+          alpha: TioCardTokens.selectedContainerAlpha,
+        ),
       );
       expect(
         darkFill,
-        dark.primary.withValues(alpha: TioCardTokens.selectedContainerAlpha),
+        TioColors.dark.primary.withValues(
+          alpha: TioCardTokens.selectedContainerAlpha,
+        ),
       );
+    });
+
+    testWidgets('the unselected fill differs between light and dark',
+        (tester) async {
+      await _pump(tester, selected: false);
+      final lightFill = _surface(tester).color;
+
+      await _pump(tester, selected: false, mode: TioThemeMode.dark);
+      final darkFill = _surface(tester).color;
+
+      expect(lightFill, TioColors.light.surface);
+      expect(darkFill, TioColors.dark.surface);
+      expect(
+        lightFill,
+        isNot(darkFill),
+        reason: 'A harness that never really switched theme would report the '
+            'same surface twice.',
+      );
+    });
+  });
+
+  group('motion', () {
+    testWidgets('fill and border share the resolved duration', (tester) async {
+      await _pump(tester, selected: true);
+
+      final motion = tester.element(find.byType(TioSelectableCard)).tioMotion;
+      expect(_surface(tester).animationDuration, motion.fast);
+      expect(_animatedContainer(tester).duration, motion.fast);
+    });
+
+    testWidgets('reduced motion zeroes both the fill and the border',
+        (tester) async {
+      await _pump(tester, selected: true, reducedMotion: true);
+
+      // The fill lives on Material and the border on AnimatedContainer. Left
+      // at Flutter's default the Material would keep cross-fading here.
+      expect(_surface(tester).animationDuration, Duration.zero);
+      expect(_animatedContainer(tester).duration, Duration.zero);
     });
   });
 }
