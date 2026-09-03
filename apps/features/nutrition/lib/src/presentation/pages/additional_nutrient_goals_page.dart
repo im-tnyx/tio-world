@@ -103,9 +103,9 @@ class AdditionalNutrientGoalsPage extends StatelessWidget {
             ),
             const SizedBox(height: TioSpacing.lg),
             Text(
-              'These daily reference values are calculated from your Calories '
-              'target and date of birth, and are shown for ages 19 and over. '
-              'They update when those change.',
+              'These daily reference values are calculated from your '
+              'Nutrition Targets and profile where required. Missing required '
+              'information is shown as Unavailable.',
               style: TextStyle(
                 color: colors.textSecondary,
                 fontSize: TioFontSize.size13,

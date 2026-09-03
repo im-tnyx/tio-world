@@ -33,7 +33,10 @@ enum NutrientRecommendationBlocker {
 final class AdditionalNutrientRecommendationPolicy {
   const AdditionalNutrientRecommendationPolicy._();
 
-  /// Minimum age for every V1 recommendation. There is no pediatric policy.
+  /// Minimum age for the four age-dependent V1 recommendations.
+  ///
+  /// The three percentage-of-energy rules depend on canonical Calories only
+  /// and deliberately do not inherit this eligibility gate.
   static const minimumAge = 19;
 
   /// Display order, following nutrition-label convention: fats, then the
@@ -58,9 +61,10 @@ final class AdditionalNutrientRecommendationPolicy {
     final definition = _definitionFor(nutrientId);
     final age = ageOn(dateOfBirth: dateOfBirth, now: now);
 
-    // The frozen V1 population is adults only. A missing or invalid date of
-    // birth and an age below 19 are unavailable rather than guessed.
-    if (age == null || age < minimumAge) {
+    // Only age-dependent rules are adult-gated. Coupling the percentage rules
+    // to DOB would hide valid Calories-derived values for no policy reason.
+    if (requiresAdultEligibility(nutrientId) &&
+        (age == null || age < minimumAge)) {
       return definition.unavailable(nutrientId);
     }
 
@@ -76,12 +80,12 @@ final class AdditionalNutrientRecommendationPolicy {
       // Fixed adult amounts, independent of Calories.
       NutrientId.sodium => 2000.0,
       NutrientId.phosphorus => 700.0,
-      NutrientId.vitaminD => age <= 70 ? 15.0 : 20.0,
+      NutrientId.vitaminD => age! <= 70 ? 15.0 : 20.0,
 
       // Calcium's 51-70 band differs by health reference sex, which Tio does
       // not yet own as canonical truth (TNYX-142). Identity gender is not a
       // substitute, so that band stays Unavailable rather than guessed.
-      NutrientId.calcium => switch (age) {
+      NutrientId.calcium => switch (age!) {
           <= 50 => 1000.0,
           >= 71 => 1200.0,
           _ => null,
@@ -112,10 +116,12 @@ final class AdditionalNutrientRecommendationPolicy {
     final blockers = <NutrientRecommendationBlocker>{};
     final age = ageOn(dateOfBirth: dateOfBirth, now: now);
 
-    if (age == null) {
-      blockers.add(NutrientRecommendationBlocker.dateOfBirthMissing);
-    } else if (age < minimumAge) {
-      blockers.add(NutrientRecommendationBlocker.ageBelowMinimum);
+    if (requiresAdultEligibility(nutrientId)) {
+      if (age == null) {
+        blockers.add(NutrientRecommendationBlocker.dateOfBirthMissing);
+      } else if (age < minimumAge) {
+        blockers.add(NutrientRecommendationBlocker.ageBelowMinimum);
+      }
     }
 
     if (dependsOnCalories(nutrientId) && caloriesKcal == null) {
@@ -140,6 +146,16 @@ final class AdditionalNutrientRecommendationPolicy {
       nutrientId == NutrientId.saturatedFat ||
       nutrientId == NutrientId.transFat ||
       nutrientId == NutrientId.addedSugar;
+
+  /// Whether the nutrient needs a valid DOB-derived adult age.
+  ///
+  /// Kept explicit so a new Calories-derived rule cannot accidentally inherit
+  /// the eligibility requirements of the age-banded nutrients.
+  static bool requiresAdultEligibility(NutrientId nutrientId) =>
+      nutrientId == NutrientId.sodium ||
+      nutrientId == NutrientId.calcium ||
+      nutrientId == NutrientId.phosphorus ||
+      nutrientId == NutrientId.vitaminD;
 
   /// Age on [now]'s calendar date. Leap-day birthdays turn a year older on
   /// March 1 in non-leap years because February 29 has not occurred.

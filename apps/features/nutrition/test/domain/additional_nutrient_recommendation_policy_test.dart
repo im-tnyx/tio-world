@@ -13,6 +13,18 @@ void main() {
 
   DateTime dobForAge(int age) => DateTime(now.year - age, 1, 1);
 
+  const calorieDerivedNutrients = [
+    NutrientId.saturatedFat,
+    NutrientId.transFat,
+    NutrientId.addedSugar,
+  ];
+  const ageDependentNutrients = [
+    NutrientId.sodium,
+    NutrientId.calcium,
+    NutrientId.phosphorus,
+    NutrientId.vitaminD,
+  ];
+
   NutrientRecommendation derive(
     NutrientId nutrientId, {
     int? caloriesKcal = 2000,
@@ -101,12 +113,58 @@ void main() {
       );
     });
 
+    test('valid Calories resolve all three without a date of birth', () {
+      final results = {
+        for (final nutrientId in calorieDerivedNutrients)
+          nutrientId: derive(nutrientId, withoutDateOfBirth: true),
+      };
+
+      expect(
+        results[NutrientId.saturatedFat]!.recommendedValue,
+        closeTo(22.222, 0.001),
+      );
+      expect(
+        results[NutrientId.transFat]!.recommendedValue,
+        closeTo(2.222, 0.001),
+      );
+      expect(results[NutrientId.addedSugar]!.recommendedValue, 50);
+
+      for (final nutrientId in calorieDerivedNutrients) {
+        expect(
+          AdditionalNutrientRecommendationPolicy.blockersFor(
+            nutrientId: nutrientId,
+            caloriesKcal: 2000,
+            dateOfBirth: null,
+            now: now,
+          ),
+          isEmpty,
+          reason: '$nutrientId depends on Calories, not DOB.',
+        );
+      }
+    });
+
+    test('valid Calories resolve all three below age 19', () {
+      for (final nutrientId in calorieDerivedNutrients) {
+        expect(
+          derive(nutrientId, dateOfBirth: dobForAge(18)).isAvailable,
+          isTrue,
+          reason: '$nutrientId',
+        );
+        expect(
+          AdditionalNutrientRecommendationPolicy.blockersFor(
+            nutrientId: nutrientId,
+            caloriesKcal: 2000,
+            dateOfBirth: dobForAge(18),
+            now: now,
+          ),
+          isEmpty,
+          reason: '$nutrientId must not inherit adult eligibility.',
+        );
+      }
+    });
+
     test('they are unavailable without a canonical Calories target', () {
-      for (final nutrientId in [
-        NutrientId.saturatedFat,
-        NutrientId.transFat,
-        NutrientId.addedSugar,
-      ]) {
+      for (final nutrientId in calorieDerivedNutrients) {
         final result = derive(nutrientId, caloriesKcal: null);
         expect(result.isAvailable, isFalse, reason: '$nutrientId');
         expect(
@@ -116,7 +174,27 @@ void main() {
             dateOfBirth: dobForAge(36),
             now: now,
           ),
-          contains(NutrientRecommendationBlocker.caloriesMissing),
+          {NutrientRecommendationBlocker.caloriesMissing},
+        );
+      }
+    });
+
+    test('missing Calories does not block age-dependent adult rules', () {
+      for (final nutrientId in ageDependentNutrients) {
+        expect(
+          derive(nutrientId, caloriesKcal: null).isAvailable,
+          isTrue,
+          reason: '$nutrientId',
+        );
+        expect(
+          AdditionalNutrientRecommendationPolicy.blockersFor(
+            nutrientId: nutrientId,
+            caloriesKcal: null,
+            dateOfBirth: dobForAge(36),
+            now: now,
+          ),
+          isEmpty,
+          reason: '$nutrientId does not depend on Calories.',
         );
       }
     });
@@ -251,9 +329,8 @@ void main() {
   });
 
   group('eligibility', () {
-    test('every nutrient is unavailable without a date of birth', () {
-      for (final nutrientId
-          in AdditionalNutrientRecommendationPolicy.displayOrder) {
+    test('only age-dependent nutrients require a date of birth', () {
+      for (final nutrientId in ageDependentNutrients) {
         final result = derive(nutrientId, withoutDateOfBirth: true);
         expect(result.isAvailable, isFalse, reason: '$nutrientId');
         expect(
@@ -268,12 +345,42 @@ void main() {
       }
     });
 
-    test('every nutrient is unavailable below the adult minimum', () {
-      for (final nutrientId
-          in AdditionalNutrientRecommendationPolicy.displayOrder) {
+    test('only age-dependent nutrients require age 19 or older', () {
+      for (final nutrientId in ageDependentNutrients) {
         expect(
           derive(nutrientId, dateOfBirth: dobForAge(18)).isAvailable,
           isFalse,
+          reason: '$nutrientId',
+        );
+        expect(
+          AdditionalNutrientRecommendationPolicy.blockersFor(
+            nutrientId: nutrientId,
+            caloriesKcal: 2000,
+            dateOfBirth: dobForAge(18),
+            now: now,
+          ),
+          {NutrientRecommendationBlocker.ageBelowMinimum},
+          reason: '$nutrientId',
+        );
+      }
+    });
+
+    test('the policy explicitly partitions age-dependent nutrients', () {
+      for (final nutrientId in calorieDerivedNutrients) {
+        expect(
+          AdditionalNutrientRecommendationPolicy.requiresAdultEligibility(
+            nutrientId,
+          ),
+          isFalse,
+          reason: '$nutrientId',
+        );
+      }
+      for (final nutrientId in ageDependentNutrients) {
+        expect(
+          AdditionalNutrientRecommendationPolicy.requiresAdultEligibility(
+            nutrientId,
+          ),
+          isTrue,
           reason: '$nutrientId',
         );
       }

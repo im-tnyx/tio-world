@@ -62,8 +62,9 @@
 > | Phosphorus | 700 | target | mg |
 > | Vitamin D | 15 (19–70) · 20 (71+) | target | mcg |
 >
-> All require age ≥ 19. The three percentage rules also require canonical
-> Calories.
+> The three percentage rules require canonical Calories only; they do not
+> require DOB or adult eligibility. Sodium, Calcium, Phosphorus and Vitamin D
+> require a valid DOB-derived age of at least 19.
 >
 > ### Not implemented here
 >
@@ -83,6 +84,27 @@
 > applied** and its bytes are unchanged (blob `9edf6a9c`). It is neither
 > reverted nor compensated: the nullable JSONB column simply stays unused and
 > reserved for the future editing slice.
+
+> ### Fresh manual review fixes — active at `c1e354e8`
+>
+> Two findings are approved for this bounded follow-up:
+>
+> 1. make DOB/adult eligibility apply only to Sodium, Calcium, Phosphorus and
+>    Vitamin D; Saturated Fat, Trans Fat and Added Sugar depend on canonical
+>    Calories only;
+> 2. replace the stale four-goal/editing route description with read-only
+>    calculated-reference wording.
+>
+> In scope: the policy helper and blocker ownership, supporting copy, focused
+> domain/widget/route regressions, validation, the two review-thread replies,
+> and exact-head evidence refresh. Out of scope: schema/migration bytes, hosted
+> Supabase, editing, TNYX-142, TNYX-144, emulator acceptance, Ready and merge.
+>
+> Local validation: focused Nutrition policy/page tests **46/46 PASS**; focused
+> core route test **1/1 PASS**; full workspace analyze **16/16 packages PASS**;
+> all test-bearing packages **14/14 PASS, 1650 tests**. Formatter passed for
+> all six touched Dart files. Fresh exact-head CI and both review-thread
+> resolutions remain pending publication.
 
 
 **Status:** In progress

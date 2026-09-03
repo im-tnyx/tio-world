@@ -141,8 +141,7 @@ class AppRoutes {
     path: '/settings/nutrition/targets/additional-goals',
     title: 'Additional Nutrition',
     description:
-        'Manage optional daily goals for saturated fat, trans fat, sodium and '
-        'vitamin D.',
+        'View calculated daily reference values for additional nutrients.',
     chromePolicy: ChromePolicy.fullScreen,
   );
 

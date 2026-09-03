@@ -91,6 +91,24 @@ void main() {
       // rounded edge stays clean.
       expect(find.byType(Divider), findsNWidgets(6));
     });
+
+    testWidgets('supporting copy names only information required by each rule',
+        (tester) async {
+      await pumpPage(tester);
+
+      expect(
+        find.text(
+          'These daily reference values are calculated from your Nutrition '
+          'Targets and profile where required. Missing required information '
+          'is shown as Unavailable.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('shown for ages 19 and over'),
+        findsNothing,
+      );
+    });
   });
 
   group('the superseded editing contract is gone', () {
@@ -212,18 +230,25 @@ void main() {
       expect(find.text('15 mcg'), findsOneWidget);
     });
 
-    testWidgets('every row is Unavailable without a date of birth',
+    testWidgets(
+        'only age-dependent rows are Unavailable without a date of birth',
         (tester) async {
       await pumpPage(tester, withoutDateOfBirth: true);
 
-      expect(find.text('Unavailable'), findsNWidgets(7));
+      expect(find.text('22.2 g'), findsOneWidget);
+      expect(find.text('2.2 g'), findsOneWidget);
+      expect(find.text('< 50 g'), findsOneWidget);
+      expect(find.text('Unavailable'), findsNWidgets(4));
     });
 
-    testWidgets('every row is Unavailable below the adult minimum',
+    testWidgets('only age-dependent rows are Unavailable below age 19',
         (tester) async {
       await pumpPage(tester, dateOfBirth: DateTime(2015, 1, 1)); // 11
 
-      expect(find.text('Unavailable'), findsNWidgets(7));
+      expect(find.text('22.2 g'), findsOneWidget);
+      expect(find.text('2.2 g'), findsOneWidget);
+      expect(find.text('< 50 g'), findsOneWidget);
+      expect(find.text('Unavailable'), findsNWidgets(4));
     });
   });
 }
