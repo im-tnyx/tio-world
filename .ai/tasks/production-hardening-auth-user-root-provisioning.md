@@ -17,7 +17,7 @@ Android Native CI #250 / run 32760646552 ✅
 Repo migration:
 
 ```text
-supabase/migrations/20260824180400_provision_account_root_from_auth_users.sql
+supabase/migrations/20260824180611_provision_account_root_from_auth_users.sql
 ```
 
 Live migration:

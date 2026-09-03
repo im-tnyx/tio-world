@@ -1,6 +1,12 @@
 -- ============================================================================
 -- Migration: 20260814000002_create_profile_storage_bucket.sql
 -- Description: Create Supabase Storage bucket for profile avatars with RLS policies.
+--
+-- Canonical file_size_limit is 10485760 (10 MB), on both the INSERT and the
+-- ON CONFLICT path. It was 5242880 (5 MB) here while hosted has long been
+-- 10 MB, so replaying this file would have silently downgraded a live bucket
+-- setting with no error -- the DO UPDATE makes it an overwrite, not a no-op.
+-- Mime types and ownership policies are deliberately unchanged.
 -- ============================================================================
 
 -- 1. Insert bucket if not exists
@@ -9,12 +15,12 @@ VALUES (
     'avatars',
     'avatars',
     true,
-    5242880, -- 5 MB limit
+    10485760, -- 10 MB limit (canonical; matches hosted)
     ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 )
 ON CONFLICT (id) DO UPDATE SET
     public = true,
-    file_size_limit = 5242880,
+    file_size_limit = 10485760,
     allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
 -- 2. Storage RLS Policies

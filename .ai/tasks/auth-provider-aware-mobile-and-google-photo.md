@@ -319,7 +319,7 @@ The RPCs must not reveal the identity or profile of the account that already own
 
 ### Step 2B implementation note
 
-Production migrations `20260817000002_harden_username_policy.sql` and `20260817000003_refine_username_impersonation_policy.sql` implement the server policy, narrow authenticated RPCs, canonical claim path, and database policy constraint. Forward-only migration `20260826072000_refine_username_suggestions.sql` replaces the old fixed three-item/single-template suggestion helper with a bounded multi-shape generator seeded only by the explicit typed candidate. The final `lower(username)` unique index remains the concurrency authority.
+Production migrations `20260817100424_harden_username_policy.sql` and `20260817101532_refine_username_impersonation_policy.sql` implement the server policy, narrow authenticated RPCs, canonical claim path, and database policy constraint. Forward-only migration `20260826075218_refine_username_suggestions.sql` replaces the old fixed three-item/single-template suggestion helper with a bounded multi-shape generator seeded only by the explicit typed candidate. The final `lower(username)` unique index remains the concurrency authority.
 
 The public username RPCs intentionally use `SECURITY DEFINER` with a fixed empty `search_path` because owner-scoped RLS cannot otherwise answer cross-account collision questions. `PUBLIC`/`anon` execute is revoked; `authenticated` execute is granted only to the narrow RPC surface. Private helpers are not executable by API roles.
 
