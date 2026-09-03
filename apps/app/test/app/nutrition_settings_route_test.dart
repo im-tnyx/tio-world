@@ -369,9 +369,8 @@ void main() {
 
       await openAdditionalGoals(tester, container);
 
-      // Collapsing the error into a null date of birth would render four
-      // permanently "Unavailable" nutrients and, under the frozen eligibility
-      // rule, block editing — with nothing on screen explaining why.
+      // Collapsing the error into a null date of birth would misrepresent a
+      // profile/network failure as a legitimate missing-DOB eligibility state.
       expect(find.text('Could not load your profile'), findsOneWidget);
       expect(find.text('Retry'), findsOneWidget);
       expect(

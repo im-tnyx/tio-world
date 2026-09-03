@@ -865,12 +865,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             final targets =
                 targetsAsync.valueOrNull ?? const NutritionTargetsData();
 
-            // Date of birth is read, never stored. It gates every value on
-            // this screen, so a profile that failed to load is not
-            // interchangeable with one that has no date of birth:
-            // `valueOrNull` alone would render a transient network error as
-            // seven permanently "Unavailable" rows, with nothing on screen
-            // saying why or offering a retry.
+            // Date of birth is read, never stored. It is required by Sodium,
+            // Calcium, Phosphorus and Vitamin D, while Saturated Fat, Trans
+            // Fat and Added Sugar can still derive from Calories alone. A
+            // profile load failure is not interchangeable with a successfully
+            // loaded profile that has no date of birth: `valueOrNull` alone
+            // would misrepresent a transient network error as eligibility.
             final profileAsync = ref.watch(profileDataProvider);
 
             if (profileAsync.isLoading && !profileAsync.hasValue) {

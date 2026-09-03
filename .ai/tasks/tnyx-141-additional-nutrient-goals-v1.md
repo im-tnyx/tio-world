@@ -85,9 +85,12 @@
 > reverted nor compensated: the nullable JSONB column simply stays unused and
 > reserved for the future editing slice.
 
-> ### Fresh manual review fixes — active at `c1e354e8`
+> ### P1/P2 manual-review fixes — complete at `5ef091c9`
 >
-> Two findings are approved for this bounded follow-up:
+> **Head before P3 source-of-truth cleanup:**
+> `5ef091c95071727bc8abaecfdc666e95005350f2`
+>
+> Two bounded manual-review findings were fixed:
 >
 > 1. make DOB/adult eligibility apply only to Sodium, Calcium, Phosphorus and
 >    Vitamin D; Saturated Fat, Trans Fat and Added Sugar depend on canonical
@@ -95,23 +98,22 @@
 > 2. replace the stale four-goal/editing route description with read-only
 >    calculated-reference wording.
 >
-> In scope: the policy helper and blocker ownership, supporting copy, focused
-> domain/widget/route regressions, validation, the two review-thread replies,
-> and exact-head evidence refresh. Out of scope: schema/migration bytes, hosted
-> Supabase, editing, TNYX-142, TNYX-144, emulator acceptance, Ready and merge.
+> **P1 nutrient-specific eligibility:** FIXED. **P2 route description:** FIXED.
+> Both GitHub review threads are resolved.
 >
 > Local validation: focused Nutrition policy/page tests **46/46 PASS**; focused
 > core route test **1/1 PASS**; full workspace analyze **16/16 packages PASS**;
 > all test-bearing packages **14/14 PASS, 1650 tests**. Formatter passed for
-> all six touched Dart files. Fresh exact-head CI and both review-thread
-> resolutions remain pending publication.
+> all six touched Dart files; `git diff --check origin/main...HEAD` exited 0.
+> Exact-head Flutter CI **33770025969 SUCCESS** at
+> `5ef091c95071727bc8abaecfdc666e95005350f2`.
 
 
 **Status:** In progress
 **Primary owner:** Flutter mobile / Nutrition feature
 **Affected platforms:** Flutter Android and iOS; local Supabase migration
 
-## Owner Approval and Scope Boundary
+## HISTORICAL / SUPERSEDED Owner Approval and Scope Boundary
 
 **Trigger:** New independently scoped product task/feature slice; product-visible UI/UX change; Supabase column shape change
 **Approval status:** Approved
@@ -119,7 +121,36 @@
 **Approved product/UI/data-shape boundaries:** Exactly `saturated_fat`, `trans_fat`, `sodium`, and `vitamin_d`; one nullable `public.user_nutrition_targets.additional_nutrient_goals jsonb` column with an object-or-null check; a nested Additional Nutrient Goals screen under Nutrition Targets; typed domain contracts and V1 serialization.
 **Explicit non-changes:** No other nutrient; no reference-sex/life-stage fields; no core-five storage change; no `customized_fields` or `recommendation_metadata` change; no RLS/RPC/trigger change; no hosted DDL/apply/push; no migration-history repair; no GitHub #24 mutation; no merge; no Linear Done.
 
-## Active Handoff
+## Current Handoff
+
+**Repository state verified:** 2026-09-03
+**Branch:** `codex/tnyx-141-additional-nutrient-goals-v1`
+**Current product:** Seven-row, read-only Additional Nutrition reference
+surface: Saturated Fat, Trans Fat, Added Sugar, Sodium, Calcium, Phosphorus,
+and Vitamin D. There is no editor, custom override, Recommended state, or
+per-nutrient persistence.
+**Canonical inputs:** Saturated Fat, Trans Fat and Added Sugar require Calories
+only. Sodium, Calcium, Phosphorus and Vitamin D require DOB-derived age >= 19.
+**Persistence / hosted state:** The current app does not read or write
+`additional_nutrient_goals`. Migration `20260903091350` is already hosted and
+applied; its reserved column remains. A stale old test payload exists but is
+ignored by the current app.
+**Review status:** C10 resolved. P1 nutrient-specific eligibility and P2 route
+description are fixed, replied to, and resolved.
+**Validated evidence before P3 source-truth cleanup:** analyze **16/16 PASS**;
+tests **14/14, 1650 PASS**; diff check exit 0; exact-head Flutter CI
+**33770025969 SUCCESS** at `5ef091c95071727bc8abaecfdc666e95005350f2`.
+**Remaining runtime gate:** Android phone-emulator smoke after the final
+source-truth commit's exact-head CI. PR #202 remains Draft and unmerged.
+
+> ## HISTORICAL / SUPERSEDED RECORD
+>
+> The handoff and implementation narrative below records the former editable
+> Additional Nutrition implementation and its review history. It is preserved
+> for evidence only and does not describe the current product, hosted state, or
+> remaining gate.
+
+## HISTORICAL / SUPERSEDED Active Handoff
 
 **Planning owner:** Codex
 **Implementation owner:** Codex
@@ -515,7 +546,7 @@ rather than an incidental test update.
 *(The previously open unavailable-recommendation question is now resolved —
 see "Owner UX decision" above.)*
 
-## 7. Final Handoff
+## HISTORICAL / SUPERSEDED 7. Final Handoff
 
 ### Changed Files
 

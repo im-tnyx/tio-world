@@ -7,10 +7,12 @@ import '../widgets/nutrition_settings_widgets.dart';
 
 /// Read-only Additional Nutrition reference values.
 ///
-/// Every amount here is derived at display time from canonical Calories and
-/// Profile date of birth. Nothing on this screen is stored, and nothing on it
-/// writes: there is no per-nutrient editor, no custom override and no
-/// enabled/disabled state in V1. Editing is a separate, later product slice.
+/// Each amount here is derived at display time from the canonical inputs
+/// required by that nutrient. The three percentage-of-energy values use
+/// Calories; the age-dependent values use Profile date of birth. Nothing on
+/// this screen is stored, and nothing on it writes: there is no per-nutrient
+/// editor, no custom override and no enabled/disabled state in V1. Editing is
+/// a separate, later product slice.
 ///
 /// When a rule's canonical input is missing, the row reads Unavailable rather
 /// than showing a defaulted number — a fabricated nutrition figure is worse
