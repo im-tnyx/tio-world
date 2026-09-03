@@ -371,28 +371,4 @@ class _FakeTargetsGateway implements NutritionTargetsTableGateway {
   Future<void> upsertRow(Map<String, dynamic> payload) async {
     upsertPayloads.add(Map<String, dynamic>.from(payload));
   }
-
-  // This file covers the core-five read/write path only. The Additional
-  // Nutrient Goals write path needs a gateway that models row versions and
-  // key conflicts, so it is exercised against FakeNutritionTargetsTable in
-  // additional_nutrient_goals_persistence_test.dart instead. Throwing keeps a
-  // future accidental use here loud rather than silently trivially passing.
-  @override
-  Future<VersionedNutrientGoals?> readGoalsWithVersion(String userId) =>
-      throw UnsupportedError('Use FakeNutritionTargetsTable.');
-
-  @override
-  Future<bool> compareAndSwapGoals({
-    required String userId,
-    required String expectedVersion,
-    required Map<String, Object?> goals,
-  }) =>
-      throw UnsupportedError('Use FakeNutritionTargetsTable.');
-
-  @override
-  Future<bool> insertGoalsIfAbsent({
-    required String userId,
-    required Map<String, Object?> goals,
-  }) =>
-      throw UnsupportedError('Use FakeNutritionTargetsTable.');
 }

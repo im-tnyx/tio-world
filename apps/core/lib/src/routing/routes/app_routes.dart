@@ -139,7 +139,7 @@ class AppRoutes {
 
   static const nutritionAdditionalGoalsSettings = TioRouteContract(
     path: '/settings/nutrition/targets/additional-goals',
-    title: 'Additional Nutrient Goals',
+    title: 'Additional Nutrition',
     description:
         'Manage optional daily goals for saturated fat, trans fat, sodium and '
         'vitamin D.',

@@ -34,7 +34,7 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
   /// than performed here.
   final VoidCallback onEditMacros;
 
-  /// Opens the nested Additional Nutrient Goals screen.
+  /// Opens the nested read-only Additional Nutrition screen.
   ///
   /// Those goals are deliberately one level down rather than inline here: they
   /// are a separate, optional set with their own recommendation rules, and
@@ -187,7 +187,7 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
                     size: TioSize.dp24,
                     color: colors.textPrimary,
                   ),
-                  label: 'Additional Nutrient Goals',
+                  label: 'Additional Nutrition',
                   labelSingleLine: true,
                   value: const SizedBox.shrink(),
                   showEditAffordance: false,

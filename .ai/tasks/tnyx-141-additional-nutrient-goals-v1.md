@@ -1,4 +1,89 @@
-# TNYX-141 — Additional Nutrient Goals V1
+# TNYX-141 — Additional Nutrition V1
+
+> ## NEW OWNER DECISION — the editing contract is SUPERSEDED
+>
+> Everything below this box that describes **per-nutrient editing** is history,
+> not the current contract. It is kept deliberately: the reasoning, the review
+> findings and the concurrency work are a real record of what was built and
+> why, and erasing them would hide how the misunderstanding happened.
+>
+> ### What was superseded
+>
+> The prior V1 modelled Additional Nutrient Goals as *configurable state*:
+>
+> - explicit enabled / not-configured state per nutrient
+> - **Use Recommended** action
+> - **Turn off** action
+> - Custom numeric editor in a bottom sheet
+> - `custom_value: null` as an explicitly selected "uses recommendation" mode
+> - per-nutrient JSONB delta writes, with compare-and-swap and retry
+>
+> ### Why
+>
+> An audit of the decompiled MyFitnessPal client (`mobile_26.33.0`) showed no
+> such model exists there. Its `AdditionalNutrientGoalsActivity` renders every
+> nutrient always, each as a plain `float` on `MfpDailyGoal` with a `0.0f`
+> fallback and no enabled flag; the row model `j8g` carries no goal state at
+> all; tapping a row opens a dialog whose only buttons are **Set** and
+> **Cancel**. There is no Recommended action, no Turn off, and no
+> "not configured" concept anywhere in that surface.
+>
+> "Recommended value save karenge" meant *calculate the recommended number and
+> use it as the value* — a seed, not a persisted mode. That was misread as
+> "recommended is a stored state", and the editing UX above was built on the
+> misreading.
+>
+> ### Current contract
+>
+> **TNYX-141 V1 = a read-only calculated Additional Nutrition reference
+> surface.** Seven values, derived at display time from canonical Nutrition
+> Targets and Profile inputs, persisted nowhere. No editing, no overrides, no
+> per-nutrient state.
+>
+> | | |
+> |---|---|
+> | Rows | Saturated Fat, Trans Fat, Added Sugar, Sodium, Calcium, Phosphorus, Vitamin D |
+> | Editing | none — a later owner-designed product slice |
+> | Persistence | none; `additional_nutrient_goals` stays applied but **unused/reserved** |
+> | Missing canonical input | row reads **Unavailable**, never a default |
+> | Calcium 51–70 | **Unavailable** until TNYX-142 supplies canonical health reference sex |
+>
+> Identity gender is never inferred as health reference sex.
+>
+> ### Calculation rules
+>
+> | Nutrient | Rule | Semantics | Unit |
+> |---|---|---|---|
+> | Saturated Fat | `(0.10 × kcal) / 9` | maximum, at most | g |
+> | Trans Fat | `(0.01 × kcal) / 9` | maximum, at most | g |
+> | Added Sugar | `(0.10 × kcal) / 4` | maximum, **less than** | g |
+> | Sodium | 2000 | maximum, **less than** | mg |
+> | Calcium | 1000 (19–50) · 1200 (71+) · Unavailable (51–70) | target | mg |
+> | Phosphorus | 700 | target | mg |
+> | Vitamin D | 15 (19–70) · 20 (71+) | target | mcg |
+>
+> All require age ≥ 19. The three percentage rules also require canonical
+> Calories.
+>
+> ### Not implemented here
+>
+> - **TNYX-142** — canonical health reference sex. Calcium 51–70 stays
+>   Unavailable until it exists.
+> - **TNYX-144** — canonical profile-based recalculation. That flow stays:
+>   *Recalculate from your profile → compute canonical Nutrition Targets →
+>   preview → explicit confirmation → apply.* Additional Nutrition then derives
+>   from the resulting canonical values, so a Calories change recalculates
+>   saturated fat, trans fat and added sugar, and a date-of-birth change moves
+>   Vitamin D and Calcium by their bands. No per-row "Recalculate" button
+>   exists or is needed.
+>
+> ### Hosted migration
+>
+> `20260903091350_add_nutrition_additional_nutrient_goals.sql` is **already
+> applied** and its bytes are unchanged (blob `9edf6a9c`). It is neither
+> reverted nor compensated: the nullable JSONB column simply stays unused and
+> reserved for the future editing slice.
+
 
 **Status:** In progress
 **Primary owner:** Flutter mobile / Nutrition feature

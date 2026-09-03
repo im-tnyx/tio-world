@@ -23,6 +23,7 @@ void main() {
     required AppMode appMode,
     required _FakeNutritionProfileRepository repository,
     _FakeNutritionTargetsRepository? targets,
+
     /// Canonical Profile stream. Supplied so a route can be exercised against
     /// a profile that failed to load, which is a different state from one
     /// that simply has no date of birth.
@@ -333,7 +334,7 @@ void main() {
     expect(repository.readCount, greaterThan(1));
     expect(find.text('Vegan'), findsOneWidget);
   });
-  group('Additional Nutrient Goals route composition', () {
+  group('Additional Nutrition route composition', () {
     Future<void> openAdditionalGoals(
       WidgetTester tester,
       ProviderContainer container,
@@ -395,11 +396,10 @@ void main() {
       // The genuinely-absent case is an eligibility outcome, shown on the
       // screen rather than as a load failure.
       expect(find.text('Could not load your profile'), findsNothing);
-      expect(find.text('Additional Nutrient Goals'), findsWidgets);
+      expect(find.text('Additional Nutrition'), findsWidgets);
       expect(find.text('Saturated Fat'), findsOneWidget);
     });
   });
-
 }
 
 class _FakeNutritionProfileRepository implements NutritionProfileRepository {
@@ -512,8 +512,6 @@ class _FakeNutritionTargetsRepository implements NutritionTargetsRepository {
 
   NutritionTargetsData? stored;
   final writes = <NutritionTargetsData>[];
-  /// One entry per nutrient delta, matching the repository contract.
-  final additionalGoalWrites = <(NutrientId, AdditionalNutrientGoal?)>[];
   var readCount = 0;
 
   @override
@@ -526,21 +524,5 @@ class _FakeNutritionTargetsRepository implements NutritionTargetsRepository {
   Future<void> upsert(NutritionTargetsData targets) async {
     writes.add(targets);
     stored = targets;
-  }
-
-  @override
-  Future<void> updateAdditionalNutrientGoal(
-    NutrientId nutrientId,
-    AdditionalNutrientGoal? goal,
-  ) async {
-    // Mirrors the real adapter's separation twice over: this write touches
-    // only the Additional Nutrient Goals, leaving every core-five value in
-    // place, and within them it touches only the one nutrient being edited.
-    additionalGoalWrites.add((nutrientId, goal));
-    final current = stored ?? const NutritionTargetsData();
-    final existing = current.additionalNutrientGoals;
-    stored = current.withAdditionalNutrientGoals(
-      goal == null ? existing.without(nutrientId) : existing.withGoal(goal),
-    );
   }
 }

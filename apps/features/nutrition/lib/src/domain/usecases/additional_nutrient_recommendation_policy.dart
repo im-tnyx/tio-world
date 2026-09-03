@@ -1,16 +1,15 @@
 import 'package:tio_shared/shared.dart';
 
-import '../models/additional_nutrient_goal.dart';
+import '../models/nutrient_goal_semantics.dart';
 import '../models/nutrient_recommendation.dart';
 
 /// Why a recommendation could not be derived.
 ///
-/// Which of these can apply depends on the nutrient: every V1 nutrient needs
-/// adult eligibility, but only the calorie-percentage rules need a Calories
-/// target. Callers use this to explain the actual blocker instead of listing
-/// inputs the nutrient does not use.
+/// Which of these can apply depends on the nutrient. Callers use this to name
+/// the input that would actually unblock the value, instead of listing every
+/// input the policy knows about.
 enum NutrientRecommendationBlocker {
-  /// No usable date of birth, so eligibility cannot be established.
+  /// No usable date of birth, so eligibility and age bands cannot be resolved.
   dateOfBirthMissing,
 
   /// Known age, but below the adults-only V1 population.
@@ -18,14 +17,37 @@ enum NutrientRecommendationBlocker {
 
   /// A calorie-derived nutrient with no canonical Calories target.
   caloriesMissing,
+
+  /// The rule needs a canonical health reference sex that Tio does not yet
+  /// own. Deliberately distinct from a missing date of birth: the user has
+  /// supplied everything they currently can, and the gap is ours.
+  referenceSexUnavailable,
 }
 
-/// Frozen TNYX-141 V1 policy for the four authorized nutrients.
+/// Frozen TNYX-141 V1 policy for the seven Additional Nutrition values.
+///
+/// Every value here is calculated from canonical Nutrition Targets and Profile
+/// inputs at display time and is never persisted. Additional Nutrition is a
+/// read-only reference surface in V1; per-nutrient editing and custom
+/// overrides are a separate, later product slice.
 final class AdditionalNutrientRecommendationPolicy {
   const AdditionalNutrientRecommendationPolicy._();
 
   /// Minimum age for every V1 recommendation. There is no pediatric policy.
   static const minimumAge = 19;
+
+  /// Display order, following nutrition-label convention: fats, then the
+  /// carbohydrate-derived value, then minerals, then vitamins. Deterministic
+  /// and independent of the enum's declaration order.
+  static const displayOrder = <NutrientId>[
+    NutrientId.saturatedFat,
+    NutrientId.transFat,
+    NutrientId.addedSugar,
+    NutrientId.sodium,
+    NutrientId.calcium,
+    NutrientId.phosphorus,
+    NutrientId.vitaminD,
+  ];
 
   static NutrientRecommendation derive({
     required NutrientId nutrientId,
@@ -36,23 +58,38 @@ final class AdditionalNutrientRecommendationPolicy {
     final definition = _definitionFor(nutrientId);
     final age = ageOn(dateOfBirth: dateOfBirth, now: now);
 
-    // The frozen V1 population is adults only. A missing/invalid DOB and an
-    // age below 19 are unavailable rather than guessed.
+    // The frozen V1 population is adults only. A missing or invalid date of
+    // birth and an age below 19 are unavailable rather than guessed.
     if (age == null || age < minimumAge) {
       return definition.unavailable(nutrientId);
     }
 
     final value = switch (nutrientId) {
+      // Percentage-of-energy rules. 9 kcal/g for fat, 4 kcal/g for sugar.
       NutrientId.saturatedFat =>
         caloriesKcal == null ? null : (0.10 * caloriesKcal) / 9,
       NutrientId.transFat =>
         caloriesKcal == null ? null : (0.01 * caloriesKcal) / 9,
+      NutrientId.addedSugar =>
+        caloriesKcal == null ? null : (0.10 * caloriesKcal) / 4,
+
+      // Fixed adult amounts, independent of Calories.
       NutrientId.sodium => 2000.0,
+      NutrientId.phosphorus => 700.0,
       NutrientId.vitaminD => age <= 70 ? 15.0 : 20.0,
+
+      // Calcium's 51-70 band differs by health reference sex, which Tio does
+      // not yet own as canonical truth (TNYX-142). Identity gender is not a
+      // substitute, so that band stays Unavailable rather than guessed.
+      NutrientId.calcium => switch (age) {
+          <= 50 => 1000.0,
+          >= 71 => 1200.0,
+          _ => null,
+        },
       _ => throw ArgumentError.value(
           nutrientId,
           'nutrientId',
-          'Nutrient is outside Additional Nutrient Goals V1.',
+          'Nutrient is outside Additional Nutrition V1.',
         ),
     };
 
@@ -63,9 +100,9 @@ final class AdditionalNutrientRecommendationPolicy {
 
   /// The unmet prerequisites for [nutrientId], in the order worth reporting.
   ///
-  /// Empty when the recommendation is derivable. Only inputs this nutrient
-  /// actually uses are ever reported: telling a Vitamin D user to set a
-  /// Calories target would name an input its rule never reads.
+  /// Empty when the value is derivable. Only inputs this nutrient actually
+  /// uses are ever reported: telling a Vitamin D user to set a Calories target
+  /// would name an input its rule never reads.
   static Set<NutrientRecommendationBlocker> blockersFor({
     required NutrientId nutrientId,
     required int? caloriesKcal,
@@ -85,16 +122,24 @@ final class AdditionalNutrientRecommendationPolicy {
       blockers.add(NutrientRecommendationBlocker.caloriesMissing);
     }
 
+    if (nutrientId == NutrientId.calcium &&
+        age != null &&
+        age >= 51 &&
+        age <= 70) {
+      blockers.add(NutrientRecommendationBlocker.referenceSexUnavailable);
+    }
+
     return blockers;
   }
 
   /// Whether the nutrient's rule reads the canonical Calories target.
   ///
-  /// Only the two percentage-of-energy rules do. Sodium and Vitamin D are
-  /// fixed amounts gated on age alone.
+  /// Only the three percentage-of-energy rules do. Sodium, calcium,
+  /// phosphorus and vitamin D are fixed amounts banded by age alone.
   static bool dependsOnCalories(NutrientId nutrientId) =>
       nutrientId == NutrientId.saturatedFat ||
-      nutrientId == NutrientId.transFat;
+      nutrientId == NutrientId.transFat ||
+      nutrientId == NutrientId.addedSugar;
 
   /// Age on [now]'s calendar date. Leap-day birthdays turn a year older on
   /// March 1 in non-leap years because February 29 has not occurred.
@@ -117,9 +162,23 @@ final class AdditionalNutrientRecommendationPolicy {
           NutrientGoalType.maximum,
           NutrientGoalComparison.atMost,
         ),
+      // Added sugar is "less than 10% of Calories", a strict boundary like
+      // sodium rather than an inclusive ceiling.
+      NutrientId.addedSugar => const _PolicyDefinition(
+          NutrientGoalType.maximum,
+          NutrientGoalComparison.lessThan,
+        ),
       NutrientId.sodium => const _PolicyDefinition(
           NutrientGoalType.maximum,
           NutrientGoalComparison.lessThan,
+        ),
+      NutrientId.calcium => const _PolicyDefinition(
+          NutrientGoalType.target,
+          NutrientGoalComparison.target,
+        ),
+      NutrientId.phosphorus => const _PolicyDefinition(
+          NutrientGoalType.target,
+          NutrientGoalComparison.target,
         ),
       NutrientId.vitaminD => const _PolicyDefinition(
           NutrientGoalType.target,
@@ -128,7 +187,7 @@ final class AdditionalNutrientRecommendationPolicy {
       _ => throw ArgumentError.value(
           nutrientId,
           'nutrientId',
-          'Nutrient is outside Additional Nutrient Goals V1.',
+          'Nutrient is outside Additional Nutrition V1.',
         ),
     };
   }

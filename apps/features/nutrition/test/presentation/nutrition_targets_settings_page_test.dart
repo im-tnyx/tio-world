@@ -123,7 +123,7 @@ void main() {
 
       // The entry point itself does belong here: Nutrition Targets is the
       // parent surface for the nested screen.
-      expect(find.text('Additional Nutrient Goals'), findsOneWidget);
+      expect(find.text('Additional Nutrition'), findsOneWidget);
     });
 
     testWidgets('the additional goals entry navigates rather than editing',
@@ -152,7 +152,7 @@ void main() {
       expect(fiber, greaterThan(macros));
 
       // Fiber must not be grouped with the three energy macros. The fourth
-      // card is the Additional Nutrient Goals entry, which is likewise its own
+      // card is the Additional Nutrition entry, which is likewise its own
       // section rather than an extra row inside Fiber.
       expect(find.byType(TioGroupCard), findsNWidgets(4));
       expect(
@@ -170,7 +170,7 @@ void main() {
       // the affordance has to match what a tap actually does.
       expect(find.byIcon(Icons.edit_outlined), findsNWidgets(2));
       // Two chevrons, both leaving this surface: the macros screen and the
-      // Additional Nutrient Goals screen.
+      // Additional Nutrition screen.
       expect(find.byIcon(Icons.chevron_right_rounded), findsNWidgets(2));
       expect(
         find.byKey(const ValueKey('nutrition-target-macros-open')),

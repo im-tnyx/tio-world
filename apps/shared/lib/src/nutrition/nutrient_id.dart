@@ -26,7 +26,10 @@ enum NutrientId {
   fiber('fiber', NutrientUnit.g),
   saturatedFat('saturated_fat', NutrientUnit.g),
   transFat('trans_fat', NutrientUnit.g),
+  addedSugar('added_sugar', NutrientUnit.g),
   sodium('sodium', NutrientUnit.mg),
+  calcium('calcium', NutrientUnit.mg),
+  phosphorus('phosphorus', NutrientUnit.mg),
   vitaminD('vitamin_d', NutrientUnit.mcg);
 
   const NutrientId(this.storageValue, this.canonicalUnit);

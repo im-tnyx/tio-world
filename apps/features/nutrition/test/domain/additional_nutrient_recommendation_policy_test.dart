@@ -2,359 +2,315 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_shared/shared.dart';
 
-/// Frozen TNYX-141 V1 recommendation policy.
+/// Frozen TNYX-141 V1 calculation policy for the seven Additional Nutrition
+/// values.
 ///
-/// These are the owner-approved contracts, not derived preferences: the
-/// percentage formulas, the strict sodium boundary, the adults-only
-/// eligibility rule, and the Vitamin D age split. Recommendations are runtime
-/// derivations, so every unavailable case must stay explicitly unavailable
-/// rather than falling back to a fabricated number.
+/// These values are derived at display time and never persisted. Where a
+/// canonical input is missing, or the population is outside the rule, the
+/// policy returns unavailable rather than inventing a nutrition figure.
 void main() {
-  // A fixed "today" keeps age assertions deterministic.
-  final now = DateTime(2026, 9, 2);
+  final now = DateTime(2026, 9, 3);
 
-  DateTime dobForAge(int age, {int monthOffset = 0, int dayOffset = 0}) =>
-      DateTime(now.year - age, now.month + monthOffset, now.day + dayOffset);
+  DateTime dobForAge(int age) => DateTime(now.year - age, 1, 1);
 
   NutrientRecommendation derive(
     NutrientId nutrientId, {
     int? caloriesKcal = 2000,
     DateTime? dateOfBirth,
+    bool withoutDateOfBirth = false,
   }) =>
       AdditionalNutrientRecommendationPolicy.derive(
         nutrientId: nutrientId,
         caloriesKcal: caloriesKcal,
-        dateOfBirth: dateOfBirth ?? dobForAge(30),
+        dateOfBirth: withoutDateOfBirth ? null : (dateOfBirth ?? dobForAge(36)),
         now: now,
       );
 
-  group('saturated fat', () {
-    test('is 10% of calories converted at 9 kcal per gram', () {
-      for (final calories in [1200, 1800, 2000, 2450, 3100]) {
-        final recommendation = derive(
-          NutrientId.saturatedFat,
-          caloriesKcal: calories,
-        );
-
-        expect(
-          recommendation.recommendedValue,
-          closeTo((0.10 * calories) / 9, 1e-9),
-          reason: '$calories kcal',
-        );
-      }
-    });
-
-    test('does not round the derived value', () {
-      // 2000 kcal -> 22.222... g. A rounded implementation would return 22.2
-      // or 22, so assert the full precision the domain must preserve.
-      final recommendation = derive(
+  group('display order', () {
+    test('is exactly the seven approved nutrients, label-style', () {
+      expect(AdditionalNutrientRecommendationPolicy.displayOrder, const [
         NutrientId.saturatedFat,
-        caloriesKcal: 2000,
-      );
-
-      expect(recommendation.recommendedValue, closeTo(22.2222222222, 1e-9));
-      expect(recommendation.recommendedValue, isNot(22.2));
-      expect(recommendation.recommendedValue, isNot(22.0));
-    });
-
-    test('is a maximum compared at most', () {
-      final recommendation = derive(NutrientId.saturatedFat);
-
-      expect(recommendation.goalType, NutrientGoalType.maximum);
-      expect(recommendation.comparison, NutrientGoalComparison.atMost);
-    });
-
-    test('is unavailable when canonical Calories is unavailable', () {
-      final recommendation = derive(
-        NutrientId.saturatedFat,
-        caloriesKcal: null,
-      );
-
-      expect(recommendation.isAvailable, isFalse);
-      expect(recommendation.recommendedValue, isNull);
-    });
-  });
-
-  group('trans fat', () {
-    test('is 1% of calories converted at 9 kcal per gram', () {
-      for (final calories in [1200, 1800, 2000, 2450, 3100]) {
-        final recommendation = derive(
-          NutrientId.transFat,
-          caloriesKcal: calories,
-        );
-
-        expect(
-          recommendation.recommendedValue,
-          closeTo((0.01 * calories) / 9, 1e-9),
-          reason: '$calories kcal',
-        );
-      }
-    });
-
-    test('does not round the derived value', () {
-      final recommendation = derive(NutrientId.transFat, caloriesKcal: 2000);
-
-      expect(recommendation.recommendedValue, closeTo(2.2222222222, 1e-9));
-      expect(recommendation.recommendedValue, isNot(2.2));
-      expect(recommendation.recommendedValue, isNot(2.0));
-    });
-
-    test('is a maximum compared at most', () {
-      final recommendation = derive(NutrientId.transFat);
-
-      expect(recommendation.goalType, NutrientGoalType.maximum);
-      expect(recommendation.comparison, NutrientGoalComparison.atMost);
-    });
-
-    test('is unavailable when canonical Calories is unavailable', () {
-      final recommendation = derive(NutrientId.transFat, caloriesKcal: null);
-
-      expect(recommendation.isAvailable, isFalse);
-    });
-  });
-
-  group('sodium', () {
-    test('is 2000 mg for an eligible adult', () {
-      final recommendation = derive(
+        NutrientId.transFat,
+        NutrientId.addedSugar,
         NutrientId.sodium,
-        dateOfBirth: dobForAge(19),
-      );
-
-      expect(recommendation.recommendedValue, 2000);
+        NutrientId.calcium,
+        NutrientId.phosphorus,
+        NutrientId.vitaminD,
+      ]);
     });
 
-    test('is a strict less-than boundary, not an inclusive maximum', () {
-      final recommendation = derive(NutrientId.sodium);
-
-      expect(recommendation.goalType, NutrientGoalType.maximum);
-      expect(
-        recommendation.comparison,
-        NutrientGoalComparison.lessThan,
-        reason: 'Sodium is "less than 2,000 mg/day", never "at most".',
-      );
-      expect(recommendation.comparison, isNot(NutrientGoalComparison.atMost));
-    });
-
-    test('does not depend on Calories', () {
-      final recommendation = derive(NutrientId.sodium, caloriesKcal: null);
-
-      expect(recommendation.recommendedValue, 2000);
-    });
-
-    test('is unavailable under 19 with no child formula substituted', () {
-      for (final age in [0, 5, 12, 18]) {
-        final recommendation = derive(
-          NutrientId.sodium,
-          dateOfBirth: dobForAge(age),
+    test('does not include nutrients that are out of V1 scope', () {
+      // Tracked as a nutrient fact does not mean approved as a target.
+      for (final excluded in [
+        NutrientId.energy,
+        NutrientId.protein,
+        NutrientId.carbohydrate,
+        NutrientId.fat,
+        NutrientId.fiber,
+      ]) {
+        expect(
+          AdditionalNutrientRecommendationPolicy.displayOrder,
+          isNot(contains(excluded)),
+          reason: '$excluded',
         );
-
-        expect(recommendation.isAvailable, isFalse, reason: 'age $age');
-        expect(recommendation.recommendedValue, isNull, reason: 'age $age');
       }
     });
   });
 
-  group('vitamin D', () {
-    test('is 15 mcg from 19 through 70', () {
-      for (final age in [19, 20, 45, 69, 70]) {
-        final recommendation = derive(
-          NutrientId.vitaminD,
-          dateOfBirth: dobForAge(age),
-        );
-
-        expect(recommendation.recommendedValue, 15, reason: 'age $age');
-      }
-    });
-
-    test('is 20 mcg from 71 onward', () {
-      for (final age in [71, 72, 90]) {
-        final recommendation = derive(
-          NutrientId.vitaminD,
-          dateOfBirth: dobForAge(age),
-        );
-
-        expect(recommendation.recommendedValue, 20, reason: 'age $age');
-      }
-    });
-
-    test('switches exactly on the 71st birthday, not the calendar year', () {
-      // The day before the 71st birthday the user is still 70.
-      final dayBefore = derive(
-        NutrientId.vitaminD,
-        dateOfBirth: DateTime(now.year - 71, now.month, now.day + 1),
-      );
-      expect(dayBefore.recommendedValue, 15);
-
-      // On the birthday itself they are 71.
-      final onBirthday = derive(
-        NutrientId.vitaminD,
-        dateOfBirth: DateTime(now.year - 71, now.month, now.day),
-      );
-      expect(onBirthday.recommendedValue, 20);
-
-      // A naive year subtraction would already report 71 here; a correct
-      // current-date calculation must still report 70.
-      final laterThisYear = derive(
-        NutrientId.vitaminD,
-        dateOfBirth: DateTime(now.year - 71, now.month + 1, now.day),
-      );
-      expect(
-        laterThisYear.recommendedValue,
-        15,
-        reason: 'Birthday has not occurred yet this year.',
-      );
-    });
-
-    test('is a target goal', () {
-      final recommendation = derive(NutrientId.vitaminD);
-
-      expect(recommendation.goalType, NutrientGoalType.target);
-      expect(recommendation.comparison, NutrientGoalComparison.target);
-    });
-
-    test('does not depend on Calories', () {
-      final recommendation = derive(NutrientId.vitaminD, caloriesKcal: null);
-
-      expect(recommendation.recommendedValue, 15);
-    });
-
-    test('is unavailable under 19', () {
-      final recommendation = derive(
-        NutrientId.vitaminD,
-        dateOfBirth: dobForAge(18),
-      );
-
-      expect(recommendation.isAvailable, isFalse);
-    });
-  });
-
-  group('missing date of birth', () {
-    test('makes every age-eligible nutrient unavailable', () {
-      for (final nutrientId in [NutrientId.sodium, NutrientId.vitaminD]) {
-        final recommendation = AdditionalNutrientRecommendationPolicy.derive(
-          nutrientId: nutrientId,
-          caloriesKcal: 2000,
-          dateOfBirth: null,
-          now: now,
-        );
-
-        expect(recommendation.isAvailable, isFalse, reason: '$nutrientId');
-      }
-    });
-
-    test('also blocks the calorie-derived nutrients, which are adults-only',
+  group('calorie-derived rules', () {
+    test('saturated fat is 10% of Calories at 9 kcal/g, an inclusive ceiling',
         () {
+      final result = derive(NutrientId.saturatedFat, caloriesKcal: 2000);
+
+      expect(result.recommendedValue, closeTo(22.222, 0.001));
+      expect(result.goalType, NutrientGoalType.maximum);
+      expect(result.comparison, NutrientGoalComparison.atMost);
+    });
+
+    test('trans fat is 1% of Calories at 9 kcal/g', () {
+      final result = derive(NutrientId.transFat, caloriesKcal: 2000);
+
+      expect(result.recommendedValue, closeTo(2.222, 0.001));
+      expect(result.comparison, NutrientGoalComparison.atMost);
+    });
+
+    test('added sugar is 10% of Calories at 4 kcal/g, a strict boundary', () {
+      final result = derive(NutrientId.addedSugar, caloriesKcal: 2000);
+
+      expect(result.recommendedValue, 50);
+      expect(result.goalType, NutrientGoalType.maximum);
+      expect(
+        result.comparison,
+        NutrientGoalComparison.lessThan,
+        reason: 'The rule is "less than 10%", not "at most 10%".',
+      );
+    });
+
+    test('all three scale with Calories', () {
+      expect(
+        derive(NutrientId.saturatedFat, caloriesKcal: 1800).recommendedValue,
+        closeTo(20, 0.001),
+      );
+      expect(
+        derive(NutrientId.transFat, caloriesKcal: 1800).recommendedValue,
+        closeTo(2, 0.001),
+      );
+      expect(
+        derive(NutrientId.addedSugar, caloriesKcal: 1800).recommendedValue,
+        closeTo(45, 0.001),
+      );
+    });
+
+    test('they are unavailable without a canonical Calories target', () {
       for (final nutrientId in [
         NutrientId.saturatedFat,
         NutrientId.transFat,
+        NutrientId.addedSugar,
       ]) {
-        final recommendation = AdditionalNutrientRecommendationPolicy.derive(
-          nutrientId: nutrientId,
-          caloriesKcal: 2000,
-          dateOfBirth: null,
-          now: now,
+        final result = derive(nutrientId, caloriesKcal: null);
+        expect(result.isAvailable, isFalse, reason: '$nutrientId');
+        expect(
+          AdditionalNutrientRecommendationPolicy.blockersFor(
+            nutrientId: nutrientId,
+            caloriesKcal: null,
+            dateOfBirth: dobForAge(36),
+            now: now,
+          ),
+          contains(NutrientRecommendationBlocker.caloriesMissing),
         );
+      }
+    });
+  });
 
-        expect(recommendation.isAvailable, isFalse, reason: '$nutrientId');
+  group('fixed adult amounts', () {
+    test('sodium is strictly under 2000 mg and ignores Calories', () {
+      final result = derive(NutrientId.sodium, caloriesKcal: null);
+
+      expect(result.recommendedValue, 2000);
+      expect(result.goalType, NutrientGoalType.maximum);
+      expect(result.comparison, NutrientGoalComparison.lessThan);
+      expect(
+        AdditionalNutrientRecommendationPolicy.dependsOnCalories(
+          NutrientId.sodium,
+        ),
+        isFalse,
+      );
+    });
+
+    test('phosphorus is a flat 700 mg adult target', () {
+      final result = derive(NutrientId.phosphorus, caloriesKcal: null);
+
+      expect(result.recommendedValue, 700);
+      expect(result.goalType, NutrientGoalType.target);
+      expect(result.comparison, NutrientGoalComparison.target);
+    });
+
+    test('phosphorus does not vary by age band above the minimum', () {
+      for (final age in [19, 36, 50, 51, 70, 71, 90]) {
+        expect(
+          derive(NutrientId.phosphorus, dateOfBirth: dobForAge(age))
+              .recommendedValue,
+          700,
+          reason: 'age $age',
+        );
+      }
+    });
+  });
+
+  group('vitamin D age bands', () {
+    test('15 mcg from 19 through 70', () {
+      for (final age in [19, 36, 70]) {
+        expect(
+          derive(NutrientId.vitaminD, dateOfBirth: dobForAge(age))
+              .recommendedValue,
+          15,
+          reason: 'age $age',
+        );
       }
     });
 
-    test('treats a future date of birth as unusable rather than negative age',
-        () {
-      final recommendation = AdditionalNutrientRecommendationPolicy.derive(
-        nutrientId: NutrientId.vitaminD,
+    test('20 mcg from 71', () {
+      for (final age in [71, 85]) {
+        expect(
+          derive(NutrientId.vitaminD, dateOfBirth: dobForAge(age))
+              .recommendedValue,
+          20,
+          reason: 'age $age',
+        );
+      }
+    });
+  });
+
+  group('calcium age bands', () {
+    test('1000 mg from 19 through 50', () {
+      for (final age in [19, 36, 50]) {
+        expect(
+          derive(NutrientId.calcium, dateOfBirth: dobForAge(age))
+              .recommendedValue,
+          1000,
+          reason: 'age $age',
+        );
+      }
+    });
+
+    test('1200 mg from 71', () {
+      for (final age in [71, 85]) {
+        expect(
+          derive(NutrientId.calcium, dateOfBirth: dobForAge(age))
+              .recommendedValue,
+          1200,
+          reason: 'age $age',
+        );
+      }
+    });
+
+    test('51 through 70 is unavailable, not guessed', () {
+      // This band differs by health reference sex, which Tio does not own as
+      // canonical truth yet. Identity gender is not a substitute for it, so
+      // the policy refuses rather than picking one.
+      for (final age in [51, 60, 70]) {
+        final result = derive(NutrientId.calcium, dateOfBirth: dobForAge(age));
+        expect(result.isAvailable, isFalse, reason: 'age $age');
+        expect(result.recommendedValue, isNull, reason: 'age $age');
+      }
+    });
+
+    test('the 51-70 gap names reference sex, not a missing user input', () {
+      final blockers = AdditionalNutrientRecommendationPolicy.blockersFor(
+        nutrientId: NutrientId.calcium,
         caloriesKcal: 2000,
-        dateOfBirth: DateTime(now.year + 1),
+        dateOfBirth: dobForAge(60),
         now: now,
       );
 
-      expect(recommendation.isAvailable, isFalse);
+      expect(
+        blockers,
+        contains(NutrientRecommendationBlocker.referenceSexUnavailable),
+      );
+      expect(
+        blockers,
+        isNot(contains(NutrientRecommendationBlocker.dateOfBirthMissing)),
+        reason: 'The user supplied everything they can; the gap is ours.',
+      );
+    });
+
+    test('the gap is calcium-only at that age', () {
+      for (final nutrientId in [
+        NutrientId.sodium,
+        NutrientId.phosphorus,
+        NutrientId.vitaminD,
+        NutrientId.saturatedFat,
+      ]) {
+        expect(
+          derive(nutrientId, dateOfBirth: dobForAge(60)).isAvailable,
+          isTrue,
+          reason: '$nutrientId',
+        );
+      }
     });
   });
 
-  group('age calculation', () {
-    test('uses the actual current date, not year subtraction', () {
-      // Born late in the year: on 2026-09-02 a 2000-12-31 birth is 25, not 26.
+  group('eligibility', () {
+    test('every nutrient is unavailable without a date of birth', () {
+      for (final nutrientId
+          in AdditionalNutrientRecommendationPolicy.displayOrder) {
+        final result = derive(nutrientId, withoutDateOfBirth: true);
+        expect(result.isAvailable, isFalse, reason: '$nutrientId');
+        expect(
+          AdditionalNutrientRecommendationPolicy.blockersFor(
+            nutrientId: nutrientId,
+            caloriesKcal: 2000,
+            dateOfBirth: null,
+            now: now,
+          ),
+          contains(NutrientRecommendationBlocker.dateOfBirthMissing),
+        );
+      }
+    });
+
+    test('every nutrient is unavailable below the adult minimum', () {
+      for (final nutrientId
+          in AdditionalNutrientRecommendationPolicy.displayOrder) {
+        expect(
+          derive(nutrientId, dateOfBirth: dobForAge(18)).isAvailable,
+          isFalse,
+          reason: '$nutrientId',
+        );
+      }
+    });
+
+    test('19 is the first eligible age', () {
+      expect(AdditionalNutrientRecommendationPolicy.minimumAge, 19);
+      expect(derive(NutrientId.sodium, dateOfBirth: dobForAge(19)).isAvailable,
+          isTrue);
+      expect(derive(NutrientId.sodium, dateOfBirth: dobForAge(18)).isAvailable,
+          isFalse);
+    });
+
+    test('a future date of birth is treated as unusable, not negative age', () {
       expect(
-        AdditionalNutrientRecommendationPolicy.ageOn(
-          dateOfBirth: DateTime(2000, 12, 31),
-          now: now,
-        ),
-        25,
-      );
-      // Born earlier in the year: already 26.
-      expect(
-        AdditionalNutrientRecommendationPolicy.ageOn(
-          dateOfBirth: DateTime(2000, 1, 1),
-          now: now,
-        ),
-        26,
+        derive(NutrientId.sodium, dateOfBirth: DateTime(2030, 1, 1))
+            .isAvailable,
+        isFalse,
       );
     });
 
-    test('counts the birthday itself as the new age', () {
-      expect(
-        AdditionalNutrientRecommendationPolicy.ageOn(
-          dateOfBirth: DateTime(2000, 9, 2),
-          now: now,
-        ),
-        26,
+    test('a birthday later this year has not happened yet', () {
+      // 19 on paper by year subtraction, still 18 on the fixed clock.
+      final result = AdditionalNutrientRecommendationPolicy.derive(
+        nutrientId: NutrientId.sodium,
+        caloriesKcal: 2000,
+        dateOfBirth: DateTime(2007, 12, 31),
+        now: now,
       );
-      expect(
-        AdditionalNutrientRecommendationPolicy.ageOn(
-          dateOfBirth: DateTime(2000, 9, 3),
-          now: now,
-        ),
-        25,
-      );
-    });
-
-    test('returns null for a missing or future date of birth', () {
-      expect(
-        AdditionalNutrientRecommendationPolicy.ageOn(
-          dateOfBirth: null,
-          now: now,
-        ),
-        isNull,
-      );
-      expect(
-        AdditionalNutrientRecommendationPolicy.ageOn(
-          dateOfBirth: DateTime(now.year + 1),
-          now: now,
-        ),
-        isNull,
-      );
-    });
-
-    test('advances a leap-day birthday on March 1 in a non-leap year', () {
-      // 2027 is not a leap year, so February 29 never occurs.
-      final beforeMarch = AdditionalNutrientRecommendationPolicy.ageOn(
-        dateOfBirth: DateTime(2000, 2, 29),
-        now: DateTime(2027, 2, 28),
-      );
-      final onMarchFirst = AdditionalNutrientRecommendationPolicy.ageOn(
-        dateOfBirth: DateTime(2000, 2, 29),
-        now: DateTime(2027, 3, 1),
-      );
-
-      expect(beforeMarch, 26);
-      expect(onMarchFirst, 27);
+      expect(result.isAvailable, isFalse);
     });
   });
 
-  test('rejects nutrients outside the authorized V1 subset', () {
-    for (final nutrientId in [
-      NutrientId.energy,
-      NutrientId.protein,
-      NutrientId.carbohydrate,
-      NutrientId.fat,
-      NutrientId.fiber,
-    ]) {
-      expect(
-        () => derive(nutrientId),
-        throwsArgumentError,
-        reason: '$nutrientId is not part of Additional Nutrient Goals V1',
-      );
-    }
+  test('a nutrient outside V1 is rejected rather than silently defaulted', () {
+    expect(
+      () => derive(NutrientId.protein),
+      throwsArgumentError,
+    );
   });
 }

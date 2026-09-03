@@ -857,7 +857,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
             if (targetsAsync.hasError && !targetsAsync.hasValue) {
               return _NutritionLoadFailure(
-                title: 'Could not load Additional Nutrient Goals',
+                title: 'Could not load Additional Nutrition',
                 onRetry: () => ref.invalidate(nutritionTargetsDataProvider),
               );
             }
@@ -865,13 +865,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             final targets =
                 targetsAsync.valueOrNull ?? const NutritionTargetsData();
 
-            // Date of birth is read, never copied into goal storage. It gates
-            // every recommendation on this screen, so a profile that failed to
-            // load is not interchangeable with one that has no date of birth:
+            // Date of birth is read, never stored. It gates every value on
+            // this screen, so a profile that failed to load is not
+            // interchangeable with one that has no date of birth:
             // `valueOrNull` alone would render a transient network error as
-            // four permanently "Unavailable" nutrients and, under the frozen
-            // eligibility rule, silently block editing — with nothing on
-            // screen saying why or offering a retry.
+            // seven permanently "Unavailable" rows, with nothing on screen
+            // saying why or offering a retry.
             final profileAsync = ref.watch(profileDataProvider);
 
             if (profileAsync.isLoading && !profileAsync.hasValue) {
@@ -891,15 +890,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
             final profile = profileAsync.valueOrNull;
 
+            // Read-only surface: no save callback, because nothing on this
+            // screen writes.
             return AdditionalNutrientGoalsPage(
-              goals: targets.additionalNutrientGoals,
               caloriesKcal: targets.caloriesKcal,
               dateOfBirth: profile?.dateOfBirth,
-              onSave: (nutrientId, goal) async {
-                final repository = ref.read(nutritionTargetsRepositoryProvider);
-                await repository.updateAdditionalNutrientGoal(nutrientId, goal);
-                ref.invalidate(nutritionTargetsDataProvider);
-              },
             );
           },
         ),

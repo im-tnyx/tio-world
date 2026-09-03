@@ -401,17 +401,6 @@ class _RecordingNutritionTargetsRepository
     upsertCalls += 1;
     operations.add('nutritionTargets.upsert');
   }
-
-  @override
-  Future<void> updateAdditionalNutrientGoal(
-    NutrientId nutrientId,
-    nutrition_owner.AdditionalNutrientGoal? goal,
-  ) async {
-    // Onboarding never configures Additional Nutrient Goals. Failing loudly
-    // keeps that boundary honest if it ever changes.
-    throw UnsupportedError(
-        'Onboarding does not write Additional Nutrient Goals.');
-  }
 }
 
 class _RecordingAppModePreference implements AppModePreference {

@@ -1,4 +1,4 @@
-export 'additional_nutrient_goal.dart';
+export 'nutrient_goal_semantics.dart';
 export 'nutrition_profile_data.dart';
 export 'nutrition_profile_vocabulary.dart';
 export 'nutrition_target_field.dart';
