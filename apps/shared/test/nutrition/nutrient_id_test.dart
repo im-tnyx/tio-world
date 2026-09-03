@@ -10,7 +10,10 @@ void main() {
     NutrientId.fiber: ('fiber', NutrientUnit.g),
     NutrientId.saturatedFat: ('saturated_fat', NutrientUnit.g),
     NutrientId.transFat: ('trans_fat', NutrientUnit.g),
+    NutrientId.addedSugar: ('added_sugar', NutrientUnit.g),
     NutrientId.sodium: ('sodium', NutrientUnit.mg),
+    NutrientId.calcium: ('calcium', NutrientUnit.mg),
+    NutrientId.phosphorus: ('phosphorus', NutrientUnit.mg),
     NutrientId.vitaminD: ('vitamin_d', NutrientUnit.mcg),
   };
 
@@ -38,11 +41,50 @@ void main() {
       expect(NutrientId.energy.storageValue, isNot('calories'));
     });
 
-    test('keeps the first additional-goal subset in its canonical units', () {
+    test('keeps the Additional Nutrition subset in its canonical units', () {
       expect(NutrientId.saturatedFat.canonicalUnit, NutrientUnit.g);
       expect(NutrientId.transFat.canonicalUnit, NutrientUnit.g);
+      expect(NutrientId.addedSugar.canonicalUnit, NutrientUnit.g);
       expect(NutrientId.sodium.canonicalUnit, NutrientUnit.mg);
+      expect(NutrientId.calcium.canonicalUnit, NutrientUnit.mg);
+      expect(NutrientId.phosphorus.canonicalUnit, NutrientUnit.mg);
       expect(NutrientId.vitaminD.canonicalUnit, NutrientUnit.mcg);
+    });
+
+    test('identity stays separate from unit', () {
+      // Three of the seven share the milligram unit; none of them share an
+      // identity, and a unit change must never imply a new nutrient.
+      final milligramIds = NutrientId.values
+          .where((nutrient) => nutrient.canonicalUnit == NutrientUnit.mg)
+          .map((nutrient) => nutrient.storageValue)
+          .toSet();
+
+      expect(milligramIds, containsAll(['sodium', 'calcium', 'phosphorus']));
+      expect(milligramIds, hasLength(3));
+    });
+
+    test('the registry stays bounded to currently justified consumers', () {
+      // Deliberately not exhaustive. Potassium, iron, magnesium, zinc, the
+      // remaining vitamins, cholesterol and the fat sub-types need their own
+      // bounded audit before they earn an identity here.
+      for (final speculative in [
+        'potassium',
+        'iron',
+        'magnesium',
+        'zinc',
+        'vitamin_a',
+        'vitamin_c',
+        'cholesterol',
+        'total_sugar',
+        'monounsaturated_fat',
+        'polyunsaturated_fat',
+      ]) {
+        expect(
+          NutrientId.fromStorageValue(speculative),
+          isNull,
+          reason: '$speculative is not approved as an identity yet.',
+        );
+      }
     });
 
     test('leaves unknown future storage values unknown', () {

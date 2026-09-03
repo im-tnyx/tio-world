@@ -20,7 +20,11 @@ void main() {
   );
 
   var macroEdits = 0;
-  setUp(() => macroEdits = 0);
+  var additionalGoalsOpens = 0;
+  setUp(() {
+    macroEdits = 0;
+    additionalGoalsOpens = 0;
+  });
 
   Future<void> pumpPage(
     WidgetTester tester, {
@@ -39,6 +43,7 @@ void main() {
         targets: targets,
         onSave: onSave,
         onEditMacros: () => macroEdits++,
+        onEditAdditionalGoals: () => additionalGoalsOpens++,
       ),
     ));
     await tester.pumpAndSettle();
@@ -98,10 +103,13 @@ void main() {
       expect(find.textContaining('0 g'), findsNothing);
     });
 
-    testWidgets('additional nutrient goals are not exposed here',
+    testWidgets('additional nutrient goals are linked, never listed here',
         (tester) async {
       await pumpPage(tester, targets: recommended, onSave: (_) async {});
 
+      // TNYX-141 puts these on their own nested screen. This page owns the
+      // core five, so an individual nutrient row appearing here would blur
+      // which set a value belongs to and which provenance it carries.
       for (final absent in [
         'Sodium',
         'Saturated Fat',
@@ -109,10 +117,25 @@ void main() {
         'Vitamin D',
         'Added Sugar',
         'Cholesterol',
-        'Additional Nutrient Goals',
       ]) {
         expect(find.text(absent), findsNothing, reason: absent);
       }
+
+      // The entry point itself does belong here: Nutrition Targets is the
+      // parent surface for the nested screen.
+      expect(find.text('Additional Nutrition'), findsOneWidget);
+    });
+
+    testWidgets('the additional goals entry navigates rather than editing',
+        (tester) async {
+      await pumpPage(tester, targets: recommended, onSave: (_) async {});
+
+      await tester.tap(
+        find.byKey(const ValueKey('nutrition-target-additional-goals-open')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(additionalGoalsOpens, 1);
     });
   });
 
@@ -128,8 +151,14 @@ void main() {
       expect(macros, greaterThan(calories));
       expect(fiber, greaterThan(macros));
 
-      // Fiber must not be grouped with the three energy macros.
-      expect(find.byType(TioGroupCard), findsNWidgets(3));
+      // Fiber must not be grouped with the three energy macros. The fourth
+      // card is the Additional Nutrition entry, which is likewise its own
+      // section rather than an extra row inside Fiber.
+      expect(find.byType(TioGroupCard), findsNWidgets(4));
+      expect(
+        tester.getTopLeft(find.text('ADDITIONAL')).dy,
+        greaterThan(fiber),
+      );
     });
 
     testWidgets('pencils edit in place; the macros carry a chevron instead',
@@ -140,9 +169,15 @@ void main() {
       // a pencil. The macros open their own screen, so they get a chevron --
       // the affordance has to match what a tap actually does.
       expect(find.byIcon(Icons.edit_outlined), findsNWidgets(2));
-      expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);
+      // Two chevrons, both leaving this surface: the macros screen and the
+      // Additional Nutrition screen.
+      expect(find.byIcon(Icons.chevron_right_rounded), findsNWidgets(2));
       expect(
         find.byKey(const ValueKey('nutrition-target-macros-open')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('nutrition-target-additional-goals-open')),
         findsOneWidget,
       );
       // No macro row offers its own competing affordance.

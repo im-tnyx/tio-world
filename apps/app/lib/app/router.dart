@@ -113,6 +113,7 @@ ChromePolicy shellChromePolicyForPath(String location) {
     AppRoutes.nutritionProfileSettings,
     AppRoutes.nutritionTargetsSettings,
     AppRoutes.nutritionMacrosSettings,
+    AppRoutes.nutritionAdditionalGoalsSettings,
     AppRoutes.profileSettings,
     AppRoutes.accountSettings,
     AppRoutes.appSettings,
@@ -795,6 +796,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               targets: targetsAsync.valueOrNull ?? const NutritionTargetsData(),
               onEditMacros: () =>
                   context.push(AppRoutes.nutritionMacrosSettings.path),
+              onEditAdditionalGoals: () =>
+                  context.push(AppRoutes.nutritionAdditionalGoalsSettings.path),
               onSave: (targets) async {
                 final repository = ref.read(nutritionTargetsRepositoryProvider);
                 await repository.upsert(targets);
@@ -833,6 +836,65 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 await repository.upsert(targets);
                 ref.invalidate(nutritionTargetsDataProvider);
               },
+            );
+          },
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.nutritionAdditionalGoalsSettings.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => Consumer(
+          builder: (context, ref, _) {
+            final targetsAsync = ref.watch(nutritionTargetsDataProvider);
+
+            if (targetsAsync.isLoading && !targetsAsync.hasValue) {
+              return const Scaffold(
+                body: SafeArea(
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              );
+            }
+
+            if (targetsAsync.hasError && !targetsAsync.hasValue) {
+              return _NutritionLoadFailure(
+                title: 'Could not load Additional Nutrition',
+                onRetry: () => ref.invalidate(nutritionTargetsDataProvider),
+              );
+            }
+
+            final targets =
+                targetsAsync.valueOrNull ?? const NutritionTargetsData();
+
+            // Date of birth is read, never stored. It is required by Sodium,
+            // Calcium, Phosphorus and Vitamin D, while Saturated Fat, Trans
+            // Fat and Added Sugar can still derive from Calories alone. A
+            // profile load failure is not interchangeable with a successfully
+            // loaded profile that has no date of birth: `valueOrNull` alone
+            // would misrepresent a transient network error as eligibility.
+            final profileAsync = ref.watch(profileDataProvider);
+
+            if (profileAsync.isLoading && !profileAsync.hasValue) {
+              return const Scaffold(
+                body: SafeArea(
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              );
+            }
+
+            if (profileAsync.hasError && !profileAsync.hasValue) {
+              return _NutritionLoadFailure(
+                title: 'Could not load your profile',
+                onRetry: () => ref.invalidate(profileDataProvider),
+              );
+            }
+
+            final profile = profileAsync.valueOrNull;
+
+            // Read-only surface: no save callback, because nothing on this
+            // screen writes.
+            return AdditionalNutrientGoalsPage(
+              caloriesKcal: targets.caloriesKcal,
+              dateOfBirth: profile?.dateOfBirth,
             );
           },
         ),

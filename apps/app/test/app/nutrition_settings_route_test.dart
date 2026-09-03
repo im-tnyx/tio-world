@@ -12,6 +12,7 @@ import 'package:tio_core/core.dart';
 import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_feature_onboarding/onboarding.dart';
+import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_shared/shared.dart';
 
 /// Route-level coverage for Nutrition Settings: App Mode gating of the
@@ -22,6 +23,11 @@ void main() {
     required AppMode appMode,
     required _FakeNutritionProfileRepository repository,
     _FakeNutritionTargetsRepository? targets,
+
+    /// Canonical Profile stream. Supplied so a route can be exercised against
+    /// a profile that failed to load, which is a different state from one
+    /// that simply has no date of birth.
+    Stream<ProfileSetupData?>? profileStream,
   }) async {
     final targetsRepository = targets ?? _FakeNutritionTargetsRepository();
     final preference = _MemoryAppModePreference(appMode);
@@ -57,6 +63,8 @@ void main() {
         nutritionProfileRepositoryProvider.overrideWith((ref) => repository),
         nutritionTargetsRepositoryProvider
             .overrideWith((ref) => targetsRepository),
+        if (profileStream != null)
+          profileDataProvider.overrideWith((ref) => profileStream),
       ],
     );
   }
@@ -82,6 +90,18 @@ void main() {
     );
     expect(
       shellChromePolicyForPath(AppRoutes.nutritionProfileSettings.path),
+      ChromePolicy.fullScreen,
+    );
+    expect(
+      shellChromePolicyForPath(AppRoutes.nutritionTargetsSettings.path),
+      ChromePolicy.fullScreen,
+    );
+    expect(
+      shellChromePolicyForPath(AppRoutes.nutritionMacrosSettings.path),
+      ChromePolicy.fullScreen,
+    );
+    expect(
+      shellChromePolicyForPath(AppRoutes.nutritionAdditionalGoalsSettings.path),
       ChromePolicy.fullScreen,
     );
     // Negative control: the fallback is a different policy, so the two
@@ -263,8 +283,8 @@ void main() {
     expect(written.proteinGrams, 150);
     expect(written.carbohydrateGrams, 200);
     expect(written.fatGrams, 55.6);
-    expect(written.recommendationMetadata,
-        {'source': 'onboarding', 'bmr': 1600});
+    expect(
+        written.recommendationMetadata, {'source': 'onboarding', 'bmr': 1600});
     expect(written.customizedFields, {'fiber'});
 
     // The route re-read the canonical owner, so the row is not stale.
@@ -313,6 +333,71 @@ void main() {
     // The route re-read the canonical owner, so the summary is not stale.
     expect(repository.readCount, greaterThan(1));
     expect(find.text('Vegan'), findsOneWidget);
+  });
+  group('Additional Nutrition route composition', () {
+    Future<void> openAdditionalGoals(
+      WidgetTester tester,
+      ProviderContainer container,
+    ) async {
+      final router = container.read(goRouterProvider);
+      router.go(AppRoutes.nutritionAdditionalGoalsSettings.path);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(container: container, child: const TioApp()),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    _FakeNutritionTargetsRepository targetsWithCalories() =>
+        _FakeNutritionTargetsRepository(
+          stored: const NutritionTargetsData(
+            caloriesKcal: 2000,
+            customizationState: NutritionTargetCustomizationState.recommended,
+          ),
+        );
+
+    testWidgets('a profile load failure is reported, not read as no DOB',
+        (tester) async {
+      final container = await buildContainer(
+        appMode: AppMode.nutrition,
+        repository: _FakeNutritionProfileRepository(),
+        targets: targetsWithCalories(),
+        profileStream: Stream<ProfileSetupData?>.error(
+          StateError('offline'),
+        ),
+      );
+      addTearDown(container.dispose);
+
+      await openAdditionalGoals(tester, container);
+
+      // Collapsing the error into a null date of birth would misrepresent a
+      // profile/network failure as a legitimate missing-DOB eligibility state.
+      expect(find.text('Could not load your profile'), findsOneWidget);
+      expect(find.text('Retry'), findsOneWidget);
+      expect(
+        find.text('Unavailable'),
+        findsNothing,
+        reason: 'A network error is not an eligibility outcome.',
+      );
+    });
+
+    testWidgets('a profile with no date of birth still renders the screen',
+        (tester) async {
+      final container = await buildContainer(
+        appMode: AppMode.nutrition,
+        repository: _FakeNutritionProfileRepository(),
+        targets: targetsWithCalories(),
+        profileStream: Stream<ProfileSetupData?>.value(null),
+      );
+      addTearDown(container.dispose);
+
+      await openAdditionalGoals(tester, container);
+
+      // The genuinely-absent case is an eligibility outcome, shown on the
+      // screen rather than as a load failure.
+      expect(find.text('Could not load your profile'), findsNothing);
+      expect(find.text('Additional Nutrition'), findsWidgets);
+      expect(find.text('Saturated Fat'), findsOneWidget);
+    });
   });
 }
 

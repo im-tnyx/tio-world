@@ -137,6 +137,14 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  static const nutritionAdditionalGoalsSettings = TioRouteContract(
+    path: '/settings/nutrition/targets/additional-goals',
+    title: 'Additional Nutrition',
+    description:
+        'View calculated daily reference values for additional nutrients.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
   static const dailyWellnessSettings = TioRouteContract(
     path: '/settings/health-goals/daily-wellness',
     title: 'Daily Wellness',

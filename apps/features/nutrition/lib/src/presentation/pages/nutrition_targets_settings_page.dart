@@ -15,6 +15,7 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
     required this.targets,
     required this.onSave,
     required this.onEditMacros,
+    required this.onEditAdditionalGoals,
     super.key,
   });
 
@@ -32,6 +33,13 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
   /// keyboard on top of that. Routing is supplied by app composition rather
   /// than performed here.
   final VoidCallback onEditMacros;
+
+  /// Opens the nested read-only Additional Nutrition screen.
+  ///
+  /// Those goals are deliberately one level down rather than inline here: they
+  /// are a separate, optional set with their own recommendation rules, and
+  /// listing them beside the core five would imply they share provenance.
+  final VoidCallback onEditAdditionalGoals;
 
   /// Carbohydrates first, matching how the three macro shares are read.
   static const _macros = <(NutritionTargetField, String, IconData)>[
@@ -166,6 +174,28 @@ class NutritionTargetsSettingsPage extends StatelessWidget {
               children: [
                 _row(context, NutritionTargetField.fiber, 'Fiber',
                     Icons.grass_rounded),
+              ],
+            ),
+            const SizedBox(height: TioSpacing.lg),
+            const NutritionSettingsSectionHeader(title: 'ADDITIONAL'),
+            TioGroupCard(
+              children: [
+                TioSettingsValueRow(
+                  key: const ValueKey('nutrition-target-additional-goals-open'),
+                  leading: Icon(
+                    Icons.tune_rounded,
+                    size: TioSize.dp24,
+                    color: colors.textPrimary,
+                  ),
+                  label: 'Additional Nutrition',
+                  labelSingleLine: true,
+                  value: const SizedBox.shrink(),
+                  showEditAffordance: false,
+                  trailing: NutritionOpenChevron(
+                    onPressed: onEditAdditionalGoals,
+                  ),
+                  onTap: onEditAdditionalGoals,
+                ),
               ],
             ),
             // No "calories from macros" readout while the row is coherent: it

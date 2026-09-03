@@ -3,8 +3,7 @@ import '../domain/repositories/nutrition_targets_repository.dart';
 
 /// Deterministic non-durable canonical Nutrition Targets owner for tests/local
 /// composition.
-class InMemoryNutritionTargetsRepository
-    implements NutritionTargetsRepository {
+class InMemoryNutritionTargetsRepository implements NutritionTargetsRepository {
   NutritionTargetsData? _data;
 
   NutritionTargetsData? get data => _data;

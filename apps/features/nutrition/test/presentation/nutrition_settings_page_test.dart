@@ -39,7 +39,7 @@ void main() {
     // Capabilities without an approved implementation stay absent rather than
     // appearing as inert rows.
     for (final absent in [
-      'Additional Nutrient Goals',
+      'Additional Nutrition',
       'Eating Style',
       'Nutrition Approach',
       'Meal Diary',

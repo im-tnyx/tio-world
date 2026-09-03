@@ -1,11 +1,14 @@
 import '../models/nutrition_targets_data.dart';
 
-/// Canonical Nutrition Targets owner boundary.
+/// Canonical owner of the five core Nutrition Targets.
+///
+/// Additional Nutrition carries no repository surface: its values are derived
+/// at display time from each nutrient's required canonical Nutrition
+/// Targets/Profile inputs and are never persisted. The reserved
+/// `user_nutrition_targets.additional_nutrient_goals` column stays unused
+/// until per-nutrient editing is designed as its own product slice.
 abstract interface class NutritionTargetsRepository {
-  /// Returns the authenticated user's canonical Nutrition Targets row, or null
-  /// when signed out or when no row exists.
   Future<NutritionTargetsData?> read();
 
-  /// Replaces canonical Nutrition target values for the authenticated user.
   Future<void> upsert(NutritionTargetsData targets);
 }

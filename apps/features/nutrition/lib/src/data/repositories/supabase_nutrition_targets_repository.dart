@@ -19,6 +19,11 @@ final class SupabaseNutritionTargetsTableGateway
 
   @override
   Future<Map<String, dynamic>?> readRow(String userId) async {
+    // Deliberately does not select additional_nutrient_goals. Additional
+    // Nutrition is a calculated read-only surface in V1, so nothing in the app
+    // reads that column; selecting a column no consumer needs would only
+    // couple every Nutrition Targets read to a schema detail this build has no
+    // use for.
     return _client
         .from('user_nutrition_targets')
         .select(
@@ -42,6 +47,10 @@ final class SupabaseNutritionTargetsTableGateway
 ///
 /// It never writes `user_nutrition_profiles.macro_targets` or the legacy
 /// `user_targets` table and never mutates authentication state.
+///
+/// It also never writes `additional_nutrient_goals`. That column is applied
+/// and reserved for a future editing slice; V1 Additional Nutrition is
+/// derived at display time and has no persistence at all.
 final class SupabaseNutritionTargetsRepository
     implements NutritionTargetsRepository {
   SupabaseNutritionTargetsRepository({
@@ -67,8 +76,10 @@ final class SupabaseNutritionTargetsRepository
         row['calories_kcal'],
         'calories_kcal',
       ),
-      proteinGrams:
-          _parseOptionalNonnegativeDouble(row['protein_grams'], 'protein_grams'),
+      proteinGrams: _parseOptionalNonnegativeDouble(
+        row['protein_grams'],
+        'protein_grams',
+      ),
       carbohydrateGrams: _parseOptionalNonnegativeDouble(
         row['carbohydrate_grams'],
         'carbohydrate_grams',
@@ -118,6 +129,9 @@ final class SupabaseNutritionTargetsRepository
       'customized_fields': customizedFields,
       'recommendation_metadata':
           Map<String, Object?>.from(targets.recommendationMetadata),
+      // Deliberately omitted: an omitted column is never written by
+      // ON CONFLICT DO UPDATE, so a core-five write cannot disturb the
+      // reserved additional_nutrient_goals value.
     });
   }
 
@@ -137,7 +151,9 @@ int? _parseOptionalPositiveInt(Object? raw, String key) {
   }
 
   final numeric = raw.toDouble();
-  if (!numeric.isFinite || numeric != numeric.truncateToDouble() || numeric <= 0) {
+  if (!numeric.isFinite ||
+      numeric != numeric.truncateToDouble() ||
+      numeric <= 0) {
     throw FormatException('Invalid canonical $key: expected positive integer.');
   }
   return numeric.toInt();

@@ -105,7 +105,8 @@ void main() {
       expect(controller.state.draft.targets.dailySteps, 10000);
       expect(controller.state.draft.targets.waterMl, 2500);
       expect(controller.state.draft.targets.hasDailyStepsValue, isFalse);
-      expect(controller.state.draft.targets.hasSleepTargetMinutesValue, isFalse);
+      expect(
+          controller.state.draft.targets.hasSleepTargetMinutesValue, isFalse);
       expect(controller.state.draft.targets.hasSleepTimeMinutesValue, isFalse);
       expect(controller.state.draft.targets.hasWakeTimeMinutesValue, isFalse);
       expect(controller.state.draft.targets.hasWaterMlValue, isFalse);
