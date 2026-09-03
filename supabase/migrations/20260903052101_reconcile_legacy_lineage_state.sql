@@ -33,21 +33,46 @@
 -- dropped them, so a fresh replay of the historical file would otherwise leave
 -- two dead tables behind.
 --
--- Deliberately NOT `drop table if exists ... cascade`:
+-- Deliberately NOT a bare `drop table if exists ... cascade`:
 --   * absent          -> no-op, because a replay must converge, not fail;
 --   * present + rows  -> RAISE and abort. Another environment may hold real
 --                        data these tables still own, and destroying it to
 --                        tidy a schema is not a trade this migration may make;
---   * present + empty -> DROP TABLE with no CASCADE. If a view, foreign key or
+--   * present + empty -> DROP TABLE, never CASCADE. If a view, foreign key or
 --                        other dependency still points at it, the drop fails
 --                        loudly. CASCADE would silently take that dependent
 --                        object with it, which is exactly the outcome a
 --                        reconciliation must not cause.
+--
+-- Why the table is locked before it is read
+--
+-- "Is it empty?" followed by "drop it" is a check-then-act race. Between a
+-- count returning zero and DROP TABLE taking its own ACCESS EXCLUSIVE lock,
+-- another session can insert and commit a real row -- and the drop would then
+-- destroy exactly the data the precondition exists to protect, while still
+-- reporting success.
+--
+-- So each table is locked in ACCESS EXCLUSIVE mode *first*, and the lock is
+-- held across the emptiness check and the drop. That mode conflicts with every
+-- other lock mode, so once it is held no other session can insert, update or
+-- even read the table until this transaction ends. A writer that got there
+-- first simply blocks the LOCK until it commits, and its row is then visible
+-- to the emptiness check -- which aborts, as intended.
+--
+-- Ordering inside the loop is therefore load-bearing:
+--   to_regclass  ->  LOCK TABLE  ->  emptiness check  ->  DROP TABLE
+--
+-- If the relation is dropped by someone else between to_regclass and LOCK, the
+-- LOCK raises and the migration aborts rather than proceeding on a stale
+-- assumption. Aborting is the correct outcome; this migration never guesses.
+--
+-- Emptiness is read with EXISTS ... LIMIT 1 rather than count(*): only
+-- empty-vs-non-empty matters, and EXISTS stops at the first row.
 
 do $$
 declare
-  v_table text;
-  v_rows  bigint;
+  v_table     text;
+  v_has_rows  boolean;
 begin
   foreach v_table in array array['user_workout_preferences', 'user_targets']
   loop
@@ -56,16 +81,24 @@ begin
       continue;
     end if;
 
-    execute format('select count(*) from public.%I', v_table) into v_rows;
+    -- 1. Block every concurrent writer BEFORE reading the table. Held until
+    --    this transaction ends, so it spans the check and the drop below.
+    execute format('lock table public.%I in access exclusive mode', v_table);
 
-    if v_rows > 0 then
+    -- 2. Emptiness is now stable: no other session can insert behind us.
+    execute format('select exists (select 1 from public.%I limit 1)', v_table)
+      into v_has_rows;
+
+    -- 3. Any row at all is a refusal. It is not this migration's call to
+    --    destroy data another environment may still depend on.
+    if v_has_rows then
       raise exception
-        'Refusing to drop public.% : it still holds % row(s). Migrate or archive that data, then re-run.',
-        v_table, v_rows
+        'Refusing to drop public.% : it still holds at least one row. Migrate or archive that data, then re-run.',
+        v_table
         using errcode = 'raise_exception';
     end if;
 
-    -- No CASCADE: a surviving dependency must surface as a failure.
+    -- 4. Never CASCADE: a surviving dependency must surface as a failure.
     execute format('drop table public.%I', v_table);
     raise notice 'reconcile_legacy_lineage_state: dropped empty legacy table public.%.', v_table;
   end loop;

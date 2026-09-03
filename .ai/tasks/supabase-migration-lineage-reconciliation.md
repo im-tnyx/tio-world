@@ -102,11 +102,76 @@ rather than convenience:
 |---|---|
 | table absent | no-op, so replay converges |
 | table present **with rows** | `RAISE` and abort — another environment may hold real data |
-| table present and empty | `DROP TABLE`, **no `CASCADE`** |
+| table present and empty | `DROP TABLE`, never `CASCADE` |
 
 `CASCADE` is deliberately excluded. If a view, foreign key or other dependency
 still points at a legacy table, the drop fails loudly rather than silently
-taking the dependent object with it.
+taking the dependent object with it. Stated precisely: **no executable
+`DROP ... CASCADE` exists in the migration.** The word does appear in the
+file's explanatory comments, so "the word cascade is absent" would be a false
+claim; what matters, and what is verified, is the executable SQL.
+
+### The emptiness check is locked, because check-then-act is a race
+
+A first version read `count(*)` and then dropped. Review caught that this is
+not fail-closed under concurrency: between a count returning zero and
+`DROP TABLE` taking its own `ACCESS EXCLUSIVE` lock, another session can insert
+and commit a real row. The drop would then destroy exactly the data the
+precondition exists to protect — and report success.
+
+Each table is now locked **before** it is read, and the lock is held across the
+check and the drop:
+
+```text
+to_regclass  ->  LOCK TABLE ... IN ACCESS EXCLUSIVE MODE  ->  EXISTS check  ->  DROP TABLE
+```
+
+`ACCESS EXCLUSIVE` conflicts with every other lock mode, so once held no other
+session can insert, update or read the table until the transaction ends. A
+writer that got there first blocks the `LOCK` until it commits, after which its
+row *is* visible to the emptiness check — which aborts, as intended. The
+invariant the review asked for holds: **no writer can commit a new legacy-table
+row between the emptiness precondition and the drop.**
+
+Two smaller decisions follow from the same reasoning. The lock is issued through
+`format('lock table public.%I in access exclusive mode', v_table)`, so the
+identifier is quoted safely rather than concatenated. And emptiness is read with
+`EXISTS (SELECT 1 ... LIMIT 1)` rather than `count(*)`, because only
+empty-vs-non-empty matters and `EXISTS` stops at the first row.
+
+If the relation is dropped by another session between `to_regclass` and the
+`LOCK`, the lock raises and the migration aborts rather than proceeding on a
+stale assumption. Aborting is the correct outcome here.
+
+### Concurrency proof: NOT executed
+
+The locking argument above is a reading of PostgreSQL lock semantics plus a
+structural check of the migration's executable SQL. It is **not** a live
+two-session test.
+
+No local PostgreSQL runtime is available in this environment: `psql`, `pg_ctl`,
+`postgres`, `initdb`, `docker` and the Supabase CLI are all absent. A live
+concurrency test was therefore **not run**, and is deliberately not claimed.
+Running one against hosted was out of the question — this pass is read-only.
+
+What *is* verified, mechanically, over comment-stripped executable SQL:
+
+| Check | Result |
+|---|---|
+| `to_regclass` precedes `LOCK TABLE` | PASS |
+| `LOCK TABLE` precedes the emptiness read | PASS |
+| emptiness read precedes `DROP TABLE` | PASS |
+| all three inside the same `DO $$ ... $$` block | PASS |
+| lock mode is `ACCESS EXCLUSIVE` | PASS |
+| lock identifier built with `format(..., %I)` | PASS |
+| emptiness uses `EXISTS ... LIMIT 1`, not `count(*)` | PASS |
+| a non-empty table raises | PASS |
+| no executable `DROP ... CASCADE` | PASS |
+
+When a real local PostgreSQL runtime becomes available, the outstanding proof is
+a deterministic two-session test: session A begins the migration and blocks on
+the `LOCK`; session B inserts and commits; A proceeds, observes the row, and
+aborts without dropping.
 
 ## 4. Why the avatars bucket is 10 MB
 
