@@ -28,10 +28,10 @@
 **Current implementation state:** Complete. Codex C1-C6 resolved, C7-C9 triaged as stale-duplicate or already-fixed, C10 open as a deployment gate. Final manual re-review then found three more: M1 (P1, the delta write was still not atomic), M2 (P2, delta identity), M3 (P2, route dismissal during save). All three fixed and mutation-verified.
 **Relevant execution surface:** `apps/features/nutrition`, `apps/app`, `apps/core` route contract, `supabase/migrations`
 **Validation completed at SHA:** Full-workspace `flutter analyze` (16/16 packages) and `flutter test` (14/14 test-bearing packages, 1745 tests) at `d5021d85`; `dart format` clean; `git diff --check origin/main...HEAD` exits 0; exact-head CI SUCCESS.
-**Validation remaining:** Physical-device acceptance and hosted migration authorization. Both are outside this task's authorization.
-**Current blocker:** None for implementation. Hosted rollout is gated on migration-ledger repair (see below) and separate owner authorization.
+**Validation remaining:** Physical-device acceptance, and owner authorization to apply this branch's migration to hosted. Migration-ledger repair is **no longer outstanding** — it completed in three authorized phases; hosted is now 38 migrations, latest `20260903052101`, zero pending.
+**Current blocker:** None for implementation. Migration-ledger repair is done. Hosted rollout is now gated only on applying this branch's `20260903091350_add_nutrition_additional_nutrient_goals.sql` under separate owner authorization, plus physical-device acceptance.
 **Open review finding IDs:** `C10` only — the migration-before-client deployment gate, left unresolved on purpose so it cannot be lost. M1-M3 are fixed, replied to and resolved; every Codex thread is fixed or answered.
-**Next exact action:** Owner physical-device acceptance, then hosted migration authorization (ledger repair first). PR #202 stays Draft. Do not merge, mark Ready, or apply hosted DDL.
+**Next exact action:** Owner physical-device acceptance, and separate owner authorization to apply `20260903091350` to hosted, then verify PostgREST and resolve C10. PR #202 stays Draft. Do not merge, mark Ready, or apply hosted DDL.
 
 ## Global UI / Design-System Guardrail
 
@@ -88,7 +88,31 @@ columns; copied Profile/Body truth; new design-system contracts.
 - Repository/hosted migration timestamps do not reconcile. This pass may create
   and validate a local migration but may not repair history or apply hosted DDL.
 
-### Migration-ledger reconciliation (read-only, performed this pass)
+### Migration-ledger reconciliation
+
+> **SUPERSEDED — current truth first.** The drift described below has since been
+> reconciled by PR #203 and three authorized hosted phases. As of this rebase:
+>
+> ```text
+> hosted migrations              38
+> hosted latest                  20260903052101_reconcile_legacy_lineage_state
+> migration lineage              RECONCILED (repo 1:1 with hosted)
+> pending before TNYX-141        none
+> user_devices.app_build         INTEGER (converted, verified)
+> TNYX-141 migration             NOT APPLIED
+> additional_nutrient_goals      ABSENT from hosted
+> this branch's migration        20260903091350_add_nutrition_additional_nutrient_goals.sql
+> ```
+>
+> The original `20260902041627` version was **never applied to any ledger**, and
+> after reconciliation it sorted *before* the already-applied `20260903052101`.
+> It has been retimestamped to `20260903091350` on this branch — a fresh UTC
+> version later than hosted latest. The SQL body is byte-identical.
+>
+> The findings below are kept as the record of what was true when this task
+> brief was written. They are history, not current state.
+
+#### What was found at the time (historical)
 
 ```text
 repo migrations                38 files (37 pre-existing + 1 new)
@@ -118,15 +142,28 @@ ledger rows are missing.
 | `set_active_body_goal_rpc` | 20260830055341 | 20260830074411 |
 | `add_nutrition_other_free_text` | 20260831064500 | 20260831064841 |
 
-**Deployment gate this creates.** The new migration's version is later than the
-hosted latest, so it is correctly ordered. But a plain `supabase db push` would
-first try to replay the eleven unrecorded `202608140000xx`–`202608160000xx`
-migrations, which create objects that already exist. That would fail, and if
-forced could damage existing data. **The ledger must be repaired first** — the
-eleven marked applied, and the three version mismatches resolved — before this
-migration can be deployed by the normal flow. Recording it here as a mandatory
-rollout gate; it does not block local implementation, and no repair was
-attempted in this pass.
+**Deployment gate this created — now CLEARED.** A plain `supabase db push` would
+have replayed the unrecorded `202608140000xx`–`202608160000xx` migrations against
+objects that already existed. Worse, they are idempotent, so they would have
+*succeeded* while silently undoing later deliberate decisions rather than
+failing loudly.
+
+That gate has since been closed, in three separately authorized hosted phases:
+
+| Phase | Action | Result |
+|---|---|---|
+| 1 | `supabase migration repair --status applied` for 10 historical versions | ledger 26 → 36 |
+| 2 | executed `20260816000004`, `app_build` TEXT → INTEGER | ledger 36 → 37, 3 rows preserved |
+| 3 | applied `20260903052101_reconcile_legacy_lineage_state` | ledger 37 → 38, pending none |
+
+Repo and hosted are now 1:1 at 38 migrations with zero pending. A later audit
+also corrected two figures stated above: the drift was **8** migrations, not 3,
+and the sibling `tnyx-hub` attribution was never proven — that ledger holds
+seven unrelated `20260810` migrations. Full detail is in
+`.ai/tasks/supabase-migration-lineage-reconciliation.md`.
+
+What remains for this branch is unchanged: the TNYX-141 migration is still
+**NOT APPLIED**, and `additional_nutrient_goals` is still **ABSENT** from hosted.
 - Some broad architecture/setup strategy wording is stale relative to the active
   root/product contract; runtime source and current root architecture remain truth.
 
@@ -377,7 +414,7 @@ see "Owner UX decision" above.)*
 
 ```text
 .ai/tasks/tnyx-141-additional-nutrient-goals-v1.md
-supabase/migrations/20260902041627_add_nutrition_additional_nutrient_goals.sql
+supabase/migrations/20260903091350_add_nutrition_additional_nutrient_goals.sql
 
 apps/core/lib/src/routing/routes/app_routes.dart
 
@@ -422,14 +459,18 @@ value, provenance and write path.
 
 ### Known Limitations
 
-- **Hosted Supabase is unmigrated, and this is a hard release gate, not a
-  graceful degradation.** An earlier draft of this note claimed the screen
-  would read an absent column as "no goals configured". That was wrong, and
-  Codex finding C10 caught it: PostgREST fails the entire request when a
-  selected column does not exist, and the same `readRow` backs the Nutrition
-  Targets and Macros routes — so shipping this client against the current
-  production schema would break three screens, not degrade one. The migration
-  must be applied and the ledger repaired before any client rollout.
+- **`additional_nutrient_goals` is still ABSENT from hosted, and this remains a
+  hard release gate, not a graceful degradation.** An earlier draft of this note
+  claimed the screen would read an absent column as "no goals configured". That
+  was wrong, and Codex finding C10 caught it: PostgREST fails the entire request
+  when a selected column does not exist, and the same `readRow` backs the
+  Nutrition Targets and Macros routes — so shipping this client before the
+  column exists would break three screens, not degrade one.
+  **Status update:** the *ledger* half of this gate is now closed — lineage is
+  reconciled at 38 migrations, latest `20260903052101`, zero pending. What is
+  still outstanding is applying this branch's own migration,
+  `20260903091350_add_nutrition_additional_nutrient_goals.sql`, which has **not**
+  been applied. C10 stays open until it is applied and verified.
 - Old-client preservation is proven at the request-payload boundary rather than
   against a live PostgREST instance, because the local Supabase stack cannot
   run in this environment.
@@ -440,7 +481,16 @@ value, provenance and write path.
 ### Final Status
 
 `AWAITING REVIEW` — implementation, review resolution and validation complete
-through the final manual re-review (M1-M3). PR #202 remains Draft. Two gates
-remain and neither is a code change: owner physical-device acceptance, and
-hosted migration authorization with ledger repair (Codex finding C10, still
-open by design). Next gate is a final manual substantive re-review.
+through the final manual re-review (M1-M3), then rebased onto reconciled `main`
+with the migration retimestamped to `20260903091350`. PR #202 remains Draft.
+
+Two gates remain and neither is a code change:
+
+1. owner physical-device acceptance;
+2. owner authorization to apply `20260903091350` to hosted, verify PostgREST and
+   the schema, and only then resolve C10.
+
+Migration-ledger repair is **no longer one of them** — it completed in three
+authorized hosted phases. Hosted is 38 migrations, latest `20260903052101`,
+zero pending, `user_devices.app_build` INTEGER, and
+`additional_nutrient_goals` still ABSENT.
