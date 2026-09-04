@@ -48,13 +48,17 @@ void main() {
         expect(
           tester.getRect(
               find.byKey(const ValueKey('app-settings-app-mode-entry'))),
-          Rect.fromLTRB(28, 84, width - 28, width == 320 ? 208 : 156),
+          // Re-measured after App Preferences moved from a raw Material Card
+          // of ListTiles to TioGroupCard + TioSettingsNavigationRow. The group
+          // no longer carries Material's own card margin, so it starts at the
+          // page padding (24) instead of 28, and 4dp higher.
+          Rect.fromLTRB(24, 80, width - 24, width == 320 ? 209 : 152),
         );
         expect(
           tester
               .getRect(find.byKey(const ValueKey('app-settings-theme-entry'))),
-          Rect.fromLTRB(28, width == 320 ? 209 : 157, width - 28,
-              width == 320 ? 295 : 229),
+          Rect.fromLTRB(24, width == 320 ? 210 : 153, width - 24,
+              width == 320 ? 305 : 225),
         );
         await tester.scrollUntilVisible(
           find.byKey(const ValueKey('app-settings-units-entry')),
@@ -156,7 +160,7 @@ void main() {
     expect(find.text('Weight, height, distance & volume'), findsOneWidget);
     expect(find.text('Hybrid'), findsOneWidget);
     expect(find.text('Dark'), findsOneWidget);
-    expect(find.byType(ListTile), findsNWidgets(3));
+    expect(find.byType(TioSettingsNavigationRow), findsNWidgets(3));
     expect(find.byType(Divider), findsNWidgets(2));
     await tester.tap(find.text('App Mode'));
     await tester.tap(find.text('Theme'));

@@ -26,41 +26,65 @@ class AppSettingsPage extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(TioSpacing.xl),
           children: [
-            Card(
-              child: Column(
-                children: [
-                  ListTile(
-                    key: const ValueKey('app-settings-app-mode-entry'),
-                    leading: const Icon(Icons.dashboard_customize_outlined),
-                    title: const Text('App Mode'),
-                    subtitle: Text(_appModeLabel(currentMode)),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: onAppModePressed,
+            // The canonical grouped surface and row family, the same one every
+            // other Settings and Nutrition group uses. This screen was the last
+            // one still composing a raw Material Card of raw ListTiles, which is
+            // why its card read as a different component to the rest of the app.
+            TioGroupCard(
+              children: [
+                TioSettingsNavigationRow(
+                  key: const ValueKey('app-settings-app-mode-entry'),
+                  leading: const TioSettingsLeadingIcon(
+                    icon: Icons.dashboard_customize_outlined,
                   ),
-                  const Divider(height: TioSize.dp1),
-                  ListTile(
-                    key: const ValueKey('app-settings-theme-entry'),
-                    leading: const Icon(Icons.palette_outlined),
-                    title: const Text('Theme'),
-                    subtitle: Text(_themeModeLabel(currentThemeMode)),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: onThemePressed,
+                  title: 'App Mode',
+                  supportingText: _appModeLabel(currentMode),
+                  onTap: onAppModePressed,
+                ),
+                const _AppSettingsDivider(),
+                TioSettingsNavigationRow(
+                  key: const ValueKey('app-settings-theme-entry'),
+                  leading: const TioSettingsLeadingIcon(
+                    icon: Icons.palette_outlined,
                   ),
-                  const Divider(height: TioSize.dp1),
-                  ListTile(
-                    key: const ValueKey('app-settings-units-entry'),
-                    leading: const Icon(Icons.straighten_rounded),
-                    title: const Text('Units'),
-                    subtitle: const Text('Weight, height, distance & volume'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: onMeasurementUnitsPressed,
+                  title: 'Theme',
+                  supportingText: _themeModeLabel(currentThemeMode),
+                  onTap: onThemePressed,
+                ),
+                const _AppSettingsDivider(),
+                TioSettingsNavigationRow(
+                  key: const ValueKey('app-settings-units-entry'),
+                  leading: const TioSettingsLeadingIcon(
+                    icon: Icons.straighten_rounded,
                   ),
-                ],
-              ),
+                  title: 'Units',
+                  supportingText: 'Weight, height, distance & volume',
+                  onTap: onMeasurementUnitsPressed,
+                ),
+              ],
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Separator between grouped rows, matching the Settings hub.
+///
+/// Indented past the leading icon so the rule starts at the text column rather
+/// than cutting under the icon.
+class _AppSettingsDivider extends StatelessWidget {
+  const _AppSettingsDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    return Divider(
+      height: TioSize.dp1,
+      thickness: TioStroke.width1,
+      indent: TioSize.dp64,
+      color: colors.outlineStrong.withAlpha(TioAlpha.alpha20),
     );
   }
 }
