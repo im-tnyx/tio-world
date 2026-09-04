@@ -35,6 +35,8 @@ Only the outer frame changes. Everything inside the card is untouched.
 | Padding | `TioSpacing.lg` (16dp) | `TioCardTokens.padding` (16dp, unchanged) |
 | Disabled | `Opacity(opacity64)` locally | `opacity64`, owned by the component |
 
+**Motion — an additional delta, surfaced by Codex review and not in the owner's original list.** The old frame animated nothing on the border (plain `Container`) while `Material` cross-faded its fill at Flutter's 200ms default. The canonical card animates **both** border and fill with `context.tioMotion.fast` (150ms), and both become instantaneous under `reducedMotion`. This is inherent to adopting the component — it cannot be avoided without an override the owner forbade — and every later 2C–2F migration carries the same change. It is **declared here for owner sign-off at device acceptance** rather than shipped as "no behavior change". A test pins it.
+
 The `alpha35` → 40% correction is the single most visible change: the old value was the `TioAlpha`/`TioOpacity` unit mix-up the audit found, rendering the outline at roughly a third of its intended strength.
 
 ## Behavior-preservation boundary
@@ -51,14 +53,40 @@ The local `Opacity`, `Semantics`, `Material`, `InkWell` and decorated `Container
 
 ## Pre-existing defects found, deliberately not fixed here
 
-**`_AppModeNavPreviewCard` overflows.** Selecting **Hybrid** overflows the preview's `Row` by 14px at 390dp width **at normal text scale**, and at 1.6x text scale the preview overflows on main by up to 157px. Verified by running the new tests against the pre-migration file: the overflow is larger on `main` than after this migration, so it is pre-existing and unrelated to the card frame. The nav preview is explicitly outside Phase 2B, so this is reported rather than patched. Two tests use a wider surface to keep this unrelated defect from masking what they assert, with the reason recorded inline.
+**`_AppModeNavPreviewCard` overflows.** Selecting **Hybrid** overflows the preview's `Row` by 14px at 390dp width **at normal text scale**, and at 1.6x text scale the preview overflows on main by up to 157px. Verified by running the new tests against the pre-migration file: the overflow is larger on `main` than after this migration, so it is pre-existing and unrelated to the card frame. The nav preview is explicitly outside Phase 2B, so this is reported rather than patched. Two tests run on a wider surface so this unrelated defect cannot mask what they assert — the Hybrid-selection case, and the large-text case at a width where nothing overflows — with the reason recorded inline in both.
 
 ## Tests
 
-`apps/features/settings/test/presentation/app_mode_settings_page_test.dart` — 11 cases: one card per mode · the screen consumes the core component rather than a local recipe · inner content survives · current mode starts selected · tapping moves local selection · selecting does not persist before Save · semantic label and selected/button/enabled semantics · unselected reports not selected · options disabled and inert while a save is in flight, with selection unmoved · dark mode renders · content lays out at large text scale.
+`apps/features/settings/test/presentation/app_mode_settings_page_test.dart` — 12 cases: one card per mode · the screen consumes the core component rather than a local recipe · inner content survives · current mode starts selected · tapping moves local selection · selecting does not persist before Save · semantic label with button/selected/enabled and a tap action · unselected reports not selected · options disabled and inert while a save is in flight, with the selection unmoved · dark mode renders · cards lay out at large text scale with no exception at all · the declared motion delta.
 
 Deliberately not re-tested here: the card's own pixel/token contract, already covered by the core component's 16 tests.
 
 ## Validation
 
-Recorded in the PR body at the validated SHA.
+Validated at `40aab8486e44536745bc8f7195d4f7a1c3c4707b` (base `main` `a0b5afcd`), then re-run after the Codex corrections:
+
+| Check | Command | Result |
+|---|---|---|
+| Format | `dart format` on the changed Dart files | PASS |
+| Whitespace | `git diff --check origin/main...HEAD` | exit 0 |
+| Settings analyze | `flutter analyze --no-pub` in `apps/features/settings` | **No issues found** |
+| New Settings tests | `flutter test test/presentation/app_mode_settings_page_test.dart` | **12 passed** |
+| Write-parity regression | `flutter test test/app/app_mode_settings_write_parity_test.dart` in `apps/app`, file **unchanged** | **2 passed** |
+| Workspace analyze | `flutter analyze --no-pub` per package (mirrors CI's `melos exec`) | **16/16 packages PASS** |
+| Workspace tests | `flutter test --no-pub` per test-bearing package | **14/14 packages PASS, 1677 tests** |
+| Required CI | Flutter CI on the exact PR head | **33840628381 SUCCESS** |
+
+`melos` is not installed locally, so the workspace sweeps iterate the same package set `.github/workflows/flutter-ci.yml` drives through `melos exec`. Required GitHub CI remains the source of truth.
+
+**Still required before Ready/merge:**
+
+1. **Owner physical-device acceptance** — Settings → App Preferences → App Mode, all three modes, light and dark. Status: **PENDING OWNER DEVICE CHECK**.
+2. **Owner sign-off on the motion delta** recorded above, which was not in the original approved list.
+
+## Review findings
+
+Codex reviewed head `40aab848` and raised 3 P2 findings; all three were independently verified as valid and fixed:
+
+1. **Loose overflow predicate.** The large-text test accepted any `FlutterError`, so a genuine card overflow would still have passed. Now runs at a width where nothing overflows and asserts `takeException()` is null outright.
+2. **Undeclared motion change.** See the motion delta above — now declared, pinned by a test, and raised for owner sign-off rather than absorbed under "no behavior change".
+3. **Validation section was a pointer, not evidence.** This section now carries the commands, results and the remaining gates.

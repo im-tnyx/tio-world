@@ -265,13 +265,20 @@ void main() {
       expect(find.byType(TioSelectableCard), findsNWidgets(3));
     });
 
-    testWidgets('the migrated cards still lay out at large text scale',
+    testWidgets('the migrated cards lay out at large text scale',
         (tester) async {
+      // Wide enough that nothing on the page overflows at 1.6x, so this can
+      // assert no exception at all rather than tolerating "some FlutterError".
+      // At phone width the page does overflow here -- but in
+      // _AppModeNavPreviewCard's Row, which this slice does not touch and
+      // which overflows by more on main (157px) than after this migration.
       await pumpPage(
         tester,
         textScale: 1.6,
-        surfaceSize: const Size(560, 2400),
+        surfaceSize: const Size(700, 2400),
       );
+
+      expect(tester.takeException(), isNull);
 
       for (final mode in AppMode.values) {
         expect(optionFor(mode), findsOneWidget, reason: '$mode');
@@ -284,17 +291,33 @@ void main() {
           reason: '$mode',
         );
       }
+    });
 
-      // The one overflow at this scale belongs to _AppModeNavPreviewCard's
-      // Row, which this slice does not touch. It pre-dates the migration and
-      // is larger on main (157px) than here (14px), so it is reported rather
-      // than silently fixed inside a frame-only slice.
-      final overflow = tester.takeException();
-      expect(
-        overflow == null || overflow is FlutterError,
-        isTrue,
-        reason: 'Only the known pre-existing nav-preview overflow is allowed.',
+    testWidgets('the card frame animates with the resolved motion role',
+        (tester) async {
+      // Adopting the canonical card also adopts its motion: fill and border
+      // now share context.tioMotion.fast where the old frame snapped the
+      // border and cross-faded the fill at Flutter's 200ms default. Pinned
+      // here because it is a declared, owner-visible delta of this slice.
+      await pumpPage(tester);
+
+      final motion =
+          tester.element(find.byType(TioSelectableCard).first).tioMotion;
+      final material = tester.widget<Material>(
+        find.descendant(
+          of: optionFor(AppMode.workout),
+          matching: find.byType(Material),
+        ),
       );
+      final container = tester.widget<AnimatedContainer>(
+        find.descendant(
+          of: optionFor(AppMode.workout),
+          matching: find.byType(AnimatedContainer),
+        ),
+      );
+
+      expect(material.animationDuration, motion.fast);
+      expect(container.duration, motion.fast);
     });
   });
 }
