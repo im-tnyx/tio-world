@@ -343,8 +343,7 @@ class _NavPreviewItem extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: TioFontSize.size11,
-            fontWeight:
-                isSelected ? TioFontWeight.w700 : TioFontWeight.w500,
+            fontWeight: isSelected ? TioFontWeight.w700 : TioFontWeight.w500,
             color: isSelected ? colors.primary : colors.textSecondary,
           ),
         ),
@@ -370,86 +369,66 @@ class _ModeOptionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
 
-    return Opacity(
-      opacity: enabled ? TioOpacity.opacity100 : TioOpacity.opacity64,
-      child: Semantics(
-        button: true,
-        selected: selected,
-        label: '${_appModeLabel(mode)}. ${_appModeDescription(mode)}',
-        child: Material(
-          color: selected ? colors.surfaceRaised : colors.surface,
-          borderRadius: BorderRadius.circular(TioRadius.lg),
-          child: InkWell(
-            key: ValueKey('app-mode-settings-${mode.storageValue}'),
-            onTap: enabled ? onTap : null,
-            borderRadius: BorderRadius.circular(TioRadius.lg),
-            child: Container(
-              padding: const EdgeInsets.all(TioSpacing.lg),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(TioRadius.lg),
-                border: Border.all(
-                  color: selected
-                      ? colors.primary
-                      : colors.outlineStrong.withAlpha(TioAlpha.alpha35),
-                  width:
-                      selected ? TioStroke.width2 : TioStroke.width1,
-                ),
+    // The selectable frame -- fill, border, radius, padding, ink, disabled
+    // dimming and the button/selected semantics -- belongs to core. This
+    // widget owns only the row inside it.
+    return TioSelectableCard(
+      key: ValueKey('app-mode-settings-${mode.storageValue}'),
+      selected: selected,
+      enabled: enabled,
+      semanticLabel: '${_appModeLabel(mode)}. ${_appModeDescription(mode)}',
+      onTap: onTap,
+      child: Row(
+        children: [
+          Container(
+            width: TioSize.dp44,
+            height: TioSize.dp44,
+            decoration: BoxDecoration(
+              color:
+                  (selected ? colors.primary : colors.textSecondary).withAlpha(
+                selected ? TioAlpha.alpha20 : TioAlpha.alpha12,
               ),
-              child: Row(
-                children: [
-                  Container(
-                    width: TioSize.dp44,
-                    height: TioSize.dp44,
-                    decoration: BoxDecoration(
-                      color: (selected ? colors.primary : colors.textSecondary)
-                          .withAlpha(
-                        selected ? TioAlpha.alpha20 : TioAlpha.alpha12,
-                      ),
-                      borderRadius: BorderRadius.circular(TioRadius.md),
-                    ),
-                    child: Icon(
-                      _icon(mode),
-                      size: TioSize.dp22,
-                      color: selected ? colors.primary : colors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(width: TioSpacing.lg),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _appModeLabel(mode),
-                          style: TextStyle(
-                            color: colors.textPrimary,
-                            fontWeight: TioFontWeight.w700,
-                            fontSize: TioFontSize.size16,
-                          ),
-                        ),
-                        const SizedBox(height: TioSize.dp3),
-                        Text(
-                          _appModeDescription(mode),
-                          style: TextStyle(
-                            color: colors.textSecondary,
-                            fontSize: TioFontSize.size12,
-                            fontWeight: TioFontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: TioSpacing.md),
-                  Icon(
-                    selected
-                        ? Icons.check_circle_rounded
-                        : Icons.radio_button_unchecked_rounded,
-                    color: selected ? colors.primary : colors.outlineStrong,
-                  ),
-                ],
-              ),
+              borderRadius: BorderRadius.circular(TioRadius.md),
+            ),
+            child: Icon(
+              _icon(mode),
+              size: TioSize.dp22,
+              color: selected ? colors.primary : colors.textSecondary,
             ),
           ),
-        ),
+          const SizedBox(width: TioSpacing.lg),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _appModeLabel(mode),
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontWeight: TioFontWeight.w700,
+                    fontSize: TioFontSize.size16,
+                  ),
+                ),
+                const SizedBox(height: TioSize.dp3),
+                Text(
+                  _appModeDescription(mode),
+                  style: TextStyle(
+                    color: colors.textSecondary,
+                    fontSize: TioFontSize.size12,
+                    fontWeight: TioFontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: TioSpacing.md),
+          Icon(
+            selected
+                ? Icons.check_circle_rounded
+                : Icons.radio_button_unchecked_rounded,
+            color: selected ? colors.primary : colors.outlineStrong,
+          ),
+        ],
       ),
     );
   }
