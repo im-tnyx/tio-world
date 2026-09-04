@@ -7,7 +7,8 @@ import 'package:tio_shared/shared.dart';
 
 void main() {
   group('O7B Health Connections runtime', () {
-    test('default gateway fails safe as unavailable and never fabricates connected',
+    test(
+        'default gateway fails safe as unavailable and never fabricates connected',
         () async {
       const gateway = UnavailableHealthConnectionGateway();
 
@@ -35,7 +36,8 @@ void main() {
       expect(controller.status, HealthConnectionStatus.connected);
     });
 
-    test('all active modes place optional Health Connections before Review', () {
+    test('all active modes place optional Health Connections before Review',
+        () {
       const buildFlow = BuildOnboardingFlowUseCase();
 
       for (final mode in AppMode.values) {
@@ -45,7 +47,8 @@ void main() {
           workoutIntroChoice:
               mode == AppMode.hybrid ? WorkoutIntroChoice.later : null,
         );
-        final healthIndex = plan.stepIds.indexOf(OnboardingStepId.healthConnections);
+        final healthIndex =
+            plan.stepIds.indexOf(OnboardingStepId.healthConnections);
         final reviewIndex = plan.stepIds.indexOf(OnboardingStepId.review);
         final expectedPredecessor = mode == AppMode.workout
             ? OnboardingStepId.workoutTargets
@@ -61,7 +64,8 @@ void main() {
       }
     });
 
-    testWidgets('approved screen distinguishes unavailable and connected states',
+    testWidgets(
+        'approved screen distinguishes unavailable and connected states',
         (tester) async {
       Future<void> pump(HealthConnectionStatus status) async {
         await tester.pumpWidget(
@@ -80,14 +84,20 @@ void main() {
 
       await pump(HealthConnectionStatus.unavailable);
       expect(find.text('Connect health data'), findsOneWidget);
-      expect(find.text('Health connection is not available yet'), findsOneWidget);
+      expect(
+          find.text('Health connection is not available yet'), findsOneWidget);
       expect(find.textContaining('never requests permission'), findsOneWidget);
+      expect(
+        tester.widget<TioCard>(find.byType(TioCard)).variant,
+        TioCardVariant.elevated,
+      );
 
       await pump(HealthConnectionStatus.connected);
       expect(find.text('Health data connected'), findsOneWidget);
     });
 
-    testWidgets('pre-O7B unfinished Review draft routes through Health Connections',
+    testWidgets(
+        'pre-O7B unfinished Review draft routes through Health Connections',
         (tester) async {
       final draft = OnboardingDraft(
         status: OnboardingStatus.inProgress,

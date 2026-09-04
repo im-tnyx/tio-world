@@ -29,7 +29,8 @@ class SleepTargetScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final hours = sleepTargetMinutes / 60.0;
-    final isRecommended = sleepTargetMinutes >= 420 && sleepTargetMinutes <= 540;
+    final isRecommended =
+        sleepTargetMinutes >= 420 && sleepTargetMinutes <= 540;
 
     final hoursDisplay = hours == hours.roundToDouble()
         ? '${hours.toInt()}h'
@@ -70,21 +71,18 @@ class SleepTargetScreen extends StatelessWidget {
                       Text(
                         hoursDisplay,
                         key: const ValueKey('targets-sleep-duration-text'),
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineLarge
-                            ?.copyWith(
-                              fontWeight: TioFontWeight.w700,
-                              color: colors.textPrimary,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.headlineLarge?.copyWith(
+                                  fontWeight: TioFontWeight.w700,
+                                  color: colors.textPrimary,
+                                ),
                       ),
                       const SizedBox(height: TioSpacing.xs),
                       Text(
                         'hours/day ($sleepTargetMinutes min)',
-                        style:
-                            Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: colors.textSecondary,
-                                ),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: colors.textSecondary,
+                            ),
                       ),
                     ],
                   ),
@@ -119,7 +117,7 @@ class SleepTargetScreen extends StatelessWidget {
           const SizedBox(height: TioSpacing.lg),
           TioCard(
             key: const ValueKey('targets-sleep-schedule-card'),
-            variant: TioCardVariant.outlined,
+            variant: TioCardVariant.elevated,
             child: Column(
               children: [
                 _TimePickerRow(
@@ -210,8 +208,7 @@ class _TimePickerRow extends StatelessWidget {
     final isPm = h24 >= 12;
     final displayHour = h24 == 0 ? 12 : (h24 > 12 ? h24 - 12 : h24);
     final amPm = isPm ? 'PM' : 'AM';
-    final formattedTime =
-        '$displayHour:${m.toString().padLeft(2, '0')} $amPm';
+    final formattedTime = '$displayHour:${m.toString().padLeft(2, '0')} $amPm';
 
     return InkWell(
       onTap: onTap,

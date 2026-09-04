@@ -7,7 +7,8 @@ import 'sleep_schedule_helper.dart';
 /// Navigation validity is separate from product readiness:
 /// - T1 steps (bridge, stepTarget, sleepTarget, waterTarget) have real validation.
 /// - GoalPace validates only after Target Weight has established loss/gain.
-/// - NutritionTarget remains calculation-blocked (formula authority unresolved).
+/// - NutritionTarget is navigation-passable; its calculator reports missing or
+///   invalid recommendation inputs in the rendered screen.
 ///
 /// [OnboardingCompletionValidator] separately gates overall completion;
 /// this validator only determines whether Continue is enabled within Targets.
@@ -16,8 +17,10 @@ class TargetStepValidator {
 
   static const int minDailySteps = 2000;
   static const int maxDailySteps = 18000;
-  static const int minSleepMinutes = SleepScheduleHelper.minDurationMinutes; // 240
-  static const int maxSleepMinutes = SleepScheduleHelper.maxDurationMinutes; // 720
+  static const int minSleepMinutes =
+      SleepScheduleHelper.minDurationMinutes; // 240
+  static const int maxSleepMinutes =
+      SleepScheduleHelper.maxDurationMinutes; // 720
   static const int minWaterMl = 1000;
   static const int maxWaterMl = 8000;
   static const double minGoalPace = GoalPaceResolver.minPaceKgPerWeek; // 0.1
@@ -38,7 +41,7 @@ class TargetStepValidator {
           draft.goalPaceKgPerWeek,
           weightGoalDirection,
         ),
-      // NutritionTarget: navigation-passable to Review, but formula-blocked for completion
+      // NutritionTarget reports calculation input issues in its rendered screen.
       TargetStepId.nutritionTarget => null,
     };
   }

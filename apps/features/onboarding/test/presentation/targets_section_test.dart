@@ -39,6 +39,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(SleepTargetScreen), findsOneWidget);
       expect(
+        tester
+            .widget<TioCard>(
+              find.byKey(const ValueKey('targets-sleep-schedule-card')),
+            )
+            .variant,
+        TioCardVariant.elevated,
+      );
+      expect(
         find.bySemanticsLabel('Target step 3 of 4, Sleep schedule target'),
         findsOneWidget,
       );
@@ -186,8 +194,10 @@ void main() {
     expect(find.text('How fast do you want to \nlose weight?'), findsOneWidget);
     expect(find.textContaining('0.5 kg'), findsWidgets);
     expect(find.text('Medium'), findsOneWidget);
-    expect(find.byKey(const ValueKey('targets-goal-pace-slider')), findsOneWidget);
-    expect(find.byKey(const ValueKey('targets-projection-card')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('targets-goal-pace-slider')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('targets-projection-card')), findsOneWidget);
     expect(find.textContaining('kcal'), findsNothing);
     expect(find.text('Target Calories'), findsNothing);
 
