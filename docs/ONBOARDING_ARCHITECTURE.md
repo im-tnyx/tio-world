@@ -697,10 +697,10 @@ The implementation must define and test:
    delivers real `BridgeScreen`, `StepTargetScreen`, `SleepTargetScreen`, and
    `WaterTargetScreen` with typed `TargetsOnboardingDraft`, pure `SleepScheduleHelper`,
    and `WaterUnitConverter`.
-8. **Targets T2 slice (Implemented / Formula-Gated):**
-   - **Formula Authority Audit:** Android reference contains conflicting formula families (`TargetCalculator.kt`, `GoalPaceScreen.kt`, `NutritionScreen.kt`), and no canonical local formula authority exists in `apps/features/nutrition` or `apps/shared` (Path C).
+8. **Targets T2 slice (Implemented):**
+   - **Formula Authority:** Nutrition target calculation is owned by `NutritionTargetCalculator` in `apps/features/nutrition`; onboarding adapts its draft inputs through `CalculateNutritionTargetRecommendationUseCase`.
    - **GoalPace:** Delivered as real `GoalPaceScreen` with pure `GoalPaceResolver` (Loss, Gain, Maintenance mode derivation from profile weights; reference pace bounds 0.1..1.5 kg/week; aggressive pace warning thresholds $\ge 1.0$) and `GoalPaceTargetDateCalculator` with deterministic clock injection. Widget contains no BMR/TDEE calculations.
-   - **NutritionTarget:** Explicitly calculation-blocked (`BLOCKED BY FORMULA AUTHORITY`) via `TargetsCompatibilityScreen` because nutrition macro recommendation requires owner-domain formula authority.
+   - **NutritionTarget:** Delivered as real `NutritionTargetScreen`, with explicit success, insufficient-input, and invalid-input states from the nutrition-domain calculator. The unused `TargetsCompatibilityScreen` placeholder has been removed.
    - **Readiness:** Targets product readiness remains `PARTIAL` and `OnboardingCompletionValidator` separately models durable owner persistence readiness, preventing false completion.
 9. **Secure persistence and resume:** implemented via `OnboardingDraftRepository`, `OnboardingDraftSnapshot`, `OnboardingDraftSnapshotDtoMapper`, and `SupabaseOnboardingDraftRepository` backed by `public.onboarding_drafts` with RLS (`auth.uid() = user_id`). Includes monotonic revision autosave, hydration race guards, step reconciliation, and post-completion draft cleanup.
 10. **Owner-backed product completion:** replace compatibility Workout/Nutrition/

@@ -18,7 +18,8 @@ class HealthConnectionsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
-    final presentation = _presentationFor(status, isBusy: isBusy, hasError: error != null);
+    final presentation =
+        _presentationFor(status, isBusy: isBusy, hasError: error != null);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -33,7 +34,7 @@ class HealthConnectionsScreen extends StatelessWidget {
           liveRegion: true,
           label: '${presentation.title}. ${presentation.message}',
           child: TioCard(
-            variant: TioCardVariant.outlined,
+            variant: TioCardVariant.elevated,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -89,7 +90,8 @@ _HealthConnectionPresentation _presentationFor(
     return const _HealthConnectionPresentation(
       icon: Icons.sync,
       title: 'Checking availability',
-      message: 'Tio is checking whether a supported health connection is available.',
+      message:
+          'Tio is checking whether a supported health connection is available.',
       emphasize: false,
     );
   }
