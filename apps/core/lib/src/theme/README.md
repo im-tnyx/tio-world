@@ -380,6 +380,7 @@ TioInput
 TioUsernameInputField
 TioMobileNumberField
 TioCard
+TioSelectableCard
 TioConfirmationCard
 TioAvatar
 core reusable dialogs/pickers/sheets
@@ -428,6 +429,18 @@ The generic `TioInput` contract (14dp radius, 52dp minimum height) and the speci
 ### Neutral Settings grouping and rows
 
 `TioGroupCard` is the neutral, **non-selectable** grouping surface for canonical grouped Settings and Nutrition rows. It owns the `surfaceRaised` material, shared radius, clipping, and child ordering while callers compose their own rows and separators. It does not represent selected or unselected state; selection cards remain a separate component contract.
+
+### Selection cards
+
+`TioSelectableCard` is that contract: the canonical card chosen from a set of options. Features supply the content, the current `selected` value, and the action; core owns the selected/unselected appearance and the interactive semantics.
+
+`TioCardTokens` remains the governed appearance contract. The component reads `selectedContainerAlpha`, `selectedBorderWidth`, `unselectedBorderWidth`, `unselectedOutlineAlpha`, `radius`, and `padding` from it, and exposes no override for any of them — a caller that can pass its own outline strength is a caller that can drift again.
+
+Selection is state, not a fill variant, which is why it is a separate component rather than a flag on `TioCard`.
+
+`onTap` is required. An option that cannot be chosen is `enabled: false` — which suppresses the tap, dims the card at `TioOpacity.opacity64`, and reports disabled to assistive technology — so there is one reusable way to be non-interactive rather than two. Padding is fixed at `TioCardTokens.padding`; a surface needing different inner spacing composes it into its own `child`.
+
+Features should not rebuild selection-card `BoxDecoration` locally. Product-specific selection rules, persistence, capability gating, navigation, and analytics remain feature-owned.
 
 Use the public Settings-row family when its demonstrated contract matches instead of recreating the same card/row geometry in a feature:
 
