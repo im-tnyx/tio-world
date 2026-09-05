@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../theme/theme.dart';
 import '../buttons/tio_button.dart';
+import '../pickers/tio_wheel_picker.dart';
 
 /// Shows the custom 3-column (Day, Month, Year) Date of Birth picker bottom sheet.
 Future<DateTime?> showTioDobPickerBottomSheet({
@@ -216,9 +216,6 @@ class TioDobWheelPicker extends StatefulWidget {
 }
 
 class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
-  static const double _perspective = TioWheelPickerTokens.perspective;
-  static const double _diameterRatio = TioWheelPickerTokens.diameterRatio;
-
   static const List<String> _months = [
     'Jan',
     'Feb',
@@ -237,11 +234,6 @@ class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
   late int _selectedDay;
   late int _selectedMonthIndex; // 0-indexed (0 = Jan, 11 = Dec)
   late int _selectedYear;
-  bool _isSyncingControllers = false;
-
-  late FixedExtentScrollController _dayController;
-  late FixedExtentScrollController _monthController;
-  late FixedExtentScrollController _yearController;
 
   late List<int> _years;
 
@@ -258,17 +250,6 @@ class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
     _selectedMonthIndex = init.month - 1;
     _selectedYear = init.year.clamp(widget.startYear, widget.endYear);
 
-    final initialYearIndex = _years.indexOf(_selectedYear);
-
-    _dayController = FixedExtentScrollController(
-      initialItem: (_selectedDay - 1).clamp(0, 30),
-    );
-    _monthController = FixedExtentScrollController(
-      initialItem: _selectedMonthIndex.clamp(0, 11),
-    );
-    _yearController = FixedExtentScrollController(
-      initialItem: initialYearIndex >= 0 ? initialYearIndex : 0,
-    );
   }
 
   @override
@@ -287,69 +268,29 @@ class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
             _daysInMonth(_selectedYear, _selectedMonthIndex + 1),
           );
         });
-        _syncControllers();
       }
     }
-  }
-
-  @override
-  void dispose() {
-    _dayController.dispose();
-    _monthController.dispose();
-    _yearController.dispose();
-    super.dispose();
   }
 
   int _daysInMonth(int year, int month) {
     return DateTime(year, month + 1, 0).day;
   }
 
-  void _syncControllers() {
-    final dayIndex = (_selectedDay - 1).clamp(0, 30);
-    final monthIndex = _selectedMonthIndex.clamp(0, 11);
-    final yearIndex = _years.indexOf(_selectedYear);
-
-    _isSyncingControllers = true;
-    try {
-      if (_dayController.hasClients &&
-          _dayController.selectedItem != dayIndex) {
-        _dayController.jumpToItem(dayIndex);
-      }
-      if (_monthController.hasClients &&
-          _monthController.selectedItem != monthIndex) {
-        _monthController.jumpToItem(monthIndex);
-      }
-      if (_yearController.hasClients &&
-          yearIndex >= 0 &&
-          _yearController.selectedItem != yearIndex) {
-        _yearController.jumpToItem(yearIndex);
-      }
-    } finally {
-      _isSyncingControllers = false;
-    }
-  }
-
-  void _onWheelChanged() {
-    if (_isSyncingControllers) return;
-
-    HapticFeedback.selectionClick();
-    final dayIndex =
-        _dayController.hasClients ? _dayController.selectedItem : 0;
-    final monthIndex =
-        _monthController.hasClients ? _monthController.selectedItem : 0;
-    final yearIndex =
-        _yearController.hasClients ? _yearController.selectedItem : 0;
-
-    final resolvedYear = (yearIndex >= 0 && yearIndex < _years.length)
-        ? _years[yearIndex]
+  void _onWheelChanged({int? dayIndex, int? monthIndex, int? yearIndex}) {
+    final nextDayIndex = dayIndex ?? _selectedDay - 1;
+    final nextMonthIndex = monthIndex ?? _selectedMonthIndex;
+    final nextYearIndex = yearIndex ?? _years.indexOf(_selectedYear);
+    final resolvedYear =
+        (nextYearIndex >= 0 && nextYearIndex < _years.length)
+        ? _years[nextYearIndex]
         : widget.startYear;
-    final resolvedMonth = (monthIndex + 1).clamp(1, 12);
+    final resolvedMonth = (nextMonthIndex + 1).clamp(1, 12);
     final maxDays = _daysInMonth(resolvedYear, resolvedMonth);
-    final resolvedDay = (dayIndex + 1).clamp(1, maxDays);
+    final resolvedDay = (nextDayIndex + 1).clamp(1, maxDays);
 
     setState(() {
       _selectedYear = resolvedYear;
-      _selectedMonthIndex = monthIndex;
+      _selectedMonthIndex = nextMonthIndex;
       _selectedDay = resolvedDay;
     });
 
@@ -361,47 +302,19 @@ class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
     final colors = context.tioColors;
     final maxDays = _daysInMonth(_selectedYear, _selectedMonthIndex + 1);
 
-    return SizedBox(
-      height: TioWheelPickerTokens.viewportHeight,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Center Selection Highlight Pill (Matches Height & Weight Wheels)
-          Container(
-            key: const ValueKey('tio-dob-wheel-selection-pill'),
-            height: TioWheelPickerTokens.selectionHeight,
-            margin: const EdgeInsets.symmetric(
-              horizontal: TioWheelPickerTokens.selectionHorizontalMargin,
-            ),
-            decoration: BoxDecoration(
-              // `surface` and `surfaceRaised` are both white in light mode.
-              // `surfaceVariant` remains distinct from the raised sheet across
-              // every supported theme, so the selected row stays visible.
-              color: colors.surfaceVariant.withAlpha(
-                TioWheelPickerTokens.selectionSurfaceAlpha,
-              ),
-              borderRadius: BorderRadius.circular(TioRadius.md),
-            ),
-          ),
-
-          // 3 Columns Row (Day | Month | Year)
-          Row(
+    return TioWheelPickerFrame(
+      selectionPillKey: const ValueKey('tio-dob-wheel-selection-pill'),
+      child: Row(
             children: [
               // ── Day Wheel ──
               Expanded(
-                child: ListWheelScrollView.useDelegate(
-                  controller: _dayController,
-                  itemExtent: TioWheelPickerTokens.itemExtent,
-                  perspective: _perspective,
-                  diameterRatio: _diameterRatio,
-                  physics: const FixedExtentScrollPhysics(),
-                  onSelectedItemChanged: (_) => _onWheelChanged(),
-                  childDelegate: ListWheelChildBuilderDelegate(
-                    childCount: maxDays,
-                    builder: (context, index) {
+                child: TioWheelPickerColumn(
+                  selectedIndex: _selectedDay - 1,
+                  itemCount: maxDays,
+                  onSelectedItemChanged: (change) =>
+                      _onWheelChanged(dayIndex: change.index),
+                  itemBuilder: (context, index, isSelected) {
                       final day = index + 1;
-                      final isSelected = day == _selectedDay;
-
                       return Center(
                         child: Text(
                           '$day',
@@ -418,25 +331,18 @@ class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
                           ),
                         ),
                       );
-                    },
-                  ),
+                  },
                 ),
               ),
 
               // ── Month Wheel ──
               Expanded(
-                child: ListWheelScrollView.useDelegate(
-                  controller: _monthController,
-                  itemExtent: TioWheelPickerTokens.itemExtent,
-                  perspective: _perspective,
-                  diameterRatio: _diameterRatio,
-                  physics: const FixedExtentScrollPhysics(),
-                  onSelectedItemChanged: (_) => _onWheelChanged(),
-                  childDelegate: ListWheelChildBuilderDelegate(
-                    childCount: _months.length,
-                    builder: (context, index) {
-                      final isSelected = index == _selectedMonthIndex;
-
+                child: TioWheelPickerColumn(
+                  selectedIndex: _selectedMonthIndex,
+                  itemCount: _months.length,
+                  onSelectedItemChanged: (change) =>
+                      _onWheelChanged(monthIndex: change.index),
+                  itemBuilder: (context, index, isSelected) {
                       return Center(
                         child: Text(
                           _months[index],
@@ -453,26 +359,19 @@ class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
                           ),
                         ),
                       );
-                    },
-                  ),
+                  },
                 ),
               ),
 
               // ── Year Wheel ──
               Expanded(
-                child: ListWheelScrollView.useDelegate(
-                  controller: _yearController,
-                  itemExtent: TioWheelPickerTokens.itemExtent,
-                  perspective: _perspective,
-                  diameterRatio: _diameterRatio,
-                  physics: const FixedExtentScrollPhysics(),
-                  onSelectedItemChanged: (_) => _onWheelChanged(),
-                  childDelegate: ListWheelChildBuilderDelegate(
-                    childCount: _years.length,
-                    builder: (context, index) {
+                child: TioWheelPickerColumn(
+                  selectedIndex: _years.indexOf(_selectedYear),
+                  itemCount: _years.length,
+                  onSelectedItemChanged: (change) =>
+                      _onWheelChanged(yearIndex: change.index),
+                  itemBuilder: (context, index, isSelected) {
                       final year = _years[index];
-                      final isSelected = year == _selectedYear;
-
                       return Center(
                         child: Text(
                           '$year',
@@ -489,13 +388,10 @@ class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
                           ),
                         ),
                       );
-                    },
-                  ),
+                  },
                 ),
               ),
             ],
-          ),
-        ],
       ),
     );
   }

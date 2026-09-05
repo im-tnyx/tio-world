@@ -23,6 +23,8 @@ const _editor = ValueKey('quick-add-editor');
 const _logMeal = ValueKey('meal-log-footer-primary');
 const _footerCategory = ValueKey('meal-log-footer-category');
 const _footerDateTime = ValueKey('meal-log-footer-date-time');
+const _dateTimePicker = ValueKey('tio-date-time-wheel-picker');
+const _dateTimePickerCard = ValueKey('quick-add-date-time-picker-card');
 const _emptyDayNote = ValueKey('meal-diary-empty-day-note');
 
 /// Changes the running app's theme mode without remounting anything.
@@ -36,6 +38,7 @@ Future<MealDiaryDateController> _pump(
   int? resolvedFirstDayOfWeek,
   TioThemeMode mode = TioThemeMode.light,
   Brightness? platformBrightness,
+  DateTime Function()? quickAddClock,
 }) async {
   final controller = MealDiaryDateController(clock: () => _now);
 
@@ -66,7 +69,10 @@ Future<MealDiaryDateController> _pump(
           },
         ),
         home: Scaffold(
-          body: MealDiaryPage(resolvedFirstDayOfWeek: resolvedFirstDayOfWeek),
+          body: MealDiaryPage(
+            resolvedFirstDayOfWeek: resolvedFirstDayOfWeek,
+            quickAddClock: quickAddClock ?? () => _now,
+          ),
         ),
       ),
     ),
@@ -429,18 +435,39 @@ void main() {
   });
 
   group('Quick Add manual nutrition editor', () {
-    testWidgets('it opens on the day the diary is showing', (tester) async {
+    testWidgets('it snapshots current local time, not the historical diary day',
+        (tester) async {
       final controller = await _pump(tester);
 
       controller.select(_yesterday);
       await tester.pumpAndSettle();
       await _openQuickAdd(tester);
 
-      // The footer's date control carries it, and shows the day the reader
-      // picked rather than today.
-      expect(find.textContaining('Aug 19'), findsOne);
-      expect(find.textContaining('Aug 20'), findsNothing);
+      expect(find.text('Aug 20, 10:30'), findsOne);
+      expect(find.textContaining('Aug 19'), findsNothing);
       expect(controller.selectedDate, _yesterday);
+    });
+
+    testWidgets('a new draft snapshots once and does not tick untouched',
+        (tester) async {
+      var now = DateTime(2026, 9, 6, 0, 7, 45);
+      var clockReads = 0;
+      await _pump(
+        tester,
+        quickAddClock: () {
+          clockReads++;
+          return now;
+        },
+      );
+      await _openQuickAdd(tester);
+
+      expect(find.text('Sep 6, 00:07'), findsOne);
+      expect(clockReads, 1);
+
+      now = DateTime(2026, 9, 6, 0, 17, 10);
+      await tester.pump(const Duration(minutes: 10));
+      expect(find.text('Sep 6, 00:07'), findsOne);
+      expect(clockReads, 1, reason: 'an untouched draft must not poll the clock');
     });
 
     testWidgets('it renders the bounded field set', (tester) async {
@@ -660,7 +687,8 @@ void main() {
     });
 
     testWidgets('backing out of the editor leaves no trace', (tester) async {
-      final controller = await _pump(tester);
+      var now = _now;
+      final controller = await _pump(tester, quickAddClock: () => now);
 
       controller.select(_yesterday);
       await tester.pumpAndSettle();
@@ -686,10 +714,13 @@ void main() {
       expect(find.text('Dal and two roti'), findsNothing);
       expect(find.text('620'), findsNothing);
 
-      // Reopening starts empty: there is no draft behind this screen.
+      // Reopening starts empty and snapshots again: there is no retained draft
+      // behind this screen.
+      now = DateTime(2026, 8, 20, 10, 45);
       await _openQuickAdd(tester);
       expect(_fieldText(tester, const ValueKey('quick-add-meal-name')), '');
       expect(_fieldText(tester, const ValueKey('quick-add-calories')), '');
+      expect(find.text('Aug 20, 10:45'), findsOne);
     });
   });
 
@@ -869,7 +900,7 @@ void main() {
       handle.dispose();
     });
 
-    testWidgets('the date control shows the diary date and no invented time',
+    testWidgets('the date control is concrete and opens the picker inline',
         (tester) async {
       final handle = tester.ensureSemantics();
       final controller = await _pump(tester);
@@ -891,19 +922,157 @@ void main() {
         matchesSemantics(
           isButton: true,
           hasEnabledState: true,
-          isEnabled: false,
-          label: 'Date and time. Aug 19, time not set. Not available yet.',
+          isEnabled: true,
+          label: 'Date and time. Aug 20, 10:30. Picker collapsed.',
         ),
       );
 
-      // No picker, and no fabricated clock time: TNYX-114 owns that contract.
-      await tester.tap(find.byKey(_footerDateTime), warnIfMissed: false);
+      expect(find.text('Today'), findsNothing);
+      expect(find.byKey(_dateTimePicker), findsNothing);
+      final barriersBefore = find.byType(ModalBarrier).evaluate().length;
+      await tester.tap(find.byKey(_footerDateTime));
       await tester.pumpAndSettle();
+
+      expect(find.byKey(_dateTimePicker), findsOne);
+      expect(find.byKey(_editor), findsOne);
+      expect(find.byType(ModalBarrier), findsNWidgets(barriersBefore));
       expect(find.byType(CalendarDatePicker), findsNothing);
       expect(find.byType(TimePickerDialog), findsNothing);
+      for (final label in const [
+        'Select date and time',
+        'When did you eat this?',
+        'Done',
+        'Save',
+        'Apply',
+      ]) {
+        expect(find.text(label), findsNothing);
+      }
       expect(controller.selectedDate, _yesterday);
 
       handle.dispose();
+    });
+
+    testWidgets('wheel changes update the footer and survive collapse/reopen',
+        (tester) async {
+      await _pump(tester);
+      await _openQuickAdd(tester);
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+
+      await tester.drag(
+        find.byKey(const ValueKey('tio-date-time-wheel-date')),
+        const Offset(0, TioWheelPickerTokens.itemExtent),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Aug 20, 10:30'), findsOne,
+          reason: 'the Date wheel cannot move later than local Today');
+
+      await tester.drag(
+        find.byKey(const ValueKey('tio-date-time-wheel-minute')),
+        const Offset(0, -TioWheelPickerTokens.itemExtent),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Aug 20, 10:30'), findsOne,
+          reason: '10:31 is future and snaps to the real 10:30 boundary');
+
+      await tester.drag(
+        find.byKey(const ValueKey('tio-date-time-wheel-date')),
+        const Offset(0, -TioWheelPickerTokens.itemExtent),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Aug 19, 10:30'), findsOne);
+
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+      expect(find.byKey(_dateTimePicker), findsNothing);
+      expect(find.text('Aug 19, 10:30'), findsOne);
+
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+      expect(find.byKey(_dateTimePicker), findsOne);
+      expect(
+        tester.widget<Text>(
+          find.byKey(const ValueKey('tio-date-time-date-selected')),
+        ).data,
+        'Aug 19',
+      );
+    });
+
+    testWidgets('future snap-back uses the fresh clock at each gesture',
+        (tester) async {
+      var now = DateTime(2026, 9, 6, 0, 7, 45);
+      await _pump(tester, quickAddClock: () => now);
+      await _openQuickAdd(tester);
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+
+      await tester.drag(
+        find.byKey(const ValueKey('tio-date-time-wheel-minute')),
+        const Offset(0, -TioWheelPickerTokens.itemExtent),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Sep 6, 00:07'), findsOne);
+      expect(
+        tester.widget<Text>(
+          find.byKey(const ValueKey('tio-date-time-minute-selected')),
+        ).data,
+        '07',
+      );
+
+      now = DateTime(2026, 9, 6, 0, 17, 10);
+      await tester.drag(
+        find.byKey(const ValueKey('tio-date-time-wheel-hour')),
+        const Offset(0, -TioWheelPickerTokens.itemExtent),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sep 6, 00:17'), findsOne);
+      expect(
+        tester.widget<Text>(
+          find.byKey(const ValueKey('tio-date-time-minute-selected')),
+        ).data,
+        '17',
+      );
+      expect(
+        tester.widget<Text>(
+          find.byKey(const ValueKey('tio-date-time-hour-selected')),
+        ).data,
+        '12',
+      );
+      expect(
+        tester.widget<Text>(
+          find.byKey(const ValueKey('tio-date-time-period-selected')),
+        ).data,
+        'AM',
+      );
+    });
+
+    testWidgets('form values survive picker interaction and collapse',
+        (tester) async {
+      await _pump(tester);
+      await _openQuickAdd(tester);
+      await _type(tester, const ValueKey('quick-add-meal-name'), 'Dal and roti');
+      await _type(tester, const ValueKey('quick-add-calories'), '420');
+
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+      await tester.drag(
+        find.byKey(const ValueKey('tio-date-time-wheel-date')),
+        const Offset(0, -TioWheelPickerTokens.itemExtent),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+
+      expect(
+        _fieldText(tester, const ValueKey('quick-add-meal-name')),
+        'Dal and roti',
+      );
+      expect(
+        _fieldText(tester, const ValueKey('quick-add-calories')),
+        '420',
+      );
+      expect(find.text('Aug 19, 10:30'), findsOne);
     });
 
     testWidgets('the footer stays put while the body scrolls', (tester) async {
@@ -951,6 +1120,50 @@ void main() {
           reason: '$key must ride above the keyboard',
         );
       }
+    });
+
+    testWidgets('inline picker stays usable on a small keyboard viewport',
+        (tester) async {
+      tester.view.physicalSize = const Size(320, 600);
+      tester.view.devicePixelRatio = 1;
+      tester.view.viewInsets = const FakeViewPadding(bottom: 220);
+      addTearDown(tester.view.reset);
+
+      await _pump(tester);
+      await _openQuickAdd(tester);
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(_dateTimePicker), findsOne);
+      expect(find.byKey(_logMeal), findsOne);
+
+      final viewport = tester.getRect(
+        find
+            .descendant(
+              of: find.byKey(_editor),
+              matching: find.byType(SingleChildScrollView),
+            )
+            .first,
+      );
+      final pickerCard = tester.getRect(find.byKey(_dateTimePickerCard));
+      final footer = tester.getRect(find.byKey(_footerCategory));
+      expect(pickerCard.top, lessThan(viewport.bottom));
+      expect(pickerCard.bottom, greaterThan(viewport.top));
+      final minuteWheel = find.byKey(
+        const ValueKey('tio-date-time-wheel-minute'),
+      );
+      final minuteCenter = tester.getCenter(minuteWheel);
+      expect(minuteCenter.dy, greaterThanOrEqualTo(viewport.top));
+      expect(minuteCenter.dy, lessThanOrEqualTo(viewport.bottom));
+      await tester.drag(
+        minuteWheel,
+        const Offset(0, TioWheelPickerTokens.itemExtent),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(viewport.bottom, lessThanOrEqualTo(footer.top + 0.5));
+      expect(tester.getRect(find.byKey(_logMeal)).bottom, lessThanOrEqualTo(380));
     });
   });
 
@@ -1062,9 +1275,31 @@ void main() {
               ),
             )
             .colorFilter,
-        ColorFilter.mode(expected.textMuted, BlendMode.srcIn),
+        ColorFilter.mode(expected.textPrimary, BlendMode.srcIn),
         reason: '$mode: the calendar glyph is tinted, not baked',
       );
+      if (find.byKey(_dateTimePickerCard).evaluate().isNotEmpty) {
+        expect(
+          decorationOf(tester, find.byKey(_dateTimePickerCard)).color,
+          expected.surfaceRaised,
+          reason: '$mode: the inline card follows the active surface role',
+        );
+        expect(
+          (tester
+                      .widget<Container>(
+                        find.byKey(
+                          const ValueKey('tio-date-time-wheel-selection-pill'),
+                        ),
+                      )
+                      .decoration!
+                  as BoxDecoration)
+              .color,
+          expected.surfaceVariant.withAlpha(
+            TioWheelPickerTokens.selectionSurfaceAlpha,
+          ),
+          reason: '$mode: the wheel pill follows the active semantic palette',
+        );
+      }
     }
 
     testWidgets('Light resolves the Light palette', (tester) async {
@@ -1160,12 +1395,16 @@ void main() {
       const calories = ValueKey('quick-add-calories');
       await _type(tester, calories, '420');
       expect(_fieldText(tester, calories), '420');
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+      expectQuickAdd(tester, TioColors.light, 'picker before');
 
       _setThemeMode(TioThemeMode.dark);
       await tester.pumpAndSettle();
 
       expect(find.byKey(_editor), findsOne, reason: 'the editor stays open');
       expectQuickAdd(tester, TioColors.dark, 'after');
+      expect(find.byKey(_dateTimePicker), findsOne);
       expect(
         _fieldText(tester, calories),
         '420',

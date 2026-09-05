@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../theme/theme.dart';
 import '../../../units/units.dart';
+import '../pickers/tio_wheel_picker.dart';
 
 /// Reusable numeric weight drum-wheel picker.
 ///
@@ -50,8 +50,6 @@ class TioWeightWheel extends StatefulWidget {
 }
 
 class _TioWeightWheelState extends State<TioWeightWheel> {
-  static const double _perspective = TioWheelPickerTokens.perspective;
-  static const double _diameterRatio = TioWheelPickerTokens.diameterRatio;
   static const double _kgToLbsFactor = 2.20462;
 
   late int _minKg;
@@ -61,11 +59,6 @@ class _TioWeightWheelState extends State<TioWeightWheel> {
 
   late double _selectedKg;
   late bool _isLbs;
-  bool _isProgrammaticSync = false;
-
-  late FixedExtentScrollController _wholeController;
-  late FixedExtentScrollController _decimalController;
-  FixedExtentScrollController? _unitController;
 
   void _applyBounds() {
     _minKg = widget.minKg.round();
@@ -81,15 +74,6 @@ class _TioWeightWheelState extends State<TioWeightWheel> {
     _selectedKg = widget.valueKg ?? ((_minKg + _maxKg) / 2).roundToDouble();
     _isLbs = widget.unit == WeightUnit.lb;
 
-    final whole = _selectedKg.truncate().clamp(_minKg, _maxKg);
-    final decimal = ((_selectedKg - whole) * 10).round().clamp(0, 9);
-
-    _wholeController = FixedExtentScrollController(initialItem: whole - _minKg);
-    _decimalController = FixedExtentScrollController(initialItem: decimal);
-    if (widget.showUnitSwitcher) {
-      _unitController =
-          FixedExtentScrollController(initialItem: _isLbs ? 1 : 0);
-    }
   }
 
   @override
@@ -105,83 +89,23 @@ class _TioWeightWheelState extends State<TioWeightWheel> {
     final newIsLbs = widget.unit == WeightUnit.lb;
     if (newIsLbs != _isLbs) {
       setState(() => _isLbs = newIsLbs);
-      if (_unitController?.hasClients ?? false) {
-        _runProgrammaticSync(
-          () => _unitController!.jumpToItem(newIsLbs ? 1 : 0),
-        );
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _wholeController.dispose();
-    _decimalController.dispose();
-    _unitController?.dispose();
-    super.dispose();
-  }
-
-  void _runProgrammaticSync(VoidCallback action) {
-    _isProgrammaticSync = true;
-    try {
-      action();
-    } finally {
-      _isProgrammaticSync = false;
     }
   }
 
   void _syncToKg(double kg, {bool notify = true}) {
     setState(() => _selectedKg = kg);
-    final whole = kg.truncate().clamp(_minKg, _maxKg);
-    final decimal = ((kg - whole) * 10).round().clamp(0, 9);
-
-    _runProgrammaticSync(() {
-      if (!_isLbs) {
-        final wholeIndex = whole - _minKg;
-        if (_wholeController.hasClients &&
-            _wholeController.selectedItem != wholeIndex) {
-          _wholeController.jumpToItem(wholeIndex);
-        }
-        if (_decimalController.hasClients &&
-            _decimalController.selectedItem != decimal) {
-          _decimalController.jumpToItem(decimal);
-        }
-      } else {
-        final lbs = kg * _kgToLbsFactor;
-        final wholeLbs = lbs.truncate().clamp(_minLbs, _maxLbs);
-        final decimalLbs = ((lbs - wholeLbs) * 10).round().clamp(0, 9);
-
-        final wholeIndex = wholeLbs - _minLbs;
-        if (_wholeController.hasClients &&
-            _wholeController.selectedItem != wholeIndex) {
-          _wholeController.jumpToItem(wholeIndex);
-        }
-        if (_decimalController.hasClients &&
-            _decimalController.selectedItem != decimalLbs) {
-          _decimalController.jumpToItem(decimalLbs);
-        }
-      }
-    });
-
     if (notify) widget.onChanged(kg);
   }
 
-  void _onWheelChanged() {
-    if (_isProgrammaticSync) return;
-
-    HapticFeedback.selectionClick();
-    final wholeIndex =
-        _wholeController.hasClients ? _wholeController.selectedItem : 0;
-    final decimalIndex =
-        _decimalController.hasClients ? _decimalController.selectedItem : 0;
-
+  void _onWholeChanged(TioWheelSelectionChange change) {
+    final decimalIndex = _displayDecimal;
     if (!_isLbs) {
-      final whole = _minKg + wholeIndex;
+      final whole = _minKg + change.index;
       final newKg = whole + (decimalIndex / 10.0);
       setState(() => _selectedKg = newKg);
       widget.onChanged(newKg);
     } else {
-      final wholeLbs = _minLbs + wholeIndex;
+      final wholeLbs = _minLbs + change.index;
       final totalLbs = wholeLbs + (decimalIndex / 10.0);
       final newKg = (totalLbs / _kgToLbsFactor)
           .clamp(_minKg.toDouble(), _maxKg.toDouble());
@@ -190,29 +114,38 @@ class _TioWeightWheelState extends State<TioWeightWheel> {
     }
   }
 
-  void _onUnitIndexChanged(int index) {
-    if (_isProgrammaticSync) return;
+  void _onDecimalChanged(TioWheelSelectionChange change) {
+    if (!_isLbs) {
+      final whole = _selectedKg.truncate().clamp(_minKg, _maxKg);
+      final newKg = whole + (change.index / 10.0);
+      setState(() => _selectedKg = newKg);
+      widget.onChanged(newKg);
+      return;
+    }
+
+    final lbs = _selectedKg * _kgToLbsFactor;
+    final wholeLbs = lbs.truncate().clamp(_minLbs, _maxLbs);
+    final newKg = ((wholeLbs + (change.index / 10.0)) / _kgToLbsFactor)
+        .clamp(_minKg.toDouble(), _maxKg.toDouble());
+    setState(() => _selectedKg = newKg);
+    widget.onChanged(newKg);
+  }
+
+  int get _displayDecimal {
+    final displayValue =
+        _isLbs ? _selectedKg * _kgToLbsFactor : _selectedKg;
+    return ((displayValue - displayValue.truncate()) * 10)
+        .round()
+        .clamp(0, 9);
+  }
+
+  void _onUnitIndexChanged(TioWheelSelectionChange change) {
+    final index = change.index;
     final newIsLbs = index == 1;
     if (newIsLbs == _isLbs) return;
 
-    HapticFeedback.selectionClick();
     setState(() => _isLbs = newIsLbs);
     widget.onUnitChanged?.call(newIsLbs ? WeightUnit.lb : WeightUnit.kg);
-
-    _runProgrammaticSync(() {
-      if (!newIsLbs) {
-        final whole = _selectedKg.truncate().clamp(_minKg, _maxKg);
-        final decimal = ((_selectedKg - whole) * 10).round().clamp(0, 9);
-        _wholeController.jumpToItem(whole - _minKg);
-        _decimalController.jumpToItem(decimal);
-      } else {
-        final lbs = _selectedKg * _kgToLbsFactor;
-        final wholeLbs = lbs.truncate().clamp(_minLbs, _maxLbs);
-        final decimalLbs = ((lbs - wholeLbs) * 10).round().clamp(0, 9);
-        _wholeController.jumpToItem(wholeLbs - _minLbs);
-        _decimalController.jumpToItem(decimalLbs);
-      }
-    });
   }
 
   @override
@@ -222,22 +155,18 @@ class _TioWeightWheelState extends State<TioWeightWheel> {
     final drums = <Widget>[
       Expanded(
         flex: 3,
-        child: ListWheelScrollView.useDelegate(
-          controller: _wholeController,
-          itemExtent: TioWheelPickerTokens.itemExtent,
-          perspective: _perspective,
-          diameterRatio: _diameterRatio,
-          physics: const FixedExtentScrollPhysics(),
-          onSelectedItemChanged: (_) => _onWheelChanged(),
-          childDelegate: ListWheelChildBuilderDelegate(
-            childCount:
-                !_isLbs ? (_maxKg - _minKg + 1) : (_maxLbs - _minLbs + 1),
-            builder: (context, index) {
+        child: TioWheelPickerColumn(
+          selectedIndex: !_isLbs
+              ? _selectedKg.truncate().clamp(_minKg, _maxKg) - _minKg
+              : (_selectedKg * _kgToLbsFactor)
+                      .truncate()
+                      .clamp(_minLbs, _maxLbs) -
+                  _minLbs,
+          itemCount:
+              !_isLbs ? (_maxKg - _minKg + 1) : (_maxLbs - _minLbs + 1),
+          onSelectedItemChanged: _onWholeChanged,
+          itemBuilder: (context, index, isSelected) {
               final whole = !_isLbs ? (_minKg + index) : (_minLbs + index);
-              final currentWhole = !_isLbs
-                  ? _selectedKg.truncate()
-                  : (_selectedKg * _kgToLbsFactor).truncate();
-              final isSelected = whole == currentWhole;
               return Center(
                 child: Text(
                   '$whole',
@@ -253,8 +182,7 @@ class _TioWeightWheelState extends State<TioWeightWheel> {
                   ),
                 ),
               );
-            },
-          ),
+          },
         ),
       ),
       Center(
@@ -269,23 +197,11 @@ class _TioWeightWheelState extends State<TioWeightWheel> {
       ),
       Expanded(
         flex: 2,
-        child: ListWheelScrollView.useDelegate(
-          controller: _decimalController,
-          itemExtent: TioWheelPickerTokens.itemExtent,
-          perspective: _perspective,
-          diameterRatio: _diameterRatio,
-          physics: const FixedExtentScrollPhysics(),
-          onSelectedItemChanged: (_) => _onWheelChanged(),
-          childDelegate: ListWheelChildBuilderDelegate(
-            childCount: 10,
-            builder: (context, index) {
-              final currentDecimal = !_isLbs
-                  ? ((_selectedKg - _selectedKg.truncate()) * 10).round()
-                  : (((_selectedKg * _kgToLbsFactor) -
-                              (_selectedKg * _kgToLbsFactor).truncate()) *
-                          10)
-                      .round();
-              final isSelected = index == currentDecimal;
+        child: TioWheelPickerColumn(
+          selectedIndex: _displayDecimal,
+          itemCount: 10,
+          onSelectedItemChanged: _onDecimalChanged,
+          itemBuilder: (context, index, isSelected) {
               return Center(
                 child: Text(
                   '$index',
@@ -301,8 +217,7 @@ class _TioWeightWheelState extends State<TioWeightWheel> {
                   ),
                 ),
               );
-            },
-          ),
+          },
         ),
       ),
     ];
@@ -311,17 +226,11 @@ class _TioWeightWheelState extends State<TioWeightWheel> {
       drums.add(
         Expanded(
           flex: 2,
-          child: ListWheelScrollView.useDelegate(
-            controller: _unitController!,
-            itemExtent: TioWheelPickerTokens.itemExtent,
-            perspective: _perspective,
-            diameterRatio: _diameterRatio,
-            physics: const FixedExtentScrollPhysics(),
-            onSelectedItemChanged: _onUnitIndexChanged,
-            childDelegate: ListWheelChildBuilderDelegate(
-              childCount: 2,
-              builder: (context, index) {
-                final isSelected = index == (_isLbs ? 1 : 0);
+          child: TioWheelPickerColumn(
+            selectedIndex: _isLbs ? 1 : 0,
+          itemCount: 2,
+          onSelectedItemChanged: _onUnitIndexChanged,
+          itemBuilder: (context, index, isSelected) {
                 final unitText = index == 0 ? 'kg' : 'lbs';
                 return Center(
                   child: Text(
@@ -337,40 +246,16 @@ class _TioWeightWheelState extends State<TioWeightWheel> {
                     ),
                   ),
                 );
-              },
-            ),
+            },
           ),
         ),
       );
     }
 
-    return SizedBox(
-      height: TioWheelPickerTokens.viewportHeight,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            key: const ValueKey('tio-weight-wheel-selection-pill'),
-            height: TioWheelPickerTokens.selectionHeight,
-            margin: const EdgeInsets.symmetric(
-              horizontal: TioWheelPickerTokens.selectionHorizontalMargin,
-            ),
-            decoration: BoxDecoration(
-              // `surface` and `surfaceRaised` are both white in light mode.
-              // `surfaceVariant` remains distinct from the raised sheet across
-              // every supported theme, so the selected row stays visible.
-              color: colors.surfaceVariant.withAlpha(
-                TioWheelPickerTokens.selectionSurfaceAlpha,
-              ),
-              borderRadius: BorderRadius.circular(TioRadius.md),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: TioSize.dp28),
-            child: Row(children: drums),
-          ),
-        ],
-      ),
+    return TioWheelPickerFrame(
+      selectionPillKey: const ValueKey('tio-weight-wheel-selection-pill'),
+      contentPadding: const EdgeInsets.symmetric(horizontal: TioSize.dp28),
+      child: Row(children: drums),
     );
   }
 }

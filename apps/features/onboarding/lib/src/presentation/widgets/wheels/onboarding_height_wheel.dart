@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 
 class OnboardingHeightWheel extends StatefulWidget {
@@ -24,48 +23,16 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
   static const int _minCm = 100;
   static const int _maxCm = 250;
   static const double _defaultCm = 170.0;
-  static const double _perspective = TioWheelPickerTokens.perspective;
-  static const double _diameterRatio = TioWheelPickerTokens.diameterRatio;
 
   late double _selectedCm;
   late int _selectedUnitIndex; // 0: cm, 1: in (ft/in)
-
-  late FixedExtentScrollController _cmWholeController;
-  late FixedExtentScrollController _cmDecimalController;
-  late FixedExtentScrollController _feetController;
-  late FixedExtentScrollController _inchesController;
-  late FixedExtentScrollController _unitController;
 
   @override
   void initState() {
     super.initState();
     _selectedCm = widget.valueCm ?? _defaultCm;
 
-    final wholeCm = _selectedCm.truncate().clamp(_minCm, _maxCm);
-    final decimalCm = ((_selectedCm - wholeCm) * 10).round().clamp(0, 9);
-
-    _cmWholeController = FixedExtentScrollController(
-      initialItem: wholeCm - _minCm,
-    );
-    _cmDecimalController = FixedExtentScrollController(
-      initialItem: decimalCm,
-    );
-
-    final totalInches = (_selectedCm / 2.54).round();
-    final feet = (totalInches ~/ 12).clamp(3, 8);
-    final inches = (totalInches % 12).clamp(0, 11);
-
-    _feetController = FixedExtentScrollController(
-      initialItem: feet - 3,
-    );
-    _inchesController = FixedExtentScrollController(
-      initialItem: inches,
-    );
-
     _selectedUnitIndex = (widget.unit == 'in' || widget.unit == 'ft') ? 1 : 0;
-    _unitController = FixedExtentScrollController(
-      initialItem: _selectedUnitIndex,
-    );
   }
 
   @override
@@ -80,131 +47,64 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
     final newUnitIndex = (widget.unit == 'in' || widget.unit == 'ft') ? 1 : 0;
     if (newUnitIndex != _selectedUnitIndex) {
       setState(() => _selectedUnitIndex = newUnitIndex);
-      if (_unitController.hasClients) _unitController.jumpToItem(newUnitIndex);
     }
-  }
-
-  @override
-  void dispose() {
-    _cmWholeController.dispose();
-    _cmDecimalController.dispose();
-    _feetController.dispose();
-    _inchesController.dispose();
-    _unitController.dispose();
-    super.dispose();
   }
 
   void _syncToCm(double cm, {bool notify = true}) {
     setState(() => _selectedCm = cm);
-
-    final whole = cm.truncate().clamp(_minCm, _maxCm);
-    final decimal = ((cm - whole) * 10).round().clamp(0, 9);
-
-    if (_cmWholeController.hasClients &&
-        _cmWholeController.selectedItem != (whole - _minCm)) {
-      _cmWholeController.jumpToItem(whole - _minCm);
-    }
-    if (_cmDecimalController.hasClients &&
-        _cmDecimalController.selectedItem != decimal) {
-      _cmDecimalController.jumpToItem(decimal);
-    }
-
-    final totalInches = (cm / 2.54).round();
-    final feet = (totalInches ~/ 12).clamp(3, 8);
-    final inches = (totalInches % 12).clamp(0, 11);
-
-    if (_feetController.hasClients &&
-        _feetController.selectedItem != (feet - 3)) {
-      _feetController.jumpToItem(feet - 3);
-    }
-    if (_inchesController.hasClients &&
-        _inchesController.selectedItem != inches) {
-      _inchesController.jumpToItem(inches);
-    }
-
     if (notify) widget.onChanged(cm);
   }
 
-  void _onCmWheelChanged() {
-    HapticFeedback.selectionClick();
-    final wholeIndex =
-        _cmWholeController.hasClients ? _cmWholeController.selectedItem : 0;
-    final decimalIndex =
-        _cmDecimalController.hasClients ? _cmDecimalController.selectedItem : 0;
-    final whole = _minCm + wholeIndex;
-    final newCm = whole + (decimalIndex / 10.0);
+  int get _cmWholeIndex =>
+      _selectedCm.truncate().clamp(_minCm, _maxCm) - _minCm;
+
+  int get _cmDecimal =>
+      ((_selectedCm - _selectedCm.truncate()) * 10).round().clamp(0, 9);
+
+  int get _totalInches => (_selectedCm / 2.54).round();
+
+  int get _feetIndex => (_totalInches ~/ 12).clamp(3, 8) - 3;
+
+  int get _inches => (_totalInches % 12).clamp(0, 11);
+
+  void _onCmWheelChanged({int? wholeIndex, int? decimalIndex}) {
+    final nextWholeIndex = wholeIndex ?? _cmWholeIndex;
+    final nextDecimalIndex = decimalIndex ?? _cmDecimal;
+    final whole = _minCm + nextWholeIndex;
+    final newCm = whole + (nextDecimalIndex / 10.0);
     setState(() => _selectedCm = newCm);
     widget.onChanged(newCm);
   }
 
-  void _onFtInChanged() {
-    HapticFeedback.selectionClick();
-    final feet =
-        (_feetController.hasClients ? _feetController.selectedItem : 0) + 3;
-    final inches =
-        _inchesController.hasClients ? _inchesController.selectedItem : 0;
-    final totalInches = (feet * 12) + inches;
+  void _onFtInChanged({int? feetIndex, int? inches}) {
+    final nextFeetIndex = feetIndex ?? _feetIndex;
+    final nextInches = inches ?? _inches;
+    final feet = nextFeetIndex + 3;
+    final totalInches = (feet * 12) + nextInches;
     final newCm =
         (totalInches * 2.54).clamp(_minCm.toDouble(), _maxCm.toDouble());
     setState(() => _selectedCm = newCm);
     widget.onChanged(newCm);
   }
 
-  void _onUnitIndexChanged(int index) {
+  void _onUnitIndexChanged(TioWheelSelectionChange change) {
+    final index = change.index;
     if (_selectedUnitIndex == index) return;
-    HapticFeedback.selectionClick();
     setState(() => _selectedUnitIndex = index);
     final newUnit = index == 0 ? 'cm' : 'in';
     widget.onUnitChanged?.call(newUnit);
-
-    if (index == 0) {
-      final whole = _selectedCm.truncate().clamp(_minCm, _maxCm);
-      final decimal = ((_selectedCm - whole) * 10).round().clamp(0, 9);
-      _cmWholeController.jumpToItem(whole - _minCm);
-      _cmDecimalController.jumpToItem(decimal);
-    } else {
-      final totalInches = (_selectedCm / 2.54).round();
-      final feet = (totalInches ~/ 12).clamp(3, 8);
-      final inches = (totalInches % 12).clamp(0, 11);
-      _feetController.jumpToItem(feet - 3);
-      _inchesController.jumpToItem(inches);
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
 
-    return SizedBox(
-      height: TioWheelPickerTokens.viewportHeight,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Center Horizontal Highlight Pill
-          Container(
-            key: const ValueKey('onboarding-height-wheel-selection-pill'),
-            height: TioWheelPickerTokens.selectionHeight,
-            margin: const EdgeInsets.symmetric(
-              horizontal: TioWheelPickerTokens.selectionHorizontalMargin,
-            ),
-            decoration: BoxDecoration(
-              // `surface` and `surfaceRaised` are both white in light mode.
-              // `surfaceVariant` remains distinct from the raised sheet across
-              // every supported theme, so the selected row stays visible.
-              color: colors.surfaceVariant.withAlpha(
-                TioWheelPickerTokens.selectionSurfaceAlpha,
-              ),
-              borderRadius: BorderRadius.circular(TioRadius.md),
-            ),
-          ),
-
-          // Active Wheel Content
-          if (_selectedUnitIndex == 0)
-            _buildCmWheelRow(colors)
-          else
-            _buildFtInWheelRow(colors),
-        ],
-      ),
+    return TioWheelPickerFrame(
+      selectionPillKey:
+          const ValueKey('onboarding-height-wheel-selection-pill'),
+      child: _selectedUnitIndex == 0
+          ? _buildCmWheelRow(colors)
+          : _buildFtInWheelRow(colors),
     );
   }
 
@@ -216,18 +116,13 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
           // Whole Number Drum (100..250)
           Expanded(
             flex: 3,
-            child: ListWheelScrollView.useDelegate(
-              controller: _cmWholeController,
-              itemExtent: TioWheelPickerTokens.itemExtent,
-              perspective: _perspective,
-              diameterRatio: _diameterRatio,
-              physics: const FixedExtentScrollPhysics(),
-              onSelectedItemChanged: (_) => _onCmWheelChanged(),
-              childDelegate: ListWheelChildBuilderDelegate(
-                childCount: _maxCm - _minCm + 1,
-                builder: (context, index) {
+            child: TioWheelPickerColumn(
+              selectedIndex: _cmWholeIndex,
+              itemCount: _maxCm - _minCm + 1,
+              onSelectedItemChanged: (change) =>
+                  _onCmWheelChanged(wholeIndex: change.index),
+              itemBuilder: (context, index, isSelected) {
                   final cm = _minCm + index;
-                  final isSelected = cm == _selectedCm.truncate();
                   return Center(
                     child: Text(
                       '$cm',
@@ -244,8 +139,7 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
                       ),
                     ),
                   );
-                },
-              ),
+              },
             ),
           ),
 
@@ -264,19 +158,12 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
           // Decimal Drum (0..9)
           Expanded(
             flex: 2,
-            child: ListWheelScrollView.useDelegate(
-              controller: _cmDecimalController,
-              itemExtent: TioWheelPickerTokens.itemExtent,
-              perspective: _perspective,
-              diameterRatio: _diameterRatio,
-              physics: const FixedExtentScrollPhysics(),
-              onSelectedItemChanged: (_) => _onCmWheelChanged(),
-              childDelegate: ListWheelChildBuilderDelegate(
-                childCount: 10,
-                builder: (context, index) {
-                  final currentDecimal =
-                      ((_selectedCm - _selectedCm.truncate()) * 10).round();
-                  final isSelected = index == currentDecimal;
+            child: TioWheelPickerColumn(
+              selectedIndex: _cmDecimal,
+              itemCount: 10,
+              onSelectedItemChanged: (change) =>
+                  _onCmWheelChanged(decimalIndex: change.index),
+              itemBuilder: (context, index, isSelected) {
                   return Center(
                     child: Text(
                       '$index',
@@ -293,8 +180,7 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
                       ),
                     ),
                   );
-                },
-              ),
+              },
             ),
           ),
 
@@ -316,20 +202,13 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
           // Feet Column (3'..8')
           Expanded(
             flex: 2,
-            child: ListWheelScrollView.useDelegate(
-              controller: _feetController,
-              itemExtent: TioWheelPickerTokens.itemExtent,
-              perspective: _perspective,
-              diameterRatio: _diameterRatio,
-              physics: const FixedExtentScrollPhysics(),
-              onSelectedItemChanged: (_) => _onFtInChanged(),
-              childDelegate: ListWheelChildBuilderDelegate(
-                childCount: 6, // 3 to 8
-                builder: (context, index) {
+            child: TioWheelPickerColumn(
+              selectedIndex: _feetIndex,
+              itemCount: 6,
+              onSelectedItemChanged: (change) =>
+                  _onFtInChanged(feetIndex: change.index),
+              itemBuilder: (context, index, isSelected) {
                   final ft = 3 + index;
-                  final totalInches = (_selectedCm / 2.54).round();
-                  final currentFt = totalInches ~/ 12;
-                  final isSelected = ft == currentFt;
                   return Center(
                     child: Text(
                       "$ft'",
@@ -346,27 +225,19 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
                       ),
                     ),
                   );
-                },
-              ),
+              },
             ),
           ),
 
           // Inches Column (0"..11")
           Expanded(
             flex: 2,
-            child: ListWheelScrollView.useDelegate(
-              controller: _inchesController,
-              itemExtent: TioWheelPickerTokens.itemExtent,
-              perspective: _perspective,
-              diameterRatio: _diameterRatio,
-              physics: const FixedExtentScrollPhysics(),
-              onSelectedItemChanged: (_) => _onFtInChanged(),
-              childDelegate: ListWheelChildBuilderDelegate(
-                childCount: 12, // 0 to 11
-                builder: (context, index) {
-                  final totalInches = (_selectedCm / 2.54).round();
-                  final currentInches = totalInches % 12;
-                  final isSelected = index == currentInches;
+            child: TioWheelPickerColumn(
+              selectedIndex: _inches,
+              itemCount: 12,
+              onSelectedItemChanged: (change) =>
+                  _onFtInChanged(inches: change.index),
+              itemBuilder: (context, index, isSelected) {
                   return Center(
                     child: Text(
                       '$index"',
@@ -383,8 +254,7 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
                       ),
                     ),
                   );
-                },
-              ),
+              },
             ),
           ),
 
@@ -399,17 +269,11 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
   }
 
   Widget _buildUnitPicker(TioColors colors) {
-    return ListWheelScrollView.useDelegate(
-      controller: _unitController,
-      itemExtent: TioWheelPickerTokens.itemExtent,
-      perspective: _perspective,
-      diameterRatio: _diameterRatio,
-      physics: const FixedExtentScrollPhysics(),
+    return TioWheelPickerColumn(
+      selectedIndex: _selectedUnitIndex,
+      itemCount: 2,
       onSelectedItemChanged: _onUnitIndexChanged,
-      childDelegate: ListWheelChildBuilderDelegate(
-        childCount: 2, // 0: cm, 1: in
-        builder: (context, index) {
-          final isSelected = index == _selectedUnitIndex;
+      itemBuilder: (context, index, isSelected) {
           final unitText = index == 0 ? 'cm' : 'in';
           return Center(
             child: Text(
@@ -424,8 +288,7 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
               ),
             ),
           );
-        },
-      ),
+      },
     );
   }
 }
