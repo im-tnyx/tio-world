@@ -97,5 +97,49 @@ void main() {
       expect(find.byType(InkWell), findsNothing);
       expect(find.byType(TioSettingsEditAffordance), findsNothing);
     });
+
+    testWidgets('a read-only value wraps on a narrow row instead of spilling',
+        (tester) async {
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        _app(
+          const TioSettingsReadOnlyRow(
+            label: 'Date',
+            value: 'Wednesday, September 30, 2026',
+            isUnset: false,
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(
+        tester.getRect(find.byType(TioSettingsReadOnlyRow)).right,
+        lessThanOrEqualTo(320),
+      );
+    });
+
+    testWidgets('a value that already fits keeps its single-line width',
+        (tester) async {
+      await tester.pumpWidget(
+        _app(
+          const TioSettingsReadOnlyRow(
+            label: 'Goal Started',
+            value: 'Not set',
+            isUnset: true,
+          ),
+        ),
+      );
+
+      // The loose Flexible must not stretch a short value across the row. It
+      // stays content-sized and right-anchored against the row's own padding,
+      // which is where it sat before the wrap was added.
+      final row = tester.getRect(find.byType(TioSettingsReadOnlyRow));
+      final value = tester.getRect(find.text('Not set'));
+      expect(value.right, moreOrLessEquals(row.right - TioSpacing.lg));
+      expect(value.width, lessThan(row.width / 2));
+    });
   });
 }
