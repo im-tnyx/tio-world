@@ -17,22 +17,23 @@
 **Planning owner:** Claude / prior implementation session
 **Implementation owner:** Codex
 **Review owner:** Codex
-**Implementation ownership state:** Active — published-review remediation
+**Implementation ownership state:** Complete — implementation and review remediation published; only this task-record synchronization remains
 **Ownership transition:** Published implementation owner → Codex review-fix owner
-**Repository state last verified:** 2026-09-05; branch worktree clean at review baseline `875a5646a3f79d109b58a4da42563a8ad99e3b5f`; `origin/main` base is `ce5f29e2e00fb92c266c52b05c55fb676e244406`.
+**Repository state last verified:** 2026-09-05; branch worktree clean; `origin/main` base is `ce5f29e2e00fb92c266c52b05c55fb676e244406`.
 **Branch:** `tnyx/tnyx-72-global-calendar-preferences-first-day-of-week`
-**Review baseline head:** `875a5646a3f79d109b58a4da42563a8ad99e3b5f` (the published implementation before this review round).
+**Review baseline head:** `875a5646a3f79d109b58a4da42563a8ad99e3b5f` (the first published implementation, against which the original four findings were raised).
+**Latest reviewed production-code head before this task-record-only sync:** `606151393749d52fa63b481c37cf1bf7f391846e`.
 **Current branch HEAD:** Authoritative from `git` and PR metadata; do not duplicate a self-referential SHA into this file.
-**Observed working-tree state:** Clean published implementation before review-fix edits.
-**Observed uncommitted/dirty files:** None before review-fix work began.
+**Observed working-tree state:** Clean; all runtime and documentation work is published.
+**Observed uncommitted/dirty files:** None other than this task record during its own synchronization.
 **PR / tracker:** PR [#212](https://github.com/im-tnyx/tio-world/pull/212) is open and non-draft; tracker is `In Review`.
-**Current implementation state:** The published TNYX-72 implementation has all four valid review findings fixed and locally validated. The additive review-fix commit is published; current work is limited to replying/resolving the corresponding threads and exact-head CI/review verification. No implementation publication step remains.
-**Relevant execution surface:** `apps/features/settings`, `apps/app`, `apps/features/nutrition`, `apps/core`, `docs`, `.ai/tasks`.
-**Validation completed for review fixes:** Published review-fix commit `454d4f12ad81d512038ef4da56a31535d29a0bc4` passed the recorded local Flutter/Dart/Melos suites and `git diff --check`; exact-head Flutter CI/review verification remains in progress. Preserved `docs/supabase-android-studio-qa-run` resolves to `7fe896820c8f176b5049df4fe84fc9acea5933b1`; no Supabase TNYX-72 match found.
-**Validation remaining:** Exact-head GitHub Actions and review-thread verification.
-**Current blocker:** None locally.
-**Open review finding IDs:** None locally; `P1-task-handoff`, `P2-async-persistence-future`, `P2-load-vs-save-error`, and `P2-week-pager-anchor` are fixed and locally validated against review baseline `875a5646a3f79d109b58a4da42563a8ad99e3b5f`. Published-thread verification remains pending.
-**Next exact action:** Reply to and resolve only the published fixed PR threads, then complete exact-head CI/review verification.
+**Current implementation state:** Implementation and review remediation are published. All seven review findings raised across the three rounds are fixed, and all seven corresponding PR threads are resolved. The most recent production-code review found no runtime or product blocker. Nothing about the runtime, the product contract or the tests is outstanding.
+**Relevant execution surface:** `.ai/tasks` only for the remaining work. The published slice spans `apps/features/settings`, `apps/app`, `apps/features/nutrition`, `apps/core` and `docs`.
+**Validation completed:** Production-code head `606151393749d52fa63b481c37cf1bf7f391846e` passed `flutter analyze` across all 16 packages, `flutter test` with 1801 passing, `dart analyze` and `dart test` with 38 passing in `apps/shared`, and `git diff --check`. Exact-head GitHub Actions run `33966786481` completed successfully on that head. Preserved `docs/supabase-android-studio-qa-run` resolves to `7fe896820c8f176b5049df4fe84fc9acea5933b1` and remains local-only; no Supabase TNYX-72 match found.
+**Validation remaining:** None for the runtime. This task-record-only change is verified with `git diff --check` and an explicit staged-path check; the full suite is deliberately not re-run for a file no build reads.
+**Current blocker:** None.
+**Open review finding IDs:** `P1-final-handoff-sync` only, which is this task-record synchronization and is resolved by the commit carrying it. The other seven are fixed, published and thread-resolved.
+**Next exact action:** Publish this task-record synchronization, reply to and resolve its review thread, then treat PR #212 as ready for final merge-readiness verification. No merge and no `Done` transition are authorized here.
 
 ## Global UI / Design-System Guardrail
 
@@ -144,16 +145,49 @@ Review-fix validation (working tree after review baseline `875a5646a3f79d109b58a
 - Pure-Dart analyze — PASS.
 - Pure-Dart tests — PASS; 38 tests passed.
 - `git diff --check` — PASS.
+
+Final production-code validation at head
+`606151393749d52fa63b481c37cf1bf7f391846e`:
+- `flutter analyze` across all 16 packages — PASS; no issues found.
+- `flutter test` across every package with tests — PASS; 1801 passed, 0 failed.
+- `dart analyze` in `apps/shared` — PASS.
+- `dart test` in `apps/shared` — PASS; 38 tests passed.
+- Focused Core `TioDateCalendar` — PASS; 49 tests passed.
+- Focused Core weekday label helpers — PASS; 6 tests passed.
+- Focused Calendar Settings page — PASS; 9 tests passed.
+- Focused Calendar Preferences controller — PASS; 10 tests passed.
+- Focused Nutrition Meal Diary — PASS; 22 tests passed.
+- The four new controller regressions were verified failing on the previous
+  head `bc38ba3baa740dce36994c9ff243f87bf5a76dcf` (controller stashed, suite
+  re-run reported `+6 -4`), so they pin the reported defect rather than the
+  fix.
+- `git diff --check` — PASS.
+- Exact-head GitHub Actions `Analyze and test` run `33966786481` — SUCCESS.
+
+Task-record-only synchronization (this change):
+- `git diff --check` — PASS.
+- `git diff --name-only` — `.ai/tasks/tnyx-72-global-calendar-preferences.md`
+  only; no production source, test or docs file is touched.
+- The full suite is deliberately not re-run: no build, analyzer or test reads
+  this file, so re-running would produce evidence about an unchanged tree.
 ```
 
 ### Review Findings and Resolution
 
-| ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
-|---|---|---|---|---|---|
-| P1-task-handoff | P1 | Resolved | Published task handoff still described a dirty pre-commit worktree and pending PR. | `875a5646a3f79d109b58a4da42563a8ad99e3b5f` | Active Handoff refreshed; published-thread reply/resolve pending. |
-| P2-async-persistence-future | P2 | Resolved | Calendar Settings discarded the asynchronous persistence Future. | `875a5646a3f79d109b58a4da42563a8ad99e3b5f` | Async callback consumes the controller Future; route retry regression passed; published-thread reply/resolve pending. |
-| P2-load-vs-save-error | P2 | Resolved | A startup read failure could render save-failure copy before a user selection. | `875a5646a3f79d109b58a4da42563a8ad99e3b5f` | Controller load/save errors separated; route regression passed; published-thread reply/resolve pending. |
-| P2-week-pager-anchor | P2 | Resolved | Replacing the week controller could preserve a stale numeric PageView position after framing changed. | `875a5646a3f79d109b58a4da42563a8ad99e3b5f` | Framing-keyed week and symmetric month pagers plus differing-index regressions passed; published-thread reply/resolve pending. |
+Seven findings were raised across three review rounds. All seven are fixed,
+published and thread-resolved; an eighth entry records this task-record
+synchronization until its own commit is published.
+
+| ID | Severity | Status | Finding | Observed at SHA | Fixed in | Evidence |
+|---|---|---|---|---|---|---|
+| P1-task-handoff | P1 | Resolved | Published task handoff still described a dirty pre-commit worktree and pending PR. | `875a5646a3` | `84719aa9c8` | Active Handoff refreshed; thread resolved. |
+| P2-async-persistence-future | P2 | Resolved | Calendar Settings discarded the asynchronous persistence Future. | `875a5646a3` | `454d4f12ad` | Async callback consumes the controller Future; route retry regression passed; thread resolved. |
+| P2-load-vs-save-error | P2 | Resolved | A startup read failure could render save-failure copy before a user selection. | `875a5646a3` | `454d4f12ad` | Controller load/save errors separated; route regression passed; thread resolved. |
+| P2-week-pager-anchor | P2 | Resolved | Replacing the week controller could preserve a stale numeric PageView position after framing changed. | `875a5646a3` | `454d4f12ad` | Framing-keyed week and symmetric month pagers plus differing-index regressions passed; thread resolved. |
+| P2-publish-before-write | P2 | Resolved | The selected week start was published only after the device-local write completed, so a slow store held the UI on the old value. | `84719aa9c8` | `cf9adae369` | Optimistic publish with rollback on failure; `publishes the chosen week start before storage answers` regression; thread resolved. |
+| P2-rapid-second-selection | P2 | Resolved | The optimistic publish still sat inside the queued write, so a second tap could not apply until the first write answered. | `bc38ba3baa` | `6061513937` | Publish moved outside the queue with a selection revision guarding stale rollback/error; four regressions, all verified failing on `bc38ba3baa`; thread resolved. |
+| P1-stale-preview-contract | P1 | Resolved | The task brief and tracker still required an ordering preview the approved UI had removed. | `bc38ba3baa` | `6061513937` | Decision rows and Architecture section corrected; Linear acceptance replaced; thread resolved. |
+| P1-final-handoff-sync | P1 | Current remediation | The Active Handoff, findings table and Final Handoff still described the first review round as in progress. | `6061513937` | this commit | Task-record-only change; `git diff --check` PASS and a single changed path. |
 
 ## 7. Final Handoff
 
@@ -161,7 +195,7 @@ Review-fix validation (working tree after review baseline `875a5646a3f79d109b58a
 
 - `.ai/tasks/tnyx-72-global-calendar-preferences.md`
 - `apps/app` calendar controller/provider, startup hydration, routing/policy and app integration tests
-- `apps/core` calendar visible-anchor behavior and regression tests
+- `apps/core` calendar visible-anchor behavior, the shared `tioWeekdayName`/`tioOrderedWeekdayLabels` helpers the weekday header now draws from, the theme README entry and regression tests
 - `apps/features/settings` Calendar Preferences domain/data/presentation and Settings entry/tests
 - `apps/features/nutrition` Meal Diary resolved week-start forwarding
 - `docs/screens/settings.md`, `docs/screens/meal-diary.md`, `docs/MODULE_OWNERSHIP.md`, `docs/adr/README.md`, `docs/adr/0010-settings-local-calendar-first-day-of-week.md`
@@ -173,7 +207,21 @@ V1 exposes Monday (default) through Sunday at `Settings → App Preferences → 
 
 ### Current Review State
 
-PR #212 is published. Review fixes, their local validation, and exact-head CI/review verification are in progress; no merge or Done transition is authorized.
+PR #212 is published and remains `In Review`, open and non-draft.
+
+The product and runtime implementation has passed local validation and
+exact-head CI: `flutter analyze` clean across 16 packages, 1801 Flutter tests
+and 38 Dart tests passing, `git diff --check` clean, and GitHub Actions run
+`33966786481` successful on production-code head
+`606151393749d52fa63b481c37cf1bf7f391846e`.
+
+All seven implementation and review findings have been addressed and their PR
+threads resolved. The most recent production-code review found no runtime or
+product blocker. This task-record synchronization is the final governance
+cleanup before merge-readiness verification.
+
+No merge has occurred and TNYX-72 has not been moved to `Done`; neither is
+authorized here.
 
 ### Final Status
 
