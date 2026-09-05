@@ -25,11 +25,26 @@ const _footerCategory = ValueKey('meal-log-footer-category');
 const _footerDateTime = ValueKey('meal-log-footer-date-time');
 const _emptyDayNote = ValueKey('meal-diary-empty-day-note');
 
+/// Changes the running app's theme mode without remounting anything.
+///
+/// Set by [_pump]. The point is to exercise a theme change while a modal is
+/// already open, which is the case a fresh pump cannot reach.
+late void Function(TioThemeMode mode) _setThemeMode;
+
 Future<MealDiaryDateController> _pump(
   WidgetTester tester, {
   int? resolvedFirstDayOfWeek,
+  TioThemeMode mode = TioThemeMode.light,
+  Brightness? platformBrightness,
 }) async {
   final controller = MealDiaryDateController(clock: () => _now);
+
+  if (platformBrightness != null) {
+    tester.platformDispatcher.platformBrightnessTestValue = platformBrightness;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+  }
+
+  var activeMode = mode;
 
   await tester.pumpWidget(
     ProviderScope(
@@ -37,9 +52,18 @@ Future<MealDiaryDateController> _pump(
         mealDiaryDateControllerProvider.overrideWith((ref) => controller),
       ],
       child: MaterialApp(
-        builder: (context, child) => TioTheme(
-          config: const TioThemeConfig(mode: TioThemeMode.light),
-          child: child ?? const SizedBox.shrink(),
+        // `builder` wraps the router/navigator itself, which is what puts
+        // every route — including a root-navigator modal — inside TioTheme.
+        // The StatefulBuilder only exists so a test can swap the mode in
+        // place; production composition has no equivalent and needs none.
+        builder: (context, child) => StatefulBuilder(
+          builder: (context, setState) {
+            _setThemeMode = (next) => setState(() => activeMode = next);
+            return TioTheme(
+              config: TioThemeConfig(mode: activeMode),
+              child: child ?? const SizedBox.shrink(),
+            );
+          },
         ),
         home: Scaffold(
           body: MealDiaryPage(resolvedFirstDayOfWeek: resolvedFirstDayOfWeek),
@@ -927,6 +951,216 @@ void main() {
           reason: '$key must ride above the keyboard',
         );
       }
+    });
+  });
+
+  group('modal theme inheritance', () {
+    // Both flows are presented on the root navigator. `MaterialApp.builder`
+    // wraps that navigator in `TioTheme`, so a root modal route is inside the
+    // theme rather than beside it — but that is an architectural claim, and
+    // these tests are what stop it from quietly becoming untrue.
+
+    /// The painted material for a surface.
+    ///
+    /// Some keys sit on the Material itself and some on a wrapper, so both are
+    /// accepted rather than making the caller know which.
+    Material materialOf(WidgetTester tester, Finder scope) {
+      final self = scope.evaluate();
+      if (self.isNotEmpty && self.first.widget is Material) {
+        return self.first.widget as Material;
+      }
+      return tester.widget<Material>(
+        find.descendant(of: scope, matching: find.byType(Material)).first,
+      );
+    }
+
+    BoxDecoration decorationOf(WidgetTester tester, Finder scope) =>
+        tester
+            .widgetList<Container>(
+              find.descendant(of: scope, matching: find.byType(Container)),
+            )
+            .map((container) => container.decoration)
+            .whereType<BoxDecoration>()
+            .first;
+
+    Color? textColorOf(WidgetTester tester, String text) =>
+        tester.widget<Text>(find.text(text).first).style?.color;
+
+    /// Representative Add Food surfaces, one per distinct semantic role.
+    void expectAddFood(WidgetTester tester, TioColors expected, String mode) {
+      expect(
+        materialOf(tester, find.byKey(_sheet)).color,
+        expected.surface,
+        reason: '$mode: the sheet material must be the active surface',
+      );
+      expect(
+        decorationOf(tester, find.byKey(_photoCard)).color,
+        expected.surfaceRaised,
+        reason: '$mode: a normal card must be the active raised surface',
+      );
+      expect(
+        (decorationOf(
+                  tester,
+                  // The key sits on the text column inside the card, so the
+                  // outline belongs to the card around it.
+                  find
+                      .ancestor(
+                        of: find.byKey(_aiSurface),
+                        matching: find.byType(TioCard),
+                      )
+                      .first,
+                ).border!
+                as Border)
+            .top
+            .color,
+        expected.outlineStrong,
+        reason: '$mode: the outlined describe surface must use the outline',
+      );
+      expect(
+        tester
+            .widget<Icon>(
+              find.descendant(
+                of: find.byKey(_quickAddRow),
+                matching: find.byIcon(Icons.add_rounded),
+              ),
+            )
+            .color,
+        expected.primary,
+        reason: '$mode: the one enabled action keeps the primary colour',
+      );
+      expect(textColorOf(tester, 'Add Food'), expected.textPrimary);
+      expect(textColorOf(tester, 'Quick Add'), expected.textPrimary);
+    }
+
+    /// Representative Quick Add surfaces, including the reusable footer.
+    void expectQuickAdd(WidgetTester tester, TioColors expected, String mode) {
+      expect(
+        materialOf(tester, find.byKey(const ValueKey('tio-editor-sheet'))).color,
+        expected.surfaceRaised,
+        reason: '$mode: the editor sheet must be the active raised surface',
+      );
+      expect(
+        tester
+            .widget<Divider>(
+              find.byKey(const ValueKey('meal-log-footer-divider')),
+            )
+            .color,
+        expected.outlineStrong.withAlpha(TioAlpha.alpha20),
+        reason: '$mode: the footer rule follows the active outline',
+      );
+      expect(textColorOf(tester, 'Meal type'), expected.textPrimary);
+      expect(
+        textColorOf(tester, 'Saving is not available yet.'),
+        expected.textSecondary,
+      );
+      expect(
+        tester
+            .widget<SvgPicture>(
+              find.descendant(
+                of: find.byKey(_footerDateTime),
+                matching: find.byType(SvgPicture),
+              ),
+            )
+            .colorFilter,
+        ColorFilter.mode(expected.textMuted, BlendMode.srcIn),
+        reason: '$mode: the calendar glyph is tinted, not baked',
+      );
+    }
+
+    testWidgets('Light resolves the Light palette', (tester) async {
+      await _pump(tester);
+      await _openAddFood(tester);
+      expectAddFood(tester, TioColors.light, 'light');
+
+      await tester.tap(find.byKey(_quickAddRow));
+      await tester.pumpAndSettle();
+      expectQuickAdd(tester, TioColors.light, 'light');
+    });
+
+    testWidgets('Dark resolves Dark through the real modal route',
+        (tester) async {
+      await _pump(tester, mode: TioThemeMode.dark);
+
+      // Opened the way a reader opens it, so the root-navigator hop is part of
+      // what is being tested rather than bypassed by building the sheet here.
+      await _openAddFood(tester);
+      expectAddFood(tester, TioColors.dark, 'dark');
+      expect(
+        materialOf(tester, find.byKey(_sheet)).color,
+        isNot(TioColors.light.surface),
+        reason: 'a root modal must not fall back to Light',
+      );
+
+      await tester.tap(find.byKey(_quickAddRow));
+      await tester.pumpAndSettle();
+      expectQuickAdd(tester, TioColors.dark, 'dark');
+      expect(
+        materialOf(tester, find.byKey(const ValueKey('tio-editor-sheet'))).color,
+        isNot(TioColors.light.surfaceRaised),
+      );
+    });
+
+    // Guards today's OLED palette only. TNYX-157 may rename or remap these
+    // modes later and will update its own tests; nothing here anticipates it.
+    testWidgets('OLED resolves the current OLED palette', (tester) async {
+      await _pump(tester, mode: TioThemeMode.oled);
+      await _openAddFood(tester);
+      expectAddFood(tester, TioColors.oled, 'oled');
+
+      await tester.tap(find.byKey(_quickAddRow));
+      await tester.pumpAndSettle();
+      expectQuickAdd(tester, TioColors.oled, 'oled');
+      expect(
+        materialOf(tester, find.byKey(const ValueKey('tio-editor-sheet'))).color,
+        isNot(TioColors.dark.surfaceRaised),
+        reason: 'OLED is its own palette, not an alias of Dark',
+      );
+    });
+
+    testWidgets('System with an OS-dark device resolves Dark',
+        (tester) async {
+      await _pump(
+        tester,
+        mode: TioThemeMode.system,
+        platformBrightness: Brightness.dark,
+      );
+
+      await _openAddFood(tester);
+      expectAddFood(tester, TioColors.dark, 'system+dark');
+
+      await tester.tap(find.byKey(_quickAddRow));
+      await tester.pumpAndSettle();
+      expectQuickAdd(tester, TioColors.dark, 'system+dark');
+    });
+
+    testWidgets('an open Add Food sheet follows a live theme change',
+        (tester) async {
+      await _pump(tester);
+      await _openAddFood(tester);
+      expectAddFood(tester, TioColors.light, 'before');
+
+      // The sheet is already on screen. Changing the config must reach it
+      // where it stands, not only the next time it is opened.
+      _setThemeMode(TioThemeMode.dark);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(_sheet), findsOne, reason: 'the sheet stays open');
+      expectAddFood(tester, TioColors.dark, 'after');
+    });
+
+    testWidgets('an open Quick Add editor follows a live theme change',
+        (tester) async {
+      await _pump(tester);
+      await _openQuickAdd(tester);
+      expectQuickAdd(tester, TioColors.light, 'before');
+
+      _setThemeMode(TioThemeMode.dark);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(_editor), findsOne, reason: 'the editor stays open');
+      expectQuickAdd(tester, TioColors.dark, 'after');
+      // Nothing typed is lost to a theme change either.
+      expect(_fieldText(tester, const ValueKey('quick-add-calories')), isEmpty);
     });
   });
 
