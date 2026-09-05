@@ -429,6 +429,7 @@ history, and no retained input — reopening Quick Add starts empty.
 - Nothing can be saved. `Log Meal` is inert by design until TNYX-113 → TNYX-114 → TNYX-115 land.
 - No meal category and no consumed time, for the reasons recorded above.
 - The Add Food sheet's three unavailable paths are presentation only. Describe-a-meal looks like somewhere to type and is not a field, the microphone does not listen, the photo card opens no camera, and Search Food opens no screen. None has an implementation behind it.
+- **The date this slice shows is already superseded for the next one.** Quick Add displays the Meal Diary's selected date, and an owner decision on 2026-09-06 replaced that: a *new* Quick Add will initialise its consumed date/time from a one-shot snapshot of the current local datetime, label it `Today, 01:05 AM` while it is the current date, and open its picker from the draft rather than the clock. That is recorded in full on TNYX-114, including a wheel-infrastructure audit, and is deliberately **not** implemented here — this slice persists nothing and its date control is disabled, so nothing about it is wrong today. Anything reading this brief for the date contract should read TNYX-114 instead.
 - Fiber and micronutrients are absent from Quick Add by owner decision, not by oversight.
 - The meal-category and date/time controls are shells. Neither can be changed, and the time half of the date chip is unresolved rather than defaulted.
 - The `+` hides while the calendar's month grid is expanded. That is a deliberate anti-overlap rule, not a bug.
