@@ -15,15 +15,22 @@ import '../../domain/calendar_preferences.dart';
 /// immediate-apply shape the Appearance sheet uses. There is nothing to review
 /// before committing and nothing to lose by leaving the page.
 ///
-/// One live preview sits above the list instead of a preview under every
-/// option: seven near-identical seven-token strings are a wall of text, while
-/// a single strip that reorders as you choose answers the same question.
+/// The options are the whole screen. An ordering preview was tried, under each
+/// option and then as one strip above the list, and removed: the day names are
+/// the ordering, so drawing it again was decoration.
 ///
-/// The one line under the heading names the surface the choice affects. Two
-/// earlier attempts were rejected: "every calendar in Tio" promised screens
-/// that do not exist yet, and "Saved on this device" is implementation detail
-/// wearing the clothes of help text. Naming the real surface is what a reader
-/// can act on, and it is the shape other fitness apps use.
+/// There is no help text under the heading, which is what Google Calendar,
+/// Apple, Samsung and Strava all ship for this setting. Four wordings were
+/// tried and dropped: "every calendar in Tio" promised screens that do not
+/// exist yet, "Saved on this device" is implementation detail wearing the
+/// clothes of help text, naming Meal Diary framed an app-global value as one
+/// feature's setting, and a bare scope statement told a reader nothing the
+/// options had not.
+///
+/// Hevy does carry a line, because its week start also redraws profile graphs
+/// — a second surface a reader cannot guess. Add a line here on the same
+/// terms: when this preference starts changing something non-obvious, name
+/// that thing. Not before.
 class CalendarSettingsPage extends StatelessWidget {
   const CalendarSettingsPage({
     required this.firstDayOfWeek,
@@ -57,31 +64,6 @@ class CalendarSettingsPage extends StatelessWidget {
               'First day of week',
               style: textTheme.headlineSmall,
             ),
-            const SizedBox(height: TioSpacing.sm),
-            // Names the surface this actually affects rather than promising
-            // "every calendar", because Meal Diary is the only consumer today.
-            // As Workout, plans and Progress start reading the preference,
-            // extend this sentence with them — do not generalise it early.
-            Text(
-              'This changes where weeks start in your Meal Diary calendar.',
-              style: textTheme.bodyMedium?.copyWith(
-                color: colors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: TioSpacing.lg),
-            // Drawn from the same ordering helper the calendar header uses, so
-            // this cannot promise a layout the calendar does not render.
-            Text(
-              tioOrderedWeekdayLabels(
-                firstDayOfWeek: firstDayOfWeek.weekday,
-                localeName: localeName,
-              ).join('   '),
-              key: const ValueKey('calendar-first-day-preview'),
-              style: textTheme.titleSmall?.copyWith(
-                color: colors.textPrimary,
-                letterSpacing: TioLetterSpacing.positive08,
-              ),
-            ),
             const SizedBox(height: TioSpacing.xl),
             for (final option in FirstDayOfWeekPreference.values) ...[
               if (option != FirstDayOfWeekPreference.values.first)
@@ -104,7 +86,6 @@ class CalendarSettingsPage extends StatelessWidget {
                 style: TextStyle(color: colors.danger),
               ),
             ],
-
           ],
         ),
       ),

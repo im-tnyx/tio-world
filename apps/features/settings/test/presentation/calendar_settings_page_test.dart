@@ -48,11 +48,6 @@ void main() {
         ValueKey('calendar-first-day-option-${option.storageValue}'),
       );
 
-  String previewText(WidgetTester tester) =>
-      tester.widget<Text>(
-        find.byKey(const ValueKey('calendar-first-day-preview')),
-      ).data!;
-
   testWidgets('offers every day of the week, Monday first and default',
       (tester) async {
     await pumpPage(tester);
@@ -96,21 +91,30 @@ void main() {
     expect(find.byType(TioSelectableCard), findsNWidgets(7));
   });
 
-  testWidgets('the description names the surface it actually affects',
+  testWidgets('carries no help text, only the heading and the options',
       (tester) async {
     await pumpPage(tester);
 
-    expect(
-      find.text('This changes where weeks start in your Meal Diary calendar.'),
-      findsOneWidget,
-    );
-
-    // Not a promise about screens that do not exist yet.
+    // Naming a feature would frame an app-global value as that feature's
+    // setting; naming "every calendar" would promise screens that do not
+    // exist yet; a storage note is implementation detail. The options say
+    // everything this screen has to say.
+    expect(find.textContaining('Meal Diary'), findsNothing);
+    expect(find.textContaining('Nutrition'), findsNothing);
     expect(find.textContaining('every calendar'), findsNothing);
-    expect(find.textContaining('wherever Tio shows a week'), findsNothing);
-    // Not implementation detail dressed as help text.
     expect(find.textContaining('this device'), findsNothing);
     expect(find.textContaining('Saved'), findsNothing);
+    expect(find.textContaining('Weeks across Tio'), findsNothing);
+
+    // App bar title, heading and seven option labels. Nothing else.
+    final texts = tester
+        .widgetList<Text>(find.byType(Text))
+        .map((text) => text.data)
+        .whereType<String>()
+        .toList();
+    expect(texts, hasLength(9));
+    expect(texts, contains('Calendar'));
+    expect(texts, contains('First day of week'));
   });
 
   testWidgets('announces each option as a selectable button', (tester) async {
@@ -135,19 +139,15 @@ void main() {
     }
   });
 
-  testWidgets('the preview shows the ordering the choice produces',
-      (tester) async {
+  testWidgets('draws no ordering preview', (tester) async {
     await pumpPage(tester);
-    expect(previewText(tester), 'MON   TUE   WED   THU   FRI   SAT   SUN');
 
-    // A mid-week start is the case the two-option design could not express.
-    await tester.tap(optionFor(FirstDayOfWeekPreference.wednesday));
-    await tester.pumpAndSettle();
-    expect(previewText(tester), 'WED   THU   FRI   SAT   SUN   MON   TUE');
-
-    await tester.tap(optionFor(FirstDayOfWeekPreference.sunday));
-    await tester.pumpAndSettle();
-    expect(previewText(tester), 'SUN   MON   TUE   WED   THU   FRI   SAT');
+    // The day names are the ordering. Drawing it again was decoration.
+    expect(
+      find.byKey(const ValueKey('calendar-first-day-preview')),
+      findsNothing,
+    );
+    expect(find.textContaining('MON   TUE'), findsNothing);
   });
 
   testWidgets('tapping an option applies it immediately, no Save step',
