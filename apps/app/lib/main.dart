@@ -14,6 +14,7 @@ import 'app/app.dart';
 import 'app/app_mode/app_mode.dart';
 import 'app/app_theme.dart';
 import 'app/bootstrap.dart';
+import 'app/calendar_preferences.dart';
 import 'app/google_identity_link_controller.dart';
 import 'app/network_providers.dart';
 import 'app/onboarding/onboarding.dart';
@@ -61,11 +62,15 @@ Future<void> main() async {
   );
   final appThemeController =
       AppThemeController(SharedPreferencesAppThemePreference());
+  final calendarPreferencesController = CalendarPreferencesController(
+    SharedPreferencesCalendarPreferencesRepository(),
+  );
 
   await hydrateStartupControllers(
     appModeController: appModeController,
     onboardingStatusController: onboardingStatusController,
     appThemeController: appThemeController,
+    calendarPreferencesController: calendarPreferencesController,
   );
 
   bootstrap(
@@ -121,6 +126,8 @@ Future<void> main() async {
           ).watch();
         }),
         appThemeControllerProvider.overrideWith((ref) => appThemeController),
+        calendarPreferencesControllerProvider
+            .overrideWith((ref) => calendarPreferencesController),
       ],
       child: const TioApp(),
     ),

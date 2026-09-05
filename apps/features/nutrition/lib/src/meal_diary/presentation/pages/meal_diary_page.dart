@@ -19,7 +19,16 @@ import '../controllers/meal_diary_date_controller.dart';
 /// progress to draw, and an absent decoration is the honest way to say that —
 /// a zero would claim the user ate nothing, which is a different statement.
 class MealDiaryPage extends ConsumerStatefulWidget {
-  const MealDiaryPage({super.key});
+  const MealDiaryPage({super.key, this.resolvedFirstDayOfWeek});
+
+  /// The app-global week start, already resolved, supplied by app composition.
+  ///
+  /// Nutrition receives it and forwards it. It never persists it, never infers
+  /// it from the locale and never keeps a second copy: week start is one
+  /// app-wide Calendar Preferences value, not a diary setting. Null keeps the
+  /// calendar's own locale fallback, which is what happens before the
+  /// preference has loaded.
+  final int? resolvedFirstDayOfWeek;
 
   @override
   ConsumerState<MealDiaryPage> createState() => _MealDiaryPageState();
@@ -99,11 +108,10 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
                   maxDate: dates.maxDate,
                   onDateSelected: dates.select,
                   onVisibleDateRangeChanged: dates.updateVisibleDateRange,
-                  // resolvedFirstDayOfWeek is deliberately not passed. Week
-                  // start is an app-global Calendar Preferences value; until
-                  // that resolver exists the calendar falls back to the
-                  // platform locale, which is the same "automatic" answer the
-                  // resolver will give. Nutrition never owns it.
+                  // Forwarded, not owned. TNYX-72 made this an app-global
+                  // Calendar Preferences value; Nutrition is one consumer of
+                  // it, exactly like Workout and Meal Plan will be.
+                  resolvedFirstDayOfWeek: widget.resolvedFirstDayOfWeek,
                 ),
                 // Clearance for the handle's touch target, which reaches just
                 // past the calendar's own edge so the small grabber still has a

@@ -21,6 +21,7 @@ import 'package:tio_shared/shared.dart';
 import 'account_setup/account_setup.dart';
 import 'app_mode/app_mode.dart';
 import 'app_theme.dart';
+import 'calendar_preferences.dart';
 import 'network_providers.dart';
 import 'onboarding/onboarding.dart';
 import 'profile/profile_completion.dart';
@@ -41,7 +42,15 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
   }
 
   if (branch.tab == ShellTab.nutrition) {
-    return const MealDiaryPage();
+    // Meal Diary is the first consumer of the app-global week start. It is
+    // read here, at composition, so Nutrition never reaches into Settings for
+    // it — and watched, so changing the preference relays out the calendar
+    // without leaving this screen.
+    return Consumer(
+      builder: (context, ref, _) => MealDiaryPage(
+        resolvedFirstDayOfWeek: ref.watch(resolvedFirstDayOfWeekProvider),
+      ),
+    );
   }
 
   return _page(branch.route);
@@ -175,6 +184,7 @@ ChromePolicy shellChromePolicyForPath(String location) {
     AppRoutes.appModeSettings,
     AppRoutes.measurementUnitsSettings,
     AppRoutes.themeSettings,
+    AppRoutes.calendarSettings,
     AppRoutes.login,
     AppRoutes.emailLogin,
     AppRoutes.emailSignup,
@@ -1498,24 +1508,30 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.appSettings.path,
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) {
-          final currentMode = appModeController.selectedMode;
-          if (currentMode == null) return const SizedBox.shrink();
+        builder: (context, state) => Consumer(
+          builder: (context, ref, _) {
+            final currentMode = appModeController.selectedMode;
+            if (currentMode == null) return const SizedBox.shrink();
+            final calendar = ref.watch(calendarPreferencesControllerProvider);
 
-          return AppSettingsPage(
-            currentMode: currentMode,
-            currentThemeMode: appThemeController.selectedMode,
-            onAppModePressed: () =>
-                context.push(AppRoutes.appModeSettings.path),
-            onThemePressed: () => showThemeSelectionBottomSheet(
-              context: context,
-              currentMode: appThemeController.selectedMode,
-              onThemeSelected: (mode) => appThemeController.select(mode),
-            ),
-            onMeasurementUnitsPressed: () =>
-                context.push(AppRoutes.measurementUnitsSettings.path),
-          );
-        },
+            return AppSettingsPage(
+              currentMode: currentMode,
+              currentThemeMode: appThemeController.selectedMode,
+              currentFirstDayOfWeek: calendar.firstDayOfWeek,
+              onAppModePressed: () =>
+                  context.push(AppRoutes.appModeSettings.path),
+              onThemePressed: () => showThemeSelectionBottomSheet(
+                context: context,
+                currentMode: appThemeController.selectedMode,
+                onThemeSelected: (mode) => appThemeController.select(mode),
+              ),
+              onMeasurementUnitsPressed: () =>
+                  context.push(AppRoutes.measurementUnitsSettings.path),
+              onCalendarPressed: () =>
+                  context.push(AppRoutes.calendarSettings.path),
+            );
+          },
+        ),
       ),
       GoRoute(
         path: AppRoutes.appModeSettings.path,
@@ -1532,6 +1548,23 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             },
           );
         },
+      ),
+      GoRoute(
+        path: AppRoutes.calendarSettings.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => Consumer(
+          builder: (context, ref, _) {
+            final calendar = ref.watch(calendarPreferencesControllerProvider);
+            return CalendarSettingsPage(
+              firstDayOfWeek: calendar.firstDayOfWeek,
+              onFirstDayOfWeekChanged: calendar.select,
+              errorText: calendar.saveError == null
+                  ? null
+                  : 'Could not save your calendar preference. '
+                      'Please try again.',
+            );
+          },
+        ),
       ),
       GoRoute(
         path: AppRoutes.themeSettings.path,

@@ -18,7 +18,7 @@ This document defines where code should live in `tio-world`.
 | `apps/features/workout` | Workout feature package and all workout screens/flows. |
 | `apps/features/nutrition` | Nutrition feature package and all nutrition screens/flows. |
 | `apps/features/profile` | Profile launcher, account summary, personal info UI, and fitness hub entry points. |
-| `apps/features/settings` | App preferences, account controls, units, notifications, export, about, settings navigation, and the bounded S0-B2 HydrationPreferences owner ([ADR-0008](adr/0008-settings-hydration-preferences-owner.md)). |
+| `apps/features/settings` | App preferences, account controls, units, notifications, export, about, settings navigation, the bounded S0-B2 HydrationPreferences owner ([ADR-0008](adr/0008-settings-hydration-preferences-owner.md)), and the TNYX-72 local Calendar Preferences domain/repository. |
 | `apps/features/progress` | Weight, measurements, progress photos, streaks, trends, achievements, and analytics screens. |
 | `apps/features/coaching` | Coach UI package and backend-facing coaching contracts. |
 | future `apps/features/recovery` | Recovery, readiness, and rest context after its first approved vertical slice. |
@@ -98,6 +98,7 @@ Create missing paths only when a real implementation slice needs them.
 - Wear OS may initiate nutrition quick actions through stable nutrition contracts, but it does not own the full nutrition diary or Meal Plan editing.
 - Progress owns weight, measurements, progress photos, streaks, trends, achievements, and analytics.
 - S0-B2 assigns `HydrationPreferences`, its repository contract and device-local `SharedPreferencesAsync` adapter to Settings. `apps/app` only constructs/injects the adapter and clears it at explicit account boundaries. `default_glass_size_ml` is a local convenience key, not account-synced data; no owner belongs in Progress, shared, Wellness targets, Profile, Nutrition or a speculative hydration package. Future hydration logging must consume or explicitly supersede this preference. This narrow exception does not move Water Goal, Units, Profile or other feature ownership into Settings.
+- TNYX-72 assigns `CalendarPreferences`, its repository contract and device-local `SharedPreferencesAsync` adapter to Settings. `apps/app` owns only controller construction, startup hydration, route registration and resolution of the saved enum to a `DateTime.monday`..`DateTime.sunday` value. All calendar consumers receive that resolved value through app composition; Nutrition does not persist or resolve it, and no feature may create a parallel week-start preference. V1 has no Automatic/System value and no Supabase/remote sync. Core's nullable `resolvedFirstDayOfWeek` remains a generic locale-fallback seam when a caller supplies no resolved value.
 - Recovery will own readiness and rest calculations/presentation when its first vertical slice is approved. No other feature calculates Recovery locally.
 - Coaching may read workout, nutrition, progress, recovery, and profile data through clear contracts.
 - Promoting Routine Library or Meal Plan into a future custom navigation slot does not create a new feature owner or duplicate the route/screen.

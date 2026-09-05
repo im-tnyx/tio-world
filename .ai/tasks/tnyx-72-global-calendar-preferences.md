@@ -1,0 +1,228 @@
+# TNYX-72 — Global Calendar Preferences: First day of week
+
+**Status:** In review
+**Primary owner:** Settings / app composition
+**Affected platforms:** Flutter phone app (`apps/app`, `apps/core`, `apps/features/settings`, `apps/features/nutrition`)
+
+## Owner Approval and Scope Boundary
+
+**Trigger:** New independently scoped product task/feature slice
+**Approval status:** Approved
+**Approval evidence:** TNYX-72 implementation prompt; tracker state verified as `Todo` before implementation.
+**Approved product/UI/data-shape boundaries:** `Settings → App Preferences → Calendar → First day of week`; V1 values `monday` through `sunday`; Monday default; device-local persistence; app-global consumption; immediate apply; no Supabase sync.
+**Explicit non-changes:** No Supabase mutation, migration, schema/RLS/grant/storage change, remote sync, TNYX-155 start, feature-specific week-start preferences, Workout/Meal Plan/Progress calendar work, merge, or Done status.
+
+## Active Handoff
+
+**Planning owner:** Claude / prior implementation session
+**Implementation owner:** Codex
+**Review owner:** Codex
+**Implementation ownership state:** Complete — implementation and review remediation published; only this task-record synchronization remains
+**Ownership transition:** Published implementation owner → Codex review-fix owner
+**Repository state last verified:** 2026-09-05; branch worktree clean; `origin/main` base is `ce5f29e2e00fb92c266c52b05c55fb676e244406`.
+**Branch:** `tnyx/tnyx-72-global-calendar-preferences-first-day-of-week`
+**Review baseline head:** `875a5646a3f79d109b58a4da42563a8ad99e3b5f` (the first published implementation, against which the original four findings were raised).
+**Latest reviewed production-code head before this task-record-only sync:** `606151393749d52fa63b481c37cf1bf7f391846e`.
+**Current branch HEAD:** Authoritative from `git` and PR metadata; do not duplicate a self-referential SHA into this file.
+**Observed working-tree state:** Clean; all runtime and documentation work is published.
+**Observed uncommitted/dirty files:** None other than this task record during its own synchronization.
+**PR / tracker:** PR [#212](https://github.com/im-tnyx/tio-world/pull/212) is open and non-draft; tracker is `In Review`.
+**Current implementation state:** Implementation and review remediation are published. All seven review findings raised across the three rounds are fixed, and all seven corresponding PR threads are resolved. The most recent production-code review found no runtime or product blocker. Nothing about the runtime, the product contract or the tests is outstanding.
+**Relevant execution surface:** `.ai/tasks` only for the remaining work. The published slice spans `apps/features/settings`, `apps/app`, `apps/features/nutrition`, `apps/core` and `docs`.
+**Validation completed:** Production-code head `606151393749d52fa63b481c37cf1bf7f391846e` passed `flutter analyze` across all 16 packages, `flutter test` with 1801 passing, `dart analyze` and `dart test` with 38 passing in `apps/shared`, and `git diff --check`. Exact-head GitHub Actions run `33966786481` completed successfully on that head. Preserved `docs/supabase-android-studio-qa-run` resolves to `7fe896820c8f176b5049df4fe84fc9acea5933b1` and remains local-only; no Supabase TNYX-72 match found.
+**Validation remaining:** None for the runtime. This task-record-only change is verified with `git diff --check` and an explicit staged-path check; the full suite is deliberately not re-run for a file no build reads.
+**Current blocker:** None.
+**Open review finding IDs:** `P1-final-handoff-sync` only, which is this task-record synchronization and is resolved by the commit carrying it. The other seven are fixed, published and thread-resolved.
+**Next exact action:** Publish this task-record synchronization, reply to and resolve its review thread, then treat PR #212 as ready for final merge-readiness verification. No merge and no `Done` transition are authorized here.
+
+## Global UI / Design-System Guardrail
+
+This task follows `.ai/tasks/design-system-token-consolidation.md`, `apps/core/lib/src/theme/README.md`, and `apps/features/AGENTS.md`. The Calendar Settings page uses the public `package:tio_core/core.dart` components; no new local token catalog or custom radio component is introduced.
+
+## 1. Discovery
+
+### User Outcome
+
+Users can choose one app-wide first day of week from Settings and see every current calendar consumer use it immediately.
+
+### Success Criteria
+
+- Monday is the default and every other day of the week is selectable (owner revision, 2026-09-05; superseded the earlier Monday/Sunday-only contract after review of the built screen). The week start is the user's preferred calendar week boundary. It is not derived from any feature's cycle: a training block or meal plan that begins on a Wednesday is a domain concept and does not imply the user's global calendar should start there. Offering all seven is justified simply because a reader may prefer any of them and the reusable calendar already lays out any start day.
+- The value is stored locally with a stable machine key and safe Monday fallback.
+- Settings owns one preference; Nutrition only receives the resolved value.
+- Meal Diary preserves selected date, range limits, visible-range reporting, and Today behavior when the value changes.
+- Core locale fallback remains available when no resolved value is supplied.
+- Tests and canonical docs describe the same local-only contract.
+
+### Scope
+
+Settings domain/data/presentation slice, app composition/provider/controller, `/settings/calendar` route and policy, Meal Diary injection, focused tests, task brief, Settings/Meal Diary/module ownership docs, and a Settings-local ADR if the existing ADR convention requires it.
+
+### Non-Goals
+
+Supabase, remote/account sync, database schema, backend APIs, feature-specific preferences, TNYX-155 cleanup, and future calendar consumers beyond the current Meal Diary seam.
+
+## 2. Codebase Exploration
+
+### Verified Evidence
+
+- Source/config inspected: existing `SharedPreferencesAsync` Hydration Preferences repository, `AppThemeController`, `TioDateCalendar`, app route/policy/composition, App Preferences and Meal Diary.
+- Existing pattern to follow: Settings-owned local repository; app-level controller/provider override; Core `TioDateCalendar.resolvedFirstDayOfWeek` nullable locale fallback; `TioSelectableCard` for selection UI.
+- Tests or validation already present: Core has baseline first-day and runtime selection coverage; Settings and app tests were updated in the dirty worktree and freshly executed below.
+
+## 3. Clarification
+
+### Decisions Required or Made
+
+| Decision | Status | Rationale | Owner |
+|---|---|---|---|
+| V1 offers all seven days, Monday first, Monday default | Revised 2026-09-05 | The owner reviewed the built two-option screen and asked for the full week. This is the reader's preferred calendar week boundary, not a feature's cycle start; all seven are offered simply because a reader may prefer any of them and Core already lays out any `DateTime.monday`..`sunday` start, so restricting the list bought nothing | TNYX-72 owner |
+| A page rather than a bottom sheet | Revised 2026-09-05 | Two options would have fitted a sheet; seven scroll badly in one, and Calendar is a preference family that will gain members | TNYX-72 owner |
+| No ordering preview on the Calendar Settings page | Revised 2026-09-05 | The option list is the ordering: it reads Monday through Sunday. A per-option preview was rejected as repetitive, and the single shared strip that replaced it was reviewed and removed as redundant decoration. A regression asserts no preview is drawn | TNYX-72 owner |
+| No help text under the heading | Revised 2026-09-05 | Four wordings were tried and each was wrong in its own way: naming every calendar promised screens that do not exist, a storage note is implementation detail, naming Meal Diary framed an app-global value as one feature's setting, and a bare scope statement repeated the options. Google Calendar, Apple, Samsung and Strava ship this setting with none. Add one only when the preference starts changing something a reader cannot guess | TNYX-72 owner |
+| Persistence is device-local | Made | Explicit implementation boundary; no Supabase work | TNYX-72 owner |
+| Settings is the sole preference owner | Made | Prevents feature-specific calendar state | TNYX-72 owner |
+| Core nullable locale fallback remains | Made | Reusable calendar API compatibility | Existing TNYX-55 contract |
+
+## 4. Architecture Design
+
+### Chosen Approach
+
+Feature-first Settings slice under `apps/features/settings/lib/src/calendar_preferences/`, with app composition owning the reactive controller/provider and resolving the saved enum to a `DateTime.monday`..`DateTime.sunday` value before passing it to calendar consumers. Option names are formatted from the locale through the shared core helper `tioWeekdayName`; Settings renders no ordering preview. `tioOrderedWeekdayLabels` is the calendar's own header-ordering helper, extracted from the inline code that header already carried, and has no Settings consumer.
+
+### Ownership and Data Flow
+
+```text
+Calendar Settings UI -> app CalendarPreferencesController -> Settings repository -> SharedPreferencesAsync
+                                                        -> resolvedFirstDayOfWeek -> app composition -> MealDiaryPage -> TioDateCalendar
+```
+
+### Alternative Rejected
+
+Per-feature week-start values, locale-only Settings behavior, a new storage service, and Supabase `user_app_preferences` persistence are outside the approved V1 contract.
+
+### Failure and Accessibility States
+
+Missing/unknown/corrupt storage falls back to Monday. Writes apply through the existing queued controller pattern; a write error remains visible through the Settings page's existing error presentation style. Options use the shared selectable-card semantics and adequate tappable surface.
+
+## 5. Implementation Plan
+
+- [x] Reconstruct current dirty implementation and record Claude → Codex takeover.
+- [x] Verify and complete Settings domain/data/controller/provider and app startup wiring.
+- [x] Verify and complete Calendar route, App Preferences entry, and Meal Diary injection.
+- [x] Add focused repository, controller, Calendar Settings UI, app composition, and Core regression coverage.
+- [x] Update canonical Settings/Meal Diary/module ownership documentation and add the local-preference ADR.
+- [x] Run focused and full applicable validation; refresh this brief with exact evidence.
+
+## 6. Quality Review
+
+### Validation Run
+
+```text
+Static checks:
+- `git diff --check` — PASS.
+- `main` == `origin/main` at `ce5f29e2e00fb92c266c52b05c55fb676e244406` — PASS using existing local refs.
+- Preserved `docs/supabase-android-studio-qa-run` remains at `7fe896820c8f176b5049df4fe84fc9acea5933b1` — PASS.
+- Flutter `3.44.6` / Dart `3.12.2` from `G:\dev\flutter-sdk` — PASS.
+- Melos `2.9.0` from task-local `PUB_CACHE` — PASS; shared `G:\dev\pub-cache` was not overwritten.
+- `melos bootstrap` — PASS; 16 packages bootstrapped.
+- `melos exec -c 1 --flutter --fail-fast -- "flutter analyze --no-pub"` — PASS; package analyses reported no issues.
+- `melos exec -c 1 --no-flutter --fail-fast -- "dart analyze ."` — PASS; `tio_shared` reported no issues.
+- `melos exec -c 1 --flutter --dir-exists=test --fail-fast -- "flutter pub get && flutter test --no-pub"` — PASS; final exit code `0`.
+- `melos exec -c 1 --no-flutter --dir-exists=test --fail-fast -- "dart test"` — PASS; 38 tests passed.
+- Focused Settings suite — PASS; 32 tests passed.
+- Focused app suite — PASS; 29 tests passed.
+- Focused Core calendar suite — PASS; 45 tests passed.
+- Focused Nutrition Meal Diary suite — PASS; 22 tests passed.
+
+Review-fix validation (working tree after review baseline `875a5646a3f79d109b58a4da42563a8ad99e3b5f`):
+- Focused app Calendar Preferences controller + Calendar Settings route — PASS; 22 tests passed.
+- Focused Calendar Settings package domain/data/presentation — PASS; 11 tests passed.
+- Focused Core `TioDateCalendar` suite — PASS; 47 tests passed.
+- Focused Nutrition Meal Diary suite — PASS; 22 tests passed.
+- Repository-wide Flutter analyze (`15` packages) — PASS.
+- Repository-wide Flutter test (`13` package targets) — PASS.
+- Pure-Dart analyze — PASS.
+- Pure-Dart tests — PASS; 38 tests passed.
+- `git diff --check` — PASS.
+
+Final production-code validation at head
+`606151393749d52fa63b481c37cf1bf7f391846e`:
+- `flutter analyze` across all 16 packages — PASS; no issues found.
+- `flutter test` across every package with tests — PASS; 1801 passed, 0 failed.
+- `dart analyze` in `apps/shared` — PASS.
+- `dart test` in `apps/shared` — PASS; 38 tests passed.
+- Focused Core `TioDateCalendar` — PASS; 49 tests passed.
+- Focused Core weekday label helpers — PASS; 6 tests passed.
+- Focused Calendar Settings page — PASS; 9 tests passed.
+- Focused Calendar Preferences controller — PASS; 10 tests passed.
+- Focused Nutrition Meal Diary — PASS; 22 tests passed.
+- The four new controller regressions were verified failing on the previous
+  head `bc38ba3baa740dce36994c9ff243f87bf5a76dcf` (controller stashed, suite
+  re-run reported `+6 -4`), so they pin the reported defect rather than the
+  fix.
+- `git diff --check` — PASS.
+- Exact-head GitHub Actions `Analyze and test` run `33966786481` — SUCCESS.
+
+Task-record-only synchronization (this change):
+- `git diff --check` — PASS.
+- `git diff --name-only` — `.ai/tasks/tnyx-72-global-calendar-preferences.md`
+  only; no production source, test or docs file is touched.
+- The full suite is deliberately not re-run: no build, analyzer or test reads
+  this file, so re-running would produce evidence about an unchanged tree.
+```
+
+### Review Findings and Resolution
+
+Seven findings were raised across three review rounds. All seven are fixed,
+published and thread-resolved; an eighth entry records this task-record
+synchronization until its own commit is published.
+
+| ID | Severity | Status | Finding | Observed at SHA | Fixed in | Evidence |
+|---|---|---|---|---|---|---|
+| P1-task-handoff | P1 | Resolved | Published task handoff still described a dirty pre-commit worktree and pending PR. | `875a5646a3` | `84719aa9c8` | Active Handoff refreshed; thread resolved. |
+| P2-async-persistence-future | P2 | Resolved | Calendar Settings discarded the asynchronous persistence Future. | `875a5646a3` | `454d4f12ad` | Async callback consumes the controller Future; route retry regression passed; thread resolved. |
+| P2-load-vs-save-error | P2 | Resolved | A startup read failure could render save-failure copy before a user selection. | `875a5646a3` | `454d4f12ad` | Controller load/save errors separated; route regression passed; thread resolved. |
+| P2-week-pager-anchor | P2 | Resolved | Replacing the week controller could preserve a stale numeric PageView position after framing changed. | `875a5646a3` | `454d4f12ad` | Framing-keyed week and symmetric month pagers plus differing-index regressions passed; thread resolved. |
+| P2-publish-before-write | P2 | Resolved | The selected week start was published only after the device-local write completed, so a slow store held the UI on the old value. | `84719aa9c8` | `cf9adae369` | Optimistic publish with rollback on failure; `publishes the chosen week start before storage answers` regression; thread resolved. |
+| P2-rapid-second-selection | P2 | Resolved | The optimistic publish still sat inside the queued write, so a second tap could not apply until the first write answered. | `bc38ba3baa` | `6061513937` | Publish moved outside the queue with a selection revision guarding stale rollback/error; four regressions, all verified failing on `bc38ba3baa`; thread resolved. |
+| P1-stale-preview-contract | P1 | Resolved | The task brief and tracker still required an ordering preview the approved UI had removed. | `bc38ba3baa` | `6061513937` | Decision rows and Architecture section corrected; Linear acceptance replaced; thread resolved. |
+| P1-final-handoff-sync | P1 | Current remediation | The Active Handoff, findings table and Final Handoff still described the first review round as in progress. | `6061513937` | this commit | Task-record-only change; `git diff --check` PASS and a single changed path. |
+
+## 7. Final Handoff
+
+### Changed Files
+
+- `.ai/tasks/tnyx-72-global-calendar-preferences.md`
+- `apps/app` calendar controller/provider, startup hydration, routing/policy and app integration tests
+- `apps/core` calendar visible-anchor behavior, the shared `tioWeekdayName`/`tioOrderedWeekdayLabels` helpers the weekday header now draws from, the theme README entry and regression tests
+- `apps/features/settings` Calendar Preferences domain/data/presentation and Settings entry/tests
+- `apps/features/nutrition` Meal Diary resolved week-start forwarding
+- `docs/screens/settings.md`, `docs/screens/meal-diary.md`, `docs/MODULE_OWNERSHIP.md`, `docs/adr/README.md`, `docs/adr/0010-settings-local-calendar-first-day-of-week.md`
+- `.ai/tasks/tnyx-55-core-date-calendar-meal-diary.md` stale decision reconciliation
+
+### Actual Behavior
+
+V1 exposes Monday (default) through Sunday at `Settings → App Preferences → Calendar → First day of week`. The saved value is device-local, resolved app-wide to a `DateTime.monday`..`DateTime.sunday` value, and forwarded to Meal Diary/Core without Nutrition-owned persistence. Selection publishes before the write completes and rolls back if it fails. Core preserves the visible anchor when week-start changes, recalculates the visible range, retains selected-date/range ownership, and keeps its nullable locale fallback.
+
+### Current Review State
+
+PR #212 is published and remains `In Review`, open and non-draft.
+
+The product and runtime implementation has passed local validation and
+exact-head CI: `flutter analyze` clean across 16 packages, 1801 Flutter tests
+and 38 Dart tests passing, `git diff --check` clean, and GitHub Actions run
+`33966786481` successful on production-code head
+`606151393749d52fa63b481c37cf1bf7f391846e`.
+
+All seven implementation and review findings have been addressed and their PR
+threads resolved. The most recent production-code review found no runtime or
+product blocker. This task-record synchronization is the final governance
+cleanup before merge-readiness verification.
+
+No merge has occurred and TNYX-72 has not been moved to `Done`; neither is
+authorized here.
+
+### Final Status
+
+`REVIEW`

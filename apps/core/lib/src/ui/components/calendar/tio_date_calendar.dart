@@ -1,11 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../../../theme/theme.dart';
 import 'tio_date_calendar_display_mode.dart';
 import 'tio_date_decoration.dart';
+import 'tio_weekday_labels.dart';
 
 /// Reports the inclusive primary date range owned by the visible page.
 ///
@@ -358,6 +358,14 @@ class _TioDateCalendarState extends State<TioDateCalendar>
         _pagerMaxDate == _maxDate) {
       return;
     }
+
+    // Reframing the calendar must not turn a preference change into a hidden
+    // navigation action. Keep the date that was at the leading edge of the
+    // visible range as the new pager anchor; only the first paint has no
+    // visible range yet, in which case the caller's selected date is the
+    // honest initial anchor.
+    final weekAnchor = _visibleRangeStart ?? _selectedDate;
+    final monthAnchor = _visibleMonth;
     _pagerFirstDayOfWeek = firstDayOfWeek;
     _pagerMinDate = _minDate;
     _pagerMaxDate = _maxDate;
@@ -366,10 +374,10 @@ class _TioDateCalendarState extends State<TioDateCalendar>
 
     _weekPages?.dispose();
     _weekPages = PageController(
-      initialPage: _weekPageOf(_selectedDate, firstDayOfWeek),
+      initialPage: _weekPageOf(weekAnchor, firstDayOfWeek),
     );
     _monthPages?.dispose();
-    _monthPages = PageController(initialPage: _monthPageOf(_selectedDate));
+    _monthPages = PageController(initialPage: _monthPageOf(monthAnchor));
 
     // A jump requested before this widget existed has been sitting on the
     // controller with nobody listening. The pagers exist now, so honour it.
@@ -383,7 +391,10 @@ class _TioDateCalendarState extends State<TioDateCalendar>
       _pendingMonthReveal = pending;
     }
 
-    _seedVisibleRange(pending ?? _selectedDate, firstDayOfWeek);
+    _seedVisibleRange(
+      pending ?? (_mode.isMonth ? monthAnchor : weekAnchor),
+      firstDayOfWeek,
+    );
     _scheduleVisibleRangeReport();
     if (mounted) setState(() {});
   }
@@ -767,36 +778,50 @@ class _TioDateCalendarState extends State<TioDateCalendar>
 
     _drainPendingReveal(_pendingWeekReveal);
 
-    return PageView.builder(
-      key: const ValueKey('tio-date-calendar-week-pager'),
-      controller: pager,
-      itemCount: _weekPageCount,
-      onPageChanged: (page) {
-        // Both pagers stay mounted through the expand animation, and moving
-        // one moves the other. Only the rendering actually on screen may
-        // report what is visible.
-        if (_mode.isMonth) return;
-        _reportVisibleWeek(page, firstDayOfWeek);
-      },
-      itemBuilder: (context, page) {
-        final weekStart = _addDays(
-            _startOfWeek(_minDate, firstDayOfWeek), page * _daysPerWeek);
-        return Align(
-          alignment: Alignment.topCenter,
-          child: SizedBox(
-            height: _compactRowHeight,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: TioSpacing.xs),
-              child: Row(
-                children: [
-                  for (var i = 0; i < _daysPerWeek; i++)
-                    Expanded(child: _cellFor(_addDays(weekStart, i))),
-                ],
+    return KeyedSubtree(
+      // A numeric page means a different week whenever one of these framing
+      // inputs changes. Recreate PageView state so the new controller's
+      // initialPage anchors the same visible date context instead of retaining
+      // a stale ScrollPosition at the old numeric page.
+      key: ValueKey<Object>(
+        (
+          'tio-date-calendar-week-frame',
+          firstDayOfWeek,
+          _pagerMinDate,
+          _pagerMaxDate,
+        ),
+      ),
+      child: PageView.builder(
+        key: const ValueKey('tio-date-calendar-week-pager'),
+        controller: pager,
+        itemCount: _weekPageCount,
+        onPageChanged: (page) {
+          // Both pagers stay mounted through the expand animation, and moving
+          // one moves the other. Only the rendering actually on screen may
+          // report what is visible.
+          if (_mode.isMonth) return;
+          _reportVisibleWeek(page, firstDayOfWeek);
+        },
+        itemBuilder: (context, page) {
+          final weekStart = _addDays(
+              _startOfWeek(_minDate, firstDayOfWeek), page * _daysPerWeek);
+          return Align(
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              height: _compactRowHeight,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: TioSpacing.xs),
+                child: Row(
+                  children: [
+                    for (var i = 0; i < _daysPerWeek; i++)
+                      Expanded(child: _cellFor(_addDays(weekStart, i))),
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -806,49 +831,63 @@ class _TioDateCalendarState extends State<TioDateCalendar>
 
     _drainPendingReveal(_pendingMonthReveal);
 
-    return PageView.builder(
-      key: const ValueKey('tio-date-calendar-month-pager'),
-      controller: pager,
-      itemCount: _monthPageCount,
-      onPageChanged: (page) {
-        setState(() => _visibleMonth = _monthForPage(page));
-        if (!_mode.isMonth) return;
-        _reportVisibleMonth(page);
-      },
-      itemBuilder: (context, page) {
-        final month = _monthForPage(page);
-        final leading =
-            (DateTime(month.year, month.month).weekday - firstDayOfWeek) %
-                _daysPerWeek;
+    return KeyedSubtree(
+      // PageView keeps an already-built page alive when weekday convention or
+      // range framing changes. Re-keying makes both the grid and its controller
+      // rebuild at the same visible month without changing the public pager
+      // key.
+      key: ValueKey<Object>(
+        (
+          'tio-date-calendar-month-frame',
+          firstDayOfWeek,
+          _pagerMinDate,
+          _pagerMaxDate,
+        ),
+      ),
+      child: PageView.builder(
+        key: const ValueKey('tio-date-calendar-month-pager'),
+        controller: pager,
+        itemCount: _monthPageCount,
+        onPageChanged: (page) {
+          setState(() => _visibleMonth = _monthForPage(page));
+          if (!_mode.isMonth) return;
+          _reportVisibleMonth(page);
+        },
+        itemBuilder: (context, page) {
+          final month = _monthForPage(page);
+          final leading =
+              (DateTime(month.year, month.month).weekday - firstDayOfWeek) %
+                  _daysPerWeek;
 
-        return Column(
-          children: [
-            for (var row = 0; row < _monthGridRows; row++)
-              SizedBox(
-                height: _monthRowHeight,
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: TioSpacing.xs),
-                  child: Row(
-                    children: [
-                      for (var column = 0; column < _daysPerWeek; column++)
-                        Expanded(
-                          child: _cellFor(
-                            DateTime(
-                              month.year,
-                              month.month,
-                              1 + (row * _daysPerWeek) + column - leading,
+          return Column(
+            children: [
+              for (var row = 0; row < _monthGridRows; row++)
+                SizedBox(
+                  height: _monthRowHeight,
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: TioSpacing.xs),
+                    child: Row(
+                      children: [
+                        for (var column = 0; column < _daysPerWeek; column++)
+                          Expanded(
+                            child: _cellFor(
+                              DateTime(
+                                month.year,
+                                month.month,
+                                1 + (row * _daysPerWeek) + column - leading,
+                              ),
+                              contextMonth: month,
                             ),
-                            contextMonth: month,
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-          ],
-        );
-      },
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -922,13 +961,11 @@ class _WeekdayHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
-    final localeName = Localizations.localeOf(context).toString();
-    final shortWeekdays = List<String>.generate(
-      _daysPerWeek,
-      (index) => DateFormat.E(localeName)
-          .format(DateTime(2024, DateTime.january, 7 + index))
-          .toUpperCase(),
-      growable: false,
+    // One shared ordering helper, so the header and any Settings preview of
+    // the same choice can never disagree about what a week looks like.
+    final labels = tioOrderedWeekdayLabels(
+      firstDayOfWeek: firstDayOfWeek,
+      localeName: Localizations.localeOf(context).toString(),
     );
 
     return Padding(
@@ -942,7 +979,7 @@ class _WeekdayHeader extends StatelessWidget {
               Expanded(
                 child: ExcludeSemantics(
                   child: Text(
-                    shortWeekdays[(firstDayOfWeek + column) % _daysPerWeek],
+                    labels[column],
                     textAlign: TextAlign.center,
                     style: _columnStyle(
                       textTheme.labelSmall,

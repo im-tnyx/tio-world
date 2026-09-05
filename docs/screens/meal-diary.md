@@ -20,7 +20,7 @@ Show today's meals and water entries, make approved entries easy to add or corre
 - Nutrition owns only the thin adapter — `selectedDate`, `localToday`, a bounded history window and `maxDate = localToday`, so future dates are unreachable.
 - When another day is selected or the calendar is paged away from the range containing Today, the Nutrition top bar shows the approved calendar glyph immediately left of the fixed right-side streak without a redundant gap. Today's day number appears inside the glyph; tapping it selects Today and returns the viewport to Today's week/month. It is absent only when Today is selected and visible, and its appearance never moves the streak.
 - The local day advances without leaving the screen: the page owns a one-shot timer aimed at the next local calendar boundary and also refreshes on app resume. A historical selection is never moved by the rollover; only `localToday` and `maxDate` advance.
-- First day of week is not owned here. It is one app-global Calendar Preferences value; until that resolver exists the calendar falls back to the platform locale.
+- First day of week is not owned here. `apps/app` resolves the Settings-owned app-global Calendar Preferences value and passes it through `MealDiaryPage` as `resolvedFirstDayOfWeek`; Nutrition forwards it to `TioDateCalendar` without persisting, resolving or caching a second preference. Core's nullable input still permits its locale fallback when no resolved value is supplied.
 - No per-date decorations are supplied, because no meal-log data exists. Missing progress stays missing rather than being drawn as zero.
 - Below the calendar the selected day shows its date and states plainly that meal logging is not available yet.
 
