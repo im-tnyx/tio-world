@@ -152,7 +152,7 @@ PENDING: GitHub Flutter CI exact-head full analyze/test matrix.
 | QR-2 | P1 | Resolved | A fully visible 236dp picker is impossible in the deliberately smaller keyboard viewport; the test asserted an impossible geometry rather than usability. | working tree | Assert visible intersection, centered wheel reachability/interaction, pinned footer, and no overflow. |
 | QR-3 | P2 | Resolved | The first generic weight migration omitted the old lb upper/lower clamp on decimal changes. | working tree | Restored canonical kg bounds after lb conversion. |
 | QR-4 | P1 | Resolved | First PR CI stopped in Core analysis on one extra parenthesis and nullable callback indices that were not promoted after `??=`. | `3d450e09` | Rewrote the decimal getter and resolved nullable inputs into non-null local values; next exact-head CI pending. |
-| QR-5 | P1 | Resolved | A boundary overscroll could report the unchanged raw wheel index, causing a no-op domain callback and selection haptic. | `b92ec6b3` | Generic column now ignores zero-detent callbacks; the Date maximum test remains strict. |
+| QR-5 | P1 | Resolved | A boundary overscroll could report an unchanged raw index or bounded DateTime, causing a no-op domain callback and possible selection haptic. | `b92ec6b3`, `b758eb48` | Generic column ignores zero-detent callbacks and DateTime composition suppresses unresolved no-op candidates; resolver snap-back still synchronizes. |
 
 ## 7. Final Handoff
 

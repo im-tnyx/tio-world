@@ -104,6 +104,7 @@ class _TioDateTimeWheelPickerState extends State<TioDateTimeWheelPicker> {
       _minute(widget.resolveDateTime?.call(normalized) ?? normalized),
     );
     final wasResolved = resolved != normalized;
+    if (resolved == _selected && !wasResolved) return;
 
     setState(() {
       _selected = resolved;
