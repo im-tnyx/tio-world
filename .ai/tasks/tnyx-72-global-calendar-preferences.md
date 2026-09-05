@@ -1,6 +1,6 @@
 # TNYX-72 — Global Calendar Preferences: First day of week
 
-**Status:** In progress
+**Status:** In review
 **Primary owner:** Settings / app composition
 **Affected platforms:** Flutter phone app (`apps/app`, `apps/core`, `apps/features/settings`, `apps/features/nutrition`)
 
@@ -25,14 +25,14 @@
 **Current branch HEAD:** Authoritative from `git` and PR metadata; do not duplicate a self-referential SHA into this file.
 **Observed working-tree state:** Clean published implementation before review-fix edits.
 **Observed uncommitted/dirty files:** None before review-fix work began.
-**PR / tracker:** PR [#212](https://github.com/im-tnyx/tio-world/pull/212) is open and non-draft; tracker is `In Progress` pending the requested review-state update.
-**Current implementation state:** The published TNYX-72 implementation has all four valid review findings fixed and locally validated. Current work is limited to publishing the additive review-fix commit, replying/resolving the corresponding threads, and exact-head CI/review verification; no original implementation publication step remains.
+**PR / tracker:** PR [#212](https://github.com/im-tnyx/tio-world/pull/212) is open and non-draft; tracker is `In Review`.
+**Current implementation state:** The published TNYX-72 implementation has all four valid review findings fixed and locally validated. The additive review-fix commit is published; current work is limited to replying/resolving the corresponding threads and exact-head CI/review verification. No implementation publication step remains.
 **Relevant execution surface:** `apps/features/settings`, `apps/app`, `apps/features/nutrition`, `apps/core`, `docs`, `.ai/tasks`.
-**Validation completed at SHA:** `875a5646a3f79d109b58a4da42563a8ad99e3b5f` passed the recorded local Flutter/Dart/Melos suites and `git diff --check`; its exact-head Flutter CI run `33960233608` succeeded. Preserved `docs/supabase-android-studio-qa-run` resolves to `7fe896820c8f176b5049df4fe84fc9acea5933b1`; no Supabase TNYX-72 match found.
-**Validation remaining:** Publish the review-fix commit, then exact-head GitHub Actions and review-thread verification.
+**Validation completed for review fixes:** Published review-fix commit `454d4f12ad81d512038ef4da56a31535d29a0bc4` passed the recorded local Flutter/Dart/Melos suites and `git diff --check`; exact-head Flutter CI/review verification remains in progress. Preserved `docs/supabase-android-studio-qa-run` resolves to `7fe896820c8f176b5049df4fe84fc9acea5933b1`; no Supabase TNYX-72 match found.
+**Validation remaining:** Exact-head GitHub Actions and review-thread verification.
 **Current blocker:** None locally.
 **Open review finding IDs:** None locally; `P1-task-handoff`, `P2-async-persistence-future`, `P2-load-vs-save-error`, and `P2-week-pager-anchor` are fixed and locally validated against review baseline `875a5646a3f79d109b58a4da42563a8ad99e3b5f`. Published-thread verification remains pending.
-**Next exact action:** Commit and push the additive review-fix commit, then reply to and resolve only the published fixed PR threads.
+**Next exact action:** Reply to and resolve only the published fixed PR threads, then complete exact-head CI/review verification.
 
 ## Global UI / Design-System Guardrail
 
