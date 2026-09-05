@@ -57,10 +57,14 @@ selected or Today Sundays use full danger. A solid completed-day fill keeps `onP
 
 **Owner weekday-header Today correction (2026-09-05):** Today's emphasis must reach the shared weekday header,
 not only the date numeral. Exactly one column is emphasised — the column carrying `localToday` — so with Today on
-a Saturday the 5th, both `SAT` and `5` read strong while the other six columns stay muted. The emphasis is derived
-from `localToday`, never from `selectedDate`: it survives paging to a week or month that does not contain Today,
-and tapping another date does not move it, which keeps the outer ring the only selection signal. A Sunday Today
-keeps the semantic danger color and only loses its muting.
+a Saturday the 5th, both `SAT` and `5` read strong while the other six columns stay muted. Today weekday emphasis
+is shown only while `localToday` belongs to the active visible calendar range. Paging away removes that emphasis;
+returning to Today restores it. Selection never controls the header emphasis. The emphasis is never moved to
+another weekday because the reader scrolled, and is never derived from `selectedDate` or from the midpoint
+`visibleMonth`. A Sunday Today keeps the semantic danger color and only loses its muting; when Today is off
+screen every column, Sunday included, returns to its ordinary styling. Core resolves visibility from the same
+active-range truth that feeds `onVisibleDateRangeChanged`, so the header and the top-bar month label can never
+disagree about what is visible.
 
 **Superseded owner cut-size correction (2026-09-05):** reducing only the visible grabber left the transparent cut too
 large. Preserve the reference's 1.25 outer-to-inner width ratio while fitting the 80dp grabber: reduce the cut

@@ -940,16 +940,72 @@ void main() {
       expect(_weekdayStyle(tester, 'THU').fontWeight, TioFontWeight.w700);
     });
 
-    testWidgets("paging away from today keeps the header on today's weekday",
+    testWidgets('paging away from today drops the emphasis entirely',
         (tester) async {
       await _pump(tester);
+      expect(_weekdayStyle(tester, 'THU').fontWeight, TioFontWeight.w700);
 
       await tester.fling(_pager(), const Offset(400, 0), 1200);
       await tester.pumpAndSettle();
 
-      // Today is off screen now. The header still answers "what day is it".
+      // Today is off screen, so the header has nothing to point at. The
+      // emphasis is dropped rather than left bold over a week Today is not in.
       expect(_cell(_today), findsNothing);
+      for (final label in const [
+        'SUN',
+        'MON',
+        'TUE',
+        'WED',
+        'THU',
+        'FRI',
+        'SAT',
+      ]) {
+        expect(
+          _weekdayStyle(tester, label).fontWeight,
+          TioFontWeight.w500,
+          reason: '$label must not inherit the emphasis Today left behind',
+        );
+      }
+      // Sunday keeps its own colour contract, which Today never owned.
+      expect(
+        _weekdayStyle(tester, 'SUN').color,
+        TioColors.light.danger.withAlpha(TioAlpha.alpha140),
+      );
+    });
+
+    testWidgets('returning to today restores the emphasis', (tester) async {
+      final controller = TioDateCalendarController();
+      addTearDown(controller.dispose);
+
+      await _pump(tester, controller: controller);
+
+      await tester.fling(_pager(), const Offset(400, 0), 1200);
+      await tester.pumpAndSettle();
+      expect(_weekdayStyle(tester, 'THU').fontWeight, TioFontWeight.w500);
+
+      // The same reveal seam the Meal Diary Today action drives. Core is not
+      // asked to grow a product-level Today button for this.
+      controller.jumpToDate(_today);
+      await tester.pumpAndSettle();
+
+      expect(_cell(_today), findsOne);
       expect(_weekdayStyle(tester, 'THU').fontWeight, TioFontWeight.w700);
+    });
+
+    testWidgets('the month rendering follows the same visible range',
+        (tester) async {
+      await _pump(tester, displayMode: TioDateCalendarDisplayMode.month);
+      expect(_weekdayStyle(tester, 'THU').fontWeight, TioFontWeight.w700);
+
+      // A wider range so there is a Today-less month to page to.
+      await _pump(
+        tester,
+        displayMode: TioDateCalendarDisplayMode.month,
+        minDate: DateTime(2026, 6, 1),
+        initialSelected: DateTime(2026, 6, 10),
+      );
+
+      expect(_weekdayStyle(tester, 'THU').fontWeight, TioFontWeight.w500);
     });
 
     testWidgets('selecting another date does not move the emphasis',
@@ -971,8 +1027,13 @@ void main() {
       await _pump(tester);
       final mutedSunday = _weekdayStyle(tester, 'SUN');
 
-      // Sunday 23 Aug 2026.
-      await _pump(tester, localToday: DateTime(2026, 8, 23));
+      // Sunday 23 Aug 2026, with the selection put in Today's own week so the
+      // emphasis is being judged on Today's visibility, not on the selection.
+      await _pump(
+        tester,
+        localToday: DateTime(2026, 8, 23),
+        initialSelected: DateTime(2026, 8, 25),
+      );
       final todaySunday = _weekdayStyle(tester, 'SUN');
 
       expect(mutedSunday.fontWeight, TioFontWeight.w500);

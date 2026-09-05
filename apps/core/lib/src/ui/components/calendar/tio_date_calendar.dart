@@ -204,8 +204,16 @@ class _TioDateCalendarState extends State<TioDateCalendar>
   double _dragStartValue = 0;
   DateTime? _pendingWeekReveal;
   DateTime? _pendingMonthReveal;
-  DateTime? _lastReportedRangeStart;
-  DateTime? _lastReportedRangeEnd;
+  /// The range currently on screen. One definition, read both by the visible
+  /// range callback and by Today's header emphasis, so the two can never
+  /// disagree about what "visible" means.
+  DateTime? _visibleRangeStart;
+  DateTime? _visibleRangeEnd;
+
+  /// What the caller was last told. Kept apart from the range itself so that
+  /// seeding the range for the first paint cannot swallow the first report.
+  DateTime? _announcedRangeStart;
+  DateTime? _announcedRangeEnd;
 
   /// The exact inputs the two pagers were built from. Page counts alone are not
   /// enough: a range can move while its week count stays identical, which would
@@ -231,6 +239,24 @@ class _TioDateCalendarState extends State<TioDateCalendar>
   DateTime get _maxDate => _dateOnly(widget.maxDate);
   DateTime get _selectedDate => _dateOnly(widget.selectedDate);
   DateTime get _localToday => _dateOnly(widget.localToday);
+
+  /// Whether the caller's today sits inside the range currently on screen.
+  ///
+  /// This is the question Today's weekday emphasis answers: where is Today in
+  /// what I am looking at — not what weekday Today is in the abstract. Paging
+  /// to a week Today is not in therefore drops the emphasis rather than leaving
+  /// a bold column pointing at nothing.
+  ///
+  /// Month mode uses the calendar month, the same range the visible-range
+  /// callback reports, so a neighbouring month's day filling a grid row does
+  /// not count as Today being on screen.
+  bool get _isTodayVisible {
+    final start = _visibleRangeStart;
+    final end = _visibleRangeEnd;
+    if (start == null || end == null) return false;
+    final today = _localToday;
+    return !today.isBefore(start) && !today.isAfter(end);
+  }
 
   @override
   void initState() {
@@ -264,8 +290,11 @@ class _TioDateCalendarState extends State<TioDateCalendar>
     }
     if (oldWidget.onVisibleDateRangeChanged !=
         widget.onVisibleDateRangeChanged) {
-      _lastReportedRangeStart = null;
-      _lastReportedRangeEnd = null;
+      // Only the memo of what was announced is cleared. The range itself is
+      // still on screen, and Today's emphasis must not blink because the
+      // caller swapped its callback.
+      _announcedRangeStart = null;
+      _announcedRangeEnd = null;
       _scheduleVisibleRangeReport();
     }
 
@@ -354,6 +383,7 @@ class _TioDateCalendarState extends State<TioDateCalendar>
       _pendingMonthReveal = pending;
     }
 
+    _seedVisibleRange(pending ?? _selectedDate, firstDayOfWeek);
     _scheduleVisibleRangeReport();
     if (mounted) setState(() {});
   }
@@ -415,14 +445,45 @@ class _TioDateCalendarState extends State<TioDateCalendar>
     _reportVisibleRange(firstDate, lastDate);
   }
 
+  /// Records what the freshly built pagers are about to show, so Today's header
+  /// emphasis is already right on the first paint. Deliberately does not
+  /// announce anything: the caller's callback stays on the post-frame path,
+  /// where running it cannot land in the middle of a dependency change.
+  void _seedVisibleRange(DateTime anchor, int firstDayOfWeek) {
+    if (_mode.isMonth) {
+      final first = _monthForPage(_monthPageOf(anchor));
+      _visibleRangeStart = _dateOnly(first);
+      _visibleRangeEnd = _dateOnly(DateTime(first.year, first.month + 1, 0));
+      return;
+    }
+    final first = _addDays(
+      _startOfWeek(_minDate, firstDayOfWeek),
+      _weekPageOf(anchor, firstDayOfWeek) * _daysPerWeek,
+    );
+    _visibleRangeStart = _dateOnly(first);
+    _visibleRangeEnd = _dateOnly(_addDays(first, _daysPerWeek - 1));
+  }
+
   void _reportVisibleRange(DateTime firstDate, DateTime lastDate) {
     final start = _dateOnly(firstDate);
     final end = _dateOnly(lastDate);
-    if (_lastReportedRangeStart == start && _lastReportedRangeEnd == end) {
+
+    if (_visibleRangeStart != start || _visibleRangeEnd != end) {
+      final wasTodayVisible = _isTodayVisible;
+      _visibleRangeStart = start;
+      _visibleRangeEnd = end;
+      // Only Today crossing on or off screen changes what the header draws, so
+      // ordinary paging within a Today-less stretch repaints nothing.
+      if (mounted && _isTodayVisible != wasTodayVisible) {
+        setState(() {});
+      }
+    }
+
+    if (_announcedRangeStart == start && _announcedRangeEnd == end) {
       return;
     }
-    _lastReportedRangeStart = start;
-    _lastReportedRangeEnd = end;
+    _announcedRangeStart = start;
+    _announcedRangeEnd = end;
     widget.onVisibleDateRangeChanged?.call(start, end);
   }
 
@@ -658,7 +719,9 @@ class _TioDateCalendarState extends State<TioDateCalendar>
           children: [
             _WeekdayHeader(
               firstDayOfWeek: firstDayOfWeek,
-              localToday: _localToday,
+              todayColumn: _isTodayVisible
+                  ? (_localToday.weekday - firstDayOfWeek) % _daysPerWeek
+                  : null,
             ),
             SizedBox(
               height: bodyHeight,
@@ -811,24 +874,26 @@ class _TioDateCalendarState extends State<TioDateCalendar>
 /// body is what makes compact and month read as the same component: the columns
 /// never move, only what sits under them.
 ///
-/// Today's column is emphasised here as well as on the numeral. Bolding only
-/// the numeral left the header saying nothing about what day it is, so a reader
-/// looking at `5` had to count columns to learn it was a Saturday.
+/// Today's column is emphasised here as well as on the numeral, but only while
+/// Today is on screen. Bolding only the numeral left the header saying nothing
+/// about what day it is, so a reader looking at `5` had to count columns to
+/// learn it was a Saturday.
 class _WeekdayHeader extends StatelessWidget {
   const _WeekdayHeader({
     required this.firstDayOfWeek,
-    required this.localToday,
+    required this.todayColumn,
   });
 
   final int firstDayOfWeek;
 
-  /// Which column carries Today.
+  /// Which column carries Today, or null while Today is not in the visible
+  /// range.
   ///
-  /// Derived from the caller's today, never from the selection: the header
-  /// answers "what day is it", which does not change when the reader taps
-  /// another date or pages away to a week that does not contain today. That
-  /// also keeps the outer selection ring the only signal for selection.
-  final DateTime localToday;
+  /// The caller resolves this from `localToday` against the range on screen,
+  /// never from the selection: tapping another date does not move the emphasis,
+  /// which keeps the outer ring the only signal for selection. Paging away from
+  /// Today clears it rather than moving it to whatever now sits in that column.
+  final int? todayColumn;
 
   /// Mirrors the numeral's own Today rules so the column and the date under it
   /// read as one emphasis rather than two competing ones.
@@ -858,7 +923,6 @@ class _WeekdayHeader extends StatelessWidget {
     final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
     final localeName = Localizations.localeOf(context).toString();
-    final todayColumn = (localToday.weekday - firstDayOfWeek) % _daysPerWeek;
     final shortWeekdays = List<String>.generate(
       _daysPerWeek,
       (index) => DateFormat.E(localeName)
