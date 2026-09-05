@@ -220,25 +220,12 @@ class TioSettingsReadOnlyRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: TioSpacing.sm),
-          // A bare Text here was measured with no width limit, so a value long
-          // enough to need more room than the label left it — a full date on a
-          // narrow phone, say — spilled out of the row instead of wrapping.
-          //
-          // Flexible caps it; the Align keeps it anchored to the row's trailing
-          // edge exactly where it sat before, so every value that already fitted
-          // renders unchanged.
-          Flexible(
-            child: Align(
-              alignment: AlignmentDirectional.centerEnd,
-              child: Text(
-                value,
-                textAlign: TextAlign.end,
-                style: TextStyle(
-                  color: isUnset ? colors.textMuted : colors.textSecondary,
-                  fontSize: TioFontSize.size15,
-                  fontWeight: TioFontWeight.w400,
-                ),
-              ),
+          Text(
+            value,
+            style: TextStyle(
+              color: isUnset ? colors.textMuted : colors.textSecondary,
+              fontSize: TioFontSize.size15,
+              fontWeight: TioFontWeight.w400,
             ),
           ),
         ],
