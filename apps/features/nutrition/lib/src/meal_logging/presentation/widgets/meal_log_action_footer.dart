@@ -242,10 +242,34 @@ class _FooterAction extends StatelessWidget {
       onTap: onTap,
       child: ExcludeSemantics(
         child: isEnabled
-            ? GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: onTap,
-                child: content,
+            // A real target once this path is live: the content is about 20dp
+            // tall, and `HitTestBehavior.opaque` would have made that small
+            // area merely reliable rather than large enough. `InkWell` also
+            // brings keyboard focus and a ripple, which a bare detector does
+            // not. The disabled control keeps the compact height, because a
+            // 48dp minimum is a rule about things you can press.
+            ? Material(
+                color: TioPalette.transparent,
+                child: InkWell(
+                  onTap: onTap,
+                  borderRadius: BorderRadius.circular(TioRadius.sm),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minHeight: TioSize.dp48,
+                      minWidth: TioSize.dp48,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: TioSpacing.xs,
+                      ),
+                      child: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        widthFactor: 1,
+                        child: content,
+                      ),
+                    ),
+                  ),
+                ),
               )
             : Opacity(opacity: TioOpacity.opacity64, child: content),
       ),

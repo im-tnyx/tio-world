@@ -12,6 +12,11 @@ import '../widgets/meal_diary_log_action.dart';
 
 /// Vertical room the floating `+` occupies at the bottom of the diary body:
 /// the button itself plus the padding above and below it.
+///
+/// This is only the button's own footprint. The action also sits inside a
+/// `SafeArea`, so on a viewport with a bottom inset — the shell's navigation
+/// hidden, a gesture bar present — it rides that much higher and the body has
+/// to reserve the inset too. See [_reservedClearance].
 const double _actionClearance = TioSize.dp56 + TioSpacing.xl * 2;
 
 /// The Meal Diary surface, and the first production consumer of the reusable
@@ -155,6 +160,12 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
     );
   }
 
+  /// The clearance for a given viewport: the button's footprint plus whatever
+  /// bottom inset pushed it up. A fixed reservation left content underneath
+  /// the button by exactly the inset.
+  double _reservedClearance(BuildContext context) =>
+      _actionClearance + MediaQuery.paddingOf(context).bottom;
+
   Widget _diaryBody(MealDiaryDateController dates) {
     // The expanded month grid is tall. On a landscape or split-screen viewport
     // it can exceed the body, so the page scrolls rather than overflowing —
@@ -169,12 +180,15 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
           // padding that appeared and vanished with the calendar's month grid
           // would shift the reader's scroll position every time they expanded
           // it.
-          padding: const EdgeInsets.only(bottom: _actionClearance),
+          padding: EdgeInsets.only(bottom: _reservedClearance(context)),
           child: ConstrainedBox(
             constraints: BoxConstraints(
               // Clamped: a viewport shorter than the reserved band would
               // otherwise ask for a negative minimum.
-              minHeight: math.max(0, constraints.maxHeight - _actionClearance),
+              minHeight: math.max(
+                0,
+                constraints.maxHeight - _reservedClearance(context),
+              ),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,

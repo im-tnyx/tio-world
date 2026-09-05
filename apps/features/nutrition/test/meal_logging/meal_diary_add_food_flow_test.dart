@@ -1005,6 +1005,76 @@ void main() {
     });
   });
 
+  group('reusable footer, enabled path', () {
+    Future<void> pumpFooter(
+      WidgetTester tester, {
+      required VoidCallback? onCategory,
+    }) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.light),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: Scaffold(
+            body: Center(
+              child: MealLogActionFooter(
+                mealCategoryLabel: 'Meal type',
+                dateTimeLabel: 'Aug 20 · Time',
+                primaryLabel: 'Log Meal',
+                onMealCategoryTap: onCategory,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    // Quick Add passes null today, but the widget exposes an enabled path for
+    // the Meal Editor to adopt, and that path has to be pressable when it is.
+    testWidgets('an enabled control is a real target and reports its tap',
+        (tester) async {
+      var taps = 0;
+      await pumpFooter(tester, onCategory: () => taps++);
+
+      final control = tester.getRect(find.byKey(_footerCategory));
+      expect(
+        control.height,
+        greaterThanOrEqualTo(48),
+        reason: 'a pressable control needs a pressable amount of room',
+      );
+      expect(control.width, greaterThanOrEqualTo(48));
+      expect(
+        find.descendant(
+          of: find.byKey(_footerCategory),
+          matching: find.byType(InkWell),
+        ),
+        findsOne,
+        reason: 'an InkWell brings focus and a ripple; a detector brings neither',
+      );
+
+      await tester.tap(find.byKey(_footerCategory));
+      await tester.pumpAndSettle();
+      expect(taps, 1);
+    });
+
+    testWidgets('a disabled control stays compact and unpressable',
+        (tester) async {
+      await pumpFooter(tester, onCategory: null);
+
+      // No 48dp floor here: that rule is about things you can press.
+      expect(
+        find.descendant(
+          of: find.byKey(_footerCategory),
+          matching: find.byType(InkWell),
+        ),
+        findsNothing,
+      );
+      expect(tester.getRect(find.byKey(_footerCategory)).height, lessThan(48));
+    });
+  });
+
   group('small phone', () {
     testWidgets('the whole flow fits a 320-wide phone without overflowing',
         (tester) async {
@@ -1068,6 +1138,40 @@ void main() {
       expect(
         tester.getRect(find.byKey(_emptyDayNote)).bottom,
         lessThanOrEqualTo(tester.getRect(find.byKey(_addAction)).top),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a bottom inset is reserved as well as the button itself',
+        (tester) async {
+      // No bottom navigation and a gesture bar: SafeArea lifts the action by
+      // the inset, so the body has to reserve the inset too or the last line
+      // ends up underneath it.
+      tester.view.physicalSize = const Size(360, 300);
+      tester.view.devicePixelRatio = 1;
+      tester.view.padding = const FakeViewPadding(bottom: 48);
+      addTearDown(tester.view.reset);
+
+      await _pump(tester);
+      expect(find.byKey(_addAction), findsOne);
+
+      // Asserted as the invariant rather than by scrolling: today's body is
+      // short enough never to reach the bottom, so a scroll test would pass
+      // whether or not the reservation is right. What has to hold is that the
+      // reserved band covers everything between the viewport floor and the
+      // top of the button — inset included.
+      final reserved = (tester
+              .widget<SingleChildScrollView>(
+                find.byType(SingleChildScrollView).first,
+              )
+              .padding! as EdgeInsets)
+          .bottom;
+      final action = tester.getRect(find.byKey(_addAction));
+
+      expect(
+        reserved,
+        greaterThanOrEqualTo(300 - action.top),
+        reason: 'the bottom inset lifts the button, so it must be reserved too',
       );
       expect(tester.takeException(), isNull);
     });
