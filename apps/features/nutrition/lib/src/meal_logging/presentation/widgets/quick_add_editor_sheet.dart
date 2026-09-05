@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 
+import 'meal_log_action_footer.dart';
+
 /// Opens the Quick Add manual nutrition editor for [selectedDate].
 ///
 /// [selectedDate] is the Meal Diary's own selected day, passed by value. The
@@ -21,14 +23,37 @@ Future<void> showQuickAddEditorSheet(
   );
 }
 
-/// The manual/coarse nutrition editor shell.
+/// The manual/coarse nutrition editor.
 ///
-/// This is the surface TNYX-115 will eventually give a durable `MealLogEntry`
-/// to. Today it has no owner behind it at all: every value lives in this
-/// `State`'s own text controllers and dies with the route. There is no
-/// notifier, no repository, no store and no draft, which is why backing out
-/// leaves nothing behind — not because a teardown path clears something, but
-/// because there was never anything to clear.
+/// ```text
+/// Quick Add
+/// ┌────────────────────────────────┐
+/// │ Meal name (optional)           │   large, and the only free text
+/// └────────────────────────────────┘
+/// Calories (kcal)         [      ]
+/// Carbs (g)               [      ]
+/// Protein (g)             [      ]
+/// Fat (g)                 [      ]
+/// ─────────────────────────────────   body scrolls, footer does not
+/// Meal type ▼        🗓 Sep 5 · Time
+/// [           Log Meal            ]
+/// ```
+///
+/// ## Why this is not the Meal Editor
+///
+/// Quick Add is for the reader who already knows the numbers and does not want
+/// to name a single ingredient. AI, voice, photo, search, repeat and saved
+/// meals will all converge on the full Meal Editor through a draft; this screen
+/// deliberately does not, because routing it there would make the fastest path
+/// wear the slowest screen's chrome. They may share components. They are not
+/// the same surface.
+///
+/// ## Why so few fields
+///
+/// Fiber and micronutrients were dropped from this shell on owner review. They
+/// are not cancelled — TNYX-115 and TNYX-58 can add supported nutrients later
+/// through the shared nutrition-value contract — but a coarse entry that asks
+/// for seven numbers is not a coarse entry.
 ///
 /// ## Why `Log Meal` does nothing
 ///
@@ -40,13 +65,10 @@ Future<void> showQuickAddEditorSheet(
 /// find out it was wrong by losing meals. So the button is present, disabled,
 /// and says why.
 ///
-/// ## What is deliberately absent
-///
-/// Meal category, because no canonical `MealCategory` exists in runtime source
-/// and N13 owns it; and consumed time, because TNYX-114 owns it and nothing
-/// here would consume a draft time. The selected date is shown read-only for
-/// the same reason: displaying the day the reader picked is honest, while
-/// editing it would imply a date/time contract this slice does not own.
+/// Every value lives in this `State`'s own text controllers and dies with the
+/// route. There is no notifier, no repository, no store and no draft, which is
+/// why backing out leaves nothing behind — not because a teardown path clears
+/// something, but because there was never anything to clear.
 class QuickAddEditorSheet extends StatefulWidget {
   const QuickAddEditorSheet({required this.selectedDate, super.key});
 
@@ -60,22 +82,16 @@ class QuickAddEditorSheet extends StatefulWidget {
 class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
   final _mealName = TextEditingController();
   final _calories = TextEditingController();
-  final _protein = TextEditingController();
   final _carbs = TextEditingController();
+  final _protein = TextEditingController();
   final _fat = TextEditingController();
-  final _fiber = TextEditingController();
 
-  /// Display-only, and not in [_editable]: it carries the diary's date into a
-  /// disabled field, so it has nothing to validate and nobody to notify.
-  final _selectedDate = TextEditingController();
-
-  late final List<TextEditingController> _editable = [
+  late final List<TextEditingController> _fields = [
     _mealName,
     _calories,
-    _protein,
     _carbs,
+    _protein,
     _fat,
-    _fiber,
   ];
 
   @override
@@ -83,27 +99,18 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
     super.initState();
     // Validation is per-keystroke because the errors are about the characters
     // themselves, not about a submission that cannot happen here.
-    for (final controller in _editable) {
+    for (final controller in _fields) {
       controller.addListener(_onChanged);
     }
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Formatting needs localizations, which are not resolvable in initState.
-    _selectedDate.text =
-        MaterialLocalizations.of(context).formatFullDate(widget.selectedDate);
-  }
-
-  @override
   void dispose() {
-    for (final controller in _editable) {
+    for (final controller in _fields) {
       controller
         ..removeListener(_onChanged)
         ..dispose();
     }
-    _selectedDate.dispose();
     super.dispose();
   }
 
@@ -113,127 +120,87 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.tioColors;
+    final localizations = MaterialLocalizations.of(context);
+    final selectedDateLabel = localizations.formatShortDate(widget.selectedDate);
 
     return TioEditorSheet(
       key: const ValueKey('quick-add-editor'),
       title: 'Quick Add',
-      supportingText: 'Calories are the one value a coarse entry needs. '
-          'Everything else is optional — a blank field stays unrecorded '
-          'rather than becoming zero.',
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TioInput(
+          // The one free-text field, and the largest thing on the screen: a
+          // meal is easier to recognise later by its name than by its numbers.
+          // Two lines is the cap — this is a title, not a notes field.
+          TioInput.multiline(
             key: const ValueKey('quick-add-meal-name'),
             controller: _mealName,
-            label: 'Meal name',
-            hint: 'Optional',
-            textCapitalization: TextCapitalization.sentences,
+            hint: 'Meal name (optional)',
+            minLines: 2,
+            maxLines: 2,
+            keyboardType: TextInputType.text,
+            textInputAction: TextInputAction.done,
             onChanged: (_) {},
           ),
           const SizedBox(height: TioSpacing.lg),
-          _NutritionField(
+          _NutritionRow(
             fieldKey: const ValueKey('quick-add-calories'),
             controller: _calories,
             label: 'Calories',
             unit: 'kcal',
           ),
-          const SizedBox(height: TioSpacing.lg),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _NutritionField(
-                  fieldKey: const ValueKey('quick-add-protein'),
-                  controller: _protein,
-                  label: 'Protein',
-                  unit: 'g',
-                ),
-              ),
-              const SizedBox(width: TioSpacing.md),
-              Expanded(
-                child: _NutritionField(
-                  fieldKey: const ValueKey('quick-add-carbs'),
-                  controller: _carbs,
-                  label: 'Carbs',
-                  unit: 'g',
-                ),
-              ),
-            ],
+          const SizedBox(height: TioSpacing.md),
+          _NutritionRow(
+            fieldKey: const ValueKey('quick-add-carbs'),
+            controller: _carbs,
+            label: 'Carbs',
+            unit: 'g',
           ),
-          const SizedBox(height: TioSpacing.lg),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _NutritionField(
-                  fieldKey: const ValueKey('quick-add-fat'),
-                  controller: _fat,
-                  label: 'Fat',
-                  unit: 'g',
-                ),
-              ),
-              const SizedBox(width: TioSpacing.md),
-              Expanded(
-                child: _NutritionField(
-                  fieldKey: const ValueKey('quick-add-fiber'),
-                  controller: _fiber,
-                  label: 'Fiber',
-                  unit: 'g',
-                ),
-              ),
-            ],
+          const SizedBox(height: TioSpacing.md),
+          _NutritionRow(
+            fieldKey: const ValueKey('quick-add-protein'),
+            controller: _protein,
+            label: 'Protein',
+            unit: 'g',
           ),
-          const SizedBox(height: TioSpacing.lg),
-          // The date is one of the editor's fields, drawn like the rest and
-          // disabled rather than pulled out into a settings-style detail row.
-          // Disabled is the accurate state: this value will become editable
-          // when TNYX-114 owns date and time, and until then it is the diary's
-          // choice, not the editor's.
-          TioInput(
-            key: const ValueKey('quick-add-selected-date'),
-            controller: _selectedDate,
-            label: 'Date',
-            enabled: false,
-            readOnly: true,
-            onChanged: (_) {},
+          const SizedBox(height: TioSpacing.md),
+          _NutritionRow(
+            fieldKey: const ValueKey('quick-add-fat'),
+            controller: _fat,
+            label: 'Fat',
+            unit: 'g',
           ),
         ],
       ),
-      actions: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Saving a meal is not available yet, so nothing typed here is '
-            'recorded.',
-            key: const ValueKey('quick-add-unavailable-note'),
-            style: TextStyle(
-              color: colors.textSecondary,
-              fontSize: TioFontSize.size13,
-            ),
-          ),
-          const SizedBox(height: TioSpacing.md),
-          const TioButton.primary(
-            key: ValueKey('quick-add-log-meal'),
-            label: 'Log Meal',
-            semanticLabel: 'Log Meal. Not available yet.',
-            expand: true,
-            onPressed: null,
-          ),
-        ],
+      actions: MealLogActionFooter(
+        // Neutral on purpose. TNYX-67 owns what a meal category is — the V1
+        // defaults, renaming, custom ones, hiding, ordering and the eight-
+        // category ceiling — so naming Breakfast here would be this screen
+        // inventing a second, weaker version of that.
+        mealCategoryLabel: 'Meal type',
+        mealCategorySemanticLabel: 'Meal type. Not available yet.',
+        // The real selected day, and a time that is honestly unresolved:
+        // TNYX-114 owns consumed time, so there is no correct value to show
+        // and inventing one would be the screenshot talking, not the app.
+        dateTimeLabel: '$selectedDateLabel · Time',
+        dateTimeSemanticLabel:
+            'Date and time. $selectedDateLabel, time not set. '
+            'Not available yet.',
+        primaryLabel: 'Log Meal',
+        primarySemanticLabel: 'Log Meal. Not available yet.',
+        note: 'Saving is not available yet.',
       ),
     );
   }
 }
 
-/// One coarse nutrition value.
+/// One coarse nutrition value: label on the left, a compact number on the
+/// right.
 ///
-/// Blank means absent, not zero: the reader who skips Fiber has not told the
-/// app they ate no fiber, and this slice must not turn silence into a number.
-/// That distinction is the reason the field carries no default text.
+/// Blank means absent, not zero: the reader who skips Carbs has not told the
+/// app they ate none, and this slice must not turn silence into a number. That
+/// distinction is the reason the field carries no default text.
 ///
 /// ## Why there is no input formatter
 ///
@@ -253,15 +220,19 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
 /// So nothing is filtered. Whatever is typed stays visible, and [_error]
 /// decides whether it is a number. The reader either sees their own value or
 /// sees why it is not accepted; the field never quietly holds a third thing.
-class _NutritionField extends StatelessWidget {
-  const _NutritionField({
+class _NutritionRow extends StatelessWidget {
+  const _NutritionRow({
     required this.fieldKey,
     required this.controller,
     required this.label,
     required this.unit,
   });
 
-  final Key fieldKey;
+  /// Width of the value box. Wide enough for any calorie count anyone eats,
+  /// narrow enough that the label keeps the row.
+  static const _valueWidth = TioSize.dp100;
+
+  final ValueKey<String> fieldKey;
   final TextEditingController controller;
   final String label;
   final String unit;
@@ -289,18 +260,56 @@ class _NutritionField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TioInput(
-      key: fieldKey,
-      controller: controller,
-      label: label,
-      hint: '0',
-      suffixText: unit,
-      // The keyboard suggests the shape of the answer; it does not enforce it.
-      // Enforcement is [_error]'s job, so a hardware keyboard or a paste can
-      // put anything here and still be told what is wrong with it.
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      errorText: _error,
-      onChanged: (_) {},
+    final colors = context.tioColors;
+    final error = _error;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                '$label ($unit)',
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontSize: TioFontSize.size15,
+                  fontWeight: TioFontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: TioSpacing.md),
+            SizedBox(
+              width: _valueWidth,
+              child: TioInput.numericEditor(
+                key: fieldKey,
+                controller: controller,
+                hint: '0',
+                // The keyboard suggests the shape of the answer; it does not
+                // enforce it. Enforcement is [_error]'s job, so a hardware
+                // keyboard or a paste can put anything here and still be told
+                // what is wrong with it.
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                onChanged: (_) {},
+              ),
+            ),
+          ],
+        ),
+        if (error != null) ...[
+          const SizedBox(height: TioSpacing.xs),
+          Text(
+            error,
+            key: ValueKey('${fieldKey.value}-error'),
+            style: TextStyle(
+              color: colors.danger,
+              fontSize: TioFontSize.size13,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

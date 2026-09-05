@@ -19,7 +19,9 @@ const _searchCard = ValueKey('add-food-search');
 const _photoCard = ValueKey('add-food-photo');
 const _aiSurface = ValueKey('add-food-ai-text');
 const _editor = ValueKey('quick-add-editor');
-const _logMeal = ValueKey('quick-add-log-meal');
+const _logMeal = ValueKey('meal-log-footer-primary');
+const _footerCategory = ValueKey('meal-log-footer-category');
+const _footerDateTime = ValueKey('meal-log-footer-date-time');
 const _emptyDayNote = ValueKey('meal-diary-empty-day-note');
 
 Future<MealDiaryDateController> _pump(
@@ -68,8 +70,16 @@ Future<void> _type(WidgetTester tester, ValueKey<String> field, String text) asy
 String _fieldText(WidgetTester tester, ValueKey<String> field) =>
     tester.widget<TioInput>(find.byKey(field)).controller!.text;
 
-String? _fieldError(WidgetTester tester, ValueKey<String> field) =>
-    tester.widget<TioInput>(find.byKey(field)).errorText;
+/// The error line the row renders beneath itself.
+///
+/// Deliberately read from the visible `Text` rather than from an `errorText`
+/// property: the row follows the repository's existing numeric-editor
+/// convention, where the message is its own widget and the field carries none.
+String? _fieldError(WidgetTester tester, ValueKey<String> field) {
+  final line = find.byKey(ValueKey('${field.value}-error'));
+  if (line.evaluate().isEmpty) return null;
+  return tester.widget<Text>(line).data;
+}
 
 void main() {
   group('Meal Diary logging entry', () {
@@ -367,12 +377,10 @@ void main() {
       await tester.pumpAndSettle();
       await _openQuickAdd(tester);
 
-      const dateField = ValueKey('quick-add-selected-date');
-      expect(_fieldText(tester, dateField), contains('August 19, 2026'));
-      // Not today, which is the whole point of carrying the selection.
-      expect(_fieldText(tester, dateField), isNot(contains('August 20')));
-      // Shown, not editable: TNYX-114 owns date and time.
-      expect(tester.widget<TioInput>(find.byKey(dateField)).enabled, isFalse);
+      // The footer's date control carries it, and shows the day the reader
+      // picked rather than today.
+      expect(find.textContaining('Aug 19, 2026'), findsOne);
+      expect(find.textContaining('Aug 20'), findsNothing);
       expect(controller.selectedDate, _yesterday);
     });
 
@@ -383,14 +391,64 @@ void main() {
       for (final key in const [
         ValueKey('quick-add-meal-name'),
         ValueKey('quick-add-calories'),
-        ValueKey('quick-add-protein'),
         ValueKey('quick-add-carbs'),
+        ValueKey('quick-add-protein'),
         ValueKey('quick-add-fat'),
-        ValueKey('quick-add-fiber'),
-        ValueKey('quick-add-selected-date'),
       ]) {
         expect(find.byKey(key), findsOne, reason: '$key should be rendered');
       }
+
+      // Four numbers, in the owner-approved order, each labelled with its unit.
+      for (final label in const [
+        'Calories (kcal)',
+        'Carbs (g)',
+        'Protein (g)',
+        'Fat (g)',
+      ]) {
+        expect(find.text(label), findsOne);
+      }
+      expect(
+        tester.getRect(find.text('Calories (kcal)')).top,
+        lessThan(tester.getRect(find.text('Carbs (g)')).top),
+      );
+      expect(
+        tester.getRect(find.text('Carbs (g)')).top,
+        lessThan(tester.getRect(find.text('Protein (g)')).top),
+      );
+      expect(
+        tester.getRect(find.text('Protein (g)')).top,
+        lessThan(tester.getRect(find.text('Fat (g)')).top),
+      );
+
+      // Fiber and micronutrients are deferred from this shell, not hidden
+      // behind an expander.
+      expect(find.byKey(const ValueKey('quick-add-fiber')), findsNothing);
+      expect(find.textContaining('Fiber'), findsNothing);
+      expect(find.textContaining('Micronutrient'), findsNothing);
+    });
+
+    testWidgets('the meal name is optional and gets the room to be read',
+        (tester) async {
+      await _pump(tester);
+      await _openQuickAdd(tester);
+
+      const name = ValueKey('quick-add-meal-name');
+      expect(find.text('Meal name (optional)'), findsOne);
+
+      // Optional means blank is a fine resting state — no error, no block.
+      expect(_fieldText(tester, name), isEmpty);
+      expect(_fieldError(tester, name), isNull);
+
+      // Larger than a number row: it is the field a reader identifies the meal
+      // by later, so it is not squeezed to the same height as a value box.
+      final nameHeight = tester.getRect(find.byKey(name)).height;
+      final valueHeight =
+          tester.getRect(find.byKey(const ValueKey('quick-add-calories')))
+              .height;
+      expect(nameHeight, greaterThan(valueHeight));
+
+      await _type(tester, name, 'Dal and two roti');
+      expect(_fieldText(tester, name), 'Dal and two roti');
     });
 
     testWidgets('a negative value is rejected in words', (tester) async {
@@ -425,11 +483,11 @@ void main() {
       await _pump(tester);
       await _openQuickAdd(tester);
 
-      const fiber = ValueKey('quick-add-fiber');
-      await _type(tester, fiber, '1.5');
+      const fat = ValueKey('quick-add-fat');
+      await _type(tester, fat, '1.5');
 
-      expect(_fieldText(tester, fiber), '1.5');
-      expect(_fieldError(tester, fiber), isNull);
+      expect(_fieldText(tester, fat), '1.5');
+      expect(_fieldError(tester, fat), isNull);
     });
 
     // The point of these two is not that the values are unsupported — it is
@@ -489,10 +547,9 @@ void main() {
       await _openQuickAdd(tester);
 
       for (final key in const [
-        ValueKey('quick-add-protein'),
         ValueKey('quick-add-carbs'),
+        ValueKey('quick-add-protein'),
         ValueKey('quick-add-fat'),
-        ValueKey('quick-add-fiber'),
       ]) {
         expect(_fieldText(tester, key), isEmpty);
         expect(_fieldError(tester, key), isNull);
@@ -517,10 +574,8 @@ void main() {
         ),
       );
 
-      expect(
-        find.byKey(const ValueKey('quick-add-unavailable-note')),
-        findsOne,
-      );
+      expect(find.byKey(const ValueKey('meal-log-footer-note')), findsOne);
+      expect(find.text('Saving is not available yet.'), findsOne);
 
       handle.dispose();
     });
@@ -576,6 +631,139 @@ void main() {
       await _openQuickAdd(tester);
       expect(_fieldText(tester, const ValueKey('quick-add-meal-name')), '');
       expect(_fieldText(tester, const ValueKey('quick-add-calories')), '');
+    });
+  });
+
+  group('Meal Log action footer', () {
+    testWidgets('both controls sit above Log Meal, side by side',
+        (tester) async {
+      await _pump(tester);
+      await _openQuickAdd(tester);
+
+      final category = tester.getRect(find.byKey(_footerCategory));
+      final dateTime = tester.getRect(find.byKey(_footerDateTime));
+      final logMeal = tester.getRect(find.byKey(_logMeal));
+
+      // Meal type on the left, date and time on the right, sharing a row.
+      expect(category.right, lessThanOrEqualTo(dateTime.left));
+      expect(category.top, moreOrLessEquals(dateTime.top, epsilon: 1));
+      expect(category.bottom, moreOrLessEquals(dateTime.bottom, epsilon: 1));
+
+      // Both above the commit, which spans the whole footer.
+      expect(category.bottom, lessThanOrEqualTo(logMeal.top));
+      expect(dateTime.bottom, lessThanOrEqualTo(logMeal.top));
+      expect(logMeal.width, greaterThan(category.width));
+      expect(logMeal.width, greaterThan(dateTime.width));
+      expect(logMeal.left, lessThanOrEqualTo(category.left + 1));
+      expect(logMeal.right, greaterThanOrEqualTo(dateTime.right - 1));
+    });
+
+    testWidgets('the category control names no real category and is disabled',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+      await _pump(tester);
+      await _openQuickAdd(tester);
+
+      expect(find.text('Meal type'), findsOne);
+      expect(
+        tester.getSemantics(find.byKey(_footerCategory)),
+        matchesSemantics(
+          isButton: true,
+          hasEnabledState: true,
+          isEnabled: false,
+          label: 'Meal type. Not available yet.',
+        ),
+      );
+
+      // TNYX-67 owns category identity. Naming one here would be this screen
+      // inventing a second, weaker version of it.
+      for (final name in const ['Breakfast', 'Lunch', 'Dinner', 'Snacks']) {
+        expect(find.text(name), findsNothing, reason: 'TNYX-67 owns $name');
+      }
+
+      await tester.tap(find.byKey(_footerCategory), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(find.byKey(_editor), findsOne);
+
+      handle.dispose();
+    });
+
+    testWidgets('the date control shows the diary date and no invented time',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+      final controller = await _pump(tester);
+
+      controller.select(_yesterday);
+      await tester.pumpAndSettle();
+      await _openQuickAdd(tester);
+
+      expect(find.byIcon(Icons.calendar_today_outlined), findsOne);
+      expect(
+        tester.getSemantics(find.byKey(_footerDateTime)),
+        matchesSemantics(
+          isButton: true,
+          hasEnabledState: true,
+          isEnabled: false,
+          label: 'Date and time. Aug 19, 2026, time not set. '
+              'Not available yet.',
+        ),
+      );
+
+      // No picker, and no fabricated clock time: TNYX-114 owns that contract.
+      await tester.tap(find.byKey(_footerDateTime), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(find.byType(CalendarDatePicker), findsNothing);
+      expect(find.byType(TimePickerDialog), findsNothing);
+      expect(controller.selectedDate, _yesterday);
+
+      handle.dispose();
+    });
+
+    testWidgets('the footer stays put while the body scrolls', (tester) async {
+      tester.view.physicalSize = const Size(320, 560);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await _pump(tester);
+      await _openQuickAdd(tester);
+      expect(tester.takeException(), isNull);
+
+      final before = tester.getRect(find.byKey(_logMeal));
+      final body = find.descendant(
+        of: find.byKey(_editor),
+        matching: find.byType(SingleChildScrollView),
+      );
+      await tester.drag(body.first, const Offset(0, -200));
+      await tester.pumpAndSettle();
+
+      // The commit region did not move with the content, and never overlaps it.
+      expect(tester.getRect(find.byKey(_logMeal)), before);
+      expect(
+        tester.getRect(find.byKey(const ValueKey('quick-add-fat'))).bottom,
+        lessThanOrEqualTo(tester.getRect(find.byKey(_footerCategory)).top),
+      );
+      expect(before.bottom, lessThanOrEqualTo(560));
+    });
+
+    testWidgets('a raised keyboard does not bury the footer', (tester) async {
+      tester.view.physicalSize = const Size(320, 560);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await _pump(tester);
+      await _openQuickAdd(tester);
+
+      tester.view.viewInsets = const FakeViewPadding(bottom: 260);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      for (final key in const [_footerCategory, _footerDateTime, _logMeal]) {
+        expect(
+          tester.getRect(find.byKey(key)).bottom,
+          lessThanOrEqualTo(560 - 260),
+          reason: '$key must ride above the keyboard',
+        );
+      }
     });
   });
 
@@ -676,14 +864,26 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
 
-      // The two macro fields sharing a row still fit side by side.
-      final protein = tester.getRect(find.byKey(const ValueKey('quick-add-protein')));
+      // Each nutrition value is its own full-width row, label left and a
+      // compact number right, and nothing runs off the side.
+      for (final key in const [
+        ValueKey('quick-add-calories'),
+        ValueKey('quick-add-carbs'),
+        ValueKey('quick-add-protein'),
+        ValueKey('quick-add-fat'),
+      ]) {
+        final field = tester.getRect(find.byKey(key));
+        expect(field.right, lessThanOrEqualTo(320));
+        expect(field.left, greaterThan(0));
+      }
       final carbs = tester.getRect(find.byKey(const ValueKey('quick-add-carbs')));
-      expect(protein.right, lessThanOrEqualTo(carbs.left));
-      expect(carbs.right, lessThanOrEqualTo(320));
+      final protein =
+          tester.getRect(find.byKey(const ValueKey('quick-add-protein')));
+      expect(carbs.bottom, lessThanOrEqualTo(protein.top));
 
       // The commit region is on screen rather than below the fold.
       expect(tester.getRect(find.byKey(_logMeal)).bottom, lessThanOrEqualTo(640));
+      expect(tester.getRect(find.byKey(_logMeal)).right, lessThanOrEqualTo(320));
     });
 
     testWidgets('scrolling to the end never parks content under the action',

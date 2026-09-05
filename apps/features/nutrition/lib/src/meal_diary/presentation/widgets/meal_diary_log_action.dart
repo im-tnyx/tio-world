@@ -53,10 +53,24 @@ class MealDiaryLogAction extends StatelessWidget {
                 child: SizedBox(
                   width: TioSize.dp56,
                   height: TioSize.dp56,
-                  child: Icon(
-                    Icons.add_rounded,
-                    size: TioSize.dp28,
-                    color: colors.onPrimary,
+                  child: Center(
+                    // The designed FAB glyph rather than a Material plus. It
+                    // ships as a single monochrome path, so the tint comes
+                    // from the theme the same way the diary's Today glyph
+                    // takes its colour in the app shell.
+                    child: SizedBox(
+                      width: TioSize.dp28,
+                      height: TioSize.dp28,
+                      child: SvgPicture.asset(
+                        'assets/svg_icon/ic_fab_main.svg',
+                        package: 'tio_core',
+                        fit: BoxFit.contain,
+                        colorFilter: ColorFilter.mode(
+                          colors.onPrimary,
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
