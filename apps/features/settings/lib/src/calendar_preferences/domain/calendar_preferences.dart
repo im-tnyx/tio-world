@@ -7,9 +7,13 @@
 /// split this owner exists to prevent.
 ///
 /// Every day of the week is offered. Monday, Sunday and Saturday cover most
-/// conventions in use; the remaining four exist because a training block or a
-/// meal plan whose cycle begins mid-week wants its rows to line up with that
-/// cycle, and the calendar's week arithmetic already supports any start day.
+/// conventions in use, and the remaining four are offered because a reader may
+/// simply prefer one and the calendar's week arithmetic already supports any
+/// start day.
+///
+/// This is the reader's preferred calendar week boundary and nothing else. A
+/// feature whose own cycle begins mid-week — a training block, a meal plan —
+/// is a separate domain concept and must not drive this value.
 ///
 /// There is no `automatic`. The reusable calendar keeps a separate nullable
 /// locale fallback for a caller that supplies nothing; that is a library

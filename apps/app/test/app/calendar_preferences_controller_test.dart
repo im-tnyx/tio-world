@@ -106,6 +106,127 @@ void main() {
       expect(controller.saveError, isNull);
     });
 
+    test('a second choice publishes while the first write is still open',
+        () async {
+      final repository = _ControlledCalendarPreferencesRepository();
+      final controller = CalendarPreferencesController(repository);
+      await controller.load();
+
+      final published = <FirstDayOfWeekPreference>[];
+      controller.addListener(() => published.add(controller.firstDayOfWeek));
+
+      final tuesday = controller.select(FirstDayOfWeekPreference.tuesday);
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.firstDayOfWeek, FirstDayOfWeekPreference.tuesday);
+
+      // Tuesday's write is deliberately left open. Seven visible options make
+      // out-running a slow device-local store a realistic interaction, and the
+      // second tap must not wait in line behind the first one's storage.
+      final wednesday = controller.select(FirstDayOfWeekPreference.wednesday);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.firstDayOfWeek, FirstDayOfWeekPreference.wednesday);
+      expect(controller.resolvedFirstDayOfWeek, DateTime.wednesday);
+      expect(published, contains(FirstDayOfWeekPreference.wednesday));
+      expect(repository.writeCalls, [FirstDayOfWeekPreference.tuesday]);
+
+      repository.completeNextWrite();
+      await tuesday;
+      await Future<void>.delayed(Duration.zero);
+      repository.completeNextWrite();
+      await wednesday;
+
+      expect(controller.firstDayOfWeek, FirstDayOfWeekPreference.wednesday);
+      expect(controller.isSaving, isFalse);
+      expect(controller.saveError, isNull);
+    });
+
+    test('publishing ahead of the queue keeps the writes in tap order',
+        () async {
+      final repository = _ControlledCalendarPreferencesRepository();
+      final controller = CalendarPreferencesController(repository);
+      await controller.load();
+
+      final tuesday = controller.select(FirstDayOfWeekPreference.tuesday);
+      final wednesday = controller.select(FirstDayOfWeekPreference.wednesday);
+      await Future<void>.delayed(Duration.zero);
+
+      // The screen has already moved on, but only one write is in flight: an
+      // older write finishing last would leave the device holding a value the
+      // user replaced.
+      expect(controller.firstDayOfWeek, FirstDayOfWeekPreference.wednesday);
+      expect(repository.writeCalls, [FirstDayOfWeekPreference.tuesday]);
+
+      repository.completeNextWrite();
+      await tuesday;
+      await Future<void>.delayed(Duration.zero);
+
+      expect(repository.writeCalls, [
+        FirstDayOfWeekPreference.tuesday,
+        FirstDayOfWeekPreference.wednesday,
+      ]);
+
+      repository.completeNextWrite();
+      await wednesday;
+
+      expect(repository.value.firstDayOfWeek, FirstDayOfWeekPreference.wednesday);
+      expect(controller.isSaving, isFalse);
+    });
+
+    test('a superseded write failure leaves the newer choice alone', () async {
+      final repository = _ControlledCalendarPreferencesRepository();
+      final controller = CalendarPreferencesController(repository);
+      await controller.load();
+
+      final tuesday = controller.select(FirstDayOfWeekPreference.tuesday);
+      await Future<void>.delayed(Duration.zero);
+      final wednesday = controller.select(FirstDayOfWeekPreference.wednesday);
+      await Future<void>.delayed(Duration.zero);
+
+      repository.failNextWrite(StateError('tuesday write failed'));
+      await tuesday;
+      await Future<void>.delayed(Duration.zero);
+
+      // Tuesday is no longer what the user wants. Rolling back or reporting a
+      // failure for it would undo an intent expressed after that write left.
+      expect(controller.firstDayOfWeek, FirstDayOfWeekPreference.wednesday);
+      expect(controller.saveError, isNull);
+
+      repository.completeNextWrite();
+      await wednesday;
+
+      expect(controller.firstDayOfWeek, FirstDayOfWeekPreference.wednesday);
+      expect(repository.value.firstDayOfWeek, FirstDayOfWeekPreference.wednesday);
+      expect(controller.saveError, isNull);
+      expect(controller.isSaving, isFalse);
+    });
+
+    test('rollback returns to what storage holds, not to what was on screen',
+        () async {
+      final repository = _ControlledCalendarPreferencesRepository();
+      final controller = CalendarPreferencesController(repository);
+      await controller.load();
+
+      final tuesday = controller.select(FirstDayOfWeekPreference.tuesday);
+      await Future<void>.delayed(Duration.zero);
+      final wednesday = controller.select(FirstDayOfWeekPreference.wednesday);
+      await Future<void>.delayed(Duration.zero);
+
+      // Neither write lands, so the device still holds Monday. Falling back to
+      // Tuesday because it happened to be on screen first would show a value
+      // that was never saved.
+      repository.failNextWrite(StateError('tuesday write failed'));
+      await tuesday;
+      await Future<void>.delayed(Duration.zero);
+
+      repository.failNextWrite(StateError('wednesday write failed'));
+      await expectLater(wednesday, throwsStateError);
+
+      expect(controller.firstDayOfWeek, FirstDayOfWeekPreference.monday);
+      expect(controller.saveError, isA<StateError>());
+      expect(controller.isSaving, isFalse);
+    });
+
     test('serializes concurrent choices in tap order', () async {
       final repository = _ControlledCalendarPreferencesRepository();
       final controller = CalendarPreferencesController(repository);
@@ -170,9 +291,15 @@ class _ControlledCalendarPreferencesRepository
   CalendarPreferences value = const CalendarPreferences();
 
   void completeNextWrite() {
-    final index = _writes.indexWhere((write) => !write.isCompleted);
-    _writes[index].complete();
+    _pendingWrite().complete();
   }
+
+  void failNextWrite(Object error) {
+    _pendingWrite().completeError(error);
+  }
+
+  Completer<void> _pendingWrite() =>
+      _writes.firstWhere((write) => !write.isCompleted);
 
   @override
   Future<void> clear() async => value = const CalendarPreferences();

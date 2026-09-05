@@ -141,10 +141,16 @@ display copy is not a storage identifier: day names are formatted from the
 locale, never hard-coded. There is no Automatic/System default option in V1.
 
 Every day is offered rather than Monday and Sunday alone. Monday, Sunday and
-Saturday cover most conventions in use; the remaining four exist because a
-training block or meal plan whose cycle begins mid-week wants its rows to line
-up with that cycle, and the calendar's week arithmetic already supports any
-start day. Seven options is also why this is a page rather than a bottom sheet.
+Saturday cover most conventions in use, and the remaining four are offered
+because a reader may prefer one and the calendar's week arithmetic already
+supports any start day. The value is the reader's preferred calendar week
+boundary; it is not derived from any feature's cycle, and a training block or
+meal plan that begins mid-week does not imply this preference should follow it.
+Seven options is also why this is a page rather than a bottom sheet.
+
+The page carries the heading, the seven options and nothing else: no ordering
+preview and no help text. The option list reads Monday through Sunday, which is
+the ordering, and a preview of it was reviewed and removed as decoration.
 
 The route is `/settings/calendar`. Selection applies immediately and persists
 locally; the chosen value is published before the write completes and rolled

@@ -9,11 +9,17 @@
 Calendars across Tio need one consistent week-start policy, while individual
 features still own their selected dates, visible ranges and date availability.
 The V1 product contract offers every day of the week with Monday as the
-default. Monday, Sunday and Saturday cover most conventions in use; the other
-four exist because a training block or meal plan whose cycle begins mid-week
-wants its rows to line up with that cycle, and the reusable calendar's week
-arithmetic already accepts any `DateTime.monday`..`DateTime.sunday` start. A
-display convention does not need account data, remote sync or a new Supabase
+default. Monday, Sunday and Saturday cover most conventions in use, and the
+other four are offered because a reader may prefer one and the reusable
+calendar's week arithmetic already accepts any
+`DateTime.monday`..`DateTime.sunday` start.
+
+This value is the reader's preferred calendar week boundary. It is deliberately
+not derived from any feature's cycle: a training block or meal plan beginning
+on a Wednesday is a domain concept, and coupling it to the global calendar
+preference would need a separate product decision.
+
+A display convention does not need account data, remote sync or a new Supabase
 schema.
 
 ## Decision

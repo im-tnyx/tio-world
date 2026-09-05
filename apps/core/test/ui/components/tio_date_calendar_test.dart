@@ -490,9 +490,8 @@ void main() {
 
     testWidgets('a mid-week start frames, orders and offsets like any other',
         (tester) async {
-      // Wednesday is the case that justified offering all seven days rather
-      // than Monday and Sunday alone. Nothing in the week arithmetic is
-      // special-cased for the two common answers, and this proves it.
+      // Nothing in the week arithmetic is special-cased for the two common
+      // answers, which is what makes offering all seven days safe.
       await _pump(tester, resolvedFirstDayOfWeek: DateTime.wednesday);
 
       expect(

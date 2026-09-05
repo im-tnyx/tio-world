@@ -46,7 +46,7 @@ Users can choose one app-wide first day of week from Settings and see every curr
 
 ### Success Criteria
 
-- Monday is the default and every other day of the week is selectable (owner revision, 2026-09-05; superseded the earlier Monday/Sunday-only contract after review of the built screen).
+- Monday is the default and every other day of the week is selectable (owner revision, 2026-09-05; superseded the earlier Monday/Sunday-only contract after review of the built screen). The week start is the user's preferred calendar week boundary. It is not derived from any feature's cycle: a training block or meal plan that begins on a Wednesday is a domain concept and does not imply the user's global calendar should start there. Offering all seven is justified simply because a reader may prefer any of them and the reusable calendar already lays out any start day.
 - The value is stored locally with a stable machine key and safe Monday fallback.
 - Settings owns one preference; Nutrition only receives the resolved value.
 - Meal Diary preserves selected date, range limits, visible-range reporting, and Today behavior when the value changes.
@@ -75,9 +75,10 @@ Supabase, remote/account sync, database schema, backend APIs, feature-specific p
 
 | Decision | Status | Rationale | Owner |
 |---|---|---|---|
-| V1 offers all seven days, Monday first, Monday default | Revised 2026-09-05 | The owner reviewed the built two-option screen and asked for the full week. Core already lays out any `DateTime.monday`..`sunday` start, so restricting the list bought nothing and could not express a plan whose week begins mid-cycle | TNYX-72 owner |
+| V1 offers all seven days, Monday first, Monday default | Revised 2026-09-05 | The owner reviewed the built two-option screen and asked for the full week. This is the reader's preferred calendar week boundary, not a feature's cycle start; all seven are offered simply because a reader may prefer any of them and Core already lays out any `DateTime.monday`..`sunday` start, so restricting the list bought nothing | TNYX-72 owner |
 | A page rather than a bottom sheet | Revised 2026-09-05 | Two options would have fitted a sheet; seven scroll badly in one, and Calendar is a preference family that will gain members | TNYX-72 owner |
-| One live ordering preview above the list, not one per option | Made | Seven near-identical seven-token strings are a wall of text; one strip that reorders on selection answers the same question | this slice |
+| No ordering preview on the Calendar Settings page | Revised 2026-09-05 | The option list is the ordering: it reads Monday through Sunday. A per-option preview was rejected as repetitive, and the single shared strip that replaced it was reviewed and removed as redundant decoration. A regression asserts no preview is drawn | TNYX-72 owner |
+| No help text under the heading | Revised 2026-09-05 | Four wordings were tried and each was wrong in its own way: naming every calendar promised screens that do not exist, a storage note is implementation detail, naming Meal Diary framed an app-global value as one feature's setting, and a bare scope statement repeated the options. Google Calendar, Apple, Samsung and Strava ship this setting with none. Add one only when the preference starts changing something a reader cannot guess | TNYX-72 owner |
 | Persistence is device-local | Made | Explicit implementation boundary; no Supabase work | TNYX-72 owner |
 | Settings is the sole preference owner | Made | Prevents feature-specific calendar state | TNYX-72 owner |
 | Core nullable locale fallback remains | Made | Reusable calendar API compatibility | Existing TNYX-55 contract |
@@ -86,7 +87,7 @@ Supabase, remote/account sync, database schema, backend APIs, feature-specific p
 
 ### Chosen Approach
 
-Feature-first Settings slice under `apps/features/settings/lib/src/calendar_preferences/`, with app composition owning the reactive controller/provider and resolving the saved enum to a `DateTime.monday`..`DateTime.sunday` value before passing it to calendar consumers. Day names and the ordering preview are formatted from the locale through the shared core helpers `tioWeekdayName`/`tioOrderedWeekdayLabels`, which the calendar's own weekday header now uses too, so Settings and the calendar cannot drift.
+Feature-first Settings slice under `apps/features/settings/lib/src/calendar_preferences/`, with app composition owning the reactive controller/provider and resolving the saved enum to a `DateTime.monday`..`DateTime.sunday` value before passing it to calendar consumers. Option names are formatted from the locale through the shared core helper `tioWeekdayName`; Settings renders no ordering preview. `tioOrderedWeekdayLabels` is the calendar's own header-ordering helper, extracted from the inline code that header already carried, and has no Settings consumer.
 
 ### Ownership and Data Flow
 

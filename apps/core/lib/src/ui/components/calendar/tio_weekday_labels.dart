@@ -4,8 +4,8 @@ import 'package:intl/intl.dart';
 /// [firstDayOfWeek] renders them, upper-cased.
 ///
 /// `DateTime.monday`..`DateTime.sunday` are all accepted. Any day may start a
-/// week: Monday, Sunday and Saturday cover most of the world, and a training or
-/// meal plan whose cycle begins mid-week is the reason the other four exist.
+/// week: Monday, Sunday and Saturday cover most of the world, and the rest are
+/// supported because the arithmetic never needed to special-case them.
 ///
 /// Names come from the locale rather than a hard-coded table, so a reader in
 /// another language gets their own abbreviations. Shared by the calendar's own
