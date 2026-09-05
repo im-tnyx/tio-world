@@ -51,6 +51,7 @@ class TioEditorSheet extends StatelessWidget {
     this.actions,
     this.canDismiss = true,
     this.titleTrailing,
+    this.flushActions = false,
   });
 
   final String title;
@@ -68,6 +69,17 @@ class TioEditorSheet extends StatelessWidget {
   /// The commit region. Pinned below the scroll view; null renders no region
   /// at all rather than an empty gap.
   final Widget? actions;
+
+  /// Whether [actions] begin immediately below the scroll view, with no gap.
+  ///
+  /// False by default, so the standard [TioEditorSheetTokens.actionGap] still
+  /// separates the body from the commit region and no existing sheet moves.
+  ///
+  /// Pass true when the action region draws its own boundary — a rule across
+  /// the sheet, say. The gap and a separator are two ways of saying the same
+  /// thing, and doing both leaves a band of dead space above the line that
+  /// reads as content having been cut off.
+  final bool flushActions;
 
   /// Whether the handle may dismiss the sheet. Set false while a save is in
   /// flight so a drag cannot discard work mid-write.
@@ -119,7 +131,8 @@ class TioEditorSheet extends StatelessWidget {
                   ),
                 ),
                 if (actions != null) ...[
-                  const SizedBox(height: TioEditorSheetTokens.actionGap),
+                  if (!flushActions)
+                    const SizedBox(height: TioEditorSheetTokens.actionGap),
                   actions!,
                 ],
               ],

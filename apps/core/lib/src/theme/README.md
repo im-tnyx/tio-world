@@ -464,6 +464,8 @@ Features still own callbacks, navigation, values, keys, domain copy, and intenti
 
 `showTioEditorSheet` is the presenter for `TioEditorSheet`, the canonical editable modal. It owns the route-level flags the component depends on — scroll-controlled, no route drag, no Flutter drag handle — and takes one optional `useRootNavigator`, forwarded unchanged and defaulting to Flutter's own `false`. A caller inside a nested navigator, such as a `StatefulShellRoute` branch, passes `true` so the barrier covers the chrome outside that branch instead of leaving an app bar action or the bottom navigation live behind the sheet. Core does not choose this: only the caller knows which navigator its editor belongs above.
 
+`TioEditorSheet` keeps its actions pinned below the scroll view, separated by `TioEditorSheetTokens.actionGap`. `flushActions` removes that gap so the action region begins immediately below the body; it defaults to false, so no existing sheet moves. Pass true only when the action region draws its own boundary — a rule across the sheet, for instance — because a gap and a separator say the same thing twice and leave dead space above the line.
+
 `showTioConfirmationBottomSheet` is the reusable presenter for confirm/cancel decisions. It owns the modal shell, safe-area handling, and `TioConfirmationCard` composition. Features supply only the title, message, confirm/cancel labels, and optional icon widget. Do not rebuild a bespoke confirmation sheet when this presenter matches the intent.
 
 When a repeated pattern is missing, first ask whether the correct fix is an existing component, reusable variant, or direct governed primitives—not another token file.

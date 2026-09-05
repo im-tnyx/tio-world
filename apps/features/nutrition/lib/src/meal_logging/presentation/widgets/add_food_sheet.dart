@@ -26,6 +26,14 @@ Future<MealDiaryAddFoodChoice?> showMealDiaryAddFoodSheet(
     // reader could change the diary's day — or leave for another tab — with
     // this sheet still open on top of it. The root navigator covers the shell.
     useRootNavigator: true,
+    // Without this the route applies `MediaQuery.removePadding(removeTop:
+    // true)`, so no inner `SafeArea` can protect the top however it is
+    // configured — and a sheet tall enough to reach the top of a short or
+    // split-screen viewport puts its title and close button under the status
+    // bar or a display cutout. Flutter's own wrapper is `SafeArea(bottom:
+    // false)`, which leaves the bottom to the inner one below rather than
+    // padding it twice.
+    useSafeArea: true,
     backgroundColor: TioPalette.transparent,
     builder: (sheetContext) => SafeArea(
       top: false,

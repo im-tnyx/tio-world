@@ -4,8 +4,8 @@ import 'package:tio_core/core.dart';
 /// The pinned action region a meal-logging editor commits from.
 ///
 /// ```text
-/// ┌ Meal type        ▼ ┐ ┌ 🗓 Sep 27, 2026 · Time ┐
-/// └────────────────────┘ └────────────────────────┘
+/// ─────────────────────────────────────────────────
+/// Meal type ▼                       🗓 Sep 27 · Time
 /// [                    Log Meal                    ]
 /// ```
 ///
@@ -72,33 +72,69 @@ class MealLogActionFooter extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Intrinsic height so the two controls match when one of them wraps on
-        // a narrow phone, which the date one does first.
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: _FooterControl(
-                  controlKey: const ValueKey('meal-log-footer-category'),
-                  label: mealCategoryLabel,
-                  semanticLabel: mealCategorySemanticLabel ?? mealCategoryLabel,
-                  trailing: Icons.expand_more_rounded,
-                  onTap: onMealCategoryTap,
-                ),
+        const _FooterSeparator(),
+        const SizedBox(height: TioSpacing.md),
+        // Two plain controls on one line rather than two boxes: the category
+        // sits at the leading edge with its chevron right beside the word it
+        // opens, and the date runs to the trailing edge behind its calendar.
+        // Cards here would have made the footer look like more content when
+        // its job is to be the quiet strip the content stops at.
+        Row(
+          children: [
+            _FooterAction(
+              controlKey: const ValueKey('meal-log-footer-category'),
+              semanticLabel: mealCategorySemanticLabel ?? mealCategoryLabel,
+              onTap: onMealCategoryTap,
+              builder: (context, textStyle, iconColor) => Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(mealCategoryLabel, style: textStyle),
+                  const SizedBox(width: TioSpacing.xs),
+                  Icon(
+                    Icons.expand_more_rounded,
+                    size: TioSize.dp20,
+                    color: iconColor,
+                  ),
+                ],
               ),
-              const SizedBox(width: TioSpacing.md),
-              Expanded(
-                child: _FooterControl(
+            ),
+            // Takes the remainder and hands it back right-aligned, so the
+            // date keeps the trailing edge however short the category is.
+            Expanded(
+              child: Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: _FooterAction(
                   controlKey: const ValueKey('meal-log-footer-date-time'),
-                  label: dateTimeLabel,
                   semanticLabel: dateTimeSemanticLabel ?? dateTimeLabel,
-                  leading: Icons.calendar_today_outlined,
                   onTap: onDateTimeTap,
+                  builder: (context, textStyle, iconColor) => Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SvgPicture.asset(
+                        'assets/svg_icon/ic_calendar_.svg',
+                        package: 'tio_core',
+                        width: TioSize.dp20,
+                        height: TioSize.dp20,
+                        colorFilter: ColorFilter.mode(
+                          iconColor,
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                      const SizedBox(width: TioSpacing.sm),
+                      Flexible(
+                        child: Text(
+                          dateTimeLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textStyle,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
         if (note != null) ...[
           const SizedBox(height: TioSpacing.md),
@@ -125,61 +161,77 @@ class MealLogActionFooter extends StatelessWidget {
   }
 }
 
-/// One compact control in the footer's top row.
-class _FooterControl extends StatelessWidget {
-  const _FooterControl({
+/// The line where the scrolling body stops and the pinned region starts.
+///
+/// It has to reach both edges of the sheet, and the sheet pads its content
+/// horizontally. Rather than hard-code that padding back out, the line is
+/// allowed to overflow symmetrically to the window width, which cancels
+/// whatever the padding happens to be.
+///
+/// The other half of the problem — the sheet's gap above its actions, which
+/// would have left dead space over the line — is handled by asking the sheet
+/// for `flushActions` instead of painting around it.
+class _FooterSeparator extends StatelessWidget {
+  const _FooterSeparator();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+
+    // The outer box is what the Column lays out — one hairline tall. Only the
+    // width is allowed to overflow; without pinning the height the OverflowBox
+    // would try to fill a Column that offers it no bound.
+    return SizedBox(
+      height: TioStroke.width1,
+      child: OverflowBox(
+        maxWidth: double.infinity,
+        child: SizedBox(
+          width: MediaQuery.sizeOf(context).width,
+          child: Divider(
+            key: const ValueKey('meal-log-footer-divider'),
+            height: TioStroke.width1,
+            thickness: TioStroke.width1,
+            color: colors.outlineStrong.withAlpha(TioAlpha.alpha20),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One control on the footer's top line.
+///
+/// The caller builds the content because the two differ: the category is a
+/// word followed by its chevron, the date is a glyph followed by its value.
+/// What is shared is the part that must not differ — the text and icon
+/// treatment, and the fact that a null [onTap] means disabled, dimmed and
+/// reported as such rather than merely inert.
+class _FooterAction extends StatelessWidget {
+  const _FooterAction({
     required this.controlKey,
-    required this.label,
     required this.semanticLabel,
-    this.leading,
-    this.trailing,
+    required this.builder,
     this.onTap,
   });
 
   final Key controlKey;
-  final String label;
   final String semanticLabel;
-  final IconData? leading;
-  final IconData? trailing;
+  final Widget Function(BuildContext context, TextStyle textStyle, Color iconColor)
+      builder;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final isEnabled = onTap != null;
-    final iconColor = isEnabled ? colors.textSecondary : colors.textMuted;
-
-    final control = TioCard(
-      variant: TioCardVariant.normal,
-      padding: const EdgeInsets.symmetric(
-        horizontal: TioSpacing.md,
-        vertical: TioSpacing.md,
+    final content = builder(
+      context,
+      TextStyle(
+        color: colors.textPrimary,
+        fontSize: TioFontSize.size15,
+        fontWeight: TioFontWeight.w600,
       ),
-      onTap: onTap,
-      child: Row(
-        children: [
-          if (leading != null) ...[
-            Icon(leading, size: TioSize.dp16, color: iconColor),
-            const SizedBox(width: TioSpacing.sm),
-          ],
-          Expanded(
-            child: Text(
-              label,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: colors.textPrimary,
-                fontSize: TioFontSize.size13,
-                fontWeight: TioFontWeight.w600,
-              ),
-            ),
-          ),
-          if (trailing != null) ...[
-            const SizedBox(width: TioSpacing.xs),
-            Icon(trailing, size: TioSize.dp16, color: iconColor),
-          ],
-        ],
-      ),
+      isEnabled ? colors.textPrimary : colors.textMuted,
     );
 
     return Semantics(
@@ -190,8 +242,12 @@ class _FooterControl extends StatelessWidget {
       onTap: onTap,
       child: ExcludeSemantics(
         child: isEnabled
-            ? control
-            : Opacity(opacity: TioOpacity.opacity64, child: control),
+            ? GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onTap,
+                child: content,
+              )
+            : Opacity(opacity: TioOpacity.opacity64, child: content),
       ),
     );
   }

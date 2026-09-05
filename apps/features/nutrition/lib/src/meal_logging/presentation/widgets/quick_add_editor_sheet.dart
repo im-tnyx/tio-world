@@ -121,23 +121,32 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
   @override
   Widget build(BuildContext context) {
     final localizations = MaterialLocalizations.of(context);
-    final selectedDateLabel = localizations.formatShortDate(widget.selectedDate);
+    // Month and day only. The year is noise in a chip this size, and the
+    // diary the reader came from already says which one they are on.
+    final selectedDateLabel =
+        localizations.formatShortMonthDay(widget.selectedDate);
 
     return TioEditorSheet(
       key: const ValueKey('quick-add-editor'),
       title: 'Quick Add',
+      // The footer draws its own rule across the sheet, so the standard gap
+      // above the actions would only put dead space above that line.
+      flushActions: true,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // The one free-text field, and the largest thing on the screen: a
-          // meal is easier to recognise later by its name than by its numbers.
-          // Two lines is the cap — this is a title, not a notes field.
+          // The one free-text field. It uses the governed larger rounded
+          // surface so it reads as the thing you name the meal with, but it
+          // starts at one line: a fixed two-line box was more room than a
+          // title needs and made the screen top-heavy. It still grows to a
+          // second line for a longer name, and stops there — this is a title,
+          // not a notes field.
           TioInput.multiline(
             key: const ValueKey('quick-add-meal-name'),
             controller: _mealName,
             hint: 'Meal name (optional)',
-            minLines: 2,
+            minLines: 1,
             maxLines: 2,
             keyboardType: TextInputType.text,
             textInputAction: TextInputAction.done,
@@ -171,6 +180,10 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
             label: 'Fat',
             unit: 'g',
           ),
+          // Breathing room at the end of the body. The footer's rule now sits
+          // flush against the scroll view, so without this the last field
+          // touches the line.
+          const SizedBox(height: TioSpacing.lg),
         ],
       ),
       actions: MealLogActionFooter(
@@ -292,6 +305,13 @@ class _NutritionRow extends StatelessWidget {
                 // what is wrong with it.
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
+                ),
+                // Shorter than the editor default: four of these stacked read
+                // as a list of numbers, and each one only ever holds a few
+                // characters.
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: TioSpacing.md,
+                  vertical: TioSpacing.sm,
                 ),
                 onChanged: (_) {},
               ),

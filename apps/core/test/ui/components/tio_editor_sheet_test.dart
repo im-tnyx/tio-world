@@ -377,6 +377,62 @@ void main() {
     });
   });
 
+  group('flushActions', () {
+    Future<double> gapAboveActions(
+      WidgetTester tester, {
+      required bool flushActions,
+    }) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) =>
+              TioTheme(child: child ?? const SizedBox.shrink()),
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => showTioEditorSheet<void>(
+                  context: context,
+                  builder: (_) => TioEditorSheet(
+                    title: 'Editor',
+                    flushActions: flushActions,
+                    content: const SizedBox(height: 40, child: Text('Body')),
+                    actions: const SizedBox(
+                      key: ValueKey('actions'),
+                      height: 40,
+                      child: Text('Save'),
+                    ),
+                  ),
+                ),
+                child: const Text('Open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      final body = tester.getRect(find.byType(SingleChildScrollView).first);
+      final actions = tester.getRect(find.byKey(const ValueKey('actions')));
+      return actions.top - body.bottom;
+    }
+
+    testWidgets('the default keeps the standard gap above the actions',
+        (tester) async {
+      expect(
+        await gapAboveActions(tester, flushActions: false),
+        moreOrLessEquals(TioEditorSheetTokens.actionGap, epsilon: 0.5),
+      );
+    });
+
+    testWidgets('flushActions removes it so the region can draw its own rule',
+        (tester) async {
+      expect(
+        await gapAboveActions(tester, flushActions: true),
+        moreOrLessEquals(0, epsilon: 0.5),
+      );
+    });
+  });
+
   group('navigator choice', () {
     /// Chrome outside a nested navigator, with the editor opened from inside
     /// it — the shape a `StatefulShellRoute` branch produces.

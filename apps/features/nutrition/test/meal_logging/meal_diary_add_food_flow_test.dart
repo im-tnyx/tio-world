@@ -355,6 +355,40 @@ void main() {
       });
     }
 
+    testWidgets('the header clears a status bar or cutout on a short viewport',
+        (tester) async {
+      // Short enough that the sheet has to reach the top of the screen, which
+      // is the only situation where the top inset matters at all.
+      tester.view.physicalSize = const Size(360, 320);
+      tester.view.devicePixelRatio = 1;
+      tester.view.padding = const FakeViewPadding(top: 100);
+      addTearDown(tester.view.reset);
+
+      await _pump(tester);
+      await _openAddFood(tester);
+      expect(tester.takeException(), isNull);
+
+      // The route removes the top padding unless the sheet opts back into it,
+      // so without that opt-in the title and close button sit under the
+      // status bar rather than below it.
+      expect(
+        tester.getRect(find.text('Add Food')).top,
+        greaterThanOrEqualTo(100),
+        reason: 'the title must clear the top system inset',
+      );
+      expect(
+        tester.getRect(find.byKey(_sheetClose)).top,
+        greaterThanOrEqualTo(100),
+        reason: 'the close action must stay reachable below the inset',
+      );
+
+      // Still dismissible from there, and still only the sheet.
+      await tester.tap(find.byKey(_sheetClose));
+      await tester.pumpAndSettle();
+      expect(find.byKey(_sheet), findsNothing);
+      expect(find.byType(TioDateCalendar), findsOne);
+    });
+
     testWidgets('the close action dismisses only the sheet', (tester) async {
       final controller = await _pump(tester);
       await _openAddFood(tester);
@@ -379,7 +413,7 @@ void main() {
 
       // The footer's date control carries it, and shows the day the reader
       // picked rather than today.
-      expect(find.textContaining('Aug 19, 2026'), findsOne);
+      expect(find.textContaining('Aug 19'), findsOne);
       expect(find.textContaining('Aug 20'), findsNothing);
       expect(controller.selectedDate, _yesterday);
     });
@@ -644,6 +678,37 @@ void main() {
       final dateTime = tester.getRect(find.byKey(_footerDateTime));
       final logMeal = tester.getRect(find.byKey(_logMeal));
 
+      // One divider, and only one: it marks where the scrolling body ends and
+      // the pinned region begins. The rows above it are not separated.
+      const divider = ValueKey('meal-log-footer-divider');
+      expect(find.byKey(divider), findsOne);
+      expect(
+        find.descendant(of: find.byKey(_editor), matching: find.byType(Divider)),
+        findsOne,
+      );
+      final line = tester.getRect(find.byKey(divider));
+      expect(line.bottom, lessThanOrEqualTo(category.top));
+
+      // Edge to edge: the sheet's own horizontal padding must not shorten it.
+      final windowWidth = tester.view.physicalSize.width /
+          tester.view.devicePixelRatio;
+      expect(line.left, moreOrLessEquals(0, epsilon: 0.5));
+      expect(line.right, moreOrLessEquals(windowWidth, epsilon: 0.5));
+      expect(line.width, greaterThan(logMeal.width));
+
+      // Flush against the body: the sheet leaves a gap above its actions, and
+      // the line sits at the top of it rather than below it, so nothing reads
+      // as dead space between the last field and the boundary.
+      final body = tester.getRect(
+        find
+            .descendant(
+              of: find.byKey(_editor),
+              matching: find.byType(SingleChildScrollView),
+            )
+            .first,
+      );
+      expect(line.top, lessThanOrEqualTo(body.bottom + 0.5));
+
       // Meal type on the left, date and time on the right, sharing a row.
       expect(category.right, lessThanOrEqualTo(dateTime.left));
       expect(category.top, moreOrLessEquals(dateTime.top, epsilon: 1));
@@ -697,15 +762,21 @@ void main() {
       await tester.pumpAndSettle();
       await _openQuickAdd(tester);
 
-      expect(find.byIcon(Icons.calendar_today_outlined), findsOne);
+      // The designed calendar glyph leads the date, not a Material icon.
+      expect(
+        find.descendant(
+          of: find.byKey(_footerDateTime),
+          matching: find.byType(SvgPicture),
+        ),
+        findsOne,
+      );
       expect(
         tester.getSemantics(find.byKey(_footerDateTime)),
         matchesSemantics(
           isButton: true,
           hasEnabledState: true,
           isEnabled: false,
-          label: 'Date and time. Aug 19, 2026, time not set. '
-              'Not available yet.',
+          label: 'Date and time. Aug 19, time not set. Not available yet.',
         ),
       );
 
