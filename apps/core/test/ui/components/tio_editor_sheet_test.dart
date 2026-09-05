@@ -376,4 +376,195 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   });
+
+  group('useSafeArea', () {
+    Future<double> titleTop(
+      WidgetTester tester, {
+      required bool useSafeArea,
+    }) async {
+      tester.view.physicalSize = const Size(360, 320);
+      tester.view.devicePixelRatio = 1;
+      tester.view.padding = const FakeViewPadding(top: 100);
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) =>
+              TioTheme(child: child ?? const SizedBox.shrink()),
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => showTioEditorSheet<void>(
+                  context: context,
+                  useSafeArea: useSafeArea,
+                  builder: (_) => TioEditorSheet(
+                    title: 'Daily Step Goal',
+                    content: Column(
+                      children: [
+                        for (var i = 0; i < 20; i++)
+                          SizedBox(height: 40, child: Text('r$i')),
+                      ],
+                    ),
+                  ),
+                ),
+                child: const Text('Open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      return tester.getRect(find.text('Daily Step Goal')).top;
+    }
+
+    testWidgets('the default lets a tall sheet reach under the top inset',
+        (tester) async {
+      // Not a recommendation — the documented consequence of the route's own
+      // `removePadding`, which is why the parameter exists at all.
+      expect(await titleTop(tester, useSafeArea: false), lessThan(100));
+    });
+
+    testWidgets('useSafeArea keeps the header below it', (tester) async {
+      expect(
+        await titleTop(tester, useSafeArea: true),
+        greaterThanOrEqualTo(100),
+      );
+    });
+  });
+
+  group('flushActions', () {
+    Future<double> gapAboveActions(
+      WidgetTester tester, {
+      required bool flushActions,
+    }) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) =>
+              TioTheme(child: child ?? const SizedBox.shrink()),
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => showTioEditorSheet<void>(
+                  context: context,
+                  builder: (_) => TioEditorSheet(
+                    title: 'Editor',
+                    flushActions: flushActions,
+                    content: const SizedBox(height: 40, child: Text('Body')),
+                    actions: const SizedBox(
+                      key: ValueKey('actions'),
+                      height: 40,
+                      child: Text('Save'),
+                    ),
+                  ),
+                ),
+                child: const Text('Open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      final body = tester.getRect(find.byType(SingleChildScrollView).first);
+      final actions = tester.getRect(find.byKey(const ValueKey('actions')));
+      return actions.top - body.bottom;
+    }
+
+    testWidgets('the default keeps the standard gap above the actions',
+        (tester) async {
+      expect(
+        await gapAboveActions(tester, flushActions: false),
+        moreOrLessEquals(TioEditorSheetTokens.actionGap, epsilon: 0.5),
+      );
+    });
+
+    testWidgets('flushActions removes it so the region can draw its own rule',
+        (tester) async {
+      expect(
+        await gapAboveActions(tester, flushActions: true),
+        moreOrLessEquals(0, epsilon: 0.5),
+      );
+    });
+  });
+
+  group('navigator choice', () {
+    /// Chrome outside a nested navigator, with the editor opened from inside
+    /// it — the shape a `StatefulShellRoute` branch produces.
+    Future<int Function()> pumpNested(
+      WidgetTester tester, {
+      required bool useRootNavigator,
+    }) async {
+      var chromeTaps = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) =>
+              TioTheme(child: child ?? const SizedBox.shrink()),
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                IconButton(
+                  key: const ValueKey('chrome-action'),
+                  onPressed: () => chromeTaps++,
+                  icon: const Icon(Icons.today),
+                ),
+              ],
+            ),
+            body: Navigator(
+              onGenerateRoute: (_) => MaterialPageRoute<void>(
+                builder: (branchContext) => TextButton(
+                  key: const ValueKey('open'),
+                  onPressed: () => showTioEditorSheet<void>(
+                    context: branchContext,
+                    useRootNavigator: useRootNavigator,
+                    builder: (_) => const TioEditorSheet(
+                      title: 'Editor',
+                      content: Text('Body'),
+                    ),
+                  ),
+                  child: const Text('Open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('open')));
+      await tester.pumpAndSettle();
+      expect(find.byType(TioEditorSheet), findsOneWidget);
+
+      return () => chromeTaps;
+    }
+
+    testWidgets('the default leaves chrome outside the branch reachable',
+        (tester) async {
+      final chromeTaps = await pumpNested(tester, useRootNavigator: false);
+
+      await tester.tap(find.byKey(const ValueKey('chrome-action')));
+      await tester.pumpAndSettle();
+
+      expect(chromeTaps(), 1, reason: 'the barrier covers only the branch');
+    });
+
+    testWidgets('useRootNavigator puts the barrier over the chrome too',
+        (tester) async {
+      final chromeTaps = await pumpNested(tester, useRootNavigator: true);
+
+      await tester.tap(
+        find.byKey(const ValueKey('chrome-action')),
+        warnIfMissed: false,
+      );
+      await tester.pumpAndSettle();
+
+      expect(chromeTaps(), 0, reason: 'the barrier absorbs the chrome tap');
+      // The tap did not simply miss: it landed on the barrier, which is what
+      // dismissed the sheet. That only happens if the barrier is over the app
+      // bar, which is only true on the root navigator.
+      expect(find.byType(TioEditorSheet), findsNothing);
+    });
+  });
 }

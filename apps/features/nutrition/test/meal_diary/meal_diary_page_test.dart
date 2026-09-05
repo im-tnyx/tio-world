@@ -255,7 +255,7 @@ void main() {
       expect(tester.takeException(), isNull, reason: 'no RenderFlex overflow');
 
       // The content below the calendar starts off the bottom of this viewport…
-      final summary = find.text('Meal logging is not available yet.');
+      final summary = find.byKey(const ValueKey('meal-diary-empty-day-note'));
       const viewportHeight = 320.0;
       expect(
         tester.getRect(summary).top,
@@ -275,6 +275,13 @@ void main() {
       // Page scrolling never toggled the calendar, and the handle still works.
       expect(find.byKey(const ValueKey('tio-date-calendar-month-pager')),
           findsOne);
+      // Scrolled this far the handle can sit above the viewport, so bring it
+      // back before tapping — the point being tested is that it still toggles,
+      // not where the drag happened to leave it.
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('tio-date-calendar-handle')),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('tio-date-calendar-handle')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('tio-date-calendar-month-pager')),

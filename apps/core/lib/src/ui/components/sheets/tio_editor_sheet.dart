@@ -7,13 +7,32 @@ import '../../../theme/theme.dart';
 /// Route-level dragging and Flutter's own drag handle are both disabled: the
 /// sheet's handle owns dismissal, because a route-level drag can bypass a
 /// child `PopScope` and tear down a sheet mid-save.
+///
+/// [useRootNavigator] is forwarded unchanged and defaults to Flutter's own
+/// `false`. A caller inside a nested navigator — a `StatefulShellRoute` branch,
+/// say — passes true so the barrier covers the chrome outside that branch
+/// rather than leaving it live behind the sheet. Core does not decide this:
+/// only the caller knows which navigator its editor belongs above.
+///
+/// [useSafeArea] is forwarded the same way and defaults to Flutter's own
+/// `false` so no existing sheet moves. It matters more here than the name
+/// suggests: with it false the route applies
+/// `MediaQuery.removePadding(removeTop: true)`, so [TioEditorSheet]'s own
+/// `SafeArea` cannot bring the top inset back however it is configured. An
+/// editor tall enough to reach the top of a short, split-screen or
+/// keyboard-raised viewport should pass true, or its handle and title end up
+/// under the status bar or a display cutout.
 Future<T?> showTioEditorSheet<T>({
   required BuildContext context,
   required WidgetBuilder builder,
+  bool useRootNavigator = false,
+  bool useSafeArea = false,
 }) =>
     showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: useRootNavigator,
+      useSafeArea: useSafeArea,
       backgroundColor: TioPalette.transparent,
       enableDrag: false,
       showDragHandle: false,
@@ -43,6 +62,7 @@ class TioEditorSheet extends StatelessWidget {
     this.actions,
     this.canDismiss = true,
     this.titleTrailing,
+    this.flushActions = false,
   });
 
   final String title;
@@ -60,6 +80,17 @@ class TioEditorSheet extends StatelessWidget {
   /// The commit region. Pinned below the scroll view; null renders no region
   /// at all rather than an empty gap.
   final Widget? actions;
+
+  /// Whether [actions] begin immediately below the scroll view, with no gap.
+  ///
+  /// False by default, so the standard [TioEditorSheetTokens.actionGap] still
+  /// separates the body from the commit region and no existing sheet moves.
+  ///
+  /// Pass true when the action region draws its own boundary — a rule across
+  /// the sheet, say. The gap and a separator are two ways of saying the same
+  /// thing, and doing both leaves a band of dead space above the line that
+  /// reads as content having been cut off.
+  final bool flushActions;
 
   /// Whether the handle may dismiss the sheet. Set false while a save is in
   /// flight so a drag cannot discard work mid-write.
@@ -111,7 +142,8 @@ class TioEditorSheet extends StatelessWidget {
                   ),
                 ),
                 if (actions != null) ...[
-                  const SizedBox(height: TioEditorSheetTokens.actionGap),
+                  if (!flushActions)
+                    const SizedBox(height: TioEditorSheetTokens.actionGap),
                   actions!,
                 ],
               ],
