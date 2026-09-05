@@ -55,6 +55,13 @@ height to 10dp. Keep it centered, pill-shaped, alpha-50, and retain the 200x48 i
 `SUN` header and Sunday date numerals use the semantic danger/error color. Normal Sundays are softened;
 selected or Today Sundays use full danger. A solid completed-day fill keeps `onPrimary` numeral contrast.
 
+**Owner weekday-header Today correction (2026-09-05):** Today's emphasis must reach the shared weekday header,
+not only the date numeral. Exactly one column is emphasised — the column carrying `localToday` — so with Today on
+a Saturday the 5th, both `SAT` and `5` read strong while the other six columns stay muted. The emphasis is derived
+from `localToday`, never from `selectedDate`: it survives paging to a week or month that does not contain Today,
+and tapping another date does not move it, which keeps the outer ring the only selection signal. A Sunday Today
+keeps the semantic danger color and only loses its muting.
+
 **Superseded owner cut-size correction (2026-09-05):** reducing only the visible grabber left the transparent cut too
 large. Preserve the reference's 1.25 outer-to-inner width ratio while fitting the 80dp grabber: reduce the cut
 from 200/160/20 to 100dp outer / 80dp inner / 14dp deep. Keep the grabber at 80x10 and the touch height at 48dp.

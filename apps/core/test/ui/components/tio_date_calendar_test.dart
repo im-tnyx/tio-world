@@ -911,4 +911,75 @@ void main() {
       expect(_cell(_selected), findsOne);
     });
   });
+
+  // _today is Thursday 20 Aug 2026 and _selected is Tuesday 18 Aug 2026, so
+  // these two columns are never the same and a test cannot pass by accident.
+  group('weekday header Today emphasis', () {
+    testWidgets("today's column is emphasised while the rest stay muted",
+        (tester) async {
+      await _pump(tester);
+
+      expect(_weekdayStyle(tester, 'THU').fontWeight, TioFontWeight.w700);
+      for (final other in const ['SUN', 'MON', 'TUE', 'WED', 'FRI', 'SAT']) {
+        expect(
+          _weekdayStyle(tester, other).fontWeight,
+          TioFontWeight.w500,
+          reason: '$other is not today and must stay muted',
+        );
+      }
+      // The header and the numeral under it carry one emphasis, not two.
+      expect(
+        _weekdayStyle(tester, 'THU').color,
+        _numeralStyle(tester, _today).color,
+      );
+
+      await tester.tap(_handle());
+      await tester.pumpAndSettle();
+
+      // The header is shared, so expanding must not drop the emphasis.
+      expect(_weekdayStyle(tester, 'THU').fontWeight, TioFontWeight.w700);
+    });
+
+    testWidgets("paging away from today keeps the header on today's weekday",
+        (tester) async {
+      await _pump(tester);
+
+      await tester.fling(_pager(), const Offset(400, 0), 1200);
+      await tester.pumpAndSettle();
+
+      // Today is off screen now. The header still answers "what day is it".
+      expect(_cell(_today), findsNothing);
+      expect(_weekdayStyle(tester, 'THU').fontWeight, TioFontWeight.w700);
+    });
+
+    testWidgets('selecting another date does not move the emphasis',
+        (tester) async {
+      final harness = await _pump(tester);
+
+      // Monday 17 Aug: a different column from both today and the old
+      // selection, so a selection-driven header would visibly follow it.
+      await tester.tap(_cell(DateTime(2026, 8, 17)));
+      await tester.pumpAndSettle();
+
+      expect(harness.selectedDate, DateTime(2026, 8, 17));
+      expect(_weekdayStyle(tester, 'MON').fontWeight, TioFontWeight.w500);
+      expect(_weekdayStyle(tester, 'THU').fontWeight, TioFontWeight.w700);
+    });
+
+    testWidgets('a Sunday today keeps the Sunday colour and gains the weight',
+        (tester) async {
+      await _pump(tester);
+      final mutedSunday = _weekdayStyle(tester, 'SUN');
+
+      // Sunday 23 Aug 2026.
+      await _pump(tester, localToday: DateTime(2026, 8, 23));
+      final todaySunday = _weekdayStyle(tester, 'SUN');
+
+      expect(mutedSunday.fontWeight, TioFontWeight.w500);
+      expect(todaySunday.fontWeight, TioFontWeight.w700);
+      // Sunday stays red either way; being today only removes the muting.
+      expect(todaySunday.color, isNot(mutedSunday.color));
+      expect(_weekdayStyle(tester, 'THU').fontWeight, TioFontWeight.w500);
+    });
+  });
 }

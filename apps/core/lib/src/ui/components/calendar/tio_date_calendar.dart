@@ -656,7 +656,10 @@ class _TioDateCalendarState extends State<TioDateCalendar>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _WeekdayHeader(firstDayOfWeek: firstDayOfWeek),
+            _WeekdayHeader(
+              firstDayOfWeek: firstDayOfWeek,
+              localToday: _localToday,
+            ),
             SizedBox(
               height: bodyHeight,
               child: ClipRect(
@@ -807,16 +810,55 @@ class _TioDateCalendarState extends State<TioDateCalendar>
 /// One weekday row shared by both renderings. Keeping it outside the animated
 /// body is what makes compact and month read as the same component: the columns
 /// never move, only what sits under them.
+///
+/// Today's column is emphasised here as well as on the numeral. Bolding only
+/// the numeral left the header saying nothing about what day it is, so a reader
+/// looking at `5` had to count columns to learn it was a Saturday.
 class _WeekdayHeader extends StatelessWidget {
-  const _WeekdayHeader({required this.firstDayOfWeek});
+  const _WeekdayHeader({
+    required this.firstDayOfWeek,
+    required this.localToday,
+  });
 
   final int firstDayOfWeek;
+
+  /// Which column carries Today.
+  ///
+  /// Derived from the caller's today, never from the selection: the header
+  /// answers "what day is it", which does not change when the reader taps
+  /// another date or pages away to a week that does not contain today. That
+  /// also keeps the outer selection ring the only signal for selection.
+  final DateTime localToday;
+
+  /// Mirrors the numeral's own Today rules so the column and the date under it
+  /// read as one emphasis rather than two competing ones.
+  TextStyle? _columnStyle(
+    TextStyle? base,
+    TioColors colors,
+    int column,
+    bool isToday,
+  ) {
+    final isSunday = (firstDayOfWeek + column) % _daysPerWeek == 0;
+    if (isToday) {
+      return base?.copyWith(
+        color: isSunday ? colors.danger : colors.textPrimary,
+        fontWeight: TioFontWeight.w700,
+      );
+    }
+    return base?.copyWith(
+      color: isSunday
+          ? colors.danger.withAlpha(TioAlpha.alpha140)
+          : colors.textMuted,
+      fontWeight: TioFontWeight.w500,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
     final localeName = Localizations.localeOf(context).toString();
+    final todayColumn = (localToday.weekday - firstDayOfWeek) % _daysPerWeek;
     final shortWeekdays = List<String>.generate(
       _daysPerWeek,
       (index) => DateFormat.E(localeName)
@@ -838,11 +880,11 @@ class _WeekdayHeader extends StatelessWidget {
                   child: Text(
                     shortWeekdays[(firstDayOfWeek + column) % _daysPerWeek],
                     textAlign: TextAlign.center,
-                    style: textTheme.labelSmall?.copyWith(
-                      color: (firstDayOfWeek + column) % _daysPerWeek == 0
-                          ? colors.danger.withAlpha(TioAlpha.alpha140)
-                          : colors.textMuted,
-                      fontWeight: TioFontWeight.w500,
+                    style: _columnStyle(
+                      textTheme.labelSmall,
+                      colors,
+                      column,
+                      column == todayColumn,
                     ),
                   ),
                 ),
