@@ -148,6 +148,7 @@ class _TioWheelPickerColumnState extends State<TioWheelPickerColumn> {
       if (mounted) setState(() {});
       return;
     }
+    if (rawIndex == previousRawIndex) return;
 
     final logicalIndex = widget.looping
         ? rawIndex % widget.itemCount!
