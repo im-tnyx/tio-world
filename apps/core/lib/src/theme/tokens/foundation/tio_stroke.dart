@@ -3,6 +3,7 @@
 /// Component contracts keep semantic names such as `outlineWidth` or
 /// `plusRingWidth`; this registry owns only the exact physical widths.
 abstract final class TioStroke {
+  static const width05 = 0.5;
   static const width075 = 0.75;
   static const width1 = 1.0;
   static const width12 = 1.2;

@@ -91,7 +91,9 @@ void main() {
       expect(find.text(testCase.$2), findsOneWidget);
       expect(
         tester.getRect(find.text(testCase.$2)).center.dy,
-        closeTo(tester.getRect(find.byKey(const ValueKey('shell-plan'))).center.dy, 1),
+        closeTo(
+            tester.getRect(find.byKey(const ValueKey('shell-plan'))).center.dy,
+            1),
       );
       expect(
         (planPill.decoration! as ShapeDecoration).shape,
@@ -239,6 +241,65 @@ void main() {
     expect(find.byTooltip('Workout streak, 7 days'), findsOneWidget);
   });
 
+  testWidgets('optional action sits left of a fixed right-side feature status',
+      (tester) async {
+    var todayTaps = 0;
+    await tester.binding.setSurfaceSize(const Size(320, 560));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    Future<void> pumpShell({Widget? leadingAction}) {
+      return tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: const TextScaler.linear(1.8),
+            ),
+            child: TioTheme(
+              child: child ?? const SizedBox.shrink(),
+            ),
+          ),
+          home: TioShell(
+            state: const ShellUiState(
+              selectedTab: ShellTab.nutrition,
+              visibleTabs: [ShellTab.home, ShellTab.nutrition],
+            ),
+            statusTopBarLeadingAction: leadingAction,
+            onAction: (_) {},
+            child: const SizedBox.shrink(),
+          ),
+        ),
+      );
+    }
+
+    final status = find.byKey(const ValueKey('shell-meal-log-streak'));
+    final streakIcon = find.byKey(const ValueKey('shell-status-streak-icon'));
+    await pumpShell();
+    final streakCenterWithoutAction = tester.getCenter(streakIcon).dx;
+
+    await pumpShell(
+      leadingAction: IconButton(
+        key: const ValueKey('test-today-action'),
+        tooltip: 'Today',
+        onPressed: () => todayTaps++,
+        icon: const Icon(Icons.calendar_today_outlined),
+      ),
+    );
+
+    final action = find.byKey(const ValueKey('test-today-action'));
+    expect(status, findsOneWidget);
+    expect(action, findsOneWidget);
+    expect(tester.takeException(), isNull);
+    expect(tester.getCenter(action).dx, lessThan(tester.getCenter(status).dx));
+    expect(tester.getCenter(streakIcon).dx, streakCenterWithoutAction);
+    expect(
+      tester.getRect(streakIcon).left - tester.getRect(action).right,
+      0,
+    );
+
+    await tester.tap(action);
+    expect(todayTaps, 1);
+  });
+
   testWidgets('feature status keeps zero icon-only and one day singular',
       (tester) async {
     Future<void> pumpStatus(int days) {
@@ -296,5 +357,189 @@ void main() {
     expect(find.byKey(const ValueKey('shell-workout-streak')), findsNothing);
     expect(find.byType(AppBar), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);
+  });
+
+  group('contextual status title', () {
+    Future<void> pumpShell(
+      WidgetTester tester, {
+      required ShellTab tab,
+      String? contextualTitle,
+      Widget? center,
+    }) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => TioTheme(
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: TioShell(
+            state: ShellUiState(
+              selectedTab: tab,
+              visibleTabs: const [
+                ShellTab.home,
+                ShellTab.workout,
+                ShellTab.nutrition,
+                ShellTab.progress,
+              ],
+            ),
+            onAction: (_) {},
+            statusTopBarTitle: contextualTitle,
+            statusTopBarCenter: center,
+            child: const SizedBox.shrink(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    AppBar appBar(WidgetTester tester) => tester.widget<AppBar>(
+          find.byType(AppBar),
+        );
+
+    String title(WidgetTester tester) => (appBar(tester).title! as Text).data!;
+
+    testWidgets('a screen name replaces the tab label in the top bar only',
+        (tester) async {
+      // The tab names a domain; the screen inside it names itself.
+      await pumpShell(
+        tester,
+        tab: ShellTab.nutrition,
+        contextualTitle: 'Diary',
+      );
+
+      expect(title(tester), 'Diary');
+      // The bottom navigation still says Nutrition, and the tab label itself
+      // is untouched.
+      expect(ShellTab.nutrition.label, 'Nutrition');
+      expect(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Nutrition'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Diary'),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets(
+        'the tab label remains the fallback when no screen names '
+        'itself', (tester) async {
+      await pumpShell(tester, tab: ShellTab.nutrition);
+      expect(title(tester), 'Nutrition');
+
+      await pumpShell(tester, tab: ShellTab.workout);
+      expect(title(tester), 'Workout');
+    });
+
+    testWidgets('a contextual title does not disturb the feature status',
+        (tester) async {
+      await pumpShell(
+        tester,
+        tab: ShellTab.nutrition,
+        contextualTitle: 'Diary',
+      );
+
+      expect(
+        find.byKey(const ValueKey('shell-meal-log-streak')),
+        findsOneWidget,
+      );
+      expect(find.byTooltip('Meal log streak'), findsOneWidget);
+    });
+  });
+
+  group('contextual status centre', () {
+    Future<void> pumpCentre(
+      WidgetTester tester, {
+      required ShellTab tab,
+      String? contextualTitle,
+      Widget? center,
+    }) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => TioTheme(
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: TioShell(
+            state: ShellUiState(
+              selectedTab: tab,
+              visibleTabs: const [
+                ShellTab.home,
+                ShellTab.workout,
+                ShellTab.nutrition,
+                ShellTab.progress,
+              ],
+            ),
+            onAction: (_) {},
+            statusTopBarTitle: contextualTitle,
+            statusTopBarCenter: center,
+            child: const SizedBox.shrink(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a centre slot renders beside the title and the status',
+        (tester) async {
+      await pumpCentre(
+        tester,
+        tab: ShellTab.nutrition,
+        contextualTitle: 'Diary',
+        center: const Text('Sep 26', key: ValueKey('centre-probe')),
+      );
+
+      expect(find.byKey(const ValueKey('centre-probe')), findsOneWidget);
+      expect(find.text('Diary'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('shell-meal-log-streak')),
+        findsOneWidget,
+      );
+
+      // Title on the left, centre actually centred on the bar.
+      final bar = tester.getRect(find.byType(AppBar));
+      final centre = tester.getRect(find.byKey(const ValueKey('centre-probe')));
+      expect((centre.center.dx - bar.center.dx).abs(), lessThan(1));
+    });
+
+    testWidgets('no centre slot leaves the bar exactly as it was',
+        (tester) async {
+      await pumpCentre(tester, tab: ShellTab.nutrition);
+      expect(tester.widget<AppBar>(find.byType(AppBar)).flexibleSpace, isNull);
+    });
+
+    testWidgets('other shell surfaces are untouched', (tester) async {
+      await pumpCentre(tester, tab: ShellTab.workout);
+      expect(
+        (tester.widget<AppBar>(find.byType(AppBar)).title! as Text).data,
+        'Workout',
+      );
+      expect(tester.widget<AppBar>(find.byType(AppBar)).flexibleSpace, isNull);
+
+      await pumpCentre(tester, tab: ShellTab.home);
+      expect(find.text('TIO'), findsWidgets);
+    });
+  });
+
+  group('compact month-year label', () {
+    test('marks the year so it cannot read as a day', () {
+      expect(
+        tioCompactMonthYearLabel(DateTime(2026, 9), localeName: 'en_US'),
+        'Sep ’26',
+      );
+      expect(
+        tioCompactMonthYearLabel(DateTime(2026, 8), localeName: 'en_US'),
+        'Aug ’26',
+      );
+      // A year whose last two digits need padding still reads as a year.
+      expect(
+        tioCompactMonthYearLabel(DateTime(2005, 1), localeName: 'en_US'),
+        'Jan ’05',
+      );
+    });
   });
 }

@@ -3,7 +3,7 @@
 **Surface:** Phone primary tab for `nutrition` and `hybrid` modes
 **Current route:** `/nutrition`
 **Primary owner:** `apps/features/nutrition`
-**Status:** Current route is a shared placeholder. The sections below are the target contract.
+**Status:** The route now renders the Nutrition-owned Meal Diary date-navigation surface (`MealDiaryPage`) instead of the shared placeholder. Everything else in the sections below remains the target contract.
 
 ## Purpose
 
@@ -11,12 +11,15 @@ Help the user track meals and water against clear daily targets without turning 
 
 ## Target Content
 
-The root app bar shows a non-interactive Meal Log streak status on the right. It
-shows only the icon until real diary history provides a positive count; it never
-fabricates a number or routes to Progress.
+The root app bar keeps a non-interactive Meal Log streak status anchored on the
+right. It shows only the icon until real diary history provides a positive count;
+it never fabricates a number or routes to Progress. While a historical date is
+selected, the Today calendar action appears immediately to the streak's left
+without an extra visual gap and without moving the streak. Its calendar body
+shows the currently selected day number.
 
 1. **Today’s target summary** — calories, macros, and any explicitly chosen nutrition goal, with an understandable remaining/consumed presentation. It opens [Nutrition Targets](nutrition-targets.md).
-2. **Meal diary** — grouped meal entries with add, edit, remove, and detail actions after the diary MVP is implemented. See [Meal Diary](meal-diary.md).
+2. **Meal diary** — the reusable core inline date calendar is live here and owns date navigation for the diary. Grouped meal entries with add, edit, remove, and detail actions follow once the diary MVP is implemented. See [Meal Diary](meal-diary.md).
 3. **Quick actions** — add food, add a meal, and add water. Use phone flows for full search and editing.
 4. **Nutrition Targets** — goal, dietary preference, target inputs, and explicit overrides. Profile context may provide a starting point; Nutrition owns the calculation, validation, and final user choice. See [Nutrition Targets](nutrition-targets.md).
 5. **Meal Plan** — future route after the first nutrition diary MVP. It may create, schedule, and reuse plans and later become a promoted custom shortcut, but it is not a guided default tab. See [Meal Plan](meal-plan.md).

@@ -40,7 +40,62 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
     return const HomePage();
   }
 
+  if (branch.tab == ShellTab.nutrition) {
+    return const MealDiaryPage();
+  }
+
   return _page(branch.route);
+}
+
+Widget _mealDiaryTodayGlyph(BuildContext context, DateTime localToday) {
+  final color = Theme.of(context).colorScheme.onSurface;
+
+  return ExcludeSemantics(
+    child: SizedBox(
+      key: const ValueKey('meal-diary-today-glyph'),
+      width: TioSize.dp24,
+      height: TioSize.dp24,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          SvgPicture.asset(
+            'assets/svg_icon/ic_calendar.svg',
+            package: 'tio_core',
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+          ),
+          Positioned(
+            left: TioSpacing.xs,
+            top: TioSpacing.md,
+            right: TioSpacing.xs,
+            bottom: TioSpacing.xxs,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                localToday.day.toString(),
+                key: const ValueKey('meal-diary-today-day-label'),
+                maxLines: 1,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: color,
+                      fontWeight: TioFontWeight.w700,
+                    ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+String _mealDiaryTodayTooltip(
+  BuildContext context,
+  DateTime selectedDate, {
+  required bool isOnToday,
+}) {
+  if (isOnToday) return 'Return calendar to current week';
+  final formattedDate =
+      MaterialLocalizations.of(context).formatMediumDate(selectedDate);
+  return 'Return to Today and current week from $formattedDate';
 }
 
 String _accountSettingsUsernameMessage(UsernameAvailabilityReason? reason) {
@@ -234,13 +289,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 'pro' || 'premium' => ShellPlanTier.premium,
                 _ => ShellPlanTier.free,
               };
+              final selectedTab =
+                  ShellTab.fromBranchIndex(navigationShell.currentIndex);
+              final mealDiaryDates = selectedTab == ShellTab.nutrition
+                  ? ref.watch(mealDiaryDateControllerProvider)
+                  : null;
 
               return TioShell(
                 key: ValueKey(
                     'shell-${profileData?.avatarUrl}-${profileData?.plan}'),
                 state: ShellUiState(
-                  selectedTab:
-                      ShellTab.fromBranchIndex(navigationShell.currentIndex),
+                  selectedTab: selectedTab,
                   visibleTabs: visibleTabs,
                   isBottomNavVisible: chromePolicy.showsBottomNav,
                   isRootTopBarVisible: chromePolicy.showsRootTopBar,
@@ -250,6 +309,40 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 ),
                 onAction: (action) =>
                     _handleShellAction(router, navigationShell, action),
+                // The tab is Nutrition; the screen inside it is the Meal
+                // Diary, and its own compact name is what the top bar shows.
+                statusTopBarTitle:
+                    selectedTab == ShellTab.nutrition ? 'Diary' : null,
+                // Where the reader currently is in the calendar, which is not
+                // the same question as what they have selected.
+                statusTopBarCenter: mealDiaryDates == null
+                    ? null
+                    : Text(
+                        tioCompactMonthYearLabel(
+                          mealDiaryDates.visibleMonth,
+                          localeName:
+                              Localizations.localeOf(context).toString(),
+                        ),
+                        key: const ValueKey('meal-diary-visible-month'),
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                statusTopBarLeadingAction:
+                    mealDiaryDates != null &&
+                            mealDiaryDates.shouldShowTodayAction
+                        ? IconButton(
+                            key: const ValueKey('meal-diary-today-action'),
+                            tooltip: _mealDiaryTodayTooltip(
+                              context,
+                              mealDiaryDates.selectedDate,
+                              isOnToday: mealDiaryDates.isOnToday,
+                            ),
+                            onPressed: mealDiaryDates.selectToday,
+                            icon: _mealDiaryTodayGlyph(
+                              context,
+                              mealDiaryDates.localToday,
+                            ),
+                          )
+                        : null,
                 child: child!,
               );
             },

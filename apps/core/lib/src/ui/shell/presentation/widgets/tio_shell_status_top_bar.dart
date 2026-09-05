@@ -11,6 +11,8 @@ class TioShellStatusTopBar extends StatelessWidget
     required this.statusKey,
     required this.days,
     required this.scrollOpacity,
+    this.leadingAction,
+    this.center,
     super.key,
   }) : assert(days == null || days >= 0);
 
@@ -19,6 +21,11 @@ class TioShellStatusTopBar extends StatelessWidget
   final Key statusKey;
   final int? days;
   final double scrollOpacity;
+  final Widget? leadingAction;
+
+  /// Sits centred across the whole bar rather than inside the title, so it
+  /// stays centred on screen no matter how wide the title or actions are.
+  final Widget? center;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -42,7 +49,15 @@ class TioShellStatusTopBar extends StatelessWidget
       scrolledUnderElevation: TioElevation.none,
       backgroundColor: colorScheme.surface.withValues(alpha: opacity),
       elevation: TioElevation.none,
+      flexibleSpace: center == null
+          ? null
+          : SafeArea(
+              child: Center(
+                child: IgnorePointer(child: center),
+              ),
+            ),
       actions: [
+        if (leadingAction case final action?) action,
         Tooltip(
           message: semanticsLabel,
           child: Semantics(
@@ -50,13 +65,17 @@ class TioShellStatusTopBar extends StatelessWidget
             label: semanticsLabel,
             child: ExcludeSemantics(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: TioSpacing.lg,
+                padding: EdgeInsets.only(
+                  left: leadingAction == null ? TioSpacing.lg : TioSpacing.none,
+                  right: TioSpacing.lg,
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.local_fire_department_outlined),
+                    const Icon(
+                      Icons.local_fire_department_outlined,
+                      key: ValueKey('shell-status-streak-icon'),
+                    ),
                     if (visibleDays case final value?) ...[
                       const SizedBox(width: TioSpacing.sm),
                       Text(value.toString()),

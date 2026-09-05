@@ -7,15 +7,36 @@ import '../widgets/tio_shell_status_top_bar.dart';
 import '../widgets/tio_shell_top_bar.dart';
 
 class TioShell extends StatelessWidget {
-  const TioShell(
-      {required this.state,
-      required this.onAction,
-      required this.child,
-      super.key});
+  const TioShell({
+    required this.state,
+    required this.onAction,
+    required this.child,
+    this.statusTopBarLeadingAction,
+    this.statusTopBarTitle,
+    this.statusTopBarCenter,
+    super.key,
+  });
 
   final ShellUiState state;
   final ValueChanged<ShellAction> onAction;
   final Widget child;
+  final Widget? statusTopBarLeadingAction;
+
+  /// Title for the status top bar when the visible screen names itself
+  /// something other than its tab.
+  ///
+  /// A tab label names a domain; a screen inside it may be one of several. The
+  /// shell has no way to know which, so the composition layer supplies the
+  /// name and the tab label stays the fallback. Core never learns that
+  /// Nutrition currently shows a diary.
+  final String? statusTopBarTitle;
+
+  /// Optional centred context for the status top bar.
+  ///
+  /// Where the title says which screen this is, the centre says where inside
+  /// it the reader currently is. Core neither produces nor interprets that —
+  /// it only reserves the slot.
+  final Widget? statusTopBarCenter;
 
   @override
   Widget build(BuildContext context) {
@@ -37,18 +58,22 @@ class TioShell extends StatelessWidget {
                   avatarUrl: state.avatarUrl,
                 ),
               ShellTab.workout => TioShellStatusTopBar(
-                  title: ShellTab.workout.label,
+                  title: statusTopBarTitle ?? ShellTab.workout.label,
                   statusLabel: 'Workout streak',
                   statusKey: const ValueKey('shell-workout-streak'),
                   days: state.workoutStreakDays,
                   scrollOpacity: state.appBarOpacity,
+                  leadingAction: statusTopBarLeadingAction,
+                  center: statusTopBarCenter,
                 ),
               ShellTab.nutrition => TioShellStatusTopBar(
-                  title: ShellTab.nutrition.label,
+                  title: statusTopBarTitle ?? ShellTab.nutrition.label,
                   statusLabel: 'Meal log streak',
                   statusKey: const ValueKey('shell-meal-log-streak'),
                   days: state.mealLogStreakDays,
                   scrollOpacity: state.appBarOpacity,
+                  leadingAction: statusTopBarLeadingAction,
+                  center: statusTopBarCenter,
                 ),
               ShellTab.ai || ShellTab.progress => null,
             }

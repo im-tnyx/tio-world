@@ -14,6 +14,7 @@ import 'package:tio_app/app/settings_persistence_providers.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_home/home.dart';
+import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_feature_onboarding/onboarding.dart'
     hide
         ProfileGender,
@@ -131,7 +132,98 @@ void main() {
 
     expect(router.routeInformationProvider.value.uri.path,
         FeatureRoutes.nutrition.path);
-    expect(find.text('Nutrition'), findsWidgets);
+    // The tab keeps the domain name; the screen inside it is the Diary.
+    expect(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('Nutrition'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.text('Diary'),
+      ),
+      findsOneWidget,
+    );
+    // Centre says where in the calendar the reader currently is.
+    final visibleMonth = find.byKey(const ValueKey('meal-diary-visible-month'));
+    expect(visibleMonth, findsOneWidget);
+    final diaryDates = container.read(mealDiaryDateControllerProvider);
+    expect(
+      tester.widget<Text>(visibleMonth).data,
+      tioCompactMonthYearLabel(
+        diaryDates.visibleMonth,
+        localeName: 'en_US',
+      ),
+    );
+    expect(diaryDates.visibleMonth,
+        DateTime(diaryDates.localToday.year, diaryDates.localToday.month));
+    final today = diaryDates.localToday;
+    final historicalDate = DateTime(today.year, today.month, today.day - 1);
+    final todayAction =
+        find.byKey(const ValueKey('meal-diary-today-action'));
+    expect(todayAction, findsNothing);
+
+    await tester.fling(
+      find.byKey(const ValueKey('tio-date-calendar-week-pager')),
+      const Offset(400, 0),
+      1200,
+    );
+    await tester.pumpAndSettle();
+
+    expect(diaryDates.isOnToday, isTrue);
+    expect(diaryDates.isTodayVisible, isFalse);
+    expect(todayAction, findsOneWidget);
+
+    await tester.tap(todayAction);
+    await tester.pumpAndSettle();
+
+    expect(diaryDates.isOnToday, isTrue);
+    expect(diaryDates.isTodayVisible, isTrue);
+    expect(todayAction, findsNothing);
+
+    diaryDates.select(historicalDate);
+    await tester.pumpAndSettle();
+
+    expect(todayAction, findsOneWidget);
+    expect(
+      find.descendant(
+        of: todayAction,
+        matching: find.byKey(const ValueKey('meal-diary-today-glyph')),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: todayAction, matching: find.byType(SvgPicture)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: todayAction,
+        matching: find.text(today.day.toString()),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: todayAction,
+        matching: find.text(historicalDate.day.toString()),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: todayAction,
+        matching: find.byKey(const ValueKey('meal-diary-today-day-label')),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(todayAction);
+    await tester.pumpAndSettle();
+    expect(diaryDates.isOnToday, isTrue);
+    expect(todayAction, findsNothing);
 
     await controller.select(AppMode.workout);
     await tester.pumpAndSettle();
