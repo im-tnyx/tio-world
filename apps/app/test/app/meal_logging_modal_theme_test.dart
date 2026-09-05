@@ -30,6 +30,8 @@ void main() {
   const sheet = ValueKey('meal-diary-add-food-sheet');
   const quickAddCard = ValueKey('add-food-quick-add');
   const editorSheet = ValueKey('tio-editor-sheet');
+  const footerDateTime = ValueKey('meal-log-footer-date-time');
+  const pickerCard = ValueKey('quick-add-date-time-picker-card');
 
   Future<void> pumpApp(WidgetTester tester, TioThemeMode mode) async {
     final appMode = AppModeController(_MemoryAppModePreference(AppMode.hybrid));
@@ -134,6 +136,33 @@ void main() {
       expect(
         materialOf(tester, find.byKey(editorSheet)).color,
         isNot(TioColors.light.surfaceRaised),
+      );
+
+      await tester.tap(find.byKey(footerDateTime));
+      await tester.pumpAndSettle();
+      expect(find.byKey(pickerCard), findsOneWidget);
+      final pickerSurface = tester
+          .widgetList<Container>(
+            find.descendant(
+              of: find.byKey(pickerCard),
+              matching: find.byType(Container),
+            ),
+          )
+          .map((container) => container.decoration)
+          .whereType<BoxDecoration>()
+          .first;
+      expect(pickerSurface.color, expected.surfaceRaised);
+      final selectionPill = tester.widget<Container>(
+        find.byKey(
+          const ValueKey('tio-date-time-wheel-selection-pill'),
+        ),
+      );
+      expect(
+        (selectionPill.decoration! as BoxDecoration).color,
+        expected.surfaceVariant.withAlpha(
+          TioWheelPickerTokens.selectionSurfaceAlpha,
+        ),
+        reason: '${mode.$2}: inline picker must inherit the real app theme',
       );
     });
   }

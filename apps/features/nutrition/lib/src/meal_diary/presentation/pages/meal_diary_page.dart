@@ -37,7 +37,11 @@ const double _actionClearance = TioSize.dp56 + TioSpacing.xl * 2;
 /// can save: actual meal history belongs to TNYX-113/114/115, and until those
 /// exist the diary says so rather than inventing a store of its own.
 class MealDiaryPage extends ConsumerStatefulWidget {
-  const MealDiaryPage({super.key, this.resolvedFirstDayOfWeek});
+  const MealDiaryPage({
+    super.key,
+    this.resolvedFirstDayOfWeek,
+    this.quickAddClock,
+  });
 
   /// The app-global week start, already resolved, supplied by app composition.
   ///
@@ -47,6 +51,14 @@ class MealDiaryPage extends ConsumerStatefulWidget {
   /// calendar's own locale fallback, which is what happens before the
   /// preference has loaded.
   final int? resolvedFirstDayOfWeek;
+
+  /// Testable local clock seam for a brand-new Quick Add draft.
+  ///
+  /// Production leaves this null and the editor reads `DateTime.now()` once
+  /// when it opens. Keeping the seam on the route-owned entry avoids global
+  /// clock state while allowing the complete Diary -> Quick Add flow to be
+  /// deterministic in widget tests.
+  final DateTime Function()? quickAddClock;
 
   @override
   ConsumerState<MealDiaryPage> createState() => _MealDiaryPageState();
@@ -113,17 +125,16 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
 
   /// Meal Diary → Add Food → Quick Add.
   ///
-  /// The selected date is read once, here, and handed to the editor by value.
-  /// Neither sheet is given the controller, so no amount of opening, typing or
-  /// dismissing can move the day the reader is looking at. Backing out of
-  /// either sheet is a complete no-op: nothing was created to undo.
-  Future<void> _openAddFood(DateTime selectedDate) async {
+  /// The Diary's selected date deliberately does not cross this boundary.
+  /// A new Quick Add owns a fresh current-local DateTime snapshot, while the
+  /// Diary keeps the historical day the reader was viewing.
+  Future<void> _openAddFood() async {
     final choice = await showMealDiaryAddFoodSheet(context);
     if (choice == null || !mounted) return;
 
     switch (choice) {
       case MealDiaryAddFoodChoice.quickAdd:
-        await showQuickAddEditorSheet(context, selectedDate: selectedDate);
+        await showQuickAddEditorSheet(context, clock: widget.quickAddClock);
     }
   }
 
@@ -150,7 +161,7 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
                   padding: const EdgeInsets.all(TioSpacing.xl),
                   child: MealDiaryLogAction(
                     key: const ValueKey('meal-diary-add-food-action'),
-                    onPressed: () => _openAddFood(dates.selectedDate),
+                    onPressed: _openAddFood,
                   ),
                 ),
               ),

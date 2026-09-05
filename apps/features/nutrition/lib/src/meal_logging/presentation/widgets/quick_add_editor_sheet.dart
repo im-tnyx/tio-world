@@ -4,15 +4,10 @@ import 'package:tio_core/core.dart';
 
 import 'meal_log_action_footer.dart';
 
-/// Opens the Quick Add manual nutrition editor for [selectedDate].
-///
-/// [selectedDate] is the Meal Diary's own selected day, passed by value. The
-/// editor is given the date, not the diary's controller, so there is no path
-/// by which opening, editing or closing this sheet can move the reader's
-/// selection.
+/// Opens a brand-new Quick Add manual nutrition editor.
 Future<void> showQuickAddEditorSheet(
   BuildContext context, {
-  required DateTime selectedDate,
+  DateTime Function()? clock,
 }) {
   return showTioEditorSheet<void>(
     context: context,
@@ -24,7 +19,7 @@ Future<void> showQuickAddEditorSheet(
     // top padding, so a keyboard-raised or split-screen viewport can push the
     // handle and title under the status bar.
     useSafeArea: true,
-    builder: (_) => QuickAddEditorSheet(selectedDate: selectedDate),
+    builder: (_) => QuickAddEditorSheet(clock: clock),
   );
 }
 
@@ -40,7 +35,7 @@ Future<void> showQuickAddEditorSheet(
 /// Protein (g)             [      ]
 /// Fat (g)                 [      ]
 /// ─────────────────────────────────   body scrolls, footer does not
-/// Meal type ▼        🗓 Sep 5 · Time
+/// Meal type ▼        🗓 Sep 6, 00:07
 /// [           Log Meal            ]
 /// ```
 ///
@@ -70,21 +65,21 @@ Future<void> showQuickAddEditorSheet(
 /// find out it was wrong by losing meals. So the button is present, disabled,
 /// and says why.
 ///
-/// Every value lives in this `State`'s own text controllers and dies with the
-/// route. There is no notifier, no repository, no store and no draft, which is
-/// why backing out leaves nothing behind — not because a teardown path clears
-/// something, but because there was never anything to clear.
+/// Every value, including the selected local DateTime, lives in this `State`
+/// and dies with the route. There is no notifier, repository or store behind
+/// it. Reopening a brand-new Quick Add takes a fresh current-local snapshot.
 class QuickAddEditorSheet extends StatefulWidget {
-  const QuickAddEditorSheet({required this.selectedDate, super.key});
+  const QuickAddEditorSheet({super.key, this.clock});
 
-  /// The Meal Diary's selected day, carried in and only displayed.
-  final DateTime selectedDate;
+  /// Optional local clock seam. Production uses `DateTime.now`.
+  final DateTime Function()? clock;
 
   @override
   State<QuickAddEditorSheet> createState() => _QuickAddEditorSheetState();
 }
 
 class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
+  final _dateTimePickerKey = GlobalKey();
   final _mealName = TextEditingController();
   final _calories = TextEditingController();
   final _carbs = TextEditingController();
@@ -98,10 +93,16 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
     _protein,
     _fat,
   ];
+  late DateTime _draftDateTime;
+  late DateTime _maximumCalendarDate;
+  var _isDateTimePickerOpen = false;
 
   @override
   void initState() {
     super.initState();
+    final openedAt = _currentLocalMinute();
+    _draftDateTime = openedAt;
+    _maximumCalendarDate = _dateOnly(openedAt);
     // Validation is per-keystroke because the errors are about the characters
     // themselves, not about a submission that cannot happen here.
     for (final controller in _fields) {
@@ -123,13 +124,59 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
     if (mounted) setState(() {});
   }
 
+  DateTime _currentLocalMinute() {
+    final value = widget.clock?.call() ?? DateTime.now();
+    return DateTime(value.year, value.month, value.day, value.hour, value.minute);
+  }
+
+  DateTime _dateOnly(DateTime value) =>
+      DateTime(value.year, value.month, value.day);
+
+  DateTime _resolveMealDateTime(DateTime candidate) {
+    // The wheel has minute precision. Compare its zero-second candidate to the
+    // real clock, then snap to the real minute floor. Hidden seconds can never
+    // make the same visible minute inconsistently valid or invalid.
+    final now = _currentLocalMinute();
+    _maximumCalendarDate = _dateOnly(now);
+    return candidate.isAfter(now) ? now : candidate;
+  }
+
+  void _refreshMaximumCalendarDate() {
+    final maximum = _dateOnly(_currentLocalMinute());
+    if (maximum == _maximumCalendarDate) return;
+    setState(() => _maximumCalendarDate = maximum);
+  }
+
+  void _onDateTimeChanged(DateTime value) {
+    setState(() => _draftDateTime = value);
+  }
+
+  void _toggleDateTimePicker() {
+    FocusScope.of(context).unfocus();
+    setState(() => _isDateTimePickerOpen = !_isDateTimePickerOpen);
+    if (!_isDateTimePickerOpen) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final pickerContext = _dateTimePickerKey.currentContext;
+      if (!mounted || pickerContext == null) return;
+      Scrollable.ensureVisible(
+        pickerContext,
+        alignment: 1,
+        duration: const Duration(milliseconds: TioDuration.ms200),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final localizations = MaterialLocalizations.of(context);
-    // Month and day only. The year is noise in a chip this size, and the
-    // diary the reader came from already says which one they are on.
     final selectedDateLabel =
-        localizations.formatShortMonthDay(widget.selectedDate);
+        localizations.formatShortMonthDay(_draftDateTime);
+    final selectedTimeLabel =
+        '${_draftDateTime.hour.toString().padLeft(2, '0')}:'
+        '${_draftDateTime.minute.toString().padLeft(2, '0')}';
+    final dateTimeLabel = '$selectedDateLabel, $selectedTimeLabel';
 
     return TioEditorSheet(
       key: const ValueKey('quick-add-editor'),
@@ -185,10 +232,26 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
             label: 'Fat',
             unit: 'g',
           ),
-          // Breathing room at the end of the body. The footer's rule now sits
-          // flush against the scroll view, so without this the last field
-          // touches the line.
           const SizedBox(height: TioSpacing.lg),
+          if (_isDateTimePickerOpen)
+            KeyedSubtree(
+              key: _dateTimePickerKey,
+              child: TioCard(
+                key: const ValueKey('quick-add-date-time-picker-card'),
+                variant: TioCardVariant.normal,
+                padding: const EdgeInsets.symmetric(vertical: TioSpacing.sm),
+                child: Listener(
+                  onPointerDown: (_) => _refreshMaximumCalendarDate(),
+                  child: TioDateTimeWheelPicker(
+                    value: _draftDateTime,
+                    maximumDate: _maximumCalendarDate,
+                    today: _maximumCalendarDate,
+                    resolveDateTime: _resolveMealDateTime,
+                    onChanged: _onDateTimeChanged,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
       actions: MealLogActionFooter(
@@ -198,13 +261,11 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
         // inventing a second, weaker version of that.
         mealCategoryLabel: 'Meal type',
         mealCategorySemanticLabel: 'Meal type. Not available yet.',
-        // The real selected day, and a time that is honestly unresolved:
-        // TNYX-114 owns consumed time, so there is no correct value to show
-        // and inventing one would be the screenshot talking, not the app.
-        dateTimeLabel: '$selectedDateLabel · Time',
+        dateTimeLabel: dateTimeLabel,
         dateTimeSemanticLabel:
-            'Date and time. $selectedDateLabel, time not set. '
-            'Not available yet.',
+            'Date and time. $dateTimeLabel. '
+            'Picker ${_isDateTimePickerOpen ? 'expanded' : 'collapsed'}.',
+        onDateTimeTap: _toggleDateTimePicker,
         primaryLabel: 'Log Meal',
         primarySemanticLabel: 'Log Meal. Not available yet.',
         note: 'Saving is not available yet.',

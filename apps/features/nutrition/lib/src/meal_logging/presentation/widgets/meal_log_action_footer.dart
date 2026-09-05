@@ -5,7 +5,7 @@ import 'package:tio_core/core.dart';
 ///
 /// ```text
 /// ─────────────────────────────────────────────────
-/// Meal type ▼                       🗓 Sep 27 · Time
+/// Meal type ▼                       🗓 Sep 27, 18:42
 /// [                    Log Meal                    ]
 /// ```
 ///
