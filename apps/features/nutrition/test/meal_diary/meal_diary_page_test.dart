@@ -255,7 +255,7 @@ void main() {
       expect(tester.takeException(), isNull, reason: 'no RenderFlex overflow');
 
       // The content below the calendar starts off the bottom of this viewport…
-      final summary = find.text('Meal logging is not available yet.');
+      final summary = find.byKey(const ValueKey('meal-diary-empty-day-note'));
       const viewportHeight = 320.0;
       expect(
         tester.getRect(summary).top,
