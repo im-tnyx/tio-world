@@ -556,6 +556,55 @@ void main() {
     );
   });
 
+  testWidgets('Calendar Settings catches write failures and stays retryable',
+      (tester) async {
+    final repository = _SettingsCalendarPreferencesRepository()
+      ..failNextWrite = true;
+    final fixture = await _pumpSettingsRoute(
+      tester,
+      initialPath: AppRoutes.calendarSettings.path,
+      calendarRepository: repository,
+    );
+
+    final sunday =
+        find.byKey(const ValueKey('calendar-first-day-option-sunday'));
+    await tester.tap(sunday);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(fixture.calendar.firstDayOfWeek, FirstDayOfWeekPreference.monday);
+    expect(fixture.calendar.saveError, isA<StateError>());
+    expect(find.byKey(const ValueKey('calendar-first-day-error')), findsOne);
+    expect(find.byType(CalendarSettingsPage), findsOneWidget);
+
+    await tester.tap(sunday);
+    await tester.pumpAndSettle();
+
+    expect(repository.writeCalls, 2);
+    expect(fixture.calendar.firstDayOfWeek, FirstDayOfWeekPreference.sunday);
+    expect(fixture.calendar.saveError, isNull);
+    expect(
+        find.byKey(const ValueKey('calendar-first-day-error')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'Calendar Settings does not render a read failure as a save error',
+      (tester) async {
+    final fixture = await _pumpSettingsRoute(
+      tester,
+      initialPath: AppRoutes.calendarSettings.path,
+      calendarRepository: _SettingsCalendarPreferencesRepository()
+        ..readError = true,
+    );
+
+    expect(fixture.calendar.firstDayOfWeek, FirstDayOfWeekPreference.monday);
+    expect(fixture.calendar.loadError, isA<StateError>());
+    expect(fixture.calendar.saveError, isNull);
+    expect(
+        find.byKey(const ValueKey('calendar-first-day-error')), findsNothing);
+  });
+
   testWidgets('direct Units route retains its existing path and editor',
       (tester) async {
     final fixture = await _pumpSettingsRoute(
@@ -784,6 +833,7 @@ Future<
     })> _pumpSettingsRoute(
   WidgetTester tester, {
   String initialPath = '/settings',
+  CalendarPreferencesRepository? calendarRepository,
 }) async {
   final mode = AppModeController(_MemoryAppModePreference(AppMode.hybrid));
   await mode.load();
@@ -805,7 +855,7 @@ Future<
   final units = _SettingsUnitsRepository();
   final hydration = _SettingsHydrationRepository();
   final calendar = CalendarPreferencesController(
-    _SettingsCalendarPreferencesRepository(),
+    calendarRepository ?? _SettingsCalendarPreferencesRepository(),
   );
   await calendar.load();
   addTearDown(auth.dispose);
@@ -885,15 +935,26 @@ class _SettingsHydrationRepository implements HydrationPreferencesRepository {
 class _SettingsCalendarPreferencesRepository
     implements CalendarPreferencesRepository {
   CalendarPreferences value = const CalendarPreferences();
+  int writeCalls = 0;
+  bool readError = false;
+  bool failNextWrite = false;
 
   @override
   Future<void> clear() async => value = const CalendarPreferences();
 
   @override
-  Future<CalendarPreferences> read() async => value;
+  Future<CalendarPreferences> read() async {
+    if (readError) throw StateError('Test read failure');
+    return value;
+  }
 
   @override
   Future<void> write(CalendarPreferences preferences) async {
+    writeCalls++;
+    if (failNextWrite) {
+      failNextWrite = false;
+      throw StateError('Test write failure');
+    }
     value = preferences;
   }
 }

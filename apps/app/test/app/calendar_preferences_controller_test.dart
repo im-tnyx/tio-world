@@ -20,7 +20,8 @@ void main() {
       expect(controller.isLoaded, isTrue);
       expect(controller.firstDayOfWeek, FirstDayOfWeekPreference.sunday);
       expect(controller.resolvedFirstDayOfWeek, DateTime.sunday);
-      expect(controller.lastError, isNull);
+      expect(controller.loadError, isNull);
+      expect(controller.saveError, isNull);
     });
 
     test('select persists Sunday then Monday through the same controller',
@@ -55,8 +56,27 @@ void main() {
       );
 
       expect(controller.firstDayOfWeek, FirstDayOfWeekPreference.monday);
-      expect(controller.lastError, isA<StateError>());
+      expect(controller.loadError, isNull);
+      expect(controller.saveError, isA<StateError>());
       expect(controller.isSaving, isFalse);
+    });
+
+    test('falls back to Monday after a read failure without a save error',
+        () async {
+      final controller = CalendarPreferencesController(
+        _FakeCalendarPreferencesRepository(
+          const CalendarPreferences(
+            firstDayOfWeek: FirstDayOfWeekPreference.sunday,
+          ),
+          readError: StateError('read failed'),
+        ),
+      );
+
+      await controller.load();
+
+      expect(controller.firstDayOfWeek, FirstDayOfWeekPreference.monday);
+      expect(controller.loadError, isA<StateError>());
+      expect(controller.saveError, isNull);
     });
 
     test('serializes concurrent choices in tap order', () async {
@@ -90,16 +110,24 @@ void main() {
 
 class _FakeCalendarPreferencesRepository
     implements CalendarPreferencesRepository {
-  _FakeCalendarPreferencesRepository(this.value, {this.writeError});
+  _FakeCalendarPreferencesRepository(
+    this.value, {
+    this.readError,
+    this.writeError,
+  });
 
   CalendarPreferences value;
+  final Object? readError;
   final Object? writeError;
 
   @override
   Future<void> clear() async => value = const CalendarPreferences();
 
   @override
-  Future<CalendarPreferences> read() async => value;
+  Future<CalendarPreferences> read() async {
+    if (readError case final error?) throw error;
+    return value;
+  }
 
   @override
   Future<void> write(CalendarPreferences preferences) async {

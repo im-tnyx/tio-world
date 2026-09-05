@@ -15,7 +15,8 @@ class CalendarPreferencesController extends ChangeNotifier {
   CalendarPreferences _preferences = const CalendarPreferences();
   bool _isLoaded = false;
   bool _isSaving = false;
-  Object? _lastError;
+  Object? _loadError;
+  Object? _saveError;
   Future<void> _selectionQueue = Future<void>.value();
   int _pendingSelections = 0;
 
@@ -28,18 +29,25 @@ class CalendarPreferencesController extends ChangeNotifier {
 
   bool get isLoaded => _isLoaded;
   bool get isSaving => _isSaving;
-  Object? get lastError => _lastError;
+
+  /// A storage-read problem retained for diagnostics. Calendar rendering still
+  /// falls back to Monday, so this must never be presented as a save failure.
+  Object? get loadError => _loadError;
+
+  /// The most recent failed user-initiated write. The Settings route renders
+  /// this as a retryable save error while keeping the prior effective value.
+  Object? get saveError => _saveError;
 
   Future<void> load() async {
     if (_isLoaded) return;
 
     try {
       _preferences = await _repository.read();
-      _lastError = null;
+      _loadError = null;
     } catch (error) {
       // Unreadable storage is not a reason to refuse to draw a calendar.
       _preferences = const CalendarPreferences();
-      _lastError = error;
+      _loadError = error;
     } finally {
       _isLoaded = true;
       notifyListeners();
@@ -50,7 +58,7 @@ class CalendarPreferencesController extends ChangeNotifier {
     _pendingSelections++;
     if (!_isSaving) {
       _isSaving = true;
-      _lastError = null;
+      _saveError = null;
       notifyListeners();
     }
 
@@ -68,13 +76,13 @@ class CalendarPreferencesController extends ChangeNotifier {
   }
 
   Future<void> _persistSelection(FirstDayOfWeekPreference preference) async {
-    _lastError = null;
+    _saveError = null;
     final next = _preferences.copyWith(firstDayOfWeek: preference);
     try {
       await _repository.write(next);
       _preferences = next;
     } catch (error) {
-      _lastError = error;
+      _saveError = error;
       rethrow;
     }
   }
@@ -82,7 +90,8 @@ class CalendarPreferencesController extends ChangeNotifier {
   Future<void> clear() async {
     await _repository.clear();
     _preferences = const CalendarPreferences();
-    _lastError = null;
+    _loadError = null;
+    _saveError = null;
     notifyListeners();
   }
 }

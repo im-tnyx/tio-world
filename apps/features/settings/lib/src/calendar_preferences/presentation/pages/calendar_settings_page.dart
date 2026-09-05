@@ -21,7 +21,7 @@ class CalendarSettingsPage extends StatelessWidget {
 
   /// Applies and persists the choice. The page owns no state of its own, so a
   /// failed write leaves the previous value showing rather than a lie.
-  final ValueChanged<FirstDayOfWeekPreference> onFirstDayOfWeekChanged;
+  final Future<void> Function(FirstDayOfWeekPreference) onFirstDayOfWeekChanged;
 
   /// Set by the caller when the last write failed.
   final String? errorText;
@@ -100,7 +100,7 @@ class _FirstDayOption extends StatelessWidget {
   final String label;
   final String preview;
   final bool selected;
-  final ValueChanged<FirstDayOfWeekPreference> onSelected;
+  final Future<void> Function(FirstDayOfWeekPreference) onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +112,15 @@ class _FirstDayOption extends StatelessWidget {
       // The preview is a layout illustration, not something worth spelling out
       // letter by letter, so the option announces its name and state instead.
       semanticLabel: label,
-      onTap: () => onSelected(value),
+      onTap: () async {
+        try {
+          await onSelected(value);
+        } catch (_) {
+          // The app controller has already retained the retryable save error
+          // and notified the route. Consume this UI event Future so a failed
+          // device-local write is not reported as an uncaught async exception.
+        }
+      },
       child: Row(
         children: [
           Expanded(

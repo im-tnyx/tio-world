@@ -1558,7 +1558,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             return CalendarSettingsPage(
               firstDayOfWeek: calendar.firstDayOfWeek,
               onFirstDayOfWeekChanged: calendar.select,
-              errorText: calendar.lastError == null
+              errorText: calendar.saveError == null
                   ? null
                   : 'Could not save your calendar preference. '
                       'Please try again.',

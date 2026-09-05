@@ -16,22 +16,23 @@
 
 **Planning owner:** Claude / prior implementation session
 **Implementation owner:** Codex
-**Review owner:** Not assigned
-**Implementation ownership state:** Active
-**Ownership transition:** Claude → Codex
-**Repository state last verified:** 2026-09-05; `HEAD` and `origin/main` at `ce5f29e2e00fb92c266c52b05c55fb676e244406`; working tree already contained TNYX-72 changes.
+**Review owner:** Codex
+**Implementation ownership state:** Active — published-review remediation
+**Ownership transition:** Published implementation owner → Codex review-fix owner
+**Repository state last verified:** 2026-09-05; branch worktree clean at review baseline `875a5646a3f79d109b58a4da42563a8ad99e3b5f`; `origin/main` base is `ce5f29e2e00fb92c266c52b05c55fb676e244406`.
 **Branch:** `tnyx/tnyx-72-global-calendar-preferences-first-day-of-week`
-**HEAD SHA:** `ce5f29e2e00fb92c266c52b05c55fb676e244406`
-**Observed working-tree state:** Dirty, in-progress implementation; no task commit or PR commit on this branch.
-**Observed uncommitted/dirty files:** Existing app routing/composition, Settings UI/tests, Nutrition constructor wiring, and new Calendar Preferences app/settings files.
-**PR / tracker:** Commit/PR publication pending; tracker is currently `In Progress`.
-**Current implementation state:** Settings domain/data/controller seam, app startup/provider routing, Calendar Settings UI, Meal Diary injection, Core visible-anchor reframe, focused tests, canonical docs and ADR are present and locally validated.
+**Review baseline head:** `875a5646a3f79d109b58a4da42563a8ad99e3b5f` (the published implementation before this review round).
+**Current branch HEAD:** Authoritative from `git` and PR metadata; do not duplicate a self-referential SHA into this file.
+**Observed working-tree state:** Clean published implementation before review-fix edits.
+**Observed uncommitted/dirty files:** None before review-fix work began.
+**PR / tracker:** PR [#212](https://github.com/im-tnyx/tio-world/pull/212) is open and non-draft; tracker is `In Progress` pending the requested review-state update.
+**Current implementation state:** The published TNYX-72 implementation has all four valid review findings fixed and locally validated. Current work is limited to publishing the additive review-fix commit, replying/resolving the corresponding threads, and exact-head CI/review verification; no original implementation publication step remains.
 **Relevant execution surface:** `apps/features/settings`, `apps/app`, `apps/features/nutrition`, `apps/core`, `docs`, `.ai/tasks`.
-**Validation completed at SHA:** Working tree based on `ce5f29e2e00fb92c266c52b05c55fb676e244406`; `git diff --check` passed; `main` and `origin/main` match; preserved `docs/supabase-android-studio-qa-run` resolves to `7fe896820c8f176b5049df4fe84fc9acea5933b1`; no Supabase TNYX-72 match found.
-**Validation remaining:** No local validation remains; exact-head GitHub Actions and review are pending after PR publication.
+**Validation completed at SHA:** `875a5646a3f79d109b58a4da42563a8ad99e3b5f` passed the recorded local Flutter/Dart/Melos suites and `git diff --check`; its exact-head Flutter CI run `33960233608` succeeded. Preserved `docs/supabase-android-studio-qa-run` resolves to `7fe896820c8f176b5049df4fe84fc9acea5933b1`; no Supabase TNYX-72 match found.
+**Validation remaining:** Publish the review-fix commit, then exact-head GitHub Actions and review-thread verification.
 **Current blocker:** None locally.
-**Open review finding IDs:** None recorded.
-**Next exact action:** Commit the reviewed TNYX-72 slice, push the feature branch, and open a non-draft PR for review.
+**Open review finding IDs:** None locally; `P1-task-handoff`, `P2-async-persistence-future`, `P2-load-vs-save-error`, and `P2-week-pager-anchor` are fixed and locally validated against review baseline `875a5646a3f79d109b58a4da42563a8ad99e3b5f`. Published-thread verification remains pending.
+**Next exact action:** Commit and push the additive review-fix commit, then reply to and resolve only the published fixed PR threads.
 
 ## Global UI / Design-System Guardrail
 
@@ -129,13 +130,27 @@ Static checks:
 - Focused app suite — PASS; 29 tests passed.
 - Focused Core calendar suite — PASS; 45 tests passed.
 - Focused Nutrition Meal Diary suite — PASS; 22 tests passed.
+
+Review-fix validation (working tree after review baseline `875a5646a3f79d109b58a4da42563a8ad99e3b5f`):
+- Focused app Calendar Preferences controller + Calendar Settings route — PASS; 22 tests passed.
+- Focused Calendar Settings package domain/data/presentation — PASS; 11 tests passed.
+- Focused Core `TioDateCalendar` suite — PASS; 47 tests passed.
+- Focused Nutrition Meal Diary suite — PASS; 22 tests passed.
+- Repository-wide Flutter analyze (`15` packages) — PASS.
+- Repository-wide Flutter test (`13` package targets) — PASS.
+- Pure-Dart analyze — PASS.
+- Pure-Dart tests — PASS; 38 tests passed.
+- `git diff --check` — PASS.
 ```
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| | | Open | | | |
+| P1-task-handoff | P1 | Resolved | Published task handoff still described a dirty pre-commit worktree and pending PR. | `875a5646a3f79d109b58a4da42563a8ad99e3b5f` | Active Handoff refreshed; published-thread reply/resolve pending. |
+| P2-async-persistence-future | P2 | Resolved | Calendar Settings discarded the asynchronous persistence Future. | `875a5646a3f79d109b58a4da42563a8ad99e3b5f` | Async callback consumes the controller Future; route retry regression passed; published-thread reply/resolve pending. |
+| P2-load-vs-save-error | P2 | Resolved | A startup read failure could render save-failure copy before a user selection. | `875a5646a3f79d109b58a4da42563a8ad99e3b5f` | Controller load/save errors separated; route regression passed; published-thread reply/resolve pending. |
+| P2-week-pager-anchor | P2 | Resolved | Replacing the week controller could preserve a stale numeric PageView position after framing changed. | `875a5646a3f79d109b58a4da42563a8ad99e3b5f` | Framing-keyed week and symmetric month pagers plus differing-index regressions passed; published-thread reply/resolve pending. |
 
 ## 7. Final Handoff
 
@@ -153,10 +168,10 @@ Static checks:
 
 V1 exposes Monday (default) and Sunday at `Settings → App Preferences → Calendar → First day of week`. The saved value is device-local, resolved app-wide to `DateTime.monday` or `DateTime.sunday`, and forwarded to Meal Diary/Core without Nutrition-owned persistence. Core preserves the visible anchor when week-start changes, recalculates the visible range, retains selected-date/range ownership, and keeps its nullable locale fallback.
 
-### Known Limitations
+### Current Review State
 
-Flutter/Dart/Melos validation passed on the locally available SDK/toolchain. Remote fetch was not required for this implementation pass; no Supabase or remote state was changed. No commit, push, PR, Linear status update, merge, or Done transition was performed.
+PR #212 is published. Review fixes, their local validation, and exact-head CI/review verification are in progress; no merge or Done transition is authorized.
 
 ### Final Status
 
-`PASS`
+`REVIEW`

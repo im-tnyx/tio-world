@@ -894,6 +894,115 @@ void main() {
   });
 
   group('review regressions', () {
+    testWidgets('week framing change keeps an interior historical anchor',
+        (tester) async {
+      var firstDayOfWeek = DateTime.monday;
+      final visibleRanges = <List<DateTime>>[];
+      final selected = DateTime(2026, 8, 18);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.light),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) => Column(
+                children: [
+                  TioDateCalendar(
+                    selectedDate: selected,
+                    localToday: _today,
+                    minDate: DateTime(2026, 8, 2),
+                    maxDate: DateTime(2026, 9, 30),
+                    resolvedFirstDayOfWeek: firstDayOfWeek,
+                    onVisibleDateRangeChanged: (start, end) {
+                      visibleRanges.add(<DateTime>[start, end]);
+                    },
+                    onDateSelected: (_) {},
+                  ),
+                  TextButton(
+                    onPressed: () =>
+                        setState(() => firstDayOfWeek = DateTime.sunday),
+                    child: const Text('switch'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Monday framing puts Aug 24 on page 4 from the Monday before the Sunday
+      // minDate. Sunday framing maps the same visible anchor to page 3, so a
+      // stale numeric PageView position would jump forward one week.
+      await tester.fling(_pager(), const Offset(-400, 0), 1200);
+      await tester.pumpAndSettle();
+      expect(_cell(DateTime(2026, 8, 24)), findsOne);
+      expect(visibleRanges.last,
+          <DateTime>[DateTime(2026, 8, 24), DateTime(2026, 8, 30)]);
+
+      await tester.tap(find.text('switch'));
+      await tester.pumpAndSettle();
+
+      expect(_cell(DateTime(2026, 8, 23)), findsOne);
+      expect(_cell(DateTime(2026, 8, 29)), findsOne);
+      expect(_cell(DateTime(2026, 8, 30)), findsNothing);
+      expect(visibleRanges.last,
+          <DateTime>[DateTime(2026, 8, 23), DateTime(2026, 8, 29)]);
+      expect(selected, DateTime(2026, 8, 18));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('month range reframing keeps the visible month anchor',
+        (tester) async {
+      var minDate = DateTime(2026, 7, 1);
+      final selected = DateTime(2026, 9, 15);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.light),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) => Column(
+                children: [
+                  TioDateCalendar(
+                    selectedDate: selected,
+                    localToday: _today,
+                    minDate: minDate,
+                    maxDate: DateTime(2026, 10, 31),
+                    displayMode: TioDateCalendarDisplayMode.month,
+                    onDateSelected: (_) {},
+                  ),
+                  TextButton(
+                    onPressed: () =>
+                        setState(() => minDate = DateTime(2026, 8, 1)),
+                    child: const Text('reframe'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(_cell(DateTime(2026, 9, 15)), findsOne);
+
+      // September is page 2 when July is the first month and page 1 after the
+      // range starts in August. A retained old numeric page would show October.
+      await tester.tap(find.text('reframe'));
+      await tester.pumpAndSettle();
+
+      expect(_cell(DateTime(2026, 9, 15)), findsOne);
+      expect(_cell(DateTime(2026, 10, 15)), findsNothing);
+      expect(selected, DateTime(2026, 9, 15));
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('a date numeral holds its vertical position through expansion',
         (tester) async {
       // The existing sibling test pins the cell box. This one pins the glyph

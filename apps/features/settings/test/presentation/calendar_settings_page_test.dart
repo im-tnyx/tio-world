@@ -7,7 +7,7 @@ void main() {
   Future<void> pumpPage(
     WidgetTester tester, {
     FirstDayOfWeekPreference initial = FirstDayOfWeekPreference.monday,
-    ValueChanged<FirstDayOfWeekPreference>? onChanged,
+    Future<void> Function(FirstDayOfWeekPreference)? onChanged,
   }) async {
     var current = initial;
     await tester.pumpWidget(
@@ -20,10 +20,10 @@ void main() {
           builder: (context, setState) {
             return CalendarSettingsPage(
               firstDayOfWeek: current,
-              onFirstDayOfWeekChanged: (next) {
+              onFirstDayOfWeekChanged: (next) async {
                 current = next;
                 setState(() {});
-                onChanged?.call(next);
+                await onChanged?.call(next);
               },
             );
           },
@@ -62,7 +62,7 @@ void main() {
     final semantics = tester.ensureSemantics();
     try {
       final changes = <FirstDayOfWeekPreference>[];
-      await pumpPage(tester, onChanged: changes.add);
+      await pumpPage(tester, onChanged: (next) async => changes.add(next));
 
       await tester.tap(
         find.byKey(const ValueKey('calendar-first-day-option-sunday')),
