@@ -277,19 +277,20 @@ class _TioDobWheelPickerState extends State<TioDobWheelPicker> {
   }
 
   void _onWheelChanged({int? dayIndex, int? monthIndex, int? yearIndex}) {
-    dayIndex ??= _selectedDay - 1;
-    monthIndex ??= _selectedMonthIndex;
-    yearIndex ??= _years.indexOf(_selectedYear);
-    final resolvedYear = (yearIndex >= 0 && yearIndex < _years.length)
-        ? _years[yearIndex]
+    final nextDayIndex = dayIndex ?? _selectedDay - 1;
+    final nextMonthIndex = monthIndex ?? _selectedMonthIndex;
+    final nextYearIndex = yearIndex ?? _years.indexOf(_selectedYear);
+    final resolvedYear =
+        (nextYearIndex >= 0 && nextYearIndex < _years.length)
+        ? _years[nextYearIndex]
         : widget.startYear;
-    final resolvedMonth = (monthIndex + 1).clamp(1, 12);
+    final resolvedMonth = (nextMonthIndex + 1).clamp(1, 12);
     final maxDays = _daysInMonth(resolvedYear, resolvedMonth);
-    final resolvedDay = (dayIndex + 1).clamp(1, maxDays);
+    final resolvedDay = (nextDayIndex + 1).clamp(1, maxDays);
 
     setState(() {
       _selectedYear = resolvedYear;
-      _selectedMonthIndex = monthIndex;
+      _selectedMonthIndex = nextMonthIndex;
       _selectedDay = resolvedDay;
     });
 

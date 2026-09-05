@@ -68,19 +68,19 @@ class _OnboardingHeightWheelState extends State<OnboardingHeightWheel> {
   int get _inches => (_totalInches % 12).clamp(0, 11);
 
   void _onCmWheelChanged({int? wholeIndex, int? decimalIndex}) {
-    wholeIndex ??= _cmWholeIndex;
-    decimalIndex ??= _cmDecimal;
-    final whole = _minCm + wholeIndex;
-    final newCm = whole + (decimalIndex / 10.0);
+    final nextWholeIndex = wholeIndex ?? _cmWholeIndex;
+    final nextDecimalIndex = decimalIndex ?? _cmDecimal;
+    final whole = _minCm + nextWholeIndex;
+    final newCm = whole + (nextDecimalIndex / 10.0);
     setState(() => _selectedCm = newCm);
     widget.onChanged(newCm);
   }
 
   void _onFtInChanged({int? feetIndex, int? inches}) {
-    feetIndex ??= _feetIndex;
-    inches ??= _inches;
-    final feet = feetIndex + 3;
-    final totalInches = (feet * 12) + inches;
+    final nextFeetIndex = feetIndex ?? _feetIndex;
+    final nextInches = inches ?? _inches;
+    final feet = nextFeetIndex + 3;
+    final totalInches = (feet * 12) + nextInches;
     final newCm =
         (totalInches * 2.54).clamp(_minCm.toDouble(), _maxCm.toDouble());
     setState(() => _selectedCm = newCm);

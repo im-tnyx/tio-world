@@ -131,13 +131,13 @@ class _TioWeightWheelState extends State<TioWeightWheel> {
     widget.onChanged(newKg);
   }
 
-  int get _displayDecimal => !_isLbs
-      ? ((_selectedKg - _selectedKg.truncate()) * 10).round().clamp(0, 9)
-      : (((_selectedKg * _kgToLbsFactor) -
-                      (_selectedKg * _kgToLbsFactor).truncate()) *
-                  10)
-              .round()
-              .clamp(0, 9));
+  int get _displayDecimal {
+    final displayValue =
+        _isLbs ? _selectedKg * _kgToLbsFactor : _selectedKg;
+    return ((displayValue - displayValue.truncate()) * 10)
+        .round()
+        .clamp(0, 9);
+  }
 
   void _onUnitIndexChanged(TioWheelSelectionChange change) {
     final index = change.index;

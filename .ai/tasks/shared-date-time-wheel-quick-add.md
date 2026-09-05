@@ -151,6 +151,7 @@ PENDING: GitHub Flutter CI exact-head full analyze/test matrix.
 | QR-1 | P1 | Resolved | Quick Add picker card used only the scroll-target `GlobalKey`, so the stable public test key was absent. | working tree | Kept the `GlobalKey` on `KeyedSubtree` and added `quick-add-date-time-picker-card` to `TioCard`. |
 | QR-2 | P1 | Resolved | A fully visible 236dp picker is impossible in the deliberately smaller keyboard viewport; the test asserted an impossible geometry rather than usability. | working tree | Assert visible intersection, centered wheel reachability/interaction, pinned footer, and no overflow. |
 | QR-3 | P2 | Resolved | The first generic weight migration omitted the old lb upper/lower clamp on decimal changes. | working tree | Restored canonical kg bounds after lb conversion. |
+| QR-4 | P1 | Resolved | First PR CI stopped in Core analysis on one extra parenthesis and nullable callback indices that were not promoted after `??=`. | `3d450e09` | Rewrote the decimal getter and resolved nullable inputs into non-null local values; next exact-head CI pending. |
 
 ## 7. Final Handoff
 
