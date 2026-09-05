@@ -58,9 +58,9 @@ Both are recorded on TNYX-66 as focused readiness evidence. TNYX-66 stays open; 
 **Review owner:** Unassigned — PR review
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-05, third pass — owner device review of the Add Food sheet.
+**Repository state last verified:** 2026-09-05, fourth pass — owner UI review of the Quick Add editor.
 **Branch:** `tnyx/tnyx-158-n5b-meal-diary-add-food-entry-quick-add-editor-shell`
-**HEAD SHA:** Authoritative from `git` and PR metadata; not duplicated here. The previous reviewed head was `bff61fb8`, and this pass supersedes it.
+**HEAD SHA:** Authoritative from `git` and PR metadata; not duplicated here. The previous reviewed head was `cea7679a`, and this pass supersedes it.
 **Observed working-tree state:** Clean once this remediation is committed.
 **Observed uncommitted/dirty files:** None.
 **PR / tracker:** PR [#214](https://github.com/im-tnyx/tio-world/pull/214) is open and non-draft; TNYX-158 is `In Review`.
@@ -68,9 +68,77 @@ Both are recorded on TNYX-66 as focused readiness evidence. TNYX-66 stays open; 
 **Relevant execution surface:** `apps/features/nutrition/lib/src/meal_diary/**`, `apps/features/nutrition/lib/src/meal_logging/**`, `apps/features/nutrition/test/**`, `apps/core` (`showTioEditorSheet` plus the theme README), `.ai/tasks/`, `docs/screens/meal-diary.md`.
 **Validation completed at SHA:** Recorded in Quality Review against the current head.
 **Validation remaining:** None beyond the exact-head CI run recorded in Quality Review.
-**Current blocker:** None in code. The slice now waits on an owner device pass over the rebuilt Add Food sheet before the Quick Add editor is reviewed.
+**Current blocker:** None in code. The Add Food sheet passed owner device review; this pass rebuilds the Quick Add editor to the owner-approved shell recorded above, and the slice then waits on an owner device pass over that screen.
 **Open review finding IDs:** None. All six findings — four automated, one manual governance, one owner device-review UI — are resolved and recorded in Quality Review.
-**Next exact action:** Owner device pass over the Add Food sheet. After that is accepted, the Quick Add editor gets its own review pass. No merge and no `Done` transition are authorized.
+**Next exact action:** Owner device review of the Quick Add UI. No merge and no `Done` transition are authorized.
+
+## Owner-approved Quick Add UI shell — locked 2026-09-05
+
+Recorded here from TNYX-158's own `Owner-approved Quick Add UI shell — locked
+2026-09-05` section, before any source change, so this pass does not depend on
+session memory. The Linear issue remains authoritative; this is the execution
+copy.
+
+**Quick Add is not the full detailed Meal Editor.** It stays a direct path:
+
+```text
+Meal Diary → + → Add Food → Quick Add → Manual Nutrition Editor → Log Meal
+```
+
+AI, Voice, Photo, Search, Recent and Saved Meal may converge on the full Meal
+Editor later, through a `MealLoggingDraft`. Quick Add stays the intentionally
+simpler manual/coarse surface with direct values and no item identities.
+Components may be shared; the two screens must not be forced into one.
+
+### Upper content
+
+```text
+Meal name (optional)   large rounded field
+Calories               required for a useful coarse entry
+Carbs                  optional
+Protein                optional
+Fat                    optional
+```
+
+Fiber and micronutrients are **deferred** from this simple V1 shell. TNYX-115
+and TNYX-58 may add supported nutrients later through the shared
+nutrition-value contract; nothing about them is deleted from planning, they are
+just not rendered here.
+
+### Bottom — reusable Nutrition-owned Meal Log footer
+
+```text
+Meal type                         Date / time
+<category shell, left>            🗓 <date/time shell, right>
+
+[                 Log Meal                 ]
+```
+
+- meal category control: visible, **disabled**, non-authoritative — TNYX-67
+  owns category identity (V1 defaults Breakfast/Lunch/Dinner/Snacks, later
+  renameable, addable, hideable, reorderable, up to 8 active). No parallel
+  static enum is invented here.
+- date/time control: visible, **disabled**, non-editable. The date comes from
+  the Meal Diary's controlled `selectedDate`, never from Today. TNYX-114 owns
+  consumed-time, local-date and timezone semantics, so no picker, no
+  timestamp, no timezone behaviour.
+- `Log Meal`: full width, **disabled**, no persistence. Create mode says
+  `Log Meal`; a later edit mode says `Save Changes`, which is out of scope.
+- The footer is one Nutrition-owned reusable widget, not Quick-Add-specific
+  composition, so the full Meal Editor can adopt it later. It lives in
+  `apps/features/nutrition` rather than `apps/core` because it knows Nutrition
+  concepts — meal category, consumed date/time, Log Meal.
+
+### Unnamed manual log
+
+```text
+mealName entered  → use it
+mealName blank    → Diary display fallback "Quick Add"
+```
+
+`Quick Add` there is a **display fallback only**: not a food identity, not a
+provider identity, not a fabricated MealLog item. TNYX-158 persists nothing, so
+no fallback data is created — this records the contract for TNYX-115.
 
 ## Global UI / Design-System Guardrail
 
