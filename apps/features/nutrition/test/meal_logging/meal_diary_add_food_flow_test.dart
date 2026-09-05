@@ -1154,13 +1154,23 @@ void main() {
       await _openQuickAdd(tester);
       expectQuickAdd(tester, TioColors.light, 'before');
 
+      // Typed first, so the survival check below is not empty-to-empty: a
+      // rebuild that recreated the editor and its controllers would clear
+      // this, and an unwritten field would hide that.
+      const calories = ValueKey('quick-add-calories');
+      await _type(tester, calories, '420');
+      expect(_fieldText(tester, calories), '420');
+
       _setThemeMode(TioThemeMode.dark);
       await tester.pumpAndSettle();
 
       expect(find.byKey(_editor), findsOne, reason: 'the editor stays open');
       expectQuickAdd(tester, TioColors.dark, 'after');
-      // Nothing typed is lost to a theme change either.
-      expect(_fieldText(tester, const ValueKey('quick-add-calories')), isEmpty);
+      expect(
+        _fieldText(tester, calories),
+        '420',
+        reason: 'a theme change must not throw away what was typed',
+      );
     });
   });
 
