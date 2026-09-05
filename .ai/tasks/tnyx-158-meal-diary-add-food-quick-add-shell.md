@@ -281,8 +281,8 @@ Re-run after the owner Quick Add UI pass:
 
 ```text
 flutter analyze   16 packages          No issues found
-flutter test      14 packages          1846 passing, 0 failing
-                                       (baseline 1801 + 39 new nutrition + 6 new core)
+flutter test      14 packages          1849 passing, 0 failing
+                                       (baseline 1801 + 42 new nutrition + 6 new core)
 dart analyze      apps/shared          No issues found
 dart test         apps/shared          38 passing
 git diff --check                       clean
@@ -297,6 +297,7 @@ bff61fb8   Flutter CI 33974244612  success   numeric fix + record sync
 cea7679a   Flutter CI 33980943073  success   Add Food N5 hierarchy
 54c0e311   Flutter CI 33983562633  success   Quick Add owner shell
 12c9517e   Flutter CI 33985463787  success   footer tightening + Add Food safe area
+72e70e5d   Flutter CI 33986672218  success   Quick Add safe area + error semantics
 <current>  recorded on the PR once the run for this head completes
 ```
 
@@ -309,7 +310,7 @@ Four automated Codex findings on commit `4918edcf`, one manual governance
 finding on `e974c410`, three owner UI findings — the Add Food hierarchy on
 `bff61fb8`, the Quick Add shell on `cea7679a` and the device follow-ups during
 this pass — two automated findings on `54c0e311` and three more on
-`12c9517e`. All thirteen are resolved. The history is kept: a resolved finding still records
+`12c9517e` and four more on `72e70e5d`. All seventeen are resolved. The history is kept: a resolved finding still records
 what was wrong and what fixed it.
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
@@ -320,6 +321,10 @@ what was wrong and what fixed it.
 | P2-decimal-separator | P2 | Resolved | The allow-list formatter did not reject unsupported input, it edited it into a different valid number — `1,5` became `15` and `1e400abc` became `1400`, with no error to notice | `4918edcf`, still open on `e974c410` | Deferring this was the wrong call and the reviewer rejected it. The formatter is gone: nothing is filtered, the typed text stays visible, and the validator decides. Five focused tests cover `1,5`, `1e400abc`, `1e400`, `1.2.3` and `-5` staying visible with an explicit error, plus `1.5` accepted as typed. Locale-aware parsing remains out of scope, with the reasoning recorded in the decisions table |
 | P2-add-food-top-safe-area | P2 | Resolved | `showModalBottomSheet` defaults `useSafeArea: false`, which applies `MediaQuery.removePadding(removeTop: true)`, so no inner `SafeArea` could protect the top. On a short or split-screen viewport a sheet tall enough to reach the top put the Add Food title and close button under the status bar or cutout | `54c0e311` | `useSafeArea: true` on the Add Food route. Flutter's wrapper is `SafeArea(bottom: false)`, so the inner `SafeArea(top: false)` still owns the bottom and nothing is padded twice. A regression test at 360x320 with a 100dp top inset asserts the title and close clear it — it reports 27.5 without the fix |
 | P2-docs-quick-add-sync | P2 | Resolved | `docs/screens/meal-diary.md`, this brief and the PR body still described the superseded Quick Add shell — Fiber, the 2x2 macro grid and the standalone disabled Date field | `54c0e311` | All three now describe the owner-approved shell: meal name, Calories/Carbs/Protein/Fat, Fiber deferred, and the reusable `MealLogActionFooter` with its disabled meal-type and date/time controls. Historical decisions and findings are kept |
+| P2-diary-bottom-inset-clearance | P2 | Resolved | The `+` sits inside a `SafeArea`, so a viewport with a bottom inset lifts it while the body reserved a fixed footprint — leaving the inset's worth of content able to sit under the button | `72e70e5d` | The reservation is the footprint plus `MediaQuery.paddingOf(context).bottom`. Asserted as an invariant rather than by scrolling, because today's body is too short to reach the floor and a scroll test would pass either way; it reports 104 against a required 128 without the fix |
+| P2-footer-enabled-tap-target | P2 | Resolved | The footer's enabled path wrapped ~20dp of content in a bare `GestureDetector`, so the contract the Meal Editor is meant to adopt had a sub-48dp target and no keyboard focus | `72e70e5d` | The enabled branch is a `Material` + `InkWell` with a 48dp minimum. The disabled branch keeps the compact height on purpose: a minimum target is a rule about things you can press |
+| P2-readme-usesafearea | P2 | Resolved | The theme README's presenter paragraph documented only `useRootNavigator`, so the next author of a tall or nested editor would have taken the unsafe default | `72e70e5d` | Both presenter options are documented, including what `useSafeArea: false` actually does to the top inset |
+| P2-brief-footer-contract-drift | P2 | Resolved | The brief still described the selected date as a disabled `TioInput` and its final diagram still carried the removed year, which would have handed TNYX-114/115 a superseded UI contract | `72e70e5d` | The decision row is marked superseded and kept as history; the diagram and date wording match the footer's control |
 | P1-changed-files-inventory | P1 | Resolved | The Changed Files handoff listed 17 of the 20 files in the diff — both owner-supplied glyphs and `meal_log_action_footer.dart` were missing, so a reviewer reconstructing ownership would have missed the new runtime assets and the reusable footer entirely | `12c9517e` | The list is now generated from `git diff --name-only origin/main...HEAD` rather than maintained by hand |
 | P2-quick-add-top-safe-area | P2 | Resolved | `showTioEditorSheet` left `useSafeArea` at Flutter's `false`, so the route stripped the top padding and a keyboard-raised or split-screen viewport could push the Quick Add handle and title under the status bar — the same defect already fixed on Add Food | `12c9517e` | `useSafeArea` added to the presenter, defaulting to false, and passed true from Quick Add. Two Core tests cover both settings; a nutrition test at 360x460 with a 100dp inset reports 40.0 without the fix |
 | P2-numeric-error-association | P2 | Resolved | An invalid value produced only a separate `Text`. The field itself still reported valid and the message was not a live region, so a screen reader in that field heard nothing and the error was not programmatically tied to it | `12c9517e` | The value box is wrapped in `Semantics(validationResult: invalid)` while the message becomes a live region. The visible separate line stays, because a message wrapped inside a 100dp value box is unreadable |
