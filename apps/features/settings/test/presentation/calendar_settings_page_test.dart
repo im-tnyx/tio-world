@@ -96,6 +96,23 @@ void main() {
     expect(find.byType(TioSelectableCard), findsNWidgets(7));
   });
 
+  testWidgets('the description names the surface it actually affects',
+      (tester) async {
+    await pumpPage(tester);
+
+    expect(
+      find.text('This changes where weeks start in your Meal Diary calendar.'),
+      findsOneWidget,
+    );
+
+    // Not a promise about screens that do not exist yet.
+    expect(find.textContaining('every calendar'), findsNothing);
+    expect(find.textContaining('wherever Tio shows a week'), findsNothing);
+    // Not implementation detail dressed as help text.
+    expect(find.textContaining('this device'), findsNothing);
+    expect(find.textContaining('Saved'), findsNothing);
+  });
+
   testWidgets('announces each option as a selectable button', (tester) async {
     final semantics = tester.ensureSemantics();
     try {

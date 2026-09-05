@@ -18,6 +18,12 @@ import '../../domain/calendar_preferences.dart';
 /// One live preview sits above the list instead of a preview under every
 /// option: seven near-identical seven-token strings are a wall of text, while
 /// a single strip that reorders as you choose answers the same question.
+///
+/// The one line under the heading names the surface the choice affects. Two
+/// earlier attempts were rejected: "every calendar in Tio" promised screens
+/// that do not exist yet, and "Saved on this device" is implementation detail
+/// wearing the clothes of help text. Naming the real surface is what a reader
+/// can act on, and it is the shape other fitness apps use.
 class CalendarSettingsPage extends StatelessWidget {
   const CalendarSettingsPage({
     required this.firstDayOfWeek,
@@ -52,14 +58,15 @@ class CalendarSettingsPage extends StatelessWidget {
               style: textTheme.headlineSmall,
             ),
             const SizedBox(height: TioSpacing.sm),
+            // Names the surface this actually affects rather than promising
+            // "every calendar", because Meal Diary is the only consumer today.
+            // As Workout, plans and Progress start reading the preference,
+            // extend this sentence with them — do not generalise it early.
             Text(
-              // Not "every calendar in Tio": today the Meal Diary is the only
-              // consumer, and Settings copy must not promise screens that do
-              // not exist yet. This wording stays true whether there is one
-              // week-based surface or ten.
-              'The day your weeks start on, wherever Tio shows a week. '
-              'Saved on this device.',
-              style: textTheme.bodyLarge?.copyWith(color: colors.textSecondary),
+              'This changes where weeks start in your Meal Diary calendar.',
+              style: textTheme.bodyMedium?.copyWith(
+                color: colors.textSecondary,
+              ),
             ),
             const SizedBox(height: TioSpacing.lg),
             // Drawn from the same ordering helper the calendar header uses, so
@@ -97,6 +104,7 @@ class CalendarSettingsPage extends StatelessWidget {
                 style: TextStyle(color: colors.danger),
               ),
             ],
+
           ],
         ),
       ),

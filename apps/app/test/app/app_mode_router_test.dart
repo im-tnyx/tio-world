@@ -531,6 +531,8 @@ void main() {
     final sunday =
         find.byKey(const ValueKey('calendar-first-day-option-sunday'));
     await tester.scrollUntilVisible(sunday, 200);
+    await tester.ensureVisible(sunday);
+    await tester.pumpAndSettle();
     await tester.tap(sunday);
     await tester.pumpAndSettle();
     expect(
@@ -572,6 +574,8 @@ void main() {
     final sunday =
         find.byKey(const ValueKey('calendar-first-day-option-sunday'));
     await tester.scrollUntilVisible(sunday, 200);
+    await tester.ensureVisible(sunday);
+    await tester.pumpAndSettle();
     await tester.tap(sunday);
     await tester.pumpAndSettle();
 
