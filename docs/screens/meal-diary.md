@@ -3,7 +3,7 @@
 **Surface:** Phone Nutrition primary tab
 **Route:** `/nutrition` (the Nutrition shell branch renders `MealDiaryPage`)
 **Primary owner:** `apps/features/nutrition`
-**Status:** Date navigation is implemented and live. Meal logging, totals and persistence are not; no diary data source exists yet.
+**Status:** Date navigation is implemented and live, and the Add Food → Quick Add entry flow now exists as a UI shell. Saving a meal, totals and persistence are not implemented; no diary data source exists yet.
 
 ## Purpose
 
@@ -22,7 +22,12 @@ Show today's meals and water entries, make approved entries easy to add or corre
 - The local day advances without leaving the screen: the page owns a one-shot timer aimed at the next local calendar boundary and also refreshes on app resume. A historical selection is never moved by the rollover; only `localToday` and `maxDate` advance.
 - First day of week is not owned here. `apps/app` resolves the Settings-owned app-global Calendar Preferences value and passes it through `MealDiaryPage` as `resolvedFirstDayOfWeek`; Nutrition forwards it to `TioDateCalendar` without persisting, resolving or caching a second preference. Core's nullable input still permits its locale fallback when no resolved value is supplied.
 - No per-date decorations are supplied, because no meal-log data exists. Missing progress stays missing rather than being drawn as zero.
-- Below the calendar the selected day shows its date and states plainly that meal logging is not available yet.
+- A contextual `+` floats at the bottom-trailing corner of the diary body. It sits above the bottom navigation by construction — the navigation is the shell `Scaffold`'s own slot — and respects the safe area when the shell hides that navigation. It steps aside while the calendar's month grid is expanded, so it never covers a date cell on a short viewport, and returns when the grid collapses. It is a Nutrition-owned composition built from core values; there is no floating action affordance in `apps/core` and `TioShell` has no action slot.
+- `+` opens an **Add Food** sheet showing the four N5 entry paths. **Quick Add** is the only one implemented. Natural-language entry, photo capture and food-database search are drawn as unavailable — dimmed, chevron-less, inert, labelled `Not available yet`, and reported as disabled to assistive technology — rather than hidden or wired to a stub.
+- **Quick Add** opens a **Manual Nutrition Editor** on the canonical `TioEditorSheet`: optional meal name, calories, and optional protein, carbs, fat and fiber. A blank optional field means the value is absent, not zero. Negative and unparseable values are rejected with a message under the field, not by colour alone.
+- The editor is handed the diary's selected date **by value** and shows it read-only. It is never given the date controller, so opening, typing in, or dismissing either sheet cannot move the selected day. Meal category is absent because no canonical `MealCategory` exists yet (N13 owns it), and consumed time is absent because TNYX-114 owns time and local-date semantics.
+- `Log Meal` is rendered and permanently disabled, above a line saying that saving is not available yet. Nothing in this flow persists anything — no entry, no draft, no local store, no Supabase write — so backing out of either sheet leaves no history and no retained input. Durable history arrives through TNYX-113 → TNYX-114 → TNYX-115.
+- Below the calendar the selected day shows its date and states plainly that nothing is logged for it and that meals cannot be saved yet.
 
 ## Target Content
 

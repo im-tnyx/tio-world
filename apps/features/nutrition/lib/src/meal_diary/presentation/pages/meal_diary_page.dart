@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
 
+import '../../../meal_logging/presentation/widgets/add_food_sheet.dart';
+import '../../../meal_logging/presentation/widgets/quick_add_editor_sheet.dart';
 import '../controllers/meal_diary_date_controller.dart';
+import '../widgets/meal_diary_log_action.dart';
 
 /// The Meal Diary surface, and the first production consumer of the reusable
 /// core date calendar.
@@ -18,6 +21,11 @@ import '../controllers/meal_diary_date_controller.dart';
 /// No decorations are supplied yet. There is no meal-log store, so there is no
 /// progress to draw, and an absent decoration is the honest way to say that —
 /// a zero would claim the user ate nothing, which is a different statement.
+///
+/// The same rule governs the logging entry this screen now offers. `+` reaches
+/// a real Add Food sheet and a real Quick Add editor, but nothing behind them
+/// can save: actual meal history belongs to TNYX-113/114/115, and until those
+/// exist the diary says so rather than inventing a store of its own.
 class MealDiaryPage extends ConsumerStatefulWidget {
   const MealDiaryPage({super.key, this.resolvedFirstDayOfWeek});
 
@@ -42,6 +50,14 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
   /// a controller alive after the page is gone; a timer parked there would run
   /// on behind an unmounted screen. Tied to the State, it dies with the route.
   Timer? _midnightTimer;
+
+  /// Whether the calendar is currently showing its month grid.
+  ///
+  /// Observed, not owned: the page passes no `displayMode`, so the calendar
+  /// keeps deciding what it shows and merely reports the change. The page
+  /// needs to know only because the expanded grid reaches the bottom of a
+  /// short viewport, where a floating `+` would sit on top of its date cells.
+  var _isCalendarExpanded = false;
 
   @override
   void initState() {
@@ -85,10 +101,56 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
     });
   }
 
+  /// Meal Diary → Add Food → Quick Add.
+  ///
+  /// The selected date is read once, here, and handed to the editor by value.
+  /// Neither sheet is given the controller, so no amount of opening, typing or
+  /// dismissing can move the day the reader is looking at. Backing out of
+  /// either sheet is a complete no-op: nothing was created to undo.
+  Future<void> _openAddFood(DateTime selectedDate) async {
+    final choice = await showMealDiaryAddFoodSheet(context);
+    if (choice == null || !mounted) return;
+
+    switch (choice) {
+      case MealDiaryAddFoodChoice.quickAdd:
+        await showQuickAddEditorSheet(context, selectedDate: selectedDate);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final dates = ref.watch(mealDiaryDateControllerProvider);
 
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        _diaryBody(dates),
+        // The expanded month grid can reach the bottom of a short viewport,
+        // and a `+` parked over one of its date cells is worse than no `+`
+        // for as long as the grid is open. It comes back on collapse.
+        if (!_isCalendarExpanded)
+          Positioned.fill(
+            // Bottom navigation is the Scaffold's own slot, so the body
+            // already stops above it. SafeArea covers the case where the
+            // shell hides the nav and the body reaches the gesture inset.
+            child: SafeArea(
+              child: Align(
+                alignment: AlignmentDirectional.bottomEnd,
+                child: Padding(
+                  padding: const EdgeInsets.all(TioSpacing.xl),
+                  child: MealDiaryLogAction(
+                    key: const ValueKey('meal-diary-add-food-action'),
+                    onPressed: () => _openAddFood(dates.selectedDate),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _diaryBody(MealDiaryDateController dates) {
     // The expanded month grid is tall. On a landscape or split-screen viewport
     // it can exceed the body, so the page scrolls rather than overflowing —
     // while still filling a normal viewport so the empty state stays centred.
@@ -108,6 +170,13 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
                   maxDate: dates.maxDate,
                   onDateSelected: dates.select,
                   onVisibleDateRangeChanged: dates.updateVisibleDateRange,
+                  // Reported, not driven: no `displayMode` is passed, so the
+                  // calendar still owns which rendering it shows. The page
+                  // listens only so the `+` can step out of the grid's way.
+                  onDisplayModeChanged: (mode) {
+                    if (_isCalendarExpanded == mode.isMonth) return;
+                    setState(() => _isCalendarExpanded = mode.isMonth);
+                  },
                   // Forwarded, not owned. TNYX-72 made this an app-global
                   // Calendar Preferences value; Nutrition is one consumer of
                   // it, exactly like Workout and Meal Plan will be.
@@ -149,8 +218,14 @@ class _SelectedDaySummary extends StatelessWidget {
             style: textTheme.titleMedium?.copyWith(color: colors.textPrimary),
           ),
           const SizedBox(height: TioSpacing.sm),
+          // Now that `+` reaches a real editor, "logging is not available"
+          // would be the wrong sentence — the editor opens. What is still
+          // missing is the saving, and that is what this says instead. It
+          // stays until TNYX-113/114/115 make it false.
           Text(
-            'Meal logging is not available yet.',
+            key: const ValueKey('meal-diary-empty-day-note'),
+            'Nothing is logged for this day. Meals cannot be saved yet — '
+            'Quick Add opens the editor without recording anything.',
             textAlign: TextAlign.center,
             style: textTheme.bodyMedium?.copyWith(color: colors.textSecondary),
           ),
