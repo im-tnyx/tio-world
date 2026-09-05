@@ -24,6 +24,29 @@ flutter run \
 
 Apply the same defines to `flutter build apk`, `flutter build appbundle`, or the store/release build command.
 
+## Android Studio QA run
+
+Keep the local QA values in the ignored `apps/app/.runtime.qa.json` file. The
+Flutter run configuration must pass that file explicitly; Flutter does not
+discover or load it automatically.
+
+In **Run > Edit Configurations > Flutter Run -> 'tio_app'**, set **Additional
+run args** to:
+
+```text
+--dart-define-from-file=.runtime.qa.json
+```
+
+The Flutter plugin runs this configuration from the `apps/app` package root,
+so the relative path above resolves to `apps/app/.runtime.qa.json`. This applies
+to Android Studio **Run/Debug**, which builds and installs the app on the chosen
+device. Android Studio's standalone APK build action does not inherit a run
+configuration; for an installable QA APK, build explicitly from `apps/app`:
+
+```bash
+flutter build apk --debug --dart-define-from-file=.runtime.qa.json
+```
+
 ## Legacy compatibility
 
 `SUPABASE_ANON_KEY` is accepted only as an explicit compatibility input for a legacy anon key. New build configuration should use `SUPABASE_PUBLISHABLE_KEY`.
