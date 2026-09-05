@@ -376,4 +376,82 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   });
+
+  group('navigator choice', () {
+    /// Chrome outside a nested navigator, with the editor opened from inside
+    /// it — the shape a `StatefulShellRoute` branch produces.
+    Future<int Function()> pumpNested(
+      WidgetTester tester, {
+      required bool useRootNavigator,
+    }) async {
+      var chromeTaps = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) =>
+              TioTheme(child: child ?? const SizedBox.shrink()),
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                IconButton(
+                  key: const ValueKey('chrome-action'),
+                  onPressed: () => chromeTaps++,
+                  icon: const Icon(Icons.today),
+                ),
+              ],
+            ),
+            body: Navigator(
+              onGenerateRoute: (_) => MaterialPageRoute<void>(
+                builder: (branchContext) => TextButton(
+                  key: const ValueKey('open'),
+                  onPressed: () => showTioEditorSheet<void>(
+                    context: branchContext,
+                    useRootNavigator: useRootNavigator,
+                    builder: (_) => const TioEditorSheet(
+                      title: 'Editor',
+                      content: Text('Body'),
+                    ),
+                  ),
+                  child: const Text('Open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('open')));
+      await tester.pumpAndSettle();
+      expect(find.byType(TioEditorSheet), findsOneWidget);
+
+      return () => chromeTaps;
+    }
+
+    testWidgets('the default leaves chrome outside the branch reachable',
+        (tester) async {
+      final chromeTaps = await pumpNested(tester, useRootNavigator: false);
+
+      await tester.tap(find.byKey(const ValueKey('chrome-action')));
+      await tester.pumpAndSettle();
+
+      expect(chromeTaps(), 1, reason: 'the barrier covers only the branch');
+    });
+
+    testWidgets('useRootNavigator puts the barrier over the chrome too',
+        (tester) async {
+      final chromeTaps = await pumpNested(tester, useRootNavigator: true);
+
+      await tester.tap(
+        find.byKey(const ValueKey('chrome-action')),
+        warnIfMissed: false,
+      );
+      await tester.pumpAndSettle();
+
+      expect(chromeTaps(), 0, reason: 'the barrier absorbs the chrome tap');
+      // The tap did not simply miss: it landed on the barrier, which is what
+      // dismissed the sheet. That only happens if the barrier is over the app
+      // bar, which is only true on the root navigator.
+      expect(find.byType(TioEditorSheet), findsNothing);
+    });
+  });
 }

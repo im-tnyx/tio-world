@@ -237,12 +237,12 @@ void main() {
       await tester.pumpAndSettle();
       await _openQuickAdd(tester);
 
-      final dateRow = tester.widget<TioSettingsReadOnlyRow>(
-        find.byKey(const ValueKey('quick-add-selected-date')),
-      );
-      expect(dateRow.value, contains('August 19, 2026'));
+      const dateField = ValueKey('quick-add-selected-date');
+      expect(_fieldText(tester, dateField), contains('August 19, 2026'));
       // Not today, which is the whole point of carrying the selection.
-      expect(dateRow.value, isNot(contains('August 20')));
+      expect(_fieldText(tester, dateField), isNot(contains('August 20')));
+      // Shown, not editable: TNYX-114 owns date and time.
+      expect(tester.widget<TioInput>(find.byKey(dateField)).enabled, isFalse);
       expect(controller.selectedDate, _yesterday);
     });
 
@@ -396,6 +396,81 @@ void main() {
     });
   });
 
+  group('shell chrome', () {
+    /// The production shape: `MealDiaryPage` inside a branch navigator, with
+    /// the shell's own Today action outside it. A sheet on the branch
+    /// navigator would leave that action live, so a reader could move the
+    /// diary to today while an editor sat on top holding a historical date.
+    Future<int Function()> pumpInShell(WidgetTester tester) async {
+      var todayTaps = 0;
+      final controller = MealDiaryDateController(clock: () => _now);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            mealDiaryDateControllerProvider.overrideWith((ref) => controller),
+          ],
+          child: MaterialApp(
+            builder: (context, child) => TioTheme(
+              config: const TioThemeConfig(mode: TioThemeMode.light),
+              child: child ?? const SizedBox.shrink(),
+            ),
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  IconButton(
+                    key: const ValueKey('shell-today-action'),
+                    onPressed: () => todayTaps++,
+                    icon: const Icon(Icons.today),
+                  ),
+                ],
+              ),
+              body: Navigator(
+                onGenerateRoute: (_) => MaterialPageRoute<void>(
+                  builder: (_) => const MealDiaryPage(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      return () => todayTaps;
+    }
+
+    testWidgets('Add Food covers the shell, not just the diary body',
+        (tester) async {
+      final todayTaps = await pumpInShell(tester);
+
+      await _openAddFood(tester);
+      expect(find.byKey(_sheet), findsOne);
+
+      await tester.tap(
+        find.byKey(const ValueKey('shell-today-action')),
+        warnIfMissed: false,
+      );
+      await tester.pumpAndSettle();
+
+      expect(todayTaps(), 0, reason: 'the shell action must be unreachable');
+    });
+
+    testWidgets('Quick Add covers the shell too', (tester) async {
+      final todayTaps = await pumpInShell(tester);
+
+      await _openQuickAdd(tester);
+      expect(find.byKey(_editor), findsOne);
+
+      await tester.tap(
+        find.byKey(const ValueKey('shell-today-action')),
+        warnIfMissed: false,
+      );
+      await tester.pumpAndSettle();
+
+      expect(todayTaps(), 0, reason: 'the shell action must be unreachable');
+    });
+  });
+
   group('small phone', () {
     testWidgets('the whole flow fits a 320-wide phone without overflowing',
         (tester) async {
@@ -426,6 +501,29 @@ void main() {
 
       // The commit region is on screen rather than below the fold.
       expect(tester.getRect(find.byKey(_logMeal)).bottom, lessThanOrEqualTo(640));
+    });
+
+    testWidgets('scrolling to the end never parks content under the action',
+        (tester) async {
+      // Short enough that the compact diary body genuinely scrolls while the
+      // action is still on screen.
+      tester.view.physicalSize = const Size(360, 280);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await _pump(tester);
+      expect(find.byKey(_addAction), findsOne);
+
+      await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -600));
+      await tester.pumpAndSettle();
+
+      // At the maximum extent the last of the body still clears the button's
+      // footprint rather than sitting underneath it.
+      expect(
+        tester.getRect(find.byKey(_emptyDayNote)).bottom,
+        lessThanOrEqualTo(tester.getRect(find.byKey(_addAction)).top),
+      );
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('the keyboard does not bury the commit region', (tester) async {

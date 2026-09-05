@@ -20,6 +20,12 @@ Future<MealDiaryAddFoodChoice?> showMealDiaryAddFoodSheet(
   return showModalBottomSheet<MealDiaryAddFoodChoice>(
     context: context,
     isScrollControlled: true,
+    // The Meal Diary lives inside a shell branch navigator while the app bar
+    // and bottom navigation sit outside it. A sheet on the branch navigator
+    // would leave the Today action and the tabs live behind the barrier, so a
+    // reader could change the diary's day — or leave for another tab — with
+    // this sheet still open on top of it. The root navigator covers the shell.
+    useRootNavigator: true,
     backgroundColor: TioPalette.transparent,
     builder: (sheetContext) => SafeArea(
       top: false,

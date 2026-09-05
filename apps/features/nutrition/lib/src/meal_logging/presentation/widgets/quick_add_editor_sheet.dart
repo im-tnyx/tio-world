@@ -14,6 +14,10 @@ Future<void> showQuickAddEditorSheet(
 }) {
   return showTioEditorSheet<void>(
     context: context,
+    // Same reason as the Add Food sheet: the diary sits inside a shell branch
+    // navigator, and an editor holding a captured date must not leave the
+    // Today action or the tabs reachable behind it.
+    useRootNavigator: true,
     builder: (_) => QuickAddEditorSheet(selectedDate: selectedDate),
   );
 }
@@ -62,7 +66,11 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
   final _fat = TextEditingController();
   final _fiber = TextEditingController();
 
-  late final List<TextEditingController> _all = [
+  /// Display-only, and not in [_editable]: it carries the diary's date into a
+  /// disabled field, so it has nothing to validate and nobody to notify.
+  final _selectedDate = TextEditingController();
+
+  late final List<TextEditingController> _editable = [
     _mealName,
     _calories,
     _protein,
@@ -76,18 +84,27 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
     super.initState();
     // Validation is per-keystroke because the errors are about the characters
     // themselves, not about a submission that cannot happen here.
-    for (final controller in _all) {
+    for (final controller in _editable) {
       controller.addListener(_onChanged);
     }
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Formatting needs localizations, which are not resolvable in initState.
+    _selectedDate.text =
+        MaterialLocalizations.of(context).formatFullDate(widget.selectedDate);
+  }
+
+  @override
   void dispose() {
-    for (final controller in _all) {
+    for (final controller in _editable) {
       controller
         ..removeListener(_onChanged)
         ..dispose();
     }
+    _selectedDate.dispose();
     super.dispose();
   }
 
@@ -171,16 +188,18 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
             ],
           ),
           const SizedBox(height: TioSpacing.lg),
-          TioGroupCard(
-            children: [
-              TioSettingsReadOnlyRow(
-                key: const ValueKey('quick-add-selected-date'),
-                label: 'Date',
-                value: MaterialLocalizations.of(context)
-                    .formatFullDate(widget.selectedDate),
-                isUnset: false,
-              ),
-            ],
+          // The date is one of the editor's fields, drawn like the rest and
+          // disabled rather than pulled out into a settings-style detail row.
+          // Disabled is the accurate state: this value will become editable
+          // when TNYX-114 owns date and time, and until then it is the diary's
+          // choice, not the editor's.
+          TioInput(
+            key: const ValueKey('quick-add-selected-date'),
+            controller: _selectedDate,
+            label: 'Date',
+            enabled: false,
+            readOnly: true,
+            onChanged: (_) {},
           ),
         ],
       ),

@@ -7,13 +7,21 @@ import '../../../theme/theme.dart';
 /// Route-level dragging and Flutter's own drag handle are both disabled: the
 /// sheet's handle owns dismissal, because a route-level drag can bypass a
 /// child `PopScope` and tear down a sheet mid-save.
+///
+/// [useRootNavigator] is forwarded unchanged and defaults to Flutter's own
+/// `false`. A caller inside a nested navigator — a `StatefulShellRoute` branch,
+/// say — passes true so the barrier covers the chrome outside that branch
+/// rather than leaving it live behind the sheet. Core does not decide this:
+/// only the caller knows which navigator its editor belongs above.
 Future<T?> showTioEditorSheet<T>({
   required BuildContext context,
   required WidgetBuilder builder,
+  bool useRootNavigator = false,
 }) =>
     showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: useRootNavigator,
       backgroundColor: TioPalette.transparent,
       enableDrag: false,
       showDragHandle: false,

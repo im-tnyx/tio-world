@@ -275,6 +275,13 @@ void main() {
       // Page scrolling never toggled the calendar, and the handle still works.
       expect(find.byKey(const ValueKey('tio-date-calendar-month-pager')),
           findsOne);
+      // Scrolled this far the handle can sit above the viewport, so bring it
+      // back before tapping — the point being tested is that it still toggles,
+      // not where the drag happened to leave it.
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('tio-date-calendar-handle')),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('tio-date-calendar-handle')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('tio-date-calendar-month-pager')),

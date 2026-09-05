@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,10 @@ import '../../../meal_logging/presentation/widgets/add_food_sheet.dart';
 import '../../../meal_logging/presentation/widgets/quick_add_editor_sheet.dart';
 import '../controllers/meal_diary_date_controller.dart';
 import '../widgets/meal_diary_log_action.dart';
+
+/// Vertical room the floating `+` occupies at the bottom of the diary body:
+/// the button itself plus the padding above and below it.
+const double _actionClearance = TioSize.dp56 + TioSpacing.xl * 2;
 
 /// The Meal Diary surface, and the first production consumer of the reusable
 /// core date calendar.
@@ -157,8 +162,20 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
     return LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
+          // The floating `+` is painted over this scroll view, so the content
+          // reserves its footprint at the bottom. Without it, the last lines of
+          // a scrolled-to-the-end body sit underneath the button. Reserved
+          // unconditionally rather than only while the button is visible: a
+          // padding that appeared and vanished with the calendar's month grid
+          // would shift the reader's scroll position every time they expanded
+          // it.
+          padding: const EdgeInsets.only(bottom: _actionClearance),
           child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            constraints: BoxConstraints(
+              // Clamped: a viewport shorter than the reserved band would
+              // otherwise ask for a negative minimum.
+              minHeight: math.max(0, constraints.maxHeight - _actionClearance),
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
