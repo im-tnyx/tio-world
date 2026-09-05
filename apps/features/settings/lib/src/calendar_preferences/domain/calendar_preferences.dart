@@ -6,11 +6,23 @@
 /// a `nutritionFirstDayOfWeek` beside a `workoutFirstDayOfWeek` is exactly the
 /// split this owner exists to prevent.
 ///
-/// V1 offers two choices and no `automatic`. The reusable calendar keeps a
-/// separate nullable locale fallback for a caller that supplies nothing; that
-/// is a library default, not this preference, and it is never persisted here.
+/// Every day of the week is offered. Monday, Sunday and Saturday cover most
+/// conventions in use; the remaining four exist because a training block or a
+/// meal plan whose cycle begins mid-week wants its rows to line up with that
+/// cycle, and the calendar's week arithmetic already supports any start day.
+///
+/// There is no `automatic`. The reusable calendar keeps a separate nullable
+/// locale fallback for a caller that supplies nothing; that is a library
+/// default, not this preference, and it is never persisted here.
+///
+/// Declared Monday first so the option list reads Monday through Sunday.
 enum FirstDayOfWeekPreference {
   monday('monday', DateTime.monday),
+  tuesday('tuesday', DateTime.tuesday),
+  wednesday('wednesday', DateTime.wednesday),
+  thursday('thursday', DateTime.thursday),
+  friday('friday', DateTime.friday),
+  saturday('saturday', DateTime.saturday),
   sunday('sunday', DateTime.sunday);
 
   const FirstDayOfWeekPreference(this.storageValue, this.weekday);
@@ -19,6 +31,7 @@ enum FirstDayOfWeekPreference {
   ///
   /// Deliberately not a display string: `Monday (default)` is what a reader
   /// sees, and putting it here would make a copy change a storage migration.
+  /// Display names come from the locale in presentation, never from here.
   final String storageValue;
 
   /// The resolved `DateTime.monday`..`DateTime.sunday` value consumers read.
@@ -45,9 +58,10 @@ class CalendarPreferences {
 
   /// What a calendar consumer is handed: an already-resolved week start.
   ///
-  /// V1 resolves to the saved value itself. The indirection stays because the
-  /// saved preference and the effective value are different questions, and a
-  /// future `automatic` would answer the second one differently.
+  /// Today it resolves to the saved value itself. The indirection stays
+  /// because the saved preference and the effective value are different
+  /// questions, and a future `automatic` would answer the second one
+  /// differently.
   int get resolvedFirstDayOfWeek => firstDayOfWeek.weekday;
 
   CalendarPreferences copyWith({FirstDayOfWeekPreference? firstDayOfWeek}) {

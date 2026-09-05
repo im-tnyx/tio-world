@@ -8,22 +8,28 @@
 
 Calendars across Tio need one consistent week-start policy, while individual
 features still own their selected dates, visible ranges and date availability.
-The V1 product contract is deliberately small: Monday is the default and
-Sunday is the only alternative. A display convention does not need account
-data, remote sync or a new Supabase schema.
+The V1 product contract offers every day of the week with Monday as the
+default. Monday, Sunday and Saturday cover most conventions in use; the other
+four exist because a training block or meal plan whose cycle begins mid-week
+wants its rows to line up with that cycle, and the reusable calendar's week
+arithmetic already accepts any `DateTime.monday`..`DateTime.sunday` start. A
+display convention does not need account data, remote sync or a new Supabase
+schema.
 
 ## Decision
 
 - `apps/features/settings` owns the bounded `CalendarPreferences` model,
   repository contract and device-local `SharedPreferencesAsync` adapter.
-- V1 stores stable machine values `monday` and `sunday` under the local key
-  `calendar_first_day_of_week`; missing, unknown or corrupt state resolves to
-  Monday.
+- V1 stores stable machine values `monday` through `sunday` under the local
+  key `calendar_first_day_of_week`; missing, unknown or corrupt state resolves
+  to Monday. Display names are formatted from the locale, never persisted.
 - `apps/app` constructs and hydrates one reactive controller, resolves the
-  saved preference to `DateTime.monday` or `DateTime.sunday`, and passes that
-  generic value through composition to every calendar consumer.
+  saved preference to a `DateTime.monday`..`DateTime.sunday` value, and passes
+  that generic value through composition to every calendar consumer.
 - The discoverable path is `Settings → App Preferences → Calendar → First day
-  of week`, with immediate apply and no Save button.
+  of week`, with immediate apply and no Save button. The chosen value is
+  published before the device-local write completes and rolled back if the
+  write fails, so a slow store cannot hold the UI on the old week start.
 - `MealDiaryPage` forwards the resolved value to `TioDateCalendar` but does
   not persist, resolve locale behavior, or cache a second preference.
 - Core retains its nullable `resolvedFirstDayOfWeek` locale fallback for
@@ -38,6 +44,9 @@ data, remote sync or a new Supabase schema.
   Nutrition, Workout, Meal Plan or Progress calendars disagree.
 - Automatic/System as a V1 choice: rejected by the locked product contract;
   the reusable Core fallback remains only for generic callers.
+- Monday and Sunday only: rejected after review. It cannot express a plan whose
+  week starts mid-cycle, and restricting the option list bought nothing because
+  Core already lays out any start day.
 - Supabase/account persistence: rejected because a device display convention
   does not require account data and the owner explicitly chose local-only V1.
 

@@ -162,7 +162,7 @@ class AppRoutes {
   static const calendarSettings = TioRouteContract(
     path: '/settings/calendar',
     title: 'Calendar',
-    description: 'Choose the first day of the week for every calendar.',
+    description: 'Choose the day your weeks start on.',
     chromePolicy: ChromePolicy.fullScreen,
   );
 

@@ -5,10 +5,19 @@ import '../../domain/calendar_preferences.dart';
 
 /// `Settings → App Preferences → Calendar`.
 ///
-/// A choice with two options and an instant, visible effect, so it applies on
-/// tap rather than behind a Save button: the same immediate-apply shape the
-/// Appearance sheet already uses. There is nothing to review before committing
-/// and nothing to lose by leaving the page.
+/// Every day of the week is offered, Monday through Sunday, so a reader whose
+/// week genuinely starts mid-cycle is not told their week is invalid. Seven
+/// options is also why this is a page rather than a bottom sheet: a sheet that
+/// tall scrolls badly on a small phone, and Calendar is a preference family
+/// that will gain members.
+///
+/// The choice applies on tap rather than behind a Save button, the same
+/// immediate-apply shape the Appearance sheet uses. There is nothing to review
+/// before committing and nothing to lose by leaving the page.
+///
+/// One live preview sits above the list instead of a preview under every
+/// option: seven near-identical seven-token strings are a wall of text, while
+/// a single strip that reorders as you choose answers the same question.
 class CalendarSettingsPage extends StatelessWidget {
   const CalendarSettingsPage({
     required this.firstDayOfWeek,
@@ -30,6 +39,7 @@ class CalendarSettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
+    final localeName = Localizations.localeOf(context).toString();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Calendar')),
@@ -43,30 +53,42 @@ class CalendarSettingsPage extends StatelessWidget {
             ),
             const SizedBox(height: TioSpacing.sm),
             Text(
-              'Every calendar in Tio starts its weeks on this day. '
+              // Not "every calendar in Tio": today the Meal Diary is the only
+              // consumer, and Settings copy must not promise screens that do
+              // not exist yet. This wording stays true whether there is one
+              // week-based surface or ten.
+              'The day your weeks start on, wherever Tio shows a week. '
               'Saved on this device.',
               style: textTheme.bodyLarge?.copyWith(color: colors.textSecondary),
             ),
+            const SizedBox(height: TioSpacing.lg),
+            // Drawn from the same ordering helper the calendar header uses, so
+            // this cannot promise a layout the calendar does not render.
+            Text(
+              tioOrderedWeekdayLabels(
+                firstDayOfWeek: firstDayOfWeek.weekday,
+                localeName: localeName,
+              ).join('   '),
+              key: const ValueKey('calendar-first-day-preview'),
+              style: textTheme.titleSmall?.copyWith(
+                color: colors.textPrimary,
+                letterSpacing: TioLetterSpacing.positive08,
+              ),
+            ),
             const SizedBox(height: TioSpacing.xl),
-            _FirstDayOption(
-              key: const ValueKey('calendar-first-day-option-monday'),
-              value: FirstDayOfWeekPreference.monday,
-              label: 'Monday (default)',
-              // The order under the label is the whole point of the choice, so
-              // the option shows it instead of describing it.
-              preview: 'MON TUE WED THU FRI SAT SUN',
-              selected: firstDayOfWeek == FirstDayOfWeekPreference.monday,
-              onSelected: onFirstDayOfWeekChanged,
-            ),
-            const SizedBox(height: TioSpacing.md),
-            _FirstDayOption(
-              key: const ValueKey('calendar-first-day-option-sunday'),
-              value: FirstDayOfWeekPreference.sunday,
-              label: 'Sunday',
-              preview: 'SUN MON TUE WED THU FRI SAT',
-              selected: firstDayOfWeek == FirstDayOfWeekPreference.sunday,
-              onSelected: onFirstDayOfWeekChanged,
-            ),
+            for (final option in FirstDayOfWeekPreference.values) ...[
+              if (option != FirstDayOfWeekPreference.values.first)
+                const SizedBox(height: TioSpacing.md),
+              _FirstDayOption(
+                key: ValueKey(
+                  'calendar-first-day-option-${option.storageValue}',
+                ),
+                value: option,
+                label: _optionLabel(option, localeName),
+                selected: firstDayOfWeek == option,
+                onSelected: onFirstDayOfWeekChanged,
+              ),
+            ],
             if (errorText case final message?) ...[
               const SizedBox(height: TioSpacing.lg),
               Text(
@@ -82,6 +104,15 @@ class CalendarSettingsPage extends StatelessWidget {
   }
 }
 
+/// The day's own name, with the shipped default called out so a reader can
+/// find their way back to it without having to remember which day it was.
+String _optionLabel(FirstDayOfWeekPreference option, String localeName) {
+  final name = tioWeekdayName(option.weekday, localeName: localeName);
+  return option == CalendarPreferences.defaultFirstDayOfWeek
+      ? '$name (default)'
+      : name;
+}
+
 /// One option, drawn by the canonical selectable card.
 ///
 /// The card owns the chosen/unchosen appearance and the button/selected
@@ -90,7 +121,6 @@ class _FirstDayOption extends StatelessWidget {
   const _FirstDayOption({
     required this.value,
     required this.label,
-    required this.preview,
     required this.selected,
     required this.onSelected,
     super.key,
@@ -98,7 +128,6 @@ class _FirstDayOption extends StatelessWidget {
 
   final FirstDayOfWeekPreference value;
   final String label;
-  final String preview;
   final bool selected;
   final Future<void> Function(FirstDayOfWeekPreference) onSelected;
 
@@ -109,8 +138,6 @@ class _FirstDayOption extends StatelessWidget {
 
     return TioSelectableCard(
       selected: selected,
-      // The preview is a layout illustration, not something worth spelling out
-      // letter by letter, so the option announces its name and state instead.
       semanticLabel: label,
       onTap: () async {
         try {
@@ -124,26 +151,12 @@ class _FirstDayOption extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: textTheme.titleMedium?.copyWith(
-                    color: colors.textPrimary,
-                    fontWeight:
-                        selected ? TioFontWeight.w600 : TioFontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: TioSpacing.xxs),
-                Text(
-                  preview,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: colors.textSecondary,
-                    letterSpacing: TioLetterSpacing.positive08,
-                  ),
-                ),
-              ],
+            child: Text(
+              label,
+              style: textTheme.titleMedium?.copyWith(
+                color: colors.textPrimary,
+                fontWeight: selected ? TioFontWeight.w600 : TioFontWeight.w500,
+              ),
             ),
           ),
           const SizedBox(width: TioSpacing.md),

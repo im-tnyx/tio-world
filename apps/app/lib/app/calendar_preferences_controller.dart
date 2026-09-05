@@ -77,11 +77,23 @@ class CalendarPreferencesController extends ChangeNotifier {
 
   Future<void> _persistSelection(FirstDayOfWeekPreference preference) async {
     _saveError = null;
-    final next = _preferences.copyWith(firstDayOfWeek: preference);
+    final previous = _preferences;
+    final next = previous.copyWith(firstDayOfWeek: preference);
+
+    if (next != previous) {
+      // Immediate apply means the tap lands now, not when storage answers. A
+      // slow or hung device-local write must not leave the chosen option
+      // unchosen and Meal Diary still laid out from the old week start.
+      _preferences = next;
+      notifyListeners();
+    }
+
     try {
       await _repository.write(next);
-      _preferences = next;
     } catch (error) {
+      // Storage refused, so the screen stops claiming a value it does not
+      // have. The retryable error is what the caller shows instead.
+      _preferences = previous;
       _saveError = error;
       rethrow;
     }

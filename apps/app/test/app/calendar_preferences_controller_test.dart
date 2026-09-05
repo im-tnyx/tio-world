@@ -42,7 +42,34 @@ void main() {
       expect(controller.isSaving, isFalse);
     });
 
-    test('does not publish a value when persistence fails', () async {
+    test('publishes the chosen week start before storage answers', () async {
+      final repository = _ControlledCalendarPreferencesRepository();
+      final controller = CalendarPreferencesController(repository);
+      await controller.load();
+
+      var notifications = 0;
+      controller.addListener(() => notifications++);
+
+      final pending = controller.select(FirstDayOfWeekPreference.wednesday);
+      await Future<void>.delayed(Duration.zero);
+
+      // Immediate apply means the chosen card and Meal Diary both move now.
+      // A slow or hung device-local write must not hold the UI on the old
+      // week start until it answers.
+      expect(controller.firstDayOfWeek, FirstDayOfWeekPreference.wednesday);
+      expect(controller.resolvedFirstDayOfWeek, DateTime.wednesday);
+      expect(controller.isSaving, isTrue);
+      expect(notifications, greaterThan(0));
+
+      repository.completeNextWrite();
+      await pending;
+
+      expect(controller.firstDayOfWeek, FirstDayOfWeekPreference.wednesday);
+      expect(controller.isSaving, isFalse);
+      expect(controller.saveError, isNull);
+    });
+
+    test('rolls the published value back when persistence fails', () async {
       final repository = _FakeCalendarPreferencesRepository(
         const CalendarPreferences(),
         writeError: StateError('write failed'),

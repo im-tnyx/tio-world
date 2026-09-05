@@ -488,6 +488,63 @@ void main() {
       expect((await columnLabels(tester, DateTime.sunday)).first, 'SUN');
     });
 
+    testWidgets('a mid-week start frames, orders and offsets like any other',
+        (tester) async {
+      // Wednesday is the case that justified offering all seven days rather
+      // than Monday and Sunday alone. Nothing in the week arithmetic is
+      // special-cased for the two common answers, and this proves it.
+      await _pump(tester, resolvedFirstDayOfWeek: DateTime.wednesday);
+
+      expect(
+        tester
+            .widgetList<Text>(
+              find.descendant(
+                of: _weekdayHeader(),
+                matching: find.byType(Text),
+              ),
+            )
+            .map((text) => text.data)
+            .toList(),
+        <String>['WED', 'THU', 'FRI', 'SAT', 'SUN', 'MON', 'TUE'],
+      );
+
+      // Aug 18 is a Tuesday, so a Wednesday-first week runs Aug 12..Aug 18.
+      expect(_cell(DateTime(2026, 8, 12)), findsOne);
+      expect(_cell(_selected), findsOne);
+      expect(_cell(DateTime(2026, 8, 19)), findsNothing);
+      expect(_cell(DateTime(2026, 8, 11)), findsNothing);
+
+      // Today (Thu Aug 20) is outside that week, so no column is emphasised.
+      for (final label in const [
+        'WED',
+        'THU',
+        'FRI',
+        'SAT',
+        'SUN',
+        'MON',
+        'TUE',
+      ]) {
+        expect(_weekdayStyle(tester, label).fontWeight, TioFontWeight.w500);
+      }
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a mid-week start offsets the month grid correctly',
+        (tester) async {
+      await _pump(
+        tester,
+        resolvedFirstDayOfWeek: DateTime.wednesday,
+        displayMode: TioDateCalendarDisplayMode.month,
+      );
+
+      // August 2026 opens on a Saturday, so a Wednesday-first grid needs three
+      // leading days: Jul 29, 30 and 31.
+      expect(_cell(DateTime(2026, 7, 29)), findsOne);
+      expect(_cell(DateTime(2026, 7, 28)), findsNothing);
+      expect(_cell(_selected), findsOne);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('the resolved week start also frames the compact week',
         (tester) async {
       await _pump(tester, resolvedFirstDayOfWeek: DateTime.monday);

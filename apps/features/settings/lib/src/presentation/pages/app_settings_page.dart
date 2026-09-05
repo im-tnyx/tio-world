@@ -75,7 +75,10 @@ class AppSettingsPage extends StatelessWidget {
                   ),
                   title: 'Calendar',
                   supportingText:
-                      _firstDayOfWeekLabel(currentFirstDayOfWeek),
+                      _firstDayOfWeekLabel(
+                    currentFirstDayOfWeek,
+                    Localizations.localeOf(context).toString(),
+                  ),
                   onTap: onCalendarPressed,
                 ),
               ],
@@ -116,11 +119,14 @@ String _appModeLabel(AppMode mode) {
 
 /// The row's supporting text answers what the setting currently is, the same
 /// way the App Mode and Theme rows above it do.
-String _firstDayOfWeekLabel(FirstDayOfWeekPreference preference) {
-  return switch (preference) {
-    FirstDayOfWeekPreference.monday => 'Week starts Monday',
-    FirstDayOfWeekPreference.sunday => 'Week starts Sunday',
-  };
+String _firstDayOfWeekLabel(
+  FirstDayOfWeekPreference preference,
+  String localeName,
+) {
+  // The day name comes from the locale rather than a switch over seven English
+  // literals, so this row and the calendar under it can never disagree.
+  final name = tioWeekdayName(preference.weekday, localeName: localeName);
+  return 'Week starts $name';
 }
 
 String _themeModeLabel(TioThemeMode mode) {

@@ -1,11 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../../../theme/theme.dart';
 import 'tio_date_calendar_display_mode.dart';
 import 'tio_date_decoration.dart';
+import 'tio_weekday_labels.dart';
 
 /// Reports the inclusive primary date range owned by the visible page.
 ///
@@ -961,13 +961,11 @@ class _WeekdayHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
-    final localeName = Localizations.localeOf(context).toString();
-    final shortWeekdays = List<String>.generate(
-      _daysPerWeek,
-      (index) => DateFormat.E(localeName)
-          .format(DateTime(2024, DateTime.january, 7 + index))
-          .toUpperCase(),
-      growable: false,
+    // One shared ordering helper, so the header and any Settings preview of
+    // the same choice can never disagree about what a week looks like.
+    final labels = tioOrderedWeekdayLabels(
+      firstDayOfWeek: firstDayOfWeek,
+      localeName: Localizations.localeOf(context).toString(),
     );
 
     return Padding(
@@ -981,7 +979,7 @@ class _WeekdayHeader extends StatelessWidget {
               Expanded(
                 child: ExcludeSemantics(
                   child: Text(
-                    shortWeekdays[(firstDayOfWeek + column) % _daysPerWeek],
+                    labels[column],
                     textAlign: TextAlign.center,
                     style: _columnStyle(
                       textTheme.labelSmall,

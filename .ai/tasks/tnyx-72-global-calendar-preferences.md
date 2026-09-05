@@ -9,7 +9,7 @@
 **Trigger:** New independently scoped product task/feature slice
 **Approval status:** Approved
 **Approval evidence:** TNYX-72 implementation prompt; tracker state verified as `Todo` before implementation.
-**Approved product/UI/data-shape boundaries:** `Settings → App Preferences → Calendar → First day of week`; V1 values `monday` and `sunday`; Monday default; device-local persistence; app-global consumption; immediate apply; no Supabase sync.
+**Approved product/UI/data-shape boundaries:** `Settings → App Preferences → Calendar → First day of week`; V1 values `monday` through `sunday`; Monday default; device-local persistence; app-global consumption; immediate apply; no Supabase sync.
 **Explicit non-changes:** No Supabase mutation, migration, schema/RLS/grant/storage change, remote sync, TNYX-155 start, feature-specific week-start preferences, Workout/Meal Plan/Progress calendar work, merge, or Done status.
 
 ## Active Handoff
@@ -46,7 +46,7 @@ Users can choose one app-wide first day of week from Settings and see every curr
 
 ### Success Criteria
 
-- Monday is the default and Sunday is the only alternative.
+- Monday is the default and every other day of the week is selectable (owner revision, 2026-09-05; superseded the earlier Monday/Sunday-only contract after review of the built screen).
 - The value is stored locally with a stable machine key and safe Monday fallback.
 - Settings owns one preference; Nutrition only receives the resolved value.
 - Meal Diary preserves selected date, range limits, visible-range reporting, and Today behavior when the value changes.
@@ -75,7 +75,9 @@ Supabase, remote/account sync, database schema, backend APIs, feature-specific p
 
 | Decision | Status | Rationale | Owner |
 |---|---|---|---|
-| V1 values are Monday/Sunday only | Made | Locked product contract | TNYX-72 owner |
+| V1 offers all seven days, Monday first, Monday default | Revised 2026-09-05 | The owner reviewed the built two-option screen and asked for the full week. Core already lays out any `DateTime.monday`..`sunday` start, so restricting the list bought nothing and could not express a plan whose week begins mid-cycle | TNYX-72 owner |
+| A page rather than a bottom sheet | Revised 2026-09-05 | Two options would have fitted a sheet; seven scroll badly in one, and Calendar is a preference family that will gain members | TNYX-72 owner |
+| One live ordering preview above the list, not one per option | Made | Seven near-identical seven-token strings are a wall of text; one strip that reorders on selection answers the same question | this slice |
 | Persistence is device-local | Made | Explicit implementation boundary; no Supabase work | TNYX-72 owner |
 | Settings is the sole preference owner | Made | Prevents feature-specific calendar state | TNYX-72 owner |
 | Core nullable locale fallback remains | Made | Reusable calendar API compatibility | Existing TNYX-55 contract |
@@ -84,7 +86,7 @@ Supabase, remote/account sync, database schema, backend APIs, feature-specific p
 
 ### Chosen Approach
 
-Feature-first Settings slice under `apps/features/settings/lib/src/calendar_preferences/`, with app composition owning the reactive controller/provider and resolving the saved enum to `DateTime.monday` or `DateTime.sunday` before passing it to calendar consumers.
+Feature-first Settings slice under `apps/features/settings/lib/src/calendar_preferences/`, with app composition owning the reactive controller/provider and resolving the saved enum to a `DateTime.monday`..`DateTime.sunday` value before passing it to calendar consumers. Day names and the ordering preview are formatted from the locale through the shared core helpers `tioWeekdayName`/`tioOrderedWeekdayLabels`, which the calendar's own weekday header now uses too, so Settings and the calendar cannot drift.
 
 ### Ownership and Data Flow
 
@@ -166,7 +168,7 @@ Review-fix validation (working tree after review baseline `875a5646a3f79d109b58a
 
 ### Actual Behavior
 
-V1 exposes Monday (default) and Sunday at `Settings → App Preferences → Calendar → First day of week`. The saved value is device-local, resolved app-wide to `DateTime.monday` or `DateTime.sunday`, and forwarded to Meal Diary/Core without Nutrition-owned persistence. Core preserves the visible anchor when week-start changes, recalculates the visible range, retains selected-date/range ownership, and keeps its nullable locale fallback.
+V1 exposes Monday (default) through Sunday at `Settings → App Preferences → Calendar → First day of week`. The saved value is device-local, resolved app-wide to a `DateTime.monday`..`DateTime.sunday` value, and forwarded to Meal Diary/Core without Nutrition-owned persistence. Selection publishes before the write completes and rolls back if it fails. Core preserves the visible anchor when week-start changes, recalculates the visible range, retains selected-date/range ownership, and keeps its nullable locale fallback.
 
 ### Current Review State
 

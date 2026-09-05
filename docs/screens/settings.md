@@ -35,7 +35,7 @@ Settings (/settings)
 │     ├─ Theme -> Appearance bottom sheet
 │     ├─ Units -> /settings/measurement-units
 │     └─ Calendar -> /settings/calendar
-│        └─ First day of week -> Monday (default) or Sunday
+│        └─ First day of week -> Monday (default) through Sunday
 └─ SESSION
    └─ Log Out -> confirmation -> existing signOut -> /auth
 ```
@@ -134,14 +134,23 @@ Calendar Preferences is owned by `apps/features/settings` and is composed by
 Settings → App Preferences → Calendar → First day of week
 ```
 
-V1 stores exactly two stable values in device-local `SharedPreferencesAsync`:
-`monday` (the default) and `sunday`. Missing, unknown or corrupt storage
-resolves safely to Monday. The display copy is not a storage identifier, and
-there is no Automatic/System default option in V1.
+V1 stores one of seven stable values in device-local
+`SharedPreferencesAsync` — `monday` through `sunday` — with `monday` as the
+default. Missing, unknown or corrupt storage resolves safely to Monday. The
+display copy is not a storage identifier: day names are formatted from the
+locale, never hard-coded. There is no Automatic/System default option in V1.
+
+Every day is offered rather than Monday and Sunday alone. Monday, Sunday and
+Saturday cover most conventions in use; the remaining four exist because a
+training block or meal plan whose cycle begins mid-week wants its rows to line
+up with that cycle, and the calendar's week arithmetic already supports any
+start day. Seven options is also why this is a page rather than a bottom sheet.
 
 The route is `/settings/calendar`. Selection applies immediately and persists
-locally. `apps/app` resolves the saved preference to `DateTime.monday` or
-`DateTime.sunday` and passes that generic value to calendar consumers. Meal
+locally; the chosen value is published before the write completes and rolled
+back if it fails. `apps/app` resolves the saved preference to a
+`DateTime.monday`..`DateTime.sunday` value and passes it to calendar
+consumers. Meal
 Diary forwards it to `TioDateCalendar`; Nutrition does not persist, resolve,
 or cache a second week-start preference. Core's nullable
 `resolvedFirstDayOfWeek` input still falls back to the locale when no resolved
@@ -231,7 +240,7 @@ Navigation preference changes where sections/actions appear. It does not change 
 - Settings is not a bottom tab and is reachable from Profile or approved in-feature entry points.
 - Root has the implemented Profile Settings, Account Settings, Health & Goals, App Preferences and Log Out entries, with no empty unavailable sections.
 - App Preferences exposes App Mode, Theme, Units and Calendar with truthful copy.
-- Calendar exposes Monday (default) and Sunday only, applies immediately, and preserves one Settings owner across all calendar consumers.
+- Calendar exposes Monday (default) through Sunday, applies immediately, and preserves one Settings owner across all calendar consumers.
 - Units Save/back returns to its caller, and existing direct Units/Theme routes remain compatible.
 - The #112 shared editor, independent unit values and save/failure behavior remain unchanged.
 - Changing App Mode uses exactly the same state contract as Onboarding.

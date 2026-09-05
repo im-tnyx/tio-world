@@ -526,9 +526,12 @@ void main() {
     );
     expect(find.byType(CalendarSettingsPage), findsOneWidget);
 
-    await tester.tap(
-      find.byKey(const ValueKey('calendar-first-day-option-sunday')),
-    );
+    // Sunday is the last of seven options, so it sits below the fold on a
+    // phone-sized viewport and has to be scrolled to like a real reader would.
+    final sunday =
+        find.byKey(const ValueKey('calendar-first-day-option-sunday'));
+    await tester.scrollUntilVisible(sunday, 200);
+    await tester.tap(sunday);
     await tester.pumpAndSettle();
     expect(
       fixture.calendar.firstDayOfWeek,
@@ -568,6 +571,7 @@ void main() {
 
     final sunday =
         find.byKey(const ValueKey('calendar-first-day-option-sunday'));
+    await tester.scrollUntilVisible(sunday, 200);
     await tester.tap(sunday);
     await tester.pumpAndSettle();
 
