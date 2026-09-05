@@ -147,7 +147,19 @@ void main() {
       ),
       findsOneWidget,
     );
+    // Centre says where in the calendar the reader currently is.
+    final visibleMonth = find.byKey(const ValueKey('meal-diary-visible-month'));
+    expect(visibleMonth, findsOneWidget);
     final diaryDates = container.read(mealDiaryDateControllerProvider);
+    expect(
+      tester.widget<Text>(visibleMonth).data,
+      tioCompactMonthYearLabel(
+        diaryDates.visibleMonth,
+        localeName: 'en_US',
+      ),
+    );
+    expect(diaryDates.visibleMonth,
+        DateTime(diaryDates.localToday.year, diaryDates.localToday.month));
     final today = diaryDates.localToday;
     final historicalDate = DateTime(today.year, today.month, today.day - 1);
     final todayAction =

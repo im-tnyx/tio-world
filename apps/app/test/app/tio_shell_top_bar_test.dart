@@ -364,6 +364,7 @@ void main() {
       WidgetTester tester, {
       required ShellTab tab,
       String? contextualTitle,
+      Widget? center,
     }) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -382,6 +383,7 @@ void main() {
             ),
             onAction: (_) {},
             statusTopBarTitle: contextualTitle,
+            statusTopBarCenter: center,
             child: const SizedBox.shrink(),
           ),
         ),
@@ -447,6 +449,97 @@ void main() {
         findsOneWidget,
       );
       expect(find.byTooltip('Meal log streak'), findsOneWidget);
+    });
+  });
+
+  group('contextual status centre', () {
+    Future<void> pumpCentre(
+      WidgetTester tester, {
+      required ShellTab tab,
+      String? contextualTitle,
+      Widget? center,
+    }) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => TioTheme(
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: TioShell(
+            state: ShellUiState(
+              selectedTab: tab,
+              visibleTabs: const [
+                ShellTab.home,
+                ShellTab.workout,
+                ShellTab.nutrition,
+                ShellTab.progress,
+              ],
+            ),
+            onAction: (_) {},
+            statusTopBarTitle: contextualTitle,
+            statusTopBarCenter: center,
+            child: const SizedBox.shrink(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a centre slot renders beside the title and the status',
+        (tester) async {
+      await pumpCentre(
+        tester,
+        tab: ShellTab.nutrition,
+        contextualTitle: 'Diary',
+        center: const Text('Sep 26', key: ValueKey('centre-probe')),
+      );
+
+      expect(find.byKey(const ValueKey('centre-probe')), findsOneWidget);
+      expect(find.text('Diary'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('shell-meal-log-streak')),
+        findsOneWidget,
+      );
+
+      // Title on the left, centre actually centred on the bar.
+      final bar = tester.getRect(find.byType(AppBar));
+      final centre = tester.getRect(find.byKey(const ValueKey('centre-probe')));
+      expect((centre.center.dx - bar.center.dx).abs(), lessThan(1));
+    });
+
+    testWidgets('no centre slot leaves the bar exactly as it was',
+        (tester) async {
+      await pumpCentre(tester, tab: ShellTab.nutrition);
+      expect(tester.widget<AppBar>(find.byType(AppBar)).flexibleSpace, isNull);
+    });
+
+    testWidgets('other shell surfaces are untouched', (tester) async {
+      await pumpCentre(tester, tab: ShellTab.workout);
+      expect(
+        (tester.widget<AppBar>(find.byType(AppBar)).title! as Text).data,
+        'Workout',
+      );
+      expect(tester.widget<AppBar>(find.byType(AppBar)).flexibleSpace, isNull);
+
+      await pumpCentre(tester, tab: ShellTab.home);
+      expect(find.text('TIO'), findsWidgets);
+    });
+  });
+
+  group('compact month-year label', () {
+    test('marks the year so it cannot read as a day', () {
+      expect(
+        tioCompactMonthYearLabel(DateTime(2026, 9), localeName: 'en_US'),
+        'Sep ’26',
+      );
+      expect(
+        tioCompactMonthYearLabel(DateTime(2026, 8), localeName: 'en_US'),
+        'Aug ’26',
+      );
+      // A year whose last two digits need padding still reads as a year.
+      expect(
+        tioCompactMonthYearLabel(DateTime(2005, 1), localeName: 'en_US'),
+        'Jan ’05',
+      );
     });
   });
 }

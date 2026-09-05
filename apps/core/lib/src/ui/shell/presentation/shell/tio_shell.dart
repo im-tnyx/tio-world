@@ -13,6 +13,7 @@ class TioShell extends StatelessWidget {
     required this.child,
     this.statusTopBarLeadingAction,
     this.statusTopBarTitle,
+    this.statusTopBarCenter,
     super.key,
   });
 
@@ -29,6 +30,13 @@ class TioShell extends StatelessWidget {
   /// name and the tab label stays the fallback. Core never learns that
   /// Nutrition currently shows a diary.
   final String? statusTopBarTitle;
+
+  /// Optional centred context for the status top bar.
+  ///
+  /// Where the title says which screen this is, the centre says where inside
+  /// it the reader currently is. Core neither produces nor interprets that —
+  /// it only reserves the slot.
+  final Widget? statusTopBarCenter;
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +64,7 @@ class TioShell extends StatelessWidget {
                   days: state.workoutStreakDays,
                   scrollOpacity: state.appBarOpacity,
                   leadingAction: statusTopBarLeadingAction,
+                  center: statusTopBarCenter,
                 ),
               ShellTab.nutrition => TioShellStatusTopBar(
                   title: statusTopBarTitle ?? ShellTab.nutrition.label,
@@ -64,6 +73,7 @@ class TioShell extends StatelessWidget {
                   days: state.mealLogStreakDays,
                   scrollOpacity: state.appBarOpacity,
                   leadingAction: statusTopBarLeadingAction,
+                  center: statusTopBarCenter,
                 ),
               ShellTab.ai || ShellTab.progress => null,
             }

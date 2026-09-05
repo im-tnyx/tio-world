@@ -16,6 +16,7 @@ class MealDiaryDateController extends ChangeNotifier {
       : _clock = clock ?? DateTime.now {
     _observedToday = localToday;
     _selectedDate = _observedToday;
+    _visibleMonth = DateTime(_observedToday.year, _observedToday.month);
   }
 
   /// How far back the diary lets the user navigate.
@@ -36,6 +37,7 @@ class MealDiaryDateController extends ChangeNotifier {
   /// the latest selectable day until some unrelated rebuild happened.
   late DateTime _observedToday;
   bool _isTodayVisible = true;
+  late DateTime _visibleMonth;
 
   /// Today in the device's own local date terms.
   ///
@@ -51,6 +53,13 @@ class MealDiaryDateController extends ChangeNotifier {
 
   /// Whether the diary is already showing the current local day.
   bool get isOnToday => _selectedDate == localToday;
+
+  /// Which month the calendar is currently parked on.
+  ///
+  /// Derived from the visible page, never from the selection: a reader can
+  /// keep August 18 selected while swiping through September and October, and
+  /// what they need on screen is where they are looking, not what they picked.
+  DateTime get visibleMonth => _visibleMonth;
 
   /// Whether the active calendar page's primary week/month contains Today.
   bool get isTodayVisible => _isTodayVisible;
@@ -86,8 +95,21 @@ class MealDiaryDateController extends ChangeNotifier {
     final start = DateTime(firstDate.year, firstDate.month, firstDate.day);
     final end = DateTime(lastDate.year, lastDate.month, lastDate.day);
     final isVisible = !today.isBefore(start) && !today.isAfter(end);
-    if (_isTodayVisible == isVisible) return;
+
+    // A compact week can straddle two months. The midpoint picks the month
+    // most of the visible week belongs to, so Aug 31 – Sep 6 reads as
+    // September rather than as August because of one leading day.
+    final spanDays =
+        DateTime.utc(end.year, end.month, end.day)
+            .difference(DateTime.utc(start.year, start.month, start.day))
+            .inDays;
+    final midpoint = DateTime(start.year, start.month, start.day + spanDays ~/ 2);
+    final month = DateTime(midpoint.year, midpoint.month);
+
+    final changed = _isTodayVisible != isVisible || _visibleMonth != month;
+    if (!changed) return;
     _isTodayVisible = isVisible;
+    _visibleMonth = month;
     notifyListeners();
   }
 

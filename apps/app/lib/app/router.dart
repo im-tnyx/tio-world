@@ -313,6 +313,19 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 // Diary, and its own compact name is what the top bar shows.
                 statusTopBarTitle:
                     selectedTab == ShellTab.nutrition ? 'Diary' : null,
+                // Where the reader currently is in the calendar, which is not
+                // the same question as what they have selected.
+                statusTopBarCenter: mealDiaryDates == null
+                    ? null
+                    : Text(
+                        tioCompactMonthYearLabel(
+                          mealDiaryDates.visibleMonth,
+                          localeName:
+                              Localizations.localeOf(context).toString(),
+                        ),
+                        key: const ValueKey('meal-diary-visible-month'),
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
                 statusTopBarLeadingAction:
                     mealDiaryDates != null &&
                             mealDiaryDates.shouldShowTodayAction

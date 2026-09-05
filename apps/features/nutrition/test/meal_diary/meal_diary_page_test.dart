@@ -396,4 +396,89 @@ void main() {
       expect(controller.localToday, DateTime(2026, 9, 7));
     });
   });
+
+  group('visible month context', () {
+    test('starts on the month holding today', () {
+      final controller = MealDiaryDateController(clock: () => _now);
+      addTearDown(controller.dispose);
+
+      expect(controller.visibleMonth, DateTime(2026, 8));
+    });
+
+    test('follows the visible page, not the selection', () {
+      final controller = MealDiaryDateController(clock: () => _now);
+      addTearDown(controller.dispose);
+
+      controller.select(DateTime(2026, 8, 18));
+      final selected = controller.selectedDate;
+
+      // The reader swipes forward without picking anything.
+      controller.updateVisibleDateRange(
+        DateTime(2026, 9, 1),
+        DateTime(2026, 9, 30),
+      );
+      expect(controller.visibleMonth, DateTime(2026, 9));
+      expect(controller.selectedDate, selected);
+
+      controller.updateVisibleDateRange(
+        DateTime(2026, 10, 1),
+        DateTime(2026, 10, 31),
+      );
+      expect(controller.visibleMonth, DateTime(2026, 10));
+      expect(controller.selectedDate, selected);
+    });
+
+    test('a week split across two months reports its midpoint month', () {
+      final controller = MealDiaryDateController(clock: () => _now);
+      addTearDown(controller.dispose);
+
+      // Aug 31 - Sep 6: one leading August day, six September days.
+      controller.updateVisibleDateRange(
+        DateTime(2026, 8, 31),
+        DateTime(2026, 9, 6),
+      );
+
+      expect(controller.visibleMonth, DateTime(2026, 9));
+    });
+
+    test('selecting Today brings the visible month back with it', () {
+      final controller = MealDiaryDateController(clock: () => _now);
+      addTearDown(controller.dispose);
+
+      controller.updateVisibleDateRange(
+        DateTime(2026, 10, 1),
+        DateTime(2026, 10, 31),
+      );
+      expect(controller.visibleMonth, DateTime(2026, 10));
+
+      // Today is unchanged in contract: it moves the selection and the
+      // viewport, and the calendar then reports the range it landed on.
+      controller.selectToday();
+      expect(controller.selectedDate, controller.localToday);
+      controller.updateVisibleDateRange(
+        DateTime(2026, 8, 16),
+        DateTime(2026, 8, 22),
+      );
+      expect(controller.visibleMonth, DateTime(2026, 8));
+      expect(controller.isOnToday, isTrue);
+    });
+
+    testWidgets(
+        'paging the calendar updates the month without changing the '
+        'selection', (tester) async {
+      final controller = await _pump(tester);
+      final before = controller.selectedDate;
+      expect(controller.visibleMonth, DateTime(2026, 8));
+
+      await tester.fling(
+        find.byKey(const ValueKey('tio-date-calendar-week-pager')),
+        const Offset(400, 0),
+        1200,
+      );
+      await tester.pumpAndSettle();
+
+      expect(controller.selectedDate, before);
+      expect(controller.visibleMonth, DateTime(2026, 8));
+    });
+  });
 }

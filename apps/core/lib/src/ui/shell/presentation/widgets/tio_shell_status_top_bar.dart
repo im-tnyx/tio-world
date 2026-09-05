@@ -12,6 +12,7 @@ class TioShellStatusTopBar extends StatelessWidget
     required this.days,
     required this.scrollOpacity,
     this.leadingAction,
+    this.center,
     super.key,
   }) : assert(days == null || days >= 0);
 
@@ -21,6 +22,10 @@ class TioShellStatusTopBar extends StatelessWidget
   final int? days;
   final double scrollOpacity;
   final Widget? leadingAction;
+
+  /// Sits centred across the whole bar rather than inside the title, so it
+  /// stays centred on screen no matter how wide the title or actions are.
+  final Widget? center;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -44,6 +49,13 @@ class TioShellStatusTopBar extends StatelessWidget
       scrolledUnderElevation: TioElevation.none,
       backgroundColor: colorScheme.surface.withValues(alpha: opacity),
       elevation: TioElevation.none,
+      flexibleSpace: center == null
+          ? null
+          : SafeArea(
+              child: Center(
+                child: IgnorePointer(child: center),
+              ),
+            ),
       actions: [
         if (leadingAction case final action?) action,
         Tooltip(
