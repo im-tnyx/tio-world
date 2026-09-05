@@ -132,7 +132,21 @@ void main() {
 
     expect(router.routeInformationProvider.value.uri.path,
         FeatureRoutes.nutrition.path);
-    expect(find.text('Nutrition'), findsWidgets);
+    // The tab keeps the domain name; the screen inside it is the Diary.
+    expect(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('Nutrition'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.text('Diary'),
+      ),
+      findsOneWidget,
+    );
     final diaryDates = container.read(mealDiaryDateControllerProvider);
     final today = diaryDates.localToday;
     final historicalDate = DateTime(today.year, today.month, today.day - 1);

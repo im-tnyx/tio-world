@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
@@ -25,25 +27,53 @@ class MealDiaryPage extends ConsumerStatefulWidget {
 
 class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
     with WidgetsBindingObserver {
+  /// One shot, aimed at the next local midnight, owned by this screen.
+  ///
+  /// The screen owns it rather than the controller because a provider can keep
+  /// a controller alive after the page is gone; a timer parked there would run
+  /// on behind an unmounted screen. Tied to the State, it dies with the route.
+  Timer? _midnightTimer;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _scheduleMidnightRefresh();
   }
 
   @override
   void dispose() {
+    _midnightTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // A phone that was asleep across midnight fires no timer, so returning to
-    // the app is the other moment the diary has to re-check what day it is.
     if (state == AppLifecycleState.resumed) {
+      // A phone asleep across midnight fires no timer, so coming back is the
+      // other moment the diary has to re-check what day it is — and the timer
+      // it had aimed at last night's midnight is now meaningless.
       ref.read(mealDiaryDateControllerProvider).refreshLocalDate();
+      _scheduleMidnightRefresh();
+      return;
     }
+    // Nothing is on screen to keep current while the app is away.
+    _midnightTimer?.cancel();
+    _midnightTimer = null;
+  }
+
+  void _scheduleMidnightRefresh() {
+    _midnightTimer?.cancel();
+    final delay =
+        ref.read(mealDiaryDateControllerProvider).durationUntilNextLocalMidnight;
+    if (delay <= Duration.zero) return;
+    _midnightTimer = Timer(delay, () {
+      if (!mounted) return;
+      ref.read(mealDiaryDateControllerProvider).refreshLocalDate();
+      // Aim at tomorrow, one night at a time, rather than polling.
+      _scheduleMidnightRefresh();
+    });
   }
 
   @override

@@ -10,9 +10,12 @@ import 'package:tio_feature_nutrition/nutrition.dart';
 final _now = DateTime(2026, 8, 20, 10, 30);
 final _today = DateTime(2026, 8, 20);
 
-Future<MealDiaryDateController> _pump(WidgetTester tester) async {
+Future<MealDiaryDateController> _pump(
+  WidgetTester tester, {
+  DateTime Function()? clock,
+}) async {
   // The provider owns disposal, so this test does not also tear it down.
-  final controller = MealDiaryDateController(clock: () => _now);
+  final controller = MealDiaryDateController(clock: clock ?? () => _now);
 
   await tester.pumpWidget(
     ProviderScope(
@@ -299,6 +302,98 @@ void main() {
       await tester.tap(_cell(earlier));
       await tester.pumpAndSettle();
       expect(controller.selectedDate, earlier);
+    });
+  });
+
+  group('foreground midnight rollover', () {
+    testWidgets('the day rolls over while the app stays in the foreground',
+        (tester) async {
+      var now = DateTime(2026, 9, 5, 23, 59, 59);
+      final controller = await _pump(tester, clock: () => now);
+
+      // Reading an earlier day when midnight arrives.
+      final history = DateTime(2026, 9, 3);
+      controller.select(history);
+      await tester.pumpAndSettle();
+      expect(controller.localToday, DateTime(2026, 9, 5));
+      expect(controller.maxDate, DateTime(2026, 9, 5));
+
+      // No pause, no resume, no interaction — just time passing.
+      now = DateTime(2026, 9, 6, 0, 0, 1);
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+
+      expect(controller.localToday, DateTime(2026, 9, 6));
+      expect(controller.maxDate, DateTime(2026, 9, 6));
+      // Their reading position is theirs, not the clock's.
+      expect(controller.selectedDate, history);
+      expect(controller.shouldShowTodayAction, isTrue);
+
+      // The day that just began is now reachable.
+      controller.select(DateTime(2026, 9, 6));
+      expect(controller.selectedDate, DateTime(2026, 9, 6));
+    });
+
+    testWidgets('the timer aims at the calendar boundary, not 24 hours out',
+        (tester) async {
+      var now = DateTime(2026, 9, 5, 23, 59, 59);
+      final controller = await _pump(tester, clock: () => now);
+
+      // Well short of 24 hours: only a calendar-boundary timer fires here.
+      now = DateTime(2026, 9, 6, 0, 0, 1);
+      await tester.pump(const Duration(seconds: 2));
+
+      expect(controller.localToday, DateTime(2026, 9, 6));
+    });
+
+    testWidgets('disposing the page before midnight leaves no pending timer',
+        (tester) async {
+      final now = DateTime(2026, 9, 5, 12);
+      await _pump(tester, clock: () => now);
+
+      // Tearing the page down mid-afternoon must not leave the night's timer
+      // running; a leak here fails the framework's own invariant check.
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('backgrounding cancels the timer and resuming reschedules once',
+        (tester) async {
+      var now = DateTime(2026, 9, 5, 23, 59, 59);
+      final controller = await _pump(tester, clock: () => now);
+
+      var notifications = 0;
+      controller.addListener(() => notifications++);
+
+      // Away from the foreground there is nothing to keep current.
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+
+      now = DateTime(2026, 9, 6, 0, 0, 1);
+      await tester.pump(const Duration(seconds: 2));
+      expect(controller.localToday, DateTime(2026, 9, 6),
+          reason: 'the getter always reads the clock');
+      expect(notifications, 0, reason: 'a cancelled timer must not fire');
+
+      // Coming back refreshes immediately…
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      expect(notifications, 1);
+
+      // …and repeated resumes leave exactly one timer, so the next boundary
+      // announces the new day once rather than once per resume.
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      final beforeNextNight = notifications;
+
+      now = DateTime(2026, 9, 7, 0, 0, 1);
+      await tester.pump(const Duration(days: 1));
+      await tester.pumpAndSettle();
+
+      expect(notifications, beforeNextNight + 1);
+      expect(controller.localToday, DateTime(2026, 9, 7));
     });
   });
 }

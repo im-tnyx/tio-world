@@ -11,12 +11,14 @@ Show today's meals and water entries, make approved entries easy to add or corre
 
 ## Implemented Today
 
+- Naming: the bottom-navigation tab keeps the domain name **Nutrition**; the screen's own root top-bar title is **Diary**. `Meal Diary` remains the canonical feature identity used by the folder, the page class and these docs — `Diary` is only the compact visible title.
 - The reusable core `TioDateCalendar` is the diary's date navigator: a compact horizontal date strip that expands, from its centered transparent notch and distinct grabber, into an inline month grid on the same screen.
 - Both renderings navigate only by horizontal swipe: compact pages by week and expanded pages by month. The calendar has no month title or previous/next arrow row.
 - Tapping outside an expanded calendar collapses it to the compact week rendering; interactions inside the calendar do not dismiss it.
 - The localized `SUN` header and Sunday date numerals use semantic danger styling; selected/Today Sundays are full-strength while ordinary Sundays are softer.
 - Nutrition owns only the thin adapter — `selectedDate`, `localToday`, a bounded history window and `maxDate = localToday`, so future dates are unreachable.
 - When another day is selected or the calendar is paged away from the range containing Today, the Nutrition top bar shows the approved calendar glyph immediately left of the fixed right-side streak without a redundant gap. Today's day number appears inside the glyph; tapping it selects Today and returns the viewport to Today's week/month. It is absent only when Today is selected and visible, and its appearance never moves the streak.
+- The local day advances without leaving the screen: the page owns a one-shot timer aimed at the next local calendar boundary and also refreshes on app resume. A historical selection is never moved by the rollover; only `localToday` and `maxDate` advance.
 - First day of week is not owned here. It is one app-global Calendar Preferences value; until that resolver exists the calendar falls back to the platform locale.
 - No per-date decorations are supplied, because no meal-log data exists. Missing progress stays missing rather than being drawn as zero.
 - Below the calendar the selected day shows its date and states plainly that meal logging is not available yet.

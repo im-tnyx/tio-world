@@ -12,6 +12,7 @@ class TioShell extends StatelessWidget {
     required this.onAction,
     required this.child,
     this.statusTopBarLeadingAction,
+    this.statusTopBarTitle,
     super.key,
   });
 
@@ -19,6 +20,15 @@ class TioShell extends StatelessWidget {
   final ValueChanged<ShellAction> onAction;
   final Widget child;
   final Widget? statusTopBarLeadingAction;
+
+  /// Title for the status top bar when the visible screen names itself
+  /// something other than its tab.
+  ///
+  /// A tab label names a domain; a screen inside it may be one of several. The
+  /// shell has no way to know which, so the composition layer supplies the
+  /// name and the tab label stays the fallback. Core never learns that
+  /// Nutrition currently shows a diary.
+  final String? statusTopBarTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +50,7 @@ class TioShell extends StatelessWidget {
                   avatarUrl: state.avatarUrl,
                 ),
               ShellTab.workout => TioShellStatusTopBar(
-                  title: ShellTab.workout.label,
+                  title: statusTopBarTitle ?? ShellTab.workout.label,
                   statusLabel: 'Workout streak',
                   statusKey: const ValueKey('shell-workout-streak'),
                   days: state.workoutStreakDays,
@@ -48,7 +58,7 @@ class TioShell extends StatelessWidget {
                   leadingAction: statusTopBarLeadingAction,
                 ),
               ShellTab.nutrition => TioShellStatusTopBar(
-                  title: ShellTab.nutrition.label,
+                  title: statusTopBarTitle ?? ShellTab.nutrition.label,
                   statusLabel: 'Meal log streak',
                   statusKey: const ValueKey('shell-meal-log-streak'),
                   days: state.mealLogStreakDays,

@@ -309,6 +309,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 ),
                 onAction: (action) =>
                     _handleShellAction(router, navigationShell, action),
+                // The tab is Nutrition; the screen inside it is the Meal
+                // Diary, and its own compact name is what the top bar shows.
+                statusTopBarTitle:
+                    selectedTab == ShellTab.nutrition ? 'Diary' : null,
                 statusTopBarLeadingAction:
                     mealDiaryDates != null &&
                             mealDiaryDates.shouldShowTodayAction

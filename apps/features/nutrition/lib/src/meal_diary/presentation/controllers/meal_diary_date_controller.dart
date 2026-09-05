@@ -91,6 +91,17 @@ class MealDiaryDateController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// How long until the next local calendar-day boundary.
+  ///
+  /// Derived from the next calendar day rather than by adding 24 hours, so a
+  /// daylight-saving shift moves the boundary with the calendar instead of
+  /// drifting an hour away from it. The page owns the timer that uses this;
+  /// the controller only knows what time it is.
+  Duration get durationUntilNextLocalMidnight {
+    final now = _clock();
+    return DateTime(now.year, now.month, now.day + 1).difference(now);
+  }
+
   /// Re-reads the local day and notifies if it has rolled over.
   ///
   /// Safe to call as often as the host likes — it is a no-op on the same day.
@@ -98,11 +109,11 @@ class MealDiaryDateController extends ChangeNotifier {
   /// diary at midnight should still be reading Tuesday's diary at 00:01. Only
   /// what counts as today, and therefore the range end, moves.
   ///
-  /// The page drives this from the app lifecycle rather than from a timer. A
-  /// long-lived timer would keep this controller alive behind an unmounted
-  /// screen for the rest of the day, so the rollover is picked up when the app
-  /// comes back to the foreground. An app left open and untouched across local
-  /// midnight therefore updates on the next resume or interaction.
+  /// The page drives this, from both a one-shot midnight timer it owns and the
+  /// app lifecycle. The timer deliberately does not live here: a controller
+  /// kept alive by its provider would outlive the screen and hold a timer open
+  /// for the rest of the day, which is exactly what leaked into unrelated
+  /// widget tests when it was tried.
   void refreshLocalDate() {
     final today = localToday;
     if (_observedToday == today) return;

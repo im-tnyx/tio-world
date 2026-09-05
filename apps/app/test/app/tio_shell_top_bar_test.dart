@@ -91,7 +91,9 @@ void main() {
       expect(find.text(testCase.$2), findsOneWidget);
       expect(
         tester.getRect(find.text(testCase.$2)).center.dy,
-        closeTo(tester.getRect(find.byKey(const ValueKey('shell-plan'))).center.dy, 1),
+        closeTo(
+            tester.getRect(find.byKey(const ValueKey('shell-plan'))).center.dy,
+            1),
       );
       expect(
         (planPill.decoration! as ShapeDecoration).shape,
@@ -270,8 +272,7 @@ void main() {
     }
 
     final status = find.byKey(const ValueKey('shell-meal-log-streak'));
-    final streakIcon =
-        find.byKey(const ValueKey('shell-status-streak-icon'));
+    final streakIcon = find.byKey(const ValueKey('shell-status-streak-icon'));
     await pumpShell();
     final streakCenterWithoutAction = tester.getCenter(streakIcon).dx;
 
@@ -356,5 +357,96 @@ void main() {
     expect(find.byKey(const ValueKey('shell-workout-streak')), findsNothing);
     expect(find.byType(AppBar), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);
+  });
+
+  group('contextual status title', () {
+    Future<void> pumpShell(
+      WidgetTester tester, {
+      required ShellTab tab,
+      String? contextualTitle,
+    }) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => TioTheme(
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: TioShell(
+            state: ShellUiState(
+              selectedTab: tab,
+              visibleTabs: const [
+                ShellTab.home,
+                ShellTab.workout,
+                ShellTab.nutrition,
+                ShellTab.progress,
+              ],
+            ),
+            onAction: (_) {},
+            statusTopBarTitle: contextualTitle,
+            child: const SizedBox.shrink(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    AppBar appBar(WidgetTester tester) => tester.widget<AppBar>(
+          find.byType(AppBar),
+        );
+
+    String title(WidgetTester tester) => (appBar(tester).title! as Text).data!;
+
+    testWidgets('a screen name replaces the tab label in the top bar only',
+        (tester) async {
+      // The tab names a domain; the screen inside it names itself.
+      await pumpShell(
+        tester,
+        tab: ShellTab.nutrition,
+        contextualTitle: 'Diary',
+      );
+
+      expect(title(tester), 'Diary');
+      // The bottom navigation still says Nutrition, and the tab label itself
+      // is untouched.
+      expect(ShellTab.nutrition.label, 'Nutrition');
+      expect(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Nutrition'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Diary'),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets(
+        'the tab label remains the fallback when no screen names '
+        'itself', (tester) async {
+      await pumpShell(tester, tab: ShellTab.nutrition);
+      expect(title(tester), 'Nutrition');
+
+      await pumpShell(tester, tab: ShellTab.workout);
+      expect(title(tester), 'Workout');
+    });
+
+    testWidgets('a contextual title does not disturb the feature status',
+        (tester) async {
+      await pumpShell(
+        tester,
+        tab: ShellTab.nutrition,
+        contextualTitle: 'Diary',
+      );
+
+      expect(
+        find.byKey(const ValueKey('shell-meal-log-streak')),
+        findsOneWidget,
+      );
+      expect(find.byTooltip('Meal log streak'), findsOneWidget);
+    });
   });
 }
