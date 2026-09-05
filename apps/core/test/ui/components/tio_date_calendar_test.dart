@@ -105,6 +105,12 @@ RenderObject _circle(WidgetTester tester, DateTime date) => tester.renderObject(
       find.descendant(of: _cell(date), matching: find.byType(CustomPaint)),
     );
 
+/// `PageView` keeps its page count on the delegate rather than exposing it.
+int _monthPageCount(WidgetTester tester) =>
+    (tester.widget<PageView>(_monthPager()).childrenDelegate
+            as SliverChildBuilderDelegate)
+        .childCount!;
+
 bool _isMonthMode(WidgetTester tester) => _monthPager().evaluate().isNotEmpty;
 
 TextStyle _numeralStyle(WidgetTester tester, DateTime date) {
@@ -458,8 +464,7 @@ void main() {
       WidgetTester tester,
       int firstDayOfWeek, {
       TextScaler textScaler = TextScaler.noScaling,
-    }
-    ) async {
+    }) async {
       await _pump(
         tester,
         resolvedFirstDayOfWeek: firstDayOfWeek,
@@ -582,9 +587,8 @@ void main() {
         displayMode: TioDateCalendarDisplayMode.month,
         insideScrollablePage: true,
       );
-      final outsideTop = tester
-          .getTopLeft(find.byKey(const ValueKey('page-content')))
-          .dy;
+      final outsideTop =
+          tester.getTopLeft(find.byKey(const ValueKey('page-content'))).dy;
 
       await tester.tapAt(Offset(TioSpacing.md, outsideTop + TioSpacing.md));
       await tester.pumpAndSettle();
@@ -691,6 +695,220 @@ void main() {
       final todayNode = tester.getSemantics(_cell(_today));
       expect(todayNode.label, contains('Today'));
       expect(todayNode, isSemantics(isSelected: false));
+    });
+  });
+
+  group('review regressions', () {
+    testWidgets('a date numeral holds its vertical position through expansion',
+        (tester) async {
+      // The existing sibling test pins the cell box. This one pins the glyph
+      // inside it, which is what a reader actually watches: an earlier build
+      // kept the box still while the numeral hopped 3px because compact and
+      // month rows centred the same content in differently sized boxes.
+      final firstRowDate = DateTime(2026, 8, 1);
+      await _pump(tester, initialSelected: firstRowDate);
+
+      Rect numeral() => tester.getRect(
+            find.descendant(
+              of: _cell(firstRowDate),
+              matching: find.text('${firstRowDate.day}'),
+            ),
+          );
+
+      final compactNumeral = numeral();
+      final compactCell = tester.getRect(_cell(firstRowDate));
+
+      await tester.tap(_handle());
+      await tester.pumpAndSettle();
+
+      expect(numeral().top, compactNumeral.top);
+      expect(numeral().height, compactNumeral.height);
+      expect(tester.getRect(_cell(firstRowDate)).top, compactCell.top);
+    });
+
+    Future<void> pumpRange(
+      WidgetTester tester, {
+      required DateTime minDate,
+      required DateTime maxDate,
+    }) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.light),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: Scaffold(
+            body: TioDateCalendar(
+              selectedDate: _selected,
+              localToday: _today,
+              minDate: minDate,
+              maxDate: maxDate,
+              displayMode: TioDateCalendarDisplayMode.month,
+              onDateSelected: (_) {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets(
+        'a range change with an unchanged week count re-anchors both pagers',
+        (tester) async {
+      // Aug 1..Aug 31 and Aug 1..Sep 30 both span six weeks, so a comparison
+      // that only looks at the week-page count sees no difference, while the
+      // month count goes from one to two and September becomes reachable.
+      await pumpRange(
+        tester,
+        minDate: _augustFirst,
+        maxDate: _augustLast,
+      );
+      expect(_monthPageCount(tester), 1);
+
+      await pumpRange(
+        tester,
+        minDate: _augustFirst,
+        maxDate: DateTime(2026, 9, 30),
+      );
+
+      // The month pager gained its second page rather than staying anchored to
+      // the old range, and the selection is untouched by the range change.
+      expect(_monthPageCount(tester), 2);
+      expect(_cell(_selected), findsOne);
+
+      await tester.fling(_monthPager(), const Offset(-400, 0), 1200);
+      await tester.pumpAndSettle();
+      expect(_cell(DateTime(2026, 9, 15)), findsOne);
+    });
+
+    testWidgets('a shrinking range clamps the pagers without losing selection',
+        (tester) async {
+      await pumpRange(
+        tester,
+        minDate: DateTime(2026, 7, 1),
+        maxDate: _augustLast,
+      );
+      expect(_monthPageCount(tester), 2);
+
+      await pumpRange(
+        tester,
+        minDate: _augustFirst,
+        maxDate: _augustLast,
+      );
+
+      expect(_monthPageCount(tester), 1);
+      expect(_cell(_selected), findsOne);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+        'a jump requested before mount is honoured once the pagers '
+        'exist', (tester) async {
+      final controller = TioDateCalendarController();
+      addTearDown(controller.dispose);
+
+      final target = DateTime(2026, 7, 8);
+      // Nobody is listening yet: this is the case the widget has to pick up
+      // for itself when it initialises.
+      controller.jumpToDate(target);
+
+      final harness = await _pump(
+        tester,
+        controller: controller,
+        minDate: DateTime(2026, 7, 1),
+      );
+
+      expect(_cell(target), findsOne);
+      expect(controller.pendingJump, isNull);
+      // Reveal-only: the jump moves the viewport, never the selection.
+      expect(harness.selectedDate, _selected);
+      expect(harness.selectedDates, isEmpty);
+    });
+
+    testWidgets('a pre-mount jump also lands when the calendar opens expanded',
+        (tester) async {
+      final controller = TioDateCalendarController();
+      addTearDown(controller.dispose);
+
+      final target = DateTime(2026, 7, 8);
+      controller.jumpToDate(target);
+
+      await _pump(
+        tester,
+        controller: controller,
+        minDate: DateTime(2026, 7, 1),
+        displayMode: TioDateCalendarDisplayMode.month,
+      );
+
+      // July's page, not the selected date's August page.
+      expect(_cell(DateTime(2026, 7, 1)), findsOne);
+      expect(controller.pendingJump, isNull);
+    });
+
+    testWidgets('large text grows the boxes instead of clipping the glyphs',
+        (tester) async {
+      tester.view.physicalSize = const Size(320, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await _pump(
+        tester,
+        resolvedFirstDayOfWeek: DateTime.monday,
+        textScaler: const TextScaler.linear(1.8),
+      );
+
+      void expectFits(Finder box, Finder glyph, String reason) {
+        final boxRect = tester.getRect(box);
+        final glyphRect = tester.getRect(glyph);
+        expect(
+          glyphRect.height,
+          lessThanOrEqualTo(boxRect.height + 0.01),
+          reason: reason,
+        );
+      }
+
+      expectFits(
+        _weekdayHeader(),
+        find
+            .descendant(of: _weekdayHeader(), matching: find.byType(Text))
+            .first,
+        'weekday label is taller than the header that holds it',
+      );
+      expectFits(
+        _cell(_selected),
+        find.descendant(of: _cell(_selected), matching: find.text('18')),
+        'date numeral is taller than the compact cell that holds it',
+      );
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(_handle());
+      await tester.pumpAndSettle();
+
+      expectFits(
+        _cell(_selected),
+        find.descendant(of: _cell(_selected), matching: find.text('18')),
+        'date numeral is taller than the expanded cell that holds it',
+      );
+      expect(tester.takeException(), isNull);
+      // The affordance stays reachable at large text.
+      expect(tester.getSize(_handle()).height, greaterThanOrEqualTo(48));
+    });
+
+    testWidgets('a Sunday start also survives large text at a narrow width',
+        (tester) async {
+      tester.view.physicalSize = const Size(320, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await _pump(
+        tester,
+        resolvedFirstDayOfWeek: DateTime.sunday,
+        textScaler: const TextScaler.linear(1.8),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(_weekdayHeader(), findsOne);
+      expect(_cell(_selected), findsOne);
     });
   });
 }

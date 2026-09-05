@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -155,13 +157,15 @@ class TioDateCalendar extends StatefulWidget {
 // new visual registry: none of it is reusable outside this component.
 const int _daysPerWeek = 7;
 
+/// Base geometry, expressed at a text scale of 1.0. Every scaled getter below
+/// returns exactly these numbers at 1.0, so the owner-approved rendering is
+/// byte-for-byte unchanged at normal text size; they only grow when the reader
+/// has asked for larger text, which is the case where fixed boxes clip glyphs.
 const double _weekdayHeaderHeight = TioSize.dp14;
 const double _dateCellSize = TioSize.dp28;
 const double _markerRowHeight = TioSize.dp6;
 const double _markerDotSize = TioSize.dp4;
 const int _monthGridRows = 6;
-const double _monthRowHeight =
-    _dateCellSize + TioSpacing.xxs + _markerRowHeight + TioSpacing.xxs;
 
 /// The notch and grabber are deliberately separate geometry. The wide
 /// trapezoid stays transparent while the rounded bar remains visible inside.
@@ -178,8 +182,10 @@ const double _grabberRadius = _grabberHeight / 2;
 const double _handleTouchHeight = TioSize.dp48;
 const double _handleOverhang = _handleTouchHeight - _notchDepth;
 
-const double _weekRowHeight =
-    _dateCellSize + TioSpacing.xxs + _markerRowHeight + TioSpacing.xs;
+/// Larger text may grow the calendar's boxes; smaller text must never shrink
+/// the approved geometry, so the scale is floored at 1.
+double _resolveTextScale(BuildContext context) =>
+    math.max(1, MediaQuery.textScalerOf(context).scale(1));
 
 /// Drag speed past which the gesture settles by direction instead of position.
 /// Program behaviour, not a visual contract.
@@ -200,7 +206,26 @@ class _TioDateCalendarState extends State<TioDateCalendar>
   DateTime? _pendingMonthReveal;
   DateTime? _lastReportedRangeStart;
   DateTime? _lastReportedRangeEnd;
-  int? _resolvedFirstDayOfWeekCache;
+
+  /// The exact inputs the two pagers were built from. Page counts alone are not
+  /// enough: a range can move while its week count stays identical, which would
+  /// leave both pagers anchored to dates that are no longer the range.
+  int? _pagerFirstDayOfWeek;
+  DateTime? _pagerMinDate;
+  DateTime? _pagerMaxDate;
+
+  /// Text scale is read once per frame and cached, so every geometry getter in
+  /// one build agrees with the others.
+  double _textScale = 1;
+
+  double get _scaledDateCellSize => _dateCellSize * _textScale;
+  double get _scaledMarkerRowHeight => _markerRowHeight * _textScale;
+
+  double get _monthRowHeight =>
+      _scaledDateCellSize +
+      TioSpacing.xxs +
+      _scaledMarkerRowHeight +
+      TioSpacing.xxs;
 
   DateTime get _minDate => _dateOnly(widget.minDate);
   DateTime get _maxDate => _dateOnly(widget.maxDate);
@@ -223,7 +248,10 @@ class _TioDateCalendarState extends State<TioDateCalendar>
   void didChangeDependencies() {
     super.didChangeDependencies();
     _expansion.duration = context.tioMotion.normal;
-    _syncWeekPager();
+    // Never below 1: larger text may grow the boxes, smaller text must not
+    // shrink the approved geometry.
+    _textScale = math.max(1, MediaQuery.textScalerOf(context).scale(1));
+    _syncPagers();
   }
 
   @override
@@ -254,7 +282,7 @@ class _TioDateCalendarState extends State<TioDateCalendar>
     final selectionChanged = _dateOnly(oldWidget.selectedDate) != _selectedDate;
 
     if (rangeChanged) {
-      _syncWeekPager();
+      _syncPagers();
     }
     if (selectionChanged) {
       if (!_isSameMonth(_visibleMonth, _selectedDate)) {
@@ -289,14 +317,21 @@ class _TioDateCalendarState extends State<TioDateCalendar>
 
   /// Rebuilds the pager whenever the range or the week start changes, because
   /// both of those move which week a page index means.
-  void _syncWeekPager() {
+  void _syncPagers() {
     final firstDayOfWeek = _firstDayOfWeek(context);
+    // Compare the range itself, not a count derived from it. Moving maxDate
+    // from Aug 31 to Sep 1 leaves the week count at six while adding a whole
+    // month page, and anchoring on the count alone would keep September
+    // unreachable.
     if (_weekPages != null &&
-        _resolvedFirstDayOfWeekCache == firstDayOfWeek &&
-        _weekPageCount == _computeWeekPageCount(firstDayOfWeek)) {
+        _pagerFirstDayOfWeek == firstDayOfWeek &&
+        _pagerMinDate == _minDate &&
+        _pagerMaxDate == _maxDate) {
       return;
     }
-    _resolvedFirstDayOfWeekCache = firstDayOfWeek;
+    _pagerFirstDayOfWeek = firstDayOfWeek;
+    _pagerMinDate = _minDate;
+    _pagerMaxDate = _maxDate;
     _weekPageCount = _computeWeekPageCount(firstDayOfWeek);
     _monthPageCount = _computeMonthPageCount();
 
@@ -306,6 +341,19 @@ class _TioDateCalendarState extends State<TioDateCalendar>
     );
     _monthPages?.dispose();
     _monthPages = PageController(initialPage: _monthPageOf(_selectedDate));
+
+    // A jump requested before this widget existed has been sitting on the
+    // controller with nobody listening. The pagers exist now, so honour it.
+    final pending = widget.controller?.pendingJump;
+    if (pending != null) {
+      widget.controller?.consumePendingJump();
+      if (!_isSameMonth(_visibleMonth, pending)) {
+        _visibleMonth = _monthOf(pending);
+      }
+      _pendingWeekReveal = pending;
+      _pendingMonthReveal = pending;
+    }
+
     _scheduleVisibleRangeReport();
     if (mounted) setState(() {});
   }
@@ -524,7 +572,14 @@ class _TioDateCalendarState extends State<TioDateCalendar>
 
   // ------------------------------------------------------------------ geometry
 
-  double get _compactBodyHeight => _weekRowHeight + TioSpacing.xs;
+  /// The compact body is one month row plus breathing room below it. Sizing the
+  /// row itself identically to a month row is what keeps a date numeral from
+  /// hopping vertically as the calendar expands: both centre the same content
+  /// in the same box, and the spare height sits underneath rather than being
+  /// absorbed into the centring.
+  double get _compactRowHeight => _monthRowHeight;
+  double get _compactBodyHeight =>
+      _compactRowHeight + TioSpacing.xs + TioSpacing.xxs;
 
   /// Every month page is the same height. A grid that grew and shrank by a
   /// row as you swiped would make the whole screen below it jump.
@@ -660,13 +715,19 @@ class _TioDateCalendarState extends State<TioDateCalendar>
       itemBuilder: (context, page) {
         final weekStart = _addDays(
             _startOfWeek(_minDate, firstDayOfWeek), page * _daysPerWeek);
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: TioSpacing.xs),
-          child: Row(
-            children: [
-              for (var i = 0; i < _daysPerWeek; i++)
-                Expanded(child: _cellFor(_addDays(weekStart, i))),
-            ],
+        return Align(
+          alignment: Alignment.topCenter,
+          child: SizedBox(
+            height: _compactRowHeight,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: TioSpacing.xs),
+              child: Row(
+                children: [
+                  for (var i = 0; i < _daysPerWeek; i++)
+                    Expanded(child: _cellFor(_addDays(weekStart, i))),
+                ],
+              ),
+            ),
           ),
         );
       },
@@ -768,7 +829,7 @@ class _WeekdayHeader extends StatelessWidget {
       padding: const EdgeInsets.all(TioSpacing.xs),
       child: SizedBox(
         key: const ValueKey('tio-date-calendar-weekday-header'),
-        height: _weekdayHeaderHeight,
+        height: _weekdayHeaderHeight * _resolveTextScale(context),
         child: Row(
           children: [
             for (var column = 0; column < _daysPerWeek; column++)
@@ -904,6 +965,7 @@ class _DateCell extends StatelessWidget {
     final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
     final localizations = MaterialLocalizations.of(context);
+    final scale = _resolveTextScale(context);
     final resolved = isEnabled ? decoration : null;
     final isSunday = date.weekday == DateTime.sunday;
 
@@ -933,8 +995,8 @@ class _DateCell extends StatelessWidget {
         track: colors.outlineStrong,
       ),
       child: SizedBox(
-        width: _dateCellSize,
-        height: _dateCellSize,
+        width: _dateCellSize * scale,
+        height: _dateCellSize * scale,
         child: Center(
           child: Text(
             localizations.formatDecimal(date.day),
@@ -953,7 +1015,7 @@ class _DateCell extends StatelessWidget {
         numeral,
         const SizedBox(height: TioSpacing.xxs),
         SizedBox(
-          height: _markerRowHeight,
+          height: _markerRowHeight * scale,
           child: _MarkerRow(decoration: resolved, color: colors.primary),
         ),
       ],

@@ -14,7 +14,8 @@ import 'package:tio_core/core.dart';
 class MealDiaryDateController extends ChangeNotifier {
   MealDiaryDateController({DateTime Function()? clock})
       : _clock = clock ?? DateTime.now {
-    _selectedDate = localToday;
+    _observedToday = localToday;
+    _selectedDate = _observedToday;
   }
 
   /// How far back the diary lets the user navigate.
@@ -28,6 +29,12 @@ class MealDiaryDateController extends ChangeNotifier {
   final TioDateCalendarController calendarController =
       TioDateCalendarController();
   late DateTime _selectedDate;
+
+  /// The local day this controller last told its listeners about. Reading the
+  /// clock in a getter is not enough on its own: nothing rebuilds merely
+  /// because midnight passed, so the diary would keep offering yesterday as
+  /// the latest selectable day until some unrelated rebuild happened.
+  late DateTime _observedToday;
   bool _isTodayVisible = true;
 
   /// Today in the device's own local date terms.
@@ -81,6 +88,25 @@ class MealDiaryDateController extends ChangeNotifier {
     final isVisible = !today.isBefore(start) && !today.isAfter(end);
     if (_isTodayVisible == isVisible) return;
     _isTodayVisible = isVisible;
+    notifyListeners();
+  }
+
+  /// Re-reads the local day and notifies if it has rolled over.
+  ///
+  /// Safe to call as often as the host likes — it is a no-op on the same day.
+  /// The selected date is deliberately left alone: someone reading Tuesday's
+  /// diary at midnight should still be reading Tuesday's diary at 00:01. Only
+  /// what counts as today, and therefore the range end, moves.
+  ///
+  /// The page drives this from the app lifecycle rather than from a timer. A
+  /// long-lived timer would keep this controller alive behind an unmounted
+  /// screen for the rest of the day, so the rollover is picked up when the app
+  /// comes back to the foreground. An app left open and untouched across local
+  /// midnight therefore updates on the next resume or interaction.
+  void refreshLocalDate() {
+    final today = localToday;
+    if (_observedToday == today) return;
+    _observedToday = today;
     notifyListeners();
   }
 

@@ -139,7 +139,8 @@ void main() {
     expect(_cell(_today), findsOne);
   });
 
-  testWidgets('with no nutrition data the calendar still works and invents none',
+  testWidgets(
+      'with no nutrition data the calendar still works and invents none',
       (tester) async {
     final controller = await _pump(tester);
 
@@ -149,7 +150,8 @@ void main() {
 
     final unselected = DateTime(2026, 8, 18);
     final circle = tester.renderObject(
-      find.descendant(of: _cell(unselected), matching: find.byType(CustomPaint)),
+      find.descendant(
+          of: _cell(unselected), matching: find.byType(CustomPaint)),
     );
     expect(circle, isNot(paints..circle()));
     expect(circle, isNot(paints..arc()));
@@ -174,5 +176,129 @@ void main() {
     // First day of week is one app-wide value. Passing anything here would make
     // Nutrition a second owner of it.
     expect(_calendar(tester).resolvedFirstDayOfWeek, isNull);
+  });
+
+  group('review regressions', () {
+    test('the local day rolls over without moving the selection', () {
+      var now = DateTime(2026, 9, 5, 23, 59);
+      final controller = MealDiaryDateController(clock: () => now);
+      addTearDown(controller.dispose);
+
+      var notifications = 0;
+      controller.addListener(() => notifications++);
+
+      expect(controller.localToday, DateTime(2026, 9, 5));
+      expect(controller.maxDate, DateTime(2026, 9, 5));
+
+      // The reader is looking at an earlier day when midnight arrives.
+      controller.select(DateTime(2026, 9, 3));
+      expect(notifications, 1);
+
+      now = DateTime(2026, 9, 6, 0, 1);
+      controller.refreshLocalDate();
+
+      expect(controller.localToday, DateTime(2026, 9, 6));
+      expect(controller.maxDate, DateTime(2026, 9, 6));
+      expect(notifications, 2, reason: 'listeners must hear the rollover');
+      // Their reading position is theirs, not the clock's.
+      expect(controller.selectedDate, DateTime(2026, 9, 3));
+      expect(controller.isOnToday, isFalse);
+      expect(controller.shouldShowTodayAction, isTrue);
+    });
+
+    test('a refresh on the same day notifies nobody', () {
+      final now = DateTime(2026, 9, 5, 10);
+      final controller = MealDiaryDateController(clock: () => now);
+      addTearDown(controller.dispose);
+
+      var notifications = 0;
+      controller.addListener(() => notifications++);
+
+      controller.refreshLocalDate();
+      controller.refreshLocalDate();
+
+      expect(notifications, 0);
+    });
+
+    test('yesterday becomes selectable once the day rolls over', () {
+      var now = DateTime(2026, 9, 5, 23, 59);
+      final controller = MealDiaryDateController(clock: () => now);
+      addTearDown(controller.dispose);
+
+      // Tomorrow is out of range before midnight…
+      controller.select(DateTime(2026, 9, 6));
+      expect(controller.selectedDate, DateTime(2026, 9, 5));
+
+      now = DateTime(2026, 9, 6, 0, 1);
+      controller.refreshLocalDate();
+
+      // …and reachable after it.
+      controller.select(DateTime(2026, 9, 6));
+      expect(controller.selectedDate, DateTime(2026, 9, 6));
+    });
+
+    testWidgets(
+        'an expanded calendar scrolls instead of overflowing a short '
+        'viewport', (tester) async {
+      // Landscape-ish: far shorter than the expanded month grid needs.
+      tester.view.physicalSize = const Size(400, 320);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      final controller = await _pump(tester);
+
+      await tester.tap(find.byKey(const ValueKey('tio-date-calendar-handle')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'no RenderFlex overflow');
+
+      // The content below the calendar starts off the bottom of this viewport…
+      final summary = find.text('Meal logging is not available yet.');
+      const viewportHeight = 320.0;
+      expect(
+        tester.getRect(summary).top,
+        greaterThan(viewportHeight),
+        reason: 'summary should start below a short viewport',
+      );
+
+      // …and scrolling the page brings it into view.
+      await tester.drag(
+        find.byType(SingleChildScrollView),
+        const Offset(0, -400),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.getRect(summary).top, lessThan(viewportHeight));
+      expect(tester.takeException(), isNull);
+
+      // Page scrolling never toggled the calendar, and the handle still works.
+      expect(find.byKey(const ValueKey('tio-date-calendar-month-pager')),
+          findsOne);
+      await tester.tap(find.byKey(const ValueKey('tio-date-calendar-handle')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('tio-date-calendar-month-pager')),
+          findsNothing);
+      expect(controller.selectedDate, _today);
+    });
+
+    testWidgets('horizontal week paging still works on a short viewport',
+        (tester) async {
+      tester.view.physicalSize = const Size(400, 320);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      final controller = await _pump(tester);
+      final earlier = DateTime(2026, 8, 12);
+
+      await tester.fling(
+        find.byKey(const ValueKey('tio-date-calendar-week-pager')),
+        const Offset(400, 0),
+        1200,
+      );
+      await tester.pumpAndSettle();
+
+      expect(_cell(earlier), findsOne);
+      await tester.tap(_cell(earlier));
+      await tester.pumpAndSettle();
+      expect(controller.selectedDate, earlier);
+    });
   });
 }
