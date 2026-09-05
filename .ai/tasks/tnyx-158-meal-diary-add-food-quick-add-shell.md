@@ -58,23 +58,23 @@ Both are recorded on TNYX-66 as focused readiness evidence. TNYX-66 stays open; 
 **Review owner:** Unassigned — PR review
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-05, second review-remediation pass.
+**Repository state last verified:** 2026-09-05, third pass — owner device review of the Add Food sheet.
 **Branch:** `tnyx/tnyx-158-n5b-meal-diary-add-food-entry-quick-add-editor-shell`
-**HEAD SHA:** Authoritative from `git` and PR metadata; not duplicated here. The previous reviewed head was `e974c410`, and this pass supersedes it.
+**HEAD SHA:** Authoritative from `git` and PR metadata; not duplicated here. The previous reviewed head was `bff61fb8`, and this pass supersedes it.
 **Observed working-tree state:** Clean once this remediation is committed.
 **Observed uncommitted/dirty files:** None.
 **PR / tracker:** PR [#214](https://github.com/im-tnyx/tio-world/pull/214) is open and non-draft; TNYX-158 is `In Review`.
-**Current implementation state:** The shell is complete and published. Two review rounds have landed on top of it: the first fixed the shell-navigator, scroll-clearance and read-only-row findings; this second one removes the numeric input's silent mutation and synchronizes this record and the PR body with the current head.
+**Current implementation state:** The shell is complete and published. Three review rounds have landed on top of it: the shell-navigator / scroll-clearance / read-only-row fixes, the numeric silent-mutation fix plus this record's synchronization, and now the owner device review that rebuilt the Add Food sheet to the TNYX-62 hierarchy. The Quick Add editor is deliberately untouched in this pass — the owner reviews it next, separately.
 **Relevant execution surface:** `apps/features/nutrition/lib/src/meal_diary/**`, `apps/features/nutrition/lib/src/meal_logging/**`, `apps/features/nutrition/test/**`, `apps/core` (`showTioEditorSheet` plus the theme README), `.ai/tasks/`, `docs/screens/meal-diary.md`.
 **Validation completed at SHA:** Recorded in Quality Review against the current head.
 **Validation remaining:** None beyond the exact-head CI run recorded in Quality Review.
-**Current blocker:** None. Entering this pass the open blockers were `P2-decimal-separator` and `P1-handoff-sync`; both are addressed here.
-**Open review finding IDs:** None. All five findings — four automated, one manual governance — are resolved and recorded in Quality Review.
-**Next exact action:** Hand PR #214 to a human reviewer. No merge and no `Done` transition are authorized.
+**Current blocker:** None in code. The slice now waits on an owner device pass over the rebuilt Add Food sheet before the Quick Add editor is reviewed.
+**Open review finding IDs:** None. All six findings — four automated, one manual governance, one owner device-review UI — are resolved and recorded in Quality Review.
+**Next exact action:** Owner device pass over the Add Food sheet. After that is accepted, the Quick Add editor gets its own review pass. No merge and no `Done` transition are authorized.
 
 ## Global UI / Design-System Guardrail
 
-This task follows `apps/core/lib/src/theme/README.md` and `apps/features/AGENTS.md`. Every surface is composed from the public `package:tio_core/core.dart` boundary. No new core component, no new token file, and no feature token bag is introduced. The two feature-local compositions (the `+` affordance and the two sheets) consume governed core values directly, which is what the feature rules require for a one-off composition with a single consumer.
+This task follows `apps/core/lib/src/theme/README.md` and `apps/features/AGENTS.md`. Every surface is composed from the public `package:tio_core/core.dart` boundary. No new core component, no new token file, and no feature token bag is introduced. The feature-local compositions — the `+` affordance, and the Add Food sheet's describe/photo/compact-action surfaces built on `TioSheet` and `TioCard` — consume governed core values directly, which is what the feature rules require for a one-off composition with a single consumer. The owner's reference screenshot contributed layout only: no external branding, copy, colour, gradient, glow or typography entered the code.
 
 One core API did change: `showTioEditorSheet` gained an optional `useRootNavigator`, defaulting to Flutter's own `false` so no existing caller behaves differently. The theme README is updated in the same change, as its maintenance contract requires.
 
@@ -119,7 +119,9 @@ Everything under **Explicit non-changes** above, plus N4 Diary cards, N6 detaile
 | The `+` lives in the Meal Diary body, not in `TioShell` | Made | `TioShell` has no FAB slot, and giving Core one for a single Nutrition consumer would push a feature concern into the shell. A `Stack` in the page body sits above the bottom nav by construction, since the nav is the `Scaffold`'s own slot | Nutrition |
 | The `+` is a feature-local governed circular action, not `FloatingActionButton` | Made | No FAB exists in the repo and `TioTheme` configures no FAB theme, so a raw Material FAB would draw un-governed colours. One consumer means feature-local composition over a new core component | Nutrition |
 | The `+` hides while the calendar month grid is expanded | Made | Keeps the affordance from overlapping date cells on a short viewport. Observed through the calendar's existing `onDisplayModeChanged` callback; `displayMode` stays calendar-owned so no behaviour changes | Nutrition |
-| Add Food renders all four N5 paths, three of them unavailable | Made | The issue asks for the future hierarchy to be represented. Unavailable rows are dimmed, chevron-less, non-tappable, labelled "Not available yet" and report `enabled: false` to assistive technology — no fake navigation and no silent no-op | Nutrition |
+| Add Food renders all four N5 paths, three of them unavailable | Made | The issue asks for the future hierarchy to be represented. Unavailable paths are dimmed, non-tappable, labelled "Not available yet" and report `enabled: false` to assistive technology — no fake navigation and no silent no-op | Nutrition |
+| The four paths are weighted, not listed | Revised after owner device review | The first build rendered all four as equal `TioSettingsNavigationRow` entries in one `TioGroupCard`. TNYX-62 already specifies otherwise, and on a device the flat list reads as four options to compare rather than one obvious way in. Now: a describe-your-meal surface shaped like somewhere to type, a full-width photo card, and Quick Add / Search Food sharing one compact row. The owner's GymStreak screenshot was a structural reference only — no branding, copy, colour, gradient or typography from it | Owner / Nutrition |
+| The describe-a-meal surface is an outlined `TioCard`, not a `TioInput` | Made | It carries a prompt, a hint line and a microphone at once, which is not the single-line contract the generic field owns, and there is nothing to type into yet — a live field would collect a sentence and drop it. `TioCard(variant: outlined)` gives the input-looking surface from governed core values, with the content composed locally. No new core component for one Nutrition consumer | Nutrition |
 | Quick Add is a `TioEditorSheet`, not a route | Made | It is the canonical editable modal and already solves the pinned-CTA, keyboard-inset and safe-area requirements this slice must meet. It also keeps `apps/app/router.dart` untouched | Nutrition |
 | Meal category omitted | Made | See readiness deferral 1 | Nutrition |
 | Consumed time omitted; date shown but disabled | Made | See readiness deferral 2 | Nutrition |
@@ -141,7 +143,10 @@ MealDiaryPage (Stack)
 └─ bottom-end + affordance               hidden while the month grid is expanded
         │
         ▼ showMealDiaryAddFoodSheet(context)
-   AddFoodSheet                          TioSheet + TioGroupCard rows, root navigator
+   AddFoodSheet                          TioSheet, root navigator
+        ├─ describe your meal + mic                               TioCard outlined
+        ├─ Take a Photo, full width                               TioCard normal
+        └─ Quick Add | Search Food, side by side                  TioCard normal
         │  Quick Add only
         ▼ showQuickAddEditorSheet(context, selectedDate: …)
    QuickAddEditorSheet                   TioEditorSheet, root navigator
@@ -190,12 +195,12 @@ The date travels one way. No sheet holds a reference to the controller, so nothi
 equivalents were run instead — the same commands `melos analyze` and
 `melos test` would have executed.
 
-Re-run after the second review remediation:
+Re-run after the owner device-review remediation of the Add Food sheet:
 
 ```text
 flutter analyze   16 packages          No issues found
-flutter test      14 packages          1829 passing, 0 failing
-                                       (baseline 1801 + 26 new nutrition + 2 new core)
+flutter test      14 packages          1833 passing, 0 failing
+                                       (baseline 1801 + 30 new nutrition + 2 new core)
 dart analyze      apps/shared          No issues found
 dart test         apps/shared          38 passing
 git diff --check                       clean
@@ -204,8 +209,9 @@ git diff --check                       clean
 GitHub Actions history for this branch, oldest first:
 
 ```text
-4918edcf  Flutter CI 33971516926  success   first published shell
-e974c410  Flutter CI 33972666065  success   first review remediation
+4918edcf   Flutter CI 33971516926  success   first published shell
+e974c410   Flutter CI 33972666065  success   first review remediation
+bff61fb8   Flutter CI 33974244612  success   numeric fix + record sync
 <current>  recorded on the PR once the run for this head completes
 ```
 
@@ -214,9 +220,10 @@ get` during validation and restored; it is not part of this change.
 
 ### Review Findings and Resolution
 
-Four automated Codex findings on commit `4918edcf`, plus one manual governance
-finding on `e974c410`. All five are resolved. The history is kept: a resolved
-finding still records what was wrong and what fixed it.
+Four automated Codex findings on commit `4918edcf`, one manual governance
+finding on `e974c410`, and one owner device-review UI finding on `bff61fb8`.
+All six are resolved. The history is kept: a resolved finding still records
+what was wrong and what fixed it.
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
@@ -224,6 +231,7 @@ finding still records what was wrong and what fixed it.
 | P2-shell-navigator | P2 | Resolved | Both sheets used the branch navigator, leaving the shell's Today action and tabs live behind an open editor holding a captured date | `4918edcf` | `useRootNavigator: true` on both, via a new optional parameter on `showTioEditorSheet`; covered by two nutrition tests in a nested-navigator harness and two core tests |
 | P2-action-scroll-clearance | P2 | Resolved | The floating `+` was painted over the scroll view with no matching bottom inset, so content at the maximum extent sat underneath it | `4918edcf` | The body reserves `TioSize.dp56 + TioSpacing.xl * 2`; covered by a test that fails without the reservation |
 | P2-decimal-separator | P2 | Resolved | The allow-list formatter did not reject unsupported input, it edited it into a different valid number — `1,5` became `15` and `1e400abc` became `1400`, with no error to notice | `4918edcf`, still open on `e974c410` | Deferring this was the wrong call and the reviewer rejected it. The formatter is gone: nothing is filtered, the typed text stays visible, and the validator decides. Five focused tests cover `1,5`, `1e400abc`, `1e400`, `1.2.3` and `-5` staying visible with an explicit error, plus `1.5` accepted as typed. Locale-aware parsing remains out of scope, with the reasoning recorded in the decisions table |
+| UI-owner-review-add-food-hierarchy | Owner UI | Resolved | The Add Food sheet rendered all four N5 paths as one vertical list of equal `TioSettingsNavigationRow` entries. Device review found this contradicts the TNYX-62 layout contract, which is authoritative: a natural-language input surface first, a full-width photo card second, and Quick Add plus Search Food as horizontal compact cards | `bff61fb8`, owner device review | The sheet is rebuilt to that hierarchy from `TioSheet` and `TioCard`, with geometry tests at 320px and 400px asserting the ordering, the shared row and the full-width photo card so it cannot flatten back into a list. Quick Add's editor is deliberately untouched; the owner reviews that separately |
 | P1-handoff-sync | P1 | Resolved | The task brief still read `Current blocker: None` / `Open review finding IDs: None` / `Next exact action: Open the PR`, still drew the date as `TioSettingsReadOnlyRow` after that was reverted, and still treated `4918edcf` as the latest CI handoff; the PR body was stale in the same ways | `e974c410` | Active Handoff, the architecture diagram, the decisions table, this section and the PR body are all synchronized with the current head in the same commit |
 
 ## 7. Final Handoff
@@ -260,10 +268,20 @@ Nothing under `supabase/` is touched.
 Meal Diary
 → +  (bottom-trailing, above the bottom nav, hidden while the month grid is open)
 → Add Food sheet
-   ├─ What did you eat?   disabled, "Not available yet"
-   ├─ Take a Photo        disabled, "Not available yet"
-   ├─ Quick Add           active
-   └─ Search Food         disabled, "Not available yet"
+   Add Food                                            ×
+   ┌──────────────────────────────────────────────────┐
+   │ What did you eat?                             🎙 │  disabled
+   │ Describe your meal · Not available yet           │
+   └──────────────────────────────────────────────────┘
+   ┌──────────────────────────────────────────────────┐
+   │ 📷  Take a Photo                                 │  disabled
+   │     Analyze food from a photo · Not available yet│
+   └──────────────────────────────────────────────────┘
+   ┌───────────────────────┐ ┌────────────────────────┐
+   │ +  Quick Add          │ │ 🔍  Search Food        │
+   │    Calories and macros│ │     Not available yet  │
+   └───────────────────────┘ └────────────────────────┘
+     active                    disabled
 → Quick Add
 → Manual Nutrition Editor
    ├─ Meal name                      optional
@@ -294,7 +312,8 @@ history, and no retained input — reopening Quick Add starts empty.
 
 - Nothing can be saved. `Log Meal` is inert by design until TNYX-113 → TNYX-114 → TNYX-115 land.
 - No meal category and no consumed time, for the reasons recorded above.
-- The Add Food sheet's three unavailable paths are presentation only; none of them has an implementation behind it.
+- The Add Food sheet's three unavailable paths are presentation only. Describe-a-meal looks like somewhere to type and is not a field, the microphone does not listen, the photo card opens no camera, and Search Food opens no screen. None has an implementation behind it.
+- The Quick Add editor's own layout has not been through owner device review yet. This pass deliberately changed nothing inside it.
 - The `+` hides while the calendar's month grid is expanded. That is a deliberate anti-overlap rule, not a bug.
 - A comma decimal is refused rather than understood. That is safe but not friendly, and it is as far as this slice should go: reading `1,5` as `1.5` requires a locale contract that also governs grouping separators, which belongs to a repo-wide numeric-input slice. The rest of the app's numeric fields still filter the comma silently and are unchanged here.
 - The numeric fields accept any keystroke, so a hardware keyboard or a paste can put text in them. That is deliberate — it is what lets the validator name the problem instead of the field quietly editing it away.

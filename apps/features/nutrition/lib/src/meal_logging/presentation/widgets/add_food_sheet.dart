@@ -41,19 +41,43 @@ Future<MealDiaryAddFoodChoice?> showMealDiaryAddFoodSheet(
 }
 
 /// The Add Food surface: the four ways N5 will eventually let someone log a
-/// meal, with the one that exists today separated from the three that do not.
+/// meal, weighted the way TNYX-62 specifies rather than flattened into a list.
 ///
-/// The unavailable three are drawn rather than hidden because the sheet is
-/// where the reader learns what logging will offer. They are drawn *as*
-/// unavailable — dimmed, chevron-less, inert and reported to assistive
-/// technology as disabled — because a row that looks live and does nothing is
-/// worse than no row at all.
+/// ```text
+/// Add Food                                   ×
+/// ┌─────────────────────────────────────────┐
+/// │ What did you eat?                    🎙 │   describe it
+/// └─────────────────────────────────────────┘
+/// ┌─────────────────────────────────────────┐
+/// │ 📷  Take a Photo                        │   or show it
+/// └─────────────────────────────────────────┘
+/// ┌──────────────────┐ ┌────────────────────┐
+/// │ +  Quick Add     │ │ 🔍  Search Food    │   or do it yourself
+/// └──────────────────┘ └────────────────────┘
+/// ```
+///
+/// The shape carries the meaning. Describing a meal is the way most meals will
+/// be logged, so it is the largest thing on the sheet and looks like somewhere
+/// to type. A photo is the second way, so it gets a card of its own. Quick Add
+/// and Search are the deliberate manual fallbacks, so they share one compact
+/// row. Rendering all four as equal rows — which is what this sheet did before
+/// device review — throws that away and makes the reader read four options
+/// instead of seeing one.
+///
+/// Only Quick Add works today. The other three are drawn as unavailable —
+/// dimmed, inert, saying so in their own copy and reported disabled to
+/// assistive technology — because the sheet is where the reader learns what
+/// logging will offer, and a row that looks live and does nothing is worse
+/// than no row at all.
 class AddFoodSheet extends StatelessWidget {
   const AddFoodSheet({
     required this.onQuickAdd,
     required this.onDismiss,
     super.key,
   });
+
+  /// Said in the copy, not only in the dimming, and repeated in semantics.
+  static const unavailable = 'Not available yet';
 
   final VoidCallback onQuickAdd;
   final VoidCallback onDismiss;
@@ -88,43 +112,41 @@ class AddFoodSheet extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: TioSpacing.sm),
+          const _DescribeMealSurface(),
           const SizedBox(height: TioSpacing.md),
-          TioGroupCard(
-            children: [
-              const _UnavailableAction(
-                actionKey: ValueKey('add-food-ai-text'),
-                icon: Icons.edit_note_rounded,
-                title: 'What did you eat?',
-                supportingText: 'Describe a meal in your own words',
-                semanticLabel: 'Describe a meal in your own words',
-              ),
-              const _AddFoodDivider(),
-              const _UnavailableAction(
-                actionKey: ValueKey('add-food-photo'),
-                icon: Icons.photo_camera_outlined,
-                title: 'Take a Photo',
-                supportingText: 'Read the food from a picture',
-                semanticLabel: 'Take a photo of your food',
-              ),
-              const _AddFoodDivider(),
-              TioSettingsNavigationRow(
-                key: const ValueKey('add-food-quick-add'),
-                leading: const TioSettingsLeadingIcon(
-                  icon: Icons.add_rounded,
+          const _PhotoCard(),
+          const SizedBox(height: TioSpacing.md),
+          // Intrinsic height so the two compact cards match whichever of them
+          // wraps onto more lines — on a narrow phone that is usually the one
+          // with the longer label, and a short card beside a tall one reads as
+          // a mistake.
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _CompactAction(
+                    actionKey: const ValueKey('add-food-quick-add'),
+                    icon: Icons.add_rounded,
+                    title: 'Quick Add',
+                    supportingText: 'Calories and macros',
+                    semanticLabel: 'Quick Add. Calories and macros.',
+                    onTap: onQuickAdd,
+                  ),
                 ),
-                title: 'Quick Add',
-                supportingText: 'Enter calories and macros yourself',
-                onTap: onQuickAdd,
-              ),
-              const _AddFoodDivider(),
-              const _UnavailableAction(
-                actionKey: ValueKey('add-food-search'),
-                icon: Icons.search_rounded,
-                title: 'Search Food',
-                supportingText: 'Find a food in the food database',
-                semanticLabel: 'Search the food database',
-              ),
-            ],
+                const SizedBox(width: TioSpacing.md),
+                const Expanded(
+                  child: _CompactAction(
+                    actionKey: ValueKey('add-food-search'),
+                    icon: Icons.search_rounded,
+                    title: 'Search Food',
+                    supportingText: unavailable,
+                    semanticLabel: 'Search Food. $unavailable.',
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -132,54 +154,163 @@ class AddFoodSheet extends StatelessWidget {
   }
 }
 
-/// A path this slice deliberately does not implement.
+/// The natural-language entry point: the primary way N5 expects meals to be
+/// logged, so it is the one element on the sheet shaped like somewhere to type.
 ///
-/// The unavailability is said three ways so no single channel carries it
-/// alone: the supporting line says it in words, the dimming says it visually,
-/// and the semantics node says it to a screen reader. The row itself is
-/// wrapped rather than tapped-and-ignored, so there is no callback to
-/// accidentally wire up to something later.
-class _UnavailableAction extends StatelessWidget {
-  const _UnavailableAction({
-    required this.actionKey,
-    required this.icon,
-    required this.title,
-    required this.supportingText,
-    required this.semanticLabel,
-  });
-
-  static const _unavailable = 'Not available yet';
-
-  final Key actionKey;
-  final IconData icon;
-  final String title;
-  final String supportingText;
-
-  /// Spoken instead of the visible title, because a title phrased as a
-  /// question — "What did you eat?" — reads badly with the unavailability
-  /// sentence appended to it.
-  final String semanticLabel;
+/// It is an outlined card rather than a real `TioInput` because it has to hold
+/// a prompt, a hint line and a microphone at once, which is not the single-line
+/// contract the generic field owns, and because there is nothing to type into
+/// yet. The parsing behind it belongs to TNYX-62; giving the field a keyboard
+/// now would collect a sentence and drop it.
+class _DescribeMealSurface extends StatelessWidget {
+  const _DescribeMealSurface();
 
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Opacity(
+      opacity: TioOpacity.opacity64,
+      child: TioCard(
+        variant: TioCardVariant.outlined,
+        child: Row(
+          children: [
+            Expanded(
+              child: Semantics(
+                key: const ValueKey('add-food-ai-text'),
+                enabled: false,
+                label: 'What did you eat? Describe your meal. '
+                    '${AddFoodSheet.unavailable}.',
+                child: ExcludeSemantics(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Decorative, and inside the excluded region on purpose:
+                      // it says what kind of surface this is, the same way a
+                      // field's leading icon does. It is not a second control,
+                      // so it gets no semantics node and no tap of its own —
+                      // typing is TNYX-62's to switch on.
+                      Padding(
+                        padding: const EdgeInsets.only(top: TioSpacing.xxs),
+                        child: Icon(
+                          Icons.keyboard_alt_outlined,
+                          size: TioSize.dp22,
+                          color: colors.textMuted,
+                        ),
+                      ),
+                      const SizedBox(width: TioSpacing.md),
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'What did you eat?',
+                              style: textTheme.titleMedium?.copyWith(
+                                color: colors.textPrimary,
+                                fontWeight: TioFontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: TioSpacing.xxs),
+                            Text(
+                              'Describe your meal · ${AddFoodSheet.unavailable}',
+                              style: TextStyle(
+                                color: colors.textSecondary,
+                                fontSize: TioFontSize.size12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: TioSpacing.sm),
+            Semantics(
+              key: const ValueKey('add-food-voice'),
+              button: true,
+              enabled: false,
+              label: 'Voice input. ${AddFoodSheet.unavailable}.',
+              child: ExcludeSemantics(
+                child: Container(
+                  width: TioSize.dp40,
+                  height: TioSize.dp40,
+                  decoration: BoxDecoration(
+                    color: colors.surfaceVariant,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.mic_none_rounded,
+                    size: TioSize.dp22,
+                    color: colors.textMuted,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The second capture route, on a card of its own so it stays clearly above
+/// the two manual fallbacks and clearly below the describe-it surface.
+class _PhotoCard extends StatelessWidget {
+  const _PhotoCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    final textTheme = Theme.of(context).textTheme;
 
     return Semantics(
-      key: actionKey,
+      key: const ValueKey('add-food-photo'),
       button: true,
       enabled: false,
-      label: '$semanticLabel. $_unavailable.',
+      label: 'Take a Photo. ${AddFoodSheet.unavailable}.',
       child: ExcludeSemantics(
         child: Opacity(
           opacity: TioOpacity.opacity64,
-          child: TioSettingsNavigationRow(
-            leading: TioSettingsLeadingIcon(
-              icon: icon,
-              color: colors.textMuted,
+          child: TioCard(
+            variant: TioCardVariant.normal,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.photo_camera_outlined,
+                  size: TioSize.dp22,
+                  color: colors.textMuted,
+                ),
+                const SizedBox(width: TioSpacing.md),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Take a Photo',
+                        style: textTheme.titleMedium?.copyWith(
+                          color: colors.textPrimary,
+                          fontWeight: TioFontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: TioSpacing.xxs),
+                      Text(
+                        'Analyze food from a photo · '
+                        '${AddFoodSheet.unavailable}',
+                        style: TextStyle(
+                          color: colors.textSecondary,
+                          fontSize: TioFontSize.size12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            title: title,
-            supportingText: '$supportingText · $_unavailable',
-            showChevron: false,
           ),
         ),
       ),
@@ -187,19 +318,81 @@ class _UnavailableAction extends StatelessWidget {
   }
 }
 
-/// Matches the separator the Settings groups already use, so an Add Food row
-/// and a Settings row do not read as two different list systems.
-class _AddFoodDivider extends StatelessWidget {
-  const _AddFoodDivider();
+/// One of the two manual fallbacks that share the bottom row.
+///
+/// [onTap] null is the unavailable state: no ripple, no callback, dimmed, and
+/// disabled to assistive technology. There is no separate `enabled` flag,
+/// because an action with nowhere to go and an action that is switched off are
+/// the same thing here.
+class _CompactAction extends StatelessWidget {
+  const _CompactAction({
+    required this.actionKey,
+    required this.icon,
+    required this.title,
+    required this.supportingText,
+    required this.semanticLabel,
+    this.onTap,
+  });
+
+  final Key actionKey;
+  final IconData icon;
+  final String title;
+  final String supportingText;
+  final String semanticLabel;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
-    return Divider(
-      height: TioSize.dp1,
-      thickness: TioStroke.width1,
-      indent: TioSize.dp64,
-      color: colors.outlineStrong.withAlpha(TioAlpha.alpha20),
+    final textTheme = Theme.of(context).textTheme;
+    final isEnabled = onTap != null;
+    final iconColor = isEnabled ? colors.primary : colors.textMuted;
+
+    final card = TioCard(
+      variant: TioCardVariant.normal,
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: TioSize.dp20, color: iconColor),
+              const SizedBox(width: TioSpacing.sm),
+              Flexible(
+                child: Text(
+                  title,
+                  style: textTheme.titleMedium?.copyWith(
+                    color: colors.textPrimary,
+                    fontWeight: TioFontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: TioSpacing.xxs),
+          Text(
+            supportingText,
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: TioFontSize.size12,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return Semantics(
+      key: actionKey,
+      button: true,
+      enabled: isEnabled,
+      label: semanticLabel,
+      onTap: onTap,
+      child: ExcludeSemantics(
+        child: isEnabled
+            ? card
+            : Opacity(opacity: TioOpacity.opacity64, child: card),
+      ),
     );
   }
 }

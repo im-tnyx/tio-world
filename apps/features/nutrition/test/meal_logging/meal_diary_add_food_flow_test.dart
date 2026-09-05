@@ -15,6 +15,9 @@ const _addAction = ValueKey('meal-diary-add-food-action');
 const _sheet = ValueKey('meal-diary-add-food-sheet');
 const _sheetClose = ValueKey('meal-diary-add-food-close');
 const _quickAddRow = ValueKey('add-food-quick-add');
+const _searchCard = ValueKey('add-food-search');
+const _photoCard = ValueKey('add-food-photo');
+const _aiSurface = ValueKey('add-food-ai-text');
 const _editor = ValueKey('quick-add-editor');
 const _logMeal = ValueKey('quick-add-log-meal');
 const _emptyDayNote = ValueKey('meal-diary-empty-day-note');
@@ -190,16 +193,12 @@ void main() {
 
       const future = <(ValueKey<String>, String)>[
         (
-          ValueKey('add-food-ai-text'),
-          'Describe a meal in your own words. Not available yet.',
-        ),
-        (
           ValueKey('add-food-photo'),
-          'Take a photo of your food. Not available yet.',
+          'Take a Photo. Not available yet.',
         ),
         (
           ValueKey('add-food-search'),
-          'Search the food database. Not available yet.',
+          'Search Food. Not available yet.',
         ),
       ];
 
@@ -226,6 +225,137 @@ void main() {
       }
 
       handle.dispose();
+    });
+
+    testWidgets('describing a meal is offered but cannot be typed into',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+      await _pump(tester);
+      await _openAddFood(tester);
+
+      const surface = ValueKey('add-food-ai-text');
+      const mic = ValueKey('add-food-voice');
+
+      expect(find.byKey(surface), findsOne);
+      expect(find.text('What did you eat?'), findsOne);
+
+      // The keyboard glyph leads the surface, saying what kind of thing it is.
+      // It is decorative: one icon, and no semantics node of its own, so a
+      // screen reader hears the surface once rather than twice.
+      final keyboard = find.byIcon(Icons.keyboard_alt_outlined);
+      expect(keyboard, findsOne);
+      expect(
+        tester.getRect(keyboard).left,
+        lessThan(tester.getRect(find.text('What did you eat?')).left),
+        reason: 'the glyph leads the prompt',
+      );
+      expect(
+        find.ancestor(of: keyboard, matching: find.byType(ExcludeSemantics)),
+        findsWidgets,
+        reason: 'the glyph must not reach the semantics tree on its own',
+      );
+
+      // It looks like somewhere to type and is not one: no field, no keyboard,
+      // and nothing for assistive technology to edit or invoke.
+      expect(
+        find.descendant(
+          of: find.byKey(_sheet),
+          matching: find.byType(EditableText),
+        ),
+        findsNothing,
+        reason: 'a live field here would collect a sentence and drop it',
+      );
+      expect(
+        tester.getSemantics(find.byKey(surface)),
+        matchesSemantics(
+          hasEnabledState: true,
+          isEnabled: false,
+          label: 'What did you eat? Describe your meal. Not available yet.',
+        ),
+      );
+
+      // The microphone is present, because the reader should see that voice is
+      // coming, and separately disabled so it cannot pretend to listen.
+      expect(find.byIcon(Icons.mic_none_rounded), findsOne);
+      expect(
+        tester.getSemantics(find.byKey(mic)),
+        matchesSemantics(
+          isButton: true,
+          hasEnabledState: true,
+          isEnabled: false,
+          label: 'Voice input. Not available yet.',
+        ),
+      );
+
+      await tester.tap(find.byKey(surface), warnIfMissed: false);
+      await tester.tap(find.byKey(mic), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(find.byKey(_sheet), findsOne);
+      expect(find.byKey(_editor), findsNothing);
+
+      handle.dispose();
+    });
+
+    // The sheet used to render all four paths as one vertical list of equal
+    // Settings rows, which is the layout TNYX-62 explicitly does not want.
+    // These assertions are about geometry rather than presence, so flattening
+    // it again fails here instead of at the next device review.
+    for (final width in const [320.0, 400.0]) {
+      testWidgets('the N5 hierarchy holds at ${width.toInt()}px wide',
+          (tester) async {
+        tester.view.physicalSize = Size(width, 720);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+
+        await _pump(tester);
+        await _openAddFood(tester);
+        expect(tester.takeException(), isNull, reason: 'no overflow');
+
+        final describe = tester.getRect(find.byKey(_aiSurface));
+        final photo = tester.getRect(find.byKey(_photoCard));
+        final quickAdd = tester.getRect(find.byKey(_quickAddRow));
+        final search = tester.getRect(find.byKey(_searchCard));
+
+        // Top to bottom: describe it, photograph it, then the manual pair.
+        expect(describe.bottom, lessThanOrEqualTo(photo.top));
+        expect(photo.bottom, lessThanOrEqualTo(quickAdd.top));
+
+        // Quick Add and Search share one row rather than stacking.
+        expect(quickAdd.right, lessThanOrEqualTo(search.left));
+        expect(quickAdd.top, moreOrLessEquals(search.top, epsilon: 1));
+        expect(quickAdd.bottom, moreOrLessEquals(search.bottom, epsilon: 1));
+
+        // The photo card spans the row the pair shares, so it reads as the
+        // more prominent of the two levels.
+        expect(photo.width, greaterThan(quickAdd.width));
+        expect(photo.width, greaterThan(search.width));
+        expect(photo.left, moreOrLessEquals(quickAdd.left, epsilon: 1));
+        expect(photo.right, moreOrLessEquals(search.right, epsilon: 1));
+
+        // And nothing runs off the side of a narrow phone.
+        for (final rect in [describe, photo, quickAdd, search]) {
+          expect(rect.left, greaterThanOrEqualTo(0));
+          expect(rect.right, lessThanOrEqualTo(width));
+        }
+
+        // Quick Add is still the one that works, at either width.
+        await tester.tap(find.byKey(_quickAddRow));
+        await tester.pumpAndSettle();
+        expect(find.byKey(_editor), findsOne);
+      });
+    }
+
+    testWidgets('the close action dismisses only the sheet', (tester) async {
+      final controller = await _pump(tester);
+      await _openAddFood(tester);
+
+      await tester.tap(find.byKey(_sheetClose));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(_sheet), findsNothing);
+      expect(find.byKey(_editor), findsNothing);
+      expect(find.byType(TioDateCalendar), findsOne);
+      expect(controller.selectedDate, _today);
     });
   });
 
