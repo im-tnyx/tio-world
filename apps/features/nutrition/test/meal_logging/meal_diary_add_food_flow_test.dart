@@ -270,6 +270,7 @@ void main() {
       const calories = ValueKey('quick-add-calories');
       await _type(tester, calories, '-5');
 
+      expect(_fieldText(tester, calories), '-5');
       expect(_fieldError(tester, calories), 'Calories cannot be negative.');
       expect(find.text('Calories cannot be negative.'), findsOne);
 
@@ -285,19 +286,71 @@ void main() {
       const protein = ValueKey('quick-add-protein');
       await _type(tester, protein, '1.2.3');
 
+      expect(_fieldText(tester, protein), '1.2.3');
       expect(_fieldError(tester, protein), 'Enter a number.');
       expect(find.text('Enter a number.'), findsOne);
     });
 
-    testWidgets('letters never reach the field at all', (tester) async {
+    testWidgets('a supported decimal is accepted as typed', (tester) async {
+      await _pump(tester);
+      await _openQuickAdd(tester);
+
+      const fiber = ValueKey('quick-add-fiber');
+      await _type(tester, fiber, '1.5');
+
+      expect(_fieldText(tester, fiber), '1.5');
+      expect(_fieldError(tester, fiber), isNull);
+    });
+
+    // The point of these two is not that the values are unsupported — it is
+    // that being unsupported must never quietly turn into a different number.
+    testWidgets('a comma decimal is refused, never turned into 15',
+        (tester) async {
+      await _pump(tester);
+      await _openQuickAdd(tester);
+
+      const calories = ValueKey('quick-add-calories');
+      await _type(tester, calories, '1,5');
+
+      expect(
+        _fieldText(tester, calories),
+        '1,5',
+        reason: 'the reader must still see what they typed',
+      );
+      expect(
+        _fieldText(tester, calories),
+        isNot('15'),
+        reason: 'stripping the comma would log ten times the meal',
+      );
+      expect(_fieldError(tester, calories), 'Enter a number.');
+      expect(find.text('Enter a number.'), findsOne);
+    });
+
+    testWidgets('an alphanumeric value is refused, never trimmed to a number',
+        (tester) async {
       await _pump(tester);
       await _openQuickAdd(tester);
 
       const fat = ValueKey('quick-add-fat');
       await _type(tester, fat, '1e400abc');
 
-      expect(_fieldText(tester, fat), '1400');
-      expect(_fieldError(tester, fat), isNull);
+      expect(_fieldText(tester, fat), '1e400abc');
+      expect(_fieldText(tester, fat), isNot('1400'));
+      expect(_fieldError(tester, fat), 'Enter a number.');
+    });
+
+    testWidgets('an overflowing exponent is refused rather than stored as '
+        'infinity', (tester) async {
+      await _pump(tester);
+      await _openQuickAdd(tester);
+
+      // `double.tryParse` succeeds here and returns infinity, so parseability
+      // alone is not enough of a check.
+      const carbs = ValueKey('quick-add-carbs');
+      await _type(tester, carbs, '1e400');
+
+      expect(_fieldText(tester, carbs), '1e400');
+      expect(_fieldError(tester, carbs), 'Enter a number.');
     });
 
     testWidgets('a blank optional field is absent, not an error and not zero',

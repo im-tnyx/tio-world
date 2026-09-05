@@ -1,6 +1,6 @@
 # TNYX-158 — N5B Meal Diary Add Food entry & Quick Add editor shell
 
-**Status:** In progress
+**Status:** In review
 **Primary owner:** Nutrition (`apps/features/nutrition`)
 **Affected platforms:** Flutter phone app (`apps/features/nutrition`, `docs`)
 
@@ -42,7 +42,7 @@ Audited only what this presentation/navigation slice needs, not the whole Nutrit
 ### Two deferrals classified during readiness (not blockers)
 
 1. **Meal category selector — deferred.** No production-safe canonical category source exists. TNYX-57 and TNYX-115 both consume `MealCategory.displayName`, and N13 owns category management. Hard-coding Breakfast/Lunch/Dinner/Snack here would invent a domain contract this slice is forbidden to own. TNYX-158 lists the field as one that "may include", so omitting it stays inside the approved boundary.
-2. **Consumed time editing — deferred.** TNYX-114 owns consumed time, local date and timezone semantics. Nothing in this slice persists, so an editable time would be a draft value with no consumer and an implied storage contract. The editor instead shows the Diary's selected date **read-only**, which is what proves the handoff.
+2. **Consumed time editing — deferred.** TNYX-114 owns consumed time, local date and timezone semantics. Nothing in this slice persists, so an editable time would be a draft value with no consumer and an implied storage contract. The editor instead shows the Diary's selected date in a **disabled `TioInput`**, which is what proves the handoff.
 
 Both are recorded on TNYX-66 as focused readiness evidence. TNYX-66 stays open; one ready slice does not close the gate.
 
@@ -58,23 +58,25 @@ Both are recorded on TNYX-66 as focused readiness evidence. TNYX-66 stays open; 
 **Review owner:** Unassigned — PR review
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-05
+**Repository state last verified:** 2026-09-05, second review-remediation pass.
 **Branch:** `tnyx/tnyx-158-n5b-meal-diary-add-food-entry-quick-add-editor-shell`
-**HEAD SHA:** Authoritative from `git`; not duplicated here.
-**Observed working-tree state:** Clean at branch creation.
-**Observed uncommitted/dirty files:** None at branch creation.
-**PR / tracker:** TNYX-158 `In Progress` during implementation, `In Review` once the PR is open.
-**Current implementation state:** See Implementation Plan.
-**Relevant execution surface:** `apps/features/nutrition/lib/src/meal_diary/**`, `apps/features/nutrition/lib/src/meal_logging/**`, `apps/features/nutrition/test/**`, `.ai/tasks/`, `docs/screens/meal-diary.md`.
-**Validation completed at SHA:** Recorded in Quality Review.
-**Validation remaining:** Recorded in Quality Review.
-**Current blocker:** None.
-**Open review finding IDs:** None.
-**Next exact action:** Open the PR and move TNYX-158 to `In Review`.
+**HEAD SHA:** Authoritative from `git` and PR metadata; not duplicated here. The previous reviewed head was `e974c410`, and this pass supersedes it.
+**Observed working-tree state:** Clean once this remediation is committed.
+**Observed uncommitted/dirty files:** None.
+**PR / tracker:** PR [#214](https://github.com/im-tnyx/tio-world/pull/214) is open and non-draft; TNYX-158 is `In Review`.
+**Current implementation state:** The shell is complete and published. Two review rounds have landed on top of it: the first fixed the shell-navigator, scroll-clearance and read-only-row findings; this second one removes the numeric input's silent mutation and synchronizes this record and the PR body with the current head.
+**Relevant execution surface:** `apps/features/nutrition/lib/src/meal_diary/**`, `apps/features/nutrition/lib/src/meal_logging/**`, `apps/features/nutrition/test/**`, `apps/core` (`showTioEditorSheet` plus the theme README), `.ai/tasks/`, `docs/screens/meal-diary.md`.
+**Validation completed at SHA:** Recorded in Quality Review against the current head.
+**Validation remaining:** None beyond the exact-head CI run recorded in Quality Review.
+**Current blocker:** None. Entering this pass the open blockers were `P2-decimal-separator` and `P1-handoff-sync`; both are addressed here.
+**Open review finding IDs:** None. All five findings — four automated, one manual governance — are resolved and recorded in Quality Review.
+**Next exact action:** Hand PR #214 to a human reviewer. No merge and no `Done` transition are authorized.
 
 ## Global UI / Design-System Guardrail
 
 This task follows `apps/core/lib/src/theme/README.md` and `apps/features/AGENTS.md`. Every surface is composed from the public `package:tio_core/core.dart` boundary. No new core component, no new token file, and no feature token bag is introduced. The two feature-local compositions (the `+` affordance and the two sheets) consume governed core values directly, which is what the feature rules require for a one-off composition with a single consumer.
+
+One core API did change: `showTioEditorSheet` gained an optional `useRootNavigator`, defaulting to Flutter's own `false` so no existing caller behaves differently. The theme README is updated in the same change, as its maintenance contract requires.
 
 ## 1. Discovery
 
@@ -120,13 +122,14 @@ Everything under **Explicit non-changes** above, plus N4 Diary cards, N6 detaile
 | Add Food renders all four N5 paths, three of them unavailable | Made | The issue asks for the future hierarchy to be represented. Unavailable rows are dimmed, chevron-less, non-tappable, labelled "Not available yet" and report `enabled: false` to assistive technology — no fake navigation and no silent no-op | Nutrition |
 | Quick Add is a `TioEditorSheet`, not a route | Made | It is the canonical editable modal and already solves the pinned-CTA, keyboard-inset and safe-area requirements this slice must meet. It also keeps `apps/app/router.dart` untouched | Nutrition |
 | Meal category omitted | Made | See readiness deferral 1 | Nutrition |
-| Consumed time omitted; date shown read-only | Made | See readiness deferral 2 | Nutrition |
+| Consumed time omitted; date shown but disabled | Made | See readiness deferral 2 | Nutrition |
 | `Log Meal` disabled with an explanatory line | Made | The issue's preferred honest boundary. `TioButton` already reports disabled semantics; the line above it says why, so the state is not communicated by dimming alone | Nutrition |
-| The minus sign passes the input formatter | Made | The macros sheet filters to `[0-9.]`, which makes its own "cannot be negative" message unreachable. Here `[-0-9.]` lets the validator actually say why, instead of a keystroke silently vanishing. Letters and every other symbol stay filtered | Nutrition |
+| The numeric fields have no input formatter at all | Revised after review | An allow-list looked safe and was the opposite: filtering does not reject input, it edits it, and the edit lands on a number that is still valid — `1,5` became `15`, `1e400abc` became `1400`. Per-keystroke atomic rejection ends the same way, because refusing the comma in `1,5` leaves the following `5` to land on the `1`. Nothing is filtered now; whatever is typed stays visible and the validator decides. The reader sees their own value or sees why it is refused, never a quiet third thing | Nutrition |
+| Parsing is not locale-aware | Made | Reading `1,5` as `1.5` is only correct in a comma-decimal locale; in an en_US one the same rule reads `1,500` as `1.5`, which is the original silent wrong number reached more politely. `intl`'s own `NumberFormat.decimalPattern('en_US').parse('1,5')` treats the comma as grouping and returns `15` — exactly the outcome the review forbids. A real locale contract is a repo-wide numeric-input slice, so here an unsupported separator is refused out loud rather than guessed at | Nutrition |
 | The date is a disabled `TioInput`, not a settings read-only row | Revised after review | The first attempt put the full date in `TioSettingsReadOnlyRow`, which measures its value with no width limit and overflowed a narrow row. Widening that component's contract split the row's free space evenly and made short values wrap earlier than before, so the core change was reverted in full. A disabled `TioInput` is the better fit anyway: the date is one of the editor's fields, drawn like the rest, and "disabled" is the accurate state for a value TNYX-114 will later make editable | Nutrition |
 | Both sheets are presented on the root navigator | Made after review | `MealDiaryPage` runs inside a `StatefulShellRoute` branch navigator while `TioShell` owns the app bar and bottom navigation outside it. A branch-navigator barrier would have left the Today action and the tabs live behind an open editor, so a reader could move the diary to today while the editor held a captured historical date. `showTioEditorSheet` gained an optional `useRootNavigator`, defaulting to Flutter's own `false` so no existing caller changes | Core / Nutrition |
 | The diary body reserves the action's footprint | Made after review | The `+` is painted over the scroll view, so without a reserved band the last lines of a scrolled-to-the-end body sat underneath it. Reserved unconditionally rather than only while the button is visible, so expanding the calendar does not shift the reader's scroll position | Nutrition |
-| Locale decimal separators are not handled | Deferred | In a comma-decimal locale, `1,5` is filtered to `15` — silently, and wrongly. That is the behaviour of every numeric field in the repo today, including `nutrition_macros_settings_page.dart`, and correct handling needs locale-aware parsing that also has to tell a decimal comma from an en_US thousands comma. Fixing it here alone would leave the app inconsistent; it belongs in a repo-wide numeric-input slice | Nutrition |
+| Repo consistency does not justify keeping the unsafe behaviour | Made after review | The first response to this finding was to defer it because every numeric field in the repo, `nutrition_macros_settings_page.dart` included, filters a comma the same way. The reviewer rejected that, correctly: this editor is new code, and matching an existing silent-corruption behaviour would have written it into new tests. Only this editor is fixed here; standardizing the rest stays a separate repo-wide slice | Nutrition |
 
 ## 4. Architecture Design
 
@@ -134,16 +137,16 @@ Everything under **Explicit non-changes** above, plus N4 Diary cards, N6 detaile
 
 ```text
 MealDiaryPage (Stack)
-├─ SingleChildScrollView                 unchanged calendar + summary
+├─ SingleChildScrollView                 calendar + summary, action footprint reserved
 └─ bottom-end + affordance               hidden while the month grid is expanded
         │
         ▼ showMealDiaryAddFoodSheet(context)
-   AddFoodSheet                          TioSheet + TioGroupCard rows
+   AddFoodSheet                          TioSheet + TioGroupCard rows, root navigator
         │  Quick Add only
         ▼ showQuickAddEditorSheet(context, selectedDate: …)
-   QuickAddEditorSheet                   TioEditorSheet
+   QuickAddEditorSheet                   TioEditorSheet, root navigator
         ├─ meal name / calories / protein / carbs / fat / fiber   TioInput
-        ├─ Date (read-only)                                       TioSettingsReadOnlyRow
+        ├─ Date (disabled)                                        TioInput
         └─ Log Meal (disabled) + reason                           TioButton.primary
 ```
 
@@ -187,34 +190,41 @@ The date travels one way. No sheet holds a reference to the controller, so nothi
 equivalents were run instead — the same commands `melos analyze` and
 `melos test` would have executed.
 
-Re-run after the review remediation:
+Re-run after the second review remediation:
 
 ```text
 flutter analyze   16 packages          No issues found
-flutter test      14 packages          1826 passing, 0 failing
-                                       (baseline 1801 + 23 new nutrition + 2 new core)
+flutter test      14 packages          1829 passing, 0 failing
+                                       (baseline 1801 + 26 new nutrition + 2 new core)
 dart analyze      apps/shared          No issues found
 dart test         apps/shared          38 passing
 git diff --check                       clean
 ```
 
-Exact-head GitHub Actions run `33971516926` on `4918edcf` (the pre-remediation
-head) completed successfully — Flutter CI, job "Analyze and test". A fresh run
-follows the remediation push.
+GitHub Actions history for this branch, oldest first:
+
+```text
+4918edcf  Flutter CI 33971516926  success   first published shell
+e974c410  Flutter CI 33972666065  success   first review remediation
+<current>  recorded on the PR once the run for this head completes
+```
 
 `apps/wear/.../GeneratedPluginRegistrant.java` was rewritten by `flutter pub
 get` during validation and restored; it is not part of this change.
 
 ### Review Findings and Resolution
 
-Automated Codex review on PR [#214](https://github.com/im-tnyx/tio-world/pull/214), commit `4918edcf`, raised four P2 findings.
+Four automated Codex findings on commit `4918edcf`, plus one manual governance
+finding on `e974c410`. All five are resolved. The history is kept: a resolved
+finding still records what was wrong and what fixed it.
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
 | P2-readonly-row-width | P2 | Resolved | `Flexible` on the read-only row's value split the row's free space evenly, so short label/value pairs wrapped earlier than before | `4918edcf` | The core change was reverted in full; the date is now a disabled `TioInput`, which cannot overflow and suits the editor's field layout better |
 | P2-shell-navigator | P2 | Resolved | Both sheets used the branch navigator, leaving the shell's Today action and tabs live behind an open editor holding a captured date | `4918edcf` | `useRootNavigator: true` on both, via a new optional parameter on `showTioEditorSheet`; covered by two nutrition tests in a nested-navigator harness and two core tests |
 | P2-action-scroll-clearance | P2 | Resolved | The floating `+` was painted over the scroll view with no matching bottom inset, so content at the maximum extent sat underneath it | `4918edcf` | The body reserves `TioSize.dp56 + TioSpacing.xl * 2`; covered by a test that fails without the reservation |
-| P2-decimal-separator | P2 | Deferred | A comma decimal separator is filtered out, silently turning `1,5` into `15` | `4918edcf` | Real, and repo-wide: every numeric field behaves this way today. Correct handling needs locale-aware parsing that can also distinguish a decimal comma from an en_US thousands comma. Belongs in its own numeric-input slice, not in a UI shell |
+| P2-decimal-separator | P2 | Resolved | The allow-list formatter did not reject unsupported input, it edited it into a different valid number — `1,5` became `15` and `1e400abc` became `1400`, with no error to notice | `4918edcf`, still open on `e974c410` | Deferring this was the wrong call and the reviewer rejected it. The formatter is gone: nothing is filtered, the typed text stays visible, and the validator decides. Five focused tests cover `1,5`, `1e400abc`, `1e400`, `1.2.3` and `-5` staying visible with an explicit error, plus `1.5` accepted as typed. Locale-aware parsing remains out of scope, with the reasoning recorded in the decisions table |
+| P1-handoff-sync | P1 | Resolved | The task brief still read `Current blocker: None` / `Open review finding IDs: None` / `Next exact action: Open the PR`, still drew the date as `TioSettingsReadOnlyRow` after that was reverted, and still treated `4918edcf` as the latest CI handoff; the PR body was stale in the same ways | `e974c410` | Active Handoff, the architecture diagram, the decisions table, this section and the PR body are all synchronized with the current head in the same commit |
 
 ## 7. Final Handoff
 
@@ -259,8 +269,22 @@ Meal Diary
    ├─ Meal name                      optional
    ├─ Calories                       kcal
    ├─ Protein / Carbs / Fat / Fiber  g, optional, blank = absent
-   ├─ Date                           read-only, the diary's selected day
+   ├─ Date                           disabled, the diary's selected day
    └─ Log Meal                       disabled, with the reason above it
+```
+
+Both sheets are presented on the root navigator, so the shell's app bar and
+bottom navigation are behind the barrier rather than live beside it.
+
+Numeric fields never rewrite what was typed:
+
+```text
+1.5        accepted as 1.5
+1,5        stays "1,5",        "Enter a number."
+1e400abc   stays "1e400abc",   "Enter a number."
+1e400      stays "1e400",      "Enter a number."   (parses to infinity)
+-5         stays "-5",         "Calories cannot be negative."
+blank      absent, no error, and not zero
 ```
 
 Dismissing either surface returns to the diary with the same selected date, no
@@ -272,7 +296,8 @@ history, and no retained input — reopening Quick Add starts empty.
 - No meal category and no consumed time, for the reasons recorded above.
 - The Add Food sheet's three unavailable paths are presentation only; none of them has an implementation behind it.
 - The `+` hides while the calendar's month grid is expanded. That is a deliberate anti-overlap rule, not a bug.
-- A comma decimal separator is still filtered out of numeric fields, as it is everywhere else in the app. Recorded as `P2-decimal-separator` for a repo-wide numeric-input slice.
+- A comma decimal is refused rather than understood. That is safe but not friendly, and it is as far as this slice should go: reading `1,5` as `1.5` requires a locale contract that also governs grouping separators, which belongs to a repo-wide numeric-input slice. The rest of the app's numeric fields still filter the comma silently and are unchanged here.
+- The numeric fields accept any keystroke, so a hardware keyboard or a paste can put text in them. That is deliberate — it is what lets the validator name the problem instead of the field quietly editing it away.
 
 ### Final Status
 

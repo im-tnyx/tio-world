@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 
 /// Opens the Quick Add manual nutrition editor for [selectedDate].
@@ -235,6 +234,25 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
 /// Blank means absent, not zero: the reader who skips Fiber has not told the
 /// app they ate no fiber, and this slice must not turn silence into a number.
 /// That distinction is the reason the field carries no default text.
+///
+/// ## Why there is no input formatter
+///
+/// A character allow-list looks like the safe option and is the opposite of
+/// one. Filtering does not reject the input — it edits it, and the edit lands
+/// on a value that is still a number:
+///
+/// ```text
+/// 1,5       → 1 5     → 15
+/// 1e400abc  → 1 400   → 1400
+/// ```
+///
+/// The reader typed one number and the field kept a different one, with no
+/// error to notice. Per-keystroke rejection has the same ending: refuse the
+/// comma in `1,5` and the following `5` still lands on the `1`.
+///
+/// So nothing is filtered. Whatever is typed stays visible, and [_error]
+/// decides whether it is a number. The reader either sees their own value or
+/// sees why it is not accepted; the field never quietly holds a third thing.
 class _NutritionField extends StatelessWidget {
   const _NutritionField({
     required this.fieldKey,
@@ -248,17 +266,22 @@ class _NutritionField extends StatelessWidget {
   final String label;
   final String unit;
 
-  /// The characters a nutrition value can be made of.
+  /// Whether the current text is a usable coarse nutrition value, and if not,
+  /// why.
   ///
-  /// The minus sign is allowed through deliberately, so a reader who types one
-  /// is told why it is wrong instead of watching a keystroke vanish. The
-  /// rejection below is what makes the value safe, not the keyboard.
-  static final _allowed = FilteringTextInputFormatter.allow(RegExp(r'[-0-9.]'));
-
+  /// Parsing is deliberately not locale-aware. A comma is the decimal point in
+  /// one locale and the thousands separator in another, so reading `1,5` as
+  /// `1.5` in one place means reading `1,500` as `1.5` in another — which is
+  /// the same silent wrong number the formatter used to produce, arrived at
+  /// more politely. Until a repo-wide numeric-input slice can carry a real
+  /// locale contract, an unsupported separator is refused out loud rather than
+  /// guessed at.
   String? get _error {
     final text = controller.text.trim();
     if (text.isEmpty) return null;
     final value = double.tryParse(text);
+    // `1e400` parses to infinity rather than failing, so finiteness is a
+    // separate question from parseability.
     if (value == null || !value.isFinite) return 'Enter a number.';
     if (value < 0) return '$label cannot be negative.';
     return null;
@@ -272,8 +295,10 @@ class _NutritionField extends StatelessWidget {
       label: label,
       hint: '0',
       suffixText: unit,
+      // The keyboard suggests the shape of the answer; it does not enforce it.
+      // Enforcement is [_error]'s job, so a hardware keyboard or a paste can
+      // put anything here and still be told what is wrong with it.
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [_allowed],
       errorText: _error,
       onChanged: (_) {},
     );
