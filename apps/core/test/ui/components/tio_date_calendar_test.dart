@@ -1,0 +1,696 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:tio_core/core.dart';
+
+/// A fixed August so every case reasons about the same calendar. With the
+/// default locale the week starts on Sunday, so the week holding [_selected]
+/// runs Aug 16..Aug 22.
+final _augustFirst = DateTime(2026, 8, 1);
+final _augustLast = DateTime(2026, 8, 31);
+final _today = DateTime(2026, 8, 20);
+final _selected = DateTime(2026, 8, 18);
+
+/// Pumps the calendar with the caller owning `selectedDate`, which is the whole
+/// point of the contract: the widget reports a tap and this harness decides.
+/// A test that let the widget keep its own selection would pass while the real
+/// controlled-state design was broken.
+Future<_CalendarHarness> _pump(
+  WidgetTester tester, {
+  DateTime? initialSelected,
+  DateTime? minDate,
+  DateTime? maxDate,
+  DateTime? localToday,
+  TioDateCalendarController? controller,
+  int? resolvedFirstDayOfWeek,
+  TioDateCalendarDisplayMode displayMode = TioDateCalendarDisplayMode.compact,
+  TioDateDecorationBuilder? decorationBuilder,
+  TioDateCalendarVisibleRangeChanged? onVisibleDateRangeChanged,
+  bool insideScrollablePage = false,
+  TextScaler textScaler = TextScaler.noScaling,
+}) async {
+  final harness = _CalendarHarness(initialSelected ?? _selected);
+
+  await tester.pumpWidget(
+    MaterialApp(
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+        child: TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.light),
+          child: child ?? const SizedBox.shrink(),
+        ),
+      ),
+      home: Scaffold(
+        body: StatefulBuilder(
+          builder: (context, setState) {
+            final calendar = TioDateCalendar(
+              selectedDate: harness.selectedDate,
+              localToday: localToday ?? _today,
+              minDate: minDate ?? _augustFirst,
+              maxDate: maxDate ?? _augustLast,
+              controller: controller,
+              resolvedFirstDayOfWeek: resolvedFirstDayOfWeek,
+              displayMode: displayMode,
+              decorationBuilder: decorationBuilder,
+              onVisibleDateRangeChanged: onVisibleDateRangeChanged,
+              onDateSelected: (date) {
+                harness.selectedDates.add(date);
+                setState(() => harness.selectedDate = date);
+              },
+              onDisplayModeChanged: harness.displayModes.add,
+            );
+
+            if (!insideScrollablePage) return calendar;
+
+            return ListView(
+              children: [
+                calendar,
+                const SizedBox(key: ValueKey('page-content'), height: 1200),
+              ],
+            );
+          },
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+
+  return harness;
+}
+
+class _CalendarHarness {
+  _CalendarHarness(this.selectedDate);
+
+  DateTime selectedDate;
+  final List<DateTime> selectedDates = <DateTime>[];
+  final List<TioDateCalendarDisplayMode> displayModes =
+      <TioDateCalendarDisplayMode>[];
+}
+
+Finder _cell(DateTime date) => find.byKey(ValueKey(date));
+
+Finder _pager() => find.byKey(const ValueKey('tio-date-calendar-week-pager'));
+
+Finder _monthPager() =>
+    find.byKey(const ValueKey('tio-date-calendar-month-pager'));
+
+Finder _handle() => find.byKey(const ValueKey('tio-date-calendar-handle'));
+Finder _grabber() => find.byKey(const ValueKey('tio-date-calendar-grabber'));
+
+Finder _weekdayHeader() =>
+    find.byKey(const ValueKey('tio-date-calendar-weekday-header'));
+
+/// The circle painter for one date, which is where every visual layer other
+/// than the numeral and the markers is recorded.
+RenderObject _circle(WidgetTester tester, DateTime date) => tester.renderObject(
+      find.descendant(of: _cell(date), matching: find.byType(CustomPaint)),
+    );
+
+bool _isMonthMode(WidgetTester tester) => _monthPager().evaluate().isNotEmpty;
+
+TextStyle _numeralStyle(WidgetTester tester, DateTime date) {
+  final text = tester.widget<Text>(
+    find.descendant(of: _cell(date), matching: find.text('${date.day}')),
+  );
+  return text.style!;
+}
+
+TextStyle _weekdayStyle(WidgetTester tester, String label) {
+  final text = tester.widget<Text>(
+    find.descendant(of: _weekdayHeader(), matching: find.text(label)),
+  );
+  return text.style!;
+}
+
+void main() {
+  group('compact rendering', () {
+    testWidgets('shows one whole week under the shared weekday header',
+        (tester) async {
+      await _pump(tester);
+
+      expect(_pager(), findsOne);
+      expect(_weekdayHeader(), findsOne);
+      expect(_isMonthMode(tester), isFalse);
+
+      // The week holding the selection, Sunday through Saturday.
+      for (var day = 16; day <= 22; day++) {
+        expect(_cell(DateTime(2026, 8, day)), findsOne);
+      }
+      expect(_cell(DateTime(2026, 8, 23)), findsNothing);
+    });
+
+    testWidgets('a horizontal drag pages by week and never changes mode',
+        (tester) async {
+      final visibleRanges = <List<DateTime>>[];
+      final harness = await _pump(
+        tester,
+        onVisibleDateRangeChanged: (firstDate, lastDate) {
+          visibleRanges.add(<DateTime>[firstDate, lastDate]);
+        },
+      );
+
+      expect(
+        visibleRanges.last,
+        <DateTime>[DateTime(2026, 8, 16), DateTime(2026, 8, 22)],
+      );
+
+      await tester.fling(_pager(), const Offset(-400, 0), 1200);
+      await tester.pumpAndSettle();
+
+      // The next week, not an arbitrary offset part-way between two weeks.
+      expect(_cell(DateTime(2026, 8, 23)), findsOne);
+      expect(_cell(DateTime(2026, 8, 29)), findsOne);
+      expect(_cell(_selected), findsNothing);
+
+      expect(_isMonthMode(tester), isFalse);
+      expect(harness.displayModes, isEmpty);
+      expect(
+        visibleRanges.last,
+        <DateTime>[DateTime(2026, 8, 23), DateTime(2026, 8, 29)],
+      );
+    });
+
+    testWidgets('tapping an in-range date reports it to the caller',
+        (tester) async {
+      final harness = await _pump(tester);
+      final target = DateTime(2026, 8, 19);
+
+      await tester.tap(_cell(target));
+      await tester.pumpAndSettle();
+
+      expect(harness.selectedDates, <DateTime>[target]);
+      expect(harness.selectedDate, target);
+    });
+  });
+
+  group('one controlled selected date', () {
+    testWidgets('a compact selection survives expanding', (tester) async {
+      final harness = await _pump(tester);
+      final target = DateTime(2026, 8, 17);
+
+      await tester.tap(_cell(target));
+      await tester.pumpAndSettle();
+      await tester.tap(_handle());
+      await tester.pumpAndSettle();
+
+      expect(_isMonthMode(tester), isTrue);
+      expect(harness.selectedDate, target);
+      expect(tester.getSemantics(_cell(target)), isSemantics(isSelected: true));
+    });
+
+    testWidgets('the first date row stays fixed while expanding',
+        (tester) async {
+      final firstRowDate = DateTime(2026, 8, 1);
+      await _pump(tester, initialSelected: firstRowDate);
+      final compactTop = tester.getTopLeft(_cell(firstRowDate)).dy;
+
+      await tester.tap(_handle());
+      await tester.pumpAndSettle();
+
+      expect(tester.getTopLeft(_cell(firstRowDate)).dy, compactTop);
+    });
+
+    testWidgets('a month selection is on screen in the strip after collapsing',
+        (tester) async {
+      final harness = await _pump(tester);
+      final target = DateTime(2026, 8, 2);
+
+      await tester.tap(_handle());
+      await tester.pumpAndSettle();
+      await tester.tap(_cell(target));
+      await tester.pumpAndSettle();
+      await tester.tap(_handle());
+      await tester.pumpAndSettle();
+
+      expect(_isMonthMode(tester), isFalse);
+      expect(harness.selectedDate, target);
+      expect(_cell(target), findsOne);
+
+      // Paged into view, not merely built off-screen.
+      final rect = tester.getRect(_cell(target));
+      expect(rect.left, greaterThanOrEqualTo(0));
+      expect(rect.right, lessThanOrEqualTo(tester.view.physicalSize.width));
+    });
+
+    testWidgets('expansion opens the month containing the selected date',
+        (tester) async {
+      await _pump(
+        tester,
+        initialSelected: DateTime(2026, 7, 15),
+        minDate: DateTime(2026, 7, 1),
+      );
+
+      await tester.tap(_handle());
+      await tester.pumpAndSettle();
+
+      expect(_monthPager(), findsOne);
+      expect(_cell(DateTime(2026, 7, 15)), findsOne);
+      expect(find.text('July 2026'), findsNothing);
+      expect(find.byIcon(Icons.chevron_left), findsNothing);
+      expect(find.byIcon(Icons.chevron_right), findsNothing);
+    });
+
+    testWidgets('expanded rendering pages horizontally month by month',
+        (tester) async {
+      final visibleRanges = <List<DateTime>>[];
+      await _pump(
+        tester,
+        initialSelected: DateTime(2026, 7, 15),
+        minDate: DateTime(2026, 7, 1),
+        onVisibleDateRangeChanged: (firstDate, lastDate) {
+          visibleRanges.add(<DateTime>[firstDate, lastDate]);
+        },
+      );
+
+      await tester.tap(_handle());
+      await tester.pumpAndSettle();
+
+      final pageView = tester.widget<PageView>(_monthPager());
+      expect(pageView.controller!.page, 0);
+      expect(
+        visibleRanges.last,
+        <DateTime>[DateTime(2026, 7, 1), DateTime(2026, 7, 31)],
+      );
+
+      await tester.fling(_monthPager(), const Offset(-400, 0), 1200);
+      await tester.pumpAndSettle();
+      expect(pageView.controller!.page, 1);
+      expect(_cell(DateTime(2026, 8, 15)), findsOne);
+      expect(
+        visibleRanges.last,
+        <DateTime>[DateTime(2026, 8, 1), DateTime(2026, 8, 31)],
+      );
+
+      await tester.fling(_monthPager(), const Offset(400, 0), 1200);
+      await tester.pumpAndSettle();
+      expect(pageView.controller!.page, 0);
+      expect(_cell(DateTime(2026, 7, 15)), findsOne);
+    });
+
+    testWidgets('jumpToDate moves the week pager and the month grid',
+        (tester) async {
+      final controller = TioDateCalendarController();
+      addTearDown(controller.dispose);
+
+      await _pump(
+        tester,
+        controller: controller,
+        minDate: DateTime(2026, 7, 1),
+        displayMode: TioDateCalendarDisplayMode.month,
+      );
+      final pageView = tester.widget<PageView>(_monthPager());
+      expect(pageView.controller!.page, 1);
+
+      controller.jumpToDate(DateTime(2026, 7, 10));
+      await tester.pumpAndSettle();
+
+      expect(pageView.controller!.page, 0);
+      expect(_cell(DateTime(2026, 7, 10)), findsOne);
+    });
+  });
+
+  group('caller-controlled range', () {
+    testWidgets('a date past maxDate stays visible but is inert',
+        (tester) async {
+      final harness = await _pump(tester, maxDate: _today);
+      final future = DateTime(2026, 8, 21);
+
+      // Still drawn, because a week with holes punched in it reads as broken…
+      expect(_cell(future), findsOne);
+
+      // …but it cannot be picked, in either rendering.
+      await tester.tap(_cell(future));
+      await tester.pumpAndSettle();
+      expect(harness.selectedDates, isEmpty);
+
+      await tester.tap(_handle());
+      await tester.pumpAndSettle();
+      await tester.tap(_cell(future));
+      await tester.pumpAndSettle();
+      expect(harness.selectedDates, isEmpty);
+      expect(harness.selectedDate, _selected);
+    });
+
+    testWidgets('an in-range date next to it is still selectable',
+        (tester) async {
+      final harness = await _pump(tester, maxDate: _today);
+
+      await tester.tap(_cell(_today));
+      await tester.pumpAndSettle();
+
+      expect(harness.selectedDate, _today);
+    });
+  });
+
+  group('visual grammar', () {
+    testWidgets('Sunday uses semantic danger styling like the reference',
+        (tester) async {
+      final sunday = DateTime(2026, 8, 16);
+      await _pump(tester);
+
+      expect(
+        _weekdayStyle(tester, 'SUN').color,
+        TioColors.light.danger.withAlpha(TioAlpha.alpha140),
+      );
+      expect(_weekdayStyle(tester, 'MON').color, TioColors.light.textMuted);
+      expect(
+        _numeralStyle(tester, sunday).color,
+        TioColors.light.danger.withAlpha(TioAlpha.alpha179),
+      );
+
+      await _pump(tester, initialSelected: sunday);
+
+      expect(_numeralStyle(tester, sunday).color, TioColors.light.danger);
+
+      await _pump(
+        tester,
+        decorationBuilder: (date) => date == sunday
+            ? const TioDateDecoration(fill: TioDateFill.solid)
+            : null,
+      );
+
+      expect(_numeralStyle(tester, sunday).color, TioColors.light.onPrimary);
+    });
+
+    testWidgets('Today stays strong while another date is selected',
+        (tester) async {
+      await _pump(tester);
+
+      expect(_numeralStyle(tester, _today).fontWeight, TioFontWeight.w700);
+      expect(_numeralStyle(tester, _selected).fontWeight, TioFontWeight.w400);
+      // Selection is the outer ring, not the Today treatment.
+      expect(_circle(tester, _selected), paints..circle());
+    });
+
+    testWidgets('missing progress and a real zero render differently',
+        (tester) async {
+      final undecorated = DateTime(2026, 8, 17);
+      final zero = DateTime(2026, 8, 19);
+
+      await _pump(
+        tester,
+        decorationBuilder: (date) =>
+            date == zero ? const TioDateDecoration(progress: 0) : null,
+      );
+
+      // A real zero still draws its track, so the user can tell "none yet"
+      // from "nothing known".
+      expect(_circle(tester, zero), paints..circle());
+      expect(_circle(tester, zero), isNot(paints..arc()));
+
+      // Nothing supplied draws nothing at all.
+      expect(_circle(tester, undecorated), isNot(paints..circle()));
+      expect(_circle(tester, undecorated), isNot(paints..arc()));
+    });
+
+    testWidgets('selection, progress, fill and markers compose on one date',
+        (tester) async {
+      await _pump(
+        tester,
+        decorationBuilder: (date) => date == _selected
+            ? const TioDateDecoration(
+                progress: 0.5,
+                fill: TioDateFill.solid,
+                markerCount: 2,
+              )
+            : null,
+      );
+
+      // fill, progress track, progress arc, then the selection ring outside.
+      expect(
+        _circle(tester, _selected),
+        paints
+          ..circle()
+          ..circle()
+          ..arc()
+          ..circle(strokeWidth: 0.5),
+      );
+      expect(
+        find.descendant(of: _cell(_selected), matching: find.byType(Container)),
+        findsNWidgets(2),
+      );
+    });
+
+    testWidgets('a marker row collapses without clamping the caller count',
+        (tester) async {
+      const decoration = TioDateDecoration(markerCount: 9);
+
+      expect(decoration.markerCount, 9);
+      expect(
+        decoration.visibleMarkerCount,
+        TioDateDecoration.maxRenderedMarkers,
+      );
+      expect(decoration.hasCollapsedMarkers, isTrue);
+
+      await _pump(
+        tester,
+        decorationBuilder: (date) => date == _selected ? decoration : null,
+      );
+
+      expect(
+        find.descendant(of: _cell(_selected), matching: find.byType(Container)),
+        findsNWidgets(TioDateDecoration.maxRenderedMarkers),
+      );
+    });
+  });
+
+  group('global first day of week', () {
+    Future<List<String>> columnLabels(
+      WidgetTester tester,
+      int firstDayOfWeek, {
+      TextScaler textScaler = TextScaler.noScaling,
+    }
+    ) async {
+      await _pump(
+        tester,
+        resolvedFirstDayOfWeek: firstDayOfWeek,
+        textScaler: textScaler,
+      );
+      return tester
+          .widgetList<Text>(
+            find.descendant(of: _weekdayHeader(), matching: find.byType(Text)),
+          )
+          .map((text) => text.data!)
+          .toList();
+    }
+
+    testWidgets('a Monday start puts Monday in the first column',
+        (tester) async {
+      expect((await columnLabels(tester, DateTime.monday)).first, 'MON');
+    });
+
+    testWidgets('a Sunday start puts Sunday in the first column',
+        (tester) async {
+      expect((await columnLabels(tester, DateTime.sunday)).first, 'SUN');
+    });
+
+    testWidgets('the resolved week start also frames the compact week',
+        (tester) async {
+      await _pump(tester, resolvedFirstDayOfWeek: DateTime.monday);
+
+      // A Monday start moves the visible week to Aug 17..Aug 23.
+      expect(_cell(DateTime(2026, 8, 17)), findsOne);
+      expect(_cell(DateTime(2026, 8, 23)), findsOne);
+      expect(_cell(DateTime(2026, 8, 16)), findsNothing);
+    });
+
+    testWidgets('three-letter labels fit compact width with large text',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 560));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final labels = await columnLabels(
+        tester,
+        DateTime.monday,
+        textScaler: const TextScaler.linear(1.8),
+      );
+
+      expect(labels, <String>['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('changing the week start at runtime keeps the selected date',
+        (tester) async {
+      var firstDayOfWeek = DateTime.monday;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.light),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) => Column(
+                children: [
+                  TioDateCalendar(
+                    selectedDate: _selected,
+                    localToday: _today,
+                    minDate: _augustFirst,
+                    maxDate: _augustLast,
+                    resolvedFirstDayOfWeek: firstDayOfWeek,
+                    onDateSelected: (_) {},
+                  ),
+                  TextButton(
+                    onPressed: () =>
+                        setState(() => firstDayOfWeek = DateTime.sunday),
+                    child: const Text('switch'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('switch'));
+      await tester.pumpAndSettle();
+
+      final labels = tester.widgetList<Text>(
+        find.descendant(of: _weekdayHeader(), matching: find.byType(Text)),
+      );
+      expect(labels.first.data, 'SUN');
+      expect(
+        tester.getSemantics(_cell(_selected)),
+        isSemantics(isSelected: true),
+      );
+    });
+  });
+
+  group('handle gestures', () {
+    testWidgets('a tap toggles the mode and reports it', (tester) async {
+      final harness = await _pump(tester);
+
+      await tester.tap(_handle());
+      await tester.pumpAndSettle();
+      expect(_isMonthMode(tester), isTrue);
+
+      await tester.tap(_handle());
+      await tester.pumpAndSettle();
+      expect(_isMonthMode(tester), isFalse);
+
+      expect(harness.displayModes, <TioDateCalendarDisplayMode>[
+        TioDateCalendarDisplayMode.month,
+        TioDateCalendarDisplayMode.compact,
+      ]);
+    });
+
+    testWidgets('an outside tap collapses the expanded calendar',
+        (tester) async {
+      final harness = await _pump(
+        tester,
+        displayMode: TioDateCalendarDisplayMode.month,
+        insideScrollablePage: true,
+      );
+      final outsideTop = tester
+          .getTopLeft(find.byKey(const ValueKey('page-content')))
+          .dy;
+
+      await tester.tapAt(Offset(TioSpacing.md, outsideTop + TioSpacing.md));
+      await tester.pumpAndSettle();
+
+      expect(_isMonthMode(tester), isFalse);
+      expect(
+        harness.displayModes,
+        <TioDateCalendarDisplayMode>[TioDateCalendarDisplayMode.compact],
+      );
+    });
+
+    testWidgets('an inside date tap does not collapse the expanded calendar',
+        (tester) async {
+      final harness = await _pump(
+        tester,
+        displayMode: TioDateCalendarDisplayMode.month,
+      );
+
+      await tester.tap(_cell(_selected));
+      await tester.pumpAndSettle();
+
+      expect(_isMonthMode(tester), isTrue);
+      expect(harness.displayModes, isEmpty);
+    });
+
+    testWidgets('a vertical drag from the handle expands', (tester) async {
+      final harness = await _pump(tester);
+
+      await tester.drag(_handle(), const Offset(0, 300));
+      await tester.pumpAndSettle();
+
+      expect(_isMonthMode(tester), isTrue);
+      expect(
+        harness.displayModes,
+        <TioDateCalendarDisplayMode>[TioDateCalendarDisplayMode.month],
+      );
+    });
+
+    testWidgets('an ordinary page scroll never changes the mode',
+        (tester) async {
+      final harness = await _pump(tester, insideScrollablePage: true);
+
+      final before =
+          tester.getTopLeft(find.byKey(const ValueKey('page-content')));
+      await tester.drag(_cell(_selected), const Offset(0, -200));
+      await tester.pumpAndSettle();
+
+      // The page moved, so the gesture really was a vertical page scroll.
+      expect(
+        tester.getTopLeft(find.byKey(const ValueKey('page-content'))).dy,
+        lessThan(before.dy),
+      );
+      expect(_isMonthMode(tester), isFalse);
+      expect(harness.displayModes, isEmpty);
+    });
+
+    testWidgets('the handle keeps an accessible target and semantics',
+        (tester) async {
+      await _pump(tester);
+
+      expect(tester.getSize(_handle()).width, 80);
+      expect(tester.getSize(_handle()).height, greaterThanOrEqualTo(48));
+      expect(tester.getSize(_grabber()), const Size(60, 3));
+      final grabber = tester.widget<DecoratedBox>(_grabber());
+      final decoration = grabber.decoration as BoxDecoration;
+      expect(
+        decoration.borderRadius,
+        const BorderRadius.all(Radius.circular(1.5)),
+      );
+      expect(
+        tester.getCenter(_grabber()).dx,
+        tester.getCenter(_handle()).dx,
+      );
+      expect(
+        tester.getTopLeft(_grabber()).dy - tester.getTopLeft(_handle()).dy,
+        1.5,
+      );
+      expect(
+        tester.getSemantics(_handle()),
+        isSemantics(isButton: true, label: 'Expand'),
+      );
+    });
+  });
+
+  group('accessibility', () {
+    testWidgets('a date says what it is rather than relying on colour',
+        (tester) async {
+      await _pump(
+        tester,
+        decorationBuilder: (date) => date == _selected
+            ? const TioDateDecoration(
+                progress: 0.5,
+                semanticsLabel: 'Half of today’s target',
+              )
+            : null,
+      );
+
+      final selectedNode = tester.getSemantics(_cell(_selected));
+      expect(selectedNode.label, contains('August 18, 2026'));
+      expect(selectedNode.label, contains('Selected'));
+      expect(selectedNode.label, contains('Half of today’s target'));
+      expect(selectedNode, isSemantics(isSelected: true));
+
+      final todayNode = tester.getSemantics(_cell(_today));
+      expect(todayNode.label, contains('Today'));
+      expect(todayNode, isSemantics(isSelected: false));
+    });
+  });
+}

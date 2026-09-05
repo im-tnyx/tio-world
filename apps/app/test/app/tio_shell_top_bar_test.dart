@@ -239,6 +239,66 @@ void main() {
     expect(find.byTooltip('Workout streak, 7 days'), findsOneWidget);
   });
 
+  testWidgets('optional action sits left of a fixed right-side feature status',
+      (tester) async {
+    var todayTaps = 0;
+    await tester.binding.setSurfaceSize(const Size(320, 560));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    Future<void> pumpShell({Widget? leadingAction}) {
+      return tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: const TextScaler.linear(1.8),
+            ),
+            child: TioTheme(
+              child: child ?? const SizedBox.shrink(),
+            ),
+          ),
+          home: TioShell(
+            state: const ShellUiState(
+              selectedTab: ShellTab.nutrition,
+              visibleTabs: [ShellTab.home, ShellTab.nutrition],
+            ),
+            statusTopBarLeadingAction: leadingAction,
+            onAction: (_) {},
+            child: const SizedBox.shrink(),
+          ),
+        ),
+      );
+    }
+
+    final status = find.byKey(const ValueKey('shell-meal-log-streak'));
+    final streakIcon =
+        find.byKey(const ValueKey('shell-status-streak-icon'));
+    await pumpShell();
+    final streakCenterWithoutAction = tester.getCenter(streakIcon).dx;
+
+    await pumpShell(
+      leadingAction: IconButton(
+        key: const ValueKey('test-today-action'),
+        tooltip: 'Today',
+        onPressed: () => todayTaps++,
+        icon: const Icon(Icons.calendar_today_outlined),
+      ),
+    );
+
+    final action = find.byKey(const ValueKey('test-today-action'));
+    expect(status, findsOneWidget);
+    expect(action, findsOneWidget);
+    expect(tester.takeException(), isNull);
+    expect(tester.getCenter(action).dx, lessThan(tester.getCenter(status).dx));
+    expect(tester.getCenter(streakIcon).dx, streakCenterWithoutAction);
+    expect(
+      tester.getRect(streakIcon).left - tester.getRect(action).right,
+      0,
+    );
+
+    await tester.tap(action);
+    expect(todayTaps, 1);
+  });
+
   testWidgets('feature status keeps zero icon-only and one day singular',
       (tester) async {
     Future<void> pumpStatus(int days) {

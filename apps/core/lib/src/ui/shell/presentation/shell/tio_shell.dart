@@ -7,15 +7,18 @@ import '../widgets/tio_shell_status_top_bar.dart';
 import '../widgets/tio_shell_top_bar.dart';
 
 class TioShell extends StatelessWidget {
-  const TioShell(
-      {required this.state,
-      required this.onAction,
-      required this.child,
-      super.key});
+  const TioShell({
+    required this.state,
+    required this.onAction,
+    required this.child,
+    this.statusTopBarLeadingAction,
+    super.key,
+  });
 
   final ShellUiState state;
   final ValueChanged<ShellAction> onAction;
   final Widget child;
+  final Widget? statusTopBarLeadingAction;
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +45,7 @@ class TioShell extends StatelessWidget {
                   statusKey: const ValueKey('shell-workout-streak'),
                   days: state.workoutStreakDays,
                   scrollOpacity: state.appBarOpacity,
+                  leadingAction: statusTopBarLeadingAction,
                 ),
               ShellTab.nutrition => TioShellStatusTopBar(
                   title: ShellTab.nutrition.label,
@@ -49,6 +53,7 @@ class TioShell extends StatelessWidget {
                   statusKey: const ValueKey('shell-meal-log-streak'),
                   days: state.mealLogStreakDays,
                   scrollOpacity: state.appBarOpacity,
+                  leadingAction: statusTopBarLeadingAction,
                 ),
               ShellTab.ai || ShellTab.progress => null,
             }
