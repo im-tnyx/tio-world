@@ -377,6 +377,63 @@ void main() {
     });
   });
 
+  group('useSafeArea', () {
+    Future<double> titleTop(
+      WidgetTester tester, {
+      required bool useSafeArea,
+    }) async {
+      tester.view.physicalSize = const Size(360, 320);
+      tester.view.devicePixelRatio = 1;
+      tester.view.padding = const FakeViewPadding(top: 100);
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) =>
+              TioTheme(child: child ?? const SizedBox.shrink()),
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => showTioEditorSheet<void>(
+                  context: context,
+                  useSafeArea: useSafeArea,
+                  builder: (_) => TioEditorSheet(
+                    title: 'Daily Step Goal',
+                    content: Column(
+                      children: [
+                        for (var i = 0; i < 20; i++)
+                          SizedBox(height: 40, child: Text('r$i')),
+                      ],
+                    ),
+                  ),
+                ),
+                child: const Text('Open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      return tester.getRect(find.text('Daily Step Goal')).top;
+    }
+
+    testWidgets('the default lets a tall sheet reach under the top inset',
+        (tester) async {
+      // Not a recommendation — the documented consequence of the route's own
+      // `removePadding`, which is why the parameter exists at all.
+      expect(await titleTop(tester, useSafeArea: false), lessThan(100));
+    });
+
+    testWidgets('useSafeArea keeps the header below it', (tester) async {
+      expect(
+        await titleTop(tester, useSafeArea: true),
+        greaterThanOrEqualTo(100),
+      );
+    });
+  });
+
   group('flushActions', () {
     Future<double> gapAboveActions(
       WidgetTester tester, {

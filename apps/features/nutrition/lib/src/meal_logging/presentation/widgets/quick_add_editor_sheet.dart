@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:tio_core/core.dart';
 
 import 'meal_log_action_footer.dart';
@@ -19,6 +20,10 @@ Future<void> showQuickAddEditorSheet(
     // navigator, and an editor holding a captured date must not leave the
     // Today action or the tabs reachable behind it.
     useRootNavigator: true,
+    // And the same reason again for the top: without this the route strips the
+    // top padding, so a keyboard-raised or split-screen viewport can push the
+    // handle and title under the status bar.
+    useSafeArea: true,
     builder: (_) => QuickAddEditorSheet(selectedDate: selectedDate),
   );
 }
@@ -295,37 +300,52 @@ class _NutritionRow extends StatelessWidget {
             const SizedBox(width: TioSpacing.md),
             SizedBox(
               width: _valueWidth,
-              child: TioInput.numericEditor(
-                key: fieldKey,
-                controller: controller,
-                hint: '0',
-                // The keyboard suggests the shape of the answer; it does not
-                // enforce it. Enforcement is [_error]'s job, so a hardware
-                // keyboard or a paste can put anything here and still be told
-                // what is wrong with it.
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+              // The line below is the visible half of the error; this is the
+              // half a screen reader needs. Without it the field keeps
+              // reporting itself valid while a separate `Text` somewhere else
+              // says otherwise, so someone on TalkBack hears nothing wrong
+              // about the field they are actually sitting in.
+              child: Semantics(
+                validationResult: error == null
+                    ? SemanticsValidationResult.none
+                    : SemanticsValidationResult.invalid,
+                child: TioInput.numericEditor(
+                  key: fieldKey,
+                  controller: controller,
+                  hint: '0',
+                  // The keyboard suggests the shape of the answer; it does not
+                  // enforce it. Enforcement is [_error]'s job, so a hardware
+                  // keyboard or a paste can put anything here and still be
+                  // told what is wrong with it.
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  // Shorter than the editor default: four of these stacked
+                  // read as a list of numbers, and each one only ever holds a
+                  // few characters.
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: TioSpacing.md,
+                    vertical: TioSpacing.sm,
+                  ),
+                  onChanged: (_) {},
                 ),
-                // Shorter than the editor default: four of these stacked read
-                // as a list of numbers, and each one only ever holds a few
-                // characters.
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: TioSpacing.md,
-                  vertical: TioSpacing.sm,
-                ),
-                onChanged: (_) {},
               ),
             ),
           ],
         ),
         if (error != null) ...[
           const SizedBox(height: TioSpacing.xs),
-          Text(
-            error,
-            key: ValueKey('${fieldKey.value}-error'),
-            style: TextStyle(
-              color: colors.danger,
-              fontSize: TioFontSize.size13,
+          // A live region so the message is announced when it appears, rather
+          // than only being found by someone who happens to move past it.
+          Semantics(
+            liveRegion: true,
+            child: Text(
+              error,
+              key: ValueKey('${fieldKey.value}-error'),
+              style: TextStyle(
+                color: colors.danger,
+                fontSize: TioFontSize.size13,
+              ),
             ),
           ),
         ],

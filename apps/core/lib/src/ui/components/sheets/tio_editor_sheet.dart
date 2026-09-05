@@ -13,15 +13,26 @@ import '../../../theme/theme.dart';
 /// say — passes true so the barrier covers the chrome outside that branch
 /// rather than leaving it live behind the sheet. Core does not decide this:
 /// only the caller knows which navigator its editor belongs above.
+///
+/// [useSafeArea] is forwarded the same way and defaults to Flutter's own
+/// `false` so no existing sheet moves. It matters more here than the name
+/// suggests: with it false the route applies
+/// `MediaQuery.removePadding(removeTop: true)`, so [TioEditorSheet]'s own
+/// `SafeArea` cannot bring the top inset back however it is configured. An
+/// editor tall enough to reach the top of a short, split-screen or
+/// keyboard-raised viewport should pass true, or its handle and title end up
+/// under the status bar or a display cutout.
 Future<T?> showTioEditorSheet<T>({
   required BuildContext context,
   required WidgetBuilder builder,
   bool useRootNavigator = false,
+  bool useSafeArea = false,
 }) =>
     showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
       useRootNavigator: useRootNavigator,
+      useSafeArea: useSafeArea,
       backgroundColor: TioPalette.transparent,
       enableDrag: false,
       showDragHandle: false,

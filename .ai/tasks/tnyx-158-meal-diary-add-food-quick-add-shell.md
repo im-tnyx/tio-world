@@ -144,7 +144,7 @@ no fallback data is created — this records the contract for TNYX-115.
 
 This task follows `apps/core/lib/src/theme/README.md` and `apps/features/AGENTS.md`. Every surface is composed from the public `package:tio_core/core.dart` boundary. No new core component, no new token file, and no feature token bag is introduced. The feature-local compositions — the `+` affordance, and the Add Food sheet's describe/photo/compact-action surfaces built on `TioSheet` and `TioCard` — consume governed core values directly, which is what the feature rules require for a one-off composition with a single consumer. The owner's reference screenshot contributed layout only: no external branding, copy, colour, gradient, glow or typography entered the code.
 
-Two core APIs changed, both additive and both defaulting to current behaviour so no existing sheet moves: `showTioEditorSheet` gained an optional `useRootNavigator`, and `TioEditorSheet` gained `flushActions` for an action region that draws its own boundary. The theme README is updated in the same change, as its maintenance contract requires.
+Three core APIs changed, all additive and all defaulting to current behaviour so no existing sheet moves: `showTioEditorSheet` gained `useRootNavigator` and `useSafeArea`, and `TioEditorSheet` gained `flushActions` for an action region that draws its own boundary. The theme README is updated in the same change, as its maintenance contract requires.
 
 ## 1. Discovery
 
@@ -281,8 +281,8 @@ Re-run after the owner Quick Add UI pass:
 
 ```text
 flutter analyze   16 packages          No issues found
-flutter test      14 packages          1842 passing, 0 failing
-                                       (baseline 1801 + 37 new nutrition + 4 new core)
+flutter test      14 packages          1846 passing, 0 failing
+                                       (baseline 1801 + 39 new nutrition + 6 new core)
 dart analyze      apps/shared          No issues found
 dart test         apps/shared          38 passing
 git diff --check                       clean
@@ -296,6 +296,7 @@ e974c410   Flutter CI 33972666065  success   first review remediation
 bff61fb8   Flutter CI 33974244612  success   numeric fix + record sync
 cea7679a   Flutter CI 33980943073  success   Add Food N5 hierarchy
 54c0e311   Flutter CI 33983562633  success   Quick Add owner shell
+12c9517e   Flutter CI 33985463787  success   footer tightening + Add Food safe area
 <current>  recorded on the PR once the run for this head completes
 ```
 
@@ -307,8 +308,8 @@ get` during validation and restored; it is not part of this change.
 Four automated Codex findings on commit `4918edcf`, one manual governance
 finding on `e974c410`, three owner UI findings — the Add Food hierarchy on
 `bff61fb8`, the Quick Add shell on `cea7679a` and the device follow-ups during
-this pass — and two more automated findings on `54c0e311`. All ten are
-resolved. The history is kept: a resolved finding still records
+this pass — two automated findings on `54c0e311` and three more on
+`12c9517e`. All thirteen are resolved. The history is kept: a resolved finding still records
 what was wrong and what fixed it.
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
@@ -319,6 +320,9 @@ what was wrong and what fixed it.
 | P2-decimal-separator | P2 | Resolved | The allow-list formatter did not reject unsupported input, it edited it into a different valid number — `1,5` became `15` and `1e400abc` became `1400`, with no error to notice | `4918edcf`, still open on `e974c410` | Deferring this was the wrong call and the reviewer rejected it. The formatter is gone: nothing is filtered, the typed text stays visible, and the validator decides. Five focused tests cover `1,5`, `1e400abc`, `1e400`, `1.2.3` and `-5` staying visible with an explicit error, plus `1.5` accepted as typed. Locale-aware parsing remains out of scope, with the reasoning recorded in the decisions table |
 | P2-add-food-top-safe-area | P2 | Resolved | `showModalBottomSheet` defaults `useSafeArea: false`, which applies `MediaQuery.removePadding(removeTop: true)`, so no inner `SafeArea` could protect the top. On a short or split-screen viewport a sheet tall enough to reach the top put the Add Food title and close button under the status bar or cutout | `54c0e311` | `useSafeArea: true` on the Add Food route. Flutter's wrapper is `SafeArea(bottom: false)`, so the inner `SafeArea(top: false)` still owns the bottom and nothing is padded twice. A regression test at 360x320 with a 100dp top inset asserts the title and close clear it — it reports 27.5 without the fix |
 | P2-docs-quick-add-sync | P2 | Resolved | `docs/screens/meal-diary.md`, this brief and the PR body still described the superseded Quick Add shell — Fiber, the 2x2 macro grid and the standalone disabled Date field | `54c0e311` | All three now describe the owner-approved shell: meal name, Calories/Carbs/Protein/Fat, Fiber deferred, and the reusable `MealLogActionFooter` with its disabled meal-type and date/time controls. Historical decisions and findings are kept |
+| P1-changed-files-inventory | P1 | Resolved | The Changed Files handoff listed 17 of the 20 files in the diff — both owner-supplied glyphs and `meal_log_action_footer.dart` were missing, so a reviewer reconstructing ownership would have missed the new runtime assets and the reusable footer entirely | `12c9517e` | The list is now generated from `git diff --name-only origin/main...HEAD` rather than maintained by hand |
+| P2-quick-add-top-safe-area | P2 | Resolved | `showTioEditorSheet` left `useSafeArea` at Flutter's `false`, so the route stripped the top padding and a keyboard-raised or split-screen viewport could push the Quick Add handle and title under the status bar — the same defect already fixed on Add Food | `12c9517e` | `useSafeArea` added to the presenter, defaulting to false, and passed true from Quick Add. Two Core tests cover both settings; a nutrition test at 360x460 with a 100dp inset reports 40.0 without the fix |
+| P2-numeric-error-association | P2 | Resolved | An invalid value produced only a separate `Text`. The field itself still reported valid and the message was not a live region, so a screen reader in that field heard nothing and the error was not programmatically tied to it | `12c9517e` | The value box is wrapped in `Semantics(validationResult: invalid)` while the message becomes a live region. The visible separate line stays, because a message wrapped inside a 100dp value box is unreadable |
 | owner-quick-add-ui-followups | Owner UI | Resolved | Device feedback on the first Quick Add build: the meal-name box was too tall, the value boxes too tall, the year in the date chip was noise, and the footer had no divider — then, once added, the divider was inset by the sheet's padding with dead space above it and the last field touching it | owner review during the pass | Meal name starts at one line, the value boxes take a shorter content padding, the chip is month and day only, and the footer draws one edge-to-edge rule. `TioEditorSheet` gained `flushActions` so the gap above the actions is genuinely removed rather than painted around, and the body ends with `TioSpacing.lg` so the last field clears the line |
 | owner-quick-add-ui-pass | Owner UI | Resolved | The Quick Add editor was a 2x2 macro grid with Fiber, a settings-style date row and a paragraph of disabled-CTA copy — none of which matches the owner-approved shell locked on the issue | `cea7679a`, owner review | Rebuilt to the locked contract: Quick Add kept separate from the full Meal Editor, a large optional meal-name field, Calories / Carbs / Protein / Fat as simple rows, Fiber deferred, and one reusable Nutrition-owned `MealLogActionFooter` carrying a disabled meal-category shell, a disabled date/time shell showing the diary's selected date, and a disabled full-width `Log Meal`. The `+` also took the owner-supplied `ic_fab_main.svg` glyph |
 | UI-owner-review-add-food-hierarchy | Owner UI | Resolved | The Add Food sheet rendered all four N5 paths as one vertical list of equal `TioSettingsNavigationRow` entries. Device review found this contradicts the TNYX-62 layout contract, which is authoritative: a natural-language input surface first, a full-width photo card second, and Quick Add plus Search Food as horizontal compact cards | `bff61fb8`, owner device review | The sheet is rebuilt to that hierarchy from `TioSheet` and `TioCard`, with geometry tests at 320px and 400px asserting the ordering, the shared row and the full-width photo card so it cannot flatten back into a list. Quick Add's editor is deliberately untouched; the owner reviews that separately |
@@ -328,24 +332,30 @@ what was wrong and what fixed it.
 
 ### Changed Files
 
+Generated from `git diff --name-only origin/main...HEAD`, so the inventory
+cannot drift from the diff again.
+
 ```text
-.ai/tasks/tnyx-158-meal-diary-add-food-quick-add-shell.md                       new
-apps/core/lib/src/theme/README.md                                               modified
-apps/core/lib/src/ui/components/sheets/tio_editor_sheet.dart                    modified
-apps/core/test/ui/components/tio_editor_sheet_test.dart                         modified
-apps/features/nutrition/lib/nutrition.dart                                      modified
-apps/features/nutrition/lib/src/meal_diary/presentation/pages/meal_diary_page.dart          modified
-apps/features/nutrition/lib/src/meal_diary/presentation/presentation.dart       modified
-apps/features/nutrition/lib/src/meal_diary/presentation/widgets/meal_diary_log_action.dart  new
-apps/features/nutrition/lib/src/meal_diary/presentation/widgets/widgets.dart    new
-apps/features/nutrition/lib/src/meal_logging/meal_logging.dart                  new
-apps/features/nutrition/lib/src/meal_logging/presentation/presentation.dart     new
-apps/features/nutrition/lib/src/meal_logging/presentation/widgets/add_food_sheet.dart       new
-apps/features/nutrition/lib/src/meal_logging/presentation/widgets/quick_add_editor_sheet.dart new
-apps/features/nutrition/lib/src/meal_logging/presentation/widgets/widgets.dart  new
-apps/features/nutrition/test/meal_diary/meal_diary_page_test.dart               modified
-apps/features/nutrition/test/meal_logging/meal_diary_add_food_flow_test.dart    new
-docs/screens/meal-diary.md                                                      modified
+.ai/tasks/tnyx-158-meal-diary-add-food-quick-add-shell.md
+apps/core/assets/svg_icon/ic_calendar_.svg
+apps/core/assets/svg_icon/ic_fab_main.svg
+apps/core/lib/src/theme/README.md
+apps/core/lib/src/ui/components/sheets/tio_editor_sheet.dart
+apps/core/test/ui/components/tio_editor_sheet_test.dart
+apps/features/nutrition/lib/nutrition.dart
+apps/features/nutrition/lib/src/meal_diary/presentation/pages/meal_diary_page.dart
+apps/features/nutrition/lib/src/meal_diary/presentation/presentation.dart
+apps/features/nutrition/lib/src/meal_diary/presentation/widgets/meal_diary_log_action.dart
+apps/features/nutrition/lib/src/meal_diary/presentation/widgets/widgets.dart
+apps/features/nutrition/lib/src/meal_logging/meal_logging.dart
+apps/features/nutrition/lib/src/meal_logging/presentation/presentation.dart
+apps/features/nutrition/lib/src/meal_logging/presentation/widgets/add_food_sheet.dart
+apps/features/nutrition/lib/src/meal_logging/presentation/widgets/meal_log_action_footer.dart
+apps/features/nutrition/lib/src/meal_logging/presentation/widgets/quick_add_editor_sheet.dart
+apps/features/nutrition/lib/src/meal_logging/presentation/widgets/widgets.dart
+apps/features/nutrition/test/meal_diary/meal_diary_page_test.dart
+apps/features/nutrition/test/meal_logging/meal_diary_add_food_flow_test.dart
+docs/screens/meal-diary.md
 ```
 
 `apps/app/lib/app/router.dart` is deliberately untouched: both surfaces are

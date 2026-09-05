@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -667,6 +668,97 @@ void main() {
       expect(_fieldText(tester, const ValueKey('quick-add-calories')), '');
     });
   });
+
+    testWidgets('the editor header clears a top inset on a short viewport',
+        (tester) async {
+      // Short enough that the editor has to reach the top — the only situation
+      // where the inset matters — but tall enough to still walk the flow.
+      tester.view.physicalSize = const Size(360, 460);
+      tester.view.devicePixelRatio = 1;
+      tester.view.padding = const FakeViewPadding(top: 100);
+      addTearDown(tester.view.reset);
+
+      await _pump(tester);
+      await _openAddFood(tester);
+      // The Add Food sheet is taller than this viewport, so its Quick Add card
+      // starts below the fold. Scrolling to it is how a reader would reach it.
+      await tester.ensureVisible(find.byKey(_quickAddRow));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(_quickAddRow));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(_editor), findsOne);
+
+      // The route strips the top padding unless the sheet opts back in, so
+      // without that the handle and title sit under the status bar.
+      expect(
+        tester
+            .getRect(
+              find.descendant(
+                of: find.byKey(_editor),
+                matching: find.text('Quick Add'),
+              ),
+            )
+            .top,
+        greaterThanOrEqualTo(100),
+        reason: 'the editor title must clear the top system inset',
+      );
+      expect(
+        tester
+            .getRect(find.byKey(const ValueKey('tio-editor-sheet-handle')))
+            .top,
+        greaterThanOrEqualTo(100),
+      );
+    });
+
+    testWidgets('an invalid value marks its own field, not just the page',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+      await _pump(tester);
+      await _openQuickAdd(tester);
+
+      const calories = ValueKey('quick-add-calories');
+
+      // Valid to start with: nothing is claiming an error anywhere.
+      expect(
+        tester.getSemantics(find.byKey(calories)).validationResult,
+        isNot(SemanticsValidationResult.invalid),
+      );
+
+      await _type(tester, calories, '-5');
+
+      // The field itself reports invalid, so a screen reader sitting in it
+      // hears that rather than nothing.
+      expect(
+        tester.getSemantics(find.byKey(calories)).validationResult,
+        SemanticsValidationResult.invalid,
+        reason: 'the error must be attached to the field it is about',
+      );
+      // And the message announces itself when it appears.
+      expect(
+        tester
+            .getSemantics(find.byKey(const ValueKey('quick-add-calories-error')))
+            .flagsCollection
+            .isLiveRegion,
+        isTrue,
+      );
+
+      // Other fields stay untouched by one field's error.
+      expect(
+        tester
+            .getSemantics(find.byKey(const ValueKey('quick-add-fat')))
+            .validationResult,
+        isNot(SemanticsValidationResult.invalid),
+      );
+
+      await _type(tester, calories, '500');
+      expect(
+        tester.getSemantics(find.byKey(calories)).validationResult,
+        isNot(SemanticsValidationResult.invalid),
+      );
+
+      handle.dispose();
+    });
 
   group('Meal Log action footer', () {
     testWidgets('both controls sit above Log Meal, side by side',
