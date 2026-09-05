@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
+import '../../calendar_preferences/domain/calendar_preferences.dart';
+
 class AppSettingsPage extends StatelessWidget {
   const AppSettingsPage({
     required this.currentMode,
@@ -9,14 +11,18 @@ class AppSettingsPage extends StatelessWidget {
     required this.onAppModePressed,
     required this.onThemePressed,
     required this.onMeasurementUnitsPressed,
+    required this.onCalendarPressed,
+    required this.currentFirstDayOfWeek,
     super.key,
   });
 
   final AppMode currentMode;
   final TioThemeMode currentThemeMode;
+  final FirstDayOfWeekPreference currentFirstDayOfWeek;
   final VoidCallback onAppModePressed;
   final VoidCallback onThemePressed;
   final VoidCallback onMeasurementUnitsPressed;
+  final VoidCallback onCalendarPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +67,17 @@ class AppSettingsPage extends StatelessWidget {
                   supportingText: 'Weight, height, distance & volume',
                   onTap: onMeasurementUnitsPressed,
                 ),
+                const _AppSettingsDivider(),
+                TioSettingsNavigationRow(
+                  key: const ValueKey('app-settings-calendar-entry'),
+                  leading: const TioSettingsLeadingIcon(
+                    icon: Icons.calendar_today_outlined,
+                  ),
+                  title: 'Calendar',
+                  supportingText:
+                      _firstDayOfWeekLabel(currentFirstDayOfWeek),
+                  onTap: onCalendarPressed,
+                ),
               ],
             ),
           ],
@@ -94,6 +111,15 @@ String _appModeLabel(AppMode mode) {
     AppMode.workout => 'Workout',
     AppMode.nutrition => 'Nutrition',
     AppMode.hybrid => 'Hybrid',
+  };
+}
+
+/// The row's supporting text answers what the setting currently is, the same
+/// way the App Mode and Theme rows above it do.
+String _firstDayOfWeekLabel(FirstDayOfWeekPreference preference) {
+  return switch (preference) {
+    FirstDayOfWeekPreference.monday => 'Week starts Monday',
+    FirstDayOfWeekPreference.sunday => 'Week starts Sunday',
   };
 }
 

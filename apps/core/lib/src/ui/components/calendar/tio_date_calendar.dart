@@ -358,6 +358,14 @@ class _TioDateCalendarState extends State<TioDateCalendar>
         _pagerMaxDate == _maxDate) {
       return;
     }
+
+    // Reframing the calendar must not turn a preference change into a hidden
+    // navigation action. Keep the date that was at the leading edge of the
+    // visible range as the new pager anchor; only the first paint has no
+    // visible range yet, in which case the caller's selected date is the
+    // honest initial anchor.
+    final weekAnchor = _visibleRangeStart ?? _selectedDate;
+    final monthAnchor = _visibleMonth;
     _pagerFirstDayOfWeek = firstDayOfWeek;
     _pagerMinDate = _minDate;
     _pagerMaxDate = _maxDate;
@@ -366,10 +374,10 @@ class _TioDateCalendarState extends State<TioDateCalendar>
 
     _weekPages?.dispose();
     _weekPages = PageController(
-      initialPage: _weekPageOf(_selectedDate, firstDayOfWeek),
+      initialPage: _weekPageOf(weekAnchor, firstDayOfWeek),
     );
     _monthPages?.dispose();
-    _monthPages = PageController(initialPage: _monthPageOf(_selectedDate));
+    _monthPages = PageController(initialPage: _monthPageOf(monthAnchor));
 
     // A jump requested before this widget existed has been sitting on the
     // controller with nobody listening. The pagers exist now, so honour it.
@@ -383,7 +391,10 @@ class _TioDateCalendarState extends State<TioDateCalendar>
       _pendingMonthReveal = pending;
     }
 
-    _seedVisibleRange(pending ?? _selectedDate, firstDayOfWeek);
+    _seedVisibleRange(
+      pending ?? (_mode.isMonth ? monthAnchor : weekAnchor),
+      firstDayOfWeek,
+    );
     _scheduleVisibleRangeReport();
     if (mounted) setState(() {});
   }
@@ -806,49 +817,56 @@ class _TioDateCalendarState extends State<TioDateCalendar>
 
     _drainPendingReveal(_pendingMonthReveal);
 
-    return PageView.builder(
-      key: const ValueKey('tio-date-calendar-month-pager'),
-      controller: pager,
-      itemCount: _monthPageCount,
-      onPageChanged: (page) {
-        setState(() => _visibleMonth = _monthForPage(page));
-        if (!_mode.isMonth) return;
-        _reportVisibleMonth(page);
-      },
-      itemBuilder: (context, page) {
-        final month = _monthForPage(page);
-        final leading =
-            (DateTime(month.year, month.month).weekday - firstDayOfWeek) %
-                _daysPerWeek;
+    return KeyedSubtree(
+      // PageView keeps an already-built page alive when only the weekday
+      // convention changes. Re-keying this subtree makes the month cells
+      // rebuild against the new leading placeholder without changing the
+      // public pager key or the visible month anchor.
+      key: ValueKey<String>('tio-date-calendar-month-grid-$firstDayOfWeek'),
+      child: PageView.builder(
+        key: const ValueKey('tio-date-calendar-month-pager'),
+        controller: pager,
+        itemCount: _monthPageCount,
+        onPageChanged: (page) {
+          setState(() => _visibleMonth = _monthForPage(page));
+          if (!_mode.isMonth) return;
+          _reportVisibleMonth(page);
+        },
+        itemBuilder: (context, page) {
+          final month = _monthForPage(page);
+          final leading =
+              (DateTime(month.year, month.month).weekday - firstDayOfWeek) %
+                  _daysPerWeek;
 
-        return Column(
-          children: [
-            for (var row = 0; row < _monthGridRows; row++)
-              SizedBox(
-                height: _monthRowHeight,
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: TioSpacing.xs),
-                  child: Row(
-                    children: [
-                      for (var column = 0; column < _daysPerWeek; column++)
-                        Expanded(
-                          child: _cellFor(
-                            DateTime(
-                              month.year,
-                              month.month,
-                              1 + (row * _daysPerWeek) + column - leading,
+          return Column(
+            children: [
+              for (var row = 0; row < _monthGridRows; row++)
+                SizedBox(
+                  height: _monthRowHeight,
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: TioSpacing.xs),
+                    child: Row(
+                      children: [
+                        for (var column = 0; column < _daysPerWeek; column++)
+                          Expanded(
+                            child: _cellFor(
+                              DateTime(
+                                month.year,
+                                month.month,
+                                1 + (row * _daysPerWeek) + column - leading,
+                              ),
+                              contextMonth: month,
                             ),
-                            contextMonth: month,
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-          ],
-        );
-      },
+            ],
+          );
+        },
+      ),
     );
   }
 

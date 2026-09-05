@@ -32,6 +32,7 @@ String? appModeRedirect({
     AppRoutes.appSettings.path,
     AppRoutes.appModeSettings.path,
     AppRoutes.themeSettings.path,
+    AppRoutes.calendarSettings.path,
   };
 
   final onboardingComplete = onboardingStatus == OnboardingStatus.completed;

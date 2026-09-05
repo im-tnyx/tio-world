@@ -560,6 +560,201 @@ void main() {
         isSemantics(isSelected: true),
       );
     });
+
+    testWidgets(
+        'changing the week start preserves a paged-away week and reports it',
+        (tester) async {
+      var firstDayOfWeek = DateTime.monday;
+      final visibleRanges = <List<DateTime>>[];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.light),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) => Column(
+                children: [
+                  TioDateCalendar(
+                    selectedDate: _selected,
+                    localToday: _today,
+                    minDate: _augustFirst,
+                    maxDate: _augustLast,
+                    resolvedFirstDayOfWeek: firstDayOfWeek,
+                    onVisibleDateRangeChanged: (first, last) {
+                      visibleRanges.add([first, last]);
+                    },
+                    onDateSelected: (_) {},
+                  ),
+                  TextButton(
+                    onPressed: () =>
+                        setState(() => firstDayOfWeek = DateTime.sunday),
+                    child: const Text('switch'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.fling(_pager(), const Offset(-400, 0), 1200);
+      await tester.pumpAndSettle();
+      expect(_cell(DateTime(2026, 8, 24)), findsOne);
+      expect(_cell(DateTime(2026, 8, 30)), findsOne);
+
+      await tester.tap(find.text('switch'));
+      await tester.pumpAndSettle();
+
+      // The old leading date (Aug 24) is still the viewport anchor; Sunday
+      // framing therefore shows Aug 23..29 instead of jumping to selection.
+      expect(_cell(DateTime(2026, 8, 23)), findsOne);
+      expect(_cell(DateTime(2026, 8, 29)), findsOne);
+      expect(_cell(DateTime(2026, 8, 16)), findsNothing);
+      expect(
+        visibleRanges.last,
+        <DateTime>[DateTime(2026, 8, 23), DateTime(2026, 8, 29)],
+      );
+    });
+
+    testWidgets('changing the week start reframes the month grid in place',
+        (tester) async {
+      final firstDayOfWeek = ValueNotifier(DateTime.monday);
+      addTearDown(firstDayOfWeek.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.light),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: Scaffold(
+            body: ValueListenableBuilder<int>(
+              valueListenable: firstDayOfWeek,
+              builder: (context, firstDayOfWeek, child) => Column(
+                children: [
+                  TioDateCalendar(
+                    selectedDate: _selected,
+                    localToday: _today,
+                    minDate: _augustFirst,
+                    maxDate: _augustLast,
+                    resolvedFirstDayOfWeek: firstDayOfWeek,
+                    displayMode: TioDateCalendarDisplayMode.month,
+                    onDateSelected: (_) {},
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // August 2026 starts on Saturday: Monday-first begins on Jul 27,
+      // Sunday-first begins one column earlier on Jul 26.
+      expect(_cell(DateTime(2026, 7, 26)), findsNothing);
+      firstDayOfWeek.value = DateTime.sunday;
+      await tester.pumpAndSettle();
+
+      expect(_cell(DateTime(2026, 7, 26)), findsOne);
+      expect(_cell(_selected), findsOne);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('jumpToDate still works after a week-start change',
+        (tester) async {
+      final controller = TioDateCalendarController();
+      addTearDown(controller.dispose);
+      var firstDayOfWeek = DateTime.monday;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.light),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) => Column(
+                children: [
+                  TioDateCalendar(
+                    controller: controller,
+                    selectedDate: _selected,
+                    localToday: _today,
+                    minDate: _augustFirst,
+                    maxDate: _augustLast,
+                    resolvedFirstDayOfWeek: firstDayOfWeek,
+                    onDateSelected: (_) {},
+                  ),
+                  TextButton(
+                    onPressed: () =>
+                        setState(() => firstDayOfWeek = DateTime.sunday),
+                    child: const Text('switch'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('switch'));
+      await tester.pumpAndSettle();
+      controller.jumpToDate(DateTime(2026, 8, 5));
+      await tester.pumpAndSettle();
+
+      expect(_cell(DateTime(2026, 8, 5)), findsOne);
+    });
+
+    testWidgets('week-start changes keep Today emphasis on Today column',
+        (tester) async {
+      var firstDayOfWeek = DateTime.monday;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.light),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) => Column(
+                children: [
+                  TioDateCalendar(
+                    selectedDate: _selected,
+                    localToday: _today,
+                    minDate: _augustFirst,
+                    maxDate: _augustLast,
+                    resolvedFirstDayOfWeek: firstDayOfWeek,
+                    onDateSelected: (_) {},
+                  ),
+                  TextButton(
+                    onPressed: () =>
+                        setState(() => firstDayOfWeek = DateTime.sunday),
+                    child: const Text('switch'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final mondayTodayColumn = tester.getRect(find.text('THU')).center.dx;
+      expect(_weekdayStyle(tester, 'THU').fontWeight, TioFontWeight.w700);
+
+      await tester.tap(find.text('switch'));
+      await tester.pumpAndSettle();
+
+      final sundayTodayColumn = tester.getRect(find.text('THU')).center.dx;
+      expect(sundayTodayColumn, greaterThan(mondayTodayColumn));
+      expect(_weekdayStyle(tester, 'THU').fontWeight, TioFontWeight.w700);
+    });
   });
 
   group('handle gestures', () {

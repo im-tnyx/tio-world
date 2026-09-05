@@ -40,9 +40,11 @@ void main() {
         await tester.pumpWidget(app(AppSettingsPage(
           currentMode: AppMode.hybrid,
           currentThemeMode: mode,
+          currentFirstDayOfWeek: FirstDayOfWeekPreference.monday,
           onAppModePressed: () {},
           onThemePressed: () {},
           onMeasurementUnitsPressed: () {},
+          onCalendarPressed: () {},
         )));
         await tester.pumpAndSettle();
         expect(
@@ -105,7 +107,7 @@ void main() {
     expect(find.text('Daily Wellness targets'), findsOneWidget);
     expect(find.text('App Preferences'), findsOneWidget);
     expect(find.text('Log Out'), findsOneWidget);
-    expect(find.text('App Mode, theme & units'), findsOneWidget);
+    expect(find.text('App Mode, theme, units & calendar'), findsOneWidget);
     expect(find.text('Units'), findsNothing);
     expect(find.byKey(const ValueKey('settings-measurement-units-entry')),
         findsNothing);
@@ -141,18 +143,22 @@ void main() {
     expect(appSettingsTaps, 1);
   });
 
-  testWidgets('App Preferences exposes real App Mode, Theme and Units actions',
-      (tester) async {
+  testWidgets(
+      'App Preferences exposes real App Mode, Theme, Units and Calendar '
+      'actions', (tester) async {
     var modeTaps = 0;
     var themeTaps = 0;
     var unitsTaps = 0;
+    var calendarTaps = 0;
     await tester.pumpWidget(MaterialApp(
       home: AppSettingsPage(
         currentMode: AppMode.hybrid,
         currentThemeMode: TioThemeMode.dark,
+        currentFirstDayOfWeek: FirstDayOfWeekPreference.sunday,
         onAppModePressed: () => modeTaps++,
         onThemePressed: () => themeTaps++,
         onMeasurementUnitsPressed: () => unitsTaps++,
+        onCalendarPressed: () => calendarTaps++,
       ),
     ));
     expect(find.text('App Preferences'), findsOneWidget);
@@ -160,8 +166,14 @@ void main() {
     expect(find.text('Weight, height, distance & volume'), findsOneWidget);
     expect(find.text('Hybrid'), findsOneWidget);
     expect(find.text('Dark'), findsOneWidget);
-    expect(find.byType(TioSettingsNavigationRow), findsNWidgets(3));
-    expect(find.byType(Divider), findsNWidgets(2));
+    // The Calendar row reports the current value the way its siblings do.
+    expect(find.text('Calendar'), findsOneWidget);
+    expect(find.text('Week starts Sunday'), findsOneWidget);
+    expect(find.byType(TioSettingsNavigationRow), findsNWidgets(4));
+    expect(find.byType(Divider), findsNWidgets(3));
+
+    await tester.tap(find.text('Calendar'));
+    expect(calendarTaps, 1);
     await tester.tap(find.text('App Mode'));
     await tester.tap(find.text('Theme'));
     await tester.tap(find.text('Units'));

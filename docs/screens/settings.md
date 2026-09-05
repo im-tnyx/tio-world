@@ -3,7 +3,7 @@
 **Surface:** Phone full-screen preferences and account controls
 **Current route:** `/settings`
 **Primary owner:** `apps/features/settings`
-**Status:** S0-A and accepted S0-B1 provide the Settings hub and Daily Wellness editing. S0-B2 provides a device-local Default Glass Size convenience preference; no Supabase storage or migration is part of this slice. The Daily Wellness page-layout correction is in progress; updated exact-head CI and physical-device acceptance remain pending. This does not complete the broader Settings readiness gate.
+**Status:** S0-A and accepted S0-B1 provide the Settings hub and Daily Wellness editing. S0-B2 provides a device-local Default Glass Size convenience preference; TNYX-72 adds the device-local app-global Calendar Preferences first-day-of-week choice. No Supabase storage or migration is part of either local preference. The Daily Wellness page-layout correction is in progress; updated exact-head CI and physical-device acceptance remain pending. This does not complete the broader Settings readiness gate.
 
 ## Purpose
 
@@ -13,7 +13,7 @@ Manage app-level preferences and route the user to module-owned configuration. S
 
 - Profile exposes the Settings action; Home's app bar keeps only the Profile avatar account entry.
 - Root Settings exposes Profile Settings, Account Settings, Health & Goals, App Preferences and Log Out. Profile and Account continue routing to their existing owner-backed screens; this slice does not expand their business behavior.
-- App Preferences contains App Mode, Theme and Units. Its root subtitle is `App Mode, theme & units` and its page heading is `App Preferences`.
+- App Preferences contains App Mode, Theme, Units and Calendar. Its root subtitle is `App Mode, theme, units & calendar` and its page heading is `App Preferences`.
 - App Mode editing previews guided tabs, persists through the same controller used by Onboarding, and returns to Home after success.
 - Theme uses the existing Appearance bottom sheet. Units uses the existing shared editor and persistence.
 - Manage Subscription, Reset Password, Workout Settings, Wear OS / Watch Settings, Nutrition & Diet and About Tio are not exposed. Their empty sections are absent; no placeholder destinations are wired.
@@ -33,7 +33,9 @@ Settings (/settings)
 │  └─ App Preferences -> /settings/app
 │     ├─ App Mode -> /settings/app-mode
 │     ├─ Theme -> Appearance bottom sheet
-│     └─ Units -> /settings/measurement-units
+│     ├─ Units -> /settings/measurement-units
+│     └─ Calendar -> /settings/calendar
+│        └─ First day of week -> Monday (default) or Sunday
 └─ SESSION
    └─ Log Out -> confirmation -> existing signOut -> /auth
 ```
@@ -123,6 +125,32 @@ it does not transfer other feature data to Settings. See
 - Future +1 glass must consume or explicitly supersede this preference without
   mutating historical events or creating a second owner.
 
+## Calendar Preferences — TNYX-72
+
+Calendar Preferences is owned by `apps/features/settings` and is composed by
+`apps/app` as one app-global resolved value. The user path is:
+
+```text
+Settings → App Preferences → Calendar → First day of week
+```
+
+V1 stores exactly two stable values in device-local `SharedPreferencesAsync`:
+`monday` (the default) and `sunday`. Missing, unknown or corrupt storage
+resolves safely to Monday. The display copy is not a storage identifier, and
+there is no Automatic/System default option in V1.
+
+The route is `/settings/calendar`. Selection applies immediately and persists
+locally. `apps/app` resolves the saved preference to `DateTime.monday` or
+`DateTime.sunday` and passes that generic value to calendar consumers. Meal
+Diary forwards it to `TioDateCalendar`; Nutrition does not persist, resolve,
+or cache a second week-start preference. Core's nullable
+`resolvedFirstDayOfWeek` input still falls back to the locale when no resolved
+value is supplied; that fallback is not a V1 Settings choice.
+
+This decision is local-only: no Supabase table, migration, RLS policy, remote
+sync, account preference field, or backend API is involved. See
+[ADR-0010](../adr/0010-settings-local-calendar-first-day-of-week.md).
+
 ## Units Ownership And Navigation
 
 Units is app-global display/input preference, not a new feature-specific setting.
@@ -165,7 +193,7 @@ redesign either interaction or change their existing failure behavior.
 
 - **App Mode** is already implemented; its state and canonical persistence stay with the existing app/shared boundary.
 - **Navigation & Tabs** — final-stage preference for choosing and reordering three to six eligible destinations with Home fixed first. Hide this setting until the adaptive-navigation slice is implemented.
-- Additional language, Font Style, calendar, notifications and accessibility preferences require their own approved capability/ownership contracts. Existing Theme and Units are described above.
+- Additional language, Font Style, notifications and accessibility preferences require their own approved capability/ownership contracts. Calendar first-day-of-week is described above.
 - **Nutrition Targets** launch entry; target calculations remain in Nutrition.
 - **Workout Settings** launch entry; training defaults remain in Workout.
 - Existing Profile/Account entries retain their owners. Future data/export controls stay hidden until their contracts and implementation are ready.
@@ -193,7 +221,7 @@ Navigation preference changes where sections/actions appear. It does not change 
 ## Data And State Boundaries
 
 - `apps/shared` owns the `AppMode`, `AppPreferencesState` and repository contracts. Authenticated App Mode/navigation is canonical in `user_app_preferences`; the app composes `SupabaseAppPreferencesRepository`. Local SharedPreferences is pre-auth staging/cache and is refreshed after canonical success; it is not authenticated canonical ownership.
-- Theme remains device-local. Units remains canonical Profile-backed app-global preference. These distinct existing persistence owners are not consolidated merely because their rows share App Preferences.
+- Theme remains device-local. Calendar first-day-of-week remains a Settings-owned device-local app-global preference. Units remains canonical Profile-backed app-global preference. These distinct persistence owners are not consolidated merely because their rows share App Preferences.
 - Settings must not recalculate nutrition targets or workout plans.
 - Each enabled preference must have a real state effect, loading/error behavior, and accessible confirmation where needed.
 - Avoid presenting unavailable integrations, export, deletion, or notifications as completed functionality.
@@ -202,7 +230,8 @@ Navigation preference changes where sections/actions appear. It does not change 
 
 - Settings is not a bottom tab and is reachable from Profile or approved in-feature entry points.
 - Root has the implemented Profile Settings, Account Settings, Health & Goals, App Preferences and Log Out entries, with no empty unavailable sections.
-- App Preferences exposes App Mode, Theme and Units with truthful copy.
+- App Preferences exposes App Mode, Theme, Units and Calendar with truthful copy.
+- Calendar exposes Monday (default) and Sunday only, applies immediately, and preserves one Settings owner across all calendar consumers.
 - Units Save/back returns to its caller, and existing direct Units/Theme routes remain compatible.
 - The #112 shared editor, independent unit values and save/failure behavior remain unchanged.
 - Changing App Mode uses exactly the same state contract as Onboarding.
@@ -214,6 +243,7 @@ Navigation preference changes where sections/actions appear. It does not change 
 
 - [S0-A execution brief](../../.ai/tasks/settings-s0a-truthfulness-units.md)
 - [S0-B2 execution brief](../../.ai/tasks/settings-s0b2-default-glass-size.md)
+- [TNYX-72 execution brief](../../.ai/tasks/tnyx-72-global-calendar-preferences.md)
 - [Frozen Measurement Units UI](../../.ai/tasks/measurement-units-segmented-ui.md)
 - [Onboarding](onboarding.md)
 - [Nutrition](nutrition.md)

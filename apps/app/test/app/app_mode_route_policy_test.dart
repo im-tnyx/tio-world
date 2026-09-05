@@ -94,6 +94,14 @@ void main() {
       );
       expect(
         appModeRedirect(
+          path: AppRoutes.calendarSettings.path,
+          selectedMode: null,
+          onboardingStatus: OnboardingStatus.notStarted,
+        ),
+        AppRoutes.onboarding.path,
+      );
+      expect(
+        appModeRedirect(
           path: AppRoutes.profileAvatar.path,
           selectedMode: null,
           onboardingStatus: OnboardingStatus.notStarted,
@@ -230,6 +238,14 @@ void main() {
       expect(
         appModeRedirect(
           path: AppRoutes.settings.path,
+          selectedMode: null,
+          onboardingStatus: OnboardingStatus.completed,
+        ),
+        isNull,
+      );
+      expect(
+        appModeRedirect(
+          path: AppRoutes.calendarSettings.path,
           selectedMode: null,
           onboardingStatus: OnboardingStatus.completed,
         ),

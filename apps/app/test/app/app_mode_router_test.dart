@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tio_app/app/app.dart';
 import 'package:tio_app/app/app_mode/app_mode.dart';
+import 'package:tio_app/app/calendar_preferences.dart';
 import 'package:tio_app/app/onboarding/onboarding.dart';
 import 'package:tio_app/app/app_theme.dart';
 import 'package:tio_app/app/network_providers.dart';
@@ -102,6 +103,10 @@ void main() {
     );
     await onboardingStatusController.load();
     final themeController = await _createThemeController();
+    final calendarController = CalendarPreferencesController(
+      _SettingsCalendarPreferencesRepository(),
+    );
+    await calendarController.load();
     final container = ProviderContainer(
       overrides: [
         appModeControllerProvider.overrideWith((ref) => controller),
@@ -110,6 +115,8 @@ void main() {
         onboardingStatusRepositoryProvider
             .overrideWith((ref) => onboardingRepository),
         appThemeControllerProvider.overrideWith((ref) => themeController),
+        calendarPreferencesControllerProvider
+            .overrideWith((ref) => calendarController),
         appSessionBootstrapControllerProvider.overrideWith(
           (ref) => _FixedAppSessionBootstrapController(
             state: const AppSessionBootstrapReady(userId: 'test-user'),
@@ -346,6 +353,10 @@ void main() {
     );
     await onboardingStatusController.load();
     final themeController = await _createThemeController();
+    final calendarController = CalendarPreferencesController(
+      _SettingsCalendarPreferencesRepository(),
+    );
+    await calendarController.load();
     final container = ProviderContainer(
       overrides: [
         appModeControllerProvider.overrideWith((ref) => controller),
@@ -354,6 +365,8 @@ void main() {
         onboardingStatusRepositoryProvider
             .overrideWith((ref) => onboardingRepository),
         appThemeControllerProvider.overrideWith((ref) => themeController),
+        calendarPreferencesControllerProvider
+            .overrideWith((ref) => calendarController),
         appSessionBootstrapControllerProvider.overrideWith(
           (ref) => _FixedAppSessionBootstrapController(
             state: const AppSessionBootstrapReady(userId: 'test-user'),
@@ -491,6 +504,56 @@ void main() {
             .initialPreferences,
         requested);
     expect(tester.widget<TioButton>(save).onPressed, isNull);
+  });
+
+  testWidgets('Calendar Settings persists and injects the global week start',
+      (tester) async {
+    final fixture = await _pumpSettingsRoute(
+      tester,
+      initialPath: AppRoutes.appSettings.path,
+    );
+
+    final calendarEntry =
+        find.byKey(const ValueKey('app-settings-calendar-entry'));
+    await tester.ensureVisible(calendarEntry);
+    await tester.tap(calendarEntry);
+    await tester.pumpAndSettle();
+    expect(
+      GoRouterState.of(tester.element(find.byType(CalendarSettingsPage)))
+          .uri
+          .path,
+      AppRoutes.calendarSettings.path,
+    );
+    expect(find.byType(CalendarSettingsPage), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('calendar-first-day-option-sunday')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      fixture.calendar.firstDayOfWeek,
+      FirstDayOfWeekPreference.sunday,
+    );
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('Week starts Sunday'), findsOneWidget);
+
+    fixture.router.go(FeatureRoutes.nutrition.path);
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TioDateCalendar>(find.byType(TioDateCalendar))
+          .resolvedFirstDayOfWeek,
+      DateTime.sunday,
+    );
+
+    await fixture.calendar.select(FirstDayOfWeekPreference.monday);
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TioDateCalendar>(find.byType(TioDateCalendar))
+          .resolvedFirstDayOfWeek,
+      DateTime.monday,
+    );
   });
 
   testWidgets('direct Units route retains its existing path and editor',
@@ -716,7 +779,8 @@ Future<
       _SettingsUnitsRepository units,
       _SettingsHydrationRepository hydration,
       _SettingsAuthRepository auth,
-      AppThemeController theme
+      AppThemeController theme,
+      CalendarPreferencesController calendar
     })> _pumpSettingsRoute(
   WidgetTester tester, {
   String initialPath = '/settings',
@@ -740,6 +804,10 @@ Future<
   final auth = _SettingsAuthRepository(bootstrap.markSignedOut);
   final units = _SettingsUnitsRepository();
   final hydration = _SettingsHydrationRepository();
+  final calendar = CalendarPreferencesController(
+    _SettingsCalendarPreferencesRepository(),
+  );
+  await calendar.load();
   addTearDown(auth.dispose);
   final container = ProviderContainer(overrides: [
     supabaseClientProvider.overrideWithValue(null),
@@ -748,6 +816,7 @@ Future<
     onboardingStatusRepositoryProvider
         .overrideWith((ref) => onboardingRepository),
     appThemeControllerProvider.overrideWith((ref) => theme),
+    calendarPreferencesControllerProvider.overrideWith((ref) => calendar),
     appSessionBootstrapControllerProvider.overrideWith((ref) => bootstrap),
     authSessionRepositoryProvider.overrideWithValue(auth),
     measurementUnitPreferencesRepositoryProvider.overrideWithValue(units),
@@ -778,6 +847,7 @@ Future<
     hydration: hydration,
     auth: auth,
     theme: theme,
+    calendar: calendar,
   );
 }
 
@@ -808,6 +878,22 @@ class _SettingsHydrationRepository implements HydrationPreferencesRepository {
 
   @override
   Future<void> write(HydrationPreferences preferences) async {
+    value = preferences;
+  }
+}
+
+class _SettingsCalendarPreferencesRepository
+    implements CalendarPreferencesRepository {
+  CalendarPreferences value = const CalendarPreferences();
+
+  @override
+  Future<void> clear() async => value = const CalendarPreferences();
+
+  @override
+  Future<CalendarPreferences> read() async => value;
+
+  @override
+  Future<void> write(CalendarPreferences preferences) async {
     value = preferences;
   }
 }

@@ -167,7 +167,7 @@ class SettingsPage extends StatelessWidget {
                     icon: Icons.tune_rounded,
                   ),
                   title: 'App Preferences',
-                  supportingText: 'App Mode, theme & units',
+                  supportingText: 'App Mode, theme, units & calendar',
                   onTap: onAppSettingsPressed,
                 ),
               ],

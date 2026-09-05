@@ -159,6 +159,13 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  static const calendarSettings = TioRouteContract(
+    path: '/settings/calendar',
+    title: 'Calendar',
+    description: 'Choose the first day of the week for every calendar.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
   static const themeSettings = TioRouteContract(
     path: '/settings/theme',
     title: 'Theme',

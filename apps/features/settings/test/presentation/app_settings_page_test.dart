@@ -16,10 +16,13 @@ void main() {
     WidgetTester tester, {
     AppMode currentMode = AppMode.hybrid,
     TioThemeMode currentThemeMode = TioThemeMode.dark,
+    FirstDayOfWeekPreference currentFirstDayOfWeek =
+        FirstDayOfWeekPreference.monday,
     TioThemeMode themeMode = TioThemeMode.light,
     VoidCallback? onAppModePressed,
     VoidCallback? onThemePressed,
     VoidCallback? onMeasurementUnitsPressed,
+    VoidCallback? onCalendarPressed,
     double textScale = 1,
     Size surfaceSize = const Size(390, 1200),
   }) async {
@@ -41,9 +44,11 @@ void main() {
         home: AppSettingsPage(
           currentMode: currentMode,
           currentThemeMode: currentThemeMode,
+          currentFirstDayOfWeek: currentFirstDayOfWeek,
           onAppModePressed: onAppModePressed ?? () {},
           onThemePressed: onThemePressed ?? () {},
           onMeasurementUnitsPressed: onMeasurementUnitsPressed ?? () {},
+          onCalendarPressed: onCalendarPressed ?? () {},
         ),
       ),
     );
@@ -53,15 +58,16 @@ void main() {
   const appModeKey = ValueKey('app-settings-app-mode-entry');
   const themeKey = ValueKey('app-settings-theme-entry');
   const unitsKey = ValueKey('app-settings-units-entry');
+  const calendarKey = ValueKey('app-settings-calendar-entry');
 
   group('canonical surface', () {
-    testWidgets('renders exactly the three navigation rows in one group',
+    testWidgets('renders exactly the four navigation rows in one group',
         (tester) async {
       await pumpPage(tester);
 
       expect(find.byType(TioGroupCard), findsOneWidget);
-      expect(find.byType(TioSettingsNavigationRow), findsNWidgets(3));
-      expect(find.byType(TioSettingsLeadingIcon), findsNWidgets(3));
+      expect(find.byType(TioSettingsNavigationRow), findsNWidgets(4));
+      expect(find.byType(TioSettingsLeadingIcon), findsNWidgets(4));
     });
 
     testWidgets('no raw Material card or list tile remains', (tester) async {
@@ -73,11 +79,11 @@ void main() {
       expect(find.byType(ListTile), findsNothing);
     });
 
-    testWidgets('the three stable keys survive and resolve to the row type',
+    testWidgets('the four stable keys survive and resolve to the row type',
         (tester) async {
       await pumpPage(tester);
 
-      for (final key in [appModeKey, themeKey, unitsKey]) {
+      for (final key in [appModeKey, themeKey, unitsKey, calendarKey]) {
         expect(find.byKey(key), findsOneWidget, reason: '$key');
         expect(
           tester.widget(find.byKey(key)),
@@ -152,21 +158,46 @@ void main() {
       expect(taps, 1);
     });
 
+    testWidgets('Calendar row fires its callback', (tester) async {
+      var taps = 0;
+      await pumpPage(tester, onCalendarPressed: () => taps++);
+
+      await tester.tap(find.byKey(calendarKey));
+      await tester.pumpAndSettle();
+
+      expect(taps, 1);
+    });
+
     testWidgets('tapping one row does not fire the others', (tester) async {
       var mode = 0;
       var theme = 0;
       var units = 0;
+      var calendar = 0;
       await pumpPage(
         tester,
         onAppModePressed: () => mode++,
         onThemePressed: () => theme++,
         onMeasurementUnitsPressed: () => units++,
+        onCalendarPressed: () => calendar++,
       );
 
       await tester.tap(find.byKey(themeKey));
       await tester.pumpAndSettle();
 
-      expect([mode, theme, units], [0, 1, 0]);
+      expect([mode, theme, units, calendar], [0, 1, 0, 0]);
+    });
+
+    testWidgets('the Calendar row reports the current week start',
+        (tester) async {
+      await pumpPage(tester);
+      expect(find.text('Week starts Monday'), findsOneWidget);
+
+      await pumpPage(
+        tester,
+        currentFirstDayOfWeek: FirstDayOfWeekPreference.sunday,
+      );
+      expect(find.text('Week starts Sunday'), findsOneWidget);
+      expect(find.text('Week starts Monday'), findsNothing);
     });
   });
 
@@ -193,8 +224,9 @@ void main() {
       );
 
       expect(tester.takeException(), isNull);
-      expect(find.byType(TioSettingsNavigationRow), findsNWidgets(3));
+      expect(find.byType(TioSettingsNavigationRow), findsNWidgets(4));
       expect(find.text('App Mode'), findsOneWidget);
+      expect(find.text('Calendar'), findsOneWidget);
     });
   });
 }
