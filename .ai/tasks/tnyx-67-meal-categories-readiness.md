@@ -16,22 +16,22 @@
 
 **Planning owner:** Codex `/root`
 **Implementation owner:** Codex `/root`
-**Review owner:** Owner review pending
-**Implementation ownership state:** In progress — Slice A only
+**Review owner:** Independent final review complete; owner merge decision pending
+**Implementation ownership state:** Validated / handoff complete — Slice A only
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-06 after `git fetch --prune`
 **Branch:** `tnyx/tnyx-67-meal-categories-domain-config`
 **Base SHA:** `8379067fed3527ebf8532eec3a9e5a072c32237f`
-**Observed working-tree state:** Slice A implementation is staged on the fresh branch; the unrelated root `pubspec.lock` modification remains unstaged and excluded
-**Observed uncommitted/dirty files:** `pubspec.lock` only outside the staged Slice A scope (pre-existing, preserve exactly)
-**PR / tracker:** Zero open GitHub PRs; TNYX-67 moved to In Progress for Slice A; TNYX-66 remains Backlog
-**Current implementation state:** Slice A domain/config/codec/policy, UUID-v4 ID generator, repository contract, in-memory implementation, exports, and focused tests are implemented locally. No UI, Supabase adapter/schema, or MealLog implementation exists.
+**Observed working-tree state:** PR #218 contains the reviewed Slice A implementation; the unrelated root `pubspec.lock` modification remains unstaged and excluded
+**Observed uncommitted/dirty files:** `pubspec.lock` only outside the PR scope (pre-existing, preserve exactly)
+**PR / tracker:** PR #218 is open and Draft; TNYX-67 remains In Progress for Slice A; TNYX-66 remains open and the blocker relation is unchanged
+**Current implementation state:** Slice A domain/config/codec/policy, UUID-v4 ID generator, repository contract, in-memory implementation, exports, and focused tests are validated. Configs are valid-by-construction and canonically ordered. The destructive `clearCustomization()` contract is deferred because discarding retained custom IDs would contradict future historical references. No UI, Supabase adapter/schema, or MealLog implementation exists.
 **Relevant execution surface:** Nutrition domain/data; later Nutrition Meal Diary Settings and meal-logging presentation
-**Validation completed at SHA:** Working tree on base `8379067f...`: scoped format check clean; Nutrition package analyzer clean; focused Slice A tests passed; full Nutrition package suite passed (`284` tests)
-**Validation remaining:** Final staged diff/scope checks, commit/push, Draft PR, and exact-head GitHub CI
+**Validation completed at source SHA:** `e924f2fa606de34d5640271bf1617f3623f24e24`: scoped format/diff checks clean; Nutrition analyzer clean; focused Slice A suite passed (`41` tests); full Nutrition package suite passed (`294` tests); exact-head Flutter CI run `34046391891` succeeded
+**Validation remaining:** Owner merge decision only. The final documentation-only PR head and its exact-head CI are recorded in the live PR body because a commit cannot record its own SHA.
 **Current blocker:** None for Slice A below. Later settings UI remains coupled to TNYX-68/N14 and its TNYX-54 dependency.
 **Open review finding IDs:** None
-**Next exact action:** Complete the exact staged scope audit, commit/push Slice A, open one focused Draft PR, and verify exact-head CI. Do not begin Slice B, C, or D.
+**Next exact action:** Owner review/merge decision for PR #218. Do not begin Slice B, C, or D.
 
 ## 1. Discovery
 
@@ -157,7 +157,7 @@ A later migration can add a CHECK-compatible built-in JSONB/JSONPath validation 
 
 ## 5. Proposed Implementation Order
 
-1. **Slice A — implemented locally:** repository-neutral `MealCategory`/config/codec/policy, injectable UUID-v4 slot ID generation, `MealCategoriesRepository` contract, in-memory implementation, and pure tests. No schema or UI.
+1. **Slice A — validated / handoff complete:** repository-neutral `MealCategory`/config/codec/policy, injectable UUID-v4 slot ID generation, `MealCategoriesRepository` contract, in-memory implementation, and pure tests. No schema or UI.
 2. **Slice B — separately approved Supabase persistence:** additive nullable `meal_categories_config jsonb`, database validation, column-scoped Supabase adapter, old-client/profile-writer preservation tests, migration/app rollout ordering, and read/write/RLS verification. No UI.
 3. **Slice C — TNYX-68 dependency-gated UI:** one Meal Diary Settings route/state, Meal Categories management, primary Diary entry and secondary Nutrition Settings shortcut. No duplicate store.
 4. **Slice D — picker consumption:** enable the existing Quick Add/full Meal Editor Meal type control against the same state; show active options for new selection and retain archived selection in edit mode. Leave DateTime wheel untouched.
@@ -191,16 +191,18 @@ Do not bundle all slices automatically into one PR.
 
 ### Actual Behavior
 
-Slice A now provides a pure repository-neutral Meal Categories foundation. Absent customization resolves four canonical defaults; strict validation rejects malformed/ambiguous identity, ordering, duplicate active labels, unsupported versions, and more than eight active categories; archived identities remain retained/resolvable; the in-memory owner validates before accepting writes.
+Slice A now provides a pure repository-neutral Meal Categories foundation. Absent customization resolves four canonical defaults; configs validate at construction and store deterministic semantic order; strict validation rejects malformed/ambiguous identity, ordering, duplicate active labels, unsupported versions, and more than eight active categories; archived identities remain retained/resolvable; the in-memory owner validates before accepting writes.
 
 The V1 codec uses `schema_version`, `default_key`, and `display_name` storage keys, accepts absent/null `default_key` for custom items, and never infers identity from labels or order. Production custom IDs use `meal_slot_<lowercase-uuid-v4>` with injected generation, collision retry, and retained-ID protection.
+
+Slice A intentionally exposes no destructive reset/clear method. Restore Defaults remains a later owner-visible decision and must preserve retained custom identities or use explicit tombstone semantics before historical MealLogs can reference them.
 
 ### Known Limitations
 
 - Slice B needs separate owner authorization for the exact column/migration and any hosted apply.
-- Slice C remains dependency-gated by TNYX-68/TNYX-54 and needs owner-approved visible UI behavior, including exact Restore Defaults semantics.
+- Slice C remains dependency-gated by TNYX-68/TNYX-54 and needs owner-approved visible UI behavior, including historical-safe Restore Defaults semantics.
 - TNYX-113 owns the future physical MealLog schema and database referential-integrity decision.
 
 ### Final Status
 
-`PASS` locally for Slice A — formatting, analyzer, focused tests, and full Nutrition package tests pass. Draft PR/exact-head CI remain the handoff gates; later slices remain unimplemented.
+`READY FOR MERGE` for Slice A only — independent review findings are fixed, local formatting/analyzer/focused/full tests pass, and source head `e924f2fa606de34d5640271bf1617f3623f24e24` passed exact-head Flutter CI run `34046391891`. PR #218 remains Draft and unmerged for the owner decision. TNYX-67 remains In Progress; Slice B, C, and D are not started.
