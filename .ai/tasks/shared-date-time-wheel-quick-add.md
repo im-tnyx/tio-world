@@ -1,6 +1,6 @@
 # Shared Core DateTime Wheel + Quick Add Local Draft
 
-**Status:** In progress
+**Status:** Ready for review
 **Primary owner:** `apps/core` reusable picker + `apps/features/nutrition` Quick Add adapter/presentation
 **Affected platforms:** Flutter Android + iOS phone UI; future Workout reuse is contract-only
 
@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-06; `origin/main` fetched and clean at `8eace9977c155661a339ef59187dd62028b9988e`
 **Branch:** `codex/shared-date-time-wheel-quick-add`
-**HEAD SHA:** `8eace9977c155661a339ef59187dd62028b9988e`
-**Observed working-tree state:** Clean before this brief; this brief is the first task-owned change
-**Observed uncommitted/dirty files:** `.ai/tasks/shared-date-time-wheel-quick-add.md`
-**PR / tracker:** No open GitHub PRs; PR #216 merged as baseline; TNYX-114 remains Backlog and blocked by TNYX-113; TNYX-158 is Done; no Linear mutation authorized or required
-**Current implementation state:** Core extraction and Nutrition local-draft interaction implemented; remote Flutter validation pending
+**Implementation SHA:** `74da6a9284e6a506fb7b2b7806459d5eee9368e5`
+**Observed working-tree state:** Clean at the validated implementation SHA before this final handoff update
+**Observed uncommitted/dirty files:** `.ai/tasks/shared-date-time-wheel-quick-add.md` (final handoff evidence only)
+**PR / tracker:** GitHub PR #217 is open against `main`; TNYX-114 remains Backlog and blocked by TNYX-113; TNYX-158 is Done; no Linear mutation was made or required
+**Current implementation state:** Core extraction and Nutrition local-draft interaction implemented and exact-head CI validated
 **Relevant execution surface:** `apps/core` wheel primitives and `TioDateTimeWheelPicker`; Nutrition Quick Add modal/editor/footer
-**Validation completed at SHA:** Baseline/history/overlap checks only
-**Validation remaining:** Focused Core/Nutrition tests; all Flutter package analyze/tests; `apps/shared` Dart analyze/test; `git diff --check`; scope/path audit; PR exact-head CI/review status
+**Validation completed at SHA:** `74da6a9284e6a506fb7b2b7806459d5eee9368e5` (GitHub Actions run `34013464673`)
+**Validation remaining:** Final handoff-only commit exact-head CI and GitHub review-thread audit
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Commit/push the bounded diff, open the PR, and use its Flutter CI because the configured local SDK path is unavailable.
+**Next exact action:** Push this final handoff-only update, confirm its exact-head CI/review state, then leave PR #217 unmerged for owner review.
 
 ## Global UI / Design-System Guardrail
 
@@ -129,8 +129,8 @@ resolved DateTime -> local draft -> controlled wheel columns + concrete footer
 - [x] Integrate the local Quick Add DateTime draft, inline card, footer toggle/format, fresh future snap-back, and ensure-visible behavior.
 - [x] Add focused Core and Nutrition tests, including viewport/keyboard and retained form values.
 - [x] Update Core theme/component contract and this task handoff.
-- [ ] Run complete validation and exact scope audit.
-- [ ] Commit, push, open a focused PR against current `main`, inspect review threads/CI, and do not merge.
+- [x] Run complete validation and exact scope audit.
+- [x] Commit, push, and open a focused PR against current `main`; final handoff-only exact-head CI/review audit remains before owner handoff. Do not merge.
 
 ## 6. Quality Review
 
@@ -138,10 +138,15 @@ resolved DateTime -> local draft -> controlled wheel columns + concrete footer
 
 ```text
 PASS: git diff --check
+PASS: GitHub Actions run 34013464673 at 74da6a9284e6a506fb7b2b7806459d5eee9368e5
+  - Flutter analyze: 15/15 packages, no issues
+  - Dart analyze: 1/1 package, no issues
+  - Flutter test: 13/13 test-bearing packages, 1,834 tests passed
+  - Dart test: 1/1 package, 38 tests passed
+  - Total automated tests: 1,872 passed
 UNAVAILABLE LOCALLY: Flutter/Dart analyze and tests; PATH has no toolchain,
 FLUTTER_ROOT points to absent G:\dev\flutter, the approved local tool catalog
 has no Flutter route, and the available Melos shim cannot run without dart.
-PENDING: GitHub Flutter CI exact-head full analyze/test matrix.
 ```
 
 ### Review Findings and Resolution
@@ -184,4 +189,4 @@ No persistence; no edit-existing MealLogEntry behavior; no timezone/instant sema
 
 ### Final Status
 
-`PARTIAL`
+`PASS`
