@@ -1,16 +1,18 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../theme/theme.dart';
-import 'tio_wheel_picker.dart';
 
+/// Feature-owned constraint hook for a candidate emitted by the native drum.
 typedef TioDateTimeResolver = DateTime Function(DateTime candidate);
 
-/// A controlled, coherent local DateTime wheel.
+/// Tio's controlled, theme-adapted Cupertino-style DateTime drum.
 ///
-/// Core owns only generic calendar/time composition. Feature callers own
-/// business defaults and constraints through [resolveDateTime]. For example,
-/// Nutrition can snap a future Meal attempt to a fresh current-local minute
-/// without teaching Core anything about meals or persistence.
+/// Core owns only DateTime presentation and generic bounds. A caller supplies
+/// domain constraints through [resolveDateTime]; Core never learns whether a
+/// selected value belongs to a meal, weight, or workout record.
 class TioDateTimeWheelPicker extends StatefulWidget {
   const TioDateTimeWheelPicker({
     required this.value,
@@ -18,25 +20,23 @@ class TioDateTimeWheelPicker extends StatefulWidget {
     required this.onChanged,
     super.key,
     this.minimumDate,
-    this.today,
     this.resolveDateTime,
   });
 
   final DateTime value;
   final DateTime maximumDate;
   final DateTime? minimumDate;
-  final DateTime? today;
   final TioDateTimeResolver? resolveDateTime;
   final ValueChanged<DateTime> onChanged;
 
   @override
-  State<TioDateTimeWheelPicker> createState() =>
-      _TioDateTimeWheelPickerState();
+  State<TioDateTimeWheelPicker> createState() => _TioDateTimeWheelPickerState();
 }
 
 class _TioDateTimeWheelPickerState extends State<TioDateTimeWheelPicker> {
-  late DateTime _selected;
-  var _syncRevision = 0;
+  late DateTime _displayedValue;
+  DateTime? _lastAndroidHapticValue;
+  var _pickerRevision = 0;
 
   @override
   void initState() {
@@ -45,14 +45,22 @@ class _TioDateTimeWheelPickerState extends State<TioDateTimeWheelPicker> {
       widget.minimumDate == null ||
           !widget.minimumDate!.isAfter(widget.maximumDate),
     );
-    _selected = _bound(_minute(widget.value));
+    _displayedValue = _constrain(_minute(widget.value));
   }
 
   @override
   void didUpdateWidget(covariant TioDateTimeWheelPicker oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final next = _bound(_minute(widget.value));
-    if (next != _selected) _selected = next;
+    final next = _constrain(_minute(widget.value));
+    final boundsChanged = widget.minimumDate != oldWidget.minimumDate ||
+        widget.maximumDate != oldWidget.maximumDate;
+    if (next == _displayedValue && !boundsChanged) return;
+
+    // CupertinoDatePicker reads initialDateTime once. A narrow re-key keeps a
+    // caller-resolved snap-back and fresh bounds visually controlled without
+    // recreating the native drum after every ordinary valid detent.
+    _displayedValue = next;
+    _pickerRevision++;
   }
 
   DateTime _minute(DateTime value) => DateTime(
@@ -63,261 +71,102 @@ class _TioDateTimeWheelPickerState extends State<TioDateTimeWheelPicker> {
         value.minute,
       );
 
-  DateTime _date(DateTime value) =>
-      DateTime(value.year, value.month, value.day);
-
-  bool _sameDate(DateTime left, DateTime right) =>
-      left.year == right.year &&
-      left.month == right.month &&
-      left.day == right.day;
-
-  int _calendarDaysBetween(DateTime later, DateTime earlier) => DateTime.utc(
-        later.year,
-        later.month,
-        later.day,
-      ).difference(DateTime.utc(earlier.year, earlier.month, earlier.day)).inDays;
-
-  DateTime _withDate(DateTime value, DateTime date) => DateTime(
-        date.year,
-        date.month,
-        date.day,
-        value.hour,
-        value.minute,
-      );
-
-  DateTime _bound(DateTime value) {
-    final maximum = _date(widget.maximumDate);
-    final minimum = widget.minimumDate == null
-        ? null
-        : _date(widget.minimumDate!);
-    final calendarDate = _date(value);
-    if (calendarDate.isAfter(maximum)) return _withDate(value, maximum);
-    if (minimum != null && calendarDate.isBefore(minimum)) {
-      return _withDate(value, minimum);
-    }
+  DateTime _constrain(DateTime value) {
+    final minimum = widget.minimumDate;
+    if (minimum != null && value.isBefore(minimum)) return _minute(minimum);
+    if (value.isAfter(widget.maximumDate)) return _minute(widget.maximumDate);
     return value;
   }
 
-  bool _isWithinCalendarBounds(DateTime value) {
-    final calendarDate = _date(value);
-    if (calendarDate.isAfter(_date(widget.maximumDate))) return false;
-    final minimum = widget.minimumDate;
-    return minimum == null || !calendarDate.isBefore(_date(minimum));
-  }
+  void _onNativeChanged(DateTime candidate) {
+    final minuteCandidate = _minute(candidate);
+    final resolved = _constrain(
+      _minute(widget.resolveDateTime?.call(minuteCandidate) ?? minuteCandidate),
+    );
+    final needsResync = resolved != minuteCandidate;
 
-  void _applyCandidate(DateTime candidate) {
-    final normalized = _minute(candidate);
-    final resolvedCandidate =
-        _minute(widget.resolveDateTime?.call(normalized) ?? normalized);
-    // Time detents may cross midnight. Let the feature resolver inspect that
-    // real candidate before enforcing Core's calendar range: replacing its
-    // day first would transplant (for example) tomorrow 01:00 onto today and
-    // hide a future attempt from Nutrition. If the resolver leaves the day
-    // out of range, the wheel stays at its current boundary value.
-    final resolved = _isWithinCalendarBounds(resolvedCandidate)
-        ? resolvedCandidate
-        : _selected;
-    final wasResolved = resolved != normalized;
-    if (resolved == _selected && !wasResolved) return;
+    if (defaultTargetPlatform != TargetPlatform.iOS &&
+        _lastAndroidHapticValue != minuteCandidate) {
+      // CupertinoPicker already supplies the native iOS selection tick. Its
+      // Android implementation intentionally does not, so add exactly one
+      // Tio selection haptic for each emitted settled native detent there.
+      _lastAndroidHapticValue = minuteCandidate;
+      HapticFeedback.selectionClick();
+    }
 
-    setState(() {
-      _selected = resolved;
-      if (wasResolved) _syncRevision++;
-    });
+    if (resolved != _displayedValue || needsResync) {
+      setState(() {
+        _displayedValue = resolved;
+        if (needsResync) _pickerRevision++;
+      });
+    }
     widget.onChanged(resolved);
   }
 
-  void _changeDate(TioWheelSelectionChange change) {
-    final maximum = _date(widget.maximumDate);
-    final date = DateTime(
-      maximum.year,
-      maximum.month,
-      maximum.day - change.index,
-    );
-    _applyCandidate(_withDate(_selected, date));
-  }
-
-  void _changeHour(TioWheelSelectionChange change) =>
-      _applyCandidate(_selected.add(Duration(hours: change.itemDelta)));
-
-  void _changeMinute(TioWheelSelectionChange change) =>
-      _applyCandidate(_selected.add(Duration(minutes: change.itemDelta)));
-
-  void _changePeriod(TioWheelSelectionChange change) =>
-      _applyCandidate(_selected.add(Duration(hours: 12 * change.itemDelta)));
-
-  TextStyle _itemStyle(BuildContext context, bool selected) {
-    final colors = context.tioColors;
-    return TextStyle(
-      fontSize: selected
-          ? TioWheelPickerTokens.selectedFontSize
-          : TioFontSize.size16,
-      fontWeight: selected ? TioFontWeight.w800 : TioFontWeight.w500,
-      color: selected
-          ? colors.textPrimary
-          : colors.textSecondary.withAlpha(TioAlpha.alpha90),
-    );
-  }
-
-  Widget _item(
-    BuildContext context,
-    String label,
-    bool selected, {
-    Key? key,
-  }) =>
-      Center(
-        child: Text(
-          label,
-          key: key,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: _itemStyle(context, selected),
-        ),
-      );
-
-  Widget _header(BuildContext context, String label) => Center(
-        child: Text(
-          label,
-          style: TextStyle(
-            color: context.tioColors.textSecondary,
-            fontSize: TioFontSize.size12,
-            fontWeight: TioFontWeight.w600,
-          ),
-        ),
-      );
-
   @override
   Widget build(BuildContext context) {
-    final maximum = _date(widget.maximumDate);
-    final minimum = widget.minimumDate == null
-        ? null
-        : _date(widget.minimumDate!);
-    final dateIndex = _calendarDaysBetween(maximum, _date(_selected));
-    final dateCount = minimum == null
-        ? null
-        : _calendarDaysBetween(maximum, minimum) + 1;
-    final hourIndex = (_selected.hour + 11) % 12;
-    final minuteIndex = _selected.minute;
-    final periodIndex = _selected.hour >= 12 ? 1 : 0;
-    final localizations = MaterialLocalizations.of(context);
+    final colors = context.tioColors;
+    final materialTheme = Theme.of(context);
+    final pickerTextStyle =
+        CupertinoTheme.of(context).textTheme.dateTimePickerTextStyle.copyWith(
+              color: colors.textPrimary,
+              fontSize: TioFontSize.size18,
+              fontFamily: materialTheme.textTheme.bodyLarge?.fontFamily,
+            );
 
-    return Column(
+    return Semantics(
       key: const ValueKey('tio-date-time-wheel-picker'),
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Expanded(flex: 3, child: _header(context, 'Date')),
-            Expanded(flex: 2, child: _header(context, 'Hour')),
-            Expanded(flex: 2, child: _header(context, 'Minute')),
-            Expanded(flex: 2, child: _header(context, 'AM/PM')),
-          ],
-        ),
-        const SizedBox(height: TioSpacing.xs),
-        TioWheelPickerFrame(
-          selectionPillKey:
-              const ValueKey('tio-date-time-wheel-selection-pill'),
-          child: Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: TioWheelPickerColumn(
-                  key: const ValueKey('tio-date-time-wheel-date'),
-                  selectedIndex: dateIndex,
-                  itemCount: dateCount,
-                  syncRevision: _syncRevision,
-                  semanticLabel: 'Date',
-                  semanticValue: localizations.formatMediumDate(_selected),
-                  onSelectedItemChanged: _changeDate,
-                  itemBuilder: (context, index, selected) {
-                    final date = DateTime(
-                      maximum.year,
-                      maximum.month,
-                      maximum.day - index,
-                    );
-                    final label = widget.today != null &&
-                            _sameDate(date, widget.today!)
-                        ? 'Today'
-                        : localizations.formatShortMonthDay(date);
-                    return _item(
-                      context,
-                      label,
-                      selected,
-                      key: selected
-                          ? const ValueKey('tio-date-time-date-selected')
-                          : null,
-                    );
-                  },
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: TioWheelPickerColumn(
-                  key: const ValueKey('tio-date-time-wheel-hour'),
-                  selectedIndex: hourIndex,
-                  itemCount: 12,
-                  looping: true,
-                  syncRevision: _syncRevision,
-                  semanticLabel: 'Hour',
-                  semanticValue: '${hourIndex + 1}',
-                  onSelectedItemChanged: _changeHour,
-                  itemBuilder: (context, index, selected) => _item(
-                    context,
-                    '${index + 1}',
-                    selected,
-                    key: selected
-                        ? const ValueKey('tio-date-time-hour-selected')
-                        : null,
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: TioWheelPickerColumn(
-                  key: const ValueKey('tio-date-time-wheel-minute'),
-                  selectedIndex: minuteIndex,
-                  itemCount: 60,
-                  looping: true,
-                  syncRevision: _syncRevision,
-                  semanticLabel: 'Minute',
-                  semanticValue: minuteIndex.toString().padLeft(2, '0'),
-                  onSelectedItemChanged: _changeMinute,
-                  itemBuilder: (context, index, selected) => _item(
-                    context,
-                    index.toString().padLeft(2, '0'),
-                    selected,
-                    key: selected
-                        ? const ValueKey('tio-date-time-minute-selected')
-                        : null,
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: TioWheelPickerColumn(
-                  key: const ValueKey('tio-date-time-wheel-period'),
-                  selectedIndex: periodIndex,
-                  itemCount: 2,
-                  looping: true,
-                  syncRevision: _syncRevision,
-                  semanticLabel: 'AM or PM',
-                  semanticValue: periodIndex == 0 ? 'AM' : 'PM',
-                  onSelectedItemChanged: _changePeriod,
-                  itemBuilder: (context, index, selected) => _item(
-                    context,
-                    index == 0 ? 'AM' : 'PM',
-                    selected,
-                    key: selected
-                        ? const ValueKey('tio-date-time-period-selected')
-                        : null,
-                  ),
-                ),
-              ),
-            ],
+      container: true,
+      label: 'Date and time picker',
+      child: CupertinoTheme(
+        data: CupertinoThemeData(
+          brightness: materialTheme.brightness,
+          primaryColor: colors.textPrimary,
+          textTheme: CupertinoTextThemeData(
+            dateTimePickerTextStyle: pickerTextStyle,
           ),
         ),
-      ],
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Selection pill rendered behind the wheel text, matching the
+            // DOB / weight / height picker z-order convention.
+            Container(
+              key: const ValueKey('tio-date-time-wheel-selection-pill'),
+              height: TioWheelPickerTokens.selectionHeight,
+              margin: const EdgeInsets.symmetric(
+                horizontal: TioWheelPickerTokens.selectionHorizontalMargin,
+              ),
+              decoration: BoxDecoration(
+                color: colors.surfaceVariant.withAlpha(
+                  TioWheelPickerTokens.selectionSurfaceAlpha,
+                ),
+                borderRadius: BorderRadius.circular(TioRadius.md),
+              ),
+            ),
+            CupertinoDatePicker(
+              key: ValueKey('tio-date-time-cupertino-$_pickerRevision'),
+              mode: CupertinoDatePickerMode.dateAndTime,
+              initialDateTime: _displayedValue,
+              minimumDate: widget.minimumDate,
+              maximumDate: widget.maximumDate,
+              use24hFormat: false,
+              itemExtent: TioWheelPickerTokens.itemExtent,
+              backgroundColor: TioPalette.transparent,
+              onDateTimeChanged: _onNativeChanged,
+              // Suppress the native overlay — it renders above the wheel text.
+              // The pill Container above this picker provides the behind-text
+              // selection highlight instead.
+              selectionOverlayBuilder: (
+                context, {
+                required selectedIndex,
+                required columnCount,
+              }) =>
+                  const SizedBox.shrink(),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

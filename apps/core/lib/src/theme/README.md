@@ -384,8 +384,8 @@ TioSelectableCard
 TioConfirmationCard
 TioAvatar
 TioDateCalendar
+TioDateTimePickerPopup
 TioDateTimeWheelPicker
-TioWheelPickerColumn
 core reusable dialogs/pickers/sheets
 ```
 
@@ -395,7 +395,9 @@ core reusable dialogs/pickers/sheets
 
 `TioDateCalendar` is the reusable inline date calendar: a compact horizontal date strip and an expandable inline month grid that are two renderings of one caller-controlled `selectedDate`. It has no component-token file, because the component-token admission gate above is not met: it consumes `TioSize`, `TioSpacing`, `TioRadius`, `TioStroke`, `TioOpacity`, `TioFontWeight`, `context.tioColors` and `context.tioMotion` directly. Callers own `selectedDate`, `localToday`, `minDate`/`maxDate` and the resolved first day of week; per-date visuals arrive as a generic `TioDateDecoration` (progress, generic fill, marker count) so core renders presentation values without learning any feature's domain. `onVisibleDateRangeChanged` reports the inclusive seven-day week or calendar month owned by the active pager page, allowing a caller to distinguish selection from viewport without putting feature policy in Core. `progress: null` and `progress: 0` are deliberately different renderings. Do not add domain parameters to it, and do not turn it into a Planning or Progress calendar. `tioOrderedWeekdayLabels` and `tioWeekdayName` are exported beside it. The calendar's own weekday header draws its columns from the first; the second names a single day and is what the Settings first-day-of-week choice labels its options with. Both format from the locale; never hard-code an English weekday string beside them.
 
-`TioWheelPickerColumn` and `TioWheelPickerFrame` own the shared Tio drum-wheel mechanics and selected-row treatment: fixed-extent physics, finite/unbounded/looping delegates, controller synchronization, one selection haptic per user detent, and the semantic `surfaceVariant` pill. Callers supply labels and own domain state. `TioDateTimeWheelPicker` composes those primitives into one controlled local `DateTime` across Date, Hour, Minute, and AM/PM columns. Core owns coherent rollover/underflow and generic calendar bounds; a feature owns its default, clock, future-time policy, draft lifecycle, persistence, and any domain meaning through `resolveDateTime`. Do not add meal, workout, timezone, storage, or submit behavior to the Core API.
+`TioDateTimePickerPopup` is an anchored overlay card that leaves its child layout and scroll extent unchanged. `TioDateTimeWheelPicker` is its controlled, theme-adapted wrapper around Flutter's `CupertinoDatePicker(mode: CupertinoDatePickerMode.dateAndTime, use24hFormat: false)`. The native picker owns its unified Date/Hour/Minute/AM-PM drum, one continuous selected-row overlay, natural 12-hour period behavior, and cylindrical perspective; Core adds generic bounds, controlled resynchronization, and Android-only selection haptics. A feature owns its anchor, default value, clock freshness, draft lifecycle, persistence, and any domain meaning through `resolveDateTime`. Do not add meal, workout, timezone, storage, or submit behavior to the Core API.
+
+`TioEditorSheet.bottomPadding` defaults to the editor family's compact `12dp` bottom inset while side and top padding retain their established value. A caller may override it only for a documented surface requirement; do not use negative layout offsets.
 
 `TioShell` exposes one optional contextual status title. A tab label names a domain while the screen inside it may be one of several, so the composition layer supplies the screen's own name and the tab label stays the fallback. Core never learns which screen a feature is currently showing.
 

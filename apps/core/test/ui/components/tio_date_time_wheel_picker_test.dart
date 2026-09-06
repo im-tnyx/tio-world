@@ -1,8 +1,12 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 
+/* Legacy custom-column picker coverage, retained temporarily in the PR diff
+ * only as source history while this correction replaces the implementation.
+ */
+/*
 const _dateWheel = ValueKey('tio-date-time-wheel-date');
 const _hourWheel = ValueKey('tio-date-time-wheel-hour');
 const _minuteWheel = ValueKey('tio-date-time-wheel-minute');
@@ -320,6 +324,134 @@ void main() {
       TioColors.oled.surfaceVariant.withAlpha(
         TioWheelPickerTokens.selectionSurfaceAlpha,
       ),
+    );
+  });
+}
+*/
+
+Future<void> _pumpCupertinoPicker(
+  WidgetTester tester, {
+  required DateTime value,
+  required DateTime maximumDate,
+  DateTime? minimumDate,
+  TioDateTimeResolver? resolver,
+  ValueChanged<DateTime>? onChanged,
+  TioThemeMode mode = TioThemeMode.light,
+}) {
+  return tester.pumpWidget(
+    MaterialApp(
+      builder: (context, child) => TioTheme(
+        config: TioThemeConfig(mode: mode),
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: Scaffold(
+        body: SizedBox(
+          height: TioWheelPickerTokens.viewportHeight,
+          child: TioDateTimeWheelPicker(
+            value: value,
+            maximumDate: maximumDate,
+            minimumDate: minimumDate,
+            resolveDateTime: resolver,
+            onChanged: onChanged ?? (_) {},
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+void main() {
+  testWidgets('uses one native 12-hour Cupertino DateTime drum',
+      (tester) async {
+    final value = DateTime(2026, 9, 6, 0, 7);
+    final maximum = DateTime(2026, 9, 6, 14, 30);
+    await _pumpCupertinoPicker(tester, value: value, maximumDate: maximum);
+
+    final picker = tester.widget<CupertinoDatePicker>(
+      find.byType(CupertinoDatePicker),
+    );
+    expect(picker.mode, CupertinoDatePickerMode.dateAndTime);
+    expect(picker.initialDateTime, value);
+    expect(picker.minimumDate, isNull);
+    expect(picker.maximumDate, maximum);
+    expect(picker.use24hFormat, isFalse);
+    expect(find.text('Date'), findsNothing);
+    expect(find.text('Hour'), findsNothing);
+    expect(find.text('Minute'), findsNothing);
+  });
+
+  testWidgets('passes optional generic lower bounds to the native picker',
+      (tester) async {
+    final minimum = DateTime(2024, 1, 1);
+    final maximum = DateTime(2026, 9, 6, 14, 30);
+    await _pumpCupertinoPicker(
+      tester,
+      value: DateTime(2025, 6, 2, 8),
+      minimumDate: minimum,
+      maximumDate: maximum,
+    );
+
+    final picker = tester.widget<CupertinoDatePicker>(
+      find.byType(CupertinoDatePicker),
+    );
+    expect(picker.minimumDate, minimum);
+    expect(picker.maximumDate, maximum);
+  });
+
+  testWidgets('resolver snap-back recreates the controlled native drum',
+      (tester) async {
+    final boundary = DateTime(2026, 9, 6, 0, 7);
+    DateTime? selected;
+    await _pumpCupertinoPicker(
+      tester,
+      value: boundary,
+      maximumDate: boundary,
+      resolver: (candidate) =>
+          candidate.isAfter(boundary) ? boundary : candidate,
+      onChanged: (value) => selected = value,
+    );
+
+    final nativePicker = tester.widget<CupertinoDatePicker>(
+      find.byType(CupertinoDatePicker),
+    );
+    nativePicker.onDateTimeChanged(DateTime(2026, 9, 6, 0, 8));
+    await tester.pump();
+
+    expect(selected, boundary);
+    expect(
+      find.byKey(const ValueKey('tio-date-time-cupertino-1')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('selection treatment derives from the active Tio theme',
+      (tester) async {
+    await _pumpCupertinoPicker(
+      tester,
+      value: DateTime(2026, 9, 6, 10, 30),
+      maximumDate: DateTime(2026, 9, 6, 14, 30),
+      mode: TioThemeMode.oled,
+    );
+
+    final theme =
+        tester.widgetList<CupertinoTheme>(find.byType(CupertinoTheme)).last;
+    expect(
+      theme.data.textTheme.dateTimePickerTextStyle.color,
+      TioColors.oled.textPrimary,
+    );
+    expect(
+      theme.data.textTheme.dateTimePickerTextStyle.fontSize,
+      TioFontSize.size18,
+    );
+    final overlays = tester
+        .widgetList<CupertinoPickerDefaultSelectionOverlay>(
+          find.byType(CupertinoPickerDefaultSelectionOverlay),
+        )
+        .toList();
+    expect(overlays, isNotEmpty);
+    expect(
+      overlays.first.background,
+      TioColors.oled.surfaceVariant.withAlpha(TioAlpha.alpha140),
     );
   });
 }

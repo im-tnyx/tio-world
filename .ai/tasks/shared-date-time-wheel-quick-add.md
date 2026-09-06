@@ -9,7 +9,7 @@
 **Trigger:** New independently scoped product task/feature slice; approved product-visible UI/UX change
 **Approval status:** Approved
 **Approval evidence:** Owner prompt dated 2026-09-06 explicitly approves this bounded Core DateTime wheel + Nutrition Quick Add local-draft slice.
-**Approved product/UI/data-shape boundaries:** Add a shared Core coherent `Date | Hour | Minute | AM/PM` wheel and reveal it inline above `MealLogActionFooter`; initialize each new Quick Add from one current-local minute snapshot; update the local draft/footer live; preserve the draft across collapse/reopen; cap the Meal date wheel at local Today; snap future time attempts to fresh current local time; keep the footer concrete and 24-hour formatted.
+**Approved product/UI/data-shape boundaries:** Replace the rejected inline card with a shared Core DateTime popup/card anchored to `MealLogActionFooter`; use a theme-adapted native `CupertinoDatePicker(mode: dateAndTime, use24hFormat: false)` drum with no visible column headers; initialize each new Quick Add from one current-local minute snapshot; update the local draft/footer live; preserve the draft across popup close/reopen; cap selection at local current minute; keep the footer concrete and 24-hour formatted.
 **Explicit non-changes:** No Supabase/schema/RLS/Storage change; no `services/api`; no MealLog persistence; no timezone/UTC/DST persistence policy; no TNYX-113/TNYX-115 implementation; no meal categories; no AI/voice/photo/search/recent/saved meals; no Workout UI; no TNYX-157 theme migration; no merge; no mutation of `docs/supabase-android-studio-qa-run` or preserved commit `7fe89682`.
 
 ## Active Handoff
@@ -21,21 +21,45 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-06; `origin/main` fetched and clean at `8eace9977c155661a339ef59187dd62028b9988e`
 **Branch:** `codex/shared-date-time-wheel-quick-add`
-**Implementation SHA:** `74da6a9284e6a506fb7b2b7806459d5eee9368e5`
+**Implementation SHA:** `4562cbe391f4cd8854ace35a7a2ccf46001a6f54`
 **Observed working-tree state:** Clean at the validated implementation SHA before this final handoff update
-**Observed uncommitted/dirty files:** `.ai/tasks/shared-date-time-wheel-quick-add.md` (final handoff evidence only)
+**Observed uncommitted/dirty files:** Owner-approved popup correction, its focused tests, and canonical UI-contract documentation; no unrelated work.
 **PR / tracker:** GitHub PR #217 is open against `main`; TNYX-114 remains Backlog and blocked by TNYX-113; TNYX-158 is Done; no Linear mutation was made or required
-**Current implementation state:** Core extraction and Nutrition local-draft interaction implemented; two valid review findings fixed locally and awaiting exact-head CI
-**Relevant execution surface:** `apps/core` wheel primitives and `TioDateTimeWheelPicker`; Nutrition Quick Add modal/editor/footer
-**Validation completed at SHA:** `74da6a9284e6a506fb7b2b7806459d5eee9368e5` (GitHub Actions run `34013464673`)
-**Validation remaining:** Review-fix exact-head CI and final GitHub review-thread audit
+**Current implementation state:** The prior inline card and four-column custom wheel are superseded by owner device UI review; popup/card and Cupertino-style correction is active
+**Relevant execution surface:** `TioDateTimePickerPopup` and `TioDateTimeWheelPicker` in Core; Nutrition Quick Add modal/editor/footer
+**Validation completed at SHA:** `4562cbe391f4cd8854ace35a7a2ccf46001a6f54` (GitHub Actions run `34014099801`)
+**Validation remaining:** Full repository validation, exact-head CI, review-thread audit, and owner/device screenshot evidence
 **Current blocker:** None
-**Open review finding IDs:** None
-**Next exact action:** Validate, commit, and push the bounded review fixes; confirm exact-head CI/review state, then leave PR #217 unmerged for owner review.
+**Open review finding IDs:** QR-8 and QR-9 are resolved; owner presentation findings require the approved popup/card and wheel correction
+**Next exact action:** Complete validation, then push the correction to existing Draft PR #217 without merging; device alignment remains required before UI PASS.
 
 ## Global UI / Design-System Guardrail
 
 The validated design-system ownership task and `apps/core/lib/src/theme/README.md` were read before source changes. Existing Tio geometry, theme roles, cards, editor-sheet behavior, calendar asset treatment, and wheel tokens remain authoritative. This slice changes only the owner-approved inline picker interaction and the minimum Core reuse extraction needed to avoid a fourth wheel implementation.
+
+## Owner Device UI Correction — 2026-09-06
+
+Owner device review rejected the committed inline `TioCard` inside
+`TioEditorSheet.content` and the visible custom `Date | Hour | Minute | AM/PM`
+header/column composition. This correction supersedes that presentation only;
+the route-local Quick Add draft, one-shot current-local snapshot, concrete
+footer, fresh future-time bound, disabled `Log Meal`, and no-persistence scope
+remain locked.
+
+The approved direction is one reusable Core DateTime popup/popover card over
+the editor, anchored to a generic date/time control without changing editor
+body scroll extent. Its wheel uses a Tio-owned, theme-adapted wrapper around
+Flutter `CupertinoDatePicker(mode: dateAndTime, use24hFormat: false)`. Meal,
+future Meal Editor, future Weight editor, and future Workout editor are reuse
+consumers; this correction implements no Weight or Workout feature screen.
+
+The Flutter `3.44.6` source audit verified: `minimumDate` may be null,
+`maximumDate` is a hard selectable DateTime boundary, invalid candidates do
+not call the callback and settle back, `selectionOverlayBuilder` is supported,
+and Cupertino's picker already emits `HapticFeedback.selectionClick()`. Since
+`initialDateTime` is initialization-only, the Core wrapper re-keys only after
+a caller constraint resolves a candidate to a different value or an external
+controlled value/bound changes; normal valid detents do not recreate it.
 
 ## 1. Discovery
 
@@ -130,7 +154,7 @@ resolved DateTime -> local draft -> controlled wheel columns + concrete footer
 - [x] Add focused Core and Nutrition tests, including viewport/keyboard and retained form values.
 - [x] Update Core theme/component contract and this task handoff.
 - [x] Run complete validation and exact scope audit.
-- [x] Commit, push, and open a focused PR against current `main`; final handoff-only exact-head CI/review audit remains before owner handoff. Do not merge.
+- [x] Commit, push, open a focused PR against current `main`, inspect review threads/CI, address valid findings, and do not merge.
 
 ## 6. Quality Review
 
@@ -138,15 +162,14 @@ resolved DateTime -> local draft -> controlled wheel columns + concrete footer
 
 ```text
 PASS: git diff --check
-PASS: GitHub Actions run 34013464673 at 74da6a9284e6a506fb7b2b7806459d5eee9368e5
+PASS: local focused Core picker test file, 12/12 tests
+PASS: local focused Nutrition Quick Add flow test file, 54/54 tests
+PASS: GitHub Actions run 34014099801 at 4562cbe391f4cd8854ace35a7a2ccf46001a6f54
   - Flutter analyze: 15/15 packages, no issues
   - Dart analyze: 1/1 package, no issues
-  - Flutter test: 13/13 test-bearing packages, 1,834 tests passed
+  - Flutter test: 13/13 test-bearing packages, 1,837 tests passed
   - Dart test: 1/1 package, 38 tests passed
-  - Total automated tests: 1,872 passed
-UNAVAILABLE LOCALLY: Flutter/Dart analyze and tests; PATH has no toolchain,
-FLUTTER_ROOT points to absent G:\dev\flutter, the approved local tool catalog
-has no Flutter route, and the available Melos shim cannot run without dart.
+  - Total automated tests: 1,875 passed
 ```
 
 ### Review Findings and Resolution
@@ -160,8 +183,8 @@ has no Flutter route, and the available Melos shim cannot run without dart.
 | QR-5 | P1 | Resolved | A boundary overscroll could report an unchanged raw index or bounded DateTime, causing a no-op domain callback and possible selection haptic. | `b92ec6b3`, `b758eb48` | Generic column ignores zero-detent callbacks and DateTime composition suppresses unresolved no-op candidates; resolver snap-back still synchronizes. |
 | QR-6 | P0 | Resolved | Flutter's null-count builder requested raw index `-1`, so the unbounded-past Date wheel rendered one day after its maximum. | `f5705f48` | Null-count non-looping delegates now terminate below raw index zero while keeping all positive historical indices available. |
 | QR-7 | P2 | Resolved | Nutrition tests still expected the formerly disabled date control's compact height and no tap semantics action. | `12c74b43` | Assert one-row center alignment for the enabled 48dp target and require its accessibility tap action. |
-| QR-8 | P1 | Resolved locally | Calendar bounds were applied before the feature resolver, so a cross-day time detent could transplant tomorrow's time onto Today and hide a future attempt. | `74da6a92` | Resolve the original minute candidate first; if the resolved day remains out of range, keep the current boundary value. Added cross-day resolver and boundary-rollover tests. |
-| QR-9 | P2 | Resolved locally | The Quick Add maximum calendar date refreshed on pointer-down only, so an editor open across midnight could retain yesterday's bound for assistive/keyboard users. | `74da6a92` | Add route-owned next-midnight refresh plus app lifecycle rescheduling; retain pointer refresh for immediate clock adjustments. Added a no-pointer midnight test. |
+| QR-8 | P1 | Resolved | Calendar bounds were applied before the feature resolver, so a cross-day time detent could transplant tomorrow's time onto Today and hide a future attempt. | `74da6a92` | At `4562cbe3`, resolve the original minute candidate first; if the resolved day remains out of range, keep the current boundary value. Cross-day resolver and boundary-rollover tests pass in CI. |
+| QR-9 | P2 | Resolved | The Quick Add maximum calendar date refreshed on pointer-down only, so an editor open across midnight could retain yesterday's bound for assistive/keyboard users. | `74da6a92` | At `4562cbe3`, add route-owned next-midnight refresh plus app lifecycle rescheduling; retain pointer refresh for immediate clock adjustments. The no-pointer midnight test passes in CI. |
 
 ## 7. Final Handoff
 
@@ -191,4 +214,39 @@ No persistence; no edit-existing MealLogEntry behavior; no timezone/instant sema
 
 ### Final Status
 
-`PARTIAL`
+`REVIEW`
+
+## Owner Correction Implementation — 2026-09-06
+
+This section supersedes the earlier inline-card/custom-column architecture and
+its associated validation notes.
+
+- Reverted the incidental DOB, weight, and onboarding-height generic-wheel
+  migrations; no unrelated existing picker changes remain in scope.
+- Added `TioDateTimePickerPopup`, a generic `OverlayPortal` card anchored to a
+  caller-owned control. It floats over the current editor route and does not
+  enter or expand `TioEditorSheet.content`.
+- Replaced the four-header custom wheel with the controlled
+  `TioDateTimeWheelPicker` wrapper around
+  `CupertinoDatePickerMode.dateAndTime` using `use24hFormat: false`.
+  Native picker geometry owns the single selected-row overlay, wider date
+  column, aligned AM/PM, and cylindrical wheel presentation.
+- Refined selection pill z-order: moved the selection pill behind the wheel text
+  via a Stack to match the DOB/weight picker pattern, suppressing native top overlay.
+- Aligned selection pill geometry with tokens: height set to 44dp (`TioSize.dp44`),
+  horizontal margin set to `TioSpacing.md` (12dp).
+- Aligned popup card padding to `TioSpacing.xs` (4dp) and anchor gap to `TioSpacing.sm` (8dp).
+- Quick Add retains its route-local draft and disabled/no-persistence contract.
+  Its selectable maximum refreshes to the current local minute while the popup
+  is open and before picker interaction; no lower date bound is invented.
+
+Focused validation after the correction:
+
+```text
+PASS: apps/core/test/ui/components/tio_date_time_wheel_picker_test.dart (4)
+PASS: apps/features/nutrition/test/meal_logging/meal_diary_add_food_flow_test.dart (50)
+PASS: apps/app/test/app/meal_logging_modal_theme_test.dart (2)
+```
+
+Device/emulator screenshot comparison against the owner reference remains
+required before reporting UI PASS or resolving the owner presentation finding.

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -31,7 +32,7 @@ void main() {
   const quickAddCard = ValueKey('add-food-quick-add');
   const editorSheet = ValueKey('tio-editor-sheet');
   const footerDateTime = ValueKey('meal-log-footer-date-time');
-  const pickerCard = ValueKey('quick-add-date-time-picker-card');
+  const pickerPopup = ValueKey('tio-date-time-picker-popup');
 
   Future<void> pumpApp(WidgetTester tester, TioThemeMode mode) async {
     final appMode = AppModeController(_MemoryAppModePreference(AppMode.hybrid));
@@ -140,29 +141,24 @@ void main() {
 
       await tester.tap(find.byKey(footerDateTime));
       await tester.pumpAndSettle();
-      expect(find.byKey(pickerCard), findsOneWidget);
+      expect(find.byKey(pickerPopup), findsOneWidget);
       final pickerSurface = tester
           .widgetList<Container>(
             find.descendant(
-              of: find.byKey(pickerCard),
+              of: find.byKey(pickerPopup),
               matching: find.byType(Container),
             ),
           )
           .map((container) => container.decoration)
           .whereType<BoxDecoration>()
           .first;
-      expect(pickerSurface.color, expected.surfaceRaised);
-      final selectionPill = tester.widget<Container>(
-        find.byKey(
-          const ValueKey('tio-date-time-wheel-selection-pill'),
-        ),
-      );
+      expect(pickerSurface.color, expected.surface);
+      final nativeTheme =
+          tester.widgetList<CupertinoTheme>(find.byType(CupertinoTheme)).last;
       expect(
-        (selectionPill.decoration! as BoxDecoration).color,
-        expected.surfaceVariant.withAlpha(
-          TioWheelPickerTokens.selectionSurfaceAlpha,
-        ),
-        reason: '${mode.$2}: inline picker must inherit the real app theme',
+        nativeTheme.data.textTheme.dateTimePickerTextStyle.color,
+        expected.textPrimary,
+        reason: '${mode.$2}: popup native picker must inherit the app theme',
       );
     });
   }
@@ -244,7 +240,8 @@ class _MemoryOnboardingStatusRepository implements OnboardingStatusRepository {
   }
 }
 
-class _FixedAppSessionBootstrapController extends AppSessionBootstrapController {
+class _FixedAppSessionBootstrapController
+    extends AppSessionBootstrapController {
   _FixedAppSessionBootstrapController({
     required AppSessionBootstrapState state,
     required super.onboardingStatusController,

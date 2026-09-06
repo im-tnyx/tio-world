@@ -63,6 +63,7 @@ class TioEditorSheet extends StatelessWidget {
     this.canDismiss = true,
     this.titleTrailing,
     this.flushActions = false,
+    this.bottomPadding = TioSpacing.md,
   });
 
   final String title;
@@ -92,6 +93,10 @@ class TioEditorSheet extends StatelessWidget {
   /// reads as content having been cut off.
   final bool flushActions;
 
+  /// Bottom inset inside the editor surface. The editor family uses a compact
+  /// 12dp bottom inset while retaining its established side and top padding.
+  final double bottomPadding;
+
   /// Whether the handle may dismiss the sheet. Set false while a save is in
   /// flight so a drag cannot discard work mid-write.
   final bool canDismiss;
@@ -111,7 +116,12 @@ class TioEditorSheet extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(TioEditorSheetTokens.padding),
+            padding: EdgeInsets.fromLTRB(
+              TioEditorSheetTokens.padding,
+              TioEditorSheetTokens.padding,
+              TioEditorSheetTokens.padding,
+              bottomPadding,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
