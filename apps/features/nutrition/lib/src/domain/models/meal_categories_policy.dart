@@ -1,0 +1,106 @@
+import 'meal_categories_validation.dart';
+import 'meal_category.dart';
+import 'meal_category_defaults.dart';
+
+/// Canonical validation owner for Meal Category configuration.
+abstract final class MealCategoriesPolicy {
+  static const int currentSchemaVersion = 1;
+  static const int maxActiveMealCategories = 8;
+
+  static final RegExp _whitespace = RegExp(r'\s+');
+  static final RegExp _customIdPattern = RegExp(
+    r'^meal_slot_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+  );
+
+  static bool isValidCustomId(String id) => _customIdPattern.hasMatch(id);
+
+  static void validate({
+    required int schemaVersion,
+    required Iterable<MealCategory> items,
+  }) {
+    if (schemaVersion != currentSchemaVersion) {
+      throw MealCategoriesValidationException(
+        code: MealCategoriesValidationCode.unsupportedSchemaVersion,
+        message: 'Unsupported Meal Categories schema version: $schemaVersion.',
+      );
+    }
+
+    final ids = <String>{};
+    final orders = <int>{};
+    final activeNames = <String>{};
+    final defaultKeys = <MealCategoryDefaultKey>{};
+    var activeCount = 0;
+
+    for (final item in items) {
+      if (!ids.add(item.id)) {
+        throw MealCategoriesValidationException(
+          code: MealCategoriesValidationCode.duplicateId,
+          message: 'Duplicate Meal Category id: ${item.id}.',
+        );
+      }
+      if (!orders.add(item.order)) {
+        throw MealCategoriesValidationException(
+          code: MealCategoriesValidationCode.duplicateOrder,
+          message: 'Duplicate Meal Category order: ${item.order}.',
+        );
+      }
+
+      final defaultKey = item.defaultKey;
+      if (defaultKey != null) {
+        if (!defaultKeys.add(defaultKey)) {
+          throw MealCategoriesValidationException(
+            code: MealCategoriesValidationCode.duplicateDefaultKey,
+            message:
+                'Duplicate canonical defaultKey: ${defaultKey.storageValue}.',
+          );
+        }
+        final definition = canonicalMealCategoryDefaultDefinitions
+            .firstWhere((candidate) => candidate.key == defaultKey);
+        if (definition.id != item.id) {
+          throw MealCategoriesValidationException(
+            code: MealCategoriesValidationCode.invalidDefaultMapping,
+            message:
+                '${defaultKey.storageValue} must retain id ${definition.id}.',
+          );
+        }
+      } else if (!isValidCustomId(item.id)) {
+        throw const MealCategoriesValidationException(
+          code: MealCategoriesValidationCode.invalidId,
+          message: 'Custom Meal Category id must use a lowercase UUID v4.',
+        );
+      }
+
+      if (item.active) {
+        activeCount++;
+        final normalizedName =
+            item.displayName.replaceAll(_whitespace, ' ').trim().toLowerCase();
+        if (!activeNames.add(normalizedName)) {
+          throw MealCategoriesValidationException(
+            code: MealCategoriesValidationCode.duplicateActiveDisplayName,
+            message:
+                'Duplicate active Meal Category displayName: ${item.displayName}.',
+          );
+        }
+      }
+    }
+
+    if (activeCount > maxActiveMealCategories) {
+      throw const MealCategoriesValidationException(
+        code: MealCategoriesValidationCode.tooManyActiveCategories,
+        message:
+            'At most $maxActiveMealCategories Meal Categories may be active.',
+      );
+    }
+
+    for (final definition in canonicalMealCategoryDefaultDefinitions) {
+      final matchingId = items.where((item) => item.id == definition.id);
+      if (matchingId.isEmpty ||
+          matchingId.single.defaultKey != definition.key) {
+        throw MealCategoriesValidationException(
+          code: MealCategoriesValidationCode.missingCanonicalDefault,
+          message: 'Missing canonical Meal Category ${definition.id}.',
+        );
+      }
+    }
+  }
+}
