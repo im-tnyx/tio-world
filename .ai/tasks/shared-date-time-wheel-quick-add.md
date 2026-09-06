@@ -27,7 +27,7 @@
 **Current implementation state:** `TioDateTimePickerPopup` (Overlay card) and `TioDateTimeWheelPicker` (`CupertinoDatePicker` wrapper) are active; the compact DateTime selection pill uses `TioWheelPickerTokens.compactSelectionHeight` (44dp), the standard wheel `selectionHeight` remains 48dp, outside-dismiss cancels the Quick Add maximum-date timer, and the global editor bottom inset is governed by `TioEditorSheetTokens.bottomPadding` (12dp). Owner device UI acceptance is **ACCEPTED**.
 **Relevant execution surface:** `TioDateTimePickerPopup` and `TioDateTimeWheelPicker` in Core; Nutrition Quick Add modal/editor/footer
 **Validation completed at SHA:** `bfc7f3ac000773a3af5a6a14811523a428664f2a` (GitHub Actions run `34029711216` — Analyze Flutter, Analyze Dart, Test Flutter, and Test Dart all passed)
-**Validation remaining:** Owner device screenshot visual acceptance
+**Validation remaining:** None for this implementation slice; maintainer review/merge decision remains external
 **Current blocker:** None
 **Open review finding IDs:** None. All five review threads are resolved; the three stale/outdated threads were replied to with final-head evidence and resolved.
 **Next exact action:** Await maintainer review/merge decision. Do not merge in this task.
