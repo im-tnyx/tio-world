@@ -1052,6 +1052,35 @@ void main() {
       );
     });
 
+    testWidgets('midnight timer exposes new Today without pointer input',
+        (tester) async {
+      var now = DateTime(2026, 9, 5, 23, 59, 59);
+      await _pump(tester, quickAddClock: () => now);
+      await _openQuickAdd(tester);
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Today'), findsOneWidget);
+      now = DateTime(2026, 9, 6, 0, 0, 1);
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Today'), findsOneWidget);
+      final dateWheel = tester.widget<ListWheelScrollView>(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('tio-date-time-wheel-date'),
+          ),
+          matching: find.byType(ListWheelScrollView),
+        ),
+      );
+      final dateController =
+          dateWheel.controller! as FixedExtentScrollController;
+      expect(dateController.selectedItem, 1,
+          reason: 'the old draft is now one reachable detent before Today');
+      expect(find.text('Sep 5, 23:59'), findsOneWidget);
+    });
+
     testWidgets('form values survive picker interaction and collapse',
         (tester) async {
       await _pump(tester);

@@ -259,6 +259,49 @@ void main() {
     );
   });
 
+  testWidgets('resolver sees a cross-day time candidate before date bounds',
+      (tester) async {
+    final boundary = DateTime(2026, 9, 6, 13);
+    DateTime? attempted;
+    DateTime? selected;
+    await _pumpPicker(
+      tester,
+      value: boundary,
+      maximumDate: boundary,
+      resolver: (candidate) {
+        attempted = candidate;
+        return candidate.isAfter(boundary) ? boundary : candidate;
+      },
+      onChanged: (value) => selected = value,
+    );
+
+    await _next(tester, _periodWheel);
+
+    expect(attempted, DateTime(2026, 9, 7, 1));
+    expect(selected, boundary);
+    expect(_selectedText(tester, 'tio-date-time-date-selected'), 'Today');
+    expect(_selectedText(tester, 'tio-date-time-hour-selected'), '1');
+    expect(_selectedText(tester, 'tio-date-time-period-selected'), 'PM');
+  });
+
+  testWidgets('out-of-range rollover stays at the calendar boundary',
+      (tester) async {
+    final values = <DateTime>[];
+    await _pumpPicker(
+      tester,
+      value: DateTime(2026, 9, 6, 23, 59),
+      maximumDate: DateTime(2026, 9, 6),
+      onChanged: values.add,
+    );
+
+    await _next(tester, _minuteWheel);
+
+    expect(values.single, DateTime(2026, 9, 6, 23, 59));
+    expect(_selectedText(tester, 'tio-date-time-hour-selected'), '11');
+    expect(_selectedText(tester, 'tio-date-time-minute-selected'), '59');
+    expect(_selectedText(tester, 'tio-date-time-period-selected'), 'PM');
+  });
+
   testWidgets('selection pill inherits the active semantic theme',
       (tester) async {
     await _pumpPicker(

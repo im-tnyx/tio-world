@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:tio_core/core.dart';
@@ -78,7 +80,8 @@ class QuickAddEditorSheet extends StatefulWidget {
   State<QuickAddEditorSheet> createState() => _QuickAddEditorSheetState();
 }
 
-class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
+class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
+    with WidgetsBindingObserver {
   final _dateTimePickerKey = GlobalKey();
   final _mealName = TextEditingController();
   final _calories = TextEditingController();
@@ -95,14 +98,17 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
   ];
   late DateTime _draftDateTime;
   late DateTime _maximumCalendarDate;
+  Timer? _midnightTimer;
   var _isDateTimePickerOpen = false;
 
   @override
   void initState() {
     super.initState();
-    final openedAt = _currentLocalMinute();
-    _draftDateTime = openedAt;
+    WidgetsBinding.instance.addObserver(this);
+    final openedAt = _currentLocalNow();
+    _draftDateTime = _minuteOnly(openedAt);
     _maximumCalendarDate = _dateOnly(openedAt);
+    _scheduleMidnightRefresh(openedAt);
     // Validation is per-keystroke because the errors are about the characters
     // themselves, not about a submission that cannot happen here.
     for (final controller in _fields) {
@@ -112,6 +118,8 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
 
   @override
   void dispose() {
+    _midnightTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     for (final controller in _fields) {
       controller
         ..removeListener(_onChanged)
@@ -120,13 +128,32 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      final now = _currentLocalNow();
+      _refreshMaximumCalendarDate(now);
+      _scheduleMidnightRefresh(now);
+      return;
+    }
+    _midnightTimer?.cancel();
+    _midnightTimer = null;
+  }
+
   void _onChanged() {
     if (mounted) setState(() {});
   }
 
-  DateTime _currentLocalMinute() {
-    final value = widget.clock?.call() ?? DateTime.now();
-    return DateTime(value.year, value.month, value.day, value.hour, value.minute);
+  DateTime _currentLocalNow() => widget.clock?.call() ?? DateTime.now();
+
+  DateTime _minuteOnly(DateTime value) {
+    return DateTime(
+      value.year,
+      value.month,
+      value.day,
+      value.hour,
+      value.minute,
+    );
   }
 
   DateTime _dateOnly(DateTime value) =>
@@ -136,15 +163,29 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
     // The wheel has minute precision. Compare its zero-second candidate to the
     // real clock, then snap to the real minute floor. Hidden seconds can never
     // make the same visible minute inconsistently valid or invalid.
-    final now = _currentLocalMinute();
+    final now = _minuteOnly(_currentLocalNow());
     _maximumCalendarDate = _dateOnly(now);
     return candidate.isAfter(now) ? now : candidate;
   }
 
-  void _refreshMaximumCalendarDate() {
-    final maximum = _dateOnly(_currentLocalMinute());
+  void _refreshMaximumCalendarDate([DateTime? current]) {
+    final maximum = _dateOnly(current ?? _currentLocalNow());
     if (maximum == _maximumCalendarDate) return;
     setState(() => _maximumCalendarDate = maximum);
+  }
+
+  void _scheduleMidnightRefresh([DateTime? current]) {
+    _midnightTimer?.cancel();
+    final now = current ?? _currentLocalNow();
+    final nextMidnight = DateTime(now.year, now.month, now.day + 1);
+    final delay = nextMidnight.difference(now);
+    if (delay <= Duration.zero) return;
+    _midnightTimer = Timer(delay, () {
+      if (!mounted) return;
+      final refreshedAt = _currentLocalNow();
+      _refreshMaximumCalendarDate(refreshedAt);
+      _scheduleMidnightRefresh(refreshedAt);
+    });
   }
 
   void _onDateTimeChanged(DateTime value) {

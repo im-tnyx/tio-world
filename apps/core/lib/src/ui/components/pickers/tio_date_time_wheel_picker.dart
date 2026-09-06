@@ -98,11 +98,25 @@ class _TioDateTimeWheelPickerState extends State<TioDateTimeWheelPicker> {
     return value;
   }
 
+  bool _isWithinCalendarBounds(DateTime value) {
+    final calendarDate = _date(value);
+    if (calendarDate.isAfter(_date(widget.maximumDate))) return false;
+    final minimum = widget.minimumDate;
+    return minimum == null || !calendarDate.isBefore(_date(minimum));
+  }
+
   void _applyCandidate(DateTime candidate) {
-    final normalized = _bound(_minute(candidate));
-    final resolved = _bound(
-      _minute(widget.resolveDateTime?.call(normalized) ?? normalized),
-    );
+    final normalized = _minute(candidate);
+    final resolvedCandidate =
+        _minute(widget.resolveDateTime?.call(normalized) ?? normalized);
+    // Time detents may cross midnight. Let the feature resolver inspect that
+    // real candidate before enforcing Core's calendar range: replacing its
+    // day first would transplant (for example) tomorrow 01:00 onto today and
+    // hide a future attempt from Nutrition. If the resolver leaves the day
+    // out of range, the wheel stays at its current boundary value.
+    final resolved = _isWithinCalendarBounds(resolvedCandidate)
+        ? resolvedCandidate
+        : _selected;
     final wasResolved = resolved != normalized;
     if (resolved == _selected && !wasResolved) return;
 

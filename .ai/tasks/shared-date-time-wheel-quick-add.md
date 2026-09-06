@@ -1,6 +1,6 @@
 # Shared Core DateTime Wheel + Quick Add Local Draft
 
-**Status:** Ready for review
+**Status:** In progress
 **Primary owner:** `apps/core` reusable picker + `apps/features/nutrition` Quick Add adapter/presentation
 **Affected platforms:** Flutter Android + iOS phone UI; future Workout reuse is contract-only
 
@@ -25,13 +25,13 @@
 **Observed working-tree state:** Clean at the validated implementation SHA before this final handoff update
 **Observed uncommitted/dirty files:** `.ai/tasks/shared-date-time-wheel-quick-add.md` (final handoff evidence only)
 **PR / tracker:** GitHub PR #217 is open against `main`; TNYX-114 remains Backlog and blocked by TNYX-113; TNYX-158 is Done; no Linear mutation was made or required
-**Current implementation state:** Core extraction and Nutrition local-draft interaction implemented and exact-head CI validated
+**Current implementation state:** Core extraction and Nutrition local-draft interaction implemented; two valid review findings fixed locally and awaiting exact-head CI
 **Relevant execution surface:** `apps/core` wheel primitives and `TioDateTimeWheelPicker`; Nutrition Quick Add modal/editor/footer
 **Validation completed at SHA:** `74da6a9284e6a506fb7b2b7806459d5eee9368e5` (GitHub Actions run `34013464673`)
-**Validation remaining:** Final handoff-only commit exact-head CI and GitHub review-thread audit
+**Validation remaining:** Review-fix exact-head CI and final GitHub review-thread audit
 **Current blocker:** None
 **Open review finding IDs:** None
-**Next exact action:** Push this final handoff-only update, confirm its exact-head CI/review state, then leave PR #217 unmerged for owner review.
+**Next exact action:** Validate, commit, and push the bounded review fixes; confirm exact-head CI/review state, then leave PR #217 unmerged for owner review.
 
 ## Global UI / Design-System Guardrail
 
@@ -160,6 +160,8 @@ has no Flutter route, and the available Melos shim cannot run without dart.
 | QR-5 | P1 | Resolved | A boundary overscroll could report an unchanged raw index or bounded DateTime, causing a no-op domain callback and possible selection haptic. | `b92ec6b3`, `b758eb48` | Generic column ignores zero-detent callbacks and DateTime composition suppresses unresolved no-op candidates; resolver snap-back still synchronizes. |
 | QR-6 | P0 | Resolved | Flutter's null-count builder requested raw index `-1`, so the unbounded-past Date wheel rendered one day after its maximum. | `f5705f48` | Null-count non-looping delegates now terminate below raw index zero while keeping all positive historical indices available. |
 | QR-7 | P2 | Resolved | Nutrition tests still expected the formerly disabled date control's compact height and no tap semantics action. | `12c74b43` | Assert one-row center alignment for the enabled 48dp target and require its accessibility tap action. |
+| QR-8 | P1 | Resolved locally | Calendar bounds were applied before the feature resolver, so a cross-day time detent could transplant tomorrow's time onto Today and hide a future attempt. | `74da6a92` | Resolve the original minute candidate first; if the resolved day remains out of range, keep the current boundary value. Added cross-day resolver and boundary-rollover tests. |
+| QR-9 | P2 | Resolved locally | The Quick Add maximum calendar date refreshed on pointer-down only, so an editor open across midnight could retain yesterday's bound for assistive/keyboard users. | `74da6a92` | Add route-owned next-midnight refresh plus app lifecycle rescheduling; retain pointer refresh for immediate clock adjustments. Added a no-pointer midnight test. |
 
 ## 7. Final Handoff
 
@@ -189,4 +191,4 @@ No persistence; no edit-existing MealLogEntry behavior; no timezone/instant sema
 
 ### Final Status
 
-`PASS`
+`PARTIAL`
