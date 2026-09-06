@@ -117,7 +117,7 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
 
   @override
   void dispose() {
-    _maximumDateTimer?.cancel();
+    _stopMaximumDateRefresh();
     WidgetsBinding.instance.removeObserver(this);
     for (final controller in _fields) {
       controller
@@ -135,8 +135,7 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
       _scheduleMaximumDateRefresh(now);
       return;
     }
-    _maximumDateTimer?.cancel();
-    _maximumDateTimer = null;
+    _stopMaximumDateRefresh();
   }
 
   void _onChanged() {
@@ -190,6 +189,11 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
     });
   }
 
+  void _stopMaximumDateRefresh() {
+    _maximumDateTimer?.cancel();
+    _maximumDateTimer = null;
+  }
+
   void _onDateTimeChanged(DateTime value) {
     setState(() => _draftDateTime = value);
   }
@@ -201,13 +205,13 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
     if (_isDateTimePickerOpen) {
       _scheduleMaximumDateRefresh();
     } else {
-      _maximumDateTimer?.cancel();
-      _maximumDateTimer = null;
+      _stopMaximumDateRefresh();
     }
   }
 
   void _closeDateTimePicker() {
     if (!_isDateTimePickerOpen) return;
+    _stopMaximumDateRefresh();
     setState(() => _isDateTimePickerOpen = false);
   }
 

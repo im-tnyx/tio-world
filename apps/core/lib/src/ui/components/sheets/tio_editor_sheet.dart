@@ -63,7 +63,7 @@ class TioEditorSheet extends StatelessWidget {
     this.canDismiss = true,
     this.titleTrailing,
     this.flushActions = false,
-    this.bottomPadding = TioSpacing.md,
+    this.bottomPadding = TioEditorSheetTokens.bottomPadding,
   });
 
   final String title;

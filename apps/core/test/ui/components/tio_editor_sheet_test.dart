@@ -14,6 +14,7 @@ Future<void> _open(
   String? supportingText,
   Widget? titleTrailing,
   bool canDismiss = true,
+  double? bottomPadding,
   Size? surfaceSize,
   double textScale = 1,
 }) async {
@@ -21,6 +22,25 @@ Future<void> _open(
     await tester.binding.setSurfaceSize(surfaceSize);
     addTearDown(() => tester.binding.setSurfaceSize(null));
   }
+
+  final editor = bottomPadding == null
+      ? TioEditorSheet(
+          title: 'Daily Step Goal',
+          supportingText: supportingText,
+          titleTrailing: titleTrailing,
+          canDismiss: canDismiss,
+          content: content,
+          actions: actions,
+        )
+      : TioEditorSheet(
+          title: 'Daily Step Goal',
+          supportingText: supportingText,
+          titleTrailing: titleTrailing,
+          canDismiss: canDismiss,
+          bottomPadding: bottomPadding,
+          content: content,
+          actions: actions,
+        );
 
   await tester.pumpWidget(
     MaterialApp(
@@ -36,14 +56,7 @@ Future<void> _open(
           builder: (context) => TextButton(
             onPressed: () => showTioEditorSheet<void>(
               context: context,
-              builder: (_) => TioEditorSheet(
-                title: 'Daily Step Goal',
-                supportingText: supportingText,
-                titleTrailing: titleTrailing,
-                canDismiss: canDismiss,
-                content: content,
-                actions: actions,
-              ),
+              builder: (_) => editor,
             ),
             child: const Text('Open'),
           ),
@@ -487,6 +500,45 @@ void main() {
         await gapAboveActions(tester, flushActions: true),
         moreOrLessEquals(0, epsilon: 0.5),
       );
+    });
+  });
+
+  group('bottom padding', () {
+    double editorPaddingBottom(WidgetTester tester) {
+      final paddings = tester
+          .widgetList<Padding>(find.descendant(
+            of: sheet,
+            matching: find.byType(Padding),
+          ))
+          .whereType<Padding>();
+      final editorPadding = paddings.firstWhere(
+        (padding) =>
+            padding.padding is EdgeInsets &&
+            (padding.padding as EdgeInsets).left == TioEditorSheetTokens.padding &&
+            (padding.padding as EdgeInsets).top == TioEditorSheetTokens.padding,
+      );
+      return (editorPadding.padding as EdgeInsets).bottom;
+    }
+
+    testWidgets('uses the governed compact editor-family default',
+        (tester) async {
+      expect(TioEditorSheetTokens.bottomPadding, TioSpacing.md);
+      await _open(tester, content: const Text('Body'));
+
+      expect(
+        editorPaddingBottom(tester),
+        TioEditorSheetTokens.bottomPadding,
+      );
+    });
+
+    testWidgets('keeps an explicit bottomPadding override', (tester) async {
+      await _open(
+        tester,
+        content: const Text('Body'),
+        bottomPadding: TioSize.dp20,
+      );
+
+      expect(editorPaddingBottom(tester), TioSize.dp20);
     });
   });
 

@@ -11,6 +11,7 @@ void main() {
       expect(TioWheelPickerTokens.selectionSurfaceAlpha, 200);
       expect(TioWheelPickerTokens.itemExtent, 44.0);
       expect(TioWheelPickerTokens.selectedFontSize, 22.0);
+      expect(TioEditorSheetTokens.bottomPadding, TioSpacing.md);
     });
 
     test('pins the unified drum curvature shared by every wheel', () {

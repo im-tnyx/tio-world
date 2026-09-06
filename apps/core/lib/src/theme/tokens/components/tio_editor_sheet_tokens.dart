@@ -20,6 +20,9 @@ class TioEditorSheetTokens {
 
   static const padding = TioSpacing.lg;
 
+  /// Bottom inset shared by every editor surface.
+  static const bottomPadding = TioSpacing.md;
+
   /// Gap between the drag handle and the header.
   static const handleGap = TioSpacing.md;
 

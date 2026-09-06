@@ -1168,6 +1168,53 @@ void main() {
       expect(_fieldText(tester, const ValueKey('quick-add-calories')), '420');
     });
 
+    testWidgets('outside dismissal stops the maximum-date refresh timer',
+        (tester) async {
+      var now = DateTime(2026, 8, 20, 10, 30, 45);
+      var clockReads = 0;
+      DateTime clock() {
+        clockReads++;
+        return now;
+      }
+
+      await _pump(tester, quickAddClock: clock);
+      await _openQuickAdd(tester);
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+
+      final readsAfterOpen = clockReads;
+      now = DateTime(2026, 8, 20, 10, 31, 5);
+      await tester.pump(const Duration(seconds: 20));
+      await tester.pumpAndSettle();
+      expect(
+        clockReads,
+        greaterThan(readsAfterOpen),
+        reason: 'an open picker refreshes at the next minute boundary',
+      );
+
+      await tester.tapAt(const Offset(8, 300));
+      await tester.pumpAndSettle();
+      expect(find.byKey(_dateTimePickerPopup), findsNothing);
+
+      final readsAfterDismiss = clockReads;
+      now = DateTime(2026, 8, 20, 10, 33, 5);
+      await tester.pump(const Duration(minutes: 2));
+      await tester.pumpAndSettle();
+      expect(
+        clockReads,
+        readsAfterDismiss,
+        reason: 'outside dismissal must cancel the recurring timer',
+      );
+
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+      expect(
+        clockReads,
+        greaterThan(readsAfterDismiss),
+        reason: 'reopening schedules fresh clock-bound refreshes',
+      );
+    });
+
     testWidgets('the footer stays put while the body scrolls', (tester) async {
       tester.view.physicalSize = const Size(320, 560);
       tester.view.devicePixelRatio = 1;
