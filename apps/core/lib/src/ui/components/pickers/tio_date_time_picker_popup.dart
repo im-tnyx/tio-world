@@ -115,10 +115,10 @@ class _TioDateTimePickerPopupState extends State<TioDateTimePickerPopup> {
     final safeBottom = viewport.height -
         math.max(mediaQuery.padding.bottom, mediaQuery.viewInsets.bottom) -
         TioSpacing.sm;
-    final desiredHeight =
+    const desiredHeight =
         TioWheelPickerTokens.viewportHeight + (TioSpacing.xs * 2);
     // Keep the floating card clear of the editor-footer divider and anchor.
-    final gap = TioSpacing.sm;
+    const gap = TioSpacing.sm;
     final availableAbove = math.max(TioSize.dp0, anchor.top - safeTop - gap);
     final availableBelow =
         math.max(TioSize.dp0, safeBottom - anchor.bottom - gap);
