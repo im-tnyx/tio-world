@@ -1,0 +1,271 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:tio_feature_nutrition/nutrition.dart';
+
+void main() {
+  test('null decodes as absent customization and resolves to defaults', () {
+    final decoded = MealCategoriesConfigCodec.decode(null);
+
+    expect(decoded, isNull);
+    expect(MealCategoriesConfig.resolve(decoded).items, hasLength(4));
+  });
+
+  test('V1 round-trip is deterministic and lossless', () {
+    final config = MealCategoriesConfig(
+      items: [
+        ...MealCategoriesConfig.canonicalDefaults().items,
+        MealCategory(
+          id: 'meal_slot_00000000-0000-4000-8000-000000000001',
+          defaultKey: null,
+          displayName: 'Pre Workout',
+          active: false,
+          order: 4,
+        ),
+      ],
+    );
+
+    final encoded = MealCategoriesConfigCodec.encode(config);
+    final decoded = MealCategoriesConfigCodec.decode(encoded);
+
+    expect(decoded, config);
+    expect(MealCategoriesConfigCodec.encode(decoded!), encoded);
+    expect(encoded.keys, ['schema_version', 'items']);
+  });
+
+  test('round-trip canonicalizes valid shuffled input by semantic order', () {
+    final config = MealCategoriesConfig(
+      items: MealCategoriesConfig.canonicalDefaults().items.reversed,
+    );
+
+    final decoded = MealCategoriesConfigCodec.decode(
+      MealCategoriesConfigCodec.encode(config),
+    );
+
+    expect(decoded, config);
+    expect(config.items.map((item) => item.order), [0, 1, 2, 3]);
+  });
+
+  test('does not infer identity from display name or order', () {
+    final raw = _validEncodedDefaults();
+    final items = raw['items']! as List<Object?>;
+    final lunch = items[1] as Map<String, Object?>;
+    lunch['display_name'] = 'Pre Workout';
+    lunch['order'] = 2;
+    final dinner = items[2] as Map<String, Object?>;
+    dinner['order'] = 1;
+
+    final decoded = MealCategoriesConfigCodec.decode(raw)!;
+
+    expect(decoded.findById('meal_slot_2')!.displayName, 'Pre Workout');
+    expect(
+      decoded.findById('meal_slot_2')!.defaultKey,
+      MealCategoryDefaultKey.lunch,
+    );
+    expect(decoded.findById('meal_slot_2')!.order, 2);
+  });
+
+  test('accepts an absent default_key for a custom category', () {
+    const customId = 'meal_slot_00000000-0000-4000-8000-000000000001';
+    final raw = _validEncodedDefaults();
+    final items = raw['items']! as List<Object?>;
+    items.add(<String, Object?>{
+      'id': customId,
+      'display_name': 'Pre Workout',
+      'active': true,
+      'order': 4,
+    });
+
+    final decoded = MealCategoriesConfigCodec.decode(raw)!;
+
+    expect(decoded.findById(customId)!.defaultKey, isNull);
+  });
+
+  test('accepts an explicit null default_key for a custom category', () {
+    const customId = 'meal_slot_00000000-0000-4000-8000-000000000001';
+    final raw = _validEncodedDefaults();
+    final items = raw['items']! as List<Object?>;
+    items.add(<String, Object?>{
+      'id': customId,
+      'default_key': null,
+      'display_name': 'Pre Workout',
+      'active': false,
+      'order': 4,
+    });
+
+    final decoded = MealCategoriesConfigCodec.decode(raw)!;
+
+    expect(decoded.findById(customId)!.defaultKey, isNull);
+  });
+
+  test('rejects unsupported schema versions', () {
+    final raw = _validEncodedDefaults()..['schema_version'] = 2;
+
+    expect(
+      () => MealCategoriesConfigCodec.decode(raw),
+      _throwsCode(MealCategoriesValidationCode.unsupportedSchemaVersion),
+    );
+  });
+
+  test('rejects malformed field types and unknown V1 fields', () {
+    final wrongType = _validEncodedDefaults()..['schema_version'] = '1';
+    final unknownField = _validEncodedDefaults()..['future_field'] = true;
+
+    expect(
+      () => MealCategoriesConfigCodec.decode(wrongType),
+      _throwsCode(MealCategoriesValidationCode.malformedConfig),
+    );
+    expect(
+      () => MealCategoriesConfigCodec.decode(unknownField),
+      _throwsCode(MealCategoriesValidationCode.malformedConfig),
+    );
+    expect(
+      () => MealCategoriesConfigCodec.decode(const ['not', 'an', 'object']),
+      _throwsCode(MealCategoriesValidationCode.malformedConfig),
+    );
+  });
+
+  test('rejects missing, unknown, and wrongly typed item fields', () {
+    final missingField = _validEncodedDefaults();
+    _itemAt(missingField, 0).remove('display_name');
+
+    final unknownField = _validEncodedDefaults();
+    _itemAt(unknownField, 0)['future_field'] = true;
+
+    expect(
+      () => MealCategoriesConfigCodec.decode(missingField),
+      _throwsCode(MealCategoriesValidationCode.malformedConfig),
+    );
+    expect(
+      () => MealCategoriesConfigCodec.decode(unknownField),
+      _throwsCode(MealCategoriesValidationCode.malformedConfig),
+    );
+
+    for (final invalidField in <String, Object?>{
+      'id': 1,
+      'display_name': false,
+      'active': 'true',
+      'order': 1.5,
+      'default_key': 1,
+    }.entries) {
+      final raw = _validEncodedDefaults();
+      _itemAt(raw, 0)[invalidField.key] = invalidField.value;
+
+      expect(
+        () => MealCategoriesConfigCodec.decode(raw),
+        _throwsCode(MealCategoriesValidationCode.malformedConfig),
+        reason: invalidField.key,
+      );
+    }
+  });
+
+  test('rejects non-string map keys and unknown default keys', () {
+    final valid = _validEncodedDefaults();
+    final nonStringKey = <Object?, Object?>{
+      'schema_version': valid['schema_version'],
+      'items': valid['items'],
+      1: 'invalid',
+    };
+    final unknownDefaultKey = _validEncodedDefaults();
+    _itemAt(unknownDefaultKey, 0)['default_key'] = 'brunch';
+
+    expect(
+      () => MealCategoriesConfigCodec.decode(nonStringKey),
+      _throwsCode(MealCategoriesValidationCode.malformedConfig),
+    );
+    expect(
+      () => MealCategoriesConfigCodec.decode(unknownDefaultKey),
+      _throwsCode(MealCategoriesValidationCode.malformedConfig),
+    );
+  });
+
+  test('applies shared order, default-key, and canonical-mapping policy', () {
+    final duplicateOrder = _validEncodedDefaults();
+    _itemAt(duplicateOrder, 1)['order'] = 0;
+
+    final duplicateDefaultKey = _validEncodedDefaults();
+    final duplicateItems = duplicateDefaultKey['items']! as List<Object?>;
+    duplicateItems.add(<String, Object?>{
+      'id': 'meal_slot_00000000-0000-4000-8000-000000000001',
+      'default_key': 'breakfast',
+      'display_name': 'Early Meal',
+      'active': false,
+      'order': 4,
+    });
+
+    final invalidMapping = _validEncodedDefaults();
+    _itemAt(invalidMapping, 0)['id'] =
+        'meal_slot_00000000-0000-4000-8000-000000000001';
+
+    expect(
+      () => MealCategoriesConfigCodec.decode(duplicateOrder),
+      _throwsCode(MealCategoriesValidationCode.duplicateOrder),
+    );
+    expect(
+      () => MealCategoriesConfigCodec.decode(duplicateDefaultKey),
+      _throwsCode(MealCategoriesValidationCode.duplicateDefaultKey),
+    );
+    expect(
+      () => MealCategoriesConfigCodec.decode(invalidMapping),
+      _throwsCode(MealCategoriesValidationCode.invalidDefaultMapping),
+    );
+  });
+
+  test('rejects duplicate IDs and more than eight active items', () {
+    final duplicate = _validEncodedDefaults();
+    final duplicateItems = duplicate['items']! as List<Object?>;
+    duplicateItems.add(<String, Object?>{
+      'id': 'meal_slot_1',
+      'default_key': null,
+      'display_name': 'Duplicate',
+      'active': false,
+      'order': 4,
+    });
+
+    expect(
+      () => MealCategoriesConfigCodec.decode(duplicate),
+      _throwsCode(MealCategoriesValidationCode.duplicateId),
+    );
+
+    final tooMany = _validEncodedDefaults();
+    final tooManyItems = tooMany['items']! as List<Object?>;
+    for (var index = 0; index < 5; index++) {
+      tooManyItems.add(<String, Object?>{
+        'id':
+            'meal_slot_00000000-0000-4000-8000-${(index + 1).toString().padLeft(12, '0')}',
+        'default_key': null,
+        'display_name': 'Custom ${index + 1}',
+        'active': true,
+        'order': index + 4,
+      });
+    }
+
+    expect(
+      () => MealCategoriesConfigCodec.decode(tooMany),
+      _throwsCode(MealCategoriesValidationCode.tooManyActiveCategories),
+    );
+    expect(tooManyItems, hasLength(9));
+  });
+}
+
+Map<String, Object?> _validEncodedDefaults() {
+  return <String, Object?>{
+    'schema_version': 1,
+    'items': <Object?>[
+      for (final item in MealCategoriesConfig.canonicalDefaults().orderedItems)
+        <String, Object?>{
+          'id': item.id,
+          'default_key': item.defaultKey!.storageValue,
+          'display_name': item.displayName,
+          'active': item.active,
+          'order': item.order,
+        },
+    ],
+  };
+}
+
+Map<String, Object?> _itemAt(Map<String, Object?> raw, int index) =>
+    (raw['items']! as List<Object?>)[index] as Map<String, Object?>;
+
+Matcher _throwsCode(MealCategoriesValidationCode code) => throwsA(
+      isA<MealCategoriesValidationException>()
+          .having((error) => error.code, 'code', code),
+    );
