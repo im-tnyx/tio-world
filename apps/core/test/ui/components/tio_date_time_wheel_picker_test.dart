@@ -231,6 +231,10 @@ void main() {
       final pill = tester.widget<Container>(
         find.byKey(const ValueKey('tio-date-time-wheel-selection-pill')),
       );
+      expect(
+        tester.getSize(find.byKey(const ValueKey('tio-date-time-wheel-selection-pill'))).height,
+        TioSize.dp44,
+      );
       final decoration = pill.decoration as BoxDecoration;
       expect(
         decoration.color,
