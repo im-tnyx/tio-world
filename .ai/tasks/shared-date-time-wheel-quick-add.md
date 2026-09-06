@@ -21,12 +21,12 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-06; `origin/main` fetched at `8eace9977c155661a339ef59187dd62028b9988e`
 **Branch:** `codex/shared-date-time-wheel-quick-add`
-**Implementation SHA:** `fdbe0cabd6a422b1829c2e3d70ba4bfe4cd1ef00`
+**Implementation SHA:** `c35225edc7c8d578e0ac03a50d475784e5065e08`
 **Observed working-tree state:** Feature files clean; unrelated local `pubspec.lock` modification preserved
 **PR / tracker:** GitHub PR #217 is open (Draft) against `main`; TNYX-114 remains Backlog and blocked by TNYX-113; TNYX-158 is Done
-**Current implementation state:** `TioDateTimePickerPopup` (Overlay card) and `TioDateTimeWheelPicker` (`CupertinoDatePicker` wrapper) active and validated; analyzer const fixes, token geometry alignment, and clean test assertions verified green in exact-head CI
+**Current implementation state:** `TioDateTimePickerPopup` (Overlay card) and `TioDateTimeWheelPicker` (`CupertinoDatePicker` wrapper) active and validated; selection pill height tuned to 44dp (`TioSize.dp44`) with 48dp shared token intact; verified green in exact-head CI
 **Relevant execution surface:** `TioDateTimePickerPopup` and `TioDateTimeWheelPicker` in Core; Nutrition Quick Add modal/editor/footer
-**Validation completed at SHA:** `fdbe0cabd6a422b1829c2e3d70ba4bfe4cd1ef00` (GitHub Actions run `34026128361` — all checks passed)
+**Validation completed at SHA:** `c35225edc7c8d578e0ac03a50d475784e5065e08` (GitHub Actions run `34027402550` — all checks passed)
 **Validation remaining:** Owner device screenshot visual acceptance
 **Current blocker:** None
 **Open review finding IDs:** QR-1 to QR-9 resolved; owner presentation findings resolved in code, pending owner device UI visual acceptance
