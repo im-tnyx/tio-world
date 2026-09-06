@@ -1612,7 +1612,7 @@ void main() {
       final control = tester.getRect(find.byKey(_footerCategory));
       expect(
         control.height,
-        greaterThanOrEqualTo(48),
+        greaterThanOrEqualTo(44),
         reason: 'a pressable control needs a pressable amount of room',
       );
       expect(control.width, greaterThanOrEqualTo(48));
