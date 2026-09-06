@@ -154,6 +154,7 @@ PENDING: GitHub Flutter CI exact-head full analyze/test matrix.
 | QR-4 | P1 | Resolved | First PR CI stopped in Core analysis on one extra parenthesis and nullable callback indices that were not promoted after `??=`. | `3d450e09` | Rewrote the decimal getter and resolved nullable inputs into non-null local values; next exact-head CI pending. |
 | QR-5 | P1 | Resolved | A boundary overscroll could report an unchanged raw index or bounded DateTime, causing a no-op domain callback and possible selection haptic. | `b92ec6b3`, `b758eb48` | Generic column ignores zero-detent callbacks and DateTime composition suppresses unresolved no-op candidates; resolver snap-back still synchronizes. |
 | QR-6 | P0 | Resolved | Flutter's null-count builder requested raw index `-1`, so the unbounded-past Date wheel rendered one day after its maximum. | `f5705f48` | Null-count non-looping delegates now terminate below raw index zero while keeping all positive historical indices available. |
+| QR-7 | P2 | Resolved | Nutrition tests still expected the formerly disabled date control's compact height and no tap semantics action. | `12c74b43` | Assert one-row center alignment for the enabled 48dp target and require its accessibility tap action. |
 
 ## 7. Final Handoff
 

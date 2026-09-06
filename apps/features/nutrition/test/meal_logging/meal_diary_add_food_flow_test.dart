@@ -858,8 +858,12 @@ void main() {
 
       // Meal type on the left, date and time on the right, sharing a row.
       expect(category.right, lessThanOrEqualTo(dateTime.left));
-      expect(category.top, moreOrLessEquals(dateTime.top, epsilon: 1));
-      expect(category.bottom, moreOrLessEquals(dateTime.bottom, epsilon: 1));
+      expect(
+        category.center.dy,
+        moreOrLessEquals(dateTime.center.dy, epsilon: 1),
+        reason: 'the enabled 48dp date target and compact disabled category '
+            'stay centered in one row',
+      );
 
       // Both above the commit, which spans the whole footer.
       expect(category.bottom, lessThanOrEqualTo(logMeal.top));
@@ -923,6 +927,7 @@ void main() {
           isButton: true,
           hasEnabledState: true,
           isEnabled: true,
+          hasTapAction: true,
           label: 'Date and time. Aug 20, 10:30. Picker collapsed.',
         ),
       );
