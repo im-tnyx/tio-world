@@ -22,15 +22,15 @@
 **Repository state last verified:** 2026-09-06; `origin/main` fetched at `8eace9977c155661a339ef59187dd62028b9988e`
 **Branch:** `codex/shared-date-time-wheel-quick-add`
 **Implementation SHA:** `bfc7f3ac000773a3af5a6a14811523a428664f2a`
-**Observed working-tree state:** Closeout source fixes are pushed at `bfc7f3ac`; unrelated local `pubspec.lock` modification preserved
+**Observed working-tree state:** Closeout source fixes are pushed at `bfc7f3ac`; task handoff and PR body are aligned; unrelated local `pubspec.lock` modification preserved
 **PR / tracker:** GitHub PR #217 is open (Draft) against `main`; TNYX-114 remains Backlog and blocked by TNYX-113; TNYX-158 is Done
 **Current implementation state:** `TioDateTimePickerPopup` (Overlay card) and `TioDateTimeWheelPicker` (`CupertinoDatePicker` wrapper) are active; the compact DateTime selection pill uses `TioWheelPickerTokens.compactSelectionHeight` (44dp), the standard wheel `selectionHeight` remains 48dp, outside-dismiss cancels the Quick Add maximum-date timer, and the global editor bottom inset is governed by `TioEditorSheetTokens.bottomPadding` (12dp). Owner device UI acceptance is **ACCEPTED**.
 **Relevant execution surface:** `TioDateTimePickerPopup` and `TioDateTimeWheelPicker` in Core; Nutrition Quick Add modal/editor/footer
 **Validation completed at SHA:** `bfc7f3ac000773a3af5a6a14811523a428664f2a` (GitHub Actions run `34029711216` — Analyze Flutter, Analyze Dart, Test Flutter, and Test Dart all passed)
 **Validation remaining:** Owner device screenshot visual acceptance
 **Current blocker:** None
-**Open review finding IDs:** Three stale/outdated threads remain to be replied to and resolved after this handoff refresh; the underlying popup, Cupertino drum, and durable handoff findings are satisfied at the current head.
-**Next exact action:** Refresh the final task/PR truth at the final docs head, then reply to and resolve the three stale review threads. Do not merge.
+**Open review finding IDs:** None. All five review threads are resolved; the three stale/outdated threads were replied to with final-head evidence and resolved.
+**Next exact action:** Await maintainer review/merge decision. Do not merge in this task.
 
 ## Global UI / Design-System Guardrail
 
@@ -189,3 +189,5 @@ tap outside -> popup dismisses -> local draft retained
 - Unrelated local modification in `pubspec.lock` preserved.
 - No Supabase, no backend, no persistence, no Workout feature code.
 - No Meal Type / Meal Categories implementation; next separate task is the TNYX-66 readiness refresh for TNYX-67.
+- Final PR head after this handoff: `e24ccaeec97baccbe3bdd53b02054f756e7180e4`; exact-head CI `34030194823` passed all required analyze/test steps.
+- Owner device UI: **ACCEPTED**. PR #217 remains **OPEN / DRAFT / UNMERGED**.
