@@ -152,6 +152,7 @@ void main() {
     test('picker geometry aliases canonical owners without ratio changes', () {
       expect(TioWheelPickerTokens.viewportHeight, TioSize.dp200);
       expect(TioWheelPickerTokens.selectionHeight, TioSize.dp48);
+      expect(TioWheelPickerTokens.compactSelectionHeight, TioSize.dp44);
       expect(TioWheelPickerTokens.selectionHorizontalMargin, TioSpacing.lg);
       expect(TioWheelPickerTokens.itemExtent, TioSize.dp44);
 

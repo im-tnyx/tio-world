@@ -867,7 +867,7 @@ void main() {
         reason: 'the enabled 44dp date target and compact disabled category '
             'stay centered in one row',
       );
-      expect(dateTime.height, TioSize.dp44);
+      expect(dateTime.height, TioWheelPickerTokens.compactSelectionHeight);
 
       // Both above the commit, which spans the whole footer.
       expect(category.bottom, lessThanOrEqualTo(logMeal.top));

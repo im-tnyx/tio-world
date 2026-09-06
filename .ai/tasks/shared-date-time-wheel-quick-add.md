@@ -22,9 +22,9 @@
 **Repository state last verified:** 2026-09-06; `origin/main` fetched at `8eace9977c155661a339ef59187dd62028b9988e`
 **Branch:** `codex/shared-date-time-wheel-quick-add`
 **Implementation SHA:** `c35225edc7c8d578e0ac03a50d475784e5065e08`
-**Observed working-tree state:** Feature files clean; unrelated local `pubspec.lock` modification preserved
+**Observed working-tree state:** Compact wheel-height token follow-up is modified in feature/core files; unrelated local `pubspec.lock` modification preserved
 **PR / tracker:** GitHub PR #217 is open (Draft) against `main`; TNYX-114 remains Backlog and blocked by TNYX-113; TNYX-158 is Done
-**Current implementation state:** `TioDateTimePickerPopup` (Overlay card) and `TioDateTimeWheelPicker` (`CupertinoDatePicker` wrapper) active and validated; selection pill height tuned to 44dp (`TioSize.dp44`) with 48dp shared token intact; verified green in exact-head CI
+**Current implementation state:** `TioDateTimePickerPopup` (Overlay card) and `TioDateTimeWheelPicker` (`CupertinoDatePicker` wrapper) active; the compact DateTime selection pill uses `TioWheelPickerTokens.compactSelectionHeight` (44dp) while the standard 48dp shared token remains intact. The token follow-up is locally modified after the previously validated implementation SHA.
 **Relevant execution surface:** `TioDateTimePickerPopup` and `TioDateTimeWheelPicker` in Core; Nutrition Quick Add modal/editor/footer
 **Validation completed at SHA:** `c35225edc7c8d578e0ac03a50d475784e5065e08` (GitHub Actions run `34027402550` — all checks passed)
 **Validation remaining:** Owner device screenshot visual acceptance
@@ -76,7 +76,7 @@ A new Quick Add opens with one stable current-local DateTime draft. Tapping its 
 
 - Source inspected: `TioWheelPickerTokens`, `TioEditorSheet`, `MealLogActionFooter`, `QuickAddEditorSheet`, `meal_diary_page.dart`, public Core barrels, manifests, and existing tests.
 - CupertinoDatePicker capabilities in Flutter 3.44.6: supports `mode: CupertinoDatePickerMode.dateAndTime`, `use24hFormat: false`, `maximumDate`, `minimumDate`, `selectionOverlayBuilder`. Emits native selection click on iOS.
-- Existing tokens: `TioWheelPickerTokens.viewportHeight` (200dp), `selectionHeight` (48dp), `selectionHorizontalMargin` (16dp / `TioSpacing.lg`), `itemExtent` (44dp), semantic `surfaceVariant`.
+- Existing tokens: `TioWheelPickerTokens.viewportHeight` (200dp), `selectionHeight` (48dp), `compactSelectionHeight` (44dp), `selectionHorizontalMargin` (16dp / `TioSpacing.lg`), `itemExtent` (44dp), semantic `surfaceVariant`.
 
 ## 3. Clarification
 

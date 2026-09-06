@@ -233,7 +233,7 @@ void main() {
       );
       expect(
         tester.getSize(find.byKey(const ValueKey('tio-date-time-wheel-selection-pill'))).height,
-        TioSize.dp44,
+        TioWheelPickerTokens.compactSelectionHeight,
       );
       final decoration = pill.decoration as BoxDecoration;
       expect(

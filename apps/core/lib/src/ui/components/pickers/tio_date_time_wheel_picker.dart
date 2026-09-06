@@ -133,7 +133,7 @@ class _TioDateTimeWheelPickerState extends State<TioDateTimeWheelPicker> {
             // DOB / weight / height picker z-order convention.
             Container(
               key: const ValueKey('tio-date-time-wheel-selection-pill'),
-              height: TioSize.dp44,
+              height: TioWheelPickerTokens.compactSelectionHeight,
               margin: const EdgeInsets.symmetric(
                 horizontal: TioWheelPickerTokens.selectionHorizontalMargin,
               ),
