@@ -5,7 +5,7 @@ import 'package:tio_core/core.dart';
 ///
 /// ```text
 /// ─────────────────────────────────────────────────
-/// Meal type ▼                       🗓 Sep 27 · Time
+/// Meal type ▼                       🗓 Sep 27, 18:42
 /// [                    Log Meal                    ]
 /// ```
 ///
@@ -40,6 +40,7 @@ class MealLogActionFooter extends StatelessWidget {
     this.onMealCategoryTap,
     this.onDateTimeTap,
     this.onPrimaryPressed,
+    this.dateTimeAnchorKey,
   });
 
   /// What the category control reads. A neutral placeholder while TNYX-67 has
@@ -64,6 +65,9 @@ class MealLogActionFooter extends StatelessWidget {
   final VoidCallback? onDateTimeTap;
   final VoidCallback? onPrimaryPressed;
 
+  /// Optional presentation anchor for a caller-owned DateTime popup.
+  final GlobalKey? dateTimeAnchorKey;
+
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
@@ -73,7 +77,6 @@ class MealLogActionFooter extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const _FooterSeparator(),
-        const SizedBox(height: TioSpacing.md),
         // Two plain controls on one line rather than two boxes: the category
         // sits at the leading edge with its chevron right beside the word it
         // opens, and the date runs to the trailing edge behind its calendar.
@@ -103,33 +106,36 @@ class MealLogActionFooter extends StatelessWidget {
             Expanded(
               child: Align(
                 alignment: AlignmentDirectional.centerEnd,
-                child: _FooterAction(
-                  controlKey: const ValueKey('meal-log-footer-date-time'),
-                  semanticLabel: dateTimeSemanticLabel ?? dateTimeLabel,
-                  onTap: onDateTimeTap,
-                  builder: (context, textStyle, iconColor) => Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SvgPicture.asset(
-                        'assets/svg_icon/ic_calendar_.svg',
-                        package: 'tio_core',
-                        width: TioSize.dp20,
-                        height: TioSize.dp20,
-                        colorFilter: ColorFilter.mode(
-                          iconColor,
-                          BlendMode.srcIn,
+                child: KeyedSubtree(
+                  key: dateTimeAnchorKey,
+                  child: _FooterAction(
+                    controlKey: const ValueKey('meal-log-footer-date-time'),
+                    semanticLabel: dateTimeSemanticLabel ?? dateTimeLabel,
+                    onTap: onDateTimeTap,
+                    builder: (context, textStyle, iconColor) => Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SvgPicture.asset(
+                          'assets/svg_icon/ic_calendar_.svg',
+                          package: 'tio_core',
+                          width: TioSize.dp20,
+                          height: TioSize.dp20,
+                          colorFilter: ColorFilter.mode(
+                            iconColor,
+                            BlendMode.srcIn,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: TioSpacing.sm),
-                      Flexible(
-                        child: Text(
-                          dateTimeLabel,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: textStyle,
+                        const SizedBox(width: TioSpacing.sm),
+                        Flexible(
+                          child: Text(
+                            dateTimeLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: textStyle,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -148,7 +154,9 @@ class MealLogActionFooter extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: TioSpacing.md),
+        // The optional note owns its own spacing; without it, keep the
+        // footer controls and primary action visually compact.
+        const SizedBox(height: TioSpacing.xs),
         TioButton.primary(
           key: const ValueKey('meal-log-footer-primary'),
           label: primaryLabel,
@@ -216,8 +224,8 @@ class _FooterAction extends StatelessWidget {
 
   final Key controlKey;
   final String semanticLabel;
-  final Widget Function(BuildContext context, TextStyle textStyle, Color iconColor)
-      builder;
+  final Widget Function(
+      BuildContext context, TextStyle textStyle, Color iconColor) builder;
   final VoidCallback? onTap;
 
   @override
@@ -242,12 +250,9 @@ class _FooterAction extends StatelessWidget {
       onTap: onTap,
       child: ExcludeSemantics(
         child: isEnabled
-            // A real target once this path is live: the content is about 20dp
-            // tall, and `HitTestBehavior.opaque` would have made that small
-            // area merely reliable rather than large enough. `InkWell` also
-            // brings keyboard focus and a ripple, which a bare detector does
-            // not. The disabled control keeps the compact height, because a
-            // 48dp minimum is a rule about things you can press.
+            // A real target once this path is live. This compact footer keeps
+            // its approved 44dp control height while retaining InkWell focus
+            // and ripple behavior instead of relying on a bare detector.
             ? Material(
                 color: TioPalette.transparent,
                 child: InkWell(
@@ -255,12 +260,16 @@ class _FooterAction extends StatelessWidget {
                   borderRadius: BorderRadius.circular(TioRadius.sm),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(
-                      minHeight: TioSize.dp48,
+                      minHeight: TioSize.dp44,
                       minWidth: TioSize.dp48,
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: TioSpacing.xs,
+                      // Keep the fixed target while reserving 2dp below its
+                      // content, which shifts the visual baseline up by 1dp.
+                      padding: const EdgeInsets.only(
+                        left: TioSpacing.xs,
+                        right: TioSpacing.xs,
+                        bottom: TioSize.dp2,
                       ),
                       child: Align(
                         alignment: AlignmentDirectional.centerStart,
@@ -271,7 +280,13 @@ class _FooterAction extends StatelessWidget {
                   ),
                 ),
               )
-            : Opacity(opacity: TioOpacity.opacity64, child: content),
+            : Opacity(
+                opacity: TioOpacity.opacity64,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: TioSize.dp2),
+                  child: content,
+                ),
+              ),
       ),
     );
   }

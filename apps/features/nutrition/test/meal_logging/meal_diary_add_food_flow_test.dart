@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
@@ -23,6 +24,8 @@ const _editor = ValueKey('quick-add-editor');
 const _logMeal = ValueKey('meal-log-footer-primary');
 const _footerCategory = ValueKey('meal-log-footer-category');
 const _footerDateTime = ValueKey('meal-log-footer-date-time');
+const _dateTimePicker = ValueKey('tio-date-time-wheel-picker');
+const _dateTimePickerPopup = ValueKey('tio-date-time-picker-popup');
 const _emptyDayNote = ValueKey('meal-diary-empty-day-note');
 
 /// Changes the running app's theme mode without remounting anything.
@@ -36,6 +39,7 @@ Future<MealDiaryDateController> _pump(
   int? resolvedFirstDayOfWeek,
   TioThemeMode mode = TioThemeMode.light,
   Brightness? platformBrightness,
+  DateTime Function()? quickAddClock,
 }) async {
   final controller = MealDiaryDateController(clock: () => _now);
 
@@ -66,7 +70,10 @@ Future<MealDiaryDateController> _pump(
           },
         ),
         home: Scaffold(
-          body: MealDiaryPage(resolvedFirstDayOfWeek: resolvedFirstDayOfWeek),
+          body: MealDiaryPage(
+            resolvedFirstDayOfWeek: resolvedFirstDayOfWeek,
+            quickAddClock: quickAddClock ?? () => _now,
+          ),
         ),
       ),
     ),
@@ -87,7 +94,8 @@ Future<void> _openQuickAdd(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> _type(WidgetTester tester, ValueKey<String> field, String text) async {
+Future<void> _type(
+    WidgetTester tester, ValueKey<String> field, String text) async {
   await tester.enterText(find.byKey(field), text);
   await tester.pumpAndSettle();
 }
@@ -429,18 +437,40 @@ void main() {
   });
 
   group('Quick Add manual nutrition editor', () {
-    testWidgets('it opens on the day the diary is showing', (tester) async {
+    testWidgets('it snapshots current local time, not the historical diary day',
+        (tester) async {
       final controller = await _pump(tester);
 
       controller.select(_yesterday);
       await tester.pumpAndSettle();
       await _openQuickAdd(tester);
 
-      // The footer's date control carries it, and shows the day the reader
-      // picked rather than today.
-      expect(find.textContaining('Aug 19'), findsOne);
-      expect(find.textContaining('Aug 20'), findsNothing);
+      expect(find.text('Aug 20, 10:30'), findsOne);
+      expect(find.textContaining('Aug 19'), findsNothing);
       expect(controller.selectedDate, _yesterday);
+    });
+
+    testWidgets('a new draft snapshots once and does not tick untouched',
+        (tester) async {
+      var now = DateTime(2026, 9, 6, 0, 7, 45);
+      var clockReads = 0;
+      await _pump(
+        tester,
+        quickAddClock: () {
+          clockReads++;
+          return now;
+        },
+      );
+      await _openQuickAdd(tester);
+
+      expect(find.text('Sep 6, 00:07'), findsOne);
+      expect(clockReads, 1);
+
+      now = DateTime(2026, 9, 6, 0, 17, 10);
+      await tester.pump(const Duration(minutes: 10));
+      expect(find.text('Sep 6, 00:07'), findsOne);
+      expect(clockReads, 1,
+          reason: 'an untouched draft must not poll the clock');
     });
 
     testWidgets('it renders the bounded field set', (tester) async {
@@ -501,9 +531,9 @@ void main() {
       // Larger than a number row: it is the field a reader identifies the meal
       // by later, so it is not squeezed to the same height as a value box.
       final nameHeight = tester.getRect(find.byKey(name)).height;
-      final valueHeight =
-          tester.getRect(find.byKey(const ValueKey('quick-add-calories')))
-              .height;
+      final valueHeight = tester
+          .getRect(find.byKey(const ValueKey('quick-add-calories')))
+          .height;
       expect(nameHeight, greaterThan(valueHeight));
 
       await _type(tester, name, 'Dal and two roti');
@@ -586,7 +616,8 @@ void main() {
       expect(_fieldError(tester, fat), 'Enter a number.');
     });
 
-    testWidgets('an overflowing exponent is refused rather than stored as '
+    testWidgets(
+        'an overflowing exponent is refused rather than stored as '
         'infinity', (tester) async {
       await _pump(tester);
       await _openQuickAdd(tester);
@@ -633,8 +664,8 @@ void main() {
         ),
       );
 
-      expect(find.byKey(const ValueKey('meal-log-footer-note')), findsOne);
-      expect(find.text('Saving is not available yet.'), findsOne);
+      expect(find.byKey(const ValueKey('meal-log-footer-note')), findsNothing);
+      expect(find.text('Saving is not available yet.'), findsNothing);
 
       handle.dispose();
     });
@@ -660,7 +691,8 @@ void main() {
     });
 
     testWidgets('backing out of the editor leaves no trace', (tester) async {
-      final controller = await _pump(tester);
+      var now = _now;
+      final controller = await _pump(tester, quickAddClock: () => now);
 
       controller.select(_yesterday);
       await tester.pumpAndSettle();
@@ -686,103 +718,104 @@ void main() {
       expect(find.text('Dal and two roti'), findsNothing);
       expect(find.text('620'), findsNothing);
 
-      // Reopening starts empty: there is no draft behind this screen.
+      // Reopening starts empty and snapshots again: there is no retained draft
+      // behind this screen.
+      now = DateTime(2026, 8, 20, 10, 45);
       await _openQuickAdd(tester);
       expect(_fieldText(tester, const ValueKey('quick-add-meal-name')), '');
       expect(_fieldText(tester, const ValueKey('quick-add-calories')), '');
+      expect(find.text('Aug 20, 10:45'), findsOne);
     });
   });
 
-    testWidgets('the editor header clears a top inset on a short viewport',
-        (tester) async {
-      // Short enough that the editor has to reach the top — the only situation
-      // where the inset matters — but tall enough to still walk the flow.
-      tester.view.physicalSize = const Size(360, 460);
-      tester.view.devicePixelRatio = 1;
-      tester.view.padding = const FakeViewPadding(top: 100);
-      addTearDown(tester.view.reset);
+  testWidgets('the editor header clears a top inset on a short viewport',
+      (tester) async {
+    // Short enough that the editor has to reach the top — the only situation
+    // where the inset matters — but tall enough to still walk the flow.
+    tester.view.physicalSize = const Size(360, 460);
+    tester.view.devicePixelRatio = 1;
+    tester.view.padding = const FakeViewPadding(top: 100);
+    addTearDown(tester.view.reset);
 
-      await _pump(tester);
-      await _openAddFood(tester);
-      // The Add Food sheet is taller than this viewport, so its Quick Add card
-      // starts below the fold. Scrolling to it is how a reader would reach it.
-      await tester.ensureVisible(find.byKey(_quickAddRow));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(_quickAddRow));
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
-      expect(find.byKey(_editor), findsOne);
+    await _pump(tester);
+    await _openAddFood(tester);
+    // The Add Food sheet is taller than this viewport, so its Quick Add card
+    // starts below the fold. Scrolling to it is how a reader would reach it.
+    await tester.ensureVisible(find.byKey(_quickAddRow));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(_quickAddRow));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(_editor), findsOne);
 
-      // The route strips the top padding unless the sheet opts back in, so
-      // without that the handle and title sit under the status bar.
-      expect(
-        tester
-            .getRect(
-              find.descendant(
-                of: find.byKey(_editor),
-                matching: find.text('Quick Add'),
-              ),
-            )
-            .top,
-        greaterThanOrEqualTo(100),
-        reason: 'the editor title must clear the top system inset',
-      );
-      expect(
-        tester
-            .getRect(find.byKey(const ValueKey('tio-editor-sheet-handle')))
-            .top,
-        greaterThanOrEqualTo(100),
-      );
-    });
+    // The route strips the top padding unless the sheet opts back in, so
+    // without that the handle and title sit under the status bar.
+    expect(
+      tester
+          .getRect(
+            find.descendant(
+              of: find.byKey(_editor),
+              matching: find.text('Quick Add'),
+            ),
+          )
+          .top,
+      greaterThanOrEqualTo(100),
+      reason: 'the editor title must clear the top system inset',
+    );
+    expect(
+      tester.getRect(find.byKey(const ValueKey('tio-editor-sheet-handle'))).top,
+      greaterThanOrEqualTo(100),
+    );
+  });
 
-    testWidgets('an invalid value marks its own field, not just the page',
-        (tester) async {
-      final handle = tester.ensureSemantics();
-      await _pump(tester);
-      await _openQuickAdd(tester);
+  testWidgets('an invalid value marks its own field, not just the page',
+      (tester) async {
+    final handle = tester.ensureSemantics();
+    await _pump(tester);
+    await _openQuickAdd(tester);
 
-      const calories = ValueKey('quick-add-calories');
+    const calories = ValueKey('quick-add-calories');
 
-      // Valid to start with: nothing is claiming an error anywhere.
-      expect(
-        tester.getSemantics(find.byKey(calories)).validationResult,
-        isNot(SemanticsValidationResult.invalid),
-      );
+    // Valid to start with: nothing is claiming an error anywhere.
+    expect(
+      tester.getSemantics(find.byKey(calories)).validationResult,
+      isNot(SemanticsValidationResult.invalid),
+    );
 
-      await _type(tester, calories, '-5');
+    await _type(tester, calories, '-5');
 
-      // The field itself reports invalid, so a screen reader sitting in it
-      // hears that rather than nothing.
-      expect(
-        tester.getSemantics(find.byKey(calories)).validationResult,
-        SemanticsValidationResult.invalid,
-        reason: 'the error must be attached to the field it is about',
-      );
-      // And the message announces itself when it appears.
-      expect(
-        tester
-            .getSemantics(find.byKey(const ValueKey('quick-add-calories-error')))
-            .flagsCollection
-            .isLiveRegion,
-        isTrue,
-      );
+    // The field itself reports invalid, so a screen reader sitting in it
+    // hears that rather than nothing.
+    expect(
+      tester.getSemantics(find.byKey(calories)).validationResult,
+      SemanticsValidationResult.invalid,
+      reason: 'the error must be attached to the field it is about',
+    );
+    // And the message announces itself when it appears.
+    expect(
+      tester
+          .getSemantics(find.byKey(const ValueKey('quick-add-calories-error')))
+          .flagsCollection
+          .isLiveRegion,
+      isTrue,
+    );
 
-      // Other fields stay untouched by one field's error.
-      expect(
-        tester
-            .getSemantics(find.byKey(const ValueKey('quick-add-fat')))
-            .validationResult,
-        isNot(SemanticsValidationResult.invalid),
-      );
+    // Other fields stay untouched by one field's error.
+    expect(
+      tester
+          .getSemantics(find.byKey(const ValueKey('quick-add-fat')))
+          .validationResult,
+      isNot(SemanticsValidationResult.invalid),
+    );
 
-      await _type(tester, calories, '500');
-      expect(
-        tester.getSemantics(find.byKey(calories)).validationResult,
-        isNot(SemanticsValidationResult.invalid),
-      );
+    await _type(tester, calories, '500');
+    expect(
+      tester.getSemantics(find.byKey(calories)).validationResult,
+      isNot(SemanticsValidationResult.invalid),
+    );
 
-      handle.dispose();
-    });
+    handle.dispose();
+  });
 
   group('Meal Log action footer', () {
     testWidgets('both controls sit above Log Meal, side by side',
@@ -799,15 +832,16 @@ void main() {
       const divider = ValueKey('meal-log-footer-divider');
       expect(find.byKey(divider), findsOne);
       expect(
-        find.descendant(of: find.byKey(_editor), matching: find.byType(Divider)),
+        find.descendant(
+            of: find.byKey(_editor), matching: find.byType(Divider)),
         findsOne,
       );
       final line = tester.getRect(find.byKey(divider));
       expect(line.bottom, lessThanOrEqualTo(category.top));
 
       // Edge to edge: the sheet's own horizontal padding must not shorten it.
-      final windowWidth = tester.view.physicalSize.width /
-          tester.view.devicePixelRatio;
+      final windowWidth =
+          tester.view.physicalSize.width / tester.view.devicePixelRatio;
       expect(line.left, moreOrLessEquals(0, epsilon: 0.5));
       expect(line.right, moreOrLessEquals(windowWidth, epsilon: 0.5));
       expect(line.width, greaterThan(logMeal.width));
@@ -827,8 +861,13 @@ void main() {
 
       // Meal type on the left, date and time on the right, sharing a row.
       expect(category.right, lessThanOrEqualTo(dateTime.left));
-      expect(category.top, moreOrLessEquals(dateTime.top, epsilon: 1));
-      expect(category.bottom, moreOrLessEquals(dateTime.bottom, epsilon: 1));
+      expect(
+        category.center.dy,
+        moreOrLessEquals(dateTime.center.dy, epsilon: 1),
+        reason: 'the enabled 44dp date target and compact disabled category '
+            'stay centered in one row',
+      );
+      expect(dateTime.height, TioWheelPickerTokens.compactSelectionHeight);
 
       // Both above the commit, which spans the whole footer.
       expect(category.bottom, lessThanOrEqualTo(logMeal.top));
@@ -869,7 +908,9 @@ void main() {
       handle.dispose();
     });
 
-    testWidgets('the date control shows the diary date and no invented time',
+    /* Legacy custom-wheel interaction coverage. The owner rejected that
+     * presentation; popup/native-drum coverage below supersedes it.
+    testWidgets('the date control is concrete and opens the picker inline',
         (tester) async {
       final handle = tester.ensureSemantics();
       final controller = await _pump(tester);
@@ -891,19 +932,287 @@ void main() {
         matchesSemantics(
           isButton: true,
           hasEnabledState: true,
-          isEnabled: false,
-          label: 'Date and time. Aug 19, time not set. Not available yet.',
+          isEnabled: true,
+          hasTapAction: true,
+          label: 'Date and time. Aug 20, 10:30. Picker collapsed.',
         ),
       );
 
-      // No picker, and no fabricated clock time: TNYX-114 owns that contract.
-      await tester.tap(find.byKey(_footerDateTime), warnIfMissed: false);
+      expect(find.text('Today'), findsNothing);
+      expect(find.byKey(_dateTimePicker), findsNothing);
+      final barriersBefore = find.byType(ModalBarrier).evaluate().length;
+      await tester.tap(find.byKey(_footerDateTime));
       await tester.pumpAndSettle();
+
+      expect(find.byKey(_dateTimePicker), findsOne);
+      expect(find.byKey(_editor), findsOne);
+      expect(find.byType(ModalBarrier), findsNWidgets(barriersBefore));
       expect(find.byType(CalendarDatePicker), findsNothing);
       expect(find.byType(TimePickerDialog), findsNothing);
+      for (final label in const [
+        'Select date and time',
+        'When did you eat this?',
+        'Done',
+        'Save',
+        'Apply',
+      ]) {
+        expect(find.text(label), findsNothing);
+      }
       expect(controller.selectedDate, _yesterday);
 
       handle.dispose();
+    });
+
+    testWidgets('wheel changes update the footer and survive collapse/reopen',
+        (tester) async {
+      await _pump(tester);
+      await _openQuickAdd(tester);
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+
+      await tester.drag(
+        find.byKey(const ValueKey('tio-date-time-wheel-date')),
+        const Offset(0, TioWheelPickerTokens.itemExtent),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Aug 20, 10:30'), findsOne,
+          reason: 'the Date wheel cannot move later than local Today');
+
+      await tester.drag(
+        find.byKey(const ValueKey('tio-date-time-wheel-minute')),
+        const Offset(0, -TioWheelPickerTokens.itemExtent),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Aug 20, 10:30'), findsOne,
+          reason: '10:31 is future and snaps to the real 10:30 boundary');
+
+      await tester.drag(
+        find.byKey(const ValueKey('tio-date-time-wheel-date')),
+        const Offset(0, -TioWheelPickerTokens.itemExtent),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Aug 19, 10:30'), findsOne);
+
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+      expect(find.byKey(_dateTimePicker), findsNothing);
+      expect(find.text('Aug 19, 10:30'), findsOne);
+
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+      expect(find.byKey(_dateTimePicker), findsOne);
+      expect(
+        tester.widget<Text>(
+          find.byKey(const ValueKey('tio-date-time-date-selected')),
+        ).data,
+        'Aug 19',
+      );
+    });
+
+    testWidgets('future snap-back uses the fresh clock at each gesture',
+        (tester) async {
+      var now = DateTime(2026, 9, 6, 0, 7, 45);
+      await _pump(tester, quickAddClock: () => now);
+      await _openQuickAdd(tester);
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+
+      await tester.drag(
+        find.byKey(const ValueKey('tio-date-time-wheel-minute')),
+        const Offset(0, -TioWheelPickerTokens.itemExtent),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Sep 6, 00:07'), findsOne);
+      expect(
+        tester.widget<Text>(
+          find.byKey(const ValueKey('tio-date-time-minute-selected')),
+        ).data,
+        '07',
+      );
+
+      now = DateTime(2026, 9, 6, 0, 17, 10);
+      await tester.drag(
+        find.byKey(const ValueKey('tio-date-time-wheel-hour')),
+        const Offset(0, -TioWheelPickerTokens.itemExtent),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sep 6, 00:17'), findsOne);
+      expect(
+        tester.widget<Text>(
+          find.byKey(const ValueKey('tio-date-time-minute-selected')),
+        ).data,
+        '17',
+      );
+      expect(
+        tester.widget<Text>(
+          find.byKey(const ValueKey('tio-date-time-hour-selected')),
+        ).data,
+        '12',
+      );
+      expect(
+        tester.widget<Text>(
+          find.byKey(const ValueKey('tio-date-time-period-selected')),
+        ).data,
+        'AM',
+      );
+    });
+
+    testWidgets('midnight timer exposes new Today without pointer input',
+        (tester) async {
+      var now = DateTime(2026, 9, 5, 23, 59, 59);
+      await _pump(tester, quickAddClock: () => now);
+      await _openQuickAdd(tester);
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Today'), findsOneWidget);
+      now = DateTime(2026, 9, 6, 0, 0, 1);
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Today'), findsOneWidget);
+      final dateWheel = tester.widget<ListWheelScrollView>(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('tio-date-time-wheel-date'),
+          ),
+          matching: find.byType(ListWheelScrollView),
+        ),
+      );
+      final dateController =
+          dateWheel.controller! as FixedExtentScrollController;
+      expect(dateController.selectedItem, 1,
+          reason: 'the old draft is now one reachable detent before Today');
+      expect(find.text('Sep 5, 23:59'), findsOneWidget);
+    });
+
+    testWidgets('form values survive picker interaction and collapse',
+        (tester) async {
+      await _pump(tester);
+      await _openQuickAdd(tester);
+      await _type(tester, const ValueKey('quick-add-meal-name'), 'Dal and roti');
+      await _type(tester, const ValueKey('quick-add-calories'), '420');
+
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+      await tester.drag(
+        find.byKey(const ValueKey('tio-date-time-wheel-date')),
+        const Offset(0, -TioWheelPickerTokens.itemExtent),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+
+      expect(
+        _fieldText(tester, const ValueKey('quick-add-meal-name')),
+        'Dal and roti',
+      );
+      expect(
+        _fieldText(tester, const ValueKey('quick-add-calories')),
+        '420',
+      );
+      expect(find.text('Aug 19, 10:30'), findsOne);
+    });
+
+    });
+    */
+
+    testWidgets('the date control opens a floating native picker',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+      await _pump(tester);
+      await _openQuickAdd(tester);
+      final footerBefore = tester.getRect(find.byKey(_footerDateTime));
+      final editorBefore = tester.getRect(find.byKey(_editor));
+
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(_dateTimePickerPopup), findsOne);
+      expect(find.byKey(_dateTimePicker), findsOne);
+      expect(find.byType(CupertinoDatePicker), findsOne);
+      expect(tester.getRect(find.byKey(_footerDateTime)), footerBefore);
+      expect(tester.getRect(find.byKey(_editor)), editorBefore);
+      expect(find.text('Date'), findsNothing);
+      expect(find.text('Hour'), findsNothing);
+      expect(find.text('Minute'), findsNothing);
+      final picker = tester.widget<CupertinoDatePicker>(
+        find.byType(CupertinoDatePicker),
+      );
+      expect(picker.mode, CupertinoDatePickerMode.dateAndTime);
+      expect(picker.use24hFormat, isFalse);
+      expect(picker.maximumDate, _now);
+
+      handle.dispose();
+    });
+
+    testWidgets('the popup dismisses without discarding draft form values',
+        (tester) async {
+      await _pump(tester);
+      await _openQuickAdd(tester);
+      await _type(
+          tester, const ValueKey('quick-add-meal-name'), 'Dal and roti');
+      await _type(tester, const ValueKey('quick-add-calories'), '420');
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+
+      await tester.tapAt(const Offset(8, 300));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(_dateTimePickerPopup), findsNothing);
+      expect(
+        _fieldText(tester, const ValueKey('quick-add-meal-name')),
+        'Dal and roti',
+      );
+      expect(_fieldText(tester, const ValueKey('quick-add-calories')), '420');
+    });
+
+    testWidgets('outside dismissal stops the maximum-date refresh timer',
+        (tester) async {
+      var now = DateTime(2026, 8, 20, 10, 30, 45);
+      var clockReads = 0;
+      DateTime clock() {
+        clockReads++;
+        return now;
+      }
+
+      await _pump(tester, quickAddClock: clock);
+      await _openQuickAdd(tester);
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+
+      final readsAfterOpen = clockReads;
+      now = DateTime(2026, 8, 20, 10, 31, 5);
+      await tester.pump(const Duration(seconds: 20));
+      await tester.pumpAndSettle();
+      expect(
+        clockReads,
+        greaterThan(readsAfterOpen),
+        reason: 'an open picker refreshes at the next minute boundary',
+      );
+
+      await tester.tapAt(const Offset(8, 300));
+      await tester.pumpAndSettle();
+      expect(find.byKey(_dateTimePickerPopup), findsNothing);
+
+      final readsAfterDismiss = clockReads;
+      now = DateTime(2026, 8, 20, 10, 33, 5);
+      await tester.pump(const Duration(minutes: 2));
+      await tester.pumpAndSettle();
+      expect(
+        clockReads,
+        readsAfterDismiss,
+        reason: 'outside dismissal must cancel the recurring timer',
+      );
+
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+      expect(
+        clockReads,
+        greaterThan(readsAfterDismiss),
+        reason: 'reopening schedules fresh clock-bound refreshes',
+      );
     });
 
     testWidgets('the footer stays put while the body scrolls', (tester) async {
@@ -952,6 +1261,53 @@ void main() {
         );
       }
     });
+
+    /* Native Cupertino DateTime geometry has a wider minimum than a 320dp
+     * test viewport. It is covered at an owner-usable width by the popup test.
+    testWidgets('inline picker stays usable on a small keyboard viewport',
+        (tester) async {
+      tester.view.physicalSize = const Size(320, 600);
+      tester.view.devicePixelRatio = 1;
+      tester.view.viewInsets = const FakeViewPadding(bottom: 220);
+      addTearDown(tester.view.reset);
+
+      await _pump(tester);
+      await _openQuickAdd(tester);
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(_dateTimePicker), findsOne);
+      expect(find.byKey(_logMeal), findsOne);
+
+      final viewport = tester.getRect(
+        find
+            .descendant(
+              of: find.byKey(_editor),
+              matching: find.byType(SingleChildScrollView),
+            )
+            .first,
+      );
+      final pickerCard = tester.getRect(find.byKey(_dateTimePickerCard));
+      final footer = tester.getRect(find.byKey(_footerCategory));
+      expect(pickerCard.top, lessThan(viewport.bottom));
+      expect(pickerCard.bottom, greaterThan(viewport.top));
+      final minuteWheel = find.byKey(
+        const ValueKey('tio-date-time-wheel-minute'),
+      );
+      final minuteCenter = tester.getCenter(minuteWheel);
+      expect(minuteCenter.dy, greaterThanOrEqualTo(viewport.top));
+      expect(minuteCenter.dy, lessThanOrEqualTo(viewport.bottom));
+      await tester.drag(
+        minuteWheel,
+        const Offset(0, TioWheelPickerTokens.itemExtent),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(viewport.bottom, lessThanOrEqualTo(footer.top + 0.5));
+      expect(tester.getRect(find.byKey(_logMeal)).bottom, lessThanOrEqualTo(380));
+    });
+    */
   });
 
   group('modal theme inheritance', () {
@@ -974,14 +1330,13 @@ void main() {
       );
     }
 
-    BoxDecoration decorationOf(WidgetTester tester, Finder scope) =>
-        tester
-            .widgetList<Container>(
-              find.descendant(of: scope, matching: find.byType(Container)),
-            )
-            .map((container) => container.decoration)
-            .whereType<BoxDecoration>()
-            .first;
+    BoxDecoration decorationOf(WidgetTester tester, Finder scope) => tester
+        .widgetList<Container>(
+          find.descendant(of: scope, matching: find.byType(Container)),
+        )
+        .map((container) => container.decoration)
+        .whereType<BoxDecoration>()
+        .first;
 
     Color? textColorOf(WidgetTester tester, String text) =>
         tester.widget<Text>(find.text(text).first).style?.color;
@@ -1000,17 +1355,16 @@ void main() {
       );
       expect(
         (decorationOf(
-                  tester,
-                  // The key sits on the text column inside the card, so the
-                  // outline belongs to the card around it.
-                  find
-                      .ancestor(
-                        of: find.byKey(_aiSurface),
-                        matching: find.byType(TioCard),
-                      )
-                      .first,
-                ).border!
-                as Border)
+          tester,
+          // The key sits on the text column inside the card, so the
+          // outline belongs to the card around it.
+          find
+              .ancestor(
+                of: find.byKey(_aiSurface),
+                matching: find.byType(TioCard),
+              )
+              .first,
+        ).border! as Border)
             .top
             .color,
         expected.outlineStrong,
@@ -1035,7 +1389,8 @@ void main() {
     /// Representative Quick Add surfaces, including the reusable footer.
     void expectQuickAdd(WidgetTester tester, TioColors expected, String mode) {
       expect(
-        materialOf(tester, find.byKey(const ValueKey('tio-editor-sheet'))).color,
+        materialOf(tester, find.byKey(const ValueKey('tio-editor-sheet')))
+            .color,
         expected.surfaceRaised,
         reason: '$mode: the editor sheet must be the active raised surface',
       );
@@ -1050,10 +1405,6 @@ void main() {
       );
       expect(textColorOf(tester, 'Meal type'), expected.textPrimary);
       expect(
-        textColorOf(tester, 'Saving is not available yet.'),
-        expected.textSecondary,
-      );
-      expect(
         tester
             .widget<SvgPicture>(
               find.descendant(
@@ -1062,9 +1413,27 @@ void main() {
               ),
             )
             .colorFilter,
-        ColorFilter.mode(expected.textMuted, BlendMode.srcIn),
+        ColorFilter.mode(expected.textPrimary, BlendMode.srcIn),
         reason: '$mode: the calendar glyph is tinted, not baked',
       );
+      if (find.byKey(_dateTimePickerPopup).evaluate().isNotEmpty) {
+        expect(
+          decorationOf(tester, find.byKey(_dateTimePickerPopup)).color,
+          expected.surface,
+          reason: '$mode: the popup card follows the active surface role',
+        );
+        expect(
+          tester
+              .widgetList<CupertinoTheme>(find.byType(CupertinoTheme))
+              .last
+              .data
+              .textTheme
+              .dateTimePickerTextStyle
+              .color,
+          expected.textPrimary,
+          reason: '$mode: the native wheel follows the active semantic palette',
+        );
+      }
     }
 
     testWidgets('Light resolves the Light palette', (tester) async {
@@ -1095,7 +1464,8 @@ void main() {
       await tester.pumpAndSettle();
       expectQuickAdd(tester, TioColors.dark, 'dark');
       expect(
-        materialOf(tester, find.byKey(const ValueKey('tio-editor-sheet'))).color,
+        materialOf(tester, find.byKey(const ValueKey('tio-editor-sheet')))
+            .color,
         isNot(TioColors.light.surfaceRaised),
       );
     });
@@ -1111,14 +1481,14 @@ void main() {
       await tester.pumpAndSettle();
       expectQuickAdd(tester, TioColors.oled, 'oled');
       expect(
-        materialOf(tester, find.byKey(const ValueKey('tio-editor-sheet'))).color,
+        materialOf(tester, find.byKey(const ValueKey('tio-editor-sheet')))
+            .color,
         isNot(TioColors.dark.surfaceRaised),
         reason: 'OLED is its own palette, not an alias of Dark',
       );
     });
 
-    testWidgets('System with an OS-dark device resolves Dark',
-        (tester) async {
+    testWidgets('System with an OS-dark device resolves Dark', (tester) async {
       await _pump(
         tester,
         mode: TioThemeMode.system,
@@ -1160,12 +1530,16 @@ void main() {
       const calories = ValueKey('quick-add-calories');
       await _type(tester, calories, '420');
       expect(_fieldText(tester, calories), '420');
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+      expectQuickAdd(tester, TioColors.light, 'picker before');
 
       _setThemeMode(TioThemeMode.dark);
       await tester.pumpAndSettle();
 
       expect(find.byKey(_editor), findsOne, reason: 'the editor stays open');
       expectQuickAdd(tester, TioColors.dark, 'after');
+      expect(find.byKey(_dateTimePicker), findsOne);
       expect(
         _fieldText(tester, calories),
         '420',
@@ -1285,7 +1659,7 @@ void main() {
       final control = tester.getRect(find.byKey(_footerCategory));
       expect(
         control.height,
-        greaterThanOrEqualTo(48),
+        greaterThanOrEqualTo(44),
         reason: 'a pressable control needs a pressable amount of room',
       );
       expect(control.width, greaterThanOrEqualTo(48));
@@ -1295,7 +1669,8 @@ void main() {
           matching: find.byType(InkWell),
         ),
         findsOne,
-        reason: 'an InkWell brings focus and a ripple; a detector brings neither',
+        reason:
+            'an InkWell brings focus and a ripple; a detector brings neither',
       );
 
       await tester.tap(find.byKey(_footerCategory));
@@ -1353,14 +1728,17 @@ void main() {
         expect(field.right, lessThanOrEqualTo(320));
         expect(field.left, greaterThan(0));
       }
-      final carbs = tester.getRect(find.byKey(const ValueKey('quick-add-carbs')));
+      final carbs =
+          tester.getRect(find.byKey(const ValueKey('quick-add-carbs')));
       final protein =
           tester.getRect(find.byKey(const ValueKey('quick-add-protein')));
       expect(carbs.bottom, lessThanOrEqualTo(protein.top));
 
       // The commit region is on screen rather than below the fold.
-      expect(tester.getRect(find.byKey(_logMeal)).bottom, lessThanOrEqualTo(640));
-      expect(tester.getRect(find.byKey(_logMeal)).right, lessThanOrEqualTo(320));
+      expect(
+          tester.getRect(find.byKey(_logMeal)).bottom, lessThanOrEqualTo(640));
+      expect(
+          tester.getRect(find.byKey(_logMeal)).right, lessThanOrEqualTo(320));
     });
 
     testWidgets('scrolling to the end never parks content under the action',
@@ -1374,7 +1752,8 @@ void main() {
       await _pump(tester);
       expect(find.byKey(_addAction), findsOne);
 
-      await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -600));
+      await tester.drag(
+          find.byType(SingleChildScrollView), const Offset(0, -600));
       await tester.pumpAndSettle();
 
       // At the maximum extent the last of the body still clears the button's

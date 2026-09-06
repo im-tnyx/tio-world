@@ -1,18 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:tio_core/core.dart';
 
 import 'meal_log_action_footer.dart';
 
-/// Opens the Quick Add manual nutrition editor for [selectedDate].
-///
-/// [selectedDate] is the Meal Diary's own selected day, passed by value. The
-/// editor is given the date, not the diary's controller, so there is no path
-/// by which opening, editing or closing this sheet can move the reader's
-/// selection.
+/// Opens a brand-new Quick Add manual nutrition editor.
 Future<void> showQuickAddEditorSheet(
   BuildContext context, {
-  required DateTime selectedDate,
+  DateTime Function()? clock,
 }) {
   return showTioEditorSheet<void>(
     context: context,
@@ -24,7 +21,7 @@ Future<void> showQuickAddEditorSheet(
     // top padding, so a keyboard-raised or split-screen viewport can push the
     // handle and title under the status bar.
     useSafeArea: true,
-    builder: (_) => QuickAddEditorSheet(selectedDate: selectedDate),
+    builder: (_) => QuickAddEditorSheet(clock: clock),
   );
 }
 
@@ -40,7 +37,7 @@ Future<void> showQuickAddEditorSheet(
 /// Protein (g)             [      ]
 /// Fat (g)                 [      ]
 /// ─────────────────────────────────   body scrolls, footer does not
-/// Meal type ▼        🗓 Sep 5 · Time
+/// Meal type ▼        🗓 Sep 6, 00:07
 /// [           Log Meal            ]
 /// ```
 ///
@@ -70,21 +67,22 @@ Future<void> showQuickAddEditorSheet(
 /// find out it was wrong by losing meals. So the button is present, disabled,
 /// and says why.
 ///
-/// Every value lives in this `State`'s own text controllers and dies with the
-/// route. There is no notifier, no repository, no store and no draft, which is
-/// why backing out leaves nothing behind — not because a teardown path clears
-/// something, but because there was never anything to clear.
+/// Every value, including the selected local DateTime, lives in this `State`
+/// and dies with the route. There is no notifier, repository or store behind
+/// it. Reopening a brand-new Quick Add takes a fresh current-local snapshot.
 class QuickAddEditorSheet extends StatefulWidget {
-  const QuickAddEditorSheet({required this.selectedDate, super.key});
+  const QuickAddEditorSheet({super.key, this.clock});
 
-  /// The Meal Diary's selected day, carried in and only displayed.
-  final DateTime selectedDate;
+  /// Optional local clock seam. Production uses `DateTime.now`.
+  final DateTime Function()? clock;
 
   @override
   State<QuickAddEditorSheet> createState() => _QuickAddEditorSheetState();
 }
 
-class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
+class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
+    with WidgetsBindingObserver {
+  final _dateTimeAnchorKey = GlobalKey();
   final _mealName = TextEditingController();
   final _calories = TextEditingController();
   final _carbs = TextEditingController();
@@ -98,10 +96,18 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
     _protein,
     _fat,
   ];
+  late DateTime _draftDateTime;
+  late DateTime _maximumDateTime;
+  Timer? _maximumDateTimer;
+  var _isDateTimePickerOpen = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    final openedAt = _currentLocalNow();
+    _draftDateTime = _minuteOnly(openedAt);
+    _maximumDateTime = _draftDateTime;
     // Validation is per-keystroke because the errors are about the characters
     // themselves, not about a submission that cannot happen here.
     for (final controller in _fields) {
@@ -111,6 +117,8 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
 
   @override
   void dispose() {
+    _stopMaximumDateRefresh();
+    WidgetsBinding.instance.removeObserver(this);
     for (final controller in _fields) {
       controller
         ..removeListener(_onChanged)
@@ -119,95 +127,186 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet> {
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _isDateTimePickerOpen) {
+      final now = _currentLocalNow();
+      _refreshMaximumDateTime(now);
+      _scheduleMaximumDateRefresh(now);
+      return;
+    }
+    _stopMaximumDateRefresh();
+  }
+
   void _onChanged() {
     if (mounted) setState(() {});
+  }
+
+  DateTime _currentLocalNow() => widget.clock?.call() ?? DateTime.now();
+
+  DateTime _minuteOnly(DateTime value) {
+    return DateTime(
+      value.year,
+      value.month,
+      value.day,
+      value.hour,
+      value.minute,
+    );
+  }
+
+  DateTime _resolveMealDateTime(DateTime candidate) {
+    // The wheel has minute precision. Compare its zero-second candidate to the
+    // real clock, then snap to the real minute floor. Hidden seconds can never
+    // make the same visible minute inconsistently valid or invalid.
+    final now = _minuteOnly(_currentLocalNow());
+    _maximumDateTime = now;
+    return candidate.isAfter(now) ? now : candidate;
+  }
+
+  void _refreshMaximumDateTime([DateTime? current]) {
+    final maximum = _minuteOnly(current ?? _currentLocalNow());
+    if (maximum == _maximumDateTime) return;
+    setState(() => _maximumDateTime = maximum);
+  }
+
+  void _scheduleMaximumDateRefresh([DateTime? current]) {
+    _maximumDateTimer?.cancel();
+    final now = current ?? _currentLocalNow();
+    final nextMinute = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      now.hour,
+      now.minute + 1,
+    );
+    final delay = nextMinute.difference(now);
+    if (delay <= Duration.zero) return;
+    _maximumDateTimer = Timer(delay, () {
+      if (!mounted) return;
+      final refreshedAt = _currentLocalNow();
+      _refreshMaximumDateTime(refreshedAt);
+      _scheduleMaximumDateRefresh(refreshedAt);
+    });
+  }
+
+  void _stopMaximumDateRefresh() {
+    _maximumDateTimer?.cancel();
+    _maximumDateTimer = null;
+  }
+
+  void _onDateTimeChanged(DateTime value) {
+    setState(() => _draftDateTime = value);
+  }
+
+  void _toggleDateTimePicker() {
+    FocusScope.of(context).unfocus();
+    _refreshMaximumDateTime();
+    setState(() => _isDateTimePickerOpen = !_isDateTimePickerOpen);
+    if (_isDateTimePickerOpen) {
+      _scheduleMaximumDateRefresh();
+    } else {
+      _stopMaximumDateRefresh();
+    }
+  }
+
+  void _closeDateTimePicker() {
+    if (!_isDateTimePickerOpen) return;
+    _stopMaximumDateRefresh();
+    setState(() => _isDateTimePickerOpen = false);
   }
 
   @override
   Widget build(BuildContext context) {
     final localizations = MaterialLocalizations.of(context);
-    // Month and day only. The year is noise in a chip this size, and the
-    // diary the reader came from already says which one they are on.
-    final selectedDateLabel =
-        localizations.formatShortMonthDay(widget.selectedDate);
+    final selectedDateLabel = localizations.formatShortMonthDay(_draftDateTime);
+    final selectedTimeLabel =
+        '${_draftDateTime.hour.toString().padLeft(2, '0')}:'
+        '${_draftDateTime.minute.toString().padLeft(2, '0')}';
+    final dateTimeLabel = '$selectedDateLabel, $selectedTimeLabel';
 
-    return TioEditorSheet(
-      key: const ValueKey('quick-add-editor'),
-      title: 'Quick Add',
-      // The footer draws its own rule across the sheet, so the standard gap
-      // above the actions would only put dead space above that line.
-      flushActions: true,
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // The one free-text field. It uses the governed larger rounded
-          // surface so it reads as the thing you name the meal with, but it
-          // starts at one line: a fixed two-line box was more room than a
-          // title needs and made the screen top-heavy. It still grows to a
-          // second line for a longer name, and stops there — this is a title,
-          // not a notes field.
-          TioInput.multiline(
-            key: const ValueKey('quick-add-meal-name'),
-            controller: _mealName,
-            hint: 'Meal name (optional)',
-            minLines: 1,
-            maxLines: 2,
-            keyboardType: TextInputType.text,
-            textInputAction: TextInputAction.done,
-            onChanged: (_) {},
-          ),
-          const SizedBox(height: TioSpacing.lg),
-          _NutritionRow(
-            fieldKey: const ValueKey('quick-add-calories'),
-            controller: _calories,
-            label: 'Calories',
-            unit: 'kcal',
-          ),
-          const SizedBox(height: TioSpacing.md),
-          _NutritionRow(
-            fieldKey: const ValueKey('quick-add-carbs'),
-            controller: _carbs,
-            label: 'Carbs',
-            unit: 'g',
-          ),
-          const SizedBox(height: TioSpacing.md),
-          _NutritionRow(
-            fieldKey: const ValueKey('quick-add-protein'),
-            controller: _protein,
-            label: 'Protein',
-            unit: 'g',
-          ),
-          const SizedBox(height: TioSpacing.md),
-          _NutritionRow(
-            fieldKey: const ValueKey('quick-add-fat'),
-            controller: _fat,
-            label: 'Fat',
-            unit: 'g',
-          ),
-          // Breathing room at the end of the body. The footer's rule now sits
-          // flush against the scroll view, so without this the last field
-          // touches the line.
-          const SizedBox(height: TioSpacing.lg),
-        ],
-      ),
-      actions: MealLogActionFooter(
-        // Neutral on purpose. TNYX-67 owns what a meal category is — the V1
-        // defaults, renaming, custom ones, hiding, ordering and the eight-
-        // category ceiling — so naming Breakfast here would be this screen
-        // inventing a second, weaker version of that.
-        mealCategoryLabel: 'Meal type',
-        mealCategorySemanticLabel: 'Meal type. Not available yet.',
-        // The real selected day, and a time that is honestly unresolved:
-        // TNYX-114 owns consumed time, so there is no correct value to show
-        // and inventing one would be the screenshot talking, not the app.
-        dateTimeLabel: '$selectedDateLabel · Time',
-        dateTimeSemanticLabel:
-            'Date and time. $selectedDateLabel, time not set. '
-            'Not available yet.',
-        primaryLabel: 'Log Meal',
-        primarySemanticLabel: 'Log Meal. Not available yet.',
-        note: 'Saving is not available yet.',
+    return TioDateTimePickerPopup(
+      anchorKey: _dateTimeAnchorKey,
+      isOpen: _isDateTimePickerOpen,
+      onDismiss: _closeDateTimePicker,
+      value: _draftDateTime,
+      maximumDate: _maximumDateTime,
+      resolveDateTime: _resolveMealDateTime,
+      onChanged: _onDateTimeChanged,
+      onPickerInteractionStart: _refreshMaximumDateTime,
+      child: TioEditorSheet(
+        key: const ValueKey('quick-add-editor'),
+        title: 'Quick Add',
+        // The footer draws its own rule across the sheet, so the standard gap
+        // above the actions would only put dead space above that line.
+        flushActions: true,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // The one free-text field. It uses the governed larger rounded
+            // surface so it reads as the thing you name the meal with, but it
+            // starts at one line: a fixed two-line box was more room than a
+            // title needs and made the screen top-heavy. It still grows to a
+            // second line for a longer name, and stops there — this is a title,
+            // not a notes field.
+            TioInput.multiline(
+              key: const ValueKey('quick-add-meal-name'),
+              controller: _mealName,
+              hint: 'Meal name (optional)',
+              minLines: 1,
+              maxLines: 2,
+              keyboardType: TextInputType.text,
+              textInputAction: TextInputAction.done,
+              onChanged: (_) {},
+            ),
+            const SizedBox(height: TioSpacing.lg),
+            _NutritionRow(
+              fieldKey: const ValueKey('quick-add-calories'),
+              controller: _calories,
+              label: 'Calories',
+              unit: 'kcal',
+            ),
+            const SizedBox(height: TioSpacing.md),
+            _NutritionRow(
+              fieldKey: const ValueKey('quick-add-carbs'),
+              controller: _carbs,
+              label: 'Carbs',
+              unit: 'g',
+            ),
+            const SizedBox(height: TioSpacing.md),
+            _NutritionRow(
+              fieldKey: const ValueKey('quick-add-protein'),
+              controller: _protein,
+              label: 'Protein',
+              unit: 'g',
+            ),
+            const SizedBox(height: TioSpacing.md),
+            _NutritionRow(
+              fieldKey: const ValueKey('quick-add-fat'),
+              controller: _fat,
+              label: 'Fat',
+              unit: 'g',
+            ),
+            // The footer divider is intentionally flush to the action region;
+            // reserve body breathing room so the final input does not touch it.
+            const SizedBox(height: TioSpacing.md),
+          ],
+        ),
+        actions: MealLogActionFooter(
+          // Neutral on purpose. TNYX-67 owns what a meal category is — the V1
+          // defaults, renaming, custom ones, hiding, ordering and the eight-
+          // category ceiling — so naming Breakfast here would be this screen
+          // inventing a second, weaker version of that.
+          mealCategoryLabel: 'Meal type',
+          mealCategorySemanticLabel: 'Meal type. Not available yet.',
+          dateTimeLabel: dateTimeLabel,
+          dateTimeSemanticLabel: 'Date and time. $dateTimeLabel. '
+              'Picker ${_isDateTimePickerOpen ? 'expanded' : 'collapsed'}.',
+          onDateTimeTap: _toggleDateTimePicker,
+          dateTimeAnchorKey: _dateTimeAnchorKey,
+          primaryLabel: 'Log Meal',
+          primarySemanticLabel: 'Log Meal. Not available yet.',
+        ),
       ),
     );
   }

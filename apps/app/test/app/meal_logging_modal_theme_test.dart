@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,6 +31,8 @@ void main() {
   const sheet = ValueKey('meal-diary-add-food-sheet');
   const quickAddCard = ValueKey('add-food-quick-add');
   const editorSheet = ValueKey('tio-editor-sheet');
+  const footerDateTime = ValueKey('meal-log-footer-date-time');
+  const pickerPopup = ValueKey('tio-date-time-picker-popup');
 
   Future<void> pumpApp(WidgetTester tester, TioThemeMode mode) async {
     final appMode = AppModeController(_MemoryAppModePreference(AppMode.hybrid));
@@ -135,6 +138,28 @@ void main() {
         materialOf(tester, find.byKey(editorSheet)).color,
         isNot(TioColors.light.surfaceRaised),
       );
+
+      await tester.tap(find.byKey(footerDateTime));
+      await tester.pumpAndSettle();
+      expect(find.byKey(pickerPopup), findsOneWidget);
+      final pickerSurface = tester
+          .widgetList<Container>(
+            find.descendant(
+              of: find.byKey(pickerPopup),
+              matching: find.byType(Container),
+            ),
+          )
+          .map((container) => container.decoration)
+          .whereType<BoxDecoration>()
+          .first;
+      expect(pickerSurface.color, expected.surface);
+      final nativeTheme =
+          tester.widgetList<CupertinoTheme>(find.byType(CupertinoTheme)).last;
+      expect(
+        nativeTheme.data.textTheme.dateTimePickerTextStyle.color,
+        expected.textPrimary,
+        reason: '${mode.$2}: popup native picker must inherit the app theme',
+      );
     });
   }
 }
@@ -215,7 +240,8 @@ class _MemoryOnboardingStatusRepository implements OnboardingStatusRepository {
   }
 }
 
-class _FixedAppSessionBootstrapController extends AppSessionBootstrapController {
+class _FixedAppSessionBootstrapController
+    extends AppSessionBootstrapController {
   _FixedAppSessionBootstrapController({
     required AppSessionBootstrapState state,
     required super.onboardingStatusController,
