@@ -17,8 +17,8 @@ class TioWheelPickerTokens {
   const TioWheelPickerTokens._();
 
   static const viewportHeight = TioSize.dp200;
-  static const selectionHeight = TioSize.dp44;
-  static const selectionHorizontalMargin = TioSpacing.md;
+  static const selectionHeight = TioSize.dp48;
+  static const selectionHorizontalMargin = TioSpacing.lg;
   static const selectionSurfaceAlpha = TioAlpha.alpha200;
   static const itemExtent = TioSize.dp44;
   static const selectedFontSize = TioFontSize.size22;

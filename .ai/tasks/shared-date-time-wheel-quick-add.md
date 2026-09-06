@@ -21,7 +21,7 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-06; origin/main fetched at 8eace9977c155661a339ef59187dd62028b9988e
 **Branch:** codex/shared-date-time-wheel-quick-add
-**Implementation SHA:** `468ceea56ac6a84c18a9fed3a530c1cd91b608f1`
+**Implementation SHA:** pending commit
 **Observed working-tree state:** Feature files clean; unrelated local pubspec.lock modification preserved
 **PR / tracker:** GitHub PR #217 is open (Draft) against main; TNYX-114 remains Backlog and blocked by TNYX-113; TNYX-158 is Done
 **Current implementation state:** TioDateTimePickerPopup (Overlay card) and TioDateTimeWheelPicker (CupertinoDatePicker wrapper) active and validated; analyzer const fixes and clean test assertions applied
@@ -76,7 +76,7 @@ A new Quick Add opens with one stable current-local DateTime draft. Tapping its 
 
 - Source inspected: TioWheelPickerTokens, TioEditorSheet, MealLogActionFooter, QuickAddEditorSheet, meal_diary_page.dart, public Core barrels, manifests, and existing tests.
 - CupertinoDatePicker capabilities in Flutter 3.44.6: supports mode: CupertinoDatePickerMode.dateAndTime, use24hFormat: false, maximumDate, minimumDate, selectionOverlayBuilder. Emits native selection click on iOS.
-- Existing tokens: TioWheelPickerTokens.viewportHeight (200dp), selectionHeight (44dp), selectionHorizontalMargin (12dp), itemExtent (44dp), semantic surfaceVariant.
+- Existing tokens: TioWheelPickerTokens.viewportHeight (200dp), selectionHeight (48dp), selectionHorizontalMargin (16dp / TioSpacing.lg), itemExtent (44dp), semantic surfaceVariant.
 
 ## 3. Clarification
 
@@ -132,6 +132,7 @@ tap outside -> popup dismisses -> local draft retained
 - [x] Integrate popup card into Quick Add and wire anchor key to MealLogActionFooter.
 - [x] Remove inline picker from Quick Add content body.
 - [x] Remove obsolete 	io_wheel_picker.dart and legacy commented-out tests.
+- [x] Restore TioWheelPickerTokens to canonical geometry (48dp height, lg margin).
 - [x] Fix analyzer const warnings in TioDateTimePickerPopup.
 - [x] Add automated tests for popup, wheel, theme derivation, boundary resync, and Quick Add flow.
 - [x] Verify git diff --check and push to existing branch codex/shared-date-time-wheel-quick-add.
@@ -148,6 +149,7 @@ tap outside -> popup dismisses -> local draft retained
 | QR-9 | P2 | Resolved | Non-pointer midnight bound refresh. | Validated in commit 4562cbe3. |
 | Owner UI | P1 | Resolved in Code | Replace inline card with reusable popup card; replace 4-column wheel with Cupertino drum. | Implemented via TioDateTimePickerPopup and TioDateTimeWheelPicker; owner device screenshot pending. |
 | CI-1 | P1 | Resolved | Analyzer failure on non-const desiredHeight and gap. | Converted declarations to const. |
+| CI-2 | P1 | Resolved | Design system token contracts broke when TioWheelPickerTokens was mutated to 44dp. | Restored TioWheelPickerTokens to canonical 48dp/lg. |
 | Dead Code | P2 | Resolved | Unused 	io_wheel_picker.dart and commented legacy tests. | Removed dead file and cleaned test file. |
 
 ## 7. Final Handoff
@@ -157,7 +159,6 @@ tap outside -> popup dismisses -> local draft retained
 - .ai/tasks/shared-date-time-wheel-quick-add.md
 - pps/app/test/app/meal_logging_modal_theme_test.dart
 - pps/core/lib/src/theme/README.md
-- pps/core/lib/src/theme/tokens/components/tio_wheel_picker_tokens.dart
 - pps/core/lib/src/ui/components/components.dart
 - pps/core/lib/src/ui/components/pickers/pickers.dart
 - pps/core/lib/src/ui/components/pickers/tio_date_time_picker_popup.dart
