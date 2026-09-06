@@ -189,5 +189,5 @@ tap outside -> popup dismisses -> local draft retained
 - Unrelated local modification in `pubspec.lock` preserved.
 - No Supabase, no backend, no persistence, no Workout feature code.
 - No Meal Type / Meal Categories implementation; next separate task is the TNYX-66 readiness refresh for TNYX-67.
-- Final PR head after this handoff: `e24ccaeec97baccbe3bdd53b02054f756e7180e4`; exact-head CI `34030194823` passed all required analyze/test steps.
+- Latest runtime source head: `bfc7f3ac000773a3af5a6a14811523a428664f2a`; exact-head CI `34029711216` passed all required analyze/test steps. The final docs handoff head is validated separately by the latest green CI run recorded in the PR body.
 - Owner device UI: **ACCEPTED**. PR #217 remains **OPEN / DRAFT / UNMERGED**.
