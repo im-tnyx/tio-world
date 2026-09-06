@@ -175,6 +175,12 @@ class _TioWheelPickerColumnState extends State<TioWheelPickerColumn> {
       childDelegate: ListWheelChildBuilderDelegate(
         childCount: widget.looping ? null : widget.itemCount,
         builder: (context, rawIndex) {
+          // A null childCount lets Flutter request indices in both directions.
+          // The unbounded-past Date contract needs only non-negative logical
+          // indices: zero is the caller's maximum and larger indices are
+          // progressively older dates. Returning null here creates that real
+          // forward boundary without inventing an earliest historical date.
+          if (widget.itemCount == null && rawIndex < 0) return null;
           final logicalIndex = widget.looping
               ? rawIndex % widget.itemCount!
               : rawIndex;
