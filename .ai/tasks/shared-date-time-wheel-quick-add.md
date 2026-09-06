@@ -1,6 +1,6 @@
 # Shared Core DateTime Wheel + Quick Add Local Draft
 
-**Status:** In progress
+**Status:** Validated
 **Primary owner:** `apps/core` reusable picker + `apps/features/nutrition` Quick Add adapter/presentation
 **Affected platforms:** Flutter Android + iOS phone UI; future Weight and Workout reuse is contract-only
 
@@ -17,20 +17,20 @@
 **Planning owner:** Codex `/root`
 **Implementation owner:** Codex `/root`
 **Review owner:** Codex `/root` quality-review pass; GitHub review remains external
-**Implementation ownership state:** Active
+**Implementation ownership state:** Validated; PR remains open/draft and unmerged
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-06; `origin/main` fetched at `8eace9977c155661a339ef59187dd62028b9988e`
 **Branch:** `codex/shared-date-time-wheel-quick-add`
-**Implementation SHA:** `c35225edc7c8d578e0ac03a50d475784e5065e08`
-**Observed working-tree state:** Compact wheel-height token follow-up is modified in feature/core files; unrelated local `pubspec.lock` modification preserved
+**Implementation SHA:** `bfc7f3ac000773a3af5a6a14811523a428664f2a`
+**Observed working-tree state:** Closeout source fixes are pushed at `bfc7f3ac`; unrelated local `pubspec.lock` modification preserved
 **PR / tracker:** GitHub PR #217 is open (Draft) against `main`; TNYX-114 remains Backlog and blocked by TNYX-113; TNYX-158 is Done
-**Current implementation state:** `TioDateTimePickerPopup` (Overlay card) and `TioDateTimeWheelPicker` (`CupertinoDatePicker` wrapper) active; the compact DateTime selection pill uses `TioWheelPickerTokens.compactSelectionHeight` (44dp) while the standard 48dp shared token remains intact. The token follow-up is locally modified after the previously validated implementation SHA.
+**Current implementation state:** `TioDateTimePickerPopup` (Overlay card) and `TioDateTimeWheelPicker` (`CupertinoDatePicker` wrapper) are active; the compact DateTime selection pill uses `TioWheelPickerTokens.compactSelectionHeight` (44dp), the standard wheel `selectionHeight` remains 48dp, outside-dismiss cancels the Quick Add maximum-date timer, and the global editor bottom inset is governed by `TioEditorSheetTokens.bottomPadding` (12dp). Owner device UI acceptance is **ACCEPTED**.
 **Relevant execution surface:** `TioDateTimePickerPopup` and `TioDateTimeWheelPicker` in Core; Nutrition Quick Add modal/editor/footer
-**Validation completed at SHA:** `c35225edc7c8d578e0ac03a50d475784e5065e08` (GitHub Actions run `34027402550` — all checks passed)
+**Validation completed at SHA:** `bfc7f3ac000773a3af5a6a14811523a428664f2a` (GitHub Actions run `34029711216` — Analyze Flutter, Analyze Dart, Test Flutter, and Test Dart all passed)
 **Validation remaining:** Owner device screenshot visual acceptance
 **Current blocker:** None
-**Open review finding IDs:** QR-1 to QR-9 resolved; owner presentation findings resolved in code, pending owner device UI visual acceptance
-**Next exact action:** Await owner device visual acceptance before marking PR Ready for Review.
+**Open review finding IDs:** Three stale/outdated threads remain to be replied to and resolved after this handoff refresh; the underlying popup, Cupertino drum, and durable handoff findings are satisfied at the current head.
+**Next exact action:** Refresh the final task/PR truth at the final docs head, then reply to and resolve the three stale review threads. Do not merge.
 
 ## Global UI / Design-System Guardrail
 
@@ -135,6 +135,9 @@ tap outside -> popup dismisses -> local draft retained
 - [x] Restore `TioWheelPickerTokens` to canonical geometry (48dp height, lg margin).
 - [x] Fix analyzer const warnings in `TioDateTimePickerPopup`.
 - [x] Add automated tests for popup, wheel, theme derivation, boundary resync, and Quick Add flow.
+- [x] Centralize the approved 44dp DateTime pill as `TioWheelPickerTokens.compactSelectionHeight`.
+- [x] Cancel the maximum-date timer on every popup close path, including outside dismiss.
+- [x] Govern the global 12dp editor bottom inset through `TioEditorSheetTokens.bottomPadding` and preserve explicit overrides.
 - [x] Verify `git diff --check` and push to existing branch `codex/shared-date-time-wheel-quick-add`.
 - [x] Wait for exact-head CI and verify all checks pass.
 - [x] Update PR body with complete truth.
@@ -147,11 +150,13 @@ tap outside -> popup dismisses -> local draft retained
 |---|---|---|---|---|
 | QR-8 | P1 | Resolved | Resolver candidate cross-day inspection before calendar bounds. | Validated in commit `4562cbe3`. |
 | QR-9 | P2 | Resolved | Non-pointer midnight bound refresh. | Validated in commit `4562cbe3`. |
-| Owner UI | P1 | Resolved in Code | Replace inline card with reusable popup card; replace 4-column wheel with Cupertino drum. | Implemented via `TioDateTimePickerPopup` and `TioDateTimeWheelPicker`; owner device screenshot pending. |
+| Owner UI | P1 | Resolved | Replace inline card with reusable popup card; replace 4-column wheel with Cupertino drum. | Implemented via `TioDateTimePickerPopup` and `TioDateTimeWheelPicker`; owner device UI accepted. |
 | CI-1 | P1 | Resolved | Analyzer failure on non-const `desiredHeight` and `gap`. | Converted declarations to `const`. |
 | CI-2 | P1 | Resolved | Design system token contracts broke when `TioWheelPickerTokens` was mutated to 44dp. | Restored `TioWheelPickerTokens` to canonical 48dp/lg. |
 | CI-3 | P1 | Resolved | Test asserted 48dp height on footer action when contract was 44dp. | Aligned test expectation to 44dp. |
 | Dead Code | P2 | Resolved | Unused `tio_wheel_picker.dart` and commented legacy tests. | Removed dead file and cleaned test file. |
+| Timer lifecycle | P1 | Resolved | Outside dismiss left the recurring maximum-date refresh timer active. | Canonical `_stopMaximumDateRefresh()` cleanup now runs on toggle-close, outside dismiss, lifecycle pause, and dispose; regression coverage added. |
+| Editor padding ownership | P2 | Resolved | Global 12dp editor bottom inset was an inline default. | Added `TioEditorSheetTokens.bottomPadding`; default remains 12dp and explicit overrides remain supported. |
 
 ## 7. Final Handoff
 
@@ -160,12 +165,17 @@ tap outside -> popup dismisses -> local draft retained
 - `.ai/tasks/shared-date-time-wheel-quick-add.md`
 - `apps/app/test/app/meal_logging_modal_theme_test.dart`
 - `apps/core/lib/src/theme/README.md`
+- `apps/core/lib/src/theme/tokens/components/tio_editor_sheet_tokens.dart`
+- `apps/core/lib/src/theme/tokens/components/tio_wheel_picker_tokens.dart`
 - `apps/core/lib/src/ui/components/components.dart`
 - `apps/core/lib/src/ui/components/pickers/pickers.dart`
 - `apps/core/lib/src/ui/components/pickers/tio_date_time_picker_popup.dart`
 - `apps/core/lib/src/ui/components/pickers/tio_date_time_wheel_picker.dart`
 - `apps/core/lib/src/ui/components/sheets/tio_editor_sheet.dart`
+- `apps/core/test/theme/primitive_geometry_contract_test.dart`
+- `apps/core/test/theme/wheel_picker_token_contract_test.dart`
 - `apps/core/test/ui/components/tio_date_time_wheel_picker_test.dart`
+- `apps/core/test/ui/components/tio_editor_sheet_test.dart`
 - `apps/features/nutrition/lib/src/meal_diary/presentation/pages/meal_diary_page.dart`
 - `apps/features/nutrition/lib/src/meal_logging/presentation/widgets/meal_log_action_footer.dart`
 - `apps/features/nutrition/lib/src/meal_logging/presentation/widgets/quick_add_editor_sheet.dart`
@@ -178,3 +188,4 @@ tap outside -> popup dismisses -> local draft retained
 - Preserved branch: `docs/supabase-android-studio-qa-run` intact at `7fe89682`.
 - Unrelated local modification in `pubspec.lock` preserved.
 - No Supabase, no backend, no persistence, no Workout feature code.
+- No Meal Type / Meal Categories implementation; next separate task is the TNYX-66 readiness refresh for TNYX-67.
