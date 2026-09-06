@@ -7,10 +7,29 @@ import 'meal_category_defaults.dart';
 /// A null persisted config is intentionally distinct from a customized config
 /// and resolves to [canonicalDefaults] at runtime.
 final class MealCategoriesConfig {
-  MealCategoriesConfig({
-    this.schemaVersion = MealCategoriesPolicy.currentSchemaVersion,
+  factory MealCategoriesConfig({
+    int schemaVersion = MealCategoriesPolicy.currentSchemaVersion,
     required Iterable<MealCategory> items,
-  }) : items = List<MealCategory>.unmodifiable(items);
+  }) {
+    final orderedItems = items.toList();
+    MealCategoriesPolicy.validate(
+      schemaVersion: schemaVersion,
+      items: orderedItems,
+    );
+    orderedItems.sort((a, b) {
+      final byOrder = a.order.compareTo(b.order);
+      return byOrder != 0 ? byOrder : a.id.compareTo(b.id);
+    });
+    return MealCategoriesConfig._(
+      schemaVersion: schemaVersion,
+      items: List<MealCategory>.unmodifiable(orderedItems),
+    );
+  }
+
+  const MealCategoriesConfig._({
+    required this.schemaVersion,
+    required this.items,
+  });
 
   final int schemaVersion;
   final List<MealCategory> items;
@@ -18,7 +37,7 @@ final class MealCategoriesConfig {
   factory MealCategoriesConfig.canonicalDefaults() => MealCategoriesConfig(
         items: canonicalMealCategoryDefaultDefinitions
             .map((definition) => definition.resolve()),
-      )..validate();
+      );
 
   static MealCategoriesConfig resolve(MealCategoriesConfig? customized) {
     final resolved = customized ?? MealCategoriesConfig.canonicalDefaults();
@@ -33,12 +52,7 @@ final class MealCategoriesConfig {
 
   List<MealCategory> get orderedItems {
     validate();
-    final ordered = items.toList()
-      ..sort((a, b) {
-        final byOrder = a.order.compareTo(b.order);
-        return byOrder != 0 ? byOrder : a.id.compareTo(b.id);
-      });
-    return List<MealCategory>.unmodifiable(ordered);
+    return items;
   }
 
   List<MealCategory> get activeItems => List<MealCategory>.unmodifiable(

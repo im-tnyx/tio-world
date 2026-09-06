@@ -62,7 +62,26 @@ void main() {
       expect(reordered.findById('meal_slot_3')!.order, 1);
       expect(
         reordered.items.map((item) => item.id),
-        ['meal_slot_1', 'meal_slot_2', 'meal_slot_3', 'meal_slot_4'],
+        ['meal_slot_1', 'meal_slot_3', 'meal_slot_2', 'meal_slot_4'],
+      );
+    });
+
+    test('stores a defensive copy in canonical semantic order', () {
+      final source =
+          MealCategoriesConfig.canonicalDefaults().items.reversed.toList();
+
+      final config = MealCategoriesConfig(items: source);
+      source.clear();
+
+      expect(config.items.map((item) => item.id), [
+        'meal_slot_1',
+        'meal_slot_2',
+        'meal_slot_3',
+        'meal_slot_4',
+      ]);
+      expect(
+        () => config.items.add(config.items.first),
+        throwsUnsupportedError,
       );
     });
   });
@@ -151,6 +170,43 @@ void main() {
         'meal_slot_00000000-0000-4000-8000-000000000002',
       );
     });
+
+    test('rejects an invalid injected UUID deterministically', () {
+      final generator = UuidMealCategoryIdGenerator(
+        uuidV4: () => 'not-a-uuid',
+      );
+
+      expect(
+        () => generator.generate(const []),
+        _throwsCode(MealCategoriesValidationCode.invalidGeneratedId),
+      );
+    });
+
+    test('fails after the configured collision-attempt bound', () {
+      var calls = 0;
+      final generator = UuidMealCategoryIdGenerator(
+        uuidV4: () {
+          calls++;
+          return '00000000-0000-4000-8000-000000000001';
+        },
+        maxAttempts: 2,
+      );
+
+      expect(
+        () => generator.generate(const [
+          'meal_slot_00000000-0000-4000-8000-000000000001',
+        ]),
+        _throwsCode(MealCategoriesValidationCode.idGenerationExhausted),
+      );
+      expect(calls, 2);
+    });
+
+    test('requires a positive collision-attempt bound', () {
+      expect(
+        () => UuidMealCategoryIdGenerator(maxAttempts: 0),
+        throwsArgumentError,
+      );
+    });
   });
 
   group('policy validation', () {
@@ -175,17 +231,17 @@ void main() {
     });
 
     test('rejects a ninth active category without truncating state', () {
-      final config = _configWithCustomCategories(
+      final items = _itemsWithCustomCategories(
         customCount: 5,
         activeCustomCount: 5,
       );
 
-      expect(config.items, hasLength(9));
+      expect(items, hasLength(9));
       expect(
-        config.validate,
+        () => MealCategoriesConfig(items: items),
         _throwsCode(MealCategoriesValidationCode.tooManyActiveCategories),
       );
-      expect(config.items, hasLength(9));
+      expect(items, hasLength(9));
     });
 
     test('accepts eight active categories plus an archived retained item', () {
@@ -215,159 +271,168 @@ void main() {
     });
 
     test('rejects duplicate normalized active display names', () {
-      final config = MealCategoriesConfig(
-        items: [
-          ...MealCategoriesConfig.canonicalDefaults().items,
-          MealCategory(
-            id: 'meal_slot_00000000-0000-4000-8000-000000000001',
-            defaultKey: null,
-            displayName: 'Pre Workout',
-            active: true,
-            order: 4,
-          ),
-          MealCategory(
-            id: 'meal_slot_00000000-0000-4000-8000-000000000002',
-            defaultKey: null,
-            displayName: '  pre   WORKOUT  ',
-            active: true,
-            order: 5,
-          ),
-        ],
-      );
-
       expect(
-        config.validate,
+        () => MealCategoriesConfig(
+          items: [
+            ...MealCategoriesConfig.canonicalDefaults().items,
+            MealCategory(
+              id: 'meal_slot_00000000-0000-4000-8000-000000000001',
+              defaultKey: null,
+              displayName: 'Pre Workout',
+              active: true,
+              order: 4,
+            ),
+            MealCategory(
+              id: 'meal_slot_00000000-0000-4000-8000-000000000002',
+              defaultKey: null,
+              displayName: '  pre   WORKOUT  ',
+              active: true,
+              order: 5,
+            ),
+          ],
+        ),
         _throwsCode(
           MealCategoriesValidationCode.duplicateActiveDisplayName,
         ),
       );
     });
 
-    test('rejects custom IDs outside the lowercase UUID-v4 contract', () {
-      final config = MealCategoriesConfig(
-        items: [
-          ...MealCategoriesConfig.canonicalDefaults().items,
-          MealCategory(
-            id: 'meal_slot_pre_workout',
-            defaultKey: null,
-            displayName: 'Pre Workout',
-            active: false,
-            order: 4,
-          ),
-        ],
-      );
-
-      expect(
-        config.validate,
-        _throwsCode(MealCategoriesValidationCode.invalidId),
-      );
-    });
-
-    test('rejects duplicate durable IDs', () {
-      final config = MealCategoriesConfig(
-        items: [
-          ...MealCategoriesConfig.canonicalDefaults().items,
-          MealCategory(
-            id: 'meal_slot_1',
-            defaultKey: null,
-            displayName: 'Early Meal',
-            active: false,
-            order: 4,
-          ),
-        ],
-      );
-
-      expect(
-        config.validate,
-        _throwsCode(MealCategoriesValidationCode.duplicateId),
-      );
-    });
-
-    test('rejects duplicate canonical default keys', () {
+    test('allows duplicate normalized names when both items are inactive', () {
       final config = MealCategoriesConfig(
         items: [
           ...MealCategoriesConfig.canonicalDefaults().items,
           MealCategory(
             id: 'meal_slot_00000000-0000-4000-8000-000000000001',
-            defaultKey: MealCategoryDefaultKey.breakfast,
-            displayName: 'Early Meal',
+            defaultKey: null,
+            displayName: 'Pre Workout',
             active: false,
             order: 4,
+          ),
+          MealCategory(
+            id: 'meal_slot_00000000-0000-4000-8000-000000000002',
+            defaultKey: null,
+            displayName: '  pre   WORKOUT  ',
+            active: false,
+            order: 5,
           ),
         ],
       );
 
+      expect(config.items, hasLength(6));
+      expect(config.activeItems, hasLength(4));
+    });
+
+    test('rejects custom IDs outside the lowercase UUID-v4 contract', () {
       expect(
-        config.validate,
+        () => MealCategoriesConfig(
+          items: [
+            ...MealCategoriesConfig.canonicalDefaults().items,
+            MealCategory(
+              id: 'meal_slot_pre_workout',
+              defaultKey: null,
+              displayName: 'Pre Workout',
+              active: false,
+              order: 4,
+            ),
+          ],
+        ),
+        _throwsCode(MealCategoriesValidationCode.invalidId),
+      );
+    });
+
+    test('rejects duplicate durable IDs', () {
+      expect(
+        () => MealCategoriesConfig(
+          items: [
+            ...MealCategoriesConfig.canonicalDefaults().items,
+            MealCategory(
+              id: 'meal_slot_1',
+              defaultKey: null,
+              displayName: 'Early Meal',
+              active: false,
+              order: 4,
+            ),
+          ],
+        ),
+        _throwsCode(MealCategoriesValidationCode.duplicateId),
+      );
+    });
+
+    test('rejects duplicate canonical default keys', () {
+      expect(
+        () => MealCategoriesConfig(
+          items: [
+            ...MealCategoriesConfig.canonicalDefaults().items,
+            MealCategory(
+              id: 'meal_slot_00000000-0000-4000-8000-000000000001',
+              defaultKey: MealCategoryDefaultKey.breakfast,
+              displayName: 'Early Meal',
+              active: false,
+              order: 4,
+            ),
+          ],
+        ),
         _throwsCode(MealCategoriesValidationCode.duplicateDefaultKey),
       );
     });
 
     test('rejects a custom ID pretending to be a canonical default', () {
       final defaults = MealCategoriesConfig.canonicalDefaults();
-      final config = MealCategoriesConfig(
-        items: [
-          MealCategory(
-            id: 'meal_slot_00000000-0000-4000-8000-000000000001',
-            defaultKey: MealCategoryDefaultKey.breakfast,
-            displayName: 'Breakfast',
-            active: true,
-            order: 0,
-          ),
-          ...defaults.items.where(
-            (item) => item.defaultKey != MealCategoryDefaultKey.breakfast,
-          ),
-        ],
-      );
-
       expect(
-        config.validate,
+        () => MealCategoriesConfig(
+          items: [
+            MealCategory(
+              id: 'meal_slot_00000000-0000-4000-8000-000000000001',
+              defaultKey: MealCategoryDefaultKey.breakfast,
+              displayName: 'Breakfast',
+              active: true,
+              order: 0,
+            ),
+            ...defaults.items.where(
+              (item) => item.defaultKey != MealCategoryDefaultKey.breakfast,
+            ),
+          ],
+        ),
         _throwsCode(MealCategoriesValidationCode.invalidDefaultMapping),
       );
     });
 
     test('rejects a config that drops a canonical default identity', () {
       final defaults = MealCategoriesConfig.canonicalDefaults();
-      final config = MealCategoriesConfig(
-        items: defaults.items.where(
-          (item) => item.defaultKey != MealCategoryDefaultKey.snacks,
-        ),
-      );
-
       expect(
-        config.validate,
+        () => MealCategoriesConfig(
+          items: defaults.items.where(
+            (item) => item.defaultKey != MealCategoryDefaultKey.snacks,
+          ),
+        ),
         _throwsCode(MealCategoriesValidationCode.missingCanonicalDefault),
       );
     });
 
     test('rejects duplicate ordering', () {
-      final config = MealCategoriesConfig(
-        items: [
-          ...MealCategoriesConfig.canonicalDefaults().items,
-          MealCategory(
-            id: 'meal_slot_00000000-0000-4000-8000-000000000001',
-            defaultKey: null,
-            displayName: 'Pre Workout',
-            active: false,
-            order: 3,
-          ),
-        ],
-      );
-
       expect(
-        config.validate,
+        () => MealCategoriesConfig(
+          items: [
+            ...MealCategoriesConfig.canonicalDefaults().items,
+            MealCategory(
+              id: 'meal_slot_00000000-0000-4000-8000-000000000001',
+              defaultKey: null,
+              displayName: 'Pre Workout',
+              active: false,
+              order: 3,
+            ),
+          ],
+        ),
         _throwsCode(MealCategoriesValidationCode.duplicateOrder),
       );
     });
 
     test('rejects an unsupported schema version', () {
-      final config = MealCategoriesConfig(
-        schemaVersion: 2,
-        items: MealCategoriesConfig.canonicalDefaults().items,
-      );
-
       expect(
-        config.validate,
+        () => MealCategoriesConfig(
+          schemaVersion: 2,
+          items: MealCategoriesConfig.canonicalDefaults().items,
+        ),
         _throwsCode(MealCategoriesValidationCode.unsupportedSchemaVersion),
       );
     });
@@ -377,9 +442,19 @@ void main() {
 MealCategoriesConfig _configWithCustomCategories({
   required int customCount,
   required int activeCustomCount,
-}) {
-  return MealCategoriesConfig(
-    items: [
+}) =>
+    MealCategoriesConfig(
+      items: _itemsWithCustomCategories(
+        customCount: customCount,
+        activeCustomCount: activeCustomCount,
+      ),
+    );
+
+List<MealCategory> _itemsWithCustomCategories({
+  required int customCount,
+  required int activeCustomCount,
+}) =>
+    [
       ...MealCategoriesConfig.canonicalDefaults().items,
       for (var index = 0; index < customCount; index++)
         MealCategory(
@@ -389,9 +464,7 @@ MealCategoriesConfig _configWithCustomCategories({
           active: index < activeCustomCount,
           order: index + 4,
         ),
-    ],
-  );
-}
+    ];
 
 Matcher _throwsCode(MealCategoriesValidationCode code) => throwsA(
       isA<MealCategoriesValidationException>()

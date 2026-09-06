@@ -16,7 +16,7 @@ void main() {
     ]);
   });
 
-  test('valid customization persists and can be cleared', () async {
+  test('valid customization persists', () async {
     final repository = InMemoryMealCategoriesRepository();
     final defaults = MealCategoriesConfig.canonicalDefaults();
     final customized = MealCategoriesConfig(
@@ -32,35 +32,26 @@ void main() {
       (await repository.read()).findById('meal_slot_2')!.displayName,
       'Pre Workout',
     );
-
-    await repository.clearCustomization();
-    expect(repository.hasCustomization, isFalse);
-    expect(
-      (await repository.read()).findById('meal_slot_2')!.displayName,
-      'Lunch',
-    );
   });
 
-  test('repository rejects invalid config and preserves prior state', () async {
+  test('invalid config cannot reach or replace repository state', () async {
     final repository = InMemoryMealCategoriesRepository();
     final valid = MealCategoriesConfig.canonicalDefaults();
     await repository.upsert(valid);
-    final invalid = MealCategoriesConfig(
-      items: [
-        ...valid.items,
-        for (var index = 0; index < 5; index++)
-          MealCategory(
-            id: 'meal_slot_00000000-0000-4000-8000-${(index + 1).toString().padLeft(12, '0')}',
-            defaultKey: null,
-            displayName: 'Custom ${index + 1}',
-            active: true,
-            order: index + 4,
-          ),
-      ],
-    );
-
-    await expectLater(
-      repository.upsert(invalid),
+    expect(
+      () => MealCategoriesConfig(
+        items: [
+          ...valid.items,
+          for (var index = 0; index < 5; index++)
+            MealCategory(
+              id: 'meal_slot_00000000-0000-4000-8000-${(index + 1).toString().padLeft(12, '0')}',
+              defaultKey: null,
+              displayName: 'Custom ${index + 1}',
+              active: true,
+              order: index + 4,
+            ),
+        ],
+      ),
       throwsA(
         isA<MealCategoriesValidationException>().having(
           (error) => error.code,
@@ -72,24 +63,32 @@ void main() {
     expect(await repository.read(), valid);
   });
 
-  test('archived identity remains resolvable but not selectable', () async {
+  test('archived custom identity remains resolvable but not selectable',
+      () async {
     final repository = InMemoryMealCategoriesRepository();
     final defaults = MealCategoriesConfig.canonicalDefaults();
-    final archivedLunch = MealCategoriesConfig(
+    const archivedId = 'meal_slot_00000000-0000-4000-8000-000000000001';
+    final archivedCustom = MealCategoriesConfig(
       items: [
-        for (final item in defaults.items)
-          item.id == 'meal_slot_2' ? item.withActive(false) : item,
+        ...defaults.items,
+        MealCategory(
+          id: archivedId,
+          defaultKey: null,
+          displayName: 'Pre Workout',
+          active: false,
+          order: 4,
+        ),
       ],
     );
 
-    await repository.upsert(archivedLunch);
+    await repository.upsert(archivedCustom);
     final loaded = await repository.read();
 
-    expect(loaded.findById('meal_slot_2'), isNotNull);
-    expect(loaded.findById('meal_slot_2')!.active, isFalse);
+    expect(loaded.findById(archivedId), isNotNull);
+    expect(loaded.findById(archivedId)!.active, isFalse);
     expect(
       loaded.activeItems.map((item) => item.id),
-      isNot(contains('meal_slot_2')),
+      isNot(contains(archivedId)),
     );
   });
 }

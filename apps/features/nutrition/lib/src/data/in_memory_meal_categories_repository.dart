@@ -17,9 +17,4 @@ class InMemoryMealCategoriesRepository implements MealCategoriesRepository {
     config.validate();
     _customizedConfig = config;
   }
-
-  @override
-  Future<void> clearCustomization() async {
-    _customizedConfig = null;
-  }
 }
