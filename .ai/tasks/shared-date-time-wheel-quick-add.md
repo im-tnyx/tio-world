@@ -21,7 +21,7 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-06; origin/main fetched at 8eace9977c155661a339ef59187dd62028b9988e
 **Branch:** codex/shared-date-time-wheel-quick-add
-**Implementation SHA:** pending commit
+**Implementation SHA:** `468ceea56ac6a84c18a9fed3a530c1cd91b608f1`
 **Observed working-tree state:** Feature files clean; unrelated local pubspec.lock modification preserved
 **PR / tracker:** GitHub PR #217 is open (Draft) against main; TNYX-114 remains Backlog and blocked by TNYX-113; TNYX-158 is Done
 **Current implementation state:** TioDateTimePickerPopup (Overlay card) and TioDateTimeWheelPicker (CupertinoDatePicker wrapper) active and validated; analyzer const fixes and clean test assertions applied
