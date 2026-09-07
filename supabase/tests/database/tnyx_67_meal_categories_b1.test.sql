@@ -71,6 +71,35 @@ returns jsonb language sql stable as $$
   select config from pg_temp.meal_category_fixtures where fixture_name = p_name
 $$;
 
+create function pg_temp.large_archived_config(p_archived_count integer)
+returns jsonb language sql stable as $$
+  select pg_catalog.jsonb_build_object(
+    'schema_version', 1,
+    'items',
+    pg_temp.fixture('canonical') -> 'items'
+      || pg_catalog.coalesce(
+        (
+          select pg_catalog.jsonb_agg(
+            pg_catalog.jsonb_build_object(
+              'id',
+              'meal_slot_'
+                || pg_catalog.lpad(item_number::text, 8, '0')
+                || '-0000-4000-8000-'
+                || pg_catalog.lpad(item_number::text, 12, '0'),
+              'display_name', 'Archived ' || item_number,
+              'active', false,
+              'order', item_number + 3
+            )
+            order by item_number
+          )
+          from pg_catalog.generate_series(1, p_archived_count)
+            as archived(item_number)
+        ),
+        '[]'::jsonb
+      )
+  )
+$$;
+
 create function pg_temp.test_user_id(p_suffix integer)
 returns uuid language sql immutable as $$
   select ('00000000-0000-4000-8000-' || lpad(p_suffix::text, 12, '0'))::uuid
@@ -131,12 +160,10 @@ $$;
 
 -- Full replay ledger and database object contract.
 select pg_temp.assert_true(
-  (select count(*) = 40 from supabase_migrations.schema_migrations),
-  'migration ledger must contain all 40 repository migrations'
-);
-select pg_temp.assert_true(
-  exists (select 1 from supabase_migrations.schema_migrations where version = '20260907065602'),
-  'migration ledger must contain TNYX-67 Slice B1'
+  (select count(*) = 1
+   from supabase_migrations.schema_migrations
+   where version = '20260907065602'),
+  'migration ledger must contain TNYX-67 Slice B1 exactly once'
 );
 select pg_temp.assert_true(
   (select data_type = 'jsonb' and is_nullable = 'YES' and column_default is null
@@ -199,7 +226,7 @@ select pg_temp.assert_true(
   'trigger function must not be directly executable by client roles'
 );
 
--- Existing RLS contract is preserved exactly.
+-- RLS remains owner-scoped, with standalone Nutrition Profile deletion closed.
 select pg_temp.assert_true(
   (select relrowsecurity from pg_catalog.pg_class
    where oid = 'public.user_nutrition_profiles'::regclass),
@@ -208,12 +235,11 @@ select pg_temp.assert_true(
 select pg_temp.assert_true(
   (select array_agg(policyname order by policyname) from pg_catalog.pg_policies
    where schemaname = 'public' and tablename = 'user_nutrition_profiles') = array[
-    'user_nutrition_profiles_delete_own',
     'user_nutrition_profiles_insert_own',
     'user_nutrition_profiles_select_own',
     'user_nutrition_profiles_update_own'
   ]::name[],
-  'the four owner policies must remain unchanged'
+  'only SELECT, INSERT, and UPDATE owner policies may remain'
 );
 select pg_temp.assert_true(
   not exists (select 1 from pg_catalog.pg_policies
@@ -239,6 +265,10 @@ select pg_temp.assert_insert_accepted(
   'eight active plus archived categories must be accepted'
 );
 select pg_temp.assert_insert_accepted(7, pg_temp.fixture('custom_one'), 'valid custom UUID-v4 category must be accepted');
+select pg_temp.assert_insert_accepted(
+  8, pg_temp.large_archived_config(512),
+  'large retained archived set must be accepted without a total-item cap'
+);
 
 -- Rejected structural and semantic table writes.
 create temp table rejected_meal_category_cases (
@@ -276,6 +306,11 @@ select 121, 'nine active categories', jsonb_set(
   (pg_temp.fixture('eight_active')->'items') || jsonb_build_array(
     '{"id":"meal_slot_99999999-9999-4999-8999-999999999999","display_name":"Meal 9","active":true,"order":8}'::jsonb
   )
+) union all
+select 122, 'duplicate ID in large archived set', jsonb_set(
+  pg_temp.large_archived_config(512),
+  '{items,5,id}',
+  '"meal_slot_00000001-0000-4000-8000-000000000001"'::jsonb
 );
 
 do $$
@@ -358,9 +393,12 @@ insert into auth.users (id, email)
 values
   ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'user-a@example.test'),
   ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'user-b@example.test'),
-  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'user-c@example.test');
+  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'user-c@example.test'),
+  ('dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'account-delete@example.test');
 insert into public.user_nutrition_profiles (user_id, preferred_diet, meal_categories_config)
-values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'vegan', pg_temp.fixture('canonical'));
+values
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'vegan', pg_temp.fixture('canonical')),
+  ('dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'other', pg_temp.fixture('custom_one'));
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', true);
@@ -380,6 +418,45 @@ select pg_temp.assert_true(
   (select count(*) = 1 from public.user_nutrition_profiles),
   'authenticated user A must read only its own row'
 );
+
+do $$
+declare
+  v_row_count integer;
+  v_reinsert_blocked boolean := false;
+begin
+  delete from public.user_nutrition_profiles
+  where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  get diagnostics v_row_count = row_count;
+  perform pg_temp.assert_true(
+    v_row_count = 0,
+    'authenticated owner must not hard-delete its Nutrition Profile'
+  );
+
+  delete from public.user_nutrition_profiles
+  where user_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  get diagnostics v_row_count = row_count;
+  perform pg_temp.assert_true(
+    v_row_count = 0,
+    'authenticated user A must not delete user B Nutrition Profile'
+  );
+
+  begin
+    insert into public.user_nutrition_profiles (user_id, meal_categories_config)
+    values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', pg_temp.fixture('canonical'));
+  exception when unique_violation then
+    v_reinsert_blocked := true;
+  end;
+  perform pg_temp.assert_true(
+    v_reinsert_blocked
+      and (
+        select meal_categories_config = pg_temp.fixture('custom_one')
+        from public.user_nutrition_profiles
+        where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+      ),
+    'DELETE then reinsert must not erase retained category identities'
+  );
+end;
+$$;
 
 do $$
 declare v_row_count integer; v_denied boolean := false;
@@ -446,6 +523,54 @@ select pg_temp.assert_true(
 );
 
 reset role;
+
+-- SECURITY INVOKER CHECK/trigger evaluation requires this narrow validator
+-- EXECUTE grant for normal authenticated writes; prove the dependency rather
+-- than widening the function or schema boundary.
+revoke execute on function private.is_valid_meal_categories_config_v1(jsonb)
+  from authenticated;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', true);
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","role":"authenticated"}', true);
+do $$
+declare v_denied boolean := false;
+begin
+  begin
+    update public.user_nutrition_profiles
+    set meal_categories_config = meal_categories_config
+    where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  exception when insufficient_privilege then
+    v_denied := true;
+  end;
+  perform pg_temp.assert_true(
+    v_denied,
+    'authenticated guarded writes must require validator EXECUTE'
+  );
+end;
+$$;
+reset role;
+grant execute on function private.is_valid_meal_categories_config_v1(jsonb)
+  to authenticated;
+
+-- The canonical SECURITY DEFINER account-deletion RPC removes auth.users;
+-- the existing FK cascade must still remove the Nutrition Profile without a
+-- standalone client DELETE policy.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', true);
+select set_config('request.jwt.claims', '{"sub":"dddddddd-dddd-4ddd-8ddd-dddddddddddd","role":"authenticated"}', true);
+select public.delete_user_account();
+reset role;
+select pg_temp.assert_true(
+  not exists (
+    select 1 from auth.users
+    where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
+  ) and not exists (
+    select 1 from public.user_nutrition_profiles
+    where user_id = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
+  ),
+  'canonical account deletion must cascade to the Nutrition Profile'
+);
+
 set local role anon;
 select pg_temp.assert_true(
   (select count(*) = 0 from public.user_nutrition_profiles),
@@ -465,6 +590,10 @@ begin
   where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
   get diagnostics v_row_count = row_count;
   perform pg_temp.assert_true(v_row_count = 0, 'anon update must affect no rows');
+  delete from public.user_nutrition_profiles
+  where user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  get diagnostics v_row_count = row_count;
+  perform pg_temp.assert_true(v_row_count = 0, 'anon delete must affect no rows');
 end;
 $$;
 

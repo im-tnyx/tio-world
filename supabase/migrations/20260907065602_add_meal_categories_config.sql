@@ -77,6 +77,13 @@ alter table public.user_nutrition_profiles
 comment on column public.user_nutrition_profiles.meal_categories_config is
   'Versioned Meal Categories config. NULL resolves canonical runtime defaults. Retained IDs are historical identities and ordinary writes cannot remove them. Maximum active categories: 8.';
 
+-- Ordinary clients must not erase retained category identities by deleting and
+-- recreating the whole Nutrition Profile row. Full account deletion continues
+-- through public.delete_user_account(), whose auth.users deletion reaches this
+-- table through its existing ON DELETE CASCADE foreign key.
+drop policy if exists "user_nutrition_profiles_delete_own"
+  on public.user_nutrition_profiles;
+
 create function private.is_valid_meal_categories_config_v1(p_config jsonb)
 returns boolean
 language plpgsql
@@ -88,10 +95,7 @@ as $$
 declare
   v_item jsonb;
   v_id text;
-  v_order text;
   v_default_key_type text;
-  v_ids text[] := array[]::text[];
-  v_orders text[] := array[]::text[];
   v_active_count integer := 0;
   v_seen_meal_slot_1 boolean := false;
   v_seen_meal_slot_2 boolean := false;
@@ -132,16 +136,6 @@ begin
     end if;
 
     v_id := v_item ->> 'id';
-    v_order := v_item ->> 'order';
-
-    if pg_catalog.array_position(v_ids, v_id) is not null
-      or pg_catalog.array_position(v_orders, v_order) is not null
-    then
-      return false;
-    end if;
-
-    v_ids := pg_catalog.array_append(v_ids, v_id);
-    v_orders := pg_catalog.array_append(v_orders, v_order);
 
     if (v_item ->> 'active')::boolean then
       v_active_count := v_active_count + 1;
@@ -191,6 +185,22 @@ begin
     end case;
   end loop;
 
+  -- Retained archived items are intentionally not capped, so uniqueness must
+  -- remain set-oriented rather than repeatedly scanning growing arrays.
+  if exists (
+    select 1
+    from pg_catalog.jsonb_array_elements(p_config -> 'items') as item
+    group by item ->> 'id'
+    having pg_catalog.count(*) > 1
+  ) or exists (
+    select 1
+    from pg_catalog.jsonb_array_elements(p_config -> 'items') as item
+    group by item ->> 'order'
+    having pg_catalog.count(*) > 1
+  ) then
+    return false;
+  end if;
+
   return
     v_seen_meal_slot_1
     and v_seen_meal_slot_2
@@ -235,13 +245,15 @@ begin
   end if;
 
   if exists (
-    select 1
-    from pg_catalog.jsonb_array_elements(old.meal_categories_config -> 'items') as old_item
-    where not exists (
-      select 1
-      from pg_catalog.jsonb_array_elements(new.meal_categories_config -> 'items') as new_item
-      where new_item ->> 'id' = old_item ->> 'id'
-    )
+    select old_item ->> 'id'
+    from pg_catalog.jsonb_array_elements(
+      old.meal_categories_config -> 'items'
+    ) as old_item
+    except
+    select new_item ->> 'id'
+    from pg_catalog.jsonb_array_elements(
+      new.meal_categories_config -> 'items'
+    ) as new_item
   ) then
     raise exception
       'meal_categories_config cannot remove a retained category identity'
