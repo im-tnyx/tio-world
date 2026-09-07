@@ -62,6 +62,10 @@ values
     {"id":"meal_slot_88888888-8888-4888-8888-888888888888","display_name":"Retained archived","active":false,"order":5}
   ]}'::jsonb);
 
+-- The same psql session deliberately switches into client roles below. Grant
+-- those roles read-only access to this transaction-local test fixture only.
+grant select on pg_temp.meal_category_fixtures to authenticated, anon;
+
 create function pg_temp.fixture(p_name text)
 returns jsonb language sql stable as $$
   select config from pg_temp.meal_category_fixtures where fixture_name = p_name
