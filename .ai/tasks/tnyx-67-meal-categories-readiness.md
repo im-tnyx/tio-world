@@ -7,7 +7,7 @@
 ## Owner Approval and Scope Boundary
 
 **Trigger:** New independently scoped product slice; future Supabase column shape change; future product-visible UI/UX change
-**Approval status:** Slice A approved; implementation started after owner review
+**Approval status:** Slice A approved, implemented, merged, and post-merge validated; Slice B, C, and D remain unstarted
 **Approval evidence:** TNYX-67 owner-locked semantics updated 2026-09-06 and the 2026-09-06 TNYX-66 readiness-refresh request.
 **Approved product/data direction:** Meal Category is separate from `MealLogEntry.mealName`; four resolved defaults; maximum eight active categories; stable non-semantic IDs; profile-owned nullable versioned JSONB direction.
 **Explicit non-changes:** No Flutter UI, Supabase adapter/migration/live mutation, MealLog persistence, `services/api`, Weight, or Workout work. No Slice B, C, or D implementation.
@@ -16,22 +16,22 @@
 
 **Planning owner:** Codex `/root`
 **Implementation owner:** Codex `/root`
-**Review owner:** Follow-up Draft PR #219 ready for owner review
-**Implementation ownership state:** Validated / handoff complete — retained Meal Category identity hotfix only
+**Review owner:** None — Slice A and its retained-identity follow-up are merged and post-merge validated
+**Implementation ownership state:** Slice A closed; no active implementation slice
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-07 after `git fetch origin --prune`
-**Branch:** `codex/tnyx-67-retained-meal-category-identities`
-**Base SHA:** `5d9f6371409e2d9f057c035b267b496cf85de2ab`
-**Observed working-tree state:** PR #218 is merged at the base SHA; the unrelated root `pubspec.lock` modification remains unstaged and excluded
+**Branch:** `main`
+**Base SHA:** `dd0c0e3d6efeaec18e525ebf113a4435e0abdf1a`
+**Observed working-tree state:** PR #218 and follow-up PR #219 are merged; the unrelated root `pubspec.lock` modification remains unstaged and excluded
 **Observed uncommitted/dirty files:** `pubspec.lock` only outside the PR scope (pre-existing, preserve exactly)
-**PR / tracker:** PR #218 merged as `5d9f6371409e2d9f057c035b267b496cf85de2ab`; follow-up Draft PR #219 contains the P1 fix; TNYX-67 remains In Progress and its `blockedBy TNYX-66` relation is unchanged
-**Current implementation state:** Post-merge Codex P1 comment `3944690722` found that ordinary in-memory `upsert()` could omit an existing retained category ID. This follow-up makes retained-ID preservation an explicit repository transition invariant. No UI, Supabase adapter/schema, MealLog implementation, or Slice B/C/D work is included.
+**PR / tracker:** PR #218 merged the Slice A foundation as `5d9f6371409e2d9f057c035b267b496cf85de2ab`; PR #219 merged the retained-identity P1 follow-up as `dd0c0e3d6efeaec18e525ebf113a4435e0abdf1a`; TNYX-67 remains In Progress and its `blockedBy TNYX-66` relation is unchanged
+**Current implementation state:** Slice A is closed, merged, and post-merge validated. Ordinary `MealCategoriesRepository.upsert()` cannot omit a previously retained category identity. No UI, Supabase adapter/schema, MealLog implementation, or Slice B/C/D work is included.
 **Relevant execution surface:** Nutrition domain/data; later Nutrition Meal Diary Settings and meal-logging presentation
-**Validation completed for follow-up source SHA:** `f942add982bc5455515cab93b46443bacad0ab9f`: failing-before-fix regression reproduced; changed Dart files formatted; Nutrition analyzer clean; focused Meal Categories suite passed (`48` tests); full Nutrition package suite passed (`301` tests); exact-source-head Flutter CI run `34071075762` succeeded
-**Validation remaining:** Owner merge decision only. The final documentation-only PR head and its exact-head CI are recorded in the live PR because a commit cannot record its own SHA.
-**Current blocker:** Slice A remains open until the retained-identity follow-up is validated and merged. Later settings UI remains coupled to TNYX-68/N14 and its TNYX-54 dependency.
-**Open review finding IDs:** GitHub review comment `3944690722` / `discussion_r3944690722` is addressed by Draft PR #219 and acknowledged in reply `3945858463`; it remains unmerged
-**Next exact action:** Owner review/merge decision for Draft PR #219. Do not begin Slice B, C, or D.
+**Validation completed:** Failing-before-fix regression reproduced; changed Dart files formatted; Nutrition analyzer clean; focused Meal Categories suite passed (`48` tests); full Nutrition package suite passed (`301` tests); PR #219 exact-head CI passed; post-merge `main` Flutter CI run `34072455019` passed at `dd0c0e3d6efeaec18e525ebf113a4435e0abdf1a`
+**Validation remaining:** None for Slice A. Slice B requires a separate fresh TNYX-66 readiness refresh and owner authorization.
+**Current blocker:** None for Slice A. Later settings UI remains coupled to TNYX-68/N14 and its TNYX-54 dependency.
+**Open review finding IDs:** None. GitHub review comment `3944690722` / `discussion_r3944690722` was resolved after PR #219 merged and post-merge `main` passed.
+**Next exact action:** Stop after Slice A closeout. Do not begin Slice B, C, or D without a separate task.
 
 ## 1. Discovery
 
@@ -181,13 +181,13 @@ Do not bundle all slices automatically into one PR.
 
 ### Post-Merge P1 Follow-Up
 
-PR #218 merged to `main` as `5d9f6371409e2d9f057c035b267b496cf85de2ab`. Post-merge Codex review comment `3944690722` correctly identified that `InMemoryMealCategoriesRepository.upsert()` could replace customized state with an otherwise-valid config that omitted an existing custom ID. That made an archived identity unavailable for future historical lookup and removed it from the retained-ID collision set.
+PR #218 merged the Slice A foundation to `main` as `5d9f6371409e2d9f057c035b267b496cf85de2ab`. Post-merge Codex review comment `3944690722` correctly identified that `InMemoryMealCategoriesRepository.upsert()` could replace customized state with an otherwise-valid config that omitted an existing custom ID. That made an archived identity unavailable for future historical lookup and removed it from the retained-ID collision set. PR #219 merged the follow-up fix to `main` as `dd0c0e3d6efeaec18e525ebf113a4435e0abdf1a`.
 
 The follow-up adds one reusable transition policy: for ordinary upsert, `previousIds - nextIds` must be empty. Missing retained IDs are rejected with `MealCategoriesValidationCode.retainedIdentityRemoved`; the previous repository state remains unchanged because assignment occurs only after config and transition validation. Rename, reorder, archive, and valid reactivation remain supported. Initial `null`/absent customization to first customized config remains valid and does not materialize extra implicit state.
 
-This is not a delete/reset API. Restore Defaults and future durable tombstone behavior remain intentionally deferred. Slice A is not fully closed until this follow-up PR merges and post-merge `main` is green. Slice B, C, and D remain unstarted.
+This is not a delete/reset API. Restore Defaults and future durable tombstone behavior remain intentionally deferred and must preserve historically referenced identities/tombstones. Slice A is closed, merged, and post-merge validated. Slice B, C, and D remain unstarted.
 
-Follow-up validation: the regression test failed on the merged implementation before the fix; changed Dart files are formatted; Nutrition analyzer passed with fatal infos; the focused Meal Categories suite passed `48/48`; and the full Nutrition package suite passed `301/301`.
+Follow-up validation: the regression test failed on the merged implementation before the fix; changed Dart files are formatted; Nutrition analyzer passed with fatal infos; the focused Meal Categories suite passed `48/48`; the full Nutrition package suite passed `301/301`; and post-merge `main` Flutter CI run `34072455019` passed at `dd0c0e3d6efeaec18e525ebf113a4435e0abdf1a`.
 
 ### Changed Files
 
@@ -215,4 +215,4 @@ Slice A intentionally exposes no destructive reset/clear method. Restore Default
 
 ### Final Status
 
-`READY FOR MERGE` for the Slice A follow-up only — the post-merge retained-identity P1 is fixed, local formatting/analyzer/focused/full tests pass, and source head `f942add982bc5455515cab93b46443bacad0ab9f` passed Flutter CI run `34071075762`. Draft PR #219 remains unmerged for the owner decision. Slice A remains open until the follow-up merges and post-merge `main` is green. TNYX-67 remains In Progress; Slice B, C, and D are not started.
+`CLOSED / MERGED / POST-MERGE VALIDATED` for Slice A — PR #218 merged the foundation, PR #219 resolved the retained-identity P1 on `main` at `dd0c0e3d6efeaec18e525ebf113a4435e0abdf1a`, and post-merge Flutter CI run `34072455019` passed. TNYX-67 remains In Progress; TNYX-66 is unchanged; Slice B, C, and D are not started.
