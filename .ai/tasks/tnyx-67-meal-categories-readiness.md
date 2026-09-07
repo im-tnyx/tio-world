@@ -17,21 +17,21 @@
 **Planning owner:** Codex `/root`
 **Implementation owner:** Codex `/root` — exclusive owner for the authorized Slice B2 implementation
 **Review owner:** None — PR #223 is merged; its late Codex review found no major issue, and PR #222 P2 `3950154215` remains resolved
-**Implementation ownership state:** Slice A/B1 closed; Slice B2 implementation started; Slice C/D unstarted
+**Implementation ownership state:** Slice A/B1 closed; Slice B2 implementation and local validation complete in PR #224; Slice C/D unstarted
 **Ownership transition:** Owner-authorized transition from readiness-only planning to `/root` Slice B2 implementation on 2026-09-07
 **Repository state last verified:** 2026-09-07 after fresh Git/GitHub/Linear/Supabase read-only verification
 **Branch:** `tnyx/tnyx-67-meal-categories-supabase-adapter`
 **Base SHA:** `31d3dd4b98182edca86866f9b1c31c1c41eac368`
-**Observed working-tree state:** `main == origin/main == 31d3dd4b98182edca86866f9b1c31c1c41eac368` before this readiness-brief edit; no open PR exists; the unrelated root `pubspec.lock` modification remains preserved and unstaged
+**Observed working-tree state:** PR #224 contains only the authorized Slice B2 implementation/task evidence; the unrelated root `pubspec.lock` modification remains preserved and unstaged
 **Observed uncommitted/dirty files:** pre-existing `pubspec.lock` with SHA-256 `004DE1A093C1F04F684B39DF072C2F2E37B1CD21046BFEE01E628E7F77300B1C`, plus this authorized task-brief update only
-**PR / tracker:** PR #218/#219/#220/#221/#222/#223 are merged. Merge automation had moved TNYX-67 to `Done`; this run corrected only TNYX-67 to `In Progress`, preserved `blockedBy TNYX-66`, left TNYX-66 `Backlog`, and recorded Linear comment `cf848e7c-fddc-4a37-8a66-3f5400e9b23e`.
-**Current implementation state:** Slice A/B1 are closed. B2 preflight passed against current source, Linear, GitHub, current Supabase Dart docs, and hosted B1; implementation is starting on the focused branch. No later slice has started.
+**PR / tracker:** PR #218/#219/#220/#221/#222/#223 are merged. PR #224 is the open, unmerged B2 implementation PR. TNYX-67 remains `In Progress`; `blockedBy TNYX-66` is preserved; TNYX-66 remains `Backlog`.
+**Current implementation state:** Slice A/B1 are closed. B2 is implemented and locally validated on the focused branch; no later slice has started.
 **Relevant execution surface:** `apps/features/nutrition` data/repository adapter and `apps/app` provider composition only; no presentation/UI surface
 **Validation completed:** Slice A validation remains green. For Slice B1, exact P1-remediation implementation head `bf31923d4ab8ea59256536ad467cc81ef21d609f` passed full Supabase Database CI run `34120860985`, and evidence head `e12b3d52c1d5d0fdc49cce10bf1751ed05a88d7d` passed run `34121248320`: disposable base initialization, baseline replay/lint, clean full replay, dynamic repository-file/ledger parity, B1 version exactly once, private-schema exposure, exhaustive SQL/RLS/DELETE/account-cascade/large-archived matrix, real two-session stale-writer concurrency, and B1-introduced lint comparison. Those CI-era hosted reads were pre-apply historical evidence at 39 migrations. The separately authorized hosted rollout then applied `20260907065602_add_meal_categories_config` exactly once and post-apply verification passed at 40 migrations with the reviewed column, CHECK, private validator, retained-ID trigger, grants, RLS hardening, preserved rows, and no B1 advisor blocker.
-**Validation remaining:** Implement Section 11, run focused format/analyze/tests and exact diff audit, open one PR, inspect exact-head CI/Codex review, remediate only in-scope P1/P2 findings, then stop at `READY FOR MERGE`.
+**Validation remaining:** At final handoff, verify PR #224's exact head, CI, Codex review, and unresolved actionable threads; then publish exactly one Linear implementation handoff comment and stop without merge.
 **Current blocker:** None. TNYX-67 remains `In Progress` and retains `blockedBy TNYX-66`; TNYX-66 remains `Backlog`.
 **Resolved review finding IDs:** `3949432003`, `3949432006`, `3949432012`, and `3949432017` are fixed, exact-head validated, replied, and resolved. PR #222 Codex P2 `3950154215` identified stale hosted-state wording; this correction incorporates that finding.
-**Next exact action:** Implement only the Section 11 adapter/gateway/provider/tests on the current branch, validate, open one focused PR, inspect exact-head CI/review, and stop without merge or Slice C/D work.
+**Next exact action:** Complete only PR #224 exact-head CI/review verification and the one authorized Linear handoff comment, then stop without merge or Slice C/D work.
 
 ## 1. Discovery
 
@@ -481,4 +481,5 @@ No Meal Diary Settings UI, rename/add/archive/reorder screen, navigation/route, 
 
 - Fresh hosted B1 verification before implementation was read-only and reconfirmed the 40-entry migration ledger, single latest B1 migration, reviewed column/CHECK/trigger/RLS contract, and preserved rows. No hosted Supabase mutation occurred.
 - Docker, local Supabase, PostgreSQL containers, `services/api`, and backend services were not started.
-- Remaining authorized work is limited to commit/push, one focused PR, exact-head CI and Codex review inspection, in-scope P1/P2 remediation if required, and exactly one final Linear implementation handoff comment. Merge is not authorized.
+- PR #224 opened from implementation commit `5f837c5bbb013e2ff8046e812fabedfb97e9790c`. Flutter CI run `34152650847` passed that implementation head, and GitHub Codex review comment `5574644339` reported no major issues; actual inline review threads were empty.
+- This final task-record commit changes the PR head, so the final handoff must independently re-verify exact-head CI/review state before the one authorized Linear comment. No further repository change is expected. Merge is not authorized.
