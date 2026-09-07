@@ -1,6 +1,7 @@
 export 'meal_categories_config.dart';
 export 'meal_categories_config_codec.dart';
 export 'meal_categories_policy.dart';
+export 'meal_categories_transition_policy.dart';
 export 'meal_categories_validation.dart';
 export 'meal_category.dart';
 export 'nutrient_goal_semantics.dart';
