@@ -77,7 +77,7 @@ returns jsonb language sql stable as $$
     'schema_version', 1,
     'items',
     pg_temp.fixture('canonical') -> 'items'
-      || pg_catalog.coalesce(
+      || coalesce(
         (
           select pg_catalog.jsonb_agg(
             pg_catalog.jsonb_build_object(
