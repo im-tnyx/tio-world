@@ -12,7 +12,8 @@ import 'package:tio_shared/shared.dart';
 
 void main() {
   group('Network & Auth Providers', () {
-    test('providers instantiate with safe unavailable defaults in container', () {
+    test('providers instantiate with safe unavailable defaults in container',
+        () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
@@ -41,10 +42,12 @@ void main() {
       final wellnessRepo = container.read(wellnessTargetsRepositoryProvider);
       expect(wellnessRepo, isA<WellnessTargetsRepository>());
 
-      final workoutProfileRepo = container.read(workoutProfileRepositoryProvider);
+      final workoutProfileRepo =
+          container.read(workoutProfileRepositoryProvider);
       expect(workoutProfileRepo, isA<InMemoryWorkoutProfileRepository>());
 
-      final workoutTargetsRepo = container.read(workoutTargetsRepositoryProvider);
+      final workoutTargetsRepo =
+          container.read(workoutTargetsRepositoryProvider);
       expect(workoutTargetsRepo, isA<InMemoryWorkoutTargetsRepository>());
 
       final nutritionProfileRepo =
@@ -54,6 +57,10 @@ void main() {
       final nutritionTargetsRepo =
           container.read(nutritionTargetsRepositoryProvider);
       expect(nutritionTargetsRepo, isA<NutritionTargetsRepository>());
+
+      final mealCategoriesRepo =
+          container.read(mealCategoriesRepositoryProvider);
+      expect(mealCategoriesRepo, isA<MealCategoriesRepository>());
 
       final finalizer = container.read(onboardingRemoteFinalizerProvider);
       expect(finalizer, isA<OnboardingRemoteFinalizer>());
@@ -82,7 +89,8 @@ void main() {
       expect(authenticated.backendUserReady, isTrue);
     });
 
-    test('no-Supabase app completion validator blocks in-memory owner fallbacks',
+    test(
+        'no-Supabase app completion validator blocks in-memory owner fallbacks',
         () {
       final container = ProviderContainer(
         overrides: [
@@ -107,8 +115,13 @@ void main() {
         container.read(nutritionTargetsRepositoryProvider),
         isA<InMemoryNutritionTargetsRepository>(),
       );
+      expect(
+        container.read(mealCategoriesRepositoryProvider),
+        isA<InMemoryMealCategoriesRepository>(),
+      );
 
-      final validator = container.read(appOnboardingCompletionValidatorProvider);
+      final validator =
+          container.read(appOnboardingCompletionValidatorProvider);
       expect(validator.hasDurableOwnerPersistence, isFalse);
       expect(validator.backendUserReady, isFalse);
 
@@ -155,7 +168,7 @@ void main() {
       );
     });
 
-    test('Supabase availability selects both canonical Nutrition adapters', () {
+    test('Supabase availability selects canonical Nutrition adapters', () {
       final container = ProviderContainer(
         overrides: [
           supabaseClientProvider.overrideWithValue(_FakeSupabaseClient()),
@@ -171,14 +184,20 @@ void main() {
         container.read(nutritionTargetsRepositoryProvider),
         isA<SupabaseNutritionTargetsRepository>(),
       );
+      expect(
+        container.read(mealCategoriesRepositoryProvider),
+        isA<SupabaseMealCategoriesRepository>(),
+      );
     });
 
-    test('Body onboarding composition delegates Wellness to the canonical provider',
+    test(
+        'Body onboarding composition delegates Wellness to the canonical provider',
         () async {
       final canonicalWellness = InMemoryWellnessTargetsRepository();
       final container = ProviderContainer(
         overrides: [
-          wellnessTargetsRepositoryProvider.overrideWithValue(canonicalWellness),
+          wellnessTargetsRepositoryProvider
+              .overrideWithValue(canonicalWellness),
         ],
       );
       addTearDown(container.dispose);
@@ -204,10 +223,13 @@ void main() {
       );
     });
 
-    test('overriding authCapabilityProvider to available selects FirebaseAuth adapters', () {
+    test(
+        'overriding authCapabilityProvider to available selects FirebaseAuth adapters',
+        () {
       final container = ProviderContainer(
         overrides: [
-          authCapabilityProvider.overrideWithValue(const AuthCapabilityAvailable()),
+          authCapabilityProvider
+              .overrideWithValue(const AuthCapabilityAvailable()),
         ],
       );
       addTearDown(container.dispose);
@@ -219,7 +241,9 @@ void main() {
       expect(tokenProvider, isA<FirebaseAuthTokenProvider>());
     });
 
-    test('overriding authTokenProvider supplies custom provider to authenticated client', () async {
+    test(
+        'overriding authTokenProvider supplies custom provider to authenticated client',
+        () async {
       final customTokenProvider = _CustomTokenProvider('mock-token-xyz');
       final container = ProviderContainer(
         overrides: [
