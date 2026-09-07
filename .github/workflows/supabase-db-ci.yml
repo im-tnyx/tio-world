@@ -45,18 +45,54 @@ jobs:
           docker version
           psql --version
 
-      - name: Start disposable local Postgres
-        run: supabase db start
+      - name: Start disposable local Postgres without repository migrations
+        shell: bash
+        run: |
+          mv supabase/migrations "$RUNNER_TEMP/repository-migrations"
+          mkdir supabase/migrations
+          supabase db start
+          rmdir supabase/migrations
+          mv "$RUNNER_TEMP/repository-migrations" supabase/migrations
 
       - name: Replay baseline migrations and capture lint baseline
         shell: bash
         run: |
-          supabase db reset --local --no-seed --version 20260903091350
+          versions=()
+          for migration in supabase/migrations/*.sql; do
+            filename="$(basename "$migration")"
+            version="${filename%%_*}"
+            if [[ "$version" > "20260903091350" ]]; then
+              continue
+            fi
+            psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --single-transaction \
+              --file="$migration"
+            versions+=("$version")
+          done
+          supabase migration repair --local --status applied --yes "${versions[@]}"
           supabase db lint --local --schema public,private --level error --fail-on none \
             2>&1 | tee "$RUNNER_TEMP/supabase-db-lint-baseline.txt"
 
+      - name: Reinitialize the disposable database
+        shell: bash
+        run: |
+          mv supabase/migrations "$RUNNER_TEMP/repository-migrations"
+          mkdir supabase/migrations
+          supabase db reset --local --no-seed
+          rmdir supabase/migrations
+          mv "$RUNNER_TEMP/repository-migrations" supabase/migrations
+
       - name: Replay all migrations from scratch
-        run: supabase db reset --local --no-seed
+        shell: bash
+        run: |
+          versions=()
+          for migration in supabase/migrations/*.sql; do
+            filename="$(basename "$migration")"
+            version="${filename%%_*}"
+            psql "$DATABASE_URL" --set=ON_ERROR_STOP=1 --single-transaction \
+              --file="$migration"
+            versions+=("$version")
+          done
+          supabase migration repair --local --status applied --yes "${versions[@]}"
 
       - name: Verify the complete migration ledger
         shell: bash
