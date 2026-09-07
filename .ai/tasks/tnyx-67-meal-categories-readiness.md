@@ -252,7 +252,7 @@ The database independently rejects direct-write shapes that could undermine pers
 - every `active` value is boolean and active count is at most eight, so a malformed value cannot bypass the cap;
 - no silent truncation occurs.
 
-Dart remains the owner of normalized display-name semantics, whitespace/case-insensitive duplicate-label semantics, deterministic app-facing validation errors, immutable models, ordering behavior, and future-schema fail-closed UX. The database need not reproduce those rich app errors or duplicate-label normalization.
+Dart remains the owner of normalized display-name semantics, whitespace/case-insensitive duplicate-name checks, rich deterministic validation codes/messages, immutable models, ordering behavior, and future-schema fail-closed UX. The database need not reproduce those rich app errors or duplicate-label normalization.
 
 ### Retained-Identity Atomicity Decision
 
