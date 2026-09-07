@@ -2,36 +2,36 @@
 
 **Status:** In progress
 **Primary owner:** `apps/features/nutrition`
-**Affected platforms:** Flutter Android + iOS; Supabase Postgres in a later separately approved persistence slice
+**Affected platforms:** Supabase Postgres repository migration for Slice B1; Flutter Android + iOS behavior is unchanged
 
 ## Owner Approval and Scope Boundary
 
 **Trigger:** New independently scoped product slice; future Supabase column shape change; future product-visible UI/UX change
-**Approval status:** Slice A approved, implemented, merged, and post-merge validated; Slice B, C, and D remain unstarted
-**Approval evidence:** TNYX-67 owner-locked semantics updated 2026-09-06 and the 2026-09-06 TNYX-66 readiness-refresh request.
+**Approval status:** Slice A approved, implemented, merged, and post-merge validated; Slice B1 repository implementation and Draft PR handoff are approved; hosted apply and Slice B2/C/D remain unapproved and unstarted
+**Approval evidence:** TNYX-67 owner-locked semantics updated 2026-09-06; the 2026-09-06 Slice A authorization; the 2026-09-07 TNYX-66 Slice B readiness-refresh authorization; and the 2026-09-07 explicit Slice B1 repository implementation authorization.
 **Approved product/data direction:** Meal Category is separate from `MealLogEntry.mealName`; four resolved defaults; maximum eight active categories; stable non-semantic IDs; profile-owned nullable versioned JSONB direction.
-**Explicit non-changes:** No Flutter UI, Supabase adapter/migration/live mutation, MealLog persistence, `services/api`, Weight, or Workout work. No Slice B, C, or D implementation.
+**Explicit non-changes:** No Flutter UI, Supabase adapter, hosted Supabase mutation, MealLog persistence, `services/api`, Weight, or Workout work. No Slice B2, C, or D implementation.
 
 ## Active Handoff
 
 **Planning owner:** Codex `/root`
-**Implementation owner:** Codex `/root`
-**Review owner:** None — Slice A and its retained-identity follow-up are merged and post-merge validated
-**Implementation ownership state:** Slice A closed; no active implementation slice
-**Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-07 after `git fetch origin --prune`
-**Branch:** `main`
-**Base SHA:** `dd0c0e3d6efeaec18e525ebf113a4435e0abdf1a`
-**Observed working-tree state:** PR #218 and follow-up PR #219 are merged; the unrelated root `pubspec.lock` modification remains unstaged and excluded
-**Observed uncommitted/dirty files:** `pubspec.lock` only outside the PR scope (pre-existing, preserve exactly)
-**PR / tracker:** PR #218 merged the Slice A foundation as `5d9f6371409e2d9f057c035b267b496cf85de2ab`; PR #219 merged the retained-identity P1 follow-up as `dd0c0e3d6efeaec18e525ebf113a4435e0abdf1a`; TNYX-67 remains In Progress and its `blockedBy TNYX-66` relation is unchanged
-**Current implementation state:** Slice A is closed, merged, and post-merge validated. Ordinary `MealCategoriesRepository.upsert()` cannot omit a previously retained category identity. No UI, Supabase adapter/schema, MealLog implementation, or Slice B/C/D work is included.
+**Implementation owner:** Codex `/root` for Slice B1 only
+**Review owner:** Codex `/root` for PR #221 post-CI P1 remediation and final independent review
+**Implementation ownership state:** Slice A closed; Slice B1 repository implementation active; Slice B2/C/D unstarted
+**Ownership transition:** Owner-authorized transition from readiness planning to `/root` Slice B1 implementation on 2026-09-07
+**Repository state last verified:** 2026-09-07 after fresh Git/GitHub/Linear/Supabase read-only verification
+**Branch:** `tnyx/tnyx-67-meal-categories-db-guards`
+**Base SHA:** `1f31153543c20fd44a42b84f4defe897e0d48a2d`
+**Observed working-tree state:** Slice B1 branch starts at `main == origin/main == 1f31153543c20fd44a42b84f4defe897e0d48a2d`; PR #218/#219/#220 are merged; no open TNYX-67/Meal Categories PR existed at the implementation safety gate; the unrelated root `pubspec.lock` modification remains unstaged and excluded
+**Observed uncommitted/dirty files:** pre-existing `pubspec.lock` only; preserve and exclude the lock exactly
+**PR / tracker:** PR #218/#219/#220 merged. Linear drift was corrected from TNYX-67 `Done` to `In Progress`; `blockedBy TNYX-66` remains unchanged. TNYX-66 remains Backlog.
+**Current implementation state:** Slice A is closed, merged, and post-merge validated. Slice B1 repository implementation and post-CI P1 remediation are complete on the dedicated branch; hosted mutation and adapter implementation have not started. Readiness chooses schema-first B1 followed by separately authorized adapter B2.
 **Relevant execution surface:** Nutrition domain/data; later Nutrition Meal Diary Settings and meal-logging presentation
-**Validation completed:** Failing-before-fix regression reproduced; changed Dart files formatted; Nutrition analyzer clean; focused Meal Categories suite passed (`48` tests); full Nutrition package suite passed (`301` tests); PR #219 exact-head CI passed; post-merge `main` Flutter CI run `34072455019` passed at `dd0c0e3d6efeaec18e525ebf113a4435e0abdf1a`
-**Validation remaining:** None for Slice A. Slice B requires a separate fresh TNYX-66 readiness refresh and owner authorization.
-**Current blocker:** None for Slice A. Later settings UI remains coupled to TNYX-68/N14 and its TNYX-54 dependency.
-**Open review finding IDs:** None. GitHub review comment `3944690722` / `discussion_r3944690722` was resolved after PR #219 merged and post-merge `main` passed.
-**Next exact action:** Stop after Slice A closeout. Do not begin Slice B, C, or D without a separate task.
+**Validation completed:** Slice A validation remains green. For Slice B1, exact P1-remediation implementation head `bf31923d4ab8ea59256536ad467cc81ef21d609f` passed full Supabase Database CI run `34120860985`, and evidence head `e12b3d52c1d5d0fdc49cce10bf1751ed05a88d7d` passed run `34121248320`: disposable base initialization, baseline replay/lint, clean full replay, dynamic repository-file/ledger parity, B1 version exactly once, private-schema exposure, exhaustive SQL/RLS/DELETE/account-cascade/large-archived matrix, real two-session stale-writer concurrency, and B1-introduced lint comparison. Hosted read-only state remains unchanged, all four review threads are replied/resolved, and the independent final review found no P1/P2 issue.
+**Validation remaining:** Exact-head CI for this final task-brief evidence commit, followed by PR-body and existing Linear-comment synchronization. Any hosted apply requires separate explicit authorization and fresh verification.
+**Current blocker:** No repository source/test/review blocker remains. Hosted rollout remains intentionally blocked by missing explicit apply authorization. Later settings UI remains coupled to TNYX-68/N14 and TNYX-54.
+**Resolved review finding IDs:** `3949432003`, `3949432006`, `3949432012`, and `3949432017` are fixed, exact-head validated, replied, and resolved.
+**Next exact action:** Validate this final task-brief evidence head, synchronize PR #221 and the existing Linear update, and stop without merging, starting B2, or applying hosted DDL.
 
 ## 1. Discovery
 
@@ -216,3 +216,134 @@ Slice A intentionally exposes no destructive reset/clear method. Restore Default
 ### Final Status
 
 `CLOSED / MERGED / POST-MERGE VALIDATED` for Slice A — PR #218 merged the foundation, PR #219 resolved the retained-identity P1 on `main` at `dd0c0e3d6efeaec18e525ebf113a4435e0abdf1a`, and post-merge Flutter CI run `34072455019` passed. TNYX-67 remains In Progress; TNYX-66 is unchanged; Slice B, C, and D are not started.
+
+## 8. Slice B Readiness Refresh — 2026-09-07
+
+### Fresh Baseline and Tracker Reconciliation
+
+- Baseline: `main == origin/main == 1f31153543c20fd44a42b84f4defe897e0d48a2d`; PR #218/#219/#220 are merged and no open overlapping PR exists.
+- Preserved local branch: `docs/supabase-android-studio-qa-run == 7fe896820c8f176b5049df4fe84fc9acea5933b1`.
+- Pre-existing root `pubspec.lock` remains unstaged with SHA-256 `004DE1A093C1F04F684B39DF072C2F2E37B1CD21046BFEE01E628E7F77300B1C`.
+- Fresh Linear initially showed TNYX-67 `Done`; the readiness authorization was used to correct only its status to `In Progress`. Its `blockedBy TNYX-66` relation is unchanged. TNYX-66 remains Backlog; TNYX-68 and TNYX-113 remain Backlog and blocked by TNYX-66 plus TNYX-54.
+
+### Hosted Schema, RLS, Grants, and Migration Truth
+
+- Hosted project `tio-world` (`oykupyiitspujzpwwvuj`) is healthy on PostgreSQL 17.6.1. `public.user_nutrition_profiles` has two rows and no `meal_categories_config` column.
+- Current columns are `user_id`, `preferred_diet`, `allergies`, `disliked_foods`, `medical_conditions`, `updated_at`, `other_diet_type`, and `other_allergy_restriction`. Only `user_id` is non-null; it is the primary key and references `auth.users(id) ON DELETE CASCADE`. Therefore a first customization can insert only `user_id` plus the new nullable JSONB column without fabricating profile values.
+- RLS is enabled. Authenticated owner policies exist for SELECT, INSERT, UPDATE, and DELETE; UPDATE has both `USING (auth.uid() = user_id)` and `WITH CHECK (auth.uid() = user_id)`. Table grants exist for `anon`, `authenticated`, and `service_role`, but only authenticated owner policies expose rows through the Data API. No custom table trigger exists. The primary-key index plus a redundant `user_id` btree index exist; Slice B needs no new index.
+- Local and hosted migration ledgers match exactly at 39 migrations. Latest is `20260903091350_add_nutrition_additional_nutrient_goals`. `pg_jsonschema` is available but not installed and is not required.
+
+### JSONB and Repository Ownership
+
+- The accepted store remains one nullable `public.user_nutrition_profiles.meal_categories_config jsonb` column. `NULL` resolves canonical defaults in Dart; defaults are not eagerly persisted. A meaningful customization stores the complete existing V1 codec envelope with `schema_version` and `items` using the current snake_case item keys.
+- `NutritionProfileRepository` continues selecting/writing only profile fields and omitting `meal_categories_config`. `MealCategoriesRepository` owns only that column over the same physical row. Existing PostgREST `upsert` payloads update the columns supplied on conflict, so profile-only writers preserve the new column; this remains a required integration test. No generated Supabase type system exists or is introduced.
+- Unsupported or malformed non-null config fails closed through the existing `MealCategoriesConfigCodec`; it is never downgraded, defaulted, merged, truncated, or overwritten.
+
+### Database Validation Boundary
+
+The database independently rejects direct-write shapes that could undermine persistence or retained-identity safety:
+
+- non-null payload is a V1 object with only the supported envelope keys;
+- `schema_version` is the exact supported integer representation;
+- `items` is an array whose members are objects with required `id`, `display_name`, `active`, and `order` fields and only the optional `default_key` addition;
+- required field types are valid, `default_key` is null or a supported string, and order is a non-negative integer;
+- IDs and orders are unique; IDs use one of the four canonical IDs or the V1 UUID-v4 slot format;
+- all four canonical IDs/default-key mappings are present exactly once;
+- every `active` value is boolean and active count is at most eight, so a malformed value cannot bypass the cap;
+- no silent truncation occurs.
+
+Dart remains the owner of normalized display-name semantics, whitespace/case-insensitive duplicate-name checks, rich deterministic validation codes/messages, immutable models, ordering behavior, and future-schema fail-closed UX. The database need not reproduce those rich app errors or duplicate-label normalization.
+
+### Retained-Identity Atomicity Decision
+
+Plain client `SELECT -> validateTransition -> upsert` is rejected because it races across devices. B1 uses a fail-closed migration to create a schema-qualified, `SECURITY INVOKER` row-level `BEFORE UPDATE OF meal_categories_config` trigger. It compares the row-locked current `OLD` config with `NEW` and rejects every `OLD` ID absent from `NEW`.
+
+- `OLD NULL -> NEW valid non-null` is allowed; INSERT is validated by the CHECK boundary.
+- `OLD non-null -> NEW NULL` is rejected because ordinary upsert is not Restore Defaults.
+- `OLD/NEW non-null` permits rename, reorder, archive, and valid reactivation while rejecting identity removal.
+- PostgreSQL row locking and atomic `ON CONFLICT DO UPDATE` ensure that a stale concurrent writer is checked against the latest committed row version. It fails rather than removing an identity introduced by another writer.
+- The helper functions live in the existing non-exposed `private` schema, use explicit safe `search_path` and schema-qualified references, and remain `SECURITY INVOKER`. Grant only the namespace/function execution needed for PostgreSQL to maintain the CHECK/trigger for current write roles; add no public RPC, service-role client requirement, bypass, or `SECURITY DEFINER`. Remove only the authenticated standalone Nutrition Profile DELETE policy so a row cannot be recreated to erase retained identities; the canonical account-deletion RPC and FK cascade remain authoritative.
+
+Optimistic revision state is unnecessary additional schema for this invariant. An atomic RPC would duplicate the normal Data API/RLS write path and add avoidable exposure/authorization surface. The trigger protects direct writes as well as the production adapter.
+
+### Selected B1 Migration Design
+
+- Add nullable, no-default `meal_categories_config JSONB` and a column comment.
+- Add immutable `private.is_valid_meal_categories_config_v1(jsonb)` and CHECK `user_nutrition_profiles_meal_categories_config_valid`; fail closed if reserved objects already exist instead of silently accepting an unknown contract.
+- Add `private.protect_meal_category_retained_ids()` as a schema-qualified `SECURITY INVOKER` trigger function and `trg_user_nutrition_profiles_protect_meal_category_retained_ids` as the `BEFORE UPDATE OF meal_categories_config` trigger, with the same fail-closed collision preflight.
+- Drop only `user_nutrition_profiles_delete_own`; add no RLS policy and make no table-grant change. Add only the minimum validator `EXECUTE` grant required for `SECURITY INVOKER` CHECK/trigger evaluation; add no public RPC, index, second timestamp/revision column, backfill, or default-row materialization.
+- Leave `updated_at` unchanged: the current table has no update trigger and profile writers omit it. B1 does not broaden profile timestamp semantics; the category adapter also omits it.
+- Forward rollback policy is app-first: stop category writes while preserving the additive column/data and repair with a new forward migration. Dropping the guard/column after release would be destructive and requires separate authorization.
+
+### Proposed B2 Adapter Contract — Design Only
+
+`SupabaseMealCategoriesRepository` (repo-convention equivalent) stays in Nutrition data and implements the existing domain contract:
+
+- signed-out read performs no remote access and resolves canonical defaults consistently with the nullable-read pattern; signed-out write fails before gateway access;
+- read selects only `meal_categories_config`; missing row or null resolves defaults; non-null decodes only through `MealCategoriesConfigCodec` and fails closed on malformed/future data;
+- upsert validates through Slice A, then sends only `user_id` and encoded `meal_categories_config` using the existing primary-key conflict path; it never touches profile fields or `updated_at`;
+- DB CHECK plus the retained-ID trigger are the authoritative atomic persistence boundary. The client never silently merges, truncates, or treats a read-before-write check as concurrency protection.
+
+### Rollout and Validation Plan
+
+1. After separate authorization, implement/review B1 migration only.
+2. Obtain separate explicit authorization before hosted apply; apply B1, then verify column, CHECK, trigger, the deliberate removal of only the standalone DELETE policy, unchanged table grants, and owner/anon isolation.
+3. Only after hosted schema verification, implement B2 adapter and focused app/gateway tests; release clients after the database accepts the column.
+
+Required DB tests: existing rows unchanged; null, valid four-default, eight-active, eight-active-plus-archived, and a large archived set accepted; nine-active, non-object, wrong schema type/value, malformed active type, invalid structural fields, duplicate IDs/orders, and invalid canonical mapping rejected; retained-ID removal and non-null-to-null rejected; rename/reorder/archive/reactivation within the cap accepted; stale concurrent writer cannot remove a newly committed identity; owner/other-user/anon standalone DELETE affects no rows; DELETE-to-reinsert cannot erase identities; canonical account deletion still cascades; validator `EXECUTE` necessity is proven; user A owns only A, user B is isolated, and anon sees/writes none.
+
+Required app tests: signed-out behavior; missing row/null defaults; strict V1 round-trip; malformed/future schema failure; category-only existing-row update preserves profile fields; first-write insert fabricates no profile values; profile/onboarding writers preserve category config; gateway payload excludes profile fields and `updated_at`; DB rejection propagates without fallback/overwrite.
+
+### Slice B Readiness Classification
+
+`READY — Slice B1: additive meal_categories_config migration + DB validation/retained-ID guard only.`
+
+B2 remains a later Flutter adapter slice after owner-authorized hosted rollout and verification. At the readiness-refresh gate this result authorized neither implementation nor hosted apply; the later explicit B1 authorization is recorded in Section 9 and still does not authorize hosted apply. Slice C/D, UI, Quick Add activation, and MealLog persistence remain out of scope.
+
+## 9. Slice B1 Repository Implementation — 2026-09-07
+
+### Implementation State
+
+- Owner authorization now covers Slice B1 repository implementation and one Draft PR only. Hosted apply remains explicitly unauthorized.
+- Exact base: `1f31153543c20fd44a42b84f4defe897e0d48a2d`.
+- Branch: `tnyx/tnyx-67-meal-categories-db-guards`.
+- CLI-generated migration: `supabase/migrations/20260907065602_add_meal_categories_config.sql`.
+- Repository implementation and its validation harness are authored. This machine cannot currently run Docker because firmware virtualization is disabled and a reboot is deferred; the owner therefore authorized the mandatory disposable PostgreSQL/Supabase validation on GitHub Actions `ubuntu-latest`, without installing or starting a backend service here.
+
+### Database Objects and Boundaries
+
+- Adds nullable, no-default, no-backfill `public.user_nutrition_profiles.meal_categories_config jsonb` plus a column comment documenting default resolution, retained historical identity, and the maximum of eight active categories.
+- Adds immutable, strict, `SECURITY INVOKER` `private.is_valid_meal_categories_config_v1(jsonb)` with `search_path = ''`. It performs no table reads and validates the exact V1 envelope, item types/keys, stable canonical/custom identity, set-based unique IDs/orders, non-negative integer order, canonical mappings, and active count at most eight. Archived retained items remain uncapped.
+- Adds `user_nutrition_profiles_meal_categories_config_valid`, accepting SQL `NULL` or a validator-approved V1 payload.
+- Adds `SECURITY INVOKER` `private.protect_meal_category_retained_ids()` and `trg_user_nutrition_profiles_protect_meal_category_retained_ids` as a row-level `BEFORE UPDATE OF meal_categories_config` trigger. It rejects non-null-to-null reset and removal of any previously retained canonical, custom, or archived ID.
+- Revokes default execution from `PUBLIC`, `anon`, `authenticated`, and `service_role`. Grants only validator `EXECUTE` to existing write roles `authenticated` and `service_role`; a disposable regression proves authenticated guarded writes fail without it. The trigger function remains non-callable. The existing `private` schema is not exposed through the configured Data API schemas. No table grant, public RPC, index, unrelated profile column, or `updated_at` behavior changes.
+- Deliberately drops only `user_nutrition_profiles_delete_own`. Ordinary authenticated clients can no longer hard-delete the Nutrition Profile and recreate it to erase retained IDs. The canonical `public.delete_user_account()` `SECURITY DEFINER` RPC still deletes `auth.users`, and the existing `user_nutrition_profiles.user_id -> auth.users.id ON DELETE CASCADE` path remains intact.
+- Database validation deliberately stops at persistence shape/invariants. Dart remains responsible for display-name normalization, normalized duplicate-label semantics, deterministic app-facing validation errors, and future-schema UX.
+
+### Verification State
+
+- Completed before push: Supabase CLI `2.116.0` official Windows archive checksum verification; CLI login/project visibility; current CLI `--help` discovery; fresh hosted read-only verification of 39 migrations/latest `20260903091350`, absent column/trigger, enabled owner RLS policies, and existing `private` schema; migration/workflow static whitespace checks; concurrency script Bash syntax check.
+- Authored CI validation: initialize a disposable Supabase Postgres base; replay each original repository migration file in its own transaction; record the local ledger through Supabase CLI; capture the pre-B1 lint baseline; reinitialize and replay the complete history; compare repository filenames to the ledger dynamically and assert B1 appears exactly once; run exhaustive accepted/rejected SQL table writes, large archived-set validation, authenticated/anon RLS and privilege proof, standalone DELETE denial, DELETE-to-reinsert denial, canonical account-deletion cascade, first-row write, profile-only upsert preservation, deterministic real two-session stale-writer rejection, later preserving update, and baseline/current `db lint` comparison for B1-introduced errors.
+- Draft PR #221 first run `34116102725` failed before B1 execution because the historical `20260824070233_cleanup_legacy_canonical_mirrors.sql` begins with `LOCK TABLE` and current CLI startup submitted it outside a transaction. The applied historical migration remains unchanged; the bounded CI fix starts without repository migrations and replays the original files with `psql --single-transaction`, then uses Supabase CLI to populate and verify the disposable ledger.
+- Run `34116667734` then passed base initialization, baseline replay/lint, clean full replay, exact 40-migration ledger parity, and Data API exposure check. Its SQL matrix reached the authenticated-role cases and exposed a test-harness-only permission gap: the switched role could not read the transaction-local fixture table. The fixture now grants read-only access only to the test roles inside the rolled-back test transaction; production grants remain unchanged.
+- Run `34116951958` passed at exact implementation head `cfa219ce67c42f588e71d1402b2ac95651c928c9`. Job `101725903752` completed every required step successfully: baseline replay/lint, clean full replay, exact 40-migration ledger, private-schema exposure check, exhaustive SQL matrix, real two-session concurrency, and no B1-introduced database lint errors.
+- PR run `34117316914` and manual run `34117336350` both passed at evidence head `5167122937c79134dc4bf780e909b4088f9a355a`; every required database step was green again.
+- Hosted project `oykupyiitspujzpwwvuj` was rechecked read-only after CI and remains unchanged: 39 migrations with latest `20260903091350`, two Nutrition Profile rows, no `meal_categories_config`/B1 functions/trigger, RLS enabled, and the same four authenticated owner policies.
+- PR #221 is open and marked ready for review. TNYX-67 remains In Progress with its TNYX-66 blocker relation unchanged; TNYX-66 remains Backlog. Linear follow-up comment `de439b70-2018-4967-b75f-d07ca4efe811` records the handoff.
+- Slice B2, Flutter production source, UI, Quick Add, MealLog persistence, and Slice C/D remain unstarted.
+
+### Post-CI P1 Remediation
+
+- Review `3949432003`: removed the hard-coded total migration count from the reusable SQL matrix. The workflow's repository-file-to-ledger comparison remains dynamic, and the SQL matrix now requires B1 version `20260907065602` exactly once.
+- Review `3949432006`: repository audit found no direct standalone Nutrition Profile delete in Flutter/Dart; the only product deletion path is `SupabaseAccountDeletionRpcGateway -> public.delete_user_account()`. B1 now drops only `user_nutrition_profiles_delete_own`, while disposable tests prove owner, other-user, and anon direct deletes affect zero rows, DELETE-to-reinsert cannot erase retained identities, and canonical account deletion still removes the profile through the existing FK cascade.
+- Review `3949432012`: replaced repeated `array_position` scans with set-based `jsonb_array_elements + GROUP BY + HAVING count(*) > 1` checks for IDs and orders, and uses set difference for retained-ID comparison instead of nested scans. No total retained-item cap was added; a 512-item archived regression is accepted and a duplicate inside that large set is rejected.
+- Review `3949432017`: clarified the exact grant boundary. No table grants are changed, no public RPC is added, and the only function grant is private validator `EXECUTE` for `authenticated` and `service_role`; a disposable revoke/guarded-write regression proves authenticated evaluation requires it. The trigger function remains non-direct-callable.
+- Exact-head run `34120463118` passed clean full migration replay, dynamic ledger parity, and private-schema exposure before the SQL matrix found a test-helper-only syntax error: `COALESCE` is a SQL special form and cannot be schema-qualified as `pg_catalog.coalesce`. The helper was corrected without changing the production migration contract; a new exact-head run is required.
+- Run `34120860985` passed at exact P1-remediation implementation head `bf31923d4ab8ea59256536ad467cc81ef21d609f`: clean full migration replay, dynamic ledger parity, B1 exactly once, private helper exposure, the complete SQL/RLS/DELETE/account-cascade/large-archived matrix, real two-session concurrency, and no B1-introduced lint errors.
+- Hosted project `oykupyiitspujzpwwvuj` was rechecked read-only after exact-head run `34121248320` and remains unchanged: 39 migrations with latest `20260903091350`, two Nutrition Profile rows, no `meal_categories_config`, no B1 validator/trigger function or trigger, RLS enabled, and the same four hosted owner policies including the still-unapplied DELETE policy.
+- Evidence replies `3949676238`, `3949676833`, `3949677540`, and `3949678241` were posted against findings `3949432003`, `3949432006`, `3949432012`, and `3949432017`; all four review threads were then re-fetched and verified resolved.
+- Independent final review covered intent/scope, SQL correctness, RLS and grants, account-deletion cascade, DELETE bypass prevention, set-oriented validation complexity, large archived payloads, migration replay/ledger behavior, and real concurrency. It found no remaining P1/P2 issue.
+
+### Slice B1 Final Classification
+
+`READY FOR MERGE` — all four P1 source/test fixes passed exact-head disposable database CI, hosted unchanged state was verified read-only, all four review threads were replied/resolved, and the independent final review found no P1/P2 issue. This repository classification does not authorize hosted apply or merge; hosted apply, merge, and every later slice remain unauthorized and unstarted.
