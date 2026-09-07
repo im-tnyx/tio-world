@@ -10,28 +10,28 @@
 **Approval status:** Slice A and Slice B1 repository work are merged and validated; the exact Slice B1 hosted migration is applied and verified; Slice B2/C/D remain unapproved and unstarted
 **Approval evidence:** TNYX-67 owner-locked semantics updated 2026-09-06; the 2026-09-06 Slice A authorization; the 2026-09-07 TNYX-66 Slice B readiness refresh and Slice B1 repository authorization; and the 2026-09-07 explicit authorization to apply only migration `20260907065602_add_meal_categories_config` to hosted project `oykupyiitspujzpwwvuj` after fresh preflight.
 **Approved product/data direction:** Meal Category is separate from `MealLogEntry.mealName`; four resolved defaults; maximum eight active categories; stable non-semantic IDs; profile-owned nullable versioned JSONB direction.
-**Explicit non-changes:** No Flutter UI, Supabase adapter, hosted Supabase mutation, MealLog persistence, `services/api`, Weight, or Workout work. No Slice B2, C, or D implementation.
+**Explicit non-changes:** No Flutter UI, Supabase adapter, MealLog persistence, `services/api`, Weight, or Workout work. No Slice B2, C, or D implementation. The only hosted Supabase mutation in Slice B1 was the separately authorized exact migration `20260907065602_add_meal_categories_config`, which is already applied and verified.
 
 ## Active Handoff
 
 **Planning owner:** Codex `/root`
 **Implementation owner:** None — Slice B1 repository and hosted rollout are closed
-**Review owner:** None — PR #221 is merged after exact-head CI and resolved review
+**Review owner:** None — PR #221 is merged after exact-head CI and resolved review; PR #222 post-merge Codex P2 `3950154215` is incorporated by the docs-only truth correction
 **Implementation ownership state:** Slice A closed; Slice B1 repository merged/validated; Slice B1 hosted rollout applied/verified; Slice B2/C/D unstarted
 **Ownership transition:** Owner-authorized transition from merged Slice B1 repository work to `/root` hosted rollout closeout on 2026-09-07
 **Repository state last verified:** 2026-09-07 after fresh Git/GitHub/Linear/Supabase read-only verification
-**Branch:** `docs/tnyx-67-b1-hosted-rollout`
-**Base SHA:** `d66779a48f9a1a4042c6d4acc379059e12e1a9fc`
-**Observed working-tree state:** `main == origin/main == d66779a48f9a1a4042c6d4acc379059e12e1a9fc`; PR #221 is squash-merged; hosted ledger now contains the applied B1 migration; the one-file rollout brief is the only scoped repository change; the unrelated root `pubspec.lock` modification remains unstaged and excluded
+**Branch:** `docs/tnyx-67-b1-rollout-truth-correction`
+**Base SHA:** `b095a91c202c490facd92973618f0c79cf5deef3`
+**Observed working-tree state:** PR #222 is squash-merged to `main` at `b095a91c202c490facd92973618f0c79cf5deef3`; hosted ledger contains the applied B1 migration; this docs-only truth correction is the only scoped repository change; the unrelated root `pubspec.lock` modification remains preserved and excluded
 **Observed uncommitted/dirty files:** pre-existing `pubspec.lock` only; preserve and exclude the lock exactly
-**PR / tracker:** PR #218/#219/#220/#221 are merged. TNYX-67 remains `In Progress`; `blockedBy TNYX-66` is unchanged; TNYX-66 remains `Backlog`.
+**PR / tracker:** PR #218/#219/#220/#221/#222 are merged. TNYX-67 remains `In Progress`; `blockedBy TNYX-66` is unchanged; TNYX-66 remains `Backlog`.
 **Current implementation state:** Slice A is closed. Slice B1 repository work is merged and validated at main SHA `d66779a48f9a1a4042c6d4acc379059e12e1a9fc`; hosted migration `20260907065602_add_meal_categories_config` is applied and verified. No B2 adapter or later slice has started.
 **Relevant execution surface:** Nutrition domain/data; later Nutrition Meal Diary Settings and meal-logging presentation
-**Validation completed:** Slice A validation remains green. For Slice B1, exact P1-remediation implementation head `bf31923d4ab8ea59256536ad467cc81ef21d609f` passed full Supabase Database CI run `34120860985`, and evidence head `e12b3d52c1d5d0fdc49cce10bf1751ed05a88d7d` passed run `34121248320`: disposable base initialization, baseline replay/lint, clean full replay, dynamic repository-file/ledger parity, B1 version exactly once, private-schema exposure, exhaustive SQL/RLS/DELETE/account-cascade/large-archived matrix, real two-session stale-writer concurrency, and B1-introduced lint comparison. Hosted read-only state remains unchanged, all four review threads are replied/resolved, and the independent final review found no P1/P2 issue.
-**Validation remaining:** Land and sync this one-file hosted-rollout evidence update, publish the authorized Linear closeout, and stop.
-**Current blocker:** None for Slice B1. Later settings UI remains coupled to TNYX-68/N14 and TNYX-54.
-**Resolved review finding IDs:** `3949432003`, `3949432006`, `3949432012`, and `3949432017` are fixed, exact-head validated, replied, and resolved.
-**Next exact action:** Land the one-file docs-only rollout closeout, keep TNYX-67 In Progress and TNYX-66 Backlog, then stop without starting B2.
+**Validation completed:** Slice A validation remains green. For Slice B1, exact P1-remediation implementation head `bf31923d4ab8ea59256536ad467cc81ef21d609f` passed full Supabase Database CI run `34120860985`, and evidence head `e12b3d52c1d5d0fdc49cce10bf1751ed05a88d7d` passed run `34121248320`: disposable base initialization, baseline replay/lint, clean full replay, dynamic repository-file/ledger parity, B1 version exactly once, private-schema exposure, exhaustive SQL/RLS/DELETE/account-cascade/large-archived matrix, real two-session stale-writer concurrency, and B1-introduced lint comparison. Those CI-era hosted reads were pre-apply historical evidence at 39 migrations. The separately authorized hosted rollout then applied `20260907065602_add_meal_categories_config` exactly once and post-apply verification passed at 40 migrations with the reviewed column, CHECK, private validator, retained-ID trigger, grants, RLS hardening, preserved rows, and no B1 advisor blocker.
+**Validation remaining:** None for Slice B1. Any B2/C/D work requires its own authorization/readiness and is not started by this closeout.
+**Current blocker:** None for Slice B1. TNYX-67 remains `In Progress` for later feature slices and retains its `blockedBy TNYX-66` relation; later settings UI remains coupled to TNYX-68/N14 and TNYX-54.
+**Resolved review finding IDs:** `3949432003`, `3949432006`, `3949432012`, and `3949432017` are fixed, exact-head validated, replied, and resolved. PR #222 Codex P2 `3950154215` identified stale hosted-state wording; this correction incorporates that finding.
+**Next exact action:** Stop after this docs-only truth correction is landed and synced. Do not start B2, C, D, Flutter/UI, Quick Add, MealLog, or any additional hosted mutation without separate authorization/readiness.
 
 ## 1. Discovery
 
