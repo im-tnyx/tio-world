@@ -27,11 +27,11 @@
 **PR / tracker:** PR #218/#219/#220 merged. Linear drift was corrected from TNYX-67 `Done` to `In Progress`; `blockedBy TNYX-66` remains unchanged. TNYX-66 remains Backlog.
 **Current implementation state:** Slice A is closed, merged, and post-merge validated. Slice B1 repository implementation is active on the dedicated branch; hosted mutation and adapter implementation have not started. Readiness chooses schema-first B1 followed by separately authorized adapter B2.
 **Relevant execution surface:** Nutrition domain/data; later Nutrition Meal Diary Settings and meal-logging presentation
-**Validation completed:** Slice A validation remains green. For Slice B1, Draft PR #221 run `34116951958` passed at exact implementation head `cfa219ce67c42f588e71d1402b2ac95651c928c9`: disposable base initialization, baseline replay/lint, clean full replay, exact 40-migration ledger parity, private-schema exposure check, exhaustive SQL matrix, real two-session stale-writer concurrency, and B1-introduced lint comparison all passed.
-**Validation remaining:** Re-run the same workflow at the evidence-only task-brief commit head, then verify hosted Supabase remains unchanged. Any later hosted apply requires separate explicit authorization and fresh verification.
-**Current blocker:** No B1 implementation blocker remains. Review handoff waits only for the evidence-only exact-head rerun and final remote-state verification. Later settings UI remains coupled to TNYX-68/N14 and TNYX-54.
+**Validation completed:** Slice A validation remains green. For Slice B1, PR #221 run `34116951958` passed at implementation head `cfa219ce67c42f588e71d1402b2ac95651c928c9`; PR run `34117316914` and manual run `34117336350` both passed at evidence head `5167122937c79134dc4bf780e909b4088f9a355a`. Each passing full run covered disposable base initialization, baseline replay/lint, clean full replay, exact 40-migration ledger parity, private-schema exposure, the exhaustive SQL matrix, real two-session stale-writer concurrency, and B1-introduced lint comparison.
+**Validation remaining:** None for the Slice B1 repository review handoff. Any hosted apply requires separate explicit authorization and fresh verification.
+**Current blocker:** None for Slice B1 repository review. Hosted rollout remains intentionally blocked by missing explicit apply authorization. Later settings UI remains coupled to TNYX-68/N14 and TNYX-54.
 **Open review finding IDs:** None. GitHub review comment `3944690722` / `discussion_r3944690722` was resolved after PR #219 merged and post-merge `main` passed.
-**Next exact action:** Commit this exact CI evidence, re-run the disposable workflow at that evidence-only PR head, verify hosted Supabase/Linear state, and hand off PR #221 for review. Do not start B2 or apply hosted DDL.
+**Next exact action:** Stop at PR #221 review handoff. Do not merge, start B2, or apply hosted DDL.
 
 ## 1. Discovery
 
@@ -326,6 +326,11 @@ B2 remains a later Flutter adapter slice after owner-authorized hosted rollout a
 - Draft PR #221 first run `34116102725` failed before B1 execution because the historical `20260824070233_cleanup_legacy_canonical_mirrors.sql` begins with `LOCK TABLE` and current CLI startup submitted it outside a transaction. The applied historical migration remains unchanged; the bounded CI fix starts without repository migrations and replays the original files with `psql --single-transaction`, then uses Supabase CLI to populate and verify the disposable ledger.
 - Run `34116667734` then passed base initialization, baseline replay/lint, clean full replay, exact 40-migration ledger parity, and Data API exposure check. Its SQL matrix reached the authenticated-role cases and exposed a test-harness-only permission gap: the switched role could not read the transaction-local fixture table. The fixture now grants read-only access only to the test roles inside the rolled-back test transaction; production grants remain unchanged.
 - Run `34116951958` passed at exact implementation head `cfa219ce67c42f588e71d1402b2ac95651c928c9`. Job `101725903752` completed every required step successfully: baseline replay/lint, clean full replay, exact 40-migration ledger, private-schema exposure check, exhaustive SQL matrix, real two-session concurrency, and no B1-introduced database lint errors.
-- Pending after this evidence-only brief update: one manual exact-head rerun, hosted read-only unchanged-state verification, PR review-state transition, and the single TNYX-67 follow-up.
-- Hosted project `oykupyiitspujzpwwvuj` remains unchanged: migration not applied, ledger expected at 39, and `meal_categories_config` expected absent until a later explicit rollout authorization.
+- PR run `34117316914` and manual run `34117336350` both passed at evidence head `5167122937c79134dc4bf780e909b4088f9a355a`; every required database step was green again.
+- Hosted project `oykupyiitspujzpwwvuj` was rechecked read-only after CI and remains unchanged: 39 migrations with latest `20260903091350`, two Nutrition Profile rows, no `meal_categories_config`/B1 functions/trigger, RLS enabled, and the same four authenticated owner policies.
+- PR #221 is open and marked ready for review. TNYX-67 remains In Progress with its TNYX-66 blocker relation unchanged; TNYX-66 remains Backlog. Linear follow-up comment `de439b70-2018-4967-b75f-d07ca4efe811` records the handoff.
 - Slice B2, Flutter production source, UI, Quick Add, MealLog persistence, and Slice C/D remain unstarted.
+
+### Slice B1 Final Classification
+
+`READY FOR REVIEW` — repository migration, database safety guards, and disposable validation are complete for Slice B1. Hosted Supabase apply, merge, and every later slice remain unauthorized and unstarted.
