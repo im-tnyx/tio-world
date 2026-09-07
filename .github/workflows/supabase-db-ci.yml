@@ -1,0 +1,101 @@
+name: Supabase Database CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'supabase/config.toml'
+      - 'supabase/migrations/**'
+      - 'supabase/tests/**'
+      - '.github/workflows/supabase-db-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-db-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  database:
+    name: Replay and test database migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      DO_NOT_TRACK: '1'
+      PGPASSWORD: postgres
+      SUPABASE_TELEMETRY_DISABLED: '1'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.116.0
+
+      - name: Toolchain info
+        shell: bash
+        run: |
+          supabase --version
+          docker version
+          psql --version
+
+      - name: Start disposable local Postgres
+        run: supabase db start
+
+      - name: Replay baseline migrations and capture lint baseline
+        shell: bash
+        run: |
+          supabase db reset --local --no-seed --version 20260903091350
+          supabase db lint --local --schema public,private --level error --fail-on none \
+            2>&1 | tee "$RUNNER_TEMP/supabase-db-lint-baseline.txt"
+
+      - name: Replay all migrations from scratch
+        run: supabase db reset --local --no-seed
+
+      - name: Verify the complete migration ledger
+        shell: bash
+        run: |
+          find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
+            | sed -E 's/_.*$//' \
+            | sort > "$RUNNER_TEMP/expected-migrations.txt"
+          psql "$DATABASE_URL" --tuples-only --no-align --set=ON_ERROR_STOP=1 \
+            --command='select version from supabase_migrations.schema_migrations order by version' \
+            > "$RUNNER_TEMP/applied-migrations.txt"
+          diff --unified \
+            "$RUNNER_TEMP/expected-migrations.txt" \
+            "$RUNNER_TEMP/applied-migrations.txt"
+
+      - name: Verify private helpers are outside the Data API
+        shell: bash
+        run: |
+          api_config="$(sed -n '/^\[api\]/,/^\[/p' supabase/config.toml)"
+          if grep -Eq '^schemas[[:space:]]*=.*"private"' <<<"$api_config"; then
+            echo 'private must not be included in the configured Data API schemas.'
+            exit 1
+          fi
+
+      - name: Run Slice B1 SQL matrix
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_67_meal_categories_b1.test.sql
+
+      - name: Run real two-session concurrency test
+        shell: bash
+        run: bash supabase/tests/database/tnyx_67_meal_categories_b1_concurrency.sh
+
+      - name: Reject B1-introduced database lint errors
+        shell: bash
+        run: |
+          supabase db lint --local --schema public,private --level error --fail-on none \
+            2>&1 | tee "$RUNNER_TEMP/supabase-db-lint-current.txt"
+          diff --unified \
+            "$RUNNER_TEMP/supabase-db-lint-baseline.txt" \
+            "$RUNNER_TEMP/supabase-db-lint-current.txt"
