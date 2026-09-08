@@ -204,7 +204,9 @@ class _InsetDivider extends StatelessWidget {
       height: TioStroke.width1,
       thickness: TioStroke.width1,
       indent: TioSpacing.lg,
-      endIndent: TioSpacing.lg,
+      // Flush at the end, matching the active list — these are sibling
+      // screens and a different rule treatment on each would read as a bug.
+      endIndent: TioSpacing.none,
       color: context.tioColors.outlineStrong.withAlpha(TioAlpha.alpha20),
     );
   }

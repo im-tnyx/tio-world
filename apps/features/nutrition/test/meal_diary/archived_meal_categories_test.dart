@@ -168,8 +168,12 @@ void main() {
       reason: 'two rows means one rule between them, and none after the last',
     );
     final divider = tester.widget<Divider>(dividers);
-    expect(divider.indent, greaterThan(0), reason: 'inset, not full-bleed');
-    expect(divider.endIndent, greaterThan(0));
+    expect(divider.indent, greaterThan(0), reason: 'inset at the start');
+    expect(
+      divider.endIndent,
+      TioSpacing.none,
+      reason: 'and flush at the end, matching the active list',
+    );
   });
 
   testWidgets('restoring reuses the same identity and leaves the archive',

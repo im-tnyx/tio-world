@@ -497,11 +497,11 @@ void main() {
         reason: 'the card edge ends the list',
       );
 
-      // Inset rather than full-bleed: the rule starts at the content, leaving
-      // the drag-handle column clear.
+      // Inset at the start so the handle column stays clear, flush at the end
+      // so the rule reaches the card rather than stopping short of it.
       final divider = tester.widget<Divider>(dividers.first);
       expect(divider.indent, greaterThan(TioSpacing.lg));
-      expect(divider.endIndent, greaterThan(0));
+      expect(divider.endIndent, TioSpacing.none);
       expect(divider.color, isNot(TioPalette.transparent));
     });
   });

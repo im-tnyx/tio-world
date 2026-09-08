@@ -518,7 +518,11 @@ class _ActiveRow extends StatelessWidget {
               height: TioStroke.width1,
               thickness: TioStroke.width1,
               indent: TioSpacing.lg + contentInset,
-              endIndent: TioSpacing.lg,
+              // Inset at the start, flush at the end. The rule separates the
+              // names, so it begins where they do; stopping it short of the
+              // card's edge left a gap that read as the line failing to reach
+              // rather than as a deliberate inset.
+              endIndent: TioSpacing.none,
               color: colors.outlineStrong.withAlpha(TioAlpha.alpha20),
             ),
       ],
