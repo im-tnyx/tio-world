@@ -1,6 +1,6 @@
 # TNYX-68 — Minimal Meal Diary Settings Shell Readiness
 
-**Status:** Implemented; review complete and resolved; exact-head CI green; owner UI re-check pending for the top-bar ordering changed during review
+**Status:** Implemented; owner UI approved; review closed; exact-head CI green; awaiting explicit owner merge authorization
 **Primary owner:** `apps/features/nutrition` presentation with `apps/core` route contracts and `apps/app` composition
 **Affected platforms:** Flutter Android + iOS
 
@@ -26,12 +26,12 @@ This slice does change Flutter production source, routes and tests — that is w
 **Branch:** `tnyx/tnyx-68-meal-diary-settings-shell`
 **Observed working-tree state:** Only the files listed in section 10 are part of this slice
 **Preserved local-only state:** root `pubspec.lock` SHA-256 `004DE1A093C1F04F684B39DF072C2F2E37B1CD21046BFEE01E628E7F77300B1C` is unchanged and deliberately uncommitted; `.ai/tasks/tnyx-54-nutrition-ia-readiness.md` belongs to the completed TNYX-54 and is not carried by this branch; `docs/supabase-android-studio-qa-run` @ `7fe896820c8f176b5049df4fe84fc9acea5933b1` is untouched
-**PR / tracker:** PR [#226](https://github.com/im-tnyx/tio-world/pull/226), Draft, OPEN, MERGEABLE/CLEAN. Current head `b904baa8c3e4f6213df9f5be9bbc06da6dde34d5`, exact-head CI run `34204735122` SUCCESS (Analyze Flutter, Analyze Dart, Test Flutter, Test Dart). Earlier runs `34200265358` (`90f9bef1`) and `34202275123` (`985958c7`) also passed and are historical evidence only. TNYX-54 is `Done`; TNYX-67 is `In Progress`; TNYX-68 is `In Progress`; TNYX-66 remains `Backlog`. Existing relations are unchanged.
+**PR / tracker:** PR [#226](https://github.com/im-tnyx/tio-world/pull/226), Draft, OPEN, MERGEABLE/CLEAN. Current head `90b6961a3ed7d262b8cc84c57a9410c35836afd5`, exact-head CI run `34206872928` SUCCESS (Analyze Flutter, Analyze Dart, Test Flutter, Test Dart). Runs on earlier heads also passed and are historical evidence only. TNYX-54 is `Done`; TNYX-67 is `In Progress`; TNYX-68 is `In Progress`; TNYX-66 remains `Backlog`. Existing relations are unchanged.
 **Current implementation state:** The owner-authorized minimum shell is implemented, green locally and green on CI, and the owner has approved its rendered UI. Implementation scope is unchanged since that approval — only governance and documentation have moved. TNYX-67 Slice C and the shared `MealLogActionFooter` Meal Category selector activation remain unstarted.
 **Relevant execution surface:** Core route contracts and shell top-bar slot, app route/action composition, Nutrition-owned Meal Diary menu and settings presentation
 **Validation completed:** See section 10; Core/Nutrition/App analyze and test suites are green and `git diff --check` is clean
-**Validation remaining:** Owner UI re-check of the changed top-bar ordering. Code review and CI are complete.
-**Current blocker:** Owner UI re-check of the `[Today?] [More] [streak]` ordering, then explicit owner merge authorization. The branch is not to be merged before both.
+**Validation remaining:** None. UI, code review and CI are all complete.
+**Current blocker:** Explicit owner merge authorization. UI is approved and review is closed; the branch is not to be merged before that authorization.
 **Open review finding IDs:** None open. Six threads were raised and all six are resolved with evidence:
 
 ```text
@@ -44,7 +44,7 @@ PRRT_kwDOTOXwB86gJsRt      false non-change claim            resolved (manual)
 ```
 
 Four Codex findings and two manual governance comments. Zero unresolved actionable threads.
-**Next exact action:** Owner re-checks the captured top-bar evidence. Nothing else proceeds without explicit owner merge authorization.
+**Next exact action:** Nothing proceeds without explicit owner merge authorization.
 
 ## 1. Discovery
 
@@ -403,7 +403,7 @@ Today present   [Today] [streak] [More]
 Today absent            [streak] [More]
 ```
 
-**`More / vertical ellipsis` is the bar's final right-end action.** This is an explicit owner product decision recorded on 2026-09-08, and it takes precedence over the review's suggested arrangement. An intermediate revision of this branch moved More before the streak in response to the Codex geometry finding; that arrangement is not owner-approved and was reverted.
+**`More / vertical ellipsis` is the bar's final right-end action.** This is an explicit owner product decision recorded on 2026-09-08, and it takes precedence over the review's suggested arrangement. An intermediate revision of this branch moved More before the streak in response to the Codex geometry finding; that arrangement was never owner-approved and has been reverted. The owner re-checked the restored layout on 2026-09-08 and approved it.
 
 `TioShell.statusTopBarTrailingAction` and `TioShellStatusTopBar.trailingAction` therefore exist as a deliberate reusable Core contract, documented in `apps/core/lib/src/theme/README.md` alongside the leading slot. Core still interprets no feature meaning; compact-width geometry is stated as the caller's responsibility.
 
@@ -412,12 +412,13 @@ Today absent            [streak] [More]
 ```text
 threads              6 raised, 6 resolved, 0 unresolved actionable
                      (4 Codex findings + 2 manual governance comments)
-outside tap          consumeOutsideTap = true          finding accepted as-is
-Core contract        trailing slot retained + documented  owner decision
-streak ordering      More stays rightmost                 owner decision
+outside tap          consumeOutsideTap = true              accepted as-is
+brief contradiction  non-change list corrected             accepted as-is
+Core contract        trailing slot retained + documented   owner decision
+streak ordering      More stays rightmost                  owner decision
 ```
 
-Nothing was dismissed. The `consumeOutsideTap` and brief-contradiction findings were accepted and fixed outright. The Core-contract and streak-ordering findings were **answered rather than adopted**: the owner requires More at the end of the bar, so the API is kept and documented instead of removed, and the collision risk the finding was really about is carried by regression coverage instead.
+Nothing was dismissed. The `consumeOutsideTap` and brief-contradiction findings were accepted and fixed outright. The Core-contract and streak-ordering findings were **answered rather than adopted**: the owner requires More at the end of the bar, so the API is kept and documented instead of removed, and the collision risk the finding was really about is carried by regression coverage instead. The ordering thread was held open until the owner UI re-check passed, then closed with that reasoning recorded on it, so the record does not imply the finding and the decision agreed.
 
 That coverage found the risk was real. At 320dp with a 1.6x text scale and Today showing, the screen-centred month label reached 238.75dp while the Today glyph starts at 212dp — the label painted across the icon. The caller now constrains that label to the bar minus twice the cluster's *painted* width (108dp: two 48dp buttons plus the 12dp glyph inset), measured against painted glyphs rather than touch targets so a normal text scale renders the month in full and unchanged. It ellipsises only where the alternative is overlapping an icon.
 
@@ -425,9 +426,16 @@ Known tightness, recorded rather than hidden: at 320dp with a 1.6x text scale th
 
 ### Owner UI status
 
-`AWAITING OWNER UI RE-CHECK`.
+`OWNER UI APPROVED`.
 
-The owner reviewed the captured evidence on 2026-09-08 and reported no UI issue. That approval covered a top bar where More sat after the streak. Review then moved More before the streak; the owner has since locked More as the final right-end action, so the bar now reads `[Today?] [streak] [More]` — close to what was originally approved, but with the month label newly constrained at compact widths. Re-check is still required rather than assumed. Fresh evidence was captured for Today-absent, Today-present on a historical date, menu open, and 320 px compact, across Light, Dark and OLED.
+The owner re-checked the restored layout on 2026-09-08 and passed it. The approved bar is:
+
+```text
+Today present   [Today] [streak] [More]
+Today absent            [streak] [More]
+```
+
+Evidence was captured from the real app for Today-absent and Today-present at 390dp and 320dp, the 320dp/1.6x tightest case, menu open, settings, destination and hub, across Light, Dark and OLED.
 
 The scope that was approved, and that the re-check re-confirms, is this shell only:
 
