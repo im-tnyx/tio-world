@@ -1233,6 +1233,21 @@ void main() {
       );
     });
 
+    testWidgets('Add Meal Category spans the full content width',
+        (tester) async {
+      await _pumpPage(tester, stored: _config());
+      await _revealAdd(tester);
+
+      final button = tester.getRect(find.byKey(_addButton));
+      final page = tester.getRect(
+        find.byKey(const ValueKey('meal-categories-destination-page')),
+      );
+      // Inset by the same gutter as the list above it, so the button lines up
+      // with the card rather than hugging its label.
+      expect(button.left, closeTo(page.left + TioSpacing.lg, 0.5));
+      expect(button.right, closeTo(page.right - TioSpacing.lg, 0.5));
+    });
+
     testWidgets('every canonical default fills its leading column with a glyph',
         (tester) async {
       await _pumpPage(tester, stored: _config(extraActive: 1));

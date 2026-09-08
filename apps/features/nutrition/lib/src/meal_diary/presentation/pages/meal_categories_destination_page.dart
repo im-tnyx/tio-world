@@ -613,6 +613,11 @@ class _AddCategoryRow extends StatelessWidget {
         TioButton.secondary(
           key: const ValueKey('meal-categories-add'),
           label: 'Add Meal Category',
+          // Full width, matching the card it follows. Hugging its label left
+          // the button floating in the left half of an otherwise full-width
+          // column, which read as an aside rather than as this screen's one
+          // way to add something.
+          expand: true,
           onPressed: enabled && !atCap ? onPressed : null,
         ),
         if (atCap)
