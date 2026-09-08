@@ -12,6 +12,7 @@ class TioShellStatusTopBar extends StatelessWidget
     required this.days,
     required this.scrollOpacity,
     this.leadingAction,
+    this.trailingAction,
     this.center,
     super.key,
   }) : assert(days == null || days >= 0);
@@ -22,6 +23,7 @@ class TioShellStatusTopBar extends StatelessWidget
   final int? days;
   final double scrollOpacity;
   final Widget? leadingAction;
+  final Widget? trailingAction;
 
   /// Sits centred across the whole bar rather than inside the title, so it
   /// stays centred on screen no matter how wide the title or actions are.
@@ -67,7 +69,8 @@ class TioShellStatusTopBar extends StatelessWidget
               child: Padding(
                 padding: EdgeInsets.only(
                   left: leadingAction == null ? TioSpacing.lg : TioSpacing.none,
-                  right: TioSpacing.lg,
+                  right:
+                      trailingAction == null ? TioSpacing.lg : TioSpacing.none,
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -86,6 +89,7 @@ class TioShellStatusTopBar extends StatelessWidget
             ),
           ),
         ),
+        if (trailingAction case final action?) action,
       ],
     );
   }

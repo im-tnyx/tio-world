@@ -738,69 +738,109 @@ void main() {
     expect(find.byType(SettingsPage), findsOneWidget);
   });
 
-  for (final size in const [Size(390, 844), Size(320, 640)]) {
-    testWidgets(
-        'Meal Diary top bar keeps the streak right-anchored at ${size.width}',
-        (tester) async {
-      // The regression this guards is geometric, not structural: adding an
-      // action after the status pushed the streak left by roughly an
-      // IconButton every time one appeared. Presence assertions cannot see
-      // that, so this pins the streak's own right edge and the left-to-right
-      // order of the cluster.
-      tester.view.physicalSize = size;
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+  for (final layout in const [
+    (width: 390.0, height: 844.0, textScale: 1.0, name: '390px'),
+    (width: 320.0, height: 640.0, textScale: 1.0, name: '320px'),
+    (width: 320.0, height: 640.0, textScale: 1.6, name: '320px at 1.6x text'),
+  ]) {
+    for (final theme in const [
+      (mode: TioThemeMode.light, name: 'Light'),
+      (mode: TioThemeMode.dark, name: 'Dark'),
+      (mode: TioThemeMode.oled, name: 'OLED'),
+      (mode: TioThemeMode.system, name: 'System-dark'),
+    ]) {
+      testWidgets(
+          'Meal Diary top bar order holds at ${layout.name} in ${theme.name}',
+          (tester) async {
+        // Owner-locked layout: [Today?] [streak] [More]. More is the bar's end
+        // action. Ordering is asserted by measured x, not by widget presence,
+        // and the centred month is checked for overlap because the centre slot
+        // is absolutely positioned across the whole bar — the one place this
+        // cluster can collide with something at small widths or large text.
+        tester.view.physicalSize = Size(layout.width, layout.height);
+        tester.view.devicePixelRatio = 1;
+        tester.platformDispatcher.platformBrightnessTestValue =
+            Brightness.dark;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(
+          tester.platformDispatcher.clearPlatformBrightnessTestValue,
+        );
 
-      await _pumpSettingsRoute(
-        tester,
-        initialPath: FeatureRoutes.nutrition.path,
-      );
-      await tester.pumpAndSettle();
+        await _pumpSettingsRoute(
+          tester,
+          initialPath: FeatureRoutes.nutrition.path,
+          themeMode: theme.mode,
+          textScale: layout.textScale,
+        );
+        await tester.pumpAndSettle();
 
-      final streak = find.byKey(const ValueKey('shell-meal-log-streak'));
-      final more = find.byKey(const ValueKey('meal-diary-more-menu'));
-      final todayAction =
-          find.byKey(const ValueKey('meal-diary-today-action'));
+        final streak = find.byKey(const ValueKey('shell-meal-log-streak'));
+        final more = find.byKey(const ValueKey('meal-diary-more-menu'));
+        final todayAction =
+            find.byKey(const ValueKey('meal-diary-today-action'));
+        final month = find.byKey(const ValueKey('meal-diary-visible-month'));
 
-      expect(streak, findsOneWidget);
-      expect(more, findsOneWidget);
-      expect(todayAction, findsNothing, reason: 'starts on today');
+        void expectOwnerLockedOrder({required bool withToday}) {
+          final streakRect = tester.getRect(streak);
+          final moreRect = tester.getRect(more);
 
-      final streakRightWithoutToday = tester.getRect(streak).right;
-      expect(
-        tester.getRect(more).right,
-        lessThanOrEqualTo(tester.getRect(streak).left),
-        reason: 'More must sit before the status, never after it',
-      );
+          expect(
+            streakRect.right,
+            lessThanOrEqualTo(moreRect.left),
+            reason: 'streak sits immediately before More',
+          );
+          expect(
+            moreRect.right,
+            lessThanOrEqualTo(layout.width),
+            reason: 'More is the end action and stays on screen',
+          );
+          if (withToday) {
+            expect(
+              tester.getRect(todayAction).right,
+              lessThanOrEqualTo(streakRect.left),
+              reason: 'Today comes before the streak',
+            );
+          }
+          // The centre label is painted across the full bar, so the guard is
+          // that the cluster never reaches back into it.
+          // Painted glyphs, not hit boxes: the buttons' padding may sit over
+          // the label without either being visible, but no glyph may.
+          final paintedClusterLeft = withToday
+              ? tester
+                  .getRect(find.byKey(const ValueKey('meal-diary-today-glyph')))
+                  .left
+              : tester
+                  .getRect(
+                    find.byKey(const ValueKey('shell-status-streak-icon')),
+                  )
+                  .left;
+          expect(
+            tester.getRect(month).right,
+            lessThanOrEqualTo(paintedClusterLeft),
+            reason: 'the centred month must not paint over the action cluster',
+          );
+          expect(tester.takeException(), isNull);
+        }
 
-      // Move off today so the conditional Today action appears. The streak
-      // must not budge: that is the whole point of composing into the one
-      // leading slot instead of adding a trailing one.
-      final diaryDates = ProviderScope.containerOf(
-        tester.element(find.byType(TioDateCalendar)),
-      ).read(mealDiaryDateControllerProvider);
-      final today = diaryDates.localToday;
-      diaryDates.select(DateTime(today.year, today.month, today.day - 1));
-      await tester.pumpAndSettle();
+        // Today absent: [streak] [More].
+        expect(todayAction, findsNothing);
+        expect(streak, findsOneWidget);
+        expect(more, findsOneWidget);
+        expectOwnerLockedOrder(withToday: false);
 
-      expect(todayAction, findsOneWidget);
-      expect(
-        tester.getRect(streak).right,
-        streakRightWithoutToday,
-        reason: 'the status keeps its right edge when actions appear',
-      );
-      expect(
-        tester.getRect(todayAction).right,
-        lessThanOrEqualTo(tester.getRect(more).left),
-        reason: 'order is [Today] [More] [streak]',
-      );
-      expect(
-        tester.getRect(more).right,
-        lessThanOrEqualTo(tester.getRect(streak).left),
-      );
-      expect(tester.takeException(), isNull);
-    });
+        // Today present: [Today] [streak] [More].
+        final diaryDates = ProviderScope.containerOf(
+          tester.element(find.byType(TioDateCalendar)),
+        ).read(mealDiaryDateControllerProvider);
+        final today = diaryDates.localToday;
+        diaryDates.select(DateTime(today.year, today.month, today.day - 1));
+        await tester.pumpAndSettle();
+
+        expect(todayAction, findsOneWidget);
+        expectOwnerLockedOrder(withToday: true);
+      });
+    }
   }
 
   testWidgets('Settings navigates to Health & Goals and Daily Wellness',
@@ -960,7 +1000,13 @@ Future<
   WidgetTester tester, {
   String initialPath = '/settings',
   CalendarPreferencesRepository? calendarRepository,
+  TioThemeMode themeMode = TioThemeMode.system,
+  double textScale = 1,
 }) async {
+  if (textScale != 1) {
+    tester.platformDispatcher.textScaleFactorTestValue = textScale;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+  }
   final mode = AppModeController(_MemoryAppModePreference(AppMode.hybrid));
   await mode.load();
   final onboardingRepository = _MemoryOnboardingStatusRepository(
@@ -972,7 +1018,7 @@ Future<
     appModeController: mode,
   );
   await onboarding.load();
-  final theme = await _createThemeController();
+  final theme = await _createThemeController(mode: themeMode);
   final bootstrap = _FixedAppSessionBootstrapController(
     state: const AppSessionBootstrapReady(userId: 'test-user'),
     onboardingStatusController: onboarding,
@@ -1177,9 +1223,10 @@ Future<SystemUiOverlayStyle> _pumpSystemUiOverlay(
       .value;
 }
 
-Future<AppThemeController> _createThemeController() async {
-  final controller =
-      AppThemeController(_MemoryAppThemePreference(TioThemeMode.system));
+Future<AppThemeController> _createThemeController({
+  TioThemeMode mode = TioThemeMode.system,
+}) async {
+  final controller = AppThemeController(_MemoryAppThemePreference(mode));
   await controller.load();
   return controller;
 }

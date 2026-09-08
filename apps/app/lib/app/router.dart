@@ -56,6 +56,50 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
   return _page(branch.route);
 }
 
+/// The Diary's centred month label, constrained so it cannot run under the
+/// status action cluster.
+///
+/// `TioShellStatusTopBar` centres this across the whole bar on purpose, so it
+/// stays centred on screen no matter how wide the title or actions are. That
+/// also means nothing stops a long label from painting beneath the actions:
+/// at 320dp with a 1.6x text scale and the Today action showing, the label
+/// reached 238.75dp while the Today glyph starts at 212dp. Because the label
+/// is centred, the space it can safely occupy is the bar minus twice the
+/// cluster's painted width, and it ellipsises rather than overlapping.
+///
+/// At a normal text scale this changes nothing — the label still renders in
+/// full. It only bites at large text scales on a narrow screen, where the
+/// alternative is the month painting across the icons.
+Widget _mealDiaryVisibleMonthLabel(
+  BuildContext context,
+  MealDiaryDateController dates,
+) {
+  // Measured against painted glyphs, not hit boxes. The cluster's touch
+  // targets reach 120dp in from the right edge, but its leftmost *painted*
+  // pixel — the Today glyph, inset 12dp inside its 48dp button — starts at
+  // 108dp. Reserving the hit box instead would shrink the label to an
+  // ellipsis at every width, which is a worse outcome than a button whose
+  // padding a centred label passes under without touching its icon.
+  const paintedClusterWidth = TioSize.dp48 * 2 + TioSize.dp12;
+  final available =
+      MediaQuery.sizeOf(context).width - paintedClusterWidth * 2;
+
+  return ConstrainedBox(
+    constraints: BoxConstraints(maxWidth: available > 0 ? available : 0),
+    child: Text(
+      tioCompactMonthYearLabel(
+        dates.visibleMonth,
+        localeName: Localizations.localeOf(context).toString(),
+      ),
+      key: const ValueKey('meal-diary-visible-month'),
+      style: Theme.of(context).textTheme.titleSmall,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      textAlign: TextAlign.center,
+    ),
+  );
+}
+
 Widget _mealDiaryTodayGlyph(BuildContext context, DateTime localToday) {
   final color = Theme.of(context).colorScheme.onSurface;
 
@@ -329,44 +373,36 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 // the same question as what they have selected.
                 statusTopBarCenter: mealDiaryDates == null
                     ? null
-                    : Text(
-                        tioCompactMonthYearLabel(
-                          mealDiaryDates.visibleMonth,
-                          localeName:
-                              Localizations.localeOf(context).toString(),
-                        ),
-                        key: const ValueKey('meal-diary-visible-month'),
-                        style: Theme.of(context).textTheme.titleSmall,
+                    : _mealDiaryVisibleMonthLabel(
+                        context,
+                        mealDiaryDates,
                       ),
-                // Today and More are composed into the one generic leading
-                // slot rather than a second Core slot, so the streak stays the
-                // final right-anchored item exactly as it was before. Order
-                // here is the order on screen: [Today?] [More] [streak].
-                statusTopBarLeadingAction: mealDiaryDates == null
+                // Owner-locked order: [Today?] [streak] [More]. The overflow
+                // menu is the end action, so it uses the trailing slot while
+                // Today stays in the leading one.
+                statusTopBarLeadingAction:
+                    mealDiaryDates != null &&
+                            mealDiaryDates.shouldShowTodayAction
+                        ? IconButton(
+                            key: const ValueKey('meal-diary-today-action'),
+                            tooltip: _mealDiaryTodayTooltip(
+                              context,
+                              mealDiaryDates.selectedDate,
+                              isOnToday: mealDiaryDates.isOnToday,
+                            ),
+                            onPressed: mealDiaryDates.selectToday,
+                            icon: _mealDiaryTodayGlyph(
+                              context,
+                              mealDiaryDates.localToday,
+                            ),
+                          )
+                        : null,
+                statusTopBarTrailingAction: mealDiaryDates == null
                     ? null
-                    : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (mealDiaryDates.shouldShowTodayAction)
-                            IconButton(
-                              key: const ValueKey('meal-diary-today-action'),
-                              tooltip: _mealDiaryTodayTooltip(
-                                context,
-                                mealDiaryDates.selectedDate,
-                                isOnToday: mealDiaryDates.isOnToday,
-                              ),
-                              onPressed: mealDiaryDates.selectToday,
-                              icon: _mealDiaryTodayGlyph(
-                                context,
-                                mealDiaryDates.localToday,
-                              ),
-                            ),
-                          MealDiaryMoreMenu(
-                            onMealDiarySettingsPressed: () => context.push(
-                              AppRoutes.mealDiarySettings.path,
-                            ),
-                          ),
-                        ],
+                    : MealDiaryMoreMenu(
+                        onMealDiarySettingsPressed: () => context.push(
+                          AppRoutes.mealDiarySettings.path,
+                        ),
                       ),
                 child: child!,
               );

@@ -263,6 +263,8 @@ added
 modified
   apps/core/lib/src/routing/routes/app_routes.dart
   apps/core/lib/src/theme/README.md
+  apps/core/lib/src/ui/shell/presentation/shell/tio_shell.dart
+  apps/core/lib/src/ui/shell/presentation/widgets/tio_shell_status_top_bar.dart
   apps/core/test/app_routes_test.dart
   apps/app/lib/app/router.dart
   apps/app/test/app/app_mode_router_test.dart
@@ -287,10 +289,10 @@ Both push `AppRoutes.mealDiarySettings.path`. There is one page, one route and o
 ### Top-bar composition
 
 ```text
-[Today?]  [More]  [streak]
+[Today?]  [streak]  [More]
 ```
 
-One Core slot, one caller-composed `Row(mainAxisSize: MainAxisSize.min)`. Tests assert geometry rather than presence at both 390 px and 320 px: the streak's right edge is identical whether or not the conditional Today action is showing, More sits before the status, and Today sits before More.
+Today occupies the Core leading slot, the status keeps its own position, and More occupies the Core trailing slot. Twelve tests assert measured geometry rather than widget presence — three layouts (390dp, 320dp, 320dp at 1.6x text) across Light, Dark, OLED and System-dark, each checked with Today absent and present: More is rightmost, the status sits immediately before it, Today precedes the status, and the centred month never paints over the cluster.
 
 ### Route ownership
 
@@ -310,7 +312,7 @@ No second navigation system was introduced and no unrelated settings route was a
 
 ### More menu implementation
 
-Core is unchanged. An earlier revision of this branch added a second `statusTopBarTrailingAction` slot, which pushed the streak left by roughly an `IconButton` whenever an action appeared and contradicted the Core README's canonical contract. Review caught both; the slot was removed and the app composes Today and More into the one existing `statusTopBarLeadingAction` as a compact `Row`, so the rendered order is `[Today?] [More] [streak]` and the status keeps its original right edge. Core still learns nothing about Meal Diary routes or settings semantics.
+`TioShell` and `TioShellStatusTopBar` gain an optional `statusTopBarTrailingAction` / `trailingAction`, mirroring the existing leading slot, so the cluster reads `[leading?] [status] [trailing?]`. This is a deliberate reusable Core contract change and the README documents it as one: what the slot is for, that Core interprets no feature meaning, and that compact-width geometry is the caller's responsibility. Core still learns nothing about Meal Diary routes or settings semantics.
 
 `MealDiaryMoreMenu` is Nutrition-owned and built from `MenuAnchor` plus `TioCard.elevated`. Because the trigger sits near the right edge of the bar, the framework clamped the menu panel flush against the screen and the card's rounded corner read as clipped; the panel now carries a small symmetric padding, which is the card's margin rather than decoration. Device capture found this, and a test pins it: with the padding removed the card's right edge lands at 390 on a 390-wide screen and the assertion fails.
 
@@ -370,7 +372,7 @@ flutter analyze  apps/features/nutrition  No issues found
 flutter analyze  apps/app                 No issues found
 flutter test     apps/core                266 passed
 flutter test     apps/features/nutrition  323 passed
-flutter test     apps/app                 295 passed
+flutter test     apps/app                 305 passed
 git diff --check                          clean
 ```
 
@@ -394,26 +396,38 @@ a9  Meal Diary Settings at 320 px            Light
 
 The a1/a2 and a7/a8 pairs exist specifically so the changed ordering can be judged in both states at both widths.
 
+### Owner-locked top-bar order
+
+```text
+Today present   [Today] [streak] [More]
+Today absent            [streak] [More]
+```
+
+**`More / vertical ellipsis` is the bar's final right-end action.** This is an explicit owner product decision recorded on 2026-09-08, and it takes precedence over the review's suggested arrangement. An intermediate revision of this branch moved More before the streak in response to the Codex geometry finding; that arrangement is not owner-approved and was reverted.
+
+`TioShell.statusTopBarTrailingAction` and `TioShellStatusTopBar.trailingAction` therefore exist as a deliberate reusable Core contract, documented in `apps/core/lib/src/theme/README.md` alongside the leading slot. Core still interprets no feature meaning; compact-width geometry is stated as the caller's responsibility.
+
 ### Review outcome
 
 ```text
-Core result          no trailing-action API remains
-                     tio_shell.dart and tio_shell_status_top_bar.dart are
-                     byte-identical to main
-final top-bar order  [Today?] [More] [streak]
-outside tap          consumeOutsideTap = true
 threads              6 raised, 6 resolved, 0 unresolved actionable
                      (4 Codex findings + 2 manual governance comments)
-exact-head CI        run 34204735122 on b904baa8   SUCCESS
+outside tap          consumeOutsideTap = true          finding accepted as-is
+Core contract        trailing slot retained + documented  owner decision
+streak ordering      More stays rightmost                 owner decision
 ```
 
-Nothing was dismissed. Each thread carries a reply naming the fix and how it is pinned; the two code fixes were mutation-checked, so the tests fail without them.
+Nothing was dismissed. The `consumeOutsideTap` and brief-contradiction findings were accepted and fixed outright. The Core-contract and streak-ordering findings were **answered rather than adopted**: the owner requires More at the end of the bar, so the API is kept and documented instead of removed, and the collision risk the finding was really about is carried by regression coverage instead.
+
+That coverage found the risk was real. At 320dp with a 1.6x text scale and Today showing, the screen-centred month label reached 238.75dp while the Today glyph starts at 212dp — the label painted across the icon. The caller now constrains that label to the bar minus twice the cluster's *painted* width (108dp: two 48dp buttons plus the 12dp glyph inset), measured against painted glyphs rather than touch targets so a normal text scale renders the month in full and unchanged. It ellipsises only where the alternative is overlapping an icon.
+
+Known tightness, recorded rather than hidden: at 320dp with a 1.6x text scale the truncated label ends exactly where the Today glyph begins. There is no overlap, but there is no visible gap either. Wider screens are unaffected — at 390dp the label has 166dp of room and uses 98dp.
 
 ### Owner UI status
 
 `AWAITING OWNER UI RE-CHECK`.
 
-The owner reviewed the captured evidence on 2026-09-08 and reported no UI issue. That approval covered a top bar where More sat after the streak. Review then required More to move before the streak, which is a visible geometry change, so the earlier approval is deliberately not treated as carrying over. Fresh evidence was captured for Today-absent, Today-present on a historical date, menu open, and 320 px compact, across Light, Dark and OLED.
+The owner reviewed the captured evidence on 2026-09-08 and reported no UI issue. That approval covered a top bar where More sat after the streak. Review then moved More before the streak; the owner has since locked More as the final right-end action, so the bar now reads `[Today?] [streak] [More]` — close to what was originally approved, but with the month label newly constrained at compact widths. Re-check is still required rather than assumed. Fresh evidence was captured for Today-absent, Today-present on a historical date, menu open, and 320 px compact, across Light, Dark and OLED.
 
 The scope that was approved, and that the re-check re-confirms, is this shell only:
 
