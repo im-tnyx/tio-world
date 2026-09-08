@@ -1,6 +1,6 @@
 # TNYX-68 — Minimal Meal Diary Settings Shell Readiness
 
-**Status:** Implemented; awaiting owner UI approval
+**Status:** Implemented; owner UI approved; final exact-head CI and Codex review pending
 **Primary owner:** `apps/features/nutrition` presentation with `apps/core` route contracts and `apps/app` composition
 **Affected platforms:** Flutter Android + iOS
 
@@ -24,14 +24,14 @@
 **Branch:** `tnyx/tnyx-68-meal-diary-settings-shell`
 **Observed working-tree state:** Only the files listed in section 10 are part of this slice
 **Preserved local-only state:** root `pubspec.lock` SHA-256 `004DE1A093C1F04F684B39DF072C2F2E37B1CD21046BFEE01E628E7F77300B1C` is unchanged and deliberately uncommitted; `.ai/tasks/tnyx-54-nutrition-ia-readiness.md` belongs to the completed TNYX-54 and is not carried by this branch; `docs/supabase-android-studio-qa-run` @ `7fe896820c8f176b5049df4fe84fc9acea5933b1` is untouched
-**PR / tracker:** PR [#226](https://github.com/im-tnyx/tio-world/pull/226) (Draft) at head `140a54b317597bad9cdc2723c57c69f5278fbfa4`. TNYX-54 is `Done`; TNYX-67 is `In Progress`; TNYX-68 moved to `In Progress` on 2026-09-08; TNYX-66 remains `Backlog`. Existing relations are unchanged.
-**Current implementation state:** The owner-authorized minimum shell is implemented and green locally. TNYX-67 Slice C and the shared `MealLogActionFooter` Meal Category selector activation remain unstarted.
+**PR / tracker:** PR [#226](https://github.com/im-tnyx/tio-world/pull/226), Draft. Head `90f9bef1adb5b1431132c71e4d6082d07e8e7c67` passed exact-head CI run `34200265358` (SUCCESS: Analyze Flutter, Analyze Dart, Test Flutter, Test Dart). This reconciliation commit moves the head past that run, so `34200265358` is historical evidence and the new head needs its own run. TNYX-54 is `Done`; TNYX-67 is `In Progress`; TNYX-68 moved to `In Progress` on 2026-09-08; TNYX-66 remains `Backlog`. Existing relations are unchanged.
+**Current implementation state:** The owner-authorized minimum shell is implemented, green locally and green on CI, and the owner has approved its rendered UI. Implementation scope is unchanged since that approval — only governance and documentation have moved. TNYX-67 Slice C and the shared `MealLogActionFooter` Meal Category selector activation remain unstarted.
 **Relevant execution surface:** Core route contracts and shell top-bar slot, app route/action composition, Nutrition-owned Meal Diary menu and settings presentation
 **Validation completed:** See section 10; Core/Nutrition/App analyze and test suites are green and `git diff --check` is clean
-**Validation remaining:** Exact-head GitHub CI and owner UI approval
-**Current blocker:** Owner UI approval. Merge is explicitly gated on it.
-**Open review finding IDs:** None
-**Next exact action:** Owner reviews the captured UI evidence. Merge stays blocked until they accept it.
+**Validation remaining:** CI on the new reconciled head, and a Codex review on that head
+**Current blocker:** None on UI. Merge is gated on explicit owner merge authorization; the branch is not to be merged before that.
+**Open review finding IDs:** None. Codex review is pending on the reconciled head; no findings have been raised on any earlier head.
+**Next exact action:** Confirm CI on the reconciled head, obtain the Codex review, then stop and wait for explicit owner merge authorization.
 
 ## 1. Discovery
 
@@ -363,6 +363,17 @@ Captured from the real `TioApp` through the real router at 390x844 and 320x640, 
 6  Meal Diary Settings at 320 px       Light
 ```
 
-### Owner UI approval
+### Owner UI status
 
-`AWAITING OWNER UI APPROVAL`. Merge is blocked until the owner accepts the rendered surfaces.
+`OWNER UI APPROVED` — the owner reviewed the captured evidence on 2026-09-08 and reported no UI issue.
+
+The approval covers this shell only:
+
+```text
+Settings -> Nutrition Settings -> Meal Diary Settings
+Meal Diary -> More / vertical ellipsis -> the same Meal Diary Settings
+the Meal Categories navigation row
+the minimal empty Meal Categories destination boundary
+```
+
+It does not approve the TNYX-67 Slice C category-management UI, which remains unbuilt and unapproved. Merge still requires explicit owner merge authorization.
