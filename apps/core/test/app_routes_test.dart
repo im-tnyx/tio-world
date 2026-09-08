@@ -29,9 +29,23 @@ void main() {
           .startsWith('${AppRoutes.mealDiarySettings.path}/'),
       isTrue,
     );
+    expect(
+      AppRoutes.archivedMealCategoriesSettings.path,
+      '/settings/nutrition/meal-diary/categories/archived',
+    );
+    expect(
+      AppRoutes.archivedMealCategoriesSettings.path
+          .startsWith('${AppRoutes.mealCategoriesSettings.path}/'),
+      isTrue,
+      reason: 'archived categories nest under the categories they came from',
+    );
     expect(AppRoutes.mealDiarySettings.chromePolicy, ChromePolicy.fullScreen);
     expect(
       AppRoutes.mealCategoriesSettings.chromePolicy,
+      ChromePolicy.fullScreen,
+    );
+    expect(
+      AppRoutes.archivedMealCategoriesSettings.chromePolicy,
       ChromePolicy.fullScreen,
     );
   });

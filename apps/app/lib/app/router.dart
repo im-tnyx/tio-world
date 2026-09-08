@@ -224,6 +224,7 @@ ChromePolicy shellChromePolicyForPath(String location) {
     AppRoutes.nutritionAdditionalGoalsSettings,
     AppRoutes.mealDiarySettings,
     AppRoutes.mealCategoriesSettings,
+    AppRoutes.archivedMealCategoriesSettings,
     AppRoutes.profileSettings,
     AppRoutes.accountSettings,
     AppRoutes.appSettings,
@@ -935,6 +936,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: AppRoutes.archivedMealCategoriesSettings.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => Consumer(
+          builder: (context, ref, _) => ArchivedMealCategoriesPage(
+            repository: ref.watch(mealCategoriesRepositoryProvider),
+          ),
+        ),
+      ),
+      GoRoute(
         path: AppRoutes.mealCategoriesSettings.path,
         parentNavigatorKey: rootNavigatorKey,
         // Composition supplies the repository and the page owns its
@@ -942,6 +952,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => Consumer(
           builder: (context, ref, _) => MealCategoriesDestinationPage(
             repository: ref.watch(mealCategoriesRepositoryProvider),
+            onArchivedPressed: () => context.push(
+              AppRoutes.archivedMealCategoriesSettings.path,
+            ),
           ),
         ),
       ),

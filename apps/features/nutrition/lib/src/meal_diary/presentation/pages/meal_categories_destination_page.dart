@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 
 import '../../../domain/models/meal_category.dart';
 import '../../../domain/repositories/meal_categories_repository.dart';
 import '../../../domain/usecases/meal_category_id_generator.dart';
 import '../controllers/meal_categories_controller.dart';
+import '../widgets/meal_category_swipe_row.dart';
 
 /// Meal Categories management.
 ///
@@ -17,6 +21,7 @@ class MealCategoriesDestinationPage extends StatefulWidget {
     required this.repository,
     super.key,
     this.idGenerator,
+    this.onArchivedPressed,
   });
 
   /// Supplied by app composition. The feature never reaches for Supabase.
@@ -24,6 +29,11 @@ class MealCategoriesDestinationPage extends StatefulWidget {
 
   /// Overridable so a test can make generated identities deterministic.
   final MealCategoryIdGenerator? idGenerator;
+
+  /// Opens the archived categories destination. Supplied by app composition,
+  /// which owns navigation; awaited so the list refreshes if something was
+  /// restored while away.
+  final Future<void> Function()? onArchivedPressed;
 
   @override
   State<MealCategoriesDestinationPage> createState() =>
@@ -60,8 +70,25 @@ class _MealCategoriesDestinationPageState
     super.dispose();
   }
 
+  /// Which row is currently swiped open. Only one at a time, so revealing a
+  /// second action closes the first rather than leaving two armed.
+  String? _openRowId;
+
   void _onControllerChanged() {
     if (mounted) setState(() {});
+  }
+
+  void _setOpenRow(String? id) {
+    if (_openRowId == id) return;
+    setState(() => _openRowId = id);
+  }
+
+  Future<void> _openArchived() async {
+    _setOpenRow(null);
+    final open = widget.onArchivedPressed;
+    if (open == null) return;
+    await open();
+    if (mounted) await _controller.load();
   }
 
   /// Surfaces a failed edit, offering to retry the write itself where the
@@ -142,19 +169,34 @@ class _MealCategoriesDestinationPageState
     );
   }
 
+  /// Archive is never a side effect of the gesture. The swipe reveals the
+  /// action, the action asks, and only a confirmed answer archives.
   Future<void> _confirmArchive(MealCategory item) async {
     final confirmed = await showTioConfirmationBottomSheet(
       context: context,
       cardKey: const ValueKey('meal-category-archive-confirm'),
-      title: 'Archive ${item.displayName}?',
-      message: 'It stops appearing as a meal category you can pick, and frees '
-          'one of your 8 active slots. Meals already logged under it keep '
-          'their category, and you can reactivate it later.',
+      title: 'Archive "${item.displayName}"?',
+      message: 'You can restore it later from Archived Meal Categories. Meals '
+          'already logged under it keep their category, and archiving frees '
+          'one of your 8 active slots.',
       cancelLabel: 'Cancel',
       confirmLabel: 'Archive',
     );
-    if (confirmed != true || !mounted) return;
-    await _reportIfFailed(_controller.archive(item.id));
+    if (!mounted) return;
+    if (confirmed != true) {
+      _setOpenRow(null);
+      return;
+    }
+    final succeeded = await _controller.archive(item.id);
+    if (!mounted) return;
+    _setOpenRow(null);
+    if (succeeded) {
+      // One confirming tick after a destructive-shaped action lands, matching
+      // the repo's restrained haptic use.
+      unawaited(HapticFeedback.mediumImpact());
+    } else {
+      _reportFailure();
+    }
   }
 
   @override
@@ -178,6 +220,16 @@ class _MealCategoriesDestinationPageState
             fontSize: TioFontSize.size20,
           ),
         ),
+        actions: [
+          // Reads as "view what is archived", not "archive this" — the row
+          // gesture owns that verb.
+          IconButton(
+            key: const ValueKey('meal-categories-archived-entry'),
+            tooltip: 'Archived meal categories',
+            onPressed: widget.onArchivedPressed == null ? null : _openArchived,
+            icon: Icon(Icons.inventory_2_outlined, color: colors.textPrimary),
+          ),
+        ],
       ),
       body: SafeArea(child: _body(state)),
     );
@@ -201,7 +253,8 @@ class _MealCategoriesDestinationPageState
   }
 
   Widget _ready(MealCategoriesState state) {
-    final archived = state.archivedItems;
+    // Archived categories live behind the top-bar destination now, so this
+    // screen is only the active list.
     final active = state.activeItems;
     final enabled = !state.saving;
 
@@ -210,7 +263,12 @@ class _MealCategoriesDestinationPageState
     // view has no scroll extent of its own, so a drag toward an off-screen
     // position cannot auto-scroll anything — reachable only while every row
     // happens to fit, which eight categories on a short viewport do not.
-    return CustomScrollView(
+    return GestureDetector(
+      // A tap anywhere else closes a revealed row, so an armed action never
+      // sits forgotten under the reader's next interaction.
+      behavior: HitTestBehavior.deferToChild,
+      onTap: _openRowId == null ? null : () => _setOpenRow(null),
+      child: CustomScrollView(
       key: const ValueKey('meal-categories-list'),
       slivers: [
         const SliverPadding(
@@ -240,16 +298,37 @@ class _MealCategoriesDestinationPageState
                 newIndex: newIndex,
               ),
             ),
-            itemBuilder: (context, index) => _ActiveRow(
-              key: ValueKey('meal-category-active-${active[index].id}'),
-              item: active[index],
-              index: index,
-              enabled: enabled,
-              isFirst: index == 0,
-              isLast: index == active.length - 1,
-              onRename: () => _promptRename(active[index]),
-              onArchive: () => _confirmArchive(active[index]),
-            ),
+            itemBuilder: (context, index) {
+              final item = active[index];
+              final isLast = index == active.length - 1;
+              return MealCategorySwipeRow(
+                key: ValueKey('meal-category-swipe-${item.id}'),
+                enabled: enabled,
+                isOpen: _openRowId == item.id,
+                onOpenChanged: (open) => _setOpenRow(open ? item.id : null),
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(index == 0 ? TioRadius.lg : 0),
+                  bottom: Radius.circular(isLast ? TioRadius.lg : 0),
+                ),
+                actionKey: ValueKey('meal-category-swipe-action-${item.id}'),
+                actionIcon: Icons.archive_outlined,
+                actionLabel: 'Archive ${item.displayName}',
+                semanticActionLabel: 'Archive meal category',
+                onAction: () => _confirmArchive(item),
+                child: _ActiveRow(
+                  key: ValueKey('meal-category-active-${item.id}'),
+                  item: item,
+                  index: index,
+                  enabled: enabled,
+                  isFirst: index == 0,
+                  isLast: isLast,
+                  onRename: () {
+                    _setOpenRow(null);
+                    unawaited(_promptRename(item));
+                  },
+                ),
+              );
+            },
           ),
         ),
         SliverPadding(
@@ -268,28 +347,12 @@ class _MealCategoriesDestinationPageState
                   enabled: enabled,
                   onPressed: _promptAdd,
                 ),
-                // The Archived section does not exist until something is
-                // archived. An always-present empty section would advertise a
-                // state most readers never reach.
-                if (archived.isNotEmpty) ...[
-                  const SizedBox(height: TioSpacing.xl),
-                  const _SectionHeader(
-                    key: ValueKey('meal-categories-archived-header'),
-                    title: 'ARCHIVED',
-                  ),
-                  _ArchivedSection(
-                    items: archived,
-                    atCap: state.isAtActiveCap,
-                    enabled: enabled,
-                    onReactivate: (item) =>
-                        _reportIfFailed(_controller.reactivate(item.id)),
-                  ),
-                ],
               ],
             ),
           ),
         ),
       ],
+      ),
     );
   }
 }
@@ -302,9 +365,13 @@ class _ActiveRow extends StatelessWidget {
     required this.isFirst,
     required this.isLast,
     required this.onRename,
-    required this.onArchive,
     super.key,
   });
+
+  /// Where the row's content begins: the drag handle plus its gap. The divider
+  /// starts here rather than at the card edge so it separates the names
+  /// without cutting through the handle column.
+  static const double contentInset = TioSize.dp20 + TioSpacing.md;
 
   final MealCategory item;
   final int index;
@@ -312,7 +379,6 @@ class _ActiveRow extends StatelessWidget {
   final bool isFirst;
   final bool isLast;
   final VoidCallback onRename;
-  final VoidCallback onArchive;
 
   @override
   Widget build(BuildContext context) {
@@ -325,151 +391,81 @@ class _ActiveRow extends StatelessWidget {
     // Each row paints its own slice of the group surface, with the corners
     // rounded only at the ends, so the list still reads as one card while
     // living in a sliver that can actually scroll.
-    return Material(
-      color: colors.surfaceRaised,
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(isFirst ? TioRadius.lg : TioRadius.none),
-        bottom: Radius.circular(isLast ? TioRadius.lg : TioRadius.none),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: TioSpacing.lg,
-          vertical: TioSpacing.sm,
-        ),
-        child: Row(
-          children: [
-            ReorderableDragStartListener(
-              index: index,
-              enabled: enabled,
-              child: Semantics(
-                // `container: true` because the child is a bare Icon and
-                // produces no semantics node of its own, so without it this
-                // label would have nothing to attach to.
-                container: true,
-                label: 'Reorder ${item.displayName}',
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: TioSpacing.sm),
-                  child: Icon(
-                    Icons.drag_handle_rounded,
-                    key: ValueKey('meal-category-drag-${item.id}'),
-                    size: TioSize.dp20,
-                    color: enabled ? colors.textMuted : colors.outlineStrong,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: TioSpacing.md),
-            Expanded(
-              // The durable id and defaultKey are deliberately never rendered.
-              child: Text(
-                item.displayName,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: enabled ? colors.textPrimary : colors.textMuted,
-                  fontWeight: TioFontWeight.w700,
-                  fontSize: TioFontSize.size15,
-                ),
-              ),
-            ),
-            IconButton(
-              key: ValueKey('meal-category-rename-${item.id}'),
-              tooltip: 'Rename ${item.displayName}',
-              onPressed: enabled ? onRename : null,
-              icon: Icon(Icons.edit_outlined, color: actionColor),
-            ),
-            IconButton(
-              key: ValueKey('meal-category-archive-${item.id}'),
-              tooltip: 'Archive ${item.displayName}',
-              onPressed: enabled ? onArchive : null,
-              icon: Icon(Icons.archive_outlined, color: actionColor),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ArchivedSection extends StatelessWidget {
-  const _ArchivedSection({
-    required this.items,
-    required this.atCap,
-    required this.enabled,
-    required this.onReactivate,
-  });
-
-  final List<MealCategory> items;
-  final bool atCap;
-  final bool enabled;
-  final ValueChanged<MealCategory> onReactivate;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.tioColors;
-
-    return TioGroupCard(
-      children: [
-        for (final item in items)
+    // The surface and its rounding belong to the swipe row, which has to clip
+    // the sliding content to the card.
+    return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
           Padding(
-            key: ValueKey('meal-category-archived-${item.id}'),
             padding: const EdgeInsets.symmetric(
               horizontal: TioSpacing.lg,
               vertical: TioSpacing.sm,
             ),
-            // `Wrap` rather than `Row`: the name and the action share a line
-            // whenever they fit, and fall onto two lines when they cannot —
-            // at 320dp with a large text scale they genuinely cannot, and a
-            // truncated action label would be worse than a second line.
-            // `TioGroupCard` centres loose children, so the row is stretched
-            // to the card's width and left-aligns like the active rows.
-            child: SizedBox(
-              width: double.infinity,
-              child: Wrap(
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: TioSpacing.md,
-                children: [
-                  // No drag handle: order is meaningful only among active
-                  // categories, so an archived row has nothing to reorder.
-                  Text(
+            child: Row(
+              children: [
+                ReorderableDragStartListener(
+                  index: index,
+                  enabled: enabled,
+                  child: Semantics(
+                    // `container: true` because the child is a bare Icon and
+                    // produces no semantics node of its own, so without it
+                    // this label would have nothing to attach to.
+                    container: true,
+                    label: 'Reorder ${item.displayName}',
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      // One tick as the drag begins. The reorderable list
+                      // itself emits none, and a silent drag start reads as an
+                      // unresponsive handle.
+                      onVerticalDragStart:
+                          enabled ? (_) => HapticFeedback.selectionClick() : null,
+                      child: Padding(
+                        padding:
+                            const EdgeInsets.symmetric(vertical: TioSpacing.sm),
+                        child: Icon(
+                          Icons.drag_handle_rounded,
+                          key: ValueKey('meal-category-drag-${item.id}'),
+                          size: TioSize.dp20,
+                          color:
+                              enabled ? colors.textMuted : colors.outlineStrong,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: TioSpacing.md),
+                Expanded(
+                  // The durable id and defaultKey are never rendered.
+                  child: Text(
                     item.displayName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: colors.textSecondary,
+                      color: enabled ? colors.textPrimary : colors.textMuted,
                       fontWeight: TioFontWeight.w700,
                       fontSize: TioFontSize.size15,
                     ),
                   ),
-                  TioButton.ghost(
-                    key: ValueKey('meal-category-reactivate-${item.id}'),
-                    label: 'Reactivate',
-                    onPressed:
-                        enabled && !atCap ? () => onReactivate(item) : null,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        if (atCap)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              TioSpacing.lg,
-              TioSpacing.none,
-              TioSpacing.lg,
-              TioSpacing.md,
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              child: Text(
-                MealCategoriesController.activeCapReason,
-                key: const ValueKey('meal-categories-reactivate-cap-reason'),
-                style: TextStyle(
-                  color: colors.textMuted,
-                  fontSize: TioFontSize.size12,
                 ),
-              ),
+                IconButton(
+                  key: ValueKey('meal-category-rename-${item.id}'),
+                  tooltip: 'Edit ${item.displayName}',
+                  onPressed: enabled ? onRename : null,
+                  icon: Icon(Icons.edit_outlined, color: actionColor),
+                ),
+              ],
             ),
           ),
+          // No rule under the final row: the card's own edge ends the list.
+          if (!isLast)
+            Divider(
+              key: ValueKey('meal-category-divider-${item.id}'),
+              height: TioStroke.width1,
+              thickness: TioStroke.width1,
+              indent: TioSpacing.lg + contentInset,
+              endIndent: TioSpacing.lg,
+              color: colors.outlineStrong.withAlpha(TioAlpha.alpha20),
+            ),
       ],
     );
   }

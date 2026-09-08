@@ -159,6 +159,13 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  static const archivedMealCategoriesSettings = TioRouteContract(
+    path: '/settings/nutrition/meal-diary/categories/archived',
+    title: 'Archived Meal Categories',
+    description: 'Review and restore archived meal categories.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
   static const dailyWellnessSettings = TioRouteContract(
     path: '/settings/health-goals/daily-wellness',
     title: 'Daily Wellness',

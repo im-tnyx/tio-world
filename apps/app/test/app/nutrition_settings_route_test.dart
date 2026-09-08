@@ -123,6 +123,10 @@ void main() {
       shellChromePolicyForPath(AppRoutes.mealCategoriesSettings.path),
       ChromePolicy.fullScreen,
     );
+    expect(
+      shellChromePolicyForPath(AppRoutes.archivedMealCategoriesSettings.path),
+      ChromePolicy.fullScreen,
+    );
     // Negative control: the fallback is a different policy, so the two
     // assertions above genuinely prove registration rather than passing by
     // coincidence.
