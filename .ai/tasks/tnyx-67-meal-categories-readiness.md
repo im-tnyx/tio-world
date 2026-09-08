@@ -1,37 +1,37 @@
 # TNYX-67 — Meal Type / Meal Categories Readiness
 
-**Status:** In progress
+**Status:** Blocked
 **Primary owner:** `apps/features/nutrition`
-**Affected platforms:** Flutter Android + iOS Nutrition data/composition for Slice B2; Supabase Postgres Slice B1 is already closed and unchanged
+**Affected platforms:** Flutter Android + iOS Nutrition presentation readiness for Slice C; production behavior and hosted Supabase are unchanged
 
 ## Owner Approval and Scope Boundary
 
 **Trigger:** New independently scoped product slice; future Supabase column shape change; future product-visible UI/UX change
-**Approval status:** Slice A and Slice B1 are closed. The owner explicitly authorized Slice B2 repository adapter, narrow gateway, app composition provider, focused tests, one implementation branch, and one focused PR. Slice C/D remain unapproved and unstarted.
-**Approval evidence:** TNYX-67 owner-locked semantics updated 2026-09-06; prior Slice A/B1 authorizations and hosted apply; the 2026-09-07 Slice B2 readiness result; and the 2026-09-07 explicit B2 implementation/PR authorization.
+**Approval status:** Slice A, Slice B1, and Slice B2 are closed. The current authorization is readiness/documentation only; Slice C/D remain unapproved and unstarted.
+**Approval evidence:** TNYX-67 owner-locked semantics updated 2026-09-06; prior Slice A/B1/B2 authorizations and closeouts; and the 2026-09-08 explicit Slice C readiness-only instruction.
 **Approved product/data direction:** Meal Category is separate from `MealLogEntry.mealName`; four resolved defaults; maximum eight active categories; stable non-semantic IDs; profile-owned nullable versioned JSONB direction.
-**Explicit non-changes:** No Flutter UI, MealLog persistence, `services/api`, Weight, Workout, Slice C/D, migration/SQL, schema/RLS/RPC/index/timestamp change, hosted Supabase mutation, Docker, or local/backend service work. The exact Slice B1 hosted migration is already applied and only consumed by B2.
+**Explicit non-changes:** No Flutter production source/tests, UI, route, Quick Add/Meal Editor activation, MealLog persistence, `services/api`, Weight, Workout, Slice C/D implementation, migration/SQL, schema/RLS/RPC/index/timestamp change, hosted Supabase mutation, Docker, or local/backend service work.
 
 ## Active Handoff
 
 **Planning owner:** Codex `/root`
-**Implementation owner:** Codex `/root` — exclusive owner for the authorized Slice B2 implementation
-**Review owner:** None — PR #223 is merged; its late Codex review found no major issue, and PR #222 P2 `3950154215` remains resolved
-**Implementation ownership state:** Slice A/B1 closed; Slice B2 implementation and local validation complete in PR #224; Slice C/D unstarted
-**Ownership transition:** Owner-authorized transition from readiness-only planning to `/root` Slice B2 implementation on 2026-09-07
-**Repository state last verified:** 2026-09-07 after fresh Git/GitHub/Linear/Supabase read-only verification
-**Branch:** `tnyx/tnyx-67-meal-categories-supabase-adapter`
-**Base SHA:** `31d3dd4b98182edca86866f9b1c31c1c41eac368`
-**Observed working-tree state:** PR #224 contains only the authorized Slice B2 implementation/task evidence; the unrelated root `pubspec.lock` modification remains preserved and unstaged
+**Implementation owner:** None — Slice C implementation is not authorized and is dependency-blocked
+**Review owner:** None — this is a readiness-only audit
+**Implementation ownership state:** Slice A closed; Slice B1 merged/hosted/verified; Slice B2 merged/post-merge validated; Slice C/D unstarted
+**Ownership transition:** B2 ownership closed after PR #224 squash merge; current work returned to readiness-only planning on 2026-09-08
+**Repository state last verified:** 2026-09-08 after fresh Git/GitHub/Linear/Supabase read-only verification
+**Branch:** `main`
+**Base SHA:** `3d0b415fde1be8b62aa5002990fbdfe4fa226ace`
+**Observed working-tree state:** `main == origin/main`; only the unrelated root `pubspec.lock` and this authorized task-brief reconciliation are modified locally
 **Observed uncommitted/dirty files:** pre-existing `pubspec.lock` with SHA-256 `004DE1A093C1F04F684B39DF072C2F2E37B1CD21046BFEE01E628E7F77300B1C`, plus this authorized task-brief update only
-**PR / tracker:** PR #218/#219/#220/#221/#222/#223 are merged. PR #224 is the open, unmerged B2 implementation PR. TNYX-67 remains `In Progress`; `blockedBy TNYX-66` is preserved; TNYX-66 remains `Backlog`.
-**Current implementation state:** Slice A/B1 are closed. B2 is implemented and locally validated on the focused branch; no later slice has started.
-**Relevant execution surface:** `apps/features/nutrition` data/repository adapter and `apps/app` provider composition only; no presentation/UI surface
-**Validation completed:** Slice A validation remains green. For Slice B1, exact P1-remediation implementation head `bf31923d4ab8ea59256536ad467cc81ef21d609f` passed full Supabase Database CI run `34120860985`, and evidence head `e12b3d52c1d5d0fdc49cce10bf1751ed05a88d7d` passed run `34121248320`: disposable base initialization, baseline replay/lint, clean full replay, dynamic repository-file/ledger parity, B1 version exactly once, private-schema exposure, exhaustive SQL/RLS/DELETE/account-cascade/large-archived matrix, real two-session stale-writer concurrency, and B1-introduced lint comparison. Those CI-era hosted reads were pre-apply historical evidence at 39 migrations. The separately authorized hosted rollout then applied `20260907065602_add_meal_categories_config` exactly once and post-apply verification passed at 40 migrations with the reviewed column, CHECK, private validator, retained-ID trigger, grants, RLS hardening, preserved rows, and no B1 advisor blocker.
-**Validation remaining:** At final handoff, verify PR #224's exact head, CI, Codex review, and unresolved actionable threads; then publish exactly one Linear implementation handoff comment and stop without merge.
-**Current blocker:** None. TNYX-67 remains `In Progress` and retains `blockedBy TNYX-66`; TNYX-66 remains `Backlog`.
+**PR / tracker:** PR #218/#219/#220/#221/#222/#223/#224 are merged. No open overlapping Meal Categories UI PR exists. TNYX-67 remains `In Progress` and blocked by TNYX-66; TNYX-66/TNYX-68/TNYX-54 remain `Backlog` with their dependency relations unchanged.
+**Current implementation state:** Slice A is closed; Slice B1 is merged, hosted-applied, and verified; Slice B2 is merged and post-merge validated at `3d0b415fde1be8b62aa5002990fbdfe4fa226ace`; Slice C/D are not started.
+**Relevant execution surface:** Future Nutrition-owned Meal Diary Settings and Meal Categories presentation, with app-owned route/top-bar composition and the existing Meal Categories repository boundary
+**Validation completed:** Slice A validation remains green. Slice B1 repository/hosted evidence remains verified at 40 migrations. Slice B2 PR #224 was squash-merged at `3d0b415fde1be8b62aa5002990fbdfe4fa226ace`, and post-merge Flutter CI run `34175515202` passed on that SHA. The 2026-09-08 hosted prerequisite recheck was read-only and reconfirmed the B1 column/CHECK/functions/trigger/RLS policies and two preserved rows.
+**Validation remaining:** Slice C requires a fresh owner-approved boundary after TNYX-68/TNYX-54 navigation ownership is readied and the exact visible archived-category presentation is approved.
+**Current blocker:** Slice C cannot legally introduce its required Meal Diary Settings route/entry while TNYX-68 is `Backlog` and blocked by TNYX-66 plus TNYX-54; TNYX-54 is itself `Backlog` and blocked by TNYX-66. The primary Meal Diary top-bar action needs an explicit TNYX-68 composition decision because the current single contextual action slot is already used by the Today action, and the exact visible archived-category layout still needs owner approval.
 **Resolved review finding IDs:** `3949432003`, `3949432006`, `3949432012`, and `3949432017` are fixed, exact-head validated, replied, and resolved. PR #222 Codex P2 `3950154215` identified stale hosted-state wording; this correction incorporates that finding.
-**Next exact action:** Complete only PR #224 exact-head CI/review verification and the one authorized Linear handoff comment, then stop without merge or Slice C/D work.
+**Next exact action:** Close this readiness-doc handoff; run a fresh TNYX-66 readiness refresh for TNYX-54; reconcile/close the TNYX-54 boundary if possible; run fresh TNYX-68 readiness; obtain owner approval for the minimal Meal Diary Settings route/top-bar shell; then refresh TNYX-67 Slice C readiness; only then may source implementation start. Do not start Slice C or D automatically.
 
 ## 1. Discovery
 
@@ -210,7 +210,7 @@ Slice A intentionally exposes no destructive reset/clear method. Restore Default
 ### Known Limitations
 
 - Slice B needs separate owner authorization for the exact column/migration and any hosted apply.
-- Slice C remains dependency-gated by TNYX-68/TNYX-54 and needs owner-approved visible UI behavior, including historical-safe Restore Defaults semantics.
+- Slice C remains dependency-gated by TNYX-68/TNYX-54 and needs owner approval for the exact visible archived-category presentation. Restore Defaults is excluded from the initial Slice C and remains a separate future historical-safety decision.
 - TNYX-113 owns the future physical MealLog schema and database referential-integrity decision.
 
 ### Final Status
@@ -483,3 +483,107 @@ No Meal Diary Settings UI, rename/add/archive/reorder screen, navigation/route, 
 - Docker, local Supabase, PostgreSQL containers, `services/api`, and backend services were not started.
 - PR #224 opened from implementation commit `5f837c5bbb013e2ff8046e812fabedfb97e9790c`. Flutter CI run `34152650847` passed that implementation head, and GitHub Codex review comment `5574644339` reported no major issues; actual inline review threads were empty.
 - This final task-record commit changes the PR head, so the final handoff must independently re-verify exact-head CI/review state before the one authorized Linear comment. No further repository change is expected. Merge is not authorized.
+
+## 13. Slice C Settings UI Readiness Refresh — 2026-09-08
+
+### B2 Closeout Reconciliation
+
+- Slice A is closed. Slice B1 repository work is merged and its hosted migration is applied/verified. Slice B2 PR #224 is squash-merged and post-merge validated.
+- `main == origin/main == 3d0b415fde1be8b62aa5002990fbdfe4fa226ace`. Push/main Flutter CI run `34175515202` passed on that exact SHA. The B2 local and remote implementation branches are deleted.
+- No open overlapping Meal Categories UI PR or Slice C branch exists. Preserved branch `docs/supabase-android-studio-qa-run` remains at `7fe896820c8f176b5049df4fe84fc9acea5933b1`.
+- Slice C and Slice D are not started. The unrelated root `pubspec.lock` remains byte-for-byte preserved at SHA-256 `004DE1A093C1F04F684B39DF072C2F2E37B1CD21046BFEE01E628E7F77300B1C`.
+
+### Fresh Linear Dependency Truth
+
+| Issue | Status | Relevant dependency/ownership truth |
+|---|---|---|
+| TNYX-66 | Backlog | Nutrition readiness gate; blocks TNYX-67, TNYX-68, and TNYX-54 |
+| TNYX-67 | In Progress | Owns stable Meal Category identity/config and management behavior; blocked by TNYX-66 |
+| TNYX-68 | Backlog | Owns the Meal Diary Settings surface, primary Diary entry, and optional Nutrition Settings shortcut; blocked by TNYX-66 and TNYX-54 |
+| TNYX-54 | Backlog | Owns Nutrition IA/domain boundaries; blocked by TNYX-66 and blocks TNYX-68/TNYX-57 |
+| TNYX-158 | Done | Supplies the current Quick Add shell; Meal Type activation remains Slice D |
+| TNYX-137 | Done | Supplies the current mode-aware Nutrition Settings launcher/hub; unimplemented capabilities stay absent |
+| TNYX-57 | Backlog | Owns future dynamic Diary sections; blocked by TNYX-54 |
+| TNYX-58 | Backlog | Owns the full Meal Editor; blocked by TNYX-57 |
+
+No status or dependency relation was changed by this readiness refresh.
+
+### Current UI and Navigation Audit
+
+- `NutritionSettingsPage` is intentionally a launcher for implemented capabilities only and currently exposes Nutrition Profile and Nutrition Targets. Its tests explicitly require Meal Diary to remain absent while unimplemented.
+- `MealDiaryPage` owns the current Diary body and Add Food entry, but its top bar is composed by `apps/app/lib/app/router.dart` through `TioShellStatusTopBar`.
+- `AppRoutes` has Nutrition Settings/Profile/Targets route contracts but no Meal Diary Settings or Meal Categories route.
+- The current `TioShellStatusTopBar` has one contextual `leadingAction` slot. App composition uses it for the conditional Meal Diary Today action, so adding the owner-locked `More / ⋮` affordance requires an explicit TNYX-68 composition decision rather than silently replacing Today or changing Core.
+- Core already supplies the reusable Settings row/card family, `TioInput`, `TioEditorSheet`, and `showTioConfirmationBottomSheet`. No production `ReorderableListView` precedent exists in the repository, so reorder behavior needs focused gesture/accessibility coverage when authorized.
+
+### Ownership and Route Decision
+
+- Meal Categories presentation/state belongs to `apps/features/nutrition`; widgets must not call Supabase directly.
+- Meal Diary Settings hierarchy and entry semantics belong to TNYX-68. Route identities follow the existing `AppRoutes` contract in `apps/core`, while `apps/app/lib/app/router.dart` owns route registration, repository/controller injection, and top-bar navigation composition.
+- A direct temporary `Nutrition Settings -> Meal Categories` route would violate the locked hierarchy, which requires both primary and secondary paths to pass through the same Meal Diary Settings surface/state.
+- Building an unexposed Meal Categories screen before TNYX-68 would create dead/orphan UI and is not a safe implementation slice.
+- Therefore Slice C cannot precede the minimal TNYX-68/TNYX-54 route/ownership readiness. It may proceed only after that boundary is approved, either as a coordinated minimal TNYX-68 shell plus TNYX-67 management page or after TNYX-68 lands first.
+
+### Proposed Single State Owner
+
+- Add one feature-owned `MealCategoriesController` with immutable editor state: initial load, confirmed config, local draft, saving/error state, max-active state, archived items, and reorder state.
+- App composition instantiates that controller from the existing `mealCategoriesRepositoryProvider` and injects it into the route. No second in-memory repository/store is introduced.
+- Load/retry goes only through `MealCategoriesRepository.read()`. Saves validate the full draft and call `MealCategoriesRepository.upsert()` once. Do not update the confirmed state until the write succeeds; on failure keep the draft visible with safe retry instead of inventing rollback or calling Supabase from widgets.
+- The domain remains authoritative for IDs, normalized duplicate detection, active limit, retained identities, and malformed/future-config failure. The controller maps typed failures to safe UI messages without exposing database details.
+
+### Product Behavior Decisions and Remaining Approval
+
+- Active categories should form the reorderable primary list. The safest discoverable reactivation model is a separate `Archived` section below it; this keeps inactive identities out of active ordering while retaining them for history. That presentation is a recommendation and still needs owner-visible approval because TNYX-67 does not lock the exact inactive-list layout.
+- At eight active categories, `Add Meal Category` and inactive-category reactivation are disabled/unavailable with the exact reason `Maximum 8 active meal categories`. Archiving an active category frees a slot.
+- Rename/add uses `TioInput` in the governed editor sheet. Blank names and normalized duplicates (trimmed, collapsed whitespace, case-insensitive) are rejected before save; internal IDs are never rendered. Rename/reorder/archive/reactivate preserve the same ID.
+- `Restore Defaults` is excluded from the first safe Slice C boundary. Ordinary upsert cannot remove retained identities, and the current contract does not define whether restore should archive custom active items, preserve them, or how to reassign their order. A historical-safe domain transformation and owner-approved visible semantics are required before exposing that action; writing `NULL` or replacing the config with four items is forbidden.
+
+### Hosted Supabase Prerequisite
+
+- Fresh read-only check: project `oykupyiitspujzpwwvuj` is `ACTIVE_HEALTHY`; migration ledger has 40 entries and latest is `20260907065602_add_meal_categories_config`.
+- The nullable/no-default `jsonb` column, validated CHECK, private `SECURITY INVOKER` validator, private retained-ID function, enabled retained-ID trigger, RLS, and authenticated owner SELECT/INSERT/UPDATE policies each exist exactly once. Standalone DELETE policy count is zero and two Nutrition Profile rows remain present.
+- Slice C requires zero new migration/schema/RLS/RPC/index/storage work. No hosted Supabase mutation occurred in this audit.
+
+### Proposed Future Changed-File Surface
+
+After dependency/owner approval, the smallest expected surface is:
+
+- `apps/features/nutrition/lib/src/meal_diary/presentation/pages/meal_diary_settings_page.dart` — TNYX-68-owned shell/entry surface;
+- `apps/features/nutrition/lib/src/meal_diary/presentation/pages/meal_categories_settings_page.dart` — TNYX-67 management UI;
+- one feature-owned Meal Categories controller/state file under the existing Nutrition presentation boundary;
+- the smallest Nutrition presentation/public export updates;
+- `apps/core/lib/src/routing/routes/app_routes.dart` — route contracts only;
+- `apps/app/lib/app/router.dart` — route registration, top-bar/secondary navigation, and controller injection;
+- `apps/app/lib/app/network_providers.dart` — one controller provider composed from the existing repository provider;
+- focused Nutrition widget/controller tests and app route/navigation tests.
+
+No Core component/theme contract change is currently justified. If the top-bar action cannot be composed without changing the public shell contract, that becomes a separately reviewed cross-package decision inside the approved TNYX-68 boundary.
+
+### Proposed Future Test Surface
+
+- defaults and customized/archived rendering;
+- rename/add with stable ID; reorder persists order only;
+- maximum-eight Add/reactivate disabling and reason;
+- archive frees a slot; archived identity remains; reactivation below/at cap;
+- blank and normalized-duplicate rejection;
+- initial loading, load failure/retry, save failure with retained draft, and successful confirmed save;
+- malformed/future config fails closed without fallback overwrite;
+- Light/Dark/OLED/System, compact width, large text, keyboard reachability, semantics, focus, drag handles, and tap targets;
+- both approved navigation entries reach one route/controller; no direct Supabase access;
+- Quick Add/Meal Editor Meal Type remains inactive and unchanged in Slice C.
+
+### Slice C Readiness Classification
+
+`BLOCKED — TNYX-68/TNYX-54 route/settings ownership readiness is not open yet, and owner-visible archived-category presentation remains unapproved. Restore Defaults is safely excluded rather than treated as a blocker for the future minimal Slice C. Do not create a temporary route, orphan screen, production UI, or Slice D implementation.`
+
+Exact dependency sequence:
+
+1. Close this readiness-doc handoff.
+2. Run a fresh TNYX-66 readiness refresh specifically for TNYX-54.
+3. Reconcile/close the TNYX-54 boundary if possible.
+4. Run fresh TNYX-68 readiness.
+5. Obtain owner approval for the minimal Meal Diary Settings route/top-bar shell.
+6. Refresh TNYX-67 Slice C readiness.
+7. Only then begin source implementation.
+
+Linear TNYX-66 readiness-refresh comment: `0c57801f-e994-45e2-815d-a3f7a5b5c832`.
