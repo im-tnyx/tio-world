@@ -28,10 +28,10 @@
 **Current implementation state:** Slice A is closed; Slice B1 is merged, hosted-applied, and verified; Slice B2 is merged and post-merge validated. The TNYX-68 shell that Slice C depended on is merged at `5f06a72b3a1404b1d315ee987c281605d706b738`, so the Section 13 blocker is cleared. Slice C/D remain unstarted.
 **Relevant execution surface:** Future Nutrition-owned Meal Diary Settings and Meal Categories presentation, with app-owned route/top-bar composition and the existing Meal Categories repository boundary
 **Validation completed:** Slice A validation remains green. Slice B1 repository/hosted evidence remains verified at 40 migrations. Slice B2 PR #224 was squash-merged at `3d0b415fde1be8b62aa5002990fbdfe4fa226ace`, and post-merge Flutter CI run `34175515202` passed on that SHA. The 2026-09-08 hosted prerequisite recheck was read-only and reconfirmed the B1 column/CHECK/functions/trigger/RLS policies and two preserved rows.
-**Validation remaining:** One owner decision on how archived categories are surfaced for reactivation. See Section 14.
-**Current blocker:** Only the archived-category presentation decision. The route, entries, domain, repository and provider Slice C needs all exist in `main`.
+**Validation remaining:** None for readiness. Slice C implementation and its own validation have not started.
+**Current blocker:** None. Archived presentation is owner-locked to Option A; the route, entries, domain, repository and provider Slice C needs all exist in `main`.
 **Resolved review finding IDs:** `3949432003`, `3949432006`, `3949432012`, and `3949432017` are fixed, exact-head validated, replied, and resolved. PR #222 Codex P2 `3950154215` identified stale hosted-state wording; this correction incorporates that finding.
-**Next exact action:** Obtain the owner decision on archived-category presentation (Section 14), then start Slice C into the existing Meal Categories destination. Do not start Slice C or D automatically.
+**Next exact action:** Start Slice C into the existing Meal Categories destination as one named slice. Do not start Slice D or any consumer activation automatically.
 
 ## 1. Discovery
 
@@ -679,7 +679,7 @@ fail     draft retained, safe retry              no invented rollback, no widget
 
 The repository stays the single durable source. No second repository, no screen-local default list, no hard-coded Breakfast/Lunch/Dinner/Snacks in presentation — defaults resolve through `MealCategoriesConfig.resolve(null)`. The controller maps typed `MealCategoriesValidationCode` failures to safe copy without leaking database detail.
 
-### The One Open Owner Decision — Archived Presentation
+### Archived Presentation — Decision Requested, Now Resolved
 
 Slice C's contract requires reactivation, and reactivation requires archived categories to be reachable in the UI. Without an approved surface for them, archive becomes a one-way action with no way back, which contradicts the retained-identity contract.
 
@@ -693,21 +693,50 @@ B  archived items inline in one list, visually de-emphasised, with an active/arc
 C  archived items behind an "Archived (n)" entry that opens its own sub-screen
 ```
 
-Recommendation: **A**. It keeps inactive identities out of active ordering, makes reactivation discoverable without a second route, and needs no new Core component — the existing Settings row/card family covers it.
+Recommendation was **A**, and the owner selected A. The locked contract follows.
 
-Everything else in Slice C is already decided by the locked contract and needs no further approval.
+### Archived Presentation — OWNER-LOCKED (Option A)
 
-### Max-Eight UX
+The decision recorded above as open was made by the owner on 2026-09-08. **Option A is locked.** One screen, two sections, no sub-route.
 
 ```text
-active count < 8   Add Meal Category enabled; reactivation enabled
-active count = 8   Add Meal Category disabled, reason "Maximum 8 active meal categories"
-                   reactivation disabled with the same reason
-archive            frees exactly one active slot
-persist attempt with 9 active   rejected by the domain, never truncated
+Meal Categories
+
+ACTIVE
+  active categories
+  rows are reorderable
+  rename and archive management lives here
+
+  + Add Meal Category
+
+ARCHIVED
+  rendered only when at least one archived category exists
+  rows are NOT reorderable
+  each row exposes Reactivate
 ```
 
-Retained inactive categories do not count toward eight, so total retained items may exceed eight over a user lifetime.
+Contract details that follow from the lock:
+
+- The `ARCHIVED` section is absent — not empty, not a zero-state — while no archived category exists.
+- Reactivation restores the **same** stable `MealCategory.id`. It never mints a new identity, which is what keeps historical `MealLogEntry.mealCategoryId` resolvable.
+- Archived rows carry no drag handle and no reorder semantics; `order` is meaningful only among active categories.
+- No second route, sub-screen, or dialog-hosted archive list. `AppRoutes.mealCategoriesSettings` remains the only Meal Categories route, and Slice C fills the destination TNYX-68 already shipped.
+
+### Max-Eight UX — locked
+
+```text
+active count < 8   Add Meal Category enabled
+                   Reactivate enabled on archived rows
+
+active count = 8   Add Meal Category unavailable
+                   Reactivate unavailable
+                   reason, verbatim: "Maximum 8 active meal categories"
+
+archive            frees exactly one active slot
+persist 9 active   rejected by the domain, never truncated
+```
+
+Retained inactive categories never count toward eight, so total retained items may exceed eight over a user lifetime. Nothing is deleted to satisfy the cap.
 
 ### Restore Defaults — Still Excluded
 
@@ -723,8 +752,12 @@ Not in Slice C. The next consumer slice after Slice C is **shared `MealLogAction
 state        canonical defaults from NULL; load success; load error and retry
 edit         rename; reorder; add custom; internal ID never rendered
 validation   blank name rejected; normalized duplicate rejected
-lifecycle    archive; archived identity retained; reactivate
+lifecycle    archive; archived identity retained; reactivate restores the same id
+archived UI  ARCHIVED section absent while none archived; present once one exists;
+             archived rows expose Reactivate and carry no reorder affordance;
+             one route only, no Archived sub-screen
 limit        active max 8; Add unavailable at 8; reactivate unavailable at 8;
+             exact reason copy "Maximum 8 active meal categories";
              archive frees a slot
 persistence  failed save retains draft; successful save updates confirmed state;
              repository rejection surfaced without corrupting UI state
@@ -744,4 +777,8 @@ Fresh read-only verification: project `oykupyiitspujzpwwvuj` is `ACTIVE_HEALTHY`
 
 ### Slice C Readiness Classification
 
-`NEEDS OWNER UI DECISION — every dependency, domain rule, repository, provider and route Slice C needs now exists in main, and the TNYX-68 blocker is cleared. One owner-visible decision remains: how archived categories are surfaced for reactivation (options A/B/C above, recommendation A). Once that is chosen, Slice C is READY to implement into the existing Meal Categories destination with no new route, no new repository, no Core change and no migration.`
+`READY — Slice C may be implemented as one named slice.`
+
+Every dependency, domain rule, repository, provider and route now exists in `main`; the TNYX-68 blocker is cleared; and the last open item — archived presentation — is owner-locked to Option A as recorded above. Slice C fills the existing `MealCategoriesDestinationPage` with a two-section Active/Archived screen and one feature-owned controller. It requires no new route, no second repository, no Core component or token change, and no migration.
+
+Implementation still requires its own start: this classification authorizes one named slice, not the consumer work after it. `Restore Defaults`, the shared `MealLogActionFooter` category-selector activation, Quick Add/Meal Editor changes, MealLog persistence, Supabase mutation and `services/api` all remain excluded.
