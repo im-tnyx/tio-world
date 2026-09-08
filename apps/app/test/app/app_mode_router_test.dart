@@ -263,8 +263,13 @@ void main() {
     expect(categoriesPage, findsOneWidget);
     expect(GoRouterState.of(tester.element(categoriesPage)).uri.path,
         AppRoutes.mealCategoriesSettings.path);
-    expect(find.byType(TextField), findsNothing);
-    expect(find.byType(ReorderableListView), findsNothing);
+    // TNYX-67 Slice C filled this destination, so it now renders the Active
+    // list rather than an empty boundary.
+    expect(
+      find.byKey(const ValueKey('meal-categories-active-list')),
+      findsOneWidget,
+    );
+    expect(find.text('Breakfast'), findsOneWidget);
 
     await tester.pageBack();
     await tester.pumpAndSettle();
@@ -282,8 +287,15 @@ void main() {
     expect(todayAction, findsOneWidget);
     expect(moreMenu, findsOneWidget);
     expect(find.byKey(const ValueKey('shell-meal-log-streak')), findsOneWidget);
-    expect(mealCategoriesRepository.readCalls, 0);
-    expect(mealCategoriesRepository.writeCalls, 0);
+    // Reaching Meal Categories reads the configuration exactly once and never
+    // writes: an untouched user must keep inheriting canonical defaults rather
+    // than having four rows materialised into their row by a visit.
+    expect(mealCategoriesRepository.readCalls, 1);
+    expect(
+      mealCategoriesRepository.writeCalls,
+      0,
+      reason: 'navigation alone must never persist a configuration',
+    );
 
     await controller.select(AppMode.workout);
     await tester.pumpAndSettle();

@@ -39,30 +39,97 @@ void main() {
       expect(renamed.active, lunch.active);
     });
 
-    test('reorder changes order without renumbering default IDs', () {
+    test('a custom category reorders without renumbering default IDs', () {
+      // Corrected by owner decision: canonical defaults hold a fixed relative
+      // order, so what may move is a custom category — around and between the
+      // anchors, never through them.
       final defaults = MealCategoriesConfig.canonicalDefaults();
-      final reordered = MealCategoriesConfig(
+      const customId = 'meal_slot_dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+
+      final withCustom = MealCategoriesConfig(
         items: [
-          for (final item in defaults.items)
-            if (item.id == 'meal_slot_2')
-              item.reordered(2)
-            else if (item.id == 'meal_slot_3')
+          ...defaults.items,
+          MealCategory(
+            id: customId,
+            defaultKey: null,
+            displayName: 'Pre Workout',
+            active: true,
+            order: 4,
+          ),
+        ],
+      );
+      expect(withCustom.items.last.id, customId, reason: 'starts after Snacks');
+
+      // Move it between Breakfast and Lunch.
+      final moved = MealCategoriesConfig(
+        items: [
+          for (final item in withCustom.items)
+            if (item.id == customId)
               item.reordered(1)
+            else if (item.order >= 1)
+              item.reordered(item.order + 1)
             else
               item,
         ],
       );
 
-      reordered.validate();
-      expect(reordered.findById('meal_slot_2')!.order, 2);
+      moved.validate();
       expect(
-        reordered.findById('meal_slot_2')!.defaultKey,
-        MealCategoryDefaultKey.lunch,
+        moved.items.map((item) => item.id),
+        [
+          'meal_slot_1',
+          customId,
+          'meal_slot_2',
+          'meal_slot_3',
+          'meal_slot_4',
+        ],
       );
-      expect(reordered.findById('meal_slot_3')!.order, 1);
       expect(
-        reordered.items.map((item) => item.id),
-        ['meal_slot_1', 'meal_slot_3', 'meal_slot_2', 'meal_slot_4'],
+        moved.findById('meal_slot_2')!.defaultKey,
+        MealCategoryDefaultKey.lunch,
+        reason: 'identity is untouched by a neighbour moving',
+      );
+    });
+
+    test('rejects inverting two canonical defaults', () {
+      final defaults = MealCategoriesConfig.canonicalDefaults();
+
+      expect(
+        () => MealCategoriesConfig(
+          items: [
+            for (final item in defaults.items)
+              if (item.id == 'meal_slot_2')
+                item.reordered(2)
+              else if (item.id == 'meal_slot_3')
+                item.reordered(1)
+              else
+                item,
+          ],
+        ),
+        _throwsCode(
+          MealCategoriesValidationCode.canonicalDefaultOrderViolated,
+        ),
+      );
+    });
+
+    test('ordering follows identity rather than display name', () {
+      // Renaming Lunch to something alphabetically earlier must not move it.
+      final defaults = MealCategoriesConfig.canonicalDefaults();
+      final renamed = MealCategoriesConfig(
+        items: [
+          for (final item in defaults.items)
+            if (item.id == 'meal_slot_2') item.renamed('Aaa Pre Workout') else item,
+        ],
+      );
+
+      renamed.validate();
+      expect(
+        renamed.items.map((item) => item.id),
+        ['meal_slot_1', 'meal_slot_2', 'meal_slot_3', 'meal_slot_4'],
+      );
+      expect(
+        renamed.findById('meal_slot_2')!.defaultKey,
+        MealCategoryDefaultKey.lunch,
       );
     });
 
@@ -210,15 +277,32 @@ void main() {
   });
 
   group('policy validation', () {
-    test('accepts zero active categories when defaults remain retained', () {
+    test('rejects zero active categories even with defaults retained', () {
+      // Corrected by owner decision: every meal has to be filed under
+      // something, so a configuration with nothing active is not a state the
+      // app can be in. Retaining the identities does not make it valid.
+      final defaults = MealCategoriesConfig.canonicalDefaults();
+
+      expect(
+        () => MealCategoriesConfig(
+          items: defaults.items.map((item) => item.withActive(false)),
+        ),
+        _throwsCode(MealCategoriesValidationCode.tooFewActiveCategories),
+      );
+    });
+
+    test('accepts exactly one active category', () {
       final defaults = MealCategoriesConfig.canonicalDefaults();
       final config = MealCategoriesConfig(
-        items: defaults.items.map((item) => item.withActive(false)),
+        items: [
+          defaults.items.first,
+          for (final item in defaults.items.skip(1)) item.withActive(false),
+        ],
       );
 
       config.validate();
-      expect(config.activeItems, isEmpty);
-      expect(config.items, hasLength(4));
+      expect(config.activeItems, hasLength(1));
+      expect(config.items, hasLength(4), reason: 'identities all retained');
     });
 
     test('accepts exactly eight active categories', () {
@@ -253,6 +337,47 @@ void main() {
       config.validate();
       expect(config.items, hasLength(9));
       expect(config.activeItems, hasLength(8));
+    });
+
+    test('accepts a retained set exactly at the ceiling', () {
+      // Four canonical defaults plus twenty-eight customs, four of them still
+      // active, so the active cap is not what is being exercised here.
+      final config = _configWithCustomCategories(
+        customCount: 28,
+        activeCustomCount: 4,
+      );
+
+      config.validate();
+      expect(config.items, hasLength(32));
+      expect(config.activeItems, hasLength(8));
+    });
+
+    test('rejects one retained category past the ceiling', () {
+      final items = _itemsWithCustomCategories(
+        customCount: 29,
+        activeCustomCount: 4,
+      );
+
+      expect(items, hasLength(33));
+      expect(
+        () => MealCategoriesConfig(items: items),
+        _throwsCode(MealCategoriesValidationCode.tooManyRetainedCategories),
+      );
+    });
+
+    test('rejects an unbounded archived set rather than truncating it', () {
+      // The case the ceiling exists for: archiving never deletes, so without
+      // one the retained set grows forever and every later write rescans it.
+      final items = _itemsWithCustomCategories(
+        customCount: 512,
+        activeCustomCount: 4,
+      );
+
+      expect(
+        () => MealCategoriesConfig(items: items),
+        _throwsCode(MealCategoriesValidationCode.tooManyRetainedCategories),
+      );
+      expect(items, hasLength(516), reason: 'nothing was truncated');
     });
 
     test('rejects blank and whitespace-only display names', () {

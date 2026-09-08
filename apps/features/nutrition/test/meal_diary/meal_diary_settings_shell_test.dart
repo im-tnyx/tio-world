@@ -230,15 +230,23 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('child destination is a title and back boundary only',
+  testWidgets('child destination keeps its title and back affordance',
       (tester) async {
-    await tester.pumpWidget(_host(const MealCategoriesDestinationPage()));
+    // The empty-boundary assertions this test used to make were retired when
+    // TNYX-67 Slice C filled the destination. What still belongs to the shell
+    // is the chrome; the management behavior has its own test file.
+    await tester.pumpWidget(
+      _host(
+        MealCategoriesDestinationPage(
+          repository: InMemoryMealCategoriesRepository(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
 
     expect(find.text('Meal Categories'), findsOneWidget);
     expect(find.byType(BackButton), findsOneWidget);
     expect(find.byType(TioSettingsNavigationRow), findsNothing);
-    expect(find.byType(TextField), findsNothing);
-    expect(find.byType(ReorderableListView), findsNothing);
   });
 
   for (final testCase in const [

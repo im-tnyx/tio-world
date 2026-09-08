@@ -695,7 +695,14 @@ C  archived items behind an "Archived (n)" entry that opens its own sub-screen
 
 Recommendation was **A**, and the owner selected A. The locked contract follows.
 
-### Archived Presentation — OWNER-LOCKED (Option A)
+### Archived Presentation — OWNER-LOCKED (Option A) — SUPERSEDED 2026-09-08
+
+> **Superseded. Do not implement from this section.** The owner replaced this
+> lock later the same day with a top-bar destination: the archived list lives
+> behind its own route, not as a second section on this screen. The shipped
+> contract is recorded in *Archived Presentation — Superseded by a destination*
+> below. This section is kept because the decision it records was real and the
+> reasoning still explains what the destination has to preserve.
 
 The decision recorded above as open was made by the owner on 2026-09-08. **Option A is locked.** One screen, two sections, no sub-route.
 
@@ -779,6 +786,405 @@ Fresh read-only verification: project `oykupyiitspujzpwwvuj` is `ACTIVE_HEALTHY`
 
 `READY — Slice C may be implemented as one named slice.`
 
-Every dependency, domain rule, repository, provider and route now exists in `main`; the TNYX-68 blocker is cleared; and the last open item — archived presentation — is owner-locked to Option A as recorded above. Slice C fills the existing `MealCategoriesDestinationPage` with a two-section Active/Archived screen and one feature-owned controller. It requires no new route, no second repository, no Core component or token change, and no migration.
+Every dependency, domain rule, repository, provider and route now exists in `main`; the TNYX-68 blocker is cleared; and the last open item — archived presentation — was owner-locked to Option A as recorded above. Slice C fills the existing `MealCategoriesDestinationPage` with one feature-owned controller. It requires no second repository and no Core component or token change.
+
+> **Two claims here were overtaken by later owner decisions, both on
+> 2026-09-08.** "A two-section Active/Archived screen … requires no new route":
+> the owner moved the archived list behind a top-bar destination, so the branch
+> adds `archivedMealCategoriesSettings` and an `ArchivedMealCategoriesPage`.
+> "… and no migration": the owner then asked for a ceiling on retained
+> categories, which only the database can enforce, so the branch adds
+> `20260908120000_cap_retained_meal_categories.sql`. Both are recorded below.
 
 Implementation still requires its own start: this classification authorizes one named slice, not the consumer work after it. `Restore Defaults`, the shared `MealLogActionFooter` category-selector activation, Quick Add/Meal Editor changes, MealLog persistence, Supabase mutation and `services/api` all remain excluded.
+
+## 15. Slice C Implementation — 2026-09-08
+
+### Handoff
+
+```text
+base    72b267b1f3c4b56ac511bb91d99e2f5f7c2078b0
+branch  tnyx/tnyx-67-meal-categories-settings-ui
+PR      #228, Draft — https://github.com/im-tnyx/tio-world/pull/228
+```
+
+**Implementation owner:** Claude, active for this slice only.
+**Status:** implemented and validated; awaiting owner UI approval, then merge authorization.
+**Not authorized by this slice:** Restore Defaults, the shared `MealLogActionFooter` category selector, Quick Add / Meal Editor changes, MealLog persistence, Supabase mutation, `services/api`.
+
+### Changed files
+
+```text
+added     .../meal_diary/presentation/controllers/meal_categories_controller.dart
+          .../nutrition/test/meal_diary/meal_categories_settings_test.dart
+modified  .../meal_diary/presentation/pages/meal_categories_destination_page.dart
+          .../meal_diary/presentation/presentation.dart
+          apps/app/lib/app/router.dart
+          apps/app/test/app/app_mode_router_test.dart
+          .../nutrition/test/meal_diary/meal_diary_settings_shell_test.dart
+```
+
+`apps/core`, `supabase/` and `apps/app/lib/app/network_providers.dart` are unchanged.
+
+### What was built
+
+The TNYX-68 destination is filled rather than replaced: no new route, no second screen. The page renders the owner-locked two-section shape, and `MealCategoriesController` owns state and repository sequencing.
+
+The controller adds **no product rule**. Durable non-semantic IDs, rename touching only `displayName`, reorder touching only `order`, archive/reactivate retaining identity, the eight-active cap rejected rather than truncated, blank and normalized-duplicate rejection, and UUID-v4 custom IDs that never reuse a retained identity are all already enforced by the domain. Presentation duplicates no validation algorithm; the single exception is refusing to submit an empty field, which is about an empty form rather than a rule.
+
+### Behaviour contracts this slice pins
+
+```text
+open page        reads once, writes never — an untouched user keeps inheriting
+                 the canonical four rather than materialising them
+no-op edit       short-circuits before the write, for the same reason
+save order       build -> domain validates -> write -> only then adopt confirmed
+failed write     confirmed untouched; the attempt is retained and retryable in
+                 one tap, because the name sheet has already closed
+rejected write   surfaced but not offered as a retry — it would fail identically
+reactivate       appended after every active item, explicitly, because an
+                 archived category can legitimately hold a lower stored order
+cap              Add and Reactivate unavailable at 8, reason verbatim
+                 "Maximum 8 active meal categories"
+```
+
+### Review findings, all fixed
+
+Codex raised one P1 and six P2s on `cd9d4930`. Every one was valid and none was argued down.
+
+| Finding | Resolution |
+|---|---|
+| P1 task brief not updated with implementation truth | this section |
+| failed save discarded the attempted edit | state carries `pendingRetry`; the failure surface offers Retry |
+| reactivated category could land mid-list | `reactivate` appends after all active items explicitly |
+| load failure showed mutation-oriented copy | separate `_loadMessageFor` for read-time failures |
+| nested reorderable list could not auto-scroll | page is a `CustomScrollView`; the active list is a `SliverReorderableList`, so there is exactly one scroll view and a drag can move it |
+| no-op rename persisted a configuration | write short-circuits when `next == confirmed` |
+| disabled icons still looked enabled | icon colour derives from `enabled` rather than a fixed value |
+
+The sliver fix changed structure: `_ActiveSection` is gone and each `_ActiveRow` paints its own slice of the group surface, rounded only at the ends, so the list still reads as one card while living somewhere that can actually scroll.
+
+### Validation
+
+```text
+flutter analyze  apps/core                No issues found
+flutter analyze  apps/features/nutrition  No issues found
+flutter analyze  apps/app                 No issues found
+flutter test     apps/core                266 passed
+flutter test     apps/features/nutrition  359 passed
+flutter test     apps/app                 305 passed
+git diff --check                          clean
+exact-head CI    run 34219878241 on cd9d4930   SUCCESS (pre-review-fix head)
+```
+
+Mutation checks — each breaks one invariant and the named test fails:
+
+```text
+adopt confirmed before the write succeeds     failure-safety test fails
+archive deletes instead of retaining          retained-identity test fails
+archived section always rendered              visibility test fails
+no-op short-circuit removed                   writes 1 instead of 0
+reactivate sorts by stored order              lands first, not last
+load uses mutation copy                       "Enter a category name." leaks
+failed write keeps no retryable attempt       retry test fails
+disabled icons keep the enabled colour        colour assertion fails
+```
+
+One further mutation is recorded honestly rather than as coverage: removing the controller's cap guard changes nothing observable, because the domain rejects the ninth active one layer down with the same message. That guard is redundant defence, not untested behaviour.
+
+Four defects were found during implementation and fixed rather than tested around: a sheet text controller disposed while the sheet was still animating out; a route builder rebuilding the controller on every rebuild and orphaning the page's listener; a 9dp overflow at 320dp under a 1.6x text scale; and a reorder `Semantics` that produced no node because its child was a bare `Icon`.
+
+### Owner UI status
+
+`AWAITING OWNER UI APPROVAL`. Evidence covers the default active list, add and rename with the blank-name disabled state, archive confirmation, one and two archived items, the max-eight state with both actions disabled, 320dp compact and 320dp at 1.6x text, across Light, Dark and OLED. The capture harness was temporary and is not in the branch; nothing ships under `lib/` and no golden baseline is committed.
+
+### Next slice
+
+Shared `MealLogActionFooter` Meal Category selector activation, consuming the same active-category source. Not started, and not authorized by this slice.
+
+## 16. Active and Ordering Invariants — 2026-09-08
+
+Owner correction applied inside the Slice C branch, not as a new slice.
+
+### Active count
+
+```text
+1 <= active <= 8
+```
+
+The maximum was already enforced; the minimum is new. A configuration with
+nothing active is not a state the app can be in — every meal has to be filed
+under something — so the last active category cannot be archived. Archived
+identities are excluded from the count, and the retained total may exceed
+eight over a lifetime.
+
+Enforced in `MealCategoriesPolicy`, which every boundary already runs through:
+the `MealCategoriesConfig` constructor, `MealCategoriesConfigCodec.encode` and
+`decode`, and `MealCategoriesRepository.upsert`. A hostile or corrupted
+persisted row is rejected rather than repaired, and nothing is reactivated to
+paper over it.
+
+### Canonical relative order
+
+```text
+breakfast < lunch < dinner < snacks
+```
+
+Anchored to durable identity, never to `displayName`. Renaming `meal_slot_2`
+from "Lunch" to "Pre Workout" leaves it occupying the Lunch anchor, so ordering
+never follows what a category happens to be called.
+
+Checked across **every** item, archived ones included. That is what makes
+restore correct: an archived default keeps its slot, so bringing it back lands
+it between the right neighbours instead of at the end of the list. Archiving no
+longer moves anything — it only flips `active`.
+
+### What may move
+
+```text
+canonical defaults   fixed relative to one another; not user-reorderable
+custom categories    free to sit before, between, or after any anchor
+```
+
+Valid, and covered by tests:
+
+```text
+Pre Workout · Breakfast · Morning Snack · Lunch · Post Workout · Dinner ·
+Snacks · Late Meal
+```
+
+Rejected with `canonicalDefaultOrderViolated`:
+
+```text
+Dinner · Breakfast · Lunch · Snacks
+Breakfast · Dinner · Lunch · Snacks
+```
+
+A reorder is applied to the full ordered list — archived items included —
+because that list carries the anchors. Only the moved custom changes place;
+everything else is renumbered in sequence, so the anchors cannot invert. The
+controller refuses a request to move a default rather than ignoring it
+silently.
+
+### Rows
+
+Default rows carry no drag handle and advertise no reorder semantics — a
+disabled grip still reads as "drag me", and these rows genuinely cannot move.
+The handle slot stays reserved, so category names sit in one vertical column
+whether or not the row has a grip.
+
+Archive stays a left-swipe reveal followed by confirmation. At one active
+category the swipe exposes nothing to reveal, and the row publishes the reason
+as its semantics hint: `At least one meal category is required.` No
+confirmation is offered for an archive that would be refused.
+
+The swipe is a background reveal, not a compressing row. Two layers share one
+geometry: the action sits behind, the complete row in front, and sliding the
+front layer uncovers the one behind. That is what makes the action match the
+row's height and edges exactly instead of reading as a panel parked beside it —
+an earlier compressing version looked pasted on because the content shrank and
+left a gap where the action appeared.
+
+Travel is clamped to one action's width (48dp target plus gutters), with two
+resting states and no third position. The clamp is asserted mid-drag, because
+the release animation snaps to the reveal either way and would hide an
+unclamped drag.
+
+The revealed strip carries the repo's destructive surface — a `danger` tint
+with a `danger` foreground, the treatment the delete-account dialog already
+uses. It fades in with the reveal and leaves when the row closes, and only the
+strip is coloured; the card keeps `surfaceRaised`. Deliberately not a solid
+fill: there is no on-destructive token to place on top of one, and adding a
+Core colour to fill a single strip would broaden the design system without
+reuse evidence. All three palettes are asserted.
+
+### Archived destination visibility
+
+The top-bar entry exists exactly while something is archived, derived from the
+same configuration the list renders rather than tracked beside it. It appears
+the moment a first category is archived and disappears when the last one is
+restored, and it is absent from the widget tree rather than disabled — so it
+leaves no invisible target for a pointer or a screen reader.
+
+### Not in scope
+
+No clock-time restriction was added and none is implied. Fixed ordering is
+display organisation; `MealLogEntry.consumedAt` remains the separate truth
+about when something was actually eaten. Breakfast can be logged at midnight.
+
+Slice B is not started. No Supabase migration, adapter or hosted change; no
+MealLog persistence; no `services/api`.
+
+### Validation
+
+```text
+flutter analyze  core / nutrition / app     No issues found
+flutter test     core 266 · nutrition 400 · app 305    all passed
+git diff --check origin/main...HEAD         clean
+```
+
+## 17. Archived Presentation — Superseded by a destination — 2026-09-08
+
+The owner replaced the Option A lock in section 14 later the same day. The
+archived list is **not** a second section on the Meal Categories screen; it is
+its own destination, reached from a top-bar entry.
+
+```text
+←  Meal Categories                    [Archived]   ← only when something is
+                                                     archived, and disabled
+ACTIVE                                               while a write is in flight
+  ...
+```
+
+Routes added to `apps/core`: `mealDiarySettings`, `mealCategoriesSettings`,
+`archivedMealCategoriesSettings`, all `ChromePolicy.fullScreen`.
+
+What the destination had to preserve from the Option A reasoning, and does:
+
+- It is absent, not empty, while nothing is archived — derived from the same
+  configuration the list renders, never a separate flag.
+- Archived rows are not reorderable and offer only Restore.
+- Archiving keeps the category's slot, so a restore lands between the right
+  neighbours rather than at the end.
+
+## 18. Retained ceiling — 2026-09-08
+
+Owner-directed after asking what stops the archived set growing without bound.
+
+```text
+1 <= active <= 8
+total retained, archived included <= 32
+```
+
+Archiving never deletes and a database trigger refuses to remove a retained
+identity, so the retained set only ever grew. The B1 validator said so
+explicitly — `Retained archived items are intentionally not capped` — which
+left a client writing straight to the API able to grow one row without limit,
+with every later write rescanning the whole configuration.
+
+Enforced in both places: `MealCategoriesPolicy`, which every Dart boundary
+already runs through, so an oversized stored row is rejected on read rather
+than repaired; and `private.is_valid_meal_categories_config_v1`, which is the
+guard that applies to a client that never runs the app.
+
+At the ceiling nothing is removed. Adding stops, and the copy names the only
+way past it, because archiving cannot free a slot: restore an archived
+category and rename it, reusing an identity instead of minting another.
+
+Considered and rejected: evicting the oldest archived category at the ceiling.
+It would require relaxing the retained-ID trigger, and any conditional hole in
+that guard can be walked through deliberately — fill to the ceiling, then
+delete one identity per write, which is the bypass that guard was added to
+close.
+
+All four of the items listed here as open were then closed under the owner
+decisions recorded in section 19.
+
+### Validation
+
+```text
+flutter analyze  core / nutrition / app     No issues found
+flutter test     core 266 · nutrition 431 · app 305    all passed
+supabase         41 migrations replayed locally, B1 SQL matrix passed
+                 ceiling probed directly: 32 accepted, 33 rejected
+```
+
+## 19. Review closeout — 2026-09-09
+
+Owner decisions on the outstanding review findings, and what each produced.
+
+### The database validator now carries every invariant the client does
+
+```text
+1 <= active <= 8
+total retained, archived included <= 32
+meal_slot_1 < meal_slot_2 < meal_slot_3 < meal_slot_4
+```
+
+The two new rules were the serious gap. A client writing straight to the API
+could store all four canonical items inactive, or Lunch ordered after Dinner;
+the database accepted both, and the Dart decoder then refused to read the row
+back — leaving that account's Meal Categories screen in a load failure it
+could not get out of.
+
+Enforced on canonical ids and their `order` values, never on `display_name`.
+A configuration whose anchors are inverted while wearing plausible names is
+rejected, and that case is covered.
+
+Corrected in the pending `20260908120000` migration rather than a new one, as
+directed: it is unmerged, so there is nothing to layer a fix on top of.
+
+### The migration refuses to apply rather than strand a row
+
+Replacing the validator does not revalidate stored rows, so a row already
+breaking a new rule would keep being readable and fail every future write,
+with the retained-ID trigger preventing it from being brought back into range.
+
+A preflight now counts stored rows against all three new rules and aborts the
+migration with the counts if any would be stranded. Nothing is truncated,
+repaired or grandfathered. Owner-supplied hosted evidence: 1 customized row,
+5 retained items at most, 0 rows over 32 — so the current project passes.
+
+### Name rejections stay in the editor
+
+A duplicate or blank name is a deterministic answer the screen already had.
+Reporting it after the sheet closed cost the reader everything they typed and
+offered no way back to it. The editor now applies the domain's own
+normalization — via `MealCategoriesPolicy.normalizeDisplayName`, one algorithm
+rather than a second opinion — keeps itself open, holds the text, and says
+why. The rule is scoped to active categories, so a name matching an archived
+one is free to use, and renaming a category to its own name is not a clash.
+
+### A refused write is no longer replayed forever
+
+`MealCategoriesWriteConflict` separates a store that refused this payload from
+a connection that dropped. The Supabase adapter classifies SQLSTATE class 23 —
+integrity constraint violation, which is how both the CHECK constraint and the
+retained-ID trigger reject — as a conflict; everything else is untouched and
+stays retryable.
+
+On conflict the controller offers no Retry, reloads what is actually stored,
+and says so. No rebase is attempted: merging the refused edit into the newly
+read configuration would be guessing at intent, and guessing wrong silently
+undoes another device's work.
+
+### The pencil affordance — owner-approved as a shared change
+
+Recorded explicitly, because it changes a surface outside this slice. The
+original complaint was that pressing the shared `NutritionEditPencil` painted
+ink past its circle and onto the row behind it. The owner confirmed on
+2026-09-09 that the fix is intended for **every** consumer, not for Meal
+Categories alone, and that Macros Settings must not be reverted to the old
+behaviour.
+
+The circle is now the ink surface and it clips, so nothing the ink layer draws
+can reach the card. Press paint is suppressed with the framework's `NoSplash`;
+`focusColor` is deliberately left alone so a keyboard user can still see where
+focus sits, constrained to the affordance. Semantics, focus and the 48dp
+target are unchanged. Both production consumers — Meal Categories rows and
+Macros Settings — are covered by tests. `NutritionOpenChevron` and row-level
+tap feedback are untouched.
+
+### Archived destination — final
+
+The top-bar entry stays. It exists exactly while something is archived,
+derived from the rendered configuration rather than a flag, and is now also
+unavailable while a write is in flight — the entry appears as soon as an
+archive is shown optimistically, but the destination reads the repository, so
+an early tap arrived at a screen saying nothing was archived. Section 14's
+Option A remains marked superseded.
+
+### Validation
+
+```text
+flutter analyze  core / nutrition / app     No issues found
+flutter test     core 266 · nutrition 441 · app 305    all passed
+supabase         41 migrations replayed on a clean local baseline
+                 B1 SQL matrix passed locally and in CI
+                 probed directly: 0 active rejected, Lunch-after-Dinner
+                 rejected, inverted anchors under plausible names rejected,
+                 custom between anchors accepted, 32 accepted, 33 rejected
+```
+
+The two-session concurrency script is not runnable locally: it needs a host
+`psql`, and a `docker exec` shim breaks its FIFO-driven sessions. CI runs it.

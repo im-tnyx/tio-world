@@ -100,6 +100,38 @@ void main() {
       }
     });
 
+    testWidgets('the pencil paints nothing outside its own circle',
+        (tester) async {
+      // Owner-approved on 2026-09-09 for every consumer of this affordance,
+      // this screen included: pressing the pencil used to paint a splash and
+      // a highlight past the circle and onto the row behind it.
+      await pumpPage(tester, targets: coherent, onSave: (_) async {});
+
+      final pencil = find.byKey(const ValueKey('nutrition-macros-protein-pencil'));
+      final surface = tester.widget<Material>(
+        find.descendant(of: pencil, matching: find.byType(Material)).first,
+      );
+      // Whatever the ink layer draws — the framework's focus ring included —
+      // is confined to the affordance.
+      expect(surface.clipBehavior, Clip.antiAlias);
+      expect(surface.shape, isA<CircleBorder>());
+
+      final ink = tester.widget<InkResponse>(
+        find.descendant(of: pencil, matching: find.byType(InkResponse)).first,
+      );
+      expect(ink.splashFactory, NoSplash.splashFactory);
+      expect(ink.highlightColor, TioPalette.transparent);
+      expect(ink.hoverColor, TioPalette.transparent);
+      // Focus is deliberately left visible: a keyboard user has to see where
+      // it sits, and the clip keeps that ring inside the circle.
+      expect(ink.focusColor, isNull, reason: 'framework default, not removed');
+
+      // And the affordance still works.
+      await tester.tap(pencil);
+      await tester.pumpAndSettle();
+      expect(find.byType(TioInput), findsOneWidget);
+    });
+
     testWidgets('no text field is shown until the pencil is tapped',
         (tester) async {
       await pumpPage(tester, targets: coherent, onSave: (_) async {});

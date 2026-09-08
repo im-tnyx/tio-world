@@ -107,21 +107,45 @@ class _NutritionCircularAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
-    return InkResponse(
-      onTap: onPressed,
-      radius: TioSize.dp24,
-      child: Container(
-        width: TioSize.dp36,
-        height: TioSize.dp36,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: colors.surfaceVariant,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          size: TioSize.dp16,
-          color: colors.textSecondary,
+    // The circle is the ink surface, and it clips. Owner-approved on
+    // 2026-09-09 for every consumer of this affordance, not for Meal
+    // Categories alone: pressing the pencil was painting a splash and a
+    // highlight past the 36dp circle and onto the row behind it, which is not
+    // what any other Settings surface does — there the ripple belongs to the
+    // row, and Core's own `TioSettingsEditAffordance` paints nothing at all.
+    return Material(
+      color: colors.surfaceVariant,
+      shape: const CircleBorder(),
+      // Structural, not cosmetic. Whatever the ink layer decides to draw —
+      // including the focus ring the framework supplies — is confined to the
+      // affordance. Suppressing colours alone would leave the next state
+      // someone adds free to bleed onto the card again.
+      clipBehavior: Clip.antiAlias,
+      child: InkResponse(
+        onTap: onPressed,
+        // Never wider than the circle it lives in.
+        radius: TioSize.dp36 / 2,
+        containedInkWell: true,
+        highlightShape: BoxShape.circle,
+        // Nothing is drawn on press: the framework's own `NoSplash` rather
+        // than a transparent splash colour, so nothing is painted at all
+        // instead of something painted invisibly.
+        splashFactory: NoSplash.splashFactory,
+        highlightColor: TioPalette.transparent,
+        hoverColor: TioPalette.transparent,
+        // `focusColor` is deliberately left alone. A keyboard user has to be
+        // able to see where focus sits, and the clip above keeps that ring
+        // inside the circle where it belongs.
+        child: SizedBox(
+          width: TioSize.dp36,
+          height: TioSize.dp36,
+          child: Center(
+            child: Icon(
+              icon,
+              size: TioSize.dp16,
+              color: colors.textSecondary,
+            ),
+          ),
         ),
       ),
     );
