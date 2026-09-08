@@ -6,6 +6,7 @@ import 'package:tio_core/core.dart';
 
 import '../../../domain/models/meal_category.dart';
 import '../../../domain/repositories/meal_categories_repository.dart';
+import '../../../presentation/widgets/nutrition_settings_widgets.dart';
 import '../../../domain/usecases/meal_category_id_generator.dart';
 import '../controllers/meal_categories_controller.dart';
 import '../widgets/meal_category_swipe_row.dart';
@@ -402,11 +403,6 @@ class _ActiveRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
-    // Disabled controls must look disabled. An explicit icon colour overrides
-    // `IconButton`'s disabled `IconTheme`, so during a save these would read
-    // as tappable while ignoring taps.
-    final actionColor = enabled ? colors.textSecondary : colors.textMuted;
-
     // Canonical defaults hold a fixed relative order, so they are not
     // draggable and show no grip.
     final isReorderable = item.defaultKey == null;
@@ -481,11 +477,36 @@ class _ActiveRow extends StatelessWidget {
                     ),
                   ),
                 ),
-                IconButton(
-                  key: ValueKey('meal-category-rename-${item.id}'),
-                  tooltip: 'Edit ${item.displayName}',
-                  onPressed: enabled ? onRename : null,
-                  icon: Icon(Icons.edit_outlined, color: actionColor),
+                // The Settings edit affordance the rest of Nutrition already
+                // uses, rather than a third bare pencil. The shared component
+                // takes no key, tooltip or disabled state, so those are
+                // composed here instead of forking its visuals.
+                Tooltip(
+                  message: 'Edit ${item.displayName}',
+                  child: SizedBox(
+                    // The circle is 36dp by design; the target around it is
+                    // not, so it keeps a legal 48dp touch area.
+                    width: kMinInteractiveDimension,
+                    height: kMinInteractiveDimension,
+                    child: Center(
+                      child: enabled
+                          ? NutritionEditPencil(
+                              key: ValueKey('meal-category-rename-${item.id}'),
+                              onPressed: onRename,
+                            )
+                          : Opacity(
+                              opacity: TioOpacity.opacity64,
+                              child: IgnorePointer(
+                                child: NutritionEditPencil(
+                                  key: ValueKey(
+                                    'meal-category-rename-${item.id}',
+                                  ),
+                                  onPressed: () {},
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
                 ),
               ],
             ),

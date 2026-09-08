@@ -1118,6 +1118,48 @@ void main() {
       expect(after.active, isFalse);
     });
 
+    testWidgets('both row kinds use the shared Nutrition edit affordance',
+        (tester) async {
+      // Reused rather than reimplemented: a third bare pencil would drift from
+      // the rest of Settings the first time either changed.
+      await _pumpPage(tester, stored: _config(extraActive: 1));
+
+      for (final id in ['meal_slot_1', _customId]) {
+        expect(
+          find.byKey(ValueKey('meal-category-rename-$id')),
+          findsOneWidget,
+          reason: id,
+        );
+        expect(
+          tester.widget(find.byKey(ValueKey('meal-category-rename-$id'))),
+          isA<NutritionEditPencil>(),
+          reason: '$id uses the shared affordance, not a local pencil',
+        );
+      }
+    });
+
+    testWidgets('the edit affordance travels with the row on swipe',
+        (tester) async {
+      await _pumpPage(tester, stored: _config());
+      final before = tester
+          .getTopLeft(find.byKey(const ValueKey('meal-category-rename-meal_slot_2')))
+          .dx;
+
+      await _swipeOpen(tester, 'Lunch');
+
+      final travelled = before -
+          tester
+              .getTopLeft(
+                find.byKey(const ValueKey('meal-category-rename-meal_slot_2')),
+              )
+              .dx;
+      expect(
+        travelled,
+        closeTo(MealCategorySwipeRow.revealWidth, 0.5),
+        reason: 'it belongs to the foreground, not floating over the action',
+      );
+    });
+
     testWidgets('a default row offers no drag handle', (tester) async {
       await _pumpPage(tester, stored: _config(extraActive: 1));
 
@@ -1520,11 +1562,18 @@ void main() {
       final semantics = tester.ensureSemantics();
       await _pumpPage(tester, stored: _config());
 
-      final size = tester.getSize(
-        find.byKey(const ValueKey('meal-category-rename-meal_slot_1')),
+      // The shared affordance draws a 36dp circle; the target around it is
+      // what has to clear the minimum.
+      final target = tester.getSize(
+        find
+            .ancestor(
+              of: find.byKey(const ValueKey('meal-category-rename-meal_slot_1')),
+              matching: find.byType(SizedBox),
+            )
+            .first,
       );
-      expect(size.width, greaterThanOrEqualTo(kMinInteractiveDimension));
-      expect(size.height, greaterThanOrEqualTo(kMinInteractiveDimension));
+      expect(target.width, greaterThanOrEqualTo(kMinInteractiveDimension));
+      expect(target.height, greaterThanOrEqualTo(kMinInteractiveDimension));
 
       expect(find.byTooltip('Edit Breakfast'), findsOneWidget);
       semantics.dispose();
@@ -1544,34 +1593,46 @@ void main() {
       await tester.tap(find.text('Archive'));
       await tester.pump();
 
-      final renameIcon = tester.widget<Icon>(
-        find.descendant(
-          of: find.byKey(const ValueKey('meal-category-rename-meal_slot_1')),
-          matching: find.byType(Icon),
-        ),
-      );
+      // The shared pencil carries no disabled state of its own, so the row
+      // composes one: dimmed and inert while a write is in flight.
       expect(
-        renameIcon.color,
-        TioColors.light.textMuted,
+        tester
+            .widget<Opacity>(
+              find
+                  .ancestor(
+                    of: find.byKey(
+                      const ValueKey('meal-category-rename-meal_slot_1'),
+                    ),
+                    matching: find.byType(Opacity),
+                  )
+                  .first,
+            )
+            .opacity,
+        TioOpacity.opacity64,
         reason: 'a control that ignores taps must not look tappable',
+      );
+
+      // And it genuinely ignores the tap rather than only looking dimmed.
+      await tester.tap(
+        find.byKey(const ValueKey('meal-category-rename-meal_slot_1')),
+        warnIfMissed: false,
+      );
+      await tester.pump();
+      expect(
+        find.byKey(_nameField),
+        findsNothing,
+        reason: 'no editor opens while a write is in flight',
       );
 
       gate.complete();
       await tester.pumpAndSettle();
 
-      expect(
-        tester
-            .widget<Icon>(
-              find.descendant(
-                of: find.byKey(
-                  const ValueKey('meal-category-rename-meal_slot_1'),
-                ),
-                matching: find.byType(Icon),
-              ),
-            )
-            .color,
-        TioColors.light.textSecondary,
+      // Live again once the write finishes.
+      await tester.tap(
+        find.byKey(const ValueKey('meal-category-rename-meal_slot_1')),
       );
+      await tester.pumpAndSettle();
+      expect(find.byKey(_nameField), findsOneWidget);
     });
 
     testWidgets('the active list is the page scroll view', (tester) async {
