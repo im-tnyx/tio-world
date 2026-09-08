@@ -313,6 +313,104 @@ void main() {
     });
   });
 
+  group('page description', () {
+    testWidgets('explains the screen above the ACTIVE section', (tester) async {
+      await _pumpPage(tester, stored: _config());
+
+      final description =
+          find.byKey(const ValueKey('meal-categories-description'));
+      final note = find.byKey(const ValueKey('meal-categories-minimum-note'));
+      final header =
+          find.byKey(const ValueKey('meal-categories-active-header'));
+
+      expect(description, findsOneWidget);
+      expect(note, findsOneWidget);
+
+      // Order on screen rather than exact coordinates: description, then the
+      // rule, then the section it introduces.
+      final descriptionY = tester.getTopLeft(description).dy;
+      final noteY = tester.getTopLeft(note).dy;
+      final headerY = tester.getTopLeft(header).dy;
+      expect(descriptionY, lessThan(noteY));
+      expect(noteY, lessThan(headerY));
+    });
+
+    testWidgets('the copy names custom categories as the reorderable ones',
+        (tester) async {
+      // The canonical four are fixed, so "categories can be reordered" would
+      // promise something the screen refuses.
+      await _pumpPage(tester, stored: _config());
+
+      final text =
+          tester.widget<Text>(find.byKey(const ValueKey('meal-categories-description'))).data!;
+      expect(text, contains('Custom categories can be reordered.'));
+      expect(text, isNot(contains('Categories can be reordered')));
+    });
+
+    testWidgets('the copy sits outside the category card', (tester) async {
+      await _pumpPage(tester, stored: _config());
+
+      expect(
+        find.descendant(
+          of: find.byKey(_swipeRow('meal_slot_1')),
+          matching: find.byKey(const ValueKey('meal-categories-description')),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('the minimum note is informational, not an error',
+        (tester) async {
+      await _pumpPage(tester, stored: _config());
+
+      final note = tester.widget<Text>(
+        find.byKey(const ValueKey('meal-categories-minimum-note')),
+      );
+      expect(note.style!.color, TioColors.light.textMuted);
+      expect(
+        note.style!.color,
+        isNot(TioColors.light.danger),
+        reason: 'it is true before anything goes wrong',
+      );
+    });
+
+    testWidgets('no Learn More affordance is offered', (tester) async {
+      await _pumpPage(tester, stored: _config());
+
+      expect(find.text('Learn More'), findsNothing);
+      expect(find.text('Learn more'), findsNothing);
+    });
+
+    for (final testCase in const [
+      (name: 'Dark', mode: TioThemeMode.dark, expected: TioColors.dark),
+      (name: 'OLED', mode: TioThemeMode.oled, expected: TioColors.oled),
+    ]) {
+      testWidgets('the copy follows the ${testCase.name} palette',
+          (tester) async {
+        await _pumpPage(tester, stored: _config(), mode: testCase.mode);
+
+        expect(
+          tester
+              .widget<Text>(
+                find.byKey(const ValueKey('meal-categories-description')),
+              )
+              .style!
+              .color,
+          testCase.expected.textSecondary,
+        );
+        expect(
+          tester
+              .widget<Text>(
+                find.byKey(const ValueKey('meal-categories-minimum-note')),
+              )
+              .style!
+              .color,
+          testCase.expected.textMuted,
+        );
+      });
+    }
+  });
+
   group('row contents', () {
     testWidgets('a custom row shows a drag handle, a name and an edit action',
         (tester) async {
@@ -1395,6 +1493,16 @@ void main() {
           find.byKey(const ValueKey('meal-categories-destination-page')),
         );
         expect(scaffold.backgroundColor, testCase.expected.background);
+
+        // The description pushes the list down, so at this size the first row
+        // starts below the fold and the lazy sliver has not built it yet.
+        await tester.scrollUntilVisible(
+          find.byKey(const ValueKey('meal-category-divider-meal_slot_1')),
+          200,
+          scrollable: _pageScrollable,
+        );
+        await tester.pumpAndSettle();
+
         // The rule follows the theme rather than a fixed grey.
         final divider = tester.widget<Divider>(
           find.byKey(const ValueKey('meal-category-divider-meal_slot_1')),

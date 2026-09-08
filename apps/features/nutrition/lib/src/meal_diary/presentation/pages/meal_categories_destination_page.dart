@@ -284,6 +284,15 @@ class _MealCategoriesDestinationPageState
             TioSpacing.lg,
             TioSpacing.none,
           ),
+          sliver: SliverToBoxAdapter(child: _PageDescription()),
+        ),
+        const SliverPadding(
+          padding: EdgeInsets.fromLTRB(
+            TioSpacing.lg,
+            TioSpacing.lg,
+            TioSpacing.lg,
+            TioSpacing.none,
+          ),
           sliver: SliverToBoxAdapter(
             child: _SectionHeader(
               key: ValueKey('meal-categories-active-header'),
@@ -535,6 +544,55 @@ class _AddCategoryRow extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// What this screen is for, and the one rule a reader would otherwise have to
+/// discover by having an action refused.
+///
+/// Outside the card on purpose: it describes the screen rather than belonging
+/// to any category, and the card is the list.
+class _PageDescription extends StatelessWidget {
+  const _PageDescription();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+
+    return Padding(
+      padding: const EdgeInsets.only(left: TioSpacing.sm, right: TioSpacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            // "Custom categories" rather than "categories": the canonical four
+            // are deliberately fixed, and the shorter phrasing would promise
+            // something the screen refuses.
+            'Customize the meal categories shown in your diary. Rename '
+                'categories, add your own, or archive ones you no longer use. '
+                'Custom categories can be reordered.',
+            key: const ValueKey('meal-categories-description'),
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: TioFontSize.size14,
+              height: TioLineHeight.height145,
+            ),
+          ),
+          const SizedBox(height: TioSpacing.sm),
+          Text(
+            // Informational, not an error: it is true before anything goes
+            // wrong, so it takes muted text rather than the danger colour.
+            'At least one meal category must remain active.',
+            key: const ValueKey('meal-categories-minimum-note'),
+            style: TextStyle(
+              color: colors.textMuted,
+              fontSize: TioFontSize.size12,
+              height: TioLineHeight.height145,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
