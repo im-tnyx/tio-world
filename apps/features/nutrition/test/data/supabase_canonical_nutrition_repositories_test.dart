@@ -97,6 +97,9 @@ void main() {
           'other_allergy_restriction': null,
         }
       ]);
+      final payload = gateway.upsertPayloads.single;
+      expect(payload, isNot(contains('meal_categories_config')));
+      expect(payload, isNot(contains('updated_at')));
     });
 
     test(

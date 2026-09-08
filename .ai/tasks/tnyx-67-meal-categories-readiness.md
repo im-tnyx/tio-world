@@ -2,36 +2,36 @@
 
 **Status:** In progress
 **Primary owner:** `apps/features/nutrition`
-**Affected platforms:** Supabase Postgres repository migration for Slice B1; Flutter Android + iOS behavior is unchanged
+**Affected platforms:** Flutter Android + iOS Nutrition data/composition for Slice B2; Supabase Postgres Slice B1 is already closed and unchanged
 
 ## Owner Approval and Scope Boundary
 
 **Trigger:** New independently scoped product slice; future Supabase column shape change; future product-visible UI/UX change
-**Approval status:** Slice A and Slice B1 repository work are merged and validated; the exact Slice B1 hosted migration is applied and verified; Slice B2/C/D remain unapproved and unstarted
-**Approval evidence:** TNYX-67 owner-locked semantics updated 2026-09-06; the 2026-09-06 Slice A authorization; the 2026-09-07 TNYX-66 Slice B readiness refresh and Slice B1 repository authorization; and the 2026-09-07 explicit authorization to apply only migration `20260907065602_add_meal_categories_config` to hosted project `oykupyiitspujzpwwvuj` after fresh preflight.
+**Approval status:** Slice A and Slice B1 are closed. The owner explicitly authorized Slice B2 repository adapter, narrow gateway, app composition provider, focused tests, one implementation branch, and one focused PR. Slice C/D remain unapproved and unstarted.
+**Approval evidence:** TNYX-67 owner-locked semantics updated 2026-09-06; prior Slice A/B1 authorizations and hosted apply; the 2026-09-07 Slice B2 readiness result; and the 2026-09-07 explicit B2 implementation/PR authorization.
 **Approved product/data direction:** Meal Category is separate from `MealLogEntry.mealName`; four resolved defaults; maximum eight active categories; stable non-semantic IDs; profile-owned nullable versioned JSONB direction.
-**Explicit non-changes:** No Flutter UI, Supabase adapter, MealLog persistence, `services/api`, Weight, or Workout work. No Slice B2, C, or D implementation. The only hosted Supabase mutation in Slice B1 was the separately authorized exact migration `20260907065602_add_meal_categories_config`, which is already applied and verified.
+**Explicit non-changes:** No Flutter UI, MealLog persistence, `services/api`, Weight, Workout, Slice C/D, migration/SQL, schema/RLS/RPC/index/timestamp change, hosted Supabase mutation, Docker, or local/backend service work. The exact Slice B1 hosted migration is already applied and only consumed by B2.
 
 ## Active Handoff
 
 **Planning owner:** Codex `/root`
-**Implementation owner:** None — Slice B1 repository and hosted rollout are closed
-**Review owner:** None — PR #221 is merged after exact-head CI and resolved review; PR #222 post-merge Codex P2 `3950154215` is incorporated by the docs-only truth correction
-**Implementation ownership state:** Slice A closed; Slice B1 repository merged/validated; Slice B1 hosted rollout applied/verified; Slice B2/C/D unstarted
-**Ownership transition:** Owner-authorized transition from merged Slice B1 repository work to `/root` hosted rollout closeout on 2026-09-07
+**Implementation owner:** Codex `/root` — exclusive owner for the authorized Slice B2 implementation
+**Review owner:** None — PR #223 is merged; its late Codex review found no major issue, and PR #222 P2 `3950154215` remains resolved
+**Implementation ownership state:** Slice A/B1 closed; Slice B2 implementation and local validation complete in PR #224; Slice C/D unstarted
+**Ownership transition:** Owner-authorized transition from readiness-only planning to `/root` Slice B2 implementation on 2026-09-07
 **Repository state last verified:** 2026-09-07 after fresh Git/GitHub/Linear/Supabase read-only verification
-**Branch:** `docs/tnyx-67-b1-rollout-truth-correction`
-**Base SHA:** `b095a91c202c490facd92973618f0c79cf5deef3`
-**Observed working-tree state:** PR #222 is squash-merged to `main` at `b095a91c202c490facd92973618f0c79cf5deef3`; hosted ledger contains the applied B1 migration; this docs-only truth correction is the only scoped repository change; the unrelated root `pubspec.lock` modification remains preserved and excluded
-**Observed uncommitted/dirty files:** pre-existing `pubspec.lock` only; preserve and exclude the lock exactly
-**PR / tracker:** PR #218/#219/#220/#221/#222 are merged. TNYX-67 remains `In Progress`; `blockedBy TNYX-66` is unchanged; TNYX-66 remains `Backlog`.
-**Current implementation state:** Slice A is closed. Slice B1 repository work is merged and validated at main SHA `d66779a48f9a1a4042c6d4acc379059e12e1a9fc`; hosted migration `20260907065602_add_meal_categories_config` is applied and verified. No B2 adapter or later slice has started.
-**Relevant execution surface:** Nutrition domain/data; later Nutrition Meal Diary Settings and meal-logging presentation
+**Branch:** `tnyx/tnyx-67-meal-categories-supabase-adapter`
+**Base SHA:** `31d3dd4b98182edca86866f9b1c31c1c41eac368`
+**Observed working-tree state:** PR #224 contains only the authorized Slice B2 implementation/task evidence; the unrelated root `pubspec.lock` modification remains preserved and unstaged
+**Observed uncommitted/dirty files:** pre-existing `pubspec.lock` with SHA-256 `004DE1A093C1F04F684B39DF072C2F2E37B1CD21046BFEE01E628E7F77300B1C`, plus this authorized task-brief update only
+**PR / tracker:** PR #218/#219/#220/#221/#222/#223 are merged. PR #224 is the open, unmerged B2 implementation PR. TNYX-67 remains `In Progress`; `blockedBy TNYX-66` is preserved; TNYX-66 remains `Backlog`.
+**Current implementation state:** Slice A/B1 are closed. B2 is implemented and locally validated on the focused branch; no later slice has started.
+**Relevant execution surface:** `apps/features/nutrition` data/repository adapter and `apps/app` provider composition only; no presentation/UI surface
 **Validation completed:** Slice A validation remains green. For Slice B1, exact P1-remediation implementation head `bf31923d4ab8ea59256536ad467cc81ef21d609f` passed full Supabase Database CI run `34120860985`, and evidence head `e12b3d52c1d5d0fdc49cce10bf1751ed05a88d7d` passed run `34121248320`: disposable base initialization, baseline replay/lint, clean full replay, dynamic repository-file/ledger parity, B1 version exactly once, private-schema exposure, exhaustive SQL/RLS/DELETE/account-cascade/large-archived matrix, real two-session stale-writer concurrency, and B1-introduced lint comparison. Those CI-era hosted reads were pre-apply historical evidence at 39 migrations. The separately authorized hosted rollout then applied `20260907065602_add_meal_categories_config` exactly once and post-apply verification passed at 40 migrations with the reviewed column, CHECK, private validator, retained-ID trigger, grants, RLS hardening, preserved rows, and no B1 advisor blocker.
-**Validation remaining:** None for Slice B1. Any B2/C/D work requires its own authorization/readiness and is not started by this closeout.
-**Current blocker:** None for Slice B1. TNYX-67 remains `In Progress` for later feature slices and retains its `blockedBy TNYX-66` relation; later settings UI remains coupled to TNYX-68/N14 and TNYX-54.
+**Validation remaining:** At final handoff, verify PR #224's exact head, CI, Codex review, and unresolved actionable threads; then publish exactly one Linear implementation handoff comment and stop without merge.
+**Current blocker:** None. TNYX-67 remains `In Progress` and retains `blockedBy TNYX-66`; TNYX-66 remains `Backlog`.
 **Resolved review finding IDs:** `3949432003`, `3949432006`, `3949432012`, and `3949432017` are fixed, exact-head validated, replied, and resolved. PR #222 Codex P2 `3950154215` identified stale hosted-state wording; this correction incorporates that finding.
-**Next exact action:** Stop after this docs-only truth correction is landed and synced. Do not start B2, C, D, Flutter/UI, Quick Add, MealLog, or any additional hosted mutation without separate authorization/readiness.
+**Next exact action:** Complete only PR #224 exact-head CI/review verification and the one authorized Linear handoff comment, then stop without merge or Slice C/D work.
 
 ## 1. Discovery
 
@@ -372,3 +372,114 @@ B2 remains a later Flutter adapter slice after owner-authorized hosted rollout a
 - Security advisor: 5 existing `WARN` findings — four existing public `SECURITY DEFINER` RPC execution warnings and disabled leaked-password protection. No B1-named finding and no HIGH/CRITICAL B1 blocker.
 - Performance advisor: 30 existing findings — 18 `WARN` RLS init-plan findings and 12 `INFO` unused-index findings. The Nutrition Profile findings apply to its pre-existing SELECT/INSERT/UPDATE policies and redundant existing user-id index; B1 added no policy or index. No B1-named finding and no B1 blocker.
 - Slice B1 hosted verification result: `PASS`. TNYX-67 remains `In Progress`; TNYX-66 remains unchanged; B2/C/D are not started.
+
+## 11. Slice B2 Adapter Readiness Refresh — 2026-09-07
+
+### Fresh Repository and Hosted Evidence
+
+- `main == origin/main == 31d3dd4b98182edca86866f9b1c31c1c41eac368`; PR #223 is squash-merged and changed only this task brief. Its late Codex review found no major issue. PR #222 finding `3950154215` is replied to/resolved, and no actionable B1 P1/P2 thread remains.
+- The existing Meal Categories domain already owns stable IDs, canonical defaults, the strict V1 codec, maximum-eight validation, retained-ID transition policy, repository contract, and deterministic in-memory implementation. These contracts are exported through `package:tio_feature_nutrition/nutrition.dart`; B2 must reuse them rather than create a parallel model or feature tree.
+- Current Supabase Nutrition adapters use an injectable narrow table gateway, `client.auth.currentUser?.id`, signed-out reads without gateway access, signed-out writes that throw before mutation, filtered `.select(...).eq('user_id', userId).maybeSingle()`, and `.upsert(payload, onConflict: 'user_id')`. Production composition selects Supabase or in-memory owners in `apps/app/lib/app/network_providers.dart`.
+- `NutritionProfileRepository` and Product Onboarding write only canonical profile columns and omit `meal_categories_config`. The B1 database regression already proves the profile-only `ON CONFLICT` writer preserves a customized category config. B2 must not modify those writers or duplicate profile ownership.
+- Fresh hosted read-only verification reconfirmed healthy project `tio-world` (`oykupyiitspujzpwwvuj`), 40 migrations with `20260907065602_add_meal_categories_config` latest and present exactly once, nullable/no-default `meal_categories_config jsonb`, validated CHECK, private `SECURITY INVOKER` validator and retained-ID trigger function with empty `search_path`, enabled row-level `BEFORE UPDATE OF meal_categories_config` trigger, RLS owner SELECT/INSERT/UPDATE with UPDATE `USING` and `WITH CHECK`, no standalone DELETE policy, two preserved rows with SQL `NULL` configs, and no B1 public RPC or category index. Current advisors contain only pre-existing warnings/info and no HIGH/CRITICAL or B1 blocker.
+- Current Supabase Dart documentation confirms the repository's established `.maybeSingle()` and `.upsert(..., onConflict: 'user_id')` conventions. No current source, hosted contract, review, or tracker evidence requires a new schema object, RPC, index, timestamp/revision field, read-before-write concurrency layer, or backend service for B2.
+
+### Exact B2 Implementation Boundary
+
+One focused implementation PR is authorized. Actual branch/base:
+
+```text
+branch: tnyx/tnyx-67-meal-categories-supabase-adapter
+base:   31d3dd4b98182edca86866f9b1c31c1c41eac368
+```
+
+Expected changed files/modules:
+
+- add `apps/features/nutrition/lib/src/data/repositories/supabase_meal_categories_repository.dart` with an injectable `MealCategoriesTableGateway` and `SupabaseMealCategoriesRepository`;
+- update `apps/features/nutrition/lib/src/data/data.dart` to export the adapter;
+- update `apps/app/lib/app/network_providers.dart` with `mealCategoriesRepositoryProvider`, selecting the Supabase adapter when a client exists and `InMemoryMealCategoriesRepository` otherwise;
+- add `apps/features/nutrition/test/data/supabase_meal_categories_repository_test.dart` for the focused adapter contract;
+- update `apps/app/test/app/network_providers_test.dart` for Supabase/in-memory composition selection;
+- update this task brief with actual implementation/validation evidence. No other source file is expected to change unless fresh implementation evidence proves the bounded adapter contract cannot be met.
+
+Repository behavior for the implementation is fixed as follows:
+
+- signed-out `read()` performs no gateway access and returns `MealCategoriesConfig.canonicalDefaults()`; signed-out `upsert()` throws before gateway access;
+- authenticated read selects only `meal_categories_config` filtered by `user_id`; a missing row or SQL `NULL` resolves defaults, while non-null data decodes only through `MealCategoriesConfigCodec` and malformed/future schema errors propagate without defaulting;
+- write calls `config.validate()`, encodes through `MealCategoriesConfigCodec`, and upserts only `user_id` plus `meal_categories_config`; it does not write profile fields or `updated_at`;
+- the adapter does not perform a race-prone read-before-write transition check. The hosted CHECK and row-locking retained-ID trigger remain the authoritative atomic boundary; database rejection propagates without retry, merge, reset, truncation, downgrade, or fallback overwrite;
+- existing profile/onboarding writers stay unchanged and continue preserving the category column through their already-narrow payloads.
+
+### Focused Test and Validation Plan
+
+`apps/features/nutrition/test/data/supabase_meal_categories_repository_test.dart` must cover signed-out read/write with zero gateway calls; missing-row and SQL-NULL defaults; valid V1 encode/decode round-trip; malformed and future-schema read failure; exact category-only payload with neither unrelated profile fields nor `updated_at`; first customization using only `user_id`/config; database rejection propagation with no fallback write; archived IDs retained in the encoded payload; and invalid ninth-active config rejected before gateway access. The public contract exposes no destructive reset/clear path.
+
+Existing preservation coverage must remain green: the exact Nutrition Profile gateway payload test proves `meal_categories_config` remains omitted; Product Onboarding owner-write tests prove it delegates only through `NutritionProfileRepository`; the B1 SQL regression proves that profile-only `ON CONFLICT` updates preserve the stored category config. Provider tests must prove both no-Supabase in-memory and Supabase adapter selection.
+
+Expected validation commands from their owning package directories:
+
+```text
+cd apps/features/nutrition
+dart format --output=none --set-exit-if-changed lib test
+flutter analyze --no-pub
+flutter test --no-pub test/data/supabase_meal_categories_repository_test.dart test/data/supabase_canonical_nutrition_repositories_test.dart test/data/in_memory_meal_categories_repository_test.dart test/domain/meal_categories_config_test.dart test/domain/meal_categories_config_codec_test.dart
+
+cd apps/app
+flutter analyze --no-pub
+flutter test --no-pub test/app/network_providers_test.dart
+
+cd apps/features/onboarding
+flutter test --no-pub test/domain/persist_onboarding_owner_data_use_case_test.dart
+
+git diff --check
+```
+
+The focused PR must also receive exact-head Flutter CI. No Supabase Database CI change is expected because B2 changes no SQL, migration, RLS, grants, or database test.
+
+### Explicit Non-Goals
+
+No Meal Diary Settings UI, rename/add/archive/reorder screen, navigation/route, Quick Add Meal type activation, Meal Editor picker activation, Diary section integration, MealLog schema/persistence, TNYX-68/TNYX-113 work, Slice C/D, migration, table, RPC, index, revision/timestamp column, hosted mutation, `services/api`, Weight, Workout, Docker, local Supabase stack, or backend service is in B2.
+
+### Slice B2 Readiness Classification
+
+`READY — TNYX-67 Slice B2: Supabase Meal Categories repository adapter, narrow gateway, app composition provider, and focused adapter/provider preservation tests only.`
+
+## 12. Slice B2 Implementation Evidence — 2026-09-08
+
+### Implemented Boundary
+
+- Added `SupabaseMealCategoriesRepository` and the injectable `MealCategoriesTableGateway` under the existing Nutrition data boundary. The concrete gateway selects only `meal_categories_config` for the authenticated `user_id` and upserts only `user_id` plus codec-encoded `meal_categories_config` with `onConflict: 'user_id'`.
+- Signed-out reads resolve through `MealCategoriesConfig.resolve(null)` without gateway access. Signed-out writes reject before gateway access. Missing rows and SQL `NULL` resolve canonical defaults; malformed non-null and unsupported future-schema values propagate strict codec failures.
+- Writes call the existing domain validation and V1 codec. They do not pre-read, merge, retry, reset, truncate, downgrade, write `updated_at`, or write Nutrition Profile fields. The hosted B1 CHECK and retained-ID trigger remain the authoritative atomic transition boundary, and gateway/database rejection propagates without a fallback write.
+- Added `mealCategoriesRepositoryProvider` to the established app composition surface: Supabase client availability selects `SupabaseMealCategoriesRepository`; absence selects `InMemoryMealCategoriesRepository`. No UI, route, picker, MealLog, Slice C/D, or backend behavior was added.
+- Existing Nutrition Profile and onboarding writers remain production-code unchanged. Their focused payload/delegation tests remain green, and the profile payload test now explicitly asserts omission of `meal_categories_config` and `updated_at`.
+
+### Changed Files
+
+- `.ai/tasks/tnyx-67-meal-categories-readiness.md`
+- `apps/features/nutrition/lib/src/data/repositories/supabase_meal_categories_repository.dart`
+- `apps/features/nutrition/lib/src/data/data.dart`
+- `apps/features/nutrition/test/data/supabase_meal_categories_repository_test.dart`
+- `apps/features/nutrition/test/data/supabase_canonical_nutrition_repositories_test.dart`
+- `apps/app/lib/app/network_providers.dart`
+- `apps/app/test/app/network_providers_test.dart`
+
+### Local Validation
+
+- Configured local toolchain: Flutter `3.44.6`, Dart `3.12.2`. `flutter` was unavailable through PATH and the wrapper initially waited on its SDK lock; validation therefore used the same configured Flutter SDK through `flutter_tools.snapshot` with `FLUTTER_ROOT`, without dependency resolution or repository-specific path changes.
+- Scoped Dart format: 6 changed Dart files, 0 changes on verification.
+- `apps/features/nutrition`: `flutter analyze --no-pub` — PASS, no issues.
+- `apps/app`: `flutter analyze --no-pub` — PASS, no issues.
+- Focused Nutrition adapter/domain/preservation set — PASS, 73 tests.
+- `apps/app/test/app/network_providers_test.dart` — PASS, 9 tests.
+- `apps/features/onboarding/test/domain/persist_onboarding_owner_data_use_case_test.dart` — PASS, 12 tests.
+- Full `apps/features/nutrition` package suite — PASS, 314 tests.
+- `git diff --check` — PASS.
+- The unrelated root `pubspec.lock` remains unstaged and byte-for-byte preserved at SHA-256 `004DE1A093C1F04F684B39DF072C2F2E37B1CD21046BFEE01E628E7F77300B1C`. Preserved branch `docs/supabase-android-studio-qa-run` remains at `7fe896820c8f176b5049df4fe84fc9acea5933b1`.
+
+### External Safety and Remaining Handoff
+
+- Fresh hosted B1 verification before implementation was read-only and reconfirmed the 40-entry migration ledger, single latest B1 migration, reviewed column/CHECK/trigger/RLS contract, and preserved rows. No hosted Supabase mutation occurred.
+- Docker, local Supabase, PostgreSQL containers, `services/api`, and backend services were not started.
+- PR #224 opened from implementation commit `5f837c5bbb013e2ff8046e812fabedfb97e9790c`. Flutter CI run `34152650847` passed that implementation head, and GitHub Codex review comment `5574644339` reported no major issues; actual inline review threads were empty.
+- This final task-record commit changes the PR head, so the final handoff must independently re-verify exact-head CI/review state before the one authorized Linear comment. No further repository change is expected. Merge is not authorized.

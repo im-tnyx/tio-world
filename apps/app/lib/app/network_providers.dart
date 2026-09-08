@@ -262,6 +262,16 @@ final nutritionProfileRepositoryProvider =
   return InMemoryNutritionProfileRepository();
 });
 
+/// Canonical Meal Categories owner for future Nutrition consumers.
+final mealCategoriesRepositoryProvider =
+    Provider<MealCategoriesRepository>((ref) {
+  final supabaseClient = ref.watch(supabaseClientProvider);
+  if (supabaseClient != null) {
+    return SupabaseMealCategoriesRepository(client: supabaseClient);
+  }
+  return InMemoryMealCategoriesRepository();
+});
+
 /// Canonical Nutrition Profile read model for post-onboarding Settings.
 ///
 /// A missing canonical row resolves to an all-null profile so first-time
