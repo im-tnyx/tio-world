@@ -3,17 +3,22 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 
-/// A row that slides left far enough to reveal one action, and no further.
+/// A row that slides left far enough to uncover one action, and no further.
+///
+/// Two layers sharing one geometry: the action sits behind, the complete row
+/// in front. Sliding the front layer uncovers the one behind, which is why the
+/// action matches the row's height and edges exactly instead of reading as a
+/// panel parked beside it.
 ///
 /// Deliberately not a `Dismissible`: archiving a category must never happen as
-/// a side effect of a gesture. The swipe only reveals the action; the action
-/// asks for confirmation; the confirmation performs the archive. A full-swipe
-/// dismissal would collapse those three steps into one that cannot be
-/// reviewed, and archive removes a category from every future meal picker.
+/// a side effect of a gesture. The swipe only uncovers the action; the action
+/// asks; the confirmation performs it. A full-swipe dismissal collapses those
+/// three steps into one that cannot be reviewed, and archive removes a
+/// category from every future meal picker.
 ///
-/// The action stays reachable without the gesture: [semanticActionLabel] is
-/// published as a custom semantics action on the row, so a screen-reader user
-/// invokes archive directly.
+/// The action stays reachable without the gesture — [semanticActionLabel] is
+/// published as a custom semantics action, so a screen-reader user invokes it
+/// directly.
 class MealCategorySwipeRow extends StatefulWidget {
   const MealCategorySwipeRow({
     required this.child,
@@ -31,15 +36,22 @@ class MealCategorySwipeRow extends StatefulWidget {
     super.key,
   });
 
-  /// Width revealed at rest. Enough for a 48dp target plus breathing room.
-  static const double revealWidth = TioSize.dp72;
+  /// How far the row slides. One 48dp target plus a gutter either side, so the
+  /// icon is comfortably hittable without the row travelling far enough to
+  /// read as leaving the screen.
+  static const double revealWidth =
+      TioSize.dp48 + TioSpacing.lg + TioSpacing.sm;
 
-  /// How far the row must travel before it settles open rather than closed.
+  /// Past halfway the row settles open; short of it, closed. Two resting
+  /// states only — there is no partial position to leave a row parked in.
   static const double _openThreshold = revealWidth / 2;
+
+  /// A flick decides regardless of distance, so a fast short swipe still opens.
+  static const double _flickVelocity = 200;
 
   final Widget child;
 
-  /// Per-row so the revealed action is addressable rather than one of several
+  /// Per-row so the uncovered action is addressable rather than one of several
   /// identically-keyed widgets.
   final Key actionKey;
   final IconData actionIcon;
@@ -49,21 +61,20 @@ class MealCategorySwipeRow extends StatefulWidget {
   final bool enabled;
 
   /// Whether the action is possible at all right now. False leaves the row
-  /// un-swipeable rather than revealing something that would only be refused.
+  /// unswipeable rather than uncovering something that would only be refused.
   final bool actionEnabled;
 
-  /// Why the action is unavailable. Published as the row's semantics hint so
-  /// a reader who cannot see the missing affordance still learns the reason.
+  /// Why the action is unavailable. Published as the row's semantics hint so a
+  /// reader who cannot see the missing affordance still learns the reason.
   final String? blockedReason;
 
-  /// Whether this row is the one currently revealed. The page owns this so
-  /// only one row is open at a time.
+  /// Whether this row is the open one. The page owns this so only one row is
+  /// ever open.
   final bool isOpen;
   final ValueChanged<bool> onOpenChanged;
 
-  /// The row's slice of the group card. Owned here because the sliding content
-  /// has to be clipped to it — otherwise the row travels past the card's edge
-  /// and its label runs off the screen.
+  /// The row's slice of the group card. Both layers are clipped to it, so the
+  /// sliding row stays inside the card and the corners stay consistent.
   final BorderRadius borderRadius;
 
   @override
@@ -77,13 +88,17 @@ class _MealCategorySwipeRowState extends State<MealCategorySwipeRow>
   /// A `late final` initializer runs on first access, and for a row that never
   /// animated that first access is `dispose()` — by which point the element is
   /// deactivated and creating a ticker throws. Any row scrolled out of view
-  /// hits exactly that path.
+  /// takes exactly that path.
   late final AnimationController _controller;
+
+  /// Drives the release. Held as an animation so settling follows a curve
+  /// rather than jumping to its destination.
+  Animation<double> _slide = const AlwaysStoppedAnimation(0);
 
   double _offset = 0;
 
-  /// Guards the reveal haptic so it fires once per crossing rather than on
-  /// every drag frame that happens to sit past the threshold.
+  /// Guards the threshold haptic so it fires once per crossing rather than on
+  /// every drag frame that happens to sit past it.
   bool _passedThreshold = false;
 
   @override
@@ -94,6 +109,7 @@ class _MealCategorySwipeRowState extends State<MealCategorySwipeRow>
       duration: const Duration(milliseconds: 180),
     );
     _offset = widget.isOpen ? MealCategorySwipeRow.revealWidth : 0;
+    _passedThreshold = widget.isOpen;
   }
 
   @override
@@ -111,39 +127,38 @@ class _MealCategorySwipeRowState extends State<MealCategorySwipeRow>
     super.dispose();
   }
 
-  void _animateTo(double target) {
-    final from = _offset;
-    if (from == target) return;
-    _controller
-      ..stop()
-      ..reset();
-    final animation = Tween<double>(begin: from, end: target).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
-    void listener() => setState(() => _offset = animation.value);
-    animation.addListener(listener);
-    _controller.forward().whenComplete(() {
-      animation.removeListener(listener);
-      if (mounted) setState(() => _offset = target);
-      _passedThreshold = target > 0;
-    });
-  }
-
   bool get _canReveal => widget.enabled && widget.actionEnabled;
+
+  void _animateTo(double target) {
+    if (_offset == target) return;
+    _controller.stop();
+    _slide = Tween<double>(begin: _offset, end: target).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    )..addListener(() {
+        if (mounted) setState(() => _offset = _slide.value);
+      });
+    _controller
+      ..reset()
+      ..forward().whenComplete(() {
+        if (mounted) setState(() => _offset = target);
+        _passedThreshold = target > 0;
+      });
+  }
 
   void _onDragUpdate(DragUpdateDetails details) {
     if (!_canReveal) return;
+    _controller.stop();
     setState(() {
-      // Clamped: left swipe only, and never past the revealed width, so the
-      // row cannot be thrown off screen.
-      _offset =
-          (_offset - details.delta.dx).clamp(0, MealCategorySwipeRow.revealWidth);
+      // Clamped: left only, and never past the reveal, so the row cannot be
+      // dragged halfway across the screen or thrown off it.
+      _offset = (_offset - details.delta.dx)
+          .clamp(0, MealCategorySwipeRow.revealWidth);
     });
 
     final past = _offset >= MealCategorySwipeRow._openThreshold;
     if (past != _passedThreshold) {
       _passedThreshold = past;
-      // One tick when the action becomes reachable, not per frame.
+      // One tick as the action becomes reachable, not one per frame.
       if (past) HapticFeedback.selectionClick();
     }
   }
@@ -151,9 +166,9 @@ class _MealCategorySwipeRowState extends State<MealCategorySwipeRow>
   void _onDragEnd(DragEndDetails details) {
     if (!_canReveal) return;
     final velocity = details.primaryVelocity ?? 0;
-    final shouldOpen = velocity < -200
+    final shouldOpen = velocity < -MealCategorySwipeRow._flickVelocity
         ? true
-        : velocity > 200
+        : velocity > MealCategorySwipeRow._flickVelocity
             ? false
             : _offset >= MealCategorySwipeRow._openThreshold;
     widget.onOpenChanged(shouldOpen);
@@ -165,7 +180,6 @@ class _MealCategorySwipeRowState extends State<MealCategorySwipeRow>
     final colors = context.tioColors;
 
     return Semantics(
-      // Archive stays reachable without the gesture.
       // Reachable without the gesture when the action is possible; when it is
       // not, the reason is stated rather than the affordance silently missing.
       customSemanticsActions: _canReveal
@@ -175,61 +189,81 @@ class _MealCategorySwipeRowState extends State<MealCategorySwipeRow>
             }
           : const {},
       hint: _canReveal ? null : widget.blockedReason,
-      child: Material(
-        color: colors.surfaceRaised,
+      child: ClipRRect(
         borderRadius: widget.borderRadius,
-        clipBehavior: Clip.antiAlias,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onHorizontalDragUpdate: _onDragUpdate,
-          onHorizontalDragEnd: _onDragEnd,
-          child: Row(
-            children: [
-              // The row compresses rather than translating, so the category's
-              // name stays where it was and stays readable. Sliding the whole
-              // row would push the name off the card's edge — leaving the
-              // reader deciding whether to archive something they can no
-              // longer see.
-              Expanded(child: widget.child),
-              // `Align` with a width factor gives the action a width of
-              // `revealWidth * factor` while the icon inside keeps its own
-              // size, so the strip grows without squeezing its contents.
-              ClipRect(
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  widthFactor:
-                      (_offset / MealCategorySwipeRow.revealWidth).clamp(0, 1),
-                  child: SizedBox(
-                    width: MealCategorySwipeRow.revealWidth,
-                    child: Opacity(
-                      // Fades in with the reveal, so the destructive colour
-                      // arrives as the action is uncovered rather than only
-                      // once it is tapped, and leaves again when the row
-                      // closes.
-                      opacity: (_offset / MealCategorySwipeRow.revealWidth)
-                          .clamp(0, 1),
-                      child: ColoredBox(
-                        // The repo's destructive surface: a `danger` tint
-                        // carrying a `danger` foreground, as the delete-account
-                        // dialog uses. Deliberately not a solid fill — there is
-                        // no on-destructive token to put on top of one, and
-                        // adding a Core colour to fill one strip would broaden
-                        // the design system without reuse evidence.
-                        color: colors.danger.withAlpha(TioAlpha.alpha35),
-                        child: Center(
-                          child: IconButton(
-                            key: widget.actionKey,
-                            tooltip: widget.actionLabel,
-                            onPressed: _offset > 0 ? widget.onAction : null,
-                            icon: Icon(widget.actionIcon, color: colors.danger),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+        // The foreground sizes the stack and the background fills it, so the
+        // two layers cannot disagree about height the way siblings would.
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: _ActionLayer(
+                actionKey: widget.actionKey,
+                icon: widget.actionIcon,
+                label: widget.actionLabel,
+                // Only tappable once uncovered; beneath a closed row it is
+                // inert rather than a hidden target.
+                onPressed: _offset > 0 ? widget.onAction : null,
+                background: colors.danger.withAlpha(TioAlpha.alpha35),
+                foreground: colors.danger,
+              ),
+            ),
+            // The whole row moves as one unit — its own surface included — so
+            // what appears from the right is the layer underneath rather than
+            // a gap cut into the row.
+            Transform.translate(
+              offset: Offset(-_offset, 0),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onHorizontalDragUpdate: _onDragUpdate,
+                onHorizontalDragEnd: _onDragEnd,
+                child: Material(
+                  color: colors.surfaceRaised,
+                  child: widget.child,
                 ),
               ),
-            ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The layer behind the row. Right-aligned across the row's full height, so it
+/// is uncovered edge to edge rather than floating beside the content.
+class _ActionLayer extends StatelessWidget {
+  const _ActionLayer({
+    required this.actionKey,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    required this.background,
+    required this.foreground,
+  });
+
+  final Key actionKey;
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+  final Color background;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: SizedBox(
+        width: MealCategorySwipeRow.revealWidth,
+        height: double.infinity,
+        child: ColoredBox(
+          color: background,
+          child: Center(
+            child: IconButton(
+              key: actionKey,
+              tooltip: label,
+              onPressed: onPressed,
+              icon: Icon(icon, color: foreground),
+            ),
           ),
         ),
       ),

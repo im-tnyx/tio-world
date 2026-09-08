@@ -203,6 +203,10 @@ ValueKey<String> _swipeAction(String id) =>
     ValueKey('meal-category-swipe-action-$id');
 
 ValueKey<String> _swipeRow(String id) => ValueKey('meal-category-swipe-$id');
+
+/// The moving foreground layer, used to measure how far a row has travelled.
+ValueKey<String> _rowContent(String id) =>
+    ValueKey('meal-category-active-$id');
 const _nameField = ValueKey('meal-category-name-field');
 const _nameSubmit = ValueKey('meal-category-name-submit');
 
@@ -357,15 +361,12 @@ void main() {
             .onPressed,
         isNull,
       );
-      final veil = tester.widget<Opacity>(
-        find
-            .ancestor(
-              of: find.byKey(_swipeAction('meal_slot_1')),
-              matching: find.byType(Opacity),
-            )
-            .first,
-      );
-      expect(veil.opacity, 0, reason: 'and it is not visible at rest');
+      // At rest the row covers the action completely, so nothing archive
+      // shaped is on offer.
+      final rowRect = tester.getRect(find.byKey(_rowContent('meal_slot_1')));
+      final cardRect = tester.getRect(find.byKey(_swipeRow('meal_slot_1')));
+      expect(rowRect.left, closeTo(cardRect.left, 0.5));
+      expect(rowRect.right, greaterThanOrEqualTo(cardRect.right - 0.5));
 
       // A default row's only control is the pencil: no handle, no archive.
       final rowIcons = tester
@@ -437,77 +438,83 @@ void main() {
     testWidgets('the row settles open rather than dismissing', (tester) async {
       await _pumpPage(tester, stored: _config());
 
-      final nameBefore = tester.getTopLeft(find.text('Lunch')).dx;
+      final before = tester.getTopLeft(find.byKey(_rowContent('meal_slot_2')));
 
-      // A hard fling must not throw the row off screen.
+      // A hard fling must not carry the row off screen: it stops at exactly
+      // one action's width, whatever the velocity.
       await tester.fling(find.text('Lunch'), const Offset(-500, 0), 2000);
       await tester.pumpAndSettle();
 
-      expect(find.text('Lunch'), findsOneWidget, reason: 'still on screen');
+      expect(find.text('Lunch'), findsOneWidget, reason: 'still mounted');
+      final travelled =
+          before.dx - tester.getTopLeft(find.byKey(_rowContent('meal_slot_2'))).dx;
       expect(
-        tester.getTopLeft(find.text('Lunch')).dx,
-        nameBefore,
-        reason: 'the row compresses, so the name never moves or truncates',
-      );
-      // The reveal is clamped: even a hard fling opens exactly one action.
-      expect(
-        tester.getSize(find.byKey(_swipeAction('meal_slot_2'))).width,
-        lessThanOrEqualTo(MealCategorySwipeRow.revealWidth),
+        travelled,
+        closeTo(MealCategorySwipeRow.revealWidth, 0.5),
+        reason: 'clamped to the reveal, never dismissed',
       );
     });
 
-    testWidgets('the reveal carries the destructive surface, and loses it',
+    testWidgets('the action layer is behind the row, matching its geometry',
         (tester) async {
       await _pumpPage(tester, stored: _config());
 
-      ColoredBox surfaceOf(String id) => tester.widget<ColoredBox>(
-            find
-                .ancestor(
-                  of: find.byKey(_swipeAction(id)),
-                  matching: find.byType(ColoredBox),
-                )
-                .first,
-          );
-      double veilOf(String id) => tester
-          .widget<Opacity>(
-            find
-                .ancestor(
-                  of: find.byKey(_swipeAction(id)),
-                  matching: find.byType(Opacity),
-                )
-                .first,
-          )
-          .opacity;
+      final rowRect = tester.getRect(find.byKey(_swipeRow('meal_slot_2')));
+      // The strip, not the icon inside it: the icon is centred and so is
+      // inset by design.
+      final stripRect = tester.getRect(
+        find
+            .ancestor(
+              of: find.byKey(_swipeAction('meal_slot_2')),
+              matching: find.byType(ColoredBox),
+            )
+            .first,
+      );
 
-      expect(veilOf('meal_slot_2'), 0, reason: 'no colour while closed');
+      // Flush with the row's right edge and filling its full height. An action
+      // parked beside the row, or shorter than it, fails both.
+      expect(stripRect.right, closeTo(rowRect.right, 0.5));
+      expect(stripRect.top, closeTo(rowRect.top, 0.5));
+      expect(stripRect.bottom, closeTo(rowRect.bottom, 0.5));
+      expect(
+        stripRect.width,
+        closeTo(MealCategorySwipeRow.revealWidth, 0.5),
+      );
+
+      // Inert while covered, so a closed row hides no live target.
+      expect(
+        tester.widget<IconButton>(find.byKey(_swipeAction('meal_slot_2')))
+            .onPressed,
+        isNull,
+      );
 
       await _swipeOpen(tester, 'Lunch');
 
       expect(
-        surfaceOf('meal_slot_2').color,
+        tester.widget<ColoredBox>(
+          find
+              .ancestor(
+                of: find.byKey(_swipeAction('meal_slot_2')),
+                matching: find.byType(ColoredBox),
+              )
+              .first,
+        ).color,
         TioColors.light.danger.withAlpha(TioAlpha.alpha35),
         reason: 'the repo destructive surface, not a hardcoded red',
       );
       expect(
-        tester
-            .widget<Icon>(
-              find.descendant(
-                of: find.byKey(_swipeAction('meal_slot_2')),
-                matching: find.byType(Icon),
-              ),
-            )
-            .color,
-        TioColors.light.danger,
+        tester.widget<IconButton>(find.byKey(_swipeAction('meal_slot_2')))
+            .onPressed,
+        isNotNull,
       );
-      expect(veilOf('meal_slot_2'), greaterThan(0));
 
-      // The card itself is untouched — only the revealed strip is destructive.
+      // The row itself is untouched — only the layer behind is destructive.
       expect(
         tester
             .widget<Material>(
               find
-                  .descendant(
-                    of: find.byKey(_swipeRow('meal_slot_2')),
+                  .ancestor(
+                    of: find.byKey(_rowContent('meal_slot_2')),
                     matching: find.byType(Material),
                   )
                   .first,
@@ -515,10 +522,6 @@ void main() {
             .color,
         TioColors.light.surfaceRaised,
       );
-
-      // Closing the row takes the colour away again.
-      await _swipeOpen(tester, 'Dinner');
-      expect(veilOf('meal_slot_2'), 0);
     });
 
     for (final testCase in const [
@@ -583,6 +586,33 @@ void main() {
         await tester.pump();
       }
       expect(ticks, hasLength(1));
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('the row is clamped while the finger is still down',
+        (tester) async {
+      // The release animation snaps to the reveal either way, so the clamp has
+      // to be observed mid-drag: without it the row follows the finger across
+      // the screen before settling back.
+      await _pumpPage(tester, stored: _config());
+      final before = tester.getTopLeft(find.byKey(_rowContent('meal_slot_2')));
+
+      final gesture =
+          await tester.startGesture(tester.getCenter(find.text('Lunch')));
+      for (var step = 0; step < 10; step++) {
+        await gesture.moveBy(const Offset(-40, 0));
+        await tester.pump();
+      }
+
+      final travelled =
+          before.dx - tester.getTopLeft(find.byKey(_rowContent('meal_slot_2'))).dx;
+      expect(
+        travelled,
+        closeTo(MealCategorySwipeRow.revealWidth, 0.5),
+        reason: '400px of drag still stops at one action width',
+      );
 
       await gesture.up();
       await tester.pumpAndSettle();
@@ -675,7 +705,7 @@ void main() {
       var opened = 0;
       await _pumpPage(
         tester,
-        stored: _config(),
+        stored: _config(archived: ['Late Night']),
         onArchivedPressed: () async => opened++,
       );
 
@@ -689,6 +719,71 @@ void main() {
       await tester.tap(entry);
       await tester.pumpAndSettle();
       expect(opened, 1);
+    });
+
+    testWidgets('the archived entry is absent while nothing is archived',
+        (tester) async {
+      final semantics = tester.ensureSemantics();
+      await _pumpPage(tester, stored: _config());
+
+      expect(find.byKey(_archivedEntry), findsNothing);
+      expect(
+        find.byTooltip('Archived meal categories'),
+        findsNothing,
+        reason: 'no invisible tappable target is left behind',
+      );
+      expect(
+        find.bySemanticsLabel('Archived meal categories'),
+        findsNothing,
+        reason: 'and nothing for a screen reader to land on either',
+      );
+      semantics.dispose();
+    });
+
+    testWidgets('archiving the first category reveals the entry',
+        (tester) async {
+      await _pumpPage(tester, stored: _config());
+      expect(find.byKey(_archivedEntry), findsNothing);
+
+      await _swipeOpen(tester, 'Lunch');
+      await _confirmArchive(tester, 'meal_slot_2');
+
+      expect(
+        find.byKey(_archivedEntry),
+        findsOneWidget,
+        reason: 'it appears reactively, without a restart',
+      );
+    });
+
+    testWidgets('restoring the last archived category hides the entry again',
+        (tester) async {
+      final repo = _RecordingRepository(stored: _config(archived: ['Late']));
+      await _pumpPage(
+        tester,
+        repository: repo,
+        onArchivedPressed: () async {
+          // Stands in for restoring on the archived destination.
+          final current = await repo.read();
+          await repo.upsert(
+            MealCategoriesConfig(
+              items: [
+                for (final item in current.orderedItems) item.withActive(true),
+              ],
+            ),
+          );
+        },
+      );
+      expect(find.byKey(_archivedEntry), findsOneWidget);
+
+      await tester.tap(find.byKey(_archivedEntry));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(_archivedEntry),
+        findsNothing,
+        reason: 'nothing archived, so nowhere to go',
+      );
+      expect(find.text('Late'), findsOneWidget, reason: 'it came back active');
     });
 
     testWidgets('archived categories are not listed on the active screen',

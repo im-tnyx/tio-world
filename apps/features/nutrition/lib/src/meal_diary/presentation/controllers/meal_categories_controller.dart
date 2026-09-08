@@ -68,6 +68,11 @@ final class MealCategoriesState {
 
   int get activeCount => activeItems.length;
 
+  /// Whether anything is archived. The archived destination exists exactly
+  /// while this is true, derived from the configuration rather than tracked
+  /// alongside it.
+  bool get hasArchivedCategories => archivedItems.isNotEmpty;
+
   /// Whether the eight-active cap is reached. Add and reactivate both read
   /// this rather than counting for themselves.
   bool get isAtActiveCap =>

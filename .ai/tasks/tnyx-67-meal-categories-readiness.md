@@ -963,6 +963,18 @@ category the swipe exposes nothing to reveal, and the row publishes the reason
 as its semantics hint: `At least one meal category is required.` No
 confirmation is offered for an archive that would be refused.
 
+The swipe is a background reveal, not a compressing row. Two layers share one
+geometry: the action sits behind, the complete row in front, and sliding the
+front layer uncovers the one behind. That is what makes the action match the
+row's height and edges exactly instead of reading as a panel parked beside it —
+an earlier compressing version looked pasted on because the content shrank and
+left a gap where the action appeared.
+
+Travel is clamped to one action's width (48dp target plus gutters), with two
+resting states and no third position. The clamp is asserted mid-drag, because
+the release animation snaps to the reveal either way and would hide an
+unclamped drag.
+
 The revealed strip carries the repo's destructive surface — a `danger` tint
 with a `danger` foreground, the treatment the delete-account dialog already
 uses. It fades in with the reveal and leaves when the row closes, and only the
@@ -970,6 +982,14 @@ strip is coloured; the card keeps `surfaceRaised`. Deliberately not a solid
 fill: there is no on-destructive token to place on top of one, and adding a
 Core colour to fill a single strip would broaden the design system without
 reuse evidence. All three palettes are asserted.
+
+### Archived destination visibility
+
+The top-bar entry exists exactly while something is archived, derived from the
+same configuration the list renders rather than tracked beside it. It appears
+the moment a first category is archived and disappears when the last one is
+restored, and it is absent from the widget tree rather than disabled — so it
+leaves no invisible target for a pointer or a screen reader.
 
 ### Not in scope
 
@@ -984,6 +1004,6 @@ MealLog persistence; no `services/api`.
 
 ```text
 flutter analyze  core / nutrition / app     No issues found
-flutter test     core 266 · nutrition 396 · app 305    all passed
+flutter test     core 266 · nutrition 400 · app 305    all passed
 git diff --check origin/main...HEAD         clean
 ```

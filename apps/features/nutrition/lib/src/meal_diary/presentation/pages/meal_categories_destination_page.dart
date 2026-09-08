@@ -221,14 +221,20 @@ class _MealCategoriesDestinationPageState
           ),
         ),
         actions: [
-          // Reads as "view what is archived", not "archive this" — the row
-          // gesture owns that verb.
-          IconButton(
-            key: const ValueKey('meal-categories-archived-entry'),
-            tooltip: 'Archived meal categories',
-            onPressed: widget.onArchivedPressed == null ? null : _openArchived,
-            icon: Icon(Icons.inventory_2_outlined, color: colors.textPrimary),
-          ),
+          // Derived from the same configuration the list renders, not a
+          // separate flag: the entry exists exactly while something is
+          // archived, and disappears again when the last one is restored.
+          // Absent rather than disabled, so it leaves no invisible target in
+          // the semantics tree either.
+          if (state.hasArchivedCategories && widget.onArchivedPressed != null)
+            IconButton(
+              key: const ValueKey('meal-categories-archived-entry'),
+              // Reads as "view what is archived", not "archive this" — the row
+              // gesture owns that verb.
+              tooltip: 'Archived meal categories',
+              onPressed: _openArchived,
+              icon: Icon(Icons.inventory_2_outlined, color: colors.textPrimary),
+            ),
         ],
       ),
       body: SafeArea(child: _body(state)),
