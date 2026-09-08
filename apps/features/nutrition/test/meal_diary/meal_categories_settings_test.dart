@@ -20,6 +20,9 @@ class _RecordingRepository implements MealCategoriesRepository {
   /// microtask and the loading state is never observable.
   Completer<void>? readGate;
 
+  /// Same idea for writes, so the in-flight `saving` state can be inspected.
+  Completer<void>? writeGate;
+
   @override
   Future<MealCategoriesConfig> read() async {
     reads++;
@@ -36,6 +39,8 @@ class _RecordingRepository implements MealCategoriesRepository {
   @override
   Future<void> upsert(MealCategoriesConfig config) async {
     writes++;
+    final gate = writeGate;
+    if (gate != null) await gate.future;
     final failure = failNextWrite;
     if (failure != null) {
       failNextWrite = null;
@@ -377,7 +382,7 @@ void main() {
         (tester) async {
       final repo = await _pumpPage(tester, stored: _config());
 
-      final list = tester.widget<ReorderableListView>(
+      final list = tester.widget<SliverReorderableList>(
         find.byKey(_activeList),
       );
       // Move Breakfast (0) to the end of the four active items.
@@ -413,7 +418,7 @@ void main() {
           before.orderedItems.firstWhere((item) => !item.active);
 
       tester
-          .widget<ReorderableListView>(find.byKey(_activeList))
+          .widget<SliverReorderableList>(find.byKey(_activeList))
           .onReorderItem!(0, 2);
       await tester.pumpAndSettle();
 
@@ -664,8 +669,7 @@ void main() {
       await tester.pumpAndSettle();
       await _enterName(tester, 'Pre Workout');
 
-      expect(find.text('Could not save your change. Try again.'),
-          findsOneWidget);
+      expect(find.text('Could not save your change.'), findsOneWidget);
       expect(
         find.text('Lunch'),
         findsOneWidget,
@@ -710,6 +714,286 @@ void main() {
       );
       expect(find.textContaining('internal detail'), findsNothing);
       expect(find.byKey(_archivedHeader), findsNothing);
+    });
+  });
+
+  group('review findings', () {
+    testWidgets('a rename that changes nothing does not write',
+        (tester) async {
+      // Persisting here would materialise a customized configuration out of an
+      // unstored one, and that user would silently stop inheriting future
+      // canonical default updates.
+      final repo = await _pumpPage(tester);
+      expect(repo.writes, 0);
+
+      await tester.tap(
+        find.byKey(const ValueKey('meal-category-rename-meal_slot_1')),
+      );
+      await tester.pumpAndSettle();
+      await _enterName(tester, 'Breakfast');
+
+      expect(repo.writes, 0, reason: 'no visible edit, no persisted config');
+      expect(find.text('Breakfast'), findsOneWidget);
+    });
+
+    test('reactivation lands last even when the archived order is low',
+        () async {
+      // The domain only requires orders to be unique and non-negative, so an
+      // archived category can legitimately hold a lower order than the active
+      // ones. Sorting alone would drop it back into the middle of the list.
+      final repo = _RecordingRepository(
+        stored: MealCategoriesConfig(
+          items: [
+            _category(
+              id: 'meal_slot_bbbbbbbb-bbbb-4bbb-8bbb-000000000000',
+              displayName: 'Late Night',
+              order: 0,
+              active: false,
+            ),
+            _category(
+              id: 'meal_slot_1',
+              defaultKey: MealCategoryDefaultKey.breakfast,
+              displayName: 'Breakfast',
+              order: 1,
+            ),
+            _category(
+              id: 'meal_slot_2',
+              defaultKey: MealCategoryDefaultKey.lunch,
+              displayName: 'Lunch',
+              order: 2,
+            ),
+            _category(
+              id: 'meal_slot_3',
+              defaultKey: MealCategoryDefaultKey.dinner,
+              displayName: 'Dinner',
+              order: 3,
+            ),
+            _category(
+              id: 'meal_slot_4',
+              defaultKey: MealCategoryDefaultKey.snacks,
+              displayName: 'Snacks',
+              order: 4,
+            ),
+          ],
+        ),
+      );
+      final controller = MealCategoriesController(repository: repo);
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      final archivedId = controller.state.archivedItems.single.id;
+      expect(await controller.reactivate(archivedId), isTrue);
+
+      expect(
+        controller.state.activeItems.map((item) => item.displayName).toList(),
+        ['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Late Night'],
+        reason: 'reactivated categories append after every active item',
+      );
+      expect(controller.state.activeItems.last.id, archivedId);
+    });
+
+    test('a read-time validation failure gets read-time copy', () async {
+      final repo = _RecordingRepository()
+        ..failNextRead = const MealCategoriesValidationException(
+          code: MealCategoriesValidationCode.blankDisplayName,
+          message: 'internal',
+        );
+      final controller = MealCategoriesController(repository: repo);
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      expect(controller.state.status, MealCategoriesStatus.loadFailed);
+      // The mutation copy for this code is "Enter a category name.", which is
+      // advice a reader cannot act on with no editor open.
+      expect(controller.state.loadError, isNot(contains('Enter a category')));
+      expect(controller.state.loadError, contains('could not be read'));
+    });
+
+    test('an unsupported schema version explains what to do', () async {
+      final repo = _RecordingRepository()
+        ..failNextRead = const MealCategoriesValidationException(
+          code: MealCategoriesValidationCode.unsupportedSchemaVersion,
+          message: 'internal',
+        );
+      final controller = MealCategoriesController(repository: repo);
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      expect(controller.state.loadError, contains('Update Tio'));
+    });
+
+    test('a failed write is retryable without repeating the action', () async {
+      final repo = _RecordingRepository(stored: _config());
+      final controller = MealCategoriesController(repository: repo);
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      repo.failNextWrite = StateError('offline');
+      expect(
+        await controller.rename(id: 'meal_slot_2', displayName: 'Pre Workout'),
+        isFalse,
+      );
+      expect(controller.state.canRetryAction, isTrue);
+      expect(
+        controller.state.confirmed!.findById('meal_slot_2')!.displayName,
+        'Lunch',
+        reason: 'confirmed state is untouched by a failed write',
+      );
+
+      // The retry replays the attempt itself, so the typed name is not lost.
+      expect(await controller.retryPendingAction(), isTrue);
+      expect(
+        controller.state.confirmed!.findById('meal_slot_2')!.displayName,
+        'Pre Workout',
+      );
+      expect(controller.state.canRetryAction, isFalse);
+      expect(controller.state.actionError, isNull);
+    });
+
+    test('a rejected configuration is not offered as a retry', () async {
+      // Replaying it would fail identically, so only transport-shaped
+      // failures are retryable.
+      final repo = _RecordingRepository(stored: _config());
+      final controller = MealCategoriesController(repository: repo);
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      repo.failNextWrite = const MealCategoriesValidationException(
+        code: MealCategoriesValidationCode.retainedIdentityRemoved,
+        message: 'internal',
+      );
+      expect(await controller.archive('meal_slot_3'), isFalse);
+
+      expect(controller.state.canRetryAction, isFalse);
+      expect(controller.state.actionError, isNotNull);
+    });
+
+    testWidgets('the failure snack bar offers Retry and it succeeds',
+        (tester) async {
+      final repo = _RecordingRepository(stored: _config());
+      await _pumpPage(tester, repository: repo);
+
+      repo.failNextWrite = StateError('offline');
+      await tester.tap(
+        find.byKey(const ValueKey('meal-category-rename-meal_slot_2')),
+      );
+      await tester.pumpAndSettle();
+      await _enterName(tester, 'Pre Workout');
+
+      expect(find.text('Retry'), findsOneWidget);
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Pre Workout'), findsOneWidget);
+      expect(
+        (await repo.read()).findById('meal_slot_2')!.displayName,
+        'Pre Workout',
+      );
+    });
+
+    testWidgets('controls read as disabled while a write is in flight',
+        (tester) async {
+      final repo = _RecordingRepository(stored: _config());
+      final controller = MealCategoriesController(repository: repo);
+      addTearDown(controller.dispose);
+
+      final gate = Completer<void>();
+      repo.writeGate = gate;
+
+      await tester.pumpWidget(
+        _host(
+          MealCategoriesDestinationPage(repository: repo),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Start a write and hold it open.
+      await tester.tap(
+        find.byKey(const ValueKey('meal-category-archive-meal_slot_4')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Archive'));
+      await tester.pump();
+
+      final renameIcon = tester.widget<Icon>(
+        find.descendant(
+          of: find.byKey(const ValueKey('meal-category-rename-meal_slot_1')),
+          matching: find.byType(Icon),
+        ),
+      );
+      expect(
+        renameIcon.color,
+        TioColors.light.textMuted,
+        reason: 'a control that ignores taps must not look tappable',
+      );
+      expect(
+        tester
+            .widget<IconButton>(
+              find.byKey(const ValueKey('meal-category-rename-meal_slot_1')),
+            )
+            .onPressed,
+        isNull,
+      );
+
+      gate.complete();
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<Icon>(
+              find.descendant(
+                of: find.byKey(
+                  const ValueKey('meal-category-rename-meal_slot_1'),
+                ),
+                matching: find.byType(Icon),
+              ),
+            )
+            .color,
+        TioColors.light.textSecondary,
+        reason: 'and it returns to normal once the write finishes',
+      );
+    });
+
+    testWidgets('the active list is a sliver in the page scroll view',
+        (tester) async {
+      // A shrink-wrapped reorderable list nested in another scroll view has no
+      // scroll extent of its own, so a drag toward an off-screen position
+      // cannot auto-scroll. Eight rows on a short viewport is exactly that
+      // case, so the reorderable surface has to be the real viewport.
+      tester.view.physicalSize = const Size(390, 560);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await _pumpPage(tester, stored: _config(extraActive: 4));
+
+      expect(find.byType(SliverReorderableList), findsOneWidget);
+      expect(find.byType(ReorderableListView), findsNothing);
+
+      final scrollables = find.byType(Scrollable).evaluate();
+      expect(
+        scrollables.length,
+        1,
+        reason: 'exactly one scroll view, so a drag can auto-scroll it',
+      );
+
+      // And that one viewport genuinely scrolls with eight rows on screen.
+      // The offset is the assertion rather than a row's position: a lazy
+      // sliver destroys rows once they leave the viewport, so a scrolled-away
+      // row cannot be measured. Dragged on a row because a sliver has no
+      // RenderBox of its own to target.
+      final position =
+          tester.state<ScrollableState>(find.byType(Scrollable)).position;
+      expect(position.pixels, 0);
+      expect(
+        position.maxScrollExtent,
+        greaterThan(0),
+        reason: 'eight rows do not fit, so there is somewhere to scroll to',
+      );
+
+      await tester.drag(find.text('Lunch'), const Offset(0, -150));
+      await tester.pumpAndSettle();
+      expect(position.pixels, greaterThan(0));
     });
   });
 

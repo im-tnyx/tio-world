@@ -64,19 +64,36 @@ class _MealCategoriesDestinationPageState
     if (mounted) setState(() {});
   }
 
-  Future<void> _showActionError(String message) async {
+  /// Surfaces a failed edit, offering to retry the write itself where the
+  /// failure could plausibly be transient. Retrying costs one tap because the
+  /// controller kept the attempt — by the time a write fails the name sheet
+  /// has closed, and asking the reader to retype is the thing to avoid.
+  void _reportFailure() {
     final messenger = ScaffoldMessenger.maybeOf(context);
-    if (messenger == null) return;
+    final message = _controller.state.actionError;
+    if (messenger == null || message == null) return;
     messenger
       ..clearSnackBars()
-      ..showSnackBar(SnackBar(content: Text(message)));
+      ..showSnackBar(
+        SnackBar(
+          key: const ValueKey('meal-categories-action-error'),
+          content: Text(message),
+          action: _controller.state.canRetryAction
+              ? SnackBarAction(
+                  label: 'Retry',
+                  onPressed: () => _controller.retryPendingAction().then((ok) {
+                    if (mounted && !ok) _reportFailure();
+                  }),
+                )
+              : null,
+        ),
+      );
   }
 
   Future<void> _reportIfFailed(Future<bool> action) async {
     final succeeded = await action;
     if (!mounted || succeeded) return;
-    final message = _controller.state.actionError;
-    if (message != null) await _showActionError(message);
+    _reportFailure();
   }
 
   Future<void> _promptRename(MealCategory item) async {
@@ -185,91 +202,92 @@ class _MealCategoriesDestinationPageState
 
   Widget _ready(MealCategoriesState state) {
     final archived = state.archivedItems;
+    final active = state.activeItems;
+    final enabled = !state.saving;
 
-    return ListView(
+    // One scroll view for the whole page, with the active list as a sliver
+    // inside it. A shrink-wrapped reorderable list nested in another scroll
+    // view has no scroll extent of its own, so a drag toward an off-screen
+    // position cannot auto-scroll anything — reachable only while every row
+    // happens to fit, which eight categories on a short viewport do not.
+    return CustomScrollView(
       key: const ValueKey('meal-categories-list'),
-      padding: const EdgeInsets.symmetric(
-        horizontal: TioSpacing.lg,
-        vertical: TioSpacing.md,
-      ),
-      children: [
-        const _SectionHeader(
-          key: ValueKey('meal-categories-active-header'),
-          title: 'ACTIVE',
-        ),
-        _ActiveSection(
-          items: state.activeItems,
-          enabled: !state.saving,
-          onRename: _promptRename,
-          onArchive: _confirmArchive,
-          onReorder: (oldIndex, newIndex) => _reportIfFailed(
-            _controller.reorderActive(oldIndex: oldIndex, newIndex: newIndex),
+      slivers: [
+        const SliverPadding(
+          padding: EdgeInsets.fromLTRB(
+            TioSpacing.lg,
+            TioSpacing.md,
+            TioSpacing.lg,
+            TioSpacing.none,
+          ),
+          sliver: SliverToBoxAdapter(
+            child: _SectionHeader(
+              key: ValueKey('meal-categories-active-header'),
+              title: 'ACTIVE',
+            ),
           ),
         ),
-        const SizedBox(height: TioSpacing.md),
-        _AddCategoryRow(
-          atCap: state.isAtActiveCap,
-          enabled: !state.saving,
-          onPressed: _promptAdd,
-        ),
-        // The Archived section does not exist until something is archived.
-        // An always-present empty section would advertise a state most users
-        // never reach.
-        if (archived.isNotEmpty) ...[
-          const SizedBox(height: TioSpacing.xl),
-          const _SectionHeader(
-            key: ValueKey('meal-categories-archived-header'),
-            title: 'ARCHIVED',
-          ),
-          _ArchivedSection(
-            items: archived,
-            atCap: state.isAtActiveCap,
-            enabled: !state.saving,
-            onReactivate: (item) =>
-                _reportIfFailed(_controller.reactivate(item.id)),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _ActiveSection extends StatelessWidget {
-  const _ActiveSection({
-    required this.items,
-    required this.enabled,
-    required this.onRename,
-    required this.onArchive,
-    required this.onReorder,
-  });
-
-  final List<MealCategory> items;
-  final bool enabled;
-  final ValueChanged<MealCategory> onRename;
-  final ValueChanged<MealCategory> onArchive;
-  final void Function(int oldIndex, int newIndex) onReorder;
-
-  @override
-  Widget build(BuildContext context) {
-    return TioGroupCard(
-      children: [
-        ReorderableListView(
-          key: const ValueKey('meal-categories-active-list'),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          buildDefaultDragHandles: false,
-          onReorderItem: onReorder,
-          children: [
-            for (var index = 0; index < items.length; index++)
-              _ActiveRow(
-                key: ValueKey('meal-category-active-${items[index].id}'),
-                item: items[index],
-                index: index,
-                enabled: enabled,
-                onRename: () => onRename(items[index]),
-                onArchive: () => onArchive(items[index]),
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: TioSpacing.lg),
+          sliver: SliverReorderableList(
+            key: const ValueKey('meal-categories-active-list'),
+            itemCount: active.length,
+            // `onReorderItem` already resolves the framework's insertion
+            // index, so these are the final positions the controller expects.
+            onReorderItem: (oldIndex, newIndex) => _reportIfFailed(
+              _controller.reorderActive(
+                oldIndex: oldIndex,
+                newIndex: newIndex,
               ),
-          ],
+            ),
+            itemBuilder: (context, index) => _ActiveRow(
+              key: ValueKey('meal-category-active-${active[index].id}'),
+              item: active[index],
+              index: index,
+              enabled: enabled,
+              isFirst: index == 0,
+              isLast: index == active.length - 1,
+              onRename: () => _promptRename(active[index]),
+              onArchive: () => _confirmArchive(active[index]),
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(
+            TioSpacing.lg,
+            TioSpacing.md,
+            TioSpacing.lg,
+            TioSpacing.xl,
+          ),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _AddCategoryRow(
+                  atCap: state.isAtActiveCap,
+                  enabled: enabled,
+                  onPressed: _promptAdd,
+                ),
+                // The Archived section does not exist until something is
+                // archived. An always-present empty section would advertise a
+                // state most readers never reach.
+                if (archived.isNotEmpty) ...[
+                  const SizedBox(height: TioSpacing.xl),
+                  const _SectionHeader(
+                    key: ValueKey('meal-categories-archived-header'),
+                    title: 'ARCHIVED',
+                  ),
+                  _ArchivedSection(
+                    items: archived,
+                    atCap: state.isAtActiveCap,
+                    enabled: enabled,
+                    onReactivate: (item) =>
+                        _reportIfFailed(_controller.reactivate(item.id)),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       ],
     );
@@ -281,6 +299,8 @@ class _ActiveRow extends StatelessWidget {
     required this.item,
     required this.index,
     required this.enabled,
+    required this.isFirst,
+    required this.isLast,
     required this.onRename,
     required this.onArchive,
     super.key,
@@ -289,67 +309,84 @@ class _ActiveRow extends StatelessWidget {
   final MealCategory item;
   final int index;
   final bool enabled;
+  final bool isFirst;
+  final bool isLast;
   final VoidCallback onRename;
   final VoidCallback onArchive;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
+    // Disabled controls must look disabled. An explicit icon colour overrides
+    // `IconButton`'s disabled `IconTheme`, so during a save these would read
+    // as tappable while ignoring taps.
+    final actionColor = enabled ? colors.textSecondary : colors.textMuted;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: TioSpacing.lg,
-        vertical: TioSpacing.sm,
+    // Each row paints its own slice of the group surface, with the corners
+    // rounded only at the ends, so the list still reads as one card while
+    // living in a sliver that can actually scroll.
+    return Material(
+      color: colors.surfaceRaised,
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(isFirst ? TioRadius.lg : TioRadius.none),
+        bottom: Radius.circular(isLast ? TioRadius.lg : TioRadius.none),
       ),
-      child: Row(
-        children: [
-          ReorderableDragStartListener(
-            index: index,
-            enabled: enabled,
-            child: Semantics(
-              // `container: true` because the child is a bare Icon and
-              // produces no semantics node of its own, so without it this
-              // label would have nothing to attach to.
-              container: true,
-              label: 'Reorder ${item.displayName}',
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: TioSpacing.sm),
-                child: Icon(
-                  Icons.drag_handle_rounded,
-                  key: ValueKey('meal-category-drag-${item.id}'),
-                  size: TioSize.dp20,
-                  color: colors.textMuted,
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: TioSpacing.lg,
+          vertical: TioSpacing.sm,
+        ),
+        child: Row(
+          children: [
+            ReorderableDragStartListener(
+              index: index,
+              enabled: enabled,
+              child: Semantics(
+                // `container: true` because the child is a bare Icon and
+                // produces no semantics node of its own, so without it this
+                // label would have nothing to attach to.
+                container: true,
+                label: 'Reorder ${item.displayName}',
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: TioSpacing.sm),
+                  child: Icon(
+                    Icons.drag_handle_rounded,
+                    key: ValueKey('meal-category-drag-${item.id}'),
+                    size: TioSize.dp20,
+                    color: enabled ? colors.textMuted : colors.outlineStrong,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: TioSpacing.md),
-          Expanded(
-            // The durable id and defaultKey are deliberately never rendered.
-            child: Text(
-              item.displayName,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: colors.textPrimary,
-                fontWeight: TioFontWeight.w700,
-                fontSize: TioFontSize.size15,
+            const SizedBox(width: TioSpacing.md),
+            Expanded(
+              // The durable id and defaultKey are deliberately never rendered.
+              child: Text(
+                item.displayName,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: enabled ? colors.textPrimary : colors.textMuted,
+                  fontWeight: TioFontWeight.w700,
+                  fontSize: TioFontSize.size15,
+                ),
               ),
             ),
-          ),
-          IconButton(
-            key: ValueKey('meal-category-rename-${item.id}'),
-            tooltip: 'Rename ${item.displayName}',
-            onPressed: enabled ? onRename : null,
-            icon: Icon(Icons.edit_outlined, color: colors.textSecondary),
-          ),
-          IconButton(
-            key: ValueKey('meal-category-archive-${item.id}'),
-            tooltip: 'Archive ${item.displayName}',
-            onPressed: enabled ? onArchive : null,
-            icon: Icon(Icons.archive_outlined, color: colors.textSecondary),
-          ),
-        ],
+            IconButton(
+              key: ValueKey('meal-category-rename-${item.id}'),
+              tooltip: 'Rename ${item.displayName}',
+              onPressed: enabled ? onRename : null,
+              icon: Icon(Icons.edit_outlined, color: actionColor),
+            ),
+            IconButton(
+              key: ValueKey('meal-category-archive-${item.id}'),
+              tooltip: 'Archive ${item.displayName}',
+              onPressed: enabled ? onArchive : null,
+              icon: Icon(Icons.archive_outlined, color: actionColor),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -23,6 +23,7 @@ final class MealCategoriesState {
     required this.saving,
     this.loadError,
     this.actionError,
+    this.pendingRetry,
   });
 
   const MealCategoriesState.loading()
@@ -30,7 +31,8 @@ final class MealCategoriesState {
         confirmed = null,
         saving = false,
         loadError = null,
-        actionError = null;
+        actionError = null,
+        pendingRetry = null;
 
   final MealCategoriesStatus status;
 
@@ -48,6 +50,15 @@ final class MealCategoriesState {
   /// Why the most recent edit failed, if it did. Cleared when the next one is
   /// attempted, so stale copy never sits under a fresh action.
   final String? actionError;
+
+  /// The configuration a failed write was trying to store.
+  ///
+  /// Kept so retrying costs one tap rather than repeating the whole
+  /// interaction — the name sheet has already closed by the time a write
+  /// fails, so without this the typed name is simply gone.
+  final MealCategoriesConfig? pendingRetry;
+
+  bool get canRetryAction => pendingRetry != null;
 
   List<MealCategory> get activeItems => confirmed?.activeItems ?? const [];
 
@@ -68,8 +79,10 @@ final class MealCategoriesState {
     bool? saving,
     String? loadError,
     String? actionError,
+    MealCategoriesConfig? pendingRetry,
     bool clearLoadError = false,
     bool clearActionError = false,
+    bool clearPendingRetry = false,
   }) =>
       MealCategoriesState(
         status: status ?? this.status,
@@ -78,6 +91,8 @@ final class MealCategoriesState {
         loadError: clearLoadError ? null : (loadError ?? this.loadError),
         actionError:
             clearActionError ? null : (actionError ?? this.actionError),
+        pendingRetry:
+            clearPendingRetry ? null : (pendingRetry ?? this.pendingRetry),
       );
 }
 
@@ -147,7 +162,7 @@ class MealCategoriesController extends ChangeNotifier {
           status: MealCategoriesStatus.loadFailed,
           confirmed: null,
           saving: false,
-          loadError: _messageFor(error.code),
+          loadError: _loadMessageFor(error.code),
         ),
       );
     } catch (_) {
@@ -258,11 +273,26 @@ class MealCategoriesController extends ChangeNotifier {
       return Future.value(false);
     }
     return _mutate((items) {
-      final restored = [
-        for (final item in items)
-          if (item.id == id) item.withActive(true) else item,
+      // Placed after every active item explicitly. Sorting by the stored order
+      // is not enough: an archived category keeps whatever order it had, and
+      // the domain only requires those to be unique and non-negative, so a
+      // reactivated item could otherwise reappear in the middle of the list.
+      final target = items.where((item) => item.id == id);
+      if (target.isEmpty) return items;
+
+      final actives = items.where((item) => item.active && item.id != id)
+          .toList()
+        ..sort((a, b) => a.order.compareTo(b.order));
+      final archived = items.where((item) => !item.active && item.id != id)
+          .toList()
+        ..sort((a, b) => a.order.compareTo(b.order));
+
+      var order = 0;
+      return [
+        for (final item in actives) item.reordered(order++),
+        target.single.withActive(true).reordered(order++),
+        for (final item in archived) item.reordered(order++),
       ];
-      return _compactOrders(restored);
     });
   }
 
@@ -277,7 +307,13 @@ class MealCategoriesController extends ChangeNotifier {
     final confirmed = _state.confirmed;
     if (confirmed == null || _state.saving) return false;
 
-    _emit(_state.copyWith(saving: true, clearActionError: true));
+    _emit(
+      _state.copyWith(
+        saving: true,
+        clearActionError: true,
+        clearPendingRetry: true,
+      ),
+    );
 
     MealCategoriesConfig next;
     try {
@@ -292,18 +328,52 @@ class MealCategoriesController extends ChangeNotifier {
       return false;
     }
 
+    // An edit that changes nothing must not write. Persisting here would
+    // materialise a customized configuration out of an unstored one, and that
+    // user would silently stop inheriting future canonical default updates.
+    if (next == confirmed) {
+      _emit(_state.copyWith(saving: false, clearActionError: true));
+      return true;
+    }
+
+    return _write(next);
+  }
+
+  /// Retries the write a previous action failed on, without asking the user to
+  /// perform that action again.
+  Future<bool> retryPendingAction() async {
+    final pending = _state.pendingRetry;
+    if (pending == null || _state.saving) return false;
+    _emit(_state.copyWith(saving: true, clearActionError: true));
+    return _write(pending);
+  }
+
+  /// Discards a failed attempt so the screen stops offering to retry it.
+  void discardPendingAction() {
+    if (_state.pendingRetry == null && _state.actionError == null) return;
+    _emit(_state.copyWith(clearActionError: true, clearPendingRetry: true));
+  }
+
+  Future<bool> _write(MealCategoriesConfig next) async {
     try {
       await _repository.upsert(next);
     } on MealCategoriesValidationException catch (error) {
+      // A rejected configuration will be rejected again, so it is not offered
+      // as a retry — only transport-shaped failures are.
       _emit(
-        _state.copyWith(saving: false, actionError: _messageFor(error.code)),
+        _state.copyWith(
+          saving: false,
+          actionError: _messageFor(error.code),
+          clearPendingRetry: true,
+        ),
       );
       return false;
     } catch (_) {
       _emit(
         _state.copyWith(
           saving: false,
-          actionError: 'Could not save your change. Try again.',
+          actionError: 'Could not save your change.',
+          pendingRetry: next,
         ),
       );
       return false;
@@ -314,6 +384,7 @@ class MealCategoriesController extends ChangeNotifier {
         confirmed: next,
         saving: false,
         clearActionError: true,
+        clearPendingRetry: true,
       ),
     );
     return true;
@@ -346,6 +417,21 @@ class MealCategoriesController extends ChangeNotifier {
       for (final item in archived) item.reordered(order++),
     ];
   }
+
+  /// Read-time failures need read-time copy.
+  ///
+  /// The mutation messages are written for someone holding an open editor, and
+  /// the load-failure screen has none — telling a reader to "enter a category
+  /// name" there is advice they cannot act on.
+  static String _loadMessageFor(MealCategoriesValidationCode code) =>
+      switch (code) {
+        MealCategoriesValidationCode.malformedConfig ||
+        MealCategoriesValidationCode.unsupportedSchemaVersion =>
+          'Your saved meal categories are from a newer version of the app. '
+              'Update Tio to manage them.',
+        _ => 'Your saved meal categories could not be read. Try again, and '
+            'contact support if this keeps happening.',
+      };
 
   /// Maps a typed domain failure to copy a reader can act on. Database detail
   /// and internal identifiers never reach the screen.

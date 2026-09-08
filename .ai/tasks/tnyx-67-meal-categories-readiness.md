@@ -782,3 +782,107 @@ Fresh read-only verification: project `oykupyiitspujzpwwvuj` is `ACTIVE_HEALTHY`
 Every dependency, domain rule, repository, provider and route now exists in `main`; the TNYX-68 blocker is cleared; and the last open item — archived presentation — is owner-locked to Option A as recorded above. Slice C fills the existing `MealCategoriesDestinationPage` with a two-section Active/Archived screen and one feature-owned controller. It requires no new route, no second repository, no Core component or token change, and no migration.
 
 Implementation still requires its own start: this classification authorizes one named slice, not the consumer work after it. `Restore Defaults`, the shared `MealLogActionFooter` category-selector activation, Quick Add/Meal Editor changes, MealLog persistence, Supabase mutation and `services/api` all remain excluded.
+
+## 15. Slice C Implementation — 2026-09-08
+
+### Handoff
+
+```text
+base    72b267b1f3c4b56ac511bb91d99e2f5f7c2078b0
+branch  tnyx/tnyx-67-meal-categories-settings-ui
+PR      #228, Draft — https://github.com/im-tnyx/tio-world/pull/228
+```
+
+**Implementation owner:** Claude, active for this slice only.
+**Status:** implemented and validated; awaiting owner UI approval, then merge authorization.
+**Not authorized by this slice:** Restore Defaults, the shared `MealLogActionFooter` category selector, Quick Add / Meal Editor changes, MealLog persistence, Supabase mutation, `services/api`.
+
+### Changed files
+
+```text
+added     .../meal_diary/presentation/controllers/meal_categories_controller.dart
+          .../nutrition/test/meal_diary/meal_categories_settings_test.dart
+modified  .../meal_diary/presentation/pages/meal_categories_destination_page.dart
+          .../meal_diary/presentation/presentation.dart
+          apps/app/lib/app/router.dart
+          apps/app/test/app/app_mode_router_test.dart
+          .../nutrition/test/meal_diary/meal_diary_settings_shell_test.dart
+```
+
+`apps/core`, `supabase/` and `apps/app/lib/app/network_providers.dart` are unchanged.
+
+### What was built
+
+The TNYX-68 destination is filled rather than replaced: no new route, no second screen. The page renders the owner-locked two-section shape, and `MealCategoriesController` owns state and repository sequencing.
+
+The controller adds **no product rule**. Durable non-semantic IDs, rename touching only `displayName`, reorder touching only `order`, archive/reactivate retaining identity, the eight-active cap rejected rather than truncated, blank and normalized-duplicate rejection, and UUID-v4 custom IDs that never reuse a retained identity are all already enforced by the domain. Presentation duplicates no validation algorithm; the single exception is refusing to submit an empty field, which is about an empty form rather than a rule.
+
+### Behaviour contracts this slice pins
+
+```text
+open page        reads once, writes never — an untouched user keeps inheriting
+                 the canonical four rather than materialising them
+no-op edit       short-circuits before the write, for the same reason
+save order       build -> domain validates -> write -> only then adopt confirmed
+failed write     confirmed untouched; the attempt is retained and retryable in
+                 one tap, because the name sheet has already closed
+rejected write   surfaced but not offered as a retry — it would fail identically
+reactivate       appended after every active item, explicitly, because an
+                 archived category can legitimately hold a lower stored order
+cap              Add and Reactivate unavailable at 8, reason verbatim
+                 "Maximum 8 active meal categories"
+```
+
+### Review findings, all fixed
+
+Codex raised one P1 and six P2s on `cd9d4930`. Every one was valid and none was argued down.
+
+| Finding | Resolution |
+|---|---|
+| P1 task brief not updated with implementation truth | this section |
+| failed save discarded the attempted edit | state carries `pendingRetry`; the failure surface offers Retry |
+| reactivated category could land mid-list | `reactivate` appends after all active items explicitly |
+| load failure showed mutation-oriented copy | separate `_loadMessageFor` for read-time failures |
+| nested reorderable list could not auto-scroll | page is a `CustomScrollView`; the active list is a `SliverReorderableList`, so there is exactly one scroll view and a drag can move it |
+| no-op rename persisted a configuration | write short-circuits when `next == confirmed` |
+| disabled icons still looked enabled | icon colour derives from `enabled` rather than a fixed value |
+
+The sliver fix changed structure: `_ActiveSection` is gone and each `_ActiveRow` paints its own slice of the group surface, rounded only at the ends, so the list still reads as one card while living somewhere that can actually scroll.
+
+### Validation
+
+```text
+flutter analyze  apps/core                No issues found
+flutter analyze  apps/features/nutrition  No issues found
+flutter analyze  apps/app                 No issues found
+flutter test     apps/core                266 passed
+flutter test     apps/features/nutrition  359 passed
+flutter test     apps/app                 305 passed
+git diff --check                          clean
+exact-head CI    run 34219878241 on cd9d4930   SUCCESS (pre-review-fix head)
+```
+
+Mutation checks — each breaks one invariant and the named test fails:
+
+```text
+adopt confirmed before the write succeeds     failure-safety test fails
+archive deletes instead of retaining          retained-identity test fails
+archived section always rendered              visibility test fails
+no-op short-circuit removed                   writes 1 instead of 0
+reactivate sorts by stored order              lands first, not last
+load uses mutation copy                       "Enter a category name." leaks
+failed write keeps no retryable attempt       retry test fails
+disabled icons keep the enabled colour        colour assertion fails
+```
+
+One further mutation is recorded honestly rather than as coverage: removing the controller's cap guard changes nothing observable, because the domain rejects the ninth active one layer down with the same message. That guard is redundant defence, not untested behaviour.
+
+Four defects were found during implementation and fixed rather than tested around: a sheet text controller disposed while the sheet was still animating out; a route builder rebuilding the controller on every rebuild and orphaning the page's listener; a 9dp overflow at 320dp under a 1.6x text scale; and a reorder `Semantics` that produced no node because its child was a bare `Icon`.
+
+### Owner UI status
+
+`AWAITING OWNER UI APPROVAL`. Evidence covers the default active list, add and rename with the blank-name disabled state, archive confirmation, one and two archived items, the max-eight state with both actions disabled, 320dp compact and 320dp at 1.6x text, across Light, Dark and OLED. The capture harness was temporary and is not in the branch; nothing ships under `lib/` and no golden baseline is committed.
+
+### Next slice
+
+Shared `MealLogActionFooter` Meal Category selector activation, consuming the same active-category source. Not started, and not authorized by this slice.
