@@ -234,8 +234,18 @@ class _MealCategoriesDestinationPageState
               // Reads as "view what is archived", not "archive this" — the row
               // gesture owns that verb.
               tooltip: 'Archived meal categories',
-              onPressed: _openArchived,
-              icon: Icon(Icons.inventory_2_outlined, color: colors.textPrimary),
+              // Unavailable while a write is in flight. The entry appears as
+              // soon as an archive is shown optimistically, but the archived
+              // destination builds its own controller and reads the
+              // repository, which until the write lands still holds the
+              // previous configuration — so an early tap would arrive at a
+              // screen saying nothing is archived, and it would not refresh
+              // when the write completed.
+              onPressed: state.saving ? null : _openArchived,
+              icon: Icon(
+                Icons.inventory_2_outlined,
+                color: state.saving ? colors.textMuted : colors.textPrimary,
+              ),
             ),
         ],
       ),

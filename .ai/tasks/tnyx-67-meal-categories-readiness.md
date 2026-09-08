@@ -695,7 +695,14 @@ C  archived items behind an "Archived (n)" entry that opens its own sub-screen
 
 Recommendation was **A**, and the owner selected A. The locked contract follows.
 
-### Archived Presentation — OWNER-LOCKED (Option A)
+### Archived Presentation — OWNER-LOCKED (Option A) — SUPERSEDED 2026-09-08
+
+> **Superseded. Do not implement from this section.** The owner replaced this
+> lock later the same day with a top-bar destination: the archived list lives
+> behind its own route, not as a second section on this screen. The shipped
+> contract is recorded in *Archived Presentation — Superseded by a destination*
+> below. This section is kept because the decision it records was real and the
+> reasoning still explains what the destination has to preserve.
 
 The decision recorded above as open was made by the owner on 2026-09-08. **Option A is locked.** One screen, two sections, no sub-route.
 
@@ -779,7 +786,15 @@ Fresh read-only verification: project `oykupyiitspujzpwwvuj` is `ACTIVE_HEALTHY`
 
 `READY — Slice C may be implemented as one named slice.`
 
-Every dependency, domain rule, repository, provider and route now exists in `main`; the TNYX-68 blocker is cleared; and the last open item — archived presentation — is owner-locked to Option A as recorded above. Slice C fills the existing `MealCategoriesDestinationPage` with a two-section Active/Archived screen and one feature-owned controller. It requires no new route, no second repository, no Core component or token change, and no migration.
+Every dependency, domain rule, repository, provider and route now exists in `main`; the TNYX-68 blocker is cleared; and the last open item — archived presentation — was owner-locked to Option A as recorded above. Slice C fills the existing `MealCategoriesDestinationPage` with one feature-owned controller. It requires no second repository and no Core component or token change.
+
+> **Two claims here were overtaken by later owner decisions, both on
+> 2026-09-08.** "A two-section Active/Archived screen … requires no new route":
+> the owner moved the archived list behind a top-bar destination, so the branch
+> adds `archivedMealCategoriesSettings` and an `ArchivedMealCategoriesPage`.
+> "… and no migration": the owner then asked for a ceiling on retained
+> categories, which only the database can enforce, so the branch adds
+> `20260908120000_cap_retained_meal_categories.sql`. Both are recorded below.
 
 Implementation still requires its own start: this classification authorizes one named slice, not the consumer work after it. `Restore Defaults`, the shared `MealLogActionFooter` category-selector activation, Quick Add/Meal Editor changes, MealLog persistence, Supabase mutation and `services/api` all remain excluded.
 
@@ -1006,4 +1021,80 @@ MealLog persistence; no `services/api`.
 flutter analyze  core / nutrition / app     No issues found
 flutter test     core 266 · nutrition 400 · app 305    all passed
 git diff --check origin/main...HEAD         clean
+```
+
+## 17. Archived Presentation — Superseded by a destination — 2026-09-08
+
+The owner replaced the Option A lock in section 14 later the same day. The
+archived list is **not** a second section on the Meal Categories screen; it is
+its own destination, reached from a top-bar entry.
+
+```text
+←  Meal Categories                    [Archived]   ← only when something is
+                                                     archived, and disabled
+ACTIVE                                               while a write is in flight
+  ...
+```
+
+Routes added to `apps/core`: `mealDiarySettings`, `mealCategoriesSettings`,
+`archivedMealCategoriesSettings`, all `ChromePolicy.fullScreen`.
+
+What the destination had to preserve from the Option A reasoning, and does:
+
+- It is absent, not empty, while nothing is archived — derived from the same
+  configuration the list renders, never a separate flag.
+- Archived rows are not reorderable and offer only Restore.
+- Archiving keeps the category's slot, so a restore lands between the right
+  neighbours rather than at the end.
+
+## 18. Retained ceiling — 2026-09-08
+
+Owner-directed after asking what stops the archived set growing without bound.
+
+```text
+1 <= active <= 8
+total retained, archived included <= 32
+```
+
+Archiving never deletes and a database trigger refuses to remove a retained
+identity, so the retained set only ever grew. The B1 validator said so
+explicitly — `Retained archived items are intentionally not capped` — which
+left a client writing straight to the API able to grow one row without limit,
+with every later write rescanning the whole configuration.
+
+Enforced in both places: `MealCategoriesPolicy`, which every Dart boundary
+already runs through, so an oversized stored row is rejected on read rather
+than repaired; and `private.is_valid_meal_categories_config_v1`, which is the
+guard that applies to a client that never runs the app.
+
+At the ceiling nothing is removed. Adding stops, and the copy names the only
+way past it, because archiving cannot free a slot: restore an archived
+category and rename it, reusing an identity instead of minting another.
+
+Considered and rejected: evicting the oldest archived category at the ceiling.
+It would require relaxing the retained-ID trigger, and any conditional hole in
+that guard can be walked through deliberately — fill to the ceiling, then
+delete one identity per write, which is the bypass that guard was added to
+close.
+
+### Still open
+
+```text
+duplicate-name rejection loses the typed name        owner decision pending
+DB rejections treated as retryable transport errors  fix needs the Supabase
+                                                     adapter, which is out of
+                                                     scope for this slice
+pre-existing rows above the new ceiling              no grandfather path yet;
+                                                     no affected row confirmed
+minimum-active and canonical order not enforced      the database accepts what
+in the database validator                            the app then cannot read
+```
+
+### Validation
+
+```text
+flutter analyze  core / nutrition / app     No issues found
+flutter test     core 266 · nutrition 431 · app 305    all passed
+supabase         41 migrations replayed locally, B1 SQL matrix passed
+                 ceiling probed directly: 32 accepted, 33 rejected
 ```

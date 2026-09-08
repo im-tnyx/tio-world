@@ -1285,6 +1285,42 @@ void main() {
       );
     });
 
+    testWidgets('the archived entry waits for the write that created it',
+        (tester) async {
+      // The entry appears the moment the archive is shown optimistically, but
+      // the destination behind it reads the repository. Tapping before the
+      // write lands would arrive at a screen saying nothing is archived.
+      final repo = _RecordingRepository(stored: _config());
+      var opened = 0;
+      await _pumpPage(
+        tester,
+        repository: repo,
+        onArchivedPressed: () async => opened++,
+      );
+
+      repo.writeGate = Completer<void>();
+      await _swipeOpen(tester, 'Lunch');
+      await tester.tap(find.byKey(_swipeAction('meal_slot_2')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Archive'));
+      await tester.pump();
+
+      final entry = find.byKey(_archivedEntry);
+      expect(entry, findsOneWidget, reason: 'shown optimistically');
+      expect(
+        tester.widget<IconButton>(entry).onPressed,
+        isNull,
+        reason: 'but not yet reachable',
+      );
+
+      repo.writeGate!.complete();
+      await tester.pumpAndSettle();
+      expect(tester.widget<IconButton>(entry).onPressed, isNotNull);
+      await tester.tap(entry);
+      await tester.pumpAndSettle();
+      expect(opened, 1);
+    });
+
     testWidgets('the moved row is in its new place before the write lands',
         (tester) async {
       // The symptom this fixes: the row snapped back to where it started and
