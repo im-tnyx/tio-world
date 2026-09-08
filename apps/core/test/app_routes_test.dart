@@ -14,4 +14,25 @@ void main() {
       reason: 'The compatibility path is unchanged.',
     );
   });
+
+  test('Meal Diary Settings routes keep one nested settings hierarchy', () {
+    expect(
+      AppRoutes.mealDiarySettings.path,
+      '/settings/nutrition/meal-diary',
+    );
+    expect(
+      AppRoutes.mealCategoriesSettings.path,
+      '/settings/nutrition/meal-diary/categories',
+    );
+    expect(
+      AppRoutes.mealCategoriesSettings.path
+          .startsWith('${AppRoutes.mealDiarySettings.path}/'),
+      isTrue,
+    );
+    expect(AppRoutes.mealDiarySettings.chromePolicy, ChromePolicy.fullScreen);
+    expect(
+      AppRoutes.mealCategoriesSettings.chromePolicy,
+      ChromePolicy.fullScreen,
+    );
+  });
 }

@@ -178,6 +178,8 @@ ChromePolicy shellChromePolicyForPath(String location) {
     AppRoutes.nutritionTargetsSettings,
     AppRoutes.nutritionMacrosSettings,
     AppRoutes.nutritionAdditionalGoalsSettings,
+    AppRoutes.mealDiarySettings,
+    AppRoutes.mealCategoriesSettings,
     AppRoutes.profileSettings,
     AppRoutes.accountSettings,
     AppRoutes.appSettings,
@@ -353,6 +355,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                             ),
                           )
                         : null,
+                statusTopBarTrailingAction: mealDiaryDates == null
+                    ? null
+                    : MealDiaryMoreMenu(
+                        onMealDiarySettingsPressed: () => context.push(
+                          AppRoutes.mealDiarySettings.path,
+                        ),
+                      ),
                 child: child!,
               );
             },
@@ -871,7 +880,22 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               context.push(AppRoutes.nutritionProfileSettings.path),
           onNutritionTargetsPressed: () =>
               context.push(AppRoutes.nutritionTargetsSettings.path),
+          onMealDiarySettingsPressed: () =>
+              context.push(AppRoutes.mealDiarySettings.path),
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.mealDiarySettings.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => MealDiarySettingsPage(
+          onMealCategoriesPressed: () =>
+              context.push(AppRoutes.mealCategoriesSettings.path),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.mealCategoriesSettings.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const MealCategoriesDestinationPage(),
       ),
       GoRoute(
         path: AppRoutes.nutritionTargetsSettings.path,

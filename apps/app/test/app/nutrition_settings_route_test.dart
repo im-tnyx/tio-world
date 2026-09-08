@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:tio_app/app/app.dart';
 import 'package:tio_app/app/app_mode/app_mode.dart';
 import 'package:tio_app/app/app_theme.dart';
+import 'package:tio_app/app/calendar_preferences.dart';
 import 'package:tio_app/app/network_providers.dart';
 import 'package:tio_app/app/onboarding/onboarding.dart';
 import 'package:tio_app/app/router.dart';
@@ -13,6 +15,7 @@ import 'package:tio_feature_auth/auth.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_feature_profile/profile.dart';
+import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_shared/shared.dart';
 
 /// Route-level coverage for Nutrition Settings: App Mode gating of the
@@ -45,6 +48,12 @@ void main() {
     final themeController =
         AppThemeController(_MemoryAppThemePreference(TioThemeMode.system));
     await themeController.load();
+    // The Meal Diary branch reads calendar preferences on first build, so a
+    // test that walks into the Diary has to supply them rather than letting
+    // the real SharedPreferences-backed provider run.
+    final calendarController =
+        CalendarPreferencesController(_MemoryCalendarPreferencesRepository());
+    await calendarController.load();
 
     return ProviderContainer(
       overrides: [
@@ -54,6 +63,8 @@ void main() {
         onboardingStatusRepositoryProvider
             .overrideWith((ref) => onboardingRepository),
         appThemeControllerProvider.overrideWith((ref) => themeController),
+        calendarPreferencesControllerProvider
+            .overrideWith((ref) => calendarController),
         appSessionBootstrapControllerProvider.overrideWith(
           (ref) => _FixedAppSessionBootstrapController(
             state: const AppSessionBootstrapReady(userId: 'test-user'),
@@ -81,7 +92,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  test('both Nutrition routes are registered in the shell chrome policy', () {
+  test('Nutrition routes are registered in the shell chrome policy', () {
     // Missing entries silently fall through to `noBottomBar`, which would
     // leave these full-screen Settings sub-pages rendering shell chrome.
     expect(
@@ -102,6 +113,14 @@ void main() {
     );
     expect(
       shellChromePolicyForPath(AppRoutes.nutritionAdditionalGoalsSettings.path),
+      ChromePolicy.fullScreen,
+    );
+    expect(
+      shellChromePolicyForPath(AppRoutes.mealDiarySettings.path),
+      ChromePolicy.fullScreen,
+    );
+    expect(
+      shellChromePolicyForPath(AppRoutes.mealCategoriesSettings.path),
       ChromePolicy.fullScreen,
     );
     // Negative control: the fallback is a different policy, so the two
@@ -235,6 +254,56 @@ void main() {
     expect(find.text('1900 kcal'), findsOneWidget);
     expect(find.text('150 g'), findsOneWidget);
     expect(find.text('28 g'), findsOneWidget);
+  });
+
+  testWidgets('both Meal Diary Settings entries resolve to one destination',
+      (tester) async {
+    // The Diary's More menu and the Nutrition hub row are two doors. This
+    // asserts they open the same room: the same route, reached from a fresh
+    // navigation each time, with a single page instance on screen. A second
+    // page or a second route would mean two preference states later.
+    final repository = _FakeNutritionProfileRepository();
+    final container = await buildContainer(
+      appMode: AppMode.hybrid,
+      repository: repository,
+    );
+    addTearDown(container.dispose);
+    final router = container.read(goRouterProvider);
+
+    // Door one: Settings -> Nutrition -> Meal Diary Settings.
+    await openSettings(tester, container);
+    await tester.tap(find.byKey(const ValueKey('settings-nutrition-entry')));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('nutrition-settings-meal-diary-entry')));
+    await tester.pumpAndSettle();
+
+    final fromHub = find.byKey(const ValueKey('meal-diary-settings-page'));
+    expect(fromHub, findsOneWidget);
+    final hubPath = GoRouterState.of(tester.element(fromHub)).uri.path;
+    expect(hubPath, AppRoutes.mealDiarySettings.path);
+
+    // Door two: Meal Diary -> More -> Meal Diary Settings.
+    router.go(FeatureRoutes.nutrition.path);
+    await tester.pumpAndSettle();
+    expect(fromHub, findsNothing, reason: 'the first route was left behind');
+
+    await tester.tap(find.byKey(const ValueKey('meal-diary-more-menu')));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('meal-diary-settings-menu-item')));
+    await tester.pumpAndSettle();
+
+    final fromDiary = find.byKey(const ValueKey('meal-diary-settings-page'));
+    expect(fromDiary, findsOneWidget);
+    expect(GoRouterState.of(tester.element(fromDiary)).uri.path, hubPath);
+    expect(find.byType(MealDiarySettingsPage), findsOneWidget);
+
+    // And the one destination still owns the one Meal Categories boundary.
+    expect(
+      find.byKey(const ValueKey('meal-diary-settings-categories-entry')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('a target save preserves the rest of the canonical row',
@@ -454,6 +523,21 @@ class _MemoryAppModePreference implements AppModePreference {
 
   @override
   Future<void> write(AppMode mode) async => this.mode = mode;
+}
+
+class _MemoryCalendarPreferencesRepository
+    implements CalendarPreferencesRepository {
+  CalendarPreferences value = const CalendarPreferences();
+
+  @override
+  Future<void> clear() async => value = const CalendarPreferences();
+
+  @override
+  Future<CalendarPreferences> read() async => value;
+
+  @override
+  Future<void> write(CalendarPreferences preferences) async =>
+      value = preferences;
 }
 
 class _MemoryAppThemePreference implements AppThemePreference {

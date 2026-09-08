@@ -3,18 +3,24 @@ import 'package:tio_core/core.dart';
 
 /// Nutrition-owned Settings hub reached from the generic Settings launcher.
 ///
-/// V1 exposes only the capability that is actually implemented. Nutrition
-/// Targets, Eating Style, Nutrition Approach, Meal Diary settings and Diet
-/// Plan are deliberately absent rather than shown as inert placeholder rows.
+/// V1 exposes only the capability that is actually implemented. Eating Style,
+/// Nutrition Approach and Diet Plan are deliberately absent rather than shown
+/// as inert placeholder rows.
+///
+/// The Meal Diary Settings row is the discoverable path to a surface the Meal
+/// Diary also reaches from its own More menu. Both entries push the same
+/// route, so there is one page and one preference state, not two.
 class NutritionSettingsPage extends StatelessWidget {
   const NutritionSettingsPage({
     required this.onNutritionProfilePressed,
     required this.onNutritionTargetsPressed,
+    required this.onMealDiarySettingsPressed,
     super.key,
   });
 
   final VoidCallback onNutritionProfilePressed;
   final VoidCallback onNutritionTargetsPressed;
+  final VoidCallback onMealDiarySettingsPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -85,6 +91,21 @@ class NutritionSettingsPage extends StatelessWidget {
                   title: 'Nutrition Targets',
                   supportingText: 'Calories, protein, carbs, fat & fiber',
                   onTap: onNutritionTargetsPressed,
+                ),
+              ],
+            ),
+            const SizedBox(height: TioSpacing.lg),
+            const _NutritionSettingsSectionHeader(title: 'MEAL DIARY'),
+            TioGroupCard(
+              children: [
+                TioSettingsNavigationRow(
+                  key: const ValueKey('nutrition-settings-meal-diary-entry'),
+                  leading: const TioSettingsLeadingIcon(
+                    icon: Icons.menu_book_rounded,
+                  ),
+                  title: 'Meal Diary Settings',
+                  supportingText: 'Diary-specific logging preferences',
+                  onTap: onMealDiarySettingsPressed,
                 ),
               ],
             ),

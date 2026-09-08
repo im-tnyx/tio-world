@@ -107,6 +107,7 @@ void main() {
       _SettingsCalendarPreferencesRepository(),
     );
     await calendarController.load();
+    final mealCategoriesRepository = _RecordingMealCategoriesRepository();
     final container = ProviderContainer(
       overrides: [
         appModeControllerProvider.overrideWith((ref) => controller),
@@ -117,6 +118,8 @@ void main() {
         appThemeControllerProvider.overrideWith((ref) => themeController),
         calendarPreferencesControllerProvider
             .overrideWith((ref) => calendarController),
+        mealCategoriesRepositoryProvider
+            .overrideWith((ref) => mealCategoriesRepository),
         appSessionBootstrapControllerProvider.overrideWith(
           (ref) => _FixedAppSessionBootstrapController(
             state: const AppSessionBootstrapReady(userId: 'test-user'),
@@ -171,7 +174,10 @@ void main() {
     final historicalDate = DateTime(today.year, today.month, today.day - 1);
     final todayAction =
         find.byKey(const ValueKey('meal-diary-today-action'));
+    final moreMenu = find.byKey(const ValueKey('meal-diary-more-menu'));
     expect(todayAction, findsNothing);
+    expect(moreMenu, findsOneWidget);
+    expect(find.byKey(const ValueKey('shell-meal-log-streak')), findsOneWidget);
 
     await tester.fling(
       find.byKey(const ValueKey('tio-date-calendar-week-pager')),
@@ -231,6 +237,53 @@ void main() {
     await tester.pumpAndSettle();
     expect(diaryDates.isOnToday, isTrue);
     expect(todayAction, findsNothing);
+
+    diaryDates.select(historicalDate);
+    await tester.pumpAndSettle();
+
+    await tester.tap(moreMenu);
+    await tester.pumpAndSettle();
+    final settingsMenuItem =
+        find.byKey(const ValueKey('meal-diary-settings-menu-item'));
+    expect(settingsMenuItem, findsOneWidget);
+    await tester.tap(settingsMenuItem);
+    await tester.pumpAndSettle();
+    final settingsPage =
+        find.byKey(const ValueKey('meal-diary-settings-page'));
+    expect(settingsPage, findsOneWidget);
+    expect(GoRouterState.of(tester.element(settingsPage)).uri.path,
+        AppRoutes.mealDiarySettings.path);
+
+    await tester.tap(
+      find.byKey(const ValueKey('meal-diary-settings-categories-entry')),
+    );
+    await tester.pumpAndSettle();
+    final categoriesPage =
+        find.byKey(const ValueKey('meal-categories-destination-page'));
+    expect(categoriesPage, findsOneWidget);
+    expect(GoRouterState.of(tester.element(categoriesPage)).uri.path,
+        AppRoutes.mealCategoriesSettings.path);
+    expect(find.byType(TextField), findsNothing);
+    expect(find.byType(ReorderableListView), findsNothing);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(settingsPage, findsOneWidget);
+    expect(GoRouterState.of(tester.element(settingsPage)).uri.path,
+        AppRoutes.mealDiarySettings.path);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      FeatureRoutes.nutrition.path,
+    );
+    expect(diaryDates.selectedDate, historicalDate);
+    expect(todayAction, findsOneWidget);
+    expect(moreMenu, findsOneWidget);
+    expect(find.byKey(const ValueKey('shell-meal-log-streak')), findsOneWidget);
+    expect(mealCategoriesRepository.readCalls, 0);
+    expect(mealCategoriesRepository.writeCalls, 0);
 
     await controller.select(AppMode.workout);
     await tester.pumpAndSettle();
@@ -982,6 +1035,22 @@ class _SettingsAuthRepository extends InMemoryAuthSessionRepository {
     signOutCalls++;
     await super.signOut();
     onSignedOut();
+  }
+}
+
+class _RecordingMealCategoriesRepository implements MealCategoriesRepository {
+  int readCalls = 0;
+  int writeCalls = 0;
+
+  @override
+  Future<MealCategoriesConfig> read() async {
+    readCalls++;
+    return MealCategoriesConfig.canonicalDefaults();
+  }
+
+  @override
+  Future<void> upsert(MealCategoriesConfig config) async {
+    writeCalls++;
   }
 }
 
