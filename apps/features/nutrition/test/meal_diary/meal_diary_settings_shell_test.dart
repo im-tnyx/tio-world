@@ -79,6 +79,41 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('the open menu stays inside the screen at the right edge',
+      (tester) async {
+    // The trigger lives at the far right of the top bar, which is exactly
+    // where a menu gets clamped flush against the edge and its rounded corner
+    // reads as clipped. This pins the inset that keeps the card off the edge.
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      _host(
+        Scaffold(
+          appBar: AppBar(
+            actions: [MealDiaryMoreMenu(onMealDiarySettingsPressed: () {})],
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('meal-diary-more-menu')));
+    await tester.pumpAndSettle();
+
+    final card = tester.getRect(
+      find.byKey(const ValueKey('meal-diary-settings-menu-card')),
+    );
+    expect(card.left, greaterThanOrEqualTo(0));
+    expect(
+      card.right,
+      lessThanOrEqualTo(390 - TioSpacing.sm),
+      reason: 'the card must not sit flush against the right screen edge',
+    );
+    expect(card.top, greaterThan(0));
+  });
+
   testWidgets('Settings shell exposes only the Meal Categories row',
       (tester) async {
     var categoryTaps = 0;

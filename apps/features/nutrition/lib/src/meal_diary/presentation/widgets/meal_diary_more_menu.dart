@@ -17,12 +17,21 @@ class MealDiaryMoreMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MenuAnchor(
+      // The panel is transparent and `TioCard` paints the menu, so the panel's
+      // padding is the card's margin. It is not decoration: the trigger sits
+      // at the right edge, so without it the framework clamps the panel flush
+      // against the screen and the card's rounded corner reads as clipped.
       style: const MenuStyle(
         backgroundColor: WidgetStatePropertyAll(TioPalette.transparent),
         elevation: WidgetStatePropertyAll(TioElevation.none),
         shadowColor: WidgetStatePropertyAll(TioPalette.transparent),
         surfaceTintColor: WidgetStatePropertyAll(TioPalette.transparent),
-        padding: WidgetStatePropertyAll(EdgeInsets.zero),
+        padding: WidgetStatePropertyAll(
+          EdgeInsets.symmetric(
+            horizontal: TioSpacing.sm,
+            vertical: TioSpacing.xs,
+          ),
+        ),
       ),
       menuChildren: [
         TioCard(

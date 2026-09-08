@@ -288,7 +288,7 @@ No second navigation system was introduced and no unrelated settings route was a
 
 `TioShell` and `TioShellStatusTopBar` gained an optional `statusTopBarTrailingAction`, mirroring the existing `statusTopBarLeadingAction` slot. Core stays generic: it learns nothing about Meal Diary routes or settings semantics. The trailing padding collapses only when an action occupies the slot, so the existing centred month label and rightmost streak geometry are unchanged when no action is supplied.
 
-`MealDiaryMoreMenu` is Nutrition-owned and built from `MenuAnchor` plus `TioCard.elevated`. Its trigger is wrapped in `MergeSemantics(Semantics(expanded: controller.isOpen, ...))` — the framework's own `SubmenuButton` treatment — because `IconButton` exposes no expanded flag and a screen reader would otherwise never learn the menu is open. Menu chrome uses `TioPalette.transparent` so the card, not the raw Material surface, paints the menu.
+`MealDiaryMoreMenu` is Nutrition-owned and built from `MenuAnchor` plus `TioCard.elevated`. Because the trigger sits at the right edge of the bar, the framework clamped the menu panel flush against the screen and the card's rounded corner read as clipped; the panel now carries a small symmetric padding, which is the card's margin rather than decoration. Device capture found this, and a test pins it: with the padding removed the card's right edge lands at 390 on a 390-wide screen and the assertion fails. Its trigger is wrapped in `MergeSemantics(Semantics(expanded: controller.isOpen, ...))` — the framework's own `SubmenuButton` treatment — because `IconButton` exposes no expanded flag and a screen reader would otherwise never learn the menu is open. Menu chrome uses `TioPalette.transparent` so the card, not the raw Material surface, paints the menu.
 
 ### Settings shell visible content
 
@@ -326,7 +326,7 @@ No production-only debug or evidence entrypoint ships: the harness that briefly 
 
 ### Test coverage
 
-`apps/features/nutrition/test/meal_diary/meal_diary_settings_shell_test.dart` — 7 tests: the More trigger's tap target, tooltip and expanded/collapsed semantics; the menu exposing exactly one action; the settings shell's single row, its merged semantics label and the absence of every later preference; the child destination holding no rows, text fields or reorderable list; and Light, Dark, OLED and System-dark each resolving at 320 px width under 1.6x text scale.
+`apps/features/nutrition/test/meal_diary/meal_diary_settings_shell_test.dart` — 8 tests: the More trigger's tap target, tooltip and expanded/collapsed semantics; the menu exposing exactly one action; the settings shell's single row, its merged semantics label and the absence of every later preference; the child destination holding no rows, text fields or reorderable list; the open menu staying inside a 390 px screen instead of sitting flush against the right edge; and Light, Dark, OLED and System-dark each resolving at 320 px width under 1.6x text scale.
 
 `apps/app/test/app/app_mode_router_test.dart` — the full route journey through the real router: More is present alongside the streak, the menu item navigates to the parent route, the row navigates to the child route, both back hops land correctly, the historical selected date survives the round trip, the conditional Today action returns, and the injected `MealCategoriesRepository` records zero reads and zero writes.
 
@@ -343,7 +343,7 @@ flutter analyze  apps/core                No issues found
 flutter analyze  apps/features/nutrition  No issues found
 flutter analyze  apps/app                 No issues found
 flutter test     apps/core                266 passed
-flutter test     apps/features/nutrition  321 passed
+flutter test     apps/features/nutrition  322 passed
 flutter test     apps/app                 293 passed
 git diff --check                          clean
 ```
