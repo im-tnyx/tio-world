@@ -937,7 +937,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.mealCategoriesSettings.path,
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) => const MealCategoriesDestinationPage(),
+        // Composition supplies the repository and the page owns its
+        // controller's lifecycle; the feature never reaches for Supabase.
+        builder: (context, state) => Consumer(
+          builder: (context, ref, _) => MealCategoriesDestinationPage(
+            repository: ref.watch(mealCategoriesRepositoryProvider),
+          ),
+        ),
       ),
       GoRoute(
         path: AppRoutes.nutritionTargetsSettings.path,
