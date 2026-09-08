@@ -114,6 +114,75 @@ void main() {
     expect(card.top, greaterThan(0));
   });
 
+  testWidgets('a dismissing tap does not reach the control underneath',
+      (tester) async {
+    // `MenuAnchor.consumeOutsideTap` defaults to false, which makes the tap
+    // that closes the menu also press whatever is beneath it — on the Diary
+    // that is a date cell or the logging action, so closing the menu would
+    // silently change the selected day. The assertion that matters is the
+    // negative one: the underlying callback must not fire.
+    var underlyingTaps = 0;
+    var settingsTaps = 0;
+
+    await tester.pumpWidget(
+      _host(
+        Scaffold(
+          appBar: AppBar(
+            actions: [
+              MealDiaryMoreMenu(
+                onMealDiarySettingsPressed: () => settingsTaps++,
+              ),
+            ],
+          ),
+          body: Center(
+            child: ElevatedButton(
+              key: const ValueKey('underlying-control'),
+              onPressed: () => underlyingTaps++,
+              child: const Text('Underlying'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final more = find.byKey(const ValueKey('meal-diary-more-menu'));
+    final underlying = find.byKey(const ValueKey('underlying-control'));
+
+    // Baseline: the control is genuinely tappable, so a later zero is a real
+    // result rather than a broken target.
+    await tester.tap(underlying);
+    await tester.pumpAndSettle();
+    expect(underlyingTaps, 1);
+
+    await tester.tap(more);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('meal-diary-settings-menu-item')),
+      findsOneWidget,
+    );
+
+    // One tap outside, on the live control.
+    await tester.tap(underlying);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('meal-diary-settings-menu-item')),
+      findsNothing,
+      reason: 'the outside tap dismisses the menu',
+    );
+    expect(
+      underlyingTaps,
+      1,
+      reason: 'and it must not also press the control it landed on',
+    );
+
+    // The control still works once the menu is gone.
+    await tester.tap(underlying);
+    await tester.pumpAndSettle();
+    expect(underlyingTaps, 2);
+    expect(settingsTaps, 0);
+  });
+
   testWidgets('Settings shell exposes only the Meal Categories row',
       (tester) async {
     var categoryTaps = 0;

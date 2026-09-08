@@ -12,7 +12,6 @@ class TioShell extends StatelessWidget {
     required this.onAction,
     required this.child,
     this.statusTopBarLeadingAction,
-    this.statusTopBarTrailingAction,
     this.statusTopBarTitle,
     this.statusTopBarCenter,
     super.key,
@@ -22,7 +21,6 @@ class TioShell extends StatelessWidget {
   final ValueChanged<ShellAction> onAction;
   final Widget child;
   final Widget? statusTopBarLeadingAction;
-  final Widget? statusTopBarTrailingAction;
 
   /// Title for the status top bar when the visible screen names itself
   /// something other than its tab.
@@ -66,7 +64,6 @@ class TioShell extends StatelessWidget {
                   days: state.workoutStreakDays,
                   scrollOpacity: state.appBarOpacity,
                   leadingAction: statusTopBarLeadingAction,
-                  trailingAction: statusTopBarTrailingAction,
                   center: statusTopBarCenter,
                 ),
               ShellTab.nutrition => TioShellStatusTopBar(
@@ -76,7 +73,6 @@ class TioShell extends StatelessWidget {
                   days: state.mealLogStreakDays,
                   scrollOpacity: state.appBarOpacity,
                   leadingAction: statusTopBarLeadingAction,
-                  trailingAction: statusTopBarTrailingAction,
                   center: statusTopBarCenter,
                 ),
               ShellTab.ai || ShellTab.progress => null,

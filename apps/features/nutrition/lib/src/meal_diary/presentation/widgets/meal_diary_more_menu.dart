@@ -17,6 +17,11 @@ class MealDiaryMoreMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MenuAnchor(
+      // A tap outside a contextual overflow menu means "dismiss", nothing
+      // more. Left at its `false` default the same tap also reaches whatever
+      // sits underneath — a date cell or the logging action — so closing the
+      // menu would silently change the selected day.
+      consumeOutsideTap: true,
       // The panel is transparent and `TioCard` paints the menu, so the panel's
       // padding is the card's margin. It is not decoration: the trigger sits
       // at the right edge, so without it the framework clamps the panel flush

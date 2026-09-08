@@ -738,6 +738,71 @@ void main() {
     expect(find.byType(SettingsPage), findsOneWidget);
   });
 
+  for (final size in const [Size(390, 844), Size(320, 640)]) {
+    testWidgets(
+        'Meal Diary top bar keeps the streak right-anchored at ${size.width}',
+        (tester) async {
+      // The regression this guards is geometric, not structural: adding an
+      // action after the status pushed the streak left by roughly an
+      // IconButton every time one appeared. Presence assertions cannot see
+      // that, so this pins the streak's own right edge and the left-to-right
+      // order of the cluster.
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await _pumpSettingsRoute(
+        tester,
+        initialPath: FeatureRoutes.nutrition.path,
+      );
+      await tester.pumpAndSettle();
+
+      final streak = find.byKey(const ValueKey('shell-meal-log-streak'));
+      final more = find.byKey(const ValueKey('meal-diary-more-menu'));
+      final todayAction =
+          find.byKey(const ValueKey('meal-diary-today-action'));
+
+      expect(streak, findsOneWidget);
+      expect(more, findsOneWidget);
+      expect(todayAction, findsNothing, reason: 'starts on today');
+
+      final streakRightWithoutToday = tester.getRect(streak).right;
+      expect(
+        tester.getRect(more).right,
+        lessThanOrEqualTo(tester.getRect(streak).left),
+        reason: 'More must sit before the status, never after it',
+      );
+
+      // Move off today so the conditional Today action appears. The streak
+      // must not budge: that is the whole point of composing into the one
+      // leading slot instead of adding a trailing one.
+      final diaryDates = ProviderScope.containerOf(
+        tester.element(find.byType(TioDateCalendar)),
+      ).read(mealDiaryDateControllerProvider);
+      final today = diaryDates.localToday;
+      diaryDates.select(DateTime(today.year, today.month, today.day - 1));
+      await tester.pumpAndSettle();
+
+      expect(todayAction, findsOneWidget);
+      expect(
+        tester.getRect(streak).right,
+        streakRightWithoutToday,
+        reason: 'the status keeps its right edge when actions appear',
+      );
+      expect(
+        tester.getRect(todayAction).right,
+        lessThanOrEqualTo(tester.getRect(more).left),
+        reason: 'order is [Today] [More] [streak]',
+      );
+      expect(
+        tester.getRect(more).right,
+        lessThanOrEqualTo(tester.getRect(streak).left),
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('Settings navigates to Health & Goals and Daily Wellness',
       (tester) async {
     await _pumpSettingsRoute(tester);

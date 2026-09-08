@@ -338,29 +338,35 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                         key: const ValueKey('meal-diary-visible-month'),
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
-                statusTopBarLeadingAction:
-                    mealDiaryDates != null &&
-                            mealDiaryDates.shouldShowTodayAction
-                        ? IconButton(
-                            key: const ValueKey('meal-diary-today-action'),
-                            tooltip: _mealDiaryTodayTooltip(
-                              context,
-                              mealDiaryDates.selectedDate,
-                              isOnToday: mealDiaryDates.isOnToday,
-                            ),
-                            onPressed: mealDiaryDates.selectToday,
-                            icon: _mealDiaryTodayGlyph(
-                              context,
-                              mealDiaryDates.localToday,
-                            ),
-                          )
-                        : null,
-                statusTopBarTrailingAction: mealDiaryDates == null
+                // Today and More are composed into the one generic leading
+                // slot rather than a second Core slot, so the streak stays the
+                // final right-anchored item exactly as it was before. Order
+                // here is the order on screen: [Today?] [More] [streak].
+                statusTopBarLeadingAction: mealDiaryDates == null
                     ? null
-                    : MealDiaryMoreMenu(
-                        onMealDiarySettingsPressed: () => context.push(
-                          AppRoutes.mealDiarySettings.path,
-                        ),
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (mealDiaryDates.shouldShowTodayAction)
+                            IconButton(
+                              key: const ValueKey('meal-diary-today-action'),
+                              tooltip: _mealDiaryTodayTooltip(
+                                context,
+                                mealDiaryDates.selectedDate,
+                                isOnToday: mealDiaryDates.isOnToday,
+                              ),
+                              onPressed: mealDiaryDates.selectToday,
+                              icon: _mealDiaryTodayGlyph(
+                                context,
+                                mealDiaryDates.localToday,
+                              ),
+                            ),
+                          MealDiaryMoreMenu(
+                            onMealDiarySettingsPressed: () => context.push(
+                              AppRoutes.mealDiarySettings.path,
+                            ),
+                          ),
+                        ],
                       ),
                 child: child!,
               );
