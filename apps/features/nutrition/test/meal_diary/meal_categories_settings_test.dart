@@ -26,6 +26,11 @@ class _RecordingRepository implements MealCategoriesRepository {
   /// Same idea for writes, so the in-flight `saving` state can be inspected.
   Completer<void>? writeGate;
 
+  /// Stands in for another device having written while this screen held a
+  /// snapshot. Bypasses `upsert` deliberately: the transition policy would
+  /// refuse it, which is the point being simulated.
+  void replaceStored(MealCategoriesConfig config) => _stored = config;
+
   @override
   Future<MealCategoriesConfig> read() async {
     reads++;
@@ -1407,13 +1412,22 @@ void main() {
       await _pumpPage(tester, stored: _config());
 
       // Core's own settings affordance has no ink at all — the ripple in
-      // Settings belongs to the row — so a circle rippling here would be this
-      // screen alone behaving differently. Asserted on the configuration
+      // Settings belongs to the row — and pressing this one used to paint
+      // past its circle onto the row behind it. Asserted on the configuration
       // rather than on painted pixels, which a widget test cannot inspect.
+      const pencil = ValueKey('meal-category-rename-meal_slot_1');
+      final surface = tester.widget<Material>(
+        find
+            .descendant(of: find.byKey(pencil), matching: find.byType(Material))
+            .first,
+      );
+      expect(surface.clipBehavior, Clip.antiAlias);
+      expect(surface.shape, isA<CircleBorder>());
+
       final ink = tester.widget<InkResponse>(
         find
             .descendant(
-              of: find.byKey(const ValueKey('meal-category-rename-meal_slot_1')),
+              of: find.byKey(pencil),
               matching: find.byType(InkResponse),
             )
             .first,
@@ -1421,6 +1435,7 @@ void main() {
       expect(ink.splashFactory, NoSplash.splashFactory);
       expect(ink.highlightColor, TioPalette.transparent);
       expect(ink.hoverColor, TioPalette.transparent);
+      expect(ink.radius, lessThanOrEqualTo(TioSize.dp36 / 2));
 
       // And it still does its job.
       await tester.tap(
@@ -1602,6 +1617,211 @@ void main() {
           'HapticFeedbackType.selectionClick',
         ],
         reason: 'firmer on the way up than on the way down',
+      );
+    });
+  });
+
+  group('a store that refuses the write', () {
+    testWidgets('a conflict is not retryable and reloads what is stored',
+        (tester) async {
+      // Another device moved the configuration on while this screen held a
+      // snapshot. The payload is a whole config built on that snapshot, so
+      // replaying it would either be refused forever or erase the other
+      // device's work.
+      final repo = _RecordingRepository(stored: _config());
+      repo.failNextWrite = const MealCategoriesWriteConflict(
+        message: 'Your meal categories were changed somewhere else.',
+      );
+      final controller = MealCategoriesController(repository: repo);
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      // What the other device stored in the meantime.
+      repo.replaceStored(_config(extraActive: 1));
+
+      expect(await controller.rename(id: 'meal_slot_2', displayName: 'Brunch'),
+          isFalse);
+
+      expect(
+        controller.state.canRetryAction,
+        isFalse,
+        reason: 'a refused payload is never offered back',
+      );
+      expect(
+        controller.state.actionError,
+        MealCategoriesController.conflictReason,
+      );
+      expect(
+        controller.state.activeItems.map((item) => item.displayName).toList(),
+        ['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Custom 0'],
+        reason: 'the screen now shows what is actually stored',
+      );
+      expect(
+        controller.state.status,
+        MealCategoriesStatus.ready,
+        reason: 'reloaded in place, not flipped to a spinner',
+      );
+      expect(
+        controller.state.optimistic,
+        isNull,
+        reason: 'the refused edit is gone from the screen',
+      );
+    });
+
+    testWidgets('a transport failure stays retryable', (tester) async {
+      // The contrast that makes the classification worth having.
+      final repo = _RecordingRepository(stored: _config());
+      repo.failNextWrite = StateError('connection reset');
+      final controller = MealCategoriesController(repository: repo);
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      expect(await controller.rename(id: 'meal_slot_2', displayName: 'Brunch'),
+          isFalse);
+      expect(controller.state.canRetryAction, isTrue);
+      expect(await controller.retryPendingAction(), isTrue);
+      expect(
+        (await repo.read())
+            .activeItems
+            .map((item) => item.displayName)
+            .toList(),
+        contains('Brunch'),
+      );
+    });
+
+    testWidgets('a conflict during the reload keeps the last good state',
+        (tester) async {
+      final repo = _RecordingRepository(stored: _config());
+      repo.failNextWrite = const MealCategoriesWriteConflict(message: 'gone');
+      final controller = MealCategoriesController(repository: repo);
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      repo.failNextRead = StateError('offline');
+      expect(await controller.rename(id: 'meal_slot_2', displayName: 'Brunch'),
+          isFalse);
+
+      expect(
+        controller.state.activeItems.map((item) => item.displayName).toList(),
+        ['Breakfast', 'Lunch', 'Dinner', 'Snacks'],
+        reason: 'the screen is not blanked because a reload also failed',
+      );
+      expect(
+        controller.state.actionError,
+        MealCategoriesController.conflictReason,
+      );
+      expect(controller.state.canRetryAction, isFalse);
+    });
+  });
+
+  group('name validation stays in the editor', () {
+    testWidgets('a duplicate name keeps the sheet open and the text typed',
+        (tester) async {
+      final repo = await _pumpPage(tester, stored: _config());
+      await _revealAdd(tester);
+      await tester.tap(find.byKey(_addButton));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byKey(_nameField), 'lunch');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(_nameSubmit));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(_nameField),
+        findsOneWidget,
+        reason: 'the editor stays open',
+      );
+      expect(
+        tester.widget<TioInput>(find.byKey(_nameField)).controller!.text,
+        'lunch',
+        reason: 'and still holds what was typed',
+      );
+      expect(
+        find.text(MealCategoriesController.duplicateNameReason),
+        findsOneWidget,
+      );
+      expect(repo.writes, 0, reason: 'nothing was attempted');
+
+      // Correcting it in place clears the message and saves.
+      await tester.enterText(find.byKey(_nameField), 'Brunch');
+      await tester.pumpAndSettle();
+      expect(
+        find.text(MealCategoriesController.duplicateNameReason),
+        findsNothing,
+        reason: 'the message described text that has changed',
+      );
+      await tester.tap(find.byKey(_nameSubmit));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(_nameField), findsNothing);
+      expect(
+        (await repo.read()).activeItems.map((item) => item.displayName),
+        contains('Brunch'),
+      );
+    });
+
+    testWidgets('the duplicate rule ignores case and repeated spaces',
+        (tester) async {
+      // The same normalization the domain applies, so the editor cannot accept
+      // something the write would refuse a moment later.
+      await _pumpPage(tester, stored: _config());
+      await _revealAdd(tester);
+      await tester.tap(find.byKey(_addButton));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byKey(_nameField), '  LUNCH  ');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(_nameSubmit));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(_nameField), findsOneWidget);
+      expect(
+        find.text(MealCategoriesController.duplicateNameReason),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('renaming a category to its own name is not a clash',
+        (tester) async {
+      final repo = await _pumpPage(tester, stored: _config());
+
+      await tester.tap(
+        find.byKey(const ValueKey('meal-category-rename-meal_slot_2')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(_nameSubmit));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(_nameField), findsNothing, reason: 'accepted');
+      expect(
+        repo.writes,
+        0,
+        reason: 'an unchanged name is still a no-op write',
+      );
+    });
+
+    testWidgets('a name matching an archived category is allowed',
+        (tester) async {
+      // The domain scopes the duplicate rule to active categories, and so
+      // does the editor.
+      final repo = await _pumpPage(
+        tester,
+        stored: _config(archived: ['Evening Snack']),
+      );
+      await _revealAdd(tester);
+      await tester.tap(find.byKey(_addButton));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byKey(_nameField), 'Evening Snack');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(_nameSubmit));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(_nameField), findsNothing);
+      expect(
+        (await repo.read()).activeItems.map((item) => item.displayName),
+        contains('Evening Snack'),
       );
     });
   });

@@ -203,6 +203,44 @@ void main() {
       );
       expect(gateway.upsertPayloads, hasLength(1));
     });
+
+    test('every integrity violation is classified as a conflict', () async {
+      // SQLSTATE class 23. The CHECK constraint and the retained-ID trigger
+      // both reject through it, and a guard added later in the same family is
+      // classified without this adapter having to learn about it.
+      for (final code in ['23514', '23505', '23503', '23000']) {
+        final gateway = _FakeMealCategoriesGateway(
+          upsertError: PostgrestException(
+            message: 'rejected by $code',
+            code: code,
+          ),
+        );
+
+        await expectLater(
+          () => _repository(gateway: gateway)
+              .upsert(MealCategoriesConfig.canonicalDefaults()),
+          throwsA(isA<MealCategoriesWriteConflict>()),
+          reason: '$code is an integrity violation, not a transport failure',
+        );
+        expect(gateway.upsertPayloads, hasLength(1));
+      }
+    });
+
+    test('a transport-shaped Postgrest failure is left retryable', () async {
+      // Anything outside class 23 stays exactly as it was, so the controller
+      // can still offer Retry for a failure that might succeed next time.
+      for (final code in ['08006', '57014', 'PGRST301', null]) {
+        final error = PostgrestException(message: 'transient', code: code);
+        final gateway = _FakeMealCategoriesGateway(upsertError: error);
+
+        await expectLater(
+          () => _repository(gateway: gateway)
+              .upsert(MealCategoriesConfig.canonicalDefaults()),
+          throwsA(same(error)),
+          reason: '${code ?? "no code"} is not an integrity violation',
+        );
+      }
+    });
   });
 }
 

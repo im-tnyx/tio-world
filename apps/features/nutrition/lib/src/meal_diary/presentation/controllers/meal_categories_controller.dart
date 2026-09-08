@@ -154,6 +154,12 @@ class MealCategoriesController extends ChangeNotifier {
   /// paraphrase, so it is stated once here rather than at each call site.
   static const String activeCapReason = 'Maximum 8 active meal categories';
 
+  /// The two deterministic name rejections, worded for the editor rather than
+  /// for a snackbar, because that is where they are now surfaced.
+  static const String blankNameReason = 'Enter a category name.';
+  static const String duplicateNameReason =
+      'That name is already used by another active category.';
+
   /// Why adding is refused once nothing more can be kept.
   ///
   /// It names the way out, because there is no obvious one: archiving never
@@ -163,6 +169,16 @@ class MealCategoriesController extends ChangeNotifier {
   static const String retainedCapReason =
       'Maximum 32 meal categories, archived included. Restore one from '
       'Archived and rename it instead.';
+
+  /// Shown when the store refused the write because the configuration moved
+  /// on somewhere else.
+  ///
+  /// It says what happened and what the reader is now looking at, because the
+  /// list has just changed under them. No Retry is offered: the change was
+  /// built on a version that no longer exists.
+  static const String conflictReason =
+      'Your meal categories were changed on another device. The latest '
+      'version is shown — make your change again.';
 
   /// Shown when archiving would leave nothing active.
   static const String lastActiveReason =
@@ -238,12 +254,48 @@ class MealCategoriesController extends ChangeNotifier {
 
   Future<void> retryLoad() => load();
 
+  /// Reloads after the store refused a write as a conflict.
+  ///
+  /// Deliberately not [load]: that flips the screen to a spinner and clears
+  /// the reason, and the reader would be left looking at a list that quietly
+  /// changed under them with nothing said. This swaps in what is actually
+  /// stored and keeps the explanation on screen.
+  ///
+  /// No rebase is attempted. Merging the refused edit into the newly read
+  /// configuration would be guessing at intent, and guessing wrong here means
+  /// silently undoing something done on another device.
+  Future<void> _reloadAfterConflict() async {
+    try {
+      final config = await _repository.read();
+      _emit(
+        MealCategoriesState(
+          status: MealCategoriesStatus.ready,
+          confirmed: config,
+          saving: false,
+          actionError: conflictReason,
+        ),
+      );
+    } catch (_) {
+      // The reload failed too. Keep the last known good configuration rather
+      // than blanking the screen — the edit did not land either way, and the
+      // reader still needs to be told why.
+      _emit(
+        _state.copyWith(
+          saving: false,
+          actionError: conflictReason,
+          clearOptimistic: true,
+          clearPendingRetry: true,
+        ),
+      );
+    }
+  }
+
   /// Renames one category. Only `displayName` moves; identity, order and
   /// active state are carried through untouched.
   Future<bool> rename({required String id, required String displayName}) {
     final trimmed = displayName.trim();
     if (trimmed.isEmpty) {
-      _emit(_state.copyWith(actionError: 'Enter a category name.'));
+      _emit(_state.copyWith(actionError: blankNameReason));
       return Future.value(false);
     }
     return _mutate((items) {
@@ -259,6 +311,34 @@ class MealCategoriesController extends ChangeNotifier {
   /// The identity comes from the domain generator, which is given every
   /// retained id — archived ones included — so a new category can never reuse
   /// an identity that history may still point at.
+  /// Why this name cannot be used, or null when it can.
+  ///
+  /// Run while the editor is still open. A deterministic local rejection is
+  /// not a failed save: closing the sheet and reporting it afterwards throws
+  /// away what the reader typed for a mistake they could have corrected in
+  /// place, and offers no way back to it.
+  ///
+  /// It applies the domain's own rules — the same normalization, and the same
+  /// scope, which is active categories only, so a name matching an archived
+  /// one is free to use. Nothing here is a second opinion: the domain still
+  /// decides at the write, and this only prevents the pointless round trip.
+  ///
+  /// [excludingId] is the category being renamed, so its own current name
+  /// never reads as a clash with itself.
+  String? validateDisplayName({required String value, String? excludingId}) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return blankNameReason;
+
+    final normalized = MealCategoriesPolicy.normalizeDisplayName(trimmed);
+    final clashes = _state.activeItems.any(
+      (item) =>
+          item.id != excludingId &&
+          MealCategoriesPolicy.normalizeDisplayName(item.displayName) ==
+              normalized,
+    );
+    return clashes ? duplicateNameReason : null;
+  }
+
   Future<bool> addCustom(String displayName) {
     final trimmed = displayName.trim();
     if (trimmed.isEmpty) {
@@ -437,6 +517,13 @@ class MealCategoriesController extends ChangeNotifier {
         ),
       );
       return false;
+    } on MealCategoriesWriteConflict catch (_) {
+      // Never a retry. The payload is a complete configuration built on a
+      // snapshot the store has already moved past, so replaying it would
+      // either be refused forever or erase whatever moved it. Reload instead,
+      // and let the reader see what is actually stored before deciding.
+      await _reloadAfterConflict();
+      return false;
     } catch (_) {
       // The edit is dropped from the screen as well as from the store: leaving
       // it visible would claim a save that did not happen. The attempt is kept
@@ -497,10 +584,9 @@ class MealCategoriesController extends ChangeNotifier {
   /// and internal identifiers never reach the screen.
   static String _messageFor(MealCategoriesValidationCode code) =>
       switch (code) {
-        MealCategoriesValidationCode.blankDisplayName =>
-          'Enter a category name.',
+        MealCategoriesValidationCode.blankDisplayName => blankNameReason,
         MealCategoriesValidationCode.duplicateActiveDisplayName =>
-          'That name is already used by another active category.',
+          duplicateNameReason,
         MealCategoriesValidationCode.tooManyActiveCategories => activeCapReason,
         MealCategoriesValidationCode.tooManyRetainedCategories =>
           retainedCapReason,

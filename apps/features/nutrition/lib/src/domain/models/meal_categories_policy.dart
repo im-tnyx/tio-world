@@ -33,6 +33,15 @@ abstract final class MealCategoriesPolicy {
 
   static bool isValidCustomId(String id) => _customIdPattern.hasMatch(id);
 
+  /// How two display names are compared for equality.
+  ///
+  /// Public because the editor has to apply the same rule while it is still
+  /// open — a name rejected here after the sheet closed costs the reader
+  /// everything they typed. One algorithm, so the editor cannot accept
+  /// something the domain will refuse a moment later, or the reverse.
+  static String normalizeDisplayName(String value) =>
+      value.replaceAll(_whitespace, ' ').trim().toLowerCase();
+
   static void validate({
     required int schemaVersion,
     required Iterable<MealCategory> items,
@@ -91,8 +100,7 @@ abstract final class MealCategoriesPolicy {
 
       if (item.active) {
         activeCount++;
-        final normalizedName =
-            item.displayName.replaceAll(_whitespace, ' ').trim().toLowerCase();
+        final normalizedName = normalizeDisplayName(item.displayName);
         if (!activeNames.add(normalizedName)) {
           throw MealCategoriesValidationException(
             code: MealCategoriesValidationCode.duplicateActiveDisplayName,

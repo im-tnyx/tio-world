@@ -1077,18 +1077,8 @@ that guard can be walked through deliberately — fill to the ceiling, then
 delete one identity per write, which is the bypass that guard was added to
 close.
 
-### Still open
-
-```text
-duplicate-name rejection loses the typed name        owner decision pending
-DB rejections treated as retryable transport errors  fix needs the Supabase
-                                                     adapter, which is out of
-                                                     scope for this slice
-pre-existing rows above the new ceiling              no grandfather path yet;
-                                                     no affected row confirmed
-minimum-active and canonical order not enforced      the database accepts what
-in the database validator                            the app then cannot read
-```
+All four of the items listed here as open were then closed under the owner
+decisions recorded in section 19.
 
 ### Validation
 
@@ -1098,3 +1088,103 @@ flutter test     core 266 · nutrition 431 · app 305    all passed
 supabase         41 migrations replayed locally, B1 SQL matrix passed
                  ceiling probed directly: 32 accepted, 33 rejected
 ```
+
+## 19. Review closeout — 2026-09-09
+
+Owner decisions on the outstanding review findings, and what each produced.
+
+### The database validator now carries every invariant the client does
+
+```text
+1 <= active <= 8
+total retained, archived included <= 32
+meal_slot_1 < meal_slot_2 < meal_slot_3 < meal_slot_4
+```
+
+The two new rules were the serious gap. A client writing straight to the API
+could store all four canonical items inactive, or Lunch ordered after Dinner;
+the database accepted both, and the Dart decoder then refused to read the row
+back — leaving that account's Meal Categories screen in a load failure it
+could not get out of.
+
+Enforced on canonical ids and their `order` values, never on `display_name`.
+A configuration whose anchors are inverted while wearing plausible names is
+rejected, and that case is covered.
+
+Corrected in the pending `20260908120000` migration rather than a new one, as
+directed: it is unmerged, so there is nothing to layer a fix on top of.
+
+### The migration refuses to apply rather than strand a row
+
+Replacing the validator does not revalidate stored rows, so a row already
+breaking a new rule would keep being readable and fail every future write,
+with the retained-ID trigger preventing it from being brought back into range.
+
+A preflight now counts stored rows against all three new rules and aborts the
+migration with the counts if any would be stranded. Nothing is truncated,
+repaired or grandfathered. Owner-supplied hosted evidence: 1 customized row,
+5 retained items at most, 0 rows over 32 — so the current project passes.
+
+### Name rejections stay in the editor
+
+A duplicate or blank name is a deterministic answer the screen already had.
+Reporting it after the sheet closed cost the reader everything they typed and
+offered no way back to it. The editor now applies the domain's own
+normalization — via `MealCategoriesPolicy.normalizeDisplayName`, one algorithm
+rather than a second opinion — keeps itself open, holds the text, and says
+why. The rule is scoped to active categories, so a name matching an archived
+one is free to use, and renaming a category to its own name is not a clash.
+
+### A refused write is no longer replayed forever
+
+`MealCategoriesWriteConflict` separates a store that refused this payload from
+a connection that dropped. The Supabase adapter classifies SQLSTATE class 23 —
+integrity constraint violation, which is how both the CHECK constraint and the
+retained-ID trigger reject — as a conflict; everything else is untouched and
+stays retryable.
+
+On conflict the controller offers no Retry, reloads what is actually stored,
+and says so. No rebase is attempted: merging the refused edit into the newly
+read configuration would be guessing at intent, and guessing wrong silently
+undoes another device's work.
+
+### The pencil affordance — owner-approved as a shared change
+
+Recorded explicitly, because it changes a surface outside this slice. The
+original complaint was that pressing the shared `NutritionEditPencil` painted
+ink past its circle and onto the row behind it. The owner confirmed on
+2026-09-09 that the fix is intended for **every** consumer, not for Meal
+Categories alone, and that Macros Settings must not be reverted to the old
+behaviour.
+
+The circle is now the ink surface and it clips, so nothing the ink layer draws
+can reach the card. Press paint is suppressed with the framework's `NoSplash`;
+`focusColor` is deliberately left alone so a keyboard user can still see where
+focus sits, constrained to the affordance. Semantics, focus and the 48dp
+target are unchanged. Both production consumers — Meal Categories rows and
+Macros Settings — are covered by tests. `NutritionOpenChevron` and row-level
+tap feedback are untouched.
+
+### Archived destination — final
+
+The top-bar entry stays. It exists exactly while something is archived,
+derived from the rendered configuration rather than a flag, and is now also
+unavailable while a write is in flight — the entry appears as soon as an
+archive is shown optimistically, but the destination reads the repository, so
+an early tap arrived at a screen saying nothing was archived. Section 14's
+Option A remains marked superseded.
+
+### Validation
+
+```text
+flutter analyze  core / nutrition / app     No issues found
+flutter test     core 266 · nutrition 441 · app 305    all passed
+supabase         41 migrations replayed on a clean local baseline
+                 B1 SQL matrix passed locally and in CI
+                 probed directly: 0 active rejected, Lunch-after-Dinner
+                 rejected, inverted anchors under plausible names rejected,
+                 custom between anchors accepted, 32 accepted, 33 rejected
+```
+
+The two-session concurrency script is not runnable locally: it needs a host
+`psql`, and a `docker exec` shim breaks its FIFO-driven sessions. CI runs it.

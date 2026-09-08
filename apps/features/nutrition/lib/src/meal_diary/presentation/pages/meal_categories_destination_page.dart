@@ -130,6 +130,11 @@ class _MealCategoriesDestinationPageState
       title: 'Rename category',
       initialValue: item.displayName,
       confirmLabel: 'Save',
+      // Its own current name is not a clash with itself.
+      validate: (name) => _controller.validateDisplayName(
+        value: name,
+        excludingId: item.id,
+      ),
     );
     if (value == null || !mounted) return;
     await _reportIfFailed(
@@ -142,6 +147,7 @@ class _MealCategoriesDestinationPageState
       title: 'Add meal category',
       initialValue: '',
       confirmLabel: 'Add',
+      validate: (name) => _controller.validateDisplayName(value: name),
     );
     if (value == null || !mounted) return;
     await _reportIfFailed(_controller.addCustom(value));
@@ -158,6 +164,7 @@ class _MealCategoriesDestinationPageState
     required String title,
     required String initialValue,
     required String confirmLabel,
+    required String? Function(String value) validate,
   }) {
     return showTioEditorSheet<String>(
       context: context,
@@ -167,6 +174,7 @@ class _MealCategoriesDestinationPageState
         title: title,
         confirmLabel: confirmLabel,
         initialValue: initialValue,
+        validate: validate,
       ),
     );
   }
@@ -777,11 +785,19 @@ class _NameEditorSheet extends StatefulWidget {
     required this.title,
     required this.confirmLabel,
     required this.initialValue,
+    required this.validate,
   });
 
   final String title;
   final String confirmLabel;
   final String initialValue;
+
+  /// Why this name cannot be used, or null when it can.
+  ///
+  /// Run here rather than after the sheet closes. A duplicate name is a
+  /// deterministic answer the screen already had — reporting it afterwards
+  /// costs the reader everything they typed and gives them no way back to it.
+  final String? Function(String value) validate;
 
   @override
   State<_NameEditorSheet> createState() => _NameEditorSheetState();
@@ -805,20 +821,32 @@ class _NameEditorSheetState extends State<_NameEditorSheet> {
     super.dispose();
   }
 
+  /// Set when a submit was refused, cleared as soon as the reader edits.
+  String? _error;
+
   void _onChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    // The message described the text as it was; it stops being true the
+    // moment that text changes.
+    setState(() => _error = null);
   }
 
   void _submit() {
-    if (_controller.text.trim().isEmpty) return;
-    Navigator.of(context).pop(_controller.text);
+    final value = _controller.text;
+    final error = widget.validate(value);
+    if (error != null) {
+      // Stay open, holding what was typed, and say why. The reader corrects
+      // it in place and submits again.
+      setState(() => _error = error);
+      return;
+    }
+    Navigator.of(context).pop(value);
   }
 
   @override
   Widget build(BuildContext context) {
-    // Blank is the one rejection worth pre-empting here, because it is about
-    // an empty field rather than a rule. Everything else — normalized
-    // duplicates included — stays with the domain so one algorithm decides.
+    // Submit stays reachable for anything non-blank, because a refusal now
+    // explains itself rather than leaving a dead button with no reason.
     final canSubmit = _controller.text.trim().isNotEmpty;
 
     return TioEditorSheet(
@@ -828,6 +856,7 @@ class _NameEditorSheetState extends State<_NameEditorSheet> {
         controller: _controller,
         onChanged: (_) {},
         hint: 'Category name',
+        errorText: _error,
         autofocus: true,
         textInputAction: TextInputAction.done,
         onSubmitted: (_) => _submit(),

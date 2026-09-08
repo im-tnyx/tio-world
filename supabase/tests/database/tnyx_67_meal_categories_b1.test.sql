@@ -24,6 +24,15 @@ values
     {"id":"meal_slot_3","default_key":"dinner","display_name":"Dinner","active":true,"order":2},
     {"id":"meal_slot_4","default_key":"snacks","display_name":"Snacks","active":true,"order":3}
   ]}'::jsonb),
+  ('custom_between_anchors', '{"schema_version":1,"items":[
+    {"id":"meal_slot_1","default_key":"breakfast","display_name":"Breakfast","active":true,"order":0},
+    {"id":"meal_slot_11111111-1111-4111-8111-111111111111","display_name":"Pre Workout","active":true,"order":1},
+    {"id":"meal_slot_2","default_key":"lunch","display_name":"Lunch","active":true,"order":2},
+    {"id":"meal_slot_22222222-2222-4222-8222-222222222222","display_name":"Post Workout","active":false,"order":3},
+    {"id":"meal_slot_3","default_key":"dinner","display_name":"Dinner","active":true,"order":4},
+    {"id":"meal_slot_4","default_key":"snacks","display_name":"Snacks","active":true,"order":5},
+    {"id":"meal_slot_33333333-3333-4333-8333-333333333333","display_name":"Late Meal","active":true,"order":6}
+  ]}'::jsonb),
   ('custom_one', '{"schema_version":1,"items":[
     {"id":"meal_slot_1","default_key":"breakfast","display_name":"Breakfast","active":true,"order":0},
     {"id":"meal_slot_2","default_key":"lunch","display_name":"Lunch","active":true,"order":1},
@@ -255,9 +264,23 @@ select pg_temp.assert_insert_accepted(
   3, jsonb_set(pg_temp.fixture('canonical'), '{items,0,display_name}', '"Morning meal"'),
   'renamed canonical label must be accepted'
 );
+-- Corrected, not deleted: this swapped Breakfast and Lunch to prove the
+-- validator accepted a reordered configuration. Swapping two anchors is
+-- exactly what the canonical order now forbids — the rejected cases below
+-- cover it — so the case becomes what "reordered" legitimately means here:
+-- the orders need not start at zero or be contiguous, only increasing.
 select pg_temp.assert_insert_accepted(
-  4, jsonb_set(jsonb_set(pg_temp.fixture('canonical'), '{items,0,order}', '1'), '{items,1,order}', '0'),
-  'reordered canonical config must be accepted'
+  4, jsonb_set(
+    jsonb_set(
+      jsonb_set(
+        jsonb_set(pg_temp.fixture('canonical'), '{items,0,order}', '5'),
+        '{items,1,order}', '6'
+      ),
+      '{items,2,order}', '9'
+    ),
+    '{items,3,order}', '40'
+  ),
+  'renumbered canonical config keeping its relative order must be accepted'
 );
 select pg_temp.assert_insert_accepted(5, pg_temp.fixture('eight_active'), 'eight active categories must be accepted');
 select pg_temp.assert_insert_accepted(
@@ -265,6 +288,31 @@ select pg_temp.assert_insert_accepted(
   'eight active plus archived categories must be accepted'
 );
 select pg_temp.assert_insert_accepted(7, pg_temp.fixture('custom_one'), 'valid custom UUID-v4 category must be accepted');
+-- Custom categories stay free between, before and after the canonical anchors;
+-- only the four anchors hold a fixed relative order, and only among themselves.
+select pg_temp.assert_insert_accepted(
+  9, pg_temp.fixture('custom_between_anchors'),
+  'custom categories placed between canonical anchors must be accepted'
+);
+-- The anchors are identified by id, never by display_name: renaming Lunch to
+-- something that sorts elsewhere must not move its anchor.
+select pg_temp.assert_insert_accepted(
+  10, jsonb_set(
+    pg_temp.fixture('canonical'), '{items,1,display_name}', '"Aaa Renamed"'
+  ),
+  'a renamed canonical category keeps its anchor'
+);
+-- One active category is the minimum, not four.
+select pg_temp.assert_insert_accepted(
+  11, jsonb_set(
+    jsonb_set(
+      jsonb_set(pg_temp.fixture('canonical'), '{items,1,active}', 'false'),
+      '{items,2,active}', 'false'
+    ),
+    '{items,3,active}', 'false'
+  ),
+  'a single remaining active category must be accepted'
+);
 -- Corrected, not deleted: this asserted that retained items had no ceiling at
 -- all. They do now — 32 in total, archived included — so the case becomes the
 -- boundary. 28 archived plus the four canonical defaults is exactly the cap.
@@ -320,7 +368,48 @@ select 123, 'thirty-three retained categories', pg_temp.large_archived_config(29
 -- The case the ceiling exists for. An authenticated client writing straight to
 -- the API could otherwise grow one row without limit, and every later write
 -- rescans the whole configuration.
-select 124, 'unbounded retained set', pg_temp.large_archived_config(512);
+select 124, 'unbounded retained set', pg_temp.large_archived_config(512) union all
+-- Every meal has to be filed under something. The database accepted this
+-- before, and the Dart decoder then refused to read it back, leaving the
+-- screen in a load failure the account could not escape.
+select 125, 'no active category', jsonb_set(
+  jsonb_set(
+    jsonb_set(
+      jsonb_set(pg_temp.fixture('canonical'), '{items,0,active}', 'false'),
+      '{items,1,active}', 'false'
+    ),
+    '{items,2,active}', 'false'
+  ),
+  '{items,3,active}', 'false'
+) union all
+-- Canonical relative order, checked on ids. Lunch after Dinner: swap the two
+-- orders so both stay unique.
+select 126, 'lunch ordered after dinner', jsonb_set(
+  jsonb_set(pg_temp.fixture('canonical'), '{items,1,order}', '2'),
+  '{items,2,order}', '1'
+) union all
+-- Dinner before Breakfast, by the same swap at the other end.
+select 127, 'dinner ordered before breakfast', jsonb_set(
+  jsonb_set(pg_temp.fixture('canonical'), '{items,0,order}', '2'),
+  '{items,2,order}', '0'
+) union all
+-- Snacks pulled ahead of Lunch.
+select 128, 'snacks ordered before lunch', jsonb_set(
+  jsonb_set(pg_temp.fixture('canonical'), '{items,1,order}', '3'),
+  '{items,3,order}', '1'
+) union all
+-- The inversion must be caught on identity, not on the label: these display
+-- names read in a plausible order while the anchors themselves are inverted.
+select 129, 'inverted anchors wearing plausible names', jsonb_set(
+  jsonb_set(
+    jsonb_set(
+      jsonb_set(pg_temp.fixture('canonical'), '{items,1,order}', '2'),
+      '{items,2,order}', '1'
+    ),
+    '{items,1,display_name}', '"Dinner"'
+  ),
+  '{items,2,display_name}', '"Lunch"'
+);
 
 do $$
 declare v_case record;

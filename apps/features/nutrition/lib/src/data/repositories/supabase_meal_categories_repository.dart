@@ -77,10 +77,35 @@ final class SupabaseMealCategoriesRepository
     final userId = _requireUserId();
     config.validate();
 
-    await _gateway.upsertRow({
-      'user_id': userId,
-      'meal_categories_config': MealCategoriesConfigCodec.encode(config),
-    });
+    try {
+      await _gateway.upsertRow({
+        'user_id': userId,
+        'meal_categories_config': MealCategoriesConfigCodec.encode(config),
+      });
+    } on PostgrestException catch (error) {
+      // The database refusing this payload is not a transport hiccup. The
+      // CHECK constraint and the retained-ID trigger both reject through
+      // SQLSTATE class 23, and both mean the same thing here: what was sent
+      // is not a legal successor to what is stored. Sending it again cannot
+      // help, and would overwrite another device's work if it ever did.
+      if (_isIntegrityViolation(error)) {
+        throw MealCategoriesWriteConflict(
+          message: 'Your meal categories were changed somewhere else.',
+          cause: error,
+        );
+      }
+      rethrow;
+    }
+  }
+
+  /// SQLSTATE class 23 — integrity constraint violation.
+  ///
+  /// Matched on the class rather than on individual codes so a guard added
+  /// later, raising a different code in the same family, is classified
+  /// correctly without this adapter needing to learn about it.
+  static bool _isIntegrityViolation(PostgrestException error) {
+    final code = error.code;
+    return code != null && code.length >= 2 && code.startsWith('23');
   }
 
   String _requireUserId() {
