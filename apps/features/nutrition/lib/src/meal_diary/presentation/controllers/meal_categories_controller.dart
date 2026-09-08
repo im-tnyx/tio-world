@@ -12,15 +12,18 @@ enum MealCategoriesStatus { loading, ready, loadFailed }
 
 /// Immutable snapshot the Meal Categories screen renders.
 ///
-/// [confirmed] is what the repository actually holds. Nothing here mutates it
-/// except a write that succeeded, so a failed save leaves the screen showing
-/// the user's attempt without ever implying it was stored.
+/// Two layers. [confirmed] is what the repository actually holds, and only a
+/// successful write ever replaces it. [optimistic] is what the reader just
+/// did, shown while the write is in flight and discarded if it fails — so the
+/// screen keeps up with the gesture without ever implying something was stored
+/// that was not.
 @immutable
 final class MealCategoriesState {
   const MealCategoriesState({
     required this.status,
     required this.confirmed,
     required this.saving,
+    this.optimistic,
     this.loadError,
     this.actionError,
     this.pendingRetry,
@@ -30,6 +33,7 @@ final class MealCategoriesState {
       : status = MealCategoriesStatus.loading,
         confirmed = null,
         saving = false,
+        optimistic = null,
         loadError = null,
         actionError = null,
         pendingRetry = null;
@@ -58,12 +62,26 @@ final class MealCategoriesState {
   /// fails, so without this the typed name is simply gone.
   final MealCategoriesConfig? pendingRetry;
 
+  /// The edit the reader just made, held only while its write is in flight.
+  ///
+  /// A drag that snapped back for the length of a network round trip and then
+  /// moved again read as the list ignoring the gesture. This is what the
+  /// screen renders in the meantime; it is never treated as stored, and a
+  /// failed write drops it so the list returns to [confirmed].
+  final MealCategoriesConfig? optimistic;
+
   bool get canRetryAction => pendingRetry != null;
 
-  List<MealCategory> get activeItems => confirmed?.activeItems ?? const [];
+  /// What the screen shows: the in-flight edit if there is one, otherwise what
+  /// the repository confirmed. Every derived getter reads through this, so the
+  /// cap, the archive guard and the archived entry all agree with what is on
+  /// screen rather than with a state the reader has already moved past.
+  MealCategoriesConfig? get visible => optimistic ?? confirmed;
+
+  List<MealCategory> get activeItems => visible?.activeItems ?? const [];
 
   List<MealCategory> get archivedItems => List<MealCategory>.unmodifiable(
-        confirmed?.orderedItems.where((item) => !item.active) ?? const [],
+        visible?.orderedItems.where((item) => !item.active) ?? const [],
       );
 
   int get activeCount => activeItems.length;
@@ -90,14 +108,18 @@ final class MealCategoriesState {
     String? loadError,
     String? actionError,
     MealCategoriesConfig? pendingRetry,
+    MealCategoriesConfig? optimistic,
     bool clearLoadError = false,
     bool clearActionError = false,
     bool clearPendingRetry = false,
+    bool clearOptimistic = false,
   }) =>
       MealCategoriesState(
         status: status ?? this.status,
         confirmed: confirmed ?? this.confirmed,
         saving: saving ?? this.saving,
+        optimistic:
+            clearOptimistic ? null : (optimistic ?? this.optimistic),
         loadError: clearLoadError ? null : (loadError ?? this.loadError),
         actionError:
             clearActionError ? null : (actionError ?? this.actionError),
@@ -372,6 +394,11 @@ class MealCategoriesController extends ChangeNotifier {
   }
 
   Future<bool> _write(MealCategoriesConfig next) async {
+    // Shown from here, before the round trip. The configuration has already
+    // been through the domain by this point, so nothing invalid is ever put on
+    // screen — only something not yet stored.
+    _emit(_state.copyWith(optimistic: next));
+
     try {
       await _repository.upsert(next);
     } on MealCategoriesValidationException catch (error) {
@@ -382,15 +409,20 @@ class MealCategoriesController extends ChangeNotifier {
           saving: false,
           actionError: _messageFor(error.code),
           clearPendingRetry: true,
+          clearOptimistic: true,
         ),
       );
       return false;
     } catch (_) {
+      // The edit is dropped from the screen as well as from the store: leaving
+      // it visible would claim a save that did not happen. The attempt is kept
+      // in `pendingRetry`, so Retry still costs one tap.
       _emit(
         _state.copyWith(
           saving: false,
           actionError: 'Could not save your change.',
           pendingRetry: next,
+          clearOptimistic: true,
         ),
       );
       return false;
@@ -402,6 +434,7 @@ class MealCategoriesController extends ChangeNotifier {
         saving: false,
         clearActionError: true,
         clearPendingRetry: true,
+        clearOptimistic: true,
       ),
     );
     return true;

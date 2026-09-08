@@ -218,6 +218,31 @@ Future<void> _enterName(WidgetTester tester, String value) async {
   await tester.pumpAndSettle();
 }
 
+/// The category names as the screen actually paints them, top to bottom.
+///
+/// Read off the rendered rows rather than off the controller, so a test can
+/// tell what the reader sees from what the repository holds.
+List<String> _renderedOrder(WidgetTester tester) {
+  final entries = <(double, String)>[];
+  for (final element in tester.elementList(
+    find.byWidgetPredicate(
+      (widget) => widget.key.toString().contains('meal-category-active-'),
+    ),
+  )) {
+    final row = find.byWidget(element.widget);
+    entries.add((
+      tester.getTopLeft(row).dy,
+      tester
+          .widget<Text>(
+            find.descendant(of: row, matching: find.byType(Text)).first,
+          )
+          .data!,
+    ));
+  }
+  entries.sort((a, b) => a.$1.compareTo(b.$1));
+  return [for (final entry in entries) entry.$2];
+}
+
 /// The page's own scroll view. The active list is a sliver inside it.
 Finder get _pageScrollable => find.byType(Scrollable).first;
 
@@ -1230,6 +1255,72 @@ void main() {
         customName,
         defaultName,
         reason: 'the handle slot is reserved, so names never jump',
+      );
+    });
+
+    testWidgets('the moved row is in its new place before the write lands',
+        (tester) async {
+      // The symptom this fixes: the row snapped back to where it started and
+      // only moved once the repository answered, so on anything slower than a
+      // test the drag read as ignored.
+      final repo = _RecordingRepository(stored: _config(extraActive: 1));
+      repo.writeGate = Completer<void>();
+      await _pumpPage(tester, repository: repo);
+
+      tester
+          .widget<SliverReorderableList>(find.byKey(_activeList))
+          .onReorderItem!(4, 1);
+      await tester.pump();
+
+      expect(
+        _renderedOrder(tester),
+        ['Breakfast', 'Custom 0', 'Lunch', 'Dinner', 'Snacks'],
+        reason: 'the list keeps up with the gesture, not with the round trip',
+      );
+
+      repo.writeGate!.complete();
+      await tester.pumpAndSettle();
+      expect(
+        _renderedOrder(tester),
+        ['Breakfast', 'Custom 0', 'Lunch', 'Dinner', 'Snacks'],
+        reason: 'and does not move again when the write lands',
+      );
+      expect(
+        (await repo.read())
+            .activeItems
+            .map((item) => item.displayName)
+            .toList(),
+        ['Breakfast', 'Custom 0', 'Lunch', 'Dinner', 'Snacks'],
+      );
+    });
+
+    testWidgets('a move the repository refuses goes back where it was',
+        (tester) async {
+      final repo = _RecordingRepository(stored: _config(extraActive: 1));
+      repo.writeGate = Completer<void>();
+      repo.failNextWrite = StateError('offline');
+      await _pumpPage(tester, repository: repo);
+
+      tester
+          .widget<SliverReorderableList>(find.byKey(_activeList))
+          .onReorderItem!(4, 1);
+      await tester.pump();
+      expect(
+        _renderedOrder(tester),
+        ['Breakfast', 'Custom 0', 'Lunch', 'Dinner', 'Snacks'],
+      );
+
+      repo.writeGate!.complete();
+      await tester.pumpAndSettle();
+      // Shown optimistically is not the same as stored: a failed write puts
+      // the row back rather than leaving a move that never happened on screen.
+      expect(
+        _renderedOrder(tester),
+        ['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Custom 0'],
+      );
+      expect(
+        find.byKey(const ValueKey('meal-categories-action-error')),
+        findsOneWidget,
       );
     });
 
