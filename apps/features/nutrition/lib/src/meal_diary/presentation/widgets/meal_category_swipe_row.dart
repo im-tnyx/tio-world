@@ -91,9 +91,19 @@ class _MealCategorySwipeRowState extends State<MealCategorySwipeRow>
   /// takes exactly that path.
   late final AnimationController _controller;
 
-  /// Drives the release. Held as an animation so settling follows a curve
-  /// rather than jumping to its destination.
-  Animation<double> _slide = const AlwaysStoppedAnimation(0);
+  /// One curve and one listener for the widget's lifetime.
+  ///
+  /// Building a fresh `CurvedAnimation` per settle left the previous one
+  /// attached to the same controller: every swipe added a listener that was
+  /// never removed and an object that was never disposed, both living until
+  /// the row was destroyed.
+  late final CurvedAnimation _curve;
+
+  /// Where the current settle started and where it is heading. The one curve
+  /// interpolates between these, so a new destination is two assignments
+  /// rather than a new animation.
+  double _from = 0;
+  double _to = 0;
 
   double _offset = 0;
 
@@ -108,8 +118,17 @@ class _MealCategorySwipeRowState extends State<MealCategorySwipeRow>
       vsync: this,
       duration: const Duration(milliseconds: 180),
     );
+    _curve = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic)
+      ..addListener(_onSettleTick);
     _offset = widget.isOpen ? MealCategorySwipeRow.revealWidth : 0;
+    _from = _offset;
+    _to = _offset;
     _passedThreshold = widget.isOpen;
+  }
+
+  void _onSettleTick() {
+    if (!mounted) return;
+    setState(() => _offset = _from + (_to - _from) * _curve.value);
   }
 
   @override
@@ -123,6 +142,9 @@ class _MealCategorySwipeRowState extends State<MealCategorySwipeRow>
 
   @override
   void dispose() {
+    _curve
+      ..removeListener(_onSettleTick)
+      ..dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -132,11 +154,8 @@ class _MealCategorySwipeRowState extends State<MealCategorySwipeRow>
   void _animateTo(double target) {
     if (_offset == target) return;
     _controller.stop();
-    _slide = Tween<double>(begin: _offset, end: target).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    )..addListener(() {
-        if (mounted) setState(() => _offset = _slide.value);
-      });
+    _from = _offset;
+    _to = target;
     _controller
       ..reset()
       ..forward().whenComplete(() {

@@ -110,6 +110,18 @@ class _NutritionCircularAction extends StatelessWidget {
     return InkResponse(
       onTap: onPressed,
       radius: TioSize.dp24,
+      // Nothing is painted on press. Core's own `TioSettingsEditAffordance` is
+      // a bare circle with no ink at all — the ripple in Settings belongs to
+      // the row, not to the affordance inside it — so a circle rippling only
+      // here made this one control look like it came from a different app.
+      //
+      // The framework's own `NoSplash` rather than a transparent splash
+      // colour: nothing is drawn, instead of something drawn invisibly. The
+      // `InkResponse` itself stays, so the control keeps its button semantics
+      // and keyboard focus; only the paint goes.
+      splashFactory: NoSplash.splashFactory,
+      highlightColor: TioPalette.transparent,
+      hoverColor: TioPalette.transparent,
       child: Container(
         width: TioSize.dp36,
         height: TioSize.dp36,

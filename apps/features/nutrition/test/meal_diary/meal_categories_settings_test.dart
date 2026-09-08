@@ -723,6 +723,33 @@ void main() {
       await tester.pumpAndSettle();
     });
 
+    testWidgets('a row swiped open and shut repeatedly still settles exactly',
+        (tester) async {
+      // Guards the settle refactor. One curve and one listener now serve every
+      // swipe, where a fresh animation used to be built each time; the leak
+      // that caused is not observable from a widget test, but a settle landing
+      // anywhere other than exactly open or exactly closed would be.
+      await _pumpPage(tester, stored: _config());
+      final shut = tester.getTopLeft(find.byKey(_rowContent('meal_slot_2'))).dx;
+
+      for (var cycle = 0; cycle < 6; cycle++) {
+        await _swipeOpen(tester, 'Lunch');
+        expect(
+          shut - tester.getTopLeft(find.byKey(_rowContent('meal_slot_2'))).dx,
+          closeTo(MealCategorySwipeRow.revealWidth, 0.5),
+          reason: 'open lands on the reveal, cycle $cycle',
+        );
+
+        await tester.drag(find.text('Lunch'), const Offset(90, 0));
+        await tester.pumpAndSettle();
+        expect(
+          tester.getTopLeft(find.byKey(_rowContent('meal_slot_2'))).dx,
+          closeTo(shut, 0.5),
+          reason: 'and shut lands back at the edge, cycle $cycle',
+        );
+      }
+    });
+
     testWidgets('the row is clamped while the finger is still down',
         (tester) async {
       // The release animation snaps to the reveal either way, so the clamp has
@@ -1337,6 +1364,34 @@ void main() {
       // with the card rather than hugging its label.
       expect(button.left, closeTo(page.left + TioSpacing.lg, 0.5));
       expect(button.right, closeTo(page.right - TioSpacing.lg, 0.5));
+    });
+
+    testWidgets('the edit affordance paints nothing when pressed',
+        (tester) async {
+      await _pumpPage(tester, stored: _config());
+
+      // Core's own settings affordance has no ink at all — the ripple in
+      // Settings belongs to the row — so a circle rippling here would be this
+      // screen alone behaving differently. Asserted on the configuration
+      // rather than on painted pixels, which a widget test cannot inspect.
+      final ink = tester.widget<InkResponse>(
+        find
+            .descendant(
+              of: find.byKey(const ValueKey('meal-category-rename-meal_slot_1')),
+              matching: find.byType(InkResponse),
+            )
+            .first,
+      );
+      expect(ink.splashFactory, NoSplash.splashFactory);
+      expect(ink.highlightColor, TioPalette.transparent);
+      expect(ink.hoverColor, TioPalette.transparent);
+
+      // And it still does its job.
+      await tester.tap(
+        find.byKey(const ValueKey('meal-category-rename-meal_slot_1')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(_nameField), findsOneWidget);
     });
 
     testWidgets('every canonical default fills its leading column with a glyph',
