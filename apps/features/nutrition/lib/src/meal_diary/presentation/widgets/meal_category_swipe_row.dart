@@ -202,16 +202,27 @@ class _MealCategorySwipeRowState extends State<MealCategorySwipeRow>
                   child: SizedBox(
                     width: MealCategorySwipeRow.revealWidth,
                     child: Opacity(
-                      // Fades in with the reveal, so a half-open row never
-                      // shows a fully-lit action it cannot yet accept.
+                      // Fades in with the reveal, so the destructive colour
+                      // arrives as the action is uncovered rather than only
+                      // once it is tapped, and leaves again when the row
+                      // closes.
                       opacity: (_offset / MealCategorySwipeRow.revealWidth)
                           .clamp(0, 1),
-                      child: Center(
-                        child: IconButton(
-                          key: widget.actionKey,
-                          tooltip: widget.actionLabel,
-                          onPressed: _offset > 0 ? widget.onAction : null,
-                          icon: Icon(widget.actionIcon, color: colors.danger),
+                      child: ColoredBox(
+                        // The repo's destructive surface: a `danger` tint
+                        // carrying a `danger` foreground, as the delete-account
+                        // dialog uses. Deliberately not a solid fill — there is
+                        // no on-destructive token to put on top of one, and
+                        // adding a Core colour to fill one strip would broaden
+                        // the design system without reuse evidence.
+                        color: colors.danger.withAlpha(TioAlpha.alpha35),
+                        child: Center(
+                          child: IconButton(
+                            key: widget.actionKey,
+                            tooltip: widget.actionLabel,
+                            onPressed: _offset > 0 ? widget.onAction : null,
+                            icon: Icon(widget.actionIcon, color: colors.danger),
+                          ),
                         ),
                       ),
                     ),

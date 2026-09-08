@@ -963,6 +963,14 @@ category the swipe exposes nothing to reveal, and the row publishes the reason
 as its semantics hint: `At least one meal category is required.` No
 confirmation is offered for an archive that would be refused.
 
+The revealed strip carries the repo's destructive surface — a `danger` tint
+with a `danger` foreground, the treatment the delete-account dialog already
+uses. It fades in with the reveal and leaves when the row closes, and only the
+strip is coloured; the card keeps `surfaceRaised`. Deliberately not a solid
+fill: there is no on-destructive token to place on top of one, and adding a
+Core colour to fill a single strip would broaden the design system without
+reuse evidence. All three palettes are asserted.
+
 ### Not in scope
 
 No clock-time restriction was added and none is implied. Fixed ordering is
@@ -976,6 +984,6 @@ MealLog persistence; no `services/api`.
 
 ```text
 flutter analyze  core / nutrition / app     No issues found
-flutter test     core 266 · nutrition 392 · app 305    all passed
+flutter test     core 266 · nutrition 396 · app 305    all passed
 git diff --check origin/main...HEAD         clean
 ```

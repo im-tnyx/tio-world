@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
@@ -453,6 +454,138 @@ void main() {
         tester.getSize(find.byKey(_swipeAction('meal_slot_2'))).width,
         lessThanOrEqualTo(MealCategorySwipeRow.revealWidth),
       );
+    });
+
+    testWidgets('the reveal carries the destructive surface, and loses it',
+        (tester) async {
+      await _pumpPage(tester, stored: _config());
+
+      ColoredBox surfaceOf(String id) => tester.widget<ColoredBox>(
+            find
+                .ancestor(
+                  of: find.byKey(_swipeAction(id)),
+                  matching: find.byType(ColoredBox),
+                )
+                .first,
+          );
+      double veilOf(String id) => tester
+          .widget<Opacity>(
+            find
+                .ancestor(
+                  of: find.byKey(_swipeAction(id)),
+                  matching: find.byType(Opacity),
+                )
+                .first,
+          )
+          .opacity;
+
+      expect(veilOf('meal_slot_2'), 0, reason: 'no colour while closed');
+
+      await _swipeOpen(tester, 'Lunch');
+
+      expect(
+        surfaceOf('meal_slot_2').color,
+        TioColors.light.danger.withAlpha(TioAlpha.alpha35),
+        reason: 'the repo destructive surface, not a hardcoded red',
+      );
+      expect(
+        tester
+            .widget<Icon>(
+              find.descendant(
+                of: find.byKey(_swipeAction('meal_slot_2')),
+                matching: find.byType(Icon),
+              ),
+            )
+            .color,
+        TioColors.light.danger,
+      );
+      expect(veilOf('meal_slot_2'), greaterThan(0));
+
+      // The card itself is untouched — only the revealed strip is destructive.
+      expect(
+        tester
+            .widget<Material>(
+              find
+                  .descendant(
+                    of: find.byKey(_swipeRow('meal_slot_2')),
+                    matching: find.byType(Material),
+                  )
+                  .first,
+            )
+            .color,
+        TioColors.light.surfaceRaised,
+      );
+
+      // Closing the row takes the colour away again.
+      await _swipeOpen(tester, 'Dinner');
+      expect(veilOf('meal_slot_2'), 0);
+    });
+
+    for (final testCase in const [
+      (name: 'Dark', mode: TioThemeMode.dark, expected: TioColors.dark),
+      (name: 'OLED', mode: TioThemeMode.oled, expected: TioColors.oled),
+    ]) {
+      testWidgets('the reveal follows the ${testCase.name} palette',
+          (tester) async {
+        await _pumpPage(tester, stored: _config(), mode: testCase.mode);
+        await _swipeOpen(tester, 'Lunch');
+
+        expect(
+          tester
+              .widget<ColoredBox>(
+                find
+                    .ancestor(
+                      of: find.byKey(_swipeAction('meal_slot_2')),
+                      matching: find.byType(ColoredBox),
+                    )
+                    .first,
+              )
+              .color,
+          testCase.expected.danger.withAlpha(TioAlpha.alpha35),
+        );
+      });
+    }
+
+    testWidgets('the reveal ticks once per crossing, not per frame',
+        (tester) async {
+      final ticks = <String>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'HapticFeedback.vibrate') {
+            ticks.add(call.arguments as String? ?? '');
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+
+      await _pumpPage(tester, stored: _config());
+
+      // Drag past the threshold in many small steps: one crossing, so one
+      // tick, however many frames the finger takes to get there.
+      final gesture =
+          await tester.startGesture(tester.getCenter(find.text('Lunch')));
+      for (var step = 0; step < 12; step++) {
+        await gesture.moveBy(const Offset(-8, 0));
+        await tester.pump();
+      }
+      expect(ticks, hasLength(1), reason: 'one crossing, one tick');
+
+      // Continuing to move past it must not tick again.
+      for (var step = 0; step < 6; step++) {
+        await gesture.moveBy(const Offset(-8, 0));
+        await tester.pump();
+      }
+      expect(ticks, hasLength(1));
+
+      await gesture.up();
+      await tester.pumpAndSettle();
     });
 
     testWidgets('tapping the revealed action asks before archiving',
