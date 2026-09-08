@@ -4,12 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:tio_core/core.dart';
 
+import '../../../domain/repositories/meal_categories_repository.dart';
+import '../../../meal_diary/presentation/controllers/meal_categories_controller.dart';
+import 'meal_category_selector_sheet.dart';
 import 'meal_log_action_footer.dart';
 
 /// Opens a brand-new Quick Add manual nutrition editor.
 Future<void> showQuickAddEditorSheet(
   BuildContext context, {
   DateTime Function()? clock,
+  MealCategoriesRepository? mealCategoriesRepository,
 }) {
   return showTioEditorSheet<void>(
     context: context,
@@ -21,7 +25,10 @@ Future<void> showQuickAddEditorSheet(
     // top padding, so a keyboard-raised or split-screen viewport can push the
     // handle and title under the status bar.
     useSafeArea: true,
-    builder: (_) => QuickAddEditorSheet(clock: clock),
+    builder: (_) => QuickAddEditorSheet(
+      clock: clock,
+      mealCategoriesRepository: mealCategoriesRepository,
+    ),
   );
 }
 
@@ -71,10 +78,22 @@ Future<void> showQuickAddEditorSheet(
 /// and dies with the route. There is no notifier, repository or store behind
 /// it. Reopening a brand-new Quick Add takes a fresh current-local snapshot.
 class QuickAddEditorSheet extends StatefulWidget {
-  const QuickAddEditorSheet({super.key, this.clock});
+  const QuickAddEditorSheet({
+    super.key,
+    this.clock,
+    this.mealCategoriesRepository,
+  });
 
   /// Optional local clock seam. Production uses `DateTime.now`.
   final DateTime Function()? clock;
+
+  /// Where the meal categories come from, supplied by app composition.
+  ///
+  /// Nutrition cannot reach the provider that owns it — the app depends on the
+  /// feature, not the reverse — so it arrives the same way the diary's week
+  /// start does. Null leaves the Meal type control inert, which is what a
+  /// surface with no category source honestly is.
+  final MealCategoriesRepository? mealCategoriesRepository;
 
   @override
   State<QuickAddEditorSheet> createState() => _QuickAddEditorSheetState();
@@ -99,12 +118,33 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
   late DateTime _draftDateTime;
   late DateTime _maximumDateTime;
   Timer? _maximumDateTimer;
+
+  /// Built here and read once per editor session.
+  ///
+  /// One read when the editor opens rather than one per selector opening: the
+  /// options cannot change while this sheet is up, and a fresh read each
+  /// session is what keeps a category renamed or archived in Settings from
+  /// showing up stale here. There is no second cache — this is the same
+  /// controller the Meal Categories screen uses.
+  MealCategoriesController? _categories;
+
+  /// The chosen category, held as its durable id.
+  ///
+  /// Never the label: renaming a category must move what the footer reads
+  /// without moving what the draft points at.
+  String? _selectedMealCategoryId;
   var _isDateTimePickerOpen = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    final repository = widget.mealCategoriesRepository;
+    if (repository != null) {
+      _categories = MealCategoriesController(repository: repository)
+        ..addListener(_onCategoriesChanged)
+        ..load();
+    }
     final openedAt = _currentLocalNow();
     _draftDateTime = _minuteOnly(openedAt);
     _maximumDateTime = _draftDateTime;
@@ -118,6 +158,9 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
   @override
   void dispose() {
     _stopMaximumDateRefresh();
+    _categories
+      ?..removeListener(_onCategoriesChanged)
+      ..dispose();
     WidgetsBinding.instance.removeObserver(this);
     for (final controller in _fields) {
       controller
@@ -125,6 +168,25 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
         ..dispose();
     }
     super.dispose();
+  }
+
+  void _onCategoriesChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// What the footer may offer: active categories only, in the order the
+  /// configuration puts them.
+  ///
+  /// Archived ones are absent rather than disabled. A new log cannot be filed
+  /// under a category the reader has retired, and showing it greyed out would
+  /// only invite the question of why.
+  List<MealCategoryOption> get _categoryOptions {
+    final controller = _categories;
+    if (controller == null) return const [];
+    return [
+      for (final item in controller.state.activeItems)
+        MealCategoryOption(id: item.id, label: item.displayName),
+    ];
   }
 
   @override
@@ -293,12 +355,18 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
           ],
         ),
         actions: MealLogActionFooter(
-          // Neutral on purpose. TNYX-67 owns what a meal category is — the V1
-          // defaults, renaming, custom ones, hiding, ordering and the eight-
-          // category ceiling — so naming Breakfast here would be this screen
-          // inventing a second, weaker version of that.
-          mealCategoryLabel: 'Meal type',
-          mealCategorySemanticLabel: 'Meal type. Not available yet.',
+          // An invitation, not a guess. TNYX-67 owns what a meal category is,
+          // so this screen neither names one nor infers one from the clock —
+          // the reader chooses, and until they do nothing is selected.
+          mealCategoryLabel: 'Select meal type',
+          mealCategorySemanticLabel: _categorySemanticLabel,
+          mealCategoryOptions: _categoryOptions,
+          selectedMealCategoryId: _selectedMealCategoryId,
+          onMealCategorySelected: _categoriesReady
+              ? (id) => setState(() => _selectedMealCategoryId = id)
+              : null,
+          mealCategoryLoadError: _categories?.state.loadError,
+          onMealCategoryRetry: _categories?.retryLoad,
           dateTimeLabel: dateTimeLabel,
           dateTimeSemanticLabel: 'Date and time. $dateTimeLabel. '
               'Picker ${_isDateTimePickerOpen ? 'expanded' : 'collapsed'}.',
@@ -309,6 +377,34 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
         ),
       ),
     );
+  }
+}
+
+extension _QuickAddCategories on _QuickAddEditorSheetState {
+  bool get _categoriesReady =>
+      _categories?.state.status == MealCategoriesStatus.ready;
+
+  /// Spoken as a label and a value, never as an identity.
+  String get _categorySemanticLabel {
+    final controller = _categories;
+    if (controller == null) return 'Meal type. Not available yet.';
+    switch (controller.state.status) {
+      case MealCategoriesStatus.loading:
+        return 'Meal type. Loading.';
+      case MealCategoriesStatus.loadFailed:
+        return 'Meal type. Could not load meal categories.';
+      case MealCategoriesStatus.ready:
+        final selectedId = _selectedMealCategoryId;
+        final selected = selectedId == null
+            ? null
+            : controller.state.activeItems
+                .where((item) => item.id == selectedId)
+                .map((item) => item.displayName)
+                .firstOrNull;
+        return selected == null
+            ? 'Meal type. None selected.'
+            : 'Meal type. $selected.';
+    }
   }
 }
 

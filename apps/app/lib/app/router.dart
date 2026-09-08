@@ -49,6 +49,10 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
     return Consumer(
       builder: (context, ref, _) => MealDiaryPage(
         resolvedFirstDayOfWeek: ref.watch(resolvedFirstDayOfWeekProvider),
+        // Quick Add's Meal type options come from the same repository the
+        // Meal Categories screens use, handed down rather than reached for:
+        // the feature cannot import this layer.
+        mealCategoriesRepository: ref.watch(mealCategoriesRepositoryProvider),
       ),
     );
   }

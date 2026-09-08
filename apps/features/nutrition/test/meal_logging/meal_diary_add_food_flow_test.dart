@@ -884,7 +884,10 @@ void main() {
       await _pump(tester);
       await _openQuickAdd(tester);
 
-      expect(find.text('Meal type'), findsOne);
+      // Corrected for the activated selector. This flow opens Quick Add with
+      // no category source, and with none the control is honestly inert and
+      // still names nothing — it invites a choice rather than guessing one.
+      expect(find.text('Select meal type'), findsOne);
       expect(
         tester.getSemantics(find.byKey(_footerCategory)),
         matchesSemantics(
@@ -1403,7 +1406,7 @@ void main() {
         expected.outlineStrong.withAlpha(TioAlpha.alpha20),
         reason: '$mode: the footer rule follows the active outline',
       );
-      expect(textColorOf(tester, 'Meal type'), expected.textPrimary);
+      expect(textColorOf(tester, 'Select meal type'), expected.textPrimary);
       expect(
         tester
             .widget<SvgPicture>(
@@ -1624,9 +1627,15 @@ void main() {
   });
 
   group('reusable footer, enabled path', () {
+    // Corrected for the activated selector: the control is no longer switched
+    // on by a bare tap callback. It is switched on by having something to
+    // offer — options plus a handler for the chosen id.
     Future<void> pumpFooter(
       WidgetTester tester, {
-      required VoidCallback? onCategory,
+      required ValueChanged<String>? onSelected,
+      List<MealCategoryOption> options = const [
+        MealCategoryOption(id: 'meal_slot_1', label: 'Breakfast'),
+      ],
     }) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -1640,7 +1649,8 @@ void main() {
                 mealCategoryLabel: 'Meal type',
                 dateTimeLabel: 'Aug 20 · Time',
                 primaryLabel: 'Log Meal',
-                onMealCategoryTap: onCategory,
+                mealCategoryOptions: options,
+                onMealCategorySelected: onSelected,
               ),
             ),
           ),
@@ -1653,8 +1663,8 @@ void main() {
     // the Meal Editor to adopt, and that path has to be pressable when it is.
     testWidgets('an enabled control is a real target and reports its tap',
         (tester) async {
-      var taps = 0;
-      await pumpFooter(tester, onCategory: () => taps++);
+      final chosen = <String>[];
+      await pumpFooter(tester, onSelected: chosen.add);
 
       final control = tester.getRect(find.byKey(_footerCategory));
       expect(
@@ -1675,12 +1685,14 @@ void main() {
 
       await tester.tap(find.byKey(_footerCategory));
       await tester.pumpAndSettle();
-      expect(taps, 1);
+      await tester.tap(find.byKey(const ValueKey('meal-category-option-meal_slot_1')));
+      await tester.pumpAndSettle();
+      expect(chosen, ['meal_slot_1'], reason: 'the id, never the label');
     });
 
     testWidgets('a disabled control stays compact and unpressable',
         (tester) async {
-      await pumpFooter(tester, onCategory: null);
+      await pumpFooter(tester, onSelected: null);
 
       // No 48dp floor here: that rule is about things you can press.
       expect(
