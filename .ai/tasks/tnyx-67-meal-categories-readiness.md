@@ -886,3 +886,96 @@ Four defects were found during implementation and fixed rather than tested aroun
 ### Next slice
 
 Shared `MealLogActionFooter` Meal Category selector activation, consuming the same active-category source. Not started, and not authorized by this slice.
+
+## 16. Active and Ordering Invariants — 2026-09-08
+
+Owner correction applied inside the Slice C branch, not as a new slice.
+
+### Active count
+
+```text
+1 <= active <= 8
+```
+
+The maximum was already enforced; the minimum is new. A configuration with
+nothing active is not a state the app can be in — every meal has to be filed
+under something — so the last active category cannot be archived. Archived
+identities are excluded from the count, and the retained total may exceed
+eight over a lifetime.
+
+Enforced in `MealCategoriesPolicy`, which every boundary already runs through:
+the `MealCategoriesConfig` constructor, `MealCategoriesConfigCodec.encode` and
+`decode`, and `MealCategoriesRepository.upsert`. A hostile or corrupted
+persisted row is rejected rather than repaired, and nothing is reactivated to
+paper over it.
+
+### Canonical relative order
+
+```text
+breakfast < lunch < dinner < snacks
+```
+
+Anchored to durable identity, never to `displayName`. Renaming `meal_slot_2`
+from "Lunch" to "Pre Workout" leaves it occupying the Lunch anchor, so ordering
+never follows what a category happens to be called.
+
+Checked across **every** item, archived ones included. That is what makes
+restore correct: an archived default keeps its slot, so bringing it back lands
+it between the right neighbours instead of at the end of the list. Archiving no
+longer moves anything — it only flips `active`.
+
+### What may move
+
+```text
+canonical defaults   fixed relative to one another; not user-reorderable
+custom categories    free to sit before, between, or after any anchor
+```
+
+Valid, and covered by tests:
+
+```text
+Pre Workout · Breakfast · Morning Snack · Lunch · Post Workout · Dinner ·
+Snacks · Late Meal
+```
+
+Rejected with `canonicalDefaultOrderViolated`:
+
+```text
+Dinner · Breakfast · Lunch · Snacks
+Breakfast · Dinner · Lunch · Snacks
+```
+
+A reorder is applied to the full ordered list — archived items included —
+because that list carries the anchors. Only the moved custom changes place;
+everything else is renumbered in sequence, so the anchors cannot invert. The
+controller refuses a request to move a default rather than ignoring it
+silently.
+
+### Rows
+
+Default rows carry no drag handle and advertise no reorder semantics — a
+disabled grip still reads as "drag me", and these rows genuinely cannot move.
+The handle slot stays reserved, so category names sit in one vertical column
+whether or not the row has a grip.
+
+Archive stays a left-swipe reveal followed by confirmation. At one active
+category the swipe exposes nothing to reveal, and the row publishes the reason
+as its semantics hint: `At least one meal category is required.` No
+confirmation is offered for an archive that would be refused.
+
+### Not in scope
+
+No clock-time restriction was added and none is implied. Fixed ordering is
+display organisation; `MealLogEntry.consumedAt` remains the separate truth
+about when something was actually eaten. Breakfast can be logged at midnight.
+
+Slice B is not started. No Supabase migration, adapter or hosted change; no
+MealLog persistence; no `services/api`.
+
+### Validation
+
+```text
+flutter analyze  core / nutrition / app     No issues found
+flutter test     core 266 · nutrition 392 · app 305    all passed
+git diff --check origin/main...HEAD         clean
+```

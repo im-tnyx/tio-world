@@ -73,6 +73,11 @@ final class MealCategoriesState {
   bool get isAtActiveCap =>
       activeCount >= MealCategoriesPolicy.maxActiveMealCategories;
 
+  /// Whether archiving is possible at all. At one active category the answer
+  /// is no: every meal has to be filed under something.
+  bool get canArchive =>
+      activeCount > MealCategoriesPolicy.minActiveMealCategories;
+
   MealCategoriesState copyWith({
     MealCategoriesStatus? status,
     MealCategoriesConfig? confirmed,
@@ -113,6 +118,14 @@ class MealCategoriesController extends ChangeNotifier {
   /// Shown when the cap blocks an action. The wording is the product's, not a
   /// paraphrase, so it is stated once here rather than at each call site.
   static const String activeCapReason = 'Maximum 8 active meal categories';
+
+  /// Shown when archiving would leave nothing active.
+  static const String lastActiveReason =
+      'At least one meal category is required.';
+
+  /// Shown if a default row is somehow asked to move.
+  static const String defaultsFixedReason =
+      'Breakfast, Lunch, Dinner and Snacks keep a fixed order.';
 
   final MealCategoriesRepository _repository;
   final MealCategoryIdGenerator _idGenerator;
@@ -228,10 +241,14 @@ class MealCategoriesController extends ChangeNotifier {
 
   /// Moves the active item at [oldIndex] to [newIndex].
   ///
-  /// Both are final positions within the active list — the caller has already
-  /// resolved any framework index convention — so this reads as the move the
-  /// user made. Archived items keep their own orders, so dragging an active
-  /// row can never disturb an archived identity.
+  /// Both are positions within the *active* list, which is what the screen
+  /// shows. The move is applied to the full ordered list — archived items
+  /// included — because that list is what carries the canonical anchors, and
+  /// renumbering only it keeps Breakfast before Lunch before Dinner before
+  /// Snacks whatever the reader drags.
+  ///
+  /// Only custom categories move. A default is not draggable, and a request to
+  /// move one is refused rather than quietly ignored.
   Future<bool> reorderActive({required int oldIndex, required int newIndex}) {
     final active = _state.activeItems;
     if (oldIndex < 0 || oldIndex >= active.length) return Future.value(false);
@@ -239,61 +256,56 @@ class MealCategoriesController extends ChangeNotifier {
       return Future.value(false);
     }
 
-    final reordered = [...active];
-    reordered.insert(newIndex, reordered.removeAt(oldIndex));
+    final moved = active[oldIndex];
+    if (moved.defaultKey != null) {
+      _emit(_state.copyWith(actionError: defaultsFixedReason));
+      return Future.value(false);
+    }
+
+    final anchor = active[newIndex];
 
     return _mutate((items) {
-      // Active items take the ordinals the drag implies; archived items are
-      // placed after them, keeping their relative order, so every order value
-      // stays unique without renumbering identities the user did not touch.
-      final archived = items.where((item) => !item.active).toList();
+      final ordered = [...items]..sort((a, b) => a.order.compareTo(b.order));
+      ordered.removeWhere((item) => item.id == moved.id);
+
+      // Land beside the active row the drag pointed at, on the side the drag
+      // came from, so the visible result matches the gesture.
+      final anchorIndex = ordered.indexWhere((item) => item.id == anchor.id);
+      final insertAt = newIndex > oldIndex ? anchorIndex + 1 : anchorIndex;
+      ordered.insert(insertAt.clamp(0, ordered.length), moved);
+
       var order = 0;
-      return [
-        for (final item in reordered) item.reordered(order++),
-        for (final item in archived) item.reordered(order++),
-      ];
+      return [for (final item in ordered) item.reordered(order++)];
     });
   }
 
-  /// Archives a category: it stays in the configuration, becomes inactive, and
-  /// frees exactly one active slot. Nothing is deleted.
-  Future<bool> archive(String id) => _mutate((items) {
-        final archived = [
+  /// Archives a category: it stays in the configuration and in its position,
+  /// and only stops being active. Nothing is deleted and nothing moves.
+  ///
+  /// Holding its slot is what lets a later restore land back between the right
+  /// neighbours rather than at the end of the list.
+  Future<bool> archive(String id) {
+    if (!_state.canArchive) {
+      _emit(_state.copyWith(actionError: lastActiveReason));
+      return Future.value(false);
+    }
+    return _mutate((items) => [
           for (final item in items)
             if (item.id == id) item.withActive(false) else item,
-        ];
-        return _compactOrders(archived);
-      });
+        ]);
+  }
 
-  /// Reactivates an archived category under its original identity, placed last
-  /// among active items so its position is deterministic.
+  /// Restores an archived category under its original identity and its
+  /// original position.
   Future<bool> reactivate(String id) {
     if (_state.isAtActiveCap) {
       _emit(_state.copyWith(actionError: activeCapReason));
       return Future.value(false);
     }
-    return _mutate((items) {
-      // Placed after every active item explicitly. Sorting by the stored order
-      // is not enough: an archived category keeps whatever order it had, and
-      // the domain only requires those to be unique and non-negative, so a
-      // reactivated item could otherwise reappear in the middle of the list.
-      final target = items.where((item) => item.id == id);
-      if (target.isEmpty) return items;
-
-      final actives = items.where((item) => item.active && item.id != id)
-          .toList()
-        ..sort((a, b) => a.order.compareTo(b.order));
-      final archived = items.where((item) => !item.active && item.id != id)
-          .toList()
-        ..sort((a, b) => a.order.compareTo(b.order));
-
-      var order = 0;
-      return [
-        for (final item in actives) item.reordered(order++),
-        target.single.withActive(true).reordered(order++),
-        for (final item in archived) item.reordered(order++),
-      ];
-    });
+    return _mutate((items) => [
+          for (final item in items)
+            if (item.id == id) item.withActive(true) else item,
+        ]);
   }
 
   /// Runs one edit against a copy of the confirmed configuration and writes it.
@@ -404,20 +416,6 @@ class MealCategoriesController extends ChangeNotifier {
     return highest + 1;
   }
 
-  /// Renumbers active items first, then archived, preserving relative order.
-  /// Orders must stay unique, and leaving gaps after an archive would make the
-  /// next insertion position ambiguous.
-  static List<MealCategory> _compactOrders(List<MealCategory> items) {
-    final ordered = [...items]..sort((a, b) => a.order.compareTo(b.order));
-    final active = ordered.where((item) => item.active);
-    final archived = ordered.where((item) => !item.active);
-    var order = 0;
-    return [
-      for (final item in active) item.reordered(order++),
-      for (final item in archived) item.reordered(order++),
-    ];
-  }
-
   /// Read-time failures need read-time copy.
   ///
   /// The mutation messages are written for someone holding an open editor, and
@@ -442,6 +440,9 @@ class MealCategoriesController extends ChangeNotifier {
         MealCategoriesValidationCode.duplicateActiveDisplayName =>
           'That name is already used by another active category.',
         MealCategoriesValidationCode.tooManyActiveCategories => activeCapReason,
+        MealCategoriesValidationCode.tooFewActiveCategories => lastActiveReason,
+        MealCategoriesValidationCode.canonicalDefaultOrderViolated =>
+          defaultsFixedReason,
         MealCategoriesValidationCode.retainedIdentityRemoved =>
           'That category is kept for your meal history and cannot be removed.',
         MealCategoriesValidationCode.malformedConfig ||

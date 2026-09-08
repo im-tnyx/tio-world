@@ -44,14 +44,11 @@ void main() {
     expect(config.items.map((item) => item.order), [0, 1, 2, 3]);
   });
 
-  test('does not infer identity from display name or order', () {
+  test('does not infer identity from display name', () {
     final raw = _validEncodedDefaults();
     final items = raw['items']! as List<Object?>;
     final lunch = items[1] as Map<String, Object?>;
     lunch['display_name'] = 'Pre Workout';
-    lunch['order'] = 2;
-    final dinner = items[2] as Map<String, Object?>;
-    dinner['order'] = 1;
 
     final decoded = MealCategoriesConfigCodec.decode(raw)!;
 
@@ -59,8 +56,47 @@ void main() {
     expect(
       decoded.findById('meal_slot_2')!.defaultKey,
       MealCategoryDefaultKey.lunch,
+      reason: 'renaming never reassigns the canonical anchor',
     );
-    expect(decoded.findById('meal_slot_2')!.order, 2);
+    expect(decoded.findById('meal_slot_2')!.order, 1);
+  });
+
+  test('rejects a persisted config that inverts two canonical defaults', () {
+    // A hostile or corrupted row must not be able to smuggle in an ordering
+    // the app itself refuses to produce.
+    final raw = _validEncodedDefaults();
+    final items = raw['items']! as List<Object?>;
+    (items[1] as Map<String, Object?>)['order'] = 2;
+    (items[2] as Map<String, Object?>)['order'] = 1;
+
+    expect(
+      () => MealCategoriesConfigCodec.decode(raw),
+      throwsA(
+        isA<MealCategoriesValidationException>().having(
+          (error) => error.code,
+          'code',
+          MealCategoriesValidationCode.canonicalDefaultOrderViolated,
+        ),
+      ),
+    );
+  });
+
+  test('rejects a persisted config with nothing active', () {
+    final raw = _validEncodedDefaults();
+    for (final item in raw['items']! as List<Object?>) {
+      (item as Map<String, Object?>)['active'] = false;
+    }
+
+    expect(
+      () => MealCategoriesConfigCodec.decode(raw),
+      throwsA(
+        isA<MealCategoriesValidationException>().having(
+          (error) => error.code,
+          'code',
+          MealCategoriesValidationCode.tooFewActiveCategories,
+        ),
+      ),
+    );
   });
 
   test('accepts an absent default_key for a custom category', () {

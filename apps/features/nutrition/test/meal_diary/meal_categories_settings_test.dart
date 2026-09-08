@@ -191,6 +191,9 @@ Future<_RecordingRepository> _pumpPage(
   return repo;
 }
 
+/// The first custom category `_config(extraActive: n)` produces.
+const _customId = 'meal_slot_aaaaaaaa-aaaa-4aaa-8aaa-000000000000';
+
 const _activeList = ValueKey('meal-categories-active-list');
 const _addButton = ValueKey('meal-categories-add');
 const _addCapReason = ValueKey('meal-categories-add-cap-reason');
@@ -306,18 +309,33 @@ void main() {
   });
 
   group('row contents', () {
-    testWidgets('a row shows a drag handle, a name and an edit action',
+    testWidgets('a custom row shows a drag handle, a name and an edit action',
+        (tester) async {
+      await _pumpPage(tester, stored: _config(extraActive: 1));
+
+      expect(
+        find.byKey(const ValueKey('meal-category-drag-$_customId')),
+        findsOneWidget,
+      );
+      expect(find.text('Custom 0'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('meal-category-rename-$_customId')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a default row shows a name and an edit action only',
         (tester) async {
       await _pumpPage(tester, stored: _config());
 
-      expect(
-        find.byKey(const ValueKey('meal-category-drag-meal_slot_1')),
-        findsOneWidget,
-      );
       expect(find.text('Breakfast'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('meal-category-rename-meal_slot_1')),
         findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('meal-category-drag-meal_slot_1')),
+        findsNothing,
       );
     });
 
@@ -348,7 +366,7 @@ void main() {
       );
       expect(veil.opacity, 0, reason: 'and it is not visible at rest');
 
-      // The row's own trailing control is the pencil, nothing else.
+      // A default row's only control is the pencil: no handle, no archive.
       final rowIcons = tester
           .widgetList<Icon>(
             find.descendant(
@@ -358,7 +376,7 @@ void main() {
           )
           .map((icon) => icon.icon)
           .toList();
-      expect(rowIcons, [Icons.drag_handle_rounded, Icons.edit_outlined]);
+      expect(rowIcons, [Icons.edit_outlined]);
     });
 
     testWidgets('rows are separated by an inset rule, with none after the last',
@@ -673,38 +691,98 @@ void main() {
   });
 
   group('reorder', () {
-    testWidgets('moves an active category and renumbers order only',
+    testWidgets('a custom category moves between the canonical anchors',
         (tester) async {
-      final repo = await _pumpPage(tester, stored: _config());
+      final repo = await _pumpPage(tester, stored: _config(extraActive: 1));
 
+      // The custom starts after Snacks; move it to just after Breakfast.
       tester
           .widget<SliverReorderableList>(find.byKey(_activeList))
-          .onReorderItem!(0, 3);
+          .onReorderItem!(4, 1);
       await tester.pumpAndSettle();
 
       final stored = await repo.read();
       expect(
         stored.activeItems.map((item) => item.displayName).toList(),
-        ['Lunch', 'Dinner', 'Snacks', 'Breakfast'],
+        ['Breakfast', 'Custom 0', 'Lunch', 'Dinner', 'Snacks'],
       );
-      expect(stored.activeItems.map((item) => item.order).toList(), [0, 1, 2, 3]);
+      // The anchors keep their relative order, and their identities are
+      // untouched by a neighbour moving.
       expect(
-        stored.findById('meal_slot_1')!.defaultKey,
-        MealCategoryDefaultKey.breakfast,
+        stored.activeItems
+            .where((item) => item.defaultKey != null)
+            .map((item) => item.defaultKey)
+            .toList(),
+        [
+          MealCategoryDefaultKey.breakfast,
+          MealCategoryDefaultKey.lunch,
+          MealCategoryDefaultKey.dinner,
+          MealCategoryDefaultKey.snacks,
+        ],
+      );
+    });
+
+    testWidgets('a custom category can move to every gap between anchors',
+        (tester) async {
+      final repo = await _pumpPage(tester, stored: _config(extraActive: 1));
+
+      for (final target in [0, 2, 3, 4]) {
+        final before = (await repo.read())
+            .activeItems
+            .indexWhere((item) => item.id == _customId);
+        tester
+            .widget<SliverReorderableList>(find.byKey(_activeList))
+            .onReorderItem!(before, target);
+        await tester.pumpAndSettle();
+
+        final defaults = (await repo.read())
+            .activeItems
+            .where((item) => item.defaultKey != null)
+            .map((item) => item.defaultKey)
+            .toList();
+        expect(
+          defaults,
+          [
+            MealCategoryDefaultKey.breakfast,
+            MealCategoryDefaultKey.lunch,
+            MealCategoryDefaultKey.dinner,
+            MealCategoryDefaultKey.snacks,
+          ],
+          reason: 'anchors survive a move to position $target',
+        );
+      }
+    });
+
+    testWidgets('two custom categories reorder relative to each other',
+        (tester) async {
+      final repo = await _pumpPage(tester, stored: _config(extraActive: 2));
+      expect(
+        (await repo.read()).activeItems.map((item) => item.displayName).toList(),
+        ['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Custom 0', 'Custom 1'],
+      );
+
+      tester
+          .widget<SliverReorderableList>(find.byKey(_activeList))
+          .onReorderItem!(5, 4);
+      await tester.pumpAndSettle();
+
+      expect(
+        (await repo.read()).activeItems.map((item) => item.displayName).toList(),
+        ['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Custom 1', 'Custom 0'],
       );
     });
 
     testWidgets('reordering leaves archived identities alone', (tester) async {
       final repo = await _pumpPage(
         tester,
-        stored: _config(archived: ['Late Night']),
+        stored: _config(extraActive: 1, archived: ['Late Night']),
       );
       final before =
           (await repo.read()).orderedItems.firstWhere((item) => !item.active);
 
       tester
           .widget<SliverReorderableList>(find.byKey(_activeList))
-          .onReorderItem!(0, 2);
+          .onReorderItem!(4, 1);
       await tester.pumpAndSettle();
 
       final after =
@@ -714,17 +792,67 @@ void main() {
       expect(after.active, isFalse);
     });
 
-    testWidgets('the drag handle still starts a reorder', (tester) async {
-      await _pumpPage(tester, stored: _config());
+    testWidgets('a default row offers no drag handle', (tester) async {
+      await _pumpPage(tester, stored: _config(extraActive: 1));
 
-      final handle =
-          find.byKey(const ValueKey('meal-category-drag-meal_slot_1'));
+      for (final id in ['meal_slot_1', 'meal_slot_2', 'meal_slot_3',
+          'meal_slot_4']) {
+        expect(
+          find.byKey(ValueKey('meal-category-drag-$id')),
+          findsNothing,
+          reason: '$id is a canonical anchor and cannot move',
+        );
+      }
+      // The custom one does.
       expect(
-        find.ancestor(
-          of: handle,
-          matching: find.byType(ReorderableDragStartListener),
-        ),
+        find.byKey(const ValueKey('meal-category-drag-$_customId')),
         findsOneWidget,
+      );
+    });
+
+    testWidgets('a default row advertises no reorder semantics',
+        (tester) async {
+      final semantics = tester.ensureSemantics();
+      await _pumpPage(tester, stored: _config(extraActive: 1));
+
+      expect(
+        find.bySemanticsLabel('Reorder Breakfast'),
+        findsNothing,
+        reason: 'never advertise an action the row cannot perform',
+      );
+      expect(find.bySemanticsLabel('Reorder Custom 0'), findsOneWidget);
+      semantics.dispose();
+    });
+
+    testWidgets('the controller refuses to move a canonical default',
+        (tester) async {
+      final repo = _RecordingRepository(stored: _config(extraActive: 1));
+      final controller = MealCategoriesController(repository: repo);
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      // Breakfast sits at active index 0.
+      expect(
+        await controller.reorderActive(oldIndex: 0, newIndex: 3),
+        isFalse,
+      );
+      expect(repo.writes, 0, reason: 'nothing reaches the repository');
+      expect(
+        controller.state.actionError,
+        MealCategoriesController.defaultsFixedReason,
+      );
+    });
+
+    testWidgets('names stay in one column with and without a handle',
+        (tester) async {
+      await _pumpPage(tester, stored: _config(extraActive: 1));
+
+      final defaultName = tester.getTopLeft(find.text('Breakfast')).dx;
+      final customName = tester.getTopLeft(find.text('Custom 0')).dx;
+      expect(
+        customName,
+        defaultName,
+        reason: 'the handle slot is reserved, so names never jump',
       );
     });
   });
@@ -933,53 +1061,74 @@ void main() {
       expect(controller.state.loadError, contains('Update Tio'));
     });
 
-    test('reactivation lands last even when the archived order is low',
-        () async {
-      final repo = _RecordingRepository(
-        stored: MealCategoriesConfig(
-          items: [
-            _category(
-              id: 'meal_slot_bbbbbbbb-bbbb-4bbb-8bbb-000000000000',
-              displayName: 'Late Night',
-              order: 0,
-              active: false,
-            ),
-            _category(
-              id: 'meal_slot_1',
-              defaultKey: MealCategoryDefaultKey.breakfast,
-              displayName: 'Breakfast',
-              order: 1,
-            ),
-            _category(
-              id: 'meal_slot_2',
-              defaultKey: MealCategoryDefaultKey.lunch,
-              displayName: 'Lunch',
-              order: 2,
-            ),
-            _category(
-              id: 'meal_slot_3',
-              defaultKey: MealCategoryDefaultKey.dinner,
-              displayName: 'Dinner',
-              order: 3,
-            ),
-            _category(
-              id: 'meal_slot_4',
-              defaultKey: MealCategoryDefaultKey.snacks,
-              displayName: 'Snacks',
-              order: 4,
-            ),
-          ],
-        ),
-      );
+    test('a restored default returns to its canonical slot', () async {
+      // Corrected by owner decision: an archived category holds its position,
+      // so restoring Lunch puts it back between Breakfast and Dinner rather
+      // than at the end of the list.
+      final repo = _RecordingRepository(stored: _config());
       final controller = MealCategoriesController(repository: repo);
       addTearDown(controller.dispose);
       await controller.load();
 
-      final archivedId = controller.state.archivedItems.single.id;
-      expect(await controller.reactivate(archivedId), isTrue);
+      expect(await controller.archive('meal_slot_2'), isTrue);
       expect(
         controller.state.activeItems.map((item) => item.displayName).toList(),
-        ['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Late Night'],
+        ['Breakfast', 'Dinner', 'Snacks'],
+        reason: 'the remaining anchors keep their order',
+      );
+
+      expect(await controller.reactivate('meal_slot_2'), isTrue);
+      expect(
+        controller.state.activeItems.map((item) => item.displayName).toList(),
+        ['Breakfast', 'Lunch', 'Dinner', 'Snacks'],
+      );
+      expect(
+        controller.state.confirmed!.findById('meal_slot_2')!.defaultKey,
+        MealCategoryDefaultKey.lunch,
+        reason: 'same identity throughout',
+      );
+    });
+
+    test('the last active category cannot be archived', () async {
+      final repo = _RecordingRepository(stored: _config());
+      final controller = MealCategoriesController(repository: repo);
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      for (final id in ['meal_slot_2', 'meal_slot_3', 'meal_slot_4']) {
+        expect(await controller.archive(id), isTrue);
+      }
+      expect(controller.state.activeCount, 1);
+      expect(controller.state.canArchive, isFalse);
+
+      final writesBefore = repo.writes;
+      expect(await controller.archive('meal_slot_1'), isFalse);
+      expect(repo.writes, writesBefore, reason: 'nothing was written');
+      expect(
+        controller.state.actionError,
+        'At least one meal category is required.',
+      );
+      expect(
+        controller.state.activeCount,
+        1,
+        reason: 'the previous valid state is preserved',
+      );
+    });
+
+    test('the domain rejects an empty active set even bypassing the UI',
+        () async {
+      final defaults = MealCategoriesConfig.canonicalDefaults();
+      expect(
+        () => MealCategoriesConfig(
+          items: defaults.items.map((item) => item.withActive(false)),
+        ),
+        throwsA(
+          isA<MealCategoriesValidationException>().having(
+            (error) => error.code,
+            'code',
+            MealCategoriesValidationCode.tooFewActiveCategories,
+          ),
+        ),
       );
     });
   });
@@ -1041,7 +1190,6 @@ void main() {
       expect(size.width, greaterThanOrEqualTo(kMinInteractiveDimension));
       expect(size.height, greaterThanOrEqualTo(kMinInteractiveDimension));
 
-      expect(find.bySemanticsLabel('Reorder Breakfast'), findsOneWidget);
       expect(find.byTooltip('Edit Breakfast'), findsOneWidget);
       semantics.dispose();
     });

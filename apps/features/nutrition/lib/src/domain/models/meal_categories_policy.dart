@@ -7,6 +7,11 @@ abstract final class MealCategoriesPolicy {
   static const int currentSchemaVersion = 1;
   static const int maxActiveMealCategories = 8;
 
+  /// A configuration with nothing active is not a valid state to be in: every
+  /// meal has to be filed under something, so the last active category cannot
+  /// be archived away.
+  static const int minActiveMealCategories = 1;
+
   static final RegExp _whitespace = RegExp(r'\s+');
   static final RegExp _customIdPattern = RegExp(
     r'^meal_slot_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
@@ -92,6 +97,14 @@ abstract final class MealCategoriesPolicy {
       );
     }
 
+    if (activeCount < minActiveMealCategories) {
+      throw const MealCategoriesValidationException(
+        code: MealCategoriesValidationCode.tooFewActiveCategories,
+        message:
+            'At least $minActiveMealCategories Meal Category must be active.',
+      );
+    }
+
     for (final definition in canonicalMealCategoryDefaultDefinitions) {
       final matchingId = items.where((item) => item.id == definition.id);
       if (matchingId.isEmpty ||
@@ -101,6 +114,38 @@ abstract final class MealCategoriesPolicy {
           message: 'Missing canonical Meal Category ${definition.id}.',
         );
       }
+    }
+
+    _validateCanonicalDefaultOrder(items);
+  }
+
+  /// Breakfast, Lunch, Dinner and Snacks hold a fixed relative order.
+  ///
+  /// Anchored to durable identity rather than to `displayName`: renaming
+  /// `meal_slot_2` from "Lunch" to "Pre Workout" leaves it occupying the Lunch
+  /// anchor, so ordering never follows what a category happens to be called.
+  ///
+  /// Checked across every item, archived ones included. Keeping an archived
+  /// default in its canonical slot is what lets a later restore land back
+  /// between the right neighbours instead of at the end of the list. Custom
+  /// categories, which carry no `defaultKey`, are free to sit anywhere between
+  /// or around these anchors.
+  static void _validateCanonicalDefaultOrder(Iterable<MealCategory> items) {
+    var previousOrder = -1;
+    MealCategoryDefaultKey? previousKey;
+
+    for (final definition in canonicalMealCategoryDefaultDefinitions) {
+      final anchor =
+          items.firstWhere((item) => item.defaultKey == definition.key);
+      if (anchor.order <= previousOrder) {
+        throw MealCategoriesValidationException(
+          code: MealCategoriesValidationCode.canonicalDefaultOrderViolated,
+          message: '${definition.key.storageValue} must stay after '
+              '${previousKey?.storageValue}.',
+        );
+      }
+      previousOrder = anchor.order;
+      previousKey = definition.key;
     }
   }
 }

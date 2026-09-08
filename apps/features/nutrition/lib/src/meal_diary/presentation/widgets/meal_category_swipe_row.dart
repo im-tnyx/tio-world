@@ -26,6 +26,8 @@ class MealCategorySwipeRow extends StatefulWidget {
     required this.onOpenChanged,
     required this.borderRadius,
     this.enabled = true,
+    this.actionEnabled = true,
+    this.blockedReason,
     super.key,
   });
 
@@ -45,6 +47,14 @@ class MealCategorySwipeRow extends StatefulWidget {
   final String semanticActionLabel;
   final VoidCallback onAction;
   final bool enabled;
+
+  /// Whether the action is possible at all right now. False leaves the row
+  /// un-swipeable rather than revealing something that would only be refused.
+  final bool actionEnabled;
+
+  /// Why the action is unavailable. Published as the row's semantics hint so
+  /// a reader who cannot see the missing affordance still learns the reason.
+  final String? blockedReason;
 
   /// Whether this row is the one currently revealed. The page owns this so
   /// only one row is open at a time.
@@ -92,7 +102,7 @@ class _MealCategorySwipeRowState extends State<MealCategorySwipeRow>
     if (widget.isOpen != oldWidget.isOpen) {
       _animateTo(widget.isOpen ? MealCategorySwipeRow.revealWidth : 0);
     }
-    if (!widget.enabled && _offset != 0) _animateTo(0);
+    if (!_canReveal && _offset != 0) _animateTo(0);
   }
 
   @override
@@ -119,8 +129,10 @@ class _MealCategorySwipeRowState extends State<MealCategorySwipeRow>
     });
   }
 
+  bool get _canReveal => widget.enabled && widget.actionEnabled;
+
   void _onDragUpdate(DragUpdateDetails details) {
-    if (!widget.enabled) return;
+    if (!_canReveal) return;
     setState(() {
       // Clamped: left swipe only, and never past the revealed width, so the
       // row cannot be thrown off screen.
@@ -137,7 +149,7 @@ class _MealCategorySwipeRowState extends State<MealCategorySwipeRow>
   }
 
   void _onDragEnd(DragEndDetails details) {
-    if (!widget.enabled) return;
+    if (!_canReveal) return;
     final velocity = details.primaryVelocity ?? 0;
     final shouldOpen = velocity < -200
         ? true
@@ -154,12 +166,15 @@ class _MealCategorySwipeRowState extends State<MealCategorySwipeRow>
 
     return Semantics(
       // Archive stays reachable without the gesture.
-      customSemanticsActions: widget.enabled
+      // Reachable without the gesture when the action is possible; when it is
+      // not, the reason is stated rather than the affordance silently missing.
+      customSemanticsActions: _canReveal
           ? {
               CustomSemanticsAction(label: widget.semanticActionLabel):
                   widget.onAction,
             }
           : const {},
+      hint: _canReveal ? null : widget.blockedReason,
       child: Material(
         color: colors.surfaceRaised,
         borderRadius: widget.borderRadius,

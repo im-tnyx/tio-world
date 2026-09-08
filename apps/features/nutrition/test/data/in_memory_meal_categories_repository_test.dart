@@ -148,7 +148,10 @@ void main() {
         'Post Workout');
   });
 
-  test('accepts reorder while retaining every identity', () async {
+  test('accepts a custom reorder while retaining every identity', () async {
+    // Corrected by owner decision: canonical defaults keep a fixed relative
+    // order, so a reorder moves the custom category between them rather than
+    // shuffling an anchor past its neighbours.
     final repository = InMemoryMealCategoriesRepository();
     final previous = _configWithCustom(active: true);
     await repository.upsert(previous);
@@ -157,8 +160,8 @@ void main() {
         for (final item in previous.items)
           if (item.id == _customId)
             item.reordered(1)
-          else if (item.id == 'meal_slot_2')
-            item.reordered(4)
+          else if (item.order >= 1)
+            item.reordered(item.order + 1)
           else
             item,
       ],
@@ -166,8 +169,42 @@ void main() {
 
     await repository.upsert(next);
 
-    expect((await repository.read()).findById(_customId)!.order, 1);
-    expect((await repository.read()).findById('meal_slot_2')!.order, 4);
+    final stored = await repository.read();
+    expect(stored.findById(_customId)!.order, 1);
+    expect(
+      stored.items.map((item) => item.id),
+      ['meal_slot_1', _customId, 'meal_slot_2', 'meal_slot_3', 'meal_slot_4'],
+    );
+  });
+
+  test('rejects a reorder that inverts two canonical defaults', () async {
+    final repository = InMemoryMealCategoriesRepository();
+    final previous = _configWithCustom(active: true);
+    await repository.upsert(previous);
+
+    expect(
+      () => MealCategoriesConfig(
+        items: [
+          for (final item in previous.items)
+            if (item.id == 'meal_slot_2')
+              item.reordered(2)
+            else if (item.id == 'meal_slot_3')
+              item.reordered(1)
+            else
+              item,
+        ],
+      ),
+      throwsA(
+        isA<MealCategoriesValidationException>().having(
+          (error) => error.code,
+          'code',
+          MealCategoriesValidationCode.canonicalDefaultOrderViolated,
+        ),
+      ),
+    );
+
+    // The stored configuration is untouched by the refused attempt.
+    expect((await repository.read()).findById('meal_slot_2')!.order, 1);
   });
 
   test('accepts active to inactive transition', () async {

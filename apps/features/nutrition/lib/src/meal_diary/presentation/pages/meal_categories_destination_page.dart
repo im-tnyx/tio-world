@@ -304,6 +304,10 @@ class _MealCategoriesDestinationPageState
               return MealCategorySwipeRow(
                 key: ValueKey('meal-category-swipe-${item.id}'),
                 enabled: enabled,
+                // The last active category cannot be archived, so the gesture
+                // does not offer an action that would only be refused.
+                actionEnabled: state.canArchive,
+                blockedReason: MealCategoriesController.lastActiveReason,
                 isOpen: _openRowId == item.id,
                 onOpenChanged: (open) => _setOpenRow(open ? item.id : null),
                 borderRadius: BorderRadius.vertical(
@@ -388,6 +392,10 @@ class _ActiveRow extends StatelessWidget {
     // as tappable while ignoring taps.
     final actionColor = enabled ? colors.textSecondary : colors.textMuted;
 
+    // Canonical defaults hold a fixed relative order, so they are not
+    // draggable and show no grip.
+    final isReorderable = item.defaultKey == null;
+
     // Each row paints its own slice of the group surface, with the corners
     // rounded only at the ends, so the list still reads as one card while
     // living in a sliver that can actually scroll.
@@ -403,7 +411,17 @@ class _ActiveRow extends StatelessWidget {
             ),
             child: Row(
               children: [
-                ReorderableDragStartListener(
+                // The handle slot is always occupied, even for a default that
+                // has none, so every category name sits in one vertical column
+                // instead of jumping left on the fixed rows.
+                SizedBox(
+                  width: TioSize.dp20,
+                  child: !isReorderable
+                      // Deliberately empty rather than a disabled handle: a
+                      // greyed-out grip still reads as "drag me", and these
+                      // rows genuinely cannot move.
+                      ? const SizedBox.shrink()
+                      : ReorderableDragStartListener(
                   index: index,
                   enabled: enabled,
                   child: Semantics(
@@ -432,6 +450,7 @@ class _ActiveRow extends StatelessWidget {
                       ),
                     ),
                   ),
+                ),
                 ),
                 const SizedBox(width: TioSpacing.md),
                 Expanded(
