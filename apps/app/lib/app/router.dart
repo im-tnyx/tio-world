@@ -56,6 +56,50 @@ Widget _shellBranchPage(ShellBranchDefinition branch) {
   return _page(branch.route);
 }
 
+/// The Diary's centred month label, constrained so it cannot run under the
+/// status action cluster.
+///
+/// `TioShellStatusTopBar` centres this across the whole bar on purpose, so it
+/// stays centred on screen no matter how wide the title or actions are. That
+/// also means nothing stops a long label from painting beneath the actions:
+/// at 320dp with a 1.6x text scale and the Today action showing, the label
+/// reached 238.75dp while the Today glyph starts at 212dp. Because the label
+/// is centred, the space it can safely occupy is the bar minus twice the
+/// cluster's painted width, and it ellipsises rather than overlapping.
+///
+/// At a normal text scale this changes nothing — the label still renders in
+/// full. It only bites at large text scales on a narrow screen, where the
+/// alternative is the month painting across the icons.
+Widget _mealDiaryVisibleMonthLabel(
+  BuildContext context,
+  MealDiaryDateController dates,
+) {
+  // Measured against painted glyphs, not hit boxes. The cluster's touch
+  // targets reach 120dp in from the right edge, but its leftmost *painted*
+  // pixel — the Today glyph, inset 12dp inside its 48dp button — starts at
+  // 108dp. Reserving the hit box instead would shrink the label to an
+  // ellipsis at every width, which is a worse outcome than a button whose
+  // padding a centred label passes under without touching its icon.
+  const paintedClusterWidth = TioSize.dp48 * 2 + TioSize.dp12;
+  final available =
+      MediaQuery.sizeOf(context).width - paintedClusterWidth * 2;
+
+  return ConstrainedBox(
+    constraints: BoxConstraints(maxWidth: available > 0 ? available : 0),
+    child: Text(
+      tioCompactMonthYearLabel(
+        dates.visibleMonth,
+        localeName: Localizations.localeOf(context).toString(),
+      ),
+      key: const ValueKey('meal-diary-visible-month'),
+      style: Theme.of(context).textTheme.titleSmall,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      textAlign: TextAlign.center,
+    ),
+  );
+}
+
 Widget _mealDiaryTodayGlyph(BuildContext context, DateTime localToday) {
   final color = Theme.of(context).colorScheme.onSurface;
 
@@ -178,6 +222,8 @@ ChromePolicy shellChromePolicyForPath(String location) {
     AppRoutes.nutritionTargetsSettings,
     AppRoutes.nutritionMacrosSettings,
     AppRoutes.nutritionAdditionalGoalsSettings,
+    AppRoutes.mealDiarySettings,
+    AppRoutes.mealCategoriesSettings,
     AppRoutes.profileSettings,
     AppRoutes.accountSettings,
     AppRoutes.appSettings,
@@ -327,15 +373,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 // the same question as what they have selected.
                 statusTopBarCenter: mealDiaryDates == null
                     ? null
-                    : Text(
-                        tioCompactMonthYearLabel(
-                          mealDiaryDates.visibleMonth,
-                          localeName:
-                              Localizations.localeOf(context).toString(),
-                        ),
-                        key: const ValueKey('meal-diary-visible-month'),
-                        style: Theme.of(context).textTheme.titleSmall,
+                    : _mealDiaryVisibleMonthLabel(
+                        context,
+                        mealDiaryDates,
                       ),
+                // Owner-locked order: [Today?] [streak] [More]. The overflow
+                // menu is the end action, so it uses the trailing slot while
+                // Today stays in the leading one.
                 statusTopBarLeadingAction:
                     mealDiaryDates != null &&
                             mealDiaryDates.shouldShowTodayAction
@@ -353,6 +397,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                             ),
                           )
                         : null,
+                statusTopBarTrailingAction: mealDiaryDates == null
+                    ? null
+                    : MealDiaryMoreMenu(
+                        onMealDiarySettingsPressed: () => context.push(
+                          AppRoutes.mealDiarySettings.path,
+                        ),
+                      ),
                 child: child!,
               );
             },
@@ -871,7 +922,22 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               context.push(AppRoutes.nutritionProfileSettings.path),
           onNutritionTargetsPressed: () =>
               context.push(AppRoutes.nutritionTargetsSettings.path),
+          onMealDiarySettingsPressed: () =>
+              context.push(AppRoutes.mealDiarySettings.path),
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.mealDiarySettings.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => MealDiarySettingsPage(
+          onMealCategoriesPressed: () =>
+              context.push(AppRoutes.mealCategoriesSettings.path),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.mealCategoriesSettings.path,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const MealCategoriesDestinationPage(),
       ),
       GoRoute(
         path: AppRoutes.nutritionTargetsSettings.path,

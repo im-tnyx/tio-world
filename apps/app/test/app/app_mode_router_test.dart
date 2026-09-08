@@ -107,6 +107,7 @@ void main() {
       _SettingsCalendarPreferencesRepository(),
     );
     await calendarController.load();
+    final mealCategoriesRepository = _RecordingMealCategoriesRepository();
     final container = ProviderContainer(
       overrides: [
         appModeControllerProvider.overrideWith((ref) => controller),
@@ -117,6 +118,8 @@ void main() {
         appThemeControllerProvider.overrideWith((ref) => themeController),
         calendarPreferencesControllerProvider
             .overrideWith((ref) => calendarController),
+        mealCategoriesRepositoryProvider
+            .overrideWith((ref) => mealCategoriesRepository),
         appSessionBootstrapControllerProvider.overrideWith(
           (ref) => _FixedAppSessionBootstrapController(
             state: const AppSessionBootstrapReady(userId: 'test-user'),
@@ -171,7 +174,10 @@ void main() {
     final historicalDate = DateTime(today.year, today.month, today.day - 1);
     final todayAction =
         find.byKey(const ValueKey('meal-diary-today-action'));
+    final moreMenu = find.byKey(const ValueKey('meal-diary-more-menu'));
     expect(todayAction, findsNothing);
+    expect(moreMenu, findsOneWidget);
+    expect(find.byKey(const ValueKey('shell-meal-log-streak')), findsOneWidget);
 
     await tester.fling(
       find.byKey(const ValueKey('tio-date-calendar-week-pager')),
@@ -231,6 +237,53 @@ void main() {
     await tester.pumpAndSettle();
     expect(diaryDates.isOnToday, isTrue);
     expect(todayAction, findsNothing);
+
+    diaryDates.select(historicalDate);
+    await tester.pumpAndSettle();
+
+    await tester.tap(moreMenu);
+    await tester.pumpAndSettle();
+    final settingsMenuItem =
+        find.byKey(const ValueKey('meal-diary-settings-menu-item'));
+    expect(settingsMenuItem, findsOneWidget);
+    await tester.tap(settingsMenuItem);
+    await tester.pumpAndSettle();
+    final settingsPage =
+        find.byKey(const ValueKey('meal-diary-settings-page'));
+    expect(settingsPage, findsOneWidget);
+    expect(GoRouterState.of(tester.element(settingsPage)).uri.path,
+        AppRoutes.mealDiarySettings.path);
+
+    await tester.tap(
+      find.byKey(const ValueKey('meal-diary-settings-categories-entry')),
+    );
+    await tester.pumpAndSettle();
+    final categoriesPage =
+        find.byKey(const ValueKey('meal-categories-destination-page'));
+    expect(categoriesPage, findsOneWidget);
+    expect(GoRouterState.of(tester.element(categoriesPage)).uri.path,
+        AppRoutes.mealCategoriesSettings.path);
+    expect(find.byType(TextField), findsNothing);
+    expect(find.byType(ReorderableListView), findsNothing);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(settingsPage, findsOneWidget);
+    expect(GoRouterState.of(tester.element(settingsPage)).uri.path,
+        AppRoutes.mealDiarySettings.path);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      FeatureRoutes.nutrition.path,
+    );
+    expect(diaryDates.selectedDate, historicalDate);
+    expect(todayAction, findsOneWidget);
+    expect(moreMenu, findsOneWidget);
+    expect(find.byKey(const ValueKey('shell-meal-log-streak')), findsOneWidget);
+    expect(mealCategoriesRepository.readCalls, 0);
+    expect(mealCategoriesRepository.writeCalls, 0);
 
     await controller.select(AppMode.workout);
     await tester.pumpAndSettle();
@@ -685,6 +738,111 @@ void main() {
     expect(find.byType(SettingsPage), findsOneWidget);
   });
 
+  for (final layout in const [
+    (width: 390.0, height: 844.0, textScale: 1.0, name: '390px'),
+    (width: 320.0, height: 640.0, textScale: 1.0, name: '320px'),
+    (width: 320.0, height: 640.0, textScale: 1.6, name: '320px at 1.6x text'),
+  ]) {
+    for (final theme in const [
+      (mode: TioThemeMode.light, name: 'Light'),
+      (mode: TioThemeMode.dark, name: 'Dark'),
+      (mode: TioThemeMode.oled, name: 'OLED'),
+      (mode: TioThemeMode.system, name: 'System-dark'),
+    ]) {
+      testWidgets(
+          'Meal Diary top bar order holds at ${layout.name} in ${theme.name}',
+          (tester) async {
+        // Owner-locked layout: [Today?] [streak] [More]. More is the bar's end
+        // action. Ordering is asserted by measured x, not by widget presence,
+        // and the centred month is checked for overlap because the centre slot
+        // is absolutely positioned across the whole bar — the one place this
+        // cluster can collide with something at small widths or large text.
+        tester.view.physicalSize = Size(layout.width, layout.height);
+        tester.view.devicePixelRatio = 1;
+        tester.platformDispatcher.platformBrightnessTestValue =
+            Brightness.dark;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(
+          tester.platformDispatcher.clearPlatformBrightnessTestValue,
+        );
+
+        await _pumpSettingsRoute(
+          tester,
+          initialPath: FeatureRoutes.nutrition.path,
+          themeMode: theme.mode,
+          textScale: layout.textScale,
+        );
+        await tester.pumpAndSettle();
+
+        final streak = find.byKey(const ValueKey('shell-meal-log-streak'));
+        final more = find.byKey(const ValueKey('meal-diary-more-menu'));
+        final todayAction =
+            find.byKey(const ValueKey('meal-diary-today-action'));
+        final month = find.byKey(const ValueKey('meal-diary-visible-month'));
+
+        void expectOwnerLockedOrder({required bool withToday}) {
+          final streakRect = tester.getRect(streak);
+          final moreRect = tester.getRect(more);
+
+          expect(
+            streakRect.right,
+            lessThanOrEqualTo(moreRect.left),
+            reason: 'streak sits immediately before More',
+          );
+          expect(
+            moreRect.right,
+            lessThanOrEqualTo(layout.width),
+            reason: 'More is the end action and stays on screen',
+          );
+          if (withToday) {
+            expect(
+              tester.getRect(todayAction).right,
+              lessThanOrEqualTo(streakRect.left),
+              reason: 'Today comes before the streak',
+            );
+          }
+          // The centre label is painted across the full bar, so the guard is
+          // that the cluster never reaches back into it.
+          // Painted glyphs, not hit boxes: the buttons' padding may sit over
+          // the label without either being visible, but no glyph may.
+          final paintedClusterLeft = withToday
+              ? tester
+                  .getRect(find.byKey(const ValueKey('meal-diary-today-glyph')))
+                  .left
+              : tester
+                  .getRect(
+                    find.byKey(const ValueKey('shell-status-streak-icon')),
+                  )
+                  .left;
+          expect(
+            tester.getRect(month).right,
+            lessThanOrEqualTo(paintedClusterLeft),
+            reason: 'the centred month must not paint over the action cluster',
+          );
+          expect(tester.takeException(), isNull);
+        }
+
+        // Today absent: [streak] [More].
+        expect(todayAction, findsNothing);
+        expect(streak, findsOneWidget);
+        expect(more, findsOneWidget);
+        expectOwnerLockedOrder(withToday: false);
+
+        // Today present: [Today] [streak] [More].
+        final diaryDates = ProviderScope.containerOf(
+          tester.element(find.byType(TioDateCalendar)),
+        ).read(mealDiaryDateControllerProvider);
+        final today = diaryDates.localToday;
+        diaryDates.select(DateTime(today.year, today.month, today.day - 1));
+        await tester.pumpAndSettle();
+
+        expect(todayAction, findsOneWidget);
+        expectOwnerLockedOrder(withToday: true);
+      });
+    }
+  }
+
   testWidgets('Settings navigates to Health & Goals and Daily Wellness',
       (tester) async {
     await _pumpSettingsRoute(tester);
@@ -842,7 +1000,13 @@ Future<
   WidgetTester tester, {
   String initialPath = '/settings',
   CalendarPreferencesRepository? calendarRepository,
+  TioThemeMode themeMode = TioThemeMode.system,
+  double textScale = 1,
 }) async {
+  if (textScale != 1) {
+    tester.platformDispatcher.textScaleFactorTestValue = textScale;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+  }
   final mode = AppModeController(_MemoryAppModePreference(AppMode.hybrid));
   await mode.load();
   final onboardingRepository = _MemoryOnboardingStatusRepository(
@@ -854,7 +1018,7 @@ Future<
     appModeController: mode,
   );
   await onboarding.load();
-  final theme = await _createThemeController();
+  final theme = await _createThemeController(mode: themeMode);
   final bootstrap = _FixedAppSessionBootstrapController(
     state: const AppSessionBootstrapReady(userId: 'test-user'),
     onboardingStatusController: onboarding,
@@ -985,6 +1149,22 @@ class _SettingsAuthRepository extends InMemoryAuthSessionRepository {
   }
 }
 
+class _RecordingMealCategoriesRepository implements MealCategoriesRepository {
+  int readCalls = 0;
+  int writeCalls = 0;
+
+  @override
+  Future<MealCategoriesConfig> read() async {
+    readCalls++;
+    return MealCategoriesConfig.canonicalDefaults();
+  }
+
+  @override
+  Future<void> upsert(MealCategoriesConfig config) async {
+    writeCalls++;
+  }
+}
+
 Future<SystemUiOverlayStyle> _pumpSystemUiOverlay(
   WidgetTester tester, {
   required Brightness platformBrightness,
@@ -1043,9 +1223,10 @@ Future<SystemUiOverlayStyle> _pumpSystemUiOverlay(
       .value;
 }
 
-Future<AppThemeController> _createThemeController() async {
-  final controller =
-      AppThemeController(_MemoryAppThemePreference(TioThemeMode.system));
+Future<AppThemeController> _createThemeController({
+  TioThemeMode mode = TioThemeMode.system,
+}) async {
+  final controller = AppThemeController(_MemoryAppThemePreference(mode));
   await controller.load();
   return controller;
 }

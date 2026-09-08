@@ -145,6 +145,20 @@ class AppRoutes {
     chromePolicy: ChromePolicy.fullScreen,
   );
 
+  static const mealDiarySettings = TioRouteContract(
+    path: '/settings/nutrition/meal-diary',
+    title: 'Meal Diary Settings',
+    description: 'Manage Meal Diary-specific preferences.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
+  static const mealCategoriesSettings = TioRouteContract(
+    path: '/settings/nutrition/meal-diary/categories',
+    title: 'Meal Categories',
+    description: 'Manage the categories used to organize meal entries.',
+    chromePolicy: ChromePolicy.fullScreen,
+  );
+
   static const dailyWellnessSettings = TioRouteContract(
     path: '/settings/health-goals/daily-wellness',
     title: 'Daily Wellness',
