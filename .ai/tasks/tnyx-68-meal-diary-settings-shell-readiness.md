@@ -24,14 +24,14 @@
 **Branch:** `tnyx/tnyx-68-meal-diary-settings-shell`
 **Observed working-tree state:** Only the files listed in section 10 are part of this slice
 **Preserved local-only state:** root `pubspec.lock` SHA-256 `004DE1A093C1F04F684B39DF072C2F2E37B1CD21046BFEE01E628E7F77300B1C` is unchanged and deliberately uncommitted; `.ai/tasks/tnyx-54-nutrition-ia-readiness.md` belongs to the completed TNYX-54 and is not carried by this branch; `docs/supabase-android-studio-qa-run` @ `7fe896820c8f176b5049df4fe84fc9acea5933b1` is untouched
-**PR / tracker:** PR pending at time of writing. TNYX-54 is `Done`; TNYX-67 is `In Progress`; TNYX-68 moved to `In Progress` on 2026-09-08; TNYX-66 remains `Backlog`. Existing relations are unchanged.
+**PR / tracker:** PR [#226](https://github.com/im-tnyx/tio-world/pull/226) (Draft) at head `140a54b317597bad9cdc2723c57c69f5278fbfa4`. TNYX-54 is `Done`; TNYX-67 is `In Progress`; TNYX-68 moved to `In Progress` on 2026-09-08; TNYX-66 remains `Backlog`. Existing relations are unchanged.
 **Current implementation state:** The owner-authorized minimum shell is implemented and green locally. TNYX-67 Slice C and the shared `MealLogActionFooter` Meal Category selector activation remain unstarted.
 **Relevant execution surface:** Core route contracts and shell top-bar slot, app route/action composition, Nutrition-owned Meal Diary menu and settings presentation
 **Validation completed:** See section 10; Core/Nutrition/App analyze and test suites are green and `git diff --check` is clean
 **Validation remaining:** Exact-head GitHub CI and owner UI approval
 **Current blocker:** Owner UI approval. Merge is explicitly gated on it.
 **Open review finding IDs:** None
-**Next exact action:** Open the review PR, confirm exact-head CI, prepare UI evidence, and stop at `AWAITING OWNER UI APPROVAL`.
+**Next exact action:** Owner reviews the captured UI evidence. Merge stays blocked until they accept it.
 
 ## 1. Discovery
 
@@ -349,6 +349,19 @@ git diff --check                          clean
 ```
 
 `melos` is not installed on this machine, so the documented per-package equivalents were run. Exact-head GitHub CI is the authoritative full validation.
+
+### UI evidence
+
+Captured from the real `TioApp` through the real router at 390x844 and 320x640, with Roboto and MaterialIcons loaded so the render is readable rather than the test font's boxes. The capture harness was temporary and is not in the branch: nothing ships under `lib/`, and no golden baseline was committed, because the repo has no golden convention to extend.
+
+```text
+1  Meal Diary top bar with More        Light / Dark / OLED
+2  More menu open                      Light / Dark / OLED
+3  Meal Diary Settings                 Light / Dark / OLED
+4  Meal Categories destination         Light / Dark / OLED
+5  Nutrition Settings hub with the new row   Light
+6  Meal Diary Settings at 320 px       Light
+```
 
 ### Owner UI approval
 
