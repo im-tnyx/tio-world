@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 
+import '../../../domain/models/meal_category.dart';
 import '../../../domain/repositories/meal_categories_repository.dart';
 import '../controllers/meal_categories_controller.dart';
+import '../widgets/meal_category_glyph.dart';
 
 /// Archived meal categories, reached from the Meal Categories top bar.
 ///
@@ -114,7 +116,7 @@ class _ArchivedMealCategoriesPageState
     }
   }
 
-  Widget _list(MealCategoriesState state, List<dynamic> archived) {
+  Widget _list(MealCategoriesState state, List<MealCategory> archived) {
     final colors = context.tioColors;
 
     return ListView(
@@ -134,15 +136,23 @@ class _ArchivedMealCategoriesPageState
                     horizontal: TioSpacing.lg,
                     vertical: TioSpacing.sm,
                   ),
-                  // Name leading, action trailing — the same shape as the
-                  // active list's rows, so the two screens read alike. The
-                  // name flexes and ellipsises so a long one shortens rather
-                  // than pushing the action off the row.
+                  // Glyph, name, action — the same shape as the active list's
+                  // rows, so the two screens read alike. Every row carries a
+                  // glyph here: nothing on this screen is draggable, so the
+                  // column has nothing else to hold, and one row showing an
+                  // icon while its neighbour shows blank space reads as a bug.
+                  // The name flexes and ellipsises so a long one shortens
+                  // rather than pushing the action off the row.
                   child: Row(
                     children: [
+                      SizedBox(
+                        width: MealCategoryGlyph.columnWidth,
+                        child: MealCategoryGlyph(item: archived[index]),
+                      ),
+                      const SizedBox(width: TioSpacing.md),
                       Expanded(
                         child: Text(
-                          archived[index].displayName as String,
+                          archived[index].displayName,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -161,7 +171,7 @@ class _ArchivedMealCategoriesPageState
                         label: 'Restore',
                         onPressed: state.saving || state.isAtActiveCap
                             ? null
-                            : () => _reactivate(archived[index].id as String),
+                            : () => _reactivate(archived[index].id),
                       ),
                     ],
                   ),
@@ -210,7 +220,9 @@ class _InsetDivider extends StatelessWidget {
       key: dividerKey,
       height: TioStroke.width1,
       thickness: TioStroke.width1,
-      indent: TioSpacing.lg,
+      // Starts where the names do, past the glyph column, so the rule
+      // separates the names instead of cutting through the icons.
+      indent: TioSpacing.lg + MealCategoryGlyph.columnWidth + TioSpacing.md,
       // Flush at the end, matching the active list — these are sibling
       // screens and a different rule treatment on each would read as a bug.
       endIndent: TioSpacing.none,

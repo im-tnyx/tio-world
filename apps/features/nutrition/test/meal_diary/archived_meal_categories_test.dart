@@ -178,6 +178,40 @@ void main() {
     );
   });
 
+  testWidgets('every archived row carries a glyph, whatever it was',
+      (tester) async {
+    final base = _config(archived: ['Evening Snack']);
+    await _pump(
+      tester,
+      stored: MealCategoriesConfig(
+        items: base.orderedItems.map(
+          (item) => item.id == 'meal_slot_2' ? item.withActive(false) : item,
+        ),
+      ),
+    );
+
+    // An archived default keeps the glyph it carried on the active list, so
+    // the same category reads the same on both screens.
+    final lunch = find.byKey(const ValueKey('meal-category-glyph-meal_slot_2'));
+    expect(lunch, findsOneWidget);
+    expect(tester.widget<Icon>(lunch).icon, Icons.lunch_dining_outlined);
+
+    // A custom had a grip in that column and can no longer be dragged, so it
+    // takes the generic glyph rather than leaving the column empty beside its
+    // neighbour's.
+    final custom = find.byKey(
+      const ValueKey('meal-category-glyph-$_firstArchived'),
+    );
+    expect(custom, findsOneWidget);
+    expect(tester.widget<Icon>(custom).icon, Icons.restaurant_outlined);
+
+    expect(
+      tester.getRect(custom).right,
+      lessThanOrEqualTo(tester.getRect(find.text('Evening Snack')).left),
+      reason: 'the glyph leads the name',
+    );
+  });
+
   testWidgets('a long name shortens rather than pushing Restore off the row',
       (tester) async {
     tester.view.physicalSize = const Size(320, 640);
@@ -230,7 +264,11 @@ void main() {
       reason: 'two rows means one rule between them, and none after the last',
     );
     final divider = tester.widget<Divider>(dividers);
-    expect(divider.indent, greaterThan(0), reason: 'inset at the start');
+    expect(
+      divider.indent,
+      TioSpacing.lg + TioSize.dp20 + TioSpacing.md,
+      reason: 'starts where the names do, past the glyph column',
+    );
     expect(
       divider.endIndent,
       TioSpacing.none,

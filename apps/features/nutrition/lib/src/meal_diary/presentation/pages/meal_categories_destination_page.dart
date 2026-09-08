@@ -9,6 +9,7 @@ import '../../../domain/repositories/meal_categories_repository.dart';
 import '../../../presentation/widgets/nutrition_settings_widgets.dart';
 import '../../../domain/usecases/meal_category_id_generator.dart';
 import '../controllers/meal_categories_controller.dart';
+import '../widgets/meal_category_glyph.dart';
 import '../widgets/meal_category_swipe_row.dart';
 
 /// Meal Categories management.
@@ -306,6 +307,14 @@ class _MealCategoriesDestinationPageState
           sliver: SliverReorderableList(
             key: const ValueKey('meal-categories-active-list'),
             itemCount: active.length,
+            // One firm tick as the row is picked up and a light one as it
+            // lands. Emitted by the list rather than by either drag starter,
+            // so a lift feels identical whether it came from the grip or from
+            // a long press on the row, and so it fires when the drag actually
+            // begins rather than when a gesture that may still lose the arena
+            // does.
+            onReorderStart: (_) => unawaited(HapticFeedback.mediumImpact()),
+            onReorderEnd: (_) => unawaited(HapticFeedback.selectionClick()),
             // `onReorderItem` already resolves the framework's insertion
             // index, so these are the final positions the controller expects.
             onReorderItem: (oldIndex, newIndex) => _reportIfFailed(
@@ -422,58 +431,68 @@ class _ActiveRow extends StatelessWidget {
             ),
             child: Row(
               children: [
-                // The handle slot is always occupied, even for a default that
-                // has none, so every category name sits in one vertical column
-                // instead of jumping left on the fixed rows.
-                SizedBox(
-                  width: TioSize.dp20,
-                  child: !isReorderable
-                      // Deliberately empty rather than a disabled handle: a
-                      // greyed-out grip still reads as "drag me", and these
-                      // rows genuinely cannot move.
-                      ? const SizedBox.shrink()
-                      : ReorderableDragStartListener(
-                  index: index,
-                  enabled: enabled,
-                  child: Semantics(
-                    // `container: true` because the child is a bare Icon and
-                    // produces no semantics node of its own, so without it
-                    // this label would have nothing to attach to.
-                    container: true,
-                    label: 'Reorder ${item.displayName}',
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      // One tick as the drag begins. The reorderable list
-                      // itself emits none, and a silent drag start reads as an
-                      // unresponsive handle.
-                      onVerticalDragStart:
-                          enabled ? (_) => HapticFeedback.selectionClick() : null,
-                      child: Padding(
-                        padding:
-                            const EdgeInsets.symmetric(vertical: TioSpacing.sm),
-                        child: Icon(
-                          Icons.drag_handle_rounded,
-                          key: ValueKey('meal-category-drag-${item.id}'),
-                          size: TioSize.dp20,
-                          color:
-                              enabled ? colors.textMuted : colors.outlineStrong,
+                Expanded(
+                  // A long press anywhere across the row lifts it, so the grip
+                  // is a shortcut rather than the only way in. The pencil sits
+                  // outside this region on purpose: long-pressing a button
+                  // should not pick the row up.
+                  child: ReorderableDelayedDragStartListener(
+                    index: index,
+                    enabled: isReorderable && enabled,
+                    child: ColoredBox(
+                      // Hit-testable, not decorative. The listener defers to
+                      // its child, so without a surface the band above and
+                      // below the name is inert and a long press landing a few
+                      // pixels off the glyphs would do nothing at all.
+                      color: TioPalette.transparent,
+                      child: ConstrainedBox(
+                        // The pencil's target height, so the whole row answers
+                        // a long press rather than just the text's line box.
+                        constraints: const BoxConstraints(
+                          minHeight: kMinInteractiveDimension,
+                        ),
+                        child: Row(
+                          children: [
+                            // The leading column is occupied on every row, so
+                            // category names sit in one vertical alignment and
+                            // no row reads as missing something.
+                            SizedBox(
+                              width: MealCategoryGlyph.columnWidth,
+                              // A grip on the rows that can move, the
+                              // category's own glyph on the four that cannot.
+                              // Never a disabled grip: it would still read as
+                              // "drag me".
+                              child: isReorderable
+                                  ? _DragHandle(
+                                      item: item,
+                                      index: index,
+                                      enabled: enabled,
+                                    )
+                                  : MealCategoryGlyph(
+                                      item: item,
+                                      enabled: enabled,
+                                    ),
+                            ),
+                            const SizedBox(width: TioSpacing.md),
+                            Expanded(
+                              // The durable id and defaultKey are never
+                              // rendered.
+                              child: Text(
+                                item.displayName,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: enabled
+                                      ? colors.textPrimary
+                                      : colors.textMuted,
+                                  fontWeight: TioFontWeight.w700,
+                                  fontSize: TioFontSize.size15,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                  ),
-                ),
-                ),
-                const SizedBox(width: TioSpacing.md),
-                Expanded(
-                  // The durable id and defaultKey are never rendered.
-                  child: Text(
-                    item.displayName,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: enabled ? colors.textPrimary : colors.textMuted,
-                      fontWeight: TioFontWeight.w700,
-                      fontSize: TioFontSize.size15,
                     ),
                   ),
                 ),
@@ -526,6 +545,49 @@ class _ActiveRow extends StatelessWidget {
               color: colors.outlineStrong.withAlpha(TioAlpha.alpha20),
             ),
       ],
+    );
+  }
+}
+
+/// The grip a custom category carries.
+///
+/// Present only on rows that can actually move: a greyed-out handle on a fixed
+/// row still reads as "drag me". It starts the drag immediately, where a long
+/// press on the row body has to wait out the press delay first.
+class _DragHandle extends StatelessWidget {
+  const _DragHandle({
+    required this.item,
+    required this.index,
+    required this.enabled,
+  });
+
+  final MealCategory item;
+  final int index;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+
+    return ReorderableDragStartListener(
+      index: index,
+      enabled: enabled,
+      child: Semantics(
+        // `container: true` because the child is a bare Icon and produces no
+        // semantics node of its own, so without it this label would have
+        // nothing to attach to.
+        container: true,
+        label: 'Reorder ${item.displayName}',
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: TioSpacing.sm),
+          child: Icon(
+            Icons.drag_handle_rounded,
+            key: ValueKey('meal-category-drag-${item.id}'),
+            size: TioSize.dp20,
+            color: enabled ? colors.textMuted : colors.outlineStrong,
+          ),
+        ),
+      ),
     );
   }
 }

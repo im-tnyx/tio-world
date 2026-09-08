@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
@@ -466,7 +467,9 @@ void main() {
       expect(rowRect.left, closeTo(cardRect.left, 0.5));
       expect(rowRect.right, greaterThanOrEqualTo(cardRect.right - 0.5));
 
-      // A default row's only control is the pencil: no handle, no archive.
+      // A default row's only control is still the pencil. It also carries the
+      // decorative glyph that fills its leading column — deliberately not a
+      // grip and not an archive, so it offers nothing the row cannot do.
       final rowIcons = tester
           .widgetList<Icon>(
             find.descendant(
@@ -476,7 +479,13 @@ void main() {
           )
           .map((icon) => icon.icon)
           .toList();
-      expect(rowIcons, [Icons.edit_outlined]);
+      expect(rowIcons, [Icons.free_breakfast_outlined, Icons.edit_outlined]);
+      expect(
+        rowIcons,
+        isNot(contains(Icons.drag_handle_rounded)),
+        reason: 'a fixed row must not look draggable',
+      );
+      expect(rowIcons, isNot(contains(Icons.archive_outlined)));
     });
 
     testWidgets('rows are separated by an inset rule, with none after the last',
@@ -1221,6 +1230,181 @@ void main() {
         customName,
         defaultName,
         reason: 'the handle slot is reserved, so names never jump',
+      );
+    });
+
+    testWidgets('every canonical default fills its leading column with a glyph',
+        (tester) async {
+      await _pumpPage(tester, stored: _config(extraActive: 1));
+
+      const glyphs = <String, IconData>{
+        'meal_slot_1': Icons.free_breakfast_outlined,
+        'meal_slot_2': Icons.lunch_dining_outlined,
+        'meal_slot_3': Icons.dinner_dining_outlined,
+        'meal_slot_4': Icons.cookie_outlined,
+      };
+      for (final entry in glyphs.entries) {
+        final glyph = find.byKey(ValueKey('meal-category-glyph-${entry.key}'));
+        expect(glyph, findsOneWidget, reason: '${entry.key} shows something');
+        expect(tester.widget<Icon>(glyph).icon, entry.value);
+        expect(
+          find.byKey(ValueKey('meal-category-drag-${entry.key}')),
+          findsNothing,
+          reason: 'a glyph, never a grip: these rows cannot move',
+        );
+      }
+
+      // The custom row keeps its grip and gains no second icon beside it.
+      expect(
+        find.byKey(const ValueKey('meal-category-glyph-$_customId')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('meal-category-drag-$_customId')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a long press on the row body picks it up, not just the grip',
+        (tester) async {
+      final repo = await _pumpPage(tester, stored: _config(extraActive: 1));
+      expect(
+        (await repo.read())
+            .activeItems
+            .map((item) => item.displayName)
+            .toList(),
+        ['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Custom 0'],
+      );
+
+      // Deliberately away from the handle: the finger lands on the name.
+      final from = tester.getCenter(find.text('Custom 0'));
+      final to = tester.getCenter(find.text('Dinner'));
+      final gesture = await tester.startGesture(from);
+      await tester.pump(kLongPressTimeout + const Duration(milliseconds: 100));
+
+      for (var step = 1; step <= 6; step++) {
+        await gesture.moveTo(Offset.lerp(from, to, step / 6)!);
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      final order = (await repo.read())
+          .activeItems
+          .map((item) => item.displayName)
+          .toList();
+      // Where exactly it lands depends on how far the finger travelled, so
+      // this asserts what the gesture is for rather than a pixel outcome: the
+      // row moved, and the anchors it passed did not.
+      expect(order.last, isNot('Custom 0'), reason: 'the row was lifted');
+      expect(
+        order.where((name) => name != 'Custom 0').toList(),
+        ['Breakfast', 'Lunch', 'Dinner', 'Snacks'],
+      );
+    });
+
+    testWidgets('the long-press surface covers the row, not just the text',
+        (tester) async {
+      final repo = await _pumpPage(tester, stored: _config(extraActive: 1));
+
+      // A finger lands above the glyphs as often as on them, so the press has
+      // to be answered across the band the row reserves for its target rather
+      // than only inside the text's own line box.
+      final name = tester.getRect(find.text('Custom 0'));
+      final from = Offset(name.center.dx, name.top - 8);
+      final gesture = await tester.startGesture(from);
+      await tester.pump(kLongPressTimeout + const Duration(milliseconds: 100));
+
+      for (var step = 1; step <= 6; step++) {
+        await gesture.moveTo(from + Offset(0, -10.0 * step));
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(
+        (await repo.read()).activeItems.last.displayName,
+        isNot('Custom 0'),
+        reason: 'a press just above the name still lifted the row',
+      );
+    });
+
+    testWidgets('a long press on a canonical default lifts nothing',
+        (tester) async {
+      final repo = await _pumpPage(tester, stored: _config(extraActive: 1));
+
+      final from = tester.getCenter(find.text('Lunch'));
+      final to = tester.getCenter(find.text('Snacks'));
+      final gesture = await tester.startGesture(from);
+      await tester.pump(kLongPressTimeout + const Duration(milliseconds: 100));
+
+      for (var step = 1; step <= 6; step++) {
+        await gesture.moveTo(Offset.lerp(from, to, step / 6)!);
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(repo.writes, 0, reason: 'a fixed row cannot be dragged anywhere');
+      // The controller would refuse the move anyway, but refusing it is a
+      // worse experience than never offering it: the row must not lift, float
+      // under the finger and then snap back with an explanation.
+      expect(
+        find.byKey(const ValueKey('meal-categories-action-error')),
+        findsNothing,
+        reason: 'nothing was lifted, so nothing had to be refused',
+      );
+      expect(
+        (await repo.read())
+            .activeItems
+            .map((item) => item.displayName)
+            .toList(),
+        ['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Custom 0'],
+      );
+    });
+
+    testWidgets('picking a row up ticks, and so does putting it down',
+        (tester) async {
+      final ticks = <String>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'HapticFeedback.vibrate') {
+            ticks.add(call.arguments as String? ?? '');
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+
+      await _pumpPage(tester, stored: _config(extraActive: 1));
+
+      final gesture =
+          await tester.startGesture(tester.getCenter(find.text('Custom 0')));
+      await tester.pump(kLongPressTimeout + const Duration(milliseconds: 100));
+      await gesture.moveBy(const Offset(0, -30));
+      await tester.pump();
+
+      expect(
+        ticks,
+        ['HapticFeedbackType.mediumImpact'],
+        reason: 'a silent lift reads as a row that did not respond',
+      );
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(
+        ticks,
+        [
+          'HapticFeedbackType.mediumImpact',
+          'HapticFeedbackType.selectionClick',
+        ],
+        reason: 'firmer on the way up than on the way down',
       );
     });
   });
