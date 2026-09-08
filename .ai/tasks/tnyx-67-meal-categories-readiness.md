@@ -25,13 +25,13 @@
 **Observed working-tree state:** `main == origin/main`; only the unrelated root `pubspec.lock` and this authorized task-brief reconciliation are modified locally
 **Observed uncommitted/dirty files:** pre-existing `pubspec.lock` with SHA-256 `004DE1A093C1F04F684B39DF072C2F2E37B1CD21046BFEE01E628E7F77300B1C`, plus this authorized task-brief update only
 **PR / tracker:** PR #218/#219/#220/#221/#222/#223/#224 are merged. No open overlapping Meal Categories UI PR exists. TNYX-67 remains `In Progress` and blocked by TNYX-66; TNYX-66/TNYX-68/TNYX-54 remain `Backlog` with their dependency relations unchanged.
-**Current implementation state:** Slice A is closed; Slice B1 is merged, hosted-applied, and verified; Slice B2 is merged and post-merge validated at `3d0b415fde1be8b62aa5002990fbdfe4fa226ace`; Slice C/D are not started.
+**Current implementation state:** Slice A is closed; Slice B1 is merged, hosted-applied, and verified; Slice B2 is merged and post-merge validated. The TNYX-68 shell that Slice C depended on is merged at `5f06a72b3a1404b1d315ee987c281605d706b738`, so the Section 13 blocker is cleared. Slice C/D remain unstarted.
 **Relevant execution surface:** Future Nutrition-owned Meal Diary Settings and Meal Categories presentation, with app-owned route/top-bar composition and the existing Meal Categories repository boundary
 **Validation completed:** Slice A validation remains green. Slice B1 repository/hosted evidence remains verified at 40 migrations. Slice B2 PR #224 was squash-merged at `3d0b415fde1be8b62aa5002990fbdfe4fa226ace`, and post-merge Flutter CI run `34175515202` passed on that SHA. The 2026-09-08 hosted prerequisite recheck was read-only and reconfirmed the B1 column/CHECK/functions/trigger/RLS policies and two preserved rows.
-**Validation remaining:** Slice C requires a fresh owner-approved boundary after TNYX-68/TNYX-54 navigation ownership is readied and the exact visible archived-category presentation is approved.
-**Current blocker:** Slice C cannot legally introduce its required Meal Diary Settings route/entry while TNYX-68 is `Backlog` and blocked by TNYX-66 plus TNYX-54; TNYX-54 is itself `Backlog` and blocked by TNYX-66. The primary Meal Diary top-bar action needs an explicit TNYX-68 composition decision because the current single contextual action slot is already used by the Today action, and the exact visible archived-category layout still needs owner approval.
+**Validation remaining:** None for readiness. Slice C implementation and its own validation have not started.
+**Current blocker:** None. Archived presentation is owner-locked to Option A; the route, entries, domain, repository and provider Slice C needs all exist in `main`.
 **Resolved review finding IDs:** `3949432003`, `3949432006`, `3949432012`, and `3949432017` are fixed, exact-head validated, replied, and resolved. PR #222 Codex P2 `3950154215` identified stale hosted-state wording; this correction incorporates that finding.
-**Next exact action:** Close this readiness-doc handoff; run a fresh TNYX-66 readiness refresh for TNYX-54; reconcile/close the TNYX-54 boundary if possible; run fresh TNYX-68 readiness; obtain owner approval for the minimal Meal Diary Settings route/top-bar shell; then refresh TNYX-67 Slice C readiness; only then may source implementation start. Do not start Slice C or D automatically.
+**Next exact action:** Start Slice C into the existing Meal Categories destination as one named slice. Do not start Slice D or any consumer activation automatically.
 
 ## 1. Discovery
 
@@ -587,3 +587,198 @@ Exact dependency sequence:
 7. Only then begin source implementation.
 
 Linear TNYX-66 readiness-refresh comment: `0c57801f-e994-45e2-815d-a3f7a5b5c832`.
+
+## 14. Slice C Settings UI Readiness Refresh — 2026-09-08 (post TNYX-68 merge)
+
+### Dependency Reconciliation
+
+The blocker recorded in Section 13 is cleared. TNYX-68's minimal Meal Diary Settings shell is merged.
+
+```text
+main == origin/main == 5f06a72b3a1404b1d315ee987c281605d706b738
+TNYX-68 PR #226 squash-merged from ae8ea7bf546765cb88291f8576dba6b85b3945b2
+TNYX-54  Done      Nutrition IA/domain boundaries closed
+TNYX-66  Backlog   readiness gate; this section is its refresh for Slice C
+TNYX-67  In Progress
+TNYX-68  In Progress — only the shell slice is closed, later preferences remain
+TNYX-158 Done      Quick Add shell; Meal Type activation is still later work
+TNYX-58  Backlog   full Meal Editor
+```
+
+TNYX-68 auto-transitioned to `Done` on merge through tracker automation and was corrected back to `In Progress`, because only the shell slice closed. `Show meal times`, `Meal Notes`, `Show note preview` and `Meal Reminders` remain unbuilt inside that issue. No dependency relation was changed.
+
+### What TNYX-68 Now Provides
+
+```text
+AppRoutes.mealDiarySettings        /settings/nutrition/meal-diary
+AppRoutes.mealCategoriesSettings   /settings/nutrition/meal-diary/categories
+both ChromePolicy.fullScreen, both registered on the root navigator
+```
+
+Two approved entries reach the same Meal Diary Settings route: `Meal Diary -> More / vertical ellipsis` and `Settings -> Nutrition Settings -> Meal Diary Settings`. The Meal Categories row navigates to `MealCategoriesDestinationPage`, which today renders a themed title and a back affordance over an empty body and reads no provider.
+
+Slice C therefore **fills that existing destination**. It must not add a third page or a second route.
+
+### Existing Domain and Data Surface — Complete for Slice C
+
+Verified in current `main`:
+
+```text
+apps/features/nutrition/lib/src/domain/models/
+  meal_category.dart                      id / defaultKey / displayName / active / order
+  meal_categories_config.dart             versioned config, resolve(null) -> canonicalDefaults
+  meal_category_defaults.dart             meal_slot_1..4 / breakfast..snacks
+  meal_categories_policy.dart             schemaVersion 1, maxActiveMealCategories 8,
+                                          duplicate id/order/defaultKey, custom UUID-v4 id shape,
+                                          normalized active duplicate-name rejection,
+                                          missing-canonical-default rejection
+  meal_categories_transition_policy.dart  retained identity may never be dropped by upsert
+  meal_categories_validation.dart         typed failure codes
+apps/features/nutrition/lib/src/domain/usecases/
+  meal_category_id_generator.dart         UUID-v4 custom ids that avoid retained ids
+apps/features/nutrition/lib/src/domain/repositories/meal_categories_repository.dart
+apps/features/nutrition/lib/src/data/in_memory_meal_categories_repository.dart
+apps/features/nutrition/lib/src/data/repositories/supabase_meal_categories_repository.dart
+apps/app/lib/app/network_providers.dart   mealCategoriesRepositoryProvider (Supabase or in-memory)
+```
+
+Every product rule in the Slice C contract — durable non-semantic IDs, rename touching only `displayName`, reorder touching only `order`, archive and reactivate retaining identity, the eight-active cap rejected rather than truncated, blank and normalized-duplicate rejection — is already owned and enforced by the domain. Slice C adds presentation and one controller; it adds no new rule.
+
+### Proposed Slice C File Surface
+
+```text
+modify
+  apps/features/nutrition/lib/src/meal_diary/presentation/pages/meal_categories_destination_page.dart
+      fill the existing boundary; do not add a page
+  apps/features/nutrition/lib/src/meal_diary/presentation/presentation.dart
+      export the controller/state if it is not internal
+  apps/app/lib/app/router.dart
+      inject the controller into the existing route builder
+
+add
+  apps/features/nutrition/lib/src/meal_diary/presentation/controllers/meal_categories_controller.dart
+  focused Nutrition widget/controller tests under apps/features/nutrition/test/meal_diary/
+  app route/navigation test additions where behavior crosses the composition root
+
+unchanged
+  apps/core/**                              no component or token contract change is justified
+  apps/app/lib/app/network_providers.dart   unless controller injection genuinely needs a provider
+  supabase/**                               no migration, schema, RLS, RPC or index work
+```
+
+### State Ownership
+
+One feature-owned `MealCategoriesController` with immutable state: loading, load failure, confirmed config, working draft, saving, save failure, and derived active count.
+
+```text
+read     MealCategoriesRepository.read()      -> confirmed + draft
+edit     draft only                              confirmed is untouched
+save     validate draft, then upsert() once      confirmed updates only on success
+fail     draft retained, safe retry              no invented rollback, no widget Supabase call
+```
+
+The repository stays the single durable source. No second repository, no screen-local default list, no hard-coded Breakfast/Lunch/Dinner/Snacks in presentation — defaults resolve through `MealCategoriesConfig.resolve(null)`. The controller maps typed `MealCategoriesValidationCode` failures to safe copy without leaking database detail.
+
+### Archived Presentation — Decision Requested, Now Resolved
+
+Slice C's contract requires reactivation, and reactivation requires archived categories to be reachable in the UI. Without an approved surface for them, archive becomes a one-way action with no way back, which contradicts the retained-identity contract.
+
+TNYX-67 specifies archive and reactivate semantics, but its Settings UX sketch shows only the active list plus `+ Add Meal Category`. The archived surface is genuinely unspecified, so it cannot be chosen silently.
+
+Smallest decision required — how archived categories appear on the Meal Categories screen:
+
+```text
+A  a separate "Archived" section below the active list, each row reactivate-able
+B  archived items inline in one list, visually de-emphasised, with an active/archived filter
+C  archived items behind an "Archived (n)" entry that opens its own sub-screen
+```
+
+Recommendation was **A**, and the owner selected A. The locked contract follows.
+
+### Archived Presentation — OWNER-LOCKED (Option A)
+
+The decision recorded above as open was made by the owner on 2026-09-08. **Option A is locked.** One screen, two sections, no sub-route.
+
+```text
+Meal Categories
+
+ACTIVE
+  active categories
+  rows are reorderable
+  rename and archive management lives here
+
+  + Add Meal Category
+
+ARCHIVED
+  rendered only when at least one archived category exists
+  rows are NOT reorderable
+  each row exposes Reactivate
+```
+
+Contract details that follow from the lock:
+
+- The `ARCHIVED` section is absent — not empty, not a zero-state — while no archived category exists.
+- Reactivation restores the **same** stable `MealCategory.id`. It never mints a new identity, which is what keeps historical `MealLogEntry.mealCategoryId` resolvable.
+- Archived rows carry no drag handle and no reorder semantics; `order` is meaningful only among active categories.
+- No second route, sub-screen, or dialog-hosted archive list. `AppRoutes.mealCategoriesSettings` remains the only Meal Categories route, and Slice C fills the destination TNYX-68 already shipped.
+
+### Max-Eight UX — locked
+
+```text
+active count < 8   Add Meal Category enabled
+                   Reactivate enabled on archived rows
+
+active count = 8   Add Meal Category unavailable
+                   Reactivate unavailable
+                   reason, verbatim: "Maximum 8 active meal categories"
+
+archive            frees exactly one active slot
+persist 9 active   rejected by the domain, never truncated
+```
+
+Retained inactive categories never count toward eight, so total retained items may exceed eight over a user lifetime. Nothing is deleted to satisfy the cap.
+
+### Restore Defaults — Still Excluded
+
+Excluded from the initial Slice C, and this is not a blocker. Ordinary upsert cannot remove retained identities, and the contract does not define whether restore should archive custom active items, preserve them, or how to reassign order. Writing `NULL` or replacing the config with four items is forbidden. It needs its own historical-safe contract later.
+
+### Quick Add and Shared Footer Boundary
+
+Not in Slice C. The next consumer slice after Slice C is **shared `MealLogActionFooter` Meal Category selector activation**, not a Quick Add-only picker. That footer is the Nutrition-owned reusable surface carrying the category control, the date/time control and the primary action; Quick Add is only its first runtime consumer, and the future full Meal Editor, Photo, AI-text, Voice, Search, Recent, Saved Meal and existing-log-edit flows reuse it. The selector must resolve active categories from the existing repository/state rather than hard-coding the four defaults.
+
+### Proposed Test Matrix
+
+```text
+state        canonical defaults from NULL; load success; load error and retry
+edit         rename; reorder; add custom; internal ID never rendered
+validation   blank name rejected; normalized duplicate rejected
+lifecycle    archive; archived identity retained; reactivate restores the same id
+archived UI  ARCHIVED section absent while none archived; present once one exists;
+             archived rows expose Reactivate and carry no reorder affordance;
+             one route only, no Archived sub-screen
+limit        active max 8; Add unavailable at 8; reactivate unavailable at 8;
+             exact reason copy "Maximum 8 active meal categories";
+             archive frees a slot
+persistence  failed save retains draft; successful save updates confirmed state;
+             repository rejection surfaced without corrupting UI state
+theme        Light, Dark, OLED, System-dark
+layout       compact width, large text scale
+a11y         semantics, focus order, tap targets, drag-handle reachability
+navigation   both entries reach one route/controller; back behavior
+boundaries   zero Quick Add or footer activation; zero MealLog persistence;
+             zero Supabase access from presentation
+```
+
+Reorder has no production `ReorderableListView` precedent in this repository, so its gesture and accessibility coverage has to be written rather than copied.
+
+### Hosted Supabase Boundary
+
+Fresh read-only verification: project `oykupyiitspujzpwwvuj` is `ACTIVE_HEALTHY` on Postgres 17.6.1.155; the migration ledger holds 40 entries with latest `20260907065602_add_meal_categories_config`. Slice C requires zero migration, schema, RLS, RPC, index or storage work and consumes the existing adapter. No hosted mutation occurred in this audit.
+
+### Slice C Readiness Classification
+
+`READY — Slice C may be implemented as one named slice.`
+
+Every dependency, domain rule, repository, provider and route now exists in `main`; the TNYX-68 blocker is cleared; and the last open item — archived presentation — is owner-locked to Option A as recorded above. Slice C fills the existing `MealCategoriesDestinationPage` with a two-section Active/Archived screen and one feature-owned controller. It requires no new route, no second repository, no Core component or token change, and no migration.
+
+Implementation still requires its own start: this classification authorizes one named slice, not the consumer work after it. `Restore Defaults`, the shared `MealLogActionFooter` category-selector activation, Quick Add/Meal Editor changes, MealLog persistence, Supabase mutation and `services/api` all remain excluded.
