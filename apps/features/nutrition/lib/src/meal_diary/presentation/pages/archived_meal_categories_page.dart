@@ -134,18 +134,25 @@ class _ArchivedMealCategoriesPageState
                     horizontal: TioSpacing.lg,
                     vertical: TioSpacing.sm,
                   ),
-                  child: Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: TioSpacing.md,
+                  // Name leading, action trailing — the same shape as the
+                  // active list's rows, so the two screens read alike. The
+                  // name flexes and ellipsises so a long one shortens rather
+                  // than pushing the action off the row.
+                  child: Row(
                     children: [
-                      Text(
-                        archived[index].displayName as String,
-                        style: TextStyle(
-                          color: colors.textSecondary,
-                          fontWeight: TioFontWeight.w700,
-                          fontSize: TioFontSize.size15,
+                      Expanded(
+                        child: Text(
+                          archived[index].displayName as String,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: colors.textSecondary,
+                            fontWeight: TioFontWeight.w700,
+                            fontSize: TioFontSize.size15,
+                          ),
                         ),
                       ),
+                      const SizedBox(width: TioSpacing.md),
                       TioButton.ghost(
                         key: ValueKey(
                           'archived-category-reactivate-'

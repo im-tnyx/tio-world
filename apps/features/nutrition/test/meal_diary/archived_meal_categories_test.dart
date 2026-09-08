@@ -152,6 +152,68 @@ void main() {
     expect(find.textContaining('meal_slot_'), findsNothing);
   });
 
+  testWidgets('the name leads and Restore trails', (tester) async {
+    await _pump(tester, stored: _config(archived: ['Evening Snack']));
+
+    final nameRect = tester.getRect(find.text('Evening Snack'));
+    final restoreRect = tester.getRect(
+      find.byKey(
+        const ValueKey('archived-category-reactivate-$_firstArchived'),
+      ),
+    );
+
+    expect(
+      restoreRect.left,
+      greaterThan(nameRect.right),
+      reason: 'the action sits after the name, not beside it',
+    );
+
+    // Trailing, not merely later: it ends near the card's right edge, the way
+    // the pencil does on the active list.
+    final card = tester.getRect(find.byType(TioGroupCard));
+    expect(
+      card.right - restoreRect.right,
+      lessThan(TioSpacing.xl),
+      reason: 'right-aligned within the row',
+    );
+  });
+
+  testWidgets('a long name shortens rather than pushing Restore off the row',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: const TextScaler.linear(1.6)),
+          child: TioTheme(child: child ?? const SizedBox.shrink()),
+        ),
+        home: ArchivedMealCategoriesPage(
+          repository: _Repository(
+            stored: _config(archived: ['A Very Long Archived Category Name']),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.takeException(),
+      isNull,
+      reason: 'a Row can overflow where the previous Wrap could not',
+    );
+    expect(
+      find.byKey(
+        const ValueKey('archived-category-reactivate-$_firstArchived'),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('rows are separated by a rule, with none after the last',
       (tester) async {
     await _pump(
