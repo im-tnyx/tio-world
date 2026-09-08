@@ -280,6 +280,31 @@ void main() {
     );
     expect(tooManyItems, hasLength(9));
   });
+
+  test('rejects a stored row holding more categories than may be kept', () {
+    // The path that matters for a payload the app did not write. Archiving
+    // never deletes, so a client writing straight to the API could otherwise
+    // hand back a row that grows without limit.
+    final oversized = _validEncodedDefaults();
+    final items = oversized['items']! as List<Object?>;
+    for (var index = 0; index < 512; index++) {
+      items.add(<String, Object?>{
+        'id':
+            'meal_slot_00000000-0000-4000-8000-${(index + 1).toString().padLeft(12, '0')}',
+        'default_key': null,
+        'display_name': 'Archived ${index + 1}',
+        // Archived, so the active cap is not what rejects this.
+        'active': false,
+        'order': index + 4,
+      });
+    }
+
+    expect(
+      () => MealCategoriesConfigCodec.decode(oversized),
+      _throwsCode(MealCategoriesValidationCode.tooManyRetainedCategories),
+    );
+    expect(items, hasLength(516), reason: 'rejected, never trimmed to fit');
+  });
 }
 
 Map<String, Object?> _validEncodedDefaults() {

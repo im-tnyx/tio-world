@@ -1570,6 +1570,86 @@ void main() {
     });
   });
 
+  group('thirty-two retained maximum', () {
+    /// Four canonical defaults plus [customs] customs, only [active] of them
+    /// still active, so the active cap is not what refuses the add.
+    MealCategoriesConfig retained({required int customs, int active = 2}) =>
+        MealCategoriesConfig(
+          items: [
+            ...MealCategoriesConfig.canonicalDefaults().items,
+            for (var index = 0; index < customs; index++)
+              _category(
+                id: 'meal_slot_00000000-0000-4000-8000-'
+                    '${(index + 1).toString().padLeft(12, '0')}',
+                displayName: 'Custom ${index + 1}',
+                order: index + 4,
+                active: index < active,
+              ),
+          ],
+        );
+
+    testWidgets('Add stays available one short of the ceiling',
+        (tester) async {
+      await _pumpPage(tester, stored: retained(customs: 27));
+      await _revealAdd(tester);
+
+      expect(tester.widget<TioButton>(find.byKey(_addButton)).onPressed,
+          isNotNull);
+      expect(find.byKey(_addCapReason), findsNothing);
+    });
+
+    testWidgets('at the ceiling Add is unavailable and names the way out',
+        (tester) async {
+      await _pumpPage(tester, stored: retained(customs: 28));
+      await _revealAdd(tester);
+
+      expect(
+        tester.widget<TioButton>(find.byKey(_addButton)).onPressed,
+        isNull,
+      );
+      expect(
+        tester.widget<Text>(find.byKey(_addCapReason)).data,
+        MealCategoriesController.retainedCapReason,
+      );
+      // Archiving cannot make room — it keeps the identity — so the copy has
+      // to point somewhere that can.
+      expect(
+        MealCategoriesController.retainedCapReason,
+        contains('Restore'),
+      );
+    });
+
+    testWidgets('the controller refuses an add past the ceiling',
+        (tester) async {
+      final repo = _RecordingRepository(stored: retained(customs: 28));
+      final controller = MealCategoriesController(repository: repo);
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      expect(controller.state.retainedCount, 32);
+      expect(await controller.addCustom('One more'), isFalse);
+      expect(repo.writes, 0, reason: 'nothing reaches the repository');
+      expect(
+        controller.state.actionError,
+        MealCategoriesController.retainedCapReason,
+      );
+    });
+
+    testWidgets('archiving at the ceiling is still allowed', (tester) async {
+      // Archiving keeps the identity, so it cannot push the retained count up
+      // and must not be refused by this cap.
+      final repo = _RecordingRepository(stored: retained(customs: 28));
+      final controller = MealCategoriesController(repository: repo);
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      expect(controller.state.activeCount, 6);
+      expect(await controller.archive('meal_slot_1'), isTrue);
+      expect(controller.state.retainedCount, 32, reason: 'nothing was lost');
+      expect(controller.state.activeCount, 5);
+    });
+  });
+
   group('eight active maximum', () {
     testWidgets('Add stays available at seven active', (tester) async {
       await _pumpPage(tester, stored: _config(extraActive: 3));

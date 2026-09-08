@@ -372,7 +372,14 @@ class _MealCategoriesDestinationPageState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _AddCategoryRow(
-                  atCap: state.isAtActiveCap,
+                  // Two different ceilings can stop an add. The active one is
+                  // checked first: it is the common case, and it is the one a
+                  // reader can clear by archiving something.
+                  capReason: state.isAtActiveCap
+                      ? MealCategoriesController.activeCapReason
+                      : state.isAtRetainedCap
+                          ? MealCategoriesController.retainedCapReason
+                          : null,
                   enabled: enabled,
                   onPressed: _promptAdd,
                 ),
@@ -594,12 +601,15 @@ class _DragHandle extends StatelessWidget {
 
 class _AddCategoryRow extends StatelessWidget {
   const _AddCategoryRow({
-    required this.atCap,
+    required this.capReason,
     required this.enabled,
     required this.onPressed,
   });
 
-  final bool atCap;
+  /// Why adding is unavailable, or null when it is available. The reason is
+  /// passed rather than a flag because there is more than one ceiling and the
+  /// reader needs to know which one they met.
+  final String? capReason;
   final bool enabled;
   final VoidCallback onPressed;
 
@@ -618,16 +628,16 @@ class _AddCategoryRow extends StatelessWidget {
           // column, which read as an aside rather than as this screen's one
           // way to add something.
           expand: true,
-          onPressed: enabled && !atCap ? onPressed : null,
+          onPressed: enabled && capReason == null ? onPressed : null,
         ),
-        if (atCap)
+        if (capReason != null)
           Padding(
             padding: const EdgeInsets.only(
               top: TioSpacing.sm,
               left: TioSpacing.sm,
             ),
             child: Text(
-              MealCategoriesController.activeCapReason,
+              capReason!,
               key: const ValueKey('meal-categories-add-cap-reason'),
               style: TextStyle(
                 color: colors.textMuted,

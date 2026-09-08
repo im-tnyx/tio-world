@@ -265,9 +265,12 @@ select pg_temp.assert_insert_accepted(
   'eight active plus archived categories must be accepted'
 );
 select pg_temp.assert_insert_accepted(7, pg_temp.fixture('custom_one'), 'valid custom UUID-v4 category must be accepted');
+-- Corrected, not deleted: this asserted that retained items had no ceiling at
+-- all. They do now — 32 in total, archived included — so the case becomes the
+-- boundary. 28 archived plus the four canonical defaults is exactly the cap.
 select pg_temp.assert_insert_accepted(
-  8, pg_temp.large_archived_config(512),
-  'large retained archived set must be accepted without a total-item cap'
+  8, pg_temp.large_archived_config(28),
+  'a retained set exactly at the 32 ceiling must be accepted'
 );
 
 -- Rejected structural and semantic table writes.
@@ -307,11 +310,17 @@ select 121, 'nine active categories', jsonb_set(
     '{"id":"meal_slot_99999999-9999-4999-8999-999999999999","display_name":"Meal 9","active":true,"order":8}'::jsonb
   )
 ) union all
-select 122, 'duplicate ID in large archived set', jsonb_set(
-  pg_temp.large_archived_config(512),
+select 122, 'duplicate ID in a full archived set', jsonb_set(
+  pg_temp.large_archived_config(28),
   '{items,5,id}',
   '"meal_slot_00000001-0000-4000-8000-000000000001"'::jsonb
-);
+) union all
+-- One past the ceiling: 29 archived plus the four canonical defaults.
+select 123, 'thirty-three retained categories', pg_temp.large_archived_config(29) union all
+-- The case the ceiling exists for. An authenticated client writing straight to
+-- the API could otherwise grow one row without limit, and every later write
+-- rescans the whole configuration.
+select 124, 'unbounded retained set', pg_temp.large_archived_config(512);
 
 do $$
 declare v_case record;

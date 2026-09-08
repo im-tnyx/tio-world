@@ -339,6 +339,47 @@ void main() {
       expect(config.activeItems, hasLength(8));
     });
 
+    test('accepts a retained set exactly at the ceiling', () {
+      // Four canonical defaults plus twenty-eight customs, four of them still
+      // active, so the active cap is not what is being exercised here.
+      final config = _configWithCustomCategories(
+        customCount: 28,
+        activeCustomCount: 4,
+      );
+
+      config.validate();
+      expect(config.items, hasLength(32));
+      expect(config.activeItems, hasLength(8));
+    });
+
+    test('rejects one retained category past the ceiling', () {
+      final items = _itemsWithCustomCategories(
+        customCount: 29,
+        activeCustomCount: 4,
+      );
+
+      expect(items, hasLength(33));
+      expect(
+        () => MealCategoriesConfig(items: items),
+        _throwsCode(MealCategoriesValidationCode.tooManyRetainedCategories),
+      );
+    });
+
+    test('rejects an unbounded archived set rather than truncating it', () {
+      // The case the ceiling exists for: archiving never deletes, so without
+      // one the retained set grows forever and every later write rescans it.
+      final items = _itemsWithCustomCategories(
+        customCount: 512,
+        activeCustomCount: 4,
+      );
+
+      expect(
+        () => MealCategoriesConfig(items: items),
+        _throwsCode(MealCategoriesValidationCode.tooManyRetainedCategories),
+      );
+      expect(items, hasLength(516), reason: 'nothing was truncated');
+    });
+
     test('rejects blank and whitespace-only display names', () {
       for (final value in ['', '   ', '\n\t']) {
         expect(

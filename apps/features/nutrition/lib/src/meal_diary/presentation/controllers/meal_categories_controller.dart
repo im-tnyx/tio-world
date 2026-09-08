@@ -96,6 +96,14 @@ final class MealCategoriesState {
   bool get isAtActiveCap =>
       activeCount >= MealCategoriesPolicy.maxActiveMealCategories;
 
+  /// Everything the configuration holds, archived included.
+  int get retainedCount => visible?.orderedItems.length ?? 0;
+
+  /// Whether the retained ceiling is reached. Only adding a category can push
+  /// this up: archiving keeps its identity and restoring reuses one.
+  bool get isAtRetainedCap =>
+      retainedCount >= MealCategoriesPolicy.maxRetainedMealCategories;
+
   /// Whether archiving is possible at all. At one active category the answer
   /// is no: every meal has to be filed under something.
   bool get canArchive =>
@@ -145,6 +153,16 @@ class MealCategoriesController extends ChangeNotifier {
   /// Shown when the cap blocks an action. The wording is the product's, not a
   /// paraphrase, so it is stated once here rather than at each call site.
   static const String activeCapReason = 'Maximum 8 active meal categories';
+
+  /// Why adding is refused once nothing more can be kept.
+  ///
+  /// It names the way out, because there is no obvious one: archiving never
+  /// deletes, so the reader cannot make room by tidying up. Restoring an
+  /// archived category and renaming it reuses an identity instead of minting
+  /// another, which is exactly what the ceiling is protecting.
+  static const String retainedCapReason =
+      'Maximum 32 meal categories, archived included. Restore one from '
+      'Archived and rename it instead.';
 
   /// Shown when archiving would leave nothing active.
   static const String lastActiveReason =
@@ -249,6 +267,12 @@ class MealCategoriesController extends ChangeNotifier {
     }
     if (_state.isAtActiveCap) {
       _emit(_state.copyWith(actionError: activeCapReason));
+      return Future.value(false);
+    }
+    // Adding is the only operation that mints a new identity, so it is the
+    // only one the retained ceiling can refuse.
+    if (_state.isAtRetainedCap) {
+      _emit(_state.copyWith(actionError: retainedCapReason));
       return Future.value(false);
     }
     return _mutate((items) {
@@ -478,6 +502,8 @@ class MealCategoriesController extends ChangeNotifier {
         MealCategoriesValidationCode.duplicateActiveDisplayName =>
           'That name is already used by another active category.',
         MealCategoriesValidationCode.tooManyActiveCategories => activeCapReason,
+        MealCategoriesValidationCode.tooManyRetainedCategories =>
+          retainedCapReason,
         MealCategoriesValidationCode.tooFewActiveCategories => lastActiveReason,
         MealCategoriesValidationCode.canonicalDefaultOrderViolated =>
           defaultsFixedReason,

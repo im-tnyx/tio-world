@@ -14,6 +14,7 @@ enum MealCategoriesValidationCode {
   retainedIdentityRemoved,
   tooManyActiveCategories,
   tooFewActiveCategories,
+  tooManyRetainedCategories,
   canonicalDefaultOrderViolated,
   invalidGeneratedId,
   idGenerationExhausted,
