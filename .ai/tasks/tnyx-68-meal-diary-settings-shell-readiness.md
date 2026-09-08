@@ -1,6 +1,6 @@
 # TNYX-68 — Minimal Meal Diary Settings Shell Readiness
 
-**Status:** Implemented; owner UI approved; final exact-head CI and Codex review pending
+**Status:** Implemented; review complete and resolved; exact-head CI green; owner UI re-check pending for the top-bar ordering changed during review
 **Primary owner:** `apps/features/nutrition` presentation with `apps/core` route contracts and `apps/app` composition
 **Affected platforms:** Flutter Android + iOS
 
@@ -26,14 +26,25 @@ This slice does change Flutter production source, routes and tests — that is w
 **Branch:** `tnyx/tnyx-68-meal-diary-settings-shell`
 **Observed working-tree state:** Only the files listed in section 10 are part of this slice
 **Preserved local-only state:** root `pubspec.lock` SHA-256 `004DE1A093C1F04F684B39DF072C2F2E37B1CD21046BFEE01E628E7F77300B1C` is unchanged and deliberately uncommitted; `.ai/tasks/tnyx-54-nutrition-ia-readiness.md` belongs to the completed TNYX-54 and is not carried by this branch; `docs/supabase-android-studio-qa-run` @ `7fe896820c8f176b5049df4fe84fc9acea5933b1` is untouched
-**PR / tracker:** PR [#226](https://github.com/im-tnyx/tio-world/pull/226), Draft. Head `90f9bef1adb5b1431132c71e4d6082d07e8e7c67` passed exact-head CI run `34200265358` (SUCCESS: Analyze Flutter, Analyze Dart, Test Flutter, Test Dart). This reconciliation commit moves the head past that run, so `34200265358` is historical evidence and the new head needs its own run. TNYX-54 is `Done`; TNYX-67 is `In Progress`; TNYX-68 moved to `In Progress` on 2026-09-08; TNYX-66 remains `Backlog`. Existing relations are unchanged.
+**PR / tracker:** PR [#226](https://github.com/im-tnyx/tio-world/pull/226), Draft, OPEN, MERGEABLE/CLEAN. Current head `b904baa8c3e4f6213df9f5be9bbc06da6dde34d5`, exact-head CI run `34204735122` SUCCESS (Analyze Flutter, Analyze Dart, Test Flutter, Test Dart). Earlier runs `34200265358` (`90f9bef1`) and `34202275123` (`985958c7`) also passed and are historical evidence only. TNYX-54 is `Done`; TNYX-67 is `In Progress`; TNYX-68 is `In Progress`; TNYX-66 remains `Backlog`. Existing relations are unchanged.
 **Current implementation state:** The owner-authorized minimum shell is implemented, green locally and green on CI, and the owner has approved its rendered UI. Implementation scope is unchanged since that approval — only governance and documentation have moved. TNYX-67 Slice C and the shared `MealLogActionFooter` Meal Category selector activation remain unstarted.
 **Relevant execution surface:** Core route contracts and shell top-bar slot, app route/action composition, Nutrition-owned Meal Diary menu and settings presentation
 **Validation completed:** See section 10; Core/Nutrition/App analyze and test suites are green and `git diff --check` is clean
-**Validation remaining:** CI on the new reconciled head, and a Codex review on that head
-**Current blocker:** None on UI. Merge is gated on explicit owner merge authorization; the branch is not to be merged before that.
-**Open review finding IDs:** None. Codex review is pending on the reconciled head; no findings have been raised on any earlier head.
-**Next exact action:** Confirm CI on the reconciled head, obtain the Codex review, then stop and wait for explicit owner merge authorization.
+**Validation remaining:** Owner UI re-check of the changed top-bar ordering. Code review and CI are complete.
+**Current blocker:** Owner UI re-check of the `[Today?] [More] [streak]` ordering, then explicit owner merge authorization. The branch is not to be merged before both.
+**Open review finding IDs:** None open. Six threads were raised and all six are resolved with evidence:
+
+```text
+PRRT_kwDOTOXwB86gJf6i  P1  Core README contract drift        resolved
+PRRT_kwDOTOXwB86gJf6p  P2  streak right-edge geometry        resolved
+PRRT_kwDOTOXwB86gJf6y  P2  MenuAnchor consumeOutsideTap      resolved
+PRRT_kwDOTOXwB86gJf64  P1  brief scope contradiction         resolved
+PRRT_kwDOTOXwB86gJsRo      stale approval-status line        resolved (manual)
+PRRT_kwDOTOXwB86gJsRt      false non-change claim            resolved (manual)
+```
+
+Four Codex findings and two manual governance comments. Zero unresolved actionable threads.
+**Next exact action:** Owner re-checks the captured top-bar evidence. Nothing else proceeds without explicit owner merge authorization.
 
 ## 1. Discovery
 
@@ -370,19 +381,41 @@ git diff --check                          clean
 Captured from the real `TioApp` through the real router at 390x844 and 320x640, with Roboto and MaterialIcons loaded so the render is readable rather than the test font's boxes. The capture harness was temporary and is not in the branch: nothing ships under `lib/`, and no golden baseline was committed, because the repo has no golden convention to extend.
 
 ```text
-1  Meal Diary top bar with More        Light / Dark / OLED
-2  More menu open                      Light / Dark / OLED
-3  Meal Diary Settings                 Light / Dark / OLED
-4  Meal Categories destination         Light / Dark / OLED
-5  Nutrition Settings hub with the new row   Light
-6  Meal Diary Settings at 320 px       Light
+a1  top bar, Today absent                    Light / Dark / OLED
+a2  top bar, Today present (historical date) Light / Dark / OLED
+a3  More menu open                           Light / Dark / OLED
+a4  Meal Diary Settings                      Light / Dark / OLED
+a5  Meal Categories destination              Light / Dark / OLED
+a6  Nutrition Settings hub with the new row  Light
+a7  top bar at 320 px, Today absent          Light
+a8  top bar at 320 px, Today present         Light
+a9  Meal Diary Settings at 320 px            Light
 ```
+
+The a1/a2 and a7/a8 pairs exist specifically so the changed ordering can be judged in both states at both widths.
+
+### Review outcome
+
+```text
+Core result          no trailing-action API remains
+                     tio_shell.dart and tio_shell_status_top_bar.dart are
+                     byte-identical to main
+final top-bar order  [Today?] [More] [streak]
+outside tap          consumeOutsideTap = true
+threads              6 raised, 6 resolved, 0 unresolved actionable
+                     (4 Codex findings + 2 manual governance comments)
+exact-head CI        run 34204735122 on b904baa8   SUCCESS
+```
+
+Nothing was dismissed. Each thread carries a reply naming the fix and how it is pinned; the two code fixes were mutation-checked, so the tests fail without them.
 
 ### Owner UI status
 
-`OWNER UI APPROVED` — the owner reviewed the captured evidence on 2026-09-08 and reported no UI issue.
+`AWAITING OWNER UI RE-CHECK`.
 
-The approval covers this shell only:
+The owner reviewed the captured evidence on 2026-09-08 and reported no UI issue. That approval covered a top bar where More sat after the streak. Review then required More to move before the streak, which is a visible geometry change, so the earlier approval is deliberately not treated as carrying over. Fresh evidence was captured for Today-absent, Today-present on a historical date, menu open, and 320 px compact, across Light, Dark and OLED.
+
+The scope that was approved, and that the re-check re-confirms, is this shell only:
 
 ```text
 Settings -> Nutrition Settings -> Meal Diary Settings
