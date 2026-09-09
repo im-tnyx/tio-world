@@ -1,6 +1,6 @@
 # TNYX-186 Meal Category Display-Name Hardening
 
-**Status:** In progress / REVIEW - Slices A and C merged; Slice B PR #235 is being reconciled onto the merged Slice C base
+**Status:** REVIEW - Slices A and C merged; Slice B PR #235 reconciled and locally validated on the merged Slice C base
 **Canonical GitHub issue:** #233 (open: Slice B is not merged or applied)
 **Linear:** TNYX-186 (In Review; verified 2026-09-09)
 **Slice A pull request:** #234 (merged into `main@633b210f32cfcf86855aa6524c0ec2c1f26c3de0`)
@@ -34,9 +34,19 @@ No hosted Supabase mutation has occurred at any point in this task. Hosted
 inspection and preflight remain read-only; applying the migration requires a
 separate explicit owner authorization.
 
-Next action: finish the Slice B reserved-ownership reconciliation, replay all
-migrations and SQL matrices locally, update the same PR #235, and stop for final
-review without merging or applying hosted.
+Next action: commit and update the same PR #235 with lease, verify exact-head CI
+and review state, and stop for final review without merging or applying hosted.
+
+## Active Handoff
+
+Implementation ownership transfer: previous PR #235 implementation session ->
+current Codex implementation session.
+
+Takeover state verified before source edits: PR #235 remote head was
+`aeaf41e4f4c2264e4496f950d92311fb05d164c8`, its branch was two commits ahead
+and one behind `main`, PR #236 was merged, the protected local files were still
+uncommitted, and no concurrent Implementation owner was recorded. Recovery ref
+`recovery/tnyx-186-db-guard-pre-slice-c` preserves the exact pre-rebase head.
 
 ## Owner Approval and Scope Boundary
 
@@ -205,7 +215,8 @@ Run any repository/data tests affected by the dependency or codec changes plus `
 
 ## Slice B - Implemented Locally and Published, Not Applied Hosted
 
-Verdict: **DESIGN READY**, with an enforcement boundary stated rather than hidden.
+Verdict: **IMPLEMENTED LOCALLY / REVIEW**, with the exact database enforcement
+boundary stated rather than hidden and no hosted apply.
 
 ### Hosted audit, read-only
 
@@ -235,6 +246,11 @@ blank or invisible names                 0
 rows failing the current validator       0
 max code-point length                    9   (diagnostic only, NOT graphemes)
 names over 24 code points                0   (diagnostic only, NOT graphemes)
+canonical owner using own reserved token 4
+custom rows using a reserved token        0
+wrong canonical reserved-token owner     0
+archived reserved-name violations         0
+total reserved-name violations            0
 ```
 
 ### Exact grapheme enforcement: not available
@@ -272,7 +288,16 @@ Allowed and pinned by tests: U+200C ZWNJ, U+200D ZWJ, U+2060 WORD JOINER.
 Canonical shape: non-blank, no outer collapsible whitespace, no repeated
 collapsible whitespace, every space an ordinary U+0020.
 Active display names must be unique, compared exactly as stored; archived
-duplicates stay allowed, matching the Dart scope.
+ordinary duplicates stay allowed, matching the Dart scope.
+
+The four original ASCII tokens are enforced exactly and permanently by
+identity: `Breakfast -> meal_slot_1`, `Lunch -> meal_slot_2`,
+`Dinner -> meal_slot_3`, and `Snacks -> meal_slot_4`. Matching uses only
+`pg_catalog.translate(value, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+'abcdefghijklmnopqrstuvwxyz')`; it does not use `lower()`, `citext`, ICU
+equality or generic Unicode case folding. The rule applies to active and
+archived items. An owner rename releases nothing, and the replacement label
+does not become reserved.
 
 Expressed as a validator, not a repair layer: a write is refused when
 `display_name` is not already equal to its canonical form. Nothing trims,
@@ -325,16 +350,23 @@ Executed on the local Docker stack:
 
 - all 42 migrations replayed from scratch, last `20260909131518`;
 - ledger verified against the files, no diff;
-- TNYX-186 display-name matrix passed, 66 assertions;
+- TNYX-186 display-name matrix passed, 90 assertions, including the full 4x4
+  reserved-owner matrix, owner ASCII case variants, active and archived custom
+  rejections, rename-does-not-release, and renamed-label-not-reserved;
 - TNYX-67 B1 matrix passed, no regression;
-- mutation-verified twice: restoring the previous validator fails the new
-  matrix on its first case;
+- TNYX-67 real two-session concurrency test passed;
+- mutation-verified: the previous validator accepted a custom `Lunch` after
+  `meal_slot_2` was renamed to `Mid Meal`; restoring the reconciled migration
+  made the 90-assertion matrix green;
+- database lint matched the pre-B1 baseline with no schema errors;
 - post-apply read-back confirms immutable, strict, `SECURITY INVOKER`, empty
   `search_path`, unchanged ACL, unchanged CHECK constraint, enabled retained-ID
-  trigger, and no `char_length` or `lower()` in executable code.
+  trigger, U+200B and the reserved `translate()` mapping present, and no
+  `char_length` or `lower()` in executable code.
 
-`git diff --check` is clean. PR #235 is published and its exact-head CI is
-green.
+`git diff --check` is clean. PR #235 is published; the pre-rebase head CI was
+green, and exact-head CI must be rechecked after the reconciled branch is
+force-pushed with lease.
 
 ### Still required before any hosted apply
 
@@ -414,14 +446,15 @@ clash fixture; those now hit the reserved rule first, so they were retargeted
 onto a custom name. The duplicate rule keeps its coverage, and the reserved
 rule has its own.
 
-### Reconciliation owed to Slice B
+### Slice B reconciliation after merged Slice C
 
-PR #235 does **not** enforce reserved-name ownership in the database. After
-Slice C merges, PR #235 needs a separate pass: rebase onto the new `main`, add
-the DB-side reservation rule, preflight hosted rows for reserved-name
-violations, extend the SQL matrix, replay locally, and get a fresh review before
-any hosted apply. Nothing about that was started here, and PR #235 was not
-touched.
+PR #235 is rebased onto `main@1c92a1261c52e22824907bcc307a350d0c03f7e5`.
+The same pending migration `20260909131518` now enforces reserved-name ownership
+with ASCII-only folding, preflights stored rows with count-only evidence, and
+fails rather than repairing or grandfathering violations. The SQL matrix covers
+owners, wrong canonical identities, active and archived customs, ASCII case
+variants, rename permanence and non-growing reservations. Hosted data and the
+migration ledger were inspected read-only; no migration was applied hosted.
 
 ## Protected State
 

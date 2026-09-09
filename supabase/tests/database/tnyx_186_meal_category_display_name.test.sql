@@ -14,9 +14,12 @@ begin;
 -- Every input is built from chr() rather than pasted, so what each case
 -- exercises is readable in the source instead of hiding inside a literal.
 
+create temporary sequence tnyx_186_assertion_seq;
+
 create function pg_temp.assert_true(p_condition boolean, p_message text)
 returns void language plpgsql as $$
 begin
+  perform pg_catalog.nextval('pg_temp.tnyx_186_assertion_seq'::pg_catalog.regclass);
   if p_condition is not true then
     raise exception 'assertion failed: %', p_message;
   end if;
@@ -322,11 +325,225 @@ begin
 end;
 $$;
 
--- Active display names must be unique, compared exactly as stored.
-select pg_temp.expect_name(
-  'Lunch', false,
-  'an active custom cannot reuse an active canonical name'
+-- Change one canonical identity's name while leaving the rest of the config
+-- valid. A fifth ordinary custom category stays present so this also exercises
+-- the same retained shape as the custom-name cases.
+create function pg_temp.config_with_canonical_name(
+  p_id text,
+  p_name text
+)
+returns jsonb language sql immutable as $$
+  select pg_catalog.jsonb_build_object(
+    'schema_version', 1,
+    'items', pg_catalog.jsonb_agg(
+      case when item ->> 'id' = p_id
+        then pg_catalog.jsonb_set(
+          item,
+          '{display_name}',
+          pg_catalog.to_jsonb(p_name)
+        )
+        else item
+      end
+      order by (item ->> 'order')::integer
+    )
+  )
+  from pg_catalog.jsonb_array_elements(
+    pg_temp.config_with_name('Pre Workout') -> 'items'
+  ) as item;
+$$;
+
+-- Exercise ownership without letting the active exact-duplicate check be the
+-- reason a stolen token fails. The permanent owner is renamed first, then the
+-- requested identity receives the reserved token.
+create function pg_temp.config_with_reserved_assignment(
+  p_assignee_id text,
+  p_owner_id text,
+  p_reserved_name text
+)
+returns jsonb language sql immutable as $$
+  select pg_catalog.jsonb_build_object(
+    'schema_version', 1,
+    'items', pg_catalog.jsonb_agg(
+      case
+        when item ->> 'id' = p_assignee_id
+          and p_assignee_id = p_owner_id
+        then pg_catalog.jsonb_set(
+          item, '{display_name}', pg_catalog.to_jsonb(p_reserved_name)
+        )
+        when item ->> 'id' = p_owner_id
+        then pg_catalog.jsonb_set(
+          item,
+          '{display_name}',
+          pg_catalog.to_jsonb('Renamed ' || p_owner_id)
+        )
+        when item ->> 'id' = p_assignee_id
+        then pg_catalog.jsonb_set(
+          item, '{display_name}', pg_catalog.to_jsonb(p_reserved_name)
+        )
+        else item
+      end
+      order by (item ->> 'order')::integer
+    )
+  )
+  from pg_catalog.jsonb_array_elements(
+    pg_temp.config_with_name('Pre Workout') -> 'items'
+  ) as item;
+$$;
+
+-- Rename one canonical owner and configure the existing custom item in the
+-- same payload. This pins both permanent token ownership and the fact that a
+-- temporary replacement label does not become reserved.
+create function pg_temp.config_with_owner_and_custom_names(
+  p_owner_id text,
+  p_owner_name text,
+  p_custom_name text,
+  p_custom_active boolean
+)
+returns jsonb language sql immutable as $$
+  select pg_catalog.jsonb_build_object(
+    'schema_version', 1,
+    'items', pg_catalog.jsonb_agg(
+      case
+        when item ->> 'id' = p_owner_id
+        then pg_catalog.jsonb_set(
+          item, '{display_name}', pg_catalog.to_jsonb(p_owner_name)
+        )
+        when item ->> 'id' like 'meal_slot_11111111%'
+        then pg_catalog.jsonb_set(
+          pg_catalog.jsonb_set(
+            item, '{display_name}', pg_catalog.to_jsonb(p_custom_name)
+          ),
+          '{active}',
+          pg_catalog.to_jsonb(p_custom_active)
+        )
+        else item
+      end
+      order by (item ->> 'order')::integer
+    )
+  )
+  from pg_catalog.jsonb_array_elements(
+    pg_temp.config_with_name('Pre Workout') -> 'items'
+  ) as item;
+$$;
+
+-- The four canonical ASCII tokens are owned forever by their original ids.
+-- The full 4x4 matrix renames the true owner away before assigning a stolen
+-- token, so every off-diagonal rejection is the ownership rule itself.
+do $$
+declare
+  v_ids text[] := array[
+    'meal_slot_1', 'meal_slot_2', 'meal_slot_3', 'meal_slot_4'
+  ];
+  v_names text[] := array['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
+  v_assignee integer;
+  v_token integer;
+begin
+  for v_assignee in 1..4 loop
+    for v_token in 1..4 loop
+      perform pg_temp.assert_true(
+        private.is_valid_meal_categories_config_v1(
+          pg_temp.config_with_reserved_assignment(
+            v_ids[v_assignee],
+            v_ids[v_token],
+            v_names[v_token]
+          )
+        ) = (v_assignee = v_token),
+        pg_catalog.format(
+          'reserved token %s is accepted only for %s, not %s',
+          v_names[v_token],
+          v_ids[v_token],
+          v_ids[v_assignee]
+        )
+      );
+    end loop;
+  end loop;
+end;
+$$;
+
+-- ASCII case variants of an owner's own token remain valid.
+select pg_temp.assert_true(
+  private.is_valid_meal_categories_config_v1(
+    pg_temp.config_with_canonical_name('meal_slot_2', 'lunch')
+  ),
+  'meal_slot_2 may use lower-case lunch'
 );
+select pg_temp.assert_true(
+  private.is_valid_meal_categories_config_v1(
+    pg_temp.config_with_canonical_name('meal_slot_2', 'LUNCH')
+  ),
+  'meal_slot_2 may use upper-case LUNCH'
+);
+
+-- Active custom categories cannot hold any reserved token, including mixed
+-- ASCII case variants.
+do $$
+declare
+  v_names text[] := array[
+    'Breakfast', 'Lunch', 'Dinner', 'Snacks', 'lunch', 'LUNCH', 'LuNcH'
+  ];
+  v_owner_ids text[] := array[
+    'meal_slot_1', 'meal_slot_2', 'meal_slot_3', 'meal_slot_4',
+    'meal_slot_2', 'meal_slot_2', 'meal_slot_2'
+  ];
+  v_index integer;
+begin
+  for v_index in 1..pg_catalog.array_length(v_names, 1) loop
+    perform pg_temp.assert_true(
+      not private.is_valid_meal_categories_config_v1(
+        pg_temp.config_with_owner_and_custom_names(
+          v_owner_ids[v_index],
+          'Renamed ' || v_owner_ids[v_index],
+          v_names[v_index],
+          true
+        )
+      ),
+      pg_catalog.format(
+        'active custom cannot use reserved token %s',
+        v_names[v_index]
+      )
+    );
+  end loop;
+end;
+$$;
+
+-- Archived custom categories are covered too; archive state never releases a
+-- canonical token.
+do $$
+declare
+  v_name text;
+begin
+  foreach v_name in array array['Breakfast', 'Lunch', 'Dinner', 'Snacks'] loop
+    perform pg_temp.assert_true(
+      not private.is_valid_meal_categories_config_v1(
+        pg_temp.config_with_two_customs(
+          v_name, false, 'Post Workout', true
+        )
+      ),
+      pg_catalog.format('archived custom cannot use reserved token %s', v_name)
+    );
+  end loop;
+end;
+$$;
+
+select pg_temp.assert_true(
+  not private.is_valid_meal_categories_config_v1(
+    pg_temp.config_with_owner_and_custom_names(
+      'meal_slot_2', 'Mid Meal', 'Lunch', true
+    )
+  ),
+  'renaming Lunch to Mid Meal does not release the Lunch token'
+);
+
+select pg_temp.assert_true(
+  private.is_valid_meal_categories_config_v1(
+    pg_temp.config_with_owner_and_custom_names(
+      'meal_slot_2', 'Lunch', 'Mid Meal', true
+    )
+  ),
+  'a canonical owner replacement label does not become reserved'
+);
+
+-- Active display names must be unique, compared exactly as stored.
 select pg_temp.expect_pair(
   'Pre Workout', true, 'Pre Workout', true, false,
   'two active customs cannot share a name'
@@ -336,11 +553,12 @@ select pg_temp.expect_pair(
   'two different active names are fine'
 );
 
--- Archived names are outside the rule, which is what lets a name be reused
--- after archiving.
+-- Archived ordinary names are outside the duplicate rule, which is what lets
+-- an ordinary name be reused after archiving. Reserved names remain refused by
+-- their separate identity rule.
 select pg_temp.expect_pair(
-  'Lunch', false, 'Post Workout', true, true,
-  'an archived custom may share a name with an active canonical'
+  'Lunch', false, 'Post Workout', true, false,
+  'an archived custom may not hold a reserved canonical token'
 );
 select pg_temp.expect_pair(
   'Pre Workout', true, 'Pre Workout', false, true,
@@ -362,10 +580,6 @@ select pg_temp.expect_pair(
 -- Asserted as accepted on purpose. If someone later adds lower() here these
 -- fail, and the failure is the point: it forces the parity question to be
 -- answered again rather than assumed.
-select pg_temp.expect_name(
-  'lunch', true,
-  'BOUNDARY: a case-only duplicate is accepted here and refused by the domain'
-);
 select pg_temp.expect_pair(
   'Pre Workout', true, 'pre workout', true, true,
   'BOUNDARY: case-only duplicate customs are accepted here'
@@ -483,6 +697,9 @@ select pg_temp.assert_true(
      and t.tgname = 'trg_user_nutrition_profiles_protect_meal_category_retained_ids'),
   'the retained-ID trigger is untouched'
 );
+
+select last_value as tnyx_186_assertion_count
+from pg_temp.tnyx_186_assertion_seq;
 
 rollback;
 

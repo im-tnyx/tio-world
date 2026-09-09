@@ -19,7 +19,12 @@
 --   * every space in the stored value is an ordinary U+0020;
 --   * U+200C ZWNJ, U+200D ZWJ and U+2060 WORD JOINER remain allowed;
 --   * no two ACTIVE categories carry the same stored name, compared exactly,
---     while an archived category may still share a name with an active one.
+--     while an archived category may still share an ordinary name with an
+--     active one;
+--   * Breakfast, Lunch, Dinner and Snacks remain permanently owned by
+--     meal_slot_1 through meal_slot_4 respectively, regardless of whether the
+--     owner is currently using its token and regardless of active/archive
+--     state.
 --
 -- Each of those was checked against the merged Dart policy on this database
 -- before this file was written: twenty-one probe values covering every shape
@@ -69,6 +74,14 @@
 -- Case-only variants therefore stay application-authoritative, exactly like
 -- the length limit. A test pins this boundary so it cannot later be mistaken
 -- for full parity.
+--
+-- RESERVED ASCII TOKENS
+--
+-- The four reserved words are ASCII. Their ownership check therefore uses an
+-- explicit ASCII-only fold with `translate()`, not PostgreSQL `lower()`,
+-- locale-dependent comparison, citext, ICU equality or a generic Unicode
+-- normalization rule. This exact rule is separate from the ordinary Unicode
+-- case-only duplicate gap above.
 --
 -- WHY THE CHARACTER SETS ARE WRITTEN OUT
 --
@@ -137,6 +150,10 @@ declare
   v_blank integer;
   v_noncanonical integer;
   v_duplicate_active integer;
+  v_reserved_custom integer;
+  v_reserved_wrong_canonical integer;
+  v_reserved_archived integer;
+  v_reserved_total integer;
 begin
   with stored as (
     select item ->> 'display_name' as nm
@@ -179,16 +196,74 @@ begin
       having pg_catalog.count(*) > 1
     );
 
+  -- Reserved-name ownership is permanent and applies to active and archived
+  -- items alike. The words are ASCII, so fold only ASCII A-Z explicitly.
+  with classified as (
+    select
+      item ->> 'id' as item_id,
+      (item ->> 'active')::boolean as is_active,
+      case pg_catalog.translate(
+        item ->> 'display_name',
+        'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+        'abcdefghijklmnopqrstuvwxyz'
+      )
+        when 'breakfast' then 'meal_slot_1'
+        when 'lunch' then 'meal_slot_2'
+        when 'dinner' then 'meal_slot_3'
+        when 'snacks' then 'meal_slot_4'
+        else null
+      end as reserved_owner_id
+    from public.user_nutrition_profiles as p,
+      pg_catalog.jsonb_array_elements(
+        p.meal_categories_config -> 'items'
+      ) as item
+    where p.meal_categories_config is not null
+  )
+  select
+    pg_catalog.count(*) filter (
+      where reserved_owner_id is not null
+        and item_id not in (
+          'meal_slot_1', 'meal_slot_2', 'meal_slot_3', 'meal_slot_4'
+        )
+    ),
+    pg_catalog.count(*) filter (
+      where reserved_owner_id is not null
+        and item_id in (
+          'meal_slot_1', 'meal_slot_2', 'meal_slot_3', 'meal_slot_4'
+        )
+        and item_id <> reserved_owner_id
+    ),
+    pg_catalog.count(*) filter (
+      where reserved_owner_id is not null
+        and item_id <> reserved_owner_id
+        and not is_active
+    ),
+    pg_catalog.count(*) filter (
+      where reserved_owner_id is not null
+        and item_id <> reserved_owner_id
+    )
+  into
+    v_reserved_custom,
+    v_reserved_wrong_canonical,
+    v_reserved_archived,
+    v_reserved_total
+  from classified;
+
   if v_forbidden > 0 or v_blank > 0 or v_noncanonical > 0
-    or v_duplicate_active > 0 then
+    or v_duplicate_active > 0 or v_reserved_total > 0 then
     raise exception
       'TNYX-186 display-name guard blocked: stored meal_categories_config names '
       'would be stranded by the tightened validator (forbidden characters: %, '
       'blank or invisible: %, not in canonical whitespace form: %, rows with '
-      'two identically named active categories: %). Resolve these rows first; '
+      'two identically named active categories: %, custom reserved-name uses: %, '
+      'wrong canonical reserved-name owners: %, archived reserved-name '
+      'violations: %, total reserved-name ownership violations: %). Resolve '
+      'these rows first; '
       'this migration will not rewrite, rename or truncate a name a reader '
       'chose.',
-      v_forbidden, v_blank, v_noncanonical, v_duplicate_active;
+      v_forbidden, v_blank, v_noncanonical, v_duplicate_active,
+      v_reserved_custom, v_reserved_wrong_canonical, v_reserved_archived,
+      v_reserved_total;
   end if;
 end
 $$;
@@ -212,6 +287,7 @@ declare
   v_id text;
   v_display_name text;
   v_canonical_name text;
+  v_reserved_owner_id text;
   v_default_key_type text;
   v_active_count integer := 0;
   v_retained_count integer := 0;
@@ -312,6 +388,29 @@ begin
     -- value is not already canonical; nothing here trims, collapses, truncates
     -- or rewrites what the caller sent.
     if v_canonical_name = '' or v_display_name <> v_canonical_name then
+      return false;
+    end if;
+
+    -- The four original ASCII names are permanently identity-owned. The
+    -- owner's current label is irrelevant: renaming Lunch to Mid Meal does not
+    -- release Lunch, and Mid Meal does not become a new reserved token. This
+    -- check is deliberately before active-only duplicate validation and
+    -- applies to archived items too.
+    v_reserved_owner_id := case pg_catalog.translate(
+      v_display_name,
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+      'abcdefghijklmnopqrstuvwxyz'
+    )
+      when 'breakfast' then 'meal_slot_1'
+      when 'lunch' then 'meal_slot_2'
+      when 'dinner' then 'meal_slot_3'
+      when 'snacks' then 'meal_slot_4'
+      else null
+    end;
+
+    if v_reserved_owner_id is not null
+      and v_reserved_owner_id <> v_id
+    then
       return false;
     end if;
 
@@ -453,4 +552,4 @@ grant execute on function private.is_valid_meal_categories_config_v1(jsonb)
   to authenticated, service_role;
 
 comment on column public.user_nutrition_profiles.meal_categories_config is
-  'Versioned Meal Categories config. NULL resolves canonical runtime defaults. Retained IDs are historical identities and ordinary writes cannot remove them. Active categories: at least 1, at most 8. Maximum retained categories, archived included: 32. Canonical order by id: meal_slot_1 < meal_slot_2 < meal_slot_3 < meal_slot_4. display_name must be non-blank, free of C0/C1 controls, DEL, U+2028, U+2029 and U+200B, and already in canonical whitespace form (no outer whitespace, no repeated whitespace, ordinary U+0020 only); U+200C, U+200D and U+2060 are allowed. Two active categories may not carry the same stored name, compared exactly; archived duplicates are allowed. Two rules are NOT enforced here and remain owned by MealCategoryDisplayNamePolicy in the Nutrition domain: the 24 extended-grapheme-cluster limit, because PostgreSQL has no grapheme primitive and char_length would reject valid names; and case-only duplicate active names, because this database''s lower() disagrees with Dart on U+0130 and on Greek final sigma, in the latter case refusing configurations the app accepts.';
+  'Versioned Meal Categories config. NULL resolves canonical runtime defaults. Retained IDs are historical identities and ordinary writes cannot remove them. Active categories: at least 1, at most 8. Maximum retained categories, archived included: 32. Canonical order by id: meal_slot_1 < meal_slot_2 < meal_slot_3 < meal_slot_4. display_name must be non-blank, free of C0/C1 controls, DEL, U+2028, U+2029 and U+200B, and already in canonical whitespace form (no outer whitespace, no repeated whitespace, ordinary U+0020 only); U+200C, U+200D and U+2060 are allowed. Breakfast, Lunch, Dinner and Snacks are permanently owned by meal_slot_1, meal_slot_2, meal_slot_3 and meal_slot_4 respectively, matched with explicit ASCII-only case folding and enforced for active and archived items. Two active categories may not carry the same stored name, compared exactly; archived ordinary duplicates are allowed. Two rules are NOT enforced here and remain owned by MealCategoryDisplayNamePolicy in the Nutrition domain: the 24 extended-grapheme-cluster limit, because PostgreSQL has no grapheme primitive and char_length would reject valid names; and ordinary Unicode case-only duplicate active names, because this database''s lower() disagrees with Dart on U+0130 and on Greek final sigma, in the latter case refusing configurations the app accepts.';
