@@ -145,7 +145,7 @@ class MealLogActionFooter extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         SvgPicture.asset(
-                          'assets/svg_icon/ic_calendar_.svg',
+                          'assets/svg_icon/ic_calendar_1.svg',
                           package: 'tio_core',
                           width: TioSize.dp20,
                           height: TioSize.dp20,
