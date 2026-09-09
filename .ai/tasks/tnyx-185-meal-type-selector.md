@@ -91,8 +91,18 @@ list of short names beside one control, not a band across the footer.
 does not read as ragged. Its own scroll when eight categories at a large text
 scale need more room than the anchor left.
 
-Options are `TioSelectableCard`, so the chosen one carries the component's fill
-and outline, plus a tick for a reader who cannot rely on that difference alone.
+Options are plain menu rows, not `TioSelectableCard`. That component is a card
+— its own outline, its own padding — and a column of them inside the popup's
+card read as cards nested in a card, at roughly twice the height a line of text
+needs. A menu's rows are rows: the chosen one is a soft fill and a tick, and
+the surface around them belongs to the card. Selection is reported through
+semantics as well, so it is never carried by colour alone.
+
+The footer keeps the layout it had. The category control sits at its natural
+width on the leading edge and the date stays on the trailing edge; a bound on
+how wide the category may grow is what stops a long custom name overflowing the
+row, rather than making it flexible — a flexible control shared the row evenly
+with the date and pulled it off the trailing edge.
 
 No Done, Save or Apply: choosing is the whole interaction. A tap selects and
 closes; a tap outside closes and changes nothing.
@@ -157,6 +167,6 @@ which is what required it.
 
 ```text
 flutter analyze  core / nutrition / app     No issues found
-flutter test     core 266 · nutrition 475 · app 305    all passed
+flutter test     core 266 · nutrition 478 · app 305    all passed
 git diff --check origin/main...HEAD         clean
 ```

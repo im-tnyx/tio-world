@@ -193,55 +193,105 @@ class _PopupContentState extends State<_PopupContent> {
         key: const ValueKey('meal-category-picker-options'),
         // The card sizes to its content, and `IntrinsicWidth` is what makes
         // every row the width of the longest label rather than each row the
-        // width of its own. Rows of differing widths read as a broken list,
-        // and stretching instead would put the card back at its full cap.
+        // width of its own. Rows of differing widths read as a broken list.
         child: IntrinsicWidth(
           child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final option in widget.options)
-              Padding(
-                padding: const EdgeInsets.only(bottom: TioSpacing.xs),
-                child: TioSelectableCard(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final option in widget.options)
+                _OptionRow(
                   key: ValueKey('meal-category-option-${option.id}'),
+                  option: option,
                   selected: option.id == widget.selectedId,
-                  semanticLabel: option.label,
-                  // Choosing is the whole interaction: no Done, no Apply.
                   onTap: () => widget.onSelected(option.id),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          option.label,
-                          // A custom name can be longer than any default, and
-                          // at a large text scale it wraps rather than being
-                          // cut off.
-                          style: TextStyle(
-                            color: colors.textPrimary,
-                            fontWeight: TioFontWeight.w700,
-                            fontSize: TioFontSize.size15,
-                          ),
-                        ),
-                      ),
-                      if (option.id == widget.selectedId) ...[
-                        const SizedBox(width: TioSpacing.sm),
-                        // The card already tints and outlines the chosen
-                        // option; the tick says the same thing again for a
-                        // reader who cannot rely on that difference alone.
-                        Icon(
-                          Icons.check_rounded,
-                          key: ValueKey('meal-category-check-${option.id}'),
-                          size: TioSize.dp20,
-                          color: colors.primary,
-                        ),
-                      ],
-                    ],
-                  ),
                 ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One line in the card.
+///
+/// Deliberately not `TioSelectableCard`. That component is a card — its own
+/// outline, its own padding — and a column of them inside the popup's card
+/// reads as cards nested in a card, at twice the height a line of text needs.
+/// A menu's rows are rows: the chosen one is a soft fill and a tick, and the
+/// surface around them belongs to the card.
+class _OptionRow extends StatelessWidget {
+  const _OptionRow({
+    required this.option,
+    required this.selected,
+    required this.onTap,
+    super.key,
+  });
+
+  final MealCategoryOption option;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.tioColors;
+    final radius = BorderRadius.circular(TioRadius.md);
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: option.label,
+      // The row below already renders the label; without this the same words
+      // would be announced twice.
+      excludeSemantics: true,
+      onTap: onTap,
+      child: Material(
+        color: selected ? colors.surfaceVariant : TioPalette.transparent,
+        borderRadius: radius,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: radius,
+          excludeFromSemantics: true,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: TioSize.dp44),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: TioSpacing.md,
+                vertical: TioSpacing.sm,
               ),
-          ],
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      option.label,
+                      // A custom name can be longer than any default, and at a
+                      // large text scale it wraps rather than being cut off.
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontWeight: TioFontWeight.w700,
+                        fontSize: TioFontSize.size15,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: TioSpacing.md),
+                  // The slot is held whether or not this row is the chosen
+                  // one, so no label shifts sideways as the selection moves.
+                  SizedBox(
+                    width: TioSize.dp20,
+                    child: selected
+                        ? Icon(
+                            Icons.check_rounded,
+                            key: ValueKey('meal-category-check-${option.id}'),
+                            size: TioSize.dp20,
+                            color: colors.textPrimary,
+                          )
+                        : null,
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

@@ -91,12 +91,15 @@ class MealLogActionFooter extends StatelessWidget {
         // its job is to be the quiet strip the content stops at.
         Row(
           children: [
-            // Flexible, not fixed: a custom category name can be longer than
-            // any of the four defaults, and the unselected wording is longer
-            // than all of them. Without this the row overflows instead of
-            // shortening, and the reader loses the date rather than a few
-            // characters of a name they chose.
-            Flexible(
+            // Bounded, not flexible. A flexible child would share the row
+            // evenly with the date and pull it off the trailing edge; this
+            // keeps the category at its natural width — Meal Type left, date
+            // right — while capping how far a long custom name may push,
+            // because past that the row would overflow instead of shortening.
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.sizeOf(context).width / 2,
+              ),
               child: KeyedSubtree(
                 key: mealCategoryAnchorKey,
                 child: _FooterAction(

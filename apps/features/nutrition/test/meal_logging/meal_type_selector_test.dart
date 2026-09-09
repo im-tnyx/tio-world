@@ -283,15 +283,31 @@ void main() {
       await tester.pumpAndSettle();
 
       await _openSelector(tester);
-      final selected = tester
-          .widgetList<TioSelectableCard>(find.byType(TioSelectableCard))
-          .where((card) => card.selected)
-          .length;
-      expect(selected, 1, reason: 'exactly one option reads as chosen');
+      // Marked by a tick beside the label, and by exactly one of them.
       expect(
-        tester.widget<TioSelectableCard>(find.byKey(_option('meal_slot_3'))).selected,
-        isTrue,
+        find.byKey(const ValueKey('meal-category-check-meal_slot_3')),
+        findsOne,
       );
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget.key.toString().contains('meal-category-check-'),
+        ),
+        findsOne,
+        reason: 'exactly one option reads as chosen',
+      );
+      // And reported as chosen to assistive technology, not by colour alone.
+      final handle = tester.ensureSemantics();
+      expect(
+        tester.getSemantics(find.byKey(_option('meal_slot_3'))),
+        matchesSemantics(
+          isButton: true,
+          isSelected: true,
+          hasSelectedState: true,
+          hasTapAction: true,
+          label: 'Dinner',
+        ),
+      );
+      handle.dispose();
     });
 
     testWidgets('the selection survives a rebuild', (tester) async {
@@ -686,6 +702,76 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(_popup), findsNothing);
       expect(find.byKey(_dateTimePopup), findsNothing);
+    });
+
+    testWidgets('the date keeps the trailing edge whatever the category reads',
+        (tester) async {
+      // A flexible category control shared the row evenly with the date and
+      // pulled it off the trailing edge. Meal Type stays left at its natural
+      // width; the date stays right.
+      await _pumpQuickAdd(tester);
+      final footer = tester.getRect(find.byKey(_footerPrimary));
+      final shortDate = tester.getRect(find.byKey(_footerDateTime));
+      expect(shortDate.right, closeTo(footer.right, 1));
+
+      await _openSelector(tester);
+      await tester.tap(find.byKey(_option('meal_slot_1')));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getRect(find.byKey(_footerDateTime)).right,
+        closeTo(footer.right, 1),
+        reason: 'choosing a category must not move the date',
+      );
+      expect(
+        tester.getRect(find.byKey(_footerCategory)).left,
+        closeTo(tester.getRect(find.byKey(_footerPrimary)).left, 1),
+        reason: 'and Meal Type stays at the leading edge',
+      );
+    });
+
+    testWidgets('a long category name cannot push the date off the row',
+        (tester) async {
+      await _pumpQuickAdd(
+        tester,
+        size: const Size(320, 640),
+        textScale: 1.6,
+        stored: _config(
+          renamed: {'meal_slot_1': 'A Very Long Custom Meal Category Name'},
+        ),
+      );
+      await _openSelector(tester);
+      await tester.tap(find.byKey(_option('meal_slot_1')));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull, reason: 'shortens, not overflows');
+      final footer = tester.getRect(find.byKey(_footerPrimary));
+      expect(
+        tester.getRect(find.byKey(_footerDateTime)).right,
+        closeTo(footer.right, 1),
+      );
+    });
+
+    testWidgets('an option is one line tall, not a card inside a card',
+        (tester) async {
+      await _pumpQuickAdd(tester);
+      await _openSelector(tester);
+
+      final row = tester.getRect(find.byKey(_option('meal_slot_1')));
+      expect(
+        row.height,
+        greaterThanOrEqualTo(44),
+        reason: 'still a real touch target',
+      );
+      expect(
+        row.height,
+        lessThan(64),
+        reason: 'a menu line, not a nested card with its own padding',
+      );
+
+      // Four options and the card's own padding, nothing more.
+      final card = tester.getRect(find.byKey(_popup));
+      expect(card.height, lessThan(row.height * 4 + 40));
     });
 
     testWidgets('eight options scroll inside the card rather than clipping',
