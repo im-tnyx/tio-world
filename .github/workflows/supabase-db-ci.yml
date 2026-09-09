@@ -123,6 +123,13 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_67_meal_categories_b1.test.sql
 
+      - name: Run TNYX-186 display-name SQL matrix
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_186_meal_category_display_name.test.sql
+
       - name: Run real two-session concurrency test
         shell: bash
         run: bash supabase/tests/database/tnyx_67_meal_categories_b1_concurrency.sh
