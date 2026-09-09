@@ -1,11 +1,15 @@
 import '../foundation/tio_radius.dart';
 import '../foundation/tio_spacing.dart';
-import '../foundation/tio_stroke.dart';
-import '../primitive/tio_alpha.dart';
 import '../primitive/tio_size.dart';
 import '../typography/tio_font_size.dart';
 import '../typography/tio_letter_spacing.dart';
 
+/// Shell, copy and icon geometry for the remove-image confirmation sheet.
+///
+/// Action chrome is deliberately absent: the Remove and Cancel actions are
+/// [TioButton]s, so their height, radius, outline, padding and label
+/// typography belong to `TioButtonTokens`. Only the two icon sizes remain
+/// here, because they are this sheet's content rather than button chrome.
 class TioRemoveImageSheetTokens {
   const TioRemoveImageSheetTokens._();
 
@@ -21,12 +25,6 @@ class TioRemoveImageSheetTokens {
   static const titleToSubtitleGap = TioSpacing.sm;
   static const subtitleFontSize = TioFontSize.size15;
   static const subtitleToActionsGap = TioSize.dp26;
-  static const actionRadius = TioSize.dp20;
-  static const actionVerticalPadding = TioSpacing.lg;
-  static const actionOutlineAlpha = TioAlpha.alpha25;
-  static const actionOutlineWidth = TioStroke.width1;
-  static const actionLabelFontSize = TioFontSize.size16;
-  static const actionIconGap = TioSpacing.sm;
   static const removeIconSize = TioSize.dp20;
   static const cancelIconSize = TioSize.dp18;
   static const actionGap = TioSpacing.md;

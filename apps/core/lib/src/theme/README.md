@@ -389,6 +389,23 @@ TioDateTimeWheelPicker
 core reusable dialogs/pickers/sheets
 ```
 
+`TioButton` is the shared button family for every action in the app. Its variants are semantic intents, not surfaces or features:
+
+```text
+primary       the main affirmative action
+secondary     the outlined non-destructive action, including Cancel
+ghost         the low-emphasis text action
+destructive   removes or permanently changes something
+```
+
+Feature and sheet code selects an intent. It does not rebuild button chrome locally, and there is no per-surface or per-feature button class.
+
+`TioButton.destructive` is an **outlined** action carrying the `danger` role, not a filled one. It shares the outlined chassis with `secondary`, so `TioButtonTokens` still owns its minimum height, pill radius, horizontal padding, content gap and label typography; only the colour roles differ. The danger colour reaches the foreground, the outline and the pressed/focused/hovered state layer, so the action stays destructive in every state — including while `loading`, where the shared disabled treatment would otherwise grey out a delete in flight. A destructive action that is genuinely `enabled: false` still uses the shared disabled treatment.
+
+No `onDanger` foreground role exists, and this variant deliberately does not add one: an outlined destructive action renders `danger` on the surface beneath it, which is what the destructive actions already shipping do. A filled danger container would need that token and a separate contrast decision.
+
+The variant exposes no radius, height, fill, border-colour or label-size override. Reproducing a historical local button recipe through override parameters is how the drift this family exists to remove becomes representable again.
+
 `TioSocialButton` owns shared provider/mode action presentation for Google, Truecaller, Email, and Phone. Its default constructors retain the full-width provider treatment. `TioSocialButton.round` is the shared compact Auth action variant: a 56dp circular interactive target with a visible label, button semantics, theme-resolved colors, and governed geometry. Features own provider ordering, loading/availability state, and whether Email or Phone is the reciprocal mode action; they should not duplicate the round visual contract or create an Auth-specific token bag.
 
 `TioInlineInfoAction` owns the compact contextual-info treatment used in feature footers: a `12px` `w500` label, `16px` icon, theme-resolved secondary text color, and compact governed padding without the global `TextButton` minimum height. Features provide only the label, optional icon, and callback.
@@ -481,6 +498,8 @@ Use the public Settings-row family when its demonstrated contract matches instea
 - `TioSettingsReadOnlyRow` provides a non-interactive label/value detail row without tap or edit affordances.
 
 Features still own callbacks, navigation, values, keys, domain copy, and intentionally specialised value presentation. Keep a feature-local composition only when its hierarchy or behavior does not match these public contracts.
+
+`showTioRemoveImageConfirmationBottomSheet` is the reusable image-removal confirmation. It owns the sheet shell, copy, close affordance and result semantics (`true` confirm, `false` cancel and close, `null` dismiss), while its Remove and Cancel actions are `TioButton.destructive` and `TioButton.secondary`. `TioRemoveImageSheetTokens` therefore holds shell, copy and icon geometry only; action height, radius, outline, padding and label typography belong to `TioButtonTokens`.
 
 `showTioInformationBottomSheet` is the reusable presenter for standard explanatory/informational content. It owns the modal shell, safe-area handling, close action, icon slot, title/body layout, and governed primary dismiss button. Features supply only the title, message, action label, and optional icon. Do not rebuild a bespoke information sheet when this presenter matches the intent.
 

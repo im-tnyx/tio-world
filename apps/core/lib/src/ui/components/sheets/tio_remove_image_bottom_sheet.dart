@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import '../../../theme/theme.dart';
+import '../buttons/buttons.dart';
 
-/// Displays the exact modal bottom sheet for confirming image removal.
+/// Displays the modal bottom sheet for confirming image removal.
 ///
 /// Features:
 /// - Top-right circular close button
 /// - "Remove Image" headline
 /// - "Are you sure you want to remove this image?" description
-/// - Full-width "Remove 🗑️" capsule button
-/// - Full-width "Cancel ✕" capsule button
+/// - Full-width destructive "Remove" action
+/// - Full-width secondary "Cancel" action
+///
+/// Both actions are [TioButton]s. The sheet owns its shell, copy and result
+/// semantics; the shared button family owns action geometry and colour, so
+/// the destructive role is selected here rather than rebuilt here.
 Future<bool?> showTioRemoveImageConfirmationBottomSheet(BuildContext context) {
   final colors = context.tioColors;
 
@@ -80,98 +85,27 @@ Future<bool?> showTioRemoveImageConfirmationBottomSheet(BuildContext context) {
               const SizedBox(
                 height: TioRemoveImageSheetTokens.subtitleToActionsGap,
               ),
-              InkWell(
-                onTap: () => Navigator.of(sheetContext).pop(true),
-                borderRadius: BorderRadius.circular(
-                  TioRemoveImageSheetTokens.actionRadius,
+              // Icon colour is deliberately not set: the shared button
+              // resolves it from the variant's foreground, so the destructive
+              // and secondary roles stay consistent across every theme.
+              TioButton.destructive(
+                label: 'Remove',
+                expand: true,
+                trailing: const Icon(
+                  Icons.delete_outline_rounded,
+                  size: TioRemoveImageSheetTokens.removeIconSize,
                 ),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: TioRemoveImageSheetTokens.actionVerticalPadding,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colors.surface,
-                    borderRadius: BorderRadius.circular(
-                      TioRemoveImageSheetTokens.actionRadius,
-                    ),
-                    border: Border.all(
-                      color: colors.outlineStrong.withAlpha(
-                        TioRemoveImageSheetTokens.actionOutlineAlpha,
-                      ),
-                      width: TioRemoveImageSheetTokens.actionOutlineWidth,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Remove',
-                        style: TextStyle(
-                          color: colors.danger,
-                          fontWeight: TioFontWeight.w700,
-                          fontSize:
-                              TioRemoveImageSheetTokens.actionLabelFontSize,
-                        ),
-                      ),
-                      const SizedBox(
-                        width: TioRemoveImageSheetTokens.actionIconGap,
-                      ),
-                      Icon(
-                        Icons.delete_outline_rounded,
-                        color: colors.danger,
-                        size: TioRemoveImageSheetTokens.removeIconSize,
-                      ),
-                    ],
-                  ),
-                ),
+                onPressed: () => Navigator.of(sheetContext).pop(true),
               ),
               const SizedBox(height: TioRemoveImageSheetTokens.actionGap),
-              InkWell(
-                onTap: () => Navigator.of(sheetContext).pop(false),
-                borderRadius: BorderRadius.circular(
-                  TioRemoveImageSheetTokens.actionRadius,
+              TioButton.secondary(
+                label: 'Cancel',
+                expand: true,
+                trailing: const Icon(
+                  Icons.close_rounded,
+                  size: TioRemoveImageSheetTokens.cancelIconSize,
                 ),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: TioRemoveImageSheetTokens.actionVerticalPadding,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colors.surface,
-                    borderRadius: BorderRadius.circular(
-                      TioRemoveImageSheetTokens.actionRadius,
-                    ),
-                    border: Border.all(
-                      color: colors.outlineStrong.withAlpha(
-                        TioRemoveImageSheetTokens.actionOutlineAlpha,
-                      ),
-                      width: TioRemoveImageSheetTokens.actionOutlineWidth,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Cancel',
-                        style: TextStyle(
-                          color: colors.textPrimary,
-                          fontWeight: TioFontWeight.w700,
-                          fontSize:
-                              TioRemoveImageSheetTokens.actionLabelFontSize,
-                        ),
-                      ),
-                      const SizedBox(
-                        width: TioRemoveImageSheetTokens.actionIconGap,
-                      ),
-                      Icon(
-                        Icons.close_rounded,
-                        color: colors.textPrimary,
-                        size: TioRemoveImageSheetTokens.cancelIconSize,
-                      ),
-                    ],
-                  ),
-                ),
+                onPressed: () => Navigator.of(sheetContext).pop(false),
               ),
             ],
           ),
