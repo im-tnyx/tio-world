@@ -300,12 +300,27 @@ ordinary duplicates stay allowed, matching the Dart scope.
 
 The four original tokens are enforced exactly and permanently by
 identity: `Breakfast -> meal_slot_1`, `Lunch -> meal_slot_2`,
-`Dinner -> meal_slot_3`, and `Snacks -> meal_slot_4`. Matching uses only
-`pg_catalog.translate(value, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-'abcdefghijklmnopqrstuvwxyz')`; it does not use `lower()`, `citext`, ICU
-equality or generic Unicode case folding. The rule applies to active and
-archived items. An owner rename releases nothing, and the replacement label
-does not become reserved.
+`Dinner -> meal_slot_3`, and `Snacks -> meal_slot_4`.
+
+Matching uses one finite explicit fold and nothing else:
+
+```text
+pg_catalog.translate(
+  value,
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZ' || pg_catalog.chr(304) || pg_catalog.chr(8490),
+  'abcdefghijklmnopqrstuvwxyzik'
+)
+```
+
+That is `A-Z` plus U+0130 and U+212A, which are the only two non-ASCII code
+points the pinned Dart runtime lowercases into these four words. The audit
+behind that pair is recorded under the review-correction section below, and it
+has to be re-run if the reserved words ever change. It is still not `lower()`,
+`citext`, ICU equality, a case-insensitive regex or generic Unicode case
+folding, and it is not general Unicode case parity.
+
+The rule applies to active and archived items. An owner rename releases
+nothing, and the replacement label does not become reserved.
 
 Expressed as a validator, not a repair layer: a write is refused when
 `display_name` is not already equal to its canonical form. Nothing trims,
