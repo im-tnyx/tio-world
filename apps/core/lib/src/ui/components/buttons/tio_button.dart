@@ -5,17 +5,19 @@ import '../../../theme/theme.dart';
 /// Semantic intent of a [TioButton], never a feature or a surface.
 ///
 /// [destructive] is the shared contract for an action that removes or
-/// permanently changes something. It is intentionally outlined and reuses the
-/// existing `danger` foreground/border role, which is the owner-approved
-/// canonical direction for this variant — not a description of how every
-/// destructive surface renders today. Existing destructive confirmations have
-/// not all converged on it: the delete-account dialog uses a tinted filled
-/// danger treatment, and `TioConfirmationCard` still routes confirm through
-/// [TioButtonVariant.primary]. Those migrations are separate #173 slices.
+/// permanently changes something. It renders on the same filled chassis as
+/// [primary], with a translucent `danger` tint behind `danger` content and no
+/// outline. This is the owner-approved canonical direction for the variant;
+/// the Delete Account dialog already renders that treatment locally, which is
+/// the evidence behind it, though it does not consume this variant yet.
 ///
-/// Being outlined is also why no `onDanger` foreground role is needed: the
-/// label and border carry `danger` against the surface beneath them. A filled
-/// danger container would require that role and its own contrast decision.
+/// Because the container is a translucent tint rather than an opaque danger
+/// surface, the label reads against the surface beneath it and no `onDanger`
+/// foreground role is needed.
+///
+/// Existing destructive confirmations have not all converged here:
+/// `TioConfirmationCard` still routes confirm through [primary]. Those
+/// migrations are separate #173 slices.
 enum TioButtonVariant { primary, secondary, ghost, destructive }
 
 class TioButton extends StatelessWidget {
@@ -138,15 +140,15 @@ class TioButton extends StatelessWidget {
     final widthWrapper =
         expand ? SizedBox(width: double.infinity, child: content) : content;
     final button = switch (variant) {
-      TioButtonVariant.primary => FilledButton(
+      // Destructive shares primary's filled chassis, so it inherits the same
+      // governed minimum height, pill radius, horizontal padding, typography
+      // and tap-target behaviour. Only the colour roles differ.
+      TioButtonVariant.primary || TioButtonVariant.destructive => FilledButton(
           onPressed: callback,
           style: style,
           child: widthWrapper,
         ),
-      // Destructive shares the outlined chassis so it inherits the same
-      // governed minimum height, pill radius and horizontal padding.
-      TioButtonVariant.secondary || TioButtonVariant.destructive =>
-        OutlinedButton(
+      TioButtonVariant.secondary => OutlinedButton(
           onPressed: callback,
           style: style,
           child: widthWrapper,
@@ -174,28 +176,35 @@ class TioButton extends StatelessWidget {
 ///
 /// Overrides colour roles only. Minimum height, pill radius, horizontal
 /// padding and label typography still resolve from the shared
-/// `outlinedButtonTheme`, which is what makes this the same button as every
-/// other one rather than a destructive look-alike.
+/// `filledButtonTheme`, which is what makes this the same button as every
+/// other one rather than a destructive look-alike. No `side` is set, so the
+/// variant carries no outline.
 ///
-/// [loading] keeps the danger colours while a destructive action is in
-/// flight. A loading button is disabled, so without this the shared disabled
-/// treatment would grey out the spinner and label mid-delete. A genuinely
-/// disabled destructive action still uses that shared treatment.
+/// The container is a translucent `danger` tint rather than an opaque danger
+/// surface, so `danger` content reads against the surface beneath it and no
+/// `onDanger` role is needed.
+///
+/// Returning null for a genuinely disabled state is deliberate: the framework
+/// resolves each property against the states first and only then falls back
+/// to the theme, so null here lets the shared `disabledBackgroundColor` /
+/// `disabledForegroundColor` apply instead of a second destructive-disabled
+/// token family.
+///
+/// [loading] holds the danger colours while a destructive action is in
+/// flight. A loading button is disabled, so without this carve-out that same
+/// fall-through would grey out the spinner and label mid-delete.
 ButtonStyle _destructiveStyle(TioColors colors, {required bool loading}) {
-  Color foreground(Set<WidgetState> states) =>
-      !loading && states.contains(WidgetState.disabled)
-          ? colors.textMuted
-          : colors.danger;
+  bool governedDisabled(Set<WidgetState> states) =>
+      !loading && states.contains(WidgetState.disabled);
 
   return ButtonStyle(
-    foregroundColor: WidgetStateProperty.resolveWith(foreground),
-    side: WidgetStateProperty.resolveWith(
-      (states) => BorderSide(
-        color: foreground(states),
-        width: states.contains(WidgetState.focused)
-            ? TioButtonTokens.focusedOutlineWidth
-            : TioButtonTokens.outlineWidth,
-      ),
+    backgroundColor: WidgetStateProperty.resolveWith(
+      (states) => governedDisabled(states)
+          ? null
+          : colors.danger.withAlpha(TioAlpha.alpha35),
+    ),
+    foregroundColor: WidgetStateProperty.resolveWith(
+      (states) => governedDisabled(states) ? null : colors.danger,
     ),
     overlayColor: _destructiveStateLayer(colors.danger),
   );
@@ -203,8 +212,8 @@ ButtonStyle _destructiveStyle(TioColors colors, {required bool loading}) {
 
 /// Pressed/focused/hovered wash for the destructive variant.
 ///
-/// The shared `outlinedButtonTheme` tints its state layer with `primary`,
-/// which would put a neutral wash under a danger action. Same governed
+/// The shared `filledButtonTheme` tints its state layer with `onPrimary`,
+/// which would put a light wash over a danger action. Same governed
 /// opacities, danger colour.
 WidgetStateProperty<Color?> _destructiveStateLayer(Color color) {
   return WidgetStateProperty.resolveWith((states) {

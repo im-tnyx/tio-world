@@ -398,13 +398,25 @@ ghost         the low-emphasis text action
 destructive   removes or permanently changes something
 ```
 
+`primary` and `destructive` render through `FilledButton`; `secondary` through `OutlinedButton`; `ghost` through `TextButton`.
+
 Feature and sheet code selects an intent. It does not rebuild button chrome locally, and there is no per-surface or per-feature button class.
 
-`TioButton.destructive` is an **outlined** action carrying the `danger` role, not a filled one. It shares the outlined chassis with `secondary`, so `TioButtonTokens` still owns its minimum height, pill radius, horizontal padding, content gap and label typography; only the colour roles differ. The danger colour reaches the foreground, the outline and the pressed/focused/hovered state layer, so the action stays destructive in every state — including while `loading`, where the shared disabled treatment would otherwise grey out a delete in flight. A destructive action that is genuinely `enabled: false` still uses the shared disabled treatment.
+`TioButton.destructive` is a **translucent danger-filled** action. It renders on the same filled chassis as `primary`, so `TioButtonTokens` still owns its minimum height, pill radius, horizontal padding, content gap, label typography and tap-target behaviour; only the colour roles differ:
 
-Outlined is the owner-approved canonical direction for this variant. It is not a description of how every destructive surface renders today: existing destructive confirmations have not all converged on it. The delete-account dialog uses a tinted filled `danger` treatment, and `TioConfirmationCard` still routes confirm through `TioButton.primary`. Bringing those onto this contract is separate #173 work.
+```text
+background   colors.danger.withAlpha(TioAlpha.alpha35)
+foreground   colors.danger
+outline      none
+```
 
-Being outlined is why no `onDanger` foreground role is needed, and this variant deliberately does not add one: the label and border carry `danger` against the surface beneath them. A filled danger container would need that token and its own contrast decision.
+`TioAlpha.alpha35` is the existing alpha-channel token (35 of 255), not a 35% opacity — it is the same treatment the Delete Account UI already renders locally, which is the evidence behind this direction. That dialog does not consume this variant yet.
+
+The danger colour also drives the pressed/focused/hovered state layer, at the same `TioButtonTokens` state opacities every other variant uses, so the action stays destructive in every interactive state — including while `loading`, where the shared disabled treatment would otherwise grey out a delete in flight. A destructive action that is genuinely `enabled: false` falls through to the shared disabled treatment instead; there is deliberately no second destructive-disabled token family.
+
+Because the container is a translucent tint rather than an opaque danger surface, `danger` content reads against the surface beneath it and no `onDanger` foreground role is needed. This variant deliberately does not add one.
+
+Existing destructive confirmations have not all converged here: `TioConfirmationCard` still routes confirm through `TioButton.primary`. Bringing those onto this contract is separate #173 work.
 
 The variant exposes no radius, height, fill, border-colour or label-size override. Reproducing a historical local button recipe through override parameters is how the drift this family exists to remove becomes representable again.
 

@@ -101,17 +101,25 @@ void main() {
       expect(cancel.expand, isTrue);
     });
 
-    testWidgets('no hand-built action surface remains', (tester) async {
+    testWidgets('each action renders through its variant chassis',
+        (tester) async {
       await _open(tester);
 
-      // The old actions were InkWell + Container + Row. The only InkWells
-      // left inside the sheet belong to the buttons themselves.
+      // The old actions were hand-built from InkWell + Container + Row.
+      // Destructive rides primary's filled chassis; secondary stays outlined.
+      expect(
+        find.descendant(
+          of: _action('Remove'),
+          matching: find.byType(FilledButton),
+        ),
+        findsOneWidget,
+      );
       expect(
         find.descendant(
           of: _action('Remove'),
           matching: find.byType(OutlinedButton),
         ),
-        findsOneWidget,
+        findsNothing,
       );
       expect(
         find.descendant(
