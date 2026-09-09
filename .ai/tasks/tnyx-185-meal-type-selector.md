@@ -59,12 +59,43 @@ Quick Add is the first consumer, not the owner.
 `MealCategoryOption` carries an id and a label and nothing else, so no internal
 identity can reach the screen even by accident.
 
-## 4. Selector surface
+## 4. Selector surface — a floating card, not a sheet
 
-`showTioEditorSheet` holding one `TioSelectableCard` per option — both already
-in the repo, both already used by Meal Categories. Nothing new is invented.
-`TioSelectableCard` carries selected fill, border, disabled state and
-selection semantics on its own.
+Owner-corrected on 2026-09-09. The first implementation used
+`showTioEditorSheet`; that is not the direction.
+
+```text
+        ┌──────────────────────┐
+        │ Breakfast            │
+        │ Lunch             ✓  │
+        │ Pre Workout          │
+        └──────────────────────┘
+        ─────────────────────────
+        Meal type      Date / time     the footer, unmoved
+        [      Log Meal        ]
+```
+
+The card floats over the editor body above the control. The footer keeps its
+exact position and height, and the editor stays visible behind — asserted, not
+assumed: opening the card leaves all three footer control rects identical.
+
+`TioAnchoredPopup` is a new Core primitive holding the placement, the overlay
+and the dismissal that any anchored card needs. It was extracted from the
+geometry `TioDateTimePickerPopup` already proved, but that widget is left
+untouched on owner instruction, so the two currently share a shape rather than
+code. Retrofitting the date card onto the shell is a separate, opt-in change.
+
+Sized to its content, capped well below the date card's width: this is a short
+list of short names beside one control, not a band across the footer.
+`IntrinsicWidth` gives every row the width of the longest label, so the list
+does not read as ragged. Its own scroll when eight categories at a large text
+scale need more room than the anchor left.
+
+Options are `TioSelectableCard`, so the chosen one carries the component's fill
+and outline, plus a tick for a reader who cannot rely on that difference alone.
+
+No Done, Save or Apply: choosing is the whole interaction. A tap selects and
+closes; a tap outside closes and changes nothing.
 
 ## 5. Initial selection
 
@@ -95,3 +126,15 @@ MealLog persistence none
 Supabase            no migration, no schema, no hosted mutation
 TNYX-67 source      untouched
 ```
+
+## 8. One card at a time
+
+The two cards can never both be open. While either is up, its dismiss layer
+covers the screen, so the other control cannot be reached until that tap has
+closed the first one. Asserted in `the two cards can never be open at once`.
+
+That is the existing date-card behaviour, kept deliberately: switching from one
+to the other costs a tap to close and a tap to open. Making it a single tap
+means letting the dismiss layer pass a tap through to the sibling control,
+which is a change to `TioDateTimePickerPopup` — the widget the owner asked to
+leave alone. Raised rather than decided.

@@ -1627,15 +1627,9 @@ void main() {
   });
 
   group('reusable footer, enabled path', () {
-    // Corrected for the activated selector: the control is no longer switched
-    // on by a bare tap callback. It is switched on by having something to
-    // offer — options plus a handler for the chosen id.
     Future<void> pumpFooter(
       WidgetTester tester, {
-      required ValueChanged<String>? onSelected,
-      List<MealCategoryOption> options = const [
-        MealCategoryOption(id: 'meal_slot_1', label: 'Breakfast'),
-      ],
+      required VoidCallback? onCategory,
     }) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -1649,8 +1643,7 @@ void main() {
                 mealCategoryLabel: 'Meal type',
                 dateTimeLabel: 'Aug 20 · Time',
                 primaryLabel: 'Log Meal',
-                mealCategoryOptions: options,
-                onMealCategorySelected: onSelected,
+                onMealCategoryTap: onCategory,
               ),
             ),
           ),
@@ -1663,8 +1656,8 @@ void main() {
     // the Meal Editor to adopt, and that path has to be pressable when it is.
     testWidgets('an enabled control is a real target and reports its tap',
         (tester) async {
-      final chosen = <String>[];
-      await pumpFooter(tester, onSelected: chosen.add);
+      var taps = 0;
+      await pumpFooter(tester, onCategory: () => taps++);
 
       final control = tester.getRect(find.byKey(_footerCategory));
       expect(
@@ -1685,14 +1678,12 @@ void main() {
 
       await tester.tap(find.byKey(_footerCategory));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('meal-category-option-meal_slot_1')));
-      await tester.pumpAndSettle();
-      expect(chosen, ['meal_slot_1'], reason: 'the id, never the label');
+      expect(taps, 1);
     });
 
     testWidgets('a disabled control stays compact and unpressable',
         (tester) async {
-      await pumpFooter(tester, onSelected: null);
+      await pumpFooter(tester, onCategory: null);
 
       // No 48dp floor here: that rule is about things you can press.
       expect(

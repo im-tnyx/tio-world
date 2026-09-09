@@ -86,9 +86,10 @@ const _customB = 'meal_slot_bbbbbbbb-bbbb-4bbb-8bbb-000000000000';
 const _footerCategory = ValueKey('meal-log-footer-category');
 const _footerDateTime = ValueKey('meal-log-footer-date-time');
 const _footerPrimary = ValueKey('meal-log-footer-primary');
-const _selectorOptions = ValueKey('meal-category-selector-options');
-const _selectorFailure = ValueKey('meal-category-selector-failure');
-const _selectorRetry = ValueKey('meal-category-selector-retry');
+const _popup = ValueKey('meal-category-picker-popup');
+const _popupOptions = ValueKey('meal-category-picker-options');
+const _popupFailure = ValueKey('meal-category-picker-failure');
+const _popupRetry = ValueKey('meal-category-picker-retry');
 
 ValueKey<String> _option(String id) => ValueKey('meal-category-option-$id');
 
@@ -312,9 +313,11 @@ void main() {
       expect(find.text('Breakfast'), findsOne);
 
       await _openSelector(tester);
-      // Dismiss without choosing.
-      await tester.tapAt(const Offset(10, 10));
+      expect(find.byKey(_popup), findsOne);
+      // Outside the card, on the dismiss layer.
+      await tester.tapAt(const Offset(5, 5));
       await tester.pumpAndSettle();
+      expect(find.byKey(_popup), findsNothing);
 
       expect(
         find.text('Breakfast'),
@@ -434,7 +437,7 @@ void main() {
       await tester.tap(find.byKey(_footerCategory));
       await tester.pumpAndSettle();
       expect(
-        find.byKey(_selectorOptions),
+        find.byKey(_popup),
         findsNothing,
         reason: 'nothing to offer yet, so nothing opens',
       );
@@ -442,7 +445,8 @@ void main() {
       repo.readGate!.complete();
       await tester.pumpAndSettle();
       await _openSelector(tester);
-      expect(find.byKey(_selectorOptions), findsOne);
+      expect(find.byKey(_popupOptions), findsOne);
+      expect(find.byKey(_popup), findsOne);
     });
 
     testWidgets('a failed read never fabricates the canonical four',
@@ -451,7 +455,7 @@ void main() {
       await _pumpQuickAdd(tester, repository: repo);
 
       await _openSelector(tester);
-      expect(find.byKey(_selectorFailure), findsOne);
+      expect(find.byKey(_popupFailure), findsOne);
       for (final name in const ['Breakfast', 'Lunch', 'Dinner', 'Snacks']) {
         expect(
           find.text(name),
@@ -468,15 +472,14 @@ void main() {
       final readsBefore = repo.reads;
 
       await _openSelector(tester);
-      await tester.tap(find.byKey(_selectorRetry));
+      await tester.tap(find.byKey(_popupRetry));
       await tester.pumpAndSettle();
 
       expect(repo.reads, greaterThan(readsBefore));
-      await _openSelector(tester);
       expect(
-        find.byKey(_selectorOptions),
+        find.byKey(_popupOptions),
         findsOne,
-        reason: 'the retry succeeded, so the options are there now',
+        reason: 'the retry succeeded, so the card now shows the options',
       );
     });
   });
@@ -523,7 +526,7 @@ void main() {
         await _pumpQuickAdd(tester, mode: mode);
         await _openSelector(tester);
 
-        expect(find.byKey(_selectorOptions), findsOne);
+        expect(find.byKey(_popupOptions), findsOne);
         expect(tester.takeException(), isNull);
       });
     }
@@ -551,6 +554,175 @@ void main() {
         find.byKey(_footerDateTime),
         findsOne,
         reason: 'and the date is not pushed off the row',
+      );
+    });
+  });
+
+  group('the card floats; the footer does not move', () {
+    testWidgets('the popup opens above the Meal Type control',
+        (tester) async {
+      await _pumpQuickAdd(tester);
+      final anchor = tester.getRect(find.byKey(_footerCategory));
+      await _openSelector(tester);
+
+      final card = tester.getRect(find.byKey(_popup));
+      expect(
+        card.bottom,
+        lessThanOrEqualTo(anchor.top),
+        reason: 'above the control, not between it and the CTA',
+      );
+      // Anchored to the Meal Type control rather than centred on the screen:
+      // its own centre stays near the control it belongs to.
+      expect(
+        (card.center.dx - anchor.center.dx).abs(),
+        lessThan(tester.getRect(find.byKey(_footerPrimary)).width),
+      );
+    });
+
+    testWidgets('the footer keeps its exact position and height',
+        (tester) async {
+      await _pumpQuickAdd(tester);
+      final categoryBefore = tester.getRect(find.byKey(_footerCategory));
+      final dateBefore = tester.getRect(find.byKey(_footerDateTime));
+      final primaryBefore = tester.getRect(find.byKey(_footerPrimary));
+
+      await _openSelector(tester);
+
+      expect(tester.getRect(find.byKey(_footerCategory)), categoryBefore);
+      expect(tester.getRect(find.byKey(_footerDateTime)), dateBefore);
+      expect(
+        tester.getRect(find.byKey(_footerPrimary)),
+        primaryBefore,
+        reason: 'the card is an overlay, so nothing below it is pushed',
+      );
+    });
+
+    testWidgets('the editor underneath stays visible', (tester) async {
+      await _pumpQuickAdd(tester);
+      await _openSelector(tester);
+
+      expect(find.text('Quick Add'), findsOne);
+      expect(find.byKey(const ValueKey('quick-add-calories')), findsOne);
+    });
+
+    testWidgets('the card does not cover the date and time control',
+        (tester) async {
+      await _pumpQuickAdd(tester);
+      await _openSelector(tester);
+
+      final card = tester.getRect(find.byKey(_popup));
+      final dateTime = tester.getRect(find.byKey(_footerDateTime));
+      expect(card.overlaps(dateTime), isFalse);
+    });
+
+    testWidgets('tapping the control again closes the card', (tester) async {
+      await _pumpQuickAdd(tester);
+      await _openSelector(tester);
+      expect(find.byKey(_popup), findsOne);
+
+      await tester.tap(find.byKey(_footerCategory));
+      await tester.pumpAndSettle();
+      expect(find.byKey(_popup), findsNothing);
+    });
+
+    testWidgets('choosing closes the card without any Done button',
+        (tester) async {
+      await _pumpQuickAdd(tester);
+      await _openSelector(tester);
+
+      for (final label in const ['Done', 'Save', 'Apply', 'OK']) {
+        expect(find.text(label), findsNothing, reason: '$label is not needed');
+      }
+
+      await tester.tap(find.byKey(_option('meal_slot_2')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(_popup), findsNothing);
+      expect(find.text('Lunch'), findsOne);
+    });
+
+    testWidgets('the two cards can never be open at once', (tester) async {
+      await _pumpQuickAdd(tester);
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('tio-date-time-picker-popup')), findsOne);
+
+      // The open card's dismiss layer covers the screen, so this tap closes it
+      // rather than reaching the Meal Type control behind. That is the
+      // existing date-card behaviour, and it is what stops the two stacking.
+      await tester.tap(find.byKey(_footerCategory));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('tio-date-time-picker-popup')),
+        findsNothing,
+      );
+      expect(find.byKey(_popup), findsNothing);
+
+      // Now the control is reachable.
+      await tester.tap(find.byKey(_footerCategory));
+      await tester.pumpAndSettle();
+      expect(find.byKey(_popup), findsOne);
+      expect(
+        find.byKey(const ValueKey('tio-date-time-picker-popup')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('eight options scroll inside the card rather than clipping',
+        (tester) async {
+      await _pumpQuickAdd(
+        tester,
+        size: const Size(320, 640),
+        textScale: 1.6,
+        stored: _config(
+          customs: [
+            (id: _customA, name: 'Pre Workout', order: 5),
+            (id: _customB, name: 'Post Workout', order: 15),
+            (
+              id: 'meal_slot_cccccccc-cccc-4ccc-8ccc-000000000000',
+              name: 'Late Meal',
+              order: 45
+            ),
+            (
+              id: 'meal_slot_dddddddd-dddd-4ddd-8ddd-000000000000',
+              name: 'Second Breakfast',
+              order: 55
+            ),
+          ],
+        ),
+      );
+      await _openSelector(tester);
+
+      expect(tester.takeException(), isNull, reason: 'no overflow');
+      final card = tester.getRect(find.byKey(_popup));
+      expect(card.top, greaterThanOrEqualTo(0));
+
+      final last =
+          find.byKey(_option('meal_slot_dddddddd-dddd-4ddd-8ddd-000000000000'));
+      await tester.ensureVisible(last);
+      await tester.pumpAndSettle();
+      await tester.tap(last);
+      await tester.pumpAndSettle();
+      expect(find.text('Second Breakfast'), findsOne);
+    });
+
+    testWidgets('the chosen option carries a check as well as the fill',
+        (tester) async {
+      await _pumpQuickAdd(tester);
+      await _openSelector(tester);
+      await tester.tap(find.byKey(_option('meal_slot_3')));
+      await tester.pumpAndSettle();
+      await _openSelector(tester);
+
+      expect(
+        find.byKey(const ValueKey('meal-category-check-meal_slot_3')),
+        findsOne,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget.key.toString().contains('meal-category-check-'),
+        ),
+        findsOne,
+        reason: 'exactly one option is marked',
       );
     });
   });

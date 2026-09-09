@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tio_core/core.dart';
 
-import 'meal_category_selector_sheet.dart';
-
 /// The pinned action region a meal-logging editor commits from.
 ///
 /// ```text
@@ -35,53 +33,21 @@ class MealLogActionFooter extends StatelessWidget {
     required this.dateTimeLabel,
     required this.primaryLabel,
     super.key,
-    this.mealCategoryOptions = const [],
-    this.selectedMealCategoryId,
-    this.onMealCategorySelected,
-    this.mealCategoryLoadError,
-    this.onMealCategoryRetry,
     this.mealCategorySemanticLabel,
     this.dateTimeSemanticLabel,
     this.primarySemanticLabel,
     this.note,
+    this.onMealCategoryTap,
     this.onDateTimeTap,
     this.onPrimaryPressed,
+    this.mealCategoryAnchorKey,
     this.dateTimeAnchorKey,
   });
 
-  /// What the category control reads when nothing is selected.
-  ///
-  /// Once [selectedMealCategoryId] names one of [mealCategoryOptions], that
-  /// option's label is shown instead. Callers pass an invitation here — `Select
-  /// meal type` — not a guess at a category.
+  /// What the category control reads: the selected category's name, or an
+  /// invitation to choose one. The caller resolves it, because the caller owns
+  /// the selection.
   final String mealCategoryLabel;
-
-  /// The categories this log may be filed under, already resolved and ordered
-  /// by whoever owns them.
-  ///
-  /// The footer never reads a repository and never learns what makes a
-  /// category selectable. It is handed options and hands back an id.
-  final List<MealCategoryOption> mealCategoryOptions;
-
-  /// The chosen category's durable id, or null while none is chosen.
-  ///
-  /// Identity rather than text, so renaming a category moves its label without
-  /// moving the selection, and a selection made in one session still means the
-  /// same category in the next.
-  final String? selectedMealCategoryId;
-
-  /// Reports the id the reader chose. Null leaves the control inert, which is
-  /// how every other control here is switched off.
-  final ValueChanged<String>? onMealCategorySelected;
-
-  /// Shown instead of the options when the categories could not be loaded.
-  ///
-  /// The control stays reachable in that state on purpose: the sheet is where
-  /// the reason and the retry live, and a dead control would state neither.
-  final String? mealCategoryLoadError;
-
-  /// Reloads the categories from the failure state.
-  final Future<void> Function()? onMealCategoryRetry;
 
   /// What the date/time control reads, beside its calendar glyph.
   final String dateTimeLabel;
@@ -97,57 +63,17 @@ class MealLogActionFooter extends StatelessWidget {
   /// unavailable; anything longer belongs in the body, not in a pinned region.
   final String? note;
 
+  final VoidCallback? onMealCategoryTap;
   final VoidCallback? onDateTimeTap;
   final VoidCallback? onPrimaryPressed;
 
+  /// Optional presentation anchor for a caller-owned Meal Type popup, exactly
+  /// as [dateTimeAnchorKey] is for the date one. The footer stays a fixed
+  /// strip: the popup floats over the body above it and never grows this row.
+  final GlobalKey? mealCategoryAnchorKey;
+
   /// Optional presentation anchor for a caller-owned DateTime popup.
   final GlobalKey? dateTimeAnchorKey;
-
-  /// The selected option, or null when the selection names nothing available.
-  ///
-  /// A selected id with no matching option is not silently swapped for another
-  /// category: the control falls back to its unselected wording, and the
-  /// caller's stored id is left exactly as it was.
-  MealCategoryOption? get _selectedOption {
-    final id = selectedMealCategoryId;
-    if (id == null) return null;
-    for (final option in mealCategoryOptions) {
-      if (option.id == id) return option;
-    }
-    return null;
-  }
-
-  String get _categoryText => _selectedOption?.label ?? mealCategoryLabel;
-
-  /// Interactive once there is something to say — options to choose from, or a
-  /// failure to explain. Inert while the categories are still loading, which
-  /// is the only state with neither.
-  VoidCallback? _categoryTapHandler(BuildContext context) {
-    if (mealCategoryLoadError != null) {
-      return () => showMealCategorySelectorSheet(
-            context: context,
-            options: const [],
-            selectedId: null,
-            status: MealCategorySelectorStatus.failed,
-            failureMessage: mealCategoryLoadError,
-            onRetry: onMealCategoryRetry,
-          );
-    }
-
-    final onSelected = onMealCategorySelected;
-    if (onSelected == null || mealCategoryOptions.isEmpty) return null;
-
-    return () async {
-      final chosen = await showMealCategorySelectorSheet(
-        context: context,
-        options: mealCategoryOptions,
-        selectedId: selectedMealCategoryId,
-      );
-      // Dismissing without choosing leaves the selection alone; it is not a
-      // request to clear it.
-      if (chosen != null) onSelected(chosen);
-    };
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -171,16 +97,18 @@ class MealLogActionFooter extends StatelessWidget {
             // shortening, and the reader loses the date rather than a few
             // characters of a name they chose.
             Flexible(
-              child: _FooterAction(
+              child: KeyedSubtree(
+                key: mealCategoryAnchorKey,
+                child: _FooterAction(
                 controlKey: const ValueKey('meal-log-footer-category'),
-                semanticLabel: mealCategorySemanticLabel ?? _categoryText,
-                onTap: _categoryTapHandler(context),
+                semanticLabel: mealCategorySemanticLabel ?? mealCategoryLabel,
+                onTap: onMealCategoryTap,
                 builder: (context, textStyle, iconColor) => Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Flexible(
                       child: Text(
-                        _categoryText,
+                        mealCategoryLabel,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: textStyle,
@@ -195,6 +123,7 @@ class MealLogActionFooter extends StatelessWidget {
                       color: iconColor,
                     ),
                   ],
+                ),
                 ),
               ),
             ),

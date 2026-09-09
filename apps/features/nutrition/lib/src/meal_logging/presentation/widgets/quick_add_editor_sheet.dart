@@ -6,7 +6,7 @@ import 'package:tio_core/core.dart';
 
 import '../../../domain/repositories/meal_categories_repository.dart';
 import '../../../meal_diary/presentation/controllers/meal_categories_controller.dart';
-import 'meal_category_selector_sheet.dart';
+import 'meal_category_picker_popup.dart';
 import 'meal_log_action_footer.dart';
 
 /// Opens a brand-new Quick Add manual nutrition editor.
@@ -101,6 +101,7 @@ class QuickAddEditorSheet extends StatefulWidget {
 
 class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
     with WidgetsBindingObserver {
+  final _mealCategoryAnchorKey = GlobalKey();
   final _dateTimeAnchorKey = GlobalKey();
   final _mealName = TextEditingController();
   final _calories = TextEditingController();
@@ -133,6 +134,11 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
   /// Never the label: renaming a category must move what the footer reads
   /// without moving what the draft points at.
   String? _selectedMealCategoryId;
+
+  /// Whether the Meal Type card is showing. Owned here, exactly as the
+  /// date/time popup's flag is: the footer stays a fixed strip and the card
+  /// floats over the body above it.
+  var _isMealTypePickerOpen = false;
   var _isDateTimePickerOpen = false;
 
   @override
@@ -187,6 +193,44 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
       for (final item in controller.state.activeItems)
         MealCategoryOption(id: item.id, label: item.displayName),
     ];
+  }
+
+  /// Openable once there is something to show — options, or a failure to
+  /// explain. Inert only while the categories are still loading.
+  bool get _canOpenMealTypePicker =>
+      _categories != null &&
+      _categories!.state.status != MealCategoriesStatus.loading;
+
+  void _toggleMealTypePicker() {
+    // Nothing closes the date card here: while it is open its dismiss layer
+    // covers the screen, so this control cannot be reached until that tap has
+    // closed it. The two cards cannot stack.
+    setState(() => _isMealTypePickerOpen = !_isMealTypePickerOpen);
+  }
+
+  void _closeMealTypePicker() {
+    if (!_isMealTypePickerOpen) return;
+    setState(() => _isMealTypePickerOpen = false);
+  }
+
+  /// Choosing is the whole interaction: it selects and closes.
+  void _onMealCategorySelected(String id) {
+    setState(() {
+      _selectedMealCategoryId = id;
+      _isMealTypePickerOpen = false;
+    });
+  }
+
+  /// The chosen category's current name, or null when the selection names
+  /// nothing available. A stale id is never swapped for another category — the
+  /// control falls back to its invitation and the stored id is left alone.
+  String? get _selectedCategoryLabel {
+    final id = _selectedMealCategoryId;
+    if (id == null) return null;
+    for (final option in _categoryOptions) {
+      if (option.id == id) return option.label;
+    }
+    return null;
   }
 
   @override
@@ -286,7 +330,16 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
         '${_draftDateTime.minute.toString().padLeft(2, '0')}';
     final dateTimeLabel = '$selectedDateLabel, $selectedTimeLabel';
 
-    return TioDateTimePickerPopup(
+    return MealCategoryPickerPopup(
+      anchorKey: _mealCategoryAnchorKey,
+      isOpen: _isMealTypePickerOpen,
+      onDismiss: _closeMealTypePicker,
+      options: _categoryOptions,
+      selectedId: _selectedMealCategoryId,
+      onSelected: _onMealCategorySelected,
+      loadError: _categories?.state.loadError,
+      onRetry: _categories?.retryLoad,
+      child: TioDateTimePickerPopup(
       anchorKey: _dateTimeAnchorKey,
       isOpen: _isDateTimePickerOpen,
       onDismiss: _closeDateTimePicker,
@@ -358,15 +411,10 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
           // An invitation, not a guess. TNYX-67 owns what a meal category is,
           // so this screen neither names one nor infers one from the clock —
           // the reader chooses, and until they do nothing is selected.
-          mealCategoryLabel: 'Select meal type',
+          mealCategoryLabel: _selectedCategoryLabel ?? 'Select meal type',
           mealCategorySemanticLabel: _categorySemanticLabel,
-          mealCategoryOptions: _categoryOptions,
-          selectedMealCategoryId: _selectedMealCategoryId,
-          onMealCategorySelected: _categoriesReady
-              ? (id) => setState(() => _selectedMealCategoryId = id)
-              : null,
-          mealCategoryLoadError: _categories?.state.loadError,
-          onMealCategoryRetry: _categories?.retryLoad,
+          mealCategoryAnchorKey: _mealCategoryAnchorKey,
+          onMealCategoryTap: _canOpenMealTypePicker ? _toggleMealTypePicker : null,
           dateTimeLabel: dateTimeLabel,
           dateTimeSemanticLabel: 'Date and time. $dateTimeLabel. '
               'Picker ${_isDateTimePickerOpen ? 'expanded' : 'collapsed'}.',
@@ -376,13 +424,12 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
           primarySemanticLabel: 'Log Meal. Not available yet.',
         ),
       ),
+      ),
     );
   }
 }
 
 extension _QuickAddCategories on _QuickAddEditorSheetState {
-  bool get _categoriesReady =>
-      _categories?.state.status == MealCategoriesStatus.ready;
 
   /// Spoken as a label and a value, never as an identity.
   String get _categorySemanticLabel {
@@ -394,13 +441,7 @@ extension _QuickAddCategories on _QuickAddEditorSheetState {
       case MealCategoriesStatus.loadFailed:
         return 'Meal type. Could not load meal categories.';
       case MealCategoriesStatus.ready:
-        final selectedId = _selectedMealCategoryId;
-        final selected = selectedId == null
-            ? null
-            : controller.state.activeItems
-                .where((item) => item.id == selectedId)
-                .map((item) => item.displayName)
-                .firstOrNull;
+        final selected = _selectedCategoryLabel;
         return selected == null
             ? 'Meal type. None selected.'
             : 'Meal type. $selected.';
