@@ -1,29 +1,37 @@
 # TNYX-186 Meal Category Display-Name Hardening
 
-**Status:** In progress / REVIEW - Slice A merged; Slice B published as PR #235; Slice C published for review
-**Canonical GitHub issue:** #233 (open)
-**Linear:** TNYX-186 (In Progress)
+**Status:** In progress / REVIEW - Slices A and C merged; Slice B PR #235 is being reconciled onto the merged Slice C base
+**Canonical GitHub issue:** #233 (open: Slice B is not merged or applied)
+**Linear:** TNYX-186 (In Review; verified 2026-09-09)
 **Slice A pull request:** #234 (merged into `main@633b210f32cfcf86855aa6524c0ec2c1f26c3de0`)
 **Slice B pull request:** #235 (open, database guard, not merged, not applied hosted)
-**Slice C branch:** `tnyx/tnyx-186-reserved-canonical-meal-category-names`, based on `main@633b210f32cfcf86855aa6524c0ec2c1f26c3de0`
+**Slice C pull request:** #236 (merged into `main@1c92a1261c52e22824907bcc307a350d0c03f7e5`)
+**Slice B branch:** `tnyx/tnyx-186-meal-category-name-db-guard`, rebasing onto `main@1c92a1261c52e22824907bcc307a350d0c03f7e5`
 
 ## Current Position
 
-Slice A is merged: the Dart domain is the single owner of what a category name
-may be, after three review corrections.
+Slice A is merged. The Dart domain owns the canonical display-name contract,
+including the exact 24 extended-grapheme-cluster limit and the ordinary
+case-normalized active-duplicate rule.
 
-Slice B is published as PR #235 on its own branch and is not merged. It guards
-the database-side shape and content subset, with the 24-grapheme limit and
-case-only duplicate names left application-authoritative and named as gaps.
+Slice C is merged in PR #236. The four original canonical names are permanently
+reserved by identity: `Breakfast -> meal_slot_1`, `Lunch -> meal_slot_2`,
+`Dinner -> meal_slot_3`, and `Snacks -> meal_slot_4`. Renaming an owner does not
+release its token, and a temporary replacement label does not become reserved.
 
-Slice C is this branch: the four original canonical names are permanently
-reserved by identity. It is app and domain only, it does not touch PR #235, and
-PR #235 needs reconciliation only after Slice C merges.
+Slice B is published as PR #235 and is not merged. Its existing pending
+migration version remains `20260909131518`; it enforces the exact database-side
+shape/content subset while the 24-EGC and ordinary Unicode case-only duplicate
+gaps remain application-authoritative. This reconciliation adds the exact
+ASCII reserved-token ownership rule to that same pending migration.
 
-No hosted Supabase mutation has occurred at any point in this task.
+No hosted Supabase mutation has occurred at any point in this task. Hosted
+inspection and preflight remain read-only; applying the migration requires a
+separate explicit owner authorization.
 
-Next action: review of Slice C, then the owner's merge decision, then a
-separate reconciliation pass on PR #235.
+Next action: finish the Slice B reserved-ownership reconciliation, replay all
+migrations and SQL matrices locally, update the same PR #235, and stop for final
+review without merging or applying hosted.
 
 ## Owner Approval and Scope Boundary
 
@@ -190,17 +198,119 @@ flutter test test/meal_diary/meal_categories_settings_test.dart
 
 Run any repository/data tests affected by the dependency or codec changes plus `git diff --check`.
 
-## Slice B — Deferred Design Gate
+## Slice B - Audited and Drafted, Not Applied
 
-Do not implement/apply hosted DB hardening in Slice A.
+Verdict: **DESIGN READY**, with an enforcement boundary stated rather than hidden.
 
-After Slice A review, audit the smallest exact DB mechanism for direct-write enforcement. Preserve the existing validator function name, CHECK constraint, SECURITY INVOKER posture, grants, retained-ID trigger, retained cap, min-active and canonical-order rules.
+### Hosted audit, read-only
 
-A future migration must preflight stored rows and reject incompatible state; no repair/truncation/grandfathering.
+Project `tio-world` / `oykupyiitspujzpwwvuj`, PostgreSQL 17.6.1.155. Every
+statement below was a SELECT. No schema, data, config, function, grant or
+migration-ledger change was made.
 
-If Postgres cannot enforce exact extended grapheme clusters without disproportionate extension/runtime complexity, report that explicitly. Do not silently replace the owner contract with a code-point limit.
+- Migration ledger ends at `20260908120000 cap_retained_meal_categories`, identical to the repository. No Slice A database work exists, which is correct: Slice A was app-only.
+- `private.is_valid_meal_categories_config_v1(jsonb)` is immutable, strict, `security invoker`, `search_path=''`, executable by `authenticated` and `service_role` only. It mentions `display_name` for its type check alone: no `char_length` and no U+200B rule.
+- CHECK constraint `user_nutrition_profiles_meal_categories_config_valid` still calls that function by name.
+- Trigger `trg_user_nutrition_profiles_protect_meal_category_retained_ids` is present and enabled.
+- All TNYX-67 rules are intact.
 
-Hosted apply always requires a separate explicit owner authorization.
+### Data preflight
+
+Counts only; no name or user identifier was read into the report.
+
+```text
+non-null configs                         1
+display names total                      5
+active / archived                        5 / 0
+forbidden-character violations           0
+outer-whitespace violations              0
+repeated-whitespace violations           0
+non-canonical whitespace violations      0
+blank or invisible names                 0
+rows failing the current validator       0
+max code-point length                    9   (diagnostic only, NOT graphemes)
+names over 24 code points                0   (diagnostic only, NOT graphemes)
+```
+
+### Exact grapheme enforcement: not available
+
+Option A was audited and rejected on evidence, not assumption.
+
+- `char_length` counts code points. Measured on this database: one family emoji is 7, a regional-indicator flag is 2, `e` plus a combining acute is 2. A 24-grapheme name of family emoji is 168 code points.
+- A `char_length(display_name) <= 24` guard would therefore refuse names the merged app accepts. That is worse than no guard, and it is exactly the false guard the owner contract forbids.
+- Installed procedural languages are `plpgsql` and `sql` only. No PL/Perl, whose `\X` is the usual grapheme escape, and no PL/Python.
+- Installed extensions are `pgcrypto`, `pg_stat_statements`, `supabase_vault`, `uuid-ossp` and `plpgsql`. None exposes grapheme segmentation, and nothing was installed.
+- PostgreSQL's own regex has no grapheme-cluster construct, and ICU collations do not expose a break iterator to SQL.
+
+The exact 24-EGC limit therefore stays owned by
+`MealCategoryDisplayNamePolicy`. A direct API write can still store an
+over-long name. That hole is named in the migration header, the column comment
+and the test file rather than papered over.
+
+### PostgreSQL and Dart disagree on whitespace
+
+Measured per code point, which is why the drafted SQL names its character sets
+instead of writing `\s`:
+
+- U+0085 NEL matches PostgreSQL's `\s` and not Dart's.
+- U+FEFF matches Dart's `\s` and not PostgreSQL's.
+- `btrim` with no second argument removes only ASCII space, unlike `String.trim()`.
+- U+200B matches neither, which is why both sides name it explicitly.
+
+### The boundary chosen: Option B
+
+The database enforces the non-length half of the contract, which it can decide
+exactly, and the application keeps the length rule.
+
+Forbidden: C0 controls, DEL, C1 controls, U+2028, U+2029, U+200B.
+Allowed and pinned by tests: U+200C ZWNJ, U+200D ZWJ, U+2060 WORD JOINER.
+Canonical shape: non-blank, no outer collapsible whitespace, no repeated
+collapsible whitespace, and every space an ordinary U+0020.
+
+Expressed as a validator, not a repair layer: a write is refused when
+`display_name` is not already equal to its canonical form. Nothing trims,
+collapses, truncates or rewrites what the caller sent.
+
+### Equivalence evidence
+
+The drafted rule was run against the merged Dart contract on the hosted
+database, read-only, using the exact escaped patterns that appear in the
+migration file: 22 vectors, then 18 further inputs covering the remaining test
+cases. 40 of 40 agreed, including all three allowed format characters and the
+24-family-emoji name that a length guard would have wrongly refused.
+
+### Local artefacts, not applied hosted
+
+- `supabase/migrations/20260909131518_enforce_meal_category_display_name_shape.sql`
+- `supabase/tests/database/tnyx_186_meal_category_display_name.test.sql`
+- `.github/workflows/supabase-db-ci.yml` (one step, so the matrix actually runs)
+
+The migration file was created with `supabase migration new
+enforce_meal_category_display_name_shape` on CLI 2.116.0; its version is the
+one the CLI generated and was not edited by hand. An earlier hand-assembled
+draft at `20260909130000_...` was superseded and deleted, leaving exactly one
+Slice B migration.
+
+The database tests in this repository are plain psql scripts driven by
+`.github/workflows/supabase-db-ci.yml`, not pgTAP, so the new matrix is added
+as a psql step beside the existing TNYX-67 one rather than through
+`supabase test db`. Without that step the file would never run.
+
+The migration replaces the existing validator rather than adding a parallel
+one, preserves every TNYX-67 rule (the function body is additive: 45 lines
+added, none removed), preserves immutable / strict / security invoker /
+`search_path=''` and the existing grants, leaves the constraint and the
+retained-ID trigger untouched, and preflights stored rows so it fails rather
+than repairing, truncating or grandfathering anything.
+
+Neither file has been executed anywhere. The local Supabase stack needs Docker,
+which is not running on this machine, so the SQL matrix has not been run; what
+was verified is the rule logic, on hosted, read-only.
+
+### Still required before any hosted apply
+
+Separate explicit owner authorization, after review of this design and of the
+stated enforcement boundary.
 
 ## Slice C - Reserved Canonical Names, App/Domain
 
