@@ -1824,6 +1824,152 @@ void main() {
         contains('Evening Snack'),
       );
     });
+
+    testWidgets('the field stops at the 24-character limit', (tester) async {
+      await _pumpPage(tester, stored: _config());
+      await _revealAdd(tester);
+      await tester.tap(find.byKey(_addButton));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<TioInput>(find.byKey(_nameField)).maxLength,
+        MealCategoryDisplayNamePolicy.maxLength,
+        reason: 'the limit is shown while typing, not discovered on submit',
+      );
+      expect(MealCategoryDisplayNamePolicy.maxLength, 24);
+    });
+
+    testWidgets('an invalid character keeps the sheet open and the text typed',
+        (tester) async {
+      // The editor is not the authority, but it is where a reader can still
+      // fix this. Reporting it after the sheet closed would cost them the
+      // whole name. U+2028 arrives by paste rather than by keystroke, and the
+      // single-line field does not filter it out the way it does a newline.
+      final repo = await _pumpPage(tester, stored: _config());
+      await _revealAdd(tester);
+      await tester.tap(find.byKey(_addButton));
+      await tester.pumpAndSettle();
+
+      final typed = 'Pre${String.fromCharCode(0x2028)}Workout';
+      await tester.enterText(find.byKey(_nameField), typed);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(_nameSubmit));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(_nameField), findsOneWidget, reason: 'stays open');
+      expect(
+        tester.widget<TioInput>(find.byKey(_nameField)).controller!.text,
+        typed,
+        reason: 'and still holds what was typed',
+      );
+      expect(
+        find.text(MealCategoriesController.invalidNameCharactersReason),
+        findsOneWidget,
+      );
+      expect(repo.writes, 0, reason: 'nothing was attempted');
+    });
+
+    testWidgets('repeated spaces are stored as the canonical name',
+        (tester) async {
+      final repo = await _pumpPage(tester, stored: _config());
+
+      await tester.tap(
+        find.byKey(const ValueKey('meal-category-rename-meal_slot_2')),
+      );
+      await tester.pumpAndSettle();
+      await _enterName(tester, '  Pre   Workout  ');
+
+      expect(
+        (await repo.read()).findById('meal_slot_2')!.displayName,
+        'Pre Workout',
+        reason: 'the domain owns the stored value, not the editor',
+      );
+      expect(find.text('Pre Workout'), findsOneWidget);
+    });
+
+    testWidgets('a custom add stores the canonical name too', (tester) async {
+      final repo = await _pumpPage(tester, stored: _config());
+      await _revealAdd(tester);
+      await tester.tap(find.byKey(_addButton));
+      await tester.pumpAndSettle();
+      await _enterName(tester, '  Pre   Workout  ');
+
+      expect(find.byKey(_nameField), findsNothing);
+      expect(
+        (await repo.read()).activeItems.map((item) => item.displayName),
+        contains('Pre Workout'),
+      );
+    });
+
+    testWidgets('the editor refuses a name past the limit deterministically',
+        (tester) async {
+      // The field truncates while typing, so this is the case a caller that
+      // reached the controller some other way would hit. The answer is the
+      // same one, and it names the limit.
+      final repo = _RecordingRepository(stored: _config());
+      final controller = MealCategoriesController(repository: repo);
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      final overLong = 'a' * (MealCategoryDisplayNamePolicy.maxLength + 1);
+
+      expect(
+        controller.validateDisplayName(value: overLong),
+        MealCategoriesController.tooLongNameReason,
+      );
+      expect(
+        controller.validateDisplayName(
+          value: 'Pre${String.fromCharCode(0x09)}Workout',
+        ),
+        MealCategoriesController.invalidNameCharactersReason,
+      );
+      expect(
+        controller.validateDisplayName(value: '   '),
+        MealCategoriesController.blankNameReason,
+        reason: 'blank copy is unchanged',
+      );
+      expect(
+        controller.validateDisplayName(value: '  LUNCH  '),
+        MealCategoriesController.duplicateNameReason,
+        reason: 'duplicate copy is unchanged',
+      );
+      expect(
+        controller.validateDisplayName(
+          value: 'a' * MealCategoryDisplayNamePolicy.maxLength,
+        ),
+        isNull,
+      );
+    });
+
+    testWidgets('a non-editor caller is refused rather than truncated',
+        (tester) async {
+      final repo = _RecordingRepository(stored: _config());
+      final controller = MealCategoriesController(repository: repo);
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      final overLong = 'a' * (MealCategoryDisplayNamePolicy.maxLength + 1);
+
+      expect(
+        await controller.rename(id: 'meal_slot_2', displayName: overLong),
+        isFalse,
+      );
+      expect(
+        controller.state.actionError,
+        MealCategoriesController.tooLongNameReason,
+      );
+      expect(await controller.addCustom(overLong), isFalse);
+      expect(
+        controller.state.actionError,
+        MealCategoriesController.tooLongNameReason,
+      );
+      expect(repo.writes, 0);
+      expect(
+        (await repo.read()).findById('meal_slot_2')!.displayName,
+        'Lunch',
+        reason: 'nothing was stored, and nothing was cut down to fit',
+      );
+    });
   });
 
   group('thirty-two retained maximum', () {

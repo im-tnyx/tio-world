@@ -305,6 +305,74 @@ void main() {
     );
     expect(items, hasLength(516), reason: 'rejected, never trimmed to fit');
   });
+
+  group('display name policy on decode', () {
+    // Persisted state is not a trusted source. It can predate the policy, or
+    // have been written straight to the row by a client talking to the API,
+    // so decode has to be as strict as the editor — without owning a second
+    // copy of the rule. `MealCategory`'s constructor is that single path.
+    Map<String, Object?> configWith(String displayName) => <String, Object?>{
+          'schema_version': 1,
+          'items': <Object?>[
+            for (final item
+                in MealCategoriesConfig.canonicalDefaults().orderedItems)
+              <String, Object?>{
+                'id': item.id,
+                'default_key': item.defaultKey?.storageValue,
+                'display_name': item.displayName,
+                'active': item.active,
+                'order': item.order,
+              },
+            <String, Object?>{
+              'id': 'meal_slot_00000000-0000-4000-8000-000000000001',
+              'default_key': null,
+              'display_name': displayName,
+              'active': true,
+              'order': 4,
+            },
+          ],
+        };
+
+    test('a stored name past the limit is rejected, not truncated', () {
+      final overLong =
+          'a' * (MealCategoryDisplayNamePolicy.maxLength + 1);
+
+      expect(
+        () => MealCategoriesConfigCodec.decode(configWith(overLong)),
+        _throwsCode(MealCategoriesValidationCode.displayNameTooLong),
+      );
+    });
+
+    test('a stored name carrying a control character is rejected', () {
+      expect(
+        () => MealCategoriesConfigCodec.decode(
+          configWith('Pre${String.fromCharCode(0x09)}Workout'),
+        ),
+        _throwsCode(
+          MealCategoriesValidationCode.invalidDisplayNameCharacters,
+        ),
+      );
+    });
+
+    test('a stored name is canonicalized on the way in', () {
+      final decoded =
+          MealCategoriesConfigCodec.decode(configWith('  Pre   Workout  '))!;
+
+      expect(
+        decoded
+            .findById('meal_slot_00000000-0000-4000-8000-000000000001')!
+            .displayName,
+        'Pre Workout',
+      );
+      expect(
+        MealCategoriesConfigCodec.encode(decoded),
+        MealCategoriesConfigCodec.encode(
+          MealCategoriesConfigCodec.decode(configWith('Pre Workout'))!,
+        ),
+        reason: 'the same name however it was spaced when it was stored',
+      );
+    });
+  });
 }
 
 Map<String, Object?> _validEncodedDefaults() {

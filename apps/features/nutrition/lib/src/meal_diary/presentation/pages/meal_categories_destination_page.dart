@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 
 import '../../../domain/models/meal_category.dart';
+import '../../../domain/models/meal_category_display_name_policy.dart';
 import '../../../domain/repositories/meal_categories_repository.dart';
 import '../../../presentation/widgets/nutrition_settings_widgets.dart';
 import '../../../domain/usecases/meal_category_id_generator.dart';
@@ -859,6 +860,13 @@ class _NameEditorSheetState extends State<_NameEditorSheet> {
         errorText: _error,
         autofocus: true,
         textInputAction: TextInputAction.done,
+        // The field stops at the limit while typing, counting the way the
+        // domain counts: Flutter measures `maxLength` in user-perceived
+        // characters, so an emoji costs one here exactly as it does there.
+        // The domain is still the authority — a caller that never opens
+        // this sheet is refused rather than trimmed — and this only
+        // spares the reader from typing past a limit nobody showed them.
+        maxLength: MealCategoryDisplayNamePolicy.maxLength,
         onSubmitted: (_) => _submit(),
       ),
       actions: TioButton.primary(

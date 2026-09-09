@@ -1,3 +1,4 @@
+import 'package:characters/characters.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
 
@@ -559,6 +560,195 @@ void main() {
           items: MealCategoriesConfig.canonicalDefaults().items,
         ),
         _throwsCode(MealCategoriesValidationCode.unsupportedSchemaVersion),
+      );
+    });
+  });
+
+  group('display name policy', () {
+    // Every case below is written in graphemes, because that is what the
+    // reader counts and what the contract names.
+    const limit = MealCategoryDisplayNamePolicy.maxLength;
+
+    // Built from code points rather than pasted, so what each case exercises
+    // is readable in the source instead of hiding inside a string literal.
+    final tab = String.fromCharCode(0x09);
+    final newline = String.fromCharCode(0x0A);
+    final carriageReturn = String.fromCharCode(0x0D);
+    final unitSeparator = String.fromCharCode(0x1F);
+    final del = String.fromCharCode(0x7F);
+    final nextLine = String.fromCharCode(0x85);
+    final lineSeparator = String.fromCharCode(0x2028);
+    final noBreakSpace = String.fromCharCode(0xA0);
+
+    // One grapheme, seven code points, held together by zero-width joiners.
+    // Counted in UTF-16 code units it is eleven.
+    final family = String.fromCharCodes([
+      0x1F468,
+      0x200D,
+      0x1F469,
+      0x200D,
+      0x1F467,
+      0x200D,
+      0x1F466,
+    ]);
+
+    // A base letter and a combining acute: two code points, one grapheme.
+    final combining = 'e${String.fromCharCode(0x0301)}';
+
+    MealCategory custom(String displayName) => MealCategory(
+          id: 'meal_slot_00000000-0000-4000-8000-000000000001',
+          defaultKey: null,
+          displayName: displayName,
+          active: true,
+          order: 4,
+        );
+
+    Matcher throwsInvalidCharacters() =>
+        _throwsCode(MealCategoriesValidationCode.invalidDisplayNameCharacters);
+
+    Matcher throwsTooLong() =>
+        _throwsCode(MealCategoriesValidationCode.displayNameTooLong);
+
+    test('the owner-locked limit is 24', () {
+      expect(limit, 24);
+    });
+
+    test('accepts exactly 24 ASCII graphemes', () {
+      final name = 'a' * limit;
+
+      expect(name.characters.length, limit);
+      expect(custom(name).displayName, name);
+    });
+
+    test('rejects 25 ASCII graphemes', () {
+      expect(() => custom('a' * (limit + 1)), throwsTooLong());
+    });
+
+    test('counts a ZWJ emoji as one grapheme, not as its code units', () {
+      final name = family * limit;
+
+      expect(name.characters.length, limit);
+      expect(
+        name.length,
+        greaterThan(limit),
+        reason: 'a code-unit limit would have refused this name',
+      );
+      expect(custom(name).displayName, name);
+    });
+
+    test('rejects 25 ZWJ emoji graphemes', () {
+      expect(() => custom(family * (limit + 1)), throwsTooLong());
+    });
+
+    test('a joiner inside a valid emoji is not a control-character failure',
+        () {
+      // The ZWJ is non-printing, but rejecting non-printing code points as a
+      // class would tear this grapheme into four.
+      expect(custom(family).displayName, family);
+    });
+
+    test('counts a combining mark as part of its grapheme', () {
+      expect(combining.characters.length, 1);
+      expect(combining.length, 2);
+
+      expect(custom(combining * limit).displayName, combining * limit);
+      expect(() => custom(combining * (limit + 1)), throwsTooLong());
+    });
+
+    test('refuses an over-long name rather than cutting it to fit', () {
+      final tooLong = 'a' * (limit + 1);
+
+      expect(() => custom(tooLong), throwsTooLong());
+      expect(tooLong, hasLength(limit + 1), reason: 'nothing was truncated');
+    });
+
+    test('canonicalizes outer and repeated inner whitespace', () {
+      expect(custom('  Pre   Workout  ').displayName, 'Pre Workout');
+      expect(
+        custom('Pre$noBreakSpace${noBreakSpace}Workout').displayName,
+        'Pre Workout',
+        reason: 'a pasted no-break space stands in for an ordinary space',
+      );
+    });
+
+    test('preserves the case the reader typed', () {
+      expect(custom('  pre   WORKOUT ').displayName, 'pre WORKOUT');
+    });
+
+    test('rejects a line break inside a non-blank name', () {
+      for (final breaker in [
+        newline,
+        carriageReturn,
+        nextLine,
+        lineSeparator,
+      ]) {
+        expect(() => custom('Pre${breaker}Workout'), throwsInvalidCharacters());
+      }
+    });
+
+    test('rejects a tab or other control character inside a name', () {
+      for (final control in [tab, unitSeparator, del]) {
+        expect(() => custom('Pre${control}Workout'), throwsInvalidCharacters());
+      }
+    });
+
+    test('whitespace-only input still reads as blank, not as a control', () {
+      for (final value in ['', '   ', '$newline$tab']) {
+        expect(
+          () => custom(value),
+          _throwsCode(MealCategoriesValidationCode.blankDisplayName),
+        );
+      }
+    });
+
+    test('a canonical default rename obeys the same rules as a custom add', () {
+      final lunch =
+          MealCategoriesConfig.canonicalDefaults().findById('meal_slot_2')!;
+
+      expect(lunch.renamed('  Pre   Workout  ').displayName, 'Pre Workout');
+      expect(lunch.renamed(family * limit).displayName, family * limit);
+      expect(() => lunch.renamed('a' * (limit + 1)), throwsTooLong());
+      expect(
+        () => lunch.renamed('Pre${tab}Workout'),
+        throwsInvalidCharacters(),
+      );
+    });
+
+    test('duplicate comparison and storage share one whitespace rule', () {
+      expect(
+        MealCategoriesPolicy.normalizeDisplayName('  Pre   Workout  '),
+        MealCategoriesPolicy.normalizeDisplayName('pre workout'),
+      );
+      expect(
+        MealCategoryDisplayNamePolicy.comparisonKey(
+          MealCategoryDisplayNamePolicy.canonicalize('  PRE   workout '),
+        ),
+        MealCategoriesPolicy.normalizeDisplayName('Pre Workout'),
+      );
+    });
+
+    test('an active duplicate is still refused after canonicalization', () {
+      expect(
+        () => MealCategoriesConfig(
+          items: [
+            ...MealCategoriesConfig.canonicalDefaults().items,
+            MealCategory(
+              id: 'meal_slot_00000000-0000-4000-8000-000000000001',
+              defaultKey: null,
+              displayName: 'Pre Workout',
+              active: true,
+              order: 4,
+            ),
+            MealCategory(
+              id: 'meal_slot_00000000-0000-4000-8000-000000000002',
+              defaultKey: null,
+              displayName: '  pre   WORKOUT  ',
+              active: true,
+              order: 5,
+            ),
+          ],
+        ),
+        _throwsCode(MealCategoriesValidationCode.duplicateActiveDisplayName),
       );
     });
   });

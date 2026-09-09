@@ -4,6 +4,7 @@ import '../../../domain/models/meal_categories_config.dart';
 import '../../../domain/models/meal_categories_policy.dart';
 import '../../../domain/models/meal_categories_validation.dart';
 import '../../../domain/models/meal_category.dart';
+import '../../../domain/models/meal_category_display_name_policy.dart';
 import '../../../domain/repositories/meal_categories_repository.dart';
 import '../../../domain/usecases/meal_category_id_generator.dart';
 
@@ -154,11 +155,28 @@ class MealCategoriesController extends ChangeNotifier {
   /// paraphrase, so it is stated once here rather than at each call site.
   static const String activeCapReason = 'Maximum 8 active meal categories';
 
-  /// The two deterministic name rejections, worded for the editor rather than
-  /// for a snackbar, because that is where they are now surfaced.
+  /// The deterministic name rejections, worded for the editor rather than for
+  /// a snackbar, because that is where they are now surfaced.
   static const String blankNameReason = 'Enter a category name.';
   static const String duplicateNameReason =
       'That name is already used by another active category.';
+
+  /// Why a name is refused for its length.
+  ///
+  /// It states the limit rather than saying the name is too long, because the
+  /// reader is holding a name they now have to shorten and needs the target.
+  /// Nothing is trimmed for them: cutting a name to fit would store one they
+  /// never chose.
+  static const String tooLongNameReason =
+      'Use ${MealCategoryDisplayNamePolicy.maxLength} characters or fewer.';
+
+  /// Why a name is refused for what it contains.
+  ///
+  /// Names the two things a reader can actually have done — pasted a line
+  /// break, or pasted text carrying invisible control characters — rather
+  /// than naming code points.
+  static const String invalidNameCharactersReason =
+      'Use a single line without line breaks or special characters.';
 
   /// Why adding is refused once nothing more can be kept.
   ///
@@ -293,15 +311,17 @@ class MealCategoriesController extends ChangeNotifier {
   /// Renames one category. Only `displayName` moves; identity, order and
   /// active state are carried through untouched.
   Future<bool> rename({required String id, required String displayName}) {
-    final trimmed = displayName.trim();
-    if (trimmed.isEmpty) {
-      _emit(_state.copyWith(actionError: blankNameReason));
+    final String canonical;
+    try {
+      canonical = MealCategoryDisplayNamePolicy.canonicalize(displayName);
+    } on MealCategoriesValidationException catch (error) {
+      _emit(_state.copyWith(actionError: _messageFor(error.code)));
       return Future.value(false);
     }
     return _mutate((items) {
       return [
         for (final item in items)
-          if (item.id == id) item.renamed(trimmed) else item,
+          if (item.id == id) item.renamed(canonical) else item,
       ];
     });
   }
@@ -326,10 +346,14 @@ class MealCategoriesController extends ChangeNotifier {
   /// [excludingId] is the category being renamed, so its own current name
   /// never reads as a clash with itself.
   String? validateDisplayName({required String value, String? excludingId}) {
-    final trimmed = value.trim();
-    if (trimmed.isEmpty) return blankNameReason;
+    final String canonical;
+    try {
+      canonical = MealCategoryDisplayNamePolicy.canonicalize(value);
+    } on MealCategoriesValidationException catch (error) {
+      return _messageFor(error.code);
+    }
 
-    final normalized = MealCategoriesPolicy.normalizeDisplayName(trimmed);
+    final normalized = MealCategoriesPolicy.normalizeDisplayName(canonical);
     final clashes = _state.activeItems.any(
       (item) =>
           item.id != excludingId &&
@@ -340,9 +364,11 @@ class MealCategoriesController extends ChangeNotifier {
   }
 
   Future<bool> addCustom(String displayName) {
-    final trimmed = displayName.trim();
-    if (trimmed.isEmpty) {
-      _emit(_state.copyWith(actionError: 'Enter a category name.'));
+    final String canonical;
+    try {
+      canonical = MealCategoryDisplayNamePolicy.canonicalize(displayName);
+    } on MealCategoriesValidationException catch (error) {
+      _emit(_state.copyWith(actionError: _messageFor(error.code)));
       return Future.value(false);
     }
     if (_state.isAtActiveCap) {
@@ -362,7 +388,7 @@ class MealCategoriesController extends ChangeNotifier {
         MealCategory(
           id: id,
           defaultKey: null,
-          displayName: trimmed,
+          displayName: canonical,
           active: true,
           order: _nextOrder(items),
         ),
@@ -585,6 +611,9 @@ class MealCategoriesController extends ChangeNotifier {
   static String _messageFor(MealCategoriesValidationCode code) =>
       switch (code) {
         MealCategoriesValidationCode.blankDisplayName => blankNameReason,
+        MealCategoriesValidationCode.displayNameTooLong => tooLongNameReason,
+        MealCategoriesValidationCode.invalidDisplayNameCharacters =>
+          invalidNameCharactersReason,
         MealCategoriesValidationCode.duplicateActiveDisplayName =>
           duplicateNameReason,
         MealCategoriesValidationCode.tooManyActiveCategories => activeCapReason,
