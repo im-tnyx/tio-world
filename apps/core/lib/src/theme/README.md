@@ -402,7 +402,9 @@ Feature and sheet code selects an intent. It does not rebuild button chrome loca
 
 `TioButton.destructive` is an **outlined** action carrying the `danger` role, not a filled one. It shares the outlined chassis with `secondary`, so `TioButtonTokens` still owns its minimum height, pill radius, horizontal padding, content gap and label typography; only the colour roles differ. The danger colour reaches the foreground, the outline and the pressed/focused/hovered state layer, so the action stays destructive in every state — including while `loading`, where the shared disabled treatment would otherwise grey out a delete in flight. A destructive action that is genuinely `enabled: false` still uses the shared disabled treatment.
 
-No `onDanger` foreground role exists, and this variant deliberately does not add one: an outlined destructive action renders `danger` on the surface beneath it, which is what the destructive actions already shipping do. A filled danger container would need that token and a separate contrast decision.
+Outlined is the owner-approved canonical direction for this variant. It is not a description of how every destructive surface renders today: existing destructive confirmations have not all converged on it. The delete-account dialog uses a tinted filled `danger` treatment, and `TioConfirmationCard` still routes confirm through `TioButton.primary`. Bringing those onto this contract is separate #173 work.
+
+Being outlined is why no `onDanger` foreground role is needed, and this variant deliberately does not add one: the label and border carry `danger` against the surface beneath them. A filled danger container would need that token and its own contrast decision.
 
 The variant exposes no radius, height, fill, border-colour or label-size override. Reproducing a historical local button recipe through override parameters is how the drift this family exists to remove becomes representable again.
 

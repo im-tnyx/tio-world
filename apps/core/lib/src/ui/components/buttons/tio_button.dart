@@ -5,9 +5,17 @@ import '../../../theme/theme.dart';
 /// Semantic intent of a [TioButton], never a feature or a surface.
 ///
 /// [destructive] is the shared contract for an action that removes or
-/// permanently changes something. It is an outlined action carrying the
-/// `danger` role, not a filled one: no `onDanger` foreground exists, and the
-/// destructive actions already shipping render danger on a neutral surface.
+/// permanently changes something. It is intentionally outlined and reuses the
+/// existing `danger` foreground/border role, which is the owner-approved
+/// canonical direction for this variant — not a description of how every
+/// destructive surface renders today. Existing destructive confirmations have
+/// not all converged on it: the delete-account dialog uses a tinted filled
+/// danger treatment, and `TioConfirmationCard` still routes confirm through
+/// [TioButtonVariant.primary]. Those migrations are separate #173 slices.
+///
+/// Being outlined is also why no `onDanger` foreground role is needed: the
+/// label and border carry `danger` against the surface beneath them. A filled
+/// danger container would require that role and its own contrast decision.
 enum TioButtonVariant { primary, secondary, ghost, destructive }
 
 class TioButton extends StatelessWidget {
