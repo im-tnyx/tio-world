@@ -1030,13 +1030,16 @@ void main() {
 
     testWidgets('a normalized duplicate active name is rejected',
         (tester) async {
-      final repo = await _pumpPage(tester, stored: _config());
+      // Against a custom name: renaming one default onto another default's
+      // name is refused by the reserved-name rule instead, and that has its
+      // own tests.
+      final repo = await _pumpPage(tester, stored: _config(extraActive: 1));
 
       await tester.tap(
         find.byKey(const ValueKey('meal-category-rename-meal_slot_2')),
       );
       await tester.pumpAndSettle();
-      await _enterName(tester, '  breakfast ');
+      await _enterName(tester, '  custom   0 ');
 
       expect(
         find.text('That name is already used by another active category.'),
@@ -1717,12 +1720,15 @@ void main() {
   group('name validation stays in the editor', () {
     testWidgets('a duplicate name keeps the sheet open and the text typed',
         (tester) async {
-      final repo = await _pumpPage(tester, stored: _config());
+      // Duplicated against a custom category, not a default: the four default
+      // names are reserved by identity and would be refused for a different
+      // reason, which is a separate rule with its own tests.
+      final repo = await _pumpPage(tester, stored: _config(extraActive: 1));
       await _revealAdd(tester);
       await tester.tap(find.byKey(_addButton));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byKey(_nameField), 'lunch');
+      await tester.enterText(find.byKey(_nameField), 'custom 0');
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(_nameSubmit));
       await tester.pumpAndSettle();
@@ -1734,7 +1740,7 @@ void main() {
       );
       expect(
         tester.widget<TioInput>(find.byKey(_nameField)).controller!.text,
-        'lunch',
+        'custom 0',
         reason: 'and still holds what was typed',
       );
       expect(
@@ -1765,12 +1771,12 @@ void main() {
         (tester) async {
       // The same normalization the domain applies, so the editor cannot accept
       // something the write would refuse a moment later.
-      await _pumpPage(tester, stored: _config());
+      await _pumpPage(tester, stored: _config(extraActive: 1));
       await _revealAdd(tester);
       await tester.tap(find.byKey(_addButton));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byKey(_nameField), '  LUNCH  ');
+      await tester.enterText(find.byKey(_nameField), '  CUSTOM   0  ');
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(_nameSubmit));
       await tester.pumpAndSettle();
@@ -2079,7 +2085,7 @@ void main() {
         (tester) async {
       // The same answers the editor gets, asked directly, so a caller that
       // never opens the sheet is held to exactly the same contract.
-      final repo = _RecordingRepository(stored: _config());
+      final repo = _RecordingRepository(stored: _config(extraActive: 1));
       final controller = MealCategoriesController(repository: repo);
       addTearDown(controller.dispose);
       await controller.load();
@@ -2102,7 +2108,7 @@ void main() {
         reason: 'blank copy is unchanged',
       );
       expect(
-        controller.validateDisplayName(value: '  LUNCH  '),
+        controller.validateDisplayName(value: '  CUSTOM   0  '),
         MealCategoriesController.duplicateNameReason,
         reason: 'duplicate copy is unchanged',
       );
@@ -2142,6 +2148,217 @@ void main() {
         'Lunch',
         reason: 'nothing was stored, and nothing was cut down to fit',
       );
+    });
+  });
+
+
+  group('reserved canonical names in the editor', () {
+
+    testWidgets('adding a custom called Lunch stays in the editor',
+        (tester) async {
+      final repo = await _pumpPage(tester, stored: _config());
+      await _revealAdd(tester);
+      await tester.tap(find.byKey(_addButton));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byKey(_nameField), 'Lunch');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(_nameSubmit));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(_nameField), findsOneWidget, reason: 'stays open');
+      expect(
+        tester.widget<TioInput>(find.byKey(_nameField)).controller!.text,
+        'Lunch',
+        reason: 'and still holds what was typed',
+      );
+      expect(
+        find.text(MealCategoriesController.reservedNameReason),
+        findsOneWidget,
+      );
+      expect(repo.writes, 0, reason: 'nothing was attempted');
+    });
+
+    testWidgets('the reserved rule ignores case and spacing on add',
+        (tester) async {
+      await _pumpPage(tester, stored: _config());
+      await _revealAdd(tester);
+      await tester.tap(find.byKey(_addButton));
+      await tester.pumpAndSettle();
+
+      for (final spelling in ['lunch', 'LUNCH', '  Lunch  ']) {
+        await tester.enterText(find.byKey(_nameField), spelling);
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(_nameSubmit));
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(_nameField), findsOneWidget, reason: spelling);
+        expect(
+          find.text(MealCategoriesController.reservedNameReason),
+          findsOneWidget,
+          reason: spelling,
+        );
+      }
+    });
+
+    testWidgets('renaming Dinner to Lunch stays in the editor', (tester) async {
+      final repo = await _pumpPage(tester, stored: _config());
+
+      await tester.tap(
+        find.byKey(const ValueKey('meal-category-rename-meal_slot_3')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(_nameField), 'Lunch');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(_nameSubmit));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(_nameField), findsOneWidget);
+      expect(
+        find.text(MealCategoriesController.reservedNameReason),
+        findsOneWidget,
+      );
+      expect((await repo.read()).findById('meal_slot_3')!.displayName, 'Dinner');
+    });
+
+    testWidgets('Lunch can be renamed away and back again', (tester) async {
+      // The whole point of the rule: renaming releases nothing, so the same
+      // identity can always take its word back.
+      final repo = await _pumpPage(tester, stored: _config());
+
+      await tester.tap(
+        find.byKey(const ValueKey('meal-category-rename-meal_slot_2')),
+      );
+      await tester.pumpAndSettle();
+      await _enterName(tester, 'Mid Meal');
+
+      expect((await repo.read()).findById('meal_slot_2')!.displayName,
+          'Mid Meal');
+      expect(find.text('Mid Meal'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('meal-category-rename-meal_slot_2')),
+      );
+      await tester.pumpAndSettle();
+      await _enterName(tester, 'Lunch');
+
+      expect(find.byKey(_nameField), findsNothing, reason: 'accepted');
+      expect(
+        (await repo.read()).findById('meal_slot_2')!.displayName,
+        'Lunch',
+      );
+    });
+
+    testWidgets('a reserved word stays reserved while its owner is renamed',
+        (tester) async {
+      // No active category displays Lunch at this point, so this is not the
+      // duplicate rule doing the work.
+      final repo = await _pumpPage(tester, stored: _config());
+
+      await tester.tap(
+        find.byKey(const ValueKey('meal-category-rename-meal_slot_2')),
+      );
+      await tester.pumpAndSettle();
+      await _enterName(tester, 'Mid Meal');
+      expect(find.text('Lunch'), findsNothing);
+
+      await _revealAdd(tester);
+      await tester.tap(find.byKey(_addButton));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(_nameField), 'Lunch');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(_nameSubmit));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(_nameField), findsOneWidget);
+      expect(
+        find.text(MealCategoriesController.reservedNameReason),
+        findsOneWidget,
+      );
+      expect(repo.writes, 1, reason: 'only the rename was written');
+    });
+
+    testWidgets('a name a default was renamed to does not become reserved',
+        (tester) async {
+      final repo = await _pumpPage(tester, stored: _config());
+
+      await tester.tap(
+        find.byKey(const ValueKey('meal-category-rename-meal_slot_2')),
+      );
+      await tester.pumpAndSettle();
+      await _enterName(tester, 'Mid Meal');
+
+      // Move Lunch back off the name, then a custom may take it.
+      await tester.tap(
+        find.byKey(const ValueKey('meal-category-rename-meal_slot_2')),
+      );
+      await tester.pumpAndSettle();
+      await _enterName(tester, 'Lunch');
+
+      await _revealAdd(tester);
+      await tester.tap(find.byKey(_addButton));
+      await tester.pumpAndSettle();
+      await _enterName(tester, 'Mid Meal');
+
+      expect(find.byKey(_nameField), findsNothing, reason: 'accepted');
+      expect(
+        (await repo.read()).activeItems.map((item) => item.displayName),
+        contains('Mid Meal'),
+      );
+    });
+
+    testWidgets('the controller answers the same question directly',
+        (tester) async {
+      final repo = _RecordingRepository(stored: _config());
+      final controller = MealCategoriesController(repository: repo);
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      for (final token in ['Breakfast', 'Lunch', 'Dinner', 'Snacks']) {
+        expect(
+          controller.validateDisplayName(value: token),
+          MealCategoriesController.reservedNameReason,
+          reason: '$token cannot be added as a custom',
+        );
+      }
+
+      expect(
+        controller.validateDisplayName(
+          value: 'Lunch',
+          excludingId: 'meal_slot_2',
+        ),
+        isNull,
+        reason: 'its own identity may take it back',
+      );
+      expect(
+        controller.validateDisplayName(
+          value: 'Lunch',
+          excludingId: 'meal_slot_3',
+        ),
+        MealCategoriesController.reservedNameReason,
+        reason: 'another canonical identity may not',
+      );
+      expect(
+        controller.validateDisplayName(value: 'Mid Meal'),
+        isNull,
+        reason: 'an ordinary name is unaffected',
+      );
+
+      // The write path refuses it too, for a caller that never opens the sheet.
+      expect(await controller.addCustom('Lunch'), isFalse);
+      expect(
+        controller.state.actionError,
+        MealCategoriesController.reservedNameReason,
+      );
+      expect(
+        await controller.rename(id: 'meal_slot_3', displayName: 'Lunch'),
+        isFalse,
+      );
+      expect(
+        controller.state.actionError,
+        MealCategoriesController.reservedNameReason,
+      );
+      expect(repo.writes, 0);
     });
   });
 

@@ -902,6 +902,224 @@ void main() {
       );
     });
   });
+
+  group('reserved canonical display names', () {
+    // The reservation belongs to the identity, not to what the category is
+    // currently called. Every case below is written against ids for that
+    // reason.
+    const breakfastId = 'meal_slot_1';
+    const lunchId = 'meal_slot_2';
+    const dinnerId = 'meal_slot_3';
+    const snacksId = 'meal_slot_4';
+    const customId = 'meal_slot_00000000-0000-4000-8000-000000000001';
+
+    const reserved = <String, String>{
+      'Breakfast': breakfastId,
+      'Lunch': lunchId,
+      'Dinner': dinnerId,
+      'Snacks': snacksId,
+    };
+
+    /// The canonical four with [id] renamed to [name], nothing else touched.
+    MealCategoriesConfig defaultsWith(String id, String name) =>
+        MealCategoriesConfig(
+          items: [
+            for (final item in MealCategoriesConfig.canonicalDefaults().items)
+              if (item.id == id) item.renamed(name) else item,
+          ],
+        );
+
+    /// The canonical four plus one custom called [name].
+    MealCategoriesConfig withCustom(String name, {bool active = true}) =>
+        MealCategoriesConfig(
+          items: [
+            ...MealCategoriesConfig.canonicalDefaults().items,
+            MealCategory(
+              id: customId,
+              defaultKey: null,
+              displayName: name,
+              active: active,
+              order: 4,
+            ),
+          ],
+        );
+
+    Matcher throwsReserved() =>
+        _throwsCode(MealCategoriesValidationCode.reservedCanonicalDisplayName);
+
+    test('each canonical identity may carry its own reserved name', () {
+      for (final entry in reserved.entries) {
+        final config = defaultsWith(entry.value, entry.key);
+        config.validate();
+        expect(config.findById(entry.value)!.displayName, entry.key);
+      }
+    });
+
+    test('a canonical identity may take a name that is not reserved', () {
+      final config = defaultsWith(lunchId, 'Mid Meal');
+      config.validate();
+      expect(config.findById(lunchId)!.displayName, 'Mid Meal');
+    });
+
+    test('a renamed canonical identity may take its own name back', () {
+      // The invariant the whole rule exists for: renaming releases nothing.
+      final renamed = defaultsWith(lunchId, 'Mid Meal');
+      renamed.validate();
+
+      final restored = MealCategoriesConfig(
+        items: [
+          for (final item in renamed.items)
+            if (item.id == lunchId) item.renamed('Lunch') else item,
+        ],
+      );
+      restored.validate();
+      expect(restored.findById(lunchId)!.displayName, 'Lunch');
+    });
+
+    test('no canonical identity may take another canonical name', () {
+      for (final token in reserved.entries) {
+        for (final owner in reserved.values) {
+          if (owner == token.value) continue;
+          expect(
+            () => defaultsWith(owner, token.key),
+            throwsReserved(),
+            reason: '$owner must not be able to take ${token.key}',
+          );
+        }
+      }
+    });
+
+    test('a custom category may never take a reserved name', () {
+      for (final token in reserved.keys) {
+        expect(() => withCustom(token), throwsReserved());
+      }
+    });
+
+    test('an archived custom may never hold a reserved name either', () {
+      // Archived names are invisible to the duplicate rule, so without this an
+      // archived "Lunch" would sit there and reactivate into a state the
+      // domain refuses.
+      for (final token in reserved.keys) {
+        expect(() => withCustom(token, active: false), throwsReserved());
+      }
+    });
+
+    test('reserved matching reads through the canonical name rules', () {
+      for (final spelling in [
+        'lunch',
+        'LUNCH',
+        'LuNcH',
+        ' Lunch ',
+        '  Lunch  ',
+        'Lunch',
+      ]) {
+        expect(
+          () => withCustom(spelling),
+          throwsReserved(),
+          reason: '"$spelling" is the reserved word Lunch',
+        );
+      }
+    });
+
+    test('a reserved word is still reserved while its owner is called '
+        'something else', () {
+      // Not duplicate detection: no active category displays "Lunch" here.
+      final renamed = MealCategoriesConfig(
+        items: [
+          for (final item in MealCategoriesConfig.canonicalDefaults().items)
+            if (item.id == lunchId) item.renamed('Mid Meal') else item,
+        ],
+      );
+      renamed.validate();
+      expect(
+        renamed.activeItems.map((item) => item.displayName),
+        isNot(contains('Lunch')),
+      );
+
+      expect(
+        () => MealCategoriesConfig(
+          items: [
+            ...renamed.items,
+            MealCategory(
+              id: customId,
+              defaultKey: null,
+              displayName: 'Lunch',
+              active: true,
+              order: 4,
+            ),
+          ],
+        ),
+        throwsReserved(),
+      );
+    });
+
+    test('a name a canonical identity was renamed to is not reserved', () {
+      // "Mid Meal" does not become a permanent token by having been used. Once
+      // Lunch moves off it, an ordinary custom may take it: the reservation
+      // list does not grow.
+      final parked = MealCategoriesConfig(
+        items: [
+          for (final item in MealCategoriesConfig.canonicalDefaults().items)
+            if (item.id == lunchId) item.renamed('Mid Meal') else item,
+        ],
+      );
+      parked.validate();
+
+      final movedOn = MealCategoriesConfig(
+        items: [
+          for (final item in parked.items)
+            if (item.id == lunchId) item.renamed('Lunch') else item,
+          MealCategory(
+            id: customId,
+            defaultKey: null,
+            displayName: 'Mid Meal',
+            active: true,
+            order: 4,
+          ),
+        ],
+      );
+
+      movedOn.validate();
+      expect(movedOn.findById(customId)!.displayName, 'Mid Meal');
+      expect(movedOn.findById(lunchId)!.displayName, 'Lunch');
+    });
+
+    test('reservation is checked before the duplicate rule', () {
+      // Both rules would refuse an active custom called Lunch beside the
+      // canonical Lunch. The reserved answer is the more specific one, and it
+      // is the only one that also covers the archived case.
+      expect(() => withCustom('Lunch'), throwsReserved());
+    });
+
+    test('reservedOwnerIdFor names the owner, and nothing else', () {
+      expect(MealCategoriesPolicy.reservedOwnerIdFor('Breakfast'), breakfastId);
+      expect(MealCategoriesPolicy.reservedOwnerIdFor('  lUnCh '), lunchId);
+      expect(MealCategoriesPolicy.reservedOwnerIdFor('DINNER'), dinnerId);
+      expect(MealCategoriesPolicy.reservedOwnerIdFor('snacks'), snacksId);
+      expect(MealCategoriesPolicy.reservedOwnerIdFor('Mid Meal'), isNull);
+      expect(MealCategoriesPolicy.reservedOwnerIdFor('Brunch'), isNull);
+      expect(MealCategoriesPolicy.reservedOwnerIdFor('Lunchbox'), isNull);
+    });
+
+    test('every other invariant still holds around the new rule', () {
+      // A configuration that is fine on every count, including the reserved
+      // one, must still validate.
+      final config = MealCategoriesConfig(
+        items: [
+          ...MealCategoriesConfig.canonicalDefaults().items,
+          MealCategory(
+            id: customId,
+            defaultKey: null,
+            displayName: 'Pre Workout',
+            active: true,
+            order: 4,
+          ),
+        ],
+      );
+      config.validate();
+      expect(config.activeItems, hasLength(5));
+    });
+  });
 }
 
 MealCategoriesConfig _configWithCustomCategories({

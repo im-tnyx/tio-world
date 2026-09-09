@@ -170,6 +170,15 @@ class MealCategoriesController extends ChangeNotifier {
   static const String tooLongNameReason =
       'Use ${MealCategoryDisplayNamePolicy.maxLength} characters or fewer.';
 
+  /// Why one of the four default names cannot be used here.
+  ///
+  /// Worded like the duplicate refusal beside it: what is wrong, not which
+  /// row owns it. The identity that owns the word never surfaces, and neither
+  /// does the fact that the owning category may currently be called something
+  /// else entirely.
+  static const String reservedNameReason =
+      'That name is reserved for a default meal category.';
+
   /// Why a name is refused for what it contains.
   ///
   /// Names the two things a reader can actually have done — pasted a line
@@ -351,6 +360,16 @@ class MealCategoriesController extends ChangeNotifier {
       canonical = MealCategoryDisplayNamePolicy.canonicalize(value);
     } on MealCategoriesValidationException catch (error) {
       return _messageFor(error.code);
+    }
+
+    // The four default names belong to their canonical identities, whatever
+    // those categories are called today. [excludingId] is the identity being
+    // renamed, so the Lunch category can always take Lunch back, and nothing
+    // else can take it while it is away.
+    final reservedOwnerId =
+        MealCategoriesPolicy.reservedOwnerIdFor(canonical);
+    if (reservedOwnerId != null && reservedOwnerId != excludingId) {
+      return reservedNameReason;
     }
 
     final normalized = MealCategoriesPolicy.normalizeDisplayName(canonical);
@@ -616,6 +635,8 @@ class MealCategoriesController extends ChangeNotifier {
           invalidNameCharactersReason,
         MealCategoriesValidationCode.duplicateActiveDisplayName =>
           duplicateNameReason,
+        MealCategoriesValidationCode.reservedCanonicalDisplayName =>
+          reservedNameReason,
         MealCategoriesValidationCode.tooManyActiveCategories => activeCapReason,
         MealCategoriesValidationCode.tooManyRetainedCategories =>
           retainedCapReason,

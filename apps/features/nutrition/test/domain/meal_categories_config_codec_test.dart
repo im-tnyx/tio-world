@@ -476,6 +476,107 @@ void main() {
       );
     });
   });
+
+  group('reserved canonical names on decode', () {
+    // Persisted state is not trusted. A row written straight to the API could
+    // park a reserved word on a custom identity, and the retained-ID trigger
+    // means that row cannot simply be dropped afterwards.
+    Map<String, Object?> encodedWith({
+      required String id,
+      required String displayName,
+      String? defaultKey,
+      bool active = true,
+      int order = 4,
+    }) {
+      final items = <Object?>[
+        for (final item in MealCategoriesConfig.canonicalDefaults().orderedItems)
+          if (item.id != id)
+            <String, Object?>{
+              'id': item.id,
+              'default_key': item.defaultKey?.storageValue,
+              'display_name': item.displayName,
+              'active': item.active,
+              'order': item.order,
+            }
+          else
+            <String, Object?>{
+              'id': item.id,
+              'default_key': item.defaultKey?.storageValue,
+              'display_name': displayName,
+              'active': item.active,
+              'order': item.order,
+            },
+      ];
+      if (items.length == 4 && id.startsWith('meal_slot_0')) {
+        items.add(<String, Object?>{
+          'id': id,
+          'default_key': defaultKey,
+          'display_name': displayName,
+          'active': active,
+          'order': order,
+        });
+      }
+      return <String, Object?>{'schema_version': 1, 'items': items};
+    }
+
+    test('a persisted custom holding a reserved name is rejected', () {
+      for (final token in ['Breakfast', 'Lunch', 'Dinner', 'Snacks']) {
+        expect(
+          () => MealCategoriesConfigCodec.decode(
+            encodedWith(
+              id: 'meal_slot_00000000-0000-4000-8000-000000000001',
+              displayName: token,
+            ),
+          ),
+          _throwsCode(
+            MealCategoriesValidationCode.reservedCanonicalDisplayName,
+          ),
+        );
+      }
+    });
+
+    test('a persisted archived custom holding a reserved name is rejected',
+        () {
+      expect(
+        () => MealCategoriesConfigCodec.decode(
+          encodedWith(
+            id: 'meal_slot_00000000-0000-4000-8000-000000000001',
+            displayName: 'Lunch',
+            active: false,
+          ),
+        ),
+        _throwsCode(MealCategoriesValidationCode.reservedCanonicalDisplayName),
+      );
+    });
+
+    test('a persisted canonical identity holding another reserved name is '
+        'rejected', () {
+      expect(
+        () => MealCategoriesConfigCodec.decode(
+          encodedWith(id: 'meal_slot_3', displayName: 'Lunch'),
+        ),
+        _throwsCode(MealCategoriesValidationCode.reservedCanonicalDisplayName),
+      );
+    });
+
+    test('a persisted canonical identity holding its own name is accepted',
+        () {
+      final decoded = MealCategoriesConfigCodec.decode(
+        encodedWith(id: 'meal_slot_2', displayName: 'Lunch'),
+      )!;
+
+      expect(decoded.findById('meal_slot_2')!.displayName, 'Lunch');
+    });
+
+    test('a persisted canonical identity renamed off its own name is accepted',
+        () {
+      final decoded = MealCategoriesConfigCodec.decode(
+        encodedWith(id: 'meal_slot_2', displayName: 'Mid Meal'),
+      )!;
+
+      expect(decoded.findById('meal_slot_2')!.displayName, 'Mid Meal');
+    });
+  });
 }
 
 Map<String, Object?> _validEncodedDefaults() {

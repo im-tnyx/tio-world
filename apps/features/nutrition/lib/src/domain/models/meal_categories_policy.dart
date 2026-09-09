@@ -47,6 +47,33 @@ abstract final class MealCategoriesPolicy {
   static String normalizeDisplayName(String value) =>
       MealCategoryDisplayNamePolicy.comparisonKey(value);
 
+  /// Which canonical identity permanently owns [value] as a name, or null when
+  /// the name is not one of the four reserved words.
+  ///
+  /// The reservation belongs to the identity, never to what that category is
+  /// currently called. Renaming Lunch to "Mid Meal" changes one display name
+  /// and releases nothing: `meal_slot_2` still owns the word Lunch, so it can
+  /// always go back, and nothing else can take it in the meantime. The four
+  /// words come from [canonicalMealCategoryDefaultDefinitions], so there is no
+  /// second list of them anywhere.
+  ///
+  /// Deliberately not a growing history. Only the four original names are
+  /// reserved; "Mid Meal" does not become reserved by having been used, and is
+  /// governed by the ordinary duplicate rule like any other name.
+  ///
+  /// Matched through [normalizeDisplayName], so `lunch`, `LUNCH`, `LuNcH` and
+  /// `  Lunch  ` are all the same word. The reserved words themselves are
+  /// ASCII; this is not a general Unicode reserved-word rule.
+  static String? reservedOwnerIdFor(String value) {
+    final key = normalizeDisplayName(value);
+    for (final definition in canonicalMealCategoryDefaultDefinitions) {
+      if (normalizeDisplayName(definition.displayName) == key) {
+        return definition.id;
+      }
+    }
+    return null;
+  }
+
   static void validate({
     required int schemaVersion,
     required Iterable<MealCategory> items,
@@ -100,6 +127,19 @@ abstract final class MealCategoriesPolicy {
         throw const MealCategoriesValidationException(
           code: MealCategoriesValidationCode.invalidId,
           message: 'Custom Meal Category id must use a lowercase UUID v4.',
+        );
+      }
+
+      // Reserved before duplicate, because it is the more specific answer and
+      // because it has to apply to archived items too: an archived custom
+      // called Lunch is invisible to the duplicate rule and would reactivate
+      // straight into a state the domain refuses.
+      final reservedOwnerId = reservedOwnerIdFor(item.displayName);
+      if (reservedOwnerId != null && reservedOwnerId != item.id) {
+        throw MealCategoriesValidationException(
+          code: MealCategoriesValidationCode.reservedCanonicalDisplayName,
+          message: 'Meal Category displayName "${item.displayName}" is '
+              'reserved for the canonical category $reservedOwnerId.',
         );
       }
 
