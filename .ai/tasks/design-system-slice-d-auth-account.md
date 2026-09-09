@@ -86,7 +86,7 @@ Behavior/domain/program values stayed outside the design-token system. Examples 
 
 - [x] Added only evidenced exact physical values to existing registries: `TioSize.dp40/dp80/dp480`, `TioStroke.width12/width18`, `TioFontSize.size11`, `TioLetterSpacing.positive10`.
 - [x] Migrated `LoginPage` to direct governed core ownership.
-- [x] Migrated `EmailLoginPage` to direct governed core ownership.
+- [x] At the time of this slice, migrated the then-present legacy duplicate email login surface to direct governed core ownership; GitHub #194 later owns its dead-code removal.
 - [x] Migrated `ForgotPasswordPage` to direct governed core ownership.
 - [x] Migrated `EmailSignupPage` to direct governed core ownership.
 - [x] Migrated `AccountSetupFlowPage`, `MobileStep`, and `UsernameStep` to direct governed core ownership.
