@@ -5,6 +5,7 @@ import 'package:flutter/semantics.dart';
 import 'package:tio_core/core.dart';
 
 import '../../../domain/repositories/meal_categories_repository.dart';
+import '../../../domain/usecases/meal_category_time_suggestion.dart';
 import '../../../meal_diary/presentation/controllers/meal_categories_controller.dart';
 import 'meal_category_picker_popup.dart';
 import 'meal_log_action_footer.dart';
@@ -129,11 +130,14 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
   /// controller the Meal Categories screen uses.
   MealCategoriesController? _categories;
 
-  /// The chosen category, held as its durable id.
+  /// The category the reader chose, held as its durable id.
   ///
   /// Never the label: renaming a category must move what the footer reads
   /// without moving what the draft points at.
-  String? _selectedMealCategoryId;
+  ///
+  /// Null means they have not chosen yet, which is not the same as nothing
+  /// being selected — until then the editor offers a suggestion.
+  String? _chosenMealCategoryId;
 
   /// Whether the Meal Type card is showing. Owned here, exactly as the
   /// date/time popup's flag is: the footer stays a fixed strip and the card
@@ -221,11 +225,37 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
   }
 
   /// Choosing is the whole interaction: it selects and closes.
+  ///
+  /// From here the suggestion stops applying. Changing the time afterwards
+  /// must not quietly move the reader's own answer somewhere else.
   void _onMealCategorySelected(String id) {
     setState(() {
-      _selectedMealCategoryId = id;
+      _chosenMealCategoryId = id;
       _isMealTypePickerOpen = false;
     });
+  }
+
+  /// What the footer shows: the reader's choice, or the suggestion until they
+  /// make one.
+  ///
+  /// Derived rather than stored, so the suggestion follows the draft's time
+  /// while it still applies and is simply ignored once a choice exists. There
+  /// is no second copy to keep in step.
+  String? get _selectedMealCategoryId =>
+      _chosenMealCategoryId ?? _suggestedMealCategoryId;
+
+  /// The canonical category the draft's own consumed time points at.
+  ///
+  /// The draft's time, never the device clock: a reader logging last night's
+  /// dinner at breakfast time has already said when they ate, and the editor
+  /// should follow that rather than the hour they happen to be typing in.
+  String? get _suggestedMealCategoryId {
+    final controller = _categories;
+    if (controller == null) return null;
+    return suggestedMealCategoryId(
+      consumedLocal: _draftDateTime,
+      activeItems: controller.state.activeItems,
+    );
   }
 
   /// The chosen category's current name, or null when the selection names

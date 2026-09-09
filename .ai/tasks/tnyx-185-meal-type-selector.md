@@ -107,12 +107,51 @@ with the date and pulled it off the trailing edge.
 No Done, Save or Apply: choosing is the whole interaction. A tap selects and
 closes; a tap outside closes and changes nothing.
 
-## 5. Initial selection
+## 5. Initial selection — a time-based suggestion
 
-Audited: Quick Add has no existing selected-category contract, and nothing in
-the session model names one. So there is nothing to preserve, and nothing is
-invented — no `Breakfast` default, no clock-time inference. The control reads
-`Select meal type` until the reader chooses.
+**Owner decision, 2026-09-09, reversing the earlier lock.** The brief and the
+TNYX-185 prompt both said no clock inference and no invented default; the owner
+has replaced that with a convenience suggestion. Recorded as a reversal rather
+than quietly applied.
+
+```text
+04:00 – 10:59   breakfast
+11:00 – 15:59   lunch
+18:00 – 22:59   dinner
+everything else snacks
+```
+
+Five rules make it a convenience rather than a restriction.
+
+**The draft's own consumed time decides, never the device clock.** Someone
+logging last night's dinner over breakfast has already said when they ate; the
+editor follows that. This is also what makes late logging work — the case that
+sank a plain clock-based guess.
+
+**Canonical roles, never names.** The match is on `defaultKey`, so a reader who
+renamed Lunch to `Midday Meal` still gets that category at 13:00. A custom
+category is never suggested: `Pre Workout` could be 06:00 or 18:00, and reading
+a schedule out of a name the reader invented would be guessing about their day.
+
+**A stable id, like every other selection here.**
+
+**The reader's choice always wins, and wins permanently.** Before they choose,
+changing the time refreshes the suggestion. After they choose, nothing moves it
+— including accepting the suggested one, which is an answer rather than
+silence.
+
+**Nothing is ever forced or refused.** Every active category stays one tap
+away at every hour, and when the suggested canonical category is archived the
+control simply reads `Select meal type` again rather than substituting
+something else.
+
+The gaps in the table are deliberate: late afternoon is nobody's lunch or
+dinner and the small hours are nobody's dinner, so both fall to snacks instead
+of stretching an anchor over time it does not own.
+
+Nothing is stored on a `MealCategory` — the mapping is computed. TNYX-70 will
+let the reader state their own meal times, and may improve or replace this
+heuristic when it does; their answer beats ours.
 
 ## 6. Loading and failure
 
@@ -167,6 +206,6 @@ which is what required it.
 
 ```text
 flutter analyze  core / nutrition / app     No issues found
-flutter test     core 266 · nutrition 478 · app 305    all passed
+flutter test     core 266 · nutrition 494 · app 305    all passed
 git diff --check origin/main...HEAD         clean
 ```

@@ -101,6 +101,7 @@ Future<_Repository> _pumpQuickAdd(
   TioThemeMode mode = TioThemeMode.light,
   double textScale = 1,
   Size? size,
+  DateTime? clock,
 }) async {
   final repo = repository ?? _Repository(stored: stored);
   if (size != null) {
@@ -122,7 +123,7 @@ Future<_Repository> _pumpQuickAdd(
       ),
       home: Scaffold(
         body: QuickAddEditorSheet(
-          clock: () => DateTime(2026, 9, 9, 13, 42),
+          clock: () => clock ?? DateTime(2026, 9, 9, 13, 42),
           mealCategoriesRepository: repo,
         ),
       ),
@@ -150,6 +151,20 @@ List<String> _openAndReadOptions(WidgetTester tester) {
   }
   entries.sort((a, b) => a.$1.compareTo(b.$1));
   return [for (final entry in entries) entry.$2];
+}
+
+/// Moves the draft's consumed time the way the date popup does, by handing the
+/// wheel the value it would report.
+Future<void> _setDraftTime(WidgetTester tester, DateTime value) async {
+  await tester.tap(find.byKey(_footerDateTime));
+  await tester.pumpAndSettle();
+  tester
+      .widget<TioDateTimeWheelPicker>(find.byType(TioDateTimeWheelPicker))
+      .onChanged(value);
+  await tester.pumpAndSettle();
+  // Close it again, so the next assertion is about the footer.
+  await tester.tapAt(const Offset(5, 5));
+  await tester.pumpAndSettle();
 }
 
 Future<void> _openSelector(WidgetTester tester) async {
@@ -264,15 +279,17 @@ void main() {
   group('selection is an identity, not a label', () {
     testWidgets('choosing a category updates what the footer reads',
         (tester) async {
+      // Corrected: the editor no longer starts empty. At 13:42 it offers
+      // Lunch, and choosing something else replaces it.
       await _pumpQuickAdd(tester);
-      expect(find.text('Select meal type'), findsOne);
+      expect(find.text('Lunch'), findsOne);
 
       await _openSelector(tester);
-      await tester.tap(find.byKey(_option('meal_slot_2')));
+      await tester.tap(find.byKey(_option('meal_slot_3')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Lunch'), findsOne);
-      expect(find.text('Select meal type'), findsNothing);
+      expect(find.text('Dinner'), findsOne);
+      expect(find.text('Lunch'), findsNothing);
     });
 
     testWidgets('reopening the selector marks the current choice',
@@ -341,6 +358,153 @@ void main() {
         findsOne,
         reason: 'a dismissal is not a request to clear',
       );
+    });
+  });
+
+  group('the editor starts on a suggestion, not on nothing', () {
+    testWidgets('a lunchtime draft opens on Lunch', (tester) async {
+      await _pumpQuickAdd(tester, clock: DateTime(2026, 9, 9, 13, 0));
+
+      expect(find.text('Lunch'), findsOne);
+      expect(find.text('Select meal type'), findsNothing);
+    });
+
+    testWidgets('a renamed Lunch is still what lunchtime offers',
+        (tester) async {
+      // The suggestion matches on the canonical role, so the reader gets their
+      // own name for it rather than losing the suggestion by renaming.
+      await _pumpQuickAdd(
+        tester,
+        clock: DateTime(2026, 9, 9, 13, 0),
+        stored: _config(renamed: {'meal_slot_2': 'Midday Meal'}),
+      );
+
+      expect(find.text('Midday Meal'), findsOne);
+      await _openSelector(tester);
+      expect(
+        find.byKey(const ValueKey('meal-category-check-meal_slot_2')),
+        findsOne,
+        reason: 'and it is marked as the current one',
+      );
+    });
+
+    testWidgets('a custom category is never what the clock offers',
+        (tester) async {
+      await _pumpQuickAdd(
+        tester,
+        clock: DateTime(2026, 9, 9, 13, 0),
+        stored: _config(
+          customs: [(id: _customA, name: 'Pre Workout', order: 15)],
+        ),
+      );
+
+      await _openSelector(tester);
+      expect(
+        find.byKey(const ValueKey('meal-category-check-$_customA')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('meal-category-check-meal_slot_2')),
+        findsOne,
+      );
+    });
+
+    testWidgets('an archived Lunch leaves the control empty at 13:00',
+        (tester) async {
+      // Nothing is substituted; the invitation comes back instead.
+      await _pumpQuickAdd(
+        tester,
+        clock: DateTime(2026, 9, 9, 13, 0),
+        stored: _config(archived: {'meal_slot_2'}),
+      );
+
+      expect(find.text('Select meal type'), findsOne);
+    });
+
+    testWidgets('nothing is suggested while the categories are still loading',
+        (tester) async {
+      final repo = _Repository()..readGate = Completer<void>();
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) =>
+              TioTheme(child: child ?? const SizedBox.shrink()),
+          home: Scaffold(
+            body: QuickAddEditorSheet(
+              clock: () => DateTime(2026, 9, 9, 13, 0),
+              mealCategoriesRepository: repo,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(find.text('Select meal type'), findsOne);
+
+      repo.readGate!.complete();
+      await tester.pumpAndSettle();
+      expect(find.text('Lunch'), findsOne);
+    });
+
+    testWidgets('changing the time moves the suggestion with it',
+        (tester) async {
+      await _pumpQuickAdd(tester, clock: DateTime(2026, 9, 9, 13, 0));
+      expect(find.text('Lunch'), findsOne);
+
+      await _setDraftTime(tester, DateTime(2026, 9, 9, 20, 0));
+
+      expect(find.text('Dinner'), findsOne);
+      expect(find.text('Lunch'), findsNothing);
+    });
+
+    testWidgets('but never after the reader has chosen for themselves',
+        (tester) async {
+      // The whole point of a suggestion: it stops the moment there is an
+      // answer. Moving someone's own choice because they corrected the time
+      // would be the worst kind of silent edit.
+      await _pumpQuickAdd(tester, clock: DateTime(2026, 9, 9, 13, 0));
+      await _openSelector(tester);
+      await tester.tap(find.byKey(_option('meal_slot_4')));
+      await tester.pumpAndSettle();
+      expect(find.text('Snacks'), findsOne);
+
+      await _setDraftTime(tester, DateTime(2026, 9, 9, 20, 0));
+
+      expect(
+        find.text('Snacks'),
+        findsOne,
+        reason: 'their choice stands whatever the clock says',
+      );
+      expect(find.text('Dinner'), findsNothing);
+    });
+
+    testWidgets('choosing the suggested one still counts as choosing',
+        (tester) async {
+      await _pumpQuickAdd(tester, clock: DateTime(2026, 9, 9, 13, 0));
+      await _openSelector(tester);
+      await tester.tap(find.byKey(_option('meal_slot_2')));
+      await tester.pumpAndSettle();
+
+      await _setDraftTime(tester, DateTime(2026, 9, 9, 20, 0));
+
+      expect(
+        find.text('Lunch'),
+        findsOne,
+        reason: 'accepting the suggestion is an answer, not silence',
+      );
+    });
+
+    testWidgets('the suggestion never blocks anything', (tester) async {
+      // It is a convenience. Every other active category is one tap away, and
+      // no hour refuses one.
+      await _pumpQuickAdd(tester, clock: DateTime(2026, 9, 9, 13, 0));
+      await _openSelector(tester);
+
+      expect(
+        _openAndReadOptions(tester),
+        ['Breakfast', 'Lunch', 'Dinner', 'Snacks'],
+      );
+      await tester.tap(find.byKey(_option('meal_slot_1')));
+      await tester.pumpAndSettle();
+      expect(find.text('Breakfast'), findsOne);
     });
   });
 
@@ -514,7 +678,7 @@ void main() {
           hasEnabledState: true,
           isEnabled: true,
           hasTapAction: true,
-          label: 'Meal type. None selected.',
+          label: 'Meal type. Lunch.',
         ),
       );
 
