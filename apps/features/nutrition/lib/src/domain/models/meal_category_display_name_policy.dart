@@ -90,6 +90,20 @@ abstract final class MealCategoryDisplayNamePolicy {
     return canonical;
   }
 
+  /// How long [raw] counts as, measured the way [canonicalize] measures it.
+  ///
+  /// The editor shows this while the reader types, so it has to be the same
+  /// number the domain will check. Counting the raw field text instead would
+  /// put the two at odds: `Pre` and `Workout` separated by twenty spaces is
+  /// thirty characters in the field and eleven in `Pre Workout`, and a limit
+  /// applied to the first would refuse a name the domain accepts — or, worse,
+  /// cut the paste down to `Pre` before the domain ever saw it.
+  ///
+  /// Total on purpose, like [comparisonKey] and unlike [canonicalize]. A count
+  /// runs over half-typed text and is not the place to decide a name is
+  /// invalid.
+  static int canonicalLength(String raw) => _collapse(raw).characters.length;
+
   /// How two display names are compared for equality.
   ///
   /// The canonical value lowercased: `Pre Workout` and `pre   workout` are the

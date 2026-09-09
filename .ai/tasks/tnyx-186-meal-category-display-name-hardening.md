@@ -12,6 +12,7 @@
 Slice A is implemented and published for review on the branch above. Nothing is merged.
 
 - Review raised one contract bug on the published head: `canonicalize()` matched the forbidden set against a trimmed copy, so a leading or trailing newline, tab or control was removed before it could be refused and `Lunch\n` was accepted as `Lunch`. The forbidden set is now matched against the raw input, after blankness is settled and before any trimming or collapsing, with leading/trailing regressions in the domain and codec suites.
+- Review raised a second contract bug on the same head: the editor capped the raw field text at 24 while the domain caps the canonical value, so a pasted name whose length came from collapsible whitespace could be cut down and stored as a shorter name the reader never typed. The field no longer caps anything; it shows a counter read from the canonical length, and a name past the limit is refused through the existing validation path.
 - Review also raised the stale published-state wording in this brief, which this section replaces.
 - Slice B remains deferred at its design gate. No migration exists.
 - No hosted Supabase mutation has occurred at any point in this task.
