@@ -1,4 +1,5 @@
 import 'meal_categories_validation.dart';
+import 'meal_category_display_name_policy.dart';
 
 /// Canonical semantic role of a built-in Meal Category.
 ///
@@ -26,6 +27,11 @@ enum MealCategoryDefaultKey {
 ///
 /// [id] is immutable and intentionally separate from [displayName]. Renaming,
 /// reordering, or archiving a category never changes its durable identity.
+///
+/// [displayName] is canonicalized by [MealCategoryDisplayNamePolicy] here, in
+/// the constructor, rather than at each call site. The codec, the controller
+/// and any direct caller therefore all get the same stored value and the same
+/// refusals: there is no route into this type that skips the name contract.
 final class MealCategory {
   MealCategory({
     required String id,
@@ -34,7 +40,7 @@ final class MealCategory {
     required this.active,
     required int order,
   })  : id = _validateId(id),
-        displayName = _normalizeDisplayName(displayName),
+        displayName = MealCategoryDisplayNamePolicy.canonicalize(displayName),
         order = _validateOrder(order);
 
   final String id;
@@ -95,17 +101,6 @@ String _validateId(String value) {
     );
   }
   return value;
-}
-
-String _normalizeDisplayName(String value) {
-  final normalized = value.trim();
-  if (normalized.isEmpty) {
-    throw const MealCategoriesValidationException(
-      code: MealCategoriesValidationCode.blankDisplayName,
-      message: 'Meal Category displayName must not be blank.',
-    );
-  }
-  return normalized;
 }
 
 int _validateOrder(int value) {

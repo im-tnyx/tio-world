@@ -228,7 +228,10 @@ void main() {
         ),
         home: ArchivedMealCategoriesPage(
           repository: _Repository(
-            stored: _config(archived: ['A Very Long Archived Category Name']),
+            // The longest name the domain will now store: 24 graphemes.
+            // Anything longer is refused at construction, so this is the
+            // real worst case the row has to lay out.
+            stored: _config(archived: ['Late Night Second Dinner']),
           ),
         ),
       ),

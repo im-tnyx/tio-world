@@ -1,6 +1,7 @@
 import 'meal_categories_validation.dart';
 import 'meal_category.dart';
 import 'meal_category_defaults.dart';
+import 'meal_category_display_name_policy.dart';
 
 /// Canonical validation owner for Meal Category configuration.
 abstract final class MealCategoriesPolicy {
@@ -26,7 +27,6 @@ abstract final class MealCategoriesPolicy {
   /// another.
   static const int maxRetainedMealCategories = 32;
 
-  static final RegExp _whitespace = RegExp(r'\s+');
   static final RegExp _customIdPattern = RegExp(
     r'^meal_slot_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
   );
@@ -39,8 +39,13 @@ abstract final class MealCategoriesPolicy {
   /// open — a name rejected here after the sheet closed costs the reader
   /// everything they typed. One algorithm, so the editor cannot accept
   /// something the domain will refuse a moment later, or the reverse.
+  ///
+  /// Kept as the name callers already reach for, but it owns nothing: the
+  /// whitespace rule lives in [MealCategoryDisplayNamePolicy] alongside the
+  /// rule that produces the stored value, so comparison and storage cannot
+  /// drift into two different ideas of the same name.
   static String normalizeDisplayName(String value) =>
-      value.replaceAll(_whitespace, ' ').trim().toLowerCase();
+      MealCategoryDisplayNamePolicy.comparisonKey(value);
 
   static void validate({
     required int schemaVersion,

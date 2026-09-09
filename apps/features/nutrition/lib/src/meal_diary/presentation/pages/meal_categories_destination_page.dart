@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:tio_core/core.dart';
 
 import '../../../domain/models/meal_category.dart';
+import '../../../domain/models/meal_category_display_name_policy.dart';
 import '../../../domain/repositories/meal_categories_repository.dart';
 import '../../../presentation/widgets/nutrition_settings_widgets.dart';
 import '../../../domain/usecases/meal_category_id_generator.dart';
@@ -857,6 +858,22 @@ class _NameEditorSheetState extends State<_NameEditorSheet> {
         onChanged: (_) {},
         hint: 'Category name',
         errorText: _error,
+        // The limit is shown, not imposed on the keystroke.
+        //
+        // `maxLength` would cap the raw field text, and the domain caps the
+        // canonical value, which are not the same number: `Pre` and `Workout`
+        // separated by twenty spaces is thirty characters here and eleven once
+        // stored. Capping the raw text would have let the field swallow the
+        // second word of a pasted name and store `Pre` — a name nobody typed —
+        // while the domain would have accepted the whole thing.
+        //
+        // So nothing is truncated. The counter reads the canonical length, the
+        // same one the domain checks, and a name past the limit is refused
+        // through the validation path below, which keeps the sheet open and
+        // holds what was typed.
+        helperText: '${MealCategoryDisplayNamePolicy.canonicalLength(
+          _controller.text,
+        )}/${MealCategoryDisplayNamePolicy.maxLength}',
         autofocus: true,
         textInputAction: TextInputAction.done,
         onSubmitted: (_) => _submit(),

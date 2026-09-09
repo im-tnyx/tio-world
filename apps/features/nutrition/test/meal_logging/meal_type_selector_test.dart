@@ -830,7 +830,7 @@ void main() {
         size: const Size(320, 640),
         textScale: 1.6,
         stored: _config(
-          renamed: {'meal_slot_2': 'A Very Long Custom Meal Category Name'},
+          renamed: {'meal_slot_2': 'Late Night Second Dinner'},
         ),
       );
       await _openSelector(tester);
@@ -1069,7 +1069,7 @@ void main() {
         size: const Size(320, 640),
         textScale: 1.6,
         stored: _config(
-          renamed: {'meal_slot_1': 'A Very Long Custom Meal Category Name'},
+          renamed: {'meal_slot_1': 'Late Night Second Dinner'},
         ),
       );
       await _openSelector(tester);

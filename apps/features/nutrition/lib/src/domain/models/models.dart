@@ -4,6 +4,7 @@ export 'meal_categories_policy.dart';
 export 'meal_categories_transition_policy.dart';
 export 'meal_categories_validation.dart';
 export 'meal_category.dart';
+export 'meal_category_display_name_policy.dart';
 export 'nutrient_goal_semantics.dart';
 export 'nutrition_profile_data.dart';
 export 'nutrition_profile_vocabulary.dart';

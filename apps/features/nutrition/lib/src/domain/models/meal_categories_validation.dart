@@ -4,6 +4,8 @@ enum MealCategoriesValidationCode {
   emptyId,
   invalidId,
   blankDisplayName,
+  displayNameTooLong,
+  invalidDisplayNameCharacters,
   negativeOrder,
   duplicateId,
   duplicateOrder,
