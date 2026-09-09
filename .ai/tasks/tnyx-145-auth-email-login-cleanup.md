@@ -19,19 +19,19 @@
 **Review owner:** Codex
 **Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-09
+**Repository state last verified:** 2026-09-09 after PR #232 publication and exact-head CI completion
 **Branch:** `tnyx/tnyx-145-auth-cleanup`
-**HEAD SHA:** `4b808a0bf6825f02aa96c902bbd2168085cd8a75`
-**Observed working-tree state:** Fresh branch tracks `origin/main`; approved task changes are implemented and validated but not yet committed.
+**HEAD SHA:** Published implementation head `60e5212b03685ff3bed2adbb8d2ab7ef8c81c253`; this governance-only handoff correction becomes the next branch head.
+**Observed working-tree state:** PR #232 is published from the scoped implementation commit. The only new task-owned working-tree change is this review-requested task-brief correction.
 **Observed uncommitted/dirty files:** Pre-existing `pubspec.lock` modification and `.ai/tasks/tnyx-54-nutrition-ia-readiness.md` untracked file; both are outside scope and must remain untouched.
-**PR / tracker:** GitHub #194; Linear TNYX-145 set to `In Progress` with Phase 1 evidence comment.
-**Current implementation state:** Dead implementation/export removed; stale exact-name task-note references corrected; canonical login/router/session source unchanged.
+**PR / tracker:** GitHub PR #232 is open and mergeable; GitHub #194 is linked for closure on merge; Linear TNYX-145 is `In Progress`, links PR #232, and records the validation outcome.
+**Current implementation state:** Commit `60e5212b` removed the dead implementation/export and corrected stale exact-name task-note references; canonical login/router/session source remains unchanged.
 **Relevant execution surface:** `apps/features/auth`, existing app router and session route policy tests.
-**Validation completed at SHA:** Working tree based on `4b808a0bf6825f02aa96c902bbd2168085cd8a75`; focused Auth/app analyze, canonical login widget tests, session route-policy tests, zero-reference search, and canonical-source diff audit passed.
-**Validation remaining:** Final post-commit parent-to-head scope audit and exact-head CI after push.
+**Validation completed at SHA:** Local focused validation and scope audit passed on commit `60e5212b`; GitHub Actions `Flutter CI` run `34322989738` completed successfully on that exact head, including Flutter/Dart analyze and tests.
+**Validation remaining:** No runtime validation remains for the implementation commit. Observe exact-head CI after pushing this task-brief-only review correction.
 **Current blocker:** None.
-**Open review finding IDs:** None.
-**Next exact action:** Run final Git checks, commit scoped files, push, open PR, and update Linear.
+**Open review finding IDs:** `PRRT_kwDOTOXwB86gi0i1` — stale committed handoff; source correction in progress.
+**Next exact action:** Validate, commit, and push only this task brief; observe the new exact-head CI; then resolve the review thread. Do not merge.
 
 ## Global UI / Design-System Guardrail
 
@@ -123,7 +123,8 @@ Unchanged. The removed source has no runtime consumer; canonical `LoginPage` con
 - [x] Confirm canonical route/session source remains unchanged.
 - [x] Run focused Auth/app analyze and route/session tests.
 - [x] Run exact zero-reference and pre-commit Git scope checks.
-- [ ] Commit, push, open PR, and update Linear with validation/PR link.
+- [x] Commit and push the scoped implementation, open PR #232, and update Linear with the PR link and validation outcome.
+- [ ] Publish this task-brief-only review correction, observe exact-head CI, and resolve the review thread.
 
 ## 6. Quality Review
 
@@ -149,6 +150,10 @@ Canonical router/session/page/test diff versus origin/main
 
 git diff --check
   - PASS
+
+GitHub Actions Flutter CI run 34322989738
+  - PASS on exact implementation head 60e5212b
+  - bootstrap, Flutter/Dart analyze, and Flutter/Dart tests passed
 ```
 
 ### Review Findings and Resolution
@@ -156,6 +161,7 @@ git diff --check
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
 | None | — | Resolved | No pre-implementation blockers or overlapping PRs found | `4b808a0b` | Phase 1 audit |
+| `PRRT_kwDOTOXwB86gi0i1` | Medium | Open | Committed handoff retained stale pre-commit/PR/CI state | `60e5212b` | Corrected in this task-brief-only follow-up; validate before marking resolved |
 
 ## 7. Final Handoff
 
@@ -173,8 +179,8 @@ git diff --check
 
 ### Known Limitations
 
-- Exact-head GitHub CI remains to be observed after the PR is pushed.
 - The focused Auth test emitted the pre-existing `use-material-design` package/root warning; all tests still passed.
+- PR #232 remains open and intentionally unmerged.
 
 ### Final Status
 
