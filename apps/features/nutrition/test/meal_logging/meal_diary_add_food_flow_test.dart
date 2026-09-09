@@ -887,7 +887,7 @@ void main() {
       // Corrected for the activated selector. This flow opens Quick Add with
       // no category source, and with none the control is honestly inert and
       // still names nothing — it invites a choice rather than guessing one.
-      expect(find.text('Select meal type'), findsOne);
+      expect(find.text('Meal type'), findsOne);
       expect(
         tester.getSemantics(find.byKey(_footerCategory)),
         matchesSemantics(
@@ -1406,7 +1406,7 @@ void main() {
         expected.outlineStrong.withAlpha(TioAlpha.alpha20),
         reason: '$mode: the footer rule follows the active outline',
       );
-      expect(textColorOf(tester, 'Select meal type'), expected.textPrimary);
+      expect(textColorOf(tester, 'Meal type'), expected.textPrimary);
       expect(
         tester
             .widget<SvgPicture>(

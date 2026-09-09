@@ -366,7 +366,7 @@ void main() {
       await _pumpQuickAdd(tester, clock: DateTime(2026, 9, 9, 13, 0));
 
       expect(find.text('Lunch'), findsOne);
-      expect(find.text('Select meal type'), findsNothing);
+      expect(find.text('Meal type'), findsNothing);
     });
 
     testWidgets('a renamed Lunch is still what lunchtime offers',
@@ -418,7 +418,7 @@ void main() {
         stored: _config(archived: {'meal_slot_2'}),
       );
 
-      expect(find.text('Select meal type'), findsOne);
+      expect(find.text('Meal type'), findsOne);
     });
 
     testWidgets('nothing is suggested while the categories are still loading',
@@ -437,15 +437,15 @@ void main() {
         ),
       );
       await tester.pump();
-      // Neutral while the read is in flight, not the invitation: that is a
-      // final state, and showing it here made the control flip from one
-      // meaningful answer to another a moment later.
+      // One wording for every unselected state, so nothing flips on the way
+      // to an answer: `Meal type` while the read is in flight, and the same
+      // `Meal type` if it turns out there is nothing to suggest.
       expect(find.text('Meal type'), findsOne);
-      expect(find.text('Select meal type'), findsNothing);
 
       repo.readGate!.complete();
       await tester.pumpAndSettle();
       expect(find.text('Lunch'), findsOne);
+      expect(find.text('Meal type'), findsNothing);
     });
 
     testWidgets('changing the time moves the suggestion with it',

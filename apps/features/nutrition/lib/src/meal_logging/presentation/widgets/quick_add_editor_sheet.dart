@@ -479,15 +479,15 @@ extension _QuickAddCategories on _QuickAddEditorSheetState {
 
   /// What the control reads before anything is selected.
   ///
-  /// `Meal type` while the categories are still arriving, not `Select meal
-  /// type`. The invitation is a final state — it means "there is nothing here,
-  /// choose one" — and showing it during the read made the control flip from
-  /// one meaningful answer to another a moment later. It also invited a tap
-  /// that could not be honoured yet.
-  String get _categoryPlaceholder =>
-      _categories?.state.status == MealCategoriesStatus.loading
-          ? 'Meal type'
-          : 'Select meal type';
+  /// One wording for every such state, and the short one. `Select meal type`
+  /// said the same thing at greater length — the chevron beside it already
+  /// says the control opens something — and having a separate loading wording
+  /// only moved the flip rather than removing it: the reader saw `Meal type`
+  /// and then `Select meal type`, two labels for one situation.
+  ///
+  /// It is also the widest thing this control ever has to show before a
+  /// category is picked, so the short form is what keeps it off the date.
+  String get _categoryPlaceholder => 'Meal type';
 
   /// Spoken as a label and a value, never as an identity.
   String get _categorySemanticLabel {
