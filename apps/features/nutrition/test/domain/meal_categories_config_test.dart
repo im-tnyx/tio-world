@@ -580,6 +580,9 @@ void main() {
     final lineSeparator = String.fromCharCode(0x2028);
     final paragraphSeparator = String.fromCharCode(0x2029);
     final noBreakSpace = String.fromCharCode(0xA0);
+    final zeroWidthSpace = String.fromCharCode(0x200B);
+    final zeroWidthNonJoiner = String.fromCharCode(0x200C);
+    final zeroWidthJoiner = String.fromCharCode(0x200D);
 
     // One grapheme, seven code points, held together by zero-width joiners.
     // Counted in UTF-16 code units it is eleven.
@@ -754,6 +757,88 @@ void main() {
         custom('$noBreakSpace Lunch $noBreakSpace').displayName,
         'Lunch',
         reason: 'a space separator is not a control character',
+      );
+    });
+
+    test('rejects a name made of nothing but zero-width spaces', () {
+      // The sharpest case. U+200B is not matched by `\s` and is not Unicode
+      // White_Space, so `trim()` leaves it and the blank check never sees it.
+      // Without a rule of its own this stored a category with an invisible
+      // label.
+      expect(() => custom(zeroWidthSpace), throwsInvalidCharacters());
+      expect(() => custom(zeroWidthSpace * 4), throwsInvalidCharacters());
+      expect(
+        zeroWidthSpace.trim(),
+        isNotEmpty,
+        reason: 'this is why the blank check cannot catch it',
+      );
+    });
+
+    test('rejects a zero-width space at either end of a name', () {
+      expect(() => custom('${zeroWidthSpace}Lunch'), throwsInvalidCharacters());
+      expect(() => custom('Lunch$zeroWidthSpace'), throwsInvalidCharacters());
+      expect(
+        () => custom('  ${zeroWidthSpace}Lunch  '),
+        throwsInvalidCharacters(),
+        reason: 'trimmable spaces around it do not carry it out',
+      );
+    });
+
+    test('rejects a zero-width space embedded in a name', () {
+      expect(
+        () => custom('Pre${zeroWidthSpace}Workout'),
+        throwsInvalidCharacters(),
+      );
+      expect(
+        () => custom('Pre$zeroWidthSpace Workout'),
+        throwsInvalidCharacters(),
+        reason: 'an invisible break beside a real space is still refused',
+      );
+    });
+
+    test('a canonical default rename cannot take a zero-width space either',
+        () {
+      final lunch =
+          MealCategoriesConfig.canonicalDefaults().findById('meal_slot_2')!;
+
+      expect(
+        () => lunch.renamed('Pre${zeroWidthSpace}Workout'),
+        throwsInvalidCharacters(),
+      );
+    });
+
+    test('ZWNJ stays accepted where the name is otherwise valid', () {
+      // U+200C is required for correct Hindi and Persian text. The rule names
+      // one code point rather than a class precisely so this keeps working.
+      expect(
+        custom('Pre${zeroWidthNonJoiner}Workout').displayName,
+        'Pre${zeroWidthNonJoiner}Workout',
+      );
+      expect(
+        custom('अ$zeroWidthNonJoinerआ').displayName,
+        'अ$zeroWidthNonJoinerआ',
+      );
+    });
+
+    test('ZWJ stays accepted, inside an emoji and on its own', () {
+      // The owner contract keeps U+200D allowed. The family emoji regressions
+      // above cover the cluster; this pins the code point itself.
+      expect(
+        custom('Pre${zeroWidthJoiner}Workout').displayName,
+        'Pre${zeroWidthJoiner}Workout',
+      );
+      expect(custom(family * limit).displayName, family * limit);
+    });
+
+    test('the rejection is one named code point, not a class of them', () {
+      // U+2060 WORD JOINER sits outside the boundary the owner locked. Pinned
+      // so widening the rule to "all format characters" fails here and gets
+      // an owner decision rather than arriving by accident.
+      final wordJoiner = String.fromCharCode(0x2060);
+
+      expect(
+        custom('Pre${wordJoiner}Workout').displayName,
+        'Pre${wordJoiner}Workout',
       );
     });
 

@@ -32,16 +32,33 @@ abstract final class MealCategoryDisplayNamePolicy {
   /// What can never appear inside a stored name.
   ///
   /// C0 controls (tab, newline and carriage return among them), DEL, the C1
-  /// block, and the Unicode line and paragraph separators. A category name is
-  /// one line of text; anything that would break it into two, or that no font
-  /// renders, is refused rather than quietly stripped.
+  /// block, the Unicode line and paragraph separators, and U+200B ZERO WIDTH
+  /// SPACE. A category name is one line of text; anything that would break it
+  /// into two, or that no font renders, is refused rather than quietly
+  /// stripped.
   ///
-  /// Note what is *not* here: U+200D and the other formatting code points that
-  /// hold a multi-part emoji together. Rejecting non-printing characters as a
-  /// class would tear valid grapheme clusters apart, so the rule names the
-  /// line-breaking and control ranges instead.
+  /// U+200B is here for a reason the others do not share. It is not matched by
+  /// `\s`, which stops at U+200A, and it is not Unicode White_Space, so
+  /// `String.trim()` leaves it alone. A name made of nothing but zero-width
+  /// spaces would therefore pass the blank check and be stored as a category
+  /// with an invisible label, and one embedded mid-word would sit in a
+  /// single-line name as a break opportunity nobody can see or delete.
+  ///
+  /// This is a named code point, not a class. There is deliberately no rule
+  /// against format or default-ignorable characters in general:
+  ///
+  /// - U+200C ZWNJ is required for correct Hindi and Persian text, which this
+  ///   product is written for;
+  /// - U+200D ZWJ holds multi-part emoji together, and the owner contract
+  ///   keeps it allowed;
+  /// - U+2060 WORD JOINER carries different Unicode semantics and is outside
+  ///   the boundary the owner has locked.
+  ///
+  /// Rejecting non-printing characters as a class would tear valid grapheme
+  /// clusters and valid Devanagari apart, so the rule names ranges and code
+  /// points instead.
   static final RegExp _forbidden = RegExp(
-    r'[\u0000-\u001F\u007F-\u009F\u2028\u2029]',
+    r'[\u0000-\u001F\u007F-\u009F\u2028\u2029\u200B]',
   );
 
   /// The exact value a name is stored as, or a typed refusal.

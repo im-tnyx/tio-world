@@ -13,6 +13,7 @@ Slice A is implemented and published for review on the branch above. Nothing is 
 
 - Review raised one contract bug on the published head: `canonicalize()` matched the forbidden set against a trimmed copy, so a leading or trailing newline, tab or control was removed before it could be refused and `Lunch\n` was accepted as `Lunch`. The forbidden set is now matched against the raw input, after blankness is settled and before any trimming or collapsing, with leading/trailing regressions in the domain and codec suites.
 - Review raised a second contract bug on the same head: the editor capped the raw field text at 24 while the domain caps the canonical value, so a pasted name whose length came from collapsible whitespace could be cut down and stored as a shorter name the reader never typed. The field no longer caps anything; it shows a counter read from the canonical length, and a name past the limit is refused through the existing validation path.
+- Review raised a third contract bug: U+200B ZERO WIDTH SPACE passed every check, because it is not matched by `\s` and is not Unicode White_Space, so a category could be stored with a visually blank label or an invisible break inside it. U+200B is now named in the forbidden set. The set stays a list of ranges and code points rather than a class: U+200C ZWNJ is required for correct Hindi and Persian text, U+200D ZWJ is owner-locked as allowed, and U+2060 WORD JOINER is outside the locked boundary.
 - Review also raised the stale published-state wording in this brief, which this section replaces.
 - Slice B remains deferred at its design gate. No migration exists.
 - No hosted Supabase mutation has occurred at any point in this task.
@@ -56,7 +57,7 @@ Current `MealCategory` only trims `displayName`. It does not enforce the 24-grap
 
 `MealCategoriesConfigCodec.decode()` constructs `MealCategory`, so constructor-level hardening will protect persisted-state reads and direct domain callers without a second codec algorithm.
 
-The add/rename editor already uses canonical `TioInput`. Core already exposes `maxLength` and `inputFormatters`; no Core redesign is required.
+The add/rename editor already uses canonical `TioInput`, which exposes `helperText`; no Core redesign is required. `maxLength` is deliberately not used, for the reason recorded under Controller/editor below.
 
 Nutrition does not declare `characters` directly, although `apps/features/nutrition/pubspec.lock` currently resolves `characters 1.4.1` transitively. Grapheme semantics must be an explicit Nutrition dependency if imported by the domain.
 
@@ -113,12 +114,13 @@ Expected public contract direction:
 MealCategoryDisplayNamePolicy.maxLength = 24
 MealCategoryDisplayNamePolicy.canonicalize(raw) -> canonical stored value
 MealCategoryDisplayNamePolicy.comparisonKey(raw/canonical) -> case-insensitive duplicate key
+MealCategoryDisplayNamePolicy.canonicalLength(raw) -> graphemes the domain will count
 ```
 
 `canonicalize` must:
 
 1. return `blankDisplayName` for all-whitespace input;
-2. reject controls/line-breaking input deterministically;
+2. reject controls/line-breaking input deterministically, including U+200B, which `trim()` and `\s` both leave alone;
 3. collapse allowed repeated whitespace and trim;
 4. count `.characters.length` after canonicalization;
 5. reject >24 with a dedicated validation code;
@@ -147,7 +149,9 @@ Add/rename must store the domain canonical value, not their own independent `tri
 
 The existing editor must remain the existing `TioInput` surface. No new feature-specific Core component and no Core visual variant.
 
-Expose/enforce the 24-character limit while typing. Flutter `TextField`/`TextFormField.maxLength` uses user-perceived Unicode characters; domain enforcement remains authoritative and must still reject >24 if a non-UI caller bypasses the editor.
+Show the limit while typing; do not impose it on the keystroke. `TioInput.maxLength` caps the raw field text, and the domain caps the canonical value, which are not the same number: `Pre` and `Workout` separated by twenty-five spaces is thirty-five characters in the field and eleven once stored. A raw cap would cut such a paste down and store a shorter name the reader never typed, while the domain would have accepted the whole thing.
+
+The editor therefore carries no `maxLength`. It shows `MealCategoryDisplayNamePolicy.canonicalLength()` as a counter against the limit, which reads through the same collapse the stored value does, and a name past the limit is refused through the existing validation path, which keeps the sheet open and holds what was typed. Domain enforcement remains authoritative and must still reject >24 if a non-UI caller bypasses the editor.
 
 Do not silently truncate at save time.
 
@@ -165,7 +169,10 @@ Add focused coverage for:
 - active duplicate behavior preserved after canonical storage normalization;
 - canonical/default rename and custom add use the same policy;
 - codec/direct `MealCategory` construction cannot bypass limit/control rules;
-- editor exposes 24 max length and still preserves current in-place deterministic error behavior.
+- editor carries no raw cap, shows a canonical-length counter, and still preserves current in-place deterministic error behavior;
+- a raw value long only because of collapsible whitespace reaches the domain whole rather than being cut into a different name;
+- U+200B rejected leading, trailing, embedded and alone, through construction and through the codec;
+- U+200C ZWNJ and U+200D ZWJ remain accepted.
 
 Run at least:
 

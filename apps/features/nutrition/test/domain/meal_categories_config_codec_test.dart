@@ -415,6 +415,48 @@ void main() {
       );
     });
 
+    test('a persisted zero-width space cannot be read back in', () {
+      // A row written straight to the API. U+200B survives `trim()`, so
+      // without its own rule this decoded into a category with an invisible
+      // label.
+      final zeroWidthSpace = String.fromCharCode(0x200B);
+
+      for (final stored in [
+        zeroWidthSpace,
+        '${zeroWidthSpace}Pre Workout',
+        'Pre Workout$zeroWidthSpace',
+        'Pre${zeroWidthSpace}Workout',
+      ]) {
+        expect(
+          () => MealCategoriesConfigCodec.decode(configWith(stored)),
+          _throwsCode(
+            MealCategoriesValidationCode.invalidDisplayNameCharacters,
+          ),
+        );
+      }
+    });
+
+    test('a persisted ZWNJ or ZWJ is still read back', () {
+      // The rule names one code point, not a class, so Hindi and Persian
+      // names and emoji clusters keep decoding.
+      final zeroWidthNonJoiner = String.fromCharCode(0x200C);
+      final zeroWidthJoiner = String.fromCharCode(0x200D);
+
+      for (final stored in [
+        'Pre${zeroWidthNonJoiner}Workout',
+        'Pre${zeroWidthJoiner}Workout',
+      ]) {
+        final decoded = MealCategoriesConfigCodec.decode(configWith(stored))!;
+
+        expect(
+          decoded
+              .findById('meal_slot_00000000-0000-4000-8000-000000000001')!
+              .displayName,
+          stored,
+        );
+      }
+    });
+
     test('a stored name is canonicalized on the way in', () {
       final decoded =
           MealCategoriesConfigCodec.decode(configWith('  Pre   Workout  '))!;
