@@ -209,3 +209,23 @@ flutter analyze  core / nutrition / app     No issues found
 flutter test     core 266 · nutrition 494 · app 305    all passed
 git diff --check origin/main...HEAD         clean
 ```
+
+## 9. Owner UI approval — 2026-09-09
+
+The owner reviewed the running app and accepted the surface. What that
+covers, after the corrections it took to get there:
+
+```text
+floating card, not a bottom sheet         corrected during review
+above the footer, footer unmoved          corrected during review
+two switches, one tap between them        corrected during review
+menu rows, not cards inside a card        corrected during review
+one wording for an unselected control     corrected during review
+sheet actions land where onboarding's do  corrected during review
+```
+
+The visual contract is locked from here. Changing the card's placement, its
+sizing rule, the row treatment or the footer's bottom gap is a new decision,
+not a refinement of this one.
+
+Still owner-gated: merge authorization. Nothing is merged.
