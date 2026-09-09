@@ -589,6 +589,150 @@ select pg_temp.expect_pair(
   'BOUNDARY: upper-case duplicate customs are accepted here'
 );
 
+-- ---------------------------------------------------------------------------
+-- Reserved tokens spelled with the two non-ASCII code points that the pinned
+-- Dart runtime lowercases into ASCII letters.
+--
+-- Every valid scalar except surrogates was scanned on Dart 3.12.2 and exactly
+-- two qualify: U+0130 reaches `dinner`, U+212A reaches `breakfast` and
+-- `snacks`. `lunch` is unreachable. An A-Z fold left all of these looking like
+-- ordinary names, so a direct API write could park DINNER-with-U+0130 on a
+-- custom category and the app would then refuse to read the row back.
+--
+-- Built from chr() rather than pasted, so each case is readable in the source.
+do $$
+declare
+  v_dotted_i text := pg_catalog.chr(304);
+  v_kelvin text := pg_catalog.chr(8490);
+  v_name text;
+  v_owner text;
+begin
+  -- Active custom holding a Unicode-spelled reserved token: refused.
+  foreach v_name in array array[
+    'D' || v_dotted_i || 'NNER',
+    'd' || v_dotted_i || 'nner',
+    'D' || v_dotted_i || 'nner',
+    'SNAC' || v_kelvin || 'S',
+    'snac' || v_kelvin || 's',
+    'BREA' || v_kelvin || 'FAST',
+    'brea' || v_kelvin || 'fast'
+  ]
+  loop
+    perform pg_temp.assert_true(
+      not private.is_valid_meal_categories_config_v1(
+        pg_temp.config_with_name(v_name)
+      ),
+      pg_catalog.format(
+        'active custom must not hold Unicode-spelled reserved token %s', v_name
+      )
+    );
+  end loop;
+
+  -- The same names archived: still refused, because the reservation is not the
+  -- active-only duplicate rule.
+  foreach v_name in array array[
+    'D' || v_dotted_i || 'NNER',
+    'SNAC' || v_kelvin || 'S',
+    'BREA' || v_kelvin || 'FAST'
+  ]
+  loop
+    perform pg_temp.assert_true(
+      not private.is_valid_meal_categories_config_v1(
+        pg_temp.config_with_owner_and_custom_names(
+          'meal_slot_2', 'Lunch', v_name, false
+        )
+      ),
+      pg_catalog.format(
+        'archived custom must not hold Unicode-spelled reserved token %s',
+        v_name
+      )
+    );
+  end loop;
+
+  -- The correct canonical owner may spell its own token that way.
+  perform pg_temp.assert_true(
+    private.is_valid_meal_categories_config_v1(
+      pg_temp.config_with_canonical_name(
+        'meal_slot_3', 'D' || v_dotted_i || 'NNER'
+      )
+    ),
+    'meal_slot_3 may spell DINNER with U+0130'
+  );
+  perform pg_temp.assert_true(
+    private.is_valid_meal_categories_config_v1(
+      pg_temp.config_with_canonical_name(
+        'meal_slot_4', 'SNAC' || v_kelvin || 'S'
+      )
+    ),
+    'meal_slot_4 may spell SNACKS with U+212A'
+  );
+  perform pg_temp.assert_true(
+    private.is_valid_meal_categories_config_v1(
+      pg_temp.config_with_canonical_name(
+        'meal_slot_1', 'BREA' || v_kelvin || 'FAST'
+      )
+    ),
+    'meal_slot_1 may spell BREAKFAST with U+212A'
+  );
+
+  -- A different canonical identity may not.
+  perform pg_temp.assert_true(
+    not private.is_valid_meal_categories_config_v1(
+      pg_temp.config_with_reserved_assignment(
+        'meal_slot_2', 'meal_slot_3', 'D' || v_dotted_i || 'NNER'
+      )
+    ),
+    'meal_slot_2 must not take DINNER spelled with U+0130'
+  );
+  perform pg_temp.assert_true(
+    not private.is_valid_meal_categories_config_v1(
+      pg_temp.config_with_reserved_assignment(
+        'meal_slot_1', 'meal_slot_4', 'SNAC' || v_kelvin || 'S'
+      )
+    ),
+    'meal_slot_1 must not take SNACKS spelled with U+212A'
+  );
+
+  -- Renaming the owner away releases nothing, in this spelling too.
+  perform pg_temp.assert_true(
+    not private.is_valid_meal_categories_config_v1(
+      pg_temp.config_with_owner_and_custom_names(
+        'meal_slot_3', 'Evening Meal', 'D' || v_dotted_i || 'NNER', true
+      )
+    ),
+    'DINNER stays reserved while meal_slot_3 is called something else'
+  );
+
+  -- The fold is exactly these two code points and nothing wider. A name that
+  -- merely contains one of them is an ordinary name.
+  foreach v_name in array array[
+    'D' || v_dotted_i || 'NNERS',
+    'Mid ' || v_kelvin || 'eal',
+    'Snac' || v_kelvin
+  ]
+  loop
+    perform pg_temp.assert_true(
+      private.is_valid_meal_categories_config_v1(
+        pg_temp.config_with_name(v_name)
+      ),
+      pg_catalog.format('%s is an ordinary name, not a reserved token', v_name)
+    );
+  end loop;
+
+  -- And the fold has not turned into general case folding: a Greek or Turkish
+  -- variant of an ordinary name is still an ordinary distinct name, which is
+  -- what keeps the app-authoritative duplicate gap where it is.
+  perform pg_temp.assert_true(
+    private.is_valid_meal_categories_config_v1(
+      pg_temp.config_with_two_customs(
+        'Pre Workout', true, 'PRE WORKOUT', true
+      )
+    ),
+    'case-only ordinary duplicates remain accepted here, as documented'
+  );
+end;
+$$;
+
 -- The TNYX-67 rules must still hold. The name checks are additions, not a
 -- replacement, so every one of these has to fail for its original reason.
 do $$

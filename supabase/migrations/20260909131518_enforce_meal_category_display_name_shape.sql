@@ -75,13 +75,42 @@
 -- the length limit. A test pins this boundary so it cannot later be mistaken
 -- for full parity.
 --
--- RESERVED ASCII TOKENS
+-- RESERVED TOKENS
 --
--- The four reserved words are ASCII. Their ownership check therefore uses an
--- explicit ASCII-only fold with `translate()`, not PostgreSQL `lower()`,
--- locale-dependent comparison, citext, ICU equality or a generic Unicode
--- normalization rule. This exact rule is separate from the ordinary Unicode
--- case-only duplicate gap above.
+-- The four reserved words are ASCII, but the fold that recognises them is not
+-- quite ASCII-only, and an ASCII-only fold was wrong.
+--
+-- The merged app compares through Dart `String.toLowerCase()`. Two non-ASCII
+-- code points lowercase to plain ASCII letters there, so `DINNER` written with
+-- U+0130 and `SNACKS` written with U+212A are reserved tokens to the app while
+-- an A-Z fold leaves them untouched. A client writing straight to the API could
+-- park either on a custom category, and the app would then refuse to read the
+-- row back.
+--
+-- The pair is not guessed and not taken from Unicode tables. Every valid
+-- scalar except surrogates -- 1,111,936 of them -- was run through
+-- `toLowerCase()` on the pinned runtime, Dart 3.12.2 / Flutter 3.44.6, and
+-- exactly two produce pure ASCII lowercase letters:
+--
+--   * U+0130 LATIN CAPITAL LETTER I WITH DOT ABOVE -> `i`, which reaches
+--     `dinner`;
+--   * U+212A KELVIN SIGN -> `k`, which reaches `breakfast` and `snacks`.
+--
+-- `lunch` is unreachable: none of its letters has a non-ASCII source. Both
+-- mappings were then confirmed through the merged
+-- `MealCategoriesPolicy.reservedOwnerIdFor()` itself rather than inferred.
+--
+-- So the fold stays a finite explicit list -- A-Z plus those two -- and is
+-- still not PostgreSQL `lower()`, locale-dependent comparison, citext, ICU
+-- equality, a case-insensitive regex, or NFC/NFKC. A previous audit proved
+-- `lower()` and Dart disagree in both directions, including refusing values the
+-- app accepts.
+--
+-- This is emphatically NOT general Unicode case parity. It is exactly the set
+-- that can reach these four words. The ordinary case-only duplicate gap above
+-- is a different rule and stays application-authoritative.
+--
+-- If the four reserved words ever change, this scan has to be re-run.
 --
 -- WHY THE CHARACTER SETS ARE WRITTEN OUT
 --
@@ -208,15 +237,20 @@ begin
     );
 
   -- Reserved-name ownership is permanent and applies to active and archived
-  -- items alike. The words are ASCII, so fold only ASCII A-Z explicitly.
+  -- items alike. The fold is A-Z plus the only two non-ASCII code points
+  -- that Dart lowercases into these words; see the RESERVED TOKENS header.
   with classified as (
     select
       item ->> 'id' as item_id,
       (item ->> 'active')::boolean as is_active,
+      -- Same mapping as the validator below, character for character. See
+      -- the RESERVED TOKENS header for why these two code points are here and
+      -- why nothing else is.
       case pg_catalog.translate(
         item ->> 'display_name',
-        'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-        'abcdefghijklmnopqrstuvwxyz'
+        'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+          || pg_catalog.chr(304) || pg_catalog.chr(8490),
+        'abcdefghijklmnopqrstuvwxyzik'
       )
         when 'breakfast' then 'meal_slot_1'
         when 'lunch' then 'meal_slot_2'
@@ -402,15 +436,18 @@ begin
       return false;
     end if;
 
-    -- The four original ASCII names are permanently identity-owned. The
+    -- The four original names are permanently identity-owned. The
     -- owner's current label is irrelevant: renaming Lunch to Mid Meal does not
     -- release Lunch, and Mid Meal does not become a new reserved token. This
     -- check is deliberately before active-only duplicate validation and
     -- applies to archived items too.
+    -- Same mapping as the apply-time preflight above, character for
+    -- character.
     v_reserved_owner_id := case pg_catalog.translate(
       v_display_name,
-      'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-      'abcdefghijklmnopqrstuvwxyz'
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+        || pg_catalog.chr(304) || pg_catalog.chr(8490),
+      'abcdefghijklmnopqrstuvwxyzik'
     )
       when 'breakfast' then 'meal_slot_1'
       when 'lunch' then 'meal_slot_2'
@@ -563,4 +600,4 @@ grant execute on function private.is_valid_meal_categories_config_v1(jsonb)
   to authenticated, service_role;
 
 comment on column public.user_nutrition_profiles.meal_categories_config is
-  'Versioned Meal Categories config. NULL resolves canonical runtime defaults. Retained IDs are historical identities and ordinary writes cannot remove them. Active categories: at least 1, at most 8. Maximum retained categories, archived included: 32. Canonical order by id: meal_slot_1 < meal_slot_2 < meal_slot_3 < meal_slot_4. display_name must be non-blank, free of C0/C1 controls, DEL, U+2028, U+2029 and U+200B, and already in canonical whitespace form (no outer whitespace, no repeated whitespace, ordinary U+0020 only); U+200C, U+200D and U+2060 are allowed. Breakfast, Lunch, Dinner and Snacks are permanently owned by meal_slot_1, meal_slot_2, meal_slot_3 and meal_slot_4 respectively, matched with explicit ASCII-only case folding and enforced for active and archived items. Two active categories may not carry the same stored name, compared exactly; archived ordinary duplicates are allowed. Two rules are NOT enforced here and remain owned by MealCategoryDisplayNamePolicy in the Nutrition domain: the 24 extended-grapheme-cluster limit, because PostgreSQL has no grapheme primitive and char_length would reject valid names; and ordinary Unicode case-only duplicate active names, because this database''s lower() disagrees with Dart on U+0130 and on Greek final sigma, in the latter case refusing configurations the app accepts.';
+  'Versioned Meal Categories config. NULL resolves canonical runtime defaults. Retained IDs are historical identities and ordinary writes cannot remove them. Active categories: at least 1, at most 8. Maximum retained categories, archived included: 32. Canonical order by id: meal_slot_1 < meal_slot_2 < meal_slot_3 < meal_slot_4. display_name must be non-blank, free of C0/C1 controls, DEL, U+2028, U+2029 and U+200B, and already in canonical whitespace form (no outer whitespace, no repeated whitespace, ordinary U+0020 only); U+200C, U+200D and U+2060 are allowed. Breakfast, Lunch, Dinner and Snacks are permanently owned by meal_slot_1, meal_slot_2, meal_slot_3 and meal_slot_4 respectively, matched with a finite explicit fold (A-Z plus U+0130 and U+212A, the only non-ASCII code points the pinned Dart runtime lowercases into these words) and enforced for active and archived items. Two active categories may not carry the same stored name, compared exactly; archived ordinary duplicates are allowed. Two rules are NOT enforced here and remain owned by MealCategoryDisplayNamePolicy in the Nutrition domain: the 24 extended-grapheme-cluster limit, because PostgreSQL has no grapheme primitive and char_length would reject valid names; and ordinary Unicode case-only duplicate active names, because this database''s lower() disagrees with Dart on U+0130 and on Greek final sigma, in the latter case refusing configurations the app accepts.';

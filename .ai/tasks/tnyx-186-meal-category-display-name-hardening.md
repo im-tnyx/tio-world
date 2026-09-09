@@ -23,7 +23,9 @@ Slice B is published as PR #235 and is not merged. Its existing pending
 migration version remains `20260909131518`; it enforces the exact database-side
 shape/content subset while the 24-EGC and ordinary Unicode case-only duplicate
 gaps remain application-authoritative. This reconciliation adds the exact
-ASCII reserved-token ownership rule to that same pending migration.
+reserved-token ownership rule to that same pending migration, first with an
+ASCII-only fold and then, after a further review finding, with the finite
+fold recorded below.
 
 Slice B's earlier review correction added exact stored-name uniqueness for
 active categories and aligned its migration preflight, SQL matrix, and task/PR
@@ -296,7 +298,7 @@ collapsible whitespace, every space an ordinary U+0020.
 Active display names must be unique, compared exactly as stored; archived
 ordinary duplicates stay allowed, matching the Dart scope.
 
-The four original ASCII tokens are enforced exactly and permanently by
+The four original tokens are enforced exactly and permanently by
 identity: `Breakfast -> meal_slot_1`, `Lunch -> meal_slot_2`,
 `Dinner -> meal_slot_3`, and `Snacks -> meal_slot_4`. Matching uses only
 `pg_catalog.translate(value, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
@@ -470,6 +472,95 @@ repairing or grandfathering violations. The SQL matrix covers
 owners, wrong canonical identities, active and archived customs, ASCII case
 variants, rename permanence and non-growing reservations. Hosted data and the
 migration ledger were inspected read-only; no migration was applied hosted.
+
+## Slice B review correction - Unicode-spelled reserved tokens
+
+### The finding
+
+The migration recognised reserved tokens with an ASCII-only
+`translate('A-Z','a-z')`. The merged app compares through Dart
+`String.toLowerCase()`, which folds some non-ASCII code points into plain ASCII
+letters. So `DINNER` written with U+0130, or `SNACKS` written with U+212A, is a
+reserved token to the app and an ordinary name to that fold. A client writing
+straight to the API could park either on a custom category, and the app would
+then refuse to read the row back - with the retained-ID trigger preventing a
+simple deletion.
+
+### The audit
+
+Pinned runtime: **Dart 3.12.2**, Flutter 3.44.6 stable, engine `d3a3293399`.
+
+Every valid Unicode scalar except surrogates - **1,111,936** of them - was run
+through `toLowerCase()` on that runtime and tested for a result composed only of
+ASCII lowercase letters. Exactly **two** qualify:
+
+| Code point | Character | Dart lowercase | Reserved tokens reachable |
+|---|---|---|---|
+| U+0130 LATIN CAPITAL LETTER I WITH DOT ABOVE | dotted capital I | `i` | `dinner` |
+| U+212A KELVIN SIGN | Kelvin sign | `k` | `breakfast`, `snacks` |
+
+`lunch` is unreachable: none of `l`, `u`, `n`, `c`, `h` has a non-ASCII source.
+
+Candidate words were then built from those mappings and confirmed through the
+merged `MealCategoriesPolicy.reservedOwnerIdFor()` itself, not inferred from
+Unicode tables:
+
+```text
+D<U+0130>NNER      -> dinner    -> meal_slot_3
+d<U+0130>nner      -> dinner    -> meal_slot_3
+SNAC<U+212A>S      -> snacks    -> meal_slot_4
+snac<U+212A>s      -> snacks    -> meal_slot_4
+BREA<U+212A>FAST   -> breakfast -> meal_slot_1
+  D<U+0130>NNER    -> dinner    -> meal_slot_3   (padded)
+D<U+0130>NNERS     -> dinners   -> not reserved
+Mid Meal           -> mid meal  -> not reserved
+```
+
+### The correction
+
+The fold is now `A-Z` plus exactly those two code points, written as
+`pg_catalog.chr(304)` and `pg_catalog.chr(8490)` so the file stays ASCII and the
+two code points are visible rather than invisible. The same mapping appears at
+both sites, character for character: the apply-time stored-data preflight and
+the runtime validator.
+
+Still rejected as substitutes, for the reasons already recorded: PostgreSQL
+`lower()`, `citext`, ICU collation equality, case-insensitive regex, and
+NFC/NFKC.
+
+### Why this is not general Unicode case parity
+
+This is exactly the set that can reach these four words, and nothing else. It
+says nothing about Unicode case handling in general, and it does not close the
+ordinary case-only duplicate gap, which remains application-authoritative for
+the reasons in the section above. If the four reserved words ever change, the
+scan has to be re-run.
+
+### U+180E
+
+A separate review finding proposed adding U+180E MONGOLIAN VOWEL SEPARATOR to
+the canonical whitespace set. Reviewed and closed as a false positive: the
+merged Dart `String.trim()` and `RegExp(r'\s+')` leave U+180E outside this
+contract, so rejecting it in SQL would refuse a value the app accepts. No SQL
+change.
+
+### Validation of the correction
+
+Local stack, replayed the way `supabase-db-ci.yml` does it:
+
+- all 42 migrations replayed in single transactions, ledger matching;
+- TNYX-186 display-name matrix green;
+- TNYX-67 B1 matrix green;
+- TNYX-67 two-session concurrency matrix green;
+- the preflight's `SHARE ROW EXCLUSIVE` lock verified present and conflicting;
+- `supabase db lint --local --schema public,private --level error`: no schema
+  errors;
+- mutation-verified: the new matrix fails on its first Unicode case against the
+  pre-correction validator.
+
+Hosted stayed read-only. Ledger still ends at `20260908120000`, and a count-only
+preflight with the corrected mapping found zero violations of any kind and zero
+stored names using either code point.
 
 ## Protected State
 
