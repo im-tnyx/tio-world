@@ -27,15 +27,18 @@ ASCII reserved-token ownership rule to that same pending migration.
 
 Slice B's earlier review correction added exact stored-name uniqueness for
 active categories and aligned its migration preflight, SQL matrix, and task/PR
-wording. The local SQL matrices were run successfully before this rebase; fresh
-validation is required for the reconciled head.
+wording. The reconciled source completed a fresh 42/42 migration replay, both
+TNYX-67 and TNYX-186 SQL matrices, lint comparison, mutation verification, and
+the two-session migration-lock regression.
 
 No hosted Supabase mutation has occurred at any point in this task. Hosted
 inspection and preflight remain read-only; applying the migration requires a
 separate explicit owner authorization.
 
-Next action: commit and update the same PR #235 with lease, verify exact-head CI
-and review state, and stop for final review without merging or applying hosted.
+Next action: final review of PR #235, including reviewer confirmation on the
+open U+180E evidence thread and the owner's separate merge decision. Hosted
+apply remains a separate explicitly authorized operation; do not merge or apply
+hosted from this task.
 
 ## Active Handoff
 
