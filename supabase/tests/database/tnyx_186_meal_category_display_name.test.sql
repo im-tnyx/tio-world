@@ -261,9 +261,9 @@ select pg_temp.expect_name(
   'U+2060 WORD JOINER stays outside the locked boundary'
 );
 select pg_temp.expect_name(
-  'Lunch',
+  'Brunch',
   true,
-  'a plain name is accepted'
+  'a plain name is accepted (not Lunch: that now collides with the canonical)'
 );
 select pg_temp.expect_name(
   'Pre Workout Late Night Meal',
@@ -274,6 +274,105 @@ select pg_temp.expect_name(
   pg_catalog.repeat(pg_catalog.chr(128104) || pg_catalog.chr(8205) || pg_catalog.chr(128105) || pg_catalog.chr(8205) || pg_catalog.chr(128103) || pg_catalog.chr(8205) || pg_catalog.chr(128102), 24),
   true,
   '24 family emoji: 24 graphemes and 168 code points, so a char_length guard would wrongly reject it'
+);
+
+-- Two custom categories beside the four canonical ones, so active-name
+-- uniqueness can be exercised without touching any other rule.
+create function pg_temp.config_with_two_customs(
+  p_first text, p_first_active boolean,
+  p_second text, p_second_active boolean
+)
+returns jsonb language sql immutable as $$
+  select pg_catalog.jsonb_build_object(
+    'schema_version', 1,
+    'items', pg_catalog.jsonb_build_array(
+      pg_catalog.jsonb_build_object('id', 'meal_slot_1', 'default_key', 'breakfast',
+        'display_name', 'Breakfast', 'active', true, 'order', 0),
+      pg_catalog.jsonb_build_object('id', 'meal_slot_2', 'default_key', 'lunch',
+        'display_name', 'Lunch', 'active', true, 'order', 1),
+      pg_catalog.jsonb_build_object('id', 'meal_slot_3', 'default_key', 'dinner',
+        'display_name', 'Dinner', 'active', true, 'order', 2),
+      pg_catalog.jsonb_build_object('id', 'meal_slot_4', 'default_key', 'snacks',
+        'display_name', 'Snacks', 'active', true, 'order', 3),
+      pg_catalog.jsonb_build_object(
+        'id', 'meal_slot_11111111-1111-4111-8111-111111111111',
+        'display_name', p_first, 'active', p_first_active, 'order', 4),
+      pg_catalog.jsonb_build_object(
+        'id', 'meal_slot_22222222-2222-4222-8222-222222222222',
+        'display_name', p_second, 'active', p_second_active, 'order', 5)
+    )
+  );
+$$;
+
+create function pg_temp.expect_pair(
+  p_first text, p_first_active boolean,
+  p_second text, p_second_active boolean,
+  p_valid boolean, p_label text
+)
+returns void language plpgsql as $$
+begin
+  perform pg_temp.assert_true(
+    private.is_valid_meal_categories_config_v1(
+      pg_temp.config_with_two_customs(
+        p_first, p_first_active, p_second, p_second_active
+      )
+    ) = p_valid,
+    p_label
+  );
+end;
+$$;
+
+-- Active display names must be unique, compared exactly as stored.
+select pg_temp.expect_name(
+  'Lunch', false,
+  'an active custom cannot reuse an active canonical name'
+);
+select pg_temp.expect_pair(
+  'Pre Workout', true, 'Pre Workout', true, false,
+  'two active customs cannot share a name'
+);
+select pg_temp.expect_pair(
+  'Pre Workout', true, 'Post Workout', true, true,
+  'two different active names are fine'
+);
+
+-- Archived names are outside the rule, which is what lets a name be reused
+-- after archiving.
+select pg_temp.expect_pair(
+  'Lunch', false, 'Post Workout', true, true,
+  'an archived custom may share a name with an active canonical'
+);
+select pg_temp.expect_pair(
+  'Pre Workout', true, 'Pre Workout', false, true,
+  'an archived duplicate of an active name is allowed'
+);
+select pg_temp.expect_pair(
+  'Pre Workout', false, 'Pre Workout', false, true,
+  'two archived duplicates are allowed'
+);
+
+-- THE BOUNDARY THIS VALIDATOR DOES NOT COVER.
+--
+-- The Dart policy refuses these, because its comparison key is lowercased.
+-- This validator accepts them, because PostgreSQL's lower() is not Dart's
+-- toLowerCase() on this database: it disagrees on U+0130, and on a Greek word
+-- spelled with a final sigma it folds two names the app keeps apart, which
+-- would make the database refuse a configuration the app accepts.
+--
+-- Asserted as accepted on purpose. If someone later adds lower() here these
+-- fail, and the failure is the point: it forces the parity question to be
+-- answered again rather than assumed.
+select pg_temp.expect_name(
+  'lunch', true,
+  'BOUNDARY: a case-only duplicate is accepted here and refused by the domain'
+);
+select pg_temp.expect_pair(
+  'Pre Workout', true, 'pre workout', true, true,
+  'BOUNDARY: case-only duplicate customs are accepted here'
+);
+select pg_temp.expect_pair(
+  'Pre Workout', true, 'PRE WORKOUT', true, true,
+  'BOUNDARY: upper-case duplicate customs are accepted here'
 );
 
 -- The TNYX-67 rules must still hold. The name checks are additions, not a

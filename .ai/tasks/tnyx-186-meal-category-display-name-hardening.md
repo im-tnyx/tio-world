@@ -25,6 +25,11 @@ shape/content subset while the 24-EGC and ordinary Unicode case-only duplicate
 gaps remain application-authoritative. This reconciliation adds the exact
 ASCII reserved-token ownership rule to that same pending migration.
 
+Slice B's earlier review correction added exact stored-name uniqueness for
+active categories and aligned its migration preflight, SQL matrix, and task/PR
+wording. The local SQL matrices were run successfully before this rebase; fresh
+validation is required for the reconciled head.
+
 No hosted Supabase mutation has occurred at any point in this task. Hosted
 inspection and preflight remain read-only; applying the migration requires a
 separate explicit owner authorization.
@@ -198,7 +203,7 @@ flutter test test/meal_diary/meal_categories_settings_test.dart
 
 Run any repository/data tests affected by the dependency or codec changes plus `git diff --check`.
 
-## Slice B - Audited and Drafted, Not Applied
+## Slice B - Implemented Locally and Published, Not Applied Hosted
 
 Verdict: **DESIGN READY**, with an enforcement boundary stated rather than hidden.
 
@@ -259,53 +264,77 @@ instead of writing `\s`:
 
 ### The boundary chosen: Option B
 
-The database enforces the non-length half of the contract, which it can decide
-exactly, and the application keeps the length rule.
+The database enforces what it can decide exactly. The application keeps the
+rest.
 
 Forbidden: C0 controls, DEL, C1 controls, U+2028, U+2029, U+200B.
 Allowed and pinned by tests: U+200C ZWNJ, U+200D ZWJ, U+2060 WORD JOINER.
 Canonical shape: non-blank, no outer collapsible whitespace, no repeated
-collapsible whitespace, and every space an ordinary U+0020.
+collapsible whitespace, every space an ordinary U+0020.
+Active display names must be unique, compared exactly as stored; archived
+duplicates stay allowed, matching the Dart scope.
 
 Expressed as a validator, not a repair layer: a write is refused when
 `display_name` is not already equal to its canonical form. Nothing trims,
-collapses, truncates or rewrites what the caller sent.
+collapses, truncates, renames or rewrites what the caller sent.
+
+### Two gaps that stay with the application
+
+**The 24-grapheme limit.** PostgreSQL 17 has no grapheme primitive.
+`char_length` counts code points, and a 24-grapheme family-emoji name is 168 of
+them, so a code-point cap would refuse names the app accepts. Only `plpgsql`
+and `sql` are installed, and no installed extension exposes grapheme
+segmentation.
+
+**Case-only duplicate active names.** The Dart key is lowercased; PostgreSQL's
+`lower()` is not Dart's `toLowerCase()` on this database. Audited on ICU
+en_US.UTF-8 over sixteen vectors: fourteen agreed, two diverged in opposite
+directions. U+0130 lowercases to `i` plus U+0307 here and to a plain `i` in
+Dart, so `lower()` would miss a collision the app catches. A Greek word ending
+in a final sigma and the same word with a medial sigma fold to one key here and
+to two in Dart, so `lower()` would refuse a configuration the app accepts. The
+second is disqualifying on its own. Exact equality cannot over-reject, because
+the shape rules already force the stored value to be canonical, so identical
+active names always produce identical Dart keys.
+
+Both gaps are named in the migration header, the column comment, the test file
+and the PR body. Three tests assert the case-only variants are accepted, so a
+future `lower()` fails loudly rather than arriving as assumed parity.
 
 ### Equivalence evidence
 
-The drafted rule was run against the merged Dart contract on the hosted
-database, read-only, using the exact escaped patterns that appear in the
-migration file: 22 vectors, then 18 further inputs covering the remaining test
+The drafted shape rules were run against the merged Dart contract on the hosted
+database, read-only, using the exact escaped patterns that ship in the
+migration: 22 vectors, then 18 further inputs covering the remaining test
 cases. 40 of 40 agreed, including all three allowed format characters and the
-24-family-emoji name that a length guard would have wrongly refused.
+24-family-emoji name a length guard would have wrongly refused.
 
-### Local artefacts, not applied hosted
+The case-normalization audit was run separately: Dart keys printed from the
+merged `MealCategoriesPolicy.normalizeDisplayName()`, PostgreSQL keys from
+`lower()` on the same values, compared directly.
 
-- `supabase/migrations/20260909131518_enforce_meal_category_display_name_shape.sql`
-- `supabase/tests/database/tnyx_186_meal_category_display_name.test.sql`
-- `.github/workflows/supabase-db-ci.yml` (one step, so the matrix actually runs)
-
-The migration file was created with `supabase migration new
-enforce_meal_category_display_name_shape` on CLI 2.116.0; its version is the
-one the CLI generated and was not edited by hand. An earlier hand-assembled
-draft at `20260909130000_...` was superseded and deleted, leaving exactly one
-Slice B migration.
+### Local execution, done
 
 The database tests in this repository are plain psql scripts driven by
-`.github/workflows/supabase-db-ci.yml`, not pgTAP, so the new matrix is added
-as a psql step beside the existing TNYX-67 one rather than through
-`supabase test db`. Without that step the file would never run.
+`.github/workflows/supabase-db-ci.yml`, not pgTAP, so `supabase test db` is not
+the flow. `supabase db reset` is not either: an existing migration uses
+`LOCK TABLE`, which needs a transaction block, so migrations are replayed
+individually with `psql --single-transaction`, exactly as that workflow does.
 
-The migration replaces the existing validator rather than adding a parallel
-one, preserves every TNYX-67 rule (the function body is additive: 45 lines
-added, none removed), preserves immutable / strict / security invoker /
-`search_path=''` and the existing grants, leaves the constraint and the
-retained-ID trigger untouched, and preflights stored rows so it fails rather
-than repairing, truncating or grandfathering anything.
+Executed on the local Docker stack:
 
-Neither file has been executed anywhere. The local Supabase stack needs Docker,
-which is not running on this machine, so the SQL matrix has not been run; what
-was verified is the rule logic, on hosted, read-only.
+- all 42 migrations replayed from scratch, last `20260909131518`;
+- ledger verified against the files, no diff;
+- TNYX-186 display-name matrix passed, 66 assertions;
+- TNYX-67 B1 matrix passed, no regression;
+- mutation-verified twice: restoring the previous validator fails the new
+  matrix on its first case;
+- post-apply read-back confirms immutable, strict, `SECURITY INVOKER`, empty
+  `search_path`, unchanged ACL, unchanged CHECK constraint, enabled retained-ID
+  trigger, and no `char_length` or `lower()` in executable code.
+
+`git diff --check` is clean. PR #235 is published and its exact-head CI is
+green.
 
 ### Still required before any hosted apply
 

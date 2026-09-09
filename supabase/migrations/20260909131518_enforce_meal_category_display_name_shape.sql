@@ -8,7 +8,28 @@
 -- simply be dropped. This closes the part of that gap the database can close
 -- exactly.
 --
--- WHAT THIS DOES NOT ENFORCE
+-- WHAT THIS ENFORCES
+--
+--   * no C0 controls, DEL or C1 controls;
+--   * no U+2028 or U+2029;
+--   * no U+200B ZERO WIDTH SPACE;
+--   * not blank;
+--   * no leading or trailing collapsible whitespace;
+--   * no run of two or more collapsible whitespace characters;
+--   * every space in the stored value is an ordinary U+0020;
+--   * U+200C ZWNJ, U+200D ZWJ and U+2060 WORD JOINER remain allowed;
+--   * no two ACTIVE categories carry the same stored name, compared exactly,
+--     while an archived category may still share a name with an active one.
+--
+-- Each of those was checked against the merged Dart policy on this database
+-- before this file was written: twenty-one probe values covering every shape
+-- rule and every allowed format character, all agreeing.
+--
+-- This is a subset of the merged contract. It is not "the non-length half",
+-- and claiming so would be wrong. Two gaps stay with the application, and both
+-- are named here rather than implied.
+--
+-- GAP 1: THE 24-GRAPHEME LIMIT
 --
 -- The owner contract is at most 24 *extended grapheme clusters*. This
 -- migration does not enforce that, and deliberately does not pretend to.
@@ -22,30 +43,37 @@
 -- assumed. The only procedural languages installed are `plpgsql` and `sql`,
 -- and no installed extension exposes grapheme segmentation.
 --
--- So the exact 24-grapheme limit stays owned by
--- `MealCategoryDisplayNamePolicy` in the Nutrition domain. A direct API write
--- can still store an over-long name; that hole is named here rather than
--- papered over, and closing it needs a mechanism this database does not have.
+-- GAP 2: CASE-ONLY DUPLICATE ACTIVE NAMES
 --
--- WHAT THIS DOES ENFORCE
+-- The Dart policy refuses two active categories whose `comparisonKey()`
+-- matches, and that key is lowercased. This migration refuses only names that
+-- are identical as stored, so `Lunch` beside `lunch` still passes here.
 --
--- The non-length half of the contract, which PostgreSQL can decide exactly:
+-- `lower()` was audited rather than assumed, on this database's ICU
+-- en_US.UTF-8 collation, against the merged Dart key over sixteen vectors.
+-- Fourteen agreed. Two did not, and they fail in opposite directions:
 --
---   * no C0 controls, DEL or C1 controls;
---   * no U+2028 or U+2029;
---   * no U+200B ZERO WIDTH SPACE;
---   * not blank;
---   * no leading or trailing collapsible whitespace;
---   * no run of two or more collapsible whitespace characters;
---   * every space in the stored value is an ordinary U+0020;
---   * U+200C ZWNJ, U+200D ZWJ and U+2060 WORD JOINER remain allowed.
+--   * U+0130 LATIN CAPITAL LETTER I WITH DOT ABOVE lowercases to `i` plus
+--     U+0307 here and to a plain `i` in Dart, so `lower()` would miss a
+--     collision the app catches;
+--   * a Greek word ending in a final sigma and the same word spelled with a
+--     medial sigma fold to one key here and to two in Dart, so `lower()`
+--     would refuse a configuration the app accepts.
 --
--- Each rule was checked against the merged Dart policy on this database before
--- this file was written: twenty-one probe values covering every rule and every
--- allowed format character, all agreeing.
+-- The second is disqualifying on its own: a guard that refuses valid writes is
+-- not a guard. Exact equality cannot do that. The shape rules above already
+-- force the stored value to be canonical, so two identical active names always
+-- produce identical Dart keys, which means everything refused here is refused
+-- by the app as well.
 --
--- Two places where PostgreSQL and Dart genuinely disagree, which is why the
--- character sets below are written out rather than expressed as `\s`:
+-- Case-only variants therefore stay application-authoritative, exactly like
+-- the length limit. A test pins this boundary so it cannot later be mistaken
+-- for full parity.
+--
+-- WHY THE CHARACTER SETS ARE WRITTEN OUT
+--
+-- PostgreSQL and Dart do not agree on what whitespace is, so `\s` is not
+-- used anywhere below:
 --
 --   * U+0085 NEL matches PostgreSQL's `\s` and not Dart's;
 --   * U+FEFF matches Dart's `\s` and not PostgreSQL's;
@@ -108,6 +136,7 @@ declare
   v_forbidden integer;
   v_blank integer;
   v_noncanonical integer;
+  v_duplicate_active integer;
 begin
   with stored as (
     select item ->> 'display_name' as nm
@@ -133,14 +162,33 @@ begin
   into v_forbidden, v_blank, v_noncanonical
   from classified;
 
-  if v_forbidden > 0 or v_blank > 0 or v_noncanonical > 0 then
+  -- The active-name rule is a tightening too, so it gets the same treatment:
+  -- a stored row already holding two identically named active categories
+  -- would be readable and then unwritable forever.
+  select pg_catalog.count(*)
+  into v_duplicate_active
+  from public.user_nutrition_profiles as p
+  where p.meal_categories_config is not null
+    and exists (
+      select 1
+      from pg_catalog.jsonb_array_elements(
+        p.meal_categories_config -> 'items'
+      ) as item
+      where (item ->> 'active')::boolean
+      group by item ->> 'display_name'
+      having pg_catalog.count(*) > 1
+    );
+
+  if v_forbidden > 0 or v_blank > 0 or v_noncanonical > 0
+    or v_duplicate_active > 0 then
     raise exception
       'TNYX-186 display-name guard blocked: stored meal_categories_config names '
       'would be stranded by the tightened validator (forbidden characters: %, '
-      'blank or invisible: %, not in canonical whitespace form: %). Resolve '
-      'these rows first; this migration will not rewrite or truncate a name a '
-      'reader chose.',
-      v_forbidden, v_blank, v_noncanonical;
+      'blank or invisible: %, not in canonical whitespace form: %, rows with '
+      'two identically named active categories: %). Resolve these rows first; '
+      'this migration will not rewrite, rename or truncate a name a reader '
+      'chose.',
+      v_forbidden, v_blank, v_noncanonical, v_duplicate_active;
   end if;
 end
 $$;
@@ -335,6 +383,40 @@ begin
     return false;
   end if;
 
+  -- Two active categories may not carry the same name, compared as stored.
+  --
+  -- Exact equality, not `lower()`. The Dart policy compares
+  -- `comparisonKey()`, which lowercases, and PostgreSQL's `lower()` is not
+  -- the same function on this database. Measured here, ICU en_US.UTF-8:
+  --
+  --   * `lower()` maps U+0130 to `i` plus a combining dot, where Dart maps it
+  --     to a plain `i`, so the two disagree on whether a pair collides;
+  --   * `lower()` folds a Greek word spelled with a final sigma and the same
+  --     word spelled with a medial sigma to one key, where Dart keeps them
+  --     apart -- so a validator using `lower()` would refuse a configuration
+  --     the app accepts, and brick a legitimate write.
+  --
+  -- Comparing the stored values byte for byte cannot do that. Display names
+  -- are already required to be canonical by the rules above, so two identical
+  -- active names always produce identical Dart comparison keys, which means
+  -- everything refused here is refused by the app as well. The reverse does
+  -- not hold: case-only variants such as `Lunch` and `lunch` still pass this
+  -- validator and are caught only by the domain. That gap is named in the
+  -- header, in the column comment and in the test matrix.
+  --
+  -- Scoped to active items, matching the Dart rule: an archived category may
+  -- share a name with an active one, which is what lets a name be reused
+  -- after archiving.
+  if exists (
+    select 1
+    from pg_catalog.jsonb_array_elements(p_config -> 'items') as item
+    where (item ->> 'active')::boolean
+    group by item ->> 'display_name'
+    having pg_catalog.count(*) > 1
+  ) then
+    return false;
+  end if;
+
   if not (
     v_seen_meal_slot_1
     and v_seen_meal_slot_2
@@ -371,4 +453,4 @@ grant execute on function private.is_valid_meal_categories_config_v1(jsonb)
   to authenticated, service_role;
 
 comment on column public.user_nutrition_profiles.meal_categories_config is
-  'Versioned Meal Categories config. NULL resolves canonical runtime defaults. Retained IDs are historical identities and ordinary writes cannot remove them. Active categories: at least 1, at most 8. Maximum retained categories, archived included: 32. Canonical order by id: meal_slot_1 < meal_slot_2 < meal_slot_3 < meal_slot_4. display_name must be non-blank, free of C0/C1 controls, DEL, U+2028, U+2029 and U+200B, and already in canonical whitespace form (no outer whitespace, no repeated whitespace, ordinary U+0020 only); U+200C, U+200D and U+2060 are allowed. The 24 extended-grapheme-cluster limit is NOT enforced here (PostgreSQL has no grapheme primitive and char_length would reject valid names) and remains owned by MealCategoryDisplayNamePolicy in the Nutrition domain.';
+  'Versioned Meal Categories config. NULL resolves canonical runtime defaults. Retained IDs are historical identities and ordinary writes cannot remove them. Active categories: at least 1, at most 8. Maximum retained categories, archived included: 32. Canonical order by id: meal_slot_1 < meal_slot_2 < meal_slot_3 < meal_slot_4. display_name must be non-blank, free of C0/C1 controls, DEL, U+2028, U+2029 and U+200B, and already in canonical whitespace form (no outer whitespace, no repeated whitespace, ordinary U+0020 only); U+200C, U+200D and U+2060 are allowed. Two active categories may not carry the same stored name, compared exactly; archived duplicates are allowed. Two rules are NOT enforced here and remain owned by MealCategoryDisplayNamePolicy in the Nutrition domain: the 24 extended-grapheme-cluster limit, because PostgreSQL has no grapheme primitive and char_length would reject valid names; and case-only duplicate active names, because this database''s lower() disagrees with Dart on U+0130 and on Greek final sigma, in the latter case refusing configurations the app accepts.';
