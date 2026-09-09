@@ -932,6 +932,63 @@ void main() {
       expect(find.text('Lunch'), findsOne);
     });
 
+    testWidgets('opening the card puts the keyboard away first',
+        (tester) async {
+      // The keyboard is part of the bottom inset the card measures against, so
+      // opening over a raised one would place it against a viewport that is
+      // about to change.
+      await _pumpQuickAdd(tester);
+      await tester.tap(find.byKey(const ValueKey('quick-add-calories')));
+      await tester.pumpAndSettle();
+      expect(
+        tester.testTextInput.isVisible,
+        isTrue,
+        reason: 'a field holds focus before the tap',
+      );
+
+      await _openSelector(tester);
+
+      expect(tester.testTextInput.isVisible, isFalse);
+      expect(
+        tester
+            .widgetList<EditableText>(find.byType(EditableText))
+            .any((editable) => editable.focusNode.hasFocus),
+        isFalse,
+        reason: 'no field is left holding focus',
+      );
+
+      // And the approved placement is unchanged: still above the control.
+      final card = tester.getRect(find.byKey(_popup));
+      expect(
+        card.bottom,
+        lessThanOrEqualTo(tester.getRect(find.byKey(_footerCategory)).top),
+      );
+    });
+
+    testWidgets('the sibling control stays reachable by screen reader',
+        (tester) async {
+      // The hole is cut for the pointer. It has to be a hole for semantics
+      // too, or a reader exploring that spot meets the dismiss layer sitting
+      // over the control instead of the control.
+      final handle = tester.ensureSemantics();
+      await _pumpQuickAdd(tester);
+      await _openSelector(tester);
+
+      expect(
+        tester.getSemantics(find.byKey(_footerDateTime)),
+        matchesSemantics(
+          isButton: true,
+          hasEnabledState: true,
+          isEnabled: true,
+          hasTapAction: true,
+          label: 'Date and time. Sep 9, 13:42. Picker collapsed.',
+        ),
+      );
+      // Still exactly one way to dismiss, not one per region.
+      expect(find.bySemanticsLabel('Dismiss meal type picker'), findsOne);
+      handle.dispose();
+    });
+
     testWidgets('one tap moves from the date card to this one',
         (tester) async {
       await _pumpQuickAdd(tester);

@@ -229,3 +229,52 @@ sizing rule, the row treatment or the footer's bottom gap is a new decision,
 not a refinement of this one.
 
 Still owner-gated: merge authorization. Nothing is merged.
+
+## 10. Second review round — 2026-09-09
+
+Two further findings, both correct.
+
+**The keyboard was left up.** The date control unfocuses before opening its
+card; the Meal Type one did not. The keyboard is part of the bottom inset the
+card measures against, so opening over a raised one placed it against a
+viewport that was about to change. It now makes the same first move, and a
+test focuses a field, opens the card, and asserts the IME is gone, no field
+holds focus, and the card is still above the control.
+
+**The pass-through hole was pointer-only.** Announcing the whole barrier as
+one dismiss action gave a screen-reader user the single control they should
+meet, but its bounds covered the hole too — so exploring the sibling control
+by touch found the dismiss layer sitting over it. Pointer hit testing passed
+through and semantics did not. Only the region above the hole announces now:
+one dismiss action, and nothing of the layer between a reader and the control
+the hole exists to expose. A test asserts the date control is still a
+labelled, tappable node while the Meal Type card is open, and that exactly one
+dismiss action exists.
+
+## 11. Agreed follow-up — Meal Category name policy
+
+Owner-directed, and deliberately **not** in this PR. A focused TNYX-67
+follow-up lands after #229.
+
+An audit found there is no rule at all on a category's display name: the Dart
+policy checks blank and duplicate, the database checks only that it is a
+string, and the editor sets no `maxLength`. Two consequences.
+
+A name can genuinely be two lines. The field is single-line so it cannot be
+typed, but text containing a newline can be pasted; whitespace is collapsed
+for duplicate comparison only, and the stored name keeps the newline. The
+picker's rows set no `maxLines`, so it renders as two lines.
+
+More seriously, the retained ceiling bounds the *count* and not the *size*.
+Thirty-two categories of unbounded name length leave the row as unbounded as
+it was before the cap, which is the same hole from the other direction.
+
+The agreed contract:
+
+```text
+maximum display name        40 characters
+single line only            no stored newline, tab or control characters
+editor                      maxLength 40, so it is refused while typing
+enforcement                 domain and database, both
+direct API writes           rejected, never silently truncated
+```

@@ -213,6 +213,11 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
   /// closes it — these are two controls, not a pair of tabs where one is
   /// always chosen.
   void _toggleMealTypePicker() {
+    // The same first move the date control makes. A field still holding focus
+    // keeps the keyboard up, and the keyboard is part of the bottom inset the
+    // card measures against — so leaving it open would place the card against
+    // a viewport that is about to change.
+    FocusScope.of(context).unfocus();
     setState(() {
       _isDateTimePickerOpen = false;
       _isMealTypePickerOpen = !_isMealTypePickerOpen;

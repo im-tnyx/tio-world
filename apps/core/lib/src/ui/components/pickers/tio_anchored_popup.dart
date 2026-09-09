@@ -306,40 +306,47 @@ class TioPopupDismissBarrier extends StatelessWidget {
 
     if (hole == null) return Positioned.fill(child: announce(target()));
 
+    // Only the region above the hole speaks. Wrapping the whole stack gave one
+    // node — which is what a screen-reader user should meet — but its bounds
+    // then covered the hole as well, so exploring the sibling control by touch
+    // found the dismiss layer sitting over it. Pointer hit testing passed
+    // through and semantics did not.
+    //
+    // Announcing one region keeps both properties: a single dismiss action,
+    // and nothing of this layer standing between a reader and the control the
+    // hole exists to expose. The other three regions stay tappable and silent.
     return Positioned.fill(
-      child: announce(
-        Stack(
-          children: [
-            Positioned(
-              left: 0,
-              right: 0,
-              top: 0,
-              height: math.max(0, hole.top),
-              child: target(),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              top: hole.bottom,
-              bottom: 0,
-              child: target(),
-            ),
-            Positioned(
-              left: 0,
-              top: hole.top,
-              height: hole.height,
-              width: math.max(0, hole.left),
-              child: target(),
-            ),
-            Positioned(
-              left: hole.right,
-              right: 0,
-              top: hole.top,
-              height: hole.height,
-              child: target(),
-            ),
-          ],
-        ),
+      child: Stack(
+        children: [
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            height: math.max(0, hole.top),
+            child: announce(target()),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            top: hole.bottom,
+            bottom: 0,
+            child: target(),
+          ),
+          Positioned(
+            left: 0,
+            top: hole.top,
+            height: hole.height,
+            width: math.max(0, hole.left),
+            child: target(),
+          ),
+          Positioned(
+            left: hole.right,
+            right: 0,
+            top: hole.top,
+            height: hole.height,
+            child: target(),
+          ),
+        ],
       ),
     );
   }
