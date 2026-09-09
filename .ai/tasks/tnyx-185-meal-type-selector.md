@@ -81,9 +81,15 @@ assumed: opening the card leaves all three footer control rects identical.
 
 `TioAnchoredPopup` is a new Core primitive holding the placement, the overlay
 and the dismissal that any anchored card needs. It was extracted from the
-geometry `TioDateTimePickerPopup` already proved, but that widget is left
-untouched on owner instruction, so the two currently share a shape rather than
-code. Retrofitting the date card onto the shell is a separate, opt-in change.
+geometry `TioDateTimePickerPopup` already proved, and that widget keeps its own
+copy of it: its visual geometry and interaction semantics are unchanged, and
+retrofitting it onto the shell is a separate, opt-in change.
+
+What the date card did receive later in this slice, owner-approved, is a small
+additive integration for one-tap switching: an optional `passThroughAnchorKey`
+that defaults off, and its overlay's screen-wide `Material` scoped down to the
+card so a pass-through tap is not swallowed. Neither changes how it looks or
+how it behaves for any caller that does not opt in.
 
 Sized to its content, capped well below the date card's width: this is a short
 list of short names beside one control, not a band across the footer.
@@ -142,7 +148,7 @@ silence.
 
 **Nothing is ever forced or refused.** Every active category stays one tap
 away at every hour, and when the suggested canonical category is archived the
-control simply reads `Select meal type` again rather than substituting
+control simply reads `Meal type` again rather than substituting
 something else.
 
 The gaps in the table are deliberate: late afternoon is nobody's lunch or
@@ -200,13 +206,14 @@ appearance changes.
 
 Raised before implementing, because the owner had asked for that widget to be
 left alone; the owner then specified the one-tap behaviour in both directions,
-which is what required it.
+which is what required it. What landed there is additive and default-off — the
+card's geometry and interaction semantics are as they were.
 
 ### Validation
 
 ```text
 flutter analyze  core / nutrition / app     No issues found
-flutter test     core 266 · nutrition 494 · app 305    all passed
+flutter test     core 267 · nutrition 501 · app 305    all passed
 git diff --check origin/main...HEAD         clean
 ```
 
@@ -272,9 +279,13 @@ it was before the cap, which is the same hole from the other direction.
 The agreed contract:
 
 ```text
-maximum display name        40 characters
+maximum display name        24 visible characters (grapheme clusters)
 single line only            no stored newline, tab or control characters
-editor                      maxLength 40, so it is refused while typing
+editor                      maxLength 24, so it is refused while typing
 enforcement                 domain and database, both
 direct API writes           rejected, never silently truncated
 ```
+
+Counted in grapheme clusters rather than code units, so an emoji or a
+combining mark costs what it looks like it costs rather than what it happens
+to encode as.
