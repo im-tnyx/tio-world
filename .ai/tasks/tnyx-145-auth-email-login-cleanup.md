@@ -1,6 +1,6 @@
 # TNYX-145 Auth Legacy Email Login Cleanup
 
-**Status:** Validated
+**Status:** In progress
 **Primary owner:** Codex
 **Affected platforms:** Flutter phone app (Auth package and existing route contract)
 
@@ -19,19 +19,19 @@
 **Review owner:** Codex
 **Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-09 after PR #232 publication and exact-head CI completion
+**Repository state last verified:** 2026-09-09 after PR #232 publication, first handoff correction, and exact-head CI completion
 **Branch:** `tnyx/tnyx-145-auth-cleanup`
-**HEAD SHA:** Published implementation head `60e5212b03685ff3bed2adbb8d2ab7ef8c81c253`; this governance-only handoff correction becomes the next branch head.
-**Observed working-tree state:** PR #232 is published from the scoped implementation commit. The only new task-owned working-tree change is this review-requested task-brief correction.
+**HEAD SHA:** Published handoff-correction head `5af3a29443a1f73f2043f282561cd7c9f6af328e`; this pending-status correction becomes the next branch head.
+**Observed working-tree state:** PR #232 is published. The first handoff correction is pushed and its review thread is resolved; this task brief is the only follow-up change for the new exact-head validation finding.
 **Observed uncommitted/dirty files:** Pre-existing `pubspec.lock` modification and `.ai/tasks/tnyx-54-nutrition-ia-readiness.md` untracked file; both are outside scope and must remain untouched.
 **PR / tracker:** GitHub PR #232 is open and mergeable; GitHub #194 is linked for closure on merge; Linear TNYX-145 is `In Progress`, links PR #232, and records the validation outcome.
 **Current implementation state:** Commit `60e5212b` removed the dead implementation/export and corrected stale exact-name task-note references; canonical login/router/session source remains unchanged.
 **Relevant execution surface:** `apps/features/auth`, existing app router and session route policy tests.
-**Validation completed at SHA:** Local focused validation and scope audit passed on commit `60e5212b`; GitHub Actions `Flutter CI` run `34322989738` completed successfully on that exact head, including Flutter/Dart analyze and tests.
-**Validation remaining:** No runtime validation remains for the implementation commit. Observe exact-head CI after pushing this task-brief-only review correction.
+**Validation completed at SHA:** Local focused validation and scope audit plus GitHub Actions `Flutter CI` passed on implementation commit `60e5212b`; `Flutter CI` run `34324517072` also passed on handoff-correction head `5af3a294`.
+**Validation remaining:** Observe exact-head CI after pushing this status-only correction. Keep this committed brief at `In progress` / `REVIEW`; the PR check state is authoritative for the final pushed head.
 **Current blocker:** None.
-**Open review finding IDs:** `PRRT_kwDOTOXwB86gi0i1` — stale committed handoff; source correction in progress.
-**Next exact action:** Validate, commit, and push only this task brief; observe the new exact-head CI; then resolve the review thread. Do not merge.
+**Open review finding IDs:** `PRRT_kwDOTOXwB86gjM_T` — avoid a completion claim before the commit containing it has exact-head validation.
+**Next exact action:** Validate, commit, and push only this pending-status correction; observe exact-head CI; then resolve the review thread. Do not merge.
 
 ## Global UI / Design-System Guardrail
 
@@ -124,7 +124,8 @@ Unchanged. The removed source has no runtime consumer; canonical `LoginPage` con
 - [x] Run focused Auth/app analyze and route/session tests.
 - [x] Run exact zero-reference and pre-commit Git scope checks.
 - [x] Commit and push the scoped implementation, open PR #232, and update Linear with the PR link and validation outcome.
-- [ ] Publish this task-brief-only review correction, observe exact-head CI, and resolve the review thread.
+- [x] Publish the first task-brief-only correction, observe exact-head CI, and resolve its review thread.
+- [ ] Publish this pending-status correction, observe exact-head CI, and resolve the current review thread.
 
 ## 6. Quality Review
 
@@ -154,6 +155,10 @@ git diff --check
 GitHub Actions Flutter CI run 34322989738
   - PASS on exact implementation head 60e5212b
   - bootstrap, Flutter/Dart analyze, and Flutter/Dart tests passed
+
+GitHub Actions Flutter CI run 34324517072
+  - PASS on exact handoff-correction head 5af3a294
+  - bootstrap, Flutter/Dart analyze, and Flutter/Dart tests passed
 ```
 
 ### Review Findings and Resolution
@@ -161,7 +166,8 @@ GitHub Actions Flutter CI run 34322989738
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
 | None | — | Resolved | No pre-implementation blockers or overlapping PRs found | `4b808a0b` | Phase 1 audit |
-| `PRRT_kwDOTOXwB86gi0i1` | Medium | Open | Committed handoff retained stale pre-commit/PR/CI state | `60e5212b` | Corrected in this task-brief-only follow-up; validate before marking resolved |
+| `PRRT_kwDOTOXwB86gi0i1` | Medium | Resolved | Committed handoff retained stale pre-commit/PR/CI state | `60e5212b` | Corrected by `5af3a294`; exact-head CI passed and the thread was resolved |
+| `PRRT_kwDOTOXwB86gjM_T` | High | Open | Task status claimed completion before its own exact-head CI was observed | `5af3a294` | Keep the committed brief pending; PR exact-head CI remains authoritative |
 
 ## 7. Final Handoff
 
@@ -184,4 +190,4 @@ GitHub Actions Flutter CI run 34322989738
 
 ### Final Status
 
-`PASS`
+`REVIEW`
