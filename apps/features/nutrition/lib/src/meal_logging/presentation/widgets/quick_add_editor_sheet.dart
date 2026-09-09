@@ -371,14 +371,28 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
         '${_draftDateTime.minute.toString().padLeft(2, '0')}';
     final dateTimeLabel = '$selectedDateLabel, $selectedTimeLabel';
 
-    return MealCategoryPickerPopup(
-      anchorKey: _mealCategoryAnchorKey,
+    // Neither card is a route, so without this the system Back would pop the
+    // editor and take the whole draft with it while the reader only meant to
+    // close the thing in front of them.
+    return PopScope(
+      canPop: !_isMealTypePickerOpen && !_isDateTimePickerOpen,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (_isMealTypePickerOpen) {
+          _closeMealTypePicker();
+        } else {
+          _closeDateTimePicker();
+        }
+      },
+      child: MealCategoryPickerPopup(
+        anchorKey: _mealCategoryAnchorKey,
       isOpen: _isMealTypePickerOpen,
       onDismiss: _closeMealTypePicker,
       options: _categoryOptions,
       selectedId: _selectedMealCategoryId,
       onSelected: _onMealCategorySelected,
       loadError: _categories?.state.loadError,
+      isLoading: _categories?.state.status == MealCategoriesStatus.loading,
       onRetry: _categories?.retryLoad,
       // The date control stays reachable while this card is open, so moving
       // from one to the other is a single tap.
@@ -392,8 +406,11 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
       resolveDateTime: _resolveMealDateTime,
       onChanged: _onDateTimeChanged,
       onPickerInteractionStart: _refreshMaximumDateTime,
-      // And the same the other way round.
-      passThroughAnchorKey: _mealCategoryAnchorKey,
+      // And the same the other way round — but only while that control can
+      // actually be pressed. Cutting a hole over an inert widget would leave a
+      // patch of screen where a tap neither opens anything nor closes this.
+      passThroughAnchorKey:
+          _canOpenMealTypePicker ? _mealCategoryAnchorKey : null,
       child: TioEditorSheet(
         key: const ValueKey('quick-add-editor'),
         title: 'Quick Add',
@@ -469,6 +486,7 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
           primaryLabel: 'Log Meal',
           primarySemanticLabel: 'Log Meal. Not available yet.',
         ),
+      ),
       ),
       ),
     );

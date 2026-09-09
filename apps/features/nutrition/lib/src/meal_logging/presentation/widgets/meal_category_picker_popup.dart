@@ -57,6 +57,7 @@ class MealCategoryPickerPopup extends StatelessWidget {
     required this.onSelected,
     required this.child,
     super.key,
+    this.isLoading = false,
     this.loadError,
     this.onRetry,
     this.passThroughAnchorKey,
@@ -79,6 +80,11 @@ class MealCategoryPickerPopup extends StatelessWidget {
   /// Reports the id the reader chose. The label is never reported: the caller
   /// stores identity, and resolves the text from the source that owns it.
   final ValueChanged<String> onSelected;
+
+  /// Whether a read is in flight. Retrying clears the failure before the
+  /// repository answers, so without this the card would empty itself for the
+  /// length of the round trip and show nothing at all.
+  final bool isLoading;
 
   /// Shown instead of the options when the categories could not be loaded.
   final String? loadError;
@@ -107,6 +113,7 @@ class MealCategoryPickerPopup extends StatelessWidget {
         // above a pinned footer is always the body.
         contentBuilder: (context, maximumHeight) => _PopupContent(
           maximumHeight: maximumHeight,
+          isLoading: isLoading,
           options: options,
           selectedId: selectedId,
           onSelected: onSelected,
@@ -120,6 +127,7 @@ class MealCategoryPickerPopup extends StatelessWidget {
 class _PopupContent extends StatefulWidget {
   const _PopupContent({
     required this.maximumHeight,
+    required this.isLoading,
     required this.options,
     required this.selectedId,
     required this.onSelected,
@@ -128,6 +136,7 @@ class _PopupContent extends StatefulWidget {
   });
 
   final double maximumHeight;
+  final bool isLoading;
   final List<MealCategoryOption> options;
   final String? selectedId;
   final ValueChanged<String> onSelected;
@@ -153,6 +162,18 @@ class _PopupContentState extends State<_PopupContent> {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final loadError = widget.loadError;
+
+    if (widget.isLoading) {
+      // Reached by a retry: `retryLoad` clears the failure and publishes its
+      // loading state before the repository answers. Without this the card
+      // would drop the failure view — and the button the reader just pressed —
+      // and render an empty list until the read returned.
+      return const Padding(
+        key: ValueKey('meal-category-picker-loading'),
+        padding: EdgeInsets.all(TioSpacing.lg),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     if (loadError != null) {
       return Padding(

@@ -512,6 +512,113 @@ void main() {
     });
   });
 
+  group('review findings', () {
+    testWidgets('no dead patch over an inert Meal Type control',
+        (tester) async {
+      // The date card cuts the sibling control out of its dismiss layer so a
+      // tap there can switch. While the categories are still loading that
+      // control does nothing, so the hole would be a patch of screen where a
+      // tap neither opened nor closed anything.
+      final repo = _Repository()..readGate = Completer<void>();
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) =>
+              TioTheme(child: child ?? const SizedBox.shrink()),
+          home: Scaffold(
+            body: QuickAddEditorSheet(mealCategoriesRepository: repo),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+      expect(find.byKey(_dateTimePopup), findsOne);
+
+      await tester.tap(find.byKey(_footerCategory), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(_dateTimePopup),
+        findsNothing,
+        reason: 'the tap still dismisses rather than falling into a hole',
+      );
+
+      repo.readGate!.complete();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('Back closes the open card, not the editor', (tester) async {
+      // Neither card is a route, so an unguarded Back pops the editor and
+      // takes the whole draft with it.
+      await _pumpQuickAdd(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('quick-add-calories')),
+        '420',
+      );
+      await tester.pumpAndSettle();
+      await _openSelector(tester);
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(_popup), findsNothing, reason: 'the card closed');
+      expect(find.text('Quick Add'), findsOne, reason: 'the editor did not');
+      expect(find.text('420'), findsOne, reason: 'and neither did the draft');
+    });
+
+    testWidgets('Back closes the date card too', (tester) async {
+      await _pumpQuickAdd(tester);
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+      expect(find.byKey(_dateTimePopup), findsOne);
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(_dateTimePopup), findsNothing);
+      expect(find.text('Quick Add'), findsOne);
+    });
+
+    testWidgets('the retry keeps saying something while it reloads',
+        (tester) async {
+      // `retryLoad` clears the failure and publishes loading before the
+      // repository answers, so the card would otherwise empty itself for the
+      // length of the round trip.
+      final repo = _Repository()..failNextRead = StateError('offline');
+      await _pumpQuickAdd(tester, repository: repo);
+      await _openSelector(tester);
+      expect(find.byKey(_popupFailure), findsOne);
+
+      repo.readGate = Completer<void>();
+      await tester.tap(find.byKey(_popupRetry));
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey('meal-category-picker-loading')),
+        findsOne,
+        reason: 'not a blank card',
+      );
+
+      repo.readGate!.complete();
+      await tester.pumpAndSettle();
+      expect(find.byKey(_popupOptions), findsOne);
+    });
+
+    testWidgets('the dismiss layer is one control, not four', (tester) async {
+      // With a hole cut in it the barrier paints four regions. A screen-reader
+      // user must still meet one dismiss action, not four identical ones.
+      final handle = tester.ensureSemantics();
+      await _pumpQuickAdd(tester);
+      await _openSelector(tester);
+
+      expect(
+        find.bySemanticsLabel('Dismiss meal type picker'),
+        findsOne,
+      );
+      handle.dispose();
+    });
+  });
+
   group('boundaries this slice must not cross', () {
     testWidgets('choosing a category does not touch the date or the numbers',
         (tester) async {

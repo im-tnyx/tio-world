@@ -288,50 +288,58 @@ class TioPopupDismissBarrier extends StatelessWidget {
   Widget build(BuildContext context) {
     final hole = passThrough;
 
-    Widget target() => Semantics(
+    // One node, however many regions are painted. Four separately labelled
+    // buttons would have a screen-reader user stepping through four
+    // indistinguishable "Dismiss" controls for what is one layer.
+    Widget announce(Widget child) => Semantics(
           button: true,
           label: semanticLabel,
           onTap: onDismiss,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onDismiss,
-          ),
+          child: child,
         );
 
-    if (hole == null) return Positioned.fill(child: target());
+    Widget target() => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onDismiss,
+          excludeFromSemantics: true,
+        );
+
+    if (hole == null) return Positioned.fill(child: announce(target()));
 
     return Positioned.fill(
-      child: Stack(
-        children: [
-          Positioned(
-            left: 0,
-            right: 0,
-            top: 0,
-            height: math.max(0, hole.top),
-            child: target(),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            top: hole.bottom,
-            bottom: 0,
-            child: target(),
-          ),
-          Positioned(
-            left: 0,
-            top: hole.top,
-            height: hole.height,
-            width: math.max(0, hole.left),
-            child: target(),
-          ),
-          Positioned(
-            left: hole.right,
-            right: 0,
-            top: hole.top,
-            height: hole.height,
-            child: target(),
-          ),
-        ],
+      child: announce(
+        Stack(
+          children: [
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              height: math.max(0, hole.top),
+              child: target(),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              top: hole.bottom,
+              bottom: 0,
+              child: target(),
+            ),
+            Positioned(
+              left: 0,
+              top: hole.top,
+              height: hole.height,
+              width: math.max(0, hole.left),
+              child: target(),
+            ),
+            Positioned(
+              left: hole.right,
+              right: 0,
+              top: hole.top,
+              height: hole.height,
+              child: target(),
+            ),
+          ],
+        ),
       ),
     );
   }
