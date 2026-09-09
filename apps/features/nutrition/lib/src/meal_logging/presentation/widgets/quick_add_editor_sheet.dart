@@ -455,9 +455,9 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
         ),
         actions: MealLogActionFooter(
           // An invitation, not a guess. TNYX-67 owns what a meal category is,
-          // so this screen neither names one nor infers one from the clock —
-          // the reader chooses, and until they do nothing is selected.
-          mealCategoryLabel: _selectedCategoryLabel ?? 'Select meal type',
+          // The reader's choice, the suggestion the draft's time points at, or
+          // — until the categories have arrived — neither.
+          mealCategoryLabel: _selectedCategoryLabel ?? _categoryPlaceholder,
           mealCategorySemanticLabel: _categorySemanticLabel,
           mealCategoryAnchorKey: _mealCategoryAnchorKey,
           onMealCategoryTap: _canOpenMealTypePicker ? _toggleMealTypePicker : null,
@@ -476,6 +476,18 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
 }
 
 extension _QuickAddCategories on _QuickAddEditorSheetState {
+
+  /// What the control reads before anything is selected.
+  ///
+  /// `Meal type` while the categories are still arriving, not `Select meal
+  /// type`. The invitation is a final state — it means "there is nothing here,
+  /// choose one" — and showing it during the read made the control flip from
+  /// one meaningful answer to another a moment later. It also invited a tap
+  /// that could not be honoured yet.
+  String get _categoryPlaceholder =>
+      _categories?.state.status == MealCategoriesStatus.loading
+          ? 'Meal type'
+          : 'Select meal type';
 
   /// Spoken as a label and a value, never as an identity.
   String get _categorySemanticLabel {

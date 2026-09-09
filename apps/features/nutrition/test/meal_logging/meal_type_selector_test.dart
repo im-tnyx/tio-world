@@ -437,7 +437,11 @@ void main() {
         ),
       );
       await tester.pump();
-      expect(find.text('Select meal type'), findsOne);
+      // Neutral while the read is in flight, not the invitation: that is a
+      // final state, and showing it here made the control flip from one
+      // meaningful answer to another a moment later.
+      expect(find.text('Meal type'), findsOne);
+      expect(find.text('Select meal type'), findsNothing);
 
       repo.readGate!.complete();
       await tester.pumpAndSettle();
