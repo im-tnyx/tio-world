@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_feature_progress/progress.dart';
@@ -9,6 +8,7 @@ import 'package:tio_feature_settings/settings.dart';
 
 import '../network_providers.dart';
 import 'canonical_profile_settings_repository.dart';
+import 'profile_avatar_upload.dart';
 import 'profile_completion.dart';
 
 final profileSettingsRepositoryProvider =
@@ -71,29 +71,11 @@ class ProfileSettingsRoute extends ConsumerWidget {
       avatarFrame: avatarFrame,
       plan: profileData.plan,
       onAvatarPressed: () => context.push(AppRoutes.profileAvatar.path),
-      onPickImage: (source) async {
-        final imageSource = source == TioImageSource.gallery
-            ? ImageSource.gallery
-            : ImageSource.camera;
-        final picker = ImagePicker();
-        final picked = await picker.pickImage(
-          source: imageSource,
-          imageQuality: 85,
-          maxWidth: 1024,
-          maxHeight: 1024,
-        );
-        if (picked == null) return;
-        final bytes = await picked.readAsBytes();
-        final avatarRepository = ref.read(profileAvatarRepositoryProvider);
-        if (avatarRepository == null) {
-          throw StateError('Profile avatar persistence is unavailable.');
-        }
-        await avatarRepository.uploadAvatarImage(
-          fileName: picked.name,
-          bytes: bytes,
-        );
-        ref.invalidate(profileDataProvider);
-      },
+      onPickImage: (source) => pickAndUploadProfileImage(
+        ref: ref,
+        context: context,
+        source: source,
+      ),
       onDeleteImage: () async {
         final avatarRepository = ref.read(profileAvatarRepositoryProvider);
         if (avatarRepository == null) {

@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_account_setup/account_setup.dart';
 import 'package:tio_feature_auth/auth.dart';
@@ -24,6 +23,7 @@ import 'app_theme.dart';
 import 'calendar_preferences.dart';
 import 'network_providers.dart';
 import 'onboarding/onboarding.dart';
+import 'profile/profile_avatar_upload.dart';
 import 'profile/profile_completion.dart';
 import 'profile/profile_settings_route.dart';
 import 'session/session.dart';
@@ -794,31 +794,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               onAvatarPressed: () => context.push(AppRoutes.profileAvatar.path),
               onEditPressed: () => context.push(AppRoutes.profileSettings.path),
               onSettingsPressed: () => context.push(AppRoutes.settings.path),
-              onPickImage: (source) async {
-                final imageSource = source == TioImageSource.gallery
-                    ? ImageSource.gallery
-                    : ImageSource.camera;
-                final picker = ImagePicker();
-                final picked = await picker.pickImage(
-                  source: imageSource,
-                  imageQuality: 85,
-                  maxWidth: 1024,
-                  maxHeight: 1024,
-                );
-                if (picked == null) return;
-                final bytes = await picked.readAsBytes();
-                final avatarRepository =
-                    ref.read(profileAvatarRepositoryProvider);
-                if (avatarRepository == null) {
-                  throw StateError(
-                      'Profile avatar persistence is unavailable.');
-                }
-                await avatarRepository.uploadAvatarImage(
-                  fileName: picked.name,
-                  bytes: bytes,
-                );
-                ref.invalidate(profileDataProvider);
-              },
+              onPickImage: (source) => pickAndUploadProfileImage(
+                ref: ref,
+                context: context,
+                source: source,
+              ),
               onDeleteImage: () async {
                 final avatarRepository =
                     ref.read(profileAvatarRepositoryProvider);
@@ -846,31 +826,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               initials: profileData?.name.isNotEmpty == true
                   ? profileData!.name
                   : (profileData?.username ?? ''),
-              onPickImage: (source) async {
-                final imageSource = source == TioImageSource.gallery
-                    ? ImageSource.gallery
-                    : ImageSource.camera;
-                final picker = ImagePicker();
-                final picked = await picker.pickImage(
-                  source: imageSource,
-                  imageQuality: 85,
-                  maxWidth: 1024,
-                  maxHeight: 1024,
-                );
-                if (picked == null) return;
-                final bytes = await picked.readAsBytes();
-                final avatarRepository =
-                    ref.read(profileAvatarRepositoryProvider);
-                if (avatarRepository == null) {
-                  throw StateError(
-                      'Profile avatar persistence is unavailable.');
-                }
-                await avatarRepository.uploadAvatarImage(
-                  fileName: picked.name,
-                  bytes: bytes,
-                );
-                ref.invalidate(profileDataProvider);
-              },
+              onPickImage: (source) => pickAndUploadProfileImage(
+                ref: ref,
+                context: context,
+                source: source,
+              ),
               onDeletePressed: () async {
                 final avatarRepository =
                     ref.read(profileAvatarRepositoryProvider);
