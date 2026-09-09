@@ -277,6 +277,9 @@ instead of writing `\s`:
 - U+FEFF matches Dart's `\s` and not PostgreSQL's.
 - `btrim` with no second argument removes only ASCII space, unlike `String.trim()`.
 - U+200B matches neither, which is why both sides name it explicitly.
+- U+180E matches neither Dart 3.12.2 `RegExp(r'\s+')` nor `String.trim()` and
+  remains unchanged by the merged `_collapse()` implementation. Adding it to
+  the SQL whitespace set would therefore over-reject an app-valid stored name.
 
 ### The boundary chosen: Option B
 
@@ -302,6 +305,12 @@ does not become reserved.
 Expressed as a validator, not a repair layer: a write is refused when
 `display_name` is not already equal to its canonical form. Nothing trims,
 collapses, truncates, renames or rewrites what the caller sent.
+
+The migration acquires `SHARE ROW EXCLUSIVE` on
+`public.user_nutrition_profiles` before the stored-row preflight. The
+transaction-held lock blocks INSERT/UPDATE/DELETE until validator replacement
+commits, so an old-validator-valid write cannot race into the table after the
+scan and become stranded under the new validator.
 
 ### Two gaps that stay with the application
 
@@ -355,6 +364,8 @@ Executed on the local Docker stack:
   rejections, rename-does-not-release, and renamed-label-not-reserved;
 - TNYX-67 B1 matrix passed, no regression;
 - TNYX-67 real two-session concurrency test passed;
+- TNYX-186 migration-lock two-session regression passed: a concurrent writer
+  timed out while the preflight lock was held and succeeded after release;
 - mutation-verified: the previous validator accepted a custom `Lunch` after
   `meal_slot_2` was renamed to `Mid Meal`; restoring the reconciled migration
   made the 90-assertion matrix green;
@@ -450,8 +461,9 @@ rule has its own.
 
 PR #235 is rebased onto `main@1c92a1261c52e22824907bcc307a350d0c03f7e5`.
 The same pending migration `20260909131518` now enforces reserved-name ownership
-with ASCII-only folding, preflights stored rows with count-only evidence, and
-fails rather than repairing or grandfathering violations. The SQL matrix covers
+with ASCII-only folding, locks out writers across the preflight-to-replacement
+interval, preflights stored rows with count-only evidence, and fails rather than
+repairing or grandfathering violations. The SQL matrix covers
 owners, wrong canonical identities, active and archived customs, ASCII case
 variants, rename permanence and non-growing reservations. Hosted data and the
 migration ledger were inspected read-only; no migration was applied hosted.

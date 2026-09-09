@@ -97,6 +97,11 @@
 -- A write whose `display_name` is not already canonical is refused. Nothing
 -- here trims it for the writer, collapses it and saves a changed value, or
 -- truncates anything. The stored JSON is never mutated by validation.
+--
+-- The migration runner executes this file in one transaction. A
+-- SHARE ROW EXCLUSIVE lock is acquired before the stored-row scan and held
+-- through validator replacement, so an old-validator-valid write cannot race
+-- into the table after preflight and become stranded at commit.
 
 do $$
 begin
@@ -133,6 +138,12 @@ begin
   end if;
 end
 $$;
+
+-- Block INSERT/UPDATE/DELETE for the preflight-to-replacement interval while
+-- keeping ordinary reads available. CI and the approved Supabase migration
+-- runner execute each migration as one transaction, so this lock is released
+-- only after the tightened validator is in place (or the migration rolls back).
+lock table public.user_nutrition_profiles in share row exclusive mode;
 
 -- Preflight. Replacing the validator does not revalidate stored rows, so a row
 -- that already breaks one of the new rules would stay readable and then fail
