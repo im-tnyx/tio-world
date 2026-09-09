@@ -1,10 +1,22 @@
 # TNYX-186 Meal Category Display-Name Hardening
 
-**Status:** In progress — Slice A authorized, implementation not yet published
+**Status:** In progress / REVIEW — Slice A published as PR #234, review correction in progress, not merged
 **Canonical GitHub issue:** #233
 **Linear:** TNYX-186
+**Pull request:** #234 (open, Slice A only)
 **Base:** `main@debda76c2a638f9475ef1aa0cf9b82ecd1c64caf`
 **Branch:** `tnyx/tnyx-186-meal-category-name-policy`
+
+## Current Position
+
+Slice A is implemented and published for review on the branch above. Nothing is merged.
+
+- Review raised one contract bug on the published head: `canonicalize()` matched the forbidden set against a trimmed copy, so a leading or trailing newline, tab or control was removed before it could be refused and `Lunch\n` was accepted as `Lunch`. The forbidden set is now matched against the raw input, after blankness is settled and before any trimming or collapsing, with leading/trailing regressions in the domain and codec suites.
+- Review also raised the stale published-state wording in this brief, which this section replaces.
+- Slice B remains deferred at its design gate. No migration exists.
+- No hosted Supabase mutation has occurred at any point in this task.
+
+Next action: exact-head CI and review resolution, then the owner's merge decision. Publication is done; what remains is verification and review closure.
 
 ## Owner Approval and Scope Boundary
 

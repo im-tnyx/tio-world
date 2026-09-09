@@ -46,25 +46,32 @@ abstract final class MealCategoryDisplayNamePolicy {
 
   /// The exact value a name is stored as, or a typed refusal.
   ///
-  /// Order matters. Outer whitespace goes first, so a field holding only
-  /// spaces or a stray newline reads as blank — which it is — rather than as
-  /// an exotic character failure the reader cannot act on. Interior controls
-  /// are refused next, while they are still visible in the input; collapsing
-  /// first would silently absorb an embedded tab into a space. Only then is
-  /// the length counted, against the value that would actually be stored.
+  /// Order matters, and the first two steps are not interchangeable.
   ///
-  /// Never truncates. A name over the limit is refused and the reader shortens
-  /// it themselves; storing a cut-off version would put a name on screen that
-  /// nobody chose.
+  /// Blankness is settled first, because a field holding nothing but spaces —
+  /// or nothing but a stray newline — is blank to the reader, and telling them
+  /// it contains an illegal character is advice they cannot act on.
+  ///
+  /// Everything else is then checked against the **raw** input rather than a
+  /// trimmed copy. Trimming first would delete a leading or trailing newline,
+  /// tab or control on its way past and hand back an accepted name: `Lunch\n`
+  /// would quietly become `Lunch`. The contract says such input is refused,
+  /// not converted, so the forbidden set is matched before anything has had a
+  /// chance to remove it. Only ordinary space separators are trimmed and
+  /// collapsed afterwards, and by then nothing forbidden is left to absorb.
+  ///
+  /// Length is counted last, against the value that would actually be stored.
+  /// Never truncates: a name over the limit is refused and the reader shortens
+  /// it themselves, because storing a cut-off version would put a name on
+  /// screen that nobody chose.
   static String canonicalize(String raw) {
-    final trimmed = raw.trim();
-    if (trimmed.isEmpty) {
+    if (raw.trim().isEmpty) {
       throw const MealCategoriesValidationException(
         code: MealCategoriesValidationCode.blankDisplayName,
         message: 'Meal Category displayName must not be blank.',
       );
     }
-    if (_forbidden.hasMatch(trimmed)) {
+    if (_forbidden.hasMatch(raw)) {
       throw const MealCategoriesValidationException(
         code: MealCategoriesValidationCode.invalidDisplayNameCharacters,
         message: 'Meal Category displayName must be a single line without '
@@ -72,7 +79,7 @@ abstract final class MealCategoryDisplayNamePolicy {
       );
     }
 
-    final canonical = _collapse(trimmed);
+    final canonical = _collapse(raw);
     if (canonical.characters.length > maxLength) {
       throw const MealCategoriesValidationException(
         code: MealCategoriesValidationCode.displayNameTooLong,

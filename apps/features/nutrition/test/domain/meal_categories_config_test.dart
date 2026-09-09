@@ -578,6 +578,7 @@ void main() {
     final del = String.fromCharCode(0x7F);
     final nextLine = String.fromCharCode(0x85);
     final lineSeparator = String.fromCharCode(0x2028);
+    final paragraphSeparator = String.fromCharCode(0x2029);
     final noBreakSpace = String.fromCharCode(0xA0);
 
     // One grapheme, seven code points, held together by zero-width joiners.
@@ -690,6 +691,70 @@ void main() {
       for (final control in [tab, unitSeparator, del]) {
         expect(() => custom('Pre${control}Workout'), throwsInvalidCharacters());
       }
+    });
+
+    test('rejects a forbidden character at the start of a name', () {
+      // The bug this guards: `trim()` deletes every one of these, so checking
+      // a trimmed copy would hand back an accepted `Lunch` for input the
+      // contract says is refused.
+      for (final control in [
+        newline,
+        carriageReturn,
+        tab,
+        nextLine,
+        unitSeparator,
+        del,
+        lineSeparator,
+        paragraphSeparator,
+      ]) {
+        expect(() => custom('${control}Lunch'), throwsInvalidCharacters());
+      }
+    });
+
+    test('rejects a forbidden character at the end of a name', () {
+      for (final control in [
+        newline,
+        carriageReturn,
+        tab,
+        nextLine,
+        unitSeparator,
+        del,
+        lineSeparator,
+        paragraphSeparator,
+      ]) {
+        expect(() => custom('Lunch$control'), throwsInvalidCharacters());
+      }
+    });
+
+    test('an outer forbidden character is never converted away', () {
+      // Stated as the outcome rather than as the mechanism: whatever the
+      // implementation does internally, these must not end up stored as
+      // `Lunch`.
+      for (final value in [
+        'Lunch$newline',
+        '${tab}Lunch',
+        'Lunch$carriageReturn',
+        '${nextLine}Lunch',
+        'Lunch$lineSeparator',
+      ]) {
+        expect(() => custom(value), throwsInvalidCharacters());
+      }
+    });
+
+    test('an outer forbidden character survives surrounding spaces', () {
+      // Spaces around the control are legitimately trimmable, and trimming
+      // them must not carry the control out with them.
+      expect(() => custom('  Lunch$newline  '), throwsInvalidCharacters());
+      expect(() => custom('  ${tab}Lunch  '), throwsInvalidCharacters());
+    });
+
+    test('ordinary outer whitespace is still trimmed', () {
+      expect(custom('  Lunch  ').displayName, 'Lunch');
+      expect(
+        custom('$noBreakSpace Lunch $noBreakSpace').displayName,
+        'Lunch',
+        reason: 'a space separator is not a control character',
+      );
     });
 
     test('whitespace-only input still reads as blank, not as a control', () {

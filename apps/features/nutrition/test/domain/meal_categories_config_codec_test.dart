@@ -354,6 +354,67 @@ void main() {
       );
     });
 
+    test('a stored name wrapped in control characters is rejected', () {
+      // Persisted state is the case the trim-first ordering would have let
+      // through: a row written straight to the API as "Lunch\n" must not be
+      // read back as a clean `Lunch`.
+      for (final control in [
+        0x0A, // LF
+        0x0D, // CR
+        0x09, // tab
+        0x85, // NEL, a C1 control
+        0x2028, // LINE SEPARATOR
+        0x2029, // PARAGRAPH SEPARATOR
+      ]) {
+        final character = String.fromCharCode(control);
+
+        expect(
+          () => MealCategoriesConfigCodec.decode(
+            configWith('${character}Pre Workout'),
+          ),
+          _throwsCode(
+            MealCategoriesValidationCode.invalidDisplayNameCharacters,
+          ),
+          reason: 'leading U+${control.toRadixString(16).toUpperCase()}',
+        );
+        expect(
+          () => MealCategoriesConfigCodec.decode(
+            configWith('Pre Workout$character'),
+          ),
+          _throwsCode(
+            MealCategoriesValidationCode.invalidDisplayNameCharacters,
+          ),
+          reason: 'trailing U+${control.toRadixString(16).toUpperCase()}',
+        );
+      }
+    });
+
+    test('a stored canonical default is held to the same rule', () {
+      // Not only custom rows: a canonical default written directly to the API
+      // goes through the same constructor.
+      final raw = <String, Object?>{
+        'schema_version': 1,
+        'items': <Object?>[
+          for (final item
+              in MealCategoriesConfig.canonicalDefaults().orderedItems)
+            <String, Object?>{
+              'id': item.id,
+              'default_key': item.defaultKey?.storageValue,
+              'display_name': item.id == 'meal_slot_2'
+                  ? 'Lunch${String.fromCharCode(0x0A)}'
+                  : item.displayName,
+              'active': item.active,
+              'order': item.order,
+            },
+        ],
+      };
+
+      expect(
+        () => MealCategoriesConfigCodec.decode(raw),
+        _throwsCode(MealCategoriesValidationCode.invalidDisplayNameCharacters),
+      );
+    });
+
     test('a stored name is canonicalized on the way in', () {
       final decoded =
           MealCategoriesConfigCodec.decode(configWith('  Pre   Workout  '))!;
