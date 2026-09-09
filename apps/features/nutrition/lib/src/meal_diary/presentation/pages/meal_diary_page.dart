@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
 
+import '../../../domain/repositories/meal_categories_repository.dart';
 import '../../../meal_logging/presentation/widgets/add_food_sheet.dart';
 import '../../../meal_logging/presentation/widgets/quick_add_editor_sheet.dart';
 import '../controllers/meal_diary_date_controller.dart';
@@ -41,6 +42,7 @@ class MealDiaryPage extends ConsumerStatefulWidget {
     super.key,
     this.resolvedFirstDayOfWeek,
     this.quickAddClock,
+    this.mealCategoriesRepository,
   });
 
   /// The app-global week start, already resolved, supplied by app composition.
@@ -51,6 +53,14 @@ class MealDiaryPage extends ConsumerStatefulWidget {
   /// calendar's own locale fallback, which is what happens before the
   /// preference has loaded.
   final int? resolvedFirstDayOfWeek;
+
+  /// Where Quick Add's Meal type options come from, supplied by app
+  /// composition.
+  ///
+  /// Nutrition cannot reach the provider that owns it, so it arrives the same
+  /// way [resolvedFirstDayOfWeek] does. Null leaves the Meal type control
+  /// inert rather than inventing categories for it.
+  final MealCategoriesRepository? mealCategoriesRepository;
 
   /// Testable local clock seam for a brand-new Quick Add draft.
   ///
@@ -134,7 +144,11 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
 
     switch (choice) {
       case MealDiaryAddFoodChoice.quickAdd:
-        await showQuickAddEditorSheet(context, clock: widget.quickAddClock);
+        await showQuickAddEditorSheet(
+          context,
+          clock: widget.quickAddClock,
+          mealCategoriesRepository: widget.mealCategoriesRepository,
+        );
     }
   }
 

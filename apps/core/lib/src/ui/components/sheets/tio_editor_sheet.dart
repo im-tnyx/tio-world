@@ -93,8 +93,10 @@ class TioEditorSheet extends StatelessWidget {
   /// reads as content having been cut off.
   final bool flushActions;
 
-  /// Bottom inset inside the editor surface. The editor family uses a compact
-  /// 12dp bottom inset while retaining its established side and top padding.
+  /// The minimum room below the sheet's actions, not an addition to the
+  /// device's bottom inset: the larger of the two wins, so the action lands
+  /// where the onboarding bar's does rather than a home indicator's width
+  /// above it. Side and top padding are unchanged.
   final double bottomPadding;
 
   /// Whether the handle may dismiss the sheet. Set false while a save is in
@@ -115,12 +117,16 @@ class TioEditorSheet extends StatelessWidget {
         ),
         clipBehavior: Clip.antiAlias,
         child: SafeArea(
+          // The minimum belongs to the SafeArea, not to the padding below it.
+          // Adding one to the other put the action a home indicator's width
+          // above where the same button sits on an onboarding screen.
+          minimum: EdgeInsets.only(bottom: bottomPadding),
           child: Padding(
-            padding: EdgeInsets.fromLTRB(
+            padding: const EdgeInsets.fromLTRB(
               TioEditorSheetTokens.padding,
               TioEditorSheetTokens.padding,
               TioEditorSheetTokens.padding,
-              bottomPadding,
+              TioSize.dp0,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,

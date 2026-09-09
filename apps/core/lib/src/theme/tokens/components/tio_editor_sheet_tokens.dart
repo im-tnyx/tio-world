@@ -20,8 +20,13 @@ class TioEditorSheetTokens {
 
   static const padding = TioSpacing.lg;
 
-  /// Bottom inset shared by every editor surface.
-  static const bottomPadding = TioSpacing.md;
+  /// The **minimum** bottom inset shared by every editor surface.
+  ///
+  /// Not an addition to the device's bottom inset — the larger of the two
+  /// wins, which is how the onboarding action bar already sits. Adding to the
+  /// inset instead left every sheet's action a home indicator's width higher
+  /// than the same button elsewhere in the app.
+  static const bottomPadding = TioSpacing.lg;
 
   /// Gap between the drag handle and the header.
   static const handleGap = TioSpacing.md;

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../theme/theme.dart';
 import '../cards/tio_card.dart';
+import 'tio_anchored_popup.dart';
 import 'tio_date_time_wheel_picker.dart';
 
 /// A reusable anchored DateTime popup card.
@@ -24,6 +25,7 @@ class TioDateTimePickerPopup extends StatefulWidget {
     this.minimumDate,
     this.resolveDateTime,
     this.onPickerInteractionStart,
+    this.passThroughAnchorKey,
   });
 
   /// A key on the caller's date/time control. It is presentation-only and has
@@ -39,6 +41,12 @@ class TioDateTimePickerPopup extends StatefulWidget {
 
   /// Lets a caller refresh a dynamic constraint before a native scroll starts.
   final VoidCallback? onPickerInteractionStart;
+
+  /// A sibling control the dismiss layer leaves reachable while this card is
+  /// open, so swapping between two cards on the same strip costs one tap
+  /// rather than two. Null keeps the plain behaviour.
+  final GlobalKey? passThroughAnchorKey;
+
   final Widget child;
 
   @override
@@ -98,6 +106,14 @@ class _TioDateTimePickerPopupState extends State<TioDateTimePickerPopup> {
     });
   }
 
+  /// Where the sibling control sits, or null when there is none.
+  Rect? _passThroughRect() {
+    final renderObject =
+        widget.passThroughAnchorKey?.currentContext?.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) return null;
+    return renderObject.localToGlobal(Offset.zero) & renderObject.size;
+  }
+
   @override
   Widget build(BuildContext context) => OverlayPortal(
         controller: _portalController,
@@ -145,20 +161,15 @@ class _TioDateTimePickerPopupState extends State<TioDateTimePickerPopup> {
       return const SizedBox.shrink();
     }
 
-    return Material(
-      color: TioPalette.transparent,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Semantics(
-              button: true,
-              label: 'Dismiss date and time picker',
-              onTap: widget.onDismiss,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: widget.onDismiss,
-              ),
-            ),
+    // No Material across the whole overlay: one spanning the screen hit-tests
+    // as a solid sheet, which would swallow the tap the barrier's hole exists
+    // to let through. The card carries its own.
+    return Stack(
+      children: [
+          TioPopupDismissBarrier(
+            onDismiss: widget.onDismiss,
+            semanticLabel: 'Dismiss date and time picker',
+            passThrough: _passThroughRect(),
           ),
           Positioned(
             key: const ValueKey('tio-date-time-picker-popup'),
@@ -168,7 +179,9 @@ class _TioDateTimePickerPopupState extends State<TioDateTimePickerPopup> {
             height: height,
             child: Semantics(
               container: true,
-              child: GestureDetector(
+              child: Material(
+                color: TioPalette.transparent,
+                child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () {},
                 child: TioCard(
@@ -189,11 +202,11 @@ class _TioDateTimePickerPopupState extends State<TioDateTimePickerPopup> {
                     ),
                   ),
                 ),
+                ),
               ),
             ),
           ),
-        ],
-      ),
+      ],
     );
   }
 }

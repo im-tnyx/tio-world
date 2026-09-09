@@ -447,6 +447,18 @@ The generic `TioInput` contract (14dp radius, 52dp minimum height) and the speci
 
 `TioGroupCard` is the neutral, **non-selectable** grouping surface for canonical grouped Settings and Nutrition rows. It owns the `surfaceRaised` material, shared radius, clipping, and child ordering while callers compose their own rows and separators. It does not represent selected or unselected state; selection cards remain a separate component contract.
 
+### Anchored popups
+
+`TioAnchoredPopup` is the contract for a floating card that opens beside a control without disturbing it. The content lives in an `OverlayPortal`, so opening one changes nothing about the widget it wraps: a pinned action region keeps its position and its height while the card floats over the body above it. A caller that grows its own footer to hold options is not using this contract.
+
+The caller owns the open flag, the anchor `GlobalKey` and the content. Core owns placement — it prefers the side of the anchor with more room, keeps clear of the status bar, the keyboard and the home indicator, aligns to the anchor's leading edge and clamps itself on screen — and owns dismissal on an outside tap.
+
+Height and width are both intrinsic and capped. The card is anchored by the edge nearest the control, so it grows away from it without anyone having to know its size in advance, and `contentBuilder` is told how much height it may use so long content can scroll inside rather than being clipped. `maximumWidth` keeps a short list from stretching into a band across the screen.
+
+`TioPopupDismissBarrier` is the dismiss layer, and is exposed because two popups anchored to the same strip need it. Its optional `passThrough` rect is cut out of the barrier rather than made transparent, so nothing in the overlay is hit-testable there and the tap lands on the sibling control beneath — which is what makes moving from one card to the other cost one tap instead of two. It presents one dismiss action to assistive technology however many regions it paints, and a caller must only pass a rect through to a control that is actually enabled, or it hands the reader a dead area.
+
+`TioDateTimePickerPopup` is the existing anchored card for date and time. It carries the same optional `passThroughAnchorKey`, defaulting off.
+
 ### Selection cards
 
 `TioSelectableCard` is that contract: the canonical card chosen from a set of options. Features supply the content, the current `selected` value, and the action; core owns the selected/unselected appearance and the interactive semantics.

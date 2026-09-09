@@ -504,30 +504,42 @@ void main() {
   });
 
   group('bottom padding', () {
-    double editorPaddingBottom(WidgetTester tester) {
-      final paddings = tester
-          .widgetList<Padding>(find.descendant(
-            of: sheet,
-            matching: find.byType(Padding),
-          ))
-          .whereType<Padding>();
-      final editorPadding = paddings.firstWhere(
-        (padding) =>
-            padding.padding is EdgeInsets &&
-            (padding.padding as EdgeInsets).left == TioEditorSheetTokens.padding &&
-            (padding.padding as EdgeInsets).top == TioEditorSheetTokens.padding,
-      );
-      return (editorPadding.padding as EdgeInsets).bottom;
+    // Corrected: `bottomPadding` used to be added below the safe area, so it
+    // could be read off the sheet's own `Padding`. It is now the minimum the
+    // safe area is given, and the larger of the two wins — so what matters is
+    // where the content ends up, not what any one widget was handed.
+    double bottomGap(WidgetTester tester) {
+      final sheetRect = tester.getRect(sheet);
+      final body = tester.getRect(find.text('Body'));
+      return sheetRect.bottom - body.bottom;
     }
 
-    testWidgets('uses the governed compact editor-family default',
+    testWidgets('the governed minimum applies when the device has no inset',
         (tester) async {
-      expect(TioEditorSheetTokens.bottomPadding, TioSpacing.md);
+      expect(TioEditorSheetTokens.bottomPadding, TioSpacing.lg);
+      await _open(tester, content: const Text('Body'));
+
+      expect(bottomGap(tester), TioEditorSheetTokens.bottomPadding);
+    });
+
+    testWidgets('a larger device inset wins over the minimum', (tester) async {
+      // The point of the change: the action lands where the onboarding bar's
+      // does instead of a home indicator's width above it.
+      // `FakeViewPadding` is in physical pixels, so the ratio has to be
+      // pinned or the inset arrives divided by it.
+      tester.view.devicePixelRatio = 1;
+      tester.view.padding = const FakeViewPadding(bottom: 34);
+      tester.view.viewPadding = const FakeViewPadding(bottom: 34);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPadding);
+      addTearDown(tester.view.resetViewPadding);
+
       await _open(tester, content: const Text('Body'));
 
       expect(
-        editorPaddingBottom(tester),
-        TioEditorSheetTokens.bottomPadding,
+        bottomGap(tester),
+        34,
+        reason: 'the inset, not the inset plus the minimum',
       );
     });
 
@@ -538,7 +550,7 @@ void main() {
         bottomPadding: TioSize.dp20,
       );
 
-      expect(editorPaddingBottom(tester), TioSize.dp20);
+      expect(bottomGap(tester), TioSize.dp20);
     });
   });
 

@@ -40,11 +40,13 @@ class MealLogActionFooter extends StatelessWidget {
     this.onMealCategoryTap,
     this.onDateTimeTap,
     this.onPrimaryPressed,
+    this.mealCategoryAnchorKey,
     this.dateTimeAnchorKey,
   });
 
-  /// What the category control reads. A neutral placeholder while TNYX-67 has
-  /// not yet given Nutrition a real category to name.
+  /// What the category control reads: the selected category's name, or an
+  /// invitation to choose one. The caller resolves it, because the caller owns
+  /// the selection.
   final String mealCategoryLabel;
 
   /// What the date/time control reads, beside its calendar glyph.
@@ -65,6 +67,11 @@ class MealLogActionFooter extends StatelessWidget {
   final VoidCallback? onDateTimeTap;
   final VoidCallback? onPrimaryPressed;
 
+  /// Optional presentation anchor for a caller-owned Meal Type popup, exactly
+  /// as [dateTimeAnchorKey] is for the date one. The footer stays a fixed
+  /// strip: the popup floats over the body above it and never grows this row.
+  final GlobalKey? mealCategoryAnchorKey;
+
   /// Optional presentation anchor for a caller-owned DateTime popup.
   final GlobalKey? dateTimeAnchorKey;
 
@@ -84,21 +91,43 @@ class MealLogActionFooter extends StatelessWidget {
         // its job is to be the quiet strip the content stops at.
         Row(
           children: [
-            _FooterAction(
-              controlKey: const ValueKey('meal-log-footer-category'),
-              semanticLabel: mealCategorySemanticLabel ?? mealCategoryLabel,
-              onTap: onMealCategoryTap,
-              builder: (context, textStyle, iconColor) => Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(mealCategoryLabel, style: textStyle),
-                  const SizedBox(width: TioSpacing.xs),
-                  Icon(
-                    Icons.expand_more_rounded,
-                    size: TioSize.dp20,
-                    color: iconColor,
-                  ),
-                ],
+            // Bounded, not flexible. A flexible child would share the row
+            // evenly with the date and pull it off the trailing edge; this
+            // keeps the category at its natural width — Meal Type left, date
+            // right — while capping how far a long custom name may push,
+            // because past that the row would overflow instead of shortening.
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.sizeOf(context).width / 2,
+              ),
+              child: KeyedSubtree(
+                key: mealCategoryAnchorKey,
+                child: _FooterAction(
+                controlKey: const ValueKey('meal-log-footer-category'),
+                semanticLabel: mealCategorySemanticLabel ?? mealCategoryLabel,
+                onTap: onMealCategoryTap,
+                builder: (context, textStyle, iconColor) => Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        mealCategoryLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textStyle,
+                      ),
+                    ),
+                    const SizedBox(width: TioSpacing.xs),
+                    // Never shortened away: the chevron is what says this
+                    // opens something.
+                    Icon(
+                      Icons.expand_more_rounded,
+                      size: TioSize.dp20,
+                      color: iconColor,
+                    ),
+                  ],
+                ),
+                ),
               ),
             ),
             // Takes the remainder and hands it back right-aligned, so the
@@ -116,7 +145,7 @@ class MealLogActionFooter extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         SvgPicture.asset(
-                          'assets/svg_icon/ic_calendar_.svg',
+                          'assets/svg_icon/ic_calendar_1.svg',
                           package: 'tio_core',
                           width: TioSize.dp20,
                           height: TioSize.dp20,

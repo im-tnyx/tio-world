@@ -11,7 +11,10 @@ void main() {
       expect(TioWheelPickerTokens.selectionSurfaceAlpha, 200);
       expect(TioWheelPickerTokens.itemExtent, 44.0);
       expect(TioWheelPickerTokens.selectedFontSize, 22.0);
-      expect(TioEditorSheetTokens.bottomPadding, TioSpacing.md);
+      // Corrected: this is now the minimum the safe area is given rather than
+      // an inset added below it, and it matches what the onboarding action bar
+      // already used.
+      expect(TioEditorSheetTokens.bottomPadding, TioSpacing.lg);
     });
 
     test('pins the unified drum curvature shared by every wheel', () {

@@ -884,6 +884,9 @@ void main() {
       await _pump(tester);
       await _openQuickAdd(tester);
 
+      // Corrected for the activated selector. This flow opens Quick Add with
+      // no category source, and with none the control is honestly inert and
+      // still names nothing — it invites a choice rather than guessing one.
       expect(find.text('Meal type'), findsOne);
       expect(
         tester.getSemantics(find.byKey(_footerCategory)),
