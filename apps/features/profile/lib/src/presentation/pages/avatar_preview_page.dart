@@ -134,6 +134,17 @@ class AvatarPreviewPage extends StatelessWidget {
         ],
       ),
       body: SafeArea(
+        // Horizontal insets are not applied. The square is sized from the
+        // width this box reports, so a device with side insets was handing
+        // the preview a narrower box and the photo came out smaller than the
+        // screen it was meant to fill.
+        //
+        // Top and bottom stay on. Top is already spent by the app bar, and
+        // bottom genuinely protects the home indicator — neither costs the
+        // square anything, because in portrait the remaining height still
+        // exceeds the width and the width is what `min` picks.
+        left: false,
+        right: false,
         child: LayoutBuilder(
           builder: (context, constraints) {
             final dimension = constraints.maxWidth < constraints.maxHeight
