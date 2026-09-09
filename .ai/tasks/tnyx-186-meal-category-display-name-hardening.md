@@ -1,24 +1,29 @@
 # TNYX-186 Meal Category Display-Name Hardening
 
-**Status:** In progress / REVIEW — Slice A published as PR #234, review correction in progress, not merged
-**Canonical GitHub issue:** #233
-**Linear:** TNYX-186
-**Pull request:** #234 (open, Slice A only)
-**Base:** `main@debda76c2a638f9475ef1aa0cf9b82ecd1c64caf`
-**Branch:** `tnyx/tnyx-186-meal-category-name-policy`
+**Status:** In progress / REVIEW - Slice A merged; Slice B published as PR #235; Slice C published for review
+**Canonical GitHub issue:** #233 (open)
+**Linear:** TNYX-186 (In Progress)
+**Slice A pull request:** #234 (merged into `main@633b210f32cfcf86855aa6524c0ec2c1f26c3de0`)
+**Slice B pull request:** #235 (open, database guard, not merged, not applied hosted)
+**Slice C branch:** `tnyx/tnyx-186-reserved-canonical-meal-category-names`, based on `main@633b210f32cfcf86855aa6524c0ec2c1f26c3de0`
 
 ## Current Position
 
-Slice A is implemented and published for review on the branch above. Nothing is merged.
+Slice A is merged: the Dart domain is the single owner of what a category name
+may be, after three review corrections.
 
-- Review raised one contract bug on the published head: `canonicalize()` matched the forbidden set against a trimmed copy, so a leading or trailing newline, tab or control was removed before it could be refused and `Lunch\n` was accepted as `Lunch`. The forbidden set is now matched against the raw input, after blankness is settled and before any trimming or collapsing, with leading/trailing regressions in the domain and codec suites.
-- Review raised a second contract bug on the same head: the editor capped the raw field text at 24 while the domain caps the canonical value, so a pasted name whose length came from collapsible whitespace could be cut down and stored as a shorter name the reader never typed. The field no longer caps anything; it shows a counter read from the canonical length, and a name past the limit is refused through the existing validation path.
-- Review raised a third contract bug: U+200B ZERO WIDTH SPACE passed every check, because it is not matched by `\s` and is not Unicode White_Space, so a category could be stored with a visually blank label or an invisible break inside it. U+200B is now named in the forbidden set. The set stays a list of ranges and code points rather than a class: U+200C ZWNJ is required for correct Hindi and Persian text, U+200D ZWJ is owner-locked as allowed, and U+2060 WORD JOINER is outside the locked boundary.
-- Review also raised the stale published-state wording in this brief, which this section replaces.
-- Slice B remains deferred at its design gate. No migration exists.
-- No hosted Supabase mutation has occurred at any point in this task.
+Slice B is published as PR #235 on its own branch and is not merged. It guards
+the database-side shape and content subset, with the 24-grapheme limit and
+case-only duplicate names left application-authoritative and named as gaps.
 
-Next action: exact-head CI and review resolution, then the owner's merge decision. Publication is done; what remains is verification and review closure.
+Slice C is this branch: the four original canonical names are permanently
+reserved by identity. It is app and domain only, it does not touch PR #235, and
+PR #235 needs reconciliation only after Slice C merges.
+
+No hosted Supabase mutation has occurred at any point in this task.
+
+Next action: review of Slice C, then the owner's merge decision, then a
+separate reconciliation pass on PR #235.
 
 ## Owner Approval and Scope Boundary
 
@@ -196,6 +201,88 @@ A future migration must preflight stored rows and reject incompatible state; no 
 If Postgres cannot enforce exact extended grapheme clusters without disproportionate extension/runtime complexity, report that explicitly. Do not silently replace the owner contract with a code-point limit.
 
 Hosted apply always requires a separate explicit owner authorization.
+
+## Slice C - Reserved Canonical Names, App/Domain
+
+Owner decision: the four original canonical names are permanently reserved,
+and the reservation belongs to the **identity**, never to what that category is
+currently called.
+
+```text
+Breakfast -> meal_slot_1 only
+Lunch     -> meal_slot_2 only
+Dinner    -> meal_slot_3 only
+Snacks    -> meal_slot_4 only
+```
+
+Renaming a canonical category changes one display name and releases nothing.
+After `meal_slot_2: Lunch -> Mid Meal`, the word Lunch is still owned by
+`meal_slot_2`, so only that identity may take it back and nothing else may take
+it in the meantime.
+
+### What is and is not reserved
+
+| Action | Result |
+|---|---|
+| `meal_slot_2` takes `Lunch` | valid, before or after any rename |
+| `meal_slot_2` takes `Mid Meal` | valid, subject to the ordinary rules |
+| `meal_slot_2` goes `Lunch -> Mid Meal -> Lunch` | valid |
+| `meal_slot_1` or `meal_slot_3` takes `Lunch` | refused |
+| any custom takes `Lunch`, active or archived | refused |
+| a custom takes `Mid Meal` once Lunch has moved off it | valid |
+
+The reservation list does not grow. A name a canonical category was once
+renamed to does not become a permanent token; it goes back to being governed by
+the ordinary active-duplicate rule.
+
+Archived categories are checked too, deliberately. An archived custom called
+`Lunch` is invisible to the duplicate rule and would reactivate straight into a
+state the domain refuses.
+
+### Ownership
+
+One owner, derived from `canonicalMealCategoryDefaultDefinitions`, so there is
+no second hardcoded list of the four words anywhere:
+
+```text
+MealCategoriesPolicy.reservedOwnerIdFor(name) -> canonical id, or null
+```
+
+Matched through `normalizeDisplayName()`, which is the merged
+`MealCategoryDisplayNamePolicy.comparisonKey()`, so `lunch`, `LUNCH`, `LuNcH`
+and `  Lunch  ` are all the same word. The reserved words themselves are ASCII;
+this is not a general Unicode reserved-word rule.
+
+Enforced in `MealCategoriesPolicy.validate()`, which is where both identity and
+name are available. `MealCategory`'s constructor cannot host it without a
+circular import, and it does not need to: the codec and every repository path
+go through `MealCategoriesConfig.validate()`.
+
+Checked before the duplicate rule, because it is the more specific answer and
+because it is the only one that also covers archived items. New deterministic
+code: `reservedCanonicalDisplayName`.
+
+The controller calls the same policy for the in-place editor error, with the
+edited identity passed as `excludingId`, so the Lunch category can always take
+Lunch back. Copy: `That name is reserved for a default meal category.` No
+identity or `defaultKey` reaches the screen.
+
+### Interaction with the duplicate rule
+
+They are different rules and are kept apart. Four existing widget and
+controller cases exercised the duplicate rule using canonical names as the
+clash fixture; those now hit the reserved rule first, so they were retargeted
+onto a custom name. The duplicate rule keeps its coverage, and the reserved
+rule has its own.
+
+### Reconciliation owed to Slice B
+
+PR #235 does **not** enforce reserved-name ownership in the database. After
+Slice C merges, PR #235 needs a separate pass: rebase onto the new `main`, add
+the DB-side reservation rule, preflight hosted rows for reserved-name
+violations, extend the SQL matrix, replay locally, and get a fresh review before
+any hosted apply. Nothing about that was started here, and PR #235 was not
+touched.
 
 ## Protected State
 

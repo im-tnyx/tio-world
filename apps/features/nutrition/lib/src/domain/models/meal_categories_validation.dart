@@ -10,6 +10,7 @@ enum MealCategoriesValidationCode {
   duplicateId,
   duplicateOrder,
   duplicateActiveDisplayName,
+  reservedCanonicalDisplayName,
   duplicateDefaultKey,
   invalidDefaultMapping,
   missingCanonicalDefault,
