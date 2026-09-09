@@ -19,19 +19,19 @@
 **Review owner:** Codex
 **Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-09 after PR #232 publication, first handoff correction, and exact-head CI completion
+**Repository state last verified:** 2026-09-09 after PR #232 publication and exact-head CI completion on the latest pre-correction head
 **Branch:** `tnyx/tnyx-145-auth-cleanup`
-**HEAD SHA:** Published handoff-correction head `5af3a29443a1f73f2043f282561cd7c9f6af328e`; this pending-status correction becomes the next branch head.
-**Observed working-tree state:** PR #232 is published. The first handoff correction is pushed and its review thread is resolved; this task brief is the only follow-up change for the new exact-head validation finding.
+**Published PR state source:** GitHub PR #232 current head, checks, commit list, and review threads are authoritative; this brief intentionally does not freeze a transient current-head SHA.
+**Observed working-tree state:** PR #232 is published. The implementation and governance corrections are pushed; only final review and the owner merge decision remain after the live current-head gates are green.
 **Observed uncommitted/dirty files:** Pre-existing `pubspec.lock` modification and `.ai/tasks/tnyx-54-nutrition-ia-readiness.md` untracked file; both are outside scope and must remain untouched.
 **PR / tracker:** GitHub PR #232 is open and mergeable; GitHub #194 is linked for closure on merge; Linear TNYX-145 is `In Progress`, links PR #232, and records the validation outcome.
 **Current implementation state:** Commit `60e5212b` removed the dead implementation/export and corrected stale exact-name task-note references; canonical login/router/session source remains unchanged.
 **Relevant execution surface:** `apps/features/auth`, existing app router and session route policy tests.
-**Validation completed at SHA:** Local focused validation and scope audit plus GitHub Actions `Flutter CI` passed on implementation commit `60e5212b`; `Flutter CI` run `34324517072` also passed on handoff-correction head `5af3a294`.
-**Validation remaining:** Observe exact-head CI after pushing this status-only correction. Keep this committed brief at `In progress` / `REVIEW`; the PR check state is authoritative for the final pushed head.
+**Validation completed at SHA:** Local focused validation and scope audit plus GitHub Actions `Flutter CI` passed on implementation commit `60e5212b`; governance heads `5af3a294` and `b346b682` also passed exact-head CI, with run `34325480125` covering `b346b682`.
+**Validation remaining:** Before merge, confirm the live PR #232 current head has `Flutter CI` PASS and no unresolved review finding. Keep this brief at `In progress` / `REVIEW` until the owner merge decision.
 **Current blocker:** None.
-**Open review finding IDs:** `PRRT_kwDOTOXwB86gjM_T` — avoid a completion claim before the commit containing it has exact-head validation.
-**Next exact action:** Validate, commit, and push only this pending-status correction; observe exact-head CI; then resolve the review thread. Do not merge.
+**Review finding state:** Do not maintain a brittle embedded Open-thread list; GitHub PR #232 review threads are authoritative. The prior governance findings were addressed, and no runtime/Auth finding is open in this brief.
+**Next exact action:** Final review and owner merge decision after the live PR #232 current-head checks and review state are green. Do not merge automatically.
 
 ## Global UI / Design-System Guardrail
 
@@ -125,7 +125,7 @@ Unchanged. The removed source has no runtime consumer; canonical `LoginPage` con
 - [x] Run exact zero-reference and pre-commit Git scope checks.
 - [x] Commit and push the scoped implementation, open PR #232, and update Linear with the PR link and validation outcome.
 - [x] Publish the first task-brief-only correction, observe exact-head CI, and resolve its review thread.
-- [ ] Publish this pending-status correction, observe exact-head CI, and resolve the current review thread.
+- [x] Publish the governance state corrections and use PR #232 current head/check/review state as the live merge gate.
 
 ## 6. Quality Review
 
@@ -159,6 +159,14 @@ GitHub Actions Flutter CI run 34322989738
 GitHub Actions Flutter CI run 34324517072
   - PASS on exact handoff-correction head 5af3a294
   - bootstrap, Flutter/Dart analyze, and Flutter/Dart tests passed
+
+GitHub Actions Flutter CI run 34325480125
+  - PASS on exact governance head b346b682
+  - bootstrap, Flutter/Dart analyze, and Flutter/Dart tests passed
+
+GitHub PR #232 live merge gate
+  - Current head, checks, commit list, and review threads in GitHub are authoritative after later docs-only corrections
+  - Flutter CI must be PASS and review findings resolved before owner merge
 ```
 
 ### Review Findings and Resolution
@@ -167,7 +175,8 @@ GitHub Actions Flutter CI run 34324517072
 |---|---|---|---|---|---|
 | None | — | Resolved | No pre-implementation blockers or overlapping PRs found | `4b808a0b` | Phase 1 audit |
 | `PRRT_kwDOTOXwB86gi0i1` | Medium | Resolved | Committed handoff retained stale pre-commit/PR/CI state | `60e5212b` | Corrected by `5af3a294`; exact-head CI passed and the thread was resolved |
-| `PRRT_kwDOTOXwB86gjM_T` | High | Open | Task status claimed completion before its own exact-head CI was observed | `5af3a294` | Keep the committed brief pending; PR exact-head CI remains authoritative |
+| `PRRT_kwDOTOXwB86gjM_T` | High | Resolved / outdated | Task status claimed completion before its own exact-head CI was observed | `5af3a294` | Corrected by keeping the task `In progress` / `REVIEW`; exact-head CI passed |
+| `PRRT_kwDOTOXwB86glYpW` | Medium | Addressed | Active Handoff embedded stale head, CI, review, and next-action snapshots | `b346b682` | PR #232 live head/check/review state is now authoritative instead of a self-referential snapshot |
 
 ## 7. Final Handoff
 
