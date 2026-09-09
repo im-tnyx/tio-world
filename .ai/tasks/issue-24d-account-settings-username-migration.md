@@ -8,7 +8,7 @@
 
 **Approval status:** Approved as a bounded core-extension + consumer-migration slice, explicitly requested by the owner as GitHub #24 Phase #24-D.
 **Approved boundaries:** Migrate `AccountSettingsPage`'s hand-rolled username field (raw `TextField` + local debounce/status/suggestion state) to canonical `TioUsernameInputField`, extending core only with an evidenced, non-speculative appearance/capability contract; wire the real `ProfileAccountRepository.checkUsernameAvailability` in app composition.
-**Explicit non-changes:** Auth username/email/password fields, `EmailLoginPage`, mobile-number migration, Profile selection rows, `TioSelectionField`, Nutrition "Other", onboarding inline "Other", Step Target, GitHub #197/#183/#198/#199 (unrelated onboarding findings), Workout fields (#24-C, already merged), Supabase RPCs/policies/schema, GitHub #24 closure.
+**Explicit non-changes:** Auth username/email/password fields, legacy duplicate Auth login cleanup (#194), mobile-number migration, Profile selection rows, `TioSelectionField`, Nutrition "Other", onboarding inline "Other", Step Target, GitHub #197/#183/#198/#199 (unrelated onboarding findings), Workout fields (#24-C, already merged), Supabase RPCs/policies/schema, GitHub #24 closure.
 
 ## Active Handoff
 
