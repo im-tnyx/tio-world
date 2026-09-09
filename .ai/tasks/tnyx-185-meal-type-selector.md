@@ -127,14 +127,36 @@ Supabase            no migration, no schema, no hosted mutation
 TNYX-67 source      untouched
 ```
 
-## 8. One card at a time
+## 8. Two switches, one card
 
-The two cards can never both be open. While either is up, its dismiss layer
-covers the screen, so the other control cannot be reached until that tap has
-closed the first one. Asserted in `the two cards can never be open at once`.
+Left is Meal Type, right is Date / time. Two independent controls, not a pair
+of tabs: neither card is ever forced to be the open one. Pressing a control
+whose card is showing closes it and opens nothing, and a tap away from both
+closes without opening either.
 
-That is the existing date-card behaviour, kept deliberately: switching from one
-to the other costs a tap to close and a tap to open. Making it a single tap
-means letting the dismiss layer pass a tap through to the sibling control,
-which is a change to `TioDateTimePickerPopup` — the widget the owner asked to
-leave alone. Raised rather than decided.
+They can never both be open, and moving between them costs **one** tap.
+
+That took a change to the dismiss layer. A popup's barrier covers the screen so
+a tap anywhere outside closes it — which also meant the tap never reached the
+other control, so swapping cost two taps. `TioPopupDismissBarrier` now takes an
+optional hole: the sibling control's rect is cut out of the barrier, so nothing
+in the overlay is hit-testable there and the tap lands on the control beneath.
+
+`TioDateTimePickerPopup` gained the same option. Additive and default-off, so
+its behaviour for every other caller is exactly what it was. One further change
+was unavoidable: the overlay was wrapped in a screen-wide `Material`, which
+hit-tests as a solid sheet and swallowed the tap the hole exists to let
+through. That `Material` now wraps the card instead. Nothing about the card's
+appearance changes.
+
+Raised before implementing, because the owner had asked for that widget to be
+left alone; the owner then specified the one-tap behaviour in both directions,
+which is what required it.
+
+### Validation
+
+```text
+flutter analyze  core / nutrition / app     No issues found
+flutter test     core 266 · nutrition 475 · app 305    all passed
+git diff --check origin/main...HEAD         clean
+```

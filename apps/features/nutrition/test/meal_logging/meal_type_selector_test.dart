@@ -87,6 +87,7 @@ const _footerCategory = ValueKey('meal-log-footer-category');
 const _footerDateTime = ValueKey('meal-log-footer-date-time');
 const _footerPrimary = ValueKey('meal-log-footer-primary');
 const _popup = ValueKey('meal-category-picker-popup');
+const _dateTimePopup = ValueKey('tio-date-time-picker-popup');
 const _popupOptions = ValueKey('meal-category-picker-options');
 const _popupFailure = ValueKey('meal-category-picker-failure');
 const _popupRetry = ValueKey('meal-category-picker-retry');
@@ -640,31 +641,51 @@ void main() {
       expect(find.text('Lunch'), findsOne);
     });
 
-    testWidgets('the two cards can never be open at once', (tester) async {
+    testWidgets('one tap moves from the date card to this one',
+        (tester) async {
       await _pumpQuickAdd(tester);
       await tester.tap(find.byKey(_footerDateTime));
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('tio-date-time-picker-popup')), findsOne);
+      expect(find.byKey(_dateTimePopup), findsOne);
 
-      // The open card's dismiss layer covers the screen, so this tap closes it
-      // rather than reaching the Meal Type control behind. That is the
-      // existing date-card behaviour, and it is what stops the two stacking.
+      // One tap, not two: the open card's dismiss layer leaves the sibling
+      // control reachable, so this both closes that card and opens this one.
       await tester.tap(find.byKey(_footerCategory));
       await tester.pumpAndSettle();
-      expect(
-        find.byKey(const ValueKey('tio-date-time-picker-popup')),
-        findsNothing,
-      );
-      expect(find.byKey(_popup), findsNothing);
 
-      // Now the control is reachable.
-      await tester.tap(find.byKey(_footerCategory));
-      await tester.pumpAndSettle();
+      expect(find.byKey(_dateTimePopup), findsNothing);
       expect(find.byKey(_popup), findsOne);
-      expect(
-        find.byKey(const ValueKey('tio-date-time-picker-popup')),
-        findsNothing,
-      );
+    });
+
+    testWidgets('and one tap back the other way', (tester) async {
+      await _pumpQuickAdd(tester);
+      await _openSelector(tester);
+      expect(find.byKey(_popup), findsOne);
+
+      await tester.tap(find.byKey(_footerDateTime));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(_popup), findsNothing);
+      expect(find.byKey(_dateTimePopup), findsOne);
+    });
+
+    testWidgets('they are two controls, not a pair of tabs', (tester) async {
+      // Neither card is ever forced to be the open one: pressing a control
+      // whose card is showing closes it and opens nothing.
+      await _pumpQuickAdd(tester);
+      await _openSelector(tester);
+
+      await tester.tap(find.byKey(_footerCategory));
+      await tester.pumpAndSettle();
+      expect(find.byKey(_popup), findsNothing);
+      expect(find.byKey(_dateTimePopup), findsNothing);
+
+      // And a tap away from both closes without opening either.
+      await _openSelector(tester);
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+      expect(find.byKey(_popup), findsNothing);
+      expect(find.byKey(_dateTimePopup), findsNothing);
     });
 
     testWidgets('eight options scroll inside the card rather than clipping',

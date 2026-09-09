@@ -59,6 +59,7 @@ class MealCategoryPickerPopup extends StatelessWidget {
     super.key,
     this.loadError,
     this.onRetry,
+    this.passThroughAnchorKey,
   });
 
   /// A key on the caller's Meal Type control. Presentation-only, with no
@@ -85,6 +86,10 @@ class MealCategoryPickerPopup extends StatelessWidget {
   /// Reloads from the failure state.
   final Future<void> Function()? onRetry;
 
+  /// A sibling control the dismiss layer leaves reachable while this card is
+  /// open, so moving to the card it opens costs one tap rather than two.
+  final GlobalKey? passThroughAnchorKey;
+
   final Widget child;
 
   @override
@@ -94,6 +99,7 @@ class MealCategoryPickerPopup extends StatelessWidget {
         onDismiss: onDismiss,
         dismissSemanticLabel: 'Dismiss meal type picker',
         popupKey: const ValueKey('meal-category-picker-popup'),
+        passThroughAnchorKey: passThroughAnchorKey,
         // Narrower than the date wheel's card on purpose: this is a short list
         // of short names beside one control, not a band across the footer.
         maximumWidth: TioSize.dp200 + TioSize.dp48,

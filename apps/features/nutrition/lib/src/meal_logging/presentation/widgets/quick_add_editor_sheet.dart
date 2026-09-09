@@ -201,11 +201,18 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
       _categories != null &&
       _categories!.state.status != MealCategoriesStatus.loading;
 
+  /// Opens the Meal Type card, or closes it if it is already showing.
+  ///
+  /// Never both: the date card is closed in the same frame, because each card
+  /// leaves the other's control reachable and a tap there means "show me that
+  /// one instead". Tapping this control while its own card is open just
+  /// closes it — these are two controls, not a pair of tabs where one is
+  /// always chosen.
   void _toggleMealTypePicker() {
-    // Nothing closes the date card here: while it is open its dismiss layer
-    // covers the screen, so this control cannot be reached until that tap has
-    // closed it. The two cards cannot stack.
-    setState(() => _isMealTypePickerOpen = !_isMealTypePickerOpen);
+    setState(() {
+      _isDateTimePickerOpen = false;
+      _isMealTypePickerOpen = !_isMealTypePickerOpen;
+    });
   }
 
   void _closeMealTypePicker() {
@@ -307,7 +314,11 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
   void _toggleDateTimePicker() {
     FocusScope.of(context).unfocus();
     _refreshMaximumDateTime();
-    setState(() => _isDateTimePickerOpen = !_isDateTimePickerOpen);
+    setState(() {
+      // The other card cannot stay up behind this one.
+      _isMealTypePickerOpen = false;
+      _isDateTimePickerOpen = !_isDateTimePickerOpen;
+    });
     if (_isDateTimePickerOpen) {
       _scheduleMaximumDateRefresh();
     } else {
@@ -339,6 +350,9 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
       onSelected: _onMealCategorySelected,
       loadError: _categories?.state.loadError,
       onRetry: _categories?.retryLoad,
+      // The date control stays reachable while this card is open, so moving
+      // from one to the other is a single tap.
+      passThroughAnchorKey: _dateTimeAnchorKey,
       child: TioDateTimePickerPopup(
       anchorKey: _dateTimeAnchorKey,
       isOpen: _isDateTimePickerOpen,
@@ -348,6 +362,8 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
       resolveDateTime: _resolveMealDateTime,
       onChanged: _onDateTimeChanged,
       onPickerInteractionStart: _refreshMaximumDateTime,
+      // And the same the other way round.
+      passThroughAnchorKey: _mealCategoryAnchorKey,
       child: TioEditorSheet(
         key: const ValueKey('quick-add-editor'),
         title: 'Quick Add',

@@ -43,6 +43,7 @@ class TioAnchoredPopup extends StatefulWidget {
     this.contentPadding = const EdgeInsets.all(TioSpacing.xs),
     this.maximumWidth = TioSize.dp480,
     this.preferredHeight,
+    this.passThroughAnchorKey,
   });
 
   /// A key on the caller's control. Presentation-only: this widget reads its
@@ -71,6 +72,17 @@ class TioAnchoredPopup extends StatefulWidget {
   /// short list of short labels stays a small card beside its control rather
   /// than a band across the screen.
   final double maximumWidth;
+
+  /// A sibling control the dismiss layer leaves reachable while this card is
+  /// open.
+  ///
+  /// Without it, two cards anchored to the same strip cost two taps to swap
+  /// between: the first closes, the second opens. With it, the sibling is
+  /// still pressable, so one tap closes this card and opens that one.
+  ///
+  /// Null keeps the plain behaviour, where every tap outside the card only
+  /// dismisses it.
+  final GlobalKey? passThroughAnchorKey;
 
   final Widget child;
 
@@ -115,6 +127,14 @@ class _TioAnchoredPopupState extends State<TioAnchoredPopup> {
     }
     _portalController.show();
     _scheduleGeometry();
+  }
+
+  /// Where a sibling control currently sits, or null if there is none or it is
+  /// not laid out yet.
+  Rect? _rectOf(GlobalKey? key) {
+    final renderObject = key?.currentContext?.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) return null;
+    return renderObject.localToGlobal(Offset.zero) & renderObject.size;
   }
 
   void _scheduleGeometry() {
@@ -204,20 +224,15 @@ class _TioAnchoredPopupState extends State<TioAnchoredPopup> {
       ),
     );
 
-    return Material(
-      color: TioPalette.transparent,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Semantics(
-              button: true,
-              label: widget.dismissSemanticLabel,
-              onTap: widget.onDismiss,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: widget.onDismiss,
-              ),
-            ),
+    // No Material across the whole overlay: one spanning the screen hit-tests
+    // as a solid sheet, which would swallow the tap the barrier's hole exists
+    // to let through. The card carries its own.
+    return Stack(
+      children: [
+          TioPopupDismissBarrier(
+            onDismiss: widget.onDismiss,
+            semanticLabel: widget.dismissSemanticLabel,
+            passThrough: _rectOf(widget.passThroughAnchorKey),
           ),
           // Anchored by the edge nearest the control, so the card grows away
           // from it. Pinning the top instead would need the height up front,
@@ -229,14 +244,92 @@ class _TioAnchoredPopupState extends State<TioAnchoredPopup> {
             bottom: openAbove ? viewport.height - anchor.top + gap : null,
             child: Semantics(
               container: true,
-              child: GestureDetector(
-                // Swallows taps so choosing inside the card is not also a
-                // tap on the dismiss layer behind it.
-                behavior: HitTestBehavior.opaque,
-                onTap: () {},
-                child: content,
+              child: Material(
+                color: TioPalette.transparent,
+                child: GestureDetector(
+                  // Swallows taps so choosing inside the card is not also a
+                  // tap on the dismiss layer behind it.
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {},
+                  child: content,
+                ),
               ),
             ),
+          ),
+      ],
+    );
+  }
+}
+
+/// The full-screen layer that closes an anchored popup, with an optional hole.
+///
+/// A plain `Positioned.fill` barrier swallows every tap, which is correct until
+/// two popups are anchored to the same strip: swapping between them then costs
+/// a tap to close and a tap to open, because the first tap never reaches the
+/// other control.
+///
+/// [passThrough] is cut out of the barrier — not made transparent, but absent,
+/// so nothing in the overlay is hit-testable there and the tap continues down
+/// to the control underneath. Four rectangles around the hole rather than one
+/// across everything.
+class TioPopupDismissBarrier extends StatelessWidget {
+  const TioPopupDismissBarrier({
+    required this.onDismiss,
+    required this.semanticLabel,
+    super.key,
+    this.passThrough,
+  });
+
+  final VoidCallback onDismiss;
+  final String semanticLabel;
+  final Rect? passThrough;
+
+  @override
+  Widget build(BuildContext context) {
+    final hole = passThrough;
+
+    Widget target() => Semantics(
+          button: true,
+          label: semanticLabel,
+          onTap: onDismiss,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onDismiss,
+          ),
+        );
+
+    if (hole == null) return Positioned.fill(child: target());
+
+    return Positioned.fill(
+      child: Stack(
+        children: [
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            height: math.max(0, hole.top),
+            child: target(),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            top: hole.bottom,
+            bottom: 0,
+            child: target(),
+          ),
+          Positioned(
+            left: 0,
+            top: hole.top,
+            height: hole.height,
+            width: math.max(0, hole.left),
+            child: target(),
+          ),
+          Positioned(
+            left: hole.right,
+            right: 0,
+            top: hole.top,
+            height: hole.height,
+            child: target(),
           ),
         ],
       ),
