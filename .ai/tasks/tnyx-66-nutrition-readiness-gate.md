@@ -1,78 +1,125 @@
 # TNYX-66 — N0 Nutrition pre-implementation audit & readiness gate
 
-**Status:** Needs decision — post-PR-#242 refresh for the next TNYX-113 sub-slice
+**Status:** Ready — N20A-3 manual-mode `MealLogEntry` core aggregate contract
 **Primary owner:** Nutrition architecture / `apps/shared` domain contracts
-**Affected platforms:** Readiness/governance only; no implementation is authorised here
+**Affected platforms:** Shared Dart domain only for the approved next slice; no UI or persistence change is authorised by this gate
 
 ## Owner Approval and Scope Boundary
 
-**Trigger:** None — read-only audit and focused task record.
-**Approval status:** Audit only. No implementation is authorised by this refresh.
-**Approval evidence:** Owner instruction of 2026-09-10 requested a TNYX-66 reconciliation against merged `main` after PR #242, preserving still-valid findings from an earlier local audit.
-**Approved product/UI/data-shape boundaries:** None. Naming a candidate is not authorisation to build it.
-**Explicit non-changes:** No MealLog source types, production Dart, runtime tests, implementation branch, Linear mutation, Supabase migration/mutation, Quick Add saving, provider integration, UI, PR merge, or branch deletion.
+**Trigger:** New independently scoped product/domain slice.
+**Approval status:** Approved for one bounded slice only: N20A-3 manual-mode `MealLogEntry` core aggregate contract.
+**Approval evidence:** Owner instruction on 2026-09-10 requested the current governance branch be merged and work continue from the TNYX-66 audit so development can move forward. The resulting fresh audit narrows the previously proposed full aggregate to the smallest decision-free manual-mode contract.
+**Approved product/UI/data-shape boundaries:** Pure `apps/shared` domain work only. The canonical `MealLogEntry` type may gain manual-mode construction and the value representation needed to preserve TNYX-114 consumed-instant/local-date/timezone semantics. No production UI is in scope.
+**Explicit non-changes:** No `MealLogItemSnapshot`, detailed-mode construction, serving/normalization model, provider selection/integration, Supabase table/column/RLS/grant/migration, repository wiring, Quick Add save wiring, ads/entitlement behavior, concurrency/version policy, UI, or feature navigation.
+
+`READY` below applies only to that named slice. It does not mark all of TNYX-113 ready.
 
 ## Active Handoff
 
 **Planning owner:** TNYX-66 readiness gate
-**Implementation owner:** None — the previous sub-slices are merged and closed
+**Implementation owner:** None until the N20A-3 implementation branch starts
 **Review owner:** Owner
-**Implementation ownership state:** Not started for the next slice
-**Ownership transition:** Not applicable
+**Implementation ownership state:** Approved and ready to start after this readiness record is merged
+**Ownership transition:** Previous Nutrition value-contract slices are merged; next implementation owner should reconstruct from the current `main` anchor below
 **Repository state last verified:** 2026-09-10
-**Branch:** No implementation branch exists for the next slice. This reconciliation was produced in an isolated clean worktree based on `origin/main`.
-**Base / main anchor:** `164ac6f5ac4b4ef87e5f4e9f81620fa124871f21`, squash merge of PR #242
-**Observed working-tree state:** Reconciliation performed in an isolated worktree so unrelated protected local work in the primary checkout was never touched.
-**Observed uncommitted/dirty files:** In the primary checkout only, and unrelated to this gate: protected modified root `pubspec.lock` and protected untracked `.ai/tasks/tnyx-54-nutrition-ia-readiness.md`.
-**PR / tracker:** PR #241 and PR #242 are both **MERGED**. TNYX-188 **Done**, TNYX-189 **Done**, TNYX-187 **Done**, TNYX-54 **Done**. TNYX-66 remains **Backlog** and is still the active gate. TNYX-112/113/114/115/116/117 and TNYX-123 all remain **Backlog**. The only open PR is #237 and it touches `apps/core` only.
-**Current implementation state:** `NutrientId`, `NutritionSnapshot`, `MealLogCaptureSource` and `MealLogMode` are all merged on `main` and exported from `apps/shared`. The MealLog aggregate, item snapshot, provider provenance, repositories and persistence remain unimplemented.
+**Branch:** `tnyx/tnyx-66-manual-meal-log-entry-readiness` for this docs-only gate refresh
+**Base / main anchor:** `9cc62862eafbb158e06062bdf1c9cbf4c8789199`, squash merge of PR #245
+**Observed working-tree state:** GitHub/API-based audit; no local working tree was available, so no local dirty-state claim is made.
+**Observed uncommitted/dirty files:** Not observable through the repository API. The next implementation owner must run the normal local reconstruction before source edits when a local worktree is used.
+**PR / tracker:** PR #245 is **MERGED**. No open GitHub PR was found after the merge. TNYX-187, TNYX-188, TNYX-189 and TNYX-114 are **Done**. TNYX-66 and TNYX-113 remain **Backlog** and TNYX-66 remains the mandatory Nutrition gate.
+**Current implementation state:** `NutrientId`, `NutritionSnapshot`, `MealLogCaptureSource` and `MealLogMode` are merged on `main` and exported from `apps/shared`. No runtime `MealLogEntry`, `MealLogItemSnapshot`, MealLog repository, or MealLog persistence exists.
 **Relevant execution surface:** `apps/shared/lib/src/nutrition`, `apps/shared/test/nutrition`
-**Validation completed at SHA:** `164ac6f5` — read-only repository/GitHub/Linear inspection from a clean worktree.
-**Validation remaining:** None for this gate.
-**Current blocker:** No safe next sub-slice exists without one owner decision. See section 5.
+**Validation completed at SHA:** `9cc62862` — read-only GitHub/Linear/Supabase reconciliation plus current shared Nutrition source/test inventory.
+**Validation remaining:** On the implementation slice, run the smallest applicable Dart/Flutter package analysis/tests and exact diff/scope audit before handoff.
+**Current blocker:** None for N20A-3 manual-mode core aggregate. Detailed mode remains blocked on the item/serving contract described below.
 **Open review finding IDs:** None
-**Next exact action:** Owner picks one of the three unblocking decisions in section 5. Do not start any TNYX-113 implementation until then.
+**Next exact action:** Merge this readiness-only record, then start one N20A-3 implementation branch from the then-current `main`; create/update its focused `.ai/tasks/*` execution brief before source changes.
 
 ## 1. Current Readiness Question
 
-What is the next smallest coherent and independently testable TNYX-113 implementation slice after the merged `MealLogCaptureSource` and `MealLogMode` contracts?
+What is the next smallest coherent and independently testable TNYX-113 implementation slice after the merged `NutritionSnapshot`, `MealLogCaptureSource`, `MealLogMode` contracts and completion of TNYX-114 time semantics?
 
-Result: **NEEDS DECISION.** Every remaining piece of the aggregate depends on an unresolved decision owned by another issue.
+Result: **READY for N20A-3 — manual-mode `MealLogEntry` core aggregate contract only.**
+
+The earlier gate was stale because it classified TNYX-114 as Backlog/unresolved. Linear now records TNYX-114 as Done. That removes the time-semantics blocker for the manual path. The full detailed aggregate is still not ready because `MealLogItemSnapshot` serving/normalization/provenance shape remains unresolved.
 
 ## 2. Current Repository / Dependency Evidence
 
-Merged and verified on `main` at `164ac6f5`, all exported through `src/nutrition/nutrition.dart` → `shared.dart`:
+Verified on `main` at `9cc62862`, exported through `apps/shared/lib/src/nutrition/nutrition.dart`:
 
 ```text
 NutrientId            12 identities, stable storage values
 NutritionSnapshot     missing != zero, negative/non-finite rejected, immutable
-MealLogCaptureSource  9 identities incl. barcode, unknown -> null, no fallback
+MealLogCaptureSource  stable capture-source identities incl. barcode
 MealLogMode           manual | detailed, unknown -> null, no fallback
 ```
 
-Persistence remains greenfield: 42 repository migrations, latest `20260909131518_enforce_meal_category_display_name_shape`, and no meal-log, food-log or diary-entry table or function. PR #241 and PR #242 added pure-Dart value contracts only.
+Current `apps/shared/lib/src/nutrition` contains only:
 
-### Existing Supabase conventions to re-audit when physical MealLog persistence begins
+```text
+meal_log_capture_source.dart
+meal_log_mode.dart
+nutrient_id.dart
+nutrition.dart
+nutrition_snapshot.dart
+```
 
-Context only. This is **not** a MealLog schema, and it authorises no table, column, index, policy or migration. Physical MealLog persistence remains unimplemented and must get its own fresh audit and its own owner approval before any migration is written. No hosted Supabase mutation is authorised by this gate.
+Current `apps/shared/test/nutrition` contains the corresponding focused tests. No `MealLogEntry` or `MealLogItemSnapshot` source/test exists yet. Repository search found no existing shared date-only MealLog value object; any representation introduced by N20A-3 must remain domain-bounded rather than creating a speculative cross-domain abstraction.
 
-Counts below are from the 42 checked-in migrations unless stated otherwise, and each row states the unit it counts. Three units are kept apart deliberately: **raw SQL occurrences**, **historical distinct identities**, and **replay-effective state** after all 42 migrations. Two things make them diverge. `create table if not exists` re-declares `public.users` and `public.user_devices` in a later migration, which inflates occurrences. And `20260903052101_reconcile_legacy_lineage_state.sql` drops `public.user_workout_preferences` and `public.user_targets`, so 14 tables are created historically but only 12 survive replay, which matches the hosted table count.
+Existing shared entity convention supports plain string identity: `TrainingSession` uses `String id`, so N20A-3 does not need to invent a MealLog ID value-object hierarchy.
 
-Hosted verification provenance: read-only `list_tables` on schema `public` of Supabase project `oykupyiitspujzpwwvuj`, run 2026-09-10 during this gate. Table names and RLS flags only; no row data was read and nothing was mutated.
+### TNYX-114 is now resolved as a semantic dependency
+
+Current Linear status: **Done** on 2026-09-10.
+
+The locked contract distinguishes:
+
+```text
+consumedAt
+= canonical instant for chronology
+
+consumedLocalDate
+= user-intended local calendar date used for Diary identity/grouping
+
+consumedTimezoneId / consumedUtcOffsetMinutes
+= logging/edit context for deterministic reconstruction/presentation
+```
+
+Historical grouping must not move merely because the device timezone changes. Explicit date/time editing may intentionally move the entry while keeping the same `MealLogEntry.id`. Timezone ID is preferred when available, and DST ambiguous/nonexistent local times must be handled deterministically by the responsible resolver/feature boundary rather than fabricated by the aggregate.
+
+N20A-3 therefore stores the already-resolved semantic facts. It does **not** need to implement the date/time wheel, timezone database/resolver, Quick Add interaction, or persistence conversion in the same slice.
+
+### Supabase remains greenfield for MealLog
+
+Hosted verification on project `oykupyiitspujzpwwvuj` on 2026-09-10:
+
+```text
+project status: ACTIVE_HEALTHY
+Postgres: 17
+hosted migrations: 42
+latest: 20260909131518_enforce_meal_category_display_name_shape
+public tables: 12
+public tables with RLS enabled: 12/12
+MealLog / food-log / diary-entry tables: 0
+```
+
+This gate performs no hosted mutation. Physical MealLog persistence requires its own later fresh audit and owner-approved table/column slice.
+
+### Existing Supabase conventions to preserve for the later persistence audit
+
+Context only. These are observations, not a MealLog schema and not migration authorisation.
 
 | Observed convention | Evidence | Strength |
 |---|---|---|
-| Keys are `uuid`, but the shape follows cardinality | Generated-`id` shape: **4 declaration occurrences, 3 historical tables, 3 surviving** (`user_devices`, `body_weight_logs`, `user_body_goals`); `user_devices` is declared twice under `if not exists`, and one declaration writes the tokens as `id uuid not null default gen_random_uuid() primary key`. `user_id` key shape: **10 declarations, 10 historical tables, 8 surviving** — the 5 referencing `public.users(id)` all survive, while of the 5 referencing `auth.users(id)` two (`user_workout_preferences`, `user_targets`) are dropped, leaving 3. No serial or integer key declaration exists anywhere. | Observed. Generated-`id` is the closer analogue for a multi-row entity such as MealLog, while one-row-per-user resources use `user_id` as the key. Exact key choice is still a persistence-design decision. |
-| Ownership FK has two historical generations | 16 owner FK occurrences, all `on delete cascade`. **`auth.users(id)`: 9 occurrences, 7 historical tables, 5 surviving** — `users` and `user_devices` are each re-declared under `if not exists`, and `user_workout_preferences` and `user_targets` are dropped by `20260903052101_reconcile_legacy_lineage_state.sql`. Survivors: `users`, `onboarding_drafts`, `user_devices`, `user_nutrition_profiles`, `user_workout_profiles`. **`public.users(id)`: 7 occurrences, 7 historical tables, 7 surviving.** | The repository is **not** uniformly `public.users`. `create_canonical_owner_tables.sql` states that `public.users` is the domain root and Supabase Auth is the access layer rather than the FK boundary, so `public.users` is the newer canonical-domain direction. Ownership is not uniform repository-wide, and the exact FK target for MealLog remains a future persistence-design decision. |
-| Timestamps use `timestamptz` with UTC defaults | **28 declaration occurrences** default to `timezone('utc'::text, now())`: 14 `created_at` and 14 `updated_at`. Of those, **24 are `not null`** and **4 are nullable**: `users.updated_at` (added by `alter table ... add column` at `20260815000002:44`), `user_nutrition_profiles.updated_at`, `user_workout_profiles.updated_at`, and the re-declared `user_devices.created_at`. Counted across both `create table` bodies and later `alter table ... add column` statements; 7 further `updated_at = ...` lines are UPDATE assignments, not declarations, and are excluded. Zero columns use a non-timezone-aware timestamp. | Strong for the `timestamptz` plus UTC-default preference itself. These are SQL declaration occurrences, not effective schema cardinality: `users` and `user_devices` are re-declared under `if not exists`, and nullability is not uniform. Do not read this as every timestamp being `not null`, every table carrying both columns, or MealLog's timestamp columns being already fixed. |
-| Shared `updated_at` trigger is a newer pattern, not repository-wide | **11 surviving tables carry `updated_at`; 7 install the shared `public.set_row_updated_at()` trigger and 4 do not.** Covered: `body_weight_logs`, `user_body_goals`, `user_wellness_targets`, `user_nutrition_targets`, `user_workout_targets`, `user_profiles`, `user_app_preferences`. Not covered: `users`, `onboarding_drafts`, `user_nutrition_profiles`, `user_workout_profiles`. | Established for the newer canonical tables, but not a repository-wide convention. The function already exists and should be reused rather than redefined if a trigger is chosen. Future MealLog must explicitly pick its own update-maintenance strategy during the persistence audit; automatic trigger reuse is not pre-authorised. |
-| `jsonb` shape validation exists in two forms | **6 historical validated columns, 5 surviving.** Five use an inline `jsonb_typeof(col) = 'object'` check: `users.unit_preferences` (dropped by `20260824070233_cleanup_legacy_canonical_mirrors.sql`, leaving 4 inline survivors), `body_weight_logs.metadata`, `user_nutrition_targets.recommendation_metadata`, `user_profiles.unit_preferences`, `user_nutrition_targets.additional_nutrient_goals`. The sixth, `user_nutrition_profiles.meal_categories_config` (`20260907065602`), is function-backed: its column `check` delegates to `private.is_valid_meal_categories_config_v1`, whose own `jsonb_typeof(p_config) <> 'object'` guard rejects non-object payloads. The two `unit_preferences` checks are distinct qualified columns on different tables despite identical unqualified expression text. | Moderate, and scoped to those columns only. It is not a rule for every future `jsonb` column, and it does not preselect inline versus function-backed validation for MealLog. |
-| No PostgreSQL `enum` types exist | Zero `create type ... as enum` statements in the repository; constrained values are expressed as text plus `CHECK` | Observation, not a mandate. It does not forbid a future SQL enum, and it does not pre-select the physical representation. |
-| Comparable per-user log tables index `(user_id, <time> desc)` | 2 `create index` statements, on `body_weight_logs` and `user_body_goals` | Evidence from comparable multi-row per-user tables. It is not an automatic MealLog index requirement. |
-| Own-row RLS with explicit verbs | Hosted: 12 of 12 `public` tables report RLS enabled, per the read-only verification recorded above. Checked-in migrations: 5 tables each define `select`, `insert`, `update` and `delete` policies using `(select auth.uid()) = user_id`. | Strong for those 5 tables. Verb coverage is not uniform across every table, and a hosted RLS flag does not prove the policy set behind it, so a future MealLog table must define its own policies explicitly. Hosted state must be re-verified at persistence time rather than trusted from this snapshot. |
-| Explicit table-level grants exist, but coverage is not universal | 9 `grant` statements per role, to `authenticated` and to `service_role`, but covering only **7 distinct tables**, because `user_profiles` and `user_app_preferences` are granted again in a later migration. Of the 14 tables created across the migrations, 7 have **no** checked-in table-level grant: `users`, `onboarding_drafts`, `user_devices`, `user_nutrition_profiles`, `user_workout_profiles`, `user_targets`, `user_workout_preferences`. | Newer canonical tables commonly use explicit table-level grants, but this is **not** a repository-wide invariant. Future MealLog persistence must define its own grants explicitly during the persistence and security audit. |
-
-These are starting evidence for the eventual persistence audit. They do not settle table names, column shapes, nullability, indexes, retention, or delete semantics, and they do not narrow the `NEEDS DECISION` result below.
+| Keys are `uuid`, with shape following cardinality | Generated-`id` occurs on multi-row entities such as `user_devices`, `body_weight_logs`, `user_body_goals`; one-row-per-user resources commonly use `user_id` as key. No serial/integer key declaration was found in the 42-migration audit. | Useful analogue only. Exact MealLog key shape is a later persistence decision. |
+| Ownership FK has two historical generations | Both `auth.users(id)` and `public.users(id)` exist historically; newer canonical owner tables use `public.users` as domain root. | Do not assume repository-wide uniformity. Re-audit exact MealLog owner FK later. |
+| Timestamps use timezone-aware values | Existing declarations use `timestamptz` with UTC defaults; no non-timezone-aware timestamp declaration was found in the prior 42-migration audit. | Strong preference, but exact MealLog columns/nullability remain unfrozen. |
+| Shared `updated_at` trigger is a newer pattern | Seven newer surviving tables use `public.set_row_updated_at()`, while older tables with `updated_at` do not all use it. | Reuse if chosen; do not pre-authorise it here. |
+| Validated `jsonb` shapes exist | Inline object checks and a function-backed `meal_categories_config` validator both exist. | Does not preselect JSONB for MealLog. |
+| PostgreSQL enum types are not used today | Constrained values are represented with text + checks in current migrations. | Observation, not a mandate. |
+| Comparable log tables index user + descending time | `body_weight_logs` and `user_body_goals` provide comparable multi-row per-user evidence. | Re-audit query shape before adding a MealLog index. |
+| Own-row RLS is established on current public tables | Hosted state reports RLS enabled on all 12 public tables; several newer tables use explicit select/insert/update/delete owner policies. | Future MealLog must define and verify its own policy set. |
+| Explicit grants exist but are not universal | Newer canonical tables commonly grant to `authenticated` and `service_role`, but historical coverage is mixed. | Future MealLog grants must be explicit in its security audit. |
 
 ## 3. Locked Owner / Domain Decisions
 
@@ -81,101 +128,161 @@ These are starting evidence for the eventual persistence audit. They do not sett
 ```text
 user enters meal name -> persist canonical mealName
 blank meal name       -> mealName = null / absent
-blank Quick Add record display fallback -> "Quick Log"
+blank saved-record display fallback -> "Quick Log"
 ```
 
-`Quick Log` is a presentation fallback only and must never be persisted as fabricated user-entered `mealName`. Older task-brief wording naming `Quick Add` as the blank saved-record fallback is stale and is not authority for future implementation.
+`Quick Log` is presentation fallback only and must never be persisted as fabricated `mealName`.
 
-### Capture source versus provider versus nutrition
+### Manual mode is first-class actual history
+
+TNYX-113 explicitly defines:
+
+```text
+mode = manual
+manualNutritionSnapshot = user-entered canonical nutrition
+items = absent/empty by contract
+```
+
+Manual mode must not fabricate food/catalog identities merely to make the aggregate look like detailed mode.
+
+### Capture source, provider provenance, and nutrition are distinct
 
 ```text
 NutritionSnapshot     = canonical normalized nutrition truth
-MealLogCaptureSource  = how the meal was initiated/captured
-provider provenance   = where a specific structured item came from
+MealLogCaptureSource  = how logging was initiated/captured
+provider provenance   = where a specific detailed structured item came from
 ```
 
-Provider names such as FatSecret are never capture sources. Known provider origin remains a required later item-level capability even when the UI never displays it, but the exact `providerKey` / source-ID representation is deferred until the provider/item boundary is freshly audited. Historical nutrition must never be silently recomputed by re-fetching mutable provider data.
+N20A-3 may compose the existing capture-source value into the manual aggregate without inventing provider identity. Provider-specific fields remain out of scope.
+
+### Identity/edit boundary
+
+```text
+new actual log -> new id
+edit actual log -> same id
+repeat/re-log -> new id
+```
+
+N20A-3 may encode identity as data, but repository mutation/edit transactions remain a later slice.
 
 ## 4. Carried-Forward Audit Findings
 
-Re-verified against `main` at `164ac6f5` and current Linear on 2026-09-10. These are reported, not applied. Do not mutate Linear or rewrite merged briefs from this gate.
+These findings remain reported, not silently bundled into N20A-3.
 
 ### Tracker deltas — TNYX-113
 
-| Item | Current wording | Correction |
+| Item | Current wording | Current correction |
 |---|---|---|
-| Capture-source list | Provenance section lists `text \| voice \| photo \| foodSearch \| recent \| savedMeal \| plannedMeal \| quickAdd` | `barcode` is missing. This now contradicts merged runtime, where `MealLogCaptureSource.barcode` exists. |
-| `mealName` | Aggregate shows `mealName` without `?` | It is optional and persists as `null` when blank, per the locked decision above. |
-| `sourceType` | `MealLogItemSnapshot` lists `sourceType` beside `providerKey` | Overlaps conceptually with the merged meal-level `MealLogCaptureSource`. The later item slice must decide whether item `sourceType` is a distinct concept or redundant. |
+| Capture-source list | Provenance examples omit `barcode` | Runtime `MealLogCaptureSource.barcode` exists; tracker example is stale. |
+| `mealName` | Aggregate sketch shows non-null-looking `mealName` | Locked decision is optional/null when blank. |
+| Item `sourceType` | Appears beside `providerKey` | May overlap conceptually with meal-level capture source; must be resolved in the item/provenance slice. |
 
-### Stale `Quick Add` fallback references
+### Stale Quick Add fallback references
 
-Superseded by the `Quick Log` decision, still present in merged briefs:
+Two older merged task briefs still use `Quick Add` as the blank saved-record display fallback. The locked fallback is `Quick Log`. This is a separate docs cleanup and does not block N20A-3.
 
-```text
-.ai/tasks/tnyx-187-nutrition-snapshot.md:86        "display may derive `Quick Add`"
-.ai/tasks/tnyx-188-meal-log-capture-source.md:202  "`Quick Add` may be used only as a UI display fallback"
-```
+### Other stale documentation
 
-Other `Quick Add` mentions in those files are legitimate entry-point or non-changes references and need no correction. TNYX-113 itself carries no display-fallback wording. Runtime carries none either: the `Quick Add` strings in `apps/features/nutrition` are entry-point titles, a semantic label and explanatory copy, not a blank-record fallback. Correcting the two merged briefs is a separate docs task.
+`.ai/CURRENT.md`, parts of `.ai/DECISIONS.md`, `docs/DEVELOPMENT_SETUP.md`, and older future-`backend/` wording remain stale against current runtime/ADR/governance evidence. They should be corrected in focused documentation work, not bundled into this domain slice.
 
-### Stale documentation
-
-| Doc | Issue |
-|---|---|
-| `.ai/CURRENT.md` | Last verified 2026-08-23; still an Onboarding O7 snapshot, not current Nutrition evidence |
-| `.ai/DECISIONS.md` | D-012 and D-013 still marked `Target, not implemented` while Supabase is active infrastructure |
-| `docs/DEVELOPMENT_SETUP.md` | Line 155 claims no Supabase workspace, project configuration or credential exists in this checkout; `supabase/` exists with 42 migrations |
-| `docs/MODULE_OWNERSHIP.md`, `docs/ROADMAP.md`, `docs/SUPABASE_STRATEGY.md` | Retain future-`backend/` wording superseded by `AGENTS.md` and ADR-0007 |
-| `.ai/tasks/tnyx-54-nutrition-ia-readiness.md` | Records 40 migrations, latest `20260907065602`; actual is 42, latest `20260909131518` |
-
-None of these blocks this gate.
+A separate governance discrepancy was also observed after PR #245: root `AGENTS.md` references `.github/POST_MERGE_SYNC.md`, but that file is not present on current `main`. This does not affect the Nutrition readiness classification and must not be repaired inside N20A-3.
 
 ## 5. Candidate Audit For The Next Sub-Slice
 
-### Candidate A — `MealLogEntry` aggregate — BLOCKED
+### Candidate A — N20A-3 manual-mode `MealLogEntry` core aggregate — READY
 
-Requires `consumedAt`, `consumedLocalDate` and timezone context. TNYX-114 owns that policy, is still Backlog, and its DST, ambiguous and nonexistent local-time rules are unresolved. Building the aggregate now would swallow TNYX-114 or invent timezone behavior.
+This is the smallest slice that now removes a real implementation gap without consuming unresolved detailed-item decisions.
 
-### Candidate B — `MealLogItemSnapshot` — BLOCKED
+Minimum semantic surface:
 
-Requires `quantity`, `servingUnit`, `normalizedAmount` and `normalizedUnit` typing, plus `sourceSnapshot` and `manualOverrides` shape. None is frozen. A snapshot without quantity and serving would be an incomplete, invalid type rather than a coherent slice.
+```text
+MealLogEntry (manual construction only for this slice)
+  id
+  userId
+  mode = MealLogMode.manual
+  mealCategoryId
+  mealName?                   // blank normalizes to absent/null
+  consumedAt                  // already-resolved canonical instant
+  consumedLocalDate           // user-intended date identity, timezone-stable
+  consumedTimezoneId?
+  consumedUtcOffsetMinutes?
+  captureSource?              // existing MealLogCaptureSource, if present
+  manualNutritionSnapshot     // required NutritionSnapshot
+  createdAt
+  updatedAt
+```
 
-### Candidate C — provider/item provenance — BLOCKED
+Implementation guardrails:
 
-TNYX-123 is still Backlog and owns provider capability, licensing, regional audit, normalized food identity, provenance and confidence fields, and states that no provider may be selected or integrated until readiness and provider/legal review pass. Freezing `providerKey`, `sourceFoodId` or `sourceServingId` now would pre-empt that audit and risk provider coupling.
+- expose no detailed-mode constructor/factory until `MealLogItemSnapshot` is frozen;
+- do not add fake/empty item records to manual mode;
+- do not add provider IDs or provider payloads;
+- do not implement local-time-to-instant/DST resolution inside the aggregate;
+- do not derive `consumedLocalDate` from the device's current timezone;
+- do not add persistence DTO/table naming merely because fields now exist in Dart;
+- do not add `version` yet; TNYX-116 owns idempotency/concurrency policy;
+- keep any new date-only representation Nutrition-domain bounded unless actual cross-domain reuse is proven;
+- add focused tests for manual-mode invariants, date identity, blank optional meal name, immutable nutrition composition, and equality/codec behavior only where the chosen existing package convention requires it.
 
-### Candidate D — smaller residual contracts — NOT A SLICE
+This slice intentionally establishes a canonical `MealLogEntry` type while exposing only the manual path. Later detailed support extends that same aggregate after item contracts are ready; it must not create a parallel competing aggregate.
 
-`mealCategoryId` is an existing feature-owned identifier and needs no new shared type. Repository convention for entity identity is a plain `String id`, as in `apps/shared/lib/src/workout/domain/models/training_session.dart`, so no ID value object is warranted. `mealName` length/normalization and `note` constraints are open data-shape decisions, not implementable slices. The manual/detailed exclusivity invariant is real but only testable once the aggregate exists.
+### Candidate B — full/detailed `MealLogEntry` aggregate — BLOCKED
 
-### Conclusion
+Still depends on `MealLogItemSnapshot`. Building detailed construction now would force unresolved serving, normalization, source snapshot, manual override, and provider provenance decisions into the aggregate.
 
-The two merged value contracts consumed the last pieces that were free of unresolved decisions. Nothing remains that both removes a real ambiguity and needs no external decision, so no slice should be invented merely to keep moving.
+### Candidate C — `MealLogItemSnapshot` — BLOCKED
 
-## 6. Required Owner Decision
+Requires exact typing/semantics for:
 
-Pick exactly one to unblock the next slice:
+```text
+quantity
+servingUnit
+normalizedAmount?
+normalizedUnit?
+sourceSnapshot?
+manualOverrides?
+```
 
-1. **Resolve TNYX-114 time semantics** — consumed-instant versus user-intended local date, timezone/offset retention, and DST ambiguous/nonexistent handling. Unblocks the `MealLogEntry` aggregate and is the shortest path to durable logging.
-2. **Freeze serving and normalization typing** — `quantity`, `servingUnit`, `normalizedAmount`, `normalizedUnit`, plus `sourceSnapshot` and `manualOverrides` shape. Unblocks a coherent `MealLogItemSnapshot` core.
-3. **Advance TNYX-123 provider identity representation** — how `providerKey` and source IDs are typed and where they attach. Unblocks item-level provenance.
+Those are not yet frozen. A placeholder item type would create migration/API debt rather than a coherent domain contract.
 
-Recommended first: option 1. TNYX-115 Quick Add create, TNYX-116 reliability and TNYX-117 acceptance all sit behind the aggregate, and manual-mode Quick Add needs neither serving typing nor provider identity.
+### Candidate D — provider/item provenance — BLOCKED
+
+TNYX-123 still owns provider capability/readiness, licensing/regional concerns, normalized food identity, provenance and confidence boundaries. Do not freeze provider-specific identifiers from N20A-3.
+
+## 6. Why READY Is Safe Now
+
+The previous shortest unblock was TNYX-114. That dependency is complete in Linear, and the manual path is explicitly independent from detailed item snapshots by TNYX-113 contract.
+
+```text
+NutritionSnapshot      Done / merged
+MealLogCaptureSource   Done / merged
+MealLogMode            Done / merged
+TNYX-114 time semantics Done
+        ↓
+manual MealLogEntry core aggregate
+        ↓ later
+physical persistence audit
+repository/create-edit integration
+TNYX-115 Quick Add create/edit
+```
+
+Serving normalization and provider identity are still necessary for **detailed** logging, but they are not prerequisites for representing a first-class manual actual log.
 
 ## 7. Adjacent Boundaries
 
-- **TNYX-114:** owns time/date/timezone semantics; unresolved and blocking Candidate A.
-- **TNYX-115:** Quick Add create/edit integration remains separate; no save wiring authorised.
-- **TNYX-116:** idempotency, offline retry and concurrency remain separate; a `version` field must not import concurrency semantics by itself.
+- **TNYX-114:** semantic dependency is Done; persistence/timezone integration remains downstream through TNYX-113/repository work.
+- **TNYX-115:** Quick Add create/edit integration remains separate; no `Log Meal` save wiring in N20A-3.
+- **TNYX-116:** idempotency, offline retry and concurrency remain separate; do not add a `version` contract speculatively.
 - **TNYX-117:** integrated acceptance remains downstream.
-- **TNYX-123:** owns provider/barcode contract; unresolved and blocking Candidate C.
-- **Supabase:** persistence stays greenfield; physical schema remains a later slice with its own approval.
-- **Membership/ads:** never canonical MealLog-history truth; no tier, ad-state or lifetime-cap field may enter the aggregate.
-- **Identity:** new log gets a new id, edit keeps the same id, repeat from Recent creates a new id. Delete affects only the selected aggregate and never provider catalog, Saved Meal, Planned Meal or a source historical log.
+- **TNYX-123:** provider/barcode/provider-provenance work remains separate from the manual aggregate.
+- **Supabase:** physical persistence remains greenfield and requires its own fresh readiness + owner-approved table/column scope.
+- **Membership/ads:** never canonical MealLog history truth; no plan tier, ad-state or lifetime-cap field belongs in this aggregate.
+- **UI:** N20A-3 is non-visual; existing Quick Add date/time UI decisions are not implementation scope here.
 
 ## 8. Gate Result
 
-`NEEDS DECISION — no remaining TNYX-113 sub-slice is free of an unresolved decision owned by TNYX-114, TNYX-123 or the open serving/normalization typing question.`
+`READY — N20A-3 manual-mode MealLogEntry core aggregate contract only.`
 
-This gate authorises no implementation. After the owner resolves one of the three decisions in section 6, run TNYX-66 again before any TNYX-113 implementation starts.
+This READY classification authorises one bounded pure-domain implementation slice after this readiness record is merged. It does **not** authorise detailed-mode construction, `MealLogItemSnapshot`, provider integration, persistence/schema/RLS, repository wiring, Quick Add save integration, or UI changes.
+
+After N20A-3 is validated, refresh TNYX-66 again before selecting the next Nutrition implementation slice.
