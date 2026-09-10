@@ -9,7 +9,7 @@
 **Trigger:** New independently scoped product slice
 **Approval status:** Approved
 **Approval evidence:** Owner `go` on 2026-09-10 authorised the exact N20A-2 slice after the post-PR-#241 TNYX-66 readiness refresh.
-**Approved product/UI/data-shape boundaries:** One canonical `MealLogMode` value contract in `apps/shared`, its shared export, focused pure-Dart tests, validation, and one focused PR. No merge.
+**Approved product/UI/data-shape boundaries:** One canonical `MealLogMode` value contract in `apps/shared`, its shared export, focused pure-Dart tests, validation, one focused PR, and the readiness/handoff docs required to keep the selected slice recoverable. No merge.
 **Explicit non-changes:** No `MealLogEntry`, `MealLogItemSnapshot`, provider provenance, serving fields, consumed-time/timezone semantics, Supabase migration/schema/RLS/mutation, repository/provider wiring, Quick Add save, UI/routes, membership, ads, quotas, or branch cleanup.
 
 ## Active Handoff
@@ -17,21 +17,21 @@
 **Planning owner:** TNYX-66 readiness gate
 **Implementation owner:** ChatGPT
 **Review owner:** GitHub final review
-**Implementation ownership state:** Complete for the approved source/test boundary; publication/CI/final review remain
+**Implementation ownership state:** Complete for the approved source/test boundary; PR #242 published for validation/review
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-10
 **Branch:** `tnyx/tnyx-189-n20a-2-canonical-meallog-mode-value-contract`, cut from `origin/main` `6089d40676114cf941bc04b7e463986ba59e7467`
-**HEAD SHA:** Current published branch/PR head is authoritative on GitHub; exact SHA is deliberately not embedded here to avoid self-referential commit churn.
+**HEAD SHA:** Current published PR #242 head is authoritative on GitHub; exact SHA is deliberately not embedded here to avoid self-referential commit churn.
 **Observed working-tree state:** This implementation is written on a remote GitHub branch and does not touch the owner's local working tree.
-**Observed uncommitted/dirty files:** Owner-reported protected local `pubspec.lock` modification and untracked `.ai/tasks/tnyx-54-nutrition-ia-readiness.md` are outside this remote write path and remain untouched.
-**PR / tracker:** TNYX-189, parent TNYX-113, High/P2, Mobile App. PR publication follows this commit. Merge is not authorised.
-**Current implementation state:** `MealLogMode`, its shared export, and focused tests are the only runtime/test changes.
+**Observed uncommitted/dirty files:** Owner-reported protected local `pubspec.lock` modification and untracked `.ai/tasks/tnyx-54-nutrition-ia-readiness.md` are outside this remote write path and remain untouched. The TNYX-66 readiness brief in this PR is intentional committed governance state, not local dirty work.
+**PR / tracker:** TNYX-189, parent TNYX-113, High/P2, Mobile App. PR #242 is published and unmerged.
+**Current implementation state:** `MealLogMode`, its shared export, and focused tests are the only runtime/test changes. The TNYX-66 brief is refreshed to the post-#241/N20A-2 handoff state.
 **Relevant execution surface:** `apps/shared/lib/src/nutrition`, `apps/shared/test/nutrition`
-**Validation completed at SHA:** Static scope review against base patterns; runtime validation is delegated to the repository CI for the exact published PR head.
+**Validation completed at SHA:** Static scope review against base patterns; runtime validation is delegated to repository CI for the exact published PR head.
 **Validation remaining:** Final reviewer must verify exact-head GitHub CI is green on the current PR head before merge readiness.
 **Current blocker:** None known
-**Open review finding IDs:** None at publication time; final review is authoritative.
-**Next exact action:** Publish PR, verify exact-head CI and review threads, then perform final review. Do not merge or start the next TNYX-113 slice.
+**Open review finding IDs:** See PR #242; GitHub review state is authoritative.
+**Next exact action:** Verify exact-head CI and review threads, then perform final review. Do not merge or start the next TNYX-113 slice.
 
 ## Global UI / Design-System Guardrail
 
@@ -53,7 +53,7 @@ A durable MealLog can carry an explicit first-class mode identity instead of inf
 
 ### Scope
 
-`apps/shared` enum + barrel export + focused pure-Dart tests.
+`apps/shared` enum + barrel export + focused pure-Dart tests, plus the TNYX-66 readiness refresh that selected this slice and this execution brief.
 
 ### Non-Goals
 
@@ -114,10 +114,12 @@ Unknown serialized values remain unknown (`null`). Accessibility is not applicab
 
 ## 5. Implementation Plan
 
+- [x] Refresh/carry the TNYX-66 readiness artifact for N20A-2.
 - [x] Create `MealLogMode` with `manual` and `detailed`.
 - [x] Add stable storage values and null-returning decoder.
 - [x] Export through the shared Nutrition barrel.
 - [x] Add focused contract tests.
+- [x] Publish PR #242.
 - [ ] Verify exact-head CI and final review.
 
 ## 6. Quality Review
@@ -139,6 +141,7 @@ Focused tests cover exact values, storage round-trip, uniqueness, unknown/null d
 ### Changed Files
 
 ```text
+.ai/tasks/tnyx-66-nutrition-readiness-gate.md
 .ai/tasks/tnyx-189-meal-log-mode.md
 apps/shared/lib/src/nutrition/meal_log_mode.dart
 apps/shared/lib/src/nutrition/nutrition.dart
