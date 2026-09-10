@@ -19,26 +19,37 @@ enum NutrientUnit {
 /// provider or product evidence may justify more IDs without changing these
 /// existing storage values.
 enum NutrientId {
-  energy('energy', NutrientUnit.kcal),
-  protein('protein', NutrientUnit.g),
-  carbohydrate('carbohydrate', NutrientUnit.g),
-  fat('fat', NutrientUnit.g),
-  fiber('fiber', NutrientUnit.g),
-  saturatedFat('saturated_fat', NutrientUnit.g),
-  transFat('trans_fat', NutrientUnit.g),
-  addedSugar('added_sugar', NutrientUnit.g),
-  sodium('sodium', NutrientUnit.mg),
-  calcium('calcium', NutrientUnit.mg),
-  phosphorus('phosphorus', NutrientUnit.mg),
-  vitaminD('vitamin_d', NutrientUnit.mcg);
+  energy('energy', NutrientUnit.kcal, false),
+  protein('protein', NutrientUnit.g, false),
+  carbohydrate('carbohydrate', NutrientUnit.g, false),
+  fat('fat', NutrientUnit.g, false),
+  fiber('fiber', NutrientUnit.g, false),
+  saturatedFat('saturated_fat', NutrientUnit.g, false),
+  transFat('trans_fat', NutrientUnit.g, false),
+  addedSugar('added_sugar', NutrientUnit.g, false),
+  sodium('sodium', NutrientUnit.mg, false),
+  calcium('calcium', NutrientUnit.mg, false),
+  phosphorus('phosphorus', NutrientUnit.mg, false),
+  vitaminD('vitamin_d', NutrientUnit.mcg, false);
 
-  const NutrientId(this.storageValue, this.canonicalUnit);
+  const NutrientId(
+    this.storageValue,
+    this.canonicalUnit,
+    this.derivedOnly,
+  );
 
   /// Stable storage identity. This value is never coupled to the unit.
   final String storageValue;
 
   /// Canonical unit for amounts represented by this nutrient identity.
   final NutrientUnit canonicalUnit;
+
+  /// Whether this value is calculated rather than reported as a source fact.
+  ///
+  /// Derived-only nutrients cannot be persisted in a [NutritionSnapshot].
+  /// Every currently justified registry entry is a source fact; the flag keeps
+  /// that invariant explicit when future registry entries are considered.
+  final bool derivedOnly;
 
   /// Decodes a currently supported storage identity.
   ///
