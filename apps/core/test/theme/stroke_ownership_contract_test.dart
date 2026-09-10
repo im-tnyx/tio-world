@@ -42,7 +42,6 @@ void main() {
 
       expect(TioOtpDialogTokens.loadingStrokeWidth, TioStroke.width2);
       expect(TioNavigationTokens.aiTabInactiveOutlineWidth, TioStroke.width15);
-      expect(TioRemoveImageSheetTokens.actionOutlineWidth, TioStroke.width1);
     });
   });
 }

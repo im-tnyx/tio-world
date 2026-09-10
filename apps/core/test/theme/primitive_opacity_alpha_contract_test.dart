@@ -61,7 +61,6 @@ void main() {
       expect(TioInputTokens.usernameSuggestionOutlineAlpha, TioAlpha.alpha80);
       expect(TioMeasurementPickerTokens.closeContainerAlpha, TioAlpha.alpha50);
       expect(TioMeasurementPickerTokens.inputOutlineAlpha, TioAlpha.alpha40);
-      expect(TioRemoveImageSheetTokens.actionOutlineAlpha, TioAlpha.alpha25);
       expect(TioWheelPickerTokens.selectionSurfaceAlpha, TioAlpha.alpha200);
     });
   });

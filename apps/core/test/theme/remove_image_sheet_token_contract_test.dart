@@ -8,8 +8,8 @@ void main() {
       expect(TioRemoveImageSheetTokens.contentHorizontalPadding, 20.0);
       expect(TioRemoveImageSheetTokens.closeButtonSize, 32.0);
       expect(TioRemoveImageSheetTokens.closeIconSize, 18.0);
-      expect(TioRemoveImageSheetTokens.actionRadius, 20.0);
-      expect(TioRemoveImageSheetTokens.actionOutlineWidth, 1.0);
+      expect(TioRemoveImageSheetTokens.removeIconSize, 20.0);
+      expect(TioRemoveImageSheetTokens.cancelIconSize, 18.0);
     });
 
     test('keeps the audited typography and spacing', () {
@@ -17,7 +17,10 @@ void main() {
       expect(TioRemoveImageSheetTokens.titleLetterSpacing, -0.3);
       expect(TioRemoveImageSheetTokens.subtitleFontSize, 15.0);
       expect(TioRemoveImageSheetTokens.subtitleToActionsGap, 26.0);
-      expect(TioRemoveImageSheetTokens.actionLabelFontSize, 16.0);
+      // Action label size, radius and outline are no longer asserted here:
+      // the Remove and Cancel actions are TioButtons, so TioButtonTokens
+      // owns that contract now. Only the gap between them remains this
+      // sheet's own layout.
       expect(TioRemoveImageSheetTokens.actionGap, TioSpacing.md);
     });
   });

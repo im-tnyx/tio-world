@@ -177,9 +177,6 @@ void main() {
       expect(TioRemoveImageSheetTokens.closeToTitleGap, TioSize.dp6);
       expect(TioRemoveImageSheetTokens.titleToSubtitleGap, TioSpacing.sm);
       expect(TioRemoveImageSheetTokens.subtitleToActionsGap, TioSize.dp26);
-      expect(TioRemoveImageSheetTokens.actionRadius, TioSize.dp20);
-      expect(TioRemoveImageSheetTokens.actionVerticalPadding, TioSpacing.lg);
-      expect(TioRemoveImageSheetTokens.actionIconGap, TioSpacing.sm);
       expect(TioRemoveImageSheetTokens.removeIconSize, TioSize.dp20);
       expect(TioRemoveImageSheetTokens.cancelIconSize, TioSize.dp18);
       expect(TioRemoveImageSheetTokens.actionGap, TioSpacing.md);
