@@ -52,6 +52,17 @@ For any user-facing feature, cross-package change, navigation change, persistenc
 
 Mandatory Owner Approval applies only before a new independently scoped product task/feature slice, an unapproved product-visible UI/UX change, or a Supabase table/column shape change. Normal implementation subtasks inside an already approved scope are not new-task triggers. See `.ai/FEATURE_DEVELOPMENT.md` for the canonical detailed contract.
 
+### Tracker Reconciliation
+
+Before starting or resuming any tracked task, reconcile the current planning and repository state instead of relying on one stale handoff:
+
+- If a Linear issue exists for the task, read the current Linear issue, its status, dependencies/blockers, acceptance criteria, and any linked GitHub issue/PR before implementation.
+- If a GitHub issue or PR exists, read its current scope/status and reconcile it with the Linear issue, relevant `.ai/tasks/*` brief, canonical docs, and actual runtime source/config.
+- Linear is the planning/sequencing/acceptance tracker; GitHub Issues/PRs are backlog, implementation/review history, and code-change tracking; `.ai/tasks/*` is the compact active execution handoff. None of these replaces runtime/source-of-truth inspection.
+- If Linear, GitHub, `.ai` handoff text, docs, and runtime disagree, report the stale/conflicting source explicitly and resolve the current truth before coding. Do not silently follow an older tracker snapshot.
+- The existence of a Linear issue, GitHub issue, PR, roadmap item, or planning document does not by itself authorize implementation. Existing Owner Approval and bounded-slice rules still apply.
+- When a required tracker cannot be read because the integration/tool is unavailable, record that limitation in the task handoff and do not invent its current state.
+
 - Before source changes, create or update one focused task brief under `.ai/tasks/` using `.ai/tasks/TEMPLATE.md`.
 - Follow `.ai/workflow.md` in order: Discovery → Codebase Exploration → Clarification → Architecture Design → Implementation → Quality Review → Final Handoff.
 - Keep only one implementation slice active at a time. Do not implement a large GitHub issue or epic as one broad change.
