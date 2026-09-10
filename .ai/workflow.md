@@ -4,16 +4,26 @@ Use docs to freeze ownership before building large feature areas.
 
 ## Current Development Flow
 
-1. Check current source and canonical docs.
-2. Confirm feature ownership.
-3. Add or update the smallest useful module/screen/package slice.
-4. Keep UI scaffolding minimal.
-5. Move data behind repositories when persistence is needed.
-6. Add Supabase tables only when the real data shape is known.
-7. Run validation.
-8. Update docs when behavior or architecture changes.
-9. Update ADRs when durable architecture decisions change.
-10. Update changelog/progress docs when module boundaries, data flow, navigation policy, or engineering practice changes.
+1. Read the root `AGENTS.md` and any applicable nested `AGENTS.md` before changing repository files.
+2. Reconcile the current Linear issue, linked GitHub issue/PR, active `.ai/tasks/*` brief, current source/config, and canonical docs when those trackers exist. Call out stale/conflicting state instead of silently choosing one snapshot.
+3. Confirm feature ownership.
+4. Add or update the smallest useful module/screen/package slice.
+5. Keep UI scaffolding minimal.
+6. Move data behind repositories when persistence is needed.
+7. Add Supabase tables only when the real data shape is known.
+8. Run validation.
+9. Update docs when behavior or architecture changes.
+10. Update ADRs when durable architecture decisions change.
+11. Update changelog/progress docs when module boundaries, data flow, navigation policy, or engineering practice changes.
+
+Tracker roles are intentionally distinct:
+
+- Linear owns current planning, sequencing, dependencies, and acceptance tracking.
+- GitHub Issues/PRs own backlog/code-change/review history.
+- `.ai/tasks/*` owns compact active execution handoff.
+- Runtime source/config remains authoritative for current executable behavior; canonical docs/ADRs remain authoritative for intended architecture and product rules.
+
+A tracker or planning item existing does not authorize implementation by itself. Apply the Owner Approval and bounded-slice rules from `AGENTS.md` and `.ai/FEATURE_DEVELOPMENT.md`.
 
 ## Feature Development Workflow
 
@@ -38,6 +48,8 @@ When code and docs conflict:
 3. Platform-local docs win for implementation details.
 4. Feature-local docs win for feature ownership details.
 5. This `.ai` directory is only a concise orientation layer.
+
+Tracker text is execution context, not a replacement for this source-of-truth order. When Linear, GitHub, or a task brief is stale against current source/docs, record and reconcile the mismatch before implementation.
 
 ## Do Not Start Without Explicit Need
 
