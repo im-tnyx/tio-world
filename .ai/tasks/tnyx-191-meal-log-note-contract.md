@@ -1,6 +1,6 @@
 # TNYX-191 — Meal-level note contract for manual MealLog persistence
 
-**Status:** Implementation complete — exact-head CI/manual review pending
+**Status:** In Review — code validated; final docs-only exact-head CI pending
 **Primary owner:** `apps/shared` Nutrition domain
 **Affected platforms:** Shared Dart only
 
@@ -53,7 +53,28 @@ In particular, do not add a placeholder `photoRef` string merely because TNYX-11
 - [x] Add optional `note` parameter to `MealLogEntry.manual`.
 - [x] Normalize null/whitespace-only to absent while preserving nonblank text exactly.
 - [x] Add focused tests for null, blank and exact nonblank preservation.
-- [ ] Run exact-head CI and manual review.
+- [x] Full Flutter CI #2362 passed on code+scope head `5c1c5d05d732d4345cf35ccdeb9aa28342b32070`.
+- [x] Manual exhaustive review of the full PR diff found no code, test, architecture or scope finding.
+- [ ] Confirm the current docs-only exact head CI, then mark PR ready for review.
+
+## Validation Evidence
+
+Flutter CI #2362 on `5c1c5d05d732d4345cf35ccdeb9aa28342b32070` completed successfully:
+
+```text
+Bootstrap workspace        PASS
+Analyze Flutter packages   PASS
+Analyze Dart packages      PASS
+Test Flutter packages      PASS
+Test Dart packages         PASS
+Job conclusion             SUCCESS
+```
+
+The current handoff update is documentation-only; production/test source is unchanged from the fully validated head above.
+
+## Manual Review
+
+No finding. The change keeps `note` as optional actual-history data, does not couple it to presentation preferences, does not introduce a length or rewriting policy, and does not pull photo/media, detailed items, provider provenance, repositories, UI or Supabase into this slice.
 
 ## Changed Files
 
