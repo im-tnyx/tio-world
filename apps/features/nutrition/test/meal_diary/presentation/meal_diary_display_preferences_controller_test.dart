@@ -176,12 +176,10 @@ class _FakeRepository implements MealDiaryDisplayPreferencesRepository {
   _FakeRepository({
     this.value = const MealDiaryDisplayPreferences(),
     this.readError,
-    this.writeError,
   });
 
   MealDiaryDisplayPreferences value;
   final Object? readError;
-  final Object? writeError;
 
   @override
   Future<MealDiaryDisplayPreferences> read() async {
@@ -191,7 +189,6 @@ class _FakeRepository implements MealDiaryDisplayPreferencesRepository {
 
   @override
   Future<void> write(MealDiaryDisplayPreferences preferences) async {
-    if (writeError case final error?) throw error;
     value = preferences;
   }
 
