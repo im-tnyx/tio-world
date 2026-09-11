@@ -1,6 +1,6 @@
 # TNYX-190 — N20A-3 Manual-mode MealLogEntry core aggregate
 
-**Status:** In Review — manual review fixes applied; exact-head validation pending
+**Status:** In Review — review fixes validated; ready to merge after current exact-head CI
 **Primary owner:** `apps/shared` Nutrition domain
 **Affected platforms:** Shared Dart domain only
 
@@ -8,7 +8,7 @@
 
 **Trigger:** New independently scoped product/domain slice
 **Approval status:** Approved
-**Approval evidence:** Owner instructed the work to continue after the TNYX-66 audit. PR #246 merged the fresh readiness result and explicitly authorises only the manual-mode `MealLogEntry` core slice.
+**Approval evidence:** Owner instructed the work to continue after the TNYX-66 audit. PR #246 merged the fresh readiness result and authorised only the manual-mode `MealLogEntry` core slice. Owner later explicitly instructed this PR's P2/P3 review fixes to proceed through validation and merge.
 **Approved product/UI/data-shape boundaries:** Pure `apps/shared` domain contract + focused tests + public export. Manual-mode construction only.
 **Explicit non-changes:** No detailed-mode construction, `MealLogItemSnapshot`, serving/normalization/provider provenance, Supabase schema/RLS/migration, repository wiring, Quick Add save behavior, UI/navigation, timezone/DST resolver, concurrency/version/idempotency, ads/membership fields.
 
@@ -17,19 +17,19 @@
 **Planning owner:** TNYX-66 / TNYX-190
 **Implementation owner:** ChatGPT
 **Review owner:** Owner / manual PR review
-**Implementation ownership state:** Implementation complete; manual review fixes applied; validation/re-review active
+**Implementation ownership state:** Implementation + review fixes validated; merge gate active
 **Repository state last verified:** 2026-09-11
 **Branch:** `tnyx/tnyx-190-n20a-3-manual-mode-meallogentry-core-aggregate-contract`
 **PR / tracker:** PR #247 is ready for review; Linear TNYX-190 is `In Review` under TNYX-113.
-**Prior validated head:** `66ae125970727151fd6adec492a02c374009e401` passed Flutter CI #2356 before the manual-review fixes.
-**Current implementation state:** `MealLogLocalDate` and manual-only `MealLogEntry` are implemented and publicly exported. Manual construction now requires enough consumed-time context for deterministic historical presentation/edit reconstruction: a meaningful timezone ID or a UTC offset must be present.
+**Validated review-fix code head:** `63df8e3d6f3b4a8bb4f527de07cea8d0cb40c033`
+**Validation evidence:** Flutter CI #2359 on `63df8e3d` completed workspace bootstrap, Flutter analysis, Dart analysis, Flutter tests and Dart tests with `success`.
+**Current implementation state:** `MealLogLocalDate` and manual-only `MealLogEntry` are implemented and publicly exported. Manual construction requires enough consumed-time context for deterministic historical presentation/edit reconstruction: a meaningful timezone ID or a UTC offset must be present.
 **Relevant execution surface:** `apps/shared/lib/src/nutrition`, `apps/shared/test/nutrition`, shared Nutrition barrel export
-**Validation remaining:** exact-head Flutter CI after review fixes; final ancestry/scope audit; manual re-review; resolve review threads only after verification.
-**Current blocker:** P2/P3 fixes require verification before merge.
-**Open review finding IDs:** P2 consumed-time context invariant; P3 stale active handoff. Both fixes are applied on the branch and await verification.
-**Next exact action:** Run/review exact-head CI, re-read the final diff, resolve P2/P3 only if verified, then merge PR #247 under the owner's current proceed instruction and mark TNYX-190 Done.
+**Current blocker:** None in code. This final handoff reconciliation is docs-only; verify the current PR head CI before merge.
+**Review finding state:** P2 verified fixed at `63df8e3d`; P3 is fixed by this current handoff reconciliation. Resolve the GitHub review threads only after the current exact-head check confirms no regression.
+**Next exact action:** Confirm current PR head CI is green, resolve P2/P3 threads, clear the earlier request-changes review state, merge PR #247 under the owner's proceed instruction, then mark TNYX-190 Done.
 
-Repository governance references `.github/POST_MERGE_SYNC.md`, but that file is absent on the audited base. That separate governance discrepancy is not repaired in TNYX-190.
+Repository governance references `.github/POST_MERGE_SYNC.md`, but that file was absent on the audited base. That separate governance discrepancy is not repaired in TNYX-190.
 
 ## Global UI / Design-System Guardrail
 
@@ -76,7 +76,7 @@ Detailed food item model, provider provenance, repository/DTO/schema, Quick Add 
 | Manual mode only | Locked | Detailed mode depends on unresolved item/serving/provenance contracts | TNYX-66 / TNYX-190 |
 | Keep local date separate from instant | Locked | Historical Diary identity must not move with device timezone | TNYX-114 |
 | Aggregate receives resolved time facts | Locked | DST/timezone resolution belongs outside this aggregate | TNYX-114 |
-| Require timezone ID or UTC offset | Implemented after P2 review | Without either, original logged local clock time cannot be deterministically reconstructed | TNYX-114 / manual review |
+| Require timezone ID or UTC offset | Implemented + validated | Without either, original logged local clock time cannot be deterministically reconstructed | TNYX-114 / manual review |
 | Nutrition-bounded date-only type | Implemented | Avoid modeling calendar identity as an instant | Implementation |
 | No JSON/storage codec yet | Implemented | Physical persistence is a later audited slice | Implementation |
 | `manualNutritionSnapshot` nullable at aggregate field level | Implemented | Future detailed mode can share one aggregate while manual factory guarantees non-null | Implementation |
@@ -87,7 +87,7 @@ Detailed food item model, provider provenance, repository/DTO/schema, Quick Add 
 
 `MealLogEntry` is one canonical final class with a private constructor and public `MealLogEntry.manual` factory. The factory pins `mode = MealLogMode.manual`, requires `manualNutritionSnapshot`, creates no detailed items, keeps user-intended local date separate from the chronology instant, and normalizes whitespace-only meal names to null.
 
-Consumed-time context remains already-resolved caller input. The aggregate does not perform DST/timezone resolution. It only rejects the information-losing state where both a meaningful timezone ID and UTC offset are absent.
+Consumed-time context remains already-resolved caller input. The aggregate does not perform DST/timezone resolution. It rejects only the information-losing state where both a meaningful timezone ID and UTC offset are absent.
 
 ```text
 Feature draft / future time resolver
@@ -108,15 +108,19 @@ Repository / Supabase persistence
 - [x] Manual exhaustive review performed because Codex review quota was unavailable.
 - [x] Apply P2 consumed-time context fix and focused tests.
 - [x] Apply P3 active-handoff reconciliation.
-- [ ] Validate current exact head and perform final manual re-review.
-- [ ] Resolve P2/P3 threads only after verified.
+- [x] Review-fix code head passed full Flutter CI #2359.
+- [x] Manual re-review found no additional code finding or scope leak.
+- [ ] Confirm current docs-only exact head CI.
+- [ ] Resolve P2/P3 threads and clear stale request-changes review state.
 - [ ] Merge and complete Linear handoff.
 
 ## 6. Quality Review
 
-### Prior Validation
+### Validation
 
-At head `66ae125970727151fd6adec492a02c374009e401`, Flutter CI #2356 completed successfully:
+Prior head `66ae125970727151fd6adec492a02c374009e401` passed full Flutter CI #2356 before manual review.
+
+Review-fix code head `63df8e3d6f3b4a8bb4f527de07cea8d0cb40c033` passed Flutter CI #2359:
 
 ```text
 Workspace bootstrap        PASS
@@ -124,18 +128,17 @@ Analyze Flutter packages   PASS
 Analyze Dart packages      PASS
 Test Flutter packages      PASS
 Test Dart packages         PASS
+Job conclusion             SUCCESS
 ```
 
-A manual exhaustive review then found two issues not caught by CI:
+### Review Findings
 
-| ID | Severity | Status | Finding | Resolution applied |
+| ID | Severity | Status | Finding | Resolution |
 |---|---|---|---|---|
-| P2 | P2 | Fix applied; verification pending | Both consumed timezone ID and UTC offset could be absent, losing deterministic local-time reconstruction context | Factory now requires at least one meaningful context value; tests cover timezone-only, offset-only, missing and blank-only cases |
-| P3 | P3 | Fix applied; verification pending | Active `.ai/tasks` handoff was stale versus PR/Linear/CI state | This handoff now reflects PR ready, Linear In Review, prior CI success and current review-fix validation state |
+| P2 | P2 | Verified fixed | Both consumed timezone ID and UTC offset could be absent, losing deterministic local-time reconstruction context | Factory requires at least one meaningful context value; tests cover timezone-only, offset-only, missing and blank-only cases; full CI #2359 passed |
+| P3 | P3 | Fixed; current-head check pending | Active `.ai/tasks` handoff was stale versus PR/Linear/CI state | This handoff now records PR ready, Linear In Review, review findings and CI #2359 evidence |
 
-### Current Validation Gate
-
-The review-fix commits changed the PR head after CI #2356, so completion requires fresh exact-head CI plus final diff/review-thread verification. No finding is considered resolved merely because a fix was written.
+Manual re-review of the review-fix diff found no additional issue. No Supabase, feature UI, provider, detailed-item, repository or concurrency scope entered the PR.
 
 ## 7. Final Handoff
 
@@ -165,4 +168,4 @@ Detailed-mode construction, `MealLogItemSnapshot`, provider provenance, physical
 
 ### Final Status
 
-`REVIEW` — P2/P3 fixes applied; exact-head validation and manual re-review pending.
+`READY TO MERGE AFTER CURRENT EXACT-HEAD CI` — code and manual review findings are validated; current head differs from CI #2359 only by this handoff reconciliation.
