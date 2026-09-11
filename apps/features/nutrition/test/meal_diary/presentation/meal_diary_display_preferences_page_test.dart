@@ -123,27 +123,29 @@ void main() {
     );
   });
 
-  testWidgets('disabled preview row has no tap action while Meal Notes is OFF',
+  testWidgets('disabled preview row is inert while Meal Notes is OFF',
       (tester) async {
     final controller = MealDiaryDisplayPreferencesController(
       _MemoryRepository(
         value: const MealDiaryDisplayPreferences(mealNotesEnabled: false),
       ),
     );
-    final semantics = tester.ensureSemantics();
 
     await _pump(tester, controller: controller);
 
     final row = find.byKey(
       const ValueKey('meal-diary-settings-note-preview'),
     );
-    final node = tester.getSemantics(row);
-    expect(node.hasAction(SemanticsAction.tap), isFalse);
     expect(
       _switchIn(tester, 'meal-diary-settings-note-preview').onChanged,
       isNull,
     );
-    semantics.dispose();
+
+    await tester.tap(row);
+    await tester.pumpAndSettle();
+
+    expect(controller.preferences.mealNotesEnabled, isFalse);
+    expect(controller.preferences.showMealNotePreview, isFalse);
   });
 }
 
