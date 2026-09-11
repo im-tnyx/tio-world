@@ -49,7 +49,7 @@ select pg_temp.assert_true(
 select pg_temp.assert_true(
   (select count(*) = 1
    from supabase_migrations.schema_migrations
-   where version = '20260911142500'),
+   where version = '20260911143309'),
   'migration ledger must contain TNYX-196 exactly once'
 );
 
