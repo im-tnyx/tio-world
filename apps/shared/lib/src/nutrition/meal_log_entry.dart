@@ -31,6 +31,11 @@ final class MealLogEntry {
   /// deliberately does not resolve local time, timezone rules, or DST. The
   /// separately supplied [consumedLocalDate] remains the user's intended Diary
   /// date identity even if the device timezone later changes.
+  ///
+  /// At least one meaningful consumed-time context value is required:
+  /// [consumedTimezoneId] or [consumedUtcOffsetMinutes]. This preserves enough
+  /// context for deterministic historical presentation/edit reconstruction
+  /// without making this aggregate responsible for timezone resolution.
   factory MealLogEntry.manual({
     required String id,
     required String userId,
@@ -45,6 +50,15 @@ final class MealLogEntry {
     required DateTime createdAt,
     required DateTime updatedAt,
   }) {
+    final normalizedTimezoneId = _normalizeOptionalTimezoneId(
+      consumedTimezoneId,
+    );
+    if (normalizedTimezoneId == null && consumedUtcOffsetMinutes == null) {
+      throw ArgumentError(
+        'Either consumedTimezoneId or consumedUtcOffsetMinutes must be provided.',
+      );
+    }
+
     return MealLogEntry._(
       id: id,
       userId: userId,
@@ -53,7 +67,7 @@ final class MealLogEntry {
       mealName: _normalizeOptionalMealName(mealName),
       consumedAt: consumedAt,
       consumedLocalDate: consumedLocalDate,
-      consumedTimezoneId: consumedTimezoneId,
+      consumedTimezoneId: normalizedTimezoneId,
       consumedUtcOffsetMinutes: consumedUtcOffsetMinutes,
       captureSource: captureSource,
       manualNutritionSnapshot: manualNutritionSnapshot,
@@ -97,6 +111,11 @@ final class MealLogEntry {
   final DateTime updatedAt;
 
   static String? _normalizeOptionalMealName(String? value) {
+    if (value == null || value.trim().isEmpty) return null;
+    return value;
+  }
+
+  static String? _normalizeOptionalTimezoneId(String? value) {
     if (value == null || value.trim().isEmpty) return null;
     return value;
   }
