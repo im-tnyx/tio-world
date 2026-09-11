@@ -1,9 +1,5 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/shared_preferences_meal_diary_display_preferences_repository.dart';
 import '../../domain/models/meal_diary_display_preferences.dart';
 import '../../domain/repositories/meal_diary_display_preferences_repository.dart';
 
@@ -120,21 +116,3 @@ class MealDiaryDisplayPreferencesController extends ChangeNotifier {
     }
   }
 }
-
-/// Feature-owned default composition for harnesses and tests that do not run
-/// the production app bootstrap. Production preloads one controller at startup
-/// and overrides this provider with that same instance.
-final mealDiaryDisplayPreferencesRepositoryProvider =
-    Provider<MealDiaryDisplayPreferencesRepository>(
-  (ref) => SharedPreferencesMealDiaryDisplayPreferencesRepository(),
-);
-
-final mealDiaryDisplayPreferencesControllerProvider =
-    ChangeNotifierProvider<MealDiaryDisplayPreferencesController>((ref) {
-  final controller = MealDiaryDisplayPreferencesController(
-    ref.watch(mealDiaryDisplayPreferencesRepositoryProvider),
-  );
-  ref.onDispose(controller.dispose);
-  unawaited(controller.load());
-  return controller;
-});
