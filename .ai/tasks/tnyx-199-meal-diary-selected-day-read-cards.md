@@ -1,6 +1,6 @@
 # TNYX-199 — N4B Manual MealLog selected-day Diary sections & read-only cards
 
-**Status:** In progress
+**Status:** Validated
 **Primary owner:** `apps/features/nutrition`
 **Affected platforms:** Flutter phone app
 
@@ -16,176 +16,195 @@
 
 **Planning owner:** Current AI session
 **Implementation owner:** Current AI session
-**Review owner:** Unassigned
-**Implementation ownership state:** Active
+**Review owner:** PR review / owner device review
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-11 through GitHub repository API. `main` = `7a96e382d36d295f821826cb9d49fd38b0f533a9`; no open PRs were present at readiness time. This API-based session has no local working tree, so local `git status -sb` is not available; equivalent remote branch/base evidence is used and local user work is untouched.
+**Repository state last verified:** 2026-09-11 through GitHub repository API. Base `main` = `7a96e382d36d295f821826cb9d49fd38b0f533a9`; implementation source head `a25d53e5b6e857d737327fde94295c23a1b2be52` was `11 ahead / 0 behind`, with the same merge base and 9 scoped changed files. This API-based session has no local checkout, so local `git status -sb` was unavailable and no local user work was touched.
 **Branch:** `tnyx/tnyx-199-n4b-manual-meallog-selected-day-diary-sections-read-only`
-**HEAD SHA:** starts from `7a96e382d36d295f821826cb9d49fd38b0f533a9`; refresh from GitHub after each commit.
-**Observed working-tree state:** Not applicable in API-based implementation session; no local checkout is modified.
-**Observed uncommitted/dirty files:** Not observable through repository API; no local files are modified by this session.
-**PR / tracker:** Linear `TNYX-199` In Progress; parent `TNYX-57` Backlog; no PR yet.
-**Current implementation state:** Readiness complete; implementation not yet started.
-**Relevant execution surface:** `apps/features/nutrition/lib/src/meal_diary/**`, `apps/app/lib/app/router.dart`, focused Nutrition tests, `docs/screens/meal-diary.md`, this task brief.
-**Validation completed at SHA:** Not run yet.
-**Validation remaining:** focused Nutrition tests/analyze plus parent-to-head scope audit; broader checks as practical.
+**HEAD SHA:** This final handoff/evidence commit follows validated implementation source SHA `a25d53e5b6e857d737327fde94295c23a1b2be52`; use live PR #258 metadata for the resulting branch head.
+**Observed working-tree state:** Not applicable in API-based implementation session; repository writes were made only through the GitHub branch API.
+**Observed uncommitted/dirty files:** Not observable through repository API; no local files were modified by this session.
+**PR / tracker:** Draft PR #258; Linear `TNYX-199` moves to `In Review` after this validated handoff; parent `TNYX-57` remains the broader backlog owner.
+**Current implementation state:** Bounded read-only selected-day Diary history slice implemented and CI-validated; no mutation behavior added.
+**Relevant execution surface:** `apps/features/nutrition/lib/src/meal_diary/**`, `apps/app/lib/main.dart`, focused Nutrition Meal Diary tests, `docs/screens/meal-diary.md`, this task brief.
+**Validation completed at SHA:** `a25d53e5b6e857d737327fde94295c23a1b2be52` — Flutter CI #2395 / run `34634021191` passed bootstrap, Flutter analyze, Dart analyze, all Flutter-package tests, and all Dart-package tests.
+**Validation remaining:** Final PR review and owner visual/device review. If implementation source changes after `a25d53e5...`, rerun exact-source validation; governance-only evidence edits do not supersede the recorded source result.
 **Current blocker:** None.
 **Open review finding IDs:** None.
-**Next exact action:** Build the selected-day read model/controller, wire canonical repositories at app composition, render governed read-only sections/cards, add focused tests, then validate and open a draft/review PR without merging.
+**Next exact action:** Review PR #258. Do not merge until explicitly authorized.
+
+**Repository note:** An accidental unused sibling remote branch `tnyx/tnyx-199-n4b-manual-meallog-selected-day-diary-sections-read-only-check` exists only from the base SHA and is not part of PR #258. It was not deleted because branch deletion requires explicit owner instruction.
 
 ## Global UI / Design-System Guardrail
 
 This slice follows `apps/features/AGENTS.md`, `.ai/tasks/design-system-token-consolidation.md`, and `apps/core/lib/src/theme/README.md`.
 
-- Reuse `package:tio_core/core.dart` and existing `TioCard`/theme roles.
-- Keep Meal Diary section/card composition feature-owned; no new Core component or token contract is justified by one consumer.
-- Do not introduce feature-local theme/token bags or raw repeated visual values.
-- The visible change is limited to the owner-approved rendering of actual persisted MealLog history and its explicit loading/empty/error states.
+- Reuses `package:tio_core/core.dart`, `TioCard`, `TioButton`, and governed theme roles.
+- Meal Diary section/card composition stays feature-owned; no new Core component/token contract was introduced.
+- No feature-local token/theme catalog was introduced.
+- The visible change is limited to approved persisted MealLog history rendering plus explicit loading/empty/error states.
 
 ## 1. Discovery
 
 ### User Outcome
 
-A user browsing any selectable Diary date can see the actual manual meals saved for that intended local date, grouped by their durable Meal Category, ordered by latest activity, with compact nutrition and note/time presentation that honors Meal Diary settings.
+A user browsing any selectable Diary date can see actual manual meals saved for that intended local date, grouped by durable Meal Category and ordered by latest activity, with compact nutrition and note/time presentation that honors Meal Diary settings.
 
 ### Success Criteria
 
 - Selected date loads canonical `MealLogEntry` history from `MealLogRepository.listByLocalDate`.
 - One durable log produces one card.
-- Sections are ordered by latest actual entry; entries within each section are newest first.
-- Section label resolves through current retained `MealCategory.displayName`, including archived historical categories.
-- Known calories/protein aggregate correctly; missing nutrient facts remain unknown instead of becoming zero.
+- Sections are ordered by latest actual entry; entries within a section are newest first.
+- Section labels resolve current retained `MealCategory.displayName`, including archived historical categories.
+- Missing calorie/protein facts remain unknown instead of becoming fabricated zero.
 - `showMealTimes`, `mealNotesEnabled`, and `showMealNotePreview` affect presentation only.
-- Unnamed Quick Add history renders `Quick Add` only when `captureSource == MealLogCaptureSource.quickAdd`; persisted `mealName` remains null.
-- Selected-date changes are race-safe and cannot let an older async result overwrite the newer selection.
+- Unnamed Quick Add history renders `Quick Add` only when `captureSource == MealLogCaptureSource.quickAdd`; stored `mealName` remains null.
+- Date changes are race-safe so a slower old request cannot overwrite the newer selection.
 - Loading, empty, and retryable error states are explicit.
 
 ### Scope
 
-Selected-day read controller/read model, repository/category composition, read-only sections/cards, focused widget/controller tests, and Meal Diary docs reconciliation.
+Selected-day read model/provider, repository/category composition, read-only sections/cards, focused tests, and Meal Diary docs reconciliation.
 
 ### Non-Goals
 
-Everything under Explicit non-changes above. In particular, this slice does not mutate MealLog history.
+Everything under Explicit non-changes above. This slice does not mutate MealLog history.
 
 ## 2. Codebase Exploration
 
 ### Verified Evidence
 
-- `MealLogRepository.listByLocalDate(MealLogLocalDate)` exists and requires grouping by persisted `consumedLocalDate`; it returns deterministic newest-first chronology with opaque-id tie-break.
-- `MealLogEntry` stores `mealCategoryId`, nullable `mealName`, nullable `note`, canonical `consumedAt`, persisted `consumedLocalDate`, timezone/offset context, `captureSource`, and a nullable aggregate-level `manualNutritionSnapshot` that is required for current manual construction.
-- `NutritionSnapshot` distinguishes absent nutrients from explicitly-known zero values.
-- `MealCategoriesConfig.findById` can resolve retained archived categories; custom ordering is not Diary ordering.
-- `MealDiaryDisplayPreferences` already owns the three required presentation flags and its controller falls back safely to defaults on local-preference read failure.
-- `MealDiaryDateController` owns selected date and date policy; future dates remain unreachable.
+- `MealLogRepository.listByLocalDate(MealLogLocalDate)` owns selected-day canonical history and deterministic newest-first repository order.
+- `MealLogEntry` carries durable category identity, nullable name/note, canonical `consumedAt`, persisted local-date identity, timezone/offset context, capture source, and manual nutrition snapshot.
+- `NutritionSnapshot` distinguishes absent nutrients from known zero values.
+- `MealCategoriesConfig.findById` resolves retained archived category identities.
+- `MealDiaryDisplayPreferences` already owns the three presentation flags.
+- `MealDiaryDateController` owns selected date and future-date exclusion.
 - App composition already owns canonical `mealLogRepositoryProvider` and `mealCategoriesRepositoryProvider`.
-- `MealDiaryPage` currently does not consume MealLog history and retains stale placeholder/history comments.
-- Existing Core `TioCard` supports governed surface variants and optional tap behavior; no new Core card contract is needed.
-- `docs/screens/meal-diary.md` is stale where it says no MealLog data source/persistence exists.
+- Existing Core `TioCard` is sufficient; no new reusable visual contract was justified.
 
-### Existing pattern to follow
+### Existing pattern followed
 
-Feature controller/notifier sequences repository reads; widgets render immutable read state. App shell injects canonical repositories. UI consumes Core components and runtime theme roles.
-
-### Tests or validation already present
-
-- Meal Diary widget tests cover calendar/date navigation, rollover, lifecycle, and short viewport behavior.
-- MealLog repository tests cover selected-day read behavior.
-- Meal Categories tests cover retained category identity/config resolution.
+Feature provider/read model sequences repository reads; widgets render immutable state. `apps/app` only overrides the feature repository seam with the canonical app repository.
 
 ## 3. Clarification
 
-### Decisions Required or Made
-
 | Decision | Status | Rationale | Owner |
 |---|---|---|---|
-| Blank Quick Add name displays `Quick Add` | Owner-approved | Capture source already records how the log was created; fallback is presentation only and must not fabricate stored `mealName` | Owner / Nutrition |
-| Blank non-Quick-Add name gets no fabricated Quick Add title | Locked | Fallback is source-aware, not a universal substitute for missing meal identity | Nutrition |
-| Missing calories/protein stay unknown | Locked | `NutritionSnapshot` explicitly distinguishes absence from known zero | Shared/Nutrition contract |
-| Section ordering ignores user category order | Locked | TNYX-57 requires latest actual activity ordering | TNYX-57 |
-| Historical category can be archived | Locked | Retained category identity remains resolvable for history | TNYX-67 |
-| Display flags never change chronology/data | Locked | N14 display preferences are presentation-only | TNYX-198 |
-| Historical time display must not silently use current-device timezone | Locked | TNYX-114 separates canonical instant, intended local date, and logging timezone/offset context | TNYX-114 |
+| Blank Quick Add name displays `Quick Add` | Owner-approved | Capture source already records how it was logged; fallback is presentation-only | Owner / Nutrition |
+| Blank non-Quick-Add name gets no `Quick Add` fallback | Locked | Source-aware fallback must not invent identity | Nutrition |
+| Missing calories/protein stay unknown | Locked | `NutritionSnapshot` differentiates absent from zero | Shared/Nutrition |
+| Section ordering ignores configured category order | Locked | N4 requires latest actual activity | TNYX-57 |
+| Archived historical categories remain resolvable | Locked | Retained identity protects history | TNYX-67 |
+| Display flags never change data/chronology | Locked | N14 is presentation-only | TNYX-198 |
+| Historical visible time never silently uses current device timezone | Locked | Stored offset/context protects historical meaning | TNYX-114 |
 
 ## 4. Architecture Design
 
 ### Chosen Approach
 
-Add a Nutrition-owned immutable selected-day read model plus controller that loads MealLog history and Meal Categories together, builds presentation-safe section/entry models, and publishes loading/data/error state. `MealDiaryPage` observes date + display preferences and delegates the history body to the read model.
+`MealDiaryHistoryRequest` keys a `FutureProvider.autoDispose.family` by repository identity plus durable local date. It reads MealLogs and Meal Categories concurrently, builds immutable section/card models, and lets `MealDiaryPage` render the watched selected-date result. Switching dates switches provider keys, preventing a late old-date completion from publishing into the new date.
 
 ### Ownership and Data Flow
 
 ```text
 MealDiaryDateController.selectedDate
         ↓
-MealDiary selected-day controller
-        ├─ MealLogRepository.listByLocalDate(MealLogLocalDate)
+MealDiaryHistoryRequest
+        ↓
+mealDiaryHistoryProvider
+        ├─ MealLogRepository.listByLocalDate(...)
         └─ MealCategoriesRepository.read()
                 ↓
-        immutable section/card read model
+immutable section/card read model
                 ↓
-MealDiaryPage / feature-owned widgets
+MealDiaryHistoryView
         + MealDiaryDisplayPreferences
                 ↓
-        governed TioCard/theme rendering
+TioCard / governed Core rendering
 ```
-
-App composition injects the existing canonical repositories. No widget reaches Supabase directly.
 
 ### Alternative Rejected
 
-Do not group/read directly inside `MealDiaryPage` with `FutureBuilder` and direct repository calls. That would mix repository sequencing, grouping/aggregation, stale-result handling, and presentation in the widget, contrary to repository/controller boundaries and harder to test deterministically.
+Direct repository calls/grouping in `MealDiaryPage` were rejected because they would mix persistence sequencing, aggregation, stale-result handling and rendering inside a widget.
 
 ### Failure and Accessibility States
 
-- Initial load shows an explicit loading state.
-- Empty successful read shows an explicit empty-day message.
-- Read failure preserves no fabricated history and offers a retry action.
-- Card/section text does not rely on color alone.
-- Note icon is semantic/secondary; note preview is one line with ellipsis.
-- Unknown nutrient amounts are omitted rather than rendered as zero.
+- Initial read renders an explicit loading state.
+- Successful empty read renders `Nothing is logged for this day.`
+- Failure renders clear copy plus governed Retry action.
+- Cards/section totals have text equivalents and do not rely on color.
+- Note icon is secondary and semantically labeled; preview is at most one ellipsized line.
+- Unknown nutrient facts are omitted rather than shown as zero.
 
 ## 5. Implementation Plan
 
-- [ ] Add immutable selected-day Diary read models and controller with request-generation race protection.
-- [ ] Resolve categories and aggregate known calories/protein per section.
-- [ ] Add source-aware title fallback and deterministic stored-time presentation helper.
-- [ ] Wire `MealLogRepository` and `MealCategoriesRepository` into `MealDiaryPage` from app composition without moving business logic into `apps/app`.
-- [ ] Render loading, error/retry, empty, section headers, and compact governed `TioCard` entries.
-- [ ] Apply N14 display preferences without changing ordering/data.
-- [ ] Preserve existing calendar/FAB/Quick Add shell behavior.
-- [ ] Add focused controller/read-model and widget tests including stale-response, archived category, missing nutrient, Quick Add fallback, preference toggles, and ordering.
-- [ ] Reconcile `docs/screens/meal-diary.md` with current persisted/read runtime.
-- [ ] Refresh this handoff and run parent-to-head scope audit/validation.
+- [x] Add immutable selected-day Diary request/read models with date-keyed race isolation.
+- [x] Resolve retained categories and aggregate calories/protein per section without partial totals.
+- [x] Add source-aware `Quick Add` title fallback and stored-offset historical-time reconstruction.
+- [x] Inject canonical MealLog repository through app composition without moving business logic into `apps/app`.
+- [x] Render loading, retryable error, empty, section headers and compact governed cards.
+- [x] Apply N14 display preferences without changing chronology or stored notes.
+- [x] Preserve existing calendar/FAB/Add Food/Quick Add shell behavior.
+- [x] Add focused provider/widget tests for ordering, archived categories, missing nutrients, fallback, preferences and stale date responses.
+- [x] Reconcile `docs/screens/meal-diary.md` with current persistence/read runtime.
+- [x] Run parent-to-head scope audit and CI validation.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Not run yet.
+Base SHA: 7a96e382d36d295f821826cb9d49fd38b0f533a9
+Validated implementation SHA: a25d53e5b6e857d737327fde94295c23a1b2be52
+Scope audit: 11 ahead / 0 behind, exact merge base, 9 changed files, all TNYX-199-owned
+Flutter CI #2395 / run 34634021191 / job 103377445899
+- Bootstrap workspace: PASS
+- Analyze Flutter packages: PASS
+- Analyze Dart packages: PASS
+- Test Flutter packages: PASS
+- Test Dart packages: PASS
 ```
+
+Local validation was not separately run because this session operates through repository APIs and had no usable local checkout; GitHub CI supplied the canonical full-workspace validation.
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| | | | | | |
+| T199-R1 | Medium | Resolved | New widget tests manually disposed `ChangeNotifier` instances also owned by `ProviderScope`, risking double-dispose | `dea8c739...` | Removed duplicate teardown in `4ce94807...`; CI #2395 passed |
+| T199-R2 | Low | Resolved | Retry closure needed explicit nullable-request narrowing for static safety | `985a2204...` | Explicit non-null request in `a25d53e5...`; Flutter analyze passed |
 
 ## 7. Final Handoff
 
 ### Changed Files
 
-Not yet implemented.
+- `.ai/tasks/tnyx-199-meal-diary-selected-day-read-cards.md`
+- `apps/app/lib/main.dart`
+- `apps/features/nutrition/lib/src/meal_diary/meal_diary.dart`
+- `apps/features/nutrition/lib/src/meal_diary/meal_diary_history_providers.dart`
+- `apps/features/nutrition/lib/src/meal_diary/presentation/pages/meal_diary_page.dart`
+- `apps/features/nutrition/lib/src/meal_diary/presentation/widgets/meal_diary_history_view.dart`
+- `apps/features/nutrition/test/meal_diary/meal_diary_history_provider_test.dart`
+- `apps/features/nutrition/test/meal_diary/meal_diary_history_view_test.dart`
+- `docs/screens/meal-diary.md`
 
 ### Actual Behavior
 
-Not yet implemented.
+- Selected Diary date reads canonical persisted manual MealLogs.
+- History groups by durable Meal Category and resolves current retained display labels.
+- Latest-activity section renders first; newest entry renders first within a section.
+- Known section calories/protein aggregate; missing nutrient facts do not become zero or partial authoritative totals.
+- Each durable MealLog is one compact governed card.
+- Persisted meal name is used when present; unnamed Quick Add history shows `Quick Add` only as a display fallback.
+- Meal time/note visibility follows N14 preferences without mutating chronology or note data.
+- Historical wall time uses stored UTC offset when available and is omitted rather than guessed when safe reconstruction is unavailable.
+- Loading, empty, retryable error and rapid-date-switch stale-result behavior are covered.
 
 ### Known Limitations
 
-Create/save, edit/delete/move, card-to-editor navigation, daily summary/rings, and detailed item/photo rendering remain intentionally deferred.
+Quick Add create/save activation, edit/delete/move, card-to-editor navigation, detailed item/photo rendering, daily summary/calendar rings and broader offline/replay mutation behavior remain intentionally deferred to their owning slices.
 
 ### Final Status
 
-`PARTIAL`
+`REVIEW`
