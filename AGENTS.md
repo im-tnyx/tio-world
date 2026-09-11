@@ -181,7 +181,7 @@ Before commit, push, or PR creation:
 
 For Pull Requests, follow `.github/PULL_REQUEST_TEMPLATE.md`.
 
-After a PR merge, follow `.github/POST_MERGE_SYNC.md` before starting the next branch.
+After a PR merge, follow `docs/POST_MERGE_SYNC.md` before starting the next branch.
 
 ## Validation
 
