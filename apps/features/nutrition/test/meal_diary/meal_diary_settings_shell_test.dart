@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
@@ -8,17 +9,19 @@ Widget _host(
   TioThemeMode mode = TioThemeMode.light,
   double textScale = 1,
 }) {
-  return MaterialApp(
-    builder: (context, appChild) => MediaQuery(
-      data: MediaQuery.of(context).copyWith(
-        textScaler: TextScaler.linear(textScale),
+  return ProviderScope(
+    child: MaterialApp(
+      builder: (context, appChild) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+          textScaler: TextScaler.linear(textScale),
+        ),
+        child: TioTheme(
+          config: TioThemeConfig(mode: mode),
+          child: appChild ?? const SizedBox.shrink(),
+        ),
       ),
-      child: TioTheme(
-        config: TioThemeConfig(mode: mode),
-        child: appChild ?? const SizedBox.shrink(),
-      ),
+      home: child,
     ),
-    home: child,
   );
 }
 
@@ -183,7 +186,7 @@ void main() {
     expect(settingsTaps, 0);
   });
 
-  testWidgets('Settings shell exposes only the Meal Categories row',
+  testWidgets('Settings shell exposes categories and N14 display preferences',
       (tester) async {
     var categoryTaps = 0;
     final semantics = tester.ensureSemantics();
@@ -195,6 +198,7 @@ void main() {
         ),
       ),
     );
+    await tester.pumpAndSettle();
 
     final categories =
         find.byKey(const ValueKey('meal-diary-settings-categories-entry'));
@@ -215,10 +219,15 @@ void main() {
       ),
     );
 
-    for (final absent in [
+    for (final present in [
       'Show meal times',
       'Meal Notes',
       'Show note preview',
+    ]) {
+      expect(find.text(present), findsOneWidget, reason: present);
+    }
+
+    for (final absent in [
       'Meal Reminders',
       'Restore Defaults',
     ]) {
