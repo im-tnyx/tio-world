@@ -7,7 +7,8 @@ import '../domain/repositories/meal_log_repository.dart';
 ///
 /// Production history must use the Supabase adapter. This repository exists so
 /// non-Supabase harnesses remain constructible without pretending the data is
-/// durable or synced.
+/// durable or synced. It mirrors manual-create idempotency deterministically so
+/// local/test behavior does not hide mutation-identity bugs.
 final class InMemoryMealLogRepository implements MealLogRepository {
   InMemoryMealLogRepository({
     required MealCategoriesRepository mealCategoriesRepository,
@@ -21,10 +22,21 @@ final class InMemoryMealLogRepository implements MealLogRepository {
   final DateTime Function() _clock;
   final String _userId;
   final Map<String, MealLogEntry> _entries = {};
+  final Map<String, _ManualCreateRecord> _manualCreatesByMutationId = {};
   var _nextId = 1;
 
   @override
   Future<MealLogEntry> createManual(ManualMealLogCreate input) async {
+    final existing = _manualCreatesByMutationId[input.clientMutationId];
+    if (existing != null) {
+      if (!_sameCreate(existing.input, input)) {
+        throw MealLogCreateMutationConflict(
+          clientMutationId: input.clientMutationId,
+        );
+      }
+      return existing.entry;
+    }
+
     await _requireActiveMealCategory(input.mealCategoryId);
     final now = _clock().toUtc();
     final id = 'in_memory_meal_log_${_nextId++}';
@@ -44,6 +56,10 @@ final class InMemoryMealLogRepository implements MealLogRepository {
       updatedAt: now,
     );
     _entries[id] = entry;
+    _manualCreatesByMutationId[input.clientMutationId] = _ManualCreateRecord(
+      input: input,
+      entry: entry,
+    );
     return entry;
   }
 
@@ -72,10 +88,33 @@ final class InMemoryMealLogRepository implements MealLogRepository {
     }
   }
 
+  static bool _sameCreate(
+    ManualMealLogCreate left,
+    ManualMealLogCreate right,
+  ) {
+    return left.clientMutationId == right.clientMutationId &&
+        left.mealCategoryId == right.mealCategoryId &&
+        left.mealName == right.mealName &&
+        left.note == right.note &&
+        left.consumedAt.toUtc() == right.consumedAt.toUtc() &&
+        left.consumedLocalDate == right.consumedLocalDate &&
+        left.consumedTimezoneId == right.consumedTimezoneId &&
+        left.consumedUtcOffsetMinutes == right.consumedUtcOffsetMinutes &&
+        left.captureSource == right.captureSource &&
+        left.manualNutritionSnapshot == right.manualNutritionSnapshot;
+  }
+
   static String _requireNonBlank(String value, String name) {
     if (value.trim().isEmpty) {
       throw ArgumentError.value(value, name, 'must not be blank');
     }
     return value;
   }
+}
+
+final class _ManualCreateRecord {
+  const _ManualCreateRecord({required this.input, required this.entry});
+
+  final ManualMealLogCreate input;
+  final MealLogEntry entry;
 }
