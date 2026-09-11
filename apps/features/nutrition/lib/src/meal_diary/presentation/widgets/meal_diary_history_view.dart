@@ -55,8 +55,9 @@ class MealDiaryHistoryView extends ConsumerWidget {
             history.when(
               loading: () => const _HistoryLoading(),
               error: (_, __) => _HistoryError(
-                onRetry: () =>
-                    ref.invalidate(mealDiaryHistoryProvider(historyRequest)),
+                onRetry: () => ref.invalidate(
+                  mealDiaryHistoryProvider(historyRequest!),
+                ),
               ),
               data: (data) => data.isEmpty
                   ? const _EmptyDay()
