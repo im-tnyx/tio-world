@@ -17,6 +17,7 @@ import 'app/app_theme.dart';
 import 'app/bootstrap.dart';
 import 'app/calendar_preferences.dart';
 import 'app/google_identity_link_controller.dart';
+import 'app/meal_log_repository_provider.dart';
 import 'app/network_providers.dart';
 import 'app/onboarding/onboarding.dart';
 import 'app/profile/canonical_profile_data_reader.dart';
@@ -135,6 +136,9 @@ Future<void> main() async {
         appThemeControllerProvider.overrideWith((ref) => appThemeController),
         calendarPreferencesControllerProvider
             .overrideWith((ref) => calendarPreferencesController),
+        mealDiaryMealLogRepositoryProvider.overrideWith(
+          (ref) => ref.watch(mealLogRepositoryProvider),
+        ),
         mealDiaryDisplayPreferencesControllerProvider.overrideWith(
           (ref) => mealDiaryDisplayPreferencesController,
         ),
