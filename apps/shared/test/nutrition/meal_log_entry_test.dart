@@ -123,22 +123,55 @@ void main() {
       expect(entry.consumedUtcOffsetMinutes, -420);
     });
 
-    test('allows timezone and capture context to remain absent', () {
-      final entry = MealLogEntry.manual(
-        id: 'meal-log-minimal',
+    test('accepts timezone ID or UTC offset independently', () {
+      final timezoneOnly = MealLogEntry.manual(
+        id: 'meal-log-timezone-only',
         userId: 'user-1',
         mealCategoryId: 'snack',
         consumedAt: consumedAt,
         consumedLocalDate: consumedLocalDate,
+        consumedTimezoneId: 'Asia/Kolkata',
+        manualNutritionSnapshot: nutrition,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      );
+      final offsetOnly = MealLogEntry.manual(
+        id: 'meal-log-offset-only',
+        userId: 'user-1',
+        mealCategoryId: 'snack',
+        consumedAt: consumedAt,
+        consumedLocalDate: consumedLocalDate,
+        consumedUtcOffsetMinutes: 330,
         manualNutritionSnapshot: nutrition,
         createdAt: createdAt,
         updatedAt: updatedAt,
       );
 
-      expect(entry.consumedTimezoneId, isNull);
-      expect(entry.consumedUtcOffsetMinutes, isNull);
-      expect(entry.captureSource, isNull);
-      expect(entry.manualNutritionSnapshot, same(nutrition));
+      expect(timezoneOnly.consumedTimezoneId, 'Asia/Kolkata');
+      expect(timezoneOnly.consumedUtcOffsetMinutes, isNull);
+      expect(timezoneOnly.captureSource, isNull);
+      expect(offsetOnly.consumedTimezoneId, isNull);
+      expect(offsetOnly.consumedUtcOffsetMinutes, 330);
+      expect(offsetOnly.captureSource, isNull);
+    });
+
+    test('rejects missing or blank-only consumed-time context', () {
+      MealLogEntry create({String? timezoneId}) {
+        return MealLogEntry.manual(
+          id: 'meal-log-missing-context',
+          userId: 'user-1',
+          mealCategoryId: 'snack',
+          consumedAt: consumedAt,
+          consumedLocalDate: consumedLocalDate,
+          consumedTimezoneId: timezoneId,
+          manualNutritionSnapshot: nutrition,
+          createdAt: createdAt,
+          updatedAt: updatedAt,
+        );
+      }
+
+      expect(create, throwsArgumentError);
+      expect(() => create(timezoneId: '   \t'), throwsArgumentError);
     });
   });
 }
