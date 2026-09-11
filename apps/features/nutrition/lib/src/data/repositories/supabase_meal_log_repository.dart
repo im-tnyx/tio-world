@@ -19,6 +19,11 @@ abstract interface class MealLogTableGateway {
     required String userId,
     required String clientMutationId,
   });
+
+  Future<List<Map<String, dynamic>>> listRowsByLocalDate({
+    required String userId,
+    required String localDate,
+  });
 }
 
 final class SupabaseMealLogTableGateway implements MealLogTableGateway {
@@ -69,6 +74,23 @@ final class SupabaseMealLogTableGateway implements MealLogTableGateway {
         .maybeSingle();
     return row == null ? null : Map<String, dynamic>.from(row);
   }
+
+  @override
+  Future<List<Map<String, dynamic>>> listRowsByLocalDate({
+    required String userId,
+    required String localDate,
+  }) async {
+    final rows = await _client
+        .from('meal_log_entries')
+        .select(_columns)
+        .eq('user_id', userId)
+        .eq('consumed_local_date', localDate)
+        .order('consumed_at', ascending: false)
+        .order('id');
+    return [
+      for (final row in rows) Map<String, dynamic>.from(row),
+    ];
+  }
 }
 
 /// Supabase adapter for canonical manual MealLog persistence.
@@ -77,6 +99,8 @@ final class SupabaseMealLogTableGateway implements MealLogTableGateway {
 /// remains the final database ownership authority. TNYX-196 adds stable create
 /// idempotency: the database unique invariant is the final duplicate guard, and
 /// transport ambiguity is reconciled with the same client mutation identity.
+/// TNYX-197 adds owner-scoped selected-local-date history reads without changing
+/// physical schema or historical category semantics.
 final class SupabaseMealLogRepository implements MealLogRepository {
   SupabaseMealLogRepository({
     required SupabaseClient client,
@@ -152,6 +176,22 @@ final class SupabaseMealLogRepository implements MealLogRepository {
     final row = await _gateway.readRow(userId: userId, id: id);
     if (row == null) return null;
     return _decodeManualRow(row, expectedUserId: userId);
+  }
+
+  @override
+  Future<List<MealLogEntry>> listByLocalDate(
+    MealLogLocalDate localDate,
+  ) async {
+    final userId = _requireUserId();
+    final rows = await _gateway.listRowsByLocalDate(
+      userId: userId,
+      localDate: localDate.toIso8601String(),
+    );
+    final entries = [
+      for (final row in rows)
+        _decodeManualRow(row, expectedUserId: userId),
+    ]..sort(_compareDiaryOrder);
+    return List<MealLogEntry>.unmodifiable(entries);
   }
 
   Future<Map<String, dynamic>?> _readMutationForCreate({
@@ -259,6 +299,12 @@ final class SupabaseMealLogRepository implements MealLogRepository {
         'must reference an active Meal Category',
       );
     }
+  }
+
+  static int _compareDiaryOrder(MealLogEntry left, MealLogEntry right) {
+    final byConsumedAt = right.consumedAt.compareTo(left.consumedAt);
+    if (byConsumedAt != 0) return byConsumedAt;
+    return left.id.compareTo(right.id);
   }
 
   static MealLogEntry _decodeCreateResult(
