@@ -60,7 +60,7 @@ void main() {
   testWidgets('Meal Notes OFF disables preview without clearing its value',
       (tester) async {
     final repository = _MemoryRepository(
-      const MealDiaryDisplayPreferences(showMealNotePreview: true),
+      value: const MealDiaryDisplayPreferences(showMealNotePreview: true),
     );
     final controller = MealDiaryDisplayPreferencesController(repository);
 
@@ -127,7 +127,7 @@ void main() {
       (tester) async {
     final controller = MealDiaryDisplayPreferencesController(
       _MemoryRepository(
-        const MealDiaryDisplayPreferences(mealNotesEnabled: false),
+        value: const MealDiaryDisplayPreferences(mealNotesEnabled: false),
       ),
     );
     final semantics = tester.ensureSemantics();
@@ -148,10 +148,10 @@ void main() {
 }
 
 class _MemoryRepository implements MealDiaryDisplayPreferencesRepository {
-  _MemoryRepository([
+  _MemoryRepository({
     this.value = const MealDiaryDisplayPreferences(),
     this.writeError,
-  ]);
+  });
 
   MealDiaryDisplayPreferences value;
   final Object? writeError;
