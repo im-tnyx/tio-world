@@ -2,18 +2,20 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'data/shared_preferences_meal_diary_display_preferences_repository.dart';
+import 'domain/models/meal_diary_display_preferences.dart';
 import 'domain/repositories/meal_diary_display_preferences_repository.dart';
 import 'presentation/controllers/meal_diary_display_preferences_controller.dart';
 
 /// Feature-level composition seam for Meal Diary display preferences.
 ///
-/// Keeping concrete storage construction here prevents presentation/controller
-/// code from depending on the data adapter. Production app bootstrap overrides
-/// the controller provider with the same preloaded instance used at startup.
+/// The package default is intentionally platform-neutral so feature/app router
+/// harnesses can render the Settings destination without a plugin platform.
+/// Production app bootstrap constructs the device-local SharedPreferences
+/// adapter, preloads its controller, and overrides the controller provider with
+/// that same instance before the first frame.
 final mealDiaryDisplayPreferencesRepositoryProvider =
     Provider<MealDiaryDisplayPreferencesRepository>(
-  (ref) => SharedPreferencesMealDiaryDisplayPreferencesRepository(),
+  (ref) => _InMemoryMealDiaryDisplayPreferencesRepository(),
 );
 
 final mealDiaryDisplayPreferencesControllerProvider =
@@ -25,3 +27,21 @@ final mealDiaryDisplayPreferencesControllerProvider =
   unawaited(controller.load());
   return controller;
 });
+
+final class _InMemoryMealDiaryDisplayPreferencesRepository
+    implements MealDiaryDisplayPreferencesRepository {
+  MealDiaryDisplayPreferences _value = const MealDiaryDisplayPreferences();
+
+  @override
+  Future<MealDiaryDisplayPreferences> read() async => _value;
+
+  @override
+  Future<void> write(MealDiaryDisplayPreferences preferences) async {
+    _value = preferences;
+  }
+
+  @override
+  Future<void> clear() async {
+    _value = const MealDiaryDisplayPreferences();
+  }
+}
