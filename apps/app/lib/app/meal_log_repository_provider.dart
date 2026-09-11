@@ -9,8 +9,14 @@ import 'network_providers.dart';
 /// harnesses get an explicitly non-durable in-memory owner.
 final mealLogRepositoryProvider = Provider<MealLogRepository>((ref) {
   final supabaseClient = ref.watch(supabaseClientProvider);
+  final mealCategoriesRepository = ref.watch(mealCategoriesRepositoryProvider);
   if (supabaseClient != null) {
-    return SupabaseMealLogRepository(client: supabaseClient);
+    return SupabaseMealLogRepository(
+      client: supabaseClient,
+      mealCategoriesRepository: mealCategoriesRepository,
+    );
   }
-  return InMemoryMealLogRepository();
+  return InMemoryMealLogRepository(
+    mealCategoriesRepository: mealCategoriesRepository,
+  );
 });

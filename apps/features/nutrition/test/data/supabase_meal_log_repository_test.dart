@@ -81,6 +81,36 @@ void main() {
       expect(payload['meal_name'], isNull);
       expect(payload['note'], isNull);
     });
+
+    test('missing and archived Meal Category ids fail before insert', () async {
+      final missingGateway = _FakeMealLogGateway(insertResult: _row());
+      await expectLater(
+        () => _repository(gateway: missingGateway).createManual(
+          _input(mealCategoryId: 'missing-category'),
+        ),
+        throwsArgumentError,
+      );
+      expect(missingGateway.insertPayloads, isEmpty);
+
+      final categories = InMemoryMealCategoriesRepository();
+      final current = await categories.read();
+      await categories.upsert(
+        MealCategoriesConfig(
+          items: current.items.map(
+            (item) => item.id == 'meal_slot_2' ? item.withActive(false) : item,
+          ),
+        ),
+      );
+      final archivedGateway = _FakeMealLogGateway(insertResult: _row());
+      await expectLater(
+        () => _repository(
+          gateway: archivedGateway,
+          mealCategoriesRepository: categories,
+        ).createManual(_input()),
+        throwsArgumentError,
+      );
+      expect(archivedGateway.insertPayloads, isEmpty);
+    });
   });
 
   group('SupabaseMealLogRepository reads', () {
@@ -126,6 +156,28 @@ void main() {
       expect(entry.captureSource, MealLogCaptureSource.text);
       expect(entry.createdAt, DateTime.utc(2026, 9, 11, 10));
       expect(entry.updatedAt, DateTime.utc(2026, 9, 11, 10));
+    });
+
+    test('numeric-offset timestamp normalizes to canonical UTC', () async {
+      final gateway = _FakeMealLogGateway(
+        readResult: _row(consumedAt: '2026-09-11T13:00:00+05:30'),
+      );
+
+      final entry = await _repository(gateway: gateway).readById('row-1');
+      expect(entry!.consumedAt, DateTime.utc(2026, 9, 11, 7, 30));
+    });
+
+    test('offset-less timestamps fail closed', () async {
+      for (final row in [
+        _row(consumedAt: '2026-09-11T07:30:00'),
+        _row(createdAt: '2026-09-11T10:00:00'),
+      ]) {
+        final gateway = _FakeMealLogGateway(readResult: row);
+        await expectLater(
+          () => _repository(gateway: gateway).readById('row-1'),
+          throwsFormatException,
+        );
+      }
     });
 
     test('snapshot preserves explicit zero, missing, and future keys', () async {
@@ -203,21 +255,25 @@ void main() {
 SupabaseMealLogRepository _repository({
   required _FakeMealLogGateway gateway,
   String? userId = 'user-1',
+  MealCategoriesRepository? mealCategoriesRepository,
 }) {
   return SupabaseMealLogRepository(
     client: _UnusedSupabaseClient(),
+    mealCategoriesRepository:
+        mealCategoriesRepository ?? InMemoryMealCategoriesRepository(),
     gateway: gateway,
     currentUserId: () => userId,
   );
 }
 
 ManualMealLogCreate _input({
+  String mealCategoryId = 'meal_slot_2',
   String? mealName,
   String? note,
   MealLogCaptureSource? captureSource,
 }) {
   return ManualMealLogCreate(
-    mealCategoryId: 'meal_slot_2',
+    mealCategoryId: mealCategoryId,
     mealName: mealName,
     note: note,
     consumedAt: DateTime.utc(2026, 9, 11, 7, 30),
@@ -245,6 +301,9 @@ Map<String, dynamic> _row({
   int? offsetMinutes = 330,
   String? captureSource,
   Map<String, Object?>? snapshot,
+  String consumedAt = '2026-09-11T07:30:00.000Z',
+  String createdAt = '2026-09-11T10:00:00.000Z',
+  String updatedAt = '2026-09-11T10:00:00.000Z',
 }) {
   return <String, dynamic>{
     'id': id,
@@ -253,7 +312,7 @@ Map<String, dynamic> _row({
     'meal_category_id': 'meal_slot_2',
     'meal_name': mealName,
     'note': note,
-    'consumed_at': '2026-09-11T07:30:00.000Z',
+    'consumed_at': consumedAt,
     'consumed_local_date': '2026-09-11',
     'consumed_timezone_id': timezoneId,
     'consumed_utc_offset_minutes': offsetMinutes,
@@ -266,8 +325,8 @@ Map<String, dynamic> _row({
             'protein': 30,
           },
         },
-    'created_at': '2026-09-11T10:00:00.000Z',
-    'updated_at': '2026-09-11T10:00:00.000Z',
+    'created_at': createdAt,
+    'updated_at': updatedAt,
   };
 }
 

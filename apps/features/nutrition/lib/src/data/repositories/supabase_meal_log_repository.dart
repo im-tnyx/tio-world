@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_shared/shared.dart';
 
+import '../../domain/repositories/meal_categories_repository.dart';
 import '../../domain/repositories/meal_log_repository.dart';
 
 typedef CurrentMealLogUserId = String? Function();
@@ -58,17 +59,21 @@ final class SupabaseMealLogTableGateway implements MealLogTableGateway {
 final class SupabaseMealLogRepository implements MealLogRepository {
   SupabaseMealLogRepository({
     required SupabaseClient client,
+    required MealCategoriesRepository mealCategoriesRepository,
     MealLogTableGateway? gateway,
     CurrentMealLogUserId? currentUserId,
-  })  : _gateway = gateway ?? SupabaseMealLogTableGateway(client),
+  })  : _mealCategoriesRepository = mealCategoriesRepository,
+        _gateway = gateway ?? SupabaseMealLogTableGateway(client),
         _currentUserId = currentUserId ?? (() => client.auth.currentUser?.id);
 
+  final MealCategoriesRepository _mealCategoriesRepository;
   final MealLogTableGateway _gateway;
   final CurrentMealLogUserId _currentUserId;
 
   @override
   Future<MealLogEntry> createManual(ManualMealLogCreate input) async {
     final userId = _requireUserId();
+    await _requireActiveMealCategory(input.mealCategoryId);
     final row = await _gateway.insertRow({
       'user_id': userId,
       'mode': MealLogMode.manual.storageValue,
@@ -100,6 +105,25 @@ final class SupabaseMealLogRepository implements MealLogRepository {
       throw StateError('Please sign in to access MealLog history.');
     }
     return userId;
+  }
+
+  Future<void> _requireActiveMealCategory(String id) async {
+    if (id.isEmpty || id.trim() != id) {
+      throw ArgumentError.value(
+        id,
+        'mealCategoryId',
+        'must be a canonical Meal Category identity',
+      );
+    }
+    final config = await _mealCategoriesRepository.read();
+    final category = config.findById(id);
+    if (category == null || !category.active) {
+      throw ArgumentError.value(
+        id,
+        'mealCategoryId',
+        'must reference an active Meal Category',
+      );
+    }
   }
 
   static MealLogEntry _decodeManualRow(
@@ -183,6 +207,10 @@ final class SupabaseMealLogRepository implements MealLogRepository {
     'updated_at',
   };
 
+  static final _instantOffsetSuffix = RegExp(
+    r'(?:[zZ]|[+-]\d{2}:\d{2})$',
+  );
+
   static void _requireKeys(Map<String, dynamic> row) {
     for (final key in _requiredRowKeys) {
       if (!row.containsKey(key)) {
@@ -223,6 +251,11 @@ final class SupabaseMealLogRepository implements MealLogRepository {
 
   static DateTime _requiredDateTime(Map<String, dynamic> row, String key) {
     final raw = _requiredString(row, key);
+    if (!_instantOffsetSuffix.hasMatch(raw)) {
+      throw FormatException(
+        'Invalid MealLog row: $key must include an explicit UTC offset.',
+      );
+    }
     final parsed = DateTime.tryParse(raw);
     if (parsed == null) {
       throw FormatException('Invalid MealLog row: $key is not a timestamp.');

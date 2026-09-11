@@ -5,7 +5,10 @@ import 'package:tio_shared/shared.dart';
 void main() {
   test('in-memory MealLog owner is deterministic and readable', () async {
     final now = DateTime.utc(2026, 9, 11, 12);
-    final repository = InMemoryMealLogRepository(clock: () => now);
+    final repository = InMemoryMealLogRepository(
+      mealCategoriesRepository: InMemoryMealCategoriesRepository(),
+      clock: () => now,
+    );
     final input = ManualMealLogCreate(
       mealCategoryId: 'meal_slot_1',
       mealName: 'Breakfast',
@@ -31,8 +34,31 @@ void main() {
     expect((await repository.readById(first.id))?.id, first.id);
   });
 
+  test('in-memory create rejects a missing Meal Category identity', () async {
+    final repository = InMemoryMealLogRepository(
+      mealCategoriesRepository: InMemoryMealCategoriesRepository(),
+    );
+    final input = ManualMealLogCreate(
+      mealCategoryId: 'missing-category',
+      consumedAt: DateTime.utc(2026, 9, 11, 2, 30),
+      consumedLocalDate: MealLogLocalDate(year: 2026, month: 9, day: 11),
+      consumedUtcOffsetMinutes: 330,
+      manualNutritionSnapshot: NutritionSnapshot(
+        schemaVersion: 1,
+        nutrients: {NutrientId.energy: 300},
+      ),
+    );
+
+    await expectLater(
+      () => repository.createManual(input),
+      throwsArgumentError,
+    );
+  });
+
   test('blank in-memory identity is rejected', () async {
-    final repository = InMemoryMealLogRepository();
+    final repository = InMemoryMealLogRepository(
+      mealCategoriesRepository: InMemoryMealCategoriesRepository(),
+    );
     await expectLater(() => repository.readById('  '), throwsArgumentError);
   });
 }

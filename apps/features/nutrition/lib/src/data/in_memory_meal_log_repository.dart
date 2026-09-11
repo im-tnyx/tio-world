@@ -1,5 +1,6 @@
 import 'package:tio_shared/shared.dart';
 
+import '../domain/repositories/meal_categories_repository.dart';
 import '../domain/repositories/meal_log_repository.dart';
 
 /// Deterministic non-durable MealLog owner for tests and local composition.
@@ -9,11 +10,14 @@ import '../domain/repositories/meal_log_repository.dart';
 /// durable or synced.
 final class InMemoryMealLogRepository implements MealLogRepository {
   InMemoryMealLogRepository({
+    required MealCategoriesRepository mealCategoriesRepository,
     DateTime Function()? clock,
     String userId = 'in_memory_meal_log_user',
-  })  : _clock = clock ?? DateTime.now,
+  })  : _mealCategoriesRepository = mealCategoriesRepository,
+        _clock = clock ?? DateTime.now,
         _userId = _requireNonBlank(userId, 'userId');
 
+  final MealCategoriesRepository _mealCategoriesRepository;
   final DateTime Function() _clock;
   final String _userId;
   final Map<String, MealLogEntry> _entries = {};
@@ -21,6 +25,7 @@ final class InMemoryMealLogRepository implements MealLogRepository {
 
   @override
   Future<MealLogEntry> createManual(ManualMealLogCreate input) async {
+    await _requireActiveMealCategory(input.mealCategoryId);
     final now = _clock().toUtc();
     final id = 'in_memory_meal_log_${_nextId++}';
     final entry = MealLogEntry.manual(
@@ -46,6 +51,25 @@ final class InMemoryMealLogRepository implements MealLogRepository {
   Future<MealLogEntry?> readById(String id) async {
     _requireNonBlank(id, 'id');
     return _entries[id];
+  }
+
+  Future<void> _requireActiveMealCategory(String id) async {
+    if (id.isEmpty || id.trim() != id) {
+      throw ArgumentError.value(
+        id,
+        'mealCategoryId',
+        'must be a canonical Meal Category identity',
+      );
+    }
+    final config = await _mealCategoriesRepository.read();
+    final category = config.findById(id);
+    if (category == null || !category.active) {
+      throw ArgumentError.value(
+        id,
+        'mealCategoryId',
+        'must reference an active Meal Category',
+      );
+    }
   }
 
   static String _requireNonBlank(String value, String name) {
