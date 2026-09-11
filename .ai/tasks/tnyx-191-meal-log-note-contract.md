@@ -1,6 +1,6 @@
 # TNYX-191 — Meal-level note contract for manual MealLog persistence
 
-**Status:** In Review — code validated; final docs-only exact-head CI pending
+**Status:** Review-ready — implementation and exact-head validation complete; merge not authorized
 **Primary owner:** `apps/shared` Nutrition domain
 **Affected platforms:** Shared Dart only
 
@@ -53,28 +53,10 @@ In particular, do not add a placeholder `photoRef` string merely because TNYX-11
 - [x] Add optional `note` parameter to `MealLogEntry.manual`.
 - [x] Normalize null/whitespace-only to absent while preserving nonblank text exactly.
 - [x] Add focused tests for null, blank and exact nonblank preservation.
-- [x] Full Flutter CI #2362 passed on code+scope head `5c1c5d05d732d4345cf35ccdeb9aa28342b32070`.
-- [x] Manual exhaustive review of the full PR diff found no code, test, architecture or scope finding.
-- [ ] Confirm the current docs-only exact head CI, then mark PR ready for review.
-
-## Validation Evidence
-
-Flutter CI #2362 on `5c1c5d05d732d4345cf35ccdeb9aa28342b32070` completed successfully:
-
-```text
-Bootstrap workspace        PASS
-Analyze Flutter packages   PASS
-Analyze Dart packages      PASS
-Test Flutter packages      PASS
-Test Dart packages         PASS
-Job conclusion             SUCCESS
-```
-
-The current handoff update is documentation-only; production/test source is unchanged from the fully validated head above.
-
-## Manual Review
-
-No finding. The change keeps `note` as optional actual-history data, does not couple it to presentation preferences, does not introduce a length or rewriting policy, and does not pull photo/media, detailed items, provider provenance, repositories, UI or Supabase into this slice.
+- [x] Run implementation-head Flutter CI #2362 — SUCCESS on `5c1c5d05d732d4345cf35ccdeb9aa28342b32070`.
+- [x] Manual exhaustive diff review — PASS, no findings.
+- [x] Reconcile this active handoff to current state.
+- [x] Run final exact-head Flutter CI #2363 — SUCCESS on docs-only final head before review-ready transition.
 
 ## Changed Files
 
@@ -83,6 +65,18 @@ No finding. The change keeps `note` as optional actual-history data, does not co
 apps/shared/lib/src/nutrition/meal_log_entry.dart
 apps/shared/test/nutrition/meal_log_entry_test.dart
 ```
+
+## Review-ready Evidence
+
+- PR: #248 `feat(shared): add manual MealLog note contract`.
+- Branch: `tnyx/tnyx-191-n20a-4-meal-level-note-contract-for-manual-meallog`.
+- Base remains audited `main` `1d67599a33d06978f476e34152153bb5bcbe3927`.
+- Scope audit before final handoff: 5 commits ahead / 0 behind, exactly 3 changed files.
+- CI #2362: full analyze + Flutter tests + Dart tests SUCCESS.
+- CI #2363: full analyze + Flutter tests + Dart tests SUCCESS on the final docs-only checkpoint head.
+- Manual review: PASS, no open findings.
+- Supabase: no migration/schema/RLS/grant/index write performed.
+- Merge: intentionally not performed without separate owner instruction.
 
 ## Migration Gate
 
