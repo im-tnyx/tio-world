@@ -1,6 +1,6 @@
 # TNYX-195 — N20A-6 Manual MealLog repository & Supabase adapter foundation
 
-**Status:** Validated — Draft PR #254 ready for owner review
+**Status:** Validated — PR #254 review findings resolved; ready for final review
 **Primary owner:** Nutrition domain/data + app composition
 **Affected platforms:** Flutter Nutrition package + mobile app composition; no visible UI change
 
@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-11
 **Branch:** `tnyx/tnyx-195-n20a-6-manual-meallog-repository-supabase-adapter-foundation`
-**HEAD SHA:** validated implementation head `a969540c86ae544babae86feff72971a42a2a568`; this handoff reconciliation is docs-only
+**HEAD SHA:** validated source/fix head `b83d96970943cf1c9c62f72e035ed8406f1465e1`; this handoff reconciliation is docs-only
 **Observed working-tree state:** Connector-managed remote branch. A local clone could not be created because the container has no outbound GitHub DNS/network access; GitHub API ancestry/scope evidence was used per `docs/PUSH_TEMPLATE.md`.
 **Observed uncommitted/dirty files:** Not observable through GitHub connector; all writes were isolated to the TNYX-195 branch.
-**PR / tracker:** Draft PR #254; Linear TNYX-195 transitioning to `In Review`
-**Current implementation state:** Bounded repository contract, Supabase adapter/gateway, strict row decoding, non-durable fallback, app composition, and focused tests implemented and validated.
+**PR / tracker:** PR #254; Linear TNYX-195 `In Review`
+**Current implementation state:** Bounded repository contract, Supabase adapter/gateway, active Meal Category create validation, strict instant decoding, non-durable fallback, app composition, and focused tests implemented and validated. P1/P2 review threads are resolved.
 **Relevant execution surface:** `apps/features/nutrition` domain/data/tests plus `apps/app/lib/app/meal_log_repository_provider.dart` and its focused test
-**Validation completed at SHA:** `a969540c86ae544babae86feff72971a42a2a568`
-**Validation remaining:** Owner/manual review only. Any later review fix must rerun applicable CI at its exact source head.
+**Validation completed at SHA:** `b83d96970943cf1c9c62f72e035ed8406f1465e1`
+**Validation remaining:** Final exact-head review of this docs-only reconciliation and PR metadata. No implementation-source validation remains.
 **Current blocker:** None
-**Open review finding IDs:** None
-**Next exact action:** Owner/manual review of Draft PR #254. Do not merge, enable Quick Add, add idempotency fields, or widen schema from this handoff.
+**Open review finding IDs:** None; `P1-active-meal-category-write-integrity` and `P2-explicit-instant-offset-decoding` are resolved at `b83d969` with CI #2373.
+**Next exact action:** Reconcile PR body to the current validated evidence, perform final exact-head review, then move PR #254 from Draft to Ready for review. Do not merge, enable Quick Add, add idempotency fields, or widen schema from this handoff.
 
 ## Global UI / Design-System Guardrail
 
@@ -48,7 +48,9 @@ Establish the canonical app-side persistence boundary between manual `MealLogEnt
 - One Nutrition `MealLogRepository` contract exists for the bounded manual create/read foundation.
 - Create does not require a caller-fabricated DB row ID or database timestamps; the durable inserted row is returned as canonical `MealLogEntry`.
 - Supabase access is behind an injectable gateway and derives `user_id` from the authenticated session, never from caller input.
+- New MealLog writes require a current active resolved Meal Category identity; missing/archived IDs fail before persistence while historical reads retain archived identities.
 - Exact current manual fields round-trip through existing shared codecs.
+- Persisted timestamps decode only when they encode an explicit instant (`Z` or numeric UTC offset), avoiding device-timezone-dependent reinterpretation.
 - Signed-out Supabase access fails closed before gateway mutation/read.
 - App composition selects Supabase in configured sessions and an explicitly non-durable in-memory fallback otherwise.
 - Quick Add remains disabled and no database shape changes occur.
@@ -70,6 +72,7 @@ TNYX-115 UI lifecycle, TNYX-116 mutation reliability, detailed item persistence,
 - Live Supabase state: `public.meal_log_entries` already exists with TNYX-194 RLS/grants/index/trigger/manual contract; this task introduced no migration.
 - Current Supabase Dart reference confirms `.insert(...).select()` returns inserted rows, allowing DB-generated UUID/timestamps to hydrate the canonical aggregate.
 - TNYX-194 locked DB UUID ↔ opaque domain `String` identity and deliberately deferred repository/idempotency wiring.
+- TNYX-67 locked Meal Category integrity at the Nutrition domain/repository boundary because categories remain JSONB rather than relational FK targets: new logs require an active resolved ID; archived IDs remain valid historical identity only.
 - Quick Add still owns only route-local draft state and has no primary submit callback.
 - Documentation drift was observed but intentionally not bundled: stale older `backend/*`/future-Supabase wording remains in parts of general docs while root `AGENTS.md`, root README and `ARCHITECTURE.md` are current authority.
 
@@ -89,6 +92,8 @@ TNYX-115 UI lifecycle, TNYX-116 mutation reliability, detailed item persistence,
 | Create input carries no `id`, `userId`, `mode`, `createdAt`, or `updatedAt` | Locked | DB/session own those facts; avoids fake identity/timestamps and future idempotency confusion | TNYX-194/TNYX-116 boundary |
 | `createManual` returns persisted `MealLogEntry` | Locked | Hydrates DB UUID/default timestamps and preserves one canonical aggregate | TNYX-195 |
 | Minimal read API is `readById` | Locked for this slice | Proves canonical decoding without prematurely freezing Diary query APIs | Bounded foundation |
+| New writes require an active resolved Meal Category ID | Locked | No DB FK exists for JSONB categories; invalid/archived new writes must fail without remapping while historical reads stay resolvable | TNYX-67 / P1 review |
+| Persisted timestamps require explicit instant offset | Locked | Offset-less parsing would depend on the device timezone and violate canonical-instant semantics | TNYX-114 / P2 review |
 | Supabase signed-out create/read fail closed | Locked | Missing auth is not equivalent to empty durable history | Security boundary |
 | In-memory fallback uses local synthetic identity only | Locked | Test/local constructibility without pretending durability | Existing composition pattern |
 | Unknown future mode/capture source fails instead of remapping | Locked | Guessing would fabricate semantic meaning | Shared contracts |
@@ -135,7 +140,7 @@ Future Nutrition controller
 
 ### Failure and Accessibility States
 
-No UI/accessibility state changes. Signed-out durable access fails before gateway calls. Malformed/unsupported returned rows fail explicitly rather than being guessed or defaulted.
+No UI/accessibility state changes. Signed-out durable access fails before gateway calls. Missing/archived Meal Category IDs fail before create persistence. Malformed/unsupported returned rows, including offset-less timestamps, fail explicitly rather than being guessed or defaulted.
 
 ## 5. Implementation Plan
 
@@ -151,16 +156,20 @@ No UI/accessibility state changes. Signed-out durable access fails before gatewa
 - [x] Add focused Nutrition repository/mapping tests
 - [x] Add focused app provider selection tests
 - [x] Audit exact base-to-head scope and open Draft PR #254
-- [x] Run repository Flutter CI at exact implementation head
-- [x] Refresh task handoff for review
+- [x] Run repository Flutter CI at initial implementation head
+- [x] Resolve P1 active-category write integrity finding in both repository implementations
+- [x] Resolve P2 explicit-instant timestamp decoding finding
+- [x] Run full Flutter CI at exact review-fix head `b83d969`
+- [x] Reply to and resolve both GitHub review threads with exact-head validation evidence
+- [x] Refresh task handoff for final review
 
 ## 6. Quality Review
 
 ### Validation Run
 
-Validated implementation head: `a969540c86ae544babae86feff72971a42a2a568`.
+Validated source/fix head: `b83d96970943cf1c9c62f72e035ed8406f1465e1`.
 
-Flutter CI run #2371 / `34601813672` passed every gate:
+Flutter CI run #2373 / `34603902661` passed every gate on that exact head:
 
 ```text
 Bootstrap workspace          PASS
@@ -170,11 +179,13 @@ Test Flutter packages        PASS
 Test Dart packages           PASS
 ```
 
-GitHub API scope audit against `main@618df923ce2d6ec01f0055a1cc456ac5f6d4d63f`:
+Earlier implementation head `a969540c86ae544babae86feff72971a42a2a568` also passed Flutter CI run #2371 / `34601813672`; that result is historical evidence only after review fixes moved source HEAD.
+
+GitHub API scope audit against `main@618df923ce2d6ec01f0055a1cc456ac5f6d4d63f` at source/fix head `b83d969`:
 
 ```text
 merge base = declared base   PASS
-ahead / behind = 2 / 0       PASS before docs-only handoff reconciliation
+ahead / behind = 4 / 0       PASS
 changed files = 10           PASS; all TNYX-195 owned paths
 ```
 
@@ -184,7 +195,10 @@ Local `git status`/`git diff --check` could not be run because no repository che
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| — | — | Resolved | No implementation finding remained after manual scope/source review and full CI | `a969540c` | Draft PR #254 ready for owner review |
+| `P1-active-meal-category-write-integrity` | P1 | Resolved | New writes could persist a missing/archived/arbitrary `mealCategoryId` despite the TNYX-67 repository-owned integrity contract | `a13e75a9` | Fixed at `b83d969`: both Supabase and in-memory create paths validate current resolved active category; focused tests + CI #2373 pass; GitHub thread resolved |
+| `P2-explicit-instant-offset-decoding` | P2 | Resolved | Offset-less timestamp strings could be interpreted through device-local timezone before `.toUtc()` | `a13e75a9` | Fixed at `b83d969`: decoder requires `Z` or `±HH:MM`; rejection/normalization tests + CI #2373 pass; GitHub thread resolved |
+
+Manual final review after these fixes found no new P1/P2 blocker. Provider placement in a dedicated app composition file and the duplicated two-implementation active-category guard remain non-blocking organization/refactor considerations and are not widened into this slice.
 
 ## 7. Final Handoff
 
@@ -207,10 +221,11 @@ apps/app/test/app/meal_log_repository_provider_test.dart
 
 - Defines one canonical Nutrition `MealLogRepository` manual create/read foundation.
 - Uses `ManualMealLogCreate` so callers cannot fabricate persisted row UUID/user/mode/database timestamps.
-- Supabase adapter derives current authenticated `user_id`, inserts only canonical manual facts, then hydrates the returned DB-generated row into `MealLogEntry.manual`.
-- Strict decoding checks required columns, authenticated ownership, manual mode, known capture-source identity, timestamp/local-date/snapshot shape and required timezone context.
+- Supabase adapter derives current authenticated `user_id`, validates the selected Meal Category against current resolved active categories, inserts only canonical manual facts, then hydrates the returned DB-generated row into `MealLogEntry.manual`.
+- In-memory fallback enforces the same active-category create invariant while remaining explicitly non-durable.
+- Historical `readById` does not revalidate category activity, so retained archived category identities remain readable without remapping.
+- Strict decoding checks required columns, authenticated ownership, manual mode, known capture-source identity, explicit-offset timestamps, local-date/snapshot shape and required timezone context.
 - `NutritionSnapshot` remains the only nutrition truth and preserves current missing-vs-explicit-zero/unknown-future-nutrient behavior.
-- Adds a deterministic explicitly non-durable in-memory owner for no-Supabase test/local composition.
 - Adds app-level Riverpod selection between Supabase and in-memory implementations.
 - Does not alter Quick Add, Supabase schema, RLS/grants/indexes/functions, or reliability semantics.
 
@@ -220,4 +235,4 @@ Quick Add remains disabled. Create idempotency/retry/offline safety, edit/delete
 
 ### Final Status
 
-`REVIEW` — bounded implementation is validated and Draft PR #254 is ready for owner/manual review. No merge is authorized by this handoff.
+`REVIEW` — bounded implementation and both review fixes are validated. PR #254 may move to Ready for review after this docs-only handoff/PR metadata reconciliation is exact-head reviewed. Merge still requires separate owner authorization.
