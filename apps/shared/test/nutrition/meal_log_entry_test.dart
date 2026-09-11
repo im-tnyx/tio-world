@@ -59,12 +59,16 @@ void main() {
     final createdAt = DateTime.utc(2026, 9, 11, 6, 31);
     final updatedAt = DateTime.utc(2026, 9, 11, 6, 32);
 
-    MealLogEntry build({String? mealName = 'Breakfast'}) {
+    MealLogEntry build({
+      String? mealName = 'Breakfast',
+      String? note,
+    }) {
       return MealLogEntry.manual(
         id: 'meal-log-1',
         userId: 'user-1',
         mealCategoryId: 'breakfast',
         mealName: mealName,
+        note: note,
         consumedAt: consumedAt,
         consumedLocalDate: consumedLocalDate,
         consumedTimezoneId: 'Asia/Kolkata',
@@ -77,13 +81,14 @@ void main() {
     }
 
     test('creates a first-class manual actual-history aggregate', () {
-      final entry = build();
+      final entry = build(note: 'Workout ke baad khaya');
 
       expect(entry.id, 'meal-log-1');
       expect(entry.userId, 'user-1');
       expect(entry.mode, MealLogMode.manual);
       expect(entry.mealCategoryId, 'breakfast');
       expect(entry.mealName, 'Breakfast');
+      expect(entry.note, 'Workout ke baad khaya');
       expect(entry.consumedAt, consumedAt);
       expect(entry.consumedLocalDate, consumedLocalDate);
       expect(entry.consumedTimezoneId, 'Asia/Kolkata');
@@ -98,6 +103,15 @@ void main() {
       expect(build(mealName: null).mealName, isNull);
       expect(build(mealName: '').mealName, isNull);
       expect(build(mealName: '   \t').mealName, isNull);
+    });
+
+    test('keeps nonblank note text and normalizes blank note to absent', () {
+      const exactNote = '  Restaurant meal, oil thoda zyada tha  ';
+
+      expect(build(note: exactNote).note, exactNote);
+      expect(build(note: null).note, isNull);
+      expect(build(note: '').note, isNull);
+      expect(build(note: '   \t').note, isNull);
     });
 
     test('keeps user-intended local date separate from chronology instant', () {
