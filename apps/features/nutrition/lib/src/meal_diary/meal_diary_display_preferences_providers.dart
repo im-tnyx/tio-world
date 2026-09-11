@@ -23,7 +23,9 @@ final mealDiaryDisplayPreferencesControllerProvider =
   final controller = MealDiaryDisplayPreferencesController(
     ref.watch(mealDiaryDisplayPreferencesRepositoryProvider),
   );
-  ref.onDispose(controller.dispose);
+  // ChangeNotifierProvider owns notifier disposal. Registering an additional
+  // ref.onDispose(controller.dispose) would dispose the same controller twice
+  // when a ProviderContainer/router harness is torn down.
   unawaited(controller.load());
   return controller;
 });
