@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_feature_auth/auth.dart';
+import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_feature_profile/profile.dart';
 import 'package:tio_feature_progress/progress.dart';
@@ -65,12 +66,18 @@ Future<void> main() async {
   final calendarPreferencesController = CalendarPreferencesController(
     SharedPreferencesCalendarPreferencesRepository(),
   );
+  final mealDiaryDisplayPreferencesController =
+      MealDiaryDisplayPreferencesController(
+    SharedPreferencesMealDiaryDisplayPreferencesRepository(),
+  );
 
   await hydrateStartupControllers(
     appModeController: appModeController,
     onboardingStatusController: onboardingStatusController,
     appThemeController: appThemeController,
     calendarPreferencesController: calendarPreferencesController,
+    mealDiaryDisplayPreferencesController:
+        mealDiaryDisplayPreferencesController,
   );
 
   bootstrap(
@@ -128,6 +135,9 @@ Future<void> main() async {
         appThemeControllerProvider.overrideWith((ref) => appThemeController),
         calendarPreferencesControllerProvider
             .overrideWith((ref) => calendarPreferencesController),
+        mealDiaryDisplayPreferencesControllerProvider.overrideWith(
+          (ref) => mealDiaryDisplayPreferencesController,
+        ),
       ],
       child: const TioApp(),
     ),
