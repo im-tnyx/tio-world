@@ -7,23 +7,28 @@ import 'package:tio_app/app/calendar_preferences.dart';
 import 'package:tio_app/app/onboarding/onboarding.dart';
 import 'package:tio_app/app/startup_hydration.dart';
 import 'package:tio_core/core.dart';
+import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_feature_onboarding/onboarding.dart';
 import 'package:tio_feature_settings/settings.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
   test(
-      'startup hydrates mode, theme and calendar together, then status after '
-      'mode', () async {
+      'startup hydrates mode, theme, calendar and Meal Diary preferences '
+      'together, then status after mode', () async {
     final events = <String>[];
     final modePreference = _ControlledAppModePreference(events);
     final themePreference = _ControlledAppThemePreference(events);
     final calendarRepository = _ControlledCalendarPreferencesRepository(events);
+    final mealDiaryRepository =
+        _ControlledMealDiaryDisplayPreferencesRepository(events);
     final statusRepository = _RecordingStatusRepository(events);
     final appModeController = AppModeController(modePreference);
     final appThemeController = AppThemeController(themePreference);
     final calendarPreferencesController =
         CalendarPreferencesController(calendarRepository);
+    final mealDiaryDisplayPreferencesController =
+        MealDiaryDisplayPreferencesController(mealDiaryRepository);
     final onboardingStatusController = OnboardingStatusController(
       repository: statusRepository,
       appModeController: appModeController,
@@ -34,23 +39,44 @@ void main() {
       onboardingStatusController: onboardingStatusController,
       appThemeController: appThemeController,
       calendarPreferencesController: calendarPreferencesController,
+      mealDiaryDisplayPreferencesController:
+          mealDiaryDisplayPreferencesController,
     );
     await Future<void>.delayed(Duration.zero);
 
-    expect(events, ['mode.read', 'theme.read', 'calendar.read']);
+    expect(events, [
+      'mode.read',
+      'theme.read',
+      'calendar.read',
+      'meal-diary.read',
+    ]);
     expect(onboardingStatusController.isLoaded, isFalse);
 
     modePreference.completeRead(AppMode.workout);
     await Future<void>.delayed(Duration.zero);
 
-    expect(events, ['mode.read', 'theme.read', 'calendar.read', 'status.read']);
+    expect(events, [
+      'mode.read',
+      'theme.read',
+      'calendar.read',
+      'meal-diary.read',
+      'status.read',
+    ]);
     expect(appModeController.selectedMode, AppMode.workout);
     expect(appThemeController.isLoaded, isFalse);
     expect(calendarPreferencesController.isLoaded, isFalse);
+    expect(mealDiaryDisplayPreferencesController.isLoaded, isFalse);
 
     themePreference.completeRead(TioThemeMode.dark);
     calendarRepository.completeRead(
       const CalendarPreferences(firstDayOfWeek: FirstDayOfWeekPreference.sunday),
+    );
+    mealDiaryRepository.completeRead(
+      const MealDiaryDisplayPreferences(
+        showMealTimes: false,
+        mealNotesEnabled: true,
+        showMealNotePreview: true,
+      ),
     );
     await hydration;
 
@@ -61,6 +87,14 @@ void main() {
       calendarPreferencesController.resolvedFirstDayOfWeek,
       DateTime.sunday,
     );
+    expect(
+      mealDiaryDisplayPreferencesController.preferences,
+      const MealDiaryDisplayPreferences(
+        showMealTimes: false,
+        mealNotesEnabled: true,
+        showMealNotePreview: true,
+      ),
+    );
     expect(onboardingStatusController.isLoaded, isTrue);
     expect(statusRepository.readCalls, 1);
 
@@ -69,11 +103,14 @@ void main() {
       onboardingStatusController: onboardingStatusController,
       appThemeController: appThemeController,
       calendarPreferencesController: calendarPreferencesController,
+      mealDiaryDisplayPreferencesController:
+          mealDiaryDisplayPreferencesController,
     );
 
     expect(modePreference.readCalls, 1);
     expect(themePreference.readCalls, 1);
     expect(calendarRepository.readCalls, 1);
+    expect(mealDiaryRepository.readCalls, 1);
     expect(statusRepository.readCalls, 1);
   });
 }
@@ -144,6 +181,32 @@ class _ControlledCalendarPreferencesRepository
 
   @override
   Future<void> write(CalendarPreferences preferences) async {}
+
+  @override
+  Future<void> clear() async {}
+}
+
+class _ControlledMealDiaryDisplayPreferencesRepository
+    implements MealDiaryDisplayPreferencesRepository {
+  _ControlledMealDiaryDisplayPreferencesRepository(this.events);
+
+  final List<String> events;
+  final Completer<MealDiaryDisplayPreferences> _read =
+      Completer<MealDiaryDisplayPreferences>();
+  int readCalls = 0;
+
+  void completeRead(MealDiaryDisplayPreferences preferences) =>
+      _read.complete(preferences);
+
+  @override
+  Future<MealDiaryDisplayPreferences> read() {
+    readCalls += 1;
+    events.add('meal-diary.read');
+    return _read.future;
+  }
+
+  @override
+  Future<void> write(MealDiaryDisplayPreferences preferences) async {}
 
   @override
   Future<void> clear() async {}
