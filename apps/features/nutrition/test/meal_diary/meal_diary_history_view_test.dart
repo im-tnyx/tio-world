@@ -13,7 +13,6 @@ void main() {
   testWidgets('renders dynamic sections and default time/note presentation',
       (tester) async {
     final dateController = MealDiaryDateController(clock: () => _today);
-    addTearDown(dateController.dispose);
     final categories = _FakeMealCategoriesRepository(
       MealCategoriesConfig.canonicalDefaults(),
     );
@@ -88,7 +87,6 @@ void main() {
   testWidgets('display preferences hide time and reveal one-line note preview',
       (tester) async {
     final dateController = MealDiaryDateController(clock: () => _today);
-    addTearDown(dateController.dispose);
     final categories = _FakeMealCategoriesRepository(
       MealCategoriesConfig.canonicalDefaults(),
     );
@@ -114,7 +112,6 @@ void main() {
         ),
       ),
     );
-    addTearDown(preferences.dispose);
     await preferences.load();
 
     await _pump(
@@ -137,10 +134,58 @@ void main() {
     expect(preview.overflow, TextOverflow.ellipsis);
   });
 
+  testWidgets('Meal Notes off hides both note icon and preview', (tester) async {
+    final dateController = MealDiaryDateController(clock: () => _today);
+    final categories = _FakeMealCategoriesRepository(
+      MealCategoriesConfig.canonicalDefaults(),
+    );
+    final mealLogs = _ImmediateMealLogRepository({
+      _localDate(11): [
+        _entry(
+          id: 'meal-notes-off',
+          categoryId: 'meal_slot_2',
+          mealName: 'Banana Shake',
+          note: 'Stored note stays on the MealLogEntry',
+          consumedAt: DateTime.utc(2026, 9, 11, 9, 50),
+          calories: 254,
+          protein: 9,
+        ),
+      ],
+    });
+    final preferences = MealDiaryDisplayPreferencesController(
+      _FakeDisplayPreferencesRepository(
+        const MealDiaryDisplayPreferences(
+          mealNotesEnabled: false,
+          showMealNotePreview: true,
+        ),
+      ),
+    );
+    await preferences.load();
+
+    await _pump(
+      tester,
+      dateController: dateController,
+      mealLogs: mealLogs,
+      categories: categories,
+      preferences: preferences,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('meal-diary-entry-note-meal-notes-off')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('meal-diary-entry-note-preview-meal-notes-off'),
+      ),
+      findsNothing,
+    );
+  });
+
   testWidgets('a slower old date read cannot overwrite the newer selection',
       (tester) async {
     final dateController = MealDiaryDateController(clock: () => _today);
-    addTearDown(dateController.dispose);
     final categories = _FakeMealCategoriesRepository(
       MealCategoriesConfig.canonicalDefaults(),
     );
