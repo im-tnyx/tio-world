@@ -8,7 +8,9 @@ import 'package:tio_core/core.dart';
 import '../../../domain/repositories/meal_categories_repository.dart';
 import '../../../meal_logging/presentation/widgets/add_food_sheet.dart';
 import '../../../meal_logging/presentation/widgets/quick_add_editor_sheet.dart';
+import '../../meal_diary_history_providers.dart';
 import '../controllers/meal_diary_date_controller.dart';
+import '../widgets/meal_diary_history_view.dart';
 import '../widgets/meal_diary_log_action.dart';
 
 /// Vertical room the floating `+` occupies at the bottom of the diary body:
@@ -23,20 +25,18 @@ const double _actionClearance = TioSize.dp56 + TioSpacing.xl * 2;
 /// The Meal Diary surface, and the first production consumer of the reusable
 /// core date calendar.
 ///
-/// The integration is intentionally thin. Nutrition supplies the selected date,
-/// what counts as today, and the diary's own range — nothing else. Everything
-/// about how a date strip scrolls, how the month grid expands and how a date is
-/// drawn belongs to core, which is what lets Workout and Meal Plan reuse the
-/// same component later without any of this.
+/// The calendar integration stays intentionally thin. Nutrition supplies the
+/// selected date, what counts as today, and the diary's own range — nothing
+/// else. Everything about how a date strip scrolls, how the month grid expands
+/// and how a date is drawn belongs to core.
 ///
-/// No decorations are supplied yet. There is no meal-log store, so there is no
-/// progress to draw, and an absent decoration is the honest way to say that —
-/// a zero would claim the user ate nothing, which is a different statement.
+/// Calendar progress decorations are still absent in this slice. Persisted
+/// MealLog history now renders below the calendar, but a calorie-progress ring
+/// belongs to the later N3 daily-budget contract; drawing one here would invent
+/// a denominator and conflate two read models.
 ///
-/// The same rule governs the logging entry this screen now offers. `+` reaches
-/// a real Add Food sheet and a real Quick Add editor, but nothing behind them
-/// can save: actual meal history belongs to TNYX-113/114/115, and until those
-/// exist the diary says so rather than inventing a store of its own.
+/// The contextual `+` and Quick Add editor remain unchanged. Quick Add create
+/// wiring is TNYX-115; TNYX-199 only reads already-persisted canonical history.
 class MealDiaryPage extends ConsumerStatefulWidget {
   const MealDiaryPage({
     super.key,
@@ -54,12 +54,12 @@ class MealDiaryPage extends ConsumerStatefulWidget {
   /// preference has loaded.
   final int? resolvedFirstDayOfWeek;
 
-  /// Where Quick Add's Meal type options come from, supplied by app
-  /// composition.
+  /// Canonical Meal Categories owner supplied by app composition.
   ///
-  /// Nutrition cannot reach the provider that owns it, so it arrives the same
-  /// way [resolvedFirstDayOfWeek] does. Null leaves the Meal type control
-  /// inert rather than inventing categories for it.
+  /// Quick Add uses active categories; selected-day history uses the same
+  /// retained configuration so archived category identities remain resolvable.
+  /// Null is allowed only for isolated feature harnesses and never fabricates
+  /// category/history data.
   final MealCategoriesRepository? mealCategoriesRepository;
 
   /// Testable local clock seam for a brand-new Quick Add draft.
@@ -155,11 +155,21 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
   @override
   Widget build(BuildContext context) {
     final dates = ref.watch(mealDiaryDateControllerProvider);
+    final mealLogRepository = ref.watch(mealDiaryMealLogRepositoryProvider);
+    final mealCategoriesRepository = widget.mealCategoriesRepository;
+    final historyRequest =
+        mealLogRepository == null || mealCategoriesRepository == null
+            ? null
+            : MealDiaryHistoryRequest.forSelectedDate(
+                mealLogRepository: mealLogRepository,
+                mealCategoriesRepository: mealCategoriesRepository,
+                selectedDate: dates.selectedDate,
+              );
 
     return Stack(
       fit: StackFit.expand,
       children: [
-        _diaryBody(dates),
+        _diaryBody(dates, historyRequest),
         // The expanded month grid can reach the bottom of a short viewport,
         // and a `+` parked over one of its date cells is worse than no `+`
         // for as long as the grid is open. It comes back on collapse.
@@ -191,7 +201,10 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
   double _reservedClearance(BuildContext context) =>
       _actionClearance + MediaQuery.paddingOf(context).bottom;
 
-  Widget _diaryBody(MealDiaryDateController dates) {
+  Widget _diaryBody(
+    MealDiaryDateController dates,
+    MealDiaryHistoryRequest? historyRequest,
+  ) {
     // The expanded month grid is tall. On a landscape or split-screen viewport
     // it can exceed the body, so the page scrolls rather than overflowing —
     // while still filling a normal viewport so the empty state stays centred.
@@ -242,51 +255,15 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
                 // past the calendar's own edge so the small grabber still has a
                 // full-size tap area. Nothing interactive may sit in this band.
                 const SizedBox(height: TioSpacing.xl),
-                _SelectedDaySummary(date: dates.selectedDate),
+                MealDiaryHistoryView(
+                  date: dates.selectedDate,
+                  request: historyRequest,
+                ),
               ],
             ),
           ),
         );
       },
-    );
-  }
-}
-
-class _SelectedDaySummary extends StatelessWidget {
-  const _SelectedDaySummary({required this.date});
-
-  final DateTime date;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.tioColors;
-    final textTheme = Theme.of(context).textTheme;
-    final localizations = MaterialLocalizations.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.all(TioSpacing.xl),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            localizations.formatFullDate(date),
-            textAlign: TextAlign.center,
-            style: textTheme.titleMedium?.copyWith(color: colors.textPrimary),
-          ),
-          const SizedBox(height: TioSpacing.sm),
-          // Now that `+` reaches a real editor, "logging is not available"
-          // would be the wrong sentence — the editor opens. What is still
-          // missing is the saving, and that is what this says instead. It
-          // stays until TNYX-113/114/115 make it false.
-          Text(
-            key: const ValueKey('meal-diary-empty-day-note'),
-            'Nothing is logged for this day. Meals cannot be saved yet — '
-            'Quick Add opens the editor without recording anything.',
-            textAlign: TextAlign.center,
-            style: textTheme.bodyMedium?.copyWith(color: colors.textSecondary),
-          ),
-        ],
-      ),
     );
   }
 }
