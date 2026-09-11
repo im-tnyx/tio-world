@@ -4,7 +4,6 @@ import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_shared/shared.dart';
 
 const _mutation1 = '11111111-1111-4111-8111-111111111111';
-const _mutation2 = '22222222-2222-4222-8222-222222222222';
 
 void main() {
   group('ManualMealLogCreate mutation identity', () {
