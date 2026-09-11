@@ -21,14 +21,14 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main` at `77fe0f646bf0d34ec8fae0e943d050c33cdcb846`; PR #248 merged; no open PRs and no Linear issues in started state before TNYX-192 began.
 **Branch:** `tnyx/tnyx-192-gov-define-linear-issue-and-project-status-update-cadence`
-**HEAD SHA:** review-fix verified at `c4c1ad490054944a82b7787a044c270a5ef36154`; this final handoff-only metadata update moves HEAD afterward.
+**HEAD SHA:** final pre-merge governance state was reviewed through `251fdc3047072edea87b49099e43950ca9bb792b`; this final handoff-only evidence commit moves HEAD afterward.
 **Observed working-tree state:** GitHub/API workflow; no local working tree available.
 **Observed uncommitted/dirty files:** Not applicable.
-**PR / tracker:** Linear TNYX-192 is `In Review`; GitHub PR #249 is open and ready for review.
-**Current implementation state:** Governance wording and review-fix are complete. The P2 handoff-consistency finding was fixed and exact-head verified before this final evidence-only handoff update.
+**PR / tracker:** Linear TNYX-192 is `In Review`; GitHub PR #249 is open, non-draft, mergeable, and awaiting owner merge authorization.
+**Current implementation state:** Governance wording is complete; the P2 handoff-consistency finding is resolved; the PR is merge-ready subject to explicit owner authorization.
 **Relevant execution surface:** `AGENTS.md`, `.ai/workflow.md`, this task brief.
-**Validation completed at SHA:** `c4c1ad490054944a82b7787a044c270a5ef36154` API compare + focused task-file patch verification; branch remained based on audited `main` with exactly the same 3 intended files.
-**Validation remaining:** None for implementation. Final merge authorization remains an owner action.
+**Validation completed at SHA:** `251fdc3047072edea87b49099e43950ca9bb792b` API compare + complete PR patch review; branch remained based on audited `main` with exactly the same 3 intended files, 7 commits ahead / 0 behind.
+**Validation remaining:** None for implementation. Merge remains explicitly owner-gated.
 **Current blocker:** None.
 **Open review finding IDs:** None.
 **Next exact action:** Await explicit owner merge authorization for PR #249; after merge, reconcile Linear TNYX-192 to `Done` and follow `docs/POST_MERGE_SYNC.md`.
@@ -126,6 +126,13 @@ Review-fix verification at c4c1ad490054944a82b7787a044c270a5ef36154:
 - branch was 6 ahead / 0 behind
 - changed files remained exactly the same 3 intended governance/task files
 - focused task-file patch confirmed stale pending actions were removed and live Linear/PR state was recorded
+
+Final pre-merge audit at 251fdc3047072edea87b49099e43950ca9bb792b:
+- branch was 7 ahead / 0 behind from audited main
+- complete PR patch still contained exactly the same 3 intended files
+- no runtime/product/UI/Supabase change entered the diff
+- P2 review thread was resolved after verification
+- PR #249 was open, non-draft, and mergeable
 ```
 
 ### Review Findings and Resolution
