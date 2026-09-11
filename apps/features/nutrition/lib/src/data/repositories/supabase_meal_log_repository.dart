@@ -14,6 +14,11 @@ abstract interface class MealLogTableGateway {
     required String userId,
     required String id,
   });
+
+  Future<Map<String, dynamic>?> readRowByClientMutationId({
+    required String userId,
+    required String clientMutationId,
+  });
 }
 
 final class SupabaseMealLogTableGateway implements MealLogTableGateway {
@@ -22,7 +27,8 @@ final class SupabaseMealLogTableGateway implements MealLogTableGateway {
   static const _columns =
       'id, user_id, mode, meal_category_id, meal_name, note, consumed_at, '
       'consumed_local_date, consumed_timezone_id, consumed_utc_offset_minutes, '
-      'capture_source, manual_nutrition_snapshot, created_at, updated_at';
+      'capture_source, manual_nutrition_snapshot, created_at, updated_at, '
+      'client_mutation_id';
 
   final SupabaseClient _client;
 
@@ -49,13 +55,28 @@ final class SupabaseMealLogTableGateway implements MealLogTableGateway {
         .maybeSingle();
     return row == null ? null : Map<String, dynamic>.from(row);
   }
+
+  @override
+  Future<Map<String, dynamic>?> readRowByClientMutationId({
+    required String userId,
+    required String clientMutationId,
+  }) async {
+    final row = await _client
+        .from('meal_log_entries')
+        .select(_columns)
+        .eq('user_id', userId)
+        .eq('client_mutation_id', clientMutationId)
+        .maybeSingle();
+    return row == null ? null : Map<String, dynamic>.from(row);
+  }
 }
 
-/// Supabase adapter for the manual MealLog persistence foundation.
+/// Supabase adapter for canonical manual MealLog persistence.
 ///
 /// Authenticated identity is derived from the current Supabase session and RLS
-/// remains the final database ownership authority. This adapter performs no
-/// retries or idempotency reconciliation; TNYX-116 owns those semantics.
+/// remains the final database ownership authority. TNYX-196 adds stable create
+/// idempotency: the database unique invariant is the final duplicate guard, and
+/// transport ambiguity is reconciled with the same client mutation identity.
 final class SupabaseMealLogRepository implements MealLogRepository {
   SupabaseMealLogRepository({
     required SupabaseClient client,
@@ -73,8 +94,24 @@ final class SupabaseMealLogRepository implements MealLogRepository {
   @override
   Future<MealLogEntry> createManual(ManualMealLogCreate input) async {
     final userId = _requireUserId();
+
+    // Reconcile before validating current category activity. A previous attempt
+    // may already have committed and lost its response; that historical fact
+    // must remain returnable even if the category was archived afterwards.
+    final existing = await _readMutationForCreate(
+      userId: userId,
+      input: input,
+    );
+    if (existing != null) {
+      return _decodeCreateResult(
+        existing,
+        expectedUserId: userId,
+        input: input,
+      );
+    }
+
     await _requireActiveMealCategory(input.mealCategoryId);
-    final row = await _gateway.insertRow({
+    final payload = <String, dynamic>{
       'user_id': userId,
       'mode': MealLogMode.manual.storageValue,
       'meal_category_id': input.mealCategoryId,
@@ -86,8 +123,26 @@ final class SupabaseMealLogRepository implements MealLogRepository {
       'consumed_utc_offset_minutes': input.consumedUtcOffsetMinutes,
       'capture_source': input.captureSource?.storageValue,
       'manual_nutrition_snapshot': input.manualNutritionSnapshot.toJson(),
-    });
-    return _decodeManualRow(row, expectedUserId: userId);
+      'client_mutation_id': input.clientMutationId,
+    };
+
+    Map<String, dynamic> row;
+    try {
+      row = await _gateway.insertRow(payload);
+    } on Object catch (error) {
+      if (!_shouldReconcileInsertFailure(error)) rethrow;
+      return _reconcileAfterInsertFailure(
+        userId: userId,
+        input: input,
+        cause: error,
+      );
+    }
+
+    return _decodeCreateResult(
+      row,
+      expectedUserId: userId,
+      input: input,
+    );
   }
 
   @override
@@ -97,6 +152,86 @@ final class SupabaseMealLogRepository implements MealLogRepository {
     final row = await _gateway.readRow(userId: userId, id: id);
     if (row == null) return null;
     return _decodeManualRow(row, expectedUserId: userId);
+  }
+
+  Future<Map<String, dynamic>?> _readMutationForCreate({
+    required String userId,
+    required ManualMealLogCreate input,
+  }) async {
+    try {
+      return await _gateway.readRowByClientMutationId(
+        userId: userId,
+        clientMutationId: input.clientMutationId,
+      );
+    } on Object catch (error) {
+      if (!_isAmbiguousGatewayFailure(error)) rethrow;
+      throw MealLogCreateOutcomeUnknown(
+        clientMutationId: input.clientMutationId,
+        cause: error,
+      );
+    }
+  }
+
+  Future<MealLogEntry> _reconcileAfterInsertFailure({
+    required String userId,
+    required ManualMealLogCreate input,
+    required Object cause,
+  }) async {
+    Map<String, dynamic>? row;
+    try {
+      row = await _gateway.readRowByClientMutationId(
+        userId: userId,
+        clientMutationId: input.clientMutationId,
+      );
+    } on Object catch (readError) {
+      if (!_isAmbiguousGatewayFailure(readError)) rethrow;
+      throw MealLogCreateOutcomeUnknown(
+        clientMutationId: input.clientMutationId,
+        cause: cause,
+      );
+    }
+
+    if (row == null) {
+      throw MealLogCreateOutcomeUnknown(
+        clientMutationId: input.clientMutationId,
+        cause: cause,
+      );
+    }
+
+    return _decodeCreateResult(
+      row,
+      expectedUserId: userId,
+      input: input,
+    );
+  }
+
+  static bool _shouldReconcileInsertFailure(Object error) {
+    if (error is! PostgrestException) return true;
+    if (error.code == '23505') return true;
+    return _isAmbiguousPostgrestFailure(error);
+  }
+
+  static bool _isAmbiguousGatewayFailure(Object error) {
+    if (error is! PostgrestException) return true;
+    return _isAmbiguousPostgrestFailure(error);
+  }
+
+  static bool _isAmbiguousPostgrestFailure(PostgrestException error) {
+    final code = error.code;
+    if (code == null || code.isEmpty) return true;
+
+    // Data/integrity/auth/request-shape failures are explicit rejections, not
+    // response-loss ambiguity. Uniqueness is handled separately because it is
+    // the expected concurrent/same-key idempotency signal.
+    if (code.startsWith('22') ||
+        (code.startsWith('23') && code != '23505') ||
+        code.startsWith('28') ||
+        code == '42501' ||
+        code.startsWith('PGRST1') ||
+        code.startsWith('PGRST3')) {
+      return false;
+    }
+    return true;
   }
 
   String _requireUserId() {
@@ -124,6 +259,43 @@ final class SupabaseMealLogRepository implements MealLogRepository {
         'must reference an active Meal Category',
       );
     }
+  }
+
+  static MealLogEntry _decodeCreateResult(
+    Map<String, dynamic> row, {
+    required String expectedUserId,
+    required ManualMealLogCreate input,
+  }) {
+    _requireKeys(row);
+    final mutationId = _nullableString(row, 'client_mutation_id');
+    if (mutationId != input.clientMutationId) {
+      throw const FormatException(
+        'Invalid MealLog row: client_mutation_id does not match create operation.',
+      );
+    }
+
+    final entry = _decodeManualRow(row, expectedUserId: expectedUserId);
+    if (!_matchesCreateInput(entry, input)) {
+      throw MealLogCreateMutationConflict(
+        clientMutationId: input.clientMutationId,
+      );
+    }
+    return entry;
+  }
+
+  static bool _matchesCreateInput(
+    MealLogEntry entry,
+    ManualMealLogCreate input,
+  ) {
+    return entry.mealCategoryId == input.mealCategoryId &&
+        entry.mealName == input.mealName &&
+        entry.note == input.note &&
+        entry.consumedAt == input.consumedAt.toUtc() &&
+        entry.consumedLocalDate == input.consumedLocalDate &&
+        entry.consumedTimezoneId == input.consumedTimezoneId &&
+        entry.consumedUtcOffsetMinutes == input.consumedUtcOffsetMinutes &&
+        entry.captureSource == input.captureSource &&
+        entry.manualNutritionSnapshot == input.manualNutritionSnapshot;
   }
 
   static MealLogEntry _decodeManualRow(
@@ -205,6 +377,7 @@ final class SupabaseMealLogRepository implements MealLogRepository {
     'manual_nutrition_snapshot',
     'created_at',
     'updated_at',
+    'client_mutation_id',
   };
 
   static final _instantOffsetSuffix = RegExp(
