@@ -1,6 +1,6 @@
 # TNYX-190 — N20A-3 Manual-mode MealLogEntry core aggregate
 
-**Status:** In progress
+**Status:** In progress — implementation complete, exact-head validation pending
 **Primary owner:** `apps/shared` Nutrition domain
 **Affected platforms:** Shared Dart domain only
 
@@ -17,21 +17,21 @@
 **Planning owner:** TNYX-66 / TNYX-190
 **Implementation owner:** ChatGPT
 **Review owner:** Owner / PR review
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete; validation/review active
 **Ownership transition:** Not applicable
 **Repository state last verified:** 2026-09-11
 **Branch:** `tnyx/tnyx-190-n20a-3-manual-mode-meallogentry-core-aggregate-contract`
-**HEAD SHA:** `cc558d70633834bd69a8ba35d7f9f5acfd651ac2` before this task-brief commit
+**Implementation code SHA:** `d282c063706b039e8c5ad13b580704109e985ed3`
 **Observed working-tree state:** GitHub API execution. No local checkout is available, so local `git status` cannot be inspected.
-**Observed uncommitted/dirty files:** Not observable through GitHub API. No unrelated repository files will be modified.
-**PR / tracker:** Linear TNYX-190 In Progress under TNYX-113. TNYX-66 readiness merged in PR #246.
-**Current implementation state:** No runtime `MealLogEntry` or `MealLogItemSnapshot` exists. Shared Nutrition exports `NutritionSnapshot`, `MealLogCaptureSource`, `MealLogMode`, `NutrientId`.
+**Observed uncommitted/dirty files:** Not observable through GitHub API. Parent-to-head API compare showed only this task's intended files.
+**PR / tracker:** Draft PR #247; Linear TNYX-190 In Progress under TNYX-113. TNYX-66 readiness merged in PR #246.
+**Current implementation state:** `MealLogLocalDate` and manual-only `MealLogEntry` are implemented, publicly exported, and covered by focused tests. No detailed item/persistence/feature integration exists.
 **Relevant execution surface:** `apps/shared/lib/src/nutrition`, `apps/shared/test/nutrition`, shared Nutrition barrel export
-**Validation completed at SHA:** Readiness evidence at `cc558d70`; implementation validation not run yet.
-**Validation remaining:** Focused tests / package CI, diff scope review, exact-head checks.
-**Current blocker:** None inside approved manual-mode slice.
+**Validation completed at implementation SHA:** Flutter CI #2355 on `d282c063` completed workspace bootstrap, Flutter package analysis and Dart package analysis successfully; full tests were still running when this checkpoint was written. Manual full-diff and scope review found no out-of-scope change.
+**Validation remaining:** New exact-head CI after this handoff checkpoint commit, including Flutter tests + Dart tests; final ancestry/scope audit and PR review state.
+**Current blocker:** None inside approved scope; completion depends only on validation/review gate.
 **Open review finding IDs:** None
-**Next exact action:** Add bounded date-only value representation + `MealLogEntry.manual`, export them, add focused tests, then open PR and use CI/review as the executable validation gate.
+**Next exact action:** Let PR #247 CI validate the new exact head. If green and no review finding appears, mark the task validated / Linear In Review and make the PR ready for review. Do not merge without a separate owner proceed instruction.
 
 Repository governance currently references `.github/POST_MERGE_SYNC.md`, but that file is absent on current `main`; this is a separate governance discrepancy and is not repaired in TNYX-190.
 
@@ -58,7 +58,7 @@ Provide a canonical, provider-independent actual meal-history aggregate for manu
 
 ### Scope
 
-Create a Nutrition-bounded date-only value object if needed, create `MealLogEntry.manual`, export the contract, add focused tests.
+Create a Nutrition-bounded date-only value object, create `MealLogEntry.manual`, export the contract, add focused tests.
 
 ### Non-Goals
 
@@ -69,8 +69,8 @@ Detailed food item model, provider provenance, repository/DTO/schema, Quick Add 
 ### Verified Evidence
 
 - Source/config inspected: root `AGENTS.md`, `.ai/workflow.md`, TNYX-66 readiness record, Linear TNYX-113/TNYX-114/TNYX-190, current `apps/shared/lib/src/nutrition` inventory.
-- Existing pattern to follow: pure Dart shared value/domain contracts; `MealLogMode` and `MealLogCaptureSource` stable identities, `NutritionSnapshot` immutable value, plain `String id` entity convention in shared workout models.
-- Tests or validation already present: focused tests exist per current Nutrition contract. No `MealLogEntry` test exists yet.
+- Existing pattern followed: pure Dart shared value/domain contracts; `MealLogMode` and `MealLogCaptureSource` stable identities, immutable `NutritionSnapshot`, plain `String id` entity convention in shared workout models.
+- Existing validation pattern: focused `package:test` tests under `apps/shared/test/nutrition`.
 
 ## 3. Clarification
 
@@ -81,17 +81,19 @@ Detailed food item model, provider provenance, repository/DTO/schema, Quick Add 
 | Manual mode only | Locked | Detailed mode depends on unresolved item/serving/provenance contracts | TNYX-66 / TNYX-190 |
 | Keep local date separate from instant | Locked | TNYX-114 historical Diary identity must not move with device timezone | TNYX-114 |
 | Aggregate receives resolved time facts | Locked | DST/timezone resolution belongs outside this aggregate | TNYX-114 |
-| Nutrition-bounded date-only type | Chosen | Avoid treating a calendar date as an instant and avoid speculative cross-domain abstraction | Implementation |
-| No JSON/storage codec on `MealLogEntry` yet | Chosen | Physical persistence/DTO layout is deliberately out of scope | Implementation |
-| `manualNutritionSnapshot` exposed as nullable aggregate field | Chosen | Future detailed mode must share the same canonical aggregate while manual factory guarantees non-null today | Implementation |
+| Nutrition-bounded date-only type | Implemented | Avoid treating a calendar date as an instant and avoid speculative cross-domain abstraction | Implementation |
+| No JSON/storage codec on `MealLogEntry` yet | Implemented | Physical persistence/DTO layout is deliberately out of scope | Implementation |
+| `manualNutritionSnapshot` nullable at aggregate field level | Implemented | Future detailed mode can share one aggregate while manual factory guarantees non-null | Implementation |
 
 ## 4. Architecture Design
 
 ### Chosen Approach
 
-Add `MealLogLocalDate` as a small immutable Nutrition-domain value object (`year`, `month`, `day`) with validation, ISO date parsing/formatting, equality/hash. Add one canonical `MealLogEntry` final class with a private constructor and a public `MealLogEntry.manual` factory. The factory pins `mode = MealLogMode.manual`, requires `manualNutritionSnapshot`, stores no detailed items, and normalizes whitespace-only `mealName` to null.
+`MealLogLocalDate` is a small immutable Nutrition-domain value object (`year`, `month`, `day`) with Gregorian-date validation, canonical `YYYY-MM-DD` parsing/formatting, equality and hash semantics.
 
-`consumedAt` remains a `DateTime` instant supplied by the caller. The aggregate stores the separately supplied `MealLogLocalDate` and optional timezone/offset context without deriving one from another.
+`MealLogEntry` is one canonical final class with a private constructor and public `MealLogEntry.manual` factory. The factory pins `mode = MealLogMode.manual`, requires `manualNutritionSnapshot`, creates no detailed items, preserves optional capture/timezone context, and normalizes whitespace-only `mealName` to null.
+
+`consumedAt` remains an already-resolved `DateTime` instant supplied by the caller. `consumedLocalDate` is stored independently and is never derived from the current device timezone by this aggregate.
 
 ### Ownership and Data Flow
 
@@ -99,58 +101,85 @@ Add `MealLogLocalDate` as a small immutable Nutrition-domain value object (`year
 Feature draft / future resolver
         ↓ already-resolved time facts
 apps/shared MealLogEntry.manual
-        ↓ later slice
+        ↓ later approved slice
 Repository / Supabase persistence
 ```
 
-### Alternative Rejected
+### Alternatives Rejected
 
-- `DateTime` at midnight for `consumedLocalDate`: rejected because it falsely models a calendar identity as an instant and can be shifted by timezone conversions.
-- `String consumedLocalDate`: rejected because malformed dates would become representable throughout the domain.
-- provider/item placeholder fields: rejected because they would pre-empt unresolved detailed-mode contracts.
-- sealed manual/detailed subclasses: rejected for this slice because the readiness gate calls for one canonical aggregate that future detailed support extends rather than parallel aggregate identities.
+- `DateTime` at midnight for `consumedLocalDate`: falsely models calendar identity as an instant.
+- raw `String` local date: allows malformed calendar dates throughout the domain.
+- provider/item placeholder fields: pre-empts unresolved detailed-mode contracts.
+- parallel manual/detailed aggregate classes: risks competing actual-history identities instead of one canonical `MealLogEntry`.
 
 ### Failure and Accessibility States
 
-Non-UI domain slice. Invalid local calendar dates fail synchronously with `ArgumentError`; malformed ISO date strings fail with `FormatException`. No user-visible accessibility state changes.
+Non-UI domain slice. Invalid calendar construction throws `ArgumentError`; malformed/non-canonical ISO date decoding throws `FormatException`. No user-visible accessibility state changes.
 
 ## 5. Implementation Plan
 
-- [ ] Add `MealLogLocalDate` immutable value object.
-- [ ] Add `MealLogEntry.manual` canonical aggregate factory.
-- [ ] Export new contracts from Nutrition barrel.
-- [ ] Add focused unit tests.
-- [ ] Open PR from exact current base and run/review CI.
-- [ ] Update this handoff only after validation/review evidence exists.
+- [x] Add `MealLogLocalDate` immutable value object.
+- [x] Add `MealLogEntry.manual` canonical aggregate factory.
+- [x] Export new contracts from Nutrition barrel.
+- [x] Add focused unit tests.
+- [x] Open draft PR #247 from current `main` and start CI.
+- [ ] Complete exact-head CI + review gate.
 
 ## 6. Quality Review
 
 ### Validation Run
 
+At implementation SHA `d282c063706b039e8c5ad13b580704109e985ed3`, Flutter CI #2355 recorded:
+
 ```text
-Not run yet. GitHub API environment has no local Dart/Flutter runner; PR CI will be used for executable validation.
+Workspace bootstrap        PASS
+Analyze Flutter packages   PASS
+Analyze Dart packages      PASS
+Test Flutter packages      IN PROGRESS at checkpoint
+Test Dart packages         pending at checkpoint
 ```
+
+Because this handoff update changes the PR head, final completion requires a fresh exact-head CI result after this commit. No local Dart/Flutter runner is available in this GitHub API execution environment.
+
+Manual review at `d282c063`:
+
+- current `main` is the merge base;
+- branch was 2 commits ahead / 0 behind before this checkpoint;
+- exactly 5 task-owned files were changed;
+- no Supabase, feature UI, provider, detailed item, repository or concurrency code entered the diff;
+- no open PR review thread/finding existed at checkpoint.
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| None | — | Resolved | No finding yet | `cc558d70` | Pre-implementation audit |
+| None | — | Resolved | No review finding at implementation checkpoint | `d282c063` | Manual full-diff + PR thread audit |
 
 ## 7. Final Handoff
 
 ### Changed Files
 
-Pending implementation.
+```text
+.ai/tasks/tnyx-190-manual-meal-log-entry.md
+apps/shared/lib/src/nutrition/meal_log_entry.dart
+apps/shared/lib/src/nutrition/meal_log_local_date.dart
+apps/shared/lib/src/nutrition/nutrition.dart
+apps/shared/test/nutrition/meal_log_entry_test.dart
+```
 
 ### Actual Behavior
 
-Pending implementation.
+- Manual actual-history entries have one canonical `MealLogEntry` domain type.
+- Manual construction always produces `MealLogMode.manual` and requires canonical `NutritionSnapshot` data.
+- No fake detailed food/item identity is created.
+- User-intended Diary date is represented independently from the consumed instant and can be preserved across device timezone changes.
+- Optional timezone ID, UTC offset and capture-source context can be retained as already-resolved facts.
+- Blank/whitespace meal names remain absent rather than persisting the presentation fallback `Quick Log`.
 
 ### Known Limitations
 
-Detailed-mode aggregate, persistence and feature integration remain intentionally unavailable.
+Detailed-mode construction, `MealLogItemSnapshot`, provider provenance, physical persistence, repositories, Quick Add save integration and timezone/DST resolution are intentionally unavailable and require later gated slices.
 
 ### Final Status
 
-`PARTIAL`
+`REVIEW` — implementation complete; new exact-head CI and PR review gate pending.
