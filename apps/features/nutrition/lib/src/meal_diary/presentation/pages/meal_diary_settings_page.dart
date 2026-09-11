@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
 
-import '../controllers/meal_diary_display_preferences_controller.dart';
+import '../../meal_diary_display_preferences_providers.dart';
 
 /// Meal Diary-specific Settings.
 ///
@@ -135,7 +135,7 @@ class _MealDiaryPreferenceToggleRow extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: TioSpacing.lg,
-              vertical: TioSpacing.md,
+              vertical: TioSpacing.md + TioSize.dp4,
             ),
             child: Row(
               children: [
