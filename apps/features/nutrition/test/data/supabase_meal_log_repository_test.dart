@@ -3,10 +3,38 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_shared/shared.dart';
 
+const _mutation1 = '11111111-1111-4111-8111-111111111111';
+
 void main() {
+  group('ManualMealLogCreate mutation identity', () {
+    test('normalizes UUID casing and rejects non-canonical values', () {
+      final input = _input(
+        clientMutationId: 'AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA',
+      );
+      expect(
+        input.clientMutationId,
+        'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      );
+
+      for (final invalid in [
+        '',
+        '  $_mutation1',
+        'not-a-uuid',
+        '11111111111141118111111111111111',
+      ]) {
+        expect(
+          () => _input(clientMutationId: invalid),
+          throwsArgumentError,
+        );
+      }
+    });
+  });
+
   group('SupabaseMealLogRepository writes', () {
-    test('signed-out create fails before gateway mutation', () async {
-      final gateway = _FakeMealLogGateway(insertResult: _row());
+    test('signed-out create fails before gateway access', () async {
+      final gateway = _FakeMealLogGateway(
+        insertResult: _row(clientMutationId: _mutation1),
+      );
       final repository = _repository(gateway: gateway, userId: '  ');
 
       await expectLater(
@@ -14,9 +42,10 @@ void main() {
         throwsStateError,
       );
       expect(gateway.insertPayloads, isEmpty);
+      expect(gateway.mutationReadCalls, isEmpty);
     });
 
-    test('create writes only canonical manual facts and hydrates DB fields',
+    test('create writes stable mutation identity and hydrates DB fields',
         () async {
       final gateway = _FakeMealLogGateway(
         insertResult: _row(
@@ -24,6 +53,7 @@ void main() {
           mealName: 'Lunch',
           note: 'After training',
           captureSource: 'quick_add',
+          clientMutationId: _mutation1,
         ),
       );
       final repository = _repository(gateway: gateway, userId: ' user-1 ');
@@ -36,6 +66,7 @@ void main() {
         ),
       );
 
+      expect(gateway.mutationReadCalls.single, ('user-1', _mutation1));
       expect(gateway.insertPayloads, hasLength(1));
       final payload = gateway.insertPayloads.single;
       expect(payload.keys, {
@@ -50,12 +81,14 @@ void main() {
         'consumed_utc_offset_minutes',
         'capture_source',
         'manual_nutrition_snapshot',
+        'client_mutation_id',
       });
       expect(payload['user_id'], 'user-1');
       expect(payload['mode'], 'manual');
       expect(payload['meal_category_id'], 'meal_slot_2');
       expect(payload['consumed_local_date'], '2026-09-11');
       expect(payload['capture_source'], 'quick_add');
+      expect(payload['client_mutation_id'], _mutation1);
       expect(payload, isNot(contains('id')));
       expect(payload, isNot(contains('created_at')));
       expect(payload, isNot(contains('updated_at')));
@@ -69,8 +102,164 @@ void main() {
       expect(created.updatedAt, DateTime.utc(2026, 9, 11, 10));
     });
 
+    test('same-key retry returns existing row without a second insert',
+        () async {
+      final gateway = _FakeMealLogGateway(
+        mutationReadSequence: [
+          _row(id: 'already-created', clientMutationId: _mutation1),
+        ],
+      );
+      final created = await _repository(gateway: gateway).createManual(_input());
+
+      expect(created.id, 'already-created');
+      expect(gateway.insertPayloads, isEmpty);
+      expect(gateway.mutationReadCalls, [('user-1', _mutation1)]);
+    });
+
+    test('already-created retry survives category archived after commit',
+        () async {
+      final categories = InMemoryMealCategoriesRepository();
+      final current = await categories.read();
+      await categories.upsert(
+        MealCategoriesConfig(
+          items: current.items.map(
+            (item) => item.id == 'meal_slot_2' ? item.withActive(false) : item,
+          ),
+        ),
+      );
+      final gateway = _FakeMealLogGateway(
+        mutationReadSequence: [
+          _row(id: 'already-created', clientMutationId: _mutation1),
+        ],
+      );
+
+      final created = await _repository(
+        gateway: gateway,
+        mealCategoriesRepository: categories,
+      ).createManual(_input());
+
+      expect(created.id, 'already-created');
+      expect(gateway.insertPayloads, isEmpty);
+    });
+
+    test('database uniqueness conflict reconciles the canonical row',
+        () async {
+      final gateway = _FakeMealLogGateway(
+        insertError: const PostgrestException(
+          message: 'duplicate',
+          code: '23505',
+        ),
+        mutationReadSequence: [
+          null,
+          _row(id: 'winner', clientMutationId: _mutation1),
+        ],
+      );
+
+      final created = await _repository(gateway: gateway).createManual(_input());
+
+      expect(created.id, 'winner');
+      expect(gateway.insertPayloads, hasLength(1));
+      expect(gateway.mutationReadCalls, [
+        ('user-1', _mutation1),
+        ('user-1', _mutation1),
+      ]);
+    });
+
+    test('response-loss failure reconciles committed row by same key', () async {
+      final gateway = _FakeMealLogGateway(
+        insertError: StateError('response lost'),
+        mutationReadSequence: [
+          null,
+          _row(id: 'committed', clientMutationId: _mutation1),
+        ],
+      );
+
+      final created = await _repository(gateway: gateway).createManual(_input());
+      expect(created.id, 'committed');
+      expect(gateway.insertPayloads, hasLength(1));
+    });
+
+    test('unconfirmed response-loss reports outcome unknown with same key',
+        () async {
+      final gateway = _FakeMealLogGateway(
+        insertError: StateError('response lost'),
+        mutationReadSequence: [null, null],
+      );
+
+      await expectLater(
+        () => _repository(gateway: gateway).createManual(_input()),
+        throwsA(
+          isA<MealLogCreateOutcomeUnknown>().having(
+            (error) => error.clientMutationId,
+            'clientMutationId',
+            _mutation1,
+          ),
+        ),
+      );
+      expect(gateway.insertPayloads, hasLength(1));
+    });
+
+    test('unavailable pre-reconciliation never attempts a blind insert',
+        () async {
+      final gateway = _FakeMealLogGateway(
+        mutationReadSequence: [StateError('offline')],
+      );
+
+      await expectLater(
+        () => _repository(gateway: gateway).createManual(_input()),
+        throwsA(isA<MealLogCreateOutcomeUnknown>()),
+      );
+      expect(gateway.insertPayloads, isEmpty);
+    });
+
+    test('known database validation rejection is not mislabeled ambiguous',
+        () async {
+      const failure = PostgrestException(
+        message: 'check rejected',
+        code: '23514',
+      );
+      final gateway = _FakeMealLogGateway(
+        insertError: failure,
+        mutationReadSequence: [null],
+      );
+
+      await expectLater(
+        () => _repository(gateway: gateway).createManual(_input()),
+        throwsA(
+          isA<PostgrestException>().having(
+            (error) => error.code,
+            'code',
+            '23514',
+          ),
+        ),
+      );
+      expect(gateway.mutationReadCalls, hasLength(1));
+    });
+
+    test('same mutation id with different facts fails closed', () async {
+      final gateway = _FakeMealLogGateway(
+        mutationReadSequence: [
+          _row(
+            id: 'existing',
+            mealName: 'Original',
+            clientMutationId: _mutation1,
+          ),
+        ],
+      );
+
+      await expectLater(
+        () => _repository(gateway: gateway).createManual(
+          _input(mealName: 'Different'),
+        ),
+        throwsA(isA<MealLogCreateMutationConflict>()),
+      );
+      expect(gateway.insertPayloads, isEmpty);
+    });
+
     test('blank optional text is persisted as null, not fabricated', () async {
-      final gateway = _FakeMealLogGateway(insertResult: _row());
+      final gateway = _FakeMealLogGateway(
+        insertResult: _row(clientMutationId: _mutation1),
+      );
       final repository = _repository(gateway: gateway);
 
       await repository.createManual(
@@ -83,7 +272,7 @@ void main() {
     });
 
     test('missing and archived Meal Category ids fail before insert', () async {
-      final missingGateway = _FakeMealLogGateway(insertResult: _row());
+      final missingGateway = _FakeMealLogGateway();
       await expectLater(
         () => _repository(gateway: missingGateway).createManual(
           _input(mealCategoryId: 'missing-category'),
@@ -101,7 +290,7 @@ void main() {
           ),
         ),
       );
-      final archivedGateway = _FakeMealLogGateway(insertResult: _row());
+      final archivedGateway = _FakeMealLogGateway();
       await expectLater(
         () => _repository(
           gateway: archivedGateway,
@@ -129,7 +318,8 @@ void main() {
       expect(gateway.readCalls.single, ('user-1', 'row-1'));
     });
 
-    test('full manual row decodes every current field', () async {
+    test('historical null mutation id still decodes every manual field',
+        () async {
       final gateway = _FakeMealLogGateway(
         readResult: _row(
           id: 'row-1',
@@ -267,12 +457,14 @@ SupabaseMealLogRepository _repository({
 }
 
 ManualMealLogCreate _input({
+  String clientMutationId = _mutation1,
   String mealCategoryId = 'meal_slot_2',
   String? mealName,
   String? note,
   MealLogCaptureSource? captureSource,
 }) {
   return ManualMealLogCreate(
+    clientMutationId: clientMutationId,
     mealCategoryId: mealCategoryId,
     mealName: mealName,
     note: note,
@@ -295,6 +487,7 @@ Map<String, dynamic> _row({
   String id = 'row-1',
   String userId = 'user-1',
   String mode = 'manual',
+  String mealCategoryId = 'meal_slot_2',
   String? mealName,
   String? note,
   String? timezoneId = 'Asia/Kolkata',
@@ -304,12 +497,13 @@ Map<String, dynamic> _row({
   String consumedAt = '2026-09-11T07:30:00.000Z',
   String createdAt = '2026-09-11T10:00:00.000Z',
   String updatedAt = '2026-09-11T10:00:00.000Z',
+  String? clientMutationId,
 }) {
   return <String, dynamic>{
     'id': id,
     'user_id': userId,
     'mode': mode,
-    'meal_category_id': 'meal_slot_2',
+    'meal_category_id': mealCategoryId,
     'meal_name': mealName,
     'note': note,
     'consumed_at': consumedAt,
@@ -327,22 +521,33 @@ Map<String, dynamic> _row({
         },
     'created_at': createdAt,
     'updated_at': updatedAt,
+    'client_mutation_id': clientMutationId,
   };
 }
 
 class _UnusedSupabaseClient extends Fake implements SupabaseClient {}
 
 class _FakeMealLogGateway implements MealLogTableGateway {
-  _FakeMealLogGateway({this.insertResult, this.readResult});
+  _FakeMealLogGateway({
+    this.insertResult,
+    this.insertError,
+    this.readResult,
+    List<Object?> mutationReadSequence = const [],
+  }) : _mutationReadSequence = List<Object?>.from(mutationReadSequence);
 
   final Map<String, dynamic>? insertResult;
+  final Object? insertError;
   final Map<String, dynamic>? readResult;
+  final List<Object?> _mutationReadSequence;
   final List<Map<String, dynamic>> insertPayloads = [];
   final List<(String, String)> readCalls = [];
+  final List<(String, String)> mutationReadCalls = [];
 
   @override
   Future<Map<String, dynamic>> insertRow(Map<String, dynamic> payload) async {
     insertPayloads.add(Map<String, dynamic>.from(payload));
+    final error = insertError;
+    if (error != null) throw error;
     final result = insertResult;
     if (result == null) throw StateError('No insert result configured.');
     return Map<String, dynamic>.from(result);
@@ -356,5 +561,21 @@ class _FakeMealLogGateway implements MealLogTableGateway {
     readCalls.add((userId, id));
     final result = readResult;
     return result == null ? null : Map<String, dynamic>.from(result);
+  }
+
+  @override
+  Future<Map<String, dynamic>?> readRowByClientMutationId({
+    required String userId,
+    required String clientMutationId,
+  }) async {
+    mutationReadCalls.add((userId, clientMutationId));
+    if (_mutationReadSequence.isEmpty) return null;
+
+    final next = _mutationReadSequence.removeAt(0);
+    if (next == null) return null;
+    if (next is Map<String, dynamic>) {
+      return Map<String, dynamic>.from(next);
+    }
+    throw next;
   }
 }

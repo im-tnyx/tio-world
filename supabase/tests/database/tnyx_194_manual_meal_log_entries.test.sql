@@ -47,6 +47,13 @@ select pg_temp.assert_true(
 );
 
 select pg_temp.assert_true(
+  (select count(*) = 1
+   from supabase_migrations.schema_migrations
+   where version = '20260911143309'),
+  'migration ledger must contain TNYX-196 exactly once'
+);
+
+select pg_temp.assert_true(
   pg_catalog.to_regclass('public.meal_log_entries') is not null,
   'meal_log_entries table must exist'
 );
@@ -65,9 +72,10 @@ select pg_temp.assert_true(
     'id', 'user_id', 'mode', 'meal_category_id', 'meal_name', 'note',
     'consumed_at', 'consumed_local_date', 'consumed_timezone_id',
     'consumed_utc_offset_minutes', 'capture_source',
-    'manual_nutrition_snapshot', 'created_at', 'updated_at'
+    'manual_nutrition_snapshot', 'created_at', 'updated_at',
+    'client_mutation_id'
   ]::text[],
-  'only approved V1 columns may exist'
+  'only approved current MealLog columns may exist'
 );
 
 select pg_temp.assert_true(
@@ -92,6 +100,27 @@ select pg_temp.assert_true(
    where table_schema = 'public' and table_name = 'meal_log_entries'
      and column_name = 'consumed_local_date'),
   'consumed_local_date must be non-null date'
+);
+
+select pg_temp.assert_true(
+  (select data_type = 'uuid' and is_nullable = 'YES'
+   from information_schema.columns
+   where table_schema = 'public' and table_name = 'meal_log_entries'
+     and column_name = 'client_mutation_id'),
+  'client_mutation_id must be nullable UUID for historical compatibility'
+);
+
+select pg_temp.assert_true(
+  exists (
+    select 1
+    from pg_catalog.pg_constraint
+    where conrelid = 'public.meal_log_entries'::pg_catalog.regclass
+      and conname = 'meal_log_entries_user_client_mutation_id_key'
+      and contype = 'u'
+      and pg_catalog.pg_get_constraintdef(oid) =
+        'UNIQUE (user_id, client_mutation_id)'
+  ),
+  'client mutation identity must be unique per owner'
 );
 
 select pg_temp.assert_true(
@@ -260,7 +289,8 @@ select pg_temp.assert_true(
   'both domain owner rows must be provisioned'
 );
 
--- One timezone-ID row and one offset-only row prove both valid shapes.
+-- One timezone-ID row and one offset-only row prove both valid shapes. They
+-- intentionally omit client_mutation_id to prove historical null compatibility.
 insert into public.meal_log_entries (
   user_id, mode, meal_category_id, meal_name, note,
   consumed_at, consumed_local_date, consumed_timezone_id,
@@ -286,6 +316,13 @@ values (
   '2026-09-11T07:00:00Z', '2026-09-11', 330,
   '{"schemaVersion":1,"nutrients":{}}',
   '2000-01-01T00:00:00Z'
+);
+
+select pg_temp.assert_true(
+  (select count(*) = 2
+   from public.meal_log_entries
+   where client_mutation_id is null),
+  'historical rows may retain null client mutation identity'
 );
 
 update public.meal_log_entries
@@ -423,5 +460,59 @@ select pg_temp.assert_true(
    where user_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'),
   'user B row must remain untouched by user A'
 );
+
+-- TNYX-196 owner-scoped idempotency: the same logical UUID is allowed for a
+-- different owner, but never twice for one owner.
+insert into public.meal_log_entries (
+  user_id, mode, meal_category_id,
+  consumed_at, consumed_local_date, consumed_utc_offset_minutes,
+  manual_nutrition_snapshot, client_mutation_id
+)
+values
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'manual', 'meal_slot_1',
+    '2026-09-11T10:00:00Z', '2026-09-11', 330,
+    '{"schemaVersion":1,"nutrients":{"energy":200}}',
+    '11111111-1111-4111-8111-111111111111'
+  ),
+  (
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'manual', 'meal_slot_1',
+    '2026-09-11T10:00:00Z', '2026-09-11', 330,
+    '{"schemaVersion":1,"nutrients":{"energy":200}}',
+    '11111111-1111-4111-8111-111111111111'
+  );
+
+select pg_temp.assert_raises(
+  $$insert into public.meal_log_entries (
+      user_id, mode, meal_category_id, consumed_at, consumed_local_date,
+      consumed_utc_offset_minutes, manual_nutrition_snapshot,
+      client_mutation_id
+    ) values (
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'manual', 'meal_slot_2',
+      '2026-09-11T10:01:00Z', '2026-09-11', 330,
+      '{"schemaVersion":1,"nutrients":{"energy":250}}',
+      '11111111-1111-4111-8111-111111111111'
+    )$$,
+  '23505',
+  'same owner and client mutation id must reject duplicate durable effect'
+);
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', true);
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","role":"authenticated"}',
+  true
+);
+
+select pg_temp.assert_true(
+  (select count(*) = 1
+   from public.meal_log_entries
+   where client_mutation_id =
+     '11111111-1111-4111-8111-111111111111'::uuid),
+  'owner-scoped RLS must expose only the authenticated owner mutation row'
+);
+
+reset role;
 
 rollback;
