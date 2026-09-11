@@ -1,6 +1,6 @@
 # TNYX-196 — Manual MealLog create idempotency & retry reconciliation
 
-**Status:** Ready
+**Status:** Validated — ready for final review; merge requires separate owner authorization
 **Primary owner:** Nutrition
 **Affected platforms:** Flutter phone app + Supabase persistence
 
@@ -8,34 +8,30 @@
 
 **Trigger:** New independently scoped product task/feature slice + Supabase table/column shape change
 **Approval status:** Approved
-**Approval evidence:** Owner said `Go` on 2026-09-11 after the TNYX-116 manual-create reliability readiness audit proposed the bounded slice, V1 online-required final-save policy, and exact additive `client_mutation_id` shape.
-**Approved product/UI/data-shape boundaries:** Add nullable `public.meal_log_entries.client_mutation_id uuid`; enforce owner-scoped uniqueness with `UNIQUE (user_id, client_mutation_id)`; use one stable mutation identity for one logical manual-create attempt; retry/reconciliation reuses that identity; V1 final save is online-required with local draft preserved on failure.
+**Approval evidence:** Owner said `Go` on 2026-09-11 after the TNYX-116 manual-create reliability readiness audit proposed this bounded slice, the V1 online-required final-save policy, and the exact additive `client_mutation_id` shape; owner then said `Go` again to begin implementation.
+**Approved product/UI/data-shape boundaries:** Add nullable `public.meal_log_entries.client_mutation_id uuid`; enforce owner-scoped uniqueness with `UNIQUE (user_id, client_mutation_id)`; use one stable mutation identity for one logical manual-create attempt; retry/reconciliation reuses that identity; V1 final save is online-required with the caller preserving the same draft/mutation identity on failure.
 **Explicit non-changes:** No Quick Add activation or visible UI/UX change; no edit/delete concurrency; no `version` field; no durable offline queue; no detailed item persistence; no Diary selected-day read model/cards/totals; no `services/api`; no service-role client; no ads/membership work.
 
 ## Active Handoff
 
-**Planning owner:** ChatGPT
-**Implementation owner:** Not assigned / not started
-**Review owner:** Not assigned
-**Implementation ownership state:** Not started
-**Ownership transition:** Not applicable
-**Repository state last verified:** GitHub `main` at `7370189856159b465c56fabd77d28a2f68548238`; TNYX-196 branch created from that exact SHA. Owner separately reported local `main...origin/main` clean/aligned after PR #254 post-merge sync.
+**Planning / implementation owner:** ChatGPT
+**Review owner:** ChatGPT manual Codex-style review
+**Implementation ownership state:** Implementation and exact-source validation complete; PR remains Draft until handoff reconciliation is reviewed.
+**Repository base:** GitHub `main` at `7370189856159b465c56fabd77d28a2f68548238`.
 **Branch:** `tnyx/tnyx-196-n20d-1-manual-meallog-create-idempotency-retry`
-**HEAD SHA:** task-brief commit created after base `7370189856159b465c56fabd77d28a2f68548238`
-**Observed working-tree state:** No mounted checkout in this agent session; remote branch isolated from fresh GitHub `main`.
-**Observed uncommitted/dirty files:** Not observable in this session; owner last reported clean local `main` before this branch was created remotely.
-**PR / tracker:** Linear `TNYX-196`, parent `TNYX-116`; no PR yet.
-**Current implementation state:** Planning/readiness only. No migration, repository, UI, or live Supabase mutation has been performed for TNYX-196.
-**Relevant execution surface:** `supabase/migrations/*`, `supabase/tests/database/*`, `apps/features/nutrition/lib/src/domain/repositories/meal_log_repository.dart`, `apps/features/nutrition/lib/src/data/repositories/supabase_meal_log_repository.dart`, `apps/features/nutrition/lib/src/data/in_memory_meal_log_repository.dart`, focused Nutrition repository tests.
-**Validation completed at SHA:** Readiness audit only; no TNYX-196 implementation validation yet.
-**Validation remaining:** migration/database tests, RLS/ownership regression checks, focused repository tests, workspace analyze/test, exact-head diff review.
-**Current blocker:** None for planning. Implementation requires a separate explicit owner `Go` because this checkpoint intentionally stops before source/schema changes even though the exact shape is already approved.
+**Validated source HEAD:** `dbf30c8a504c6b31d11751a2697d77f10270957e`
+**PR / tracker:** GitHub PR #255; Linear `TNYX-196`, parent `TNYX-116`.
+**Current implementation state:** Bounded manual-create idempotency/retry reconciliation implemented. Quick Add remains disabled and no visible UI was changed.
+**Live Supabase state:** Migration applied successfully to project `oykupyiitspujzpwwvuj`; live migration ledger version is `20260911143309`, matching repository migration `supabase/migrations/20260911143309_add_meal_log_client_mutation_id.sql`. Live checks confirmed nullable UUID column, `UNIQUE (user_id, client_mutation_id)`, RLS still enabled, the existing four authenticated owner CRUD policies/grants intact, anon DML absent, and `meal_log_entries` left with zero rows after validation.
+**Validation completed at source SHA:** Flutter CI #2378 / run `34611242563` PASS; Supabase Database CI #27 / run `34611242549` PASS.
+**Scope audit at source SHA:** base is exact merge-base; 10 commits ahead / 0 behind; 8 changed files, all TNYX-196-owned; no Quick Add/UI/app-shell files.
 **Open review finding IDs:** None.
-**Next exact action:** On owner `Go`, move TNYX-196 to `In Progress`, verify branch/base/overlap again, then implement the approved additive idempotency migration and bounded manual-create repository reconciliation with tests.
+**Current blocker:** None in implementation. Only final docs-only handoff review/Ready transition remains; merge is not authorized.
+**Next exact action:** Verify this docs-only reconciliation commit against the validated source head, reconcile PR/Linear review state, submit final non-blocking review evidence, and mark PR Ready for review. Do not merge without a new owner `Go`.
 
 ## Global UI / Design-System Guardrail
 
-No production UI change is in scope. If later work touches Quick Add presentation, stop and run the Flutter UI/design-system gate separately; TNYX-196 must preserve current rendering and disabled `Log Meal` behavior.
+No production UI change is in scope. Quick Add presentation and its disabled `Log Meal` behavior remain unchanged. Any later submit wiring/visual change requires its own approved slice.
 
 ## 1. Discovery
 
@@ -46,10 +42,11 @@ Prevent one logical manual MealLog create from becoming duplicate nutrition hist
 ### Success Criteria
 
 - one logical manual-create attempt has one stable `clientMutationId`;
-- the database provides the final duplicate guard per authenticated owner;
-- retry/reconciliation with the same mutation identity returns/converges on the same durable MealLogEntry instead of inserting a duplicate;
-- existing historical rows migrate without backfill requirements;
-- signed-out and active-category safety remain unchanged;
+- database uniqueness is the final duplicate guard per authenticated owner;
+- same-key retry/reconciliation converges on the same durable MealLog row;
+- the same key reused with different meal facts fails closed;
+- existing historical rows remain compatible without backfill;
+- signed-out and active-category safety remain preserved;
 - V1 does not claim offline durable success;
 - Quick Add remains disabled in this slice.
 
@@ -60,7 +57,7 @@ Prevent one logical manual MealLog create from becoming duplicate nutrition hist
 - manual-create repository/input/gateway mapping and reconciliation only;
 - deterministic in-memory equivalent;
 - focused database/repository tests;
-- minimal failure classification required to distinguish safe reconciliation from a new logical attempt.
+- explicit outcome-unknown and mutation-conflict failures required by the bounded create path.
 
 ### Non-Goals
 
@@ -77,177 +74,159 @@ Prevent one logical manual MealLog create from becoming duplicate nutrition hist
 
 ### Verified Evidence
 
-- Source/config inspected:
-  - root `AGENTS.md` and `apps/features/AGENTS.md`;
-  - `.ai/workflow.md`, `.ai/FEATURE_DEVELOPMENT.md`, `.ai/tasks/TEMPLATE.md`;
-  - `apps/features/nutrition/.../meal_log_repository.dart`;
-  - `apps/features/nutrition/.../supabase_meal_log_repository.dart`;
-  - current Quick Add editor/runtime shell;
-  - TNYX-194 migration;
-  - live `public.meal_log_entries` columns, indexes, and RLS policies;
-  - Linear TNYX-113/114/115/116/194/195 and completed manual-path children.
-- Existing pattern to follow:
-  - Nutrition-owned repository contract + injectable Supabase table gateway;
-  - authenticated owner identity from Supabase session;
-  - RLS as final ownership authority;
-  - strict canonical row decoding;
-  - database-enforced invariant rather than client-only pre-check for duplicate safety.
-- Tests or validation already present:
-  - TNYX-194 migration/RLS database tests;
-  - TNYX-195 Supabase repository + in-memory repository + app-composition tests;
-  - PR #254 exact-head Flutter/Dart analyze/tests passed before merge.
+- Root and feature `AGENTS.md` governance followed.
+- Existing Nutrition repository/gateway ownership preserved.
+- Authenticated user identity continues to come from Supabase session; RLS remains final ownership authority.
+- Existing active Meal Category validation remains at the Nutrition repository boundary for new creates.
+- Existing strict MealLog row decoding, time/local-date semantics, capture-source semantics, and `NutritionSnapshot` codec are reused.
+- TNYX-194/TNYX-195 manual-path persistence/repository foundations remain the immediate runtime base.
+- No current production caller for `ManualMealLogCreate` exists yet, so making `clientMutationId` required does not break a production Quick Add caller in this slice.
 
-Current live schema evidence at readiness:
+Tracker/runtime drift retained as context:
 
-```text
-meal_log_entries
-- id uuid PK default gen_random_uuid()
-- user_id uuid NOT NULL
-- manual MealLog fields from TNYX-194
-- NO client_mutation_id
-- NO version field
-
-indexes
-- meal_log_entries_pkey(id)
-- idx_meal_log_entries_user_local_date_consumed_at(user_id, consumed_local_date, consumed_at DESC)
-
-RLS
-- own-row SELECT/INSERT/UPDATE/DELETE for authenticated
-```
-
-Current repository evidence:
-
-```text
-MealLogRepository
-- createManual(ManualMealLogCreate)
-- readById(String)
-
-SupabaseMealLogRepository
-- validates authenticated owner
-- validates active Meal Category
-- inserts one row and returns hydrated DB identity/timestamps
-- explicitly performs no retries/idempotency reconciliation today
-```
-
-Tracker/runtime drift recorded:
-
-- TNYX-113 remains a broad Backlog umbrella even though manual-path children TNYX-188 through TNYX-195 are complete. TNYX-196 uses those completed manual prerequisites and does not pretend detailed-item work is complete.
-- `docs/SUPABASE_STRATEGY.md` still mentions a future `backend/` namespace. Current root `AGENTS.md` is authoritative for repository direction and permits only future `services/api`; TNYX-196 introduces neither.
+- TNYX-113 remains a broad Backlog umbrella even though the completed manual-path children are sufficient prerequisites for this slice.
+- `docs/SUPABASE_STRATEGY.md` has known future-backend namespace drift; current root `AGENTS.md` remains authoritative and TNYX-196 introduces no backend service namespace.
 
 ## 3. Clarification
 
-### Decisions Required or Made
-
 | Decision | Status | Rationale | Owner |
 |---|---|---|---|
-| V1 offline final-save policy = online-required; no offline-success/queue | Approved | Smallest safe V1; avoids half-offline durable uncertainty | Owner |
-| Add `client_mutation_id uuid NULL` to `meal_log_entries` | Approved | Stable mutation identity must survive ambiguous response loss | Owner |
-| Enforce `UNIQUE (user_id, client_mutation_id)` | Approved | Database must close concurrent/pre-check race; null keeps old rows compatible | Owner |
-| Keep mutation identity distinct from MealLog row `id` | Approved | Row identity and logical create-attempt identity have different semantics | Owner |
-| Retry/reconcile same logical attempt with same mutation ID | Approved | Prevent duplicate actual-history effects | Owner |
-| Do not add `version` in this slice | Approved boundary | Edit concurrency remains a later TNYX-116 child | Owner |
+| V1 final save is online-required; no durable offline queue | Approved | Smallest safe V1 | Owner |
+| Add `client_mutation_id uuid NULL` | Approved + implemented | Stable logical create identity | Owner |
+| Enforce `UNIQUE (user_id, client_mutation_id)` | Approved + implemented | Closes concurrent/pre-check race | Owner |
+| Mutation identity remains distinct from MealLog row `id` | Approved + implemented | Different ownership/semantics | Owner |
+| Same logical retry reuses same mutation ID | Approved + implemented | Prevents duplicate actual history | Owner |
+| No `version` field in this slice | Approved boundary | Edit concurrency remains later TNYX-116 work | Owner |
 
 ## 4. Architecture Design
 
-### Chosen Approach
-
-Conceptual create flow:
+### Implemented Flow
 
 ```text
-manual-create caller/controller (future TNYX-115)
-  -> stable clientMutationId generated once per logical create attempt
-  -> MealLogRepository.createManual(..., clientMutationId)
-  -> validate auth + active Meal Category
-  -> Supabase gateway create/reconcile
-       -> database uniqueness (user_id, client_mutation_id)
-       -> successful first insert returns canonical row
-       -> same-key retry/conflict reconciles to canonical existing row
-  -> canonical MealLogEntry
+future caller/controller
+  -> stable clientMutationId generated once per logical create
+  -> MealLogRepository.createManual(input)
+  -> require authenticated user
+  -> owner+mutation pre-reconciliation read
+       -> existing canonical row: validate same facts and return it
+       -> no row: validate current Meal Category activity
+  -> insert manual row carrying client_mutation_id
+       -> success: decode/validate canonical row
+       -> uniqueness/ambiguous failure: owner+mutation reconciliation read
+            -> canonical matching row: return it
+            -> matching key but different facts: mutation conflict
+            -> cannot confirm durable outcome: outcome-unknown with same key
 ```
 
-The exact PostgREST/RPC-free reconciliation implementation must be chosen during implementation from current Supabase client behavior and tested against the database invariant. Do not use a client-only `read then insert` check as the sole guard.
+Database uniqueness, not the pre-read, is the final concurrent duplicate guard. The pre-read exists to make same-key retry cheap and to recover an already-committed historical fact before current category-activity validation.
 
-### Ownership and Data Flow
+### Failure Contract
 
-```text
-future Quick Add controller (not this slice)
-  -> Nutrition MealLogRepository
-  -> SupabaseMealLogRepository / MealLogTableGateway
-  -> public.meal_log_entries + own-row RLS + unique mutation invariant
-```
+- `MealLogCreateOutcomeUnknown`: durable outcome cannot be confirmed; caller must retain/reuse the same mutation ID rather than creating a fresh logical attempt.
+- `MealLogCreateMutationConflict`: one mutation ID was reused for different manual MealLog facts; fail closed.
+- Known database/auth/domain validation failures remain their original failures rather than being mislabeled as successful or silently retried.
 
-`apps/app` remains composition-only. No widget calls Supabase.
+### Rejected Alternatives
 
-### Alternative Rejected
-
-- **Disable submit button only:** rejects rapid double taps but does not protect response-loss/retry ambiguity.
-- **Generate a new mutation ID on every retry:** converts one logical attempt into multiple durable effects and defeats idempotency.
-- **Use MealLog row UUID as client mutation identity:** conflates store-owned row identity with client logical-operation identity and breaks the TNYX-195 ownership boundary.
-- **Durable offline queue now:** broader product/storage/lifecycle surface than needed for the first safe create path.
-- **Add `version` now:** premature; belongs to edit concurrency, not manual create dedupe.
-
-### Failure and Accessibility States
-
-No visible UI changes in TNYX-196. The repository/data contract must distinguish at least:
-
-```text
-confirmed durable success
-known failure before durable commit
-auth/domain validation failure
-ambiguous/duplicate-create path requiring same-key reconciliation
-```
-
-Future TNYX-115 owns how these states are presented. It must not treat an ambiguous outcome as a fresh logical create.
+- submit-button disabling as the only duplicate guard;
+- new mutation ID per retry;
+- using durable MealLog row ID as mutation identity;
+- durable offline queue in this slice;
+- adding edit `version` semantics early.
 
 ## 5. Implementation Plan
 
-- [ ] Freshly verify `main`, branch ancestry, Linear state, and PR/branch overlap.
-- [ ] Move TNYX-196 to `In Progress` when source implementation begins.
-- [ ] Add approved additive migration for nullable `client_mutation_id uuid`.
-- [ ] Add owner-scoped unique invariant without changing existing row ownership/RLS.
-- [ ] Extend Supabase database tests for null-history compatibility, uniqueness, cross-owner semantics, and own-row access.
-- [ ] Extend `ManualMealLogCreate` with stable mutation identity while preserving DB-owned MealLog row identity/timestamps.
-- [ ] Extend table gateway/repository create reconciliation so same owner + same mutation ID converges on one canonical row.
-- [ ] Add deterministic equivalent to `InMemoryMealLogRepository`.
-- [ ] Preserve active Meal Category validation, signed-out fail-closed behavior, time/local-date, snapshot, and capture-source contracts.
-- [ ] Add focused tests for first create, same-key retry, concurrent/duplicate conflict reconciliation seam, and distinct-key independent creates.
-- [ ] Keep Quick Add UI disabled and untouched.
-- [ ] Run Supabase database validation plus proportional Flutter/Dart analyze/tests.
-- [ ] Audit exact base-to-head scope and prepare review handoff; no merge without separate owner authorization.
+- [x] Verify main/base/branch/tracker/overlap.
+- [x] Move TNYX-196 to In Progress.
+- [x] Add nullable `client_mutation_id uuid` migration.
+- [x] Add `UNIQUE (user_id, client_mutation_id)` without changing ownership/RLS policy shape.
+- [x] Extend SQL tests for historical null compatibility, same-owner uniqueness, cross-owner reuse, and RLS isolation.
+- [x] Extend `ManualMealLogCreate` with required stable mutation identity.
+- [x] Add owner+mutation gateway lookup and repository reconciliation.
+- [x] Add explicit outcome-unknown and mutation-conflict failure types.
+- [x] Add deterministic in-memory idempotency equivalent.
+- [x] Preserve active Meal Category validation and signed-out fail-closed behavior.
+- [x] Preserve time/local-date/snapshot/capture-source contracts.
+- [x] Cover first create, same-key retry, uniqueness race, response loss, unavailable reconciliation, key/payload conflict, and archived-category-after-commit paths.
+- [x] Keep Quick Add/UI untouched.
+- [x] Run exact-source Flutter/Dart CI.
+- [x] Run exact-source Supabase migration/SQL/concurrency/lint CI.
+- [x] Apply approved additive migration to live Supabase and verify schema/security/empty-row state.
+- [x] Audit exact base-to-source-head scope.
+- [x] Perform final Codex-style diff review; no P1/P2 implementation blocker found.
+- [x] Reconcile stale planning handoff before Ready transition.
 
 ## 6. Quality Review
 
 ### Validation Run
 
+Validated source head: `dbf30c8a504c6b31d11751a2697d77f10270957e`
+
 ```text
-Not run yet. No TNYX-196 source/schema implementation has started.
+Flutter CI #2378 / run 34611242563: PASS
+- bootstrap: PASS
+- Flutter analyze: PASS
+- Dart analyze: PASS
+- Flutter tests: PASS
+- Dart tests: PASS
+
+Supabase Database CI #27 / run 34611242549: PASS
+- baseline/replay migrations: PASS
+- complete migration ledger: PASS
+- private helper boundary: PASS
+- existing SQL matrices: PASS
+- TNYX-194/TNYX-196 MealLog SQL matrix: PASS
+- two-session concurrency test: PASS
+- database lint regression guard: PASS
+```
+
+Live Supabase post-apply verification:
+
+```text
+client_mutation_id: uuid NULL
+constraint: UNIQUE (user_id, client_mutation_id)
+RLS: enabled
+owner policies: 4, unchanged
+authenticated CRUD grants: intact
+anon DML: absent
+meal_log_entries rows after verification: 0
+migration ledger: 20260911143309 add_meal_log_client_mutation_id
 ```
 
 ### Review Findings and Resolution
 
-| ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
+| ID | Severity | Status | Finding | Observed at SHA | Evidence / resolution |
 |---|---|---|---|---|---|
-| | | Open | | | |
+| QR-1 | P3 governance | Resolved | Task brief still described planning-only/no-PR/no-validation state after implementation completed. | `dbf30c8a504c6b31d11751a2697d77f10270957e` | This docs-only reconciliation updates implementation, validation, live schema, scope and next-action truth. |
+
+Final code/diff review found no open P1/P2 implementation defects. Review specifically checked database race closure, same-key/different-payload behavior, response-loss reconciliation, category archival after committed create, strict row decoding, snapshot equality semantics, RLS/grants preservation, historical null compatibility, and deployment ordering.
 
 ## 7. Final Handoff
 
 ### Changed Files
 
-Planning checkpoint only:
-
-- `.ai/tasks/tnyx-196-manual-meal-log-create-idempotency.md`
+1. `.ai/tasks/tnyx-196-manual-meal-log-create-idempotency.md`
+2. `apps/features/nutrition/lib/src/domain/repositories/meal_log_repository.dart`
+3. `apps/features/nutrition/lib/src/data/in_memory_meal_log_repository.dart`
+4. `apps/features/nutrition/lib/src/data/repositories/supabase_meal_log_repository.dart`
+5. `apps/features/nutrition/test/data/in_memory_meal_log_repository_test.dart`
+6. `apps/features/nutrition/test/data/supabase_meal_log_repository_test.dart`
+7. `supabase/migrations/20260911143309_add_meal_log_client_mutation_id.sql`
+8. `supabase/tests/database/tnyx_194_manual_meal_log_entries.test.sql`
 
 ### Actual Behavior
 
-No runtime/database behavior changed at this checkpoint. The approved scope, exact data-shape decision, ownership, risks, and validation plan are now durable and branch-isolated.
+Manual MealLog create now requires a stable canonical UUID mutation identity. Supabase and in-memory repositories converge repeated same-key/same-payload creates onto one canonical row. Supabase uses the owner-scoped unique constraint as the final race-safe duplicate guard. Ambiguous outcomes are reconciled by the same key; if the outcome cannot be confirmed, the repository reports `MealLogCreateOutcomeUnknown` so a caller cannot safely invent a new key. Reusing the same key for different meal facts fails closed.
 
-### Known Limitations
+### Known Limitations / Deferred Work
 
-- Quick Add remains disabled.
-- Diary actual-history read/display remains separate.
-- TNYX-116 still owns later edit/delete/concurrency/offline/read-model reliability.
-- `docs/SUPABASE_STRATEGY.md` contains known future-backend namespace drift; current `AGENTS.md` governs and this slice does not touch backend runtime.
+- Quick Add `Log Meal` remains disabled and unwired.
+- Diary selected-day actual-history read/display remains separate.
+- No durable offline queue/background replay exists.
+- Edit/update versioning and delete idempotency remain future TNYX-116 children.
+- Detailed MealLog items/atomic detailed aggregates remain separate.
+- TNYX-116 remains open after this child completes.
 
 ### Final Status
 
-`REVIEW`
+`REVIEW — validated source is clean; docs-only handoff reconciliation complete; safe to move PR #255 to Ready after verifying this commit is the only delta from validated source. Merge requires separate owner authorization.`
