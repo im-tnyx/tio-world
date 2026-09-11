@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** `main` at `77fe0f646bf0d34ec8fae0e943d050c33cdcb846`; PR #248 merged; no open PRs and no Linear issues in started state before TNYX-192 began.
 **Branch:** `tnyx/tnyx-192-gov-define-linear-issue-and-project-status-update-cadence`
-**HEAD SHA:** implementation/review state was validated at `47374a9aae321ea3a92e95d03761a1eebba2063f`; this review-fix handoff update moves HEAD afterward.
+**HEAD SHA:** review-fix verified at `c4c1ad490054944a82b7787a044c270a5ef36154`; this final handoff-only metadata update moves HEAD afterward.
 **Observed working-tree state:** GitHub/API workflow; no local working tree available.
 **Observed uncommitted/dirty files:** Not applicable.
 **PR / tracker:** Linear TNYX-192 is `In Review`; GitHub PR #249 is open and ready for review.
-**Current implementation state:** Governance wording is complete. Manual exhaustive review found one P2 handoff-consistency issue; this update removes the stale pending actions and aligns the handoff with the live Linear/PR state.
+**Current implementation state:** Governance wording and review-fix are complete. The P2 handoff-consistency finding was fixed and exact-head verified before this final evidence-only handoff update.
 **Relevant execution surface:** `AGENTS.md`, `.ai/workflow.md`, this task brief.
-**Validation completed at SHA:** `47374a9aae321ea3a92e95d03761a1eebba2063f` API compare + complete PR patch review before this handoff-only review fix.
-**Validation remaining:** Exact-head API compare/patch verification of this review-fix commit, then resolve the P2 review thread.
+**Validation completed at SHA:** `c4c1ad490054944a82b7787a044c270a5ef36154` API compare + focused task-file patch verification; branch remained based on audited `main` with exactly the same 3 intended files.
+**Validation remaining:** None for implementation. Final merge authorization remains an owner action.
 **Current blocker:** None.
-**Open review finding IDs:** P2 handoff-state consistency finding on PR #249; fix applied in this update, resolution pending exact-head verification.
-**Next exact action:** Verify the new exact head, resolve the P2 review thread if clean, then await explicit owner merge authorization.
+**Open review finding IDs:** None.
+**Next exact action:** Await explicit owner merge authorization for PR #249; after merge, reconcile Linear TNYX-192 to `Done` and follow `docs/POST_MERGE_SYNC.md`.
 
 ## 1. Discovery
 
@@ -101,7 +101,7 @@ Not applicable for docs-only governance.
 - [x] Audit exact branch diff against `main`.
 - [x] Open focused docs-only PR.
 - [x] Reconcile Linear to `In Review`.
-- [ ] Verify and resolve the P2 handoff-consistency review finding.
+- [x] Verify and resolve the P2 handoff-consistency review finding.
 
 ## 6. Quality Review
 
@@ -121,7 +121,11 @@ Complete PR #249 patch review at head 47374a9aae321ea3a92e95d03761a1eebba2063f:
 - no whitespace or unrelated-diff issue observed in the returned patch
 - one P2 finding: committed handoff still described already-completed Linear/exact-head actions as pending
 
-This review-fix update refreshes that handoff. Exact-head verification remains required before the P2 thread is resolved.
+Review-fix verification at c4c1ad490054944a82b7787a044c270a5ef36154:
+- merge base remained audited main 77fe0f646bf0d34ec8fae0e943d050c33cdcb846
+- branch was 6 ahead / 0 behind
+- changed files remained exactly the same 3 intended governance/task files
+- focused task-file patch confirmed stale pending actions were removed and live Linear/PR state was recorded
 ```
 
 ### Review Findings and Resolution
@@ -129,7 +133,7 @@ This review-fix update refreshes that handoff. Exact-head verification remains r
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
 | GOV-1 | P3 | Resolved | Task brief initially repeated the stale assumption that `POST_MERGE_SYNC.md` was absent | `3fade49b` review | Owner pointed out the docs path; live repo verified `docs/POST_MERGE_SYNC.md`, task brief corrected |
-| PR249-P2 | P2 | Open | Active handoff still said exact-head/Linear reconciliation was pending after both had completed | `47374a9a` review | Fix applied in this update; resolve only after exact-head verification |
+| PR249-P2 | P2 | Resolved | Active handoff still said exact-head/Linear reconciliation was pending after both had completed | `47374a9a` review | Fixed in `c4c1ad49`; exact-head compare and focused patch verification passed before thread resolution |
 
 ## 7. Final Handoff
 
