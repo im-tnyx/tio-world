@@ -59,7 +59,7 @@ select pg_temp.assert_true(
 );
 
 select pg_temp.assert_true(
-  (select array_agg(column_name order by ordinal_position)
+  (select array_agg(column_name::text order by ordinal_position)
    from information_schema.columns
    where table_schema = 'public' and table_name = 'meal_log_entries') = array[
     'id', 'user_id', 'mode', 'meal_category_id', 'meal_name', 'note',
