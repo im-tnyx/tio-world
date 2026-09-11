@@ -1,13 +1,13 @@
 # TNYX-191 — Meal-level note contract for manual MealLog persistence
 
-**Status:** In progress — domain-only pre-migration slice
+**Status:** Implementation complete — exact-head CI/manual review pending
 **Primary owner:** `apps/shared` Nutrition domain
 **Affected platforms:** Shared Dart only
 
 ## Owner Approval and Scope Boundary
 
 **Approval status:** Approved for the pre-migration domain slice.
-**Approval evidence:** Owner explicitly instructed the post-TNYX-190 persistence audit to continue and stated that any Supabase migration requires a separate later approval.
+**Approval evidence:** Owner explicitly instructed the post-TNYX-190 persistence audit to continue and stated that any Supabase migration requires a separate later approval. During implementation the owner clarified that the current aggregate/persistence work should follow the real Quick Log/manual flow only; fields needed by later logging flows are added when those flows become implementation-ready.
 **Approved scope:** canonical `MealLogEntry.note` field + manual factory behavior + focused tests + readiness evidence.
 **Explicit non-changes:** no Supabase migration/schema/RLS/grants/index change, no repository/DTO/PostgREST wiring, no UI/navigation, no detailed-mode construction, no item snapshots, no photo/provider provenance, no idempotency/concurrency/version work.
 
@@ -17,12 +17,12 @@
 - Hosted Supabase project `tio-world` is healthy on Postgres 17 and currently has no MealLog table.
 - Hosted migration ledger has 42 migrations; latest is `20260909131518_enforce_meal_category_display_name_shape`.
 - Current owner-scoped history precedent `body_weight_logs` uses UUID PK, `user_id -> public.users(id) ON DELETE CASCADE`, `timestamptz`, `set_row_updated_at()`, own-row verb RLS and `(user_id, measured_at DESC)` indexing.
-- Existing project default table privileges are still broad for `anon`/`authenticated`/`service_role`; a later MealLog migration must explicitly revoke/grant intended Data API privileges rather than inheriting defaults.
-- Supabase 2026 platform direction also moves public-table Data API exposure to explicit grants. Migration work remains unapproved.
+- Existing project default table privileges are broad; a later MealLog migration must explicitly audit and lock intended Data API grants instead of assuming inherited defaults are correct.
 - Canonical manual `MealLogEntry` already owns id/user/mode/category/name/consumed instant/local date/time context/capture source/manual nutrition/created/updated.
 - TNYX-68 defines `MealLogEntry.note` as actual-log data independent from the Meal Notes visibility preference and requires hidden-note preservation.
 - TNYX-115 includes optional note in Quick Add create/edit semantics.
-- Therefore physical manual persistence should not be frozen before the aggregate can carry the note it is required to preserve.
+- TNYX-113 and TNYX-58 also describe future optional meal photo/provenance/detailed-item fields, but those are not required by the current Quick Log/manual flow and their real media/item contracts are not yet frozen.
+- Therefore the current slice adds only the note needed by manual Quick Log. Future flows may widen the same canonical `MealLogEntry` additively after their own audits; no parallel manual-only aggregate/table should be created.
 
 ## Locked Note Semantics
 
@@ -32,13 +32,36 @@
 - Meal Notes OFF is a presentation/capability state only. A caller that does not expose note editing must preserve the existing note rather than sending an intentional clear.
 - No arbitrary note length limit is invented in this slice.
 
+## Future-field Guardrail
+
+Current manual/Quick Log work must not pre-freeze fields whose real consumers are later flows.
+
+```text
+Quick Log/manual now
+→ note + manualNutritionSnapshot + current meal/time/category fields
+
+Later detailed/photo/provider flows
+→ add photo/media reference, detailed item snapshots and richer provenance
+→ only after those contracts are audited and approved
+```
+
+In particular, do not add a placeholder `photoRef` string merely because TNYX-113 names that conceptual field. A future Meal Editor/photo slice must first lock the private-media identity/lifecycle it actually needs.
+
 ## Implementation
 
-- [ ] Add `note` to the private canonical aggregate constructor.
-- [ ] Add optional `note` parameter to `MealLogEntry.manual`.
-- [ ] Normalize null/whitespace-only to absent while preserving nonblank text exactly.
-- [ ] Add focused tests for null, blank and nonblank/multiline preservation.
+- [x] Add `note` to the private canonical aggregate constructor.
+- [x] Add optional `note` parameter to `MealLogEntry.manual`.
+- [x] Normalize null/whitespace-only to absent while preserving nonblank text exactly.
+- [x] Add focused tests for null, blank and exact nonblank preservation.
 - [ ] Run exact-head CI and manual review.
+
+## Changed Files
+
+```text
+.ai/tasks/tnyx-191-meal-log-note-contract.md
+apps/shared/lib/src/nutrition/meal_log_entry.dart
+apps/shared/test/nutrition/meal_log_entry_test.dart
+```
 
 ## Migration Gate
 
