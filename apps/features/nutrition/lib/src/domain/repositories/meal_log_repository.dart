@@ -1,12 +1,50 @@
 import 'package:tio_shared/shared.dart';
 
+/// Raised when a manual MealLog create may already have reached durable
+/// storage but the repository cannot confirm its outcome.
+///
+/// The caller must preserve the same [clientMutationId] and retry the same
+/// logical create. Generating a fresh mutation identity after this failure can
+/// create duplicate actual history.
+final class MealLogCreateOutcomeUnknown implements Exception {
+  const MealLogCreateOutcomeUnknown({
+    required this.clientMutationId,
+    this.cause,
+  });
+
+  final String clientMutationId;
+  final Object? cause;
+
+  @override
+  String toString() =>
+      'MealLogCreateOutcomeUnknown(clientMutationId: $clientMutationId)';
+}
+
+/// Raised when one stable create mutation identity is reused for different
+/// manual MealLog facts.
+///
+/// Idempotency keys identify one logical operation. Reusing a key for a
+/// different payload must fail instead of silently returning unrelated history.
+final class MealLogCreateMutationConflict implements Exception {
+  const MealLogCreateMutationConflict({required this.clientMutationId});
+
+  final String clientMutationId;
+
+  @override
+  String toString() =>
+      'MealLogCreateMutationConflict(clientMutationId: $clientMutationId)';
+}
+
 /// User/resolver-owned facts required to create one manual MealLog entry.
 ///
 /// Physical row identity, authenticated user identity, mode, and database
-/// timestamps are intentionally absent. The repository/database own those
-/// persistence facts and return the canonical [MealLogEntry] after creation.
+/// timestamps are intentionally absent. [clientMutationId] identifies the
+/// logical create operation only; it is not the durable MealLog row identity.
+/// The repository/database own persistence facts and return the canonical
+/// [MealLogEntry] after creation or same-key reconciliation.
 final class ManualMealLogCreate {
   ManualMealLogCreate({
+    required String clientMutationId,
     required this.mealCategoryId,
     String? mealName,
     String? note,
@@ -16,7 +54,8 @@ final class ManualMealLogCreate {
     this.consumedUtcOffsetMinutes,
     this.captureSource,
     required this.manualNutritionSnapshot,
-  })  : mealName = _normalizeOptionalText(mealName),
+  })  : clientMutationId = _normalizeClientMutationId(clientMutationId),
+        mealName = _normalizeOptionalText(mealName),
         note = _normalizeOptionalText(note),
         consumedTimezoneId = _normalizeOptionalText(consumedTimezoneId) {
     if (this.consumedTimezoneId == null &&
@@ -27,6 +66,11 @@ final class ManualMealLogCreate {
     }
   }
 
+  /// Stable UUID for this one logical create operation.
+  ///
+  /// A retry of the same logical create reuses this value. A different logical
+  /// create, even with identical meal facts, uses a different value.
+  final String clientMutationId;
   final String mealCategoryId;
   final String? mealName;
   final String? note;
@@ -37,6 +81,21 @@ final class ManualMealLogCreate {
   final MealLogCaptureSource? captureSource;
   final NutritionSnapshot manualNutritionSnapshot;
 
+  static final _canonicalUuid = RegExp(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+  );
+
+  static String _normalizeClientMutationId(String value) {
+    if (value.trim() != value || !_canonicalUuid.hasMatch(value)) {
+      throw ArgumentError.value(
+        value,
+        'clientMutationId',
+        'must be a canonical UUID string',
+      );
+    }
+    return value.toLowerCase();
+  }
+
   static String? _normalizeOptionalText(String? value) {
     if (value == null || value.trim().isEmpty) return null;
     return value;
@@ -45,12 +104,16 @@ final class ManualMealLogCreate {
 
 /// Canonical Nutrition-owned persistence boundary for actual MealLog history.
 ///
-/// TNYX-195 intentionally exposes only the manual create/read foundation.
-/// Update, delete, idempotency, stale-write handling, offline replay and Diary
-/// read models belong to later bounded slices and are not frozen here.
+/// TNYX-195 introduced manual create/read. TNYX-196 makes manual create
+/// duplicate-safe through a stable client mutation identity. Update, delete,
+/// stale-write handling, durable offline replay and Diary read models remain
+/// later bounded slices.
 abstract interface class MealLogRepository {
   /// Persists one manual/coarse actual meal and returns the durable canonical
   /// aggregate, including store-owned identity and timestamps.
+  ///
+  /// Repeating this call for the same logical operation must reuse
+  /// [ManualMealLogCreate.clientMutationId].
   Future<MealLogEntry> createManual(ManualMealLogCreate input);
 
   /// Reads one canonical manual MealLog entry by opaque row identity.
