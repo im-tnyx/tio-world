@@ -71,9 +71,10 @@ apps/shared/test/nutrition/meal_log_entry_test.dart
 - PR: #248 `feat(shared): add manual MealLog note contract`.
 - Branch: `tnyx/tnyx-191-n20a-4-meal-level-note-contract-for-manual-meallog`.
 - Base remains audited `main` `1d67599a33d06978f476e34152153bb5bcbe3927`.
-- Scope audit before final handoff: 5 commits ahead / 0 behind, exactly 3 changed files.
+- Scope audit before final handoff: 6 commits ahead / 0 behind, exactly 3 changed files.
 - CI #2362: full analyze + Flutter tests + Dart tests SUCCESS.
-- CI #2363: full analyze + Flutter tests + Dart tests SUCCESS on the final docs-only checkpoint head.
+- CI #2363: full analyze + Flutter tests + Dart tests SUCCESS.
+- CI #2364: full exact-head analyze + Flutter tests + Dart tests SUCCESS on `45de0bdb18952d70787514960775ba7caf88d8b2`.
 - Manual review: PASS, no open findings.
 - Supabase: no migration/schema/RLS/grant/index write performed.
 - Merge: intentionally not performed without separate owner instruction.
