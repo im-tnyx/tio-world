@@ -1,0 +1,144 @@
+import 'package:test/test.dart';
+import 'package:tio_shared/shared.dart';
+
+void main() {
+  group('MealLogLocalDate', () {
+    test('preserves a valid local calendar date as value identity', () {
+      final first = MealLogLocalDate(year: 2026, month: 9, day: 11);
+      final second = MealLogLocalDate(year: 2026, month: 9, day: 11);
+
+      expect(first, second);
+      expect(first.hashCode, second.hashCode);
+      expect(first.toIso8601String(), '2026-09-11');
+      expect(first.toString(), '2026-09-11');
+    });
+
+    test('round-trips the canonical YYYY-MM-DD representation', () {
+      final date = MealLogLocalDate.fromIso8601String('2024-02-29');
+
+      expect(date.year, 2024);
+      expect(date.month, 2);
+      expect(date.day, 29);
+      expect(date.toIso8601String(), '2024-02-29');
+    });
+
+    test('rejects invalid or non-canonical calendar dates', () {
+      expect(
+        () => MealLogLocalDate(year: 2026, month: 2, day: 29),
+        throwsArgumentError,
+      );
+      expect(
+        () => MealLogLocalDate(year: 0, month: 1, day: 1),
+        throwsArgumentError,
+      );
+      expect(
+        () => MealLogLocalDate.fromIso8601String('2026-9-11'),
+        throwsFormatException,
+      );
+      expect(
+        () => MealLogLocalDate.fromIso8601String('2026-02-29'),
+        throwsFormatException,
+      );
+    });
+  });
+
+  group('MealLogEntry.manual', () {
+    final nutrition = NutritionSnapshot(
+      schemaVersion: 1,
+      nutrients: const <NutrientId, num>{
+        NutrientId.energy: 420,
+        NutrientId.protein: 28,
+      },
+    );
+    final consumedAt = DateTime.utc(2026, 9, 11, 6, 30);
+    final consumedLocalDate = MealLogLocalDate(
+      year: 2026,
+      month: 9,
+      day: 11,
+    );
+    final createdAt = DateTime.utc(2026, 9, 11, 6, 31);
+    final updatedAt = DateTime.utc(2026, 9, 11, 6, 32);
+
+    MealLogEntry build({String? mealName = 'Breakfast'}) {
+      return MealLogEntry.manual(
+        id: 'meal-log-1',
+        userId: 'user-1',
+        mealCategoryId: 'breakfast',
+        mealName: mealName,
+        consumedAt: consumedAt,
+        consumedLocalDate: consumedLocalDate,
+        consumedTimezoneId: 'Asia/Kolkata',
+        consumedUtcOffsetMinutes: 330,
+        captureSource: MealLogCaptureSource.quickAdd,
+        manualNutritionSnapshot: nutrition,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      );
+    }
+
+    test('creates a first-class manual actual-history aggregate', () {
+      final entry = build();
+
+      expect(entry.id, 'meal-log-1');
+      expect(entry.userId, 'user-1');
+      expect(entry.mode, MealLogMode.manual);
+      expect(entry.mealCategoryId, 'breakfast');
+      expect(entry.mealName, 'Breakfast');
+      expect(entry.consumedAt, consumedAt);
+      expect(entry.consumedLocalDate, consumedLocalDate);
+      expect(entry.consumedTimezoneId, 'Asia/Kolkata');
+      expect(entry.consumedUtcOffsetMinutes, 330);
+      expect(entry.captureSource, MealLogCaptureSource.quickAdd);
+      expect(entry.manualNutritionSnapshot, same(nutrition));
+      expect(entry.createdAt, createdAt);
+      expect(entry.updatedAt, updatedAt);
+    });
+
+    test('normalizes blank meal name to absent without fabricating fallback', () {
+      expect(build(mealName: null).mealName, isNull);
+      expect(build(mealName: '').mealName, isNull);
+      expect(build(mealName: '   \t').mealName, isNull);
+    });
+
+    test('keeps user-intended local date separate from chronology instant', () {
+      final entry = MealLogEntry.manual(
+        id: 'meal-log-travel',
+        userId: 'user-1',
+        mealCategoryId: 'dinner',
+        consumedAt: DateTime.utc(2026, 9, 11, 6, 30),
+        consumedLocalDate: MealLogLocalDate(
+          year: 2026,
+          month: 9,
+          day: 10,
+        ),
+        consumedTimezoneId: 'America/Los_Angeles',
+        consumedUtcOffsetMinutes: -420,
+        manualNutritionSnapshot: nutrition,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      );
+
+      expect(entry.consumedAt, DateTime.utc(2026, 9, 11, 6, 30));
+      expect(entry.consumedLocalDate.toIso8601String(), '2026-09-10');
+      expect(entry.consumedUtcOffsetMinutes, -420);
+    });
+
+    test('allows timezone and capture context to remain absent', () {
+      final entry = MealLogEntry.manual(
+        id: 'meal-log-minimal',
+        userId: 'user-1',
+        mealCategoryId: 'snack',
+        consumedAt: consumedAt,
+        consumedLocalDate: consumedLocalDate,
+        manualNutritionSnapshot: nutrition,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      );
+
+      expect(entry.consumedTimezoneId, isNull);
+      expect(entry.consumedUtcOffsetMinutes, isNull);
+      expect(entry.captureSource, isNull);
+      expect(entry.manualNutritionSnapshot, same(nutrition));
+    });
+  });
+}
