@@ -8,9 +8,11 @@ on:
       - 'apps/app/android/**'
       - 'apps/app/lib/app/health_connect/**'
       - 'apps/app/pubspec.yaml'
+      - 'apps/app/pubspec.lock'
       - 'apps/wear/android/**'
       - 'apps/wear/lib/**'
       - 'apps/wear/pubspec.yaml'
+      - 'apps/wear/pubspec.lock'
       - 'pubspec.yaml'
       - '.github/workflows/android-native-ci.yml'
   workflow_dispatch:
