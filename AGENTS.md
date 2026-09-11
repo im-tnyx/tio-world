@@ -63,6 +63,16 @@ Before starting or resuming any tracked task, reconcile the current planning and
 - The existence of a Linear issue, GitHub issue, PR, roadmap item, or planning document does not by itself authorize implementation. Existing Owner Approval and bounded-slice rules still apply.
 - When a required tracker cannot be read because the integration/tool is unavailable, record that limitation in the task handoff and do not invent its current state.
 
+### Linear Status Update Cadence
+
+Keep task-level state current without turning project status into a per-task activity feed:
+
+- Reconcile the Linear issue whenever the real task state changes, including meaningful transitions such as `In Progress`, `In Review`, `Done`, `Blocked`, or their current team equivalents.
+- Project health/status updates such as `On track`, `At risk`, or `Off track` are project-level summaries. Do not publish a new project status update merely because one task completed.
+- While a project has active work, publish a project status update on a reasonable weekly cadence when there is useful project-level progress to summarize, or sooner when a material milestone, progress, risk, blocker, or scope change changes the project-level picture.
+- Material risks or blockers must be reflected promptly; do not wait for the weekly cadence. If there has been no meaningful project-level change since the last update, no new project status update is required.
+- At task handoff, review, merge, or completion, reconcile the issue and linked GitHub state first, then evaluate whether the project-level update trigger above was actually met.
+
 - Before source changes, create or update one focused task brief under `.ai/tasks/` using `.ai/tasks/TEMPLATE.md`.
 - Follow `.ai/workflow.md` in order: Discovery → Codebase Exploration → Clarification → Architecture Design → Implementation → Quality Review → Final Handoff.
 - Keep only one implementation slice active at a time. Do not implement a large GitHub issue or epic as one broad change.
@@ -171,7 +181,7 @@ Before commit, push, or PR creation:
 
 For Pull Requests, follow `.github/PULL_REQUEST_TEMPLATE.md`.
 
-After a PR merge, follow `.github/POST_MERGE_SYNC.md` before starting the next branch.
+After a PR merge, follow `docs/POST_MERGE_SYNC.md` before starting the next branch.
 
 ## Validation
 

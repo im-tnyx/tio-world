@@ -23,6 +23,13 @@ Tracker roles are intentionally distinct:
 - `.ai/tasks/*` owns compact active execution handoff.
 - Runtime source/config remains authoritative for current executable behavior; canonical docs/ADRs remain authoritative for intended architecture and product rules.
 
+Linear update cadence is also intentionally split by level:
+
+- Reconcile the Linear issue when the real task state changes, including meaningful transitions such as `In Progress`, `In Review`, `Done`, `Blocked`, or their current team equivalents.
+- Project health/status updates such as `On track`, `At risk`, or `Off track` are project-level summaries, not a per-task completion log. Do not publish a new project update merely because one task finished.
+- While a project has active work, publish a project update on a reasonable weekly cadence when there is useful project-level progress to summarize, and publish sooner when a material milestone, progress, risk, blocker, or scope change changes the project-level picture.
+- Material risks or blockers must be reflected promptly; do not wait for the weekly cadence. If there has been no meaningful project-level change since the last update, a new project update is not required.
+
 A tracker or planning item existing does not authorize implementation by itself. Apply the Owner Approval and bounded-slice rules from `AGENTS.md` and `.ai/FEATURE_DEVELOPMENT.md`.
 
 ## Feature Development Workflow
@@ -35,7 +42,7 @@ Use this seven-phase workflow for every user-facing feature, cross-package chang
 4. **Architecture design**: state the owner packages, data flow, routes, state boundaries, alternatives considered, and chosen approach.
 5. **Implementation**: make small vertical-slice changes that preserve the approved ownership and out-of-scope boundaries.
 6. **Quality review**: run the smallest meaningful analysis/tests, review accessibility and failure states, and inspect the diff for boundary or security regressions.
-7. **Final handoff**: record the changed files, behavior, validation evidence, known limitations, and final status.
+7. **Final handoff**: record the changed files, behavior, validation evidence, known limitations, and final status; reconcile the Linear issue to the actual task state and evaluate whether a project-level status update trigger above was met.
 
 Start from [tasks/TEMPLATE.md](tasks/TEMPLATE.md). Keep the feature brief current while work is active; move it to the archive only after it is validated or superseded.
 
