@@ -105,8 +105,9 @@ final class ManualMealLogCreate {
 /// Canonical Nutrition-owned persistence boundary for actual MealLog history.
 ///
 /// TNYX-195 introduced manual create/read. TNYX-196 makes manual create
-/// duplicate-safe through a stable client mutation identity. Update, delete,
-/// stale-write handling, durable offline replay and Diary read models remain
+/// duplicate-safe through a stable client mutation identity. TNYX-197 adds the
+/// first selected-Diary-date read contract while keeping update, delete,
+/// stale-write handling, durable offline replay and presentation read models in
 /// later bounded slices.
 abstract interface class MealLogRepository {
   /// Persists one manual/coarse actual meal and returns the durable canonical
@@ -121,4 +122,12 @@ abstract interface class MealLogRepository {
   /// Returns `null` only when that identity is not visible for the current
   /// repository owner. Invalid/blank identities are caller errors.
   Future<MealLogEntry?> readById(String id);
+
+  /// Reads canonical actual history for one stored Diary local-date identity.
+  ///
+  /// Implementations must group by persisted [MealLogEntry.consumedLocalDate],
+  /// never by recomputing a date from [MealLogEntry.consumedAt] in the device's
+  /// current timezone. Results are deterministic: newest `consumedAt` first,
+  /// then opaque row identity ascending as a stable tie-breaker.
+  Future<List<MealLogEntry>> listByLocalDate(MealLogLocalDate localDate);
 }

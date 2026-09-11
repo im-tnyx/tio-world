@@ -311,11 +311,107 @@ void main() {
       expect(gateway.readCalls, isEmpty);
     });
 
+    test('signed-out selected-day read fails before gateway access', () async {
+      final gateway = _FakeMealLogGateway();
+      final repository = _repository(gateway: gateway, userId: '  ');
+
+      await expectLater(
+        () => repository.listByLocalDate(
+          MealLogLocalDate(year: 2026, month: 9, day: 11),
+        ),
+        throwsStateError,
+      );
+      expect(gateway.localDateReadCalls, isEmpty);
+    });
+
     test('missing row returns null and keeps owner filter', () async {
       final gateway = _FakeMealLogGateway(readResult: null);
 
       expect(await _repository(gateway: gateway).readById('row-1'), isNull);
       expect(gateway.readCalls.single, ('user-1', 'row-1'));
+    });
+
+    test('selected-day read uses owner + stored date and deterministic order',
+        () async {
+      final gateway = _FakeMealLogGateway(
+        localDateReadResults: [
+          _row(
+            id: 'row-c',
+            consumedAt: '2026-09-11T06:00:00.000Z',
+          ),
+          _row(
+            id: 'row-b',
+            consumedAt: '2026-09-11T08:00:00.000Z',
+          ),
+          _row(
+            id: 'row-a',
+            consumedAt: '2026-09-11T08:00:00.000Z',
+          ),
+        ],
+      );
+      final repository = _repository(gateway: gateway, userId: ' user-1 ');
+      final localDate = MealLogLocalDate(year: 2026, month: 9, day: 11);
+
+      final entries = await repository.listByLocalDate(localDate);
+
+      expect(gateway.localDateReadCalls.single, ('user-1', '2026-09-11'));
+      expect(entries.map((entry) => entry.id), ['row-a', 'row-b', 'row-c']);
+      expect(entries.every((entry) => entry.consumedLocalDate == localDate),
+          isTrue);
+    });
+
+    test('selected-day empty result stays empty', () async {
+      final gateway = _FakeMealLogGateway();
+      final entries = await _repository(gateway: gateway).listByLocalDate(
+        MealLogLocalDate(year: 2026, month: 9, day: 10),
+      );
+
+      expect(entries, isEmpty);
+      expect(gateway.localDateReadCalls.single, ('user-1', '2026-09-10'));
+    });
+
+    test('selected-day historical read does not revalidate archived category',
+        () async {
+      final categories = InMemoryMealCategoriesRepository();
+      final current = await categories.read();
+      await categories.upsert(
+        MealCategoriesConfig(
+          items: current.items.map(
+            (item) => item.id == 'meal_slot_2' ? item.withActive(false) : item,
+          ),
+        ),
+      );
+      final gateway = _FakeMealLogGateway(
+        localDateReadResults: [_row(id: 'historical-row')],
+      );
+
+      final entries = await _repository(
+        gateway: gateway,
+        mealCategoriesRepository: categories,
+      ).listByLocalDate(
+        MealLogLocalDate(year: 2026, month: 9, day: 11),
+      );
+
+      expect(entries.single.id, 'historical-row');
+      expect(entries.single.mealCategoryId, 'meal_slot_2');
+    });
+
+    test('selected-day malformed row fails closed instead of being skipped',
+        () async {
+      final malformed = _row(id: 'bad-row')..remove('created_at');
+      final gateway = _FakeMealLogGateway(
+        localDateReadResults: [
+          _row(id: 'good-row'),
+          malformed,
+        ],
+      );
+
+      await expectLater(
+        () => _repository(gateway: gateway).listByLocalDate(
+          MealLogLocalDate(year: 2026, month: 9, day: 11),
+        ),
+        throwsFormatException,
+      );
     });
 
     test('historical null mutation id still decodes every manual field',
@@ -495,6 +591,7 @@ Map<String, dynamic> _row({
   String? captureSource,
   Map<String, Object?>? snapshot,
   String consumedAt = '2026-09-11T07:30:00.000Z',
+  String localDate = '2026-09-11',
   String createdAt = '2026-09-11T10:00:00.000Z',
   String updatedAt = '2026-09-11T10:00:00.000Z',
   String? clientMutationId,
@@ -507,7 +604,7 @@ Map<String, dynamic> _row({
     'meal_name': mealName,
     'note': note,
     'consumed_at': consumedAt,
-    'consumed_local_date': '2026-09-11',
+    'consumed_local_date': localDate,
     'consumed_timezone_id': timezoneId,
     'consumed_utc_offset_minutes': offsetMinutes,
     'capture_source': captureSource,
@@ -533,15 +630,21 @@ class _FakeMealLogGateway implements MealLogTableGateway {
     this.insertError,
     this.readResult,
     List<Object?> mutationReadSequence = const [],
-  }) : _mutationReadSequence = List<Object?>.from(mutationReadSequence);
+    List<Map<String, dynamic>> localDateReadResults = const [],
+  })  : _mutationReadSequence = List<Object?>.from(mutationReadSequence),
+        _localDateReadResults = [
+          for (final row in localDateReadResults) Map<String, dynamic>.from(row),
+        ];
 
   final Map<String, dynamic>? insertResult;
   final Object? insertError;
   final Map<String, dynamic>? readResult;
   final List<Object?> _mutationReadSequence;
+  final List<Map<String, dynamic>> _localDateReadResults;
   final List<Map<String, dynamic>> insertPayloads = [];
   final List<(String, String)> readCalls = [];
   final List<(String, String)> mutationReadCalls = [];
+  final List<(String, String)> localDateReadCalls = [];
 
   @override
   Future<Map<String, dynamic>> insertRow(Map<String, dynamic> payload) async {
@@ -577,5 +680,16 @@ class _FakeMealLogGateway implements MealLogTableGateway {
       return Map<String, dynamic>.from(next);
     }
     throw next;
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> listRowsByLocalDate({
+    required String userId,
+    required String localDate,
+  }) async {
+    localDateReadCalls.add((userId, localDate));
+    return [
+      for (final row in _localDateReadResults) Map<String, dynamic>.from(row),
+    ];
   }
 }
