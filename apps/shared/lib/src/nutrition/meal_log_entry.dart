@@ -15,6 +15,7 @@ final class MealLogEntry {
     required this.mode,
     required this.mealCategoryId,
     required this.mealName,
+    required this.note,
     required this.consumedAt,
     required this.consumedLocalDate,
     required this.consumedTimezoneId,
@@ -41,6 +42,7 @@ final class MealLogEntry {
     required String userId,
     required String mealCategoryId,
     String? mealName,
+    String? note,
     required DateTime consumedAt,
     required MealLogLocalDate consumedLocalDate,
     String? consumedTimezoneId,
@@ -65,6 +67,7 @@ final class MealLogEntry {
       mode: MealLogMode.manual,
       mealCategoryId: mealCategoryId,
       mealName: _normalizeOptionalMealName(mealName),
+      note: _normalizeOptionalNote(note),
       consumedAt: consumedAt,
       consumedLocalDate: consumedLocalDate,
       consumedTimezoneId: normalizedTimezoneId,
@@ -84,6 +87,12 @@ final class MealLogEntry {
   /// User-entered name. Blank input is represented as absent rather than a
   /// fabricated display fallback such as `Quick Log`.
   final String? mealName;
+
+  /// Optional meal-level context about the actual eating event.
+  ///
+  /// Blank input is represented as absent. Nonblank text is preserved as
+  /// entered; visibility preferences must not rewrite or clear this data.
+  final String? note;
 
   /// Already-resolved canonical instant used for chronology.
   final DateTime consumedAt;
@@ -111,6 +120,11 @@ final class MealLogEntry {
   final DateTime updatedAt;
 
   static String? _normalizeOptionalMealName(String? value) {
+    if (value == null || value.trim().isEmpty) return null;
+    return value;
+  }
+
+  static String? _normalizeOptionalNote(String? value) {
     if (value == null || value.trim().isEmpty) return null;
     return value;
   }
