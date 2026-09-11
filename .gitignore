@@ -86,6 +86,13 @@ build/
 coverage/
 .melos_tool/
 
+# Root workspace lockfile only. The repository root is not a melos package and
+# not a pub workspace root, so this lockfile pins no deployable artifact. It is
+# a side effect of running `flutter pub get` at the root. Anchored on purpose:
+# never use a bare `pubspec.lock` or `**/pubspec.lock` rule here, because the
+# runnable app and package lockfiles under apps/ must stay tracked.
+/pubspec.lock
+
 # Generated Dart files
 *.g.dart
 *.freezed.dart

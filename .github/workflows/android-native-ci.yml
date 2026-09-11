@@ -12,7 +12,6 @@ on:
       - 'apps/wear/lib/**'
       - 'apps/wear/pubspec.yaml'
       - 'pubspec.yaml'
-      - 'pubspec.lock'
       - '.github/workflows/android-native-ci.yml'
   workflow_dispatch:
 

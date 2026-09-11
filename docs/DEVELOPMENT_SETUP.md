@@ -41,7 +41,6 @@ dart pub global activate melos
 From repo root after `pubspec.yaml` and `melos.yaml` are configured:
 
 ```bash
-flutter pub get
 melos bootstrap
 ```
 
