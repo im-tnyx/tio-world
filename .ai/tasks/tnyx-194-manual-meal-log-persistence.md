@@ -1,6 +1,6 @@
 # TNYX-194 — N20A-5 Manual MealLog physical persistence foundation
 
-**Status:** In progress
+**Status:** In Review
 **Primary owner:** Supabase persistence / Nutrition
 **Affected platforms:** Supabase database only; CI database validation
 
@@ -17,20 +17,20 @@
 **Planning owner:** TNYX-113 / TNYX-194
 **Implementation owner:** ChatGPT
 **Review owner:** Owner / manual PR review
-**Implementation ownership state:** Active
+**Implementation ownership state:** Handoff pending
 **Repository state last verified:** 2026-09-11
 **Branch:** `tnyx/tnyx-194-n20a-5-manual-meallog-physical-persistence-foundation`
-**HEAD SHA:** branch created from `c7cb15b63a9ef6502fb0aa71b9682d8265eb7f92`
+**HEAD SHA:** validated implementation head `8f70cf4ad4aaf79c44aebe3493f0828211194455`; this handoff reconciliation is docs-only
 **Observed working-tree state:** Connector-managed branch; local working tree unavailable
 **Observed uncommitted/dirty files:** Not observable through GitHub connector
-**PR / tracker:** TNYX-194 `In Progress`; no PR at implementation start
-**Current implementation state:** Fresh audit complete; physical migration/tests being implemented
+**PR / tracker:** Draft PR #253; TNYX-194 transitioning to `In Review`
+**Current implementation state:** Bounded migration, focused SQL matrix, and DB CI hook implemented. No hosted migration has been durably applied.
 **Relevant execution surface:** `supabase/migrations`, `supabase/tests/database`, `.github/workflows/supabase-db-ci.yml`
-**Validation completed at SHA:** Not yet
-**Validation remaining:** migration replay, focused SQL matrix, lint diff, hosted advisor comparison after any eventual apply
-**Current blocker:** None
+**Validation completed at SHA:** `8f70cf4ad4aaf79c44aebe3493f0828211194455`
+**Validation remaining:** Owner review/merge authorization; hosted apply + post-apply advisors belong only after the approved merge/apply gate.
+**Current blocker:** None in implementation. Hosted production apply remains intentionally gated.
 **Open review finding IDs:** None
-**Next exact action:** Add the bounded migration, focused DB test matrix, and explicit CI test step without enabling app save UI.
+**Next exact action:** Owner/manual review of draft PR #253. Do not apply the hosted migration or enable Quick Add save UI from this handoff.
 
 ## Global UI / Design-System Guardrail
 
@@ -65,10 +65,11 @@ Serving/serving-size, `MealLogItemSnapshot`, meal images, detailed mode, provide
 ### Verified Evidence
 
 - Source/config inspected: `MealLogEntry`, `NutritionSnapshot`, `NutrientId`, `MealLogCaptureSource`, current migrations, DB CI workflow, hosted table/migration/advisor state.
-- Existing pattern to follow: `body_weight_logs` for UUID ownership/FK/index/trigger/RLS and `private.is_valid_meal_categories_config_v1(jsonb)` for hardened private JSON validation.
-- Tests or validation already present: SQL transactional database tests under `supabase/tests/database`; DB CI replays the complete migration ledger from scratch.
-- Supabase current docs re-verified: grants and RLS are separate controls; revoke client defaults before granting only intended operations; use `(select auth.uid())` in owner policies.
-- Current Supabase breaking-change feed has no change that alters this table/RLS pattern.
+- Existing pattern followed: `body_weight_logs` for UUID ownership/FK/index/trigger/RLS and `private.is_valid_meal_categories_config_v1(jsonb)` for hardened private JSON validation.
+- Checked-in Supabase Postgres guidance requires FK indexing; the Diary composite index starts with `user_id`, satisfying the ownership FK/CASCADE access path.
+- Supabase current guidance was re-verified: grants and RLS are separate controls; client defaults are narrowed; owner policies use `(select auth.uid())`.
+- Hosted `private` schema ACL was checked: `authenticated` and `service_role` have USAGE; `anon` does not, matching the existing private-helper pattern.
+- Hosted rollback dry-runs validated the proposed table/validator/grants/RLS behavior without leaving durable schema objects.
 
 ## 3. Clarification
 
@@ -83,7 +84,7 @@ Serving/serving-size, `MealLogItemSnapshot`, meal images, detailed mode, provide
 | Unknown future nutrient keys remain forward-compatible | Locked | Current `NutritionSnapshot.fromJson` ignores unknown identities rather than remapping/failing unrelated known data | Existing shared codec |
 | Known nutrient values must be numeric and non-negative | Locked | Mirrors domain validation for currently known nutrients | Existing shared codec |
 | `anon` table privileges are explicitly revoked | Locked | Current project defaults are broad; grants must be narrowed separately from RLS | Supabase current guidance |
-| Serving + serving size | Deferred | Belong to detailed `MealLogItemSnapshot`, not manual/coarse persistence | Owner / TNYX-113 |
+| Serving + serving size | Deferred | Both will be durable detailed-item facts, but belong to `MealLogItemSnapshot`, not manual/coarse persistence | Owner / TNYX-113 |
 | Meal image | Deferred | Requires separate media/storage lifecycle contract | Owner / later media slice |
 
 ## 4. Architecture Design
@@ -126,41 +127,76 @@ No UI states are introduced. Invalid physical rows fail at CHECK/FK/grant/RLS bo
 - [x] Fresh GitHub/Linear/Supabase audit
 - [x] Owner implementation approval
 - [x] Create bounded branch and mark TNYX-194 In Progress
-- [ ] Add `meal_log_entries` migration
-- [ ] Add focused SQL test matrix
-- [ ] Wire SQL matrix into Supabase DB CI
-- [ ] Verify branch diff and migration semantics
-- [ ] Open draft PR with exact scope/validation state
-- [ ] Do not apply hosted migration or enable Quick Add UI as part of an unreviewed branch
+- [x] Add `meal_log_entries` migration
+- [x] Add focused SQL test matrix
+- [x] Wire SQL matrix into Supabase DB CI
+- [x] Verify branch diff and migration semantics
+- [x] Open draft PR #253 with exact scope/validation state
+- [x] Transactionally dry-run proposed schema on hosted Postgres and verify rollback leaves no durable objects
+- [x] Full Supabase Database CI passes at implementation head
+- [x] Manual exhaustive review completed; review/test findings resolved
+- [x] Hosted migration remains unapplied and Quick Add save UI remains disabled
 
 ## 6. Quality Review
 
 ### Validation Run
 
+Validated implementation head: `8f70cf4ad4aaf79c44aebe3493f0828211194455`.
+
+Supabase Database CI run #23 / `34596216772` passed all gates:
+
 ```text
-Not run yet.
+Start disposable local Postgres                 PASS
+Replay baseline + capture lint baseline        PASS
+Reinitialize disposable database               PASS
+Replay all migrations from scratch             PASS
+Verify complete migration ledger               PASS
+Verify private helpers outside Data API        PASS
+TNYX-67 existing SQL matrix                    PASS
+TNYX-186 existing SQL matrix                   PASS
+TNYX-194 manual MealLog SQL matrix             PASS
+Real two-session concurrency test              PASS
+Reject newly introduced DB lint errors         PASS
 ```
+
+Hosted validation was rollback-only. The proposed schema/validator/grants/RLS were created inside transactions and exercised, then rollback was separately verified to leave both `public.meal_log_entries` and `private.is_valid_nutrition_snapshot_v1(jsonb)` absent.
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| | | Open | | | |
+| R1 | P3 | Resolved | Offset-only valid test fixture initially omitted its offset and therefore correctly tripped the time-context CHECK | pre-`88beaf32` | Fixture corrected before PR validation; hosted offset-only dry-run passed |
+| R2 | P3 | Resolved | SQL matrix compared `information_schema.sql_identifier[]` directly with `text[]`, causing CI type-resolution failure | `88beaf32d639cbdc1c1e624c9bb97d2a733a70a8` | Cast `column_name::text`; exact-head CI run #23 passed all DB gates at `8f70cf4a` |
+
+Manual re-review after R2 found no additional schema, RLS, grant, index, scope-leak, or future-serving conflict.
 
 ## 7. Final Handoff
 
 ### Changed Files
 
-Pending implementation.
+```text
+.ai/tasks/tnyx-194-manual-meal-log-persistence.md
+.github/workflows/supabase-db-ci.yml
+supabase/migrations/20260911114500_create_manual_meal_log_entries.sql
+supabase/tests/database/tnyx_194_manual_meal_log_entries.test.sql
+```
 
 ### Actual Behavior
 
-No production behavior change until migration is reviewed/applied. This branch only defines the durable DB contract and its validation.
+- Defines one canonical future `public.meal_log_entries` owner, constrained to manual mode in V1.
+- Stores provider-independent manual nutrition as canonical `NutritionSnapshot` JSON rather than duplicate macro columns.
+- Separately stores chronology instant and durable user-intended local date plus required time context.
+- Preserves durable meal-category ID and stable capture-source storage values.
+- Enables RLS with explicit authenticated own-row SELECT/INSERT/UPDATE/DELETE policies using optimized auth evaluation.
+- Explicitly removes `anon` table DML and narrows authenticated/service-role table grants.
+- Adds a user/local-date/chronology index and canonical `updated_at` trigger.
+- Adds a focused database matrix wired into complete migration replay CI.
+- Does not create or persist serving/serving-size yet; those remain two distinct detailed-item facts for the later `MealLogItemSnapshot` slice.
 
 ### Known Limitations
 
-Serving/serving-size, meal image, detailed items, idempotency, repository wiring, and Quick Add lifecycle remain intentionally deferred.
+Serving/serving-size, meal image, detailed items, idempotency, repository wiring, Quick Add lifecycle, and hosted migration apply remain intentionally deferred/gated.
 
 ### Final Status
 
-`PARTIAL` — implementation in progress.
+`REVIEW` — implementation and validation are complete; draft PR #253 is ready for owner review. Production Supabase is unchanged by this branch.
