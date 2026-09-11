@@ -7,8 +7,9 @@ import '../domain/repositories/meal_log_repository.dart';
 ///
 /// Production history must use the Supabase adapter. This repository exists so
 /// non-Supabase harnesses remain constructible without pretending the data is
-/// durable or synced. It mirrors manual-create idempotency deterministically so
-/// local/test behavior does not hide mutation-identity bugs.
+/// durable or synced. It mirrors manual-create idempotency and selected-day
+/// history ordering deterministically so local/test behavior does not hide
+/// persistence-contract bugs.
 final class InMemoryMealLogRepository implements MealLogRepository {
   InMemoryMealLogRepository({
     required MealCategoriesRepository mealCategoriesRepository,
@@ -69,6 +70,17 @@ final class InMemoryMealLogRepository implements MealLogRepository {
     return _entries[id];
   }
 
+  @override
+  Future<List<MealLogEntry>> listByLocalDate(
+    MealLogLocalDate localDate,
+  ) async {
+    final entries = _entries.values
+        .where((entry) => entry.consumedLocalDate == localDate)
+        .toList()
+      ..sort(_compareDiaryOrder);
+    return List<MealLogEntry>.unmodifiable(entries);
+  }
+
   Future<void> _requireActiveMealCategory(String id) async {
     if (id.isEmpty || id.trim() != id) {
       throw ArgumentError.value(
@@ -86,6 +98,12 @@ final class InMemoryMealLogRepository implements MealLogRepository {
         'must reference an active Meal Category',
       );
     }
+  }
+
+  static int _compareDiaryOrder(MealLogEntry left, MealLogEntry right) {
+    final byConsumedAt = right.consumedAt.compareTo(left.consumedAt);
+    if (byConsumedAt != 0) return byConsumedAt;
+    return left.id.compareTo(right.id);
   }
 
   static bool _sameCreate(
