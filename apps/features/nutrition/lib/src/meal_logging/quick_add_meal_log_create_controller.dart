@@ -80,10 +80,10 @@ final class QuickAddMealLogCreateState {
 /// Owns one Quick Add manual-create operation and its retry identity.
 ///
 /// The editor owns the mutable route-local draft. This controller sees only an
-/// immutable snapshot at submit time and is responsible for turning it into the
-/// canonical persistence input. A retry of the same logical operation reuses
-/// the same mutation UUID; an ambiguous outcome additionally freezes the exact
-/// payload until the repository can reconcile it.
+/// immutable snapshot at submit time and is responsible for validating and
+/// turning it into the canonical persistence input. A retry of the same logical
+/// operation reuses the same mutation UUID; an ambiguous outcome additionally
+/// freezes the exact payload until the repository can reconcile it.
 final class QuickAddMealLogCreateController extends ChangeNotifier {
   QuickAddMealLogCreateController({
     required MealLogRepository repository,
@@ -92,6 +92,13 @@ final class QuickAddMealLogCreateController extends ChangeNotifier {
   })  : _repository = repository,
         _clock = clock ?? DateTime.now,
         _uuidV4 = uuidV4 ?? _defaultUuidV4;
+
+  static const String futureMealMessage = 'Meal time cannot be in the future.';
+  static const String invalidMealMessage =
+      'Review the meal details and try again.';
+  static const String genericFailureMessage = "Couldn't log meal. Try again.";
+  static const String outcomeUnknownMessage =
+      'Save status is uncertain. Retry to check this same meal.';
 
   final MealLogRepository _repository;
   final DateTime Function() _clock;
@@ -102,8 +109,15 @@ final class QuickAddMealLogCreateController extends ChangeNotifier {
 
   QuickAddMealLogDraft? _retryDraft;
   ManualMealLogCreate? _retryInput;
+  bool _disposed = false;
 
   static String _defaultUuidV4() => const Uuid().v4();
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
 
   /// A known failure did not leave an unresolved durable outcome. Once the
   /// reader changes any submit-relevant fact, that old operation is no longer
@@ -133,16 +147,29 @@ final class QuickAddMealLogCreateController extends ChangeNotifier {
       // actual meal, so the ambiguous input remains authoritative.
       input = frozenInput;
     } else {
+      final validationMessage = _validateDraft(draft);
+      if (validationMessage != null) {
+        _retryDraft = null;
+        _retryInput = null;
+        _setState(
+          QuickAddMealLogCreateState._(
+            status: QuickAddMealLogCreateStatus.failed,
+            message: validationMessage,
+          ),
+        );
+        return null;
+      }
+
       final now = _minuteOnly(_clock());
       if (draft.consumedLocalDateTime.isAfter(now)) {
+        _retryDraft = null;
+        _retryInput = null;
         _setState(
           const QuickAddMealLogCreateState._(
             status: QuickAddMealLogCreateStatus.failed,
-            message: 'Meal time cannot be in the future.',
+            message: futureMealMessage,
           ),
         );
-        _retryDraft = null;
-        _retryInput = null;
         return null;
       }
 
@@ -151,7 +178,19 @@ final class QuickAddMealLogCreateController extends ChangeNotifier {
           frozenInput != null) {
         input = frozenInput;
       } else {
-        input = _buildInput(draft, clientMutationId: _uuidV4());
+        try {
+          input = _buildInput(draft, clientMutationId: _uuidV4());
+        } on ArgumentError {
+          _retryDraft = null;
+          _retryInput = null;
+          _setState(
+            const QuickAddMealLogCreateState._(
+              status: QuickAddMealLogCreateStatus.failed,
+              message: invalidMealMessage,
+            ),
+          );
+          return null;
+        }
         _retryDraft = draft;
         _retryInput = input;
       }
@@ -174,11 +213,22 @@ final class QuickAddMealLogCreateController extends ChangeNotifier {
         ),
       );
       return entry;
-    } on MealLogCreateOutcomeUnknown {
+    } on MealLogCreateOutcomeUnknown catch (error) {
+      if (error.clientMutationId != input.clientMutationId) {
+        _retryDraft = null;
+        _retryInput = null;
+        _setState(
+          const QuickAddMealLogCreateState._(
+            status: QuickAddMealLogCreateStatus.failed,
+            message: genericFailureMessage,
+          ),
+        );
+        return null;
+      }
       _setState(
         const QuickAddMealLogCreateState._(
           status: QuickAddMealLogCreateStatus.outcomeUnknown,
-          message: 'Save status is uncertain. Retry to check this same meal.',
+          message: outcomeUnknownMessage,
         ),
       );
       return null;
@@ -194,7 +244,7 @@ final class QuickAddMealLogCreateController extends ChangeNotifier {
       _setState(
         const QuickAddMealLogCreateState._(
           status: QuickAddMealLogCreateStatus.failed,
-          message: 'Review the meal details and try again.',
+          message: invalidMealMessage,
         ),
       );
       return null;
@@ -202,12 +252,27 @@ final class QuickAddMealLogCreateController extends ChangeNotifier {
       _setState(
         const QuickAddMealLogCreateState._(
           status: QuickAddMealLogCreateStatus.failed,
-          message: "Couldn't log meal. Try again.",
+          message: genericFailureMessage,
         ),
       );
       return null;
     }
   }
+
+  String? _validateDraft(QuickAddMealLogDraft draft) {
+    if (draft.mealCategoryId.trim().isEmpty) return invalidMealMessage;
+    if (!_isValidAmount(draft.caloriesKcal)) return invalidMealMessage;
+    for (final value in <num?>[
+      draft.carbohydrateGrams,
+      draft.proteinGrams,
+      draft.fatGrams,
+    ]) {
+      if (value != null && !_isValidAmount(value)) return invalidMealMessage;
+    }
+    return null;
+  }
+
+  bool _isValidAmount(num value) => value.isFinite && value >= 0;
 
   ManualMealLogCreate _buildInput(
     QuickAddMealLogDraft draft, {
@@ -233,6 +298,8 @@ final class QuickAddMealLogCreateController extends ChangeNotifier {
         month: local.month,
         day: local.day,
       ),
+      // Dart exposes the exact offset for this local DateTime. It does not
+      // expose a trustworthy IANA zone identity, so none is fabricated.
       consumedUtcOffsetMinutes: local.timeZoneOffset.inMinutes,
       captureSource: MealLogCaptureSource.quickAdd,
       manualNutritionSnapshot: NutritionSnapshot(
@@ -251,6 +318,7 @@ final class QuickAddMealLogCreateController extends ChangeNotifier {
       );
 
   void _setState(QuickAddMealLogCreateState next) {
+    if (_disposed) return;
     _state = next;
     notifyListeners();
   }
