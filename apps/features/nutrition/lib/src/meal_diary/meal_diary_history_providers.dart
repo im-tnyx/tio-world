@@ -157,7 +157,8 @@ final mealDiaryHistoryProvider = FutureProvider.autoDispose
   (ref, request) async {
     final categoriesRepository = request.mealCategoriesRepository;
     if (categoriesRepository is MealCategoriesChangeSource) {
-      final subscription = categoriesRepository.changes.listen((_) {
+      final changeSource = categoriesRepository as MealCategoriesChangeSource;
+      final subscription = changeSource.changes.listen((_) {
         // The repository emits only after a confirmed local write. Rebuild the
         // same selected-day read model so current retained display names are
         // visible even though the Diary itself may have stayed mounted behind
