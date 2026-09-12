@@ -70,6 +70,23 @@ void main() {
     expect(lunch.entries.first.loggedLocalDateTime?.minute, 20);
   });
 
+  test('empty day does not depend on Meal Categories availability', () async {
+    final categories = _ThrowingMealCategoriesRepository();
+    final request = MealDiaryHistoryRequest(
+      mealLogRepository: _FakeMealLogRepository(const {}),
+      mealCategoriesRepository: categories,
+      localDate: selectedDate,
+    );
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    final model = await container.read(mealDiaryHistoryProvider(request).future);
+
+    expect(model.localDate, selectedDate);
+    expect(model.isEmpty, isTrue);
+    expect(categories.readCount, 0);
+  });
+
   test('does not label an unnamed non-Quick-Add event as Quick Add', () async {
     final repository = _FakeMealLogRepository({
       selectedDate: [
@@ -222,6 +239,20 @@ final class _FakeMealCategoriesRepository implements MealCategoriesRepository {
 
   @override
   Future<MealCategoriesConfig> read() async => config;
+
+  @override
+  Future<void> upsert(MealCategoriesConfig config) => throw UnimplementedError();
+}
+
+final class _ThrowingMealCategoriesRepository
+    implements MealCategoriesRepository {
+  int readCount = 0;
+
+  @override
+  Future<MealCategoriesConfig> read() async {
+    readCount++;
+    throw StateError('Meal Categories unavailable');
+  }
 
   @override
   Future<void> upsert(MealCategoriesConfig config) => throw UnimplementedError();
