@@ -1,6 +1,6 @@
 # TNYX-203 — Manual MealLog optimistic revision & update foundation
 
-**Status:** In progress — review blocker resolution
+**Status:** Review handoff
 **Primary owner:** Nutrition + Supabase + shared MealLog contract
 **Affected platforms:** Flutter shared/Nutrition domain + Supabase Postgres; no visible UI
 
@@ -29,25 +29,25 @@ Explicit non-changes:
 - no offline mutation queue;
 - no Daily Nutrition Summary/calendar work;
 - no future detailed Meal Editor body;
-- no additional Supabase table/column shape beyond the already-approved `revision` column.
+- no additional Supabase table/column shape beyond the approved `revision` column.
 
-Owner UX decisions remain under TNYX-115/TNYX-58/TNYX-204 and do not widen this backend slice.
+Owner UX decisions remain under TNYX-115/TNYX-58/TNYX-204 and did not widen this backend slice.
 
 ## Active Handoff
 
 **Planning owner:** ChatGPT
-**Previous implementation owner:** ChatGPT implementation handoff at `64d3257eaae8aed56ef0915e941c7f07800aaa40`
-**Receiving implementation owner:** ChatGPT, resumed after owner `Go` on 2026-09-12 to resolve final-review blockers
-**Implementation ownership state:** Active
-**Review owner:** Previous independent review published two blocking P2 findings on PR #262
+**Implementation owner:** Inactive after validated review-fix handoff
+**Review owner:** Owner / next review agent
+**Implementation ownership state:** Review handoff
 **Branch:** `tnyx/tnyx-203-n20d-2-manual-meallog-optimistic-revision-update-foundation`
 **Base:** `main` at `9eb22692a31dbad030d67ead77e5dd2bd67dd0de`
-**Resume HEAD:** `64d3257eaae8aed56ef0915e941c7f07800aaa40`
-**PR:** #262 — Draft while review fixes are active
-**Tracker:** Linear TNYX-203 is `In Progress`
+**Validated source/review-fix SHA:** `2c0852a4fe210cf95c33db84d492d89fba211d12`
+**PR:** #262 — remains Draft until this governance-only handoff head receives exact-head CI
+**Tracker:** Linear TNYX-203 remains `In Progress` until Ready-for-Review handoff is re-established
 **Working tree:** API-authored branch; no local working-tree claim
-**Current blocker:** Two open P2 correctness findings, T203-R5 and T203-R6, pending fresh validation
-**Next exact action:** run exact-head Flutter + Supabase DB CI for the review fixes, then re-review both findings before Ready transition
+**Current blocker:** No source blocker; exact governance-handoff-head CI remains required
+**Open review findings:** None; T203-R5 and T203-R6 are resolved and their GitHub threads are resolved
+**Next exact action:** verify exact handoff-head Flutter + Supabase DB CI, fresh scope/thread read-back, then return PR to Ready for Review and TNYX-203 to In Review. Merge still requires separate explicit owner authorization.
 
 ## Locked Architecture
 
@@ -73,95 +73,157 @@ Rules:
 - every successful row update increments exactly once;
 - a stale edit never overwrites newer durable state;
 - retaining the same archived Meal Category is allowed; moving requires an active destination;
-- ambiguous mutation outcomes reconcile from canonical source truth;
+- ambiguous update outcomes reconcile from canonical source truth;
 - TNYX-196 same-key/different-create-payload behavior remains fail closed.
 
-## Implemented Foundation Before Review Re-entry
+## Implemented Contract
 
-- `MealLogEntry.revision` added and validated;
-- `ManualMealLogUpdate` plus not-found/conflict/outcome-unknown contracts added;
-- in-memory optimistic update implementation added;
-- Supabase conditional update implementation added;
-- revision mapped through create/read/list/update rows;
-- production migration `20260912064635_add_meal_log_revision.sql` applied and live-verified;
-- database trigger forces INSERT revision `1`, UPDATE `OLD.revision + 1`, and protects immutable provenance;
-- owner RLS/grants remain intact;
-- focused Flutter and SQL regressions were added;
-- validated source/lineage SHA `de8f1e079413a8138f3f05a4056296327d3af7b1` passed Flutter CI #2433 and Supabase DB CI #33;
-- governance handoff head `64d3257e...` passed Flutter CI #2434 and Supabase DB CI #34.
+### Domain/shared
 
-Historical green CI is evidence for those exact SHAs only. Review-fix HEAD requires fresh validation.
+- `MealLogEntry.manual(...)` exposes durable `revision`, defaults to `1`, and rejects `< 1`.
+- `ManualMealLogUpdate` carries editable manual facts plus `id` and `expectedRevision`.
+- deterministic update failures distinguish not-found, stale conflict, and outcome-unknown.
+- update capability is additive so existing create/read/list repository consumers remain source-compatible.
 
-## Open Review Findings
+### In-memory owner
 
-| ID | Severity | Status | Observed SHA | Finding | Required resolution |
+- updates the same entry ID;
+- requires expected revision and advances exactly once;
+- preserves immutable provenance;
+- keeps same archived category valid while requiring an active destination for category moves;
+- manual-create retry remains fail closed for reused mutation IDs;
+- once a canonical row has been edited (`revision > 1`), create reconciliation fails closed because production cannot durably prove the original mutable create payload without another approved immutable fingerprint.
+
+### Supabase owner
+
+- maps `revision` through create/read/list/update rows;
+- conditional durable update uses authenticated owner + row ID + expected revision;
+- mutable update payload excludes owner, mode, capture source, created timestamp, create mutation identity, and revision;
+- zero-row/ambiguous outcomes reconcile via canonical read;
+- a cross-call retry recognizes exact canonical `expectedRevision + 1` intended facts before stale-conflict classification, so a committed response-loss edit can converge without a second UPDATE;
+- create reconciliation at revision `1` requires complete create-fact equality;
+- create reconciliation at revision `2+` always fails closed with `MealLogCreateMutationConflict` because current edited facts are insufficient proof of the original create payload.
+
+### Database
+
+Production migration lineage:
+
+```text
+20260912064635_add_meal_log_revision.sql
+```
+
+Migration adds:
+
+```text
+revision bigint NOT NULL DEFAULT 1
+CHECK (revision >= 1)
+```
+
+`private.enforce_meal_log_revision()`:
+
+- is `SECURITY INVOKER` with empty search path;
+- is not directly executable by API roles;
+- forces INSERT revision to `1`;
+- preserves immutable `id`, `mode`, `capture_source`, `created_at`, `client_mutation_id` on UPDATE;
+- forces UPDATE revision to `OLD.revision + 1`.
+
+Ownership remains governed by the established RLS policy contract.
+
+## Review Findings and Resolution
+
+| ID | Severity | Status | Observed SHA | Finding | Resolution evidence |
 |---|---|---|---|---|---|
-| T203-R5 | P2 | Open pending validation | `64d3257e...` | Cross-call retry after `MealLogUpdateOutcomeUnknown` can misclassify an already-committed exact `N+1` row as stale conflict because `updateManual()` checks revision mismatch before exact intended facts. | Before classifying `expectedRevision + 1` as stale, reconcile exact intended facts as success. Regression: `OutcomeUnknown -> same input retry -> canonical N+1 success` with no second write. |
-| T203-R6 | P2 | Open pending validation | `64d3257e...` | For create reconciliation at `revision > 1`, current edited facts cannot prove the original create payload, so a reused `clientMutationId` could be accepted for a different logical create. | Without a separately approved immutable create fingerprint, every edited-row (`revision > 1`) create reconciliation fails closed with `MealLogCreateMutationConflict`; in-memory mirrors production. |
+| T203-R1 | P1 safety | Resolved | earlier implementation | client could otherwise attempt a forged initial revision | INSERT trigger forces `1`; DB matrix PASS |
+| T203-R2 | Compatibility | Resolved | earlier implementation | trigger-owned `user_id` rejection would alter established RLS failure semantics | ownership remains with RLS; immutable provenance protection stays in revision trigger |
+| T203-R3 | Compatibility | Superseded by stricter R6 resolution | earlier implementation | create retry after a later edit needed explicit behavior | final reviewed rule is conservative revision-2+ fail-closed; see T203-R6 |
+| T203-R4 | Governance | Resolved | earlier implementation | repository migration filename differed from live Supabase-assigned ledger version | repository filename/assertions reconciled to `20260912064635` and replay CI passed |
+| T203-R5 | P2 correctness | Resolved | `64d3257e...` | same-input retry after `MealLogUpdateOutcomeUnknown` could report false stale conflict after the first call durably committed N+1 | source `2c0852a4...` checks exact N+1 intended facts before stale classification; regression proves no second write; GitHub thread resolved |
+| T203-R6 | P2 correctness | Resolved | `64d3257e...` | revision-2+ create reconciliation could accept a reused mutation key because original create facts are no longer durably provable | source `2c0852a4...` makes every revision-2+ create reconciliation fail closed with `MealLogCreateMutationConflict`; in-memory parity + focused regression; GitHub thread resolved |
 
-PR inline review threads are the external review references. Do not resolve either thread until the fix and exact-head validation are recorded.
+No P1/P2/P3 blocker remains after the review-fix pass at validated source SHA `2c0852a4...`.
 
-## Review-Fix Decision
+## Validation
 
-### T203-R5 — update retry convergence
+### Validated review-fix source SHA
 
-- if the canonical row is exactly `expectedRevision + 1` and its editable facts exactly match the retry input, return it as reconciled success;
-- perform this check before stale-revision rejection;
-- otherwise preserve normal stale-conflict/outcome-unknown behavior;
-- never issue a blind second UPDATE for an already-committed exact result.
+```text
+2c0852a4fe210cf95c33db84d492d89fba211d12
+```
 
-### T203-R6 — create retry after later edit
+GitHub CI:
 
-No new schema is authorized or required. The row at `revision > 1` no longer durably proves all mutable original create facts. Current edited facts are insufficient evidence because they may coincide with a different later logical create that accidentally reused the same mutation key.
+- Flutter CI #2443 — PASS
+  - bootstrap — PASS
+  - Flutter analyze — PASS
+  - Dart analyze — PASS
+  - Flutter tests — PASS
+  - Dart tests — PASS
+- Supabase Database CI #43 — PASS
+  - baseline/replay — PASS
+  - complete migration ledger — PASS
+  - private-schema exposure check — PASS
+  - existing B1/TNYX-186/TNYX-194 matrices — PASS
+  - TNYX-203 revision matrix — PASS
+  - real two-session concurrency test — PASS
+  - DB lint delta — PASS
 
-Therefore the bounded production-safe rule is:
+Focused regressions now include:
 
-- revision `1`: same mutation key succeeds only when the complete current create facts match the incoming create request;
-- revision `2+`: create reconciliation always fails closed with `MealLogCreateMutationConflict`, even if current edited facts happen to match the incoming request;
-- in-memory behavior mirrors this observable production rule;
-- a future immutable create fingerprint would require separate owner approval because it would widen durable schema.
+- `OutcomeUnknown -> same-input retry -> canonical N+1 success` with only one update call;
+- edited-row create retry fails closed in-memory;
+- revision-2+ Supabase create reconciliation fails closed when facts differ;
+- revision-2+ Supabase create reconciliation still fails closed when current edited facts happen to exactly match the incoming create.
 
-## Review-Fix Source Delta
+### Historical evidence
 
-From the original review handoff `64d3257e...`, the active fix set is intentionally limited to:
+- source/lineage SHA `de8f1e079413a8138f3f05a4056296327d3af7b1`: Flutter #2433 PASS, Supabase DB #33 PASS;
+- prior governance handoff `64d3257e...`: Flutter #2434 PASS, Supabase DB #34 PASS.
 
-- task handoff governance;
-- Supabase update retry preflight reconciliation;
-- Supabase edited-row create fail-closed reconciliation;
-- in-memory parity for edited-row create retries;
-- focused create/update regressions.
+### Live Supabase verification
 
-No migration, RLS, trigger, UI, delete, note, or Meal Editor source changed.
+Project: `tio-world` (`oykupyiitspujzpwwvuj`).
 
-## Validation Required After Fixes
+Already verified before final review:
 
-- focused in-memory edited create-retry fail-closed regression;
-- focused Supabase edited-row create regression, including `revision 2+` whose current facts exactly match a later incoming create;
-- focused Supabase update regression for `OutcomeUnknown -> same-input retry -> N+1 success`;
-- existing update stale/conflict/immutable/category tests;
-- full Flutter CI (`melos analyze`, `melos test` via workflow);
-- full Supabase Database CI replay/matrices/lint;
-- fresh PR scope/head/thread read-back.
+- production ledger contains `20260912064635_add_meal_log_revision`;
+- `revision` is `bigint NOT NULL DEFAULT 1`;
+- existing rows were backfilled to revision `1`;
+- RLS remains enabled;
+- exact four owner CRUD policies remain present;
+- revision trigger and private helper exist;
+- no TNYX-203/`meal_log_entries` security or performance advisor finding was introduced.
 
-No live Supabase migration/write is required for these review fixes because schema/trigger state is unchanged.
+The final-review fixes changed no schema, migration, trigger, RLS, grants, or live database state.
+
+## Final Scope
+
+PR #262 remains bounded to 14 files and contains no production UI/card/editor file. The final review-fix delta from the old handoff `64d3257e...` touched only:
+
+1. this task brief;
+2. `apps/features/nutrition/lib/src/data/in_memory_meal_log_repository.dart`;
+3. `apps/features/nutrition/lib/src/data/repositories/supabase_meal_log_repository.dart`;
+4. `apps/features/nutrition/test/data/meal_log_create_retry_after_update_test.dart`;
+5. `apps/features/nutrition/test/data/supabase_meal_log_update_repository_test.dart`.
+
+No migration/UI widening occurred during blocker resolution.
 
 ## Known Later Work
 
-TNYX-203 still does not implement:
+TNYX-203 does not implement:
 
 - Quick Add `Quick Edit` UI;
 - Diary card overflow/actions/alignment/padding;
 - edit-conflict presentation;
 - delete;
-- note visibility UI;
+- note-visibility UI;
 - detailed Meal Editor/item persistence;
 - broader derived-view invalidation;
 - offline mutation queue.
 
 These remain later bounded slices under TNYX-115/TNYX-58/TNYX-116/TNYX-204.
 
-## Exit Gate
+## Final Status
 
-`IN PROGRESS`
+`REVIEW`
 
-Return to review only after T203-R5 and T203-R6 are validated on the exact current source head, review threads are reconciled, and this brief is refreshed. Merge still requires separate explicit owner authorization.
+Validated source is clean and both final-review P2 findings are resolved. This governance-only handoff commit still requires exact-head CI before PR #262 returns to Ready for Review and TNYX-203 returns to In Review. Merge requires separate explicit owner authorization.
