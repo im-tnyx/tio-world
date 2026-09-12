@@ -55,6 +55,12 @@ final class SupabaseMealCategoriesRepository
   final CurrentMealCategoriesUserId _currentUserId;
   final StreamController<void> _changes = StreamController<void>.broadcast();
 
+  // A concurrency rejection means the canonical row moved somewhere else.
+  // The rejected write itself is not a change event. Instead, remember that
+  // fact until a later authenticated read successfully observes the canonical
+  // row; only then can dependent readers safely refresh to confirmed truth.
+  bool _publishChangeAfterNextSuccessfulRead = false;
+
   @override
   Stream<void> get changes => _changes.stream;
 
@@ -66,16 +72,23 @@ final class SupabaseMealCategoriesRepository
     }
 
     final row = await _gateway.readRow(userId);
-    if (row == null) return MealCategoriesConfig.resolve(null);
-    if (!row.containsKey('meal_categories_config')) {
-      throw const FormatException(
-        'Invalid Meal Categories row: missing meal_categories_config.',
-      );
+    final MealCategoriesConfig resolved;
+    if (row == null) {
+      resolved = MealCategoriesConfig.resolve(null);
+    } else {
+      if (!row.containsKey('meal_categories_config')) {
+        throw const FormatException(
+          'Invalid Meal Categories row: missing meal_categories_config.',
+        );
+      }
+
+      final customized =
+          MealCategoriesConfigCodec.decode(row['meal_categories_config']);
+      resolved = MealCategoriesConfig.resolve(customized);
     }
 
-    final customized =
-        MealCategoriesConfigCodec.decode(row['meal_categories_config']);
-    return MealCategoriesConfig.resolve(customized);
+    _publishObservedConflictChangeIfPending();
+    return resolved;
   }
 
   @override
@@ -95,6 +108,7 @@ final class SupabaseMealCategoriesRepository
       // legal successor to what is stored. Sending it again cannot help, and
       // would overwrite another device's work if it ever did.
       if (_isIntegrityViolation(error)) {
+        _publishChangeAfterNextSuccessfulRead = true;
         throw MealCategoriesWriteConflict(
           message: 'Your meal categories were changed somewhere else.',
           cause: error,
@@ -103,8 +117,15 @@ final class SupabaseMealCategoriesRepository
       rethrow;
     }
 
-    // Publish only after persistence confirms the write. A rejected or failed
-    // mutation must never make readers refresh as though new truth existed.
+    // This successful write is already canonical truth, so it supersedes any
+    // older pending conflict observation and publishes exactly one refresh.
+    _publishChangeAfterNextSuccessfulRead = false;
+    _changes.add(null);
+  }
+
+  void _publishObservedConflictChangeIfPending() {
+    if (!_publishChangeAfterNextSuccessfulRead) return;
+    _publishChangeAfterNextSuccessfulRead = false;
     _changes.add(null);
   }
 
