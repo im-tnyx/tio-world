@@ -31,7 +31,8 @@
 **Validation remaining:** Exact-head CI after publication; workspace `melos` remains unavailable as recorded below\
 **Current blocker:** Workspace `melos` is unavailable in the current shell. Full per-package validation was run instead for every affected/consuming package. This is a local tooling limitation, not a TNYX-204 defect.\
 **Open review finding IDs:** None open. TNYX-204-R5 remains an accepted out-of-scope data limitation, not an implementation blocker. TNYX-208 stays canceled/absorbed and was not reopened.\
-**Next exact action:** Commit the micro-extension, push, verify exact-head Draft PR CI, then reconcile the PR body and the newly satisfied TNYX-204 acceptance items (Linear stays `In Review`, not `Done`).
+**Tracker reconciliation note (2026-09-12, fresh read before Linear update):** the Linear issue's "Additional acceptance for this open PR" checklist was already showing `[X]` on every item by the time this pass re-read it, and a new "Post-merge sequencing correction — owner lock 2026-09-12" section now supersedes the earlier TNYX-205-next handoff with `TNYX-204 → TNYX-209 (N20C-3 Quick Add nutrition amount range & precision policy) → TNYX-205 → TNYX-206 → TNYX-207`. Recorded here only; this task brief never named TNYX-205 as next, and this pass does not start TNYX-209, TNYX-205, or any other follow-on work.\
+**Next exact action:** Commit the micro-extension, push, verify exact-head Draft PR CI, then reconcile the PR body (Linear stays `In Review`, not `Done`).
 
 ## Global UI / Design-System Guardrail
 
