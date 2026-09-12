@@ -5,11 +5,187 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
+import 'package:tio_feature_nutrition/src/meal_diary/presentation/widgets/meal_diary_history_view.dart';
 import 'package:tio_shared/shared.dart';
 
 final _today = DateTime(2026, 9, 11, 12);
 
 void main() {
+  testWidgets(
+      'rich card keeps time inside fixed media and exposes only working Edit',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final categories = _FakeMealCategoriesRepository(
+      MealCategoriesConfig.canonicalDefaults(),
+    );
+    final mealLogs = _ImmediateMealLogRepository({
+      _localDate(11): [
+        _entry(
+          id: 'meal',
+          categoryId: 'meal_slot_2',
+          mealName: 'A deliberately long meal title that must stay bounded',
+          consumedAt: DateTime.utc(2026, 9, 11, 9, 50),
+          calories: 254,
+          protein: 9,
+        ),
+      ],
+    });
+    final edits = <String>[];
+
+    await _pumpHistoryView(
+      tester,
+      mealLogs: mealLogs,
+      categories: categories,
+      onEdit: edits.add,
+    );
+    await tester.pumpAndSettle();
+
+    final mediaFinder =
+        find.byKey(const ValueKey('meal-diary-entry-media-meal'));
+    final timeFinder = find.byKey(const ValueKey('meal-diary-entry-time-meal'));
+    final cardFinder = find.byKey(const ValueKey('meal-diary-entry-meal'));
+    final headerSummaryFinder = find.byKey(
+      const ValueKey('meal-diary-section-summary-meal_slot_2'),
+    );
+    final overflowFinder = find.byIcon(Icons.more_vert);
+    final mediaRect = tester.getRect(mediaFinder);
+    final timeRect = tester.getRect(timeFinder);
+    final cardRect = tester.getRect(cardFinder);
+    final overflowRect = tester.getRect(overflowFinder);
+
+    expect(mediaRect.size, const Size.square(TioSize.dp120));
+    expect(cardRect.height, TioSize.dp120);
+    // The media belongs to the card: it fills the card's own leading corner
+    // rather than floating inside it as a nested tile.
+    expect(mediaRect.left, cardRect.left);
+    expect(mediaRect.top, cardRect.top);
+    expect(mediaRect.bottom, cardRect.bottom);
+    expect(timeRect.bottom, lessThanOrEqualTo(mediaRect.bottom));
+    expect(timeRect.top, greaterThanOrEqualTo(mediaRect.top));
+    final fallbackIcon = tester.widget<Icon>(
+      find.byKey(const ValueKey('meal-diary-entry-fallback-icon-meal')),
+    );
+    expect(fallbackIcon.icon, Icons.restaurant_outlined);
+    expect(fallbackIcon.size, TioSize.dp40);
+    final summaryIcons = find.descendant(
+      of: headerSummaryFinder,
+      matching: find.byType(SvgPicture),
+    );
+    expect(summaryIcons, findsNWidgets(2));
+    // An untinted asset paints the colour it was authored with, which no theme
+    // and no analyzer can reach. Every summary glyph must resolve its colour
+    // from the runtime theme instead.
+    for (final icon in tester.widgetList<SvgPicture>(summaryIcons)) {
+      expect(
+        icon.colorFilter,
+        isNotNull,
+        reason: 'summary glyphs must be tinted from a governed theme role',
+      );
+    }
+    expect(
+      find.descendant(of: cardFinder, matching: find.byType(SvgPicture)),
+      findsNothing,
+    );
+    expect(cardRect.right - overflowRect.right, TioSize.dp12);
+    expect(overflowRect.top - cardRect.top, TioSize.dp12);
+    expect(
+      tester.getSize(find.byType(IconButton)),
+      const Size.square(TioSize.dp48),
+    );
+
+    // Time is a scrim over the media surface, never an opaque pill/control.
+    final scrim = tester.widget<DecoratedBox>(
+      find.ancestor(of: timeFinder, matching: find.byType(DecoratedBox)).first,
+    );
+    final scrimDecoration = scrim.decoration as BoxDecoration;
+    expect(scrimDecoration.gradient, isNotNull);
+    expect(scrimDecoration.color, isNull);
+    expect(scrimDecoration.borderRadius, isNull);
+    expect(
+      tester.getSize(find.byWidget(scrim)).width,
+      mediaRect.width,
+      reason: 'the scrim spans the media surface instead of hugging the text',
+    );
+    expect(tester.takeException(), isNull);
+
+    await tester
+        .tapAt(Offset(cardRect.left + TioSpacing.md, cardRect.bottom - 2));
+    await tester.pump();
+    expect(edits, ['meal']);
+
+    await tester.tap(overflowFinder);
+    await tester.pumpAndSettle();
+    expect(find.text('Edit'), findsOneWidget);
+    expect(find.text('Share'), findsNothing);
+    expect(find.text('Save'), findsNothing);
+    expect(find.text('Log this again'), findsNothing);
+    expect(find.text('Delete'), findsNothing);
+    expect(edits, ['meal'], reason: 'opening the menu must not tap the card');
+
+    await tester.tap(find.byKey(const ValueKey('meal-log-edit-meal')));
+    await tester.pumpAndSettle();
+    expect(edits, ['meal', 'meal']);
+  });
+
+  testWidgets(
+      'section header lets the divider absorb slack and keeps the summary '
+      'flush with the content edge', (tester) async {
+    for (final width in <double>[320, 390]) {
+      tester.view.physicalSize = Size(width, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      final categories = _FakeMealCategoriesRepository(
+        MealCategoriesConfig.canonicalDefaults(),
+      );
+      final mealLogs = _ImmediateMealLogRepository({
+        _localDate(11): [
+          _entry(
+            id: 'meal',
+            categoryId: 'meal_slot_2',
+            mealName: 'Rice',
+            consumedAt: DateTime.utc(2026, 9, 11, 7, 35),
+            calories: 9,
+            protein: 4,
+          ),
+        ],
+      });
+
+      await _pumpHistoryView(
+        tester,
+        mealLogs: mealLogs,
+        categories: categories,
+        onEdit: (_) {},
+      );
+      await tester.pumpAndSettle();
+
+      final sectionRect = tester.getRect(
+        find.byKey(const ValueKey('meal-diary-section-meal_slot_2')),
+      );
+      final summaryRect = tester.getRect(
+        find.byKey(const ValueKey('meal-diary-section-summary-meal_slot_2')),
+      );
+      final dividerRect = tester.getRect(find.byType(Divider));
+
+      expect(
+        summaryRect.right,
+        sectionRect.right,
+        reason: 'summary must sit at the content edge at ${width}dp',
+      );
+      expect(
+        dividerRect.width,
+        greaterThan(0),
+        reason: 'the divider must keep absorbing the middle at ${width}dp',
+      );
+      expect(dividerRect.right, lessThanOrEqualTo(summaryRect.left));
+      expect(summaryRect.left - dividerRect.right, TioSpacing.sm);
+      expect(tester.takeException(), isNull);
+    }
+  });
+
   testWidgets('renders dynamic sections and default time/note presentation',
       (tester) async {
     final dateController = MealDiaryDateController(clock: () => _today);
@@ -55,7 +231,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Quick Add'), findsOneWidget);
-    expect(find.text('620 kcal · 38g protein'), findsOneWidget);
+    expect(find.text('620 kcal'), findsOneWidget);
+    expect(find.text('38g'), findsOneWidget);
     expect(find.byKey(const ValueKey('meal-diary-entry-note-lunch-new')),
         findsOneWidget);
     expect(
@@ -68,10 +245,12 @@ void main() {
     );
 
     final lunchY = tester
-        .getTopLeft(find.byKey(const ValueKey('meal-diary-section-meal_slot_2')))
+        .getTopLeft(
+            find.byKey(const ValueKey('meal-diary-section-meal_slot_2')))
         .dy;
     final breakfastY = tester
-        .getTopLeft(find.byKey(const ValueKey('meal-diary-section-meal_slot_1')))
+        .getTopLeft(
+            find.byKey(const ValueKey('meal-diary-section-meal_slot_1')))
         .dy;
     expect(lunchY, lessThan(breakfastY));
 
@@ -134,7 +313,8 @@ void main() {
     expect(preview.overflow, TextOverflow.ellipsis);
   });
 
-  testWidgets('Meal Notes off hides both note icon and preview', (tester) async {
+  testWidgets('Meal Notes off hides both note icon and preview',
+      (tester) async {
     final dateController = MealDiaryDateController(clock: () => _today);
     final categories = _FakeMealCategoriesRepository(
       MealCategoriesConfig.canonicalDefaults(),
@@ -241,6 +421,39 @@ void main() {
   });
 }
 
+Future<void> _pumpHistoryView(
+  WidgetTester tester, {
+  required MealLogRepository mealLogs,
+  required MealCategoriesRepository categories,
+  required ValueChanged<String> onEdit,
+}) async {
+  final request = MealDiaryHistoryRequest(
+    mealLogRepository: mealLogs,
+    mealCategoriesRepository: categories,
+    localDate: _localDate(11),
+  );
+
+  await tester.pumpWidget(
+    ProviderScope(
+      child: MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.dark),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: MealDiaryHistoryView(
+              date: DateTime(2026, 9, 11),
+              request: request,
+              onEdit: onEdit,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 Future<void> _pump(
   WidgetTester tester, {
   required MealDiaryDateController dateController,
@@ -315,7 +528,8 @@ final class _ImmediateMealLogRepository implements MealLogRepository {
       throw UnimplementedError();
 
   @override
-  Future<List<MealLogEntry>> listByLocalDate(MealLogLocalDate localDate) async =>
+  Future<List<MealLogEntry>> listByLocalDate(
+          MealLogLocalDate localDate) async =>
       List<MealLogEntry>.unmodifiable(entriesByDate[localDate] ?? const []);
 
   @override
@@ -353,7 +567,8 @@ final class _FakeMealCategoriesRepository implements MealCategoriesRepository {
   Future<MealCategoriesConfig> read() async => config;
 
   @override
-  Future<void> upsert(MealCategoriesConfig config) => throw UnimplementedError();
+  Future<void> upsert(MealCategoriesConfig config) =>
+      throw UnimplementedError();
 }
 
 final class _FakeDisplayPreferencesRepository

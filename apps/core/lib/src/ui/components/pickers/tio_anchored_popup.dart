@@ -192,15 +192,22 @@ class _TioAnchoredPopupState extends State<TioAnchoredPopup> {
     }
 
     // Aligned to the control's leading edge, so the card reads as belonging to
-    // it. Clamped against the card's widest possible size rather than its
-    // actual one — the actual one is not known until the content lays out, and
-    // clamping for the worst case keeps it on screen either way.
-    final left = anchor.left
-        .clamp(
-          TioSpacing.lg,
-          math.max(TioSpacing.lg, viewport.width - maximumWidth - TioSpacing.lg),
-        )
-        .toDouble();
+    // it. The actual card width is not known until the content lays out, so
+    // fitting a leading-aligned card on screen has to assume the widest one.
+    final leadingLimit = math.max(
+      TioSpacing.lg,
+      viewport.width - maximumWidth - TioSpacing.lg,
+    );
+
+    // A control close to the trailing edge cannot host a leading-aligned card
+    // without that worst-case fit dragging it far off the control. Such a card
+    // pins its trailing edge to the control's and grows the other way, which
+    // needs no width in advance and keeps the two visually attached.
+    final pinTrailing = anchor.left > leadingLimit;
+    final left = pinTrailing ? null : math.max(TioSpacing.lg, anchor.left);
+    final right = pinTrailing
+        ? math.max(TioSpacing.lg, viewport.width - anchor.right)
+        : null;
 
     // No width is imposed. The card takes what its content needs up to the
     // cap, which is what keeps a short list from stretching across the screen.
@@ -229,33 +236,34 @@ class _TioAnchoredPopupState extends State<TioAnchoredPopup> {
     // to let through. The card carries its own.
     return Stack(
       children: [
-          TioPopupDismissBarrier(
-            onDismiss: widget.onDismiss,
-            semanticLabel: widget.dismissSemanticLabel,
-            passThrough: _rectOf(widget.passThroughAnchorKey),
-          ),
-          // Anchored by the edge nearest the control, so the card grows away
-          // from it. Pinning the top instead would need the height up front,
-          // which is exactly what intrinsic content does not have.
-          Positioned(
-            key: widget.popupKey,
-            left: left,
-            top: openAbove ? null : anchor.bottom + gap,
-            bottom: openAbove ? viewport.height - anchor.top + gap : null,
-            child: Semantics(
-              container: true,
-              child: Material(
-                color: TioPalette.transparent,
-                child: GestureDetector(
-                  // Swallows taps so choosing inside the card is not also a
-                  // tap on the dismiss layer behind it.
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {},
-                  child: content,
-                ),
+        TioPopupDismissBarrier(
+          onDismiss: widget.onDismiss,
+          semanticLabel: widget.dismissSemanticLabel,
+          passThrough: _rectOf(widget.passThroughAnchorKey),
+        ),
+        // Anchored by the edge nearest the control, so the card grows away
+        // from it. Pinning the top instead would need the height up front,
+        // which is exactly what intrinsic content does not have.
+        Positioned(
+          key: widget.popupKey,
+          left: left,
+          right: right,
+          top: openAbove ? null : anchor.bottom + gap,
+          bottom: openAbove ? viewport.height - anchor.top + gap : null,
+          child: Semantics(
+            container: true,
+            child: Material(
+              color: TioPalette.transparent,
+              child: GestureDetector(
+                // Swallows taps so choosing inside the card is not also a
+                // tap on the dismiss layer behind it.
+                behavior: HitTestBehavior.opaque,
+                onTap: () {},
+                child: content,
               ),
             ),
           ),
+        ),
       ],
     );
   }

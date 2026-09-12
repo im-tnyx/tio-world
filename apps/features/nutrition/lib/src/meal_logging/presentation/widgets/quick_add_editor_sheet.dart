@@ -10,6 +10,7 @@ import '../../../domain/repositories/meal_log_repository.dart';
 import '../../../domain/usecases/meal_category_time_suggestion.dart';
 import '../../../meal_diary/presentation/controllers/meal_categories_controller.dart';
 import '../../quick_add_meal_log_create_controller.dart';
+import '../../quick_add_meal_log_edit_controller.dart';
 import 'meal_category_picker_popup.dart';
 import 'meal_log_action_footer.dart';
 
@@ -19,6 +20,7 @@ Future<MealLogEntry?> showQuickAddEditorSheet(
   DateTime Function()? clock,
   MealCategoriesRepository? mealCategoriesRepository,
   MealLogRepository? mealLogRepository,
+  MealLogEntry? initialEntry,
 }) {
   return showTioEditorSheet<MealLogEntry>(
     context: context,
@@ -34,6 +36,7 @@ Future<MealLogEntry?> showQuickAddEditorSheet(
       clock: clock,
       mealCategoriesRepository: mealCategoriesRepository,
       mealLogRepository: mealLogRepository,
+      initialEntry: initialEntry,
     ),
   );
 }
@@ -87,6 +90,7 @@ class QuickAddEditorSheet extends StatefulWidget {
     this.clock,
     this.mealCategoriesRepository,
     this.mealLogRepository,
+    this.initialEntry,
   });
 
   /// Optional local clock seam. Production uses `DateTime.now`.
@@ -105,6 +109,10 @@ class QuickAddEditorSheet extends StatefulWidget {
   /// Null keeps isolated feature harnesses honest: the editor remains usable as
   /// a draft but cannot claim that a durable meal can be logged.
   final MealLogRepository? mealLogRepository;
+
+  /// Canonical row read immediately before opening an edit. Null is create
+  /// mode. The Diary read model is intentionally not accepted here.
+  final MealLogEntry? initialEntry;
 
   @override
   State<QuickAddEditorSheet> createState() => _QuickAddEditorSheetState();
@@ -133,6 +141,9 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
 
   MealCategoriesController? _categories;
   QuickAddMealLogCreateController? _create;
+  QuickAddMealLogEditController? _edit;
+  MealLogEntry? _activeEntry;
+  var _hydrating = false;
 
   /// The category the reader chose, held as its durable id.
   String? _chosenMealCategoryId;
@@ -152,14 +163,29 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
     }
     final mealLogRepository = widget.mealLogRepository;
     if (mealLogRepository != null) {
-      _create = QuickAddMealLogCreateController(
-        repository: mealLogRepository,
-        clock: _currentLocalNow,
-      )..addListener(_onCreateChanged);
+      final initialEntry = widget.initialEntry;
+      if (initialEntry == null) {
+        _create = QuickAddMealLogCreateController(
+          repository: mealLogRepository,
+          clock: _currentLocalNow,
+        )..addListener(_onMutationChanged);
+      } else {
+        _edit = QuickAddMealLogEditController(
+          repository: mealLogRepository,
+          initialEntry: initialEntry,
+          clock: _currentLocalNow,
+        )..addListener(_onEditChanged);
+      }
     }
     final openedAt = _currentLocalNow();
-    _draftDateTime = _minuteOnly(openedAt);
+    final initialEntry = widget.initialEntry;
+    final initialLocal = initialEntry == null
+        ? null
+        : QuickAddMealLogEditController.editableLocalDateTime(initialEntry);
+    assert(initialEntry == null || initialLocal != null);
+    _draftDateTime = initialLocal ?? _minuteOnly(openedAt);
     _maximumDateTime = _draftDateTime;
+    if (initialEntry != null) _hydrateEntry(initialEntry);
     for (final controller in _fields) {
       controller.addListener(_onChanged);
     }
@@ -172,7 +198,10 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
       ?..removeListener(_onCategoriesChanged)
       ..dispose();
     _create
-      ?..removeListener(_onCreateChanged)
+      ?..removeListener(_onMutationChanged)
+      ..dispose();
+    _edit
+      ?..removeListener(_onEditChanged)
       ..dispose();
     WidgetsBinding.instance.removeObserver(this);
     for (final controller in _fields) {
@@ -187,18 +216,41 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
     if (mounted) setState(() {});
   }
 
-  void _onCreateChanged() {
+  void _onMutationChanged() {
     if (mounted) setState(() {});
   }
 
-  bool get _draftLocked => _create?.state.locksDraft ?? false;
-  bool get _isSubmitting => _create?.state.isSubmitting ?? false;
+  void _onEditChanged() {
+    final state = _edit?.state;
+    final latest = state?.status == QuickAddMealLogEditStatus.conflict
+        ? state?.entry
+        : null;
+    if (latest != null &&
+        (_activeEntry?.id != latest.id ||
+            _activeEntry?.revision != latest.revision)) {
+      _hydrateEntry(latest);
+    }
+    if (mounted) setState(() {});
+  }
+
+  bool get _isEditing => widget.initialEntry != null;
+  bool get _draftLocked =>
+      _create?.state.locksDraft ?? _edit?.state.locksDraft ?? false;
+  bool get _isSubmitting =>
+      _create?.state.isSubmitting ?? _edit?.state.isSubmitting ?? false;
 
   List<MealCategoryOption> get _categoryOptions {
     final controller = _categories;
     if (controller == null) return const [];
+    final active = controller.state.activeItems;
+    final currentId = _activeEntry?.mealCategoryId;
+    final current = currentId == null
+        ? null
+        : controller.state.visible?.findById(currentId);
     return [
-      for (final item in controller.state.activeItems)
+      if (current != null && !current.active)
+        MealCategoryOption(id: current.id, label: current.displayName),
+      for (final item in active)
         MealCategoryOption(id: item.id, label: item.displayName),
     ];
   }
@@ -224,7 +276,7 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
 
   void _onMealCategorySelected(String id) {
     if (_draftLocked) return;
-    _create?.draftChanged();
+    _draftChanged();
     setState(() {
       _chosenMealCategoryId = id;
       _isMealTypePickerOpen = false;
@@ -264,9 +316,14 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
   }
 
   void _onChanged() {
-    if (_draftLocked) return;
-    _create?.draftChanged();
+    if (_draftLocked || _hydrating) return;
+    _draftChanged();
     if (mounted) setState(() {});
+  }
+
+  void _draftChanged() {
+    _create?.draftChanged();
+    _edit?.draftChanged();
   }
 
   DateTime _currentLocalNow() => widget.clock?.call() ?? DateTime.now();
@@ -320,7 +377,7 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
 
   void _onDateTimeChanged(DateTime value) {
     if (_draftLocked) return;
-    _create?.draftChanged();
+    _draftChanged();
     setState(() => _draftDateTime = value);
   }
 
@@ -345,7 +402,7 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
     setState(() => _isDateTimePickerOpen = false);
   }
 
-  QuickAddMealLogDraft? _currentCreateDraft() {
+  QuickAddMealLogDraft? _currentDraft() {
     final categoryId = _selectedMealCategoryId;
     if (categoryId == null || _selectedCategoryLabel == null) return null;
 
@@ -381,16 +438,20 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
   }
 
   bool get _canSubmit {
-    final controller = _create;
-    if (controller == null || controller.state.isSubmitting) return false;
-    if (controller.state.isOutcomeUnknown) return true;
-    return _currentCreateDraft() != null;
+    final create = _create;
+    final edit = _edit;
+    if (create == null && edit == null) return false;
+    if (_isSubmitting) return false;
+    if (create?.state.isOutcomeUnknown == true ||
+        edit?.state.isOutcomeUnknown == true) {
+      return true;
+    }
+    return _currentDraft() != null;
   }
 
   Future<void> _submit() async {
-    final controller = _create;
-    if (controller == null || controller.state.isSubmitting) return;
-    final draft = _currentCreateDraft();
+    if ((_create == null && _edit == null) || _isSubmitting) return;
+    final draft = _currentDraft();
     if (draft == null) return;
 
     FocusScope.of(context).unfocus();
@@ -402,9 +463,33 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
       });
     }
 
-    final entry = await controller.submit(draft);
+    final entry =
+        _isEditing ? await _edit?.submit(draft) : await _create?.submit(draft);
     if (!mounted || entry == null) return;
     Navigator.of(context).pop(entry);
+  }
+
+  void _hydrateEntry(MealLogEntry entry) {
+    final snapshot = entry.manualNutritionSnapshot;
+    final local = QuickAddMealLogEditController.editableLocalDateTime(entry);
+    if (snapshot == null || local == null) return;
+
+    _hydrating = true;
+    _activeEntry = entry;
+    _chosenMealCategoryId = entry.mealCategoryId;
+    _draftDateTime = local;
+    _mealName.text = entry.mealName ?? '';
+    _calories.text = _formatEditorAmount(
+      snapshot.amountFor(NutrientId.energy),
+    );
+    _carbs.text = _formatEditorAmount(
+      snapshot.amountFor(NutrientId.carbohydrate),
+    );
+    _protein.text = _formatEditorAmount(
+      snapshot.amountFor(NutrientId.protein),
+    );
+    _fat.text = _formatEditorAmount(snapshot.amountFor(NutrientId.fat));
+    _hydrating = false;
   }
 
   @override
@@ -415,12 +500,10 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
         '${_draftDateTime.hour.toString().padLeft(2, '0')}:'
         '${_draftDateTime.minute.toString().padLeft(2, '0')}';
     final dateTimeLabel = '$selectedDateLabel, $selectedTimeLabel';
-    final createState = _create?.state;
+    final mutationMessage = _create?.state.message ?? _edit?.state.message;
 
     return PopScope(
-      canPop: !_draftLocked &&
-          !_isMealTypePickerOpen &&
-          !_isDateTimePickerOpen,
+      canPop: !_draftLocked && !_isMealTypePickerOpen && !_isDateTimePickerOpen,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop || _draftLocked) return;
         if (_isMealTypePickerOpen) {
@@ -453,7 +536,7 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
               _canOpenMealTypePicker ? _mealCategoryAnchorKey : null,
           child: TioEditorSheet(
             key: const ValueKey('quick-add-editor'),
-            title: 'Quick Add',
+            title: _isEditing ? 'Quick Edit' : 'Quick Add',
             canDismiss: !_draftLocked,
             flushActions: true,
             content: Column(
@@ -507,8 +590,7 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
               ],
             ),
             actions: MealLogActionFooter(
-              mealCategoryLabel:
-                  _selectedCategoryLabel ?? _categoryPlaceholder,
+              mealCategoryLabel: _selectedCategoryLabel ?? _categoryPlaceholder,
               mealCategorySemanticLabel: _categorySemanticLabel,
               mealCategoryAnchorKey: _mealCategoryAnchorKey,
               onMealCategoryTap:
@@ -518,11 +600,12 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
                   'Picker ${_isDateTimePickerOpen ? 'expanded' : 'collapsed'}.',
               onDateTimeTap: _draftLocked ? null : _toggleDateTimePicker,
               dateTimeAnchorKey: _dateTimeAnchorKey,
-              primaryLabel: 'Log Meal',
+              primaryLabel: _isEditing ? 'Save Changes' : 'Log Meal',
               primarySemanticLabel: _primarySemanticLabel,
               primaryLoading: _isSubmitting,
-              primaryLoadingLabel: 'Logging meal',
-              note: createState?.message,
+              primaryLoadingLabel:
+                  _isEditing ? 'Saving changes' : 'Logging meal',
+              note: mutationMessage,
               onPrimaryPressed: _canSubmit ? _submit : null,
             ),
           ),
@@ -552,6 +635,18 @@ extension _QuickAddCategories on _QuickAddEditorSheetState {
   }
 
   String get _primarySemanticLabel {
+    if (_isEditing) {
+      final controller = _edit;
+      if (controller == null) {
+        return 'Save Changes. Not available yet.';
+      }
+      if (controller.state.isSubmitting) return 'Save Changes.';
+      if (controller.state.isOutcomeUnknown) {
+        return 'Retry Save Changes. Save status is uncertain.';
+      }
+      if (_canSubmit) return 'Save Changes.';
+      return 'Save Changes. Enter calories and choose a meal type.';
+    }
     final controller = _create;
     if (controller == null) return 'Log Meal. Not available yet.';
     if (controller.state.isSubmitting) return 'Log Meal.';
@@ -561,6 +656,13 @@ extension _QuickAddCategories on _QuickAddEditorSheetState {
     if (_canSubmit) return 'Log Meal.';
     return 'Log Meal. Enter calories and choose a meal type.';
   }
+}
+
+String _formatEditorAmount(num? value) {
+  if (value == null) return '';
+  final numeric = value.toDouble();
+  if (numeric == numeric.roundToDouble()) return numeric.toInt().toString();
+  return numeric.toString();
 }
 
 String? _nutritionError({required String label, required String text}) {
