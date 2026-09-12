@@ -6,8 +6,7 @@ import 'package:tio_shared/shared.dart';
 const _mutation = '11111111-1111-4111-8111-111111111111';
 
 void main() {
-  test('in-memory create retry fails closed after later edit changes facts',
-      () async {
+  test('in-memory create retry fails closed after any later edit', () async {
     final repository = InMemoryMealLogRepository(
       mealCategoriesRepository: InMemoryMealCategoriesRepository(),
     );
@@ -46,46 +45,28 @@ void main() {
     expect(gateway.insertCalls, 0);
   });
 
-  test('revision 2 same mutation plus different create facts stays conflict',
+  test('revision 2 stays conflict even when current facts match incoming create',
       () async {
+    final incoming = _createInput(
+      mealName: 'Different logical create',
+      energy: 700,
+      consumedAt: DateTime.utc(2026, 9, 12, 8),
+    );
     final gateway = _CreateRetryGateway(
       mutationRow: _row(
         revision: 2,
-        mealName: 'Existing edited meal',
+        mealName: 'Different logical create',
         captureSource: 'quick_add',
+        consumedAt: '2026-09-12T08:00:00.000Z',
+        energy: 700,
       ),
     );
     final repository = _repository(gateway);
 
     await expectLater(
-      () => repository.createManual(
-        _createInput(
-          mealName: 'Different logical create',
-          energy: 700,
-          consumedAt: DateTime.utc(2026, 9, 12, 8),
-        ),
-      ),
+      () => repository.createManual(incoming),
       throwsA(isA<MealLogCreateMutationConflict>()),
     );
-    expect(gateway.insertCalls, 0);
-  });
-
-  test('revision 2 row may reconcile when current facts still exactly match',
-      () async {
-    final gateway = _CreateRetryGateway(
-      mutationRow: _row(
-        revision: 2,
-        mealName: 'Original create',
-        consumedAt: '2026-09-12T06:30:00.000Z',
-        energy: 500,
-      ),
-    );
-    final repository = _repository(gateway);
-
-    final retry = await repository.createManual(_createInput());
-
-    expect(retry.revision, 2);
-    expect(retry.mealName, 'Original create');
     expect(gateway.insertCalls, 0);
   });
 
