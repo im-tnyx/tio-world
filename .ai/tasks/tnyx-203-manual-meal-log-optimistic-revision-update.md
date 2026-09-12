@@ -26,16 +26,16 @@ Provide production-safe optimistic manual MealLog updates before any edit-mode U
 - existing manual-mode identity/provenance stays immutable;
 - no schema widening beyond the approved revision column.
 
-## Current repository anchor
+## Repository anchor
 
 - Branch: `tnyx/tnyx-203-n20d-2-manual-meallog-optimistic-revision-update-foundation`
 - Base `main`: `9eb22692a31dbad030d67ead77e5dd2bd67dd0de`
 - Validated source/review-fix SHA: `2c0852a4fe210cf95c33db84d492d89fba211d12`
-- Current governance handoff HEAD: `27f789584dc222a37090e7e0460fd3cb660d6d90`
+- Pre-finalization governance checkpoint: `27f789584dc222a37090e7e0460fd3cb660d6d90`
 - PR: #262
-- Ahead / behind: `34 / 0`
-- Changed files: 14
 - No production UI/card/editor files are in scope.
+
+This task-brief finalization itself advances the branch after the recorded checkpoint. The live PR head and live `main` comparison are authoritative for the exact current handoff SHA/ahead-behind count; do not infer current HEAD from this file.
 
 ## Implemented
 
@@ -94,7 +94,7 @@ Production migration lineage:
 20260912064635_add_meal_log_revision.sql
 ```
 
-Live `tio-world` Supabase verification already completed:
+Live `tio-world` Supabase verification completed:
 
 - `revision bigint NOT NULL DEFAULT 1`;
 - existing rows backfilled/non-null at revision `1`;
@@ -157,13 +157,13 @@ Validated review-fix source SHA `2c0852a4fe210cf95c33db84d492d89fba211d12`:
   - real two-session concurrency test
   - lint delta
 
-Current governance handoff HEAD `27f789584dc222a37090e7e0460fd3cb660d6d90`:
+Pre-finalization governance checkpoint `27f789584dc222a37090e7e0460fd3cb660d6d90`:
 
 - Flutter CI #2444 — PASS
 - Supabase Database CI #44 — PASS
-- branch compare to `main`: 34 ahead / 0 behind
-- both T203-R5 / T203-R6 review threads resolved
-- no new unresolved review finding observed at handoff.
+- both T203-R5 / T203-R6 review threads resolved.
+
+The final task-brief commit must itself pass exact-head Flutter and Supabase DB CI before Ready-for-Review transition. Read the live PR head for that final evidence.
 
 Historical validation remains recorded in PR #262 for earlier source/lineage heads.
 
@@ -186,13 +186,14 @@ Later owner-approved Meal Diary card + `Quick Edit` work remains TNYX-204 / TNYX
 ## Active Handoff
 
 - Previous Implementation owner: review-fix implementation session
-- Current state: implementation complete; final review blockers resolved; exact source and governance-head CI green.
+- Current state: implementation complete; final review blockers resolved; validated source CI green.
 - Implementation ownership: `Handoff pending / REVIEW`
 - Validated source SHA: `2c0852a4fe210cf95c33db84d492d89fba211d12`
-- Current governance HEAD: `27f789584dc222a37090e7e0460fd3cb660d6d90`
+- Pre-finalization governance checkpoint: `27f789584dc222a37090e7e0460fd3cb660d6d90`
+- Exact current head: read from live PR #262; this file intentionally does not self-claim the SHA created by its own commit.
 - Open review findings: none known; T203-R5 and T203-R6 resolved.
-- Blocker: none for review handoff.
-- Next exact action: mark PR #262 Ready for Review and tracker In Review after fresh read-back; do not merge without separate explicit owner authorization.
+- Blocker: exact final task-brief HEAD CI must be green before Ready-for-Review transition.
+- Next exact action: after fresh live read-back confirms final-head Flutter + Supabase CI green, mark PR #262 Ready for Review and tracker In Review; do not merge without separate explicit owner authorization.
 - Live production migration: already applied and verified; no further production DB write required for this slice.
 
 ## Readiness result
