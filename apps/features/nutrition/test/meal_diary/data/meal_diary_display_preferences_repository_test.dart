@@ -104,6 +104,39 @@ void main() {
     );
   });
 
+  test(
+      'an explicit JSON null for showMealSectionNutrition fails closed, '
+      'distinct from the key being absent', () async {
+    final preferences = SharedPreferencesAsync();
+    await preferences.setString(
+      SharedPreferencesMealDiaryDisplayPreferencesRepository.storageKey,
+      jsonEncode({
+        'version': 1,
+        'showMealTimes': false,
+        'mealNotesEnabled': false,
+        'showMealNotePreview': true,
+        'showMealSectionNutrition': null,
+      }),
+    );
+    final repository = SharedPreferencesMealDiaryDisplayPreferencesRepository(
+      preferences: preferences,
+    );
+
+    expect(
+      await repository.read(),
+      const MealDiaryDisplayPreferences(),
+      reason: 'a present-but-null key is malformed, not the legacy shape, '
+          'and must fail closed to full defaults rather than only '
+          'defaulting the one field',
+    );
+    expect(
+      await preferences.getString(
+        SharedPreferencesMealDiaryDisplayPreferencesRepository.storageKey,
+      ),
+      isNull,
+    );
+  });
+
   test('malformed JSON resolves defaults and removes the bad snapshot',
       () async {
     final preferences = SharedPreferencesAsync();

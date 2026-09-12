@@ -7,7 +7,7 @@ import '../domain/repositories/meal_diary_display_preferences_repository.dart';
 
 /// Device-local storage for Meal Diary presentation preferences.
 ///
-/// The three values are encoded under one versioned key so one user action
+/// The four values are encoded under one versioned key so one user action
 /// writes one coherent snapshot. They are display/capability preferences, not
 /// account-synced nutrition truth, and therefore do not belong in Supabase.
 final class SharedPreferencesMealDiaryDisplayPreferencesRepository
@@ -44,11 +44,17 @@ final class SharedPreferencesMealDiaryDisplayPreferencesRepository
       }
 
       // Added after schema version 1 already shipped. An older stored payload
-      // predates this key, so its absence is the expected legacy shape, not
-      // corruption — only a present-but-wrong-typed value fails closed like
-      // the other fields above.
+      // predates this key, so a genuinely ABSENT key is the expected legacy
+      // shape, not corruption. A key that is PRESENT — including an explicit
+      // JSON null — is a value this repository wrote or a payload claiming to
+      // be current, so it must be a real bool or the payload fails closed
+      // like the other fields above. Checking `containsKey` rather than
+      // testing the raw value for null is what keeps "absent" and "present
+      // but null" from collapsing into the same case.
+      final hasSectionNutrition =
+          decoded.containsKey('showMealSectionNutrition');
       final sectionNutritionRaw = decoded['showMealSectionNutrition'];
-      if (sectionNutritionRaw != null && sectionNutritionRaw is! bool) {
+      if (hasSectionNutrition && sectionNutritionRaw is! bool) {
         throw const FormatException('Invalid Meal Diary preferences payload.');
       }
 

@@ -200,10 +200,12 @@ class _Section extends StatelessWidget {
               child: LayoutBuilder(
                 builder: (context, constraints) => Row(
                   children: [
-                    // Natural width, so the rule starts immediately after the
-                    // title. The cap is the gap the rule needs, so a maximum
-                    // length category name shortens the rule instead of
-                    // overflowing the header.
+                    // Reserves the same TioSpacing.sm the gap below actually
+                    // occupies, so a maximum-length category name shortens
+                    // the rule instead of overflowing the header. This must
+                    // stay a single reservation matching the single gap
+                    // widget — doubling it would reserve the same space
+                    // twice for one visible gap.
                     ConstrainedBox(
                       constraints: BoxConstraints(
                         maxWidth: constraints.maxWidth - TioSpacing.sm,
@@ -212,12 +214,17 @@ class _Section extends StatelessWidget {
                         section.categoryDisplayName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: textTheme.labelLarge?.copyWith(
+                        style: textTheme.titleMedium?.copyWith(
                           color: colors.textPrimary,
                           fontWeight: TioFontWeight.w700,
                         ),
                       ),
                     ),
+                    // The real, always-rendered gap the title needs before
+                    // the rule. Without it the rule can start flush against
+                    // the title's final glyph whenever the title is short
+                    // enough not to need the ellipsis cap above.
+                    const SizedBox(width: TioSpacing.sm),
                     Expanded(
                       child: Divider(
                         height: TioStroke.width1,

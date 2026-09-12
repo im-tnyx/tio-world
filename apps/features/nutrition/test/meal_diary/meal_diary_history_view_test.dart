@@ -596,6 +596,221 @@ void main() {
     });
   });
 
+  group('section header title polish', () {
+    testWidgets(
+        'section title resolves to the governed 16px/w700 heading role',
+        (tester) async {
+      final categories = _FakeMealCategoriesRepository(
+        MealCategoriesConfig.canonicalDefaults(),
+      );
+      final mealLogs = _ImmediateMealLogRepository({
+        _localDate(11): [
+          _entry(
+            id: 'meal',
+            categoryId: 'meal_slot_2',
+            mealName: 'Rice',
+            consumedAt: DateTime.utc(2026, 9, 11, 7, 35),
+            calories: 254,
+            protein: 9,
+          ),
+        ],
+      });
+
+      await _pumpHistoryView(
+        tester,
+        mealLogs: mealLogs,
+        categories: categories,
+        onEdit: (_) {},
+      );
+      await tester.pumpAndSettle();
+
+      final title = tester.widget<Text>(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('meal-diary-section-meal_slot_2'),
+          ),
+          matching: find.text('Lunch'),
+        ),
+      );
+      expect(title.style?.fontSize, TioFontSize.size16);
+      expect(title.style?.fontWeight, TioFontWeight.w700);
+    });
+
+    testWidgets(
+        'a real TioSpacing.sm gap separates the title from the divider',
+        (tester) async {
+      final categories = _FakeMealCategoriesRepository(
+        MealCategoriesConfig.canonicalDefaults(),
+      );
+      final mealLogs = _ImmediateMealLogRepository({
+        _localDate(11): [
+          _entry(
+            id: 'meal',
+            categoryId: 'meal_slot_2',
+            mealName: 'Rice',
+            consumedAt: DateTime.utc(2026, 9, 11, 7, 35),
+            calories: 254,
+            protein: 9,
+          ),
+        ],
+      });
+
+      await _pumpHistoryView(
+        tester,
+        mealLogs: mealLogs,
+        categories: categories,
+        onEdit: (_) {},
+      );
+      await tester.pumpAndSettle();
+
+      final titleRect = tester.getRect(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('meal-diary-section-meal_slot_2'),
+          ),
+          matching: find.text('Lunch'),
+        ),
+      );
+      final dividerRect = tester.getRect(find.byType(Divider));
+
+      expect(
+        dividerRect.left - titleRect.right,
+        TioSpacing.sm,
+        reason: 'the rule must not start flush against the title',
+      );
+    });
+
+    testWidgets(
+        'the divider keeps positive width and no overflow at a 320dp '
+        'compact width', (tester) async {
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      final categories = _FakeMealCategoriesRepository(
+        MealCategoriesConfig.canonicalDefaults(),
+      );
+      final mealLogs = _ImmediateMealLogRepository({
+        _localDate(11): [
+          _entry(
+            id: 'meal',
+            categoryId: 'meal_slot_2',
+            mealName: 'Rice',
+            consumedAt: DateTime.utc(2026, 9, 11, 7, 35),
+            calories: 254,
+            protein: 9,
+          ),
+        ],
+      });
+
+      await _pumpHistoryView(
+        tester,
+        mealLogs: mealLogs,
+        categories: categories,
+        onEdit: (_) {},
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.getRect(find.byType(Divider)).width, greaterThan(0));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('normal 390dp width keeps the same gap and layout correct',
+        (tester) async {
+      tester.view.physicalSize = const Size(390, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      final categories = _FakeMealCategoriesRepository(
+        MealCategoriesConfig.canonicalDefaults(),
+      );
+      final mealLogs = _ImmediateMealLogRepository({
+        _localDate(11): [
+          _entry(
+            id: 'meal',
+            categoryId: 'meal_slot_2',
+            mealName: 'Rice',
+            consumedAt: DateTime.utc(2026, 9, 11, 7, 35),
+            calories: 254,
+            protein: 9,
+          ),
+        ],
+      });
+
+      await _pumpHistoryView(
+        tester,
+        mealLogs: mealLogs,
+        categories: categories,
+        onEdit: (_) {},
+      );
+      await tester.pumpAndSettle();
+
+      final titleRect = tester.getRect(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('meal-diary-section-meal_slot_2'),
+          ),
+          matching: find.text('Lunch'),
+        ),
+      );
+      final dividerRect = tester.getRect(find.byType(Divider));
+      expect(dividerRect.left - titleRect.right, TioSpacing.sm);
+      expect(dividerRect.width, greaterThan(0));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+        'a maximum-length category title still ellipsizes without '
+        'overflowing the header', (tester) async {
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      final longName = 'A' * 24; // MealCategoryDisplayNamePolicy.maxLength
+      final defaults = MealCategoriesConfig.canonicalDefaults();
+      final categories = _FakeMealCategoriesRepository(
+        MealCategoriesConfig(
+          items: [
+            for (final item in defaults.items)
+              if (item.id == 'meal_slot_2') item.renamed(longName) else item,
+          ],
+        ),
+      );
+      final mealLogs = _ImmediateMealLogRepository({
+        _localDate(11): [
+          _entry(
+            id: 'meal',
+            categoryId: 'meal_slot_2',
+            mealName: 'Rice',
+            consumedAt: DateTime.utc(2026, 9, 11, 7, 35),
+            calories: 254,
+            protein: 9,
+          ),
+        ],
+      });
+
+      await _pumpHistoryView(
+        tester,
+        mealLogs: mealLogs,
+        categories: categories,
+        onEdit: (_) {},
+      );
+      await tester.pumpAndSettle();
+
+      final title = tester.widget<Text>(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('meal-diary-section-meal_slot_2'),
+          ),
+          matching: find.textContaining('AAA'),
+        ),
+      );
+      expect(title.maxLines, 1);
+      expect(title.overflow, TextOverflow.ellipsis);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   testWidgets('a slower old date read cannot overwrite the newer selection',
       (tester) async {
     final dateController = MealDiaryDateController(clock: () => _today);
