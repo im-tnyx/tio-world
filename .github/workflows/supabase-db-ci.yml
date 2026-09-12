@@ -137,6 +137,13 @@ jobs:
             --set=ON_ERROR_STOP=1 \
             --file=supabase/tests/database/tnyx_194_manual_meal_log_entries.test.sql
 
+      - name: Run TNYX-203 MealLog revision SQL matrix
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" \
+            --set=ON_ERROR_STOP=1 \
+            --file=supabase/tests/database/tnyx_203_meal_log_revision.test.sql
+
       - name: Run real two-session concurrency test
         shell: bash
         run: bash supabase/tests/database/tnyx_67_meal_categories_b1_concurrency.sh
