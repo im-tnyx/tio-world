@@ -213,18 +213,11 @@ final class QuickAddMealLogCreateController extends ChangeNotifier {
         ),
       );
       return entry;
-    } on MealLogCreateOutcomeUnknown catch (error) {
-      if (error.clientMutationId != input.clientMutationId) {
-        _retryDraft = null;
-        _retryInput = null;
-        _setState(
-          const QuickAddMealLogCreateState._(
-            status: QuickAddMealLogCreateStatus.failed,
-            message: genericFailureMessage,
-          ),
-        );
-        return null;
-      }
+    } on MealLogCreateOutcomeUnknown {
+      // Any ambiguous repository result means this exact create may already be
+      // durable. Keep the original frozen input authoritative even if a broken
+      // adapter reports inconsistent error metadata; unlocking here would let
+      // the UI mint a second logical create before the first is reconciled.
       _setState(
         const QuickAddMealLogCreateState._(
           status: QuickAddMealLogCreateStatus.outcomeUnknown,
