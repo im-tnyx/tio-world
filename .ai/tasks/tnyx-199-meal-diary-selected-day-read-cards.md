@@ -1,6 +1,6 @@
 # TNYX-199 — N4B Manual MealLog selected-day Diary sections & read-only cards
 
-**Status:** In progress
+**Status:** In review
 **Primary owner:** `apps/features/nutrition`
 **Affected platforms:** Flutter phone app
 
@@ -15,21 +15,21 @@
 ## Active Handoff
 
 **Planning owner:** Current AI session
-**Implementation owner:** Current AI session
-**Review owner:** Current AI session + PR/owner review
-**Implementation ownership state:** Active — reopened for review remediation
-**Ownership transition:** Review handoff was reopened after Codex-style review found T199-R4.
-**Repository state last verified:** `main == 7a96e382d36d295f821826cb9d49fd38b0f533a9`; previous validated source `539d85e06b674c1aff847cd71c4edbc1fc0f544c` passed Flutter CI #2410. PR #258 is back in Draft for T199-R4 remediation.
+**Implementation owner:** None — implementation complete and awaiting review
+**Review owner:** PR/owner review
+**Implementation ownership state:** Review handoff
+**Ownership transition:** Implementation ownership released after T199-R4 remediation and exact-source validation at `c3546a48bf72cb4a9a69ae5d84663ae3c0f2b109`.
+**Repository state last verified:** `main == 7a96e382d36d295f821826cb9d49fd38b0f533a9`; validated source is `30 ahead / 0 behind` with exact merge base and 14 TNYX-199-owned changed files.
 **Branch:** `tnyx/tnyx-199-n4b-manual-meallog-selected-day-diary-sections-read-only`
 **Observed working-tree state:** API-only session; no local checkout modified.
-**PR / tracker:** Draft PR #258; Linear TNYX-199 returned to `In Progress`.
-**Current implementation state:** Core selected-day read/render and category-label freshness are implemented; one stable-empty-day correctness finding is open.
-**Relevant execution surface:** `apps/features/nutrition/lib/src/meal_diary/meal_diary_history_providers.dart`, focused provider tests, docs/task brief.
-**Validation completed at SHA:** `539d85e06b674c1aff847cd71c4edbc1fc0f544c` — Flutter CI #2410 passed bootstrap, both analyzers, Flutter tests, and Dart tests before T199-R4 remediation.
-**Validation remaining:** Focused empty-day regression + full Flutter CI after the fix + final scope audit.
-**Current blocker:** T199-R4 only.
-**Open review finding IDs:** T199-R4.
-**Next exact action:** Make Meal Categories resolution irrelevant for a known-empty MealLog day, add a regression test, rerun full CI, then return PR/Linear to review.
+**PR / tracker:** PR #258 ready to return to review; Linear TNYX-199 should return to `In Review`.
+**Current implementation state:** Approved selected-day read/render behavior, category-label freshness, and stable empty-day behavior are complete.
+**Relevant execution surface:** `apps/features/nutrition/lib/src/meal_diary/**`, Meal Categories repository change notification, focused tests, app composition, docs/task brief.
+**Validation completed at SHA:** `c3546a48bf72cb4a9a69ae5d84663ae3c0f2b109` — Flutter CI #2414 passed bootstrap, both analyzers, Flutter tests, and Dart tests.
+**Validation remaining:** Owner/PR review only. This handoff file update is governance-only and does not alter validated source behavior.
+**Current blocker:** None.
+**Open review finding IDs:** None.
+**Next exact action:** Review PR #258. Merge still requires explicit owner authorization.
 
 **Repository note:** An accidental unused sibling branch `tnyx/tnyx-199-n4b-manual-meallog-selected-day-diary-sections-read-only-check` exists only at the base SHA and is not part of PR #258. It remains untouched because deletion was not authorized.
 
@@ -63,7 +63,7 @@ No mutation/edit flow, daily summary/rings, schema change, category-management r
 
 Verified runtime contracts: `MealLogRepository.listByLocalDate`, `MealCategoriesRepository.read/upsert`, retained `MealCategoriesConfig.findById`, `MealDiaryDisplayPreferences`, `MealDiaryDateController`, canonical app repository providers, and Core `TioCard`.
 
-T199-R3 closed the category-label freshness gap with an optional confirmed-write change source. A later Codex-style review found T199-R4: the provider currently `Future.wait`s MealLog and Meal Categories reads, so a category read failure can turn a day already known to have zero MealLog entries into an error instead of the parent N4 stable empty-day state.
+T199-R3 closed category-label freshness with an optional confirmed-write change source. Codex-style review then found T199-R4: a `Future.wait` made Meal Categories availability gate a day already known to contain zero MealLog entries. The provider now establishes MealLog history first and returns the stable empty model before category resolution when no entries exist.
 
 ## 3. Clarification
 
@@ -73,17 +73,15 @@ T199-R3 closed the category-label freshness gap with an optional confirmed-write
 | Unnamed non-Quick-Add has no fabricated Quick Add title | Locked | Do not invent identity |
 | Missing nutrients stay unknown | Locked | `NutritionSnapshot` distinguishes absent from zero |
 | Diary ordering ignores category configured order | Locked | N4 is latest-actual-activity ordered |
-| Category persistence refreshes active Diary history | Resolved | Section labels must reflect current resolvable `displayName` even while Diary remains mounted |
-| Empty MealLog day does not require Meal Categories | Required by review | Category identity is only needed to render non-empty sections; N4 requires a stable empty-day state |
+| Category persistence refreshes active Diary history | Resolved | Section labels reflect current resolvable `displayName` while Diary remains mounted |
+| Empty MealLog day does not require Meal Categories | Resolved | Category identity is only needed to render non-empty sections; N4 requires a stable empty-day state |
 | Historical visible time does not use current-device `toLocal()` | Locked | Preserve logging context |
 
 ## 4. Architecture Design
 
 ### Chosen Approach
 
-The selected-day history remains a feature `FutureProvider.autoDispose.family`. `MealCategoriesRepository` stays the canonical category boundary. The provider must establish selected-day MealLog entries first; when the result is empty it returns the immutable empty history immediately. Category change subscription and category resolution are required only for non-empty history, where section labels actually exist.
-
-For non-empty history, repositories that implement `MealCategoriesChangeSource` continue to invalidate the active provider only after confirmed category writes. Failed writes still emit no change event.
+The selected-day history remains a feature `FutureProvider.autoDispose.family`. It first reads canonical MealLog entries for the requested persisted local date. An empty result returns immutable empty history immediately. Only a non-empty result subscribes to the optional `MealCategoriesChangeSource` and reads the retained Meal Categories configuration for section labels.
 
 ```text
 MealLogRepository.listByLocalDate(...)
@@ -98,11 +96,7 @@ MealCategoriesRepository.read()
 resolve sections + current display labels
 ```
 
-### Alternatives Rejected
-
-- Do not keep `Future.wait` and let an unrelated category error override a known-empty MealLog result.
-- Do not introduce a second category cache/store.
-- Do not add route knowledge to Nutrition.
+Confirmed category writes still self-invalidate non-empty active history. Failed writes emit no signal. There is no second category cache/store and no navigation dependency in Nutrition.
 
 ## 5. Implementation Plan
 
@@ -114,9 +108,9 @@ resolve sections + current display labels
 - [x] Initial focused provider/widget tests and docs reconciliation.
 - [x] T199-R3: emit confirmed category-write notification from canonical adapters and self-invalidate active Diary history.
 - [x] Add focused category freshness and Supabase notification tests.
-- [ ] T199-R4: short-circuit known-empty MealLog history before category read/subscription.
-- [ ] Add regression test proving category read failure is irrelevant for an empty day.
-- [ ] Rerun full CI and final scope audit.
+- [x] T199-R4: short-circuit known-empty MealLog history before category read/subscription.
+- [x] Add regression test proving Meal Categories are not read for an empty day.
+- [x] Rerun full CI and final scope audit.
 
 ## 6. Quality Review
 
@@ -131,7 +125,7 @@ Dart analyze PASS
 Flutter tests PASS
 Dart tests PASS
 
-Previous validated source after T199-R3: 539d85e06b674c1aff847cd71c4edbc1fc0f544c
+T199-R3 validated source: 539d85e06b674c1aff847cd71c4edbc1fc0f544c
 Flutter CI #2410 / run 34663987536 / job 103472072070
 Bootstrap PASS
 Flutter analyze PASS
@@ -139,7 +133,19 @@ Dart analyze PASS
 Flutter tests PASS
 Dart tests PASS
 
-Revalidation required after T199-R4 remediation.
+Final validated source after T199-R4: c3546a48bf72cb4a9a69ae5d84663ae3c0f2b109
+Flutter CI #2414 / run 34670534055 / job 103490968392
+Bootstrap PASS
+Flutter analyze PASS
+Dart analyze PASS
+Flutter tests PASS
+Dart tests PASS
+
+Final source scope audit:
+main/base: 7a96e382d36d295f821826cb9d49fd38b0f533a9
+merge base: exact base
+branch: 30 ahead / 0 behind
+changed files: 14, all within TNYX-199 scope
 ```
 
 ### Review Findings and Resolution
@@ -149,13 +155,21 @@ Revalidation required after T199-R4 remediation.
 | T199-R1 | Medium | Resolved | Test notifiers were manually disposed in addition to ProviderScope ownership | fixed before CI #2395 |
 | T199-R2 | Low | Resolved | Retry closure needed explicit nullable request narrowing | fixed before CI #2395 |
 | T199-R3 | Medium | Resolved | Confirmed Meal Category changes did not invalidate already-mounted selected-day history, so section labels could remain stale | optional confirmed-write change source + provider self-invalidation + focused regression tests; CI #2410 green |
-| T199-R4 | P2 | Open | `Future.wait` makes Meal Categories availability gate a day already known to contain zero MealLog entries, violating N4 stable empty-day behavior | short-circuit empty MealLog result before category dependency and add regression coverage |
+| T199-R4 | P2 | Resolved | Meal Categories availability could override a known-empty MealLog day | provider now returns empty before category read/subscription; focused regression asserts throwing categories repository is never read; CI #2414 green; inline review thread resolved |
 
 ## 7. Final Handoff
 
 ### Changed Files
 
-Current PR owns the TNYX-199 task brief, app MealLog composition seam, Meal Diary selected-day history provider/read models, read-only history rendering/page integration, optional Meal Categories confirmed-write change source, focused tests, and Meal Diary screen documentation. T199-R4 changes only the selected-day provider sequencing plus focused regression coverage.
+The final source scope contains:
+
+- TNYX-199 task brief and Meal Diary screen documentation;
+- app composition for the canonical MealLog repository;
+- Meal Diary selected-day history provider/read models;
+- read-only history rendering/page integration;
+- optional Meal Categories confirmed-write change-source contract;
+- Supabase and in-memory change-source implementations;
+- focused provider, widget, category-refresh, empty-day and change-source tests.
 
 ### Known Limitations
 
@@ -163,4 +177,4 @@ Quick Add create/save, edit/delete/move, card-to-editor navigation, detailed ite
 
 ### Final Status
 
-`PARTIAL` until T199-R4 is fixed and revalidated.
+`REVIEW`
