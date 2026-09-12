@@ -155,9 +155,23 @@ final class MealDiaryHistoryReadModel {
 final mealDiaryHistoryProvider = FutureProvider.autoDispose
     .family<MealDiaryHistoryReadModel, MealDiaryHistoryRequest>(
   (ref, request) async {
+    final categoriesRepository = request.mealCategoriesRepository;
+    if (categoriesRepository is MealCategoriesChangeSource) {
+      final subscription = categoriesRepository.changes.listen((_) {
+        // The repository emits only after a confirmed local write. Rebuild the
+        // same selected-day read model so current retained display names are
+        // visible even though the Diary itself may have stayed mounted behind
+        // Settings while the change was made.
+        ref.invalidateSelf();
+      });
+      ref.onDispose(() {
+        subscription.cancel();
+      });
+    }
+
     final results = await Future.wait<Object>([
       request.mealLogRepository.listByLocalDate(request.localDate),
-      request.mealCategoriesRepository.read(),
+      categoriesRepository.read(),
     ]);
 
     final entries = results[0] as List<MealLogEntry>;
