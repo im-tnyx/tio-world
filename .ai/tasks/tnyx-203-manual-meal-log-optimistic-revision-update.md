@@ -43,11 +43,11 @@ Owner UX decisions remain under TNYX-115/TNYX-58/TNYX-204 and do not widen this 
 **Branch:** `tnyx/tnyx-203-n20d-2-manual-meallog-optimistic-revision-update-foundation`
 **Base:** `main` at `9eb22692a31dbad030d67ead77e5dd2bd67dd0de`
 **Resume HEAD:** `64d3257eaae8aed56ef0915e941c7f07800aaa40`
-**PR:** #262 — converted back to Draft while review fixes are active
-**Tracker:** Linear TNYX-203 moved back to `In Progress`
+**PR:** #262 — Draft while review fixes are active
+**Tracker:** Linear TNYX-203 is `In Progress`
 **Working tree:** API-authored branch; no local working-tree claim
-**Current blocker:** Two open P2 correctness findings, T203-R5 and T203-R6
-**Next exact action:** fix both findings without widening schema/UI scope, add focused regressions, run exact-head Flutter + Supabase DB CI, then re-review before Ready transition
+**Current blocker:** Two open P2 correctness findings, T203-R5 and T203-R6, pending fresh validation
+**Next exact action:** run exact-head Flutter + Supabase DB CI for the review fixes, then re-review both findings before Ready transition
 
 ## Locked Architecture
 
@@ -90,35 +90,53 @@ Rules:
 - validated source/lineage SHA `de8f1e079413a8138f3f05a4056296327d3af7b1` passed Flutter CI #2433 and Supabase DB CI #33;
 - governance handoff head `64d3257e...` passed Flutter CI #2434 and Supabase DB CI #34.
 
-Historical green CI is evidence for those exact SHAs only. Any review-fix HEAD requires fresh validation.
+Historical green CI is evidence for those exact SHAs only. Review-fix HEAD requires fresh validation.
 
 ## Open Review Findings
 
 | ID | Severity | Status | Observed SHA | Finding | Required resolution |
 |---|---|---|---|---|---|
-| T203-R5 | P2 | Open | `64d3257e...` | Cross-call retry after `MealLogUpdateOutcomeUnknown` can misclassify an already-committed exact `N+1` row as stale conflict because `updateManual()` checks revision mismatch before exact intended facts. | Before classifying `expectedRevision + 1` as stale, reconcile exact intended facts as success. Add regression: `OutcomeUnknown -> same input retry -> canonical N+1 success`. |
-| T203-R6 | P2 | Open | `64d3257e...` | For create reconciliation at `revision > 1`, Supabase compares only `captureSource`, so reuse of the same `clientMutationId` for different meal facts with the same source can return an unrelated edited row as success, violating TNYX-196 fail-closed semantics. | Restore fail-closed payload equivalence without adding unapproved schema. Conservative reconciliation is allowed; add regression for revision `2+` + same mutation key + different create facts. |
+| T203-R5 | P2 | Open pending validation | `64d3257e...` | Cross-call retry after `MealLogUpdateOutcomeUnknown` can misclassify an already-committed exact `N+1` row as stale conflict because `updateManual()` checks revision mismatch before exact intended facts. | Before classifying `expectedRevision + 1` as stale, reconcile exact intended facts as success. Regression: `OutcomeUnknown -> same input retry -> canonical N+1 success` with no second write. |
+| T203-R6 | P2 | Open pending validation | `64d3257e...` | For create reconciliation at `revision > 1`, current edited facts cannot prove the original create payload, so a reused `clientMutationId` could be accepted for a different logical create. | Without a separately approved immutable create fingerprint, every edited-row (`revision > 1`) create reconciliation fails closed with `MealLogCreateMutationConflict`; in-memory mirrors production. |
 
-PR inline review threads are the external review references for both findings. Do not resolve either thread until its fix and applicable validation are recorded.
+PR inline review threads are the external review references. Do not resolve either thread until the fix and exact-head validation are recorded.
 
-## Review-Fix Design Decision
+## Review-Fix Decision
 
-No new schema is authorized or required for T203-R6. Because an edited row no longer retains a durable copy of all original mutable create facts, the production-safe bounded behavior is conservative:
-
-- create reconciliation succeeds only when the current canonical row still matches the incoming create facts;
-- if the same mutation key points to a later-edited row whose current facts differ, fail closed with `MealLogCreateMutationConflict` rather than pretending the incoming create succeeded;
-- in-memory behavior should mirror the same observable production rule rather than over-promise a capability production cannot prove durably.
-
-For T203-R5:
+### T203-R5 — update retry convergence
 
 - if the canonical row is exactly `expectedRevision + 1` and its editable facts exactly match the retry input, return it as reconciled success;
+- perform this check before stale-revision rejection;
 - otherwise preserve normal stale-conflict/outcome-unknown behavior;
-- no blind second UPDATE is issued for an already-committed exact result.
+- never issue a blind second UPDATE for an already-committed exact result.
+
+### T203-R6 — create retry after later edit
+
+No new schema is authorized or required. The row at `revision > 1` no longer durably proves all mutable original create facts. Current edited facts are insufficient evidence because they may coincide with a different later logical create that accidentally reused the same mutation key.
+
+Therefore the bounded production-safe rule is:
+
+- revision `1`: same mutation key succeeds only when the complete current create facts match the incoming create request;
+- revision `2+`: create reconciliation always fails closed with `MealLogCreateMutationConflict`, even if current edited facts happen to match the incoming request;
+- in-memory behavior mirrors this observable production rule;
+- a future immutable create fingerprint would require separate owner approval because it would widen durable schema.
+
+## Review-Fix Source Delta
+
+From the original review handoff `64d3257e...`, the active fix set is intentionally limited to:
+
+- task handoff governance;
+- Supabase update retry preflight reconciliation;
+- Supabase edited-row create fail-closed reconciliation;
+- in-memory parity for edited-row create retries;
+- focused create/update regressions.
+
+No migration, RLS, trigger, UI, delete, note, or Meal Editor source changed.
 
 ## Validation Required After Fixes
 
-- focused in-memory create-retry-after-edit regression;
-- focused Supabase create reconciliation regression for same key + different facts after edit;
+- focused in-memory edited create-retry fail-closed regression;
+- focused Supabase edited-row create regression, including `revision 2+` whose current facts exactly match a later incoming create;
 - focused Supabase update regression for `OutcomeUnknown -> same-input retry -> N+1 success`;
 - existing update stale/conflict/immutable/category tests;
 - full Flutter CI (`melos analyze`, `melos test` via workflow);
@@ -146,4 +164,4 @@ These remain later bounded slices under TNYX-115/TNYX-58/TNYX-116/TNYX-204.
 
 `IN PROGRESS`
 
-Return to review only after T203-R5 and T203-R6 are fixed, focused regressions pass, exact-head Flutter + Supabase DB CI are green, review threads are reconciled, and the task brief is refreshed. Merge still requires separate explicit owner authorization.
+Return to review only after T203-R5 and T203-R6 are validated on the exact current source head, review threads are reconciled, and this brief is refreshed. Merge still requires separate explicit owner authorization.
