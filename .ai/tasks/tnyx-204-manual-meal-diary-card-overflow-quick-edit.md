@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable\
 **Repository state last verified:** 2026-09-12, after creating the task branch from clean synchronized `main`\
 **Branch:** `tnyx/tnyx-204-n20c-2-manual-meal-diary-card-overflow-quick-edit-activation`\
-**HEAD SHA:** `34c34893b8c164561607ac652df534fa79f2f330`\
-**Observed working-tree state:** Focused TNYX-204 implementation and governance changes only; accidental package lockfile drift removed before publication.\
-**Observed uncommitted/dirty files:** See Final Handoff changed-file groups below.\
-**PR / tracker:** Linear `TNYX-204` is `In Progress`; dependency `TNYX-203` is `Done`; GitHub PR `#262` is merged. TNYX-204 Draft PR publication is the next action.\
+**Implementation SHA:** `e92a45b8d0de616dbc46f2055476172b8e831351`\
+**Observed working-tree state:** Clean after the implementation commit; accidental package lockfile drift was removed before publication.\
+**Observed committed files:** See Final Handoff changed-file groups below.\
+**PR / tracker:** GitHub Draft PR [#263](https://github.com/im-tnyx/tio-world/pull/263) is open; Linear `TNYX-204` remains `In Progress` until exact-head CI passes; dependency `TNYX-203` is `Done` and GitHub PR `#262` is merged.\
 **Current implementation state:** Complete. The owner-approved rich card, header glyphs, anchored Edit-only popup, Quick Add edit mode, canonical read/update flow, conflict/ambiguous-outcome handling, affected-date invalidation, and final 40dp fallback-icon polish are implemented and locally validated.\
 **Relevant execution surface:** Meal Diary selected-day cards, Quick Add editor, canonical `MealLogRepository.readById`/`updateManual`, and existing Core `TioAnchoredPopup`\
-**Validation completed at SHA:** Working tree, after the reference-alignment corrections — `apps/core` analyze + 293 tests, `apps/features/nutrition` analyze + 676 tests, `apps/app` analyze + 319 tests, `git diff --check`\
-**Validation remaining:** Workspace `melos` run (see blocker) and exact-head CI after publication\
+**Validation completed at SHA:** `e92a45b8d0de616dbc46f2055476172b8e831351` — `apps/core` analyze + 293 tests, `apps/features/nutrition` analyze + 676 tests, `apps/app` analyze + 319 tests, `git diff --check`\
+**Validation remaining:** Exact-head CI after publication; workspace `melos` remains unavailable as recorded below\
 **Current blocker:** Workspace `melos` is unavailable in the current shell. Full per-package validation was run instead for every affected/consuming package. This is a local tooling limitation, not a TNYX-204 defect.\
 **Open review finding IDs:** None. TNYX-204-R5 is an accepted out-of-scope data limitation, not an implementation blocker.\
-**Next exact action:** Commit the slice per `docs/PUSH_TEMPLATE.md`, then open the Draft PR and reconcile Linear to `In Review`.
+**Next exact action:** Push this handoff update, verify exact-head Draft PR CI, then reconcile Linear `TNYX-204` to `In Review`.
 
 ## Global UI / Design-System Guardrail
 
@@ -144,7 +144,7 @@ Meal Diary card or popup Edit
 - [x] Invalidate old/new date reads while preserving the selected date.
 - [x] Add focused tests for geometry, actions, create/edit copy, canonical read, preservation, conflict, ambiguous retry, and date invalidation.
 - [x] Run focused and applicable Flutter validation, review the diff, and update task/docs/tracker handoff.
-- [ ] Create a Draft PR only after the implementation and validation handoff is accurate.
+- [x] Create a Draft PR only after the implementation and validation handoff is accurate: [#263](https://github.com/im-tnyx/tio-world/pull/263).
 
 ## 6. Quality Review
 
