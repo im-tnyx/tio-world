@@ -59,8 +59,10 @@ void main() {
       entry.manualNutritionSnapshot!.containsNutrient(NutrientId.carbohydrate),
       isFalse,
     );
-    expect(entry.manualNutritionSnapshot!.containsNutrient(NutrientId.fat),
-        isFalse);
+    expect(
+      entry.manualNutritionSnapshot!.containsNutrient(NutrientId.fat),
+      isFalse,
+    );
 
     // Unnamed Quick Add is a presentation fallback only; the stored name above
     // remains null while the refreshed Diary renders the normal card.
@@ -97,8 +99,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(dates.selectedDate, yesterday);
-    expect(find.byKey(const ValueKey('meal-diary-empty-day-note')),
-        findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('meal-diary-empty-day-note')),
+      findsOneWidget,
+    );
     expect(
       await mealLogs.listByLocalDate(
         MealLogLocalDate(year: 2026, month: 9, day: 11),
@@ -149,6 +153,86 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('quick-add-editor')), findsNothing);
   });
+
+  testWidgets('known save failure preserves draft and retries same operation',
+      (tester) async {
+    final categories = InMemoryMealCategoriesRepository();
+    final mealLogs = _FailOnceMealLogRepository();
+    await _pumpDiary(
+      tester,
+      categories: categories,
+      mealLogs: mealLogs,
+    );
+
+    await _openQuickAdd(tester);
+    const caloriesKey = ValueKey('quick-add-calories');
+    await tester.enterText(find.byKey(caloriesKey), '375');
+    await tester.pumpAndSettle();
+
+    final logButton = find.byKey(const ValueKey('meal-log-footer-primary'));
+    await tester.tap(logButton);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('quick-add-editor')), findsOneWidget);
+    expect(find.text("Couldn't log meal. Try again."), findsOneWidget);
+    expect(
+      tester.widget<TioInput>(find.byKey(caloriesKey)).controller!.text,
+      '375',
+    );
+    expect(tester.widget<TioButton>(logButton).onPressed, isNotNull);
+
+    await tester.tap(logButton);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('quick-add-editor')), findsNothing);
+    expect(mealLogs.inputs, hasLength(2));
+    expect(
+      mealLogs.inputs[1].clientMutationId,
+      mealLogs.inputs[0].clientMutationId,
+    );
+  });
+
+  testWidgets('unknown save outcome locks draft and reconciles same operation',
+      (tester) async {
+    final categories = InMemoryMealCategoriesRepository();
+    final mealLogs = _UnknownOnceMealLogRepository();
+    await _pumpDiary(
+      tester,
+      categories: categories,
+      mealLogs: mealLogs,
+    );
+
+    await _openQuickAdd(tester);
+    const caloriesKey = ValueKey('quick-add-calories');
+    await tester.enterText(find.byKey(caloriesKey), '610');
+    await tester.pumpAndSettle();
+
+    final logButton = find.byKey(const ValueKey('meal-log-footer-primary'));
+    await tester.tap(logButton);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('quick-add-editor')), findsOneWidget);
+    expect(
+      find.text('Save status is uncertain. Retry to check this same meal.'),
+      findsOneWidget,
+    );
+    expect(tester.widget<TioInput>(find.byKey(caloriesKey)).enabled, isFalse);
+    expect(tester.widget<TioButton>(logButton).onPressed, isNotNull);
+
+    await tester.tap(logButton);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('quick-add-editor')), findsNothing);
+    expect(mealLogs.inputs, hasLength(2));
+    expect(
+      mealLogs.inputs[1].clientMutationId,
+      mealLogs.inputs[0].clientMutationId,
+    );
+    expect(
+      mealLogs.inputs[1].manualNutritionSnapshot.amountFor(NutrientId.energy),
+      610,
+    );
+  });
 }
 
 Future<MealDiaryDateController> _pumpDiary(
@@ -198,6 +282,46 @@ final class _PendingMealLogRepository implements MealLogRepository {
   Future<MealLogEntry> createManual(ManualMealLogCreate input) {
     inputs.add(input);
     return _pending.future;
+  }
+
+  @override
+  Future<List<MealLogEntry>> listByLocalDate(MealLogLocalDate localDate) async =>
+      const [];
+
+  @override
+  Future<MealLogEntry?> readById(String id) async => null;
+}
+
+final class _FailOnceMealLogRepository implements MealLogRepository {
+  final inputs = <ManualMealLogCreate>[];
+
+  @override
+  Future<MealLogEntry> createManual(ManualMealLogCreate input) async {
+    inputs.add(input);
+    if (inputs.length == 1) throw Exception('offline');
+    return _entryFor(input);
+  }
+
+  @override
+  Future<List<MealLogEntry>> listByLocalDate(MealLogLocalDate localDate) async =>
+      const [];
+
+  @override
+  Future<MealLogEntry?> readById(String id) async => null;
+}
+
+final class _UnknownOnceMealLogRepository implements MealLogRepository {
+  final inputs = <ManualMealLogCreate>[];
+
+  @override
+  Future<MealLogEntry> createManual(ManualMealLogCreate input) async {
+    inputs.add(input);
+    if (inputs.length == 1) {
+      throw MealLogCreateOutcomeUnknown(
+        clientMutationId: input.clientMutationId,
+      );
+    }
+    return _entryFor(input);
   }
 
   @override
