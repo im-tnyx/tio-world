@@ -1,6 +1,6 @@
 # TNYX-199 — N4B Manual MealLog selected-day Diary sections & read-only cards
 
-**Status:** In progress
+**Status:** In review
 **Primary owner:** `apps/features/nutrition`
 **Affected platforms:** Flutter phone app
 
@@ -16,20 +16,20 @@
 ## Active Handoff
 
 **Planning owner:** Current AI session
-**Implementation owner:** None — review remediation is pending
-**Review owner:** Current AI session + PR/owner review
-**Implementation ownership state:** Reopened by final review
+**Implementation owner:** None — implementation and review remediation complete
+**Review owner:** PR/owner review
+**Implementation ownership state:** Review handoff
 **Branch:** `tnyx/tnyx-199-n4b-manual-meallog-selected-day-diary-sections-read-only`
-**PR / tracker:** PR #258 Draft; Linear TNYX-199 `In Progress`
+**PR / tracker:** PR #258 ready to return to review; Linear TNYX-199 should be `In Review`
 **Observed working-tree state:** API-only session; no local checkout modified.
 
-**Last validated implementation source:** `c3546a48bf72cb4a9a69ae5d84663ae3c0f2b109`
-**Validation:** Flutter CI #2414 / run `34670534055` / job `103490968392` passed bootstrap, Flutter/Dart analyze, Flutter tests, and Dart tests.
-**Validated source scope:** `main == 7a96e382d36d295f821826cb9d49fd38b0f533a9`; source was `30 ahead / 0 behind`, exact merge base, 14 TNYX-199-owned changed files.
+**Final validated implementation source:** `ec6bb88d615639dc4dc01a09fa1961ab5cfe7a5a`
+**Validation:** Flutter CI #2418 / run `34671516075` / job `103493621884` passed bootstrap, Flutter/Dart analyze, Flutter tests, and Dart tests.
+**Validated source scope:** `main == 7a96e382d36d295f821826cb9d49fd38b0f533a9`; source is `34 ahead / 0 behind`, exact merge base, 14 TNYX-199-owned changed files.
 
-**Current blocker:** `T199-R5` only.
-**Open review finding IDs:** `T199-R5`.
-**Next exact action:** close the conflict-reload freshness gap, add a focused regression test, rerun full CI, perform final scope/review audit, then return PR/Linear to review. Merge still requires explicit owner authorization.
+**Current blocker:** None.
+**Open review finding IDs:** None.
+**Next exact action:** final PR/owner review. Merge still requires explicit owner authorization.
 
 **Repository note:** accidental unused sibling branch `tnyx/tnyx-199-n4b-manual-meallog-selected-day-diary-sections-read-only-check` remains untouched because deletion was not authorized.
 
@@ -47,7 +47,7 @@ Required behavior:
 - latest activity section first; newest entry first;
 - retained archived category identity remains resolvable;
 - persisted category rename/archive/reactivate refreshes already-mounted Diary section labels;
-- conflict recovery that reloads a newer persisted category configuration must refresh that same Diary read model too;
+- conflict recovery that reloads a newer persisted category configuration refreshes that same Diary read model;
 - zero-entry day resolves to stable empty history without requiring Meal Categories;
 - missing nutrients remain unknown rather than fabricated zero/partial authoritative totals;
 - `Quick Add` fallback is source-aware and presentation-only;
@@ -71,11 +71,11 @@ MealCategoriesRepository.read()
 resolve sections + current display labels
 ```
 
-### T199-R5 gap
+### Conflict-reload freshness
 
-`SupabaseMealCategoriesRepository` currently emits `changes` only after its own successful `upsert`, which correctly avoids treating rejected/failed writes as persisted success. However, `MealCategoriesController` handles `MealCategoriesWriteConflict` by performing a successful repository `read()` and replacing its confirmed Settings state with the newer configuration already persisted by another writer. That successful conflict reload emits no change signal, so an already-mounted non-empty Diary provider can keep its cached old `MealCategory.displayName` while Settings shows the newer canonical label.
+`SupabaseMealCategoriesRepository` emits immediately only after its own successful confirmed `upsert`. An integrity/concurrency rejection itself still emits nothing. Instead, the adapter records that canonical state moved elsewhere; the next successful authenticated `read()` clears that pending observation and publishes a freshness event only after the newer canonical configuration has actually been decoded and confirmed.
 
-The remediation must notify/invalidate only after the conflict reload successfully observes newer canonical configuration; it must **not** emit merely because the rejected write failed.
+This matches the existing `MealCategoriesController` conflict flow: rejected write → successful canonical reload → Settings adopts the newer configuration → the same mounted Diary provider self-invalidates and re-resolves current section labels. If conflict reload fails, no false freshness event is emitted. A later successful local upsert supersedes any pending conflict observation and publishes its normal single change event.
 
 ## 3. Locked Semantics
 
@@ -88,7 +88,7 @@ The remediation must notify/invalidate only after the conflict reload successful
 | Historical visible time does not use current-device `toLocal()` | Locked |
 | Empty MealLog day does not require Meal Categories | Resolved |
 | Successful local category persistence refreshes active Diary history | Resolved |
-| Conflict reload of newer persisted category config refreshes active Diary history | Open — T199-R5 |
+| Conflict reload of newer persisted category config refreshes active Diary history | Resolved — T199-R5 |
 
 ## 4. Implementation / Review Checklist
 
@@ -101,9 +101,9 @@ The remediation must notify/invalidate only after the conflict reload successful
 - [x] Supabase successful-write / failed-write notification tests.
 - [x] T199-R4 stable empty-day short-circuit before category dependency.
 - [x] Empty-day regression proving Meal Categories are not read.
-- [ ] T199-R5 successful conflict-reload freshness signal/invalidation.
-- [ ] Regression: Diary old label → write conflict → controller reloads newer config → same selected date shows newer label.
-- [ ] Full CI and final scope/review audit after T199-R5.
+- [x] T199-R5 successful conflict-reload freshness signal/invalidation.
+- [x] Regression: Diary `Lunch` → write conflict → controller reloads canonical `Midday` → same selected date shows `Midday`.
+- [x] Full CI and final scope audit after T199-R5.
 
 ## 5. Validation History
 
@@ -116,14 +116,21 @@ Flutter CI #2410 — PASS
 
 T199-R4 source: c3546a48bf72cb4a9a69ae5d84663ae3c0f2b109
 Flutter CI #2414 — PASS
+
+T199-R5 final validated source: ec6bb88d615639dc4dc01a09fa1961ab5cfe7a5a
+Flutter CI #2418 / run 34671516075 / job 103493621884
 Bootstrap PASS
 Flutter analyze PASS
 Dart analyze PASS
 Flutter tests PASS
 Dart tests PASS
-```
 
-CI #2414 remains valid for the R4 source, but it does not cover T199-R5. A fresh exact-source CI run is required after remediation.
+Final source scope audit:
+main/base: 7a96e382d36d295f821826cb9d49fd38b0f533a9
+merge base: exact base
+branch: 34 ahead / 0 behind
+changed files: 14, all within TNYX-199 scope
+```
 
 ## 6. Review Findings
 
@@ -133,12 +140,12 @@ CI #2414 remains valid for the R4 source, but it does not cover T199-R5. A fresh
 | T199-R2 | Low | Resolved | Retry closure needed explicit nullable request narrowing |
 | T199-R3 | Medium | Resolved | Successful confirmed Meal Category changes did not invalidate already-mounted selected-day history |
 | T199-R4 | P2 | Resolved | Meal Categories availability could override a day already known to have zero MealLog entries |
-| T199-R5 | P2 | Open | Conflict recovery can load a newer persisted Meal Categories config into Settings without invalidating the already-mounted Diary history, leaving section labels stale |
+| T199-R5 | P2 | Resolved | Conflict recovery could load a newer persisted Meal Categories config into Settings without invalidating already-mounted Diary history |
 
-GitHub inline review for T199-R5 is open on PR #258. The PR was returned to Draft and Linear TNYX-199 returned to `In Progress`.
+The T199-R5 GitHub inline thread was replied to with exact-source/CI evidence and resolved only after CI #2418 passed.
 
 ## 7. Known Limitations / Final State
 
 Quick Add create/save, edit/delete/move, card-to-editor navigation, detailed item/photo rendering, daily summary/rings and broader offline mutation/replay behavior remain deferred.
 
-**Final status:** `PARTIAL` until T199-R5 is resolved and revalidated.
+**Final status:** `REVIEW`.
