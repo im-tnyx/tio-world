@@ -29,7 +29,7 @@ begin
     raise exception 'TNYX-203 blocked: revision check already exists';
   end if;
 
-  if pg_catalog.to_regprocedure('private.bump_meal_log_revision()') is not null then
+  if pg_catalog.to_regprocedure('private.enforce_meal_log_revision()') is not null then
     raise exception 'TNYX-203 blocked: revision trigger function already exists';
   end if;
 
@@ -52,25 +52,41 @@ alter table public.meal_log_entries
   add constraint meal_log_entries_revision_positive
   check (revision >= 1);
 
-create function private.bump_meal_log_revision()
+create function private.enforce_meal_log_revision()
 returns trigger
 language plpgsql
 security invoker
 set search_path = ''
 as $$
 begin
+  if tg_op = 'INSERT' then
+    new.revision := 1;
+    return new;
+  end if;
+
+  if new.id is distinct from old.id
+    or new.user_id is distinct from old.user_id
+    or new.mode is distinct from old.mode
+    or new.capture_source is distinct from old.capture_source
+    or new.created_at is distinct from old.created_at
+    or new.client_mutation_id is distinct from old.client_mutation_id
+  then
+    raise exception 'MealLog immutable identity/provenance fields cannot be changed'
+      using errcode = '23514';
+  end if;
+
   new.revision := old.revision + 1;
   return new;
 end;
 $$;
 
-revoke all on function private.bump_meal_log_revision()
+revoke all on function private.enforce_meal_log_revision()
   from public, anon, authenticated, service_role;
 
 create trigger trg_meal_log_entries_revision
-before update on public.meal_log_entries
+before insert or update on public.meal_log_entries
 for each row
-execute function private.bump_meal_log_revision();
+execute function private.enforce_meal_log_revision();
 
 comment on column public.meal_log_entries.revision is
-  'Monotonic optimistic-concurrency identity. Starts at 1 and advances exactly once on every successful row update; clients match expected revision but do not choose the next value.';
+  'Monotonic optimistic-concurrency identity. Server forces new rows to 1 and advances exactly once on every successful row update; clients match expected revision but do not choose the durable value.';
