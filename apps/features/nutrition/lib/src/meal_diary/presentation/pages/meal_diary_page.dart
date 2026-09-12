@@ -111,9 +111,16 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final delegate = GoRouter.of(context).routerDelegate;
-    final diaryRoutePath = GoRouterState.of(context).uri.path;
+    final router = GoRouter.maybeOf(context);
+    if (router == null) {
+      _routerDelegate?.removeListener(_onRouterChanged);
+      _routerDelegate = null;
+      _lastRouterUri = null;
+      _diaryRoutePath = null;
+      return;
+    }
 
+    final delegate = router.routerDelegate;
     if (!identical(_routerDelegate, delegate)) {
       _routerDelegate?.removeListener(_onRouterChanged);
       _routerDelegate = delegate;
@@ -121,7 +128,7 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
       delegate.addListener(_onRouterChanged);
     }
 
-    _diaryRoutePath = diaryRoutePath;
+    _diaryRoutePath = router.state.uri.path;
   }
 
   @override
