@@ -183,8 +183,8 @@ class _Section extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
-    final hasSummary =
-        section.caloriesKcal != null || section.proteinGrams != null;
+    final hasSummary = preferences.showMealSectionNutrition &&
+        (section.caloriesKcal != null || section.proteinGrams != null);
 
     return Column(
       key: ValueKey('meal-diary-section-${section.categoryId}'),

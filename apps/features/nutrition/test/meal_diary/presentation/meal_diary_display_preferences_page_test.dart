@@ -55,6 +55,40 @@ void main() {
       _switchIn(tester, 'meal-diary-settings-note-preview').value,
       isFalse,
     );
+    expect(
+      _switchIn(tester, 'meal-diary-settings-section-nutrition').value,
+      isTrue,
+    );
+  });
+
+  testWidgets(
+      'one section nutrition switch exists and toggling it changes '
+      'canonical state', (tester) async {
+    final repository = _MemoryRepository();
+    final controller = MealDiaryDisplayPreferencesController(repository);
+
+    await _pump(tester, controller: controller);
+
+    expect(
+      find.byKey(const ValueKey('meal-diary-settings-section-nutrition')),
+      findsOneWidget,
+    );
+    // The owner lock is one switch for the whole trailing group, never
+    // separate Calories/Protein rows.
+    expect(find.textContaining('Calories'), findsNothing);
+    expect(find.textContaining('Protein'), findsNothing);
+
+    await tester.tap(
+      find.byKey(const ValueKey('meal-diary-settings-section-nutrition')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(controller.preferences.showMealSectionNutrition, isFalse);
+    expect(repository.value.showMealSectionNutrition, isFalse);
+    expect(
+      _switchIn(tester, 'meal-diary-settings-section-nutrition').value,
+      isFalse,
+    );
   });
 
   testWidgets('Meal Notes OFF disables preview without clearing its value',

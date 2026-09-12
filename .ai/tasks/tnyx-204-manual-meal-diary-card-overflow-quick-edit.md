@@ -1,6 +1,6 @@
 # TNYX-204 — Manual Meal Diary card overflow and Quick Edit
 
-**Status:** Review-fix pass complete, ready for CI/merge decision\
+**Status:** Micro-extension implemented, ready for final review\
 **Primary owner:** `apps/features/nutrition`\
 **Affected platforms:** Flutter phone app (`apps/features/nutrition`, consumed by `apps/app`)
 
@@ -25,13 +25,13 @@
 **Observed working-tree state:** Clean after the implementation commit; accidental package lockfile drift was removed before publication.\
 **Observed committed files:** See Final Handoff changed-file groups below.\
 **PR / tracker:** GitHub Draft PR [#263](https://github.com/im-tnyx/tio-world/pull/263) is open; Linear `TNYX-204` remains `In Progress` until exact-head CI passes; dependency `TNYX-203` is `Done` and GitHub PR `#262` is merged.\
-**Current implementation state:** Complete, including a bounded review-fix pass. The owner-approved rich card, header glyphs, anchored Edit-only popup, Quick Add edit mode, canonical read/update flow, conflict/ambiguous-outcome handling, affected-date invalidation, 40dp fallback-icon polish, the two review findings (TNYX-204-RF1, TNYX-204-RF2), and one owner-found Add Food bottom-inset polish item (TNYX-204-RF3) are implemented and locally validated.\
-**Relevant execution surface:** Meal Diary selected-day cards, Quick Add editor, canonical `MealLogRepository.readById`/`updateManual`, existing Core `TioAnchoredPopup`, and the Add Food sheet route\
-**Validation completed at SHA:** working tree at parent `e92a45b8d0de616dbc46f2055476172b8e831351` plus the review-fix commit(s) — `apps/core` analyze + 293 tests (unchanged, no Core edits in this pass), `apps/features/nutrition` analyze + 679 tests, `apps/app` analyze + 319 tests, `git diff --check`\
+**Current implementation state:** Complete, including a bounded review-fix pass and an owner-approved micro-extension. The owner-approved rich card, header glyphs, anchored Edit-only popup, Quick Add edit mode, canonical read/update flow, conflict/ambiguous-outcome handling, affected-date invalidation, 40dp fallback-icon polish, review findings TNYX-204-RF1/RF2/RF3, and the section-nutrition visibility preference (`showMealSectionNutrition`) are implemented and locally validated.\
+**Relevant execution surface:** Meal Diary selected-day cards/section headers, Meal Diary Settings, `MealDiaryDisplayPreferences` model/repository/controller, Quick Add editor, canonical `MealLogRepository.readById`/`updateManual`, existing Core `TioAnchoredPopup`, and the Add Food sheet route\
+**Validation completed at SHA:** working tree at parent `85683f3aae0ddf8b2dfd9aa70ed4e32f4ee51b7c` plus the micro-extension commit — `apps/core` untouched in this pass (293 tests from the prior pass stand), `apps/features/nutrition` analyze + 688 tests, `apps/app` analyze + 319 tests, `git diff --check`\
 **Validation remaining:** Exact-head CI after publication; workspace `melos` remains unavailable as recorded below\
 **Current blocker:** Workspace `melos` is unavailable in the current shell. Full per-package validation was run instead for every affected/consuming package. This is a local tooling limitation, not a TNYX-204 defect.\
-**Open review finding IDs:** None open. TNYX-204-R5 remains an accepted out-of-scope data limitation, not an implementation blocker.\
-**Next exact action:** Commit the review-fix pass, push, verify exact-head Draft PR CI, then reconcile Linear `TNYX-204` to `In Review` (already there) and confirm the PR body reflects the new head.
+**Open review finding IDs:** None open. TNYX-204-R5 remains an accepted out-of-scope data limitation, not an implementation blocker. TNYX-208 stays canceled/absorbed and was not reopened.\
+**Next exact action:** Commit the micro-extension, push, verify exact-head Draft PR CI, then reconcile the PR body and the newly satisfied TNYX-204 acceptance items (Linear stays `In Review`, not `Done`).
 
 ## Global UI / Design-System Guardrail
 
@@ -99,6 +99,8 @@ Manual Meal Diary entries remain readable on compact widths, expose a discoverab
 | Screen inset, card inset and card gap all stay `TioSpacing.lg` (16) | Approved | Owner decided 2026-09-12 after the conflict below was surfaced. This supersedes TNYX-115's earlier `TioSpacing.md` (12) horizontal card-padding refinement, which was written against the superseded compact single-row card and its `EdgeInsets.all(TioSpacing.lg)` card padding. The richer card carries no card padding at all; its content column owns the inset. | Owner |
 | Macro total glyphs in section headers only | Approved | Render existing Core `apple.svg` before calories and the owner-supplied protein SVG before grams; card detail rows stay text-only | Owner |
 | Fallback food glyph polish | Approved | Keep the approved 120dp media/card geometry unchanged and reduce the centered muted `Icons.restaurant_outlined` from 48dp to governed `TioSize.dp40` so it remains visually secondary | Owner |
+| One `showMealSectionNutrition` switch controls the whole trailing Calories + Protein section-header group; no separate per-nutrient toggles | Approved | Owner explicitly folded the previously planned N14B section-header visibility preference into this open PR on 2026-09-12, locking one switch rather than two | Owner |
+| Extend existing `MealDiaryDisplayPreferences`/repository/controller; no second preference store, no schema-version bump | Approved | TNYX-198's canonical model/repository/controller already own device-local Meal Diary presentation state; the new field is additive and the existing `showMealTimes`/`mealNotesEnabled`/`showMealNotePreview` shape/version-1 contract does not need to change to add it safely | Owner / Source truth |
 
 ## 4. Architecture Design
 
@@ -183,6 +185,7 @@ section summary      flush with the content edge; divider absorbs the middle
 | TNYX-204-RF1 | P2 | Resolved | If a Quick Edit sheet closed with no result, the Diary skipped invalidating the original date even when the underlying write may already be durable (an ambiguous transport outcome) | PR #263 review at `dccaf341` | `meal_diary_page.dart:_openQuickEdit` now always invalidates the original date once the sheet closes and the page is still mounted, before branching on whether it returned an updated entry. Fresh inspection also found the literal reviewer scenario ("user dismisses the uncertain sheet") is already prevented by pre-existing `PopScope(canPop: !_draftLocked)` + `TioEditorSheet.canDismiss: !_draftLocked` — outcome-unknown genuinely cannot be dismissed. The real reachable path is retry-then-conflict (the ambiguous write lands, the same-facts retry then conflicts against the revision it already advanced, conflict is not a locked state, and the reader can dismiss without reapplying); the fix and its regression test target that path |
 | TNYX-204-RF2 | P2 | Resolved | Date-move invalidation was implemented but had no assertion proving both the original and destination dates actually refresh | PR #263 review at `dccaf341` | Added a regression test that moves a real entry's consumed date through the actual `CupertinoDatePicker`/footer control into a different day and, using an explicitly held `ProviderContainer` listener on the destination date (an `autoDispose` family provider, so an unwatched instance would refetch fresh regardless of whether the code path exists), proves a second read happens only because of the explicit invalidate |
 | TNYX-204-RF3 | P2 | Resolved | Owner device review: the Add Food sheet's bottom system nav area showed a different background than the sheet, while Quick Add's matching area was correct | PR #263 review-fix pass | `showMealDiaryAddFoodSheet`'s outer `SafeArea` insets content above the system nav area before `TioSheet`'s own Material paints, leaving that gap to the transparent modal route background. `TioEditorSheet` avoids this by painting its Material first and keeping `SafeArea` inside it. Fixed locally in `add_food_sheet.dart` only: a `ColoredBox(color: context.tioColors.surface)` now sits behind the existing `SafeArea`, filling the gap with the same governed role `TioSheet` paints. No Core change. Verified the added regression test actually fails without the fix (stashed and reran) before restoring it |
+| TNYX-204-ME1 | N/A | Implemented | Owner-approved micro-extension: fold N14B section-header nutrition visibility into this still-open PR | Linear 2026-09-12 | Added one boolean, `showMealSectionNutrition` (default true), to the existing `MealDiaryDisplayPreferences` model/repository/controller — no second preference store. `_Section`'s `hasSummary` now gates on `preferences.showMealSectionNutrition && (calories or protein known)`, so OFF removes the whole trailing group and the divider/title reclaim the width; individual `MealDiaryMealCard` calories/protein are untouched. One governed `Show section nutrition` toggle added to Meal Diary Settings, reusing the existing feature-owned toggle row — no new Core component, no separate Calories/Protein rows |
 
 ## 7. Final Handoff
 
@@ -204,9 +207,20 @@ Review-fix pass (this bounded follow-up commit only):
 - `apps/features/nutrition/test/meal_logging/meal_diary_add_food_flow_test.dart` — one new widget test asserting the bottom-inset fill color/extent (TNYX-204-RF3); confirmed to fail without the fix by temporarily stashing it and rerunning.
 - No `apps/core` files changed in this pass.
 
+Micro-extension (section nutrition visibility, this bounded follow-up commit only):
+
+- `apps/features/nutrition/lib/src/meal_diary/domain/models/meal_diary_display_preferences.dart` — adds `showMealSectionNutrition` (default true) to the constructor, field, `copyWith`, equality, hashCode, `toString`.
+- `apps/features/nutrition/lib/src/meal_diary/data/shared_preferences_meal_diary_display_preferences_repository.dart` — read() treats an absent `showMealSectionNutrition` key as the pre-existing legacy shape (defaults true) and only fails closed when the key is present with the wrong type; write() persists the new boolean; schema stays version 1 (additive, backward-compatible).
+- `apps/features/nutrition/lib/src/meal_diary/presentation/controllers/meal_diary_display_preferences_controller.dart` — `setShowMealSectionNutrition(bool)` reuses the existing serialized/optimistic `_select`/`_persist` write path.
+- `apps/features/nutrition/lib/src/meal_diary/presentation/pages/meal_diary_settings_page.dart` — one `Show section nutrition` toggle row, same feature-owned composition as the other three rows.
+- `apps/features/nutrition/lib/src/meal_diary/presentation/widgets/meal_diary_history_view.dart` — `_Section`'s `hasSummary` now requires `preferences.showMealSectionNutrition` in addition to a known calorie/protein aggregate.
+- `apps/features/nutrition/test/meal_diary/data/meal_diary_display_preferences_repository_test.dart`, `.../presentation/meal_diary_display_preferences_controller_test.dart`, `.../presentation/meal_diary_display_preferences_page_test.dart`, `.../meal_diary_history_view_test.dart` — default/round-trip/backward-compat/malformed-type coverage, setter + failed-write rollback, one-switch Settings UI + toggle behavior, and header ON (both/calories-only/protein-only)/OFF rendering with individual-card nutrition proven unchanged.
+- `docs/screens/meal-diary.md`, `docs/screens/meal-diary-display-preferences.md` — document the new preference and its section-header-only boundary.
+- No `apps/core` files changed in this pass.
+
 ### Actual Behavior
 
-Manual MealLog cards now render the approved 120dp leading media composition, time scrim, clean nutrition details and near-edge overflow. The fallback icon is centered at 40dp and remains visually secondary. Card tap and the popup's only action, `Edit`, both open the reused editor as `Quick Edit`; `Save Changes` updates the same canonical ID with optimistic revision safety and refreshes affected Diary dates without moving the selected date.
+Manual MealLog cards now render the approved 120dp leading media composition, time scrim, clean nutrition details and near-edge overflow. The fallback icon is centered at 40dp and remains visually secondary. Card tap and the popup's only action, `Edit`, both open the reused editor as `Quick Edit`; `Save Changes` updates the same canonical ID with optimistic revision safety and refreshes affected Diary dates without moving the selected date. Meal Diary Settings now also exposes one `Show section nutrition` toggle; turning it off removes the section header's trailing Calories + Protein group (divider/title reclaim the width) while leaving individual card calories/protein untouched, and an older stored preference payload without the new field still hydrates correctly with the new field defaulting to ON.
 
 ### Known Limitations
 

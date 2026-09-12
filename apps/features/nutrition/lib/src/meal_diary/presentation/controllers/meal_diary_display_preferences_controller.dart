@@ -74,6 +74,11 @@ class MealDiaryDisplayPreferencesController extends ChangeNotifier {
     await _select(_preferences.copyWith(showMealNotePreview: value));
   }
 
+  Future<void> setShowMealSectionNutrition(bool value) async {
+    await load();
+    await _select(_preferences.copyWith(showMealSectionNutrition: value));
+  }
+
   Future<void> _select(MealDiaryDisplayPreferences next) {
     if (next == _preferences) return Future<void>.value();
 

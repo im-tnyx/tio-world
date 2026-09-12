@@ -43,10 +43,20 @@ final class SharedPreferencesMealDiaryDisplayPreferencesRepository
         throw const FormatException('Invalid Meal Diary preferences payload.');
       }
 
+      // Added after schema version 1 already shipped. An older stored payload
+      // predates this key, so its absence is the expected legacy shape, not
+      // corruption — only a present-but-wrong-typed value fails closed like
+      // the other fields above.
+      final sectionNutritionRaw = decoded['showMealSectionNutrition'];
+      if (sectionNutritionRaw != null && sectionNutritionRaw is! bool) {
+        throw const FormatException('Invalid Meal Diary preferences payload.');
+      }
+
       return MealDiaryDisplayPreferences(
         showMealTimes: decoded['showMealTimes'] as bool,
         mealNotesEnabled: decoded['mealNotesEnabled'] as bool,
         showMealNotePreview: decoded['showMealNotePreview'] as bool,
+        showMealSectionNutrition: sectionNutritionRaw as bool? ?? true,
       );
     } on FormatException {
       await _preferences.remove(storageKey);
@@ -66,6 +76,7 @@ final class SharedPreferencesMealDiaryDisplayPreferencesRepository
         'showMealTimes': preferences.showMealTimes,
         'mealNotesEnabled': preferences.mealNotesEnabled,
         'showMealNotePreview': preferences.showMealNotePreview,
+        'showMealSectionNutrition': preferences.showMealSectionNutrition,
       }),
     );
   }

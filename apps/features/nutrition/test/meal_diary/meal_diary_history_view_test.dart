@@ -363,6 +363,239 @@ void main() {
     );
   });
 
+  group('section nutrition summary preference', () {
+    testWidgets(
+        'ON with both known values renders one aggregate group with both '
+        'icons and values', (tester) async {
+      final dateController = MealDiaryDateController(clock: () => _today);
+      final categories = _FakeMealCategoriesRepository(
+        MealCategoriesConfig.canonicalDefaults(),
+      );
+      final mealLogs = _ImmediateMealLogRepository({
+        _localDate(11): [
+          _entry(
+            id: 'both',
+            categoryId: 'meal_slot_2',
+            mealName: 'Rice',
+            consumedAt: DateTime.utc(2026, 9, 11, 7, 35),
+            calories: 254,
+            protein: 9,
+          ),
+        ],
+      });
+      final preferences = MealDiaryDisplayPreferencesController(
+        _FakeDisplayPreferencesRepository(
+          const MealDiaryDisplayPreferences(showMealSectionNutrition: true),
+        ),
+      );
+      await preferences.load();
+
+      await _pump(
+        tester,
+        dateController: dateController,
+        mealLogs: mealLogs,
+        categories: categories,
+        preferences: preferences,
+      );
+      await tester.pumpAndSettle();
+
+      final summary = find.byKey(
+        const ValueKey('meal-diary-section-summary-meal_slot_2'),
+      );
+      expect(summary, findsOneWidget);
+      expect(
+        find.descendant(of: summary, matching: find.byType(SvgPicture)),
+        findsNWidgets(2),
+      );
+      expect(
+        find.descendant(of: summary, matching: find.text('254 kcal')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: summary, matching: find.text('9g')),
+        findsOneWidget,
+      );
+
+      // Individual card values remain their own, untouched, separate copy.
+      expect(
+        find.byKey(const ValueKey('meal-diary-entry-calories-both')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('meal-diary-entry-protein-both')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('ON with only calories known renders only calories',
+        (tester) async {
+      final dateController = MealDiaryDateController(clock: () => _today);
+      final categories = _FakeMealCategoriesRepository(
+        MealCategoriesConfig.canonicalDefaults(),
+      );
+      final mealLogs = _ImmediateMealLogRepository({
+        _localDate(11): [
+          _entryWithNutrients(
+            id: 'calories-only',
+            categoryId: 'meal_slot_2',
+            mealName: 'Rice',
+            consumedAt: DateTime.utc(2026, 9, 11, 7, 35),
+            nutrients: {NutrientId.energy: 254},
+          ),
+        ],
+      });
+      final preferences = MealDiaryDisplayPreferencesController(
+        _FakeDisplayPreferencesRepository(
+          const MealDiaryDisplayPreferences(showMealSectionNutrition: true),
+        ),
+      );
+      await preferences.load();
+
+      await _pump(
+        tester,
+        dateController: dateController,
+        mealLogs: mealLogs,
+        categories: categories,
+        preferences: preferences,
+      );
+      await tester.pumpAndSettle();
+
+      final summary = find.byKey(
+        const ValueKey('meal-diary-section-summary-meal_slot_2'),
+      );
+      expect(summary, findsOneWidget);
+      expect(
+        find.descendant(of: summary, matching: find.byType(SvgPicture)),
+        findsOneWidget,
+        reason: 'only the calorie glyph, never a fabricated protein value',
+      );
+      expect(
+        find.descendant(of: summary, matching: find.text('254 kcal')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('ON with only protein known renders only protein',
+        (tester) async {
+      final dateController = MealDiaryDateController(clock: () => _today);
+      final categories = _FakeMealCategoriesRepository(
+        MealCategoriesConfig.canonicalDefaults(),
+      );
+      final mealLogs = _ImmediateMealLogRepository({
+        _localDate(11): [
+          _entryWithNutrients(
+            id: 'protein-only',
+            categoryId: 'meal_slot_2',
+            mealName: 'Egg whites',
+            consumedAt: DateTime.utc(2026, 9, 11, 7, 35),
+            nutrients: {NutrientId.protein: 9},
+          ),
+        ],
+      });
+      final preferences = MealDiaryDisplayPreferencesController(
+        _FakeDisplayPreferencesRepository(
+          const MealDiaryDisplayPreferences(showMealSectionNutrition: true),
+        ),
+      );
+      await preferences.load();
+
+      await _pump(
+        tester,
+        dateController: dateController,
+        mealLogs: mealLogs,
+        categories: categories,
+        preferences: preferences,
+      );
+      await tester.pumpAndSettle();
+
+      final summary = find.byKey(
+        const ValueKey('meal-diary-section-summary-meal_slot_2'),
+      );
+      expect(summary, findsOneWidget);
+      expect(
+        find.descendant(of: summary, matching: find.byType(SvgPicture)),
+        findsOneWidget,
+        reason: 'only the protein glyph, never a fabricated calorie value',
+      );
+      expect(
+        find.descendant(of: summary, matching: find.text('9g')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+        'OFF hides the whole trailing group but leaves individual card '
+        'nutrition unchanged', (tester) async {
+      final dateController = MealDiaryDateController(clock: () => _today);
+      final categories = _FakeMealCategoriesRepository(
+        MealCategoriesConfig.canonicalDefaults(),
+      );
+      final mealLogs = _ImmediateMealLogRepository({
+        _localDate(11): [
+          _entry(
+            id: 'off',
+            categoryId: 'meal_slot_2',
+            mealName: 'Rice',
+            consumedAt: DateTime.utc(2026, 9, 11, 7, 35),
+            calories: 254,
+            protein: 9,
+          ),
+        ],
+      });
+      final preferences = MealDiaryDisplayPreferencesController(
+        _FakeDisplayPreferencesRepository(
+          const MealDiaryDisplayPreferences(showMealSectionNutrition: false),
+        ),
+      );
+      await preferences.load();
+
+      await _pump(
+        tester,
+        dateController: dateController,
+        mealLogs: mealLogs,
+        categories: categories,
+        preferences: preferences,
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          const ValueKey('meal-diary-section-summary-meal_slot_2'),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('meal-diary-section-meal_slot_2'),
+          ),
+          matching: find.byType(SvgPicture),
+        ),
+        findsNothing,
+        reason: 'no header glyph must survive when the group is hidden',
+      );
+
+      // The divider absorbs the freed width instead of leaving a gap; the
+      // section content still ends at the same right edge.
+      final sectionRect = tester.getRect(
+        find.byKey(const ValueKey('meal-diary-section-meal_slot_2')),
+      );
+      final dividerRect = tester.getRect(find.byType(Divider));
+      expect(dividerRect.right, sectionRect.right);
+
+      // Individual card nutrition is a separate concern and stays visible.
+      expect(
+        find.byKey(const ValueKey('meal-diary-entry-calories-off')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('meal-diary-entry-protein-off')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   testWidgets('a slower old date read cannot overwrite the newer selection',
       (tester) async {
     final dateController = MealDiaryDateController(clock: () => _today);
@@ -512,6 +745,35 @@ MealLogEntry _entry({
         NutrientId.energy: calories,
         NutrientId.protein: protein,
       },
+    ),
+    createdAt: DateTime.utc(2026, 9, localDay),
+    updatedAt: DateTime.utc(2026, 9, localDay),
+  );
+}
+
+/// Like [_entry], but with a caller-chosen exact nutrient set instead of
+/// always both energy and protein — needed to reach a section aggregate that
+/// legitimately knows only one of the two values.
+MealLogEntry _entryWithNutrients({
+  required String id,
+  required String categoryId,
+  required String? mealName,
+  required DateTime consumedAt,
+  required Map<NutrientId, num> nutrients,
+  int localDay = 11,
+}) {
+  return MealLogEntry.manual(
+    id: id,
+    userId: 'user-1',
+    mealCategoryId: categoryId,
+    mealName: mealName,
+    consumedAt: consumedAt,
+    consumedLocalDate: _localDate(localDay),
+    consumedUtcOffsetMinutes: 330,
+    captureSource: MealLogCaptureSource.quickAdd,
+    manualNutritionSnapshot: NutritionSnapshot(
+      schemaVersion: 1,
+      nutrients: nutrients,
     ),
     createdAt: DateTime.utc(2026, 9, localDay),
     updatedAt: DateTime.utc(2026, 9, localDay),
