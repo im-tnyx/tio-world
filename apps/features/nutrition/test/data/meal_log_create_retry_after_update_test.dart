@@ -6,7 +6,8 @@ import 'package:tio_shared/shared.dart';
 const _mutation = '11111111-1111-4111-8111-111111111111';
 
 void main() {
-  test('in-memory create retry returns canonical row after later edit', () async {
+  test('in-memory create retry fails closed after later edit changes facts',
+      () async {
     final repository = InMemoryMealLogRepository(
       mealCategoriesRepository: InMemoryMealCategoriesRepository(),
     );
@@ -25,47 +26,80 @@ void main() {
       ),
     );
 
-    final retry = await repository.createManual(create);
-
-    expect(retry.id, created.id);
-    expect(retry.revision, 2);
-    expect(retry.mealName, 'Edited after create');
+    await expectLater(
+      () => repository.createManual(create),
+      throwsA(isA<MealLogCreateMutationConflict>()),
+    );
   });
 
-  test('Supabase create retry accepts same mutation row after later edit',
+  test('Supabase create retry fails closed after later edit changes facts',
       () async {
     final gateway = _CreateRetryGateway(
       mutationRow: _row(revision: 2, mealName: 'Edited after create'),
     );
-    final repository = SupabaseMealLogRepository(
-      client: _UnusedSupabaseClient(),
-      mealCategoriesRepository: InMemoryMealCategoriesRepository(),
-      gateway: gateway,
-      currentUserId: () => 'user-1',
+    final repository = _repository(gateway);
+
+    await expectLater(
+      () => repository.createManual(_createInput()),
+      throwsA(isA<MealLogCreateMutationConflict>()),
     );
-
-    final retry = await repository.createManual(_createInput());
-
-    expect(retry.revision, 2);
-    expect(retry.mealName, 'Edited after create');
     expect(gateway.insertCalls, 0);
   });
 
-  test('edited same-mutation row still rejects capture provenance mismatch',
+  test('revision 2 same mutation plus different create facts stays conflict',
       () async {
     final gateway = _CreateRetryGateway(
       mutationRow: _row(
         revision: 2,
-        mealName: 'Edited after create',
+        mealName: 'Existing edited meal',
+        captureSource: 'quick_add',
+      ),
+    );
+    final repository = _repository(gateway);
+
+    await expectLater(
+      () => repository.createManual(
+        _createInput(
+          mealName: 'Different logical create',
+          energy: 700,
+          consumedAt: DateTime.utc(2026, 9, 12, 8),
+        ),
+      ),
+      throwsA(isA<MealLogCreateMutationConflict>()),
+    );
+    expect(gateway.insertCalls, 0);
+  });
+
+  test('revision 2 row may reconcile when current facts still exactly match',
+      () async {
+    final gateway = _CreateRetryGateway(
+      mutationRow: _row(
+        revision: 2,
+        mealName: 'Original create',
+        consumedAt: '2026-09-12T06:30:00.000Z',
+        energy: 500,
+      ),
+    );
+    final repository = _repository(gateway);
+
+    final retry = await repository.createManual(_createInput());
+
+    expect(retry.revision, 2);
+    expect(retry.mealName, 'Original create');
+    expect(gateway.insertCalls, 0);
+  });
+
+  test('edited same-mutation row rejects capture provenance mismatch', () async {
+    final gateway = _CreateRetryGateway(
+      mutationRow: _row(
+        revision: 2,
+        mealName: 'Original create',
+        consumedAt: '2026-09-12T06:30:00.000Z',
+        energy: 500,
         captureSource: 'text',
       ),
     );
-    final repository = SupabaseMealLogRepository(
-      client: _UnusedSupabaseClient(),
-      mealCategoriesRepository: InMemoryMealCategoriesRepository(),
-      gateway: gateway,
-      currentUserId: () => 'user-1',
-    );
+    final repository = _repository(gateway);
 
     await expectLater(
       () => repository.createManual(_createInput()),
@@ -75,18 +109,31 @@ void main() {
   });
 }
 
-ManualMealLogCreate _createInput() {
+SupabaseMealLogRepository _repository(_CreateRetryGateway gateway) {
+  return SupabaseMealLogRepository(
+    client: _UnusedSupabaseClient(),
+    mealCategoriesRepository: InMemoryMealCategoriesRepository(),
+    gateway: gateway,
+    currentUserId: () => 'user-1',
+  );
+}
+
+ManualMealLogCreate _createInput({
+  String mealName = 'Original create',
+  num energy = 500,
+  DateTime? consumedAt,
+}) {
   return ManualMealLogCreate(
     clientMutationId: _mutation,
     mealCategoryId: 'meal_slot_1',
-    mealName: 'Original create',
-    consumedAt: DateTime.utc(2026, 9, 12, 6, 30),
+    mealName: mealName,
+    consumedAt: consumedAt ?? DateTime.utc(2026, 9, 12, 6, 30),
     consumedLocalDate: MealLogLocalDate(year: 2026, month: 9, day: 12),
     consumedUtcOffsetMinutes: 330,
     captureSource: MealLogCaptureSource.quickAdd,
     manualNutritionSnapshot: NutritionSnapshot(
       schemaVersion: 1,
-      nutrients: {NutrientId.energy: 500},
+      nutrients: {NutrientId.energy: energy},
     ),
   );
 }
@@ -95,6 +142,8 @@ Map<String, dynamic> _row({
   required int revision,
   required String mealName,
   String captureSource = 'quick_add',
+  String consumedAt = '2026-09-12T07:00:00.000Z',
+  num energy = 510,
 }) {
   return <String, dynamic>{
     'id': 'row-1',
@@ -103,14 +152,14 @@ Map<String, dynamic> _row({
     'meal_category_id': 'meal_slot_1',
     'meal_name': mealName,
     'note': null,
-    'consumed_at': '2026-09-12T07:00:00.000Z',
+    'consumed_at': consumedAt,
     'consumed_local_date': '2026-09-12',
     'consumed_timezone_id': null,
     'consumed_utc_offset_minutes': 330,
     'capture_source': captureSource,
     'manual_nutrition_snapshot': <String, Object?>{
       'schemaVersion': 1,
-      'nutrients': <String, Object?>{'energy': 510},
+      'nutrients': <String, Object?>{'energy': energy},
     },
     'created_at': '2026-09-12T08:00:00.000Z',
     'updated_at': '2026-09-12T09:00:00.000Z',
