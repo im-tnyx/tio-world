@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_shared/shared.dart';
 
+import '../../domain/repositories/manual_meal_log_update_repository.dart';
 import '../../domain/repositories/meal_categories_repository.dart';
 import '../../domain/repositories/meal_log_repository.dart';
 
@@ -9,6 +10,13 @@ typedef CurrentMealLogUserId = String? Function();
 /// Injectable table seam for focused mapping/error tests.
 abstract interface class MealLogTableGateway {
   Future<Map<String, dynamic>> insertRow(Map<String, dynamic> payload);
+
+  Future<Map<String, dynamic>?> updateRow({
+    required String userId,
+    required String id,
+    required int expectedRevision,
+    required Map<String, dynamic> payload,
+  });
 
   Future<Map<String, dynamic>?> readRow({
     required String userId,
@@ -33,7 +41,7 @@ final class SupabaseMealLogTableGateway implements MealLogTableGateway {
       'id, user_id, mode, meal_category_id, meal_name, note, consumed_at, '
       'consumed_local_date, consumed_timezone_id, consumed_utc_offset_minutes, '
       'capture_source, manual_nutrition_snapshot, created_at, updated_at, '
-      'client_mutation_id';
+      'client_mutation_id, revision';
 
   final SupabaseClient _client;
 
@@ -45,6 +53,24 @@ final class SupabaseMealLogTableGateway implements MealLogTableGateway {
         .select(_columns)
         .single();
     return Map<String, dynamic>.from(row);
+  }
+
+  @override
+  Future<Map<String, dynamic>?> updateRow({
+    required String userId,
+    required String id,
+    required int expectedRevision,
+    required Map<String, dynamic> payload,
+  }) async {
+    final row = await _client
+        .from('meal_log_entries')
+        .update(payload)
+        .eq('user_id', userId)
+        .eq('id', id)
+        .eq('revision', expectedRevision)
+        .select(_columns)
+        .maybeSingle();
+    return row == null ? null : Map<String, dynamic>.from(row);
   }
 
   @override
@@ -99,9 +125,11 @@ final class SupabaseMealLogTableGateway implements MealLogTableGateway {
 /// remains the final database ownership authority. TNYX-196 adds stable create
 /// idempotency: the database unique invariant is the final duplicate guard, and
 /// transport ambiguity is reconciled with the same client mutation identity.
-/// TNYX-197 adds owner-scoped selected-local-date history reads without changing
-/// physical schema or historical category semantics.
-final class SupabaseMealLogRepository implements MealLogRepository {
+/// TNYX-197 adds owner-scoped selected-local-date history reads. TNYX-203 adds
+/// optimistic manual updates using the durable row revision without changing
+/// manual-mode identity or capture provenance.
+final class SupabaseMealLogRepository
+    implements MealLogRepository, ManualMealLogUpdateRepository {
   SupabaseMealLogRepository({
     required SupabaseClient client,
     required MealCategoriesRepository mealCategoriesRepository,
@@ -165,6 +193,90 @@ final class SupabaseMealLogRepository implements MealLogRepository {
     return _decodeCreateResult(
       row,
       expectedUserId: userId,
+      input: input,
+    );
+  }
+
+  @override
+  Future<MealLogEntry> updateManual(ManualMealLogUpdate input) async {
+    final userId = _requireUserId();
+    final beforeRow = await _gateway.readRow(userId: userId, id: input.id);
+    if (beforeRow == null) {
+      throw MealLogUpdateNotFound(id: input.id);
+    }
+    final before = _decodeManualRow(beforeRow, expectedUserId: userId);
+    if (before.id != input.id) {
+      throw const FormatException(
+        'Invalid MealLog row: id does not match update target.',
+      );
+    }
+
+    // A previous call may have committed N+1 but lost both its response and
+    // immediate reconciliation read. Retrying the exact same operation must
+    // converge on that canonical result instead of becoming a false conflict.
+    if (before.revision == input.expectedRevision + 1 &&
+        _matchesUpdateInput(before, input)) {
+      return before;
+    }
+
+    if (before.revision != input.expectedRevision) {
+      throw MealLogUpdateConflict(
+        id: input.id,
+        expectedRevision: input.expectedRevision,
+        actualRevision: before.revision,
+      );
+    }
+
+    // Retaining a historical/archived category is valid. Moving this entry to
+    // a different category requires the destination to be active now.
+    if (input.mealCategoryId != before.mealCategoryId) {
+      await _requireActiveMealCategory(input.mealCategoryId);
+    }
+
+    final payload = <String, dynamic>{
+      'meal_category_id': input.mealCategoryId,
+      'meal_name': input.mealName,
+      'note': input.note,
+      'consumed_at': input.consumedAt.toUtc().toIso8601String(),
+      'consumed_local_date': input.consumedLocalDate.toIso8601String(),
+      'consumed_timezone_id': input.consumedTimezoneId,
+      'consumed_utc_offset_minutes': input.consumedUtcOffsetMinutes,
+      'manual_nutrition_snapshot': input.manualNutritionSnapshot.toJson(),
+    };
+
+    Map<String, dynamic>? row;
+    try {
+      row = await _gateway.updateRow(
+        userId: userId,
+        id: input.id,
+        expectedRevision: input.expectedRevision,
+        payload: payload,
+      );
+    } on Object catch (error) {
+      if (!_isAmbiguousGatewayFailure(error)) rethrow;
+      return _reconcileAfterUpdateAttempt(
+        userId: userId,
+        before: before,
+        beforeRow: beforeRow,
+        input: input,
+        cause: error,
+      );
+    }
+
+    if (row == null) {
+      return _reconcileAfterUpdateAttempt(
+        userId: userId,
+        before: before,
+        beforeRow: beforeRow,
+        input: input,
+      );
+    }
+
+    return _decodeUpdateResult(
+      row,
+      expectedUserId: userId,
+      before: before,
+      beforeRow: beforeRow,
       input: input,
     );
   }
@@ -245,6 +357,63 @@ final class SupabaseMealLogRepository implements MealLogRepository {
     );
   }
 
+  Future<MealLogEntry> _reconcileAfterUpdateAttempt({
+    required String userId,
+    required MealLogEntry before,
+    required Map<String, dynamic> beforeRow,
+    required ManualMealLogUpdate input,
+    Object? cause,
+  }) async {
+    Map<String, dynamic>? row;
+    try {
+      row = await _gateway.readRow(userId: userId, id: input.id);
+    } on Object catch (readError) {
+      if (!_isAmbiguousGatewayFailure(readError)) rethrow;
+      throw MealLogUpdateOutcomeUnknown(
+        id: input.id,
+        expectedRevision: input.expectedRevision,
+        cause: cause ?? readError,
+      );
+    }
+
+    if (row == null) {
+      if (cause == null) {
+        throw MealLogUpdateNotFound(id: input.id);
+      }
+      throw MealLogUpdateOutcomeUnknown(
+        id: input.id,
+        expectedRevision: input.expectedRevision,
+        cause: cause,
+      );
+    }
+
+    final current = _decodeManualRow(row, expectedUserId: userId);
+    if (current.revision == input.expectedRevision + 1 &&
+        _matchesUpdateInput(current, input) &&
+        _preservesUpdateImmutableFacts(
+          before: before,
+          beforeRow: beforeRow,
+          current: current,
+          currentRow: row,
+        )) {
+      return current;
+    }
+
+    if (current.revision != input.expectedRevision) {
+      throw MealLogUpdateConflict(
+        id: input.id,
+        expectedRevision: input.expectedRevision,
+        actualRevision: current.revision,
+      );
+    }
+
+    throw MealLogUpdateOutcomeUnknown(
+      id: input.id,
+      expectedRevision: input.expectedRevision,
+      cause: cause,
+    );
+  }
+
   static bool _shouldReconcileInsertFailure(Object error) {
     if (error is! PostgrestException) return true;
     if (error.code == '23505') return true;
@@ -321,9 +490,40 @@ final class SupabaseMealLogRepository implements MealLogRepository {
     }
 
     final entry = _decodeManualRow(row, expectedUserId: expectedUserId);
-    if (!_matchesCreateInput(entry, input)) {
+
+    // TNYX-196 requires one mutation key to identify one create payload. Once a
+    // row reaches revision 2+, the durable row no longer proves what every
+    // mutable original create fact was. Even if the current edited facts happen
+    // to match a later incoming create, treating that as proof could accept a
+    // reused key for a different logical operation. Without an approved immutable
+    // create fingerprint, every edited-row create reconciliation must fail closed.
+    if (entry.revision != 1 || !_matchesCreateInput(entry, input)) {
       throw MealLogCreateMutationConflict(
         clientMutationId: input.clientMutationId,
+      );
+    }
+    return entry;
+  }
+
+  static MealLogEntry _decodeUpdateResult(
+    Map<String, dynamic> row, {
+    required String expectedUserId,
+    required MealLogEntry before,
+    required Map<String, dynamic> beforeRow,
+    required ManualMealLogUpdate input,
+  }) {
+    final entry = _decodeManualRow(row, expectedUserId: expectedUserId);
+    if (entry.id != input.id ||
+        entry.revision != input.expectedRevision + 1 ||
+        !_matchesUpdateInput(entry, input) ||
+        !_preservesUpdateImmutableFacts(
+          before: before,
+          beforeRow: beforeRow,
+          current: entry,
+          currentRow: row,
+        )) {
+      throw const FormatException(
+        'Invalid MealLog row: update result violates the optimistic update contract.',
       );
     }
     return entry;
@@ -342,6 +542,36 @@ final class SupabaseMealLogRepository implements MealLogRepository {
         entry.consumedUtcOffsetMinutes == input.consumedUtcOffsetMinutes &&
         entry.captureSource == input.captureSource &&
         entry.manualNutritionSnapshot == input.manualNutritionSnapshot;
+  }
+
+  static bool _matchesUpdateInput(
+    MealLogEntry entry,
+    ManualMealLogUpdate input,
+  ) {
+    return entry.id == input.id &&
+        entry.mealCategoryId == input.mealCategoryId &&
+        entry.mealName == input.mealName &&
+        entry.note == input.note &&
+        entry.consumedAt == input.consumedAt.toUtc() &&
+        entry.consumedLocalDate == input.consumedLocalDate &&
+        entry.consumedTimezoneId == input.consumedTimezoneId &&
+        entry.consumedUtcOffsetMinutes == input.consumedUtcOffsetMinutes &&
+        entry.manualNutritionSnapshot == input.manualNutritionSnapshot;
+  }
+
+  static bool _preservesUpdateImmutableFacts({
+    required MealLogEntry before,
+    required Map<String, dynamic> beforeRow,
+    required MealLogEntry current,
+    required Map<String, dynamic> currentRow,
+  }) {
+    return current.id == before.id &&
+        current.userId == before.userId &&
+        current.mode == before.mode &&
+        current.captureSource == before.captureSource &&
+        current.createdAt == before.createdAt &&
+        _nullableString(currentRow, 'client_mutation_id') ==
+            _nullableString(beforeRow, 'client_mutation_id');
   }
 
   static MealLogEntry _decodeManualRow(
@@ -366,8 +596,7 @@ final class SupabaseMealLogRepository implements MealLogRepository {
     MealLogCaptureSource? captureSource;
     final rawCaptureSource = _nullableString(row, 'capture_source');
     if (rawCaptureSource != null) {
-      captureSource =
-          MealLogCaptureSource.fromStorageValue(rawCaptureSource);
+      captureSource = MealLogCaptureSource.fromStorageValue(rawCaptureSource);
       if (captureSource == null) {
         throw FormatException(
           'Unsupported MealLog capture source: $rawCaptureSource.',
@@ -378,8 +607,7 @@ final class SupabaseMealLogRepository implements MealLogRepository {
     final timezoneId = _normalizeOptionalText(
       _nullableString(row, 'consumed_timezone_id'),
     );
-    final utcOffsetMinutes =
-        _nullableInt(row, 'consumed_utc_offset_minutes');
+    final utcOffsetMinutes = _nullableInt(row, 'consumed_utc_offset_minutes');
     if (timezoneId == null && utcOffsetMinutes == null) {
       throw const FormatException(
         'Invalid MealLog row: consumed timezone context is missing.',
@@ -403,6 +631,7 @@ final class SupabaseMealLogRepository implements MealLogRepository {
       consumedUtcOffsetMinutes: utcOffsetMinutes,
       captureSource: captureSource,
       manualNutritionSnapshot: snapshot,
+      revision: _requiredInt(row, 'revision'),
       createdAt: _requiredDateTime(row, 'created_at'),
       updatedAt: _requiredDateTime(row, 'updated_at'),
     );
@@ -424,6 +653,7 @@ final class SupabaseMealLogRepository implements MealLogRepository {
     'created_at',
     'updated_at',
     'client_mutation_id',
+    'revision',
   };
 
   static final _instantOffsetSuffix = RegExp(
@@ -453,6 +683,14 @@ final class SupabaseMealLogRepository implements MealLogRepository {
       throw FormatException(
         'Invalid MealLog row: $key must be a string or null.',
       );
+    }
+    return value;
+  }
+
+  static int _requiredInt(Map<String, dynamic> row, String key) {
+    final value = row[key];
+    if (value is! int) {
+      throw FormatException('Invalid MealLog row: $key must be an integer.');
     }
     return value;
   }

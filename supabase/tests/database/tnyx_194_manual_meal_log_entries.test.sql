@@ -54,6 +54,13 @@ select pg_temp.assert_true(
 );
 
 select pg_temp.assert_true(
+  (select count(*) = 1
+   from supabase_migrations.schema_migrations
+   where version = '20260912064635'),
+  'migration ledger must contain TNYX-203 exactly once'
+);
+
+select pg_temp.assert_true(
   pg_catalog.to_regclass('public.meal_log_entries') is not null,
   'meal_log_entries table must exist'
 );
@@ -73,7 +80,7 @@ select pg_temp.assert_true(
     'consumed_at', 'consumed_local_date', 'consumed_timezone_id',
     'consumed_utc_offset_minutes', 'capture_source',
     'manual_nutrition_snapshot', 'created_at', 'updated_at',
-    'client_mutation_id'
+    'client_mutation_id', 'revision'
   ]::text[],
   'only approved current MealLog columns may exist'
 );

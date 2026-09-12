@@ -1,5 +1,6 @@
 import 'package:tio_shared/shared.dart';
 
+import '../domain/repositories/manual_meal_log_update_repository.dart';
 import '../domain/repositories/meal_categories_repository.dart';
 import '../domain/repositories/meal_log_repository.dart';
 
@@ -7,10 +8,11 @@ import '../domain/repositories/meal_log_repository.dart';
 ///
 /// Production history must use the Supabase adapter. This repository exists so
 /// non-Supabase harnesses remain constructible without pretending the data is
-/// durable or synced. It mirrors manual-create idempotency and selected-day
-/// history ordering deterministically so local/test behavior does not hide
-/// persistence-contract bugs.
-final class InMemoryMealLogRepository implements MealLogRepository {
+/// durable or synced. It mirrors manual-create idempotency, optimistic manual
+/// updates, and selected-day history ordering deterministically so local/test
+/// behavior does not hide persistence-contract bugs.
+final class InMemoryMealLogRepository
+    implements MealLogRepository, ManualMealLogUpdateRepository {
   InMemoryMealLogRepository({
     required MealCategoriesRepository mealCategoriesRepository,
     DateTime Function()? clock,
@@ -35,7 +37,16 @@ final class InMemoryMealLogRepository implements MealLogRepository {
           clientMutationId: input.clientMutationId,
         );
       }
-      return existing.entry;
+      final current = _entries[existing.entry.id] ?? existing.entry;
+      // Mirror production's fail-closed rule. Once the row is edited, the
+      // create operation can no longer be safely reconciled from current row
+      // facts alone without a durable immutable create fingerprint.
+      if (current.revision != 1 || !_matchesCreateInput(current, input)) {
+        throw MealLogCreateMutationConflict(
+          clientMutationId: input.clientMutationId,
+        );
+      }
+      return current;
     }
 
     await _requireActiveMealCategory(input.mealCategoryId);
@@ -62,6 +73,44 @@ final class InMemoryMealLogRepository implements MealLogRepository {
       entry: entry,
     );
     return entry;
+  }
+
+  @override
+  Future<MealLogEntry> updateManual(ManualMealLogUpdate input) async {
+    final existing = _entries[input.id];
+    if (existing == null) {
+      throw MealLogUpdateNotFound(id: input.id);
+    }
+    if (existing.revision != input.expectedRevision) {
+      throw MealLogUpdateConflict(
+        id: input.id,
+        expectedRevision: input.expectedRevision,
+        actualRevision: existing.revision,
+      );
+    }
+
+    if (input.mealCategoryId != existing.mealCategoryId) {
+      await _requireActiveMealCategory(input.mealCategoryId);
+    }
+
+    final updated = MealLogEntry.manual(
+      id: existing.id,
+      userId: existing.userId,
+      mealCategoryId: input.mealCategoryId,
+      mealName: input.mealName,
+      note: input.note,
+      consumedAt: input.consumedAt.toUtc(),
+      consumedLocalDate: input.consumedLocalDate,
+      consumedTimezoneId: input.consumedTimezoneId,
+      consumedUtcOffsetMinutes: input.consumedUtcOffsetMinutes,
+      captureSource: existing.captureSource,
+      manualNutritionSnapshot: input.manualNutritionSnapshot,
+      revision: existing.revision + 1,
+      createdAt: existing.createdAt,
+      updatedAt: _clock().toUtc(),
+    );
+    _entries[input.id] = updated;
+    return updated;
   }
 
   @override
@@ -120,6 +169,21 @@ final class InMemoryMealLogRepository implements MealLogRepository {
         left.consumedUtcOffsetMinutes == right.consumedUtcOffsetMinutes &&
         left.captureSource == right.captureSource &&
         left.manualNutritionSnapshot == right.manualNutritionSnapshot;
+  }
+
+  static bool _matchesCreateInput(
+    MealLogEntry entry,
+    ManualMealLogCreate input,
+  ) {
+    return entry.mealCategoryId == input.mealCategoryId &&
+        entry.mealName == input.mealName &&
+        entry.note == input.note &&
+        entry.consumedAt == input.consumedAt.toUtc() &&
+        entry.consumedLocalDate == input.consumedLocalDate &&
+        entry.consumedTimezoneId == input.consumedTimezoneId &&
+        entry.consumedUtcOffsetMinutes == input.consumedUtcOffsetMinutes &&
+        entry.captureSource == input.captureSource &&
+        entry.manualNutritionSnapshot == input.manualNutritionSnapshot;
   }
 
   static String _requireNonBlank(String value, String name) {

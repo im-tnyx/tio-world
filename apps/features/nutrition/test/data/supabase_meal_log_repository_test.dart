@@ -92,12 +92,14 @@ void main() {
       expect(payload, isNot(contains('id')));
       expect(payload, isNot(contains('created_at')));
       expect(payload, isNot(contains('updated_at')));
+      expect(payload, isNot(contains('revision')));
       expect(created.id, 'db-id-1');
       expect(created.userId, 'user-1');
       expect(created.mode, MealLogMode.manual);
       expect(created.mealName, 'Lunch');
       expect(created.note, 'After training');
       expect(created.captureSource, MealLogCaptureSource.quickAdd);
+      expect(created.revision, 1);
       expect(created.createdAt, DateTime.utc(2026, 9, 11, 10));
       expect(created.updatedAt, DateTime.utc(2026, 9, 11, 10));
     });
@@ -440,6 +442,7 @@ void main() {
       expect(entry.consumedTimezoneId, 'Asia/Kolkata');
       expect(entry.consumedUtcOffsetMinutes, 330);
       expect(entry.captureSource, MealLogCaptureSource.text);
+      expect(entry.revision, 1);
       expect(entry.createdAt, DateTime.utc(2026, 9, 11, 10));
       expect(entry.updatedAt, DateTime.utc(2026, 9, 11, 10));
     });
@@ -514,8 +517,10 @@ void main() {
 
     test('malformed rows and owner mismatches fail closed', () async {
       final missingTimestamp = _row()..remove('created_at');
+      final missingRevision = _row()..remove('revision');
       for (final row in [
         missingTimestamp,
+        missingRevision,
         _row(userId: 'other-user'),
         _row(timezoneId: null, offsetMinutes: null),
       ]) {
@@ -595,6 +600,7 @@ Map<String, dynamic> _row({
   String createdAt = '2026-09-11T10:00:00.000Z',
   String updatedAt = '2026-09-11T10:00:00.000Z',
   String? clientMutationId,
+  int revision = 1,
 }) {
   return <String, dynamic>{
     'id': id,
@@ -619,6 +625,7 @@ Map<String, dynamic> _row({
     'created_at': createdAt,
     'updated_at': updatedAt,
     'client_mutation_id': clientMutationId,
+    'revision': revision,
   };
 }
 
@@ -654,6 +661,16 @@ class _FakeMealLogGateway implements MealLogTableGateway {
     final result = insertResult;
     if (result == null) throw StateError('No insert result configured.');
     return Map<String, dynamic>.from(result);
+  }
+
+  @override
+  Future<Map<String, dynamic>?> updateRow({
+    required String userId,
+    required String id,
+    required int expectedRevision,
+    required Map<String, dynamic> payload,
+  }) {
+    throw UnsupportedError('Update is covered by the focused TNYX-203 suite.');
   }
 
   @override
