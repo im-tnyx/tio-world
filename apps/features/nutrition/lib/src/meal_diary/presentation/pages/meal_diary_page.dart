@@ -31,12 +31,13 @@ const double _actionClearance = TioSize.dp56 + TioSpacing.xl * 2;
 /// and how a date is drawn belongs to core.
 ///
 /// Calendar progress decorations are still absent in this slice. Persisted
-/// MealLog history now renders below the calendar, but a calorie-progress ring
+/// MealLog history renders below the calendar, but a calorie-progress ring
 /// belongs to the later N3 daily-budget contract; drawing one here would invent
 /// a denominator and conflate two read models.
 ///
-/// The contextual `+` and Quick Add editor remain unchanged. Quick Add create
-/// wiring is TNYX-115; TNYX-199 only reads already-persisted canonical history.
+/// Quick Add owns its own current-local consumed draft. A confirmed create is
+/// persisted through the canonical MealLog repository and invalidates only its
+/// affected Diary local-date read model; it never moves a historical selection.
 class MealDiaryPage extends ConsumerStatefulWidget {
   const MealDiaryPage({
     super.key,
@@ -137,17 +138,38 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
   ///
   /// The Diary's selected date deliberately does not cross this boundary.
   /// A new Quick Add owns a fresh current-local DateTime snapshot, while the
-  /// Diary keeps the historical day the reader was viewing.
+  /// Diary keeps the historical day the reader was viewing. The canonical
+  /// MealLog repository is passed from the existing feature seam; after a
+  /// confirmed create only that entry's stored local-date history is refreshed.
   Future<void> _openAddFood() async {
     final choice = await showMealDiaryAddFoodSheet(context);
     if (choice == null || !mounted) return;
 
     switch (choice) {
       case MealDiaryAddFoodChoice.quickAdd:
-        await showQuickAddEditorSheet(
+        final mealLogRepository = ref.read(mealDiaryMealLogRepositoryProvider);
+        final mealCategoriesRepository = widget.mealCategoriesRepository;
+        final created = await showQuickAddEditorSheet(
           context,
           clock: widget.quickAddClock,
-          mealCategoriesRepository: widget.mealCategoriesRepository,
+          mealCategoriesRepository: mealCategoriesRepository,
+          mealLogRepository: mealLogRepository,
+        );
+        if (!mounted ||
+            created == null ||
+            mealLogRepository == null ||
+            mealCategoriesRepository == null) {
+          return;
+        }
+
+        ref.invalidate(
+          mealDiaryHistoryProvider(
+            MealDiaryHistoryRequest(
+              mealLogRepository: mealLogRepository,
+              mealCategoriesRepository: mealCategoriesRepository,
+              localDate: created.consumedLocalDate,
+            ),
+          ),
         );
     }
   }
