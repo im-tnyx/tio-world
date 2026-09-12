@@ -265,26 +265,42 @@ void main() {
     expect(controller.state.status, QuickAddMealLogCreateStatus.succeeded);
   });
 
-  test('mismatched unknown-outcome identity fails closed', () async {
+  test('malformed unknown metadata still locks the original create', () async {
+    var attempts = 0;
     final repository = _RecordingMealLogRepository(
-      onCreate: (input) async => throw const MealLogCreateOutcomeUnknown(
-        clientMutationId: secondMutationId,
-      ),
+      onCreate: (input) async {
+        attempts++;
+        if (attempts == 1) {
+          throw const MealLogCreateOutcomeUnknown(
+            clientMutationId: secondMutationId,
+          );
+        }
+        return _entryFor(input);
+      },
     );
+    var mutationCalls = 0;
     final controller = QuickAddMealLogCreateController(
       repository: repository,
       clock: () => DateTime(2026, 9, 12, 10, 30),
-      uuidV4: () => firstMutationId,
+      uuidV4: () {
+        mutationCalls++;
+        return mutationCalls == 1 ? firstMutationId : secondMutationId;
+      },
     );
     addTearDown(controller.dispose);
 
     expect(await controller.submit(draft()), isNull);
-    expect(controller.state.status, QuickAddMealLogCreateStatus.failed);
-    expect(
-      controller.state.message,
-      QuickAddMealLogCreateController.genericFailureMessage,
-    );
-    expect(controller.state.locksDraft, isFalse);
+    expect(controller.state.status, QuickAddMealLogCreateStatus.outcomeUnknown);
+    expect(controller.state.locksDraft, isTrue);
+    expect(controller.state.message,
+        QuickAddMealLogCreateController.outcomeUnknownMessage);
+
+    final reconciled = await controller.submit(draft(calories: 999));
+    expect(reconciled, isNotNull);
+    expect(repository.inputs, hasLength(2));
+    expect(repository.inputs[1], same(repository.inputs[0]));
+    expect(repository.inputs[1].clientMutationId, firstMutationId);
+    expect(mutationCalls, 1);
   });
 }
 
