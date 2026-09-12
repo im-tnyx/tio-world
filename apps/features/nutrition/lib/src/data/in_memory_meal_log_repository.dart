@@ -1,5 +1,6 @@
 import 'package:tio_shared/shared.dart';
 
+import '../domain/repositories/manual_meal_log_update_repository.dart';
 import '../domain/repositories/meal_categories_repository.dart';
 import '../domain/repositories/meal_log_repository.dart';
 
@@ -7,10 +8,11 @@ import '../domain/repositories/meal_log_repository.dart';
 ///
 /// Production history must use the Supabase adapter. This repository exists so
 /// non-Supabase harnesses remain constructible without pretending the data is
-/// durable or synced. It mirrors manual-create idempotency and selected-day
-/// history ordering deterministically so local/test behavior does not hide
-/// persistence-contract bugs.
-final class InMemoryMealLogRepository implements MealLogRepository {
+/// durable or synced. It mirrors manual-create idempotency, optimistic manual
+/// updates, and selected-day history ordering deterministically so local/test
+/// behavior does not hide persistence-contract bugs.
+final class InMemoryMealLogRepository
+    implements MealLogRepository, ManualMealLogUpdateRepository {
   InMemoryMealLogRepository({
     required MealCategoriesRepository mealCategoriesRepository,
     DateTime Function()? clock,
@@ -62,6 +64,44 @@ final class InMemoryMealLogRepository implements MealLogRepository {
       entry: entry,
     );
     return entry;
+  }
+
+  @override
+  Future<MealLogEntry> updateManual(ManualMealLogUpdate input) async {
+    final existing = _entries[input.id];
+    if (existing == null) {
+      throw MealLogUpdateNotFound(id: input.id);
+    }
+    if (existing.revision != input.expectedRevision) {
+      throw MealLogUpdateConflict(
+        id: input.id,
+        expectedRevision: input.expectedRevision,
+        actualRevision: existing.revision,
+      );
+    }
+
+    if (input.mealCategoryId != existing.mealCategoryId) {
+      await _requireActiveMealCategory(input.mealCategoryId);
+    }
+
+    final updated = MealLogEntry.manual(
+      id: existing.id,
+      userId: existing.userId,
+      mealCategoryId: input.mealCategoryId,
+      mealName: input.mealName,
+      note: input.note,
+      consumedAt: input.consumedAt.toUtc(),
+      consumedLocalDate: input.consumedLocalDate,
+      consumedTimezoneId: input.consumedTimezoneId,
+      consumedUtcOffsetMinutes: input.consumedUtcOffsetMinutes,
+      captureSource: existing.captureSource,
+      manualNutritionSnapshot: input.manualNutritionSnapshot,
+      revision: existing.revision + 1,
+      createdAt: existing.createdAt,
+      updatedAt: _clock().toUtc(),
+    );
+    _entries[input.id] = updated;
+    return updated;
   }
 
   @override
