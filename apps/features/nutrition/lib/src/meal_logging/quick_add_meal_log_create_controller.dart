@@ -105,6 +105,21 @@ final class QuickAddMealLogCreateController extends ChangeNotifier {
 
   static String _defaultUuidV4() => const Uuid().v4();
 
+  /// A known failure did not leave an unresolved durable outcome. Once the
+  /// reader changes any submit-relevant fact, that old operation is no longer
+  /// the logical operation they intend to send, so its retry identity must not
+  /// follow the edited draft.
+  ///
+  /// An ambiguous outcome is intentionally different: the draft is locked by
+  /// the presentation and this method does nothing until the exact frozen
+  /// operation is reconciled.
+  void draftChanged() {
+    if (_state.status != QuickAddMealLogCreateStatus.failed) return;
+    _retryDraft = null;
+    _retryInput = null;
+    _setState(const QuickAddMealLogCreateState.idle());
+  }
+
   Future<MealLogEntry?> submit(QuickAddMealLogDraft draft) async {
     if (_state.isSubmitting) return null;
 
