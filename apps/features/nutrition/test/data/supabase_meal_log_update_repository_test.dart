@@ -139,6 +139,40 @@ void main() {
     );
   });
 
+  test('same-input retry after outcome unknown reconciles canonical N+1',
+      () async {
+    final intended = _updateInput(mealName: 'Updated lunch', note: 'Less oil');
+    final gateway = _UpdateGateway(
+      readSequence: [
+        _row(revision: 1),
+        StateError('offline during reconciliation'),
+        _row(
+          revision: 2,
+          mealName: 'Updated lunch',
+          note: 'Less oil',
+          consumedAt: '2026-09-12T07:00:00.000Z',
+          snapshot: _updatedSnapshot,
+          updatedAt: '2026-09-12T09:00:00.000Z',
+        ),
+      ],
+      updateError: StateError('response lost'),
+    );
+    final repository = _repository(gateway: gateway);
+
+    await expectLater(
+      () => repository.updateManual(intended),
+      throwsA(isA<MealLogUpdateOutcomeUnknown>()),
+    );
+
+    final retried = await repository.updateManual(intended);
+
+    expect(retried.revision, 2);
+    expect(retried.mealName, 'Updated lunch');
+    expect(retried.note, 'Less oil');
+    expect(gateway.updateCalls, hasLength(1));
+    expect(gateway.readCalls, hasLength(3));
+  });
+
   test('retaining current archived category skips active-category rejection',
       () async {
     final categories = InMemoryMealCategoriesRepository();
