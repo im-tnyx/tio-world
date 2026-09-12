@@ -481,12 +481,20 @@ final class SupabaseMealLogRepository
     }
 
     final entry = _decodeManualRow(row, expectedUserId: expectedUserId);
-    if (entry.revision != 1) {
-      throw const FormatException(
-        'Invalid MealLog row: a newly-created row must start at revision 1.',
-      );
+    if (entry.revision == 1) {
+      if (!_matchesCreateInput(entry, input)) {
+        throw MealLogCreateMutationConflict(
+          clientMutationId: input.clientMutationId,
+        );
+      }
+      return entry;
     }
-    if (!_matchesCreateInput(entry, input)) {
+
+    // Once the same durable row has been edited, mutable create-time facts can
+    // legitimately differ from the original create request. The immutable
+    // mutation identity still prevents a duplicate insert; capture provenance
+    // remains immutable and is the only create input that is still comparable.
+    if (entry.captureSource != input.captureSource) {
       throw MealLogCreateMutationConflict(
         clientMutationId: input.clientMutationId,
       );
