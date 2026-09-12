@@ -97,9 +97,9 @@ MealLogEntry _entry() {
     ),
     consumedUtcOffsetMinutes: 330,
     captureSource: MealLogCaptureSource.quickAdd,
-    manualNutritionSnapshot: const NutritionSnapshot(
+    manualNutritionSnapshot: NutritionSnapshot(
       schemaVersion: 1,
-      nutrients: {
+      nutrients: const {
         NutrientId.energy: 420,
         NutrientId.protein: 18,
       },
