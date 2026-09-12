@@ -215,13 +215,20 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
       mealLogRepository: mealLogRepository,
       initialEntry: entry,
     );
-    if (!mounted || updated == null) return;
+    if (!mounted) return;
 
+    // Always refetch the original date, even when the sheet closed with no
+    // result. A write can become durable on the far side of an ambiguous
+    // outcome; a harmless refetch here is cheaper than the Diary staying
+    // stale after the reader abandons a since-reconciled edit instead of
+    // reapplying it.
     _invalidateHistoryDate(
       repository: mealLogRepository,
       categoriesRepository: mealCategoriesRepository,
       localDate: originalDate,
     );
+    if (updated == null) return;
+
     if (updated.consumedLocalDate != originalDate) {
       _invalidateHistoryDate(
         repository: mealLogRepository,

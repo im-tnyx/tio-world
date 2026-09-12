@@ -1,6 +1,6 @@
 # TNYX-204 — Manual Meal Diary card overflow and Quick Edit
 
-**Status:** Ready for review\
+**Status:** Review-fix pass complete, ready for CI/merge decision\
 **Primary owner:** `apps/features/nutrition`\
 **Affected platforms:** Flutter phone app (`apps/features/nutrition`, consumed by `apps/app`)
 
@@ -25,13 +25,13 @@
 **Observed working-tree state:** Clean after the implementation commit; accidental package lockfile drift was removed before publication.\
 **Observed committed files:** See Final Handoff changed-file groups below.\
 **PR / tracker:** GitHub Draft PR [#263](https://github.com/im-tnyx/tio-world/pull/263) is open; Linear `TNYX-204` remains `In Progress` until exact-head CI passes; dependency `TNYX-203` is `Done` and GitHub PR `#262` is merged.\
-**Current implementation state:** Complete. The owner-approved rich card, header glyphs, anchored Edit-only popup, Quick Add edit mode, canonical read/update flow, conflict/ambiguous-outcome handling, affected-date invalidation, and final 40dp fallback-icon polish are implemented and locally validated.\
-**Relevant execution surface:** Meal Diary selected-day cards, Quick Add editor, canonical `MealLogRepository.readById`/`updateManual`, and existing Core `TioAnchoredPopup`\
-**Validation completed at SHA:** `e92a45b8d0de616dbc46f2055476172b8e831351` — `apps/core` analyze + 293 tests, `apps/features/nutrition` analyze + 676 tests, `apps/app` analyze + 319 tests, `git diff --check`\
+**Current implementation state:** Complete, including a bounded review-fix pass. The owner-approved rich card, header glyphs, anchored Edit-only popup, Quick Add edit mode, canonical read/update flow, conflict/ambiguous-outcome handling, affected-date invalidation, 40dp fallback-icon polish, the two review findings (TNYX-204-RF1, TNYX-204-RF2), and one owner-found Add Food bottom-inset polish item (TNYX-204-RF3) are implemented and locally validated.\
+**Relevant execution surface:** Meal Diary selected-day cards, Quick Add editor, canonical `MealLogRepository.readById`/`updateManual`, existing Core `TioAnchoredPopup`, and the Add Food sheet route\
+**Validation completed at SHA:** working tree at parent `e92a45b8d0de616dbc46f2055476172b8e831351` plus the review-fix commit(s) — `apps/core` analyze + 293 tests (unchanged, no Core edits in this pass), `apps/features/nutrition` analyze + 679 tests, `apps/app` analyze + 319 tests, `git diff --check`\
 **Validation remaining:** Exact-head CI after publication; workspace `melos` remains unavailable as recorded below\
 **Current blocker:** Workspace `melos` is unavailable in the current shell. Full per-package validation was run instead for every affected/consuming package. This is a local tooling limitation, not a TNYX-204 defect.\
-**Open review finding IDs:** None. TNYX-204-R5 is an accepted out-of-scope data limitation, not an implementation blocker.\
-**Next exact action:** Push this handoff update, verify exact-head Draft PR CI, then reconcile Linear `TNYX-204` to `In Review`.
+**Open review finding IDs:** None open. TNYX-204-R5 remains an accepted out-of-scope data limitation, not an implementation blocker.\
+**Next exact action:** Commit the review-fix pass, push, verify exact-head Draft PR CI, then reconcile Linear `TNYX-204` to `In Review` (already there) and confirm the PR body reflects the new head.
 
 ## Global UI / Design-System Guardrail
 
@@ -180,6 +180,9 @@ section summary      flush with the content edge; divider absorbs the middle
 | TNYX-204-R7 | P1 | Resolved | A short section title left slack that kept the trailing summary off the content edge, and flex ratios traded that for a gap before the rule | working tree | Title now takes its natural width, capped by `LayoutBuilder` at the inner width less the rule's gap, so the rule absorbs the middle and shortens first while a maximum-length category name ellipsizes instead of overflowing |
 | TNYX-204-R8 | P1 | Resolved | The overflow popup opened far from its control on trailing-edge anchors | working tree | `TioAnchoredPopup` fitted a leading-aligned card against `maximumWidth` rather than its actual width, which dragged a trailing anchor's card ~111dp off it. Core now pins the card's trailing edge to the control's when leading alignment would need clamping. Leading-side anchors are unchanged; README and focused Core placement tests added |
 | TNYX-204-R9 | P2 | Resolved | Card lived as a private class inside the history view | working tree | Extracted to feature-owned `MealDiaryMealCard`, matching the reference repo's own widget-per-card layout. It takes formatted strings and emits actions, so it holds no read model, preferences, or formatting policy |
+| TNYX-204-RF1 | P2 | Resolved | If a Quick Edit sheet closed with no result, the Diary skipped invalidating the original date even when the underlying write may already be durable (an ambiguous transport outcome) | PR #263 review at `dccaf341` | `meal_diary_page.dart:_openQuickEdit` now always invalidates the original date once the sheet closes and the page is still mounted, before branching on whether it returned an updated entry. Fresh inspection also found the literal reviewer scenario ("user dismisses the uncertain sheet") is already prevented by pre-existing `PopScope(canPop: !_draftLocked)` + `TioEditorSheet.canDismiss: !_draftLocked` — outcome-unknown genuinely cannot be dismissed. The real reachable path is retry-then-conflict (the ambiguous write lands, the same-facts retry then conflicts against the revision it already advanced, conflict is not a locked state, and the reader can dismiss without reapplying); the fix and its regression test target that path |
+| TNYX-204-RF2 | P2 | Resolved | Date-move invalidation was implemented but had no assertion proving both the original and destination dates actually refresh | PR #263 review at `dccaf341` | Added a regression test that moves a real entry's consumed date through the actual `CupertinoDatePicker`/footer control into a different day and, using an explicitly held `ProviderContainer` listener on the destination date (an `autoDispose` family provider, so an unwatched instance would refetch fresh regardless of whether the code path exists), proves a second read happens only because of the explicit invalidate |
+| TNYX-204-RF3 | P2 | Resolved | Owner device review: the Add Food sheet's bottom system nav area showed a different background than the sheet, while Quick Add's matching area was correct | PR #263 review-fix pass | `showMealDiaryAddFoodSheet`'s outer `SafeArea` insets content above the system nav area before `TioSheet`'s own Material paints, leaving that gap to the transparent modal route background. `TioEditorSheet` avoids this by painting its Material first and keeping `SafeArea` inside it. Fixed locally in `add_food_sheet.dart` only: a `ColoredBox(color: context.tioColors.surface)` now sits behind the existing `SafeArea`, filling the gap with the same governed role `TioSheet` paints. No Core change. Verified the added regression test actually fails without the fix (stashed and reran) before restoring it |
 
 ## 7. Final Handoff
 
@@ -192,6 +195,14 @@ section summary      flush with the content edge; divider absorbs the middle
 - `apps/features/nutrition/lib/src/meal_logging/**` — create/edit editor modes and optimistic edit controller.
 - `apps/features/nutrition/lib/src/domain/repositories/manual_meal_log_update_repository.dart` — explicit capability dispatch required by the activated update flow.
 - `apps/features/nutrition/test/meal_diary/**`, `apps/features/nutrition/test/meal_logging/**` — geometry, action, canonical edit, conflict and retry coverage.
+
+Review-fix pass (this bounded follow-up commit only):
+
+- `apps/features/nutrition/lib/src/meal_diary/presentation/pages/meal_diary_page.dart` — `_openQuickEdit` always invalidates the original date once the sheet closes and mounted, before branching on the result (TNYX-204-RF1).
+- `apps/features/nutrition/lib/src/meal_logging/presentation/widgets/add_food_sheet.dart` — `ColoredBox(color: context.tioColors.surface)` behind the existing `SafeArea` so the sheet's surface visually continues through the bottom system inset (TNYX-204-RF3).
+- `apps/features/nutrition/test/meal_logging/quick_add_edit_flow_test.dart` — two new widget tests: ambiguous-outcome-then-conflict dismissal still refreshes the original date (TNYX-204-RF1); a genuine cross-date move invalidates both dates, proven against a held `ProviderContainer` listener rather than relying on `autoDispose` GC (TNYX-204-RF2).
+- `apps/features/nutrition/test/meal_logging/meal_diary_add_food_flow_test.dart` — one new widget test asserting the bottom-inset fill color/extent (TNYX-204-RF3); confirmed to fail without the fix by temporarily stashing it and rerunning.
+- No `apps/core` files changed in this pass.
 
 ### Actual Behavior
 
