@@ -1,6 +1,6 @@
 # TNYX-203 — Manual MealLog optimistic revision & update foundation
 
-**Status:** Review handoff
+**Status:** In progress — review blocker resolution
 **Primary owner:** Nutrition + Supabase + shared MealLog contract
 **Affected platforms:** Flutter shared/Nutrition domain + Supabase Postgres; no visible UI
 
@@ -11,12 +11,13 @@
 
 Approved scope:
 
-- add one durable `revision` column to `public.meal_log_entries`;
-- expose canonical `MealLogEntry.revision`;
-- add manual optimistic update contracts and repository implementations;
-- database owns revision initialization/increment;
-- stale edits cannot overwrite newer durable data;
-- ambiguous mutation outcomes reconcile from canonical source truth.
+- one durable `revision` column on `public.meal_log_entries`;
+- canonical `MealLogEntry.revision`;
+- manual optimistic update contracts and repository implementations;
+- server-owned revision initialization/increment;
+- stale-write protection;
+- ambiguous update outcome reconciliation;
+- create-idempotency compatibility while preserving TNYX-196 fail-closed semantics.
 
 Explicit non-changes:
 
@@ -27,247 +28,122 @@ Explicit non-changes:
 - no detailed MealLog/item persistence;
 - no offline mutation queue;
 - no Daily Nutrition Summary/calendar work;
-- no future detailed Meal Editor body.
+- no future detailed Meal Editor body;
+- no additional Supabase table/column shape beyond the already-approved `revision` column.
 
-Owner UX decisions remain recorded in TNYX-115/TNYX-58: manual/Quick Add logs later reopen in the same Quick Add editor in edit mode; Diary cards later use trailing nutrition alignment + reusable far-right overflow actions. Those UI decisions did not widen this slice.
+Owner UX decisions remain under TNYX-115/TNYX-58/TNYX-204 and do not widen this backend slice.
 
 ## Active Handoff
 
 **Planning owner:** ChatGPT
-**Implementation owner:** Inactive after validated implementation handoff
-**Review owner:** Owner / next review agent
-**Implementation ownership state:** Review handoff
+**Previous implementation owner:** ChatGPT implementation handoff at `64d3257eaae8aed56ef0915e941c7f07800aaa40`
+**Receiving implementation owner:** ChatGPT, resumed after owner `Go` on 2026-09-12 to resolve final-review blockers
+**Implementation ownership state:** Active
+**Review owner:** Previous independent review published two blocking P2 findings on PR #262
 **Branch:** `tnyx/tnyx-203-n20d-2-manual-meallog-optimistic-revision-update-foundation`
 **Base:** `main` at `9eb22692a31dbad030d67ead77e5dd2bd67dd0de`
-**Validated source/lineage SHA:** `de8f1e079413a8138f3f05a4056296327d3af7b1`
-**PR:** #262 — `feat(nutrition): add optimistic MealLog update foundation`
-**Tracker:** Linear TNYX-203 remains In Progress until review handoff sync, then should move to In Review; do not mark Done before merge.
-**Working tree:** API-authored branch; no local working-tree claim.
-**Current blocker:** None.
-**Open review findings:** None after self-review fixes below.
-**Next exact action:** fresh review/scope/CI read-back, then mark PR Ready for Review and TNYX-203 In Review. Merge still requires separate explicit owner authorization.
+**Resume HEAD:** `64d3257eaae8aed56ef0915e941c7f07800aaa40`
+**PR:** #262 — converted back to Draft while review fixes are active
+**Tracker:** Linear TNYX-203 moved back to `In Progress`
+**Working tree:** API-authored branch; no local working-tree claim
+**Current blocker:** Two open P2 correctness findings, T203-R5 and T203-R6
+**Next exact action:** fix both findings without widening schema/UI scope, add focused regressions, run exact-head Flutter + Supabase DB CI, then re-review before Ready transition
 
-## Global UI / Design-System Guardrail
-
-No production Flutter UI changed in this slice. TNYX-115/TNYX-58 own the later Quick Add edit surface and Diary-card action/layout refinements.
-
-## 1. Discovery
-
-### User Outcome
-
-Prepare safe editing of existing manual/Quick Add MealLogs so a later UI can update the same `MealLogEntry.id` without silently overwriting a newer edit from another session/device.
-
-### Success Criteria
-
-- existing/new rows start with durable revision `1`;
-- every successful durable update advances revision exactly once server-side;
-- update requires `id + expectedRevision` and returns the same ID at the next revision;
-- stale revision matches no update row and cannot overwrite newer data;
-- ambiguous transport outcome reconciles by canonical read rather than blind replay;
-- immutable identity/provenance remains preserved;
-- retaining an archived category is allowed while moving to a different category requires an active destination;
-- create/read/list/idempotency behavior remains compatible;
-- no UI/delete scope leaks into this foundation.
-
-## 2. Verified Architecture
-
-Canonical flow:
+## Locked Architecture
 
 ```text
 caller reads MealLogEntry(revision = N)
         ↓
 ManualMealLogUpdate(id, expectedRevision = N, intended manual facts)
         ↓
-Nutrition update capability
-        ↓
 owner-scoped conditional UPDATE
 WHERE user_id + id + revision = N
         ↓
 BEFORE UPDATE trigger owns revision = OLD.revision + 1
         ↓
-canonical MealLogEntry(id unchanged, revision = N + 1)
+canonical same-ID MealLogEntry(revision = N + 1)
 ```
 
-`updated_at` remains audit/presentation metadata and is not the concurrency token.
+`updated_at` remains audit/presentation metadata, not the concurrency token.
 
-Ownership:
+Rules:
 
-- `apps/shared` owns provider-independent `MealLogEntry.revision`;
-- Nutrition owns update input/errors/repository behavior;
-- Supabase gateway owns row transport;
-- Postgres owns revision initialization/increment and durable invariants;
-- UI does not call Supabase directly.
+- new rows start at revision `1`;
+- clients cannot choose the durable next revision;
+- every successful row update increments exactly once;
+- a stale edit never overwrites newer durable state;
+- retaining the same archived Meal Category is allowed; moving requires an active destination;
+- ambiguous mutation outcomes reconcile from canonical source truth;
+- TNYX-196 same-key/different-create-payload behavior remains fail closed.
 
-## 3. Locked Decisions
+## Implemented Foundation Before Review Re-entry
 
-| Decision | Result |
-|---|---|
-| Concurrency token | explicit `revision bigint`, not `updated_at` |
-| Initial revision | server forces `1` on INSERT |
-| Update revision | server forces `OLD.revision + 1` |
-| Update identity | same `MealLogEntry.id`; never replacement insert |
-| Manual mode | remains manual |
-| Stale write | conflict; no overwrite |
-| Ambiguous outcome | canonical read/reconcile; no blind replay |
-| Archived category | retain same archived category allowed; moving requires active destination |
-| V1 mutation availability | online-required; future UI preserves draft/retry state |
+- `MealLogEntry.revision` added and validated;
+- `ManualMealLogUpdate` plus not-found/conflict/outcome-unknown contracts added;
+- in-memory optimistic update implementation added;
+- Supabase conditional update implementation added;
+- revision mapped through create/read/list/update rows;
+- production migration `20260912064635_add_meal_log_revision.sql` applied and live-verified;
+- database trigger forces INSERT revision `1`, UPDATE `OLD.revision + 1`, and protects immutable provenance;
+- owner RLS/grants remain intact;
+- focused Flutter and SQL regressions were added;
+- validated source/lineage SHA `de8f1e079413a8138f3f05a4056296327d3af7b1` passed Flutter CI #2433 and Supabase DB CI #33;
+- governance handoff head `64d3257e...` passed Flutter CI #2434 and Supabase DB CI #34.
 
-## 4. Implemented Contract
+Historical green CI is evidence for those exact SHAs only. Any review-fix HEAD requires fresh validation.
 
-### Domain/shared
+## Open Review Findings
 
-- `MealLogEntry.manual(...)` exposes `revision`, defaults to `1`, rejects `< 1`.
-- `ManualMealLogUpdate` carries editable manual facts plus `id` and `expectedRevision`.
-- deterministic errors distinguish not-found, stale conflict and outcome-unknown.
-- update capability is additive so the established create/read/list repository surface remains compatible.
+| ID | Severity | Status | Observed SHA | Finding | Required resolution |
+|---|---|---|---|---|---|
+| T203-R5 | P2 | Open | `64d3257e...` | Cross-call retry after `MealLogUpdateOutcomeUnknown` can misclassify an already-committed exact `N+1` row as stale conflict because `updateManual()` checks revision mismatch before exact intended facts. | Before classifying `expectedRevision + 1` as stale, reconcile exact intended facts as success. Add regression: `OutcomeUnknown -> same input retry -> canonical N+1 success`. |
+| T203-R6 | P2 | Open | `64d3257e...` | For create reconciliation at `revision > 1`, Supabase compares only `captureSource`, so reuse of the same `clientMutationId` for different meal facts with the same source can return an unrelated edited row as success, violating TNYX-196 fail-closed semantics. | Restore fail-closed payload equivalence without adding unapproved schema. Conservative reconciliation is allowed; add regression for revision `2+` + same mutation key + different create facts. |
 
-### In-memory owner
+PR inline review threads are the external review references for both findings. Do not resolve either thread until its fix and applicable validation are recorded.
 
-- updates the same entry ID;
-- checks expected revision;
-- increments exactly once;
-- preserves immutable provenance;
-- applies archived-category retention / active-destination rules;
-- create retry after later edits returns current canonical entry rather than a stale cached entry.
+## Review-Fix Design Decision
 
-### Supabase owner
+No new schema is authorized or required for T203-R6. Because an edited row no longer retains a durable copy of all original mutable create facts, the production-safe bounded behavior is conservative:
 
-- decodes/returns `revision` for create/read/list/update rows;
-- update is conditional on authenticated owner + ID + expected revision;
-- mutable payload excludes owner, mode, capture source, created timestamp and create mutation identity;
-- zero-row update reconciles missing vs stale/current state;
-- transport ambiguity reads canonical state and recognizes exact successful `N + 1` facts;
-- same create mutation can reconcile an entry that was legitimately edited after creation without treating `revision > 1` itself as corruption.
+- create reconciliation succeeds only when the current canonical row still matches the incoming create facts;
+- if the same mutation key points to a later-edited row whose current facts differ, fail closed with `MealLogCreateMutationConflict` rather than pretending the incoming create succeeded;
+- in-memory behavior should mirror the same observable production rule rather than over-promise a capability production cannot prove durably.
 
-### Database
+For T203-R5:
 
-Production migration lineage:
+- if the canonical row is exactly `expectedRevision + 1` and its editable facts exactly match the retry input, return it as reconciled success;
+- otherwise preserve normal stale-conflict/outcome-unknown behavior;
+- no blind second UPDATE is issued for an already-committed exact result.
 
-```text
-20260912064635_add_meal_log_revision.sql
-```
+## Validation Required After Fixes
 
-Migration adds:
+- focused in-memory create-retry-after-edit regression;
+- focused Supabase create reconciliation regression for same key + different facts after edit;
+- focused Supabase update regression for `OutcomeUnknown -> same-input retry -> N+1 success`;
+- existing update stale/conflict/immutable/category tests;
+- full Flutter CI (`melos analyze`, `melos test` via workflow);
+- full Supabase Database CI replay/matrices/lint;
+- fresh PR scope/head/thread read-back.
 
-```text
-revision bigint NOT NULL DEFAULT 1
-CHECK (revision >= 1)
-```
+No live Supabase migration/write is required for these review fixes because schema/trigger state is unchanged.
 
-`private.enforce_meal_log_revision()`:
+## Known Later Work
 
-- is `SECURITY INVOKER` with empty search path;
-- is not directly executable by API roles;
-- forces INSERT revision to `1`;
-- preserves immutable `id`, `mode`, `capture_source`, `created_at`, `client_mutation_id` on UPDATE;
-- forces UPDATE revision to `OLD.revision + 1`.
+TNYX-203 still does not implement:
 
-Owner reassignment remains governed by the existing RLS contract so established ownership failure semantics are preserved.
-
-## 5. Implementation Checklist
-
-- [x] Add production migration + database assertions for revision/check/server ownership.
-- [x] Add `revision` to canonical `MealLogEntry`.
-- [x] Add manual update input/capability/conflict/outcome contracts.
-- [x] Map revision through Supabase create/read/list/update rows.
-- [x] Implement deterministic in-memory optimistic updates.
-- [x] Implement Supabase conditional update + canonical reconciliation.
-- [x] Preserve create/read/list/idempotency compatibility.
-- [x] Preserve archived category; require active destination when moving.
-- [x] Add focused in-memory/Supabase/create-retry regressions.
-- [x] Add TNYX-203 database matrix and wire it into Supabase DB CI.
-- [x] Apply approved migration to live `tio-world` Supabase project.
-- [x] Reconcile repository migration filename to actual production ledger version.
-- [x] Verify live schema/RLS/trigger/function and advisor state.
-- [x] Run exact source-head Flutter + Supabase DB CI.
-- [x] Perform implementation self-review.
-
-## 6. Validation
-
-Validated source/lineage SHA:
-
-```text
-de8f1e079413a8138f3f05a4056296327d3af7b1
-```
-
-GitHub CI:
-
-- Flutter CI #2433 — PASS
-  - bootstrap — PASS
-  - Flutter analyze — PASS
-  - Dart analyze — PASS
-  - Flutter tests — PASS
-  - Dart tests — PASS
-- Supabase Database CI #33 — PASS
-  - baseline/replay — PASS
-  - complete migration ledger — PASS
-  - private-schema exposure check — PASS
-  - existing B1/TNYX-186/TNYX-194 matrices — PASS
-  - TNYX-203 revision matrix — PASS
-  - real two-session concurrency test — PASS
-  - DB lint delta — PASS
-
-Earlier exact implementation head `1fa810ba51b9991caba714e64e668545e3acd91f` also passed Flutter CI #2429 and Supabase Database CI #29 before production-lineage reconciliation.
-
-### Live Supabase verification
-
-Project: `tio-world` (`oykupyiitspujzpwwvuj`).
-
-- production ledger contains `20260912064635_add_meal_log_revision`;
-- `revision` is `bigint`, `NOT NULL`, default `1`;
-- all existing rows have non-null revision and migration backfill remains `1`;
-- RLS remains enabled;
-- exact four owner CRUD policies remain present;
-- revision trigger and private helper exist;
-- no TNYX-203/`meal_log_entries` security or performance advisor finding was introduced.
-
-Existing advisor warnings concern unrelated pre-existing auth/RLS/index areas and were not widened into this task.
-
-## 7. Review Findings and Resolution
-
-| ID | Severity | Status | Finding | Resolution |
-|---|---|---|---|---|
-| T203-R1 | P1 safety | Resolved | client could otherwise attempt a forged initial revision | INSERT trigger now forces revision `1` |
-| T203-R2 | Compatibility | Resolved | trigger-owned `user_id` rejection would change established RLS ownership failure semantics | ownership stays with existing RLS; trigger protects remaining immutable provenance |
-| T203-R3 | Compatibility | Resolved | same create mutation lookup after a legitimate edit could reject revision `2+` / return stale in-memory data | reconciliation now returns current canonical edited row while retaining mutation-key conflict protection |
-| T203-R4 | Governance | Resolved | Supabase apply generated production ledger `20260912064635` while repository draft filename was `20260912061500` | repository filename + SQL ledger assertions reconciled to production version and exact new head CI passed |
-
-## 8. Changed Files
-
-Final source scope is 14 files:
-
-1. `.ai/tasks/tnyx-203-manual-meal-log-optimistic-revision-update.md`
-2. `.github/workflows/supabase-db-ci.yml`
-3. `apps/features/nutrition/lib/src/data/in_memory_meal_log_repository.dart`
-4. `apps/features/nutrition/lib/src/data/repositories/supabase_meal_log_repository.dart`
-5. `apps/features/nutrition/lib/src/domain/repositories/manual_meal_log_update_repository.dart`
-6. `apps/features/nutrition/lib/src/domain/repositories/repositories.dart`
-7. `apps/features/nutrition/test/data/in_memory_meal_log_update_repository_test.dart`
-8. `apps/features/nutrition/test/data/meal_log_create_retry_after_update_test.dart`
-9. `apps/features/nutrition/test/data/supabase_meal_log_repository_test.dart`
-10. `apps/features/nutrition/test/data/supabase_meal_log_update_repository_test.dart`
-11. `apps/shared/lib/src/nutrition/meal_log_entry.dart`
-12. `supabase/migrations/20260912064635_add_meal_log_revision.sql`
-13. `supabase/tests/database/tnyx_194_manual_meal_log_entries.test.sql`
-14. `supabase/tests/database/tnyx_203_meal_log_revision.test.sql`
-
-No production UI/card/editor file is in scope.
-
-## 9. Known Later Work
-
-TNYX-203 does not implement:
-
-- Quick Add editor edit mode;
-- Diary card tap/overflow/action popup/layout/padding changes;
-- edit conflict presentation;
+- Quick Add `Quick Edit` UI;
+- Diary card overflow/actions/alignment/padding;
+- edit-conflict presentation;
 - delete;
-- note-visibility UI;
+- note visibility UI;
 - detailed Meal Editor/item persistence;
 - broader derived-view invalidation;
 - offline mutation queue.
 
-These remain later bounded slices under TNYX-115/TNYX-58/TNYX-116 as appropriate.
+These remain later bounded slices under TNYX-115/TNYX-58/TNYX-116/TNYX-204.
 
-## 10. Final Status
+## Exit Gate
 
-`REVIEW`
+`IN PROGRESS`
+
+Return to review only after T203-R5 and T203-R6 are fixed, focused regressions pass, exact-head Flutter + Supabase DB CI are green, review threads are reconciled, and the task brief is refreshed. Merge still requires separate explicit owner authorization.
