@@ -22,6 +22,7 @@ final class MealLogEntry {
     required this.consumedUtcOffsetMinutes,
     required this.captureSource,
     required this.manualNutritionSnapshot,
+    required this.revision,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -37,6 +38,11 @@ final class MealLogEntry {
   /// [consumedTimezoneId] or [consumedUtcOffsetMinutes]. This preserves enough
   /// context for deterministic historical presentation/edit reconstruction
   /// without making this aggregate responsible for timezone resolution.
+  ///
+  /// [revision] is the durable optimistic-concurrency identity. Newly-created
+  /// entries start at `1`; every successful durable update advances it exactly
+  /// once. `updatedAt` remains audit/presentation metadata and is not a stale-
+  /// write token.
   factory MealLogEntry.manual({
     required String id,
     required String userId,
@@ -49,6 +55,7 @@ final class MealLogEntry {
     int? consumedUtcOffsetMinutes,
     MealLogCaptureSource? captureSource,
     required NutritionSnapshot manualNutritionSnapshot,
+    int revision = 1,
     required DateTime createdAt,
     required DateTime updatedAt,
   }) {
@@ -59,6 +66,9 @@ final class MealLogEntry {
       throw ArgumentError(
         'Either consumedTimezoneId or consumedUtcOffsetMinutes must be provided.',
       );
+    }
+    if (revision < 1) {
+      throw ArgumentError.value(revision, 'revision', 'must be at least 1');
     }
 
     return MealLogEntry._(
@@ -74,6 +84,7 @@ final class MealLogEntry {
       consumedUtcOffsetMinutes: consumedUtcOffsetMinutes,
       captureSource: captureSource,
       manualNutritionSnapshot: manualNutritionSnapshot,
+      revision: revision,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
@@ -115,6 +126,9 @@ final class MealLogEntry {
   /// construction can share this same canonical type. [MealLogEntry.manual]
   /// always requires and supplies a non-null value.
   final NutritionSnapshot? manualNutritionSnapshot;
+
+  /// Monotonic durable version used for optimistic concurrency.
+  final int revision;
 
   final DateTime createdAt;
   final DateTime updatedAt;
