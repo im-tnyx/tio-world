@@ -20,12 +20,13 @@
 **Review owner:** PR/owner review
 **Implementation ownership state:** Review handoff
 **Branch:** `tnyx/tnyx-199-n4b-manual-meallog-selected-day-diary-sections-read-only`
-**PR / tracker:** PR #258 ready to return to review; Linear TNYX-199 should be `In Review`
+**PR / tracker:** PR #258 ready for review; Linear TNYX-199 should be `In Review`
 **Observed working-tree state:** API-only session; no local checkout modified.
 
-**Final validated implementation source:** `ec6bb88d615639dc4dc01a09fa1961ab5cfe7a5a`
-**Validation:** Flutter CI #2418 / run `34671516075` / job `103493621884` passed bootstrap, Flutter/Dart analyze, Flutter tests, and Dart tests.
-**Validated source scope:** `main == 7a96e382d36d295f821826cb9d49fd38b0f533a9`; source is `34 ahead / 0 behind`, exact merge base, 14 TNYX-199-owned changed files.
+**Final validated source:** `8f885db9ce9d5b21d6b636be3ba03726a433f19b`
+**Behavior implementation source:** `ec6bb88d615639dc4dc01a09fa1961ab5cfe7a5a`
+**Validation:** Flutter CI #2420 / run `34671967867` / job `103494920451` passed bootstrap, Flutter/Dart analyze, Flutter tests, and Dart tests.
+**Validated source scope:** `main == 7a96e382d36d295f821826cb9d49fd38b0f533a9`; source is `36 ahead / 0 behind`, exact merge base, 14 TNYX-199-owned changed files.
 
 **Current blocker:** None.
 **Open review finding IDs:** None.
@@ -73,7 +74,7 @@ resolve sections + current display labels
 
 ### Conflict-reload freshness
 
-`SupabaseMealCategoriesRepository` emits immediately only after its own successful confirmed `upsert`. An integrity/concurrency rejection itself still emits nothing. Instead, the adapter records that canonical state moved elsewhere; the next successful authenticated `read()` clears that pending observation and publishes a freshness event only after the newer canonical configuration has actually been decoded and confirmed.
+`SupabaseMealCategoriesRepository` emits immediately only after its own successful confirmed `upsert`. An integrity/concurrency rejection itself emits nothing. Instead, the adapter records that canonical state moved elsewhere; the next successful authenticated `read()` clears that pending observation and publishes a freshness event only after the newer canonical configuration has actually been decoded and confirmed.
 
 This matches the existing `MealCategoriesController` conflict flow: rejected write → successful canonical reload → Settings adopts the newer configuration → the same mounted Diary provider self-invalidates and re-resolves current section labels. If conflict reload fails, no false freshness event is emitted. A later successful local upsert supersedes any pending conflict observation and publishes its normal single change event.
 
@@ -103,7 +104,8 @@ This matches the existing `MealCategoriesController` conflict flow: rejected wri
 - [x] Empty-day regression proving Meal Categories are not read.
 - [x] T199-R5 successful conflict-reload freshness signal/invalidation.
 - [x] Regression: Diary `Lunch` → write conflict → controller reloads canonical `Midday` → same selected date shows `Midday`.
-- [x] Full CI and final scope audit after T199-R5.
+- [x] Direct adapter contract: rejected conflict emits zero events, successful recovery read emits exactly one, later ordinary read stays quiet.
+- [x] Full CI and final scope audit after final coverage hardening.
 
 ## 5. Validation History
 
@@ -117,8 +119,12 @@ Flutter CI #2410 — PASS
 T199-R4 source: c3546a48bf72cb4a9a69ae5d84663ae3c0f2b109
 Flutter CI #2414 — PASS
 
-T199-R5 final validated source: ec6bb88d615639dc4dc01a09fa1961ab5cfe7a5a
-Flutter CI #2418 / run 34671516075 / job 103493621884
+T199-R5 behavior source: ec6bb88d615639dc4dc01a09fa1961ab5cfe7a5a
+Flutter CI #2418 — PASS
+
+Final validated source after direct signal-timing contract coverage:
+8f885db9ce9d5b21d6b636be3ba03726a433f19b
+Flutter CI #2420 / run 34671967867 / job 103494920451
 Bootstrap PASS
 Flutter analyze PASS
 Dart analyze PASS
@@ -128,7 +134,7 @@ Dart tests PASS
 Final source scope audit:
 main/base: 7a96e382d36d295f821826cb9d49fd38b0f533a9
 merge base: exact base
-branch: 34 ahead / 0 behind
+branch: 36 ahead / 0 behind
 changed files: 14, all within TNYX-199 scope
 ```
 
@@ -142,7 +148,7 @@ changed files: 14, all within TNYX-199 scope
 | T199-R4 | P2 | Resolved | Meal Categories availability could override a day already known to have zero MealLog entries |
 | T199-R5 | P2 | Resolved | Conflict recovery could load a newer persisted Meal Categories config into Settings without invalidating already-mounted Diary history |
 
-The T199-R5 GitHub inline thread was replied to with exact-source/CI evidence and resolved only after CI #2418 passed.
+Both P2 inline review threads are resolved. The final review additionally hardened R5 with an explicit production-adapter signal-timing unit contract; this introduced no new behavior finding and passed full CI #2420.
 
 ## 7. Known Limitations / Final State
 
