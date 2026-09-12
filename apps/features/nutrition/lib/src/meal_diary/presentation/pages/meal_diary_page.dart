@@ -13,13 +13,31 @@ import '../controllers/meal_diary_date_controller.dart';
 import '../widgets/meal_diary_history_view.dart';
 import '../widgets/meal_diary_log_action.dart';
 
+/// Vertical room the floating `+` occupies at the bottom of the diary body:
+/// the button itself plus the padding above and below it.
+///
+/// This is only the button's own footprint. The action also sits inside a
+/// `SafeArea`, so on a viewport with a bottom inset — the shell's navigation
+/// hidden, a gesture bar present — it rides that much higher and the body has
+/// to reserve the inset too. See [_reservedClearance].
 const double _actionClearance = TioSize.dp56 + TioSpacing.xl * 2;
 
-/// The Meal Diary surface and owner of the selected actual-history day.
+/// The Meal Diary surface, and the first production consumer of the reusable
+/// core date calendar.
 ///
-/// Quick Add deliberately owns its own current-local consumed draft; creating a
-/// meal must never move the historical Diary day the reader was viewing. A
-/// confirmed create only invalidates the matching canonical history request.
+/// The calendar integration stays intentionally thin. Nutrition supplies the
+/// selected date, what counts as today, and the diary's own range — nothing
+/// else. Everything about how a date strip scrolls, how the month grid expands
+/// and how a date is drawn belongs to core.
+///
+/// Calendar progress decorations are still absent in this slice. Persisted
+/// MealLog history renders below the calendar, but a calorie-progress ring
+/// belongs to the later N3 daily-budget contract; drawing one here would invent
+/// a denominator and conflate two read models.
+///
+/// Quick Add owns its own current-local consumed draft. A confirmed create is
+/// persisted through the canonical MealLog repository and invalidates only its
+/// affected Diary local-date read model; it never moves a historical selection.
 class MealDiaryPage extends ConsumerStatefulWidget {
   const MealDiaryPage({
     super.key,
@@ -28,8 +46,29 @@ class MealDiaryPage extends ConsumerStatefulWidget {
     this.mealCategoriesRepository,
   });
 
+  /// The app-global week start, already resolved, supplied by app composition.
+  ///
+  /// Nutrition receives it and forwards it. It never persists it, never infers
+  /// it from the locale and never keeps a second copy: week start is one
+  /// app-wide Calendar Preferences value, not a diary setting. Null keeps the
+  /// calendar's own locale fallback, which is what happens before the
+  /// preference has loaded.
   final int? resolvedFirstDayOfWeek;
+
+  /// Canonical Meal Categories owner supplied by app composition.
+  ///
+  /// Quick Add uses active categories; selected-day history uses the same
+  /// retained configuration so archived category identities remain resolvable.
+  /// Null is allowed only for isolated feature harnesses and never fabricates
+  /// category/history data.
   final MealCategoriesRepository? mealCategoriesRepository;
+
+  /// Testable local clock seam for a brand-new Quick Add draft.
+  ///
+  /// Production leaves this null and the editor reads `DateTime.now()` once
+  /// when it opens. Keeping the seam on the route-owned entry avoids global
+  /// clock state while allowing the complete Diary -> Quick Add flow to be
+  /// deterministic in widget tests.
   final DateTime Function()? quickAddClock;
 
   @override
@@ -38,7 +77,19 @@ class MealDiaryPage extends ConsumerStatefulWidget {
 
 class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
     with WidgetsBindingObserver {
+  /// One shot, aimed at the next local midnight, owned by this screen.
+  ///
+  /// The screen owns it rather than the controller because a provider can keep
+  /// a controller alive after the page is gone; a timer parked there would run
+  /// on behind an unmounted screen. Tied to the State, it dies with the route.
   Timer? _midnightTimer;
+
+  /// Whether the calendar is currently showing its month grid.
+  ///
+  /// Observed, not owned: the page passes no `displayMode`, so the calendar
+  /// keeps deciding what it shows and merely reports the change. The page
+  /// needs to know only because the expanded grid reaches the bottom of a
+  /// short viewport, where a floating `+` would sit on top of its date cells.
   var _isCalendarExpanded = false;
 
   @override
@@ -58,10 +109,14 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      // A phone asleep across midnight fires no timer, so coming back is the
+      // other moment the diary has to re-check what day it is — and the timer
+      // it had aimed at last night's midnight is now meaningless.
       ref.read(mealDiaryDateControllerProvider).refreshLocalDate();
       _scheduleMidnightRefresh();
       return;
     }
+    // Nothing is on screen to keep current while the app is away.
     _midnightTimer?.cancel();
     _midnightTimer = null;
   }
@@ -74,16 +129,18 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
     _midnightTimer = Timer(delay, () {
       if (!mounted) return;
       ref.read(mealDiaryDateControllerProvider).refreshLocalDate();
+      // Aim at tomorrow, one night at a time, rather than polling.
       _scheduleMidnightRefresh();
     });
   }
 
   /// Meal Diary → Add Food → Quick Add.
   ///
-  /// The Diary's selected date deliberately does not cross this boundary. A
-  /// new Quick Add owns a fresh current-local DateTime snapshot. The canonical
-  /// MealLog repository is passed in from the existing feature seam rather than
-  /// introducing a second persistence owner inside the editor.
+  /// The Diary's selected date deliberately does not cross this boundary.
+  /// A new Quick Add owns a fresh current-local DateTime snapshot, while the
+  /// Diary keeps the historical day the reader was viewing. The canonical
+  /// MealLog repository is passed from the existing feature seam; after a
+  /// confirmed create only that entry's stored local-date history is refreshed.
   Future<void> _openAddFood() async {
     final choice = await showMealDiaryAddFoodSheet(context);
     if (choice == null || !mounted) return;
@@ -105,10 +162,6 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
           return;
         }
 
-        // Refresh exactly the local-date read model the confirmed entry belongs
-        // to. If the reader is looking at that day it updates immediately; if
-        // they are looking at another historical day, its selection is left
-        // untouched and no unrelated request is invalidated.
         ref.invalidate(
           mealDiaryHistoryProvider(
             MealDiaryHistoryRequest(
@@ -139,8 +192,14 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
       fit: StackFit.expand,
       children: [
         _diaryBody(dates, historyRequest),
+        // The expanded month grid can reach the bottom of a short viewport,
+        // and a `+` parked over one of its date cells is worse than no `+`
+        // for as long as the grid is open. It comes back on collapse.
         if (!_isCalendarExpanded)
           Positioned.fill(
+            // Bottom navigation is the Scaffold's own slot, so the body
+            // already stops above it. SafeArea covers the case where the
+            // shell hides the nav and the body reaches the gesture inset.
             child: SafeArea(
               child: Align(
                 alignment: AlignmentDirectional.bottomEnd,
@@ -158,6 +217,9 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
     );
   }
 
+  /// The clearance for a given viewport: the button's footprint plus whatever
+  /// bottom inset pushed it up. A fixed reservation left content underneath
+  /// the button by exactly the inset.
   double _reservedClearance(BuildContext context) =>
       _actionClearance + MediaQuery.paddingOf(context).bottom;
 
@@ -165,12 +227,24 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
     MealDiaryDateController dates,
     MealDiaryHistoryRequest? historyRequest,
   ) {
+    // The expanded month grid is tall. On a landscape or split-screen viewport
+    // it can exceed the body, so the page scrolls rather than overflowing —
+    // while still filling a normal viewport so the empty state stays centred.
     return LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
+          // The floating `+` is painted over this scroll view, so the content
+          // reserves its footprint at the bottom. Without it, the last lines of
+          // a scrolled-to-the-end body sit underneath the button. Reserved
+          // unconditionally rather than only while the button is visible: a
+          // padding that appeared and vanished with the calendar's month grid
+          // would shift the reader's scroll position every time they expanded
+          // it.
           padding: EdgeInsets.only(bottom: _reservedClearance(context)),
           child: ConstrainedBox(
             constraints: BoxConstraints(
+              // Clamped: a viewport shorter than the reserved band would
+              // otherwise ask for a negative minimum.
               minHeight: math.max(
                 0,
                 constraints.maxHeight - _reservedClearance(context),
@@ -187,12 +261,21 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
                   maxDate: dates.maxDate,
                   onDateSelected: dates.select,
                   onVisibleDateRangeChanged: dates.updateVisibleDateRange,
+                  // Reported, not driven: no `displayMode` is passed, so the
+                  // calendar still owns which rendering it shows. The page
+                  // listens only so the `+` can step out of the grid's way.
                   onDisplayModeChanged: (mode) {
                     if (_isCalendarExpanded == mode.isMonth) return;
                     setState(() => _isCalendarExpanded = mode.isMonth);
                   },
+                  // Forwarded, not owned. TNYX-72 made this an app-global
+                  // Calendar Preferences value; Nutrition is one consumer of
+                  // it, exactly like Workout and Meal Plan will be.
                   resolvedFirstDayOfWeek: widget.resolvedFirstDayOfWeek,
                 ),
+                // Clearance for the handle's touch target, which reaches just
+                // past the calendar's own edge so the small grabber still has a
+                // full-size tap area. Nothing interactive may sit in this band.
                 const SizedBox(height: TioSpacing.xl),
                 MealDiaryHistoryView(
                   date: dates.selectedDate,
