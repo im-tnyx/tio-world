@@ -23,10 +23,11 @@ import 'package:tio_core/core.dart';
 ///
 /// ## Disabled is the absence of a callback
 ///
-/// There is no `enabled` flag for any of the three. A null callback is the
-/// disabled state — dimmed, inert, and reported disabled to assistive
-/// technology — which is how `TioCard` and `TioButton` already work. Two ways
-/// to be switched off is one too many.
+/// There is no separate `enabled` flag for the three actions. A null callback
+/// is the resting disabled state — dimmed, inert, and reported disabled to
+/// assistive technology. [primaryLoading] is different: it is the transient
+/// state of a real callback already in flight and is delegated to `TioButton`'s
+/// governed loading contract.
 class MealLogActionFooter extends StatelessWidget {
   const MealLogActionFooter({
     required this.mealCategoryLabel,
@@ -42,6 +43,8 @@ class MealLogActionFooter extends StatelessWidget {
     this.onPrimaryPressed,
     this.mealCategoryAnchorKey,
     this.dateTimeAnchorKey,
+    this.primaryLoading = false,
+    this.primaryLoadingLabel,
   });
 
   /// What the category control reads: the selected category's name, or an
@@ -59,13 +62,15 @@ class MealLogActionFooter extends StatelessWidget {
   final String? dateTimeSemanticLabel;
   final String? primarySemanticLabel;
 
-  /// One short muted line above the button. Use it to say why the commit is
-  /// unavailable; anything longer belongs in the body, not in a pinned region.
+  /// One short muted line above the button. Use it for a concise save/error
+  /// state; anything longer belongs in the body, not in a pinned region.
   final String? note;
 
   final VoidCallback? onMealCategoryTap;
   final VoidCallback? onDateTimeTap;
   final VoidCallback? onPrimaryPressed;
+  final bool primaryLoading;
+  final String? primaryLoadingLabel;
 
   /// Optional presentation anchor for a caller-owned Meal Type popup, exactly
   /// as [dateTimeAnchorKey] is for the date one. The footer stays a fixed
@@ -103,30 +108,31 @@ class MealLogActionFooter extends StatelessWidget {
               child: KeyedSubtree(
                 key: mealCategoryAnchorKey,
                 child: _FooterAction(
-                controlKey: const ValueKey('meal-log-footer-category'),
-                semanticLabel: mealCategorySemanticLabel ?? mealCategoryLabel,
-                onTap: onMealCategoryTap,
-                builder: (context, textStyle, iconColor) => Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        mealCategoryLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: textStyle,
+                  controlKey: const ValueKey('meal-log-footer-category'),
+                  semanticLabel:
+                      mealCategorySemanticLabel ?? mealCategoryLabel,
+                  onTap: onMealCategoryTap,
+                  builder: (context, textStyle, iconColor) => Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          mealCategoryLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textStyle,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: TioSpacing.xs),
-                    // Never shortened away: the chevron is what says this
-                    // opens something.
-                    Icon(
-                      Icons.expand_more_rounded,
-                      size: TioSize.dp20,
-                      color: iconColor,
-                    ),
-                  ],
-                ),
+                      const SizedBox(width: TioSpacing.xs),
+                      // Never shortened away: the chevron is what says this
+                      // opens something.
+                      Icon(
+                        Icons.expand_more_rounded,
+                        size: TioSize.dp20,
+                        color: iconColor,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -173,13 +179,16 @@ class MealLogActionFooter extends StatelessWidget {
         ),
         if (note != null) ...[
           const SizedBox(height: TioSpacing.md),
-          Text(
-            note!,
-            key: const ValueKey('meal-log-footer-note'),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: colors.textSecondary,
-              fontSize: TioFontSize.size12,
+          Semantics(
+            liveRegion: true,
+            child: Text(
+              note!,
+              key: const ValueKey('meal-log-footer-note'),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: TioFontSize.size12,
+              ),
             ),
           ),
         ],
@@ -191,6 +200,8 @@ class MealLogActionFooter extends StatelessWidget {
           label: primaryLabel,
           semanticLabel: primarySemanticLabel,
           expand: true,
+          loading: primaryLoading,
+          loadingLabel: primaryLoadingLabel,
           onPressed: onPrimaryPressed,
         ),
       ],
@@ -254,7 +265,10 @@ class _FooterAction extends StatelessWidget {
   final Key controlKey;
   final String semanticLabel;
   final Widget Function(
-      BuildContext context, TextStyle textStyle, Color iconColor) builder;
+    BuildContext context,
+    TextStyle textStyle,
+    Color iconColor,
+  ) builder;
   final VoidCallback? onTap;
 
   @override
