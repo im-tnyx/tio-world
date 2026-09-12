@@ -17,23 +17,23 @@ Owner clarified the later UX boundary: Quick Add/manual logs reopen in the same 
 ## Active Handoff
 
 **Planning owner:** ChatGPT
-**Implementation owner:** ChatGPT
+**Implementation owner:** ChatGPT (current resumed session)
 **Review owner:** Unassigned until implementation handoff
 **Implementation ownership state:** Active
-**Ownership transition:** Not applicable
-**Repository state last verified:** 2026-09-12; remote `main` exact SHA `9eb22692a31dbad030d67ead77e5dd2bd67dd0de`; owner reported local `main == origin/main` and clean before this branch; GitHub showed zero open PRs and no pre-existing TNYX-203 branch.
+**Ownership transition:** ChatGPT (interrupted implementation session) → ChatGPT (current resumed session)
+**Repository state last verified:** 2026-09-12; remote `main` remains exact SHA `9eb22692a31dbad030d67ead77e5dd2bd67dd0de`; TNYX-203 branch is ahead only and GitHub shows zero open PRs.
 **Branch:** `tnyx/tnyx-203-n20d-2-manual-meallog-optimistic-revision-update-foundation`
-**HEAD SHA:** starts from `9eb22692a31dbad030d67ead77e5dd2bd67dd0de`; this task-brief commit advances branch HEAD.
+**HEAD SHA:** `c768aaeb5f0716a6d89b0f6d1eddc8aaa24fb464` before this handoff reconciliation commit.
 **Observed working-tree state:** API-authored branch; no local working tree is claimed.
 **Observed uncommitted/dirty files:** Not applicable to API-authored branch.
 **PR / tracker:** Linear TNYX-203 = In Progress; no PR yet.
-**Current implementation state:** Governance/readiness complete; implementation source not yet changed.
+**Current implementation state:** Partial implementation exists. `ManualMealLogUpdate` + update error/capability contracts are added/exported and canonical `MealLogEntry` exposes validated `revision` with default `1`. Migration, repository implementations, row mapping, database/live migration, and validation remain incomplete.
 **Relevant execution surface:** `apps/shared` MealLog aggregate; `apps/features/nutrition` repository contracts/adapters/tests; `supabase/migrations` + database tests.
 **Validation completed at SHA:** None yet for TNYX-203.
 **Validation remaining:** focused Dart/Flutter tests, full Flutter CI, migration/RLS/security verification, live schema check after approved migration application, security/performance advisors.
 **Current blocker:** None.
 **Open review finding IDs:** None.
-**Next exact action:** Add revision/update contract and migration in the bounded TNYX-203 branch, then apply/verify the approved migration and run focused/full validation.
+**Next exact action:** Implement the approved migration and deterministic in-memory/Supabase update owners from the verified partial contracts, then add focused tests before applying the migration live.
 
 ## Global UI / Design-System Guardrail
 
@@ -81,7 +81,7 @@ See approved explicit non-changes above.
 - Current live table has own-row SELECT/UPDATE RLS and authenticated UPDATE grant; update therefore already has the required SELECT-policy prerequisite.
 - Current `updated_at` trigger uses transaction `now()` and remains audit metadata; no current revision/version field exists.
 - Supabase migration history currently ends at `20260911143309_add_meal_log_client_mutation_id`.
-- Current Supabase docs continue to require SELECT policy for UPDATE and support row-level BEFORE UPDATE triggers; no relevant breaking change was identified in the current documentation pass. Direct `changelog.md` fetch was unavailable through the web fetcher because of its markdown content type, so no changelog-derived claim is made.
+- Current Supabase docs continue to require SELECT policy for UPDATE and support row-level BEFORE UPDATE triggers; no relevant breaking change was identified in the current documentation pass.
 
 Known stale doc: `docs/MODULE_OWNERSHIP.md` still labels Supabase as future and names old `backend/*` paths; root `AGENTS.md` and `docs/ARCHITECTURE.md` are newer/current and win. TNYX-203 does not widen backend scope.
 
@@ -145,12 +145,13 @@ No visible accessibility state is introduced. Repository failures distinguish in
 ## 5. Implementation Plan
 
 - [ ] Add migration + database assertions for `revision`, check, and server-owned increment.
-- [ ] Add `revision` to canonical `MealLogEntry` construction/mapping/tests.
-- [ ] Add `ManualMealLogUpdate` and update outcome/conflict contracts.
+- [x] Add `revision` to canonical `MealLogEntry` construction contract.
+- [x] Add `ManualMealLogUpdate` and update outcome/conflict contracts.
+- [ ] Map `revision` through Supabase rows and focused shared/repository tests.
 - [ ] Implement deterministic in-memory update semantics.
 - [ ] Extend Supabase gateway for conditional update and canonical reconciliation.
 - [ ] Preserve create/read/list compatibility and category retention semantics.
-- [ ] Add focused repository/shared regressions for success, stale conflict, missing target, archived-category retention, active destination, ambiguous reconciliation, immutable facts, and revision increments.
+- [ ] Add focused repository/database regressions for success, stale conflict, missing target, archived-category retention, active destination, ambiguous reconciliation, immutable facts, and revision increments.
 - [ ] Apply approved migration to live project and verify schema/RLS/trigger plus security/performance advisors.
 - [ ] Run focused/full Flutter/Dart validation and final review.
 
@@ -172,11 +173,11 @@ Not run yet.
 
 ### Changed Files
 
-Not yet finalized.
+Partial only; final list not yet frozen.
 
 ### Actual Behavior
 
-Not yet implemented.
+Partial contract foundation only; no durable update path is complete yet.
 
 ### Known Limitations
 
