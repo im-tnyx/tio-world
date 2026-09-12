@@ -37,7 +37,10 @@ final class InMemoryMealLogRepository
           clientMutationId: input.clientMutationId,
         );
       }
-      return existing.entry;
+      // The create identity remains immutable, but the row may have been edited
+      // after creation. Return canonical current state rather than a stale
+      // pre-edit response snapshot.
+      return _entries[existing.entry.id] ?? existing.entry;
     }
 
     await _requireActiveMealCategory(input.mealCategoryId);
