@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/models/meal_categories_config.dart';
@@ -41,7 +43,7 @@ final class SupabaseMealCategoriesTableGateway
 /// The database CHECK and retained-ID trigger remain the authoritative atomic
 /// persistence boundary for direct and concurrent writes.
 final class SupabaseMealCategoriesRepository
-    implements MealCategoriesRepository {
+    implements MealCategoriesRepository, MealCategoriesChangeSource {
   SupabaseMealCategoriesRepository({
     required SupabaseClient client,
     MealCategoriesTableGateway? gateway,
@@ -51,6 +53,10 @@ final class SupabaseMealCategoriesRepository
 
   final MealCategoriesTableGateway _gateway;
   final CurrentMealCategoriesUserId _currentUserId;
+  final StreamController<void> _changes = StreamController<void>.broadcast();
+
+  @override
+  Stream<void> get changes => _changes.stream;
 
   @override
   Future<MealCategoriesConfig> read() async {
@@ -84,10 +90,10 @@ final class SupabaseMealCategoriesRepository
       });
     } on PostgrestException catch (error) {
       // The database refusing this payload is not a transport hiccup. The
-      // CHECK constraint and the retained-ID trigger both reject through
-      // SQLSTATE class 23, and both mean the same thing here: what was sent
-      // is not a legal successor to what is stored. Sending it again cannot
-      // help, and would overwrite another device's work if it ever did.
+      // CHECK constraint and retained-ID trigger both reject through SQLSTATE
+      // class 23, and both mean the same thing here: what was sent is not a
+      // legal successor to what is stored. Sending it again cannot help, and
+      // would overwrite another device's work if it ever did.
       if (_isIntegrityViolation(error)) {
         throw MealCategoriesWriteConflict(
           message: 'Your meal categories were changed somewhere else.',
@@ -96,6 +102,10 @@ final class SupabaseMealCategoriesRepository
       }
       rethrow;
     }
+
+    // Publish only after persistence confirms the write. A rejected or failed
+    // mutation must never make readers refresh as though new truth existed.
+    _changes.add(null);
   }
 
   /// SQLSTATE class 23 — integrity constraint violation.
