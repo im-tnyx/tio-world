@@ -3,7 +3,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:tio_core/core.dart';
 
 import '../../../domain/repositories/meal_categories_repository.dart';
@@ -92,15 +91,6 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
   /// short viewport, where a floating `+` would sit on top of its date cells.
   var _isCalendarExpanded = false;
 
-  /// The app router remains alive while a root-level Settings page is pushed
-  /// above the stateful Nutrition shell. Watching its delegate lets the Diary
-  /// notice the one transition that matters here: returning to its own route.
-  /// That return is the point where Meal Category rename/archive/reactivation
-  /// done while the Diary stayed mounted must be reflected in section labels.
-  GoRouterDelegate? _routerDelegate;
-  Uri? _lastRouterUri;
-  String? _diaryRoutePath;
-
   @override
   void initState() {
     super.initState();
@@ -109,71 +99,10 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final router = GoRouter.maybeOf(context);
-    if (router == null) {
-      _routerDelegate?.removeListener(_onRouterChanged);
-      _routerDelegate = null;
-      _lastRouterUri = null;
-      _diaryRoutePath = null;
-      return;
-    }
-
-    final delegate = router.routerDelegate;
-    if (!identical(_routerDelegate, delegate)) {
-      _routerDelegate?.removeListener(_onRouterChanged);
-      _routerDelegate = delegate;
-      _lastRouterUri = delegate.currentConfiguration.uri;
-      delegate.addListener(_onRouterChanged);
-    }
-
-    _diaryRoutePath = router.state.uri.path;
-  }
-
-  @override
   void dispose() {
-    _routerDelegate?.removeListener(_onRouterChanged);
     _midnightTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
-  }
-
-  void _onRouterChanged() {
-    if (!mounted) return;
-    final delegate = _routerDelegate;
-    final diaryRoutePath = _diaryRoutePath;
-    if (delegate == null || diaryRoutePath == null) return;
-
-    final current = delegate.currentConfiguration.uri;
-    final previous = _lastRouterUri;
-    _lastRouterUri = current;
-
-    // Pushing Settings should not start an unnecessary background read while
-    // the Diary is covered. Refresh exactly when navigation comes back to the
-    // Diary route, including returning from Meal Categories or Archived.
-    if (current.path != diaryRoutePath || previous?.path == diaryRoutePath) {
-      return;
-    }
-
-    _invalidateSelectedDayHistory();
-  }
-
-  void _invalidateSelectedDayHistory() {
-    final mealLogRepository = ref.read(mealDiaryMealLogRepositoryProvider);
-    final mealCategoriesRepository = widget.mealCategoriesRepository;
-    if (mealLogRepository == null || mealCategoriesRepository == null) return;
-
-    final selectedDate = ref.read(mealDiaryDateControllerProvider).selectedDate;
-    ref.invalidate(
-      mealDiaryHistoryProvider(
-        MealDiaryHistoryRequest.forSelectedDate(
-          mealLogRepository: mealLogRepository,
-          mealCategoriesRepository: mealCategoriesRepository,
-          selectedDate: selectedDate,
-        ),
-      ),
-    );
   }
 
   @override
