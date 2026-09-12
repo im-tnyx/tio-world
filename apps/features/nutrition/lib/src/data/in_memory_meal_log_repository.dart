@@ -38,10 +38,10 @@ final class InMemoryMealLogRepository
         );
       }
       final current = _entries[existing.entry.id] ?? existing.entry;
-      // Mirror production's conservative reconciliation after later edits. If
-      // the canonical row no longer matches the original create facts, the
-      // mutation key alone is not enough to claim this create attempt succeeded.
-      if (!_matchesCreateInput(current, input)) {
+      // Mirror production's fail-closed rule. Once the row is edited, the
+      // create operation can no longer be safely reconciled from current row
+      // facts alone without a durable immutable create fingerprint.
+      if (current.revision != 1 || !_matchesCreateInput(current, input)) {
         throw MealLogCreateMutationConflict(
           clientMutationId: input.clientMutationId,
         );
