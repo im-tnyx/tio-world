@@ -64,8 +64,10 @@ begin
     return new;
   end if;
 
+  -- Ownership remains enforced by the existing owner RLS policy so attempted
+  -- reassignment keeps the established 42501 failure contract. These remaining
+  -- identity/provenance fields are immutable for the manual MealLog lifecycle.
   if new.id is distinct from old.id
-    or new.user_id is distinct from old.user_id
     or new.mode is distinct from old.mode
     or new.capture_source is distinct from old.capture_source
     or new.created_at is distinct from old.created_at
