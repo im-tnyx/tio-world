@@ -210,6 +210,15 @@ final class SupabaseMealLogRepository
         'Invalid MealLog row: id does not match update target.',
       );
     }
+
+    // A previous call may have committed N+1 but lost both its response and
+    // immediate reconciliation read. Retrying the exact same operation must
+    // converge on that canonical result instead of becoming a false conflict.
+    if (before.revision == input.expectedRevision + 1 &&
+        _matchesUpdateInput(before, input)) {
+      return before;
+    }
+
     if (before.revision != input.expectedRevision) {
       throw MealLogUpdateConflict(
         id: input.id,
@@ -481,20 +490,13 @@ final class SupabaseMealLogRepository
     }
 
     final entry = _decodeManualRow(row, expectedUserId: expectedUserId);
-    if (entry.revision == 1) {
-      if (!_matchesCreateInput(entry, input)) {
-        throw MealLogCreateMutationConflict(
-          clientMutationId: input.clientMutationId,
-        );
-      }
-      return entry;
-    }
 
-    // Once the same durable row has been edited, mutable create-time facts can
-    // legitimately differ from the original create request. The immutable
-    // mutation identity still prevents a duplicate insert; capture provenance
-    // remains immutable and is the only create input that is still comparable.
-    if (entry.captureSource != input.captureSource) {
+    // TNYX-196 requires one mutation key to identify one create payload. Once a
+    // row is later edited, the database no longer retains every mutable original
+    // create fact separately. Without a new approved fingerprint column, the
+    // only safe reconciliation is conservative: return success only when the
+    // current canonical row still matches the incoming create facts exactly.
+    if (!_matchesCreateInput(entry, input)) {
       throw MealLogCreateMutationConflict(
         clientMutationId: input.clientMutationId,
       );
