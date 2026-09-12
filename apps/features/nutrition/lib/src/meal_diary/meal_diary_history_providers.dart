@@ -155,6 +155,20 @@ final class MealDiaryHistoryReadModel {
 final mealDiaryHistoryProvider = FutureProvider.autoDispose
     .family<MealDiaryHistoryReadModel, MealDiaryHistoryRequest>(
   (ref, request) async {
+    final entries =
+        await request.mealLogRepository.listByLocalDate(request.localDate);
+
+    // Meal Categories only provide labels for actual sections. Once the
+    // canonical MealLog read establishes that this day has no entries, the
+    // stable empty state must not depend on a second repository being online or
+    // readable.
+    if (entries.isEmpty) {
+      return MealDiaryHistoryReadModel(
+        localDate: request.localDate,
+        sections: const [],
+      );
+    }
+
     final categoriesRepository = request.mealCategoriesRepository;
     if (categoriesRepository is MealCategoriesChangeSource) {
       final changeSource = categoriesRepository as MealCategoriesChangeSource;
@@ -170,13 +184,7 @@ final mealDiaryHistoryProvider = FutureProvider.autoDispose
       });
     }
 
-    final results = await Future.wait<Object>([
-      request.mealLogRepository.listByLocalDate(request.localDate),
-      categoriesRepository.read(),
-    ]);
-
-    final entries = results[0] as List<MealLogEntry>;
-    final categories = results[1] as MealCategoriesConfig;
+    final categories = await categoriesRepository.read();
 
     return _buildReadModel(
       localDate: request.localDate,
