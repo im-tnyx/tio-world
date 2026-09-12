@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/models/meal_categories_config.dart';
@@ -41,7 +43,7 @@ final class SupabaseMealCategoriesTableGateway
 /// The database CHECK and retained-ID trigger remain the authoritative atomic
 /// persistence boundary for direct and concurrent writes.
 final class SupabaseMealCategoriesRepository
-    implements MealCategoriesRepository {
+    implements MealCategoriesRepository, MealCategoriesChangeSource {
   SupabaseMealCategoriesRepository({
     required SupabaseClient client,
     MealCategoriesTableGateway? gateway,
@@ -51,6 +53,16 @@ final class SupabaseMealCategoriesRepository
 
   final MealCategoriesTableGateway _gateway;
   final CurrentMealCategoriesUserId _currentUserId;
+  final StreamController<void> _changes = StreamController<void>.broadcast();
+
+  // A concurrency rejection means the canonical row moved somewhere else.
+  // The rejected write itself is not a change event. Instead, remember that
+  // fact until a later authenticated read successfully observes the canonical
+  // row; only then can dependent readers safely refresh to confirmed truth.
+  bool _publishChangeAfterNextSuccessfulRead = false;
+
+  @override
+  Stream<void> get changes => _changes.stream;
 
   @override
   Future<MealCategoriesConfig> read() async {
@@ -60,16 +72,23 @@ final class SupabaseMealCategoriesRepository
     }
 
     final row = await _gateway.readRow(userId);
-    if (row == null) return MealCategoriesConfig.resolve(null);
-    if (!row.containsKey('meal_categories_config')) {
-      throw const FormatException(
-        'Invalid Meal Categories row: missing meal_categories_config.',
-      );
+    final MealCategoriesConfig resolved;
+    if (row == null) {
+      resolved = MealCategoriesConfig.resolve(null);
+    } else {
+      if (!row.containsKey('meal_categories_config')) {
+        throw const FormatException(
+          'Invalid Meal Categories row: missing meal_categories_config.',
+        );
+      }
+
+      final customized =
+          MealCategoriesConfigCodec.decode(row['meal_categories_config']);
+      resolved = MealCategoriesConfig.resolve(customized);
     }
 
-    final customized =
-        MealCategoriesConfigCodec.decode(row['meal_categories_config']);
-    return MealCategoriesConfig.resolve(customized);
+    _publishObservedConflictChangeIfPending();
+    return resolved;
   }
 
   @override
@@ -84,11 +103,12 @@ final class SupabaseMealCategoriesRepository
       });
     } on PostgrestException catch (error) {
       // The database refusing this payload is not a transport hiccup. The
-      // CHECK constraint and the retained-ID trigger both reject through
-      // SQLSTATE class 23, and both mean the same thing here: what was sent
-      // is not a legal successor to what is stored. Sending it again cannot
-      // help, and would overwrite another device's work if it ever did.
+      // CHECK constraint and retained-ID trigger both reject through SQLSTATE
+      // class 23, and both mean the same thing here: what was sent is not a
+      // legal successor to what is stored. Sending it again cannot help, and
+      // would overwrite another device's work if it ever did.
       if (_isIntegrityViolation(error)) {
+        _publishChangeAfterNextSuccessfulRead = true;
         throw MealCategoriesWriteConflict(
           message: 'Your meal categories were changed somewhere else.',
           cause: error,
@@ -96,6 +116,17 @@ final class SupabaseMealCategoriesRepository
       }
       rethrow;
     }
+
+    // This successful write is already canonical truth, so it supersedes any
+    // older pending conflict observation and publishes exactly one refresh.
+    _publishChangeAfterNextSuccessfulRead = false;
+    _changes.add(null);
+  }
+
+  void _publishObservedConflictChangeIfPending() {
+    if (!_publishChangeAfterNextSuccessfulRead) return;
+    _publishChangeAfterNextSuccessfulRead = false;
+    _changes.add(null);
   }
 
   /// SQLSTATE class 23 — integrity constraint violation.

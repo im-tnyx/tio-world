@@ -23,6 +23,19 @@ final class MealCategoriesWriteConflict implements Exception {
   String toString() => 'MealCategoriesWriteConflict($message)';
 }
 
+/// Optional local change signal implemented by canonical repositories that can
+/// observe their own successful writes.
+///
+/// This is intentionally separate from [MealCategoriesRepository]. Read/write
+/// fakes and future adapters are not forced to become reactive. Consumers that
+/// need freshness may subscribe when the concrete repository supports it.
+/// Each event means a write completed successfully and a fresh [read] may now
+/// return a different retained configuration. Failed or rejected writes must
+/// not emit an event.
+abstract interface class MealCategoriesChangeSource {
+  Stream<void> get changes;
+}
+
 /// Repository-neutral owner of the authenticated user's Meal Categories.
 abstract interface class MealCategoriesRepository {
   /// Returns a validated customized config, or canonical defaults when no

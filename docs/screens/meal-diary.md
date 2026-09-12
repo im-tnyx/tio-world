@@ -3,7 +3,7 @@
 **Surface:** Phone Nutrition primary tab
 **Route:** `/nutrition` (the Nutrition shell branch renders `MealDiaryPage`)
 **Primary owner:** `apps/features/nutrition`
-**Status:** Date navigation is implemented and live, and the Add Food → Quick Add entry flow now exists as a UI shell. Saving a meal, totals and persistence are not implemented; no diary data source exists yet.
+**Status:** Date navigation, Add Food → Quick Add editor shell, canonical manual MealLog persistence/read foundations, and selected-day read-only Meal Diary sections/cards are implemented. Quick Add `Log Meal` create wiring, edit/delete/move, daily summary/calendar progress and the full Meal Editor remain later slices.
 
 ## Purpose
 
@@ -21,30 +21,38 @@ Show today's meals and water entries, make approved entries easy to add or corre
 - When another day is selected or the calendar is paged away from the range containing Today, the Nutrition top bar shows the approved calendar glyph immediately left of the fixed right-side streak without a redundant gap. Today's day number appears inside the glyph; tapping it selects Today and returns the viewport to Today's week/month. It is absent only when Today is selected and visible, and its appearance never moves the streak.
 - The local day advances without leaving the screen: the page owns a one-shot timer aimed at the next local calendar boundary and also refreshes on app resume. A historical selection is never moved by the rollover; only `localToday` and `maxDate` advance.
 - First day of week is not owned here. `apps/app` resolves the Settings-owned app-global Calendar Preferences value and passes it through `MealDiaryPage` as `resolvedFirstDayOfWeek`; Nutrition forwards it to `TioDateCalendar` without persisting, resolving or caching a second preference. Core's nullable input still permits its locale fallback when no resolved value is supplied.
-- No per-date decorations are supplied, because no meal-log data exists. Missing progress stays missing rather than being drawn as zero.
+- No per-date calorie-progress decorations are supplied yet. Canonical MealLog history now exists, but the calendar ring belongs to N3's shared `DailyNutritionBudget(date)` contract; Meal Diary does not fabricate a target/denominator merely because logs can be read.
+- Selected-day actual history is read through the canonical `MealLogRepository.listByLocalDate(MealLogLocalDate)` boundary and grouped through the retained Meal Categories configuration. The stored `consumedLocalDate` owns Diary-day placement; current device timezone changes do not recompute historical date identity.
+- Meal Category sections use the current resolvable `MealCategory.displayName`, including retained archived categories still referenced by history. Sections are ordered by their latest actual `consumedAt`; within each section entries are newest first. User category reorder remains Settings/picker organization and does not replace actual-activity ordering.
+- One durable `MealLogEntry` renders as one compact read-only `TioCard`. The persisted `mealName` is the title when present. For an unnamed entry whose `captureSource == quickAdd`, `Quick Add` is shown only as a presentation fallback; it is never persisted back into `MealLogEntry.mealName`. An unnamed entry from another source is not mislabeled as Quick Add.
+- Section headers aggregate calories and protein only when every entry in that section has the nutrient fact. `NutritionSnapshot` distinguishes an absent nutrient from a known zero, so the Diary does not present a partial aggregate as though it were complete. Card nutrition copy likewise renders only facts that are actually known.
+- Historical card time uses stored consumed-time context rather than `DateTime.toLocal()` on the current device. When an exact persisted UTC offset is available, the original wall-clock time is reconstructed from `consumedAt + consumedUtcOffsetMinutes`; if only a timezone id is available and no timezone resolver can safely reconstruct it, the time label is omitted rather than guessed.
+- N14 Meal Diary display preferences are live on cards. `showMealTimes` hides only the visible time label and never chronology; `mealNotesEnabled` hides note presentation without touching stored notes; `showMealNotePreview` can add at most one ellipsized note line. The default remains time ON, Meal Notes ON, preview OFF.
+- History exposes explicit loading, empty and retryable error states. Changing selected dates creates a date-keyed read request, so a slower old-date response cannot overwrite a newer selected-date result.
 - A contextual `+` floats at the bottom-trailing corner of the diary body. It sits above the bottom navigation by construction — the navigation is the shell `Scaffold`'s own slot — and respects the safe area when the shell hides that navigation. It steps aside while the calendar's month grid is expanded, so it never covers a date cell on a short viewport, and returns when the grid collapses. It is a Nutrition-owned composition built from core values; there is no floating action affordance in `apps/core` and `TioShell` has no action slot.
 - `+` opens an **Add Food** sheet carrying the four N5 entry paths at the weights TNYX-62 specifies, not as a flat list. A describe-your-meal surface with a microphone comes first and is shaped like somewhere to type, because that is how most meals will eventually be logged; **Take a Photo** follows on a full-width card; **Quick Add** and **Search Food** share one compact row underneath as the manual fallbacks. **Quick Add** is the only one implemented. The other three are drawn as unavailable — dimmed, inert, saying `Not available yet` in their own copy, and reported as disabled to assistive technology — rather than hidden or wired to a stub. Nothing there is a live text field, so no sentence can be typed and lost.
 - The Add Food sheet opts into the route's top safe area. Without that the route strips the top padding, and on a short or split-screen viewport a sheet tall enough to reach the top would put its title and close button under the status bar or a display cutout.
 - **Quick Add** opens a **Manual Nutrition Editor** on the canonical `TioEditorSheet`, deliberately kept as its own screen rather than a mode of the future full Meal Editor: it is the path for someone who already knows the numbers. Its body is a large optional **Meal name** field — the governed larger rounded surface, capped at two lines because it is a title, not a notes field — then **Calories (kcal)**, **Carbs (g)**, **Protein (g)** and **Fat (g)** as simple label-left rows with a compact value box on the right.
-- **Fiber and micronutrients are not rendered.** They are deferred from this owner-approved simple V1, not cancelled: TNYX-115 and TNYX-58 can add supported nutrients later through the shared nutrition-value contract.
-- A blank optional value means absent, not zero. Nothing typed is ever rewritten — there is no input formatter, because filtering does not reject bad input, it edits it into a different valid number. Negative, unparseable and non-finite values keep the text the reader typed and get a message on their own line beneath the row, never colour alone.
+- **Fiber and micronutrients are not rendered in Quick Add.** They are deferred from this owner-approved simple V1, not cancelled: TNYX-115 and TNYX-58 can add supported nutrients later through the shared nutrition-value contract.
+- A blank optional Quick Add value means absent, not zero. Nothing typed is ever rewritten — there is no input formatter, because filtering does not reject bad input, it edits it into a different valid number. Negative, unparseable and non-finite values keep the text the reader typed and get a message on their own line beneath the row, never colour alone.
 - The pinned action region is `MealLogActionFooter`, a Nutrition-owned reusable widget — not Core, because it knows meal categories, consumed date/time and that the commit is called `Log Meal`. The full Meal Editor can adopt it later, where create says `Log Meal` and edit says `Save Changes`. A single divider marks where the scrolling body ends and it begins.
-- In the footer: a neutral **Meal type** control with its chevron remains visible but **disabled** — TNYX-67 owns category identity, so no Breakfast/Lunch/Dinner/Snacks state is invented here. At the trailing edge, the calendar glyph shows the Quick Add draft's concrete local date and 24-hour time (for example `Sep 6, 00:07`) and is enabled. A brand-new editor snapshots the current local minute once, independent of the Diary day being viewed. Tapping the control opens a shared Core popup card over the editor, anchored to the footer without expanding the scrollable content or opening another sheet. The card contains one native-style Date + Hour + Minute + AM/PM Cupertino drum with no headers or Done/Save/Apply action. The picker may reach historical dates without an invented minimum, but a future attempt resolves to the fresh current-local minute. Closing and reopening retains that route-local draft.
-- `Log Meal` spans the footer width and is permanently disabled. Nothing in this flow persists anything — no entry, no retained draft, no local store, no Supabase write — so backing out of either sheet leaves no history and reopening starts from a fresh local-time snapshot. The date/time interaction does not unblock or implement TNYX-113/TNYX-114/TNYX-115; durable history still arrives through that dependency chain.
-- Below the calendar the selected day shows its date and states plainly that nothing is logged for it and that meals cannot be saved yet.
+- In the footer: the **Meal type** control consumes the same canonical active Meal Categories repository used by Settings. At the trailing edge, the calendar glyph shows the Quick Add draft's concrete local date and time. A brand-new editor snapshots the current local minute once, independent of the Diary day being viewed. Tapping the control opens the shared Core date/time picker presentation; future actual datetimes resolve back to the real current-local boundary rather than being retained.
+- `Log Meal` is still disabled in the current Quick Add slice. Canonical MealLog persistence and selected-day reads already exist, but the Quick Add editor has not yet been wired to `MealLogRepository.createManual`; dismissing the editor still creates no new history. TNYX-115 owns that create handoff.
+- Below the calendar, the selected day now renders its persisted manual MealLog history when available. A successful empty read states only that nothing is logged for that day; it no longer claims that the repository/history capability does not exist.
 
 ## Target Content
 
 - Date selector and daily calorie/macro summary.
-- Meal groups with individual entries and explicit add, edit, and remove actions.
+- Meal groups with individual entries and explicit add, edit, and remove actions. Read-only groups/cards are implemented; mutation/navigation follows in later bounded slices.
 - Water total and add-water action.
 - Clear links to Nutrition Targets and, later, Meal Plan.
 
 ## Data And States
 
-- Nutrition owns entries, totals, calculations, validation, and deletion rules.
-- First release must define local persistence before it claims saved tracking.
-- Empty day, no target, loading, malformed entry, save pending, failed save, delete confirmation, and offline/stale states are required.
+- Nutrition owns entries, totals, calculations, validation and deletion rules behind repository/domain contracts.
+- Canonical manual MealLog persistence now exists behind `MealLogRepository`, with Supabase-backed production composition and a non-durable in-memory adapter for local/test harnesses.
+- The Diary selected-day read model consumes canonical actual history; it does not persist a second daily-total or presentation cache.
+- Empty day, loading and read failure are implemented for selected-day history. Save pending/failed save, delete confirmation, edit conflicts and durable offline replay remain owned by their later mutation/reliability slices.
 - Use safe numeric/text alternatives for all macro progress visuals.
 
 ## Adaptive Entry Behavior
@@ -56,10 +64,11 @@ Show today's meals and water entries, make approved entries easy to add or corre
 ## Acceptance Criteria
 
 - An entry change updates only through Nutrition-owned state/contracts.
-- A user can tell whether an entry is saved locally, pending sync, or failed.
+- Selected-day actual history groups by persisted Diary local-date identity and retained Meal Category identity.
+- Read-only cards preserve actual chronology even when visible meal times are hidden.
 - Meal Plan is not required for the diary MVP.
-- The date navigator never fabricates progress, totals or entries before a real data source exists.
-- Meal additions from every approved entry surface update the same diary state and saved/pending status.
+- The date navigator never fabricates progress, targets, totals or entries; its calorie ring waits for the N3 budget contract.
+- Meal additions from every approved entry surface eventually update the same canonical MealLog repository/read model; Quick Add create wiring remains a later slice.
 
 ## Related
 

@@ -1,13 +1,20 @@
+import 'dart:async';
+
 import '../domain/models/meal_categories_config.dart';
 import '../domain/models/meal_categories_transition_policy.dart';
 import '../domain/repositories/meal_categories_repository.dart';
 
 /// Deterministic non-durable Meal Categories owner for tests/local composition.
-class InMemoryMealCategoriesRepository implements MealCategoriesRepository {
+class InMemoryMealCategoriesRepository
+    implements MealCategoriesRepository, MealCategoriesChangeSource {
   MealCategoriesConfig? _customizedConfig;
+  final StreamController<void> _changes = StreamController<void>.broadcast();
 
   bool get hasCustomization => _customizedConfig != null;
   MealCategoriesConfig? get customizedConfig => _customizedConfig;
+
+  @override
+  Stream<void> get changes => _changes.stream;
 
   @override
   Future<MealCategoriesConfig> read() async =>
@@ -24,5 +31,6 @@ class InMemoryMealCategoriesRepository implements MealCategoriesRepository {
       );
     }
     _customizedConfig = config;
+    _changes.add(null);
   }
 }
