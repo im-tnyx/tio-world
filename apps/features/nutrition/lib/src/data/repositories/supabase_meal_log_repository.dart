@@ -492,11 +492,12 @@ final class SupabaseMealLogRepository
     final entry = _decodeManualRow(row, expectedUserId: expectedUserId);
 
     // TNYX-196 requires one mutation key to identify one create payload. Once a
-    // row is later edited, the database no longer retains every mutable original
-    // create fact separately. Without a new approved fingerprint column, the
-    // only safe reconciliation is conservative: return success only when the
-    // current canonical row still matches the incoming create facts exactly.
-    if (!_matchesCreateInput(entry, input)) {
+    // row reaches revision 2+, the durable row no longer proves what every
+    // mutable original create fact was. Even if the current edited facts happen
+    // to match a later incoming create, treating that as proof could accept a
+    // reused key for a different logical operation. Without an approved immutable
+    // create fingerprint, every edited-row create reconciliation must fail closed.
+    if (entry.revision != 1 || !_matchesCreateInput(entry, input)) {
       throw MealLogCreateMutationConflict(
         clientMutationId: input.clientMutationId,
       );
