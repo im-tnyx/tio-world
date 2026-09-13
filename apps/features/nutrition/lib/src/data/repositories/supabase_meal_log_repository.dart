@@ -3,6 +3,7 @@ import 'package:tio_shared/shared.dart';
 
 import '../../domain/repositories/manual_meal_log_update_repository.dart';
 import '../../domain/repositories/meal_categories_repository.dart';
+import '../../domain/repositories/meal_log_range_read_repository.dart';
 import '../../domain/repositories/meal_log_repository.dart';
 
 typedef CurrentMealLogUserId = String? Function();
@@ -34,7 +35,20 @@ abstract interface class MealLogTableGateway {
   });
 }
 
-final class SupabaseMealLogTableGateway implements MealLogTableGateway {
+/// Optional gateway capability used only by calendar-range consumers.
+///
+/// Keeping this separate means existing injected gateways that exercise the
+/// established create/read/update contract do not need a synthetic range API.
+abstract interface class MealLogRangeTableGateway {
+  Future<List<Map<String, dynamic>>> listRowsByLocalDateRange({
+    required String userId,
+    required String startLocalDate,
+    required String endLocalDate,
+  });
+}
+
+final class SupabaseMealLogTableGateway
+    implements MealLogTableGateway, MealLogRangeTableGateway {
   const SupabaseMealLogTableGateway(this._client);
 
   static const _columns =
@@ -117,6 +131,26 @@ final class SupabaseMealLogTableGateway implements MealLogTableGateway {
       for (final row in rows) Map<String, dynamic>.from(row),
     ];
   }
+
+  @override
+  Future<List<Map<String, dynamic>>> listRowsByLocalDateRange({
+    required String userId,
+    required String startLocalDate,
+    required String endLocalDate,
+  }) async {
+    final rows = await _client
+        .from('meal_log_entries')
+        .select(_columns)
+        .eq('user_id', userId)
+        .gte('consumed_local_date', startLocalDate)
+        .lte('consumed_local_date', endLocalDate)
+        .order('consumed_local_date')
+        .order('consumed_at', ascending: false)
+        .order('id');
+    return [
+      for (final row in rows) Map<String, dynamic>.from(row),
+    ];
+  }
 }
 
 /// Supabase adapter for canonical manual MealLog persistence.
@@ -127,9 +161,13 @@ final class SupabaseMealLogTableGateway implements MealLogTableGateway {
 /// transport ambiguity is reconciled with the same client mutation identity.
 /// TNYX-197 adds owner-scoped selected-local-date history reads. TNYX-203 adds
 /// optimistic manual updates using the durable row revision without changing
-/// manual-mode identity or capture provenance.
-final class SupabaseMealLogRepository
-    implements MealLogRepository, ManualMealLogUpdateRepository {
+/// manual-mode identity or capture provenance. TNYX-206 adds an inclusive
+/// owner-scoped local-date range read for calendar progress without changing
+/// row/schema ownership.
+final class SupabaseMealLogRepository implements
+    MealLogRepository,
+    ManualMealLogUpdateRepository,
+    MealLogRangeReadRepository {
   SupabaseMealLogRepository({
     required SupabaseClient client,
     required MealCategoriesRepository mealCategoriesRepository,
@@ -223,7 +261,7 @@ final class SupabaseMealLogRepository
       throw MealLogUpdateConflict(
         id: input.id,
         expectedRevision: input.expectedRevision,
-        actualRevision: before.revision,
+        actualRevision: existing.revision,
       );
     }
 
@@ -303,6 +341,38 @@ final class SupabaseMealLogRepository
       for (final row in rows)
         _decodeManualRow(row, expectedUserId: userId),
     ]..sort(_compareDiaryOrder);
+    return List<MealLogEntry>.unmodifiable(entries);
+  }
+
+  @override
+  Future<List<MealLogEntry>> listByLocalDateRange({
+    required MealLogLocalDate startDate,
+    required MealLogLocalDate endDate,
+  }) async {
+    final start = startDate.toIso8601String();
+    final end = endDate.toIso8601String();
+    if (start.compareTo(end) > 0) {
+      throw ArgumentError.value(
+        '$start..$end',
+        'localDateRange',
+        'startDate must not be after endDate',
+      );
+    }
+    final gateway = _gateway;
+    if (gateway is! MealLogRangeTableGateway) {
+      throw StateError('MealLog range reads are unavailable for this gateway.');
+    }
+
+    final userId = _requireUserId();
+    final rows = await gateway.listRowsByLocalDateRange(
+      userId: userId,
+      startLocalDate: start,
+      endLocalDate: end,
+    );
+    final entries = [
+      for (final row in rows)
+        _decodeManualRow(row, expectedUserId: userId),
+    ]..sort(_compareDiaryRangeOrder);
     return List<MealLogEntry>.unmodifiable(entries);
   }
 
@@ -474,6 +544,14 @@ final class SupabaseMealLogRepository
     final byConsumedAt = right.consumedAt.compareTo(left.consumedAt);
     if (byConsumedAt != 0) return byConsumedAt;
     return left.id.compareTo(right.id);
+  }
+
+  static int _compareDiaryRangeOrder(MealLogEntry left, MealLogEntry right) {
+    final byDate = left.consumedLocalDate
+        .toIso8601String()
+        .compareTo(right.consumedLocalDate.toIso8601String());
+    if (byDate != 0) return byDate;
+    return _compareDiaryOrder(left, right);
   }
 
   static MealLogEntry _decodeCreateResult(
