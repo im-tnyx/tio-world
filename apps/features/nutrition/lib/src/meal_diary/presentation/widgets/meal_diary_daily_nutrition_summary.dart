@@ -41,6 +41,15 @@ class MealDiaryDailyNutritionSummary extends StatelessWidget {
         value: _format(summary.remainingCaloriesKcal, unit: 'kcal'),
       ),
     ];
+    final supportedNutrients = <({String label, NutrientId nutrient})>[
+      (label: 'Carbs', nutrient: NutrientId.carbohydrate),
+      (label: 'Protein', nutrient: NutrientId.protein),
+      (label: 'Fat', nutrient: NutrientId.fat),
+      (label: 'Fiber', nutrient: NutrientId.fiber),
+    ].where((row) {
+      return summary.consumedAmountFor(row.nutrient) != null &&
+          summary.targetAmountFor(row.nutrient) != null;
+    }).toList(growable: false);
 
     return TioCard(
       key: const ValueKey('meal-diary-daily-nutrition-summary'),
@@ -81,29 +90,17 @@ class MealDiaryDailyNutritionSummary extends StatelessWidget {
               );
             },
           ),
-          const SizedBox(height: TioSpacing.lg),
-          const Divider(height: TioStroke.width1),
-          const SizedBox(height: TioSpacing.sm),
-          _NutrientProgressRow(
-            label: 'Carbs',
-            nutrient: NutrientId.carbohydrate,
-            summary: summary,
-          ),
-          _NutrientProgressRow(
-            label: 'Protein',
-            nutrient: NutrientId.protein,
-            summary: summary,
-          ),
-          _NutrientProgressRow(
-            label: 'Fat',
-            nutrient: NutrientId.fat,
-            summary: summary,
-          ),
-          _NutrientProgressRow(
-            label: 'Fiber',
-            nutrient: NutrientId.fiber,
-            summary: summary,
-          ),
+          if (supportedNutrients.isNotEmpty) ...[
+            const SizedBox(height: TioSpacing.lg),
+            const Divider(height: TioStroke.width1),
+            const SizedBox(height: TioSpacing.sm),
+            for (final row in supportedNutrients)
+              _NutrientProgressRow(
+                label: row.label,
+                nutrient: row.nutrient,
+                summary: summary,
+              ),
+          ],
         ],
       ),
     );
@@ -236,19 +233,14 @@ class _NutrientProgressRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
-    final consumed = summary.consumedAmountFor(nutrient);
-    final target = summary.targetAmountFor(nutrient);
+    final consumed = summary.consumedAmountFor(nutrient)!;
+    final target = summary.targetAmountFor(nutrient)!;
     final progress = summary.progressFor(nutrient);
-    final available = consumed != null && target != null;
-    final valueText = available
-        ? '${_grams(consumed)} / ${_grams(target)}'
-        : 'Unavailable';
+    final valueText = '${_grams(consumed)} / ${_grams(target)}';
 
     return Semantics(
       container: true,
-      label: available
-          ? '$label, ${_grams(consumed)} consumed of ${_grams(target)} target'
-          : '$label nutrition progress unavailable',
+      label: '$label, ${_grams(consumed)} consumed of ${_grams(target)} target',
       value: progress == null ? null : '${(progress * 100).round()} percent',
       excludeSemantics: true,
       child: Padding(
@@ -273,9 +265,7 @@ class _NutrientProgressRow extends StatelessWidget {
                     'daily-nutrition-${nutrient.storageValue}-value',
                   ),
                   style: textTheme.bodySmall?.copyWith(
-                    color: available
-                        ? colors.textSecondary
-                        : colors.textMuted,
+                    color: colors.textSecondary,
                   ),
                 ),
               ],
