@@ -117,7 +117,7 @@ void main() {
   });
 
   test('direct numeric near-step and tiny values cannot bypass precision', () {
-    for (final value in [0.30000000009, 1e-14]) {
+    for (final value in [0.30000000009, 1e-14, 1e-18]) {
       expect(
         ManualNutritionAmountPolicy.validateAmount(
           field: ManualNutritionAmountField.carbs,
@@ -175,6 +175,13 @@ void main() {
       ManualNutritionAmountPolicy.canonicalEditorText(
         field: ManualNutritionAmountField.carbs,
         value: 0.30000000009,
+      ),
+      isNull,
+    );
+    expect(
+      ManualNutritionAmountPolicy.canonicalEditorText(
+        field: ManualNutritionAmountField.carbs,
+        value: 1e-18,
       ),
       isNull,
     );
