@@ -16,9 +16,9 @@ abstract interface class NutritionTargetsRepository {
 /// Optional live change capability for consumers that remain mounted while
 /// canonical Nutrition Targets are edited elsewhere in the app.
 ///
-/// A change event means a successful canonical write completed. Consumers
-/// re-read through [NutritionTargetsRepository]; the stream never carries a
-/// second copy of target state.
+/// Every successful canonical write emits a strictly increasing local revision.
+/// Consumers still re-read through [NutritionTargetsRepository]; the stream
+/// never carries a second copy of target state.
 abstract interface class NutritionTargetsChangeSource {
-  Stream<void> get changes;
+  Stream<int> get changes;
 }
