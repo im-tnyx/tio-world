@@ -185,9 +185,6 @@ final class SupabaseMealLogRepository implements
   Future<MealLogEntry> createManual(ManualMealLogCreate input) async {
     final userId = _requireUserId();
 
-    // Reconcile before validating current category activity. A previous attempt
-    // may already have committed and lost its response; that historical fact
-    // must remain returnable even if the category was archived afterwards.
     final existing = await _readMutationForCreate(
       userId: userId,
       input: input,
@@ -249,9 +246,6 @@ final class SupabaseMealLogRepository implements
       );
     }
 
-    // A previous call may have committed N+1 but lost both its response and
-    // immediate reconciliation read. Retrying the exact same operation must
-    // converge on that canonical result instead of becoming a false conflict.
     if (before.revision == input.expectedRevision + 1 &&
         _matchesUpdateInput(before, input)) {
       return before;
@@ -261,12 +255,10 @@ final class SupabaseMealLogRepository implements
       throw MealLogUpdateConflict(
         id: input.id,
         expectedRevision: input.expectedRevision,
-        actualRevision: existing.revision,
+        actualRevision: before.revision,
       );
     }
 
-    // Retaining a historical/archived category is valid. Moving this entry to
-    // a different category requires the destination to be active now.
     if (input.mealCategoryId != before.mealCategoryId) {
       await _requireActiveMealCategory(input.mealCategoryId);
     }
@@ -499,9 +491,6 @@ final class SupabaseMealLogRepository implements
     final code = error.code;
     if (code == null || code.isEmpty) return true;
 
-    // Data/integrity/auth/request-shape failures are explicit rejections, not
-    // response-loss ambiguity. Uniqueness is handled separately because it is
-    // the expected concurrent/same-key idempotency signal.
     if (code.startsWith('22') ||
         (code.startsWith('23') && code != '23505') ||
         code.startsWith('28') ||
@@ -568,13 +557,6 @@ final class SupabaseMealLogRepository implements
     }
 
     final entry = _decodeManualRow(row, expectedUserId: expectedUserId);
-
-    // TNYX-196 requires one mutation key to identify one create payload. Once a
-    // row reaches revision 2+, the durable row no longer proves what every
-    // mutable original create fact was. Even if the current edited facts happen
-    // to match a later incoming create, treating that as proof could accept a
-    // reused key for a different logical operation. Without an approved immutable
-    // create fingerprint, every edited-row create reconciliation must fail closed.
     if (entry.revision != 1 || !_matchesCreateInput(entry, input)) {
       throw MealLogCreateMutationConflict(
         clientMutationId: input.clientMutationId,
