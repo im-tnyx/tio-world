@@ -16,22 +16,22 @@
 
 **Planning owner:** ChatGPT  
 **Implementation owner:** ChatGPT  
-**Review owner:** None active until implementation validation handoff  
+**Review owner:** None active until exact-head validation handoff  
 **Implementation ownership state:** Active  
 **Ownership transition:** Not applicable  
-**Repository state last verified:** `main@2866ded8a963b64a99e41b5007da4753a922c7cc`; local post-merge sync explicitly confirmed clean by owner; fresh remote compare identical.  
+**Repository state last verified:** `main@2866ded8a963b64a99e41b5007da4753a922c7cc`; source/test/docs head before this governance refresh was `d2c30e6ab59e5b1661e22a10d7169538666eba9d`; compare reported `ahead 26 / behind 0` with merge-base equal to the recorded base.  
 **Branch:** `tnyx/tnyx-206-n3a-base-daily-nutrition-summary-workout-off`  
-**HEAD SHA:** `2866ded8a963b64a99e41b5007da4753a922c7cc` at branch creation; this brief is the first branch commit.  
+**HEAD SHA:** Source/test/docs implementation checkpoint `d2c30e6ab59e5b1661e22a10d7169538666eba9d`; this brief refresh is a governance-only follow-up commit.  
 **Observed working-tree state:** Connector/API session; no local dirty tree is claimed.  
 **Observed uncommitted/dirty files:** Not applicable / unavailable through connector session.  
-**PR / tracker:** Linear TNYX-206; no PR yet.  
-**Current implementation state:** Fresh audit complete; source implementation not started at brief creation.  
-**Relevant execution surface:** Meal Diary selected-date read models, DailyNutritionBudget resolver, MealLog repository read boundary, Meal Diary page + calendar decoration.  
-**Validation completed at SHA:** Historical prerequisite TNYX-205 exact-head CI is merged; no TNYX-206 validation yet.  
-**Validation remaining:** Focused Nutrition tests/analyze, full Flutter CI on exact PR head, independent review/Codex review.  
-**Current blocker:** None after TNYX-205 merge/sync.  
-**Open review finding IDs:** None.  
-**Next exact action:** Implement the bounded Nutrition read-model/range-read foundation, summary widget, page wiring, and focused regressions without expanding scope.
+**PR / tracker:** Linear TNYX-206 In Progress; Draft PR is the next gate.  
+**Current implementation state:** Bounded N3A source, focused tests and canonical Meal Diary documentation are implemented. Exact-head analyzer/test CI has not run yet, so implementation is not validated or review-ready.  
+**Relevant execution surface:** Meal Diary selected-date summary, DailyNutritionBudget resolver, MealLog single/range read boundaries, Meal Diary page, calendar decoration, app repository composition.  
+**Validation completed at SHA:** No TNYX-206 CI yet. Scope audit at `d2c30e6a` confirmed only task brief, thin `apps/app` composition, Nutrition source/tests and `docs/screens/meal-diary.md`; no Core source, Supabase schema/RLS, Workout or TNYX-207 path.  
+**Validation remaining:** Open Draft PR, run exact-head Flutter/Dart analyze/tests, inspect failures and fix if needed, rerun exact-head CI, independent review + Codex review, reconcile final tracker/docs.  
+**Current blocker:** None; validation is the active gate.  
+**Open review finding IDs:** None. Implementation self-review already corrected an optimistic-update copy typo, an invalid nonexistent `TioSize.dp360` reference, and a missing doc-reference import before PR validation.  
+**Next exact action:** Open Draft PR from the audited branch, use CI as compile/test truth, resolve every exact-head failure/finding, then hand off for owner review without merging.
 
 ## Global UI / Design-System Guardrail
 
@@ -59,7 +59,7 @@ When the user browses a Meal Diary date, they can see that day’s calorie targe
 - Eaten values come only from actual canonical MealLog rows for the selected local date.
 - Remaining stays signed (over-budget may be negative); it is not display-clamped to zero.
 - Carbs/Protein/Fat/Fiber compare consumed truth with canonical base targets; Standard strategy does not silently rescale them.
-- Unknown target or consumed nutrient stays unavailable rather than becoming fake zero.
+- Unknown target or consumed nutrient stays unavailable rather than becoming fake zero; unsupported nutrient rows are omitted rather than rendered as fake progress.
 - A successful empty MealLog read is a known zero consumed day, not an unavailable day.
 - Calendar ring uses the same budget + eaten rules; ring progress clamps to `0..1` while over-budget truth remains detectable in the summary model.
 - Visible calendar dates are fetched in a bounded range, not one network query per day.
@@ -90,16 +90,16 @@ When the user browses a Meal Diary date, they can see that day’s calorie targe
 
 ### Verified Evidence
 
-- `MealDiaryPage` currently renders `TioDateCalendar`, a fixed calendar-handle clearance, then `MealDiaryHistoryView`; it intentionally passes no `decorationBuilder` because N3 was not implemented.
+- `MealDiaryPage` originally rendered `TioDateCalendar`, a fixed calendar-handle clearance, then `MealDiaryHistoryView`; it intentionally passed no `decorationBuilder` before N3A.
 - `TioDateCalendar` already accepts caller-owned `TioDateDecorationBuilder`; Core never computes Nutrition semantics.
 - `TioDateDecoration.progress` already distinguishes `null` (unavailable) from `0.0` (known zero) and requires a normalized `0..1` caller value.
 - `DailyNutritionBudgetResolver` is merged from TNYX-205 and is the only strategy-adjusted target boundary. Standard currently returns the validated canonical target unchanged.
-- `MealDiaryHistoryReadModel` depends on Meal Categories for non-empty section presentation and currently exposes only Calories/Protein section aggregates; deriving the N3 summary from this presentation model would couple nutrient truth to category-label availability.
+- `MealDiaryHistoryReadModel` depends on Meal Categories for non-empty section presentation and exposes only Calories/Protein section aggregates; deriving the N3 summary from this presentation model would couple nutrient truth to category-label availability.
 - `NutritionSnapshot` supports canonical nutrient lookup with absent != zero semantics.
 - `NutritionTargetsData` supports Calories, Protein, Carbs, Fat and Fiber with nullable unknown fields.
-- `MealLogRepository` currently reads one `MealLogLocalDate`; `SupabaseMealLogRepository` filters the persisted `consumed_local_date`. No range read exists yet.
-- Production app composition already overrides `mealDiaryMealLogRepositoryProvider` with the canonical app `mealLogRepositoryProvider`; canonical `nutritionTargetsRepositoryProvider` also exists in app composition.
-- `nutritionTargetsDataProvider` intentionally maps a missing target row to an empty editable Settings model, so it must not be used by N3 where unavailable target truth must remain unavailable.
+- Pre-N3A `MealLogRepository` read one `MealLogLocalDate`; `SupabaseMealLogRepository` filtered persisted `consumed_local_date`. N3A therefore needed a bounded optional range-read capability to avoid per-day remote fan-out.
+- Production app composition already overrides `mealDiaryMealLogRepositoryProvider` with the canonical app `mealLogRepositoryProvider`; N3A mirrors that seam for canonical Nutrition Targets.
+- `nutritionTargetsDataProvider` intentionally maps a missing target row to an empty editable Settings model, so it is not used by N3 where unavailable target truth must remain unavailable.
 - Core theme/design-system docs provide `TioCard` and governed primitives; no reusable `TioProgress` component exists.
 
 ### Existing Pattern to Follow
@@ -130,7 +130,7 @@ When the user browses a Meal Diary date, they can see that day’s calorie targe
 | Remaining | Locked | `target - eaten`, signed; negative means over budget and is not clamped. | Nutrition |
 | Ring progress | Locked | `eaten / target`, visual value clamped to `0..1`; unavailable if target/eaten unavailable. | Nutrition |
 | Visible range reads | Locked | Add optional `MealLogRangeReadRepository` capability and implement it in canonical production/in-memory adapters; avoid 7–31 separate Supabase queries. | Nutrition data boundary |
-| Core changes | Locked | None expected; existing generic `TioDateDecoration` contract is sufficient. | Core remains unchanged |
+| Core changes | Locked | None; existing generic `TioDateDecoration` contract is sufficient. | Core remains unchanged |
 | App composition | Locked | Add only the thin repository provider override needed to expose canonical Nutrition Targets to the feature, mirroring existing MealLog composition. | `apps/app` composition only |
 
 ## 4. Architecture Design
@@ -146,7 +146,7 @@ explicit MealLogLocalDate
         ↓
 DailyNutritionSummary
   - budget? (target unavailable stays unavailable)
-  - consumed core nutrient snapshot/all-known totals
+  - consumed core nutrient all-known totals
   - calorie remaining / raw over-budget truth
   - normalized ring progress when calculable
 ```
@@ -175,56 +175,79 @@ apps/app composition
 
 ### Failure and Accessibility States
 
-- MealLog read failure is a retryable summary/calendar read failure; it is not converted to zero.
-- Target repository `null` keeps target/remaining/ring unavailable while successful MealLog consumption can still remain truthful.
-- Unknown individual nutrient displays an unavailable text alternative instead of a fabricated amount/bar.
+- MealLog read failure is a summary/calendar read failure; it is not converted to zero, and existing calendar/history navigation remains usable.
+- Target repository `null` keeps target/remaining/ring unavailable while successful MealLog consumption can still remain truthful at the domain layer.
+- A macro/fiber row renders only when both consumed and target truth exist; unsupported truth does not create a fake amount or progress bar.
 - Calorie and nutrient values remain visible as text; progress bars/rings are supplemental.
 - Calendar decorations carry Nutrition-owned semantic labels.
-- Compact widths must wrap/reflow without overflow; dark/light use semantic theme colors.
+- Compact widths wrap/reflow; dark/light resolve semantic theme colors.
 
 ## 5. Implementation Plan
 
-- [ ] Add optional inclusive local-date range read capability; implement in Supabase + in-memory adapters with focused data tests.
-- [ ] Extend `DailyNutritionBudgetResolver` with bounded multi-date resolution so calendar consumers still use the same budget owner without repeated canonical target reads.
-- [ ] Add `DailyNutritionSummary` model/resolver with exact null/zero/over-budget rules and focused domain tests.
-- [ ] Add feature providers for canonical targets repo, selected-day summary and visible-range summaries.
-- [ ] Track calendar visible range in Nutrition date state without changing selection/navigation behavior.
-- [ ] Add Nutrition-owned Daily Summary widget using governed Core UI/primitives.
-- [ ] Wire summary + calendar decorations into `MealDiaryPage` and extend create/edit invalidation.
-- [ ] Add app composition override for the canonical Nutrition Targets repository.
-- [ ] Add light/dark, compact-width, accessibility, selected-date, unavailable/zero and over-budget widget/page regressions.
-- [ ] Reconcile `docs/screens/meal-diary.md` once runtime behavior is implemented.
-- [ ] Audit exact branch scope, open Draft PR, run exact-head CI, independently review and trigger Codex review.
+- [x] Add optional inclusive local-date range read capability; implement in Supabase + in-memory adapters.
+- [x] Extend `DailyNutritionBudgetResolver` with bounded multi-date resolution so calendar consumers still use the same budget owner without repeated canonical target reads.
+- [x] Add `DailyNutritionSummary` model/resolver with exact null/zero/over-budget rules.
+- [x] Add feature providers for canonical targets repo, selected-day summary and visible-range summaries.
+- [x] Track calendar visible range in Nutrition date state without changing selection/navigation behavior.
+- [x] Add Nutrition-owned Daily Summary widget using governed Core UI/primitives.
+- [x] Wire summary + calendar decorations into `MealDiaryPage` and extend create/edit invalidation.
+- [x] Add app composition override for the canonical Nutrition Targets repository.
+- [x] Add resolver, range-adapter, light/dark compact-width, selected-date, unavailable/zero and over-budget focused regressions.
+- [x] Reconcile `docs/screens/meal-diary.md` with implemented runtime behavior.
+- [x] Audit source/test/doc branch scope against `main@2866ded8...`; 22 paths were bounded to this task at the source/docs checkpoint.
+- [ ] Open Draft PR, run exact-head CI, independently review and trigger Codex review.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Not run yet for TNYX-206.
+Source/test/docs checkpoint: d2c30e6ab59e5b1661e22a10d7169538666eba9d
+Scope compare: main@2866ded8... → d2c30e6a = ahead 26 / behind 0; merge-base exact main base.
+Changed paths at checkpoint: 22, all task-owned.
+Runtime analyze/tests: not run yet; Draft-PR CI is the next validation truth.
 ```
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| None | — | — | No review pass yet. | — | — |
+| TNYX-206-SR1 | P2 | Resolved | Supabase optimistic-conflict copy used nonexistent `existing.revision` instead of `before.revision`. | `d4cee9d9` | Corrected before validation in `05d80812`. |
+| TNYX-206-SR2 | P2 | Resolved | First summary widget draft referenced nonexistent `TioSize.dp360`. | `742ad15f` | Replaced with a documented one-off local responsive breakpoint in `e0638413`; no Core token added. |
+| TNYX-206-SR3 | P3 | Resolved | New range contract doc referenced `MealLogRepository` without importing its library. | `d2c30e6a` review pass | Added explicit import in `00f1ba36`. |
 
 ## 7. Final Handoff
 
 ### Changed Files
 
-Pending implementation.
+Current bounded families:
+
+- `.ai/tasks/tnyx-206-base-daily-nutrition-summary-workout-off.md`
+- `apps/app/lib/main.dart` thin canonical-target provider composition
+- `apps/features/nutrition/lib/src/data/**` MealLog range adapters
+- `apps/features/nutrition/lib/src/domain/**` range contract, budget batching, daily summary model/resolver and barrels
+- `apps/features/nutrition/lib/src/meal_diary/**` providers, visible-range date state, summary widget/page wiring and barrels
+- `apps/features/nutrition/test/{data,domain,meal_diary}/**` focused N3A regressions
+- `docs/screens/meal-diary.md`
+
+No Core source, Supabase schema/RLS/migration, Workout, lockfile/generated file or TNYX-207 implementation was present in the checkpoint scope audit.
 
 ### Actual Behavior
 
-Pending implementation.
+- Production composition supplies canonical MealLog and Nutrition Targets repositories to Meal Diary.
+- Selected date resolves one `DailyNutritionSummary`: Target from selected-date `DailyNutritionBudget`, Eaten from actual MealLogs, signed Remaining from `target - eaten`.
+- Carbs/Protein/Fat/Fiber rows render only where consumed and target facts are both known; partial/unknown nutrients are not presented as complete.
+- Successful empty days are known-zero consumption.
+- Visible calendar week/month progress uses one bounded MealLog range read and one canonical targets read, then supplies generic normalized `TioDateDecoration.progress`; future disabled cells are excluded by the Diary range clamp.
+- Quick Add/Edit targeted invalidation refreshes affected history, selected-day summary and visible-range progress without moving selection.
+- Workout is absent from runtime composition and copy.
 
 ### Known Limitations
 
 - N3A intentionally has no Workout term. N3B remains the later consumer/integration slice.
 - TNYX-205 currently supports Standard strategy only; future N11 date-specific strategies extend the existing budget resolver seam rather than the summary consumer contract.
+- Exact Flutter/Dart compile/test validation and independent review are still pending; do not treat the implementation checkpoint as validated until exact-head CI is green.
 
 ### Final Status
 
-`PARTIAL` — implementation in progress.
+`PARTIAL` — implementation complete, validation/review pending.
