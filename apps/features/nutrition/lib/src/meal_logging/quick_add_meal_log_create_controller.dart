@@ -3,6 +3,7 @@ import 'package:tio_shared/shared.dart';
 import 'package:uuid/uuid.dart';
 
 import '../domain/repositories/meal_log_repository.dart';
+import '../domain/usecases/manual_nutrition_amount_policy.dart';
 
 enum QuickAddMealLogCreateStatus {
   idle,
@@ -254,18 +255,16 @@ final class QuickAddMealLogCreateController extends ChangeNotifier {
 
   String? _validateDraft(QuickAddMealLogDraft draft) {
     if (draft.mealCategoryId.trim().isEmpty) return invalidMealMessage;
-    if (!_isValidAmount(draft.caloriesKcal)) return invalidMealMessage;
-    for (final value in <num?>[
-      draft.carbohydrateGrams,
-      draft.proteinGrams,
-      draft.fatGrams,
-    ]) {
-      if (value != null && !_isValidAmount(value)) return invalidMealMessage;
+    if (!ManualNutritionAmountPolicy.areAmountsValid(
+      caloriesKcal: draft.caloriesKcal,
+      carbohydrateGrams: draft.carbohydrateGrams,
+      proteinGrams: draft.proteinGrams,
+      fatGrams: draft.fatGrams,
+    )) {
+      return invalidMealMessage;
     }
     return null;
   }
-
-  bool _isValidAmount(num value) => value.isFinite && value >= 0;
 
   ManualMealLogCreate _buildInput(
     QuickAddMealLogDraft draft, {
