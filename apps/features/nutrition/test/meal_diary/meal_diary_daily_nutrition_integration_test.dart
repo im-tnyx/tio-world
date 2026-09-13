@@ -70,10 +70,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(
-      find.byKey(const ValueKey('meal-diary-daily-nutrition-summary')),
-      findsOneWidget,
-    );
+    final summaryCard =
+        find.byKey(const ValueKey('meal-diary-daily-nutrition-summary'));
+    expect(summaryCard, findsOneWidget);
     expect(
       _textAtKey(tester, const ValueKey('daily-nutrition-eaten-calories')),
       '800',
@@ -82,6 +81,10 @@ void main() {
       _textAtKey(tester, const ValueKey('daily-nutrition-remaining-calories')),
       '1200',
     );
+    expect(find.text('Carbs'), findsOneWidget);
+    expect(find.text('Protein'), findsOneWidget);
+    expect(find.text('Fat'), findsOneWidget);
+    expect(find.text('Fiber'), findsOneWidget);
     expect(find.text('Workout'), findsNothing);
 
     final calendar = tester.widget<TioDateCalendar>(find.byType(TioDateCalendar));
@@ -90,6 +93,23 @@ void main() {
     expect(todayDecoration, isNotNull);
     expect(todayDecoration!.progress, 0.4);
     expect(todayDecoration.semanticsLabel, contains('800 of 2000'));
+
+    // The resolved read-only summary visually consumes most of the calendar's
+    // transparent 42dp handle-clearance band. The visible handle therefore sits
+    // only about 10dp above the card instead of leaving the old ~48dp void.
+    final grabber = find.byKey(const ValueKey('tio-date-calendar-grabber'));
+    final visibleGap =
+        tester.getTopLeft(summaryCard).dy - tester.getBottomLeft(grabber).dy;
+    expect(visibleGap, inInclusiveRange(8, 14));
+
+    // The overlapped summary is pointer-transparent, so the calendar keeps the
+    // complete handle target rather than trading accessibility for compactness.
+    await tester.tap(find.byKey(const ValueKey('tio-date-calendar-handle')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('tio-date-calendar-month-pager')),
+      findsOneWidget,
+    );
 
     // The range is clamped to the Diary's actual selectable horizon. A future
     // disabled cell must not gain a fabricated zero-progress ring.
@@ -147,6 +167,10 @@ void main() {
       _textAtKey(tester, const ValueKey('daily-nutrition-remaining-calories')),
       '2000',
     );
+    expect(find.text('Carbs'), findsOneWidget);
+    expect(find.text('Protein'), findsOneWidget);
+    expect(find.text('Fat'), findsOneWidget);
+    expect(find.text('Fiber'), findsOneWidget);
     expect(find.text('Workout'), findsNothing);
   });
 
