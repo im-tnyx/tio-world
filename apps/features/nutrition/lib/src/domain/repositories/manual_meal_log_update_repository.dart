@@ -49,8 +49,7 @@ final class MealLogUpdateOutcomeUnknown implements Exception {
   final Object? cause;
 
   @override
-  String toString() =>
-      'MealLogUpdateOutcomeUnknown(id: $id, '
+  String toString() => 'MealLogUpdateOutcomeUnknown(id: $id, '
       'expectedRevision: $expectedRevision)';
 }
 
@@ -84,8 +83,7 @@ final class ManualMealLogUpdate {
         'must be at least 1',
       );
     }
-    if (this.consumedTimezoneId == null &&
-        consumedUtcOffsetMinutes == null) {
+    if (this.consumedTimezoneId == null && consumedUtcOffsetMinutes == null) {
       throw ArgumentError(
         'Either consumedTimezoneId or consumedUtcOffsetMinutes must be provided.',
       );
@@ -138,6 +136,9 @@ extension MealLogRepositoryManualUpdate on MealLogRepository {
         '${repository.runtimeType} does not support manual MealLog updates.',
       );
     }
-    return repository.updateManual(input);
+    // Cast explicitly so dispatch targets the capability implementation.
+    // Calling through the MealLogRepository static type resolves this same
+    // extension again and recurses until StackOverflowError.
+    return (repository as ManualMealLogUpdateRepository).updateManual(input);
   }
 }

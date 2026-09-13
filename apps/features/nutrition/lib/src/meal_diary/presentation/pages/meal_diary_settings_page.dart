@@ -84,6 +84,15 @@ class MealDiarySettingsPage extends ConsumerWidget {
                   enabled: preferences.mealNotesEnabled,
                   onChanged: controller.setShowMealNotePreview,
                 ),
+                const _MealDiarySettingsDivider(),
+                _MealDiaryPreferenceToggleRow(
+                  key: const ValueKey(
+                    'meal-diary-settings-section-nutrition',
+                  ),
+                  title: 'Show section nutrition',
+                  value: preferences.showMealSectionNutrition,
+                  onChanged: controller.setShowMealSectionNutrition,
+                ),
               ],
             ),
             if (controller.saveError != null) ...[

@@ -35,13 +35,22 @@ Future<MealDiaryAddFoodChoice?> showMealDiaryAddFoodSheet(
     // padding it twice.
     useSafeArea: true,
     backgroundColor: TioPalette.transparent,
-    builder: (sheetContext) => SafeArea(
-      top: false,
-      child: SingleChildScrollView(
-        child: AddFoodSheet(
-          onQuickAdd: () => Navigator.of(sheetContext)
-              .pop(MealDiaryAddFoodChoice.quickAdd),
-          onDismiss: () => Navigator.of(sheetContext).pop(),
+    // The route's own background is transparent, and the bottom SafeArea
+    // below insets the sheet's content above the system nav area rather than
+    // shrinking TioSheet's own painted Material. Filling that gap with the
+    // same governed surface color TioSheet paints — rather than leaving it
+    // transparent — is what makes the sheet's surface visually continue
+    // through the inset instead of exposing the barrier behind it.
+    builder: (sheetContext) => ColoredBox(
+      color: sheetContext.tioColors.surface,
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: AddFoodSheet(
+            onQuickAdd: () => Navigator.of(sheetContext)
+                .pop(MealDiaryAddFoodChoice.quickAdd),
+            onDismiss: () => Navigator.of(sheetContext).pop(),
+          ),
         ),
       ),
     ),

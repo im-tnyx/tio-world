@@ -218,6 +218,51 @@ void main() {
   });
 
   group('Add Food sheet', () {
+    testWidgets(
+        'the bottom system inset stays inside the governed sheet surface',
+        (tester) async {
+      // A gesture bar / 3-button nav area below the sheet: SafeArea insets
+      // the content above it, so TioSheet's own painted Material stops short
+      // of the true screen bottom. That gap must be covered by the same
+      // governed surface color, not left to expose the transparent route
+      // background behind it.
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1;
+      tester.view.padding = const FakeViewPadding(bottom: 48);
+      addTearDown(tester.view.reset);
+
+      await _pump(tester);
+      await _openAddFood(tester);
+
+      final expectedSurface =
+          tester.element(find.byKey(_sheet)).tioColors.surface;
+      final fillFinder = find.ancestor(
+        of: find.byKey(_sheet),
+        matching: find.byType(ColoredBox),
+      );
+      expect(fillFinder, findsOneWidget);
+      expect(
+        tester.widget<ColoredBox>(fillFinder).color,
+        expectedSurface,
+        reason: 'the fill must be the same governed role TioSheet paints, '
+            'not a hardcoded or mismatched color',
+      );
+
+      final fillRect = tester.getRect(fillFinder);
+      final sheetRect = tester.getRect(find.byKey(_sheet));
+      expect(
+        fillRect.bottom,
+        800,
+        reason: 'the fill must reach the true bottom of the screen',
+      );
+      expect(
+        sheetRect.bottom,
+        lessThan(fillRect.bottom),
+        reason: "TioSheet's own Material stops above the inset — proving "
+            'the gap this regression covers actually exists',
+      );
+    });
+
     testWidgets('Quick Add is the one path that works', (tester) async {
       await _pump(tester);
       await _openAddFood(tester);

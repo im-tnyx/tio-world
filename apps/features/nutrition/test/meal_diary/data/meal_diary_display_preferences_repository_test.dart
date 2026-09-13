@@ -24,13 +24,14 @@ void main() {
     expect(await repository.read(), const MealDiaryDisplayPreferences());
   });
 
-  test('all three preferences round-trip through one versioned snapshot',
+  test('all four preferences round-trip through one versioned snapshot',
       () async {
     final repository = SharedPreferencesMealDiaryDisplayPreferencesRepository();
     const value = MealDiaryDisplayPreferences(
       showMealTimes: false,
       mealNotesEnabled: false,
       showMealNotePreview: true,
+      showMealSectionNutrition: false,
     );
 
     await repository.write(value);
@@ -45,6 +46,95 @@ void main() {
     expect(decoded['showMealTimes'], isFalse);
     expect(decoded['mealNotesEnabled'], isFalse);
     expect(decoded['showMealNotePreview'], isTrue);
+    expect(decoded['showMealSectionNutrition'], isFalse);
+  });
+
+  test(
+      'an old stored payload without showMealSectionNutrition preserves its '
+      'existing values and defaults the new field to true', () async {
+    final preferences = SharedPreferencesAsync();
+    await preferences.setString(
+      SharedPreferencesMealDiaryDisplayPreferencesRepository.storageKey,
+      jsonEncode({
+        'version': 1,
+        'showMealTimes': false,
+        'mealNotesEnabled': false,
+        'showMealNotePreview': true,
+      }),
+    );
+    final repository = SharedPreferencesMealDiaryDisplayPreferencesRepository(
+      preferences: preferences,
+    );
+
+    expect(
+      await repository.read(),
+      const MealDiaryDisplayPreferences(
+        showMealTimes: false,
+        mealNotesEnabled: false,
+        showMealNotePreview: true,
+        showMealSectionNutrition: true,
+      ),
+    );
+  });
+
+  test(
+      'a present but wrong-typed showMealSectionNutrition fails closed to '
+      'defaults, like the other fields', () async {
+    final preferences = SharedPreferencesAsync();
+    await preferences.setString(
+      SharedPreferencesMealDiaryDisplayPreferencesRepository.storageKey,
+      jsonEncode({
+        'version': 1,
+        'showMealTimes': false,
+        'mealNotesEnabled': false,
+        'showMealNotePreview': true,
+        'showMealSectionNutrition': 'not-a-bool',
+      }),
+    );
+    final repository = SharedPreferencesMealDiaryDisplayPreferencesRepository(
+      preferences: preferences,
+    );
+
+    expect(await repository.read(), const MealDiaryDisplayPreferences());
+    expect(
+      await preferences.getString(
+        SharedPreferencesMealDiaryDisplayPreferencesRepository.storageKey,
+      ),
+      isNull,
+    );
+  });
+
+  test(
+      'an explicit JSON null for showMealSectionNutrition fails closed, '
+      'distinct from the key being absent', () async {
+    final preferences = SharedPreferencesAsync();
+    await preferences.setString(
+      SharedPreferencesMealDiaryDisplayPreferencesRepository.storageKey,
+      jsonEncode({
+        'version': 1,
+        'showMealTimes': false,
+        'mealNotesEnabled': false,
+        'showMealNotePreview': true,
+        'showMealSectionNutrition': null,
+      }),
+    );
+    final repository = SharedPreferencesMealDiaryDisplayPreferencesRepository(
+      preferences: preferences,
+    );
+
+    expect(
+      await repository.read(),
+      const MealDiaryDisplayPreferences(),
+      reason: 'a present-but-null key is malformed, not the legacy shape, '
+          'and must fail closed to full defaults rather than only '
+          'defaulting the one field',
+    );
+    expect(
+      await preferences.getString(
+        SharedPreferencesMealDiaryDisplayPreferencesRepository.storageKey,
+      ),
+      isNull,
+    );
   });
 
   test('malformed JSON resolves defaults and removes the bad snapshot',

@@ -72,6 +72,41 @@ void main() {
       expect(controller.isSaving, isFalse);
     });
 
+    test('section nutrition toggle persists through the same controller',
+        () async {
+      final repository = _FakeRepository();
+      final controller = MealDiaryDisplayPreferencesController(repository);
+      await controller.load();
+
+      expect(controller.preferences.showMealSectionNutrition, isTrue);
+
+      await controller.setShowMealSectionNutrition(false);
+
+      expect(controller.preferences.showMealSectionNutrition, isFalse);
+      expect(repository.value.showMealSectionNutrition, isFalse);
+    });
+
+    test('a failed section nutrition write rolls back like the other toggles',
+        () async {
+      final repository = _ControlledRepository();
+      final controller = MealDiaryDisplayPreferencesController(repository);
+      await controller.load();
+
+      final pending = controller.setShowMealSectionNutrition(false);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.preferences.showMealSectionNutrition, isFalse);
+      expect(controller.isSaving, isTrue);
+
+      repository.failNextWrite(StateError('write failed'));
+      await pending;
+
+      expect(controller.preferences, const MealDiaryDisplayPreferences());
+      expect(controller.preferences.showMealSectionNutrition, isTrue);
+      expect(controller.saveError, isA<StateError>());
+      expect(controller.isSaving, isFalse);
+    });
+
     test('Meal Notes OFF preserves the stored preview preference', () async {
       final repository = _FakeRepository(
         value: const MealDiaryDisplayPreferences(

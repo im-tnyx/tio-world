@@ -4,8 +4,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
+import 'package:tio_shared/shared.dart';
 
 import '../../../domain/repositories/meal_categories_repository.dart';
+import '../../../domain/repositories/meal_log_repository.dart';
+import '../../../meal_logging/quick_add_meal_log_edit_controller.dart';
 import '../../../meal_logging/presentation/widgets/add_food_sheet.dart';
 import '../../../meal_logging/presentation/widgets/quick_add_editor_sheet.dart';
 import '../../meal_diary_history_providers.dart';
@@ -123,8 +126,9 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
 
   void _scheduleMidnightRefresh() {
     _midnightTimer?.cancel();
-    final delay =
-        ref.read(mealDiaryDateControllerProvider).durationUntilNextLocalMidnight;
+    final delay = ref
+        .read(mealDiaryDateControllerProvider)
+        .durationUntilNextLocalMidnight;
     if (delay <= Duration.zero) return;
     _midnightTimer = Timer(delay, () {
       if (!mounted) return;
@@ -172,6 +176,88 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
           ),
         );
     }
+  }
+
+  /// Meal Diary card → canonical row → Quick Edit.
+  ///
+  /// The card read model intentionally omits revision, hidden note, full
+  /// nutrition and timezone facts. Reading by id immediately before opening
+  /// prevents presentation data from becoming a stale update payload.
+  Future<void> _openQuickEdit(String id) async {
+    final mealLogRepository = ref.read(mealDiaryMealLogRepositoryProvider);
+    final mealCategoriesRepository = widget.mealCategoriesRepository;
+    if (mealLogRepository == null || mealCategoriesRepository == null) return;
+
+    MealLogEntry? entry;
+    try {
+      entry = await mealLogRepository.readById(id);
+    } on Object {
+      if (mounted) _showMealEditMessage("Couldn't open this meal. Try again.");
+      return;
+    }
+    if (!mounted) return;
+    if (entry == null) {
+      _showMealEditMessage('This meal is no longer available.');
+      return;
+    }
+    if (entry.mode != MealLogMode.manual ||
+        entry.manualNutritionSnapshot == null ||
+        QuickAddMealLogEditController.editableLocalDateTime(entry) == null) {
+      _showMealEditMessage('Editing is not available for this meal yet.');
+      return;
+    }
+
+    final originalDate = entry.consumedLocalDate;
+    final updated = await showQuickAddEditorSheet(
+      context,
+      clock: widget.quickAddClock,
+      mealCategoriesRepository: mealCategoriesRepository,
+      mealLogRepository: mealLogRepository,
+      initialEntry: entry,
+    );
+    if (!mounted) return;
+
+    // Always refetch the original date, even when the sheet closed with no
+    // result. A write can become durable on the far side of an ambiguous
+    // outcome; a harmless refetch here is cheaper than the Diary staying
+    // stale after the reader abandons a since-reconciled edit instead of
+    // reapplying it.
+    _invalidateHistoryDate(
+      repository: mealLogRepository,
+      categoriesRepository: mealCategoriesRepository,
+      localDate: originalDate,
+    );
+    if (updated == null) return;
+
+    if (updated.consumedLocalDate != originalDate) {
+      _invalidateHistoryDate(
+        repository: mealLogRepository,
+        categoriesRepository: mealCategoriesRepository,
+        localDate: updated.consumedLocalDate,
+      );
+    }
+  }
+
+  void _invalidateHistoryDate({
+    required MealLogRepository repository,
+    required MealCategoriesRepository categoriesRepository,
+    required MealLogLocalDate localDate,
+  }) {
+    ref.invalidate(
+      mealDiaryHistoryProvider(
+        MealDiaryHistoryRequest(
+          mealLogRepository: repository,
+          mealCategoriesRepository: categoriesRepository,
+          localDate: localDate,
+        ),
+      ),
+    );
+  }
+
+  void _showMealEditMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -280,6 +366,7 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
                 MealDiaryHistoryView(
                   date: dates.selectedDate,
                   request: historyRequest,
+                  onEdit: historyRequest == null ? null : _openQuickEdit,
                 ),
               ],
             ),

@@ -5,17 +5,19 @@ import 'package:tio_core/core.dart';
 import '../../domain/models/meal_diary_display_preferences.dart';
 import '../../meal_diary_display_preferences_providers.dart';
 import '../../meal_diary_history_providers.dart';
+import 'meal_diary_meal_card.dart';
 
 /// Selected-day MealLog history below the reusable date calendar.
 ///
-/// This widget is deliberately read-only in TNYX-199. It renders canonical
-/// repository truth and presentation preferences, but owns no create/edit/
-/// delete action and does not reach any backend client directly.
+/// This widget renders canonical repository truth and presentation preferences
+/// and emits an entry ID when an editable card is activated. The owning page
+/// coordinates Quick Edit; this view owns no mutation or backend access.
 class MealDiaryHistoryView extends ConsumerWidget {
   const MealDiaryHistoryView({
     required this.date,
     required this.request,
     super.key,
+    this.onEdit,
   });
 
   final DateTime date;
@@ -25,30 +27,25 @@ class MealDiaryHistoryView extends ConsumerWidget {
   /// repository seam.
   final MealDiaryHistoryRequest? request;
 
+  /// Opens the canonical row in Quick Edit. Null keeps isolated read-only
+  /// harnesses honest and omits the action rather than drawing a dead control.
+  final ValueChanged<String>? onEdit;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final preferences = ref
-        .watch(mealDiaryDisplayPreferencesControllerProvider)
-        .preferences;
+    final preferences =
+        ref.watch(mealDiaryDisplayPreferencesControllerProvider).preferences;
     final historyRequest = request;
     final history = historyRequest == null
         ? null
         : ref.watch(mealDiaryHistoryProvider(historyRequest));
 
     return Padding(
-      padding: const EdgeInsets.all(TioSpacing.xl),
+      padding: const EdgeInsets.all(TioSpacing.lg),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            MaterialLocalizations.of(context).formatFullDate(date),
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: context.tioColors.textPrimary,
-                ),
-          ),
-          const SizedBox(height: TioSpacing.lg),
           if (history == null)
             const _EmptyDay()
           else
@@ -64,6 +61,7 @@ class MealDiaryHistoryView extends ConsumerWidget {
                   : _HistorySections(
                       data: data,
                       preferences: preferences,
+                      onEdit: onEdit,
                     ),
             ),
         ],
@@ -143,10 +141,12 @@ class _HistorySections extends StatelessWidget {
   const _HistorySections({
     required this.data,
     required this.preferences,
+    required this.onEdit,
   });
 
   final MealDiaryHistoryReadModel data;
   final MealDiaryDisplayPreferences preferences;
+  final ValueChanged<String>? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -160,6 +160,7 @@ class _HistorySections extends StatelessWidget {
           _Section(
             section: data.sections[sectionIndex],
             preferences: preferences,
+            onEdit: onEdit,
           ),
         ],
       ],
@@ -171,20 +172,19 @@ class _Section extends StatelessWidget {
   const _Section({
     required this.section,
     required this.preferences,
+    required this.onEdit,
   });
 
   final MealDiarySectionReadModel section;
   final MealDiaryDisplayPreferences preferences;
+  final ValueChanged<String>? onEdit;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
-    final summary = _nutritionSummary(
-      caloriesKcal: section.caloriesKcal,
-      proteinGrams: section.proteinGrams,
-      compactProtein: false,
-    );
+    final hasSummary = preferences.showMealSectionNutrition &&
+        (section.caloriesKcal != null || section.proteinGrams != null);
 
     return Column(
       key: ValueKey('meal-diary-section-${section.categoryId}'),
@@ -192,35 +192,58 @@ class _Section extends StatelessWidget {
       children: [
         Row(
           children: [
-            Flexible(
-              child: Text(
-                section.categoryDisplayName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: textTheme.labelLarge?.copyWith(
-                  color: colors.textPrimary,
-                  fontWeight: TioFontWeight.w700,
+            // Title and rule share one tight flex region so a short title
+            // cannot leave slack that pushes the trailing summary off the
+            // content edge. The rule absorbs the middle; the summary stays
+            // intrinsic and flush right.
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) => Row(
+                  children: [
+                    // Reserves the same TioSpacing.sm the gap below actually
+                    // occupies, so a maximum-length category name shortens
+                    // the rule instead of overflowing the header. This must
+                    // stay a single reservation matching the single gap
+                    // widget — doubling it would reserve the same space
+                    // twice for one visible gap.
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: constraints.maxWidth - TioSpacing.sm,
+                      ),
+                      child: Text(
+                        section.categoryDisplayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.titleMedium?.copyWith(
+                          color: colors.textPrimary,
+                          fontWeight: TioFontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    // The real, always-rendered gap the title needs before
+                    // the rule. Without it the rule can start flush against
+                    // the title's final glyph whenever the title is short
+                    // enough not to need the ellipsis cap above.
+                    const SizedBox(width: TioSpacing.sm),
+                    Expanded(
+                      child: Divider(
+                        height: TioStroke.width1,
+                        thickness: TioStroke.width1,
+                        color: colors.outlineStrong.withAlpha(TioAlpha.alpha20),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(width: TioSpacing.sm),
-            Expanded(
-              child: Divider(
-                height: TioStroke.width1,
-                thickness: TioStroke.width1,
-                color: colors.outlineStrong.withAlpha(TioAlpha.alpha20),
-              ),
-            ),
-            if (summary != null) ...[
+            if (hasSummary) ...[
               const SizedBox(width: TioSpacing.sm),
-              Text(
-                summary,
+              _SectionNutritionSummary(
                 key: ValueKey(
                   'meal-diary-section-summary-${section.categoryId}',
                 ),
-                style: textTheme.labelMedium?.copyWith(
-                  color: colors.textSecondary,
-                ),
+                caloriesKcal: section.caloriesKcal,
+                proteinGrams: section.proteinGrams,
               ),
             ],
           ],
@@ -229,10 +252,13 @@ class _Section extends StatelessWidget {
         for (var entryIndex = 0;
             entryIndex < section.entries.length;
             entryIndex++) ...[
-          if (entryIndex > 0) const SizedBox(height: TioSpacing.sm),
+          // Cards breathe by the same inset that holds them off the screen
+          // edges, so the rhythm reads the same in both directions.
+          if (entryIndex > 0) const SizedBox(height: TioSpacing.lg),
           _MealEntryCard(
             entry: section.entries[entryIndex],
             preferences: preferences,
+            onEdit: onEdit,
           ),
         ],
       ],
@@ -244,101 +270,104 @@ class _MealEntryCard extends StatelessWidget {
   const _MealEntryCard({
     required this.entry,
     required this.preferences,
+    required this.onEdit,
   });
 
   final MealDiaryEntryReadModel entry;
   final MealDiaryDisplayPreferences preferences;
+  final ValueChanged<String>? onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final noteVisible = preferences.mealNotesEnabled && entry.note != null;
+    final edit = onEdit;
+    final open = edit == null ? null : () => edit(entry.id);
+
+    return MealDiaryMealCard(
+      entryId: entry.id,
+      mealName: entry.displayTitle,
+      caloriesText: entry.caloriesKcal == null
+          ? null
+          : '${_formatAmount(entry.caloriesKcal!)} kcal',
+      proteinText: entry.proteinGrams == null
+          ? null
+          : '${_formatAmount(entry.proteinGrams!)} g',
+      timeText: preferences.showMealTimes
+          ? _formatLoggedTime(context, entry.loggedLocalDateTime)
+          : null,
+      noteIndicatorVisible: noteVisible,
+      notePreview:
+          noteVisible && preferences.showMealNotePreview ? entry.note : null,
+      onTap: open,
+      onEdit: open,
+    );
+  }
+}
+
+class _SectionNutritionSummary extends StatelessWidget {
+  const _SectionNutritionSummary({
+    required this.caloriesKcal,
+    required this.proteinGrams,
+    super.key,
+  });
+
+  final num? caloriesKcal;
+  final num? proteinGrams;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
-    final textTheme = Theme.of(context).textTheme;
-    final noteVisible = preferences.mealNotesEnabled && entry.note != null;
-    final notePreviewVisible = noteVisible && preferences.showMealNotePreview;
-    final timeLabel = preferences.showMealTimes
-        ? _formatLoggedTime(context, entry.loggedLocalDateTime)
-        : null;
-    final nutrition = _nutritionSummary(
-      caloriesKcal: entry.caloriesKcal,
-      proteinGrams: entry.proteinGrams,
-      compactProtein: true,
-    );
-
-    final detail = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (entry.displayTitle != null || noteVisible)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (entry.displayTitle != null)
-                Expanded(
-                  child: Text(
-                    entry.displayTitle!,
-                    key: ValueKey('meal-diary-entry-title-${entry.id}'),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: textTheme.titleSmall?.copyWith(
-                      color: colors.textPrimary,
-                    ),
-                  ),
-                )
-              else
-                const Spacer(),
-              if (noteVisible) ...[
-                const SizedBox(width: TioSpacing.sm),
-                Icon(
-                  Icons.sticky_note_2_outlined,
-                  key: ValueKey('meal-diary-entry-note-${entry.id}'),
-                  size: TioSize.dp16,
-                  color: colors.textSecondary,
-                  semanticLabel: 'Meal note',
-                ),
-              ],
-            ],
-          ),
-        if ((entry.displayTitle != null || noteVisible) && nutrition != null)
-          const SizedBox(height: TioSpacing.xs),
-        if (nutrition != null)
-          Text(
-            nutrition,
-            key: ValueKey('meal-diary-entry-nutrition-${entry.id}'),
-            style: textTheme.bodySmall?.copyWith(color: colors.textSecondary),
-          ),
-        if (notePreviewVisible) ...[
-          const SizedBox(height: TioSpacing.xs),
-          Text(
-            entry.note!,
-            key: ValueKey('meal-diary-entry-note-preview-${entry.id}'),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: textTheme.bodySmall?.copyWith(color: colors.textSecondary),
-          ),
-        ],
-      ],
-    );
+    final style = Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: colors.textSecondary,
+        );
+    final caloriesLabel =
+        caloriesKcal == null ? null : '${_formatAmount(caloriesKcal!)} kcal';
+    final proteinLabel =
+        proteinGrams == null ? null : '${_formatAmount(proteinGrams!)}g';
+    final semanticParts = [
+      if (caloriesLabel != null) caloriesLabel,
+      if (proteinLabel != null) '$proteinLabel protein',
+    ];
 
     return Semantics(
-      container: true,
-      label: entry.displayTitle ?? 'Meal log',
-      child: TioCard(
-        key: ValueKey('meal-diary-entry-${entry.id}'),
-        variant: TioCardVariant.normal,
-        padding: const EdgeInsets.all(TioSpacing.lg),
+      label: semanticParts.join(', '),
+      child: ExcludeSemantics(
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            if (timeLabel != null) ...[
-              Text(
-                timeLabel,
-                key: ValueKey('meal-diary-entry-time-${entry.id}'),
-                style: textTheme.bodySmall?.copyWith(
-                  color: colors.textSecondary,
+            if (caloriesLabel != null) ...[
+              SvgPicture.asset(
+                'assets/svg_icon/apple.svg',
+                package: 'tio_core',
+                width: TioSize.dp20,
+                height: TioSize.dp20,
+                // Both glyphs must be tinted here. Without a filter the asset
+                // paints whatever colour it was authored with, which no theme
+                // and no analyzer can reach.
+                colorFilter: ColorFilter.mode(
+                  colors.nutrition,
+                  BlendMode.srcIn,
                 ),
               ),
-              const SizedBox(width: TioSpacing.md),
+              const SizedBox(width: TioSpacing.xs),
+              Text(caloriesLabel, style: style),
             ],
-            Expanded(child: detail),
+            if (caloriesLabel != null && proteinLabel != null)
+              const SizedBox(width: TioSpacing.sm),
+            if (proteinLabel != null) ...[
+              SvgPicture.asset(
+                'assets/svg_icon/ic_protine.svg',
+                package: 'tio_core',
+                width: TioSize.dp20,
+                height: TioSize.dp20,
+                colorFilter: ColorFilter.mode(
+                  colors.warning,
+                  BlendMode.srcIn,
+                ),
+              ),
+              const SizedBox(width: TioSpacing.xs),
+              Text(proteinLabel, style: style),
+            ],
           ],
         ),
       ),
@@ -355,23 +384,6 @@ String? _formatLoggedTime(BuildContext context, DateTime? loggedLocalDateTime) {
     ),
     alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
   );
-}
-
-String? _nutritionSummary({
-  required num? caloriesKcal,
-  required num? proteinGrams,
-  required bool compactProtein,
-}) {
-  final parts = <String>[];
-  if (caloriesKcal != null) {
-    parts.add('${_formatAmount(caloriesKcal)} kcal');
-  }
-  if (proteinGrams != null) {
-    parts.add(
-      '${_formatAmount(proteinGrams)}g ${compactProtein ? 'P' : 'protein'}',
-    );
-  }
-  return parts.isEmpty ? null : parts.join(' · ');
 }
 
 String _formatAmount(num value) {
