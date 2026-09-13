@@ -1,6 +1,6 @@
 # TNYX-210 — Post-merge Meal Diary Quick Edit P2 corrections
 
-**Status:** Ready for review — implementation and validation complete, awaiting push/PR/CI\
+**Status:** In Review — pushed, Draft PR #264 open, exact-head CI green\
 **Primary owner:** `apps/features/nutrition`\
 **Affected platforms:** Flutter phone app (`apps/features/nutrition`, consumed by `apps/app`)
 
@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable\
 **Repository state last verified:** 2026-09-13, clean at `main@0380bc9be82155932562b67674fc913fb9b60de2`, matching `origin/main`\
 **Branch:** `tnyx/tnyx-210-n20c-2a-post-merge-meal-diary-quick-edit-p2-corrections`\
-**HEAD SHA:** pending first commit\
-**Observed working-tree state:** Clean before implementation\
+**HEAD SHA:** `1f2c678875866a00c88a50c37d739e0ddf092191`\
+**Observed working-tree state:** Clean after the implementation commit\
 **Observed uncommitted/dirty files:** None\
-**PR / tracker:** Source review is merged PR [#263](https://github.com/im-tnyx/tio-world/pull/263) (Codex review `pullrequestreview-5189642450` on final head `366410e9`); this task opens a new Draft PR against `main`. Linear `TNYX-210` is `In Progress`, parent `TNYX-115`, blocks `TNYX-209`.\
-**Current implementation state:** RF1–RF6 implemented and each has a focused regression test proving the fix.\
+**PR / tracker:** Source review is merged PR [#263](https://github.com/im-tnyx/tio-world/pull/263) (Codex review `pullrequestreview-5189642450` on final head `366410e9`); this task's Draft PR is [#264](https://github.com/im-tnyx/tio-world/pull/264) against `main`, `OPEN`, `MERGEABLE`. Linear `TNYX-210` is `In Review` (reconciled after CI confirmed green, not before), parent `TNYX-115`, blocks `TNYX-209`.\
+**Current implementation state:** RF1–RF6 implemented and each has a focused regression test proving the fix. Pushed; exact-head GitHub `Analyze and test` CI is `completed/success` on `1f2c678875866a00c88a50c37d739e0ddf092191`.\
 **Relevant execution surface:** `quick_add_meal_log_edit_controller.dart`, `meal_diary_meal_card.dart`, `add_food_sheet.dart`, `meal_diary_history_view.dart`, `meal_diary_page.dart`\
-**Validation completed at SHA:** working tree, pre-commit — `apps/features/nutrition` analyze clean + 705 tests (was 695), `apps/app` analyze clean + 319 tests (unchanged), `git diff --check` clean, no `apps/core`/Supabase files touched\
-**Validation remaining:** Exact-head CI after push\
+**Validation completed at SHA:** `1f2c678875866a00c88a50c37d739e0ddf092191` — `apps/features/nutrition` analyze clean + 705 tests (was 695), `apps/app` analyze clean + 319 tests (unchanged), `git diff --check` clean, no `apps/core`/Supabase files touched, exact-head CI green\
+**Validation remaining:** None for this pass. Owner merge review is the only remaining action.\
 **Current blocker:** None\
-**Open review finding IDs:** RF1–RF6, all `Resolved` (see table below)\
-**Next exact action:** Commit, push, open Draft PR against `main`, wait for exact-head CI, then reconcile Linear `TNYX-210` to `In Review` only once that CI is actually green.
+**Open review finding IDs:** RF1–RF6, all `Resolved`. One new, explicitly out-of-scope finding recorded (not an RF item): `MealDiaryMealCard`'s `_MealDetailRow` overflow at accessibility text scale — flagged as a follow-up, not fixed here.\
+**Next exact action:** None from this implementation pass. Stop for the owner's merge decision on PR #264. Do not merge here and do not start TNYX-209.
 
 ## Global UI / Design-System Guardrail
 
