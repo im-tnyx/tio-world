@@ -1,6 +1,6 @@
 # TNYX-209 — Quick Add nutrition amount range & precision policy
 
-**Status:** In progress — review finding open  
+**Status:** In progress — `TNYX-209-R1` fix active  
 **Primary owner:** `apps/features/nutrition`  
 **Affected platforms:** Flutter phone app (Quick Add / Quick Edit)
 
@@ -14,39 +14,37 @@
 ## Active Handoff
 
 **Planning owner:** ChatGPT / owner-guided audit  
-**Previous implementation owner:** ChatGPT — remote GitHub execution  
-**Implementation owner:** none active; source edits paused during review  
-**Review owner:** ChatGPT — remote GitHub review  
-**Implementation ownership state:** Handoff pending — one P2 review finding is open; transfer implementation ownership before any source fix  
-**Repository anchors:** `main@91b4eca3e3afae11c6f992179ce0555532f8c75c`; branch started at `7f893e9909332a72f8a26ef347721cf40d0aa84e`; reviewed source/handoff head `0403184f1c9ba7571200c675d16d068a3a0ad0c9`  
+**Previous implementation owner:** ChatGPT — remote GitHub execution, paused for review  
+**Implementation owner:** ChatGPT — remote GitHub execution, reactivated for `TNYX-209-R1`  
+**Review owner:** ChatGPT — review pass completed; review role paused while implementation ownership is active  
+**Implementation ownership state:** Active — review finding resolution only  
+**Ownership transition:** Review owner -> Implementation owner on owner `Go`, 2026-09-13; same approved TNYX-209 slice, no new product approval required  
+**Repository anchors:** `main@91b4eca3e3afae11c6f992179ce0555532f8c75c`; branch started at `7f893e9909332a72f8a26ef347721cf40d0aa84e`; reviewed source/handoff head `0403184f1c9ba7571200c675d16d068a3a0ad0c9`; pre-fix review-record head `75aff118fe0151540165a4827959626f6547f072`  
 **Branch:** `tnyx/tnyx-209-n20c-3-quick-add-nutrition-amount-range-precision-policy`  
-**PR:** #265 — `fix(nutrition): enforce Quick Add amount range and precision policy`  
-**Tracker:** Linear `TNYX-209` — `In Review`  
-**Current implementation state:** core V1 policy is implemented, but review found a raw-text precision edge that can bypass the locked <=1-decimal rule  
-**Validation completed:** GitHub Actions run `34747527614` / `Analyze and test` succeeded on `0403184f1c9ba7571200c675d16d068a3a0ad0c9`; Flutter analyze, Dart analyze, Flutter tests and Dart tests all passed  
+**PR:** #265 — open, not merge-ready while `TNYX-209-R1` is open  
+**Tracker:** Linear `TNYX-209` — `In Progress`; blocks `TNYX-205`  
+**Current implementation state:** V1 policy is implemented; one raw-text/numeric near-step precision edge remains to fix  
+**Validation completed:** GitHub Actions run `34747527614` succeeded on reviewed head `0403184f1c9ba7571200c675d16d068a3a0ad0c9`; this is historical evidence only because HEAD has moved  
 **Current blocker:** `TNYX-209-R1` (P2)  
 **Open review finding IDs:** `TNYX-209-R1`  
-**Next exact action:** transfer implementation ownership, reject excess raw fractional digits before numeric tolerance, add regression coverage, then rerun review + exact-head CI  
+**Next exact action:** reject excess raw fractional digits before parsing, tighten numeric tolerance enough to block direct-controller near-step bypass while preserving normal binary noise, add focused policy/controller/widget regressions, then exact-head CI and re-review  
 
 ## Global UI / Design-System Guardrail
 
-Root `AGENTS.md`, `apps/features/AGENTS.md`, and `apps/core/lib/src/theme/README.md` apply. TNYX-209 may change validation messages/enabled state only; it does not authorize geometry, spacing, typography, colors, input component geometry, or visual redesign.
+Root `AGENTS.md` and `apps/features/AGENTS.md` apply. The R1 fix is domain validation + regression coverage only; no production UI geometry, tokens, copy, or layout changes are authorized.
 
-## 1. Discovery
-
-### User Outcome
+## 1. User Outcome
 
 A user cannot save absurdly large or over-precise manual nutrition values in Quick Add or Quick Edit, while legitimate zero values and missing optional nutrients retain their current meaning.
 
-### Success Criteria
+Success requires:
 
-- One canonical manual/coarse amount policy is consumed by both create and edit paths.
-- UI and controller/mutation validation agree.
-- Invalid/non-finite/negative behavior remains blocked.
-- Upper bounds prevent catastrophic typos from becoming durable meal truth.
-- Precision is explicit and rejects excess user-entered fractional digits without silent rounding.
-- `missing != zero`; optional missing macros stay missing.
-- Existing out-of-policy rows remain readable but Quick Edit requires correction before a new save.
+- one canonical manual/coarse amount policy consumed by UI and create/edit mutation boundaries;
+- invalid/non-finite/negative/out-of-range/over-precise values blocked;
+- user-entered raw text with more than one fractional digit rejected exactly, not accepted because it is numerically close to a one-decimal step;
+- direct numeric/controller calls unable to bypass the same precision intent except ordinary floating-point representation noise;
+- `missing != zero` preserved;
+- existing out-of-policy rows readable but unsaveable until corrected.
 
 ## 2. Owner-Locked V1 Policy
 
@@ -73,73 +71,68 @@ Locked behavior:
 
 ```text
 Quick Add / Quick Edit numeric text
-        ↓
+        ↓ raw lexical precision guard
 ManualNutritionAmountPolicy
-        ├─ presentation error mapping
-        └─ create/edit mutation validation
-                ↓
-ManualMealLogCreate / ManualMealLogUpdate
+        ↓ numeric range + precision guard
+presentation + create/edit mutation controllers
         ↓
 MealLogRepository
 ```
 
-The shared policy remains Nutrition-owned under `domain/usecases`. Generic `NutritionSnapshot`, DB constraints, Nutrition Targets and Core are intentionally unchanged.
+The shared policy remains Nutrition-owned under `domain/usecases`. Generic `NutritionSnapshot`, DB constraints, Nutrition Targets and Core remain unchanged.
 
 ## 4. Implementation Checklist
 
-- [x] Audit current create/edit/widget/domain boundaries.
-- [x] Owner approves exact V1 min/max/precision and copy.
-- [x] Verify branch ancestry, task-only pre-implementation diff and Linear state.
-- [x] Add one reusable manual/coarse amount policy under Nutrition ownership.
-- [x] Make `QuickAddEditorSheet` and create/edit controllers consume the same policy.
-- [x] Preserve optional `null`, explicit zero, hidden nutrients and retry/concurrency contracts.
-- [x] Add policy, controller and widget boundary/precision coverage.
-- [x] Add legacy out-of-policy Quick Edit correction regression.
-- [x] Confirm no `NutritionSnapshot`, Nutrition Targets, TNYX-211, Core or Supabase/schema changes.
-- [x] Exact-head CI succeeded on reviewed head `0403184f1c9ba7571200c675d16d068a3a0ad0c9`.
-- [ ] Resolve `TNYX-209-R1`: raw text with more than one fractional digit must not pass because it is numerically close to a one-decimal value.
-- [ ] Add a focused regression test for a near-step multi-decimal input such as `0.30000000009`.
-- [ ] Re-run exact-head CI and review after the finding is fixed.
+- [x] Initial TNYX-209 policy implemented and validated on reviewed head.
+- [x] Review found and recorded `TNYX-209-R1`.
+- [x] Root `AGENTS.md`, `apps/features/AGENTS.md`, `.ai/tasks/README.md`, live PR and Linear state reconciled before resuming source work.
+- [x] Implementation ownership explicitly reactivated for the same approved slice.
+- [ ] Reject raw text with more than one fractional digit before numeric tolerance.
+- [ ] Ensure direct numeric/controller near-step values such as `0.30000000009` are rejected while ordinary computed `0.1 + 0.2` remains valid.
+- [ ] Add focused policy regression coverage.
+- [ ] Add controller bypass regression coverage.
+- [ ] Add widget regression coverage for the exact locked precision copy / CTA gate.
+- [ ] Re-audit changed paths and ancestry.
+- [ ] Run exact-head CI.
+- [ ] Re-review and resolve GitHub review thread only after applicable validation passes.
+- [ ] Reconcile Linear/PR/task brief to `In Review` only when no open finding remains.
 
 ## 5. Quality Review
 
-### Validation Evidence
+### Historical validation evidence
 
 ```text
 main / merge base = 91b4eca3e3afae11c6f992179ce0555532f8c75c
 reviewed head = 0403184f1c9ba7571200c675d16d068a3a0ad0c9
-changed files at reviewed head = 9 intended task/Nutrition paths
 GitHub Actions run = 34747527614
-check = Analyze and test
 Flutter analyze = success
 Dart analyze = success
 Flutter tests = success
 Dart tests = success
 ```
 
-Green CI does not resolve the review finding because the current tests do not cover the near-step lexical precision case.
+This evidence predates `TNYX-209-R1` resolution and cannot validate the current/future fix HEAD.
 
-### Review Findings and Resolution
+### Review findings
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence / follow-up |
 |---|---|---|---|---|---|
 | TNYX-209-A1 | P1 | Resolved | Quick Add/Quick Edit accepted any finite non-negative amount; no shared upper-bound or precision policy existed. | `91b4eca3e3afae11c6f992179ce0555532f8c75c` | Shared policy + widget/create/edit enforcement and focused tests |
-| TNYX-209-R1 | P2 | Open | `validateText()` parses before precision checking; the numeric tolerance can therefore accept raw multi-decimal text that is very close to a 0.1 step, e.g. `0.30000000009`, and persist it unchanged despite the locked <=1-decimal rule. | `0403184f1c9ba7571200c675d16d068a3a0ad0c9` | GitHub inline review `#pullrequestreview-5190238446`; validate raw fractional digits before applying numeric tolerance and add regression coverage |
+| TNYX-209-R1 | P2 | Open | `validateText()` parses before precision checking; tolerance can accept raw multi-decimal near-step values such as `0.30000000009`; the same tolerance can also permit a direct numeric controller call with that value. | `0403184f1c9ba7571200c675d16d068a3a0ad0c9` | Unresolved GitHub inline review thread on `manual_nutrition_amount_policy.dart`; fix + regression + exact-head CI + re-review required |
 
-## 6. Review Handoff
+## 6. Handoff / Sequencing
 
-PR #265 is **not merge-ready** while `TNYX-209-R1` is open. No source fix was made during this review pass. Resolving the finding stays inside the already approved TNYX-209 scope, but implementation ownership must be explicitly reactivated before editing source.
-
-Sequencing remains:
+PR #265 is **not merge-ready** while `TNYX-209-R1` is open. Do not merge without explicit owner instruction.
 
 ```text
 resolve TNYX-209-R1
-→ exact-head CI + review
-→ TNYX-209 merge only with explicit owner instruction
+→ exact-head CI + re-review
+→ Linear TNYX-209 In Review
+→ merge only with explicit owner instruction
 → post-merge sync per docs/POST_MERGE_SYNC.md
-→ only then begin TNYX-205 when owner sequencing permits
+→ only then begin TNYX-205
 ```
 
-### Final Status
+### Current Status
 
-`TNYX-209 REVIEW CHANGES REQUIRED`
+`TNYX-209 R1 IMPLEMENTATION ACTIVE`
