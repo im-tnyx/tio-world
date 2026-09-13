@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
+import 'package:tio_shared/shared.dart';
 
 void main() {
   test('range read forwards canonical bounds, decodes rows, and sorts',
