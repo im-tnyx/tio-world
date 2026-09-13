@@ -91,7 +91,7 @@ void main() {
   });
 
   test('normal floating-point noise around one decimal remains valid', () {
-    final computed = 0.1 + 0.2;
+    const computed = 0.1 + 0.2;
 
     expect(
       ManualNutritionAmountPolicy.validateAmount(
