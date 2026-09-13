@@ -4,22 +4,16 @@ import 'package:tio_shared/shared.dart';
 
 import '../../../domain/models/daily_nutrition_summary.dart';
 
-/// Nutrition-owned selected-day summary composition.
+/// Compact Nutrition-owned selected-day summary composition.
 ///
-/// The card receives already-derived domain truth and owns only formatting,
-/// layout and accessibility. Workout is deliberately absent in N3A. The calorie
-/// metric list wraps, so a later approved N3B term can be added without
-/// replacing the composition.
+/// The geometry intentionally mirrors the owner-approved reference: one
+/// equation row for Target − Eaten = Remaining, followed by one compact row of
+/// supported nutrient progress cells. Workout is deliberately absent in N3A.
 class MealDiaryDailyNutritionSummary extends StatelessWidget {
   const MealDiaryDailyNutritionSummary({
     required this.summary,
     super.key,
   });
-
-  /// At this content width all three N3A calorie terms fit on one row without
-  /// squeezing their accessible text. This is one-off responsive geometry,
-  /// not a reusable design-system token.
-  static const _threeColumnBreakpoint = 360.0;
 
   final DailyNutritionSummary summary;
 
@@ -30,15 +24,18 @@ class MealDiaryDailyNutritionSummary extends StatelessWidget {
     final metrics = <_CalorieMetric>[
       _CalorieMetric(
         label: 'Target',
-        value: _format(summary.targetCaloriesKcal, unit: 'kcal'),
+        value: summary.targetCaloriesKcal,
+        valueKey: const ValueKey('daily-nutrition-target-calories'),
       ),
       _CalorieMetric(
         label: 'Eaten',
-        value: _format(summary.eatenCaloriesKcal, unit: 'kcal'),
+        value: summary.eatenCaloriesKcal,
+        valueKey: const ValueKey('daily-nutrition-eaten-calories'),
       ),
       _CalorieMetric(
         label: 'Remaining',
-        value: _format(summary.remainingCaloriesKcal, unit: 'kcal'),
+        value: summary.remainingCaloriesKcal,
+        valueKey: const ValueKey('daily-nutrition-remaining-calories'),
       ),
     ];
     final supportedNutrients = <({String label, NutrientId nutrient})>[
@@ -57,62 +54,63 @@ class MealDiaryDailyNutritionSummary extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'Daily Nutrition',
-            style: textTheme.titleMedium?.copyWith(
-              color: colors.textPrimary,
-              fontWeight: TioFontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: TioSpacing.xs),
-          Text(
-            'Target - Eaten = Remaining',
-            key: const ValueKey('daily-nutrition-calorie-equation'),
-            style: textTheme.bodySmall?.copyWith(color: colors.textSecondary),
-          ),
-          const SizedBox(height: TioSpacing.md),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final columns =
-                  constraints.maxWidth >= _threeColumnBreakpoint ? 3 : 2;
-              final gaps = TioSpacing.sm * (columns - 1);
-              final tileWidth = (constraints.maxWidth - gaps) / columns;
-              return Wrap(
-                spacing: TioSpacing.sm,
-                runSpacing: TioSpacing.sm,
-                children: [
-                  for (final metric in metrics)
-                    SizedBox(
-                      width: tileWidth,
-                      child: _CalorieMetricTile(metric: metric),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(child: _CalorieMetricCell(metric: metrics[0])),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: TioSpacing.xs),
+                child: ExcludeSemantics(
+                  child: Text(
+                    '−',
+                    style: textTheme.titleLarge?.copyWith(
+                      color: colors.textSecondary,
+                      fontWeight: TioFontWeight.w700,
                     ),
-                ],
-              );
-            },
+                  ),
+                ),
+              ),
+              Expanded(child: _CalorieMetricCell(metric: metrics[1])),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: TioSpacing.xs),
+                child: ExcludeSemantics(
+                  child: Text(
+                    '=',
+                    style: textTheme.titleLarge?.copyWith(
+                      color: colors.textSecondary,
+                      fontWeight: TioFontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(child: _CalorieMetricCell(metric: metrics[2])),
+            ],
           ),
           if (supportedNutrients.isNotEmpty) ...[
-            const SizedBox(height: TioSpacing.lg),
+            const SizedBox(height: TioSpacing.md),
             const Divider(height: TioStroke.width1),
-            const SizedBox(height: TioSpacing.sm),
-            for (final row in supportedNutrients)
-              _NutrientProgressRow(
-                label: row.label,
-                nutrient: row.nutrient,
-                summary: summary,
-              ),
+            const SizedBox(height: TioSpacing.md),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var index = 0;
+                    index < supportedNutrients.length;
+                    index++) ...[
+                  if (index > 0) const SizedBox(width: TioSpacing.sm),
+                  Expanded(
+                    child: _NutrientProgressCell(
+                      label: supportedNutrients[index].label,
+                      nutrient: supportedNutrients[index].nutrient,
+                      summary: summary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ],
         ],
       ),
     );
-  }
-
-  static String _format(num? value, {required String unit}) {
-    if (value == null) return 'Unavailable';
-    final number = value.toDouble();
-    final text = number == number.roundToDouble()
-        ? number.toInt().toString()
-        : number.toStringAsFixed(1);
-    return '$text $unit';
   }
 }
 
@@ -167,14 +165,19 @@ class MealDiaryDailyNutritionSummaryStatus extends StatelessWidget {
 
 @immutable
 class _CalorieMetric {
-  const _CalorieMetric({required this.label, required this.value});
+  const _CalorieMetric({
+    required this.label,
+    required this.value,
+    required this.valueKey,
+  });
 
   final String label;
-  final String value;
+  final num? value;
+  final Key valueKey;
 }
 
-class _CalorieMetricTile extends StatelessWidget {
-  const _CalorieMetricTile({required this.metric});
+class _CalorieMetricCell extends StatelessWidget {
+  const _CalorieMetricCell({required this.metric});
 
   final _CalorieMetric metric;
 
@@ -182,44 +185,50 @@ class _CalorieMetricTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
+    final valueText = _formatNumber(metric.value);
+    final semanticValue = metric.value == null
+        ? 'unavailable'
+        : '${_formatNumber(metric.value)} kilocalories';
+
     return Semantics(
       container: true,
-      label: '${metric.label}, ${metric.value}',
+      label: '${metric.label}, $semanticValue',
       excludeSemantics: true,
-      child: Container(
-        padding: const EdgeInsets.all(TioSpacing.sm),
-        decoration: BoxDecoration(
-          color: colors.surfaceVariant,
-          borderRadius: BorderRadius.circular(TioRadius.md),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              metric.label,
-              style: textTheme.labelMedium?.copyWith(
-                color: colors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: TioSpacing.xs),
-            Text(
-              metric.value,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              valueText,
+              key: metric.valueKey,
               maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: textTheme.titleSmall?.copyWith(
+              style: textTheme.titleLarge?.copyWith(
                 color: colors.textPrimary,
                 fontWeight: TioFontWeight.w700,
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: TioSpacing.xs),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              metric.label,
+              maxLines: 1,
+              style: textTheme.labelLarge?.copyWith(
+                color: colors.textSecondary,
+                fontWeight: TioFontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _NutrientProgressRow extends StatelessWidget {
-  const _NutrientProgressRow({
+class _NutrientProgressCell extends StatelessWidget {
+  const _NutrientProgressCell({
     required this.label,
     required this.nutrient,
     required this.summary,
@@ -243,57 +252,61 @@ class _NutrientProgressRow extends StatelessWidget {
       label: '$label, ${_grams(consumed)} consumed of ${_grams(target)} target',
       value: progress == null ? null : '${(progress * 100).round()} percent',
       excludeSemantics: true,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: TioSpacing.sm),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    label,
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: colors.textPrimary,
-                      fontWeight: TioFontWeight.w600,
-                    ),
-                  ),
-                ),
-                Text(
-                  valueText,
-                  key: ValueKey(
-                    'daily-nutrition-${nutrient.storageValue}-value',
-                  ),
-                  style: textTheme.bodySmall?.copyWith(
-                    color: colors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-            if (progress != null) ...[
-              const SizedBox(height: TioSpacing.xs),
-              LinearProgressIndicator(
-                key: ValueKey(
-                  'daily-nutrition-${nutrient.storageValue}-progress',
-                ),
-                value: progress,
-                minHeight: TioSize.dp4,
-                borderRadius: BorderRadius.circular(TioRadius.full),
-                color: colors.nutrition,
-                backgroundColor: colors.surfaceVariant,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              maxLines: 1,
+              textAlign: TextAlign.center,
+              style: textTheme.labelLarge?.copyWith(
+                color: colors.textPrimary,
+                fontWeight: TioFontWeight.w700,
               ),
-            ],
-          ],
-        ),
+            ),
+          ),
+          const SizedBox(height: TioSpacing.sm),
+          if (progress != null)
+            LinearProgressIndicator(
+              key: ValueKey(
+                'daily-nutrition-${nutrient.storageValue}-progress',
+              ),
+              value: progress,
+              minHeight: TioSize.dp4,
+              borderRadius: BorderRadius.circular(TioRadius.full),
+              color: colors.nutrition,
+              backgroundColor: colors.surfaceVariant,
+            ),
+          const SizedBox(height: TioSpacing.sm),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              valueText,
+              key: ValueKey(
+                'daily-nutrition-${nutrient.storageValue}-value',
+              ),
+              maxLines: 1,
+              textAlign: TextAlign.center,
+              style: textTheme.bodySmall?.copyWith(
+                color: colors.textSecondary,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  static String _grams(num value) {
-    final number = value.toDouble();
-    final text = number == number.roundToDouble()
-        ? number.toInt().toString()
-        : number.toStringAsFixed(1);
-    return '$text g';
-  }
+  static String _grams(num value) => '${_formatNumber(value)} g';
+}
+
+String _formatNumber(num? value) {
+  if (value == null) return '—';
+  final number = value.toDouble();
+  return number == number.roundToDouble()
+      ? number.toInt().toString()
+      : number.toStringAsFixed(1);
 }
