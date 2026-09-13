@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
@@ -11,6 +12,91 @@ import 'package:tio_shared/shared.dart';
 final _today = DateTime(2026, 9, 11, 12);
 
 void main() {
+  testWidgets(
+      'meal card exposes exactly card Edit and separate Meal actions semantics',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    var editCount = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.dark),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 320,
+              child: MealDiaryMealCard(
+                entryId: 'meal',
+                mealName: 'Rice',
+                caloriesText: '195 kcal',
+                proteinText: '4.1 g',
+                timeText: '11:43 AM',
+                notePreview: null,
+                noteIndicatorVisible: false,
+                onTap: () => editCount += 1,
+                onEdit: () => editCount += 1,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final cardAction = find.semantics.byLabel(RegExp(r'^Rice(?:,|$)'));
+    final menuAction = find.semantics.byLabel('Meal actions');
+
+    expect(cardAction, findsOne);
+    expect(menuAction, findsOne);
+    expect(
+      find.semantics.byAction(SemanticsAction.tap),
+      findsNWidgets(2),
+      reason: 'the card and Meal actions are the only independent tap nodes',
+    );
+
+    final cardNode = cardAction.evaluate().single;
+    final menuNode = menuAction.evaluate().single;
+    expect(
+      cardNode,
+      isSemantics(isButton: true, hasTapAction: true),
+    );
+    expect(
+      menuNode,
+      isSemantics(
+        label: 'Meal actions',
+        isButton: true,
+        hasTapAction: true,
+      ),
+    );
+
+    tester.semantics.tap(cardAction);
+    await tester.pump();
+    expect(editCount, 1);
+
+    tester.semantics.tap(menuAction);
+    await tester.pumpAndSettle();
+    expect(find.text('Edit'), findsOneWidget);
+    expect(editCount, 1, reason: 'opening Meal actions must not edit the card');
+
+    await tester.tap(find.byKey(const ValueKey('meal-log-edit-meal')));
+    await tester.pumpAndSettle();
+    expect(editCount, 2);
+
+    await tester.tap(find.byKey(const ValueKey('meal-diary-entry-meal')));
+    await tester.pump();
+    expect(editCount, 3);
+
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit'), findsOneWidget);
+    expect(editCount, 3, reason: 'physical overflow tap must not tap the card');
+
+    semantics.dispose();
+  });
+
   testWidgets(
       'rich card keeps time inside fixed media and exposes only working Edit',
       (tester) async {
@@ -597,8 +683,7 @@ void main() {
   });
 
   group('section header title polish', () {
-    testWidgets(
-        'section title resolves to the governed 16px/w700 heading role',
+    testWidgets('section title resolves to the governed 16px/w700 heading role',
         (tester) async {
       final categories = _FakeMealCategoriesRepository(
         MealCategoriesConfig.canonicalDefaults(),
@@ -636,8 +721,7 @@ void main() {
       expect(title.style?.fontWeight, TioFontWeight.w700);
     });
 
-    testWidgets(
-        'a real TioSpacing.sm gap separates the title from the divider',
+    testWidgets('a real TioSpacing.sm gap separates the title from the divider',
         (tester) async {
       final categories = _FakeMealCategoriesRepository(
         MealCategoriesConfig.canonicalDefaults(),

@@ -1,6 +1,6 @@
 # TNYX-204 — Manual Meal Diary card overflow and Quick Edit
 
-**Status:** Final review-fix pass implemented, ready for owner merge decision\
+**Status:** Final accessibility implementation locally validated; publication and exact-head CI pending\
 **Primary owner:** `apps/features/nutrition`\
 **Affected platforms:** Flutter phone app (`apps/features/nutrition`, consumed by `apps/app`)
 
@@ -17,23 +17,24 @@
 **Planning owner:** Codex `/root`\
 **Implementation owner:** Codex `/root`\
 **Review owner:** Unassigned\
-**Implementation ownership state:** Complete\
+**Implementation ownership state:** Accessibility source/test work complete locally; publication reconciliation remains active\
 **Ownership transition:** Not applicable\
-**Repository state last verified:** 2026-09-12, after creating the task branch from clean synchronized `main`\
+**Repository state last verified:** 2026-09-13, clean at required starting PR head `5c8ab420136408ecba6ddec5302bfb74be52f5f8` after a fresh remote fetch\
 **Branch:** `tnyx/tnyx-204-n20c-2-manual-meal-diary-card-overflow-quick-edit-activation`\
-**Implementation SHA:** `e92a45b8d0de616dbc46f2055476172b8e831351`\
-**Observed working-tree state:** Clean after the implementation commit; accidental package lockfile drift was removed before publication.\
+**Validated implementation SHA before this accessibility pass:** `2d64ae88c8c52f2a05bbd1a9a585b814baa78cf2`\
+**Observed working-tree state:** Four scoped files modified for this pass: the task brief, two Meal Diary widgets, and one Meal Diary widget test.\
 **Observed committed files:** See Final Handoff changed-file groups below.\
 **PR / tracker:** GitHub Draft PR [#263](https://github.com/im-tnyx/tio-world/pull/263) is open; Linear `TNYX-204` is `In Review` (confirmed live 2026-09-13, not merely "will move to"); dependency `TNYX-203` is `Done` and GitHub PR `#262` is merged. Current authoritative relation is `TNYX-204` **blocks `TNYX-209`** (`TNYX-209` then gates `TNYX-205`) — the PR body's earlier "blocks TNYX-205" note was stale and is corrected in this pass.\
-**Current implementation state:** Complete, including a bounded review-fix pass, an owner-approved micro-extension, and this final review-fix pass. The owner-approved rich card, header glyphs, anchored Edit-only popup, Quick Add edit mode, canonical read/update flow, conflict/ambiguous-outcome handling, affected-date invalidation, 40dp fallback-icon polish, review findings TNYX-204-RF1/RF2/RF3, the section-nutrition visibility preference (`showMealSectionNutrition`), the preference decoder's explicit-null edge case (TNYX-204-RF4), and the owner-approved section-title/gap polish (TNYX-204-ME2) are implemented and locally validated.\
+**Current implementation state:** The previously validated runtime behavior remains intact. This owner-authorized pass only removes the duplicate meal-card tap semantics node, adds focused semantic-action regression coverage, corrects the stale history-view class comment, and reconciles handoff metadata without changing approved card geometry or product behavior.\
 **Relevant execution surface:** Meal Diary selected-day cards/section headers, Meal Diary Settings, `MealDiaryDisplayPreferences` model/repository/controller, Quick Add editor, canonical `MealLogRepository.readById`/`updateManual`, existing Core `TioAnchoredPopup`, and the Add Food sheet route\
-**Final head SHA:** `2d64ae88c8c52f2a05bbd1a9a585b814baa78cf2` (6 commits ahead of `main`, 0 behind; pushed; exact-head GitHub CI `Analyze and test` is `completed/success`)\
-**Validation completed at SHA:** working tree at parent `439fb9038ff9e04bd9dbc59d7584f3f782d93c34` plus this final review-fix pass's commit `2d64ae88` — `apps/core` untouched in this pass (293 tests from the prior pass stand), `apps/features/nutrition` analyze + 694 tests, `apps/app` analyze + 319 tests, `git diff --check`\
-**Validation remaining:** None for this pass; workspace `melos` remains unavailable as recorded below\
-**Current blocker:** Workspace `melos` is unavailable in the current shell. Full per-package validation was run instead for every affected/consuming package. This is a local tooling limitation, not a TNYX-204 defect.\
-**Open review finding IDs:** None open. TNYX-204-R5 remains an accepted out-of-scope data limitation, not an implementation blocker. TNYX-208 stays canceled/absorbed and was not reopened. TNYX-209 was not started in this pass.\
+**Starting PR head SHA for this pass:** `5c8ab420136408ecba6ddec5302bfb74be52f5f8` (7 commits ahead of `main`, 0 behind; pushed; exact-head GitHub CI `Analyze and test` was `completed/success`)\
+**Validated implementation SHA for this pass:** Pending until the locally validated accessibility source/test changes are committed.\
+**Current PR head after handoff reconciliation:** Read from live GitHub after the final push; this brief will not predict the SHA of the commit that contains its own metadata.\
+**Validation remaining:** Commit/scope audit, push, exact-head Flutter CI, and final PR/task metadata reconciliation.\
+**Current blocker:** None in the local implementation. Publication and exact-head CI gates remain.\
+**Open review finding IDs:** None. TNYX-204-RF5 is resolved locally. TNYX-204-R5 remains an accepted out-of-scope data limitation, not an implementation blocker. TNYX-208 stays canceled/absorbed and was not reopened. TNYX-209 was not started in this pass.\
 **Current sequence (owner lock, confirmed live 2026-09-13):** `TNYX-204 → TNYX-209 (N20C-3 Quick Add nutrition amount range & precision policy) → TNYX-205 (N11A) → TNYX-206 (N3A) → TNYX-207 (N5D)`.\
-**Next exact action:** None remaining for this implementation pass. PR body is reconciled to `2d64ae88`; PR stays Draft; Linear `TNYX-204` stays `In Review`, not `Done`. The only remaining action is the owner's own merge decision.
+**Next exact action:** Commit the locally validated four-file accessibility pass, audit/push it without rewriting history, wait for exact-head CI, then record the concrete implementation SHA and reconcile the Draft PR metadata.
 
 ## Global UI / Design-System Guardrail
 
@@ -150,6 +151,9 @@ Meal Diary card or popup Edit
 - [x] Add focused tests for geometry, actions, create/edit copy, canonical read, preservation, conflict, ambiguous retry, and date invalidation.
 - [x] Run focused and applicable Flutter validation, review the diff, and update task/docs/tracker handoff.
 - [x] Create a Draft PR only after the implementation and validation handoff is accurate: [#263](https://github.com/im-tnyx/tio-world/pull/263).
+- [x] Remove the duplicate whole-card tap semantics node without changing card geometry or pointer behavior.
+- [x] Add focused semantics-tree and semantic-action regression coverage proving exactly two independent actions: card Edit and `Meal actions`.
+- [ ] Re-run affected/consuming package validation, push the resulting commits, and reconcile exact-head evidence without a self-referential SHA.
 
 ## 6. Quality Review
 
@@ -159,6 +163,18 @@ Meal Diary card or popup Edit
 cd apps/features/nutrition
 flutter analyze   -> No issues found! (32.5s)
 flutter test      -> All tests passed (676 tests)
+```
+
+Final accessibility pass, using the verified installed Flutter 3.44.6 SDK
+through its tool snapshot because the local `flutter.bat` wrapper was blocked
+on its machine-local lock:
+
+```text
+focused semantics regression test                          -> PASS
+cd apps/features/nutrition && dart analyze lib test        -> No issues found!
+cd apps/features/nutrition && flutter test --no-pub        -> All tests passed (695 tests)
+cd apps/app && dart analyze lib test                       -> No issues found!
+cd apps/app && flutter test --no-pub                       -> All tests passed (319 tests)
 ```
 
 Measured after the final geometry correction at compact viewports, with light
@@ -191,6 +207,8 @@ section summary      flush with the content edge; divider absorbs the middle
 | TNYX-204-ME1 | N/A | Implemented | Owner-approved micro-extension: fold N14B section-header nutrition visibility into this still-open PR | Linear 2026-09-12 | Added one boolean, `showMealSectionNutrition` (default true), to the existing `MealDiaryDisplayPreferences` model/repository/controller — no second preference store. `_Section`'s `hasSummary` now gates on `preferences.showMealSectionNutrition && (calories or protein known)`, so OFF removes the whole trailing group and the divider/title reclaim the width; individual `MealDiaryMealCard` calories/protein are untouched. One governed `Show section nutrition` toggle added to Meal Diary Settings, reusing the existing feature-owned toggle row — no new Core component, no separate Calories/Protein rows |
 | TNYX-204-RF4 | P3 | Resolved | Preference decoder treated an explicit JSON `null` for `showMealSectionNutrition` the same as the key being absent, so a malformed `"showMealSectionNutrition": null` payload silently hydrated as the legacy shape (defaulting only that field to true) instead of failing closed | Final review-fix pass at `439fb903` | `read()` now checks `decoded.containsKey('showMealSectionNutrition')` before inspecting the raw value, so a genuinely absent key still defaults true (unchanged legacy behavior) while a present key — bool or otherwise, including explicit `null` — is validated as a real bool or the whole payload fails closed to full defaults, consistent with the other three fields. No schema-version change, no second preference key |
 | TNYX-204-ME2 | N/A | Implemented | Owner-approved final polish: Meal Diary section title was visually weak (14px `labelLarge`) and touched the divider directly (no real gap existed despite a `TioSpacing.sm` width reservation in the layout math) | Owner device review 2026-09-13 | Title now uses `textTheme.titleMedium` (governed 16px) with `fontWeight: TioFontWeight.w700` preserved explicitly (titleMedium's own default is w600). A real `const SizedBox(width: TioSpacing.sm)` now sits between the title and the divider; the existing `ConstrainedBox(maxWidth: constraints.maxWidth - TioSpacing.sm)` reservation is unchanged and now correctly corresponds 1:1 to that one real gap widget rather than reserving space nothing consumed. Verified the divider stays a positive width and no overflow occurs at 320dp/390dp, a 24-character (policy-max) category name still ellipsizes safely, and the ON/OFF trailing-summary flush-right/reclaimed-width behavior from TNYX-204-ME1 is unaffected. Calorie/protein header icon/text sizes, card typography, and category display names are untouched |
+
+| TNYX-204-RF5 | P2 | Resolved | The actionable Meal Diary card exposed the same card tap through both the outer `Semantics.onTap` and `TioCard`'s internal `InkWell`, so assistive technology received a duplicate whole-card action beside the intended `Meal actions` action | Final accessibility audit at starting head `5c8ab420` | The feature-owned card now follows the existing `TioSelectableCard` semantics-ownership precedent: one outer node owns the card action and deliberately represents the visible meal/time/nutrition/note text, the internal tappable visual subtree is excluded, and `Meal actions` remains a separate sibling node. A focused `tester.ensureSemantics()` test proves exactly two tap nodes, semantic dispatch isolation, and preserved physical taps. No Core or geometry change |
 
 ## 7. Final Handoff
 
@@ -231,9 +249,21 @@ Final review-fix pass (this bounded follow-up commit only):
 - `apps/features/nutrition/test/meal_diary/meal_diary_history_view_test.dart` — new `section header title polish` group: 16px/w700 style assertion, exact `TioSpacing.sm` gap measurement, positive divider width + no overflow at 320dp and 390dp, and a policy-max 24-character category name still ellipsizing safely. Verified all title/gap assertions fail without the fix (temporarily reverted, reran, restored).
 - No `apps/core` files changed in this pass.
 
+Final accessibility pass (this bounded follow-up commit only):
+
+- `apps/features/nutrition/lib/src/meal_diary/presentation/widgets/meal_diary_meal_card.dart` — assigns the whole-card accessibility action to one feature-owned semantics node, deliberately represents the excluded visible subtree in its label, and keeps `Meal actions` as the separate top-right sibling without moving it.
+- `apps/features/nutrition/lib/src/meal_diary/presentation/widgets/meal_diary_history_view.dart` — corrects the stale TNYX-199 read-only class comment to the current Quick Edit callback boundary.
+- `apps/features/nutrition/test/meal_diary/meal_diary_history_view_test.dart` — proves the card and overflow are exactly two independent tap semantics nodes; semantic card activation edits once, semantic overflow activation only opens the popup, and physical card/overflow taps remain intact.
+- No `apps/core`, `apps/app`, Supabase, schema, persistence, or approved card-geometry file changed in this pass.
+
 ### Actual Behavior
 
 Manual MealLog cards now render the approved 120dp leading media composition, time scrim, clean nutrition details and near-edge overflow. The fallback icon is centered at 40dp and remains visually secondary. Card tap and the popup's only action, `Edit`, both open the reused editor as `Quick Edit`; `Save Changes` updates the same canonical ID with optimistic revision safety and refreshes affected Diary dates without moving the selected date. Meal Diary Settings now also exposes one `Show section nutrition` toggle; turning it off removes the section header's trailing Calories + Protein group (divider/title reclaim the width) while leaving individual card calories/protein untouched, and an older stored preference payload without the new field still hydrates correctly with the new field defaulting to ON — while a payload carrying an explicit `null` for that field now correctly fails closed instead of silently passing. The Meal Diary section title (e.g. "Lunch") now renders at the governed 16px heading size with a real 8dp gap before the divider, which no longer touches the title.
+
+The card now exposes one accessible whole-card Edit action plus one separate
+`Meal actions` action. Its accessible label includes the visible meal name,
+time, nutrition details and note state; the internal InkWell no longer creates
+a duplicate action. Pointer behavior and all approved geometry remain intact.
 
 ### Known Limitations
 
@@ -243,4 +273,4 @@ Manual MealLog cards now render the approved 120dp leading media composition, ti
 
 ### Final Status
 
-`REVIEW` — ready for the owner's final merge decision.
+`REVIEW` — accessibility implementation is locally validated; publication and exact-head CI reconciliation remain before the owner's final merge decision.

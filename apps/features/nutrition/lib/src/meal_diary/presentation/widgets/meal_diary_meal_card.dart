@@ -63,6 +63,16 @@ class MealDiaryMealCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final edit = onEdit;
     final tap = onTap;
+    final accessibilityLabel = <String>[
+      mealName ?? 'Meal log',
+      if (timeText != null) timeText!,
+      if (caloriesText != null) 'Calories $caloriesText',
+      if (proteinText != null) 'Protein $proteinText',
+      if (notePreview != null)
+        'Note $notePreview'
+      else if (noteIndicatorVisible)
+        'Meal note',
+    ].join(', ');
 
     final detail = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -133,27 +143,32 @@ class MealDiaryMealCard extends StatelessWidget {
       ],
     );
 
-    return Semantics(
-      container: true,
-      button: tap != null,
-      label: mealName ?? 'Meal log',
-      onTap: tap,
-      child: TioCard(
-        key: ValueKey('meal-diary-entry-$entryId'),
-        variant: TioCardVariant.normal,
-        // The media fills the card's own leading corner, so the card carries no
-        // padding of its own and the content column owns its inset instead.
-        padding: EdgeInsets.zero,
-        onTap: tap,
-        child: SizedBox(
-          height: TioSize.dp120,
-          child: Row(
-            children: [
-              _MealMedia(entryId: entryId, timeText: timeText),
-              Expanded(
-                child: Stack(
-                  children: [
-                    Padding(
+    return Stack(
+      children: [
+        Semantics(
+          container: true,
+          button: tap != null,
+          label: accessibilityLabel,
+          onTap: tap,
+          // The wrapping node owns the card's one accessible tap action and
+          // deliberately represents the visible title, time, details and note.
+          // Excluding the TioCard subtree prevents its InkWell from exposing a
+          // second tap node; the separate overflow sibling remains reachable.
+          excludeSemantics: true,
+          child: TioCard(
+            key: ValueKey('meal-diary-entry-$entryId'),
+            variant: TioCardVariant.normal,
+            // The media fills the card's own leading corner, so the card
+            // carries no padding and the content column owns its inset.
+            padding: EdgeInsets.zero,
+            onTap: tap,
+            child: SizedBox(
+              height: TioSize.dp120,
+              child: Row(
+                children: [
+                  _MealMedia(entryId: entryId, timeText: timeText),
+                  Expanded(
+                    child: Padding(
                       padding: const EdgeInsetsDirectional.only(
                         start: TioSpacing.lg,
                         end: TioSpacing.lg,
@@ -161,22 +176,19 @@ class MealDiaryMealCard extends StatelessWidget {
                       ),
                       child: detail,
                     ),
-                    if (edit != null)
-                      PositionedDirectional(
-                        top: TioSpacing.none,
-                        end: TioSpacing.none,
-                        child: MealLogActionsPopup(
-                          entryId: entryId,
-                          onEdit: edit,
-                        ),
-                      ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
-      ),
+        if (edit != null)
+          PositionedDirectional(
+            top: TioSpacing.none,
+            end: TioSpacing.none,
+            child: MealLogActionsPopup(entryId: entryId, onEdit: edit),
+          ),
+      ],
     );
   }
 }

@@ -9,9 +9,9 @@ import 'meal_diary_meal_card.dart';
 
 /// Selected-day MealLog history below the reusable date calendar.
 ///
-/// This widget is deliberately read-only in TNYX-199. It renders canonical
-/// repository truth and presentation preferences, but owns no create/edit/
-/// delete action and does not reach any backend client directly.
+/// This widget renders canonical repository truth and presentation preferences
+/// and emits an entry ID when an editable card is activated. The owning page
+/// coordinates Quick Edit; this view owns no mutation or backend access.
 class MealDiaryHistoryView extends ConsumerWidget {
   const MealDiaryHistoryView({
     required this.date,
