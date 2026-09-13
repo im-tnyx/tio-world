@@ -16,10 +16,15 @@ final class DailyNutritionBudgetResolver {
 
   final NutritionTargetsRepository _nutritionTargetsRepository;
 
-  /// Returns `null` only when no canonical Nutrition Targets row exists.
+  /// Returns `null` when canonical Nutrition Targets are unavailable under the
+  /// repository's existing read contract.
   ///
-  /// Repository failures remain failures. Nullable nutrient fields inside a
-  /// present target remain unknown/unset and are never fabricated as zero.
+  /// The canonical Supabase repository deliberately uses `null` for both a
+  /// missing target row and a signed-out/no-authenticated-read context. This
+  /// resolver must not infer or create authentication state from that value.
+  /// Repository exceptions still remain failures. Nullable nutrient fields
+  /// inside a present target remain unknown/unset and are never fabricated as
+  /// zero.
   Future<DailyNutritionBudget?> resolve(MealLogLocalDate localDate) async {
     final baseTarget = await _nutritionTargetsRepository.read();
     if (baseTarget == null) return null;
