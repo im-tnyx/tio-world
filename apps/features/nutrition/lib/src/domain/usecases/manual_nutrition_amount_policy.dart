@@ -198,10 +198,22 @@ final class ManualNutritionAmountPolicy {
 
     final spec = specFor(field);
     if (value < spec.minimum) return ManualNutritionAmountError.negative;
-    if (value > spec.maximum) {
+    if (value > spec.maximum && !_isMaximumBoundaryNoise(value, spec)) {
       return ManualNutritionAmountError.aboveMaximum;
     }
     return null;
+  }
+
+  static bool _isMaximumBoundaryNoise(
+    num value,
+    ManualNutritionAmountSpec spec,
+  ) {
+    if (_hasExcessPrecision(value, spec.maximumFractionalDigits)) return false;
+
+    final numeric = value.toDouble();
+    final maximum = spec.maximum.toDouble();
+    final difference = (numeric - maximum).abs();
+    return difference <= _ulpTolerance(numeric, maximum);
   }
 
   static bool _usesExponentNotation(String text) {
@@ -229,8 +241,11 @@ final class ManualNutritionAmountPolicy {
     if (nearestInteger == 0) return scaled != 0;
 
     final difference = (scaled - nearestInteger).abs();
-    final magnitude = math.max(scaled.abs(), nearestInteger.abs()).toDouble();
-    final tolerance = _precisionUlps * _doubleEpsilon * magnitude;
-    return difference > tolerance;
+    return difference > _ulpTolerance(scaled, nearestInteger);
+  }
+
+  static double _ulpTolerance(double first, double second) {
+    final magnitude = math.max(first.abs(), second.abs()).toDouble();
+    return _precisionUlps * _doubleEpsilon * magnitude;
   }
 }
