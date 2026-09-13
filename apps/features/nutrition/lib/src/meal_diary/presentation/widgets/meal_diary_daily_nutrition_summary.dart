@@ -10,7 +10,9 @@ import '../../meal_diary_nutrition_summary_providers.dart';
 ///
 /// The geometry intentionally mirrors the owner-approved reference: one
 /// equation row for Target − Eaten = Remaining, followed by one compact row of
-/// supported nutrient progress cells. Workout is deliberately absent in N3A.
+/// Carbs/Protein/Fat/Fiber progress cells. Workout is deliberately absent in
+/// N3A. Unknown nutrient truth remains visible as an em dash instead of being
+/// hidden or fabricated as zero.
 class MealDiaryDailyNutritionSummary extends StatelessWidget {
   const MealDiaryDailyNutritionSummary({
     required this.summary,
@@ -40,15 +42,12 @@ class MealDiaryDailyNutritionSummary extends StatelessWidget {
         valueKey: const ValueKey('daily-nutrition-remaining-calories'),
       ),
     ];
-    final supportedNutrients = <({String label, NutrientId nutrient})>[
+    const nutrients = <({String label, NutrientId nutrient})>[
       (label: 'Carbs', nutrient: NutrientId.carbohydrate),
       (label: 'Protein', nutrient: NutrientId.protein),
       (label: 'Fat', nutrient: NutrientId.fat),
       (label: 'Fiber', nutrient: NutrientId.fiber),
-    ].where((row) {
-      return summary.consumedAmountFor(row.nutrient) != null &&
-          summary.targetAmountFor(row.nutrient) != null;
-    }).toList(growable: false);
+    ];
 
     return TioCard(
       key: const ValueKey('meal-diary-daily-nutrition-summary'),
@@ -88,26 +87,22 @@ class MealDiaryDailyNutritionSummary extends StatelessWidget {
               Expanded(child: _CalorieMetricCell(metric: metrics[2])),
             ],
           ),
-          if (supportedNutrients.isNotEmpty) ...[
-            const SizedBox(height: TioSpacing.md),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (var index = 0;
-                    index < supportedNutrients.length;
-                    index++) ...[
-                  if (index > 0) const SizedBox(width: TioSpacing.sm),
-                  Expanded(
-                    child: _NutrientProgressCell(
-                      label: supportedNutrients[index].label,
-                      nutrient: supportedNutrients[index].nutrient,
-                      summary: summary,
-                    ),
+          const SizedBox(height: TioSpacing.md),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var index = 0; index < nutrients.length; index++) ...[
+                if (index > 0) const SizedBox(width: TioSpacing.sm),
+                Expanded(
+                  child: _NutrientProgressCell(
+                    label: nutrients[index].label,
+                    nutrient: nutrients[index].nutrient,
+                    summary: summary,
                   ),
-                ],
+                ),
               ],
-            ),
-          ],
+            ],
+          ),
         ],
       ),
     );
@@ -251,14 +246,18 @@ class _NutrientProgressCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
-    final consumed = summary.consumedAmountFor(nutrient)!;
-    final target = summary.targetAmountFor(nutrient)!;
+    final consumed = summary.consumedAmountFor(nutrient);
+    final target = summary.targetAmountFor(nutrient);
     final progress = summary.progressFor(nutrient);
-    final valueText = '${_grams(consumed)} / ${_grams(target)}';
+    final valueText = '${_gramsOrDash(consumed)} / ${_gramsOrDash(target)}';
+    final consumedSemantic =
+        consumed == null ? 'consumed unavailable' : '${_grams(consumed)} consumed';
+    final targetSemantic =
+        target == null ? 'target unavailable' : '${_grams(target)} target';
 
     return Semantics(
       container: true,
-      label: '$label, ${_grams(consumed)} consumed of ${_grams(target)} target',
+      label: '$label, $consumedSemantic, $targetSemantic',
       value: progress == null ? null : '${(progress * 100).round()} percent',
       excludeSemantics: true,
       child: Column(
@@ -278,17 +277,21 @@ class _NutrientProgressCell extends StatelessWidget {
             ),
           ),
           const SizedBox(height: TioSpacing.sm),
-          if (progress != null)
-            LinearProgressIndicator(
-              key: ValueKey(
-                'daily-nutrition-${nutrient.storageValue}-progress',
-              ),
-              value: progress,
-              minHeight: TioSize.dp4,
-              borderRadius: BorderRadius.circular(TioRadius.full),
-              color: colors.nutrition,
-              backgroundColor: colors.surfaceVariant,
-            ),
+          SizedBox(
+            height: TioSize.dp4,
+            child: progress == null
+                ? const SizedBox.shrink()
+                : LinearProgressIndicator(
+                    key: ValueKey(
+                      'daily-nutrition-${nutrient.storageValue}-progress',
+                    ),
+                    value: progress,
+                    minHeight: TioSize.dp4,
+                    borderRadius: BorderRadius.circular(TioRadius.full),
+                    color: colors.nutrition,
+                    backgroundColor: colors.surfaceVariant,
+                  ),
+          ),
           const SizedBox(height: TioSpacing.sm),
           FittedBox(
             fit: BoxFit.scaleDown,
@@ -310,6 +313,8 @@ class _NutrientProgressCell extends StatelessWidget {
   }
 
   static String _grams(num value) => '${_formatNumber(value)} g';
+
+  static String _gramsOrDash(num? value) => value == null ? '—' : _grams(value);
 }
 
 String _formatNumber(num? value) {
