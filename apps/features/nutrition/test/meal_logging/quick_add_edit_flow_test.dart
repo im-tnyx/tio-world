@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -177,6 +179,165 @@ void main() {
     expect(repository.inputs, hasLength(2));
   });
 
+  group('RF5 — concurrent Quick Edit opens are guarded', () {
+    testWidgets(
+        'a delayed readById plus a rapid double tap on the same card opens '
+        'exactly one editor from one read', (tester) async {
+      final now = DateTime(2026, 9, 12, 11);
+      final dateController = MealDiaryDateController(clock: () => now);
+      final repository = _DelayedReadRepository({'meal-1': _entry()});
+      final categories = _MealCategoriesRepository();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            mealDiaryDateControllerProvider.overrideWith(
+              (ref) => dateController,
+            ),
+            mealDiaryMealLogRepositoryProvider.overrideWithValue(repository),
+          ],
+          child: MaterialApp(
+            builder: (context, child) => TioTheme(
+              config: const TioThemeConfig(mode: TioThemeMode.light),
+              child: child ?? const SizedBox.shrink(),
+            ),
+            home: Scaffold(
+              body: MealDiaryPage(
+                quickAddClock: () => now,
+                mealCategoriesRepository: categories,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('meal-diary-entry-meal-1')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('meal-diary-entry-meal-1')));
+      await tester.pump();
+
+      expect(
+        repository.readIds,
+        ['meal-1'],
+        reason: 'the second tap while the first read is in flight must be '
+            'ignored entirely',
+      );
+
+      repository.completeNextRead();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('quick-add-editor')), findsOneWidget);
+      expect(find.text('Quick Edit'), findsOneWidget);
+    });
+
+    testWidgets(
+        'a delayed readById plus taps on two different cards opens exactly '
+        'one editor', (tester) async {
+      final now = DateTime(2026, 9, 12, 11);
+      final dateController = MealDiaryDateController(clock: () => now);
+      final repository = _DelayedReadRepository({
+        'meal-1': _entry(),
+        'meal-2': _entry(id: 'meal-2', name: 'Second meal'),
+      });
+      final categories = _MealCategoriesRepository();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            mealDiaryDateControllerProvider.overrideWith(
+              (ref) => dateController,
+            ),
+            mealDiaryMealLogRepositoryProvider.overrideWithValue(repository),
+          ],
+          child: MaterialApp(
+            builder: (context, child) => TioTheme(
+              config: const TioThemeConfig(mode: TioThemeMode.light),
+              child: child ?? const SizedBox.shrink(),
+            ),
+            home: Scaffold(
+              body: MealDiaryPage(
+                quickAddClock: () => now,
+                mealCategoriesRepository: categories,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('meal-diary-entry-meal-1')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('meal-diary-entry-meal-2')));
+      await tester.pump();
+
+      expect(
+        repository.readIds,
+        ['meal-1'],
+        reason: 'a tap on a second card while the first read is in flight '
+            'must be ignored too, not just a repeat tap on the same card',
+      );
+
+      repository.completeNextRead();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('quick-add-editor')), findsOneWidget);
+      // Exactly the first tapped meal's editor opened, not a stacked second
+      // one and not the second card's data.
+      expect(_fieldText(tester, 'quick-add-meal-name'), 'Dal and roti');
+    });
+
+    testWidgets(
+        'after the first editor closes, a later edit opens normally',
+        (tester) async {
+      final now = DateTime(2026, 9, 12, 11);
+      final dateController = MealDiaryDateController(clock: () => now);
+      final repository = _DelayedReadRepository({'meal-1': _entry()});
+      final categories = _MealCategoriesRepository();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            mealDiaryDateControllerProvider.overrideWith(
+              (ref) => dateController,
+            ),
+            mealDiaryMealLogRepositoryProvider.overrideWithValue(repository),
+          ],
+          child: MaterialApp(
+            builder: (context, child) => TioTheme(
+              config: const TioThemeConfig(mode: TioThemeMode.light),
+              child: child ?? const SizedBox.shrink(),
+            ),
+            home: Scaffold(
+              body: MealDiaryPage(
+                quickAddClock: () => now,
+                mealCategoriesRepository: categories,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('meal-diary-entry-meal-1')));
+      await tester.pump();
+      repository.completeNextRead();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('quick-add-editor')), findsOneWidget);
+
+      final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+      navigator.pop();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('quick-add-editor')), findsNothing);
+
+      // No stale guard left behind — a fresh edit reads and opens again.
+      await tester.tap(find.byKey(const ValueKey('meal-diary-entry-meal-1')));
+      await tester.pump();
+      repository.completeNextRead();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('quick-add-editor')), findsOneWidget);
+      expect(repository.readIds, ['meal-1', 'meal-1']);
+    });
+  });
+
   testWidgets(
       'a genuine date move invalidates both the original and destination day',
       (tester) async {
@@ -352,6 +513,69 @@ final class _EditableMealLogRepository
       throw UnimplementedError();
 }
 
+/// A `readById` that never resolves until [completeNextRead] is called,
+/// for proving the page-level in-flight guard around the async gap between
+/// a tap and the editor's modal barrier actually going up.
+final class _DelayedReadRepository
+    implements MealLogRepository, ManualMealLogUpdateRepository {
+  _DelayedReadRepository(this.entries);
+
+  final Map<String, MealLogEntry> entries;
+  final List<String> readIds = [];
+  final List<ManualMealLogUpdate> inputs = [];
+  final List<Completer<MealLogEntry?>> _pendingReads = [];
+
+  @override
+  Future<MealLogEntry?> readById(String id) {
+    readIds.add(id);
+    final completer = Completer<MealLogEntry?>();
+    _pendingReads.add(completer);
+    return completer.future;
+  }
+
+  /// Resolves the oldest not-yet-completed [readById] call with its actual
+  /// fixture entry, in call order — matching a real repository's FIFO
+  /// resolution rather than requiring the test to track completers itself.
+  void completeNextRead() {
+    final index = _pendingReads.indexWhere((c) => !c.isCompleted);
+    _pendingReads[index].complete(entries[readIds[index]]);
+  }
+
+  @override
+  Future<List<MealLogEntry>> listByLocalDate(
+    MealLogLocalDate localDate,
+  ) async =>
+      entries.values.where((e) => e.consumedLocalDate == localDate).toList();
+
+  @override
+  Future<MealLogEntry> updateManual(ManualMealLogUpdate input) async {
+    inputs.add(input);
+    final previous = entries[input.id]!;
+    final updated = MealLogEntry.manual(
+      id: previous.id,
+      userId: previous.userId,
+      mealCategoryId: input.mealCategoryId,
+      mealName: input.mealName,
+      note: input.note,
+      consumedAt: input.consumedAt,
+      consumedLocalDate: input.consumedLocalDate,
+      consumedTimezoneId: input.consumedTimezoneId,
+      consumedUtcOffsetMinutes: input.consumedUtcOffsetMinutes,
+      captureSource: previous.captureSource,
+      manualNutritionSnapshot: input.manualNutritionSnapshot,
+      revision: input.expectedRevision + 1,
+      createdAt: previous.createdAt,
+      updatedAt: previous.updatedAt.add(const Duration(minutes: 1)),
+    );
+    entries[input.id] = updated;
+    return updated;
+  }
+
+  @override
+  Future<MealLogEntry> createManual(ManualMealLogCreate input) =>
+      throw UnimplementedError();
+}
+
 /// Simulates a write whose transport result is ambiguous even though it
 /// actually reaches durable storage, followed by a same-facts retry that then
 /// genuinely conflicts against the revision the first attempt already
@@ -430,12 +654,12 @@ final class _MealCategoriesRepository implements MealCategoriesRepository {
       throw UnimplementedError();
 }
 
-MealLogEntry _entry() {
+MealLogEntry _entry({String id = 'meal-1', String name = 'Dal and roti'}) {
   return MealLogEntry.manual(
-    id: 'meal-1',
+    id: id,
     userId: 'user-1',
     mealCategoryId: 'meal_slot_2',
-    mealName: 'Dal and roti',
+    mealName: name,
     note: 'Preserve this note',
     consumedAt: DateTime.utc(2026, 9, 12, 4, 45),
     consumedLocalDate: MealLogLocalDate(year: 2026, month: 9, day: 12),

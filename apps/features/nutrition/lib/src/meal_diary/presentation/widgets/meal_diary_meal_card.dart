@@ -77,7 +77,11 @@ class MealDiaryMealCard extends StatelessWidget {
     final detail = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (mealName != null || noteIndicatorVisible)
+        // The overflow target always occupies the top-right 48x48 corner when
+        // an edit callback exists, so this band must be reserved whenever it
+        // does — not only when there happens to be a name or note to show —
+        // or the first detail row below renders and hit-tests underneath it.
+        if (mealName != null || noteIndicatorVisible || edit != null)
           SizedBox(
             // The title shares its band with the overflow target, so the band
             // is that target's height and the title centres against it exactly

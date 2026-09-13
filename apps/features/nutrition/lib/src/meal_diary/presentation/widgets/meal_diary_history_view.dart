@@ -190,7 +190,8 @@ class _Section extends StatelessWidget {
       key: ValueKey('meal-diary-section-${section.categoryId}'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
+        LayoutBuilder(
+          builder: (context, headerConstraints) => Row(
           children: [
             // Title and rule share one tight flex region so a short title
             // cannot leave slack that pushes the trailing summary off the
@@ -207,8 +208,14 @@ class _Section extends StatelessWidget {
                     // widget — doubling it would reserve the same space
                     // twice for one visible gap.
                     ConstrainedBox(
+                      // Clamped: an extreme-width sibling (a large accessibility
+                      // text scale on a long calorie/protein summary) can leave
+                      // this LayoutBuilder less than TioSpacing.sm of width,
+                      // which would otherwise construct a negative maxWidth and
+                      // fail a BoxConstraints assertion.
                       constraints: BoxConstraints(
-                        maxWidth: constraints.maxWidth - TioSpacing.sm,
+                        maxWidth: (constraints.maxWidth - TioSpacing.sm)
+                            .clamp(0.0, double.infinity),
                       ),
                       child: Text(
                         section.categoryDisplayName,
@@ -238,15 +245,34 @@ class _Section extends StatelessWidget {
             ),
             if (hasSummary) ...[
               const SizedBox(width: TioSpacing.sm),
-              _SectionNutritionSummary(
-                key: ValueKey(
-                  'meal-diary-section-summary-${section.categoryId}',
+              // Capped to the header's own total width (less the gap it
+              // already reserves) so a pathologically wide summary — a large
+              // accessibility text scale on long calorie/protein totals —
+              // cannot push the whole Row past its available width and
+              // overflow. A no-op at any normal size: the cap is generous
+              // (the header's full width), so FittedBox never needs to scale
+              // and the summary renders at its own natural size, flush right,
+              // exactly as before.
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: (headerConstraints.maxWidth - TioSpacing.sm)
+                      .clamp(0.0, double.infinity),
                 ),
-                caloriesKcal: section.caloriesKcal,
-                proteinGrams: section.proteinGrams,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: _SectionNutritionSummary(
+                    key: ValueKey(
+                      'meal-diary-section-summary-${section.categoryId}',
+                    ),
+                    caloriesKcal: section.caloriesKcal,
+                    proteinGrams: section.proteinGrams,
+                  ),
+                ),
               ),
             ],
           ],
+          ),
         ),
         const SizedBox(height: TioSpacing.sm),
         for (var entryIndex = 0;
@@ -281,7 +307,14 @@ class _MealEntryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final noteVisible = preferences.mealNotesEnabled && entry.note != null;
     final edit = onEdit;
-    final open = edit == null ? null : () => edit(entry.id);
+    // A row without an exact reconstructable local time (a canonical
+    // consumedTimezoneId-only entry, valid but not yet offset-backed) cannot
+    // actually be edited — the editor would open then fail with "Editing is
+    // not available". `loggedLocalDateTime` is already null in exactly that
+    // case, independent of the showMealTimes display preference, so it is the
+    // one capability check shared by both card tap and overflow Edit below.
+    final canEdit = edit != null && entry.loggedLocalDateTime != null;
+    final open = canEdit ? () => edit(entry.id) : null;
 
     return MealDiaryMealCard(
       entryId: entry.id,

@@ -97,6 +97,96 @@ void main() {
     semantics.dispose();
   });
 
+  group('RF2 — unnamed/no-note card still clears the overflow target', () {
+    testWidgets(
+        'an actionable unnamed card with no note reserves the title band '
+        'so the first nutrition row never sits under the overflow',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.dark),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 320,
+                child: MealDiaryMealCard(
+                  entryId: 'meal',
+                  mealName: null,
+                  caloriesText: '195 kcal',
+                  proteinText: '4.1 g',
+                  timeText: '11:43 AM',
+                  notePreview: null,
+                  noteIndicatorVisible: false,
+                  onTap: () {},
+                  onEdit: () {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final overflowRect = tester.getRect(find.byIcon(Icons.more_vert));
+      final caloriesRect = tester.getRect(
+        find.byKey(const ValueKey('meal-diary-entry-calories-meal')),
+      );
+
+      expect(
+        caloriesRect.top,
+        greaterThanOrEqualTo(overflowRect.bottom),
+        reason: 'the first nutrition row must clear the overflow band even '
+            'without a name or note to reserve it',
+      );
+      // The 48dp overflow hit target itself is untouched by this fix.
+      expect(
+        tester.getSize(find.byType(IconButton)),
+        const Size.square(TioSize.dp48),
+      );
+
+      // And it is not merely visually clear — a tap on the nutrition row's
+      // own position never reaches the overflow target underneath it.
+      var editCount = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.dark),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 320,
+                child: MealDiaryMealCard(
+                  entryId: 'meal',
+                  mealName: null,
+                  caloriesText: '195 kcal',
+                  proteinText: '4.1 g',
+                  timeText: '11:43 AM',
+                  notePreview: null,
+                  noteIndicatorVisible: false,
+                  onTap: () {},
+                  onEdit: () => editCount += 1,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tapAt(caloriesRect.center);
+      await tester.pumpAndSettle();
+      expect(
+        editCount,
+        0,
+        reason: 'tapping the nutrition row must not open the overflow popup',
+      );
+    });
+  });
+
   testWidgets(
       'rich card keeps time inside fixed media and exposes only working Edit',
       (tester) async {
@@ -895,6 +985,235 @@ void main() {
     });
   });
 
+  group('RF6 — a row without an exact editable local time has no Edit', () {
+    testWidgets(
+        'a timezone-ID-only row exposes no overflow and no card tap, while '
+        'an offset-backed row in the same section keeps both',
+        (tester) async {
+      final categories = _FakeMealCategoriesRepository(
+        MealCategoriesConfig.canonicalDefaults(),
+      );
+      final mealLogs = _ImmediateMealLogRepository({
+        _localDate(11): [
+          _entry(
+            id: 'no-offset',
+            categoryId: 'meal_slot_2',
+            mealName: 'Dal',
+            consumedAt: DateTime.utc(2026, 9, 11, 7, 35),
+            calories: 200,
+            protein: 10,
+            consumedUtcOffsetMinutes: null,
+            consumedTimezoneId: 'Asia/Kolkata',
+          ),
+          _entry(
+            id: 'with-offset',
+            categoryId: 'meal_slot_2',
+            mealName: 'Rice',
+            consumedAt: DateTime.utc(2026, 9, 11, 9, 35),
+            calories: 150,
+            protein: 5,
+          ),
+        ],
+      });
+      final edits = <String>[];
+
+      await _pumpHistoryView(
+        tester,
+        mealLogs: mealLogs,
+        categories: categories,
+        onEdit: edits.add,
+      );
+      await tester.pumpAndSettle();
+
+      final noOffsetCard =
+          find.byKey(const ValueKey('meal-diary-entry-no-offset'));
+      final withOffsetCard =
+          find.byKey(const ValueKey('meal-diary-entry-with-offset'));
+      expect(noOffsetCard, findsOneWidget);
+      expect(withOffsetCard, findsOneWidget);
+
+      // No overflow popup at all for the row that cannot be edited — not a
+      // disabled-looking one, per the existing no-dead-action rule. The
+      // popup is a Stack sibling of the card rather than its descendant, so
+      // it is identified by its own entryId rather than searched for inside
+      // the card's key.
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is MealLogActionsPopup && w.entryId == 'no-offset',
+        ),
+        findsNothing,
+      );
+      // The other row keeps its normal working overflow.
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is MealLogActionsPopup && w.entryId == 'with-offset',
+        ),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.more_vert), findsOneWidget);
+
+      // Tapping the unusable card's own area does nothing.
+      await tester.tap(noOffsetCard, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(edits, isEmpty);
+
+      // The offset-backed card still opens normally, both by tap and by its
+      // overflow Edit.
+      await tester.tap(withOffsetCard, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(edits, ['with-offset']);
+    });
+  });
+
+  group('RF4 — section header never constructs a negative width', () {
+    testWidgets(
+        'a long aggregate summary from many entries never overflows or '
+        'throws, and stays flush with the content edge', (tester) async {
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      final categories = _FakeMealCategoriesRepository(
+        MealCategoriesConfig.canonicalDefaults(),
+      );
+      // Many modest-value entries: each individual card renders a short,
+      // safe value ("99 kcal" / "9 g"), while the section aggregate — the sum
+      // across all of them — becomes long enough (5-6 digits) to genuinely
+      // stress the header's available width, reproducing the reported
+      // negative-constraint risk without the card's own text rendering ever
+      // being put under pressure.
+      final mealLogs = _ImmediateMealLogRepository({
+        _localDate(11): [
+          for (var i = 0; i < 600; i++)
+            _entry(
+              id: 'meal-$i',
+              categoryId: 'meal_slot_2',
+              mealName: 'Rice',
+              consumedAt: DateTime.utc(2026, 9, 11, 7, 35),
+              calories: 99,
+              protein: 9,
+            ),
+        ],
+      });
+
+      await _pumpHistoryView(
+        tester,
+        mealLogs: mealLogs,
+        categories: categories,
+        onEdit: (_) {},
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull,
+          reason: 'no negative BoxConstraints, no RenderFlex overflow');
+
+      final sectionRect = tester.getRect(
+        find.byKey(const ValueKey('meal-diary-section-meal_slot_2')),
+      );
+      final summaryRect = tester.getRect(
+        find.byKey(const ValueKey('meal-diary-section-summary-meal_slot_2')),
+      );
+      expect(
+        summaryRect.right,
+        sectionRect.right,
+        reason: 'the summary must still sit flush at the content edge',
+      );
+      expect(find.text('59400 kcal'), findsOneWidget);
+      expect(find.text('5400g'), findsOneWidget);
+    });
+
+    testWidgets('normal 390dp geometry is unaffected by the safety clamp',
+        (tester) async {
+      tester.view.physicalSize = const Size(390, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      final categories = _FakeMealCategoriesRepository(
+        MealCategoriesConfig.canonicalDefaults(),
+      );
+      final mealLogs = _ImmediateMealLogRepository({
+        _localDate(11): [
+          _entry(
+            id: 'meal',
+            categoryId: 'meal_slot_2',
+            mealName: 'Rice',
+            consumedAt: DateTime.utc(2026, 9, 11, 7, 35),
+            calories: 254,
+            protein: 9,
+          ),
+        ],
+      });
+
+      await _pumpHistoryView(
+        tester,
+        mealLogs: mealLogs,
+        categories: categories,
+        onEdit: (_) {},
+      );
+      await tester.pumpAndSettle();
+
+      final sectionRect = tester.getRect(
+        find.byKey(const ValueKey('meal-diary-section-meal_slot_2')),
+      );
+      final summaryRect = tester.getRect(
+        find.byKey(const ValueKey('meal-diary-section-summary-meal_slot_2')),
+      );
+      final dividerRect = tester.getRect(find.byType(Divider));
+      expect(summaryRect.right, sectionRect.right);
+      expect(dividerRect.width, greaterThan(0));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+        'the OFF preference still reclaims the trailing space with the '
+        'clamp in place', (tester) async {
+      final dateController = MealDiaryDateController(clock: () => _today);
+      final categories = _FakeMealCategoriesRepository(
+        MealCategoriesConfig.canonicalDefaults(),
+      );
+      final mealLogs = _ImmediateMealLogRepository({
+        _localDate(11): [
+          _entry(
+            id: 'off',
+            categoryId: 'meal_slot_2',
+            mealName: 'Rice',
+            consumedAt: DateTime.utc(2026, 9, 11, 7, 35),
+            calories: 254,
+            protein: 9,
+          ),
+        ],
+      });
+      final preferences = MealDiaryDisplayPreferencesController(
+        _FakeDisplayPreferencesRepository(
+          const MealDiaryDisplayPreferences(showMealSectionNutrition: false),
+        ),
+      );
+      await preferences.load();
+
+      await _pump(
+        tester,
+        dateController: dateController,
+        mealLogs: mealLogs,
+        categories: categories,
+        preferences: preferences,
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          const ValueKey('meal-diary-section-summary-meal_slot_2'),
+        ),
+        findsNothing,
+      );
+      final sectionRect = tester.getRect(
+        find.byKey(const ValueKey('meal-diary-section-meal_slot_2')),
+      );
+      final dividerRect = tester.getRect(find.byType(Divider));
+      expect(dividerRect.right, sectionRect.right);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   testWidgets('a slower old date read cannot overwrite the newer selection',
       (tester) async {
     final dateController = MealDiaryDateController(clock: () => _today);
@@ -1027,6 +1346,8 @@ MealLogEntry _entry({
   required num calories,
   required num protein,
   int localDay = 11,
+  int? consumedUtcOffsetMinutes = 330,
+  String? consumedTimezoneId,
 }) {
   return MealLogEntry.manual(
     id: id,
@@ -1036,7 +1357,8 @@ MealLogEntry _entry({
     note: note,
     consumedAt: consumedAt,
     consumedLocalDate: _localDate(localDay),
-    consumedUtcOffsetMinutes: 330,
+    consumedUtcOffsetMinutes: consumedUtcOffsetMinutes,
+    consumedTimezoneId: consumedTimezoneId,
     captureSource: MealLogCaptureSource.quickAdd,
     manualNutritionSnapshot: NutritionSnapshot(
       schemaVersion: 1,

@@ -236,9 +236,8 @@ void main() {
 
       final expectedSurface =
           tester.element(find.byKey(_sheet)).tioColors.surface;
-      final fillFinder = find.ancestor(
-        of: find.byKey(_sheet),
-        matching: find.byType(ColoredBox),
+      final fillFinder = find.byKey(
+        const ValueKey('meal-diary-add-food-bottom-inset-fill'),
       );
       expect(fillFinder, findsOneWidget);
       expect(
@@ -246,6 +245,15 @@ void main() {
         expectedSurface,
         reason: 'the fill must be the same governed role TioSheet paints, '
             'not a hardcoded or mismatched color',
+      );
+      // The fill must be a sibling of the sheet, never an ancestor — an
+      // ancestor wrapping TioSheet's own rounded-top Material would paint a
+      // flat rectangle behind/around that rounded arc and square the corners.
+      expect(
+        find.ancestor(of: find.byKey(_sheet), matching: fillFinder),
+        findsNothing,
+        reason: 'the fill must not wrap the sheet or its rounded corners '
+            'would be squared against it',
       );
 
       final fillRect = tester.getRect(fillFinder);
@@ -257,9 +265,22 @@ void main() {
       );
       expect(
         sheetRect.bottom,
-        lessThan(fillRect.bottom),
+        lessThanOrEqualTo(fillRect.top),
         reason: "TioSheet's own Material stops above the inset — proving "
-            'the gap this regression covers actually exists',
+            'the gap this regression covers actually exists — and the fill '
+            'starts exactly where it stops, without overlapping it',
+      );
+
+      // TioSheet's own rounded-top Material keeps its radius: nothing paints
+      // an opaque rectangle behind it that would square those corners off.
+      final sheetMaterial = tester.widget<Material>(
+        find.descendant(of: find.byKey(_sheet), matching: find.byType(Material))
+            .first,
+      );
+      expect(
+        sheetMaterial.borderRadius,
+        isNotNull,
+        reason: "the sheet's rounded top corners must remain intact",
       );
     });
 

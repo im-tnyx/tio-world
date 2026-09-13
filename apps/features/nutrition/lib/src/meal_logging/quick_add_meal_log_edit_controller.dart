@@ -111,11 +111,19 @@ final class QuickAddMealLogEditController extends ChangeNotifier {
         return null;
       }
 
-      final now = _minuteOnly(_clock());
-      if (draft.consumedLocalDateTime.isAfter(now)) {
-        _clearRetry();
-        _setFailure(futureMealMessage);
-        return null;
+      // Only a genuinely changed time can be a future time. Comparing the
+      // draft to the current device clock unconditionally would reject an
+      // untouched historical meal after the device's timezone/wall-clock has
+      // moved forward of that stored value — an unrelated name/macro edit
+      // must still be allowed to save unchanged canonical time facts.
+      final originalLocal = editableLocalDateTime(_baseEntry)!;
+      if (draft.consumedLocalDateTime != originalLocal) {
+        final now = _minuteOnly(_clock());
+        if (draft.consumedLocalDateTime.isAfter(now)) {
+          _clearRetry();
+          _setFailure(futureMealMessage);
+          return null;
+        }
       }
 
       if (_state.status == QuickAddMealLogEditStatus.failed &&

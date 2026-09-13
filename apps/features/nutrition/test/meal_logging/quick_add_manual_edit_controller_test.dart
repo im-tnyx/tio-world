@@ -79,6 +79,63 @@ void main() {
     expect(input.consumedUtcOffsetMinutes, changed.timeZoneOffset.inMinutes);
   });
 
+  group('RF1 — unchanged time survives timezone/clock travel', () {
+    test(
+        'an unrelated edit succeeds even when the unchanged stored time now '
+        'reads as future on the current clock', () async {
+      final original = _entry();
+      final repository = _RecordingUpdateRepository(current: original);
+      // A clock earlier than the entry's own stored local wall time — the
+      // same effect a backward timezone/device-clock change has: the
+      // untouched meal now looks like it is in the future relative to "now",
+      // even though nothing about its own time changed.
+      final controller = QuickAddMealLogEditController(
+        repository: repository,
+        initialEntry: original,
+        clock: () => DateTime(2026, 9, 12, 9),
+      );
+      addTearDown(controller.dispose);
+
+      final updated = await controller.submit(
+        draft(name: 'Renamed, unchanged time'),
+      );
+
+      expect(controller.state.message, isNull);
+      expect(updated, isNotNull);
+      final input = repository.inputs.single;
+      expect(input.mealName, 'Renamed, unchanged time');
+      // Canonical time facts are exactly preserved, not just "not rejected".
+      expect(input.consumedAt, original.consumedAt);
+      expect(input.consumedLocalDate, original.consumedLocalDate);
+      expect(input.consumedTimezoneId, original.consumedTimezoneId);
+      expect(
+        input.consumedUtcOffsetMinutes,
+        original.consumedUtcOffsetMinutes,
+      );
+    });
+
+    test('a genuinely changed future time is still rejected', () async {
+      final original = _entry();
+      final repository = _RecordingUpdateRepository(current: original);
+      final controller = QuickAddMealLogEditController(
+        repository: repository,
+        initialEntry: original,
+        clock: () => DateTime(2026, 9, 12, 11),
+      );
+      addTearDown(controller.dispose);
+
+      final future = DateTime(2026, 9, 12, 12);
+      final updated = await controller.submit(draft(local: future));
+
+      expect(updated, isNull);
+      expect(
+        controller.state.message,
+        QuickAddMealLogEditController.futureMealMessage,
+      );
+      expect(repository.inputs, isEmpty);
+    });
+  });
+
   test('conflict reloads canonical state before a deliberate reapply',
       () async {
     final original = _entry();
