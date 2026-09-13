@@ -70,13 +70,19 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    final summary =
+        find.byKey(const ValueKey('meal-diary-daily-nutrition-summary'));
+    expect(summary, findsOneWidget);
     expect(
-      find.byKey(const ValueKey('meal-diary-daily-nutrition-summary')),
+      find.descendant(of: summary, matching: find.text('800 kcal')),
       findsOneWidget,
     );
-    expect(find.text('800 kcal'), findsOneWidget);
-    expect(find.text('1200 kcal'), findsOneWidget);
-    expect(find.text('Workout'), findsNothing);
+    expect(
+      find.descendant(of: summary, matching: find.text('1200 kcal')),
+      findsOneWidget,
+    );
+    expect(find.descendant(of: summary, matching: find.text('Workout')),
+        findsNothing);
 
     final calendar = tester.widget<TioDateCalendar>(find.byType(TioDateCalendar));
     expect(calendar.decorationBuilder, isNotNull);
@@ -129,10 +135,15 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(dates.selectedDate, yesterday);
-    expect(find.text('0 kcal'), findsOneWidget);
+    final summary =
+        find.byKey(const ValueKey('meal-diary-daily-nutrition-summary'));
+    expect(find.descendant(of: summary, matching: find.text('0 kcal')),
+        findsOneWidget);
     // Target and Remaining are both the untouched Standard-strategy target.
-    expect(find.text('2000 kcal'), findsNWidgets(2));
-    expect(find.text('Workout'), findsNothing);
+    expect(find.descendant(of: summary, matching: find.text('2000 kcal')),
+        findsNWidgets(2));
+    expect(find.descendant(of: summary, matching: find.text('Workout')),
+        findsNothing);
   });
 
   testWidgets('without target composition the legacy isolated diary stays honest',
