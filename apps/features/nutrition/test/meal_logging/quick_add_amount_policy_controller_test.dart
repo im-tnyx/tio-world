@@ -99,6 +99,13 @@ void main() {
       controller.state.message,
       QuickAddMealLogCreateController.invalidMealMessage,
     );
+    controller.draftChanged();
+
+    expect(await controller.submit(_draft(carbs: 1e-18)), isNull);
+    expect(
+      controller.state.message,
+      QuickAddMealLogCreateController.invalidMealMessage,
+    );
 
     expect(repository.creates, isEmpty);
     expect(uuidCalls, 0);
@@ -218,6 +225,13 @@ void main() {
     controller.draftChanged();
 
     expect(await controller.submit(_draft(protein: 1e-14)), isNull);
+    expect(
+      controller.state.message,
+      QuickAddMealLogEditController.invalidMealMessage,
+    );
+    controller.draftChanged();
+
+    expect(await controller.submit(_draft(protein: 1e-18)), isNull);
     expect(
       controller.state.message,
       QuickAddMealLogEditController.invalidMealMessage,
