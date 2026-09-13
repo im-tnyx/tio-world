@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_shared/shared.dart';
 
 import '../../../domain/models/daily_nutrition_summary.dart';
+import '../../meal_diary_nutrition_summary_providers.dart';
 
 /// Compact Nutrition-owned selected-day summary composition.
 ///
@@ -114,7 +116,7 @@ class MealDiaryDailyNutritionSummary extends StatelessWidget {
   }
 }
 
-class MealDiaryDailyNutritionSummaryStatus extends StatelessWidget {
+class MealDiaryDailyNutritionSummaryStatus extends ConsumerWidget {
   const MealDiaryDailyNutritionSummaryStatus.loading({super.key})
       : message = 'Loading daily nutrition…',
         isLoading = true;
@@ -127,7 +129,7 @@ class MealDiaryDailyNutritionSummaryStatus extends StatelessWidget {
   final bool isLoading;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.tioColors;
     return TioCard(
       key: ValueKey(
@@ -157,6 +159,15 @@ class MealDiaryDailyNutritionSummaryStatus extends StatelessWidget {
                   ?.copyWith(color: colors.textSecondary),
             ),
           ),
+          if (!isLoading)
+            TextButton(
+              key: const ValueKey('meal-diary-daily-nutrition-retry'),
+              onPressed: () {
+                ref.invalidate(mealDiaryDailyNutritionSummaryProvider);
+                ref.invalidate(mealDiaryNutritionSummaryRangeProvider);
+              },
+              child: const Text('Retry'),
+            ),
         ],
       ),
     );
