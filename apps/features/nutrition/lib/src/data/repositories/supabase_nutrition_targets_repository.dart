@@ -64,10 +64,11 @@ final class SupabaseNutritionTargetsRepository
 
   final NutritionTargetsTableGateway _gateway;
   final CurrentNutritionTargetsUserId _currentUserId;
-  final StreamController<void> _changes = StreamController<void>.broadcast();
+  var _revision = 0;
+  final StreamController<int> _changes = StreamController<int>.broadcast();
 
   @override
-  Stream<void> get changes => _changes.stream;
+  Stream<int> get changes => _changes.stream;
 
   @override
   Future<NutritionTargetsData?> read() async {
@@ -139,7 +140,7 @@ final class SupabaseNutritionTargetsRepository
       // ON CONFLICT DO UPDATE, so a core-five write cannot disturb the
       // reserved additional_nutrient_goals value.
     });
-    _changes.add(null);
+    _changes.add(++_revision);
   }
 
   String _requireUserId() {
