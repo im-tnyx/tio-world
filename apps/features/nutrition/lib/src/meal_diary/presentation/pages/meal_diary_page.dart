@@ -29,11 +29,12 @@ import '../widgets/meal_diary_log_action.dart';
 const double _actionClearance = TioSize.dp56 + TioSpacing.xl * 2;
 
 /// The calendar reserves a 42dp transparent band below its surface so the
-/// expansion handle keeps a full 48dp hit target. The Daily Nutrition card is
-/// passive content, so it may visually occupy most of that transparent band
-/// without shrinking the handle target or intercepting date taps. Leaving 10dp
-/// visible clearance keeps the two surfaces distinct without the former large
-/// empty gap.
+/// expansion handle keeps a full 48dp hit target. A resolved Daily Nutrition
+/// summary is read-only content, so it may visually occupy most of that band.
+/// The summary itself ignores pointer input while overlapped, which lets the
+/// calendar handle keep its complete hit target even though the pixels are
+/// closer together. Loading/error surfaces keep the ordinary clearance because
+/// the error surface contains an interactive Retry action.
 const double _dailySummaryCalendarOverlap = TioSize.dp32;
 
 /// The Meal Diary surface, and the first production consumer of the reusable
@@ -299,6 +300,7 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
         : ref.watch(
             mealDiaryDailyNutritionSummaryProvider(dailySummaryRequest),
           );
+    final canOverlapDailySummary = dailySummary?.hasValue == true;
 
     final visibleRange = _clampedVisibleRange(dates);
     final rangeRequest = mealLogRepository == null ||
@@ -325,7 +327,7 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
           historyRequest,
           _dailySummarySurface(dailySummary),
           _calendarDecorationBuilder(rangeSummaries?.valueOrNull),
-          hasDailySummarySurface: dailySummary != null,
+          overlapDailySummary: canOverlapDailySummary,
         ),
         // The expanded month grid can reach the bottom of a short viewport,
         // so the floating action temporarily steps out of its way.
@@ -363,7 +365,9 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
             const MealDiaryDailyNutritionSummaryStatus.loading(),
         error: (_, __) =>
             const MealDiaryDailyNutritionSummaryStatus.error(),
-        data: (data) => MealDiaryDailyNutritionSummary(summary: data),
+        data: (data) => IgnorePointer(
+          child: MealDiaryDailyNutritionSummary(summary: data),
+        ),
       ),
     );
   }
@@ -404,11 +408,11 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
     MealDiaryHistoryRequest? historyRequest,
     Widget dailySummarySurface,
     TioDateDecorationBuilder? decorationBuilder, {
-    required bool hasDailySummarySurface,
+    required bool overlapDailySummary,
   }) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final overlap = hasDailySummarySurface
+        final overlap = overlapDailySummary
             ? _dailySummaryCalendarOverlap
             : TioSpacing.none;
         final reservedClearance = _reservedClearance(context);
