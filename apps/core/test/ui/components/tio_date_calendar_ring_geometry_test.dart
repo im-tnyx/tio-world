@@ -38,17 +38,17 @@ void main() {
         find.descendant(of: cell, matching: find.byType(CustomPaint)),
       );
 
-      // A normal-scale date cell is 28dp: outer radius 14. The 2dp progress
-      // stroke is centred at radius 13, so its inner edge is radius 12. The
-      // 0.5dp selection stroke is centred at radius 11.75, putting its outer
-      // edge at the same radius 12. The rings therefore touch with no gap.
+      // Owner-approved +1 radius step: a normal-scale date cell is now 30dp,
+      // giving outer radius 15. The 2dp progress stroke is centred at radius
+      // 14, while the 0.5dp selection stroke is centred at radius 12.75. Their
+      // edges still meet at radius 13, so the larger rings retain zero gap.
       expect(
         circle,
         paints
-          ..circle(radius: 11.5)
-          ..circle(radius: 13, strokeWidth: 2)
+          ..circle(radius: 12.5)
+          ..circle(radius: 14, strokeWidth: 2)
           ..arc()
-          ..circle(radius: 11.75, strokeWidth: 0.5),
+          ..circle(radius: 12.75, strokeWidth: 0.5),
       );
     },
   );
