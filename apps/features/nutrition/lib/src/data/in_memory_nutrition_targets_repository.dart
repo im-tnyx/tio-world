@@ -8,12 +8,13 @@ import '../domain/repositories/nutrition_targets_repository.dart';
 class InMemoryNutritionTargetsRepository
     implements NutritionTargetsRepository, NutritionTargetsChangeSource {
   NutritionTargetsData? _data;
-  final StreamController<void> _changes = StreamController<void>.broadcast();
+  var _revision = 0;
+  final StreamController<int> _changes = StreamController<int>.broadcast();
 
   NutritionTargetsData? get data => _data;
 
   @override
-  Stream<void> get changes => _changes.stream;
+  Stream<int> get changes => _changes.stream;
 
   @override
   Future<NutritionTargetsData?> read() async => _data;
@@ -22,6 +23,6 @@ class InMemoryNutritionTargetsRepository
   Future<void> upsert(NutritionTargetsData targets) async {
     targets.validate();
     _data = targets;
-    _changes.add(null);
+    _changes.add(++_revision);
   }
 }
