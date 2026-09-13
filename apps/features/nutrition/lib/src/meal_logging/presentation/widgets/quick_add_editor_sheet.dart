@@ -503,14 +503,20 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
     _mealName.text = entry.mealName ?? '';
     _calories.text = _formatEditorAmount(
       snapshot.amountFor(NutrientId.energy),
+      field: ManualNutritionAmountField.calories,
     );
     _carbs.text = _formatEditorAmount(
       snapshot.amountFor(NutrientId.carbohydrate),
+      field: ManualNutritionAmountField.carbs,
     );
     _protein.text = _formatEditorAmount(
       snapshot.amountFor(NutrientId.protein),
+      field: ManualNutritionAmountField.protein,
     );
-    _fat.text = _formatEditorAmount(snapshot.amountFor(NutrientId.fat));
+    _fat.text = _formatEditorAmount(
+      snapshot.amountFor(NutrientId.fat),
+      field: ManualNutritionAmountField.fat,
+    );
     _hydrating = false;
   }
 
@@ -684,8 +690,18 @@ extension _QuickAddCategories on _QuickAddEditorSheetState {
   }
 }
 
-String _formatEditorAmount(num? value) {
+String _formatEditorAmount(
+  num? value, {
+  ManualNutritionAmountField? field,
+}) {
   if (value == null) return '';
+  if (field != null) {
+    final canonical = ManualNutritionAmountPolicy.canonicalEditorText(
+      field: field,
+      value: value,
+    );
+    if (canonical != null) return canonical;
+  }
   final numeric = value.toDouble();
   if (numeric == numeric.roundToDouble()) return numeric.toInt().toString();
   return numeric.toString();
