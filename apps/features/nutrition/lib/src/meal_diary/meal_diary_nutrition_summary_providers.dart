@@ -12,7 +12,7 @@ final mealDiaryNutritionTargetsRepositoryProvider =
     Provider<NutritionTargetsRepository?>((ref) => null);
 
 final _nutritionTargetsChangesProvider = StreamProvider.autoDispose
-    .family<void, NutritionTargetsChangeSource>((ref, source) => source.changes);
+    .family<int, NutritionTargetsChangeSource>((ref, source) => source.changes);
 
 @immutable
 final class MealDiaryDailySummaryRequest {
