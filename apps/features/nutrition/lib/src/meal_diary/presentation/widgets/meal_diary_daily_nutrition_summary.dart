@@ -16,6 +16,11 @@ class MealDiaryDailyNutritionSummary extends StatelessWidget {
     super.key,
   });
 
+  /// At this content width all three N3A calorie terms fit on one row without
+  /// squeezing their accessible text. This is one-off responsive geometry,
+  /// not a reusable design-system token.
+  static const _threeColumnBreakpoint = 360.0;
+
   final DailyNutritionSummary summary;
 
   @override
@@ -59,7 +64,8 @@ class MealDiaryDailyNutritionSummary extends StatelessWidget {
           const SizedBox(height: TioSpacing.md),
           LayoutBuilder(
             builder: (context, constraints) {
-              final columns = constraints.maxWidth >= TioSize.dp360 ? 3 : 2;
+              final columns =
+                  constraints.maxWidth >= _threeColumnBreakpoint ? 3 : 2;
               final gaps = TioSpacing.sm * (columns - 1);
               final tileWidth = (constraints.maxWidth - gaps) / columns;
               return Wrap(
