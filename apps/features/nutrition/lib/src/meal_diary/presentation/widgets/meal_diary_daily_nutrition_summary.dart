@@ -67,7 +67,7 @@ class MealDiaryDailyNutritionSummary extends StatelessWidget {
                     '−',
                     style: textTheme.titleLarge?.copyWith(
                       color: colors.textSecondary,
-                      fontWeight: TioFontWeight.w700,
+                      fontWeight: TioFontWeight.w500,
                     ),
                   ),
                 ),
@@ -80,7 +80,7 @@ class MealDiaryDailyNutritionSummary extends StatelessWidget {
                     '=',
                     style: textTheme.titleLarge?.copyWith(
                       color: colors.textSecondary,
-                      fontWeight: TioFontWeight.w700,
+                      fontWeight: TioFontWeight.w500,
                     ),
                   ),
                 ),
@@ -89,8 +89,6 @@ class MealDiaryDailyNutritionSummary extends StatelessWidget {
             ],
           ),
           if (supportedNutrients.isNotEmpty) ...[
-            const SizedBox(height: TioSpacing.md),
-            const Divider(height: TioStroke.width1),
             const SizedBox(height: TioSpacing.md),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -216,7 +214,7 @@ class _CalorieMetricCell extends StatelessWidget {
               maxLines: 1,
               style: textTheme.titleLarge?.copyWith(
                 color: colors.textPrimary,
-                fontWeight: TioFontWeight.w700,
+                fontWeight: TioFontWeight.w600,
               ),
             ),
           ),
@@ -228,7 +226,7 @@ class _CalorieMetricCell extends StatelessWidget {
               maxLines: 1,
               style: textTheme.labelLarge?.copyWith(
                 color: colors.textSecondary,
-                fontWeight: TioFontWeight.w600,
+                fontWeight: TioFontWeight.w500,
               ),
             ),
           ),
@@ -275,7 +273,7 @@ class _NutrientProgressCell extends StatelessWidget {
               textAlign: TextAlign.center,
               style: textTheme.labelLarge?.copyWith(
                 color: colors.textPrimary,
-                fontWeight: TioFontWeight.w700,
+                fontWeight: TioFontWeight.w600,
               ),
             ),
           ),
