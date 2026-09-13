@@ -1,6 +1,6 @@
 # TNYX-209 — Quick Add nutrition amount range & precision policy
 
-**Status:** In progress — implementation authorized  
+**Status:** Validated  
 **Primary owner:** `apps/features/nutrition`  
 **Affected platforms:** Flutter phone app (Quick Add / Quick Edit)
 
@@ -8,8 +8,8 @@
 
 **Trigger:** New independently scoped product task/feature slice + product-visible validation behavior  
 **Approval status:** `APPROVED`  
-**Approval evidence:** Owner approved the audited V1 policy on 2026-09-13 and explicitly authorized this TNYX-209 implementation slice after TNYX-210 merged.  
-**Approved product/UI/data-shape boundaries:** One shared manual/coarse Quick Add + Quick Edit validation policy for Calories, Carbs, Protein and Fat. Preserve current editor geometry and interaction structure.  
+**Approval evidence:** Owner approved the audited V1 policy on 2026-09-13 and explicitly authorized implementation after TNYX-210 merged.  
+**Approved product/UI/data-shape boundaries:** One shared manual/coarse Quick Add + Quick Edit validation policy for Calories, Carbs, Protein and Fat while preserving current editor geometry and interaction structure.  
 **Explicit non-changes:** No Daily Nutrition Summary, Nutrition Targets behavior, detailed Meal Editor, AI text parsing, provider normalization policy, generic `NutritionSnapshot` narrowing, Supabase table/column shape change, schema migration, RLS change, serving/quantity model, TNYX-211 work, or visual redesign.
 
 ## Active Handoff
@@ -18,21 +18,22 @@
 **Previous implementation owner:** Codex (local repository), source edits not started  
 **Implementation owner:** ChatGPT — remote GitHub execution  
 **Review owner:** Unassigned  
-**Implementation ownership state:** Active; single implementation owner for this slice  
+**Implementation ownership state:** Handoff pending — source implementation is validated and no further source edits are planned before review  
 **Ownership transition:** Codex local handoff -> ChatGPT remote GitHub execution, owner-directed on 2026-09-13  
-**Repository state verified remotely:** `main@91b4eca3e3afae11c6f992179ce0555532f8c75c`; branch starting `HEAD@7f893e9909332a72f8a26ef347721cf40d0aa84e`; main is exact merge base; ahead 2 / behind 0; pre-implementation diff contains only this task brief  
+**Repository anchors:** `main@91b4eca3e3afae11c6f992179ce0555532f8c75c`; branch started at `7f893e9909332a72f8a26ef347721cf40d0aa84e`; validated source head `1b1dd59222442333b6b6d984851c10cf874ce195`  
 **Branch:** `tnyx/tnyx-209-n20c-3-quick-add-nutrition-amount-range-precision-policy`  
-**PR / tracker:** Linear `TNYX-209` is `In Progress`; no PR existed at takeover  
-**Current implementation state:** source implementation pending after remote reconstruction  
-**Relevant execution surface:** `QuickAddEditorSheet` -> shared manual/coarse amount policy -> `QuickAddMealLogCreateController` / `QuickAddMealLogEditController` -> `MealLogRepository`  
-**Validation remaining:** focused policy/controller/widget tests, Nutrition analyze/tests, app consumer validation, diff audit, exact-head CI  
+**PR:** Draft PR #265 — `fix(nutrition): enforce Quick Add amount range and precision policy`  
+**Tracker:** Linear `TNYX-209`; move to `In Review` after this final reconciliation  
+**Current implementation state:** Complete within the approved TNYX-209 scope  
+**Relevant execution surface:** `QuickAddEditorSheet` -> `ManualNutritionAmountPolicy` -> `QuickAddMealLogCreateController` / `QuickAddMealLogEditController` -> `MealLogRepository`  
+**Validation completed:** exact-source-head GitHub Actions run `34746471295` / check `Analyze and test` succeeded on `1b1dd59222442333b6b6d984851c10cf874ce195`; final scope audit remains limited to 9 expected files  
 **Current blocker:** none  
-**Open review finding IDs:** `TNYX-209-A1`  
-**Next exact action:** implement the locked policy on this existing branch without widening scope
+**Open review finding IDs:** none  
+**Next exact action:** external review of Draft PR #265; do not merge without explicit owner instruction
 
 ## Global UI / Design-System Guardrail
 
-Root `AGENTS.md`, `apps/features/AGENTS.md`, and `apps/core/lib/src/theme/README.md` apply. TNYX-209 may change validation messages/enabled state only; it does not authorize geometry, spacing, typography, colors, input component geometry, or any other visual redesign.
+Root `AGENTS.md`, `apps/features/AGENTS.md`, and `apps/core/lib/src/theme/README.md` apply. TNYX-209 changes validation messages/enabled state only; it does not authorize geometry, spacing, typography, colors, input component geometry, or visual redesign.
 
 ## 1. Discovery
 
@@ -52,8 +53,8 @@ A user cannot save absurdly large or over-precise manual nutrition values in Qui
 
 ### Scope
 
-- Calories, Carbs, Protein, Fat in manual/coarse Quick Add + Quick Edit.
-- Shared policy owned by Nutrition feature/domain/use-case layer, not widget-only validation.
+- Calories, Carbs, Protein and Fat in manual/coarse Quick Add + Quick Edit.
+- Shared policy owned by Nutrition feature/domain use-case layer, not widget-only validation.
 - Field-specific presentation errors in the existing editor surface.
 - Focused boundary/precision tests in policy + widget + create/edit controller layers.
 
@@ -70,17 +71,11 @@ A user cannot save absurdly large or over-precise manual nutrition values in Qui
 
 ## 2. Codebase Exploration
 
-### Fresh Current Runtime Evidence
+### Baseline Gap
 
-- `quick_add_editor_sheet.dart` parses `double` and currently rejects only parse/non-finite/negative amounts through `_nutritionError`; Calories are required while Carbs/Protein/Fat are optional.
-- `_currentDraft()` disables the CTA when the presentation draft is invalid.
-- `QuickAddMealLogCreateController._validateDraft()` currently accepts any finite non-negative Calories/macros.
-- `QuickAddMealLogEditController._validateDraft()` duplicates the same finite/non-negative-only rule.
-- Edit preserves unexposed nutrients by cloning the canonical snapshot and replacing only the four Quick Add fields.
-- `NutritionSnapshot` remains provider-independent and must not be narrowed by this slice.
-- TNYX-210 unchanged-time future validation remains a required regression contract.
+Before implementation, Quick Add presentation and both mutation controllers accepted any finite non-negative Calories/macros. The generic `NutritionSnapshot` and DB snapshot validator intentionally had no product-specific manual/coarse maximum or precision policy.
 
-### Existing Regression Contracts To Preserve
+### Regression Contracts Preserved
 
 - create idempotency / exact frozen ambiguous retry;
 - edit expectedRevision, conflict reload and ambiguous retry;
@@ -113,14 +108,12 @@ Locked behavior:
 
 ## 4. Architecture Design
 
-### Chosen Approach
-
-Add one pure Nutrition-owned reusable manual/coarse nutrition amount policy under `domain/usecases`. It owns field identity/spec plus typed validation errors. Presentation maps typed errors to locked field copy. Create and edit controllers call the same numeric policy before constructing persistence inputs.
+One pure Nutrition-owned reusable manual/coarse amount policy lives under `domain/usecases`. It owns field identity/spec plus typed validation errors. Presentation maps typed errors to the locked copy. Create and edit controllers call the same numeric policy before persistence inputs are constructed.
 
 ```text
 Quick Add / Quick Edit numeric text
         ↓ parse
-shared manual/coarse nutrition amount policy
+ManualNutritionAmountPolicy
         ├─ presentation error mapping
         └─ create/edit mutation validation
                 ↓
@@ -129,17 +122,9 @@ ManualMealLogCreate / ManualMealLogUpdate
 MealLogRepository
 ```
 
-### Precision Approach
+Precision validation checks whether `value * 10` is within a small floating-point tolerance of an integer. No quantization or silent rounding is applied before persistence.
 
-Numeric validation checks whether `value * 10` is within a small floating-point tolerance of an integer. This accepts normal parsed one-decimal values without exact-binary-float fragility while still rejecting genuine extra precision. No quantization or rounding is applied before persistence.
-
-### Alternatives Rejected
-
-- `NutritionSnapshot` caps: too broad/provider-independent.
-- widget-only rules: bypassable by direct controller call.
-- generic DB snapshot caps: wrong durable ownership for this V1.
-- Nutrition Target ranges: different product semantics.
-- silent rounding: invisibly changes user-entered truth.
+Rejected alternatives remain: generic `NutritionSnapshot` caps, widget-only enforcement, generic DB snapshot caps, Nutrition Target ranges, and silent rounding.
 
 ## 5. Implementation Checklist
 
@@ -147,41 +132,64 @@ Numeric validation checks whether `value * 10` is within a small floating-point 
 - [x] Owner approves exact V1 min/max/precision and copy.
 - [x] Verify remote branch HEAD, ancestry, task-only pre-implementation diff and Linear state.
 - [x] Transfer single implementation ownership before source edits.
-- [ ] Add one pure reusable manual/coarse amount policy under Nutrition ownership.
-- [ ] Make `QuickAddEditorSheet` field validation use the policy while preserving geometry.
-- [ ] Make both create and edit controller validation consume the same policy.
-- [ ] Preserve optional `null`, explicit zero, hidden nutrients and frozen retry semantics.
-- [ ] Add pure policy boundary/precision tests including floating-point edge behavior.
-- [ ] Add create/edit controller bypass tests for upper bound + precision and zero/null semantics.
-- [ ] Add widget tests for max/precision copy, disabled CTA, valid boundary and blank macro.
-- [ ] Add legacy/out-of-policy Quick Edit regression requiring correction before save.
-- [ ] Confirm no `NutritionSnapshot`, provider/detailed editor, Nutrition Targets, TNYX-211, Core or Supabase/schema changes.
-- [ ] Run/collect Nutrition/App validation, diff audit, Draft PR and exact-head CI.
+- [x] Add one pure reusable manual/coarse amount policy under Nutrition ownership.
+- [x] Make `QuickAddEditorSheet` field validation use the policy while preserving geometry.
+- [x] Make both create and edit controller validation consume the same policy.
+- [x] Preserve optional `null`, explicit zero, hidden nutrients and frozen retry semantics.
+- [x] Add pure policy boundary/precision tests including floating-point edge behavior.
+- [x] Add create/edit controller bypass tests for upper bound + precision and zero/null semantics.
+- [x] Add widget tests for max/precision copy, disabled CTA, valid boundary and blank macro.
+- [x] Add legacy/out-of-policy Quick Edit regression requiring correction before save.
+- [x] Confirm no `NutritionSnapshot`, provider/detailed editor, Nutrition Targets, TNYX-211, Core or Supabase/schema changes.
+- [x] Collect exact-source-head CI and final 9-file scope audit.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Implementation validation not run yet.
-Remote API preflight passed:
+Remote preflight:
 - branch start HEAD = 7f893e9909332a72f8a26ef347721cf40d0aa84e
 - main = 91b4eca3e3afae11c6f992179ce0555532f8c75c
 - merge base = main
-- ahead 2 / behind 0
-- pre-implementation changed files = this task brief only
+- pre-implementation diff = task brief only
+
+Implementation source validation:
+- first CI run found one prefer_const_declarations lint in the new test
+- lint fixed without production behavior change
+- exact source SHA = 1b1dd59222442333b6b6d984851c10cf874ce195
+- GitHub Actions run = 34746471295
+- check = Analyze and test
+- conclusion = success
+- annotations = 0
+
+Final scope audit before handoff:
+- PR #265 remains open, draft and mergeable
+- 9 changed files total
+- changed paths are only this task brief and apps/features/nutrition/**
+- no PR discussion comments
+- no inline review threads
+- no Core, Supabase/schema/RLS, lockfile/generated, Nutrition Targets or TNYX-211 changes
 ```
 
 ### Review Findings and Resolution
 
-| ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
+| ID | Severity | Status | Finding | Observed at SHA | Evidence / resolution |
 |---|---|---|---|---|---|
-| TNYX-209-A1 | P1 | Open | Quick Add/Quick Edit accept any finite non-negative amount; no shared upper-bound or precision policy exists. | `91b4eca3e3afae11c6f992179ce0555532f8c75c` | Implement locked TNYX-209 policy |
+| TNYX-209-A1 | P1 | Resolved | Quick Add/Quick Edit accepted any finite non-negative amount; no shared upper-bound or precision policy existed. | `91b4eca3e3afae11c6f992179ce0555532f8c75c` | Shared policy + widget/create/edit enforcement and focused tests; exact-source-head CI green at `1b1dd59222442333b6b6d984851c10cf874ce195` |
 
 ## 7. Final Handoff
 
-Pending implementation, validation, Draft PR, exact-head CI and review reconciliation.
+TNYX-209 implementation is complete and validated within the approved scope. The Draft PR is ready for review. This handoff does not authorize merge.
+
+Sequencing remains:
+
+```text
+TNYX-209 review / merge
+→ post-merge sync per docs/POST_MERGE_SYNC.md
+→ only then begin TNYX-205 when owner sequencing permits
+```
 
 ### Final Status
 
-`IN PROGRESS`
+`TNYX-209 READY FOR REVIEW`
