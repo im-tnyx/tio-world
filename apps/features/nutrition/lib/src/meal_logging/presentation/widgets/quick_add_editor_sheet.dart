@@ -7,6 +7,7 @@ import 'package:tio_shared/shared.dart';
 
 import '../../../domain/repositories/meal_categories_repository.dart';
 import '../../../domain/repositories/meal_log_repository.dart';
+import '../../../domain/usecases/manual_nutrition_amount_policy.dart';
 import '../../../domain/usecases/meal_category_time_suggestion.dart';
 import '../../../meal_diary/presentation/controllers/meal_categories_controller.dart';
 import '../../quick_add_meal_log_create_controller.dart';
@@ -408,15 +409,24 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
 
     final caloriesText = _calories.text.trim();
     if (caloriesText.isEmpty ||
-        _nutritionError(label: 'Calories', text: caloriesText) != null) {
+        _nutritionError(
+              field: ManualNutritionAmountField.calories,
+              label: 'Calories',
+              text: caloriesText,
+            ) !=
+            null) {
       return null;
     }
     final calories = double.parse(caloriesText);
 
-    num? optionalValue(TextEditingController controller, String label) {
+    num? optionalValue(
+      TextEditingController controller,
+      ManualNutritionAmountField field,
+      String label,
+    ) {
       final text = controller.text.trim();
       if (text.isEmpty) return null;
-      if (_nutritionError(label: label, text: text) != null) {
+      if (_nutritionError(field: field, label: label, text: text) != null) {
         throw const FormatException();
       }
       return double.parse(text);
@@ -428,9 +438,21 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
         mealName: _mealName.text,
         consumedLocalDateTime: _draftDateTime,
         caloriesKcal: calories,
-        carbohydrateGrams: optionalValue(_carbs, 'Carbs'),
-        proteinGrams: optionalValue(_protein, 'Protein'),
-        fatGrams: optionalValue(_fat, 'Fat'),
+        carbohydrateGrams: optionalValue(
+          _carbs,
+          ManualNutritionAmountField.carbs,
+          'Carbs',
+        ),
+        proteinGrams: optionalValue(
+          _protein,
+          ManualNutritionAmountField.protein,
+          'Protein',
+        ),
+        fatGrams: optionalValue(
+          _fat,
+          ManualNutritionAmountField.fat,
+          'Fat',
+        ),
       );
     } on FormatException {
       return null;
@@ -558,6 +580,7 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
                 _NutritionRow(
                   fieldKey: const ValueKey('quick-add-calories'),
                   controller: _calories,
+                  field: ManualNutritionAmountField.calories,
                   label: 'Calories',
                   unit: 'kcal',
                   enabled: !_draftLocked,
@@ -566,6 +589,7 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
                 _NutritionRow(
                   fieldKey: const ValueKey('quick-add-carbs'),
                   controller: _carbs,
+                  field: ManualNutritionAmountField.carbs,
                   label: 'Carbs',
                   unit: 'g',
                   enabled: !_draftLocked,
@@ -574,6 +598,7 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
                 _NutritionRow(
                   fieldKey: const ValueKey('quick-add-protein'),
                   controller: _protein,
+                  field: ManualNutritionAmountField.protein,
                   label: 'Protein',
                   unit: 'g',
                   enabled: !_draftLocked,
@@ -582,6 +607,7 @@ class _QuickAddEditorSheetState extends State<QuickAddEditorSheet>
                 _NutritionRow(
                   fieldKey: const ValueKey('quick-add-fat'),
                   controller: _fat,
+                  field: ManualNutritionAmountField.fat,
                   label: 'Fat',
                   unit: 'g',
                   enabled: !_draftLocked,
@@ -665,19 +691,38 @@ String _formatEditorAmount(num? value) {
   return numeric.toString();
 }
 
-String? _nutritionError({required String label, required String text}) {
+String? _nutritionError({
+  required ManualNutritionAmountField field,
+  required String label,
+  required String text,
+}) {
   final normalized = text.trim();
   if (normalized.isEmpty) return null;
-  final value = double.tryParse(normalized);
-  if (value == null || !value.isFinite) return 'Enter a number.';
-  if (value < 0) return '$label cannot be negative.';
-  return null;
+
+  final validation = ManualNutritionAmountPolicy.validateText(
+    field: field,
+    text: normalized,
+  );
+  final error = validation.error;
+  if (error == null) return null;
+
+  final spec = ManualNutritionAmountPolicy.specFor(field);
+  return switch (error) {
+    ManualNutritionAmountError.invalidNumber => 'Enter a number.',
+    ManualNutritionAmountError.negative => '$label cannot be negative.',
+    ManualNutritionAmountError.aboveMaximum =>
+      '$label must be ${_formatEditorAmount(spec.maximum)} or less.',
+    ManualNutritionAmountError.excessPrecision =>
+      'Use at most ${spec.maximumFractionalDigits} decimal '
+          '${spec.maximumFractionalDigits == 1 ? 'place' : 'places'}.',
+  };
 }
 
 class _NutritionRow extends StatelessWidget {
   const _NutritionRow({
     required this.fieldKey,
     required this.controller,
+    required this.field,
     required this.label,
     required this.unit,
     required this.enabled,
@@ -687,11 +732,16 @@ class _NutritionRow extends StatelessWidget {
 
   final ValueKey<String> fieldKey;
   final TextEditingController controller;
+  final ManualNutritionAmountField field;
   final String label;
   final String unit;
   final bool enabled;
 
-  String? get _error => _nutritionError(label: label, text: controller.text);
+  String? get _error => _nutritionError(
+        field: field,
+        label: label,
+        text: controller.text,
+      );
 
   @override
   Widget build(BuildContext context) {
