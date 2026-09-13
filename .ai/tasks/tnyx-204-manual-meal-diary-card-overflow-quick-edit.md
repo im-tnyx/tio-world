@@ -1,6 +1,6 @@
 # TNYX-204 — Manual Meal Diary card overflow and Quick Edit
 
-**Status:** Final accessibility implementation locally validated; publication and exact-head CI pending\
+**Status:** Final accessibility implementation validated; non-self-referential PR handoff reconciliation in progress\
 **Primary owner:** `apps/features/nutrition`\
 **Affected platforms:** Flutter phone app (`apps/features/nutrition`, consumed by `apps/app`)
 
@@ -17,24 +17,24 @@
 **Planning owner:** Codex `/root`\
 **Implementation owner:** Codex `/root`\
 **Review owner:** Unassigned\
-**Implementation ownership state:** Accessibility source/test work complete locally; publication reconciliation remains active\
+**Implementation ownership state:** Complete\
 **Ownership transition:** Not applicable\
 **Repository state last verified:** 2026-09-13, clean at required starting PR head `5c8ab420136408ecba6ddec5302bfb74be52f5f8` after a fresh remote fetch\
 **Branch:** `tnyx/tnyx-204-n20c-2-manual-meal-diary-card-overflow-quick-edit-activation`\
 **Validated implementation SHA before this accessibility pass:** `2d64ae88c8c52f2a05bbd1a9a585b814baa78cf2`\
-**Observed working-tree state:** Four scoped files modified for this pass: the task brief, two Meal Diary widgets, and one Meal Diary widget test.\
+**Observed working-tree state:** Clean after accessibility implementation commit `687733c0`; this task brief is the only docs-only reconciliation change that follows it.\
 **Observed committed files:** See Final Handoff changed-file groups below.\
 **PR / tracker:** GitHub Draft PR [#263](https://github.com/im-tnyx/tio-world/pull/263) is open; Linear `TNYX-204` is `In Review` (confirmed live 2026-09-13, not merely "will move to"); dependency `TNYX-203` is `Done` and GitHub PR `#262` is merged. Current authoritative relation is `TNYX-204` **blocks `TNYX-209`** (`TNYX-209` then gates `TNYX-205`) — the PR body's earlier "blocks TNYX-205" note was stale and is corrected in this pass.\
 **Current implementation state:** The previously validated runtime behavior remains intact. This owner-authorized pass only removes the duplicate meal-card tap semantics node, adds focused semantic-action regression coverage, corrects the stale history-view class comment, and reconciles handoff metadata without changing approved card geometry or product behavior.\
 **Relevant execution surface:** Meal Diary selected-day cards/section headers, Meal Diary Settings, `MealDiaryDisplayPreferences` model/repository/controller, Quick Add editor, canonical `MealLogRepository.readById`/`updateManual`, existing Core `TioAnchoredPopup`, and the Add Food sheet route\
 **Starting PR head SHA for this pass:** `5c8ab420136408ecba6ddec5302bfb74be52f5f8` (7 commits ahead of `main`, 0 behind; pushed; exact-head GitHub CI `Analyze and test` was `completed/success`)\
-**Validated implementation SHA for this pass:** Pending until the locally validated accessibility source/test changes are committed.\
-**Current PR head after handoff reconciliation:** Read from live GitHub after the final push; this brief will not predict the SHA of the commit that contains its own metadata.\
-**Validation remaining:** Commit/scope audit, push, exact-head Flutter CI, and final PR/task metadata reconciliation.\
-**Current blocker:** None in the local implementation. Publication and exact-head CI gates remain.\
-**Open review finding IDs:** None. TNYX-204-RF5 is resolved locally. TNYX-204-R5 remains an accepted out-of-scope data limitation, not an implementation blocker. TNYX-208 stays canceled/absorbed and was not reopened. TNYX-209 was not started in this pass.\
+**Validated implementation SHA for this pass:** `687733c06307700bc19e2c3bec4dd1856b10d0ec` — local required validation passed, and exact-head GitHub Flutter CI run `34738315964` completed successfully.\
+**Current PR head after handoff reconciliation:** Read from live GitHub PR [#263](https://github.com/im-tnyx/tio-world/pull/263). This tracked brief intentionally does not predict or duplicate the SHA of the docs-only commit that contains this metadata; the PR body/checks are authoritative for that final publication head.\
+**Validation remaining:** No source validation remains. The final docs-only reconciliation head must still be pushed and receive exact-head Flutter CI SUCCESS before owner merge review; that live-only outcome belongs in PR metadata rather than another self-referential tracked commit.\
+**Current blocker:** None in the implementation. Owner merge review remains gated on the live final PR head and its exact-head CI.\
+**Open review finding IDs:** None. TNYX-204-RF5 is resolved at `687733c0`. TNYX-204-R5 remains an accepted out-of-scope data limitation, not an implementation blocker. TNYX-208 stays canceled/absorbed and was not reopened. TNYX-209 was not started in this pass.\
 **Current sequence (owner lock, confirmed live 2026-09-13):** `TNYX-204 → TNYX-209 (N20C-3 Quick Add nutrition amount range & precision policy) → TNYX-205 (N11A) → TNYX-206 (N3A) → TNYX-207 (N5D)`.\
-**Next exact action:** Commit the locally validated four-file accessibility pass, audit/push it without rewriting history, wait for exact-head CI, then record the concrete implementation SHA and reconcile the Draft PR metadata.
+**Next exact action:** After the live final PR head reports exact-head CI SUCCESS, stop for the owner's merge decision. Do not merge here and do not start TNYX-209.
 
 ## Global UI / Design-System Guardrail
 
@@ -153,7 +153,7 @@ Meal Diary card or popup Edit
 - [x] Create a Draft PR only after the implementation and validation handoff is accurate: [#263](https://github.com/im-tnyx/tio-world/pull/263).
 - [x] Remove the duplicate whole-card tap semantics node without changing card geometry or pointer behavior.
 - [x] Add focused semantics-tree and semantic-action regression coverage proving exactly two independent actions: card Edit and `Meal actions`.
-- [ ] Re-run affected/consuming package validation, push the resulting commits, and reconcile exact-head evidence without a self-referential SHA.
+- [x] Re-run affected/consuming package validation and record the concrete implementation SHA without predicting the docs-only reconciliation commit; final publication SHA/CI remain live PR metadata.
 
 ## 6. Quality Review
 
@@ -175,6 +175,7 @@ cd apps/features/nutrition && dart analyze lib test        -> No issues found!
 cd apps/features/nutrition && flutter test --no-pub        -> All tests passed (695 tests)
 cd apps/app && dart analyze lib test                       -> No issues found!
 cd apps/app && flutter test --no-pub                       -> All tests passed (319 tests)
+GitHub Flutter CI at implementation SHA 687733c0           -> SUCCESS (run 34738315964)
 ```
 
 Measured after the final geometry correction at compact viewports, with light
@@ -273,4 +274,4 @@ a duplicate action. Pointer behavior and all approved geometry remain intact.
 
 ### Final Status
 
-`REVIEW` — accessibility implementation is locally validated; publication and exact-head CI reconciliation remain before the owner's final merge decision.
+`REVIEW` — accessibility implementation is validated at `687733c0`; live PR metadata owns the final docs-reconciled head and exact-head CI gate before the owner's merge decision.
