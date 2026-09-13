@@ -1,34 +1,36 @@
 # TNYX-209 — Quick Add nutrition amount range & precision policy
 
-**Status:** Validated — ready for review  
+**Status:** In progress — Codex P2 corrections active  
 **Primary owner:** `apps/features/nutrition`  
 **Affected platforms:** Flutter phone app (Quick Add / Quick Edit)
 
 ## Owner Approval and Scope Boundary
 
 **Approval status:** `APPROVED`  
-**Approval evidence:** Owner approved the audited V1 policy on 2026-09-13 and authorized implementation after TNYX-210 merged.  
-**Approved boundary:** one shared manual/coarse Quick Add + Quick Edit validation policy for Calories, Carbs, Protein and Fat while preserving current editor geometry and interaction structure.  
+**Approval evidence:** Owner approved the audited V1 policy on 2026-09-13, authorized implementation after TNYX-210 merged, and said `Go` on 2026-09-13 to resolve the three fresh Codex P2 findings on PR #265.  
+**Approved boundary:** one shared manual/coarse Quick Add + Quick Edit validation policy for Calories, Carbs, Protein and Fat while preserving current editor geometry and interaction structure. The three Codex findings are correctness corrections inside this already-approved slice, not new product scope.  
 **Explicit non-changes:** no Daily Nutrition Summary, Nutrition Targets behavior, detailed Meal Editor, AI text parsing, provider normalization policy, generic `NutritionSnapshot` narrowing, Supabase table/column shape change, schema migration, RLS change, serving/quantity model, TNYX-211 work, or visual redesign.
 
 ## Active Handoff
 
 **Planning owner:** ChatGPT / owner-guided audit  
-**Implementation owner:** Inactive — implementation and `TNYX-209-R1` resolution complete  
-**Review owner:** ChatGPT — remote re-review complete; no open actionable finding  
-**Implementation ownership state:** Released to review/handoff  
-**Repository anchors:** `main@91b4eca3e3afae11c6f992179ce0555532f8c75c`; branch started at `7f893e9909332a72f8a26ef347721cf40d0aa84e`; R1 source-fix head `52b6f65dd1c7c4c97047bc3aaefcfbd5a6d597d7`  
+**Previous implementation owner:** inactive after `TNYX-209-R1` handoff  
+**Implementation owner:** ChatGPT — remote GitHub execution, reactivated for Codex P2 corrections  
+**Review owner:** Codex bot / ChatGPT re-review after implementation; review role paused while source ownership is active  
+**Implementation ownership state:** Active — bounded correction of three reviewed P2 findings only  
+**Ownership transition:** Review/handoff -> Implementation owner on owner `Go`, 2026-09-13  
+**Repository anchors:** `main@91b4eca3e3afae11c6f992179ce0555532f8c75c`; branch started at `7f893e9909332a72f8a26ef347721cf40d0aa84e`; R1 source-fix head `52b6f65dd1c7c4c97047bc3aaefcfbd5a6d597d7`; Codex-reviewed head `d73e723cc1b32698cd0ccc7d3203cbba2d5d6a6c`  
 **Branch:** `tnyx/tnyx-209-n20c-3-quick-add-nutrition-amount-range-precision-policy`  
-**PR:** #265 — open; ready for review after this docs-only handoff commit receives exact-head green CI  
-**Tracker:** Linear `TNYX-209`; transition to `In Review` after final exact-head CI succeeds  
-**Current implementation state:** Complete within the approved TNYX-209 scope  
-**Current blocker:** none  
-**Open review finding IDs:** none  
-**Next exact action:** verify exact-head CI for this final docs-only handoff commit, then reconcile PR + Linear to review-ready state; do not merge without explicit owner instruction  
+**PR:** #265 — open, non-draft, not merge-ready while `TNYX-209-R2/R3/R4` are open  
+**Tracker:** Linear `TNYX-209` — keep `In Progress`; blocks `TNYX-205`  
+**Current implementation state:** Base policy + R1 fix are implemented; three Codex precision/editability correctness findings require bounded correction  
+**Current blockers:** `TNYX-209-R2`, `TNYX-209-R3`, `TNYX-209-R4`  
+**Open review finding IDs:** `TNYX-209-R2`, `TNYX-209-R3`, `TNYX-209-R4`  
+**Next exact action:** correct exponent-form parsing, preserve editability of numerically accepted floating-point noise on Quick Edit hydration, replace fixed absolute precision tolerance with a scale-aware comparison that still rejects meaningful over-precision; add focused regressions; run exact-head CI; re-review; reconcile PR/Linear/task brief only after validation  
 
 ## Global UI / Design-System Guardrail
 
-Root `AGENTS.md` and `apps/features/AGENTS.md` apply. TNYX-209 changes validation policy/error state only; no production UI geometry, spacing, typography, colors, tokens, input component geometry, or visual redesign were changed.
+Root `AGENTS.md`, `apps/features/AGENTS.md`, and `apps/core/lib/src/theme/README.md` apply. This correction may change only numeric text normalization/validation behavior necessary to preserve the locked policy. No production UI geometry, spacing, typography, colors, tokens, component size, sheet layout, or visual redesign is authorized.
 
 ## 1. Owner-Locked V1 Policy
 
@@ -55,9 +57,9 @@ Locked behavior:
 
 ```text
 Quick Add / Quick Edit numeric text
-        ↓ raw lexical precision guard
+        ↓ strict supported text format + lexical precision guard
 ManualNutritionAmountPolicy
-        ↓ numeric range + precision guard
+        ↓ scale-aware numeric range + precision guard
 presentation + create/edit mutation controllers
         ↓
 MealLogRepository
@@ -65,11 +67,13 @@ MealLogRepository
 
 The shared policy remains Nutrition-owned under `domain/usecases`. Generic `NutritionSnapshot`, DB constraints, Nutrition Targets and Core remain unchanged.
 
-`TNYX-209-R1` hardened precision at both boundaries:
+Correction intent:
 
-- raw text rejects more than one fractional digit before floating-point tolerance can mask it;
-- parsed/direct controller values use a tighter tolerance that still accepts ordinary binary representation noise such as `0.1 + 0.2` while rejecting the reviewed bypass example `0.30000000009`;
-- no value is rounded or quantized before persistence.
+- user-entered exponent/scientific notation must not bypass the one-decimal policy;
+- values accepted at the direct numeric mutation boundary solely because they are ordinary binary floating-point representations of a one-decimal amount must remain editable when reopened in Quick Edit;
+- numeric precision tolerance must scale with floating-point magnitude/ULP behavior rather than using one fixed absolute epsilon;
+- meaningful extra precision such as the previously reviewed `0.30000000009` remains rejected;
+- no product amount is silently rounded to make an invalid user-entered value valid.
 
 ## 3. Implementation Checklist
 
@@ -77,22 +81,23 @@ The shared policy remains Nutrition-owned under `domain/usecases`. Generic `Nutr
 - [x] Quick Add widget and create/edit mutation controllers consume the same policy.
 - [x] Preserve optional `null`, explicit zero, hidden nutrients, retry/idempotency and unchanged-time edit semantics.
 - [x] Preserve current Quick Add geometry and governed `TioInput.numericEditor` surface.
-- [x] Review found and recorded `TNYX-209-R1` before merge.
-- [x] Root/nested agent rules, task brief, PR and Linear state reconciled before resuming source work.
-- [x] Reject raw text with more than one fractional digit before numeric tolerance.
-- [x] Reject direct numeric/controller near-step `0.30000000009` while ordinary computed `0.1 + 0.2` remains valid.
-- [x] Add focused policy regression coverage.
-- [x] Add create/edit controller bypass regression coverage.
-- [x] Add widget regression coverage for locked precision copy and disabled CTA.
-- [x] Re-audit ancestry and changed paths.
-- [x] Exact-source-head CI passed on `52b6f65dd1c7c4c97047bc3aaefcfbd5a6d597d7`.
-- [x] Re-review completed and GitHub `TNYX-209-R1` inline thread resolved after validation.
-- [ ] Final docs-only handoff HEAD exact CI pending at commit creation time.
-- [ ] Move Linear to `In Review` only after that final exact-head CI succeeds.
+- [x] `TNYX-209-R1` fixed and regression-covered.
+- [x] Root/nested agent rules, theme README, live PR review and task brief reconciled before resuming source work.
+- [x] Implementation ownership explicitly reactivated on owner `Go` for the three Codex findings.
+- [ ] `TNYX-209-R2`: reject exponent/scientific-notation text that bypasses effective fractional precision.
+- [ ] `TNYX-209-R3`: ensure numerically accepted binary-noise amounts hydrate into an editable Quick Edit representation without weakening raw user precision rejection.
+- [ ] `TNYX-209-R4`: replace fixed numeric precision tolerance with a magnitude/ULP-aware comparison that accepts normal binary noise at calorie-scale values while rejecting meaningful excess precision.
+- [ ] Add focused domain policy regressions for exponent forms, small values, magnitude-scale noise and meaningful excess precision.
+- [ ] Add create/edit controller regressions for accepted/rejected numeric boundaries.
+- [ ] Add Quick Edit widget regression proving an accepted noisy stored value reopens with Save enabled for an unrelated valid edit.
+- [ ] Re-audit ancestry and changed paths.
+- [ ] Run exact-source-head CI.
+- [ ] Fresh Codex-style re-review after CI; record any new actionable findings before additional source work.
+- [ ] Reconcile PR/Linear/task brief back to review-ready only when no open finding remains.
 
 ## 4. Quality Review
 
-### Validation evidence
+### Historical validation evidence
 
 ```text
 main / merge base = 91b4eca3e3afae11c6f992179ce0555532f8c75c
@@ -105,34 +110,41 @@ Flutter tests = success
 Dart tests = success
 ```
 
-Package-level test totals are not recorded here because the available GitHub connector did not expose completed job logs; no test count is inferred or invented.
+This validation predates the three fresh Codex findings and does not validate their future fix HEAD. The later docs-only handoff run on `d73e723c...` was still queued when implementation ownership reopened and is no longer a completion gate for the superseding correction head.
 
-### Final scope audit at source-fix head
+Package-level test totals are not recorded because the available GitHub connector did not expose completed job logs; no test count is inferred or invented.
 
-- `main` remains the exact merge base.
-- branch was ahead 9 / behind 0 before this final handoff commit.
-- PR changed-file set remains exactly 9 intended paths: this task brief plus `apps/features/nutrition/**` only.
+### Scope baseline before corrections
+
+- `main@91b4eca3e3afae11c6f992179ce0555532f8c75c` is the exact merge base.
+- Codex-reviewed head was `d73e723cc1b32698cd0ccc7d3203cbba2d5d6a6c`.
+- PR changed-file set was exactly 9 intended paths: this task brief plus `apps/features/nutrition/**` only.
 - no Core, Supabase/schema/RLS, generic `NutritionSnapshot`, Nutrition Targets, lockfile/generated, or TNYX-211 changes.
 
 ### Review findings
 
-| ID | Severity | Status | Finding | Observed at SHA | Evidence / resolution |
+| ID | Severity | Status | Finding | Observed at SHA | Required resolution |
 |---|---|---|---|---|---|
 | TNYX-209-A1 | P1 | Resolved | Quick Add/Quick Edit accepted any finite non-negative amount; no shared upper-bound or precision policy existed. | `91b4eca3e3afae11c6f992179ce0555532f8c75c` | Shared policy + widget/create/edit enforcement and focused tests |
-| TNYX-209-R1 | P2 | Resolved | Parsed tolerance could accept raw/direct near-step over-precision values such as `0.30000000009`. | `0403184f1c9ba7571200c675d16d068a3a0ad0c9` | Raw lexical precision guard + tighter numeric tolerance + policy/controller/widget regressions in `52b6f65dd1c7c4c97047bc3aaefcfbd5a6d597d7`; exact-source-head CI green; inline review thread replied to and resolved |
+| TNYX-209-R1 | P2 | Resolved | Parsed tolerance could accept raw/direct near-step over-precision values such as `0.30000000009`. | `0403184f1c9ba7571200c675d16d068a3a0ad0c9` | Raw lexical guard + tighter numeric tolerance + regressions in `52b6f65d...` |
+| TNYX-209-R2 | P2 | Open | Exponent-form input such as `1e-14` can avoid the raw decimal-point fractional digit check and may pass numeric tolerance. | `d73e723cc1b32698cd0ccc7d3203cbba2d5d6a6c` | Reject unsupported exponent-form raw input (or account for effective precision) and add regression coverage |
+| TNYX-209-R3 | P2 | Open | A direct numeric amount accepted as normal FP noise (for example `0.1 + 0.2`) can hydrate as `0.30000000000000004`; raw lexical validation then disables Quick Edit even for unrelated edits. | `d73e723cc1b32698cd0ccc7d3203cbba2d5d6a6c` | Hydrate accepted numeric values to a canonical editable representation without weakening user-entered precision validation; add widget/edit regression |
+| TNYX-209-R4 | P2 | Open | Fixed absolute precision tolerance can reject mathematically one-decimal calorie values at larger magnitudes, e.g. `8206.2 - 8.9 -> 8197.300000000001`. | `d73e723cc1b32698cd0ccc7d3203cbba2d5d6a6c` | Use magnitude/ULP-aware comparison and prove both normal-noise acceptance and meaningful over-precision rejection |
 
 ## 5. Handoff / Sequencing
 
-TNYX-209 source implementation and R1 correction are complete. This handoff does **not** authorize merge.
+PR #265 is **not merge-ready** while `TNYX-209-R2/R3/R4` are open. This correction does **not** authorize merge.
 
 ```text
-final docs-only exact-head CI
-→ Linear TNYX-209 In Review + PR metadata reconciliation
-→ owner review / merge only with explicit instruction
+resolve R2 + R3 + R4
+→ exact-head CI
+→ fresh Codex-style review
+→ Linear TNYX-209 In Review only if clean
+→ merge only with explicit owner instruction
 → post-merge sync per docs/POST_MERGE_SYNC.md
 → only then begin TNYX-205
 ```
 
 ### Current Status
 
-`TNYX-209 READY FOR REVIEW — FINAL CI PENDING`
+`TNYX-209 CODEX P2 CORRECTIONS ACTIVE`
