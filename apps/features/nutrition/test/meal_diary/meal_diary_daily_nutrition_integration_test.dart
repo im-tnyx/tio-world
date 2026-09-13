@@ -150,6 +150,115 @@ void main() {
     expect(find.text('Workout'), findsNothing);
   });
 
+  testWidgets('target save refreshes mounted summary and calendar denominator',
+      (tester) async {
+    final categories = InMemoryMealCategoriesRepository();
+    final mealLogs = InMemoryMealLogRepository(
+      mealCategoriesRepository: categories,
+      clock: () => _now,
+    );
+    final targets = InMemoryNutritionTargetsRepository();
+    await targets.upsert(const NutritionTargetsData(caloriesKcal: 2000));
+    final dates = MealDiaryDateController(clock: () => _now);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          mealDiaryDateControllerProvider.overrideWith((ref) => dates),
+          mealDiaryMealLogRepositoryProvider.overrideWithValue(mealLogs),
+          mealDiaryNutritionTargetsRepositoryProvider.overrideWithValue(targets),
+        ],
+        child: MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.light),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: Scaffold(
+            body: MealDiaryPage(mealCategoriesRepository: categories),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      _textAtKey(tester, const ValueKey('daily-nutrition-target-calories')),
+      '2000',
+    );
+
+    await targets.upsert(const NutritionTargetsData(caloriesKcal: 2200));
+    await tester.pumpAndSettle();
+
+    expect(
+      _textAtKey(tester, const ValueKey('daily-nutrition-target-calories')),
+      '2200',
+    );
+    expect(
+      _textAtKey(tester, const ValueKey('daily-nutrition-remaining-calories')),
+      '2200',
+    );
+    final calendar = tester.widget<TioDateCalendar>(find.byType(TioDateCalendar));
+    final todayDecoration = calendar.decorationBuilder!(_today);
+    expect(todayDecoration, isNotNull);
+    expect(todayDecoration!.progress, 0);
+    expect(todayDecoration.semanticsLabel, contains('0 of 2200'));
+  });
+
+  testWidgets('daily summary error offers retry and can recover in place',
+      (tester) async {
+    final categories = InMemoryMealCategoriesRepository();
+    final mealLogs = InMemoryMealLogRepository(
+      mealCategoriesRepository: categories,
+      clock: () => _now,
+    );
+    final targets = _FailingTargetsRepository();
+    final dates = MealDiaryDateController(clock: () => _now);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          mealDiaryDateControllerProvider.overrideWith((ref) => dates),
+          mealDiaryMealLogRepositoryProvider.overrideWithValue(mealLogs),
+          mealDiaryNutritionTargetsRepositoryProvider.overrideWithValue(targets),
+        ],
+        child: MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.light),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: Scaffold(
+            body: MealDiaryPage(mealCategoriesRepository: categories),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('meal-diary-daily-nutrition-error')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('meal-diary-daily-nutrition-retry')),
+      findsOneWidget,
+    );
+
+    targets.failReads = false;
+    await tester.tap(
+      find.byKey(const ValueKey('meal-diary-daily-nutrition-retry')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('meal-diary-daily-nutrition-summary')),
+      findsOneWidget,
+    );
+    expect(
+      _textAtKey(tester, const ValueKey('daily-nutrition-target-calories')),
+      '2000',
+    );
+  });
+
   testWidgets('without target composition the legacy isolated diary stays honest',
       (tester) async {
     final dates = MealDiaryDateController(clock: () => _now);
@@ -179,6 +288,23 @@ void main() {
       isNull,
     );
   });
+}
+
+final class _FailingTargetsRepository implements NutritionTargetsRepository {
+  bool failReads = true;
+  NutritionTargetsData data = const NutritionTargetsData(caloriesKcal: 2000);
+
+  @override
+  Future<NutritionTargetsData?> read() async {
+    if (failReads) throw StateError('temporary target read failure');
+    return data;
+  }
+
+  @override
+  Future<void> upsert(NutritionTargetsData targets) async {
+    targets.validate();
+    data = targets;
+  }
 }
 
 String _textAtKey(WidgetTester tester, Key key) =>
