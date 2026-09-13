@@ -16,22 +16,22 @@
 
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
-**Review owner:** Codex reviewed exact source/checkpoint head `3567ce72f6c28afe363e510a1f4ecaeed3f3fe4f`
-**Implementation ownership state:** Active for R1 correction
-**Ownership transition:** Review returned one actionable P2; implementation ownership remains/returns to ChatGPT until correction + validation are complete.
+**Review owner:** Codex reviewed exact source/checkpoint head `3567ce72f6c28afe363e510a1f4ecaeed3f3fe4f`; fresh review required after R1 correction
+**Implementation ownership state:** Active through superseding validation/re-review
+**Ownership transition:** Review returned one actionable P2; implementation ownership returned to ChatGPT for the correction. R1 is now source-resolved, but review ownership has not yet been re-established on the new exact head.
 **Repository state last verified:** Exact parent/merge base remains `main@6985de54184d8a3fdcdc865a3dcef263efa2d863`; pre-review scope audit was ahead 7 / behind 0 with exactly 6 intended paths.
 **Branch:** `tnyx/tnyx-205-n11a-base-selected-day-dailynutritionbudget-resolver`
-**HEAD SHA:** Reviewed/validated source checkpoint `3567ce72f6c28afe363e510a1f4ecaeed3f3fe4f`; this finding-record commit moves HEAD docs-only and therefore superseding exact-head validation will be required after the correction.
+**HEAD SHA:** R1 source/test correction head `c94b44b88e506a7bdf17b7caff741fb4e5783723`; this task-brief reconciliation commit moves HEAD docs-only and therefore fresh exact-head CI remains mandatory.
 **Observed working-tree state:** Owner reported clean synced `main` before branch creation; this remote connector does not expose the owner's local branch worktree.
 **Observed uncommitted/dirty files:** None reported by owner on synced `main`; no remote API evidence of out-of-scope files.
 **PR / tracker:** Draft PR #266 open; Linear `TNYX-205` remains `In Progress`.
-**Current implementation state:** Bounded domain implementation is present and CI-green at reviewed SHA, but R1 found a false resolver contract claim around repository `null` semantics. Runtime logic already delegates absence/unavailability to the repository; comments/tests/task wording must match the pre-existing canonical repository contract rather than invent a new auth meaning.
+**Current implementation state:** Bounded domain implementation plus R1 correction are present. Resolver documentation/tests now match the frozen repository read contract: repository `null` means target unavailable under that boundary and carries no cause discriminator; resolver does not infer/create Auth state; thrown read/validation failures still propagate.
 **Relevant execution surface:** `apps/features/nutrition/lib/src/domain/**`, canonical `NutritionTargetsRepository`, existing `MealLogLocalDate` selected-day identity in `apps/shared`.
-**Validation completed at SHA:** GitHub Actions #2489 / run `34758207394` passed Flutter analyze, Dart analyze, Flutter tests and Dart tests at `3567ce72f6c28afe363e510a1f4ecaeed3f3fe4f`.
-**Validation remaining:** R1 correction, superseding exact-head CI, fresh Codex/independent review.
-**Current blocker:** `TNYX-205-R1` P2.
-**Open review finding IDs:** `TNYX-205-R1`.
-**Next exact action:** Reconcile resolver/task/test language with the frozen repository read contract: repository `null` means canonical target unavailable under that repository boundary (including its existing signed-out/no-row behavior); thrown read failures remain failures; resolver must not become an Auth owner.
+**Validation completed at SHA:** GitHub Actions #2489 / run `34758207394` passed Flutter analyze, Dart analyze, Flutter tests and Dart tests at superseded head `3567ce72f6c28afe363e510a1f4ecaeed3f3fe4f`.
+**Validation remaining:** Fresh parent-to-head scope audit, superseding exact-head CI, fresh Codex/independent review of R1 correction.
+**Current blocker:** None in source; readiness is gated on superseding exact-head validation/re-review.
+**Open review finding IDs:** None — `TNYX-205-R1` source-resolved pending fresh review confirmation.
+**Next exact action:** Audit parent-to-current-head scope, run exact-head CI, reply/resolve the original review thread with evidence, then trigger fresh Codex review on the validated head.
 
 ## 1. Discovery
 
@@ -70,7 +70,7 @@ Full N11 schedule models/storage, fasting protocols, calorie-cycling configurati
 - `SupabaseNutritionTargetsRepository` reads the canonical `user_nutrition_targets` owner and requires no date-specific schema for this slice.
 - Existing canonical data test `supabase_canonical_nutrition_repositories_test.dart` explicitly locks signed-out target reads to `null` and signed-out writes to fail closed before gateway access.
 - Existing frozen task `.ai/tasks/production-hardening-repository-owned-anonymous-auth.md` states that read paths may return `null` where the existing domain contract models signed-out/no-row as absent state; repositories must not own Auth-session creation.
-- Therefore N11A must not claim that repository `null` proves a row was queried and absent. It can only claim canonical target data is unavailable from this repository read. Thrown repository failures remain distinguishable and propagate.
+- Therefore N11A does not claim that repository `null` proves a row was queried and absent. It only means canonical target data is unavailable from this repository read. Thrown repository failures remain distinguishable and propagate.
 - `apps/app` already composes one canonical `nutritionTargetsRepositoryProvider`; its Settings-facing `nutritionTargetsDataProvider` intentionally substitutes an all-null object for first-time editing, so N11A depends on the repository boundary rather than that presentation convenience provider when absence matters.
 - `MealLogLocalDate` is the existing Nutrition-bounded date-only/calendar-identity value object and is publicly exported by `package:tio_shared/shared.dart`. It avoids timezone-moving `DateTime` semantics and is already what Meal Diary uses for selected-day history.
 - No `DailyNutritionBudget` runtime implementation existed on `main` before this branch.
@@ -86,7 +86,7 @@ Feature-owned immutable models + use cases under `apps/features/nutrition/lib/sr
 
 ### Tests or validation already present
 
-Canonical target model/repository and MealLog date identity have existing coverage. TNYX-205 adds focused resolver coverage at `apps/features/nutrition/test/domain/daily_nutrition_budget_resolver_test.dart`.
+Canonical target model/repository and MealLog date identity have existing coverage. TNYX-205 adds focused resolver coverage at `apps/features/nutrition/test/domain/daily_nutrition_budget_resolver_test.dart`, including explicit repository-null/unavailable semantics after R1.
 
 ## 3. Clarification
 
@@ -96,7 +96,7 @@ Canonical target model/repository and MealLog date identity have existing covera
 |---|---|---|---|
 | Reuse `NutritionTargetsRepository` rather than add a budget table/repository | Locked | Budget is derived read truth, not duplicate persistence | TNYX-54/TNYX-205 |
 | Reuse existing `MealLogLocalDate` for selected-day identity in V1 | Locked for this slice | Avoid raw `DateTime` timezone semantics and avoid creating a competing date-only model; broader naming/generalization can wait for evidence from more consumers | Implementation audit |
-| Repository `null` means target unavailable to N11A; resolver does not infer the cause | Locked by R1 correction | Existing canonical repository/test intentionally permits signed-out/no-row reads to return null. Adding Auth ownership or silently changing repository-wide semantics would broaden the slice and violate frozen boundaries. | Runtime/source + R1 audit |
+| Repository `null` means target unavailable to N11A; resolver does not infer the cause | Implemented after R1 | Existing canonical repository/test intentionally permits signed-out/no-row reads to return null. Adding Auth ownership or silently changing repository-wide semantics would broaden the slice and violate frozen boundaries. | Runtime/source + R1 audit |
 | Thrown repository/read failures propagate | Locked | Preserves actual error truth rather than converting exceptions into unavailable target | TNYX-205 |
 | Standard strategy returns canonical target unchanged | Locked | Current/default strategy has no date-specific adjustment | TNYX-64/TNYX-205 |
 | Validate a present repository target at the resolver boundary | Implemented | Canonical adapters validate on write/read already; resolver also fails closed if a custom/future adapter violates that contract instead of publishing invalid budget truth | Implementation audit |
@@ -149,7 +149,7 @@ No UI in this slice. Domain semantics preserve repository `null` as unavailable 
 - [x] Export both through Nutrition public domain barrels.
 - [x] Add focused tests for Standard, explicit historical date, unavailable/null target, partial/null values, read failure propagation, and fail-closed invalid canonical target handling.
 - [x] Reconcile `docs/screens/meal-diary.md` need: no edit required because the existing statement that progress wiring remains later is still accurate.
-- [ ] Resolve `TNYX-205-R1` wording/test contract mismatch without changing frozen repository/Auth behavior.
+- [x] Resolve `TNYX-205-R1` wording/test contract mismatch without changing frozen repository/Auth behavior.
 - [ ] Run superseding exact-head repository validation and fresh review before review handoff.
 
 ## 6. Quality Review
@@ -157,7 +157,7 @@ No UI in this slice. Domain semantics preserve repository `null` as unavailable 
 ### Validation Run
 
 ```text
-Reviewed source/checkpoint head: 3567ce72f6c28afe363e510a1f4ecaeed3f3fe4f
+Original reviewed source/checkpoint head: 3567ce72f6c28afe363e510a1f4ecaeed3f3fe4f
 Base/merge-base: 6985de54184d8a3fdcdc865a3dcef263efa2d863
 Ahead 7 / behind 0
 Exactly 6 intended paths
@@ -167,14 +167,15 @@ GitHub Actions #2489 / run 34758207394:
 - Flutter tests: success
 - Dart tests: success
 
-This finding-record commit supersedes that exact-head readiness evidence. Fresh validation is required after R1 resolution.
+R1 source/test correction head: c94b44b88e506a7bdf17b7caff741fb4e5783723
+Fresh exact-head validation pending after this task-brief reconciliation commit.
 ```
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| TNYX-205-R1 | P2 | Open | Resolver documentation/task contract claimed `null` means only confirmed absent canonical row, but `SupabaseNutritionTargetsRepository.read()` intentionally returns `null` for signed-out reads too. Do not misclassify or invent Auth semantics at the budget boundary. | `3567ce72f6c28afe363e510a1f4ecaeed3f3fe4f` | Codex review comment `3999692588`; existing canonical repository test and frozen production-hardening task prove signed-out read → null is intentional. Reconcile N11A wording/tests with repository-owned semantics; thrown failures still propagate. |
+| TNYX-205-R1 | P2 | Resolved in source; fresh review pending | Resolver documentation/task contract claimed `null` means only confirmed absent canonical row, but `SupabaseNutritionTargetsRepository.read()` intentionally returns `null` for signed-out reads too. Do not misclassify or invent Auth semantics at the budget boundary. | `3567ce72f6c28afe363e510a1f4ecaeed3f3fe4f` | Codex comment `3999692588`. At `c94b44b88e506a7bdf17b7caff741fb4e5783723`, resolver docs now define repository null as unavailable without cause inference; a focused regression covers null/unavailable behavior; thrown failures remain failures; no repository/Auth behavior changed. |
 
 ## 7. Final Handoff
 
@@ -199,4 +200,4 @@ Standard strategy only. Current target storage is not effective-dated, so this f
 
 ### Final Status
 
-`PARTIAL` — implementation is CI-green at reviewed SHA, but R1 correction + superseding exact-head validation/review are pending.
+`PARTIAL` — R1 is source-resolved; superseding exact-head validation and fresh review remain.
