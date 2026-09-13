@@ -20,10 +20,10 @@
 **Branch:** `tnyx/tnyx-209-n20c-3-quick-add-nutrition-amount-range-precision-policy`  
 **PR:** #265 — open, non-draft, not merge-ready while findings remain open  
 **Tracker:** Linear `TNYX-209` — keep `In Progress`; blocks TNYX-205  
-**Open finding IDs:** `TNYX-209-R2`, `TNYX-209-R3`, `TNYX-209-R4`, `TNYX-209-R5`  
-**Current source/test head before R5 fix:** `3d0c4d287f957fb6c11fe04411fee93b63a0d0c8`  
-**Validation:** GitHub Actions `34751101507` / #2475 passed Flutter analyze, Dart analyze, Flutter tests and Dart tests on `3d0c4d28...`; this validates R2/R3/R4 implementation but predates the R5 correction.  
-**Next exact action:** close the near-zero tolerance hole, add regression coverage, run exact-head CI, then fresh independent + actual Codex bot review. Do not merge without explicit owner instruction.
+**Open finding IDs:** `TNYX-209-R2`, `TNYX-209-R3`, `TNYX-209-R4`, `TNYX-209-R5`, `TNYX-209-R6`  
+**Latest source/test head before R6 fix:** `e2db515b85ffe695e40d63c1befbbb1cb74025d1`  
+**Validation:** GitHub Actions `34751101507` / #2475 passed Flutter analyze, Dart analyze, Flutter tests and Dart tests on `3d0c4d28...`. Superseding R5 CI `34751594297` / #2479 was still running when Codex surfaced R6; it no longer completes the task because R6 requires a new source head.  
+**Next exact action:** fix max-boundary floating-point noise handling, add focused regressions, run exact-head CI, then fresh independent + actual Codex bot review. Do not merge without explicit owner instruction.
 
 ## Owner-Locked V1 Policy
 
@@ -52,7 +52,7 @@ Locked behavior:
 Quick Add / Quick Edit numeric text
         ↓ supported text format + lexical precision guard
 ManualNutritionAmountPolicy
-        ↓ ULP/magnitude-aware numeric grid validation
+        ↓ ULP/magnitude-aware numeric grid + boundary validation
 presentation + create/edit mutation controllers
         ↓
 MealLogRepository
@@ -65,9 +65,11 @@ The shared policy remains Nutrition-owned under `domain/usecases`. UI geometry a
 - raw scientific notation cannot bypass the one-decimal text policy;
 - direct numeric calls cannot bypass precision with tiny non-zero values;
 - ordinary IEEE-754 representation noise around a legitimate one-decimal grid point remains valid at macro and calorie magnitudes;
+- the same bounded floating-point noise must be accepted when a mathematically exact maximum lands microscopically above the binary maximum representation;
+- real above-maximum values remain rejected;
 - accepted noisy durable values reopen as an editable canonical representation;
 - invalid legacy values are not canonicalized into valid values;
-- meaningful extra precision such as `0.30000000009`, `999.99`, or `8197.3000001` remains rejected.
+- meaningful extra precision such as `0.30000000009`, `999.99`, `8197.3000001`, or `1000.0000001` remains rejected.
 
 ## Implementation Checklist
 
@@ -76,12 +78,13 @@ The shared policy remains Nutrition-owned under `domain/usecases`. UI geometry a
 - [x] R2 scientific notation correction implemented with focused policy/widget coverage.
 - [x] R3 accepted-noise Quick Edit hydration correction implemented with widget coverage.
 - [x] R4 magnitude-aware numeric tolerance implemented with policy/controller coverage.
+- [x] R5 zero-grid exactness correction implemented with policy/controller coverage.
 - [x] R2/R3/R4 source/test head `3d0c4d28...` passed exact-head CI run `34751101507` after lint-only test corrections.
-- [ ] R5 reject tiny non-zero direct numeric values that currently fall inside the absolute tolerance created by `max(1, magnitude)` near the zero grid point.
-- [ ] Add R5 regression (for example direct `1e-18` must be `excessPrecision` while exact zero remains valid).
-- [ ] Re-audit ancestry and 9-file scope after R5.
-- [ ] Run exact-head CI after R5.
-- [ ] Fresh independent review, then trigger actual `@codex review` on the exact validated head.
+- [ ] R6 accept only bounded IEEE-754 noise above the exact field maximum when the numeric value still represents that exact maximum grid point.
+- [ ] Add R6 policy/create/edit regressions for `333.3 * 3 + 0.1 -> 1000.0000000000001` and prove meaningful above-max values still reject.
+- [ ] Re-audit ancestry and 9-file scope after R6.
+- [ ] Run exact-head CI after R6.
+- [ ] Fresh independent review, then trigger/observe actual `@codex review` on the exact validated head.
 - [ ] Reconcile task brief/PR/Linear to review-ready only when no actionable finding remains.
 
 ## Review Findings
@@ -93,15 +96,16 @@ The shared policy remains Nutrition-owned under `domain/usecases`. UI geometry a
 | TNYX-209-R2 | P2 | Open pending final re-review | Exponent-form raw input such as `1e-14` could bypass lexical precision. | `d73e723c...` | Current implementation rejects exponent notation; regression added |
 | TNYX-209-R3 | P2 | Open pending final re-review | Accepted FP noise could hydrate as long raw decimal and disable Quick Edit. | `d73e723c...` | Valid stored amounts canonicalize for editor hydration; invalid legacy rows remain unchanged |
 | TNYX-209-R4 | P2 | Open pending final re-review | Fixed absolute tolerance could reject valid one-decimal calorie-scale FP noise. | `d73e723c...` | Magnitude-aware epsilon/ULP comparison + regressions |
-| TNYX-209-R5 | P2 | Open | Near zero, `max(1, magnitude)` creates an absolute tolerance that can accept tiny non-zero direct values such as `1e-18` as if they were zero noise. | `3d0c4d287f957fb6c11fe04411fee93b63a0d0c8` | Treat the zero grid point exactly: only numeric zero may match it; keep ULP tolerance for non-zero grid points; add regression + exact-head CI |
+| TNYX-209-R5 | P2 | Open pending final re-review | Near zero, `max(1, magnitude)` created an absolute tolerance that could accept tiny non-zero direct values such as `1e-18` as zero noise. | `3d0c4d287f957fb6c11fe04411fee93b63a0d0c8` | Zero grid point is exact; direct tiny-value regressions added |
+| TNYX-209-R6 | P2 | Open | Strict range validation runs before ULP precision validation, so a mathematically exact maximum can be rejected when binary arithmetic lands microscopically above it, e.g. `333.3 * 3 + 0.1 -> 1000.0000000000001`. | `e2db515b85ffe695e40d63c1befbbb1cb74025d1` | Apply the same bounded ULP/magnitude tolerance to the upper-bound comparison only when the value is effectively the exact maximum grid point; keep real above-max values rejected; add focused regressions |
 
 ## Sequencing
 
 ```text
-resolve R5
+resolve R6
 → exact-head CI
 → independent review + actual Codex bot review
-→ resolve R2/R3/R4/R5 only if clean
+→ resolve R2/R3/R4/R5/R6 only if clean
 → final docs-only handoff exact-head CI
 → Linear TNYX-209 In Review
 → merge only with explicit owner instruction
