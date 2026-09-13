@@ -43,8 +43,10 @@ void main() {
     );
     addTearDown(controller.dispose);
 
-    const calories = 8206.2 - 8.9;
+    const calories = 3333.3 * 3 + 0.1;
     const carbs = 0.1 + 0.2;
+    expect(calories, greaterThan(10000));
+
     final created = await controller.submit(
       _draft(calories: calories, carbs: carbs),
     );
@@ -176,7 +178,9 @@ void main() {
     addTearDown(controller.dispose);
 
     const calories = 8206.2 - 8.9;
-    const protein = 0.1 + 0.2;
+    const protein = 333.3 * 3 + 0.1;
+    expect(protein, greaterThan(1000));
+
     final updated = await controller.submit(
       _draft(calories: calories, protein: protein),
     );
