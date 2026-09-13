@@ -43,8 +43,8 @@ void main() {
     );
     addTearDown(controller.dispose);
 
-    final calories = 8206.2 - 8.9;
-    final carbs = 0.1 + 0.2;
+    const calories = 8206.2 - 8.9;
+    const carbs = 0.1 + 0.2;
     final created = await controller.submit(
       _draft(calories: calories, carbs: carbs),
     );
@@ -168,8 +168,8 @@ void main() {
     );
     addTearDown(controller.dispose);
 
-    final calories = 8206.2 - 8.9;
-    final protein = 0.1 + 0.2;
+    const calories = 8206.2 - 8.9;
+    const protein = 0.1 + 0.2;
     final updated = await controller.submit(
       _draft(calories: calories, protein: protein),
     );
