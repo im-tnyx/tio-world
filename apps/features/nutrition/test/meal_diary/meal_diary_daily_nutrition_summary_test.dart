@@ -5,7 +5,7 @@ import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
-  testWidgets('shows compact workout-OFF equation and supported nutrient cells',
+  testWidgets('shows compact workout-OFF equation and all nutrient cells',
       (tester) async {
     await _pumpSummary(tester, summary: _summary());
 
@@ -26,6 +26,10 @@ void main() {
       '1200',
     );
     expect(find.text('Workout'), findsNothing);
+    expect(find.text('Carbs'), findsOneWidget);
+    expect(find.text('Protein'), findsOneWidget);
+    expect(find.text('Fat'), findsOneWidget);
+    expect(find.text('Fiber'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('daily-nutrition-carbohydrate-progress')),
       findsOneWidget,
@@ -63,7 +67,7 @@ void main() {
     expect(find.text('Workout'), findsNothing);
   });
 
-  testWidgets('omits a nutrient cell when consumed truth is unknown',
+  testWidgets('keeps nutrient visible when consumed truth is unknown',
       (tester) async {
     await _pumpSummary(
       tester,
@@ -80,10 +84,18 @@ void main() {
     expect(find.text('Carbs'), findsOneWidget);
     expect(find.text('Protein'), findsOneWidget);
     expect(find.text('Fat'), findsOneWidget);
-    expect(find.text('Fiber'), findsNothing);
+    expect(find.text('Fiber'), findsOneWidget);
+    expect(
+      _textAtKey(tester, const ValueKey('daily-nutrition-fiber-value')),
+      '— / 30 g',
+    );
+    expect(
+      find.byKey(const ValueKey('daily-nutrition-fiber-progress')),
+      findsNothing,
+    );
   });
 
-  testWidgets('omits a nutrient cell when target truth is unknown',
+  testWidgets('keeps nutrient visible when target truth is unknown',
       (tester) async {
     final date = MealLogLocalDate(year: 2026, month: 9, day: 13);
     const targets = NutritionTargetsData(
@@ -112,7 +124,59 @@ void main() {
       ),
     );
 
-    expect(find.text('Fiber'), findsNothing);
+    expect(find.text('Fiber'), findsOneWidget);
+    expect(
+      _textAtKey(tester, const ValueKey('daily-nutrition-fiber-value')),
+      '10 g / —',
+    );
+    expect(
+      find.byKey(const ValueKey('daily-nutrition-fiber-progress')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('keeps macros visible when only calorie target exists',
+      (tester) async {
+    final date = MealLogLocalDate(year: 2026, month: 9, day: 13);
+    const targets = NutritionTargetsData(caloriesKcal: 2000);
+    await _pumpSummary(
+      tester,
+      summary: DailyNutritionSummary(
+        localDate: date,
+        budget: DailyNutritionBudget(
+          localDate: date,
+          baseTarget: targets,
+          strategyAdjustedTarget: targets,
+        ),
+        consumedTotals: const {
+          NutrientId.energy: 800,
+          NutrientId.carbohydrate: 90,
+          NutrientId.protein: 70,
+          NutrientId.fat: 30,
+        },
+      ),
+    );
+
+    expect(find.text('Carbs'), findsOneWidget);
+    expect(find.text('Protein'), findsOneWidget);
+    expect(find.text('Fat'), findsOneWidget);
+    expect(find.text('Fiber'), findsOneWidget);
+    expect(
+      _textAtKey(tester, const ValueKey('daily-nutrition-carbohydrate-value')),
+      '90 g / —',
+    );
+    expect(
+      _textAtKey(tester, const ValueKey('daily-nutrition-protein-value')),
+      '70 g / —',
+    );
+    expect(
+      _textAtKey(tester, const ValueKey('daily-nutrition-fat-value')),
+      '30 g / —',
+    );
+    expect(
+      _textAtKey(tester, const ValueKey('daily-nutrition-fiber-value')),
+      '— / —',
+    );
   });
 
   for (final mode in [TioThemeMode.light, TioThemeMode.dark]) {
