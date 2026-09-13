@@ -1,5 +1,7 @@
 import 'package:tio_shared/shared.dart';
 
+import 'meal_log_repository.dart';
+
 /// Optional canonical MealLog read capability for one inclusive Diary-local
 /// date range.
 ///
