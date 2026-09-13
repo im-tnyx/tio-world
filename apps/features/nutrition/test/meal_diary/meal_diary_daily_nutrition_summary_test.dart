@@ -5,14 +5,26 @@ import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
-  testWidgets('shows workout-OFF calorie equation and supported nutrient rows',
+  testWidgets('shows compact workout-OFF equation and supported nutrient cells',
       (tester) async {
     await _pumpSummary(tester, summary: _summary());
 
-    expect(find.text('Target - Eaten = Remaining'), findsOneWidget);
-    expect(find.text('2000 kcal'), findsOneWidget);
-    expect(find.text('800 kcal'), findsOneWidget);
-    expect(find.text('1200 kcal'), findsOneWidget);
+    expect(find.text('Daily Nutrition'), findsNothing);
+    expect(find.text('Target - Eaten = Remaining'), findsNothing);
+    expect(find.text('−'), findsOneWidget);
+    expect(find.text('='), findsOneWidget);
+    expect(
+      _textAtKey(tester, const ValueKey('daily-nutrition-target-calories')),
+      '2000',
+    );
+    expect(
+      _textAtKey(tester, const ValueKey('daily-nutrition-eaten-calories')),
+      '800',
+    );
+    expect(
+      _textAtKey(tester, const ValueKey('daily-nutrition-remaining-calories')),
+      '1200',
+    );
     expect(find.text('Workout'), findsNothing);
     expect(
       find.byKey(const ValueKey('daily-nutrition-carbohydrate-progress')),
@@ -44,11 +56,14 @@ void main() {
       ),
     );
 
-    expect(find.text('-300 kcal'), findsOneWidget);
+    expect(
+      _textAtKey(tester, const ValueKey('daily-nutrition-remaining-calories')),
+      '-300',
+    );
     expect(find.text('Workout'), findsNothing);
   });
 
-  testWidgets('omits a nutrient row when consumed truth is unknown',
+  testWidgets('omits a nutrient cell when consumed truth is unknown',
       (tester) async {
     await _pumpSummary(
       tester,
@@ -66,10 +81,9 @@ void main() {
     expect(find.text('Protein'), findsOneWidget);
     expect(find.text('Fat'), findsOneWidget);
     expect(find.text('Fiber'), findsNothing);
-    expect(find.text('Unavailable'), findsNothing);
   });
 
-  testWidgets('omits a nutrient row when target truth is unknown',
+  testWidgets('omits a nutrient cell when target truth is unknown',
       (tester) async {
     final date = MealLogLocalDate(year: 2026, month: 9, day: 13);
     const targets = NutritionTargetsData(
@@ -102,7 +116,7 @@ void main() {
   });
 
   for (final mode in [TioThemeMode.light, TioThemeMode.dark]) {
-    testWidgets('renders without overflow in ${mode.name} compact large-text UI',
+    testWidgets('renders compact card without overflow in ${mode.name} large text',
         (tester) async {
       tester.view.physicalSize = const Size(320, 760);
       tester.view.devicePixelRatio = 1;
@@ -123,6 +137,9 @@ void main() {
     });
   }
 }
+
+String _textAtKey(WidgetTester tester, Key key) =>
+    tester.widget<Text>(find.byKey(key)).data!;
 
 Future<void> _pumpSummary(
   WidgetTester tester, {
