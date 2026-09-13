@@ -131,7 +131,7 @@ void main() {
 
   test('normal floating-point noise remains valid across magnitudes', () {
     const macroComputed = 0.1 + 0.2;
-    final calorieComputed = 8206.2 - 8.9;
+    const calorieComputed = 8206.2 - 8.9;
 
     expect(
       ManualNutritionAmountPolicy.validateAmount(
