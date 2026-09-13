@@ -95,6 +95,15 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
   /// short viewport, where a floating `+` would sit on top of its date cells.
   var _isCalendarExpanded = false;
 
+  /// True from the moment a card/overflow Edit is tapped until either the
+  /// canonical row turns out unusable or the editor's modal barrier is
+  /// actually up. Covers exactly the async gap where the page is still
+  /// interactive but a `readById` is already in flight — after that call
+  /// returns, `showModalBottomSheet`'s own barrier blocks further page taps,
+  /// so holding this for the sheet's whole open duration would only block a
+  /// legitimate, unrelated edit opened right after this one closes.
+  var _isOpeningQuickEdit = false;
+
   @override
   void initState() {
     super.initState();
@@ -184,37 +193,54 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
   /// nutrition and timezone facts. Reading by id immediately before opening
   /// prevents presentation data from becoming a stale update payload.
   Future<void> _openQuickEdit(String id) async {
+    if (_isOpeningQuickEdit) return;
+    _isOpeningQuickEdit = true;
+
     final mealLogRepository = ref.read(mealDiaryMealLogRepositoryProvider);
     final mealCategoriesRepository = widget.mealCategoriesRepository;
-    if (mealLogRepository == null || mealCategoriesRepository == null) return;
+    if (mealLogRepository == null || mealCategoriesRepository == null) {
+      _isOpeningQuickEdit = false;
+      return;
+    }
 
     MealLogEntry? entry;
     try {
       entry = await mealLogRepository.readById(id);
     } on Object {
+      _isOpeningQuickEdit = false;
       if (mounted) _showMealEditMessage("Couldn't open this meal. Try again.");
       return;
     }
-    if (!mounted) return;
+    if (!mounted) {
+      _isOpeningQuickEdit = false;
+      return;
+    }
     if (entry == null) {
+      _isOpeningQuickEdit = false;
       _showMealEditMessage('This meal is no longer available.');
       return;
     }
     if (entry.mode != MealLogMode.manual ||
         entry.manualNutritionSnapshot == null ||
         QuickAddMealLogEditController.editableLocalDateTime(entry) == null) {
+      _isOpeningQuickEdit = false;
       _showMealEditMessage('Editing is not available for this meal yet.');
       return;
     }
 
     final originalDate = entry.consumedLocalDate;
-    final updated = await showQuickAddEditorSheet(
+    final sheetFuture = showQuickAddEditorSheet(
       context,
       clock: widget.quickAddClock,
       mealCategoriesRepository: mealCategoriesRepository,
       mealLogRepository: mealLogRepository,
       initialEntry: entry,
     );
+    // The barrier is up synchronously the instant the call above returns, so
+    // it is safe to release the guard here rather than for the sheet's whole
+    // lifetime.
+    _isOpeningQuickEdit = false;
+    final updated = await sheetFuture;
     if (!mounted) return;
 
     // Always refetch the original date, even when the sheet closed with no

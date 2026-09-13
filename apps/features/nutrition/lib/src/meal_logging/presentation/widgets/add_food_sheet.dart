@@ -36,23 +36,37 @@ Future<MealDiaryAddFoodChoice?> showMealDiaryAddFoodSheet(
     useSafeArea: true,
     backgroundColor: TioPalette.transparent,
     // The route's own background is transparent, and the bottom SafeArea
-    // below insets the sheet's content above the system nav area rather than
-    // shrinking TioSheet's own painted Material. Filling that gap with the
-    // same governed surface color TioSheet paints — rather than leaving it
-    // transparent — is what makes the sheet's surface visually continue
-    // through the inset instead of exposing the barrier behind it.
-    builder: (sheetContext) => ColoredBox(
-      color: sheetContext.tioColors.surface,
-      child: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          child: AddFoodSheet(
-            onQuickAdd: () => Navigator.of(sheetContext)
-                .pop(MealDiaryAddFoodChoice.quickAdd),
-            onDismiss: () => Navigator.of(sheetContext).pop(),
+    // below reserves that much empty space beneath the sheet's own content —
+    // previously left transparent, showing the barrier through it. TioSheet
+    // already paints its own rounded-top Material (colors.surface); wrapping
+    // the whole SafeArea in another opaque box would paint a flat rectangle
+    // behind/around that rounded arc too, squaring the corners. Instead, a
+    // `Positioned` sibling fills only that already-reserved bottom strip —
+    // it does not add any height of its own, so the sheet's total size and
+    // TioSheet's own rounded painting are both exactly as before.
+    builder: (sheetContext) => Stack(
+      children: [
+        SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            child: AddFoodSheet(
+              onQuickAdd: () => Navigator.of(sheetContext)
+                  .pop(MealDiaryAddFoodChoice.quickAdd),
+              onDismiss: () => Navigator.of(sheetContext).pop(),
+            ),
           ),
         ),
-      ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: MediaQuery.paddingOf(sheetContext).bottom,
+          child: ColoredBox(
+            key: const ValueKey('meal-diary-add-food-bottom-inset-fill'),
+            color: sheetContext.tioColors.surface,
+          ),
+        ),
+      ],
     ),
   );
 }
