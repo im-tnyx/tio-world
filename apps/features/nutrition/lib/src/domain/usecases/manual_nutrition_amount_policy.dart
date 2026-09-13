@@ -51,9 +51,11 @@ final class ManualNutritionAmountValidation {
 final class ManualNutritionAmountPolicy {
   const ManualNutritionAmountPolicy._();
 
-  // Keep this small enough to admit ordinary binary representation noise such
-  // as 0.1 + 0.2 without treating a meaningful hidden decimal tail as valid.
-  static const double _precisionTolerance = 1e-12;
+  // IEEE-754 double machine epsilon. Precision validation scales this by the
+  // value magnitude and a small ULP budget so normal arithmetic noise is
+  // accepted without turning meaningful hidden decimal tails into valid input.
+  static const double _doubleEpsilon = 2.220446049250313e-16;
+  static const double _precisionUlps = 8;
 
   static const ManualNutritionAmountSpec _caloriesSpec =
       ManualNutritionAmountSpec(
@@ -79,6 +81,8 @@ final class ManualNutritionAmountPolicy {
 
   /// Parses [text] without changing its numeric value, while enforcing the raw
   /// user-entered fractional-digit contract before numeric precision tolerance.
+  /// Scientific notation is intentionally unsupported on this manual surface:
+  /// it can hide effective fractional precision from the visible text.
   static ManualNutritionAmountValidation validateText({
     required ManualNutritionAmountField field,
     required String text,
@@ -94,6 +98,12 @@ final class ManualNutritionAmountPolicy {
     final rangeError = _validateRange(field: field, value: value);
     if (rangeError != null) {
       return ManualNutritionAmountValidation.invalid(rangeError);
+    }
+
+    if (_usesExponentNotation(normalized)) {
+      return const ManualNutritionAmountValidation.invalid(
+        ManualNutritionAmountError.excessPrecision,
+      );
     }
 
     final spec = specFor(field);
@@ -128,6 +138,26 @@ final class ManualNutritionAmountPolicy {
       return ManualNutritionAmountError.excessPrecision;
     }
     return null;
+  }
+
+  /// Returns a canonical editor string only for values already accepted by the
+  /// numeric policy. This is for rehydrating durable values such as
+  /// `0.1 + 0.2`, whose binary representation may stringify with a long tail.
+  /// Invalid legacy values deliberately return null so callers can preserve the
+  /// stored representation and continue blocking save until the user fixes it.
+  static String? canonicalEditorText({
+    required ManualNutritionAmountField field,
+    required num value,
+  }) {
+    if (validateAmount(field: field, value: value) != null) return null;
+
+    final spec = specFor(field);
+    var text = value.toDouble().toStringAsFixed(spec.maximumFractionalDigits);
+    if (text.contains('.')) {
+      text = text.replaceFirst(RegExp(r'0+$'), '');
+      text = text.replaceFirst(RegExp(r'\.$'), '');
+    }
+    return text;
   }
 
   /// Mutation-boundary validation for the four Quick Add / Quick Edit fields.
@@ -174,21 +204,17 @@ final class ManualNutritionAmountPolicy {
     return null;
   }
 
+  static bool _usesExponentNotation(String text) {
+    return text.contains('e') || text.contains('E');
+  }
+
   static bool _hasExcessTextPrecision(
     String text,
     int maximumFractionalDigits,
   ) {
-    var mantissaEnd = text.length;
-    final lowerExponent = text.indexOf('e');
-    final upperExponent = text.indexOf('E');
-    if (lowerExponent >= 0) mantissaEnd = lowerExponent;
-    if (upperExponent >= 0 && upperExponent < mantissaEnd) {
-      mantissaEnd = upperExponent;
-    }
-
     final decimalIndex = text.indexOf('.');
-    if (decimalIndex < 0 || decimalIndex >= mantissaEnd) return false;
-    final fractionalDigits = mantissaEnd - decimalIndex - 1;
+    if (decimalIndex < 0) return false;
+    final fractionalDigits = text.length - decimalIndex - 1;
     return fractionalDigits > maximumFractionalDigits;
   }
 
@@ -196,6 +222,11 @@ final class ManualNutritionAmountPolicy {
     final scale = math.pow(10, maximumFractionalDigits).toDouble();
     final scaled = value.toDouble() * scale;
     final nearestInteger = scaled.roundToDouble();
-    return (scaled - nearestInteger).abs() > _precisionTolerance;
+    final difference = (scaled - nearestInteger).abs();
+    final magnitude = math
+        .max(1.0, math.max(scaled.abs(), nearestInteger.abs()))
+        .toDouble();
+    final tolerance = _precisionUlps * _doubleEpsilon * magnitude;
+    return difference > tolerance;
   }
 }
