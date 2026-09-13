@@ -162,7 +162,7 @@ const int _daysPerWeek = 7;
 /// byte-for-byte unchanged at normal text size; they only grow when the reader
 /// has asked for larger text, which is the case where fixed boxes clip glyphs.
 const double _weekdayHeaderHeight = TioSize.dp14;
-const double _dateCellSize = TioSize.dp28;
+const double _dateCellSize = TioSize.dp30;
 const double _markerRowHeight = TioSize.dp6;
 const double _markerDotSize = TioSize.dp4;
 const int _monthGridRows = 6;
