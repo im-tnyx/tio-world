@@ -41,6 +41,11 @@ void main() {
     expect(find.text('Use at most 1 decimal place.'), findsOneWidget);
     expect(tester.widget<TioButton>(primary).onPressed, isNull);
 
+    await tester.enterText(carbs, '0.30000000009');
+    await tester.pumpAndSettle();
+    expect(find.text('Use at most 1 decimal place.'), findsOneWidget);
+    expect(tester.widget<TioButton>(primary).onPressed, isNull);
+
     await tester.enterText(carbs, '');
     await tester.pumpAndSettle();
     expect(find.text('Carbs must be 1000 or less.'), findsNothing);

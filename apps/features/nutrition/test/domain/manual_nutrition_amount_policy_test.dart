@@ -90,6 +90,29 @@ void main() {
     );
   });
 
+  test('raw near-step text still rejects excess fractional digits', () {
+    for (final text in ['0.30000000009', '1.00']) {
+      expect(
+        ManualNutritionAmountPolicy.validateText(
+          field: ManualNutritionAmountField.carbs,
+          text: text,
+        ).error,
+        ManualNutritionAmountError.excessPrecision,
+        reason: text,
+      );
+    }
+  });
+
+  test('direct numeric near-step value cannot bypass precision policy', () {
+    expect(
+      ManualNutritionAmountPolicy.validateAmount(
+        field: ManualNutritionAmountField.carbs,
+        value: 0.30000000009,
+      ),
+      ManualNutritionAmountError.excessPrecision,
+    );
+  });
+
   test('normal floating-point noise around one decimal remains valid', () {
     const computed = 0.1 + 0.2;
 

@@ -51,7 +51,9 @@ final class ManualNutritionAmountValidation {
 final class ManualNutritionAmountPolicy {
   const ManualNutritionAmountPolicy._();
 
-  static const double _precisionTolerance = 1e-9;
+  // Keep this small enough to admit ordinary binary representation noise such
+  // as 0.1 + 0.2 without treating a meaningful hidden decimal tail as valid.
+  static const double _precisionTolerance = 1e-12;
 
   static const ManualNutritionAmountSpec _caloriesSpec =
       ManualNutritionAmountSpec(
@@ -75,20 +77,40 @@ final class ManualNutritionAmountPolicy {
     };
   }
 
-  /// Parses [text] without changing its numeric value, then applies the same
-  /// amount policy used by mutation controllers.
+  /// Parses [text] without changing its numeric value, while enforcing the raw
+  /// user-entered fractional-digit contract before numeric precision tolerance.
   static ManualNutritionAmountValidation validateText({
     required ManualNutritionAmountField field,
     required String text,
   }) {
-    final value = double.tryParse(text.trim());
+    final normalized = text.trim();
+    final value = double.tryParse(normalized);
     if (value == null) {
       return const ManualNutritionAmountValidation.invalid(
         ManualNutritionAmountError.invalidNumber,
       );
     }
-    final error = validateAmount(field: field, value: value);
-    if (error != null) return ManualNutritionAmountValidation.invalid(error);
+
+    final rangeError = _validateRange(field: field, value: value);
+    if (rangeError != null) {
+      return ManualNutritionAmountValidation.invalid(rangeError);
+    }
+
+    final spec = specFor(field);
+    if (_hasExcessTextPrecision(
+      normalized,
+      spec.maximumFractionalDigits,
+    )) {
+      return const ManualNutritionAmountValidation.invalid(
+        ManualNutritionAmountError.excessPrecision,
+      );
+    }
+
+    if (_hasExcessPrecision(value, spec.maximumFractionalDigits)) {
+      return const ManualNutritionAmountValidation.invalid(
+        ManualNutritionAmountError.excessPrecision,
+      );
+    }
     return ManualNutritionAmountValidation.valid(value);
   }
 
@@ -98,13 +120,10 @@ final class ManualNutritionAmountPolicy {
     required ManualNutritionAmountField field,
     required num value,
   }) {
-    if (!value.isFinite) return ManualNutritionAmountError.invalidNumber;
+    final rangeError = _validateRange(field: field, value: value);
+    if (rangeError != null) return rangeError;
 
     final spec = specFor(field);
-    if (value < spec.minimum) return ManualNutritionAmountError.negative;
-    if (value > spec.maximum) {
-      return ManualNutritionAmountError.aboveMaximum;
-    }
     if (_hasExcessPrecision(value, spec.maximumFractionalDigits)) {
       return ManualNutritionAmountError.excessPrecision;
     }
@@ -139,6 +158,38 @@ final class ManualNutritionAmountPolicy {
       }
     }
     return true;
+  }
+
+  static ManualNutritionAmountError? _validateRange({
+    required ManualNutritionAmountField field,
+    required num value,
+  }) {
+    if (!value.isFinite) return ManualNutritionAmountError.invalidNumber;
+
+    final spec = specFor(field);
+    if (value < spec.minimum) return ManualNutritionAmountError.negative;
+    if (value > spec.maximum) {
+      return ManualNutritionAmountError.aboveMaximum;
+    }
+    return null;
+  }
+
+  static bool _hasExcessTextPrecision(
+    String text,
+    int maximumFractionalDigits,
+  ) {
+    var mantissaEnd = text.length;
+    final lowerExponent = text.indexOf('e');
+    final upperExponent = text.indexOf('E');
+    if (lowerExponent >= 0) mantissaEnd = lowerExponent;
+    if (upperExponent >= 0 && upperExponent < mantissaEnd) {
+      mantissaEnd = upperExponent;
+    }
+
+    final decimalIndex = text.indexOf('.');
+    if (decimalIndex < 0 || decimalIndex >= mantissaEnd) return false;
+    final fractionalDigits = mantissaEnd - decimalIndex - 1;
+    return fractionalDigits > maximumFractionalDigits;
   }
 
   static bool _hasExcessPrecision(num value, int maximumFractionalDigits) {
