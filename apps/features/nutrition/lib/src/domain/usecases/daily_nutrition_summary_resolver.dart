@@ -46,12 +46,13 @@ final class DailyNutritionSummaryResolver {
     required MealLogLocalDate endDate,
   }) async {
     _requireOrderedRange(startDate, endDate);
-    final rangeRepository = _mealLogRepository;
-    if (rangeRepository is! MealLogRangeReadRepository) {
+    final mealLogs = _mealLogRepository;
+    if (mealLogs is! MealLogRangeReadRepository) {
       throw StateError(
         'MealLog range reads are unavailable for Daily Nutrition calendar progress.',
       );
     }
+    final rangeRepository = mealLogs as MealLogRangeReadRepository;
 
     final dates = _inclusiveDates(startDate, endDate);
     final budgets = await _budgetResolver.resolveMany(dates);
