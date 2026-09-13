@@ -103,23 +103,85 @@ void main() {
     }
   });
 
-  test('direct numeric near-step value cannot bypass precision policy', () {
+  test('scientific notation is rejected at the raw text boundary', () {
+    for (final text in ['1e-14', '1e1', '1E2']) {
+      expect(
+        ManualNutritionAmountPolicy.validateText(
+          field: ManualNutritionAmountField.carbs,
+          text: text,
+        ).error,
+        ManualNutritionAmountError.excessPrecision,
+        reason: text,
+      );
+    }
+  });
+
+  test('direct numeric near-step and tiny values cannot bypass precision', () {
+    for (final value in [0.30000000009, 1e-14]) {
+      expect(
+        ManualNutritionAmountPolicy.validateAmount(
+          field: ManualNutritionAmountField.carbs,
+          value: value,
+        ),
+        ManualNutritionAmountError.excessPrecision,
+        reason: '$value',
+      );
+    }
+  });
+
+  test('normal floating-point noise remains valid across magnitudes', () {
+    const macroComputed = 0.1 + 0.2;
+    final calorieComputed = 8206.2 - 8.9;
+
     expect(
       ManualNutritionAmountPolicy.validateAmount(
         field: ManualNutritionAmountField.carbs,
-        value: 0.30000000009,
+        value: macroComputed,
+      ),
+      isNull,
+    );
+    expect(
+      ManualNutritionAmountPolicy.validateAmount(
+        field: ManualNutritionAmountField.calories,
+        value: calorieComputed,
+      ),
+      isNull,
+    );
+    expect(
+      ManualNutritionAmountPolicy.validateAmount(
+        field: ManualNutritionAmountField.calories,
+        value: 8197.3000001,
       ),
       ManualNutritionAmountError.excessPrecision,
     );
   });
 
-  test('normal floating-point noise around one decimal remains valid', () {
-    const computed = 0.1 + 0.2;
-
+  test('canonical editor text is produced only for accepted numeric values', () {
     expect(
-      ManualNutritionAmountPolicy.validateAmount(
+      ManualNutritionAmountPolicy.canonicalEditorText(
         field: ManualNutritionAmountField.carbs,
-        value: computed,
+        value: 0.1 + 0.2,
+      ),
+      '0.3',
+    );
+    expect(
+      ManualNutritionAmountPolicy.canonicalEditorText(
+        field: ManualNutritionAmountField.calories,
+        value: 8206.2 - 8.9,
+      ),
+      '8197.3',
+    );
+    expect(
+      ManualNutritionAmountPolicy.canonicalEditorText(
+        field: ManualNutritionAmountField.carbs,
+        value: 0.30000000009,
+      ),
+      isNull,
+    );
+    expect(
+      ManualNutritionAmountPolicy.canonicalEditorText(
+        field: ManualNutritionAmountField.calories,
+        value: 15000,
       ),
       isNull,
     );
