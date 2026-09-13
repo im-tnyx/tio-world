@@ -1084,8 +1084,9 @@ Path _notchPath(double outerWidth, double innerWidth, double depth) {
 /// The layers are independent by construction: the numeral carries Today, the
 /// progress ring is the outer visual boundary, the smaller selection ring sits
 /// directly inside it with no decorative gap, the centre carries an optional
-/// generic fill, and markers sit below. No layer overwrites another, which is
-/// what lets Nutrition draw progress and selection remain independently clear.
+/// generic fill, and markers sit below. The progress ring uses the theme's
+/// semantic progress color while selection/fill retain the primary selection
+/// color, so two concentric states remain visually distinct in every theme.
 class _DateCell extends StatelessWidget {
   const _DateCell({
     required super.key,
@@ -1135,7 +1136,8 @@ class _DateCell extends StatelessWidget {
         isSelected: isSelected && isEnabled,
         progress: resolved?.progress,
         fill: resolved?.fill,
-        accent: colors.primary,
+        selectionAccent: colors.primary,
+        progressAccent: colors.progress,
         track: colors.outlineStrong,
       ),
       child: SizedBox(
@@ -1243,14 +1245,16 @@ class _DateCirclePainter extends CustomPainter {
     required this.isSelected,
     required this.progress,
     required this.fill,
-    required this.accent,
+    required this.selectionAccent,
+    required this.progressAccent,
     required this.track,
   });
 
   final bool isSelected;
   final double? progress;
   final TioDateFill? fill;
-  final Color accent;
+  final Color selectionAccent;
+  final Color progressAccent;
   final Color track;
 
   @override
@@ -1280,8 +1284,8 @@ class _DateCirclePainter extends CustomPainter {
         Paint()
           ..style = PaintingStyle.fill
           ..color = fill == TioDateFill.solid
-              ? accent
-              : accent.withValues(alpha: TioOpacity.opacity12),
+              ? selectionAccent
+              : selectionAccent.withValues(alpha: TioOpacity.opacity12),
       );
     }
 
@@ -1305,7 +1309,7 @@ class _DateCirclePainter extends CustomPainter {
             ..style = PaintingStyle.stroke
             ..strokeWidth = progressStroke
             ..strokeCap = StrokeCap.round
-            ..color = accent,
+            ..color = progressAccent,
         );
       }
     }
@@ -1317,7 +1321,7 @@ class _DateCirclePainter extends CustomPainter {
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = selectionStroke
-          ..color = accent,
+          ..color = selectionAccent,
       );
     }
   }
@@ -1327,7 +1331,8 @@ class _DateCirclePainter extends CustomPainter {
     return oldDelegate.isSelected != isSelected ||
         oldDelegate.progress != progress ||
         oldDelegate.fill != fill ||
-        oldDelegate.accent != accent ||
+        oldDelegate.selectionAccent != selectionAccent ||
+        oldDelegate.progressAccent != progressAccent ||
         oldDelegate.track != track;
   }
 }
