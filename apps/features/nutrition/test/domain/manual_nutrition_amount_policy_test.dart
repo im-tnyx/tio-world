@@ -20,6 +20,35 @@ void main() {
         );
       });
 
+      test('accepts ULP noise at maximum but rejects real overflow', () {
+        final noisyMaximum = field == ManualNutritionAmountField.calories
+            ? 3333.3 * 3 + 0.1
+            : 333.3 * 3 + 0.1;
+
+        expect(noisyMaximum, greaterThan(spec.maximum));
+        expect(
+          ManualNutritionAmountPolicy.validateAmount(
+            field: field,
+            value: noisyMaximum,
+          ),
+          isNull,
+        );
+        expect(
+          ManualNutritionAmountPolicy.canonicalEditorText(
+            field: field,
+            value: noisyMaximum,
+          ),
+          '${spec.maximum}',
+        );
+        expect(
+          ManualNutritionAmountPolicy.validateAmount(
+            field: field,
+            value: spec.maximum + 0.0000001,
+          ),
+          ManualNutritionAmountError.aboveMaximum,
+        );
+      });
+
       test('rejects maximum plus 0.1', () {
         expect(
           ManualNutritionAmountPolicy.validateAmount(
