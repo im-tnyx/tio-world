@@ -70,19 +70,19 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final summary =
-        find.byKey(const ValueKey('meal-diary-daily-nutrition-summary'));
-    expect(summary, findsOneWidget);
     expect(
-      find.descendant(of: summary, matching: find.text('800 kcal')),
+      find.byKey(const ValueKey('meal-diary-daily-nutrition-summary')),
       findsOneWidget,
     );
     expect(
-      find.descendant(of: summary, matching: find.text('1200 kcal')),
-      findsOneWidget,
+      _textAtKey(tester, const ValueKey('daily-nutrition-eaten-calories')),
+      '800',
     );
-    expect(find.descendant(of: summary, matching: find.text('Workout')),
-        findsNothing);
+    expect(
+      _textAtKey(tester, const ValueKey('daily-nutrition-remaining-calories')),
+      '1200',
+    );
+    expect(find.text('Workout'), findsNothing);
 
     final calendar = tester.widget<TioDateCalendar>(find.byType(TioDateCalendar));
     expect(calendar.decorationBuilder, isNotNull);
@@ -135,15 +135,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(dates.selectedDate, yesterday);
-    final summary =
-        find.byKey(const ValueKey('meal-diary-daily-nutrition-summary'));
-    expect(find.descendant(of: summary, matching: find.text('0 kcal')),
-        findsOneWidget);
-    // Target and Remaining are both the untouched Standard-strategy target.
-    expect(find.descendant(of: summary, matching: find.text('2000 kcal')),
-        findsNWidgets(2));
-    expect(find.descendant(of: summary, matching: find.text('Workout')),
-        findsNothing);
+    expect(
+      _textAtKey(tester, const ValueKey('daily-nutrition-eaten-calories')),
+      '0',
+    );
+    expect(
+      _textAtKey(tester, const ValueKey('daily-nutrition-target-calories')),
+      '2000',
+    );
+    expect(
+      _textAtKey(tester, const ValueKey('daily-nutrition-remaining-calories')),
+      '2000',
+    );
+    expect(find.text('Workout'), findsNothing);
   });
 
   testWidgets('without target composition the legacy isolated diary stays honest',
@@ -176,3 +180,6 @@ void main() {
     );
   });
 }
+
+String _textAtKey(WidgetTester tester, Key key) =>
+    tester.widget<Text>(find.byKey(key)).data!;
