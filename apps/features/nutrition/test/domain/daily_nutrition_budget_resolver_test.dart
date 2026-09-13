@@ -48,6 +48,19 @@ void main() {
       expect(budget, isNull);
     });
 
+    test('keeps repository null unavailable without inferring auth state',
+        () async {
+      final resolver = DailyNutritionBudgetResolver(
+        nutritionTargetsRepository: _UnavailableNutritionTargetsRepository(),
+      );
+
+      final budget = await resolver.resolve(
+        MealLogLocalDate(year: 2026, month: 9, day: 13),
+      );
+
+      expect(budget, isNull);
+    });
+
     test('preserves unknown target fields instead of fabricating zero',
         () async {
       final repository = InMemoryNutritionTargetsRepository();
@@ -98,6 +111,17 @@ void main() {
       );
     });
   });
+}
+
+final class _UnavailableNutritionTargetsRepository
+    implements NutritionTargetsRepository {
+  @override
+  Future<NutritionTargetsData?> read() async => null;
+
+  @override
+  Future<void> upsert(NutritionTargetsData targets) {
+    throw UnsupportedError('not used');
+  }
 }
 
 final class _ThrowingNutritionTargetsRepository
