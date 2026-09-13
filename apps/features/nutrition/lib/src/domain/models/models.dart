@@ -1,3 +1,4 @@
+export 'daily_nutrition_budget.dart';
 export 'meal_categories_config.dart';
 export 'meal_categories_config_codec.dart';
 export 'meal_categories_policy.dart';
