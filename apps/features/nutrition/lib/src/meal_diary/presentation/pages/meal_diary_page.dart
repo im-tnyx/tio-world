@@ -28,6 +28,14 @@ import '../widgets/meal_diary_log_action.dart';
 /// to reserve the inset too. See [_reservedClearance].
 const double _actionClearance = TioSize.dp56 + TioSpacing.xl * 2;
 
+/// The calendar reserves a 42dp transparent band below its surface so the
+/// expansion handle keeps a full 48dp hit target. The Daily Nutrition card is
+/// passive content, so it may visually occupy most of that transparent band
+/// without shrinking the handle target or intercepting date taps. Leaving 10dp
+/// visible clearance keeps the two surfaces distinct without the former large
+/// empty gap.
+const double _dailySummaryCalendarOverlap = TioSize.dp32;
+
 /// The Meal Diary surface, and the first production consumer of the reusable
 /// core date calendar.
 ///
@@ -317,6 +325,7 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
           historyRequest,
           _dailySummarySurface(dailySummary),
           _calendarDecorationBuilder(rangeSummaries?.valueOrNull),
+          hasDailySummarySurface: dailySummary != null,
         ),
         // The expanded month grid can reach the bottom of a short viewport,
         // so the floating action temporarily steps out of its way.
@@ -394,17 +403,36 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
     MealDiaryDateController dates,
     MealDiaryHistoryRequest? historyRequest,
     Widget dailySummarySurface,
-    TioDateDecorationBuilder? decorationBuilder,
-  ) {
+    TioDateDecorationBuilder? decorationBuilder, {
+    required bool hasDailySummarySurface,
+  }) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final overlap = hasDailySummarySurface
+            ? _dailySummaryCalendarOverlap
+            : TioSpacing.none;
+        final reservedClearance = _reservedClearance(context);
+        final scrollClearance = math.max(0, reservedClearance - overlap);
+
+        final belowCalendar = Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            dailySummarySurface,
+            MealDiaryHistoryView(
+              date: dates.selectedDate,
+              request: historyRequest,
+              onEdit: historyRequest == null ? null : _openQuickEdit,
+            ),
+          ],
+        );
+
         return SingleChildScrollView(
-          padding: EdgeInsets.only(bottom: _reservedClearance(context)),
+          padding: EdgeInsets.only(bottom: scrollClearance),
           child: ConstrainedBox(
             constraints: BoxConstraints(
               minHeight: math.max(
                 0,
-                constraints.maxHeight - _reservedClearance(context),
+                constraints.maxHeight - scrollClearance,
               ),
             ),
             child: Column(
@@ -425,15 +453,14 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
                   },
                   resolvedFirstDayOfWeek: widget.resolvedFirstDayOfWeek,
                 ),
-                // Keep only a compact gap below the calendar/handle touch area
-                // before the owner-approved Daily Nutrition card.
-                const SizedBox(height: TioSpacing.sm),
-                dailySummarySurface,
-                MealDiaryHistoryView(
-                  date: dates.selectedDate,
-                  request: historyRequest,
-                  onEdit: historyRequest == null ? null : _openQuickEdit,
-                ),
+                if (overlap > 0)
+                  Transform.translate(
+                    key: const ValueKey('meal-diary-summary-calendar-overlap'),
+                    offset: Offset(0, -overlap),
+                    child: belowCalendar,
+                  )
+                else
+                  belowCalendar,
               ],
             ),
           ),
