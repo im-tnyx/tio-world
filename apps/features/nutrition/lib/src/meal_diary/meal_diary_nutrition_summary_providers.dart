@@ -143,9 +143,9 @@ void _watchTargetChanges(
   Ref ref,
   NutritionTargetsRepository repository,
 ) {
-  if (repository is NutritionTargetsChangeSource) {
-    ref.watch(_nutritionTargetsChangesProvider(repository));
-  }
+  if (repository is! NutritionTargetsChangeSource) return;
+  final source = repository as NutritionTargetsChangeSource;
+  ref.watch(_nutritionTargetsChangesProvider(source));
 }
 
 DailyNutritionSummaryResolver _resolver(Object request) {
