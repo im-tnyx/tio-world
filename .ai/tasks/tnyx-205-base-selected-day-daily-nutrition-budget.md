@@ -19,19 +19,19 @@
 **Review owner:** Unassigned until implementation handoff
 **Implementation ownership state:** Active
 **Ownership transition:** Not applicable
-**Repository state last verified:** Remote `main` and owner-confirmed local `main` both `6985de54184d8a3fdcdc865a3dcef263efa2d863`; task branch created from that exact SHA.
+**Repository state last verified:** Exact parent/merge base remains `main@6985de54184d8a3fdcdc865a3dcef263efa2d863`; API scope audit at source/test head reported ahead 6 / behind 0 before this checkpoint-only task-brief commit.
 **Branch:** `tnyx/tnyx-205-n11a-base-selected-day-dailynutritionbudget-resolver`
-**HEAD SHA:** task-brief commit pending connector result at creation checkpoint
-**Observed working-tree state:** Owner reported `## main...origin/main` before task branch creation; this connector does not expose the owner's local worktree.
-**Observed uncommitted/dirty files:** None reported by owner on synced `main`.
+**HEAD SHA:** Source/test implementation head `36addc4077814a3e1201b1b66773044534079e29`; this checkpoint commit moves HEAD docs-only and therefore requires fresh exact-head validation before a readiness claim.
+**Observed working-tree state:** Owner reported clean synced `main` before branch creation; this remote connector does not expose the owner's local branch worktree.
+**Observed uncommitted/dirty files:** None reported by owner on synced `main`; no remote API evidence of out-of-scope files.
 **PR / tracker:** Linear `TNYX-205` is `In Progress`; stale `blockedBy TNYX-209` relation removed after TNYX-209 Done/merge/sync. No PR yet.
-**Current implementation state:** Audit complete enough to begin the bounded domain foundation; no source implementation existed on `main` for `DailyNutritionBudget`.
+**Current implementation state:** Bounded domain implementation and focused tests are present. Validation/review remain; no app/UI/schema wiring was added.
 **Relevant execution surface:** `apps/features/nutrition/lib/src/domain/**`, canonical `NutritionTargetsRepository`, existing `MealLogLocalDate` selected-day identity in `apps/shared`.
-**Validation completed at SHA:** None for TNYX-205 source yet.
-**Validation remaining:** Focused Nutrition tests/analyze, repository-required CI, parent-to-head scope audit.
+**Validation completed at SHA:** No TNYX-205 CI claim yet.
+**Validation remaining:** Fresh parent-to-head audit after this checkpoint, exact-head Flutter/Dart analyze + tests, independent review.
 **Current blocker:** None.
 **Open review finding IDs:** None.
-**Next exact action:** Add the minimal budget read model + resolver and focused pure-domain tests without UI/schema changes.
+**Next exact action:** Open the bounded Draft PR to trigger exact-head CI, then inspect CI and independently review the complete delta.
 
 ## 1. Discovery
 
@@ -68,14 +68,14 @@ Full N11 schedule models/storage, fasting protocols, calorie-cycling configurati
 - `NutritionTargetsData` is the canonical daily target value contract; nullable nutrient values mean unknown/unset and validation does not fabricate defaults.
 - `NutritionTargetsRepository.read()` returns `NutritionTargetsData?`; `null` already represents no canonical target row.
 - `SupabaseNutritionTargetsRepository` reads the canonical `user_nutrition_targets` owner and requires no date-specific schema for this slice.
-- `apps/app` already composes one canonical `nutritionTargetsRepositoryProvider`; its Settings-facing `nutritionTargetsDataProvider` intentionally substitutes an all-null object for first-time editing, so N11A must depend on the repository boundary rather than that presentation convenience provider when absence matters.
-- `MealLogLocalDate` is the existing Nutrition-bounded date-only/calendar-identity value object. It avoids timezone-moving `DateTime` semantics and is already what Meal Diary uses for selected-day history.
-- No `DailyNutritionBudget` runtime implementation exists on `main`.
-- `docs/screens/meal-diary.md` already reserves calorie progress for a shared `DailyNutritionBudget(date)` contract and explicitly forbids fabricating a denominator.
+- `apps/app` already composes one canonical `nutritionTargetsRepositoryProvider`; its Settings-facing `nutritionTargetsDataProvider` intentionally substitutes an all-null object for first-time editing, so N11A depends on the repository boundary rather than that presentation convenience provider when absence matters.
+- `MealLogLocalDate` is the existing Nutrition-bounded date-only/calendar-identity value object and is publicly exported by `package:tio_shared/shared.dart`. It avoids timezone-moving `DateTime` semantics and is already what Meal Diary uses for selected-day history.
+- No `DailyNutritionBudget` runtime implementation existed on `main` before this branch.
+- `docs/screens/meal-diary.md` already reserves calorie progress for a shared `DailyNutritionBudget(date)` contract and explicitly forbids fabricating a denominator. Its current wording remains accurate because TNYX-205 adds the domain foundation but does not wire progress UI.
 - Linear `TNYX-64` freezes the durable boundary: canonical target → schedule resolve(date) → strategy-adjusted target → later optional N10 workout policy → daily budget.
 - Linear `TNYX-206` is the immediate consumer after this slice and requires selected-date target truth with missing values preserved as unavailable.
 
-Pre-existing documentation drift observed but not owned by this bounded slice: `docs/screens/nutrition-targets.md` still says planned/no route although runtime Settings target surfaces exist; portions of `docs/DEVELOPMENT_SETUP.md` / `docs/SUPABASE_STRATEGY.md` also retain older repository-state wording. Runtime/source and current architecture docs win; this task must not silently use those stale statements as implementation truth.
+Pre-existing documentation drift observed but not owned by this bounded slice: `docs/screens/nutrition-targets.md` still says planned/no route although runtime Settings target surfaces exist; portions of `docs/DEVELOPMENT_SETUP.md` / `docs/SUPABASE_STRATEGY.md` also retain older repository-state wording. Runtime/source and current architecture docs win; this task does not silently use those stale statements as implementation truth.
 
 ### Existing pattern to follow
 
@@ -83,7 +83,7 @@ Feature-owned immutable models + use cases under `apps/features/nutrition/lib/sr
 
 ### Tests or validation already present
 
-Canonical target model/repository and MealLog date identity have existing coverage. TNYX-205-specific tests do not exist yet.
+Canonical target model/repository and MealLog date identity have existing coverage. TNYX-205 adds focused resolver coverage at `apps/features/nutrition/test/domain/daily_nutrition_budget_resolver_test.dart`.
 
 ## 3. Clarification
 
@@ -95,6 +95,7 @@ Canonical target model/repository and MealLog date identity have existing covera
 | Reuse existing `MealLogLocalDate` for selected-day identity in V1 | Locked for this slice | Avoid raw `DateTime` timezone semantics and avoid creating a competing date-only model; broader naming/generalization can wait for evidence from more consumers | Implementation audit |
 | Resolver returns `null` only when canonical target row is absent | Locked | Distinguishes unavailable target from repository failure and preserves unknown fields | TNYX-205 |
 | Standard strategy returns canonical target unchanged | Locked | Current/default strategy has no date-specific adjustment | TNYX-64/TNYX-205 |
+| Validate a present repository target at the resolver boundary | Implemented | Canonical adapters validate on write/read already; resolver also fails closed if a custom/future adapter violates that contract instead of publishing invalid budget truth | Implementation audit |
 | Do not introduce a placeholder NutritionSchedule model | Locked | Full schedule rules/storage are later N11 slices; speculative models would broaden scope | TNYX-205 |
 | No app/UI provider wiring yet | Locked | N11A owns the reusable domain contract; N3A can compose it at the consuming read-model boundary | Bounded-slice audit |
 
@@ -102,7 +103,7 @@ Canonical target model/repository and MealLog date identity have existing covera
 
 ### Chosen Approach
 
-Add `DailyNutritionBudget` with explicit `localDate`, `baseTarget`, and `strategyAdjustedTarget`. Add `DailyNutritionBudgetResolver` constructed with `NutritionTargetsRepository`; `resolve(localDate)` reads canonical target truth, returns `null` when absent, validates/preserves it, and for Standard returns it unchanged as the strategy-adjusted target.
+`DailyNutritionBudget` carries explicit `localDate`, `baseTarget`, and `strategyAdjustedTarget`. `DailyNutritionBudgetResolver` is constructed with `NutritionTargetsRepository`; `resolve(localDate)` reads canonical target truth, returns `null` when absent, validates/preserves a present target, and for Standard returns it unchanged as the strategy-adjusted target.
 
 ### Ownership and Data Flow
 
@@ -135,19 +136,23 @@ No UI in this slice. Domain semantics distinguish absent target (`null`) from re
 
 ## 5. Implementation Plan
 
-- [ ] Add `DailyNutritionBudget` domain model.
-- [ ] Add `DailyNutritionBudgetResolver` using `NutritionTargetsRepository`.
-- [ ] Export both through Nutrition public domain barrels.
-- [ ] Add focused tests for Standard, explicit historical date, absent row, partial/null values, and read failure propagation.
-- [ ] Reconcile `docs/screens/meal-diary.md` only if its implementation-status wording becomes stale.
-- [ ] Run focused/package validation then exact-head CI/scope audit before review.
+- [x] Add `DailyNutritionBudget` domain model.
+- [x] Add `DailyNutritionBudgetResolver` using `NutritionTargetsRepository`.
+- [x] Export both through Nutrition public domain barrels.
+- [x] Add focused tests for Standard, explicit historical date, absent row, partial/null values, read failure propagation, and fail-closed invalid canonical target handling.
+- [x] Reconcile `docs/screens/meal-diary.md` need: no edit required because the existing statement that progress wiring remains later is still accurate.
+- [ ] Run exact-head repository validation and independent review before review handoff.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Not run yet.
+Parent-to-source-head API audit at 36addc4077814a3e1201b1b66773044534079e29:
+base/merge-base = 6985de54184d8a3fdcdc865a3dcef263efa2d863
+ahead 6 / behind 0
+exactly 6 intended paths
+No CI claim yet; docs-only checkpoint after this audit makes a fresh exact-head run mandatory.
 ```
 
 ### Review Findings and Resolution
@@ -160,16 +165,23 @@ Not run yet.
 
 ### Changed Files
 
-Pending.
+Current intended set before final validation:
+
+- `.ai/tasks/tnyx-205-base-selected-day-daily-nutrition-budget.md`
+- `apps/features/nutrition/lib/src/domain/models/daily_nutrition_budget.dart`
+- `apps/features/nutrition/lib/src/domain/models/models.dart`
+- `apps/features/nutrition/lib/src/domain/usecases/daily_nutrition_budget_resolver.dart`
+- `apps/features/nutrition/lib/src/domain/usecases/usecases.dart`
+- `apps/features/nutrition/test/domain/daily_nutrition_budget_resolver_test.dart`
 
 ### Actual Behavior
 
-Pending implementation.
+A caller supplies one explicit `MealLogLocalDate`. The resolver reads the canonical Nutrition Targets owner. No row returns unavailable; a present valid target returns a `DailyNutritionBudget` whose Standard strategy-adjusted target is exactly the canonical base target; null nutrient fields remain null; read/validation failures propagate.
 
 ### Known Limitations
 
-Standard strategy only. No schedule persistence/history, Workout calorie policy, summary UI, or calendar progress wiring in TNYX-205.
+Standard strategy only. Current target storage is not effective-dated, so this foundation preserves the selected date as resolver identity but does not invent historical target/schedule snapshots. No schedule persistence/history, Workout calorie policy, summary UI, or calendar progress wiring belongs to TNYX-205.
 
 ### Final Status
 
-`PARTIAL`
+`PARTIAL` — implementation complete, validation/review pending.
