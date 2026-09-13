@@ -11,6 +11,9 @@ import '../domain/domain.dart';
 final mealDiaryNutritionTargetsRepositoryProvider =
     Provider<NutritionTargetsRepository?>((ref) => null);
 
+final _nutritionTargetsChangesProvider = StreamProvider.autoDispose
+    .family<void, NutritionTargetsChangeSource>((ref, source) => source.changes);
+
 @immutable
 final class MealDiaryDailySummaryRequest {
   const MealDiaryDailySummaryRequest({
@@ -118,6 +121,7 @@ final class MealDiarySummaryRangeRequest {
 final mealDiaryDailyNutritionSummaryProvider = FutureProvider.autoDispose
     .family<DailyNutritionSummary, MealDiaryDailySummaryRequest>(
   (ref, request) {
+    _watchTargetChanges(ref, request.nutritionTargetsRepository);
     return _resolver(request).resolve(request.localDate);
   },
 );
@@ -127,12 +131,22 @@ final mealDiaryNutritionSummaryRangeProvider = FutureProvider.autoDispose
         Map<MealLogLocalDate, DailyNutritionSummary>,
         MealDiarySummaryRangeRequest>(
   (ref, request) {
+    _watchTargetChanges(ref, request.nutritionTargetsRepository);
     return _resolver(request).resolveRange(
       startDate: request.startDate,
       endDate: request.endDate,
     );
   },
 );
+
+void _watchTargetChanges(
+  Ref ref,
+  NutritionTargetsRepository repository,
+) {
+  if (repository is NutritionTargetsChangeSource) {
+    ref.watch(_nutritionTargetsChangesProvider(repository));
+  }
+}
 
 DailyNutritionSummaryResolver _resolver(Object request) {
   final MealLogRepository mealLogs;
