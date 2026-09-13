@@ -222,10 +222,14 @@ final class ManualNutritionAmountPolicy {
     final scale = math.pow(10, maximumFractionalDigits).toDouble();
     final scaled = value.toDouble() * scale;
     final nearestInteger = scaled.roundToDouble();
+
+    // Zero is exactly representable and is itself an allowed grid point. A
+    // non-zero value close to zero is extra precision, not representation noise
+    // around zero, so it must not inherit an absolute epsilon floor.
+    if (nearestInteger == 0) return scaled != 0;
+
     final difference = (scaled - nearestInteger).abs();
-    final magnitude = math
-        .max(1.0, math.max(scaled.abs(), nearestInteger.abs()))
-        .toDouble();
+    final magnitude = math.max(scaled.abs(), nearestInteger.abs()).toDouble();
     final tolerance = _precisionUlps * _doubleEpsilon * magnitude;
     return difference > tolerance;
   }
