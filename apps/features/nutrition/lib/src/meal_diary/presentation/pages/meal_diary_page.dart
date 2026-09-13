@@ -425,9 +425,9 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
                   },
                   resolvedFirstDayOfWeek: widget.resolvedFirstDayOfWeek,
                 ),
-                // Clearance for the handle's touch target, which reaches just
-                // past the calendar's own edge.
-                const SizedBox(height: TioSpacing.xl),
+                // Keep only a compact gap below the calendar/handle touch area
+                // before the owner-approved Daily Nutrition card.
+                const SizedBox(height: TioSpacing.sm),
                 dailySummarySurface,
                 MealDiaryHistoryView(
                   date: dates.selectedDate,
