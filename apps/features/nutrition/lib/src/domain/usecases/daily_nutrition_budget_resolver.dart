@@ -1,6 +1,7 @@
 import 'package:tio_shared/shared.dart';
 
 import '../models/daily_nutrition_budget.dart';
+import '../models/nutrition_targets_data.dart';
 import '../repositories/nutrition_targets_repository.dart';
 
 /// Resolves derived Nutrition target truth for an explicit local date.
@@ -26,10 +27,41 @@ final class DailyNutritionBudgetResolver {
   /// inside a present target remain unknown/unset and are never fabricated as
   /// zero.
   Future<DailyNutritionBudget?> resolve(MealLogLocalDate localDate) async {
-    final baseTarget = await _nutritionTargetsRepository.read();
-    if (baseTarget == null) return null;
+    final baseTarget = await _readValidatedBaseTarget();
+    return _resolveWithBaseTarget(localDate, baseTarget);
+  }
 
-    baseTarget.validate();
+  /// Resolves several explicit dates from one canonical target read.
+  ///
+  /// Calendar consumers use this instead of issuing one identical target read
+  /// per visible date. Each requested date remains explicit in the returned
+  /// map so later N11 schedule rules can vary strategy adjustment by date
+  /// without changing the consumer contract.
+  Future<Map<MealLogLocalDate, DailyNutritionBudget?>> resolveMany(
+    Iterable<MealLogLocalDate> localDates,
+  ) async {
+    final dates = <MealLogLocalDate>{...localDates};
+    if (dates.isEmpty) {
+      return const <MealLogLocalDate, DailyNutritionBudget?>{};
+    }
+
+    final baseTarget = await _readValidatedBaseTarget();
+    return Map<MealLogLocalDate, DailyNutritionBudget?>.unmodifiable({
+      for (final date in dates) date: _resolveWithBaseTarget(date, baseTarget),
+    });
+  }
+
+  Future<NutritionTargetsData?> _readValidatedBaseTarget() async {
+    final baseTarget = await _nutritionTargetsRepository.read();
+    baseTarget?.validate();
+    return baseTarget;
+  }
+
+  static DailyNutritionBudget? _resolveWithBaseTarget(
+    MealLogLocalDate localDate,
+    NutritionTargetsData? baseTarget,
+  ) {
+    if (baseTarget == null) return null;
     return DailyNutritionBudget(
       localDate: localDate,
       baseTarget: baseTarget,
