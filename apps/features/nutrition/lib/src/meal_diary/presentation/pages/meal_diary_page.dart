@@ -416,7 +416,7 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
             ? _dailySummaryCalendarOverlap
             : TioSpacing.none;
         final reservedClearance = _reservedClearance(context);
-        final scrollClearance = math.max(0, reservedClearance - overlap);
+        final scrollClearance = math.max(0.0, reservedClearance - overlap);
 
         final belowCalendar = Column(
           mainAxisSize: MainAxisSize.min,
@@ -435,7 +435,7 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
           child: ConstrainedBox(
             constraints: BoxConstraints(
               minHeight: math.max(
-                0,
+                0.0,
                 constraints.maxHeight - scrollClearance,
               ),
             ),
