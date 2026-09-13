@@ -33,6 +33,29 @@ void main() {
     expect(snapshot.amountFor(NutrientId.fat), 1000);
   });
 
+  test('create accepts ordinary floating-point noise across magnitudes',
+      () async {
+    final repository = _RecordingRepository(_entry());
+    final controller = QuickAddMealLogCreateController(
+      repository: repository,
+      clock: () => now,
+      uuidV4: () => mutationId,
+    );
+    addTearDown(controller.dispose);
+
+    final calories = 8206.2 - 8.9;
+    final carbs = 0.1 + 0.2;
+    final created = await controller.submit(
+      _draft(calories: calories, carbs: carbs),
+    );
+
+    expect(created, isNotNull);
+    expect(repository.creates, hasLength(1));
+    final snapshot = repository.creates.single.manualNutritionSnapshot;
+    expect(snapshot.amountFor(NutrientId.energy), calories);
+    expect(snapshot.amountFor(NutrientId.carbohydrate), carbs);
+  });
+
   test('create blocks upper-bound and precision bypasses before repository',
       () async {
     final repository = _RecordingRepository(_entry());
@@ -65,6 +88,13 @@ void main() {
       await controller.submit(_draft(carbs: 0.30000000009)),
       isNull,
     );
+    expect(
+      controller.state.message,
+      QuickAddMealLogCreateController.invalidMealMessage,
+    );
+    controller.draftChanged();
+
+    expect(await controller.submit(_draft(carbs: 1e-14)), isNull);
     expect(
       controller.state.message,
       QuickAddMealLogCreateController.invalidMealMessage,
@@ -128,6 +158,30 @@ void main() {
     expect(snapshot.amountFor(NutrientId.fiber), 8);
   });
 
+  test('edit accepts ordinary floating-point noise across magnitudes', () async {
+    final original = _entry();
+    final repository = _RecordingRepository(original);
+    final controller = QuickAddMealLogEditController(
+      repository: repository,
+      initialEntry: original,
+      clock: () => now,
+    );
+    addTearDown(controller.dispose);
+
+    final calories = 8206.2 - 8.9;
+    final protein = 0.1 + 0.2;
+    final updated = await controller.submit(
+      _draft(calories: calories, protein: protein),
+    );
+
+    expect(updated, isNotNull);
+    expect(repository.updates, hasLength(1));
+    final snapshot = repository.updates.single.manualNutritionSnapshot;
+    expect(snapshot.amountFor(NutrientId.energy), calories);
+    expect(snapshot.amountFor(NutrientId.protein), protein);
+    expect(snapshot.amountFor(NutrientId.fiber), 8);
+  });
+
   test('edit blocks upper-bound and precision bypasses before repository',
       () async {
     final original = _entry();
@@ -157,6 +211,13 @@ void main() {
       await controller.submit(_draft(protein: 0.30000000009)),
       isNull,
     );
+    expect(
+      controller.state.message,
+      QuickAddMealLogEditController.invalidMealMessage,
+    );
+    controller.draftChanged();
+
+    expect(await controller.submit(_draft(protein: 1e-14)), isNull);
     expect(
       controller.state.message,
       QuickAddMealLogEditController.invalidMealMessage,
