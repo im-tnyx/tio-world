@@ -354,9 +354,10 @@ final class SupabaseMealLogRepository implements
     if (gateway is! MealLogRangeTableGateway) {
       throw StateError('MealLog range reads are unavailable for this gateway.');
     }
+    final rangeGateway = gateway as MealLogRangeTableGateway;
 
     final userId = _requireUserId();
-    final rows = await gateway.listRowsByLocalDateRange(
+    final rows = await rangeGateway.listRowsByLocalDateRange(
       userId: userId,
       startLocalDate: start,
       endLocalDate: end,
