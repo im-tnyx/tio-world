@@ -6,7 +6,7 @@
 
 ## Owner Approval and Scope
 
-**Approval:** Approved. The original N3A implementation was owner-approved with `go`; on 2026-09-14 the owner explicitly approved the incomplete-nutrient UX refinement with `GO`.
+**Approval:** Approved. The original N3A slice, the incomplete-nutrient UX refinement, and the current Codex-review repair slice were owner-authorized with `go` / `GO`.
 
 N3A remains workout-OFF:
 
@@ -14,14 +14,13 @@ N3A remains workout-OFF:
 Target - Eaten = Remaining
 ```
 
-Current bounded refinement:
+Current bounded repair scope:
 
-- preserve exact aggregation semantics: a nutrient is exact only when every contributing MealLog contains that nutrient;
-- never replace missing nutrition with `0`;
-- when some entries have a nutrient and some do not, retain a presentation-safe confirmed minimum plus the number of missing entries;
-- Daily Summary may render `24g+ / 150g` with an incomplete indicator while exact consumed total/progress remain unavailable;
-- Meal section header renders exact grams, a partial `24g+`, or explicit `Protein —` when no protein amount is known;
-- do not derive exact Remaining/progress from a `+` lower bound;
+- preserve exact aggregation semantics and the approved incomplete-nutrient presentation;
+- when visible-range refresh is in `AsyncError`, do not pass Riverpod previous-value summaries into calendar decorations;
+- keep the retryable range-error surface already implemented;
+- document the already-shipped public `TioDateCalendar` / `TioDateDecoration` ring ordering, semantic colors, and 30dp date-cell geometry in the canonical Core theme README;
+- add/adjust focused regression coverage for stale previous-value calendar decorations;
 - no Workout term, schema/RLS change, new persisted total, unrelated Diary redesign, or TNYX-207 work.
 
 ## Active Handoff
@@ -31,102 +30,101 @@ Current bounded refinement:
 **Review owner:** ChatGPT after implementation  
 **Branch:** `tnyx/tnyx-206-n3a-base-daily-nutrition-summary-workout-off`  
 **Base:** `main@2866ded8a963b64a99e41b5007da4753a922c7cc`  
-**Draft PR:** #267  
+**PR:** #267 — Ready for review  
 **Linear:** TNYX-206 — In Progress; blocks TNYX-207  
 **Repository state:** connector/API session; no local worktree state is claimed.  
-**Pre-refinement HEAD:** `a445a97ee79d8878df3f4fa17eb86d83a484aa55`  
-**Pre-refinement validation:** Flutter CI #2541 / run `34807629996` green for Flutter analyze, Dart analyze, Flutter tests, and Dart tests; all five prior Codex findings R1–R5 resolved; unresolved threads 0; final review `5194084768` reported no new P1/P2.  
-**Refinement validation:** source/test HEAD `31c74b72ecb7a09ea242d02cc73b122441fd69d3` passed Flutter CI #2555 / run `34809905692`: Flutter analyze, Dart analyze, Flutter tests, and Dart tests all green. Documentation checkpoint HEAD `0c2e478cc1b9c853d82b39ad6143d07ab394075b` then passed exact-head Flutter CI #2556 / run `34848212107` with the same four gates green. Fresh exact-head Codex-style review `5198219045` on `0c2e478c...` reported no new P1/P2, thread audit remained 0 unresolved, and fresh compare stayed 87 ahead / 0 behind current main.  
-**Final metadata policy:** this brief closure commit only records already-completed evidence. Do not edit the task brief again solely to chase its own resulting SHA. Validate that final metadata-only SHA externally via CI, then pin that SHA/run/review in the PR body; PR metadata does not mutate the branch.  
+**Pre-repair HEAD:** `db4b8a42496bc8adcd8d03e04eac0fc535ef0c96`  
+**Pre-repair validation:** exact-head Flutter CI #2557 / run `34849217429` green for Flutter analyze, Dart analyze, Flutter tests, and Dart tests.  
+**Actual Codex review:** reviewed `db4b8a4249` after PR was marked Ready and opened two new unresolved findings, R6/P2 and R7/P1 below.  
 **Merge:** not authorized.
 
 ## Governance Read
 
-Before this UI-affecting refinement, read and followed:
+Fresh-read before this repair slice:
 
 - `AGENTS.md`
-- `.ai/tasks/README.md`
-- `.ai/tasks/design-system-token-consolidation.md`
+- `.ai/workflow.md`
 - `apps/features/AGENTS.md`
 - `apps/core/lib/src/theme/README.md`
-- current PR #267 and Linear TNYX-206
+- current task brief
+- current PR #267 review threads
+- Linear TNYX-206 relations/status
+- exact affected runtime/test files
 
-No new Core token/component contract is needed. Existing feature composition and governed typography/spacing remain in use.
-
-## Verified Runtime Evidence
-
-- Before this slice, `DailyNutritionSummaryResolver._aggregate` dropped a nutrient from exact `consumedTotals` as soon as one MealLog was missing that nutrient. That correctly prevented a partial sum from masquerading as exact but discarded the known lower bound.
-- `DailyNutritionSummary.progressFor` requires exact consumed truth and a positive target; the refinement keeps that exact-only calculation contract unchanged.
-- `MealDiarySectionReadModel.proteinGrams` remains exact-only via `_allKnownTotal`; section coverage is derived separately from the same canonical entries rather than weakening that field.
-- Daily Summary keeps Carbs/Protein/Fat/Fiber cells visible and renders unavailable exact truth explicitly.
-- Quick Add requires Calories but Protein is optional, so mixed known/missing Protein rows are a normal valid state.
+Relevant repository rule: materially changing a public reusable component/theme usage contract requires updating `apps/core/lib/src/theme/README.md` in the same PR.
 
 ## Locked Truth Contract
 
-For each supported nutrient, distinguish these states:
+For each supported nutrient:
 
-1. **Exact known** — every contributing entry has the nutrient. Existing exact total remains authoritative and may drive progress.
-2. **Partial known / incomplete** — at least one entry has the nutrient and at least one entry is missing it. Exact total remains unavailable; a confirmed minimum may be displayed with `+`, e.g. `24g+`; progress remains unavailable.
-3. **Fully unavailable** — contributing entries exist but none provide the nutrient. Display `—`; never display `0g+`.
-4. **Known empty day** — a successful read with no MealLogs is exact known zero, unchanged from current behavior.
+1. **Exact known** — every contributing entry has the nutrient; exact total may drive progress.
+2. **Partial known / incomplete** — exact total is unavailable; a confirmed minimum may display with `+`; exact progress stays unavailable.
+3. **Fully unavailable** — display `—`; never fabricate `0g+`.
+4. **Known empty day** — successful empty MealLog read is exact known zero.
 
-`+` means “at least this much is confirmed”; it is not an estimate and not an exact aggregate.
+`+` means “at least this much is confirmed”; it is presentation-only and must never drive exact Remaining/progress.
 
-## Implemented Model Shape
+Calendar truth follows the same unavailable-vs-zero rule: a failed current visible-range read must not continue presenting a previous successful range as if it were current.
 
-Existing exact fields/contracts stay intact. Presentation-safe coverage is additive:
+## Verified Runtime Evidence
 
-```text
-DailyNutritionSummary
-  consumedTotals                       existing; exact-only
-  confirmedConsumedTotals              new; lower-bound facts only when partial
-  missingConsumedEntryCounts           new
+- `MealDiaryPage` computes `hasRangeError = rangeSummaries?.hasError == true`, correctly forces the retryable summary error surface, but still calls `_calendarDecorationBuilder(rangeSummaries?.valueOrNull)`. Riverpod may retain previous data on `AsyncError`, so stale calorie rings/semantics can remain visible during the error.
+- The minimal runtime repair is to gate decoration input on `!hasRangeError` (or otherwise pass `null` while errored) without changing retry/provider semantics.
+- Existing `meal_diary_daily_nutrition_recovery_test.dart` covers range-only initial error and previous-value selected-summary error, but not a **successful range → invalidation → range error with previous value** sequence. Add that regression.
+- `TioDateDecoration` already documents the runtime layer contract in source: progress is outermost, selection sits directly inside with no decorative gap; progress uses semantic `progress`, selection/fill use `primary`.
+- `TioDateCalendar` changed `_dateCellSize` from 28dp to 30dp in this PR. The canonical theme README currently says only that `TioDateCalendar` accepts generic decoration state and does not record the new ring ordering/color/geometry contract.
 
-MealDiarySectionReadModel
-  proteinGrams                          existing; exact-only
-  entries                               existing canonical section entries
+## Codex Review Findings
 
-mealDiarySectionProteinCoverage(section)
-  exactTotal                            mirrors exact section protein truth
-  confirmedTotal                        derived lower bound when at least one value exists
-  missingEntryCount                     derived from canonical section entries
-```
+### R6 / P2 — stale calendar rings on range error
 
-The Daily Summary resolver performs one aggregation pass over canonical MealLog facts. Section coverage is derived by a Nutrition-owned helper from the existing section entries; the widget does not infer missingness from display strings and the canonical section read model is not weakened.
+**Status:** accepted, repair pending.
 
-## Approved Presentation
+When a previously successful visible-range provider refresh fails, `AsyncError` can retain previous data. The current `valueOrNull` path still supplies that map to `TioDateCalendar`, so old calorie rings and accessibility semantics can remain visible next to an error card. During a range error, calendar decorations must be unavailable (`null`) rather than stale.
 
-### Daily Summary
+### R7 / P1 — canonical Core calendar contract documentation missing
 
-- exact Protein: `70 g / 150 g` and normal progress bar;
-- partial Protein: `24 g+ / 150 g`, no progress bar, compact missing-meal indication such as `1 meal missing protein`;
-- fully unavailable Protein: `— / 150 g`, no progress bar;
-- missing target remains confirmed/exact consumed against `—`, with no fabricated progress;
-- accessibility semantics explicitly state “at least”, missing meal count, and incomplete truth.
+**Status:** accepted, repair pending.
 
-### Meal section header
+This PR materially changed the public reusable calendar visual contract but did not update `apps/core/lib/src/theme/README.md`. Document the current contract in that README:
 
-- exact Protein: existing `38g` with the Protein glyph;
-- partial Protein: `24g+` with the Protein glyph;
-- fully unavailable Protein: literal `Protein —` so the nutrient does not disappear; no value glyph is shown for an unavailable value;
-- no partial value is exposed as exact.
+- normal date cell geometry is 30dp;
+- progress ring is the outer visual boundary;
+- selection ring is smaller and directly inside it with no decorative gap;
+- progress uses `colors.progress`;
+- selection/fill use `colors.primary`;
+- `progress: null` remains unavailable while `progress: 0` remains known zero;
+- feature/domain meaning stays outside Core.
 
-Individual MealLog cards remain unchanged in this slice.
+## Earlier Findings / Validated Behavior
+
+R1–R5 remain resolved:
+
+- target-save cache coherence;
+- selected-summary retry;
+- paged Supabase range reads;
+- previous-value error does not overlap/steal the calendar handle;
+- range-only error exposes Retry.
+
+The incomplete-nutrient refinement also remains locked:
+
+- Daily Summary partial Protein: `24 g+ / 150 g` + missing-meal context, no progress bar;
+- fully unavailable Protein: `— / 150 g`;
+- section partial Protein: `24g+`;
+- section fully unavailable Protein: `Protein —`;
+- missing nutrition never becomes zero.
 
 ## Implementation Checklist
 
-- [x] Fresh PR/Linear/runtime audit.
-- [x] UI/design-system governance read.
-- [x] Owner approval for incomplete-nutrient UX refinement.
-- [x] Extend Daily Nutrition derived read model with confirmed minimum + missing count while preserving exact-only `consumedTotals`.
-- [x] Derive section Protein coverage from existing canonical entries while preserving exact-only `proteinGrams`.
-- [x] Render Daily Summary partial values with `+`, missing-meal indication, and no fabricated progress.
-- [x] Render section-header Protein as exact / `+` / explicit `Protein —` instead of hiding incomplete Protein.
-- [x] Add focused partial-known/all-missing widget/history regressions; existing suite continues to cover exact/empty-day behavior.
-- [x] Reconcile `docs/screens/meal-diary.md` for the incomplete-nutrient truth contract.
-- [x] Source-bearing implementation HEAD CI green — #2555 / run `34809905692` on `31c74b72ecb7a09ea242d02cc73b122441fd69d3`.
-- [x] Post-refinement documentation checkpoint CI green — #2556 / run `34848212107` on `0c2e478cc1b9c853d82b39ad6143d07ab394075b`; PR body reconciled to that evidence.
-- [x] Fresh documentation-checkpoint Codex-style review clean — review `5198219045`, no new P1/P2; 0 unresolved threads.
+- [x] Fresh PR/Linear/governance/runtime audit for R6/R7.
+- [x] Verify both new Codex findings against exact current source.
+- [ ] R6: suppress visible-range decorations while the range provider is in error, including previous-value `AsyncError`.
+- [ ] Add regression: successful range decoration → refresh failure retaining previous value → error surface visible and calendar decoration absent → Retry recovers current decorations.
+- [ ] R7: update canonical Core theme README with the current 30dp / outer-progress / inner-selection / semantic-color calendar contract.
+- [ ] Run exact-head Flutter/Dart analyze and tests.
+- [ ] Reconcile R6/R7 review threads only after validation.
+- [ ] Trigger/observe fresh actual Codex review on the exact repaired HEAD.
+- [ ] Reconcile PR body to exact repaired HEAD/evidence.
 
 ## Validation / Exit Gates
 
@@ -136,18 +134,15 @@ Required before merge readiness:
 - Dart analyze green;
 - Flutter tests green;
 - Dart tests green;
-- exact consumed/progress semantics unchanged for all-known and empty-day states;
-- incomplete values never produce exact progress or fake Remaining;
-- focused compact-width behavior remains overflow-free;
+- range `AsyncError` never renders stale previous-value calendar decorations or semantics;
+- Retry still restores decorations after the range source recovers;
+- exact/partial nutrient semantics remain unchanged;
+- canonical Core README matches the actual reusable calendar contract;
 - unresolved review threads = 0;
-- fresh exact-head Codex-style review has no new P1/P2;
+- fresh actual Codex review on exact HEAD has no new blocking P1/P2;
 - PR body matches exact HEAD and validation evidence;
 - explicit owner merge authorization remains a separate gate.
 
-## Prior Review Findings
-
-R1–R5 from the earlier N3A review cycle are resolved and validated on historical HEAD `a445a97ee79d8878df3f4fa17eb86d83a484aa55`. Fresh thread audit after the refinement still reports 0 unresolved threads. This refinement must not regress target-refresh, summary/range retry, paged range reads, or calendar-handle interaction.
-
 ## Next Exact Action
 
-Validate this final metadata-only closure SHA with CI. If all four gates remain green, update the PR body to pin that resulting exact HEAD/run and submit one final exact-head review without editing this task brief again. Keep the PR Draft and do not merge without separate explicit owner authorization.
+Implement the smallest R6 runtime gate + focused recovery regression and R7 canonical README correction. Then run fresh exact-head CI, resolve the two Codex threads with evidence, and require a fresh actual Codex review before any merge-readiness claim.
