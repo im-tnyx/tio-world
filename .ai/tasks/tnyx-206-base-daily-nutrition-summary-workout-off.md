@@ -6,7 +6,7 @@
 
 ## Owner Approval and Scope
 
-**Approval:** Approved. The original N3A slice, the incomplete-nutrient UX refinement, and the current Codex-review repair slice were owner-authorized with `go` / `GO`.
+**Approval:** Approved. The original N3A slice, the incomplete-nutrient UX refinement, and the Codex-review repair slice were owner-authorized with `go` / `GO`.
 
 N3A remains workout-OFF:
 
@@ -14,13 +14,13 @@ N3A remains workout-OFF:
 Target - Eaten = Remaining
 ```
 
-Current bounded repair scope:
+Current bounded repair scope is implemented:
 
 - preserve exact aggregation semantics and the approved incomplete-nutrient presentation;
 - when visible-range refresh is in `AsyncError`, do not pass Riverpod previous-value summaries into calendar decorations;
 - keep the retryable range-error surface already implemented;
-- document the already-shipped public `TioDateCalendar` / `TioDateDecoration` ring ordering, semantic colors, and 30dp date-cell geometry in the canonical Core theme README;
-- add/adjust focused regression coverage for stale previous-value calendar decorations;
+- document the public `TioDateCalendar` / `TioDateDecoration` ring ordering, semantic colors, and 30dp date-cell geometry in the canonical Core theme README;
+- add focused regression coverage for stale previous-value calendar decorations;
 - no Workout term, schema/RLS change, new persisted total, unrelated Diary redesign, or TNYX-207 work.
 
 ## Active Handoff
@@ -34,8 +34,10 @@ Current bounded repair scope:
 **Linear:** TNYX-206 — In Progress; blocks TNYX-207  
 **Repository state:** connector/API session; no local worktree state is claimed.  
 **Pre-repair HEAD:** `db4b8a42496bc8adcd8d03e04eac0fc535ef0c96`  
-**Pre-repair validation:** exact-head Flutter CI #2557 / run `34849217429` green for Flutter analyze, Dart analyze, Flutter tests, and Dart tests.  
-**Actual Codex review:** reviewed `db4b8a4249` after PR was marked Ready and opened two new unresolved findings, R6/P2 and R7/P1 below.  
+**Repair source/docs HEAD:** `67292be4b13ccc58679347c9a53fbc21236bdc2b`  
+**Repair validation:** exact-head Flutter CI #2561 / run `34854445983` green for Flutter analyze, Dart analyze, Flutter tests, and Dart tests.  
+**Actual Codex review that opened this slice:** reviewed `db4b8a4249` after PR was marked Ready and opened R6/P2 + R7/P1. Both are implemented and validated; their GitHub threads should be resolved with the #2561 evidence after this checkpoint.  
+**Final metadata policy:** this handoff reconciliation is metadata-only. Do not edit this task brief again solely to chase its resulting SHA; validate that final SHA externally and pin final CI/review evidence in the PR body.  
 **Merge:** not authorized.
 
 ## Governance Read
@@ -68,25 +70,27 @@ Calendar truth follows the same unavailable-vs-zero rule: a failed current visib
 
 ## Verified Runtime Evidence
 
-- `MealDiaryPage` computes `hasRangeError = rangeSummaries?.hasError == true`, correctly forces the retryable summary error surface, but still calls `_calendarDecorationBuilder(rangeSummaries?.valueOrNull)`. Riverpod may retain previous data on `AsyncError`, so stale calorie rings/semantics can remain visible during the error.
-- The minimal runtime repair is to gate decoration input on `!hasRangeError` (or otherwise pass `null` while errored) without changing retry/provider semantics.
-- Existing `meal_diary_daily_nutrition_recovery_test.dart` covers range-only initial error and previous-value selected-summary error, but not a **successful range → invalidation → range error with previous value** sequence. Add that regression.
+- Before R6, `MealDiaryPage` computed `hasRangeError = rangeSummaries?.hasError == true` and forced the retryable summary error surface, but still called `_calendarDecorationBuilder(rangeSummaries?.valueOrNull)`. Riverpod may retain previous data on `AsyncError`, so stale calorie rings/semantics could remain visible during the error.
+- R6 now gates decoration input with `hasRangeError ? null : rangeSummaries?.valueOrNull`. A current range error therefore removes the decoration builder instead of rendering previous-value truth.
+- `meal_diary_daily_nutrition_recovery_test.dart` now covers successful range decoration → refresh failure retaining previous data → error surface + no calendar decorations → Retry recovery.
 - `TioDateDecoration` already documents the runtime layer contract in source: progress is outermost, selection sits directly inside with no decorative gap; progress uses semantic `progress`, selection/fill use `primary`.
-- `TioDateCalendar` changed `_dateCellSize` from 28dp to 30dp in this PR. The canonical theme README currently says only that `TioDateCalendar` accepts generic decoration state and does not record the new ring ordering/color/geometry contract.
+- `TioDateCalendar` uses a 30dp normal date cell in this PR.
+- R7 reconciles `apps/core/lib/src/theme/README.md` to those source contracts: 30dp cell, outer progress / inner selection with no decorative gap, `colors.progress` vs `colors.primary`, and explicit `null` unavailable vs `0` known-zero semantics.
+- Incremental repair compare from the task-brief checkpoint to `67292be4...` was bounded to three implementation/doc files: page `3+/1-`, recovery test `+65`, theme README `2+/2-`; no collateral file drift.
 
 ## Codex Review Findings
 
 ### R6 / P2 — stale calendar rings on range error
 
-**Status:** accepted, repair pending.
+**Status:** implemented and CI-validated; thread resolution pending this handoff checkpoint.
 
-When a previously successful visible-range provider refresh fails, `AsyncError` can retain previous data. The current `valueOrNull` path still supplies that map to `TioDateCalendar`, so old calorie rings and accessibility semantics can remain visible next to an error card. During a range error, calendar decorations must be unavailable (`null`) rather than stale.
+When a previously successful visible-range provider refresh fails, `AsyncError` can retain previous data. The repaired UI passes no calendar decoration map while `hasRangeError` is true, so old calorie rings and accessibility semantics cannot remain visible next to the unavailable/error surface. Retry still invalidates the selected/range providers and restores current decorations after recovery.
 
 ### R7 / P1 — canonical Core calendar contract documentation missing
 
-**Status:** accepted, repair pending.
+**Status:** implemented and CI-validated; thread resolution pending this handoff checkpoint.
 
-This PR materially changed the public reusable calendar visual contract but did not update `apps/core/lib/src/theme/README.md`. Document the current contract in that README:
+The canonical Core theme README now records the current reusable contract:
 
 - normal date cell geometry is 30dp;
 - progress ring is the outer visual boundary;
@@ -118,13 +122,14 @@ The incomplete-nutrient refinement also remains locked:
 
 - [x] Fresh PR/Linear/governance/runtime audit for R6/R7.
 - [x] Verify both new Codex findings against exact current source.
-- [ ] R6: suppress visible-range decorations while the range provider is in error, including previous-value `AsyncError`.
-- [ ] Add regression: successful range decoration → refresh failure retaining previous value → error surface visible and calendar decoration absent → Retry recovers current decorations.
-- [ ] R7: update canonical Core theme README with the current 30dp / outer-progress / inner-selection / semantic-color calendar contract.
-- [ ] Run exact-head Flutter/Dart analyze and tests.
-- [ ] Reconcile R6/R7 review threads only after validation.
-- [ ] Trigger/observe fresh actual Codex review on the exact repaired HEAD.
-- [ ] Reconcile PR body to exact repaired HEAD/evidence.
+- [x] R6: suppress visible-range decorations while the range provider is in error, including previous-value `AsyncError`.
+- [x] Add regression: successful range decoration → refresh failure retaining previous value → error surface visible and calendar decoration absent → Retry recovers current decorations.
+- [x] R7: update canonical Core theme README with the current 30dp / outer-progress / inner-selection / semantic-color calendar contract.
+- [x] Repair source/docs HEAD `67292be4...` passed Flutter/Dart analyze and tests in CI #2561 / run `34854445983`.
+- [ ] Resolve R6/R7 review threads with validation evidence.
+- [ ] Validate this metadata-only final handoff SHA.
+- [ ] Trigger/observe fresh actual Codex review on the exact final HEAD.
+- [ ] Reconcile PR body to exact final HEAD/evidence.
 
 ## Validation / Exit Gates
 
@@ -145,4 +150,4 @@ Required before merge readiness:
 
 ## Next Exact Action
 
-Implement the smallest R6 runtime gate + focused recovery regression and R7 canonical README correction. Then run fresh exact-head CI, resolve the two Codex threads with evidence, and require a fresh actual Codex review before any merge-readiness claim.
+Resolve R6/R7 with #2561 evidence, validate this metadata-only checkpoint on its exact resulting HEAD, then trigger/observe one fresh actual Codex review and reconcile the PR body. Keep TNYX-206 In Progress and TNYX-207 blocked until merge/post-merge sync; do not merge without separate explicit owner authorization.
