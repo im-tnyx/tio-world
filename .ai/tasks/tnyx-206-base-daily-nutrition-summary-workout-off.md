@@ -16,14 +16,14 @@
 
 **Planning owner:** ChatGPT  
 **Implementation owner:** ChatGPT  
-**Review owner:** None active until final exact-head validation/review handoff  
+**Review owner:** ChatGPT for the current CI/review repair slice  
 **Branch:** `tnyx/tnyx-206-n3a-base-daily-nutrition-summary-workout-off`  
 **Base:** `main@2866ded8a963b64a99e41b5007da4753a922c7cc`  
 **Draft PR:** #267  
 **Tracker:** Linear TNYX-206 — In Progress  
 **Repository state:** connector/API session; no local worktree state is claimed.  
-**Pre-handoff source/docs head:** `171883ed3bb284733cbb764f990f4c53329da06d`; this brief refresh creates the next governance head.  
-**Validation state:** earlier heads have produced green and failed/superseded CI during implementation. Final exact-head CI must be rerun after this governance commit; do not treat an earlier green run as final evidence.  
+**Pre-repair source/docs head:** `7dcfa76f026f0b643e2da93595b75e66549f196e`; this brief refresh creates the governance head that must precede source changes.  
+**Validation state:** Flutter CI #2536 on `7dcfa76f026f0b643e2da93595b75e66549f196e` has both analyzer jobs green and `Test Flutter packages` red (job `103771365512`). The connector has not exposed a reliable exact failing assertion, so no root cause is being invented; the repair slice will be validated on its new exact head.  
 **Merge state:** Draft PR; merge is not authorized.
 
 ## Global UI / Design-System Guardrail
@@ -57,6 +57,8 @@ A reader browsing any selectable Meal Diary date can see that date's calorie tar
 - Calendar progress is the outer ring; selection is a smaller inner ring; the rings touch without decorative gap.
 - Progress and selection are visually distinct in light/dark themes: progress uses semantic `progress`, selection/fill use `primary`.
 - Resolved summary card stays compactly near the calendar while the handle retains its 48dp hit target.
+- A selected-summary error remains interactive and never overlaps the calendar handle, including `AsyncError` with a previous value.
+- A visible-range-only read error exposes a retry path so calendar rings can recover without paging, target save, or meal mutation.
 
 ## 2. Verified Runtime / Architecture Evidence
 
@@ -82,10 +84,11 @@ A reader browsing any selectable Meal Diary date can see that date's calorie tar
 | Remaining | Signed `target - eaten`. |
 | Nutrient presentation | Carbs/Protein/Fat/Fiber always visible; unknown side = `—`; no fake progress bar. |
 | Summary geometry | Compact equation row + one horizontal nutrient row; no extra heading, divider, or large metric tiles. |
-| Calendar-summary spacing | Resolved read-only card overlaps 32dp of the calendar's transparent handle-clearance band, leaving about 10dp visible gap. The card is pointer-transparent so the full handle target remains usable. Loading/error states do not overlap because Retry is interactive. |
+| Calendar-summary spacing | Only a rendered data summary may overlap 32dp of the calendar's transparent handle-clearance band. The data summary is pointer-transparent so the full handle target remains usable. Loading/error states never overlap because Retry/error recovery is interactive. |
 | Ring geometry | 30dp normal-scale date circle; progress outer, selection inner/smaller, zero decorative gap. |
 | Ring colors | Progress arc = semantic `colors.progress`; selection/fill = semantic `colors.primary`. |
 | Range reads | Bounded inclusive local-date range capability; production Supabase path paginates the range. |
+| Range error recovery | A range-only `AsyncError` must expose an explicit retry that invalidates the current visible-range provider. |
 | Persistence | No new schema/table/RLS/daily-total persistence. |
 
 ## 4. Chosen Architecture
@@ -117,20 +120,23 @@ Calendar visible week/month resolution uses one bounded MealLog range read plus 
 - [x] Nutrition Targets repository change signal so mounted summary/rings refresh after target saves.
 - [x] Selected-date summary + calendar ring wiring in `MealDiaryPage`.
 - [x] Quick Add/Edit targeted invalidation for history, selected summary and visible range.
-- [x] Retry action for Daily Nutrition read errors.
+- [x] Retry action for selected Daily Nutrition read errors.
 - [x] Compact owner-approved summary card geometry and lighter typography.
 - [x] Carbs/Protein/Fat/Fiber cells always visible with `—` for unavailable truth.
-- [x] Compact calendar-to-summary spacing while retaining handle interaction.
+- [x] Compact calendar-to-summary spacing while retaining handle interaction for rendered data.
 - [x] Core ring geometry: enlarged 30dp circle, outer progress + inner selection, touching edges.
 - [x] Core ring semantic color separation (`progress` vs `primary`).
 - [x] Focused domain/data/widget/integration/Core geometry regressions.
 - [x] `docs/screens/meal-diary.md` reconciled with current behavior.
+- [ ] Repair selected-summary overlap decision for error-with-previous-value.
+- [ ] Add explicit retry for range-only summary read errors.
+- [ ] Add focused regressions for both repair cases.
 
 ## 6. Review / Validation History
 
 Implementation self-review fixed early compile/design issues including the optimistic-conflict variable typo, invalid `TioSize.dp360` reference and a missing contract import.
 
-Codex review on an earlier validated head reported three actionable findings; all were addressed in this branch:
+Codex review on earlier heads reported three actionable findings; current code inspection verifies their fixes are present, but their GitHub inline threads remain unresolved until final-head validation:
 
 | ID | Severity | Resolution |
 |---|---|---|
@@ -138,7 +144,20 @@ Codex review on an earlier validated head reported three actionable findings; al
 | TNYX-206-R2 | P2 | Daily Nutrition error surface includes Retry, invalidating selected + range summary providers. |
 | TNYX-206-R3 | P2 | Production Supabase range gateway drains pages instead of trusting one capped response. |
 
-Subsequent owner visual review additionally locked compact card geometry, always-visible nutrient cells, reduced calendar/card gap, larger concentric ring geometry and separate progress/selection semantic colors.
+Fresh Codex review of `7dcfa76f026f0b643e2da93595b75e66549f196e` identified two additional P2 findings now confirmed by direct source inspection:
+
+| ID | Severity | Repair plan |
+|---|---|---|
+| TNYX-206-R4 | P2 | `dailySummary?.hasValue == true` can overlap an interactive error card when Riverpod preserves a previous value. Gate overlap on the actually rendered data state instead. |
+| TNYX-206-R5 | P2 | `rangeSummaries?.valueOrNull` hides a range-only `AsyncError` and offers no recovery while the selected summary remains healthy. Add a bounded range retry surface/action. |
+
+### Current CI repair slice
+
+- Evidence head: `7dcfa76f026f0b643e2da93595b75e66549f196e`.
+- Flutter CI #2536: analyzer jobs green; `Test Flutter packages` failed at job `103771365512`.
+- Exact failing test/assertion has not been reliably exposed by the connector, so the repair does not assume a cause from that red job.
+- Smallest source scope: `MealDiaryPage` state/rendering plus focused Meal Diary widget/page tests; no Core token/geometry change and no Supabase schema change.
+- Validation: run/observe targeted nutrition tests first where available, then exact-head Flutter analyzer/tests and the repo-required final CI; reconcile review threads only after the final head proves the fixes.
 
 ### Final validation still required
 
@@ -164,4 +183,4 @@ Still out of scope and untouched by intent: Supabase schema/RLS/migrations, Work
 
 ## 8. Next Exact Action
 
-Run and inspect final exact-head CI. If green, perform fresh scope/thread/Codex review, reconcile Draft PR #267 + Linear TNYX-206 to review-ready truth, and stop for explicit owner merge authorization. Do not merge on `go`/`next`.
+Implement TNYX-206-R4 and R5 with focused regressions on the same draft PR branch. Then inspect exact-head CI, resolve only review threads proven fixed on that head, refresh PR evidence/HEAD metadata, and perform a fresh exact-head review. Keep TNYX-206 In Progress and TNYX-207 blocked until the PR is actually merge-ready. Do not merge on `go`/`next`; explicit owner merge authorization is still required.
