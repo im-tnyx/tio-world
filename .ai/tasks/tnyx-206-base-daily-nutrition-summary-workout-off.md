@@ -36,7 +36,8 @@ Current bounded refinement:
 **Repository state:** connector/API session; no local worktree state is claimed.  
 **Pre-refinement HEAD:** `a445a97ee79d8878df3f4fa17eb86d83a484aa55`  
 **Pre-refinement validation:** Flutter CI #2541 / run `34807629996` green for Flutter analyze, Dart analyze, Flutter tests, and Dart tests; all five prior Codex findings R1–R5 resolved; unresolved threads 0; final review `5194084768` reported no new P1/P2.  
-**Refinement validation:** source/test HEAD `31c74b72ecb7a09ea242d02cc73b122441fd69d3` passed Flutter CI #2555 / run `34809905692`: Flutter analyze, Dart analyze, Flutter tests, and Dart tests all green. Earlier #2551 exposed and led to the missing `DailyNutritionBudget` import repair; #2552 then isolated the remaining Flutter-test contract mismatch, which was reconciled to the owner-approved explicit incomplete-Protein presentation. This task-brief checkpoint is documentation-only and therefore creates a later branch HEAD; that post-doc exact HEAD must still receive fresh CI before the final PR review is claimed.  
+**Refinement validation:** source/test HEAD `31c74b72ecb7a09ea242d02cc73b122441fd69d3` passed Flutter CI #2555 / run `34809905692`: Flutter analyze, Dart analyze, Flutter tests, and Dart tests all green. Documentation checkpoint HEAD `0c2e478cc1b9c853d82b39ad6143d07ab394075b` then passed exact-head Flutter CI #2556 / run `34848212107` with the same four gates green. Fresh exact-head Codex-style review `5198219045` on `0c2e478c...` reported no new P1/P2, thread audit remained 0 unresolved, and fresh compare stayed 87 ahead / 0 behind current main.  
+**Final metadata policy:** this brief closure commit only records already-completed evidence. Do not edit the task brief again solely to chase its own resulting SHA. Validate that final metadata-only SHA externally via CI, then pin that SHA/run/review in the PR body; PR metadata does not mutate the branch.  
 **Merge:** not authorized.
 
 ## Governance Read
@@ -124,8 +125,8 @@ Individual MealLog cards remain unchanged in this slice.
 - [x] Add focused partial-known/all-missing widget/history regressions; existing suite continues to cover exact/empty-day behavior.
 - [x] Reconcile `docs/screens/meal-diary.md` for the incomplete-nutrient truth contract.
 - [x] Source-bearing implementation HEAD CI green — #2555 / run `34809905692` on `31c74b72ecb7a09ea242d02cc73b122441fd69d3`.
-- [ ] Post-doc exact-head CI green and PR body reconciled to that exact HEAD/evidence.
-- [ ] Fresh post-doc exact-head Codex-style review clean; resolve only evidence-backed findings.
+- [x] Post-refinement documentation checkpoint CI green — #2556 / run `34848212107` on `0c2e478cc1b9c853d82b39ad6143d07ab394075b`; PR body reconciled to that evidence.
+- [x] Fresh documentation-checkpoint Codex-style review clean — review `5198219045`, no new P1/P2; 0 unresolved threads.
 
 ## Validation / Exit Gates
 
@@ -149,4 +150,4 @@ R1–R5 from the earlier N3A review cycle are resolved and validated on historic
 
 ## Next Exact Action
 
-Pin the documentation-only checkpoint HEAD and require its fresh CI. If all four gates remain green, update the PR body with that exact HEAD/run, perform one final scope/thread audit, and submit a fresh exact-head Codex-style review. Keep the PR Draft and do not merge without separate explicit owner authorization.
+Validate this final metadata-only closure SHA with CI. If all four gates remain green, update the PR body to pin that resulting exact HEAD/run and submit one final exact-head review without editing this task brief again. Keep the PR Draft and do not merge without separate explicit owner authorization.
