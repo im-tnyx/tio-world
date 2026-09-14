@@ -81,10 +81,22 @@ void main() {
       _textAtKey(tester, const ValueKey('daily-nutrition-remaining-calories')),
       '1200',
     );
-    expect(find.text('Carbs'), findsOneWidget);
-    expect(find.text('Protein'), findsOneWidget);
-    expect(find.text('Fat'), findsOneWidget);
-    expect(find.text('Fiber'), findsOneWidget);
+    expect(
+      find.descendant(of: summaryCard, matching: find.text('Carbs')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: summaryCard, matching: find.text('Protein')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: summaryCard, matching: find.text('Fat')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: summaryCard, matching: find.text('Fiber')),
+      findsOneWidget,
+    );
     expect(find.text('Workout'), findsNothing);
 
     final calendar = tester.widget<TioDateCalendar>(find.byType(TioDateCalendar));
