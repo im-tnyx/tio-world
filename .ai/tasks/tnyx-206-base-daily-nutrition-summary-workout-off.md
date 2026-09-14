@@ -20,7 +20,7 @@ Current bounded refinement:
 - never replace missing nutrition with `0`;
 - when some entries have a nutrient and some do not, retain a presentation-safe confirmed minimum plus the number of missing entries;
 - Daily Summary may render `24g+ / 150g` with an incomplete indicator while exact consumed total/progress remain unavailable;
-- Meal section header may render `24g+`; if no protein amount is known it renders `—` rather than hiding Protein;
+- Meal section header renders exact grams, a partial `24g+`, or explicit `Protein —` when no protein amount is known;
 - do not derive exact Remaining/progress from a `+` lower bound;
 - no Workout term, schema/RLS change, new persisted total, unrelated Diary redesign, or TNYX-207 work.
 
@@ -36,6 +36,7 @@ Current bounded refinement:
 **Repository state:** connector/API session; no local worktree state is claimed.  
 **Pre-refinement HEAD:** `a445a97ee79d8878df3f4fa17eb86d83a484aa55`  
 **Pre-refinement validation:** Flutter CI #2541 / run `34807629996` green for Flutter analyze, Dart analyze, Flutter tests, and Dart tests; all five prior Codex findings R1–R5 resolved; unresolved threads 0; final review `5194084768` reported no new P1/P2.  
+**Refinement validation so far:** CI #2551 exposed and led to a missing `DailyNutritionBudget` model import repair. CI #2552 then passed Flutter analyze, Dart analyze, and Dart tests; Flutter tests remained red. Raw failing assertion was not reliably surfaced by the connector, but static test audit found the prior “unknown Protein is hidden” section-header expectation was now intentionally stale and the all-missing presentation was refined to explicit `Protein —` without a value glyph. A fresh final-head run is still required.  
 **Merge:** not authorized.
 
 ## Governance Read
@@ -53,10 +54,10 @@ No new Core token/component contract is needed. Existing feature composition and
 
 ## Verified Runtime Evidence
 
-- `DailyNutritionSummaryResolver._aggregate` currently drops a nutrient from `consumedTotals` as soon as one MealLog is missing that nutrient. This correctly prevents a partial sum from masquerading as exact, but also discards the known lower bound.
-- `DailyNutritionSummary` currently exposes only exact `consumedTotals`; `progressFor` correctly requires an exact consumed value and positive target.
-- `MealDiarySectionReadModel.proteinGrams` is exact-only via `_allKnownTotal`; `_SectionNutritionSummary` currently hides the Protein glyph/value when that exact aggregate is null.
-- Daily Summary already keeps Carbs/Protein/Fat/Fiber cells visible and renders `—` for unavailable exact truth.
+- Before this slice, `DailyNutritionSummaryResolver._aggregate` dropped a nutrient from exact `consumedTotals` as soon as one MealLog was missing that nutrient. That correctly prevented a partial sum from masquerading as exact but discarded the known lower bound.
+- `DailyNutritionSummary.progressFor` requires exact consumed truth and a positive target; the refinement keeps that exact-only calculation contract unchanged.
+- `MealDiarySectionReadModel.proteinGrams` remains exact-only via `_allKnownTotal`; section coverage is derived separately from the same canonical entries rather than weakening that field.
+- Daily Summary keeps Carbs/Protein/Fat/Fiber cells visible and renders unavailable exact truth explicitly.
 - Quick Add requires Calories but Protein is optional, so mixed known/missing Protein rows are a normal valid state.
 
 ## Locked Truth Contract
@@ -70,39 +71,43 @@ For each supported nutrient, distinguish these states:
 
 `+` means “at least this much is confirmed”; it is not an estimate and not an exact aggregate.
 
-## Chosen Model Shape
+## Implemented Model Shape
 
-Keep existing exact fields/contracts intact and add presentation-safe metadata:
+Existing exact fields/contracts stay intact. Presentation-safe coverage is additive:
 
 ```text
 DailyNutritionSummary
-  exact consumedTotals                 existing
-  confirmedConsumedTotals              new; exact or lower-bound facts
+  consumedTotals                       existing; exact-only
+  confirmedConsumedTotals              new; lower-bound facts only when partial
   missingConsumedEntryCounts           new
 
 MealDiarySectionReadModel
-  proteinGrams                          existing exact-only
-  confirmedProteinGrams                 new lower-bound when at least one value exists
-  missingProteinEntryCount              new
+  proteinGrams                          existing; exact-only
+  entries                               existing canonical section entries
+
+mealDiarySectionProteinCoverage(section)
+  exactTotal                            mirrors exact section protein truth
+  confirmedTotal                        derived lower bound when at least one value exists
+  missingEntryCount                     derived from canonical section entries
 ```
 
-The resolver/read-model aggregation performs one pass over canonical MealLog facts. No widget infers missingness from display strings.
+The Daily Summary resolver performs one aggregation pass over canonical MealLog facts. Section coverage is derived by a Nutrition-owned helper from the existing section entries; the widget does not infer missingness from display strings and the canonical section read model is not weakened.
 
 ## Approved Presentation
 
 ### Daily Summary
 
 - exact Protein: `70 g / 150 g` and normal progress bar;
-- partial Protein: `24 g+ / 150 g`, no progress bar, compact `incomplete`/missing-meal indication;
+- partial Protein: `24 g+ / 150 g`, no progress bar, compact missing-meal indication such as `1 meal missing protein`;
 - fully unavailable Protein: `— / 150 g`, no progress bar;
-- missing target remains `confirmed/exact consumed / —` with no progress bar;
-- accessibility semantics must explicitly state incomplete truth and missing meal count.
+- missing target remains confirmed/exact consumed against `—`, with no fabricated progress;
+- accessibility semantics explicitly state “at least”, missing meal count, and incomplete truth.
 
 ### Meal section header
 
-- exact Protein: existing `38g`;
-- partial Protein: `24g+`;
-- fully unavailable Protein: `—` instead of silently removing Protein from the visible header summary;
+- exact Protein: existing `38g` with the Protein glyph;
+- partial Protein: `24g+` with the Protein glyph;
+- fully unavailable Protein: literal `Protein —` so the nutrient does not disappear; no value glyph is shown for an unavailable value;
 - no partial value is exposed as exact.
 
 Individual MealLog cards remain unchanged in this slice.
@@ -112,13 +117,15 @@ Individual MealLog cards remain unchanged in this slice.
 - [x] Fresh PR/Linear/runtime audit.
 - [x] UI/design-system governance read.
 - [x] Owner approval for incomplete-nutrient UX refinement.
-- [ ] Extend Daily Nutrition derived read model with confirmed minimum + missing count while preserving exact-only `consumedTotals`.
-- [ ] Extend section read model with Protein confirmed minimum + missing count while preserving exact-only `proteinGrams`.
-- [ ] Render Daily Summary partial values with `+`, incomplete indication, and no fabricated progress.
-- [ ] Render section-header Protein as exact / `+` / `—` instead of hiding incomplete Protein.
-- [ ] Add focused domain/widget/history regressions including all-known, partial-known, all-missing, empty-day, and accessibility semantics.
-- [ ] Reconcile `docs/screens/meal-diary.md` and PR body.
-- [ ] Run exact-head CI and fresh Codex-style review; resolve only evidence-backed findings.
+- [x] Extend Daily Nutrition derived read model with confirmed minimum + missing count while preserving exact-only `consumedTotals`.
+- [x] Derive section Protein coverage from existing canonical entries while preserving exact-only `proteinGrams`.
+- [x] Render Daily Summary partial values with `+`, missing-meal indication, and no fabricated progress.
+- [x] Render section-header Protein as exact / `+` / explicit `Protein —` instead of hiding incomplete Protein.
+- [x] Add focused partial-known/all-missing widget/history regressions; existing suite continues to cover exact/empty-day behavior.
+- [x] Reconcile `docs/screens/meal-diary.md` for the incomplete-nutrient truth contract.
+- [ ] Fresh exact-head CI green.
+- [ ] PR body reconciled to final exact HEAD/CI evidence.
+- [ ] Fresh exact-head Codex-style review clean; resolve only evidence-backed findings.
 
 ## Validation / Exit Gates
 
@@ -130,7 +137,7 @@ Required before merge readiness:
 - Dart tests green;
 - exact consumed/progress semantics unchanged for all-known and empty-day states;
 - incomplete values never produce exact progress or fake Remaining;
-- focused light/dark/compact-width behavior remains overflow-free;
+- focused compact-width behavior remains overflow-free;
 - unresolved review threads = 0;
 - fresh exact-head Codex-style review has no new P1/P2;
 - PR body matches exact HEAD and validation evidence;
@@ -142,4 +149,4 @@ R1–R5 from the earlier N3A review cycle are resolved and validated on historic
 
 ## Next Exact Action
 
-Implement the smallest model/resolver/read-model changes that preserve exact truth while carrying confirmed lower bounds and missing counts. Then update the two existing presentation surfaces, add focused tests, reconcile docs, and require fresh exact-head CI/review. Do not merge without explicit owner authorization.
+Pin the new exact HEAD and inspect its complete CI. If all four required gates are green, re-fetch review threads, perform fresh scope/delta review, reconcile the PR body, and submit a fresh exact-head Codex-style review. Keep the PR Draft and do not merge without separate explicit owner authorization.
