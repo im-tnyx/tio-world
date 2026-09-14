@@ -31,11 +31,14 @@ final class DailyNutritionSummaryResolver {
     final budget = await _budgetResolver.resolve(localDate);
     final entries = await _mealLogRepository.listByLocalDate(localDate);
     _requireEntriesMatchDate(entries, localDate);
+    final aggregation = _aggregate(entries);
 
     return DailyNutritionSummary(
       localDate: localDate,
       budget: budget,
-      consumedTotals: _aggregate(entries),
+      consumedTotals: aggregation.exactTotals,
+      confirmedConsumedTotals: aggregation.confirmedTotals,
+      missingConsumedEntryCounts: aggregation.missingCounts,
     );
   }
 
@@ -73,37 +76,75 @@ final class DailyNutritionSummaryResolver {
     }
 
     return Map<MealLogLocalDate, DailyNutritionSummary>.unmodifiable({
-      for (final date in dates)
-        date: DailyNutritionSummary(
-          localDate: date,
-          budget: budgets[date],
-          consumedTotals: _aggregate(grouped[date] ?? const <MealLogEntry>[]),
-        ),
+      for (final date in dates) date: _summaryForDate(
+        localDate: date,
+        budget: budgets[date],
+        entries: grouped[date] ?? const <MealLogEntry>[],
+      ),
     });
   }
 
-  static Map<NutrientId, num> _aggregate(List<MealLogEntry> entries) {
+  static DailyNutritionSummary _summaryForDate({
+    required MealLogLocalDate localDate,
+    required DailyNutritionBudget? budget,
+    required List<MealLogEntry> entries,
+  }) {
+    final aggregation = _aggregate(entries);
+    return DailyNutritionSummary(
+      localDate: localDate,
+      budget: budget,
+      consumedTotals: aggregation.exactTotals,
+      confirmedConsumedTotals: aggregation.confirmedTotals,
+      missingConsumedEntryCounts: aggregation.missingCounts,
+    );
+  }
+
+  static _NutrientAggregation _aggregate(List<MealLogEntry> entries) {
     if (entries.isEmpty) {
-      return <NutrientId, num>{
-        for (final nutrient in coreNutrients) nutrient: 0,
-      };
+      return _NutrientAggregation(
+        exactTotals: <NutrientId, num>{
+          for (final nutrient in coreNutrients) nutrient: 0,
+        },
+        confirmedTotals: const {},
+        missingCounts: const {},
+      );
     }
 
-    final totals = <NutrientId, num>{};
+    final exactTotals = <NutrientId, num>{};
+    final confirmedTotals = <NutrientId, num>{};
+    final missingCounts = <NutrientId, int>{};
+
     for (final nutrient in coreNutrients) {
-      num total = 0;
-      var fullyKnown = true;
+      num confirmedTotal = 0;
+      var knownCount = 0;
+      var missingCount = 0;
+
       for (final entry in entries) {
         final amount = entry.manualNutritionSnapshot?.amountFor(nutrient);
         if (amount == null) {
-          fullyKnown = false;
-          break;
+          missingCount++;
+        } else {
+          knownCount++;
+          confirmedTotal += amount;
         }
-        total += amount;
       }
-      if (fullyKnown) totals[nutrient] = total;
+
+      if (missingCount == 0) {
+        exactTotals[nutrient] = confirmedTotal;
+        continue;
+      }
+
+      missingCounts[nutrient] = missingCount;
+      if (knownCount > 0) {
+        confirmedTotals[nutrient] = confirmedTotal;
+      }
     }
-    return totals;
+
+    return _NutrientAggregation(
+      exactTotals: exactTotals,
+      confirmedTotals: confirmedTotals,
+      missingCounts: missingCounts,
+    );
   }
 
   static void _requireEntriesMatchDate(
@@ -149,4 +190,16 @@ final class DailyNutritionSummaryResolver {
         ),
     ];
   }
+}
+
+final class _NutrientAggregation {
+  const _NutrientAggregation({
+    required this.exactTotals,
+    required this.confirmedTotals,
+    required this.missingCounts,
+  });
+
+  final Map<NutrientId, num> exactTotals;
+  final Map<NutrientId, num> confirmedTotals;
+  final Map<NutrientId, int> missingCounts;
 }
