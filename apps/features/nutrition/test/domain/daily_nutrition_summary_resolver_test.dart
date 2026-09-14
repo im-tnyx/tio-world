@@ -54,6 +54,39 @@ void main() {
     expect(summary.progressFor(NutrientId.fiber), 0.5);
   });
 
+  test('selected day prefers range-read capability for complete truth',
+      () async {
+    final mealLogs = _MealLogs([
+      _entry(
+        id: 'range-complete',
+        date: day,
+        nutrients: {NutrientId.energy: 750},
+      ),
+    ]);
+
+    final summary = await _resolver(mealLogs, targets).resolve(day);
+
+    expect(mealLogs.rangeReadCount, 1);
+    expect(mealLogs.singleDayReadCount, 0);
+    expect(summary.eatenCaloriesKcal, 750);
+  });
+
+  test('selected day keeps single-day fallback without range capability',
+      () async {
+    final mealLogs = _SingleDayMealLogs([
+      _entry(
+        id: 'fallback',
+        date: day,
+        nutrients: {NutrientId.energy: 425},
+      ),
+    ]);
+
+    final summary = await _resolver(mealLogs, targets).resolve(day);
+
+    expect(mealLogs.singleDayReadCount, 1);
+    expect(summary.eatenCaloriesKcal, 425);
+  });
+
   test('preserves unknown nutrient instead of presenting a partial daily sum',
       () async {
     final mealLogs = _MealLogs([
@@ -240,6 +273,29 @@ final class _MealLogs implements MealLogRepository, MealLogRangeReadRepository {
         if (entry.consumedLocalDate.toIso8601String().compareTo(start) >= 0 &&
             entry.consumedLocalDate.toIso8601String().compareTo(end) <= 0)
           entry,
+    ];
+  }
+
+  @override
+  Future<MealLogEntry> createManual(ManualMealLogCreate input) =>
+      throw UnimplementedError();
+
+  @override
+  Future<MealLogEntry?> readById(String id) => throw UnimplementedError();
+}
+
+final class _SingleDayMealLogs implements MealLogRepository {
+  _SingleDayMealLogs(this.entries);
+
+  final List<MealLogEntry> entries;
+  int singleDayReadCount = 0;
+
+  @override
+  Future<List<MealLogEntry>> listByLocalDate(MealLogLocalDate localDate) async {
+    singleDayReadCount++;
+    return [
+      for (final entry in entries)
+        if (entry.consumedLocalDate == localDate) entry,
     ];
   }
 
