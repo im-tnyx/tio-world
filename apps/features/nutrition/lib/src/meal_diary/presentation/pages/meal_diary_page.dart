@@ -8,6 +8,7 @@ import 'package:tio_shared/shared.dart';
 
 import '../../../domain/models/daily_nutrition_summary.dart';
 import '../../../domain/repositories/meal_categories_repository.dart';
+import '../../../domain/repositories/meal_log_range_read_repository.dart';
 import '../../../domain/repositories/meal_log_repository.dart';
 import '../../../meal_logging/quick_add_meal_log_edit_controller.dart';
 import '../../../meal_logging/presentation/widgets/add_food_sheet.dart';
@@ -241,6 +242,8 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
       ),
     );
 
+    if (repository is! MealLogRangeReadRepository) return;
+
     final dates = ref.read(mealDiaryDateControllerProvider);
     final visibleRange = _clampedVisibleRange(dates);
     if (visibleRange == null ||
@@ -303,6 +306,7 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
 
     final visibleRange = _clampedVisibleRange(dates);
     final rangeRequest = mealLogRepository == null ||
+            mealLogRepository is! MealLogRangeReadRepository ||
             targetsRepository == null ||
             visibleRange == null
         ? null
@@ -318,8 +322,9 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
             mealDiaryNutritionSummaryRangeProvider(rangeRequest),
           );
     final hasRangeError = rangeSummaries?.hasError == true;
-    final canOverlapDailySummary =
-        dailySummary is AsyncData<DailyNutritionSummary> && !hasRangeError;
+    final canOverlapDailySummary = dailySummary?.hasValue == true &&
+        dailySummary?.hasError != true &&
+        !hasRangeError;
 
     return Stack(
       fit: StackFit.expand,
@@ -399,9 +404,14 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
       final progress = summary?.calorieProgress;
       final eaten = summary?.eatenCaloriesKcal;
       final target = summary?.targetCaloriesKcal;
-      if (progress == null || eaten == null || target == null) return null;
+      if (progress == null ||
+          eaten == null ||
+          target == null ||
+          target <= 0) {
+        return null;
+      }
 
-      final percent = (progress * 100).round();
+      final percent = ((eaten / target) * 100).round();
       return TioDateDecoration(
         progress: progress,
         semanticsLabel:
