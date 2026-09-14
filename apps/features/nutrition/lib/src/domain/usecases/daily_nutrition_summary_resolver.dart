@@ -30,7 +30,7 @@ final class DailyNutritionSummaryResolver {
 
   Future<DailyNutritionSummary> resolve(MealLogLocalDate localDate) async {
     final budget = await _budgetResolver.resolve(localDate);
-    final entries = await _mealLogRepository.listByLocalDate(localDate);
+    final entries = await _readEntriesForDate(localDate);
     _requireEntriesMatchDate(entries, localDate);
     final aggregation = _aggregate(entries);
 
@@ -83,6 +83,19 @@ final class DailyNutritionSummaryResolver {
         entries: grouped[date] ?? const <MealLogEntry>[],
       ),
     });
+  }
+
+  Future<List<MealLogEntry>> _readEntriesForDate(
+    MealLogLocalDate localDate,
+  ) {
+    final mealLogs = _mealLogRepository;
+    if (mealLogs is MealLogRangeReadRepository) {
+      return (mealLogs as MealLogRangeReadRepository).listByLocalDateRange(
+        startDate: localDate,
+        endDate: localDate,
+      );
+    }
+    return mealLogs.listByLocalDate(localDate);
   }
 
   static DailyNutritionSummary _summaryForDate({
