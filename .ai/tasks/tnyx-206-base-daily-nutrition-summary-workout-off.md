@@ -2,188 +2,144 @@
 
 **Status:** In progress  
 **Primary owner:** `apps/features/nutrition`  
-**Affected platforms:** Flutter phone Meal Diary
+**Affected platform:** Flutter phone Meal Diary
 
-## Owner Approval and Scope Boundary
+## Owner Approval and Scope
 
-**Approval status:** Approved  
-**Initial approval:** Owner said `go` after TNYX-205 PR #266 was squash-merged and local `main == origin/main == 2866ded8a963b64a99e41b5007da4753a922c7cc` with a clean worktree.  
-**Approved N3A boundary:** selected-day Daily Nutrition Summary, workout-OFF `Target - Eaten = Remaining`, Carbs/Protein/Fat/Fiber status, and a calendar calorie-progress ring derived from the same canonical budget/MealLog truth.  
-**Owner-approved visual refinements during implementation:** compact screenshot-like card; no extra title/divider/large metric boxes; lighter text weights; all four nutrient cells remain visible even when data is unavailable; resolved card sits close to the calendar instead of leaving the handle-clearance void; calendar rings enlarged one step; progress is the outer ring, selection is smaller inside with zero decorative gap; progress and selection use distinct semantic colors.  
-**Explicit non-goals:** no Workout calorie term/N10 policy, no full N11 schedule/eating-style UI, no TNYX-207 AI/text logging, no Supabase table/column/migration/RLS change, no persisted daily-total cache, no unrelated Diary redesign.
+**Approval:** Approved. The original N3A implementation was owner-approved with `go`; on 2026-09-14 the owner explicitly approved the incomplete-nutrient UX refinement with `GO`.
+
+N3A remains workout-OFF:
+
+```text
+Target - Eaten = Remaining
+```
+
+Current bounded refinement:
+
+- preserve exact aggregation semantics: a nutrient is exact only when every contributing MealLog contains that nutrient;
+- never replace missing nutrition with `0`;
+- when some entries have a nutrient and some do not, retain a presentation-safe confirmed minimum plus the number of missing entries;
+- Daily Summary may render `24g+ / 150g` with an incomplete indicator while exact consumed total/progress remain unavailable;
+- Meal section header may render `24g+`; if no protein amount is known it renders `—` rather than hiding Protein;
+- do not derive exact Remaining/progress from a `+` lower bound;
+- no Workout term, schema/RLS change, new persisted total, unrelated Diary redesign, or TNYX-207 work.
 
 ## Active Handoff
 
 **Planning owner:** ChatGPT  
 **Implementation owner:** ChatGPT  
-**Review owner:** ChatGPT for the current CI/review repair slice  
+**Review owner:** ChatGPT after implementation  
 **Branch:** `tnyx/tnyx-206-n3a-base-daily-nutrition-summary-workout-off`  
 **Base:** `main@2866ded8a963b64a99e41b5007da4753a922c7cc`  
 **Draft PR:** #267  
-**Tracker:** Linear TNYX-206 — In Progress  
+**Linear:** TNYX-206 — In Progress; blocks TNYX-207  
 **Repository state:** connector/API session; no local worktree state is claimed.  
-**Current source/test evidence head:** `9e1fa25ea12f4568d33877905800a5df857550cc`; this brief reconciliation must precede the next test mutation.  
-**Validation state:** Flutter CI #2539 (`34806135879`) on `9e1fa25ea12f4568d33877905800a5df857550cc` has Flutter and Dart analyzer steps green and `Test Flutter packages` red at job `103858320678`. The exact failure is verified: `meal_diary_daily_nutrition_integration_test.dart:85` expects one `Protein` text widget but the full page legitimately contains two. The failing test is `selected day and calendar ring share canonical budget and MealLog truth`. This is a brittle unscoped test finder, not evidence of incorrect summary truth.  
-**Merge state:** Draft PR; merge is not authorized.
+**Pre-refinement HEAD:** `a445a97ee79d8878df3f4fa17eb86d83a484aa55`  
+**Pre-refinement validation:** Flutter CI #2541 / run `34807629996` green for Flutter analyze, Dart analyze, Flutter tests, and Dart tests; all five prior Codex findings R1–R5 resolved; unresolved threads 0; final review `5194084768` reported no new P1/P2.  
+**Merge:** not authorized.
 
-## Global UI / Design-System Guardrail
+## Governance Read
 
-Read and followed before the visual changes:
+Before this UI-affecting refinement, read and followed:
 
 - `AGENTS.md`
+- `.ai/tasks/README.md`
+- `.ai/tasks/design-system-token-consolidation.md`
 - `apps/features/AGENTS.md`
-- `.ai/FEATURE_DEVELOPMENT.md`
 - `apps/core/lib/src/theme/README.md`
+- current PR #267 and Linear TNYX-206
 
-Nutrition owns summary meaning and composition. Core remains domain-agnostic: its calendar receives only generic `TioDateDecoration` presentation values. The bounded Core change is visual only and reuses existing semantic roles (`primary`, `progress`, governed stroke/size values); no Nutrition color/domain meaning was moved into Core and no feature-local token bag was introduced.
+No new Core token/component contract is needed. Existing feature composition and governed typography/spacing remain in use.
 
-## 1. Discovery
+## Verified Runtime Evidence
 
-### User Outcome
+- `DailyNutritionSummaryResolver._aggregate` currently drops a nutrient from `consumedTotals` as soon as one MealLog is missing that nutrient. This correctly prevents a partial sum from masquerading as exact, but also discards the known lower bound.
+- `DailyNutritionSummary` currently exposes only exact `consumedTotals`; `progressFor` correctly requires an exact consumed value and positive target.
+- `MealDiarySectionReadModel.proteinGrams` is exact-only via `_allKnownTotal`; `_SectionNutritionSummary` currently hides the Protein glyph/value when that exact aggregate is null.
+- Daily Summary already keeps Carbs/Protein/Fat/Fiber cells visible and renders `—` for unavailable exact truth.
+- Quick Add requires Calories but Protein is optional, so mixed known/missing Protein rows are a normal valid state.
 
-A reader browsing any selectable Meal Diary date can see that date's calorie target/eaten/remaining, see Carbs/Protein/Fat/Fiber status in a compact stable card, and understand calorie progress directly on the calendar without losing selection clarity.
+## Locked Truth Contract
 
-### Success Criteria
+For each supported nutrient, distinguish these states:
 
-- Selected date is the only summary date identity; historical browsing never silently substitutes Today.
-- Calories are `Target - Eaten = Remaining`; Workout is absent.
-- Target calories come from selected-date `DailyNutritionBudget.strategyAdjustedTarget`.
-- Eaten comes only from canonical MealLog rows for that persisted local date.
-- Remaining stays signed; over-target may be negative.
-- Carbs/Protein/Fat/Fiber cells are always visible. Missing consumed or target truth renders `—`, never fake zero or a fabricated partial total. Progress bar renders only when both sides exist and target is positive.
-- A successful empty MealLog read is known zero consumption.
-- Calendar ring uses the same Eaten/Target truth, with visual progress clamped to `0..1` while raw summary truth stays intact.
-- Visible calendar dates use a bounded range read, not one network read per day.
-- Calendar progress is the outer ring; selection is a smaller inner ring; the rings touch without decorative gap.
-- Progress and selection are visually distinct in light/dark themes: progress uses semantic `progress`, selection/fill use `primary`.
-- Resolved summary card stays compactly near the calendar while the handle retains its 48dp hit target.
-- A selected-summary error remains interactive and never overlaps the calendar handle, including `AsyncError` with a previous value.
-- A visible-range-only read error exposes a retry path so calendar rings can recover without paging, target save, or meal mutation.
+1. **Exact known** — every contributing entry has the nutrient. Existing exact total remains authoritative and may drive progress.
+2. **Partial known / incomplete** — at least one entry has the nutrient and at least one entry is missing it. Exact total remains unavailable; a confirmed minimum may be displayed with `+`, e.g. `24g+`; progress remains unavailable.
+3. **Fully unavailable** — contributing entries exist but none provide the nutrient. Display `—`; never display `0g+`.
+4. **Known empty day** — a successful read with no MealLogs is exact known zero, unchanged from current behavior.
 
-## 2. Verified Runtime / Architecture Evidence
+`+` means “at least this much is confirmed”; it is not an estimate and not an exact aggregate.
 
-- TNYX-205 already owns `DailyNutritionBudget(date)` and canonical target validation.
-- `NutritionTargetsRepository` remains the target owner; N3A does not persist duplicate daily targets.
-- `MealLogRepository` remains canonical actual-entry truth.
-- `MealDiaryHistoryReadModel` is presentation/category grouping and is not used as the daily nutrient truth owner.
-- `NutritionSnapshot` distinguishes absent from known zero.
-- Quick Add requires Calories; Carbs/Protein/Fat are optional; Fiber is not captured by current Quick Add. Therefore hiding nutrient cells based on data availability made the UI unstable and could hide Protein/Fat merely because a target was absent.
-- `TioDateCalendar` already owns a generic progress decoration layer and an independent selection layer.
-- Calendar handle geometry reserves a 42dp transparent band beneath the visible surface to maintain a 48dp touch target; that reserved band caused the visually large calendar-to-summary gap.
-- `TioColors` already owns distinct semantic `primary` and `progress` roles, so no new color literal/token/API was needed.
+## Chosen Model Shape
 
-## 3. Locked Decisions
-
-| Decision | Locked behavior |
-|---|---|
-| Summary source | Canonical MealLogs + `DailyNutritionBudget`; never derive from section presentation totals. |
-| Empty day | Complete successful empty read = known zero consumption. |
-| Partial nutrient data | Any logged row missing a nutrient makes that daily consumed aggregate unavailable; never partial-sum it as complete. |
-| Macro/fiber target | `DailyNutritionBudget.baseTarget` in N3A. |
-| Calorie target | `strategyAdjustedTarget.caloriesKcal`. |
-| Remaining | Signed `target - eaten`. |
-| Nutrient presentation | Carbs/Protein/Fat/Fiber always visible; unknown side = `—`; no fake progress bar. |
-| Summary geometry | Compact equation row + one horizontal nutrient row; no extra heading, divider, or large metric tiles. |
-| Calendar-summary spacing | Only a rendered data summary may overlap 32dp of the calendar's transparent handle-clearance band. The data summary is pointer-transparent so the full handle target remains usable. Loading/error states never overlap because Retry/error recovery is interactive. |
-| Ring geometry | 30dp normal-scale date circle; progress outer, selection inner/smaller, zero decorative gap. |
-| Ring colors | Progress arc = semantic `colors.progress`; selection/fill = semantic `colors.primary`. |
-| Range reads | Bounded inclusive local-date range capability; production Supabase path paginates the range. |
-| Range error recovery | A range-only `AsyncError` must expose an explicit retry that invalidates the current visible-range provider. |
-| Persistence | No new schema/table/RLS/daily-total persistence. |
-
-## 4. Chosen Architecture
+Keep existing exact fields/contracts intact and add presentation-safe metadata:
 
 ```text
-explicit MealLogLocalDate
-  + DailyNutritionBudgetResolver
-  + canonical MealLog actual rows
-        ↓
-DailyNutritionSummary (derived, never persisted)
-        ↓
-MealDiaryPage
-  ├─ compact Nutrition-owned summary card
-  └─ generic TioDateCalendar decorationBuilder
-       ├─ progress: normalized calorie ratio
-       └─ semanticsLabel: Nutrition-owned meaning
+DailyNutritionSummary
+  exact consumedTotals                 existing
+  confirmedConsumedTotals              new; exact or lower-bound facts
+  missingConsumedEntryCounts           new
+
+MealDiarySectionReadModel
+  proteinGrams                          existing exact-only
+  confirmedProteinGrams                 new lower-bound when at least one value exists
+  missingProteinEntryCount              new
 ```
 
-Calendar visible week/month resolution uses one bounded MealLog range read plus shared canonical target resolution. Core never imports Nutrition.
+The resolver/read-model aggregation performs one pass over canonical MealLog facts. No widget infers missingness from display strings.
 
-## 5. Implemented Scope
+## Approved Presentation
 
-- [x] Optional inclusive `MealLogRangeReadRepository` capability.
-- [x] In-memory and Supabase range-read implementations.
-- [x] Paged production Supabase range gateway to avoid truncation at backend row limits.
-- [x] `DailyNutritionBudgetResolver.resolveMany(...)` sharing one canonical target read.
-- [x] `DailyNutritionSummary` model/resolver with unavailable-vs-zero and signed Remaining rules.
-- [x] Selected-day and visible-range Riverpod providers.
-- [x] Nutrition Targets repository change signal so mounted summary/rings refresh after target saves.
-- [x] Selected-date summary + calendar ring wiring in `MealDiaryPage`.
-- [x] Quick Add/Edit targeted invalidation for history, selected summary and visible range.
-- [x] Retry action for selected Daily Nutrition read errors.
-- [x] Compact owner-approved summary card geometry and lighter typography.
-- [x] Carbs/Protein/Fat/Fiber cells always visible with `—` for unavailable truth.
-- [x] Compact calendar-to-summary spacing while retaining handle interaction for rendered data.
-- [x] Core ring geometry: enlarged 30dp circle, outer progress + inner selection, touching edges.
-- [x] Core ring semantic color separation (`progress` vs `primary`).
-- [x] Focused domain/data/widget/integration/Core geometry regressions.
-- [x] `docs/screens/meal-diary.md` reconciled with current behavior.
-- [x] Repair selected-summary overlap decision for error-with-previous-value (R4).
-- [x] Add explicit retry for range-only summary read errors (R5).
-- [x] Add focused regressions for R4 and R5.
-- [ ] Repair the verified brittle integration assertion at `meal_diary_daily_nutrition_integration_test.dart:85` by scoping nutrient-label expectations to the Daily Nutrition Summary card.
+### Daily Summary
 
-## 6. Review / Validation History
+- exact Protein: `70 g / 150 g` and normal progress bar;
+- partial Protein: `24 g+ / 150 g`, no progress bar, compact `incomplete`/missing-meal indication;
+- fully unavailable Protein: `— / 150 g`, no progress bar;
+- missing target remains `confirmed/exact consumed / —` with no progress bar;
+- accessibility semantics must explicitly state incomplete truth and missing meal count.
 
-Implementation self-review fixed early compile/design issues including the optimistic-conflict variable typo, invalid `TioSize.dp360` reference and a missing contract import.
+### Meal section header
 
-Codex review on earlier heads reported three actionable findings; current code inspection verifies their fixes are present, but their GitHub inline threads remain unresolved until final-head validation:
+- exact Protein: existing `38g`;
+- partial Protein: `24g+`;
+- fully unavailable Protein: `—` instead of silently removing Protein from the visible header summary;
+- no partial value is exposed as exact.
 
-| ID | Severity | Resolution |
-|---|---|---|
-| TNYX-206-R1 | P1 | Target repository successful writes publish a change revision; mounted selected/range summary providers re-read canonical target truth. |
-| TNYX-206-R2 | P2 | Daily Nutrition error surface includes Retry, invalidating selected + range summary providers. |
-| TNYX-206-R3 | P2 | Production Supabase range gateway drains pages instead of trusting one capped response. |
+Individual MealLog cards remain unchanged in this slice.
 
-Fresh Codex review of `7dcfa76f026f0b643e2da93595b75e66549f196e` identified two additional P2 findings. Both are implemented on `9e1fa25ea12f4568d33877905800a5df857550cc`, with focused regressions present; exact-head full-suite validation remains pending because CI is blocked by the unrelated brittle integration expectation described below.
+## Implementation Checklist
 
-| ID | Severity | Resolution on current source/test head |
-|---|---|---|
-| TNYX-206-R4 | P2 | Overlap is gated on the actually rendered data state, so an `AsyncError` retaining previous value remains interactive and outside the calendar handle overlay. |
-| TNYX-206-R5 | P2 | A visible-range `AsyncError` exposes the bounded retry path instead of being silently hidden by `valueOrNull`. |
+- [x] Fresh PR/Linear/runtime audit.
+- [x] UI/design-system governance read.
+- [x] Owner approval for incomplete-nutrient UX refinement.
+- [ ] Extend Daily Nutrition derived read model with confirmed minimum + missing count while preserving exact-only `consumedTotals`.
+- [ ] Extend section read model with Protein confirmed minimum + missing count while preserving exact-only `proteinGrams`.
+- [ ] Render Daily Summary partial values with `+`, incomplete indication, and no fabricated progress.
+- [ ] Render section-header Protein as exact / `+` / `—` instead of hiding incomplete Protein.
+- [ ] Add focused domain/widget/history regressions including all-known, partial-known, all-missing, empty-day, and accessibility semantics.
+- [ ] Reconcile `docs/screens/meal-diary.md` and PR body.
+- [ ] Run exact-head CI and fresh Codex-style review; resolve only evidence-backed findings.
 
-### Current CI repair slice
+## Validation / Exit Gates
 
-- Evidence head: `9e1fa25ea12f4568d33877905800a5df857550cc`.
-- Flutter CI #2539 / run `34806135879`: Flutter and Dart analyzer steps green; `Test Flutter packages` failed at job `103858320678`.
-- Exact failure: `apps/features/nutrition/test/meal_diary/meal_diary_daily_nutrition_integration_test.dart:85`, test `selected day and calendar ring share canonical budget and MealLog truth`.
-- Exact assertion mismatch: `Expected: exactly one matching candidate`; `Actual: Found 2 widgets with text "Protein"`.
-- Root cause: the test uses a page-wide `find.text('Protein')` even though the page can legitimately render another `Protein` label outside the Daily Nutrition Summary. The assertion is intended to verify the four labels inside the summary card, so the smallest faithful repair is to scope those label finders to `meal-diary-daily-nutrition-summary` rather than alter production UI/content.
-- Source scope for this CI repair: test-only. No Core token/geometry, production behavior, Supabase schema, or nutrition-domain change is justified by this failure.
-- Validation plan: observe the exact new-head Flutter CI; require analyzer and Flutter test gates green before reconciling review threads. Then run the final exact-head scope/review/body reconciliation required by the repo workflow.
+Required before merge readiness:
 
-### Final validation still required
+- Flutter analyze green;
+- Dart analyze green;
+- Flutter tests green;
+- Dart tests green;
+- exact consumed/progress semantics unchanged for all-known and empty-day states;
+- incomplete values never produce exact progress or fake Remaining;
+- focused light/dark/compact-width behavior remains overflow-free;
+- unresolved review threads = 0;
+- fresh exact-head Codex-style review has no new P1/P2;
+- PR body matches exact HEAD and validation evidence;
+- explicit owner merge authorization remains a separate gate.
 
-- exact final branch HEAD Flutter analyze
-- Dart analyze
-- Flutter tests
-- Dart tests
-- fresh scope compare against `main@2866ded8...`
-- fresh review-thread audit / Codex re-review
-- PR body and Linear handoff reconciliation
+## Prior Review Findings
 
-## 7. Current Changed Families
+R1–R5 from the earlier N3A review cycle are resolved and validated on historical HEAD `a445a97ee79d8878df3f4fa17eb86d83a484aa55`. This refinement must not regress target-refresh, summary/range retry, paged range reads, or calendar-handle interaction.
 
-Expected task-owned families now include:
+## Next Exact Action
 
-- `.ai/tasks/tnyx-206-base-daily-nutrition-summary-workout-off.md`
-- thin `apps/app` repository composition
-- `apps/features/nutrition` data/domain/Meal Diary source + focused tests
-- bounded reusable Core calendar visual source/test/docs touched only for the explicitly owner-approved ring geometry/color refinement
-- `docs/screens/meal-diary.md`
-
-Still out of scope and untouched by intent: Supabase schema/RLS/migrations, Workout implementation, TNYX-207, generated/lock artifacts, unrelated features.
-
-## 8. Next Exact Action
-
-Apply the test-only CI repair by scoping the Carbs/Protein/Fat/Fiber label expectations in `meal_diary_daily_nutrition_integration_test.dart` to the `meal-diary-daily-nutrition-summary` subtree. Then inspect exact-head CI. Only after required CI is green: re-fetch and individually verify/resolve review threads, refresh PR body exact-HEAD/validation evidence, perform a fresh Codex-bot-style review on that exact head, and keep TNYX-206 In Progress / TNYX-207 blocked until merge readiness is proven. Do not merge on `go`/`next`; explicit owner merge authorization is still required.
+Implement the smallest model/resolver/read-model changes that preserve exact truth while carrying confirmed lower bounds and missing counts. Then update the two existing presentation surfaces, add focused tests, reconcile docs, and require fresh exact-head CI/review. Do not merge without explicit owner authorization.
