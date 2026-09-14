@@ -362,6 +362,8 @@ class _SectionNutritionSummary extends StatelessWidget {
         caloriesKcal == null ? null : '${_formatAmount(caloriesKcal!)} kcal';
     final proteinLabel = _proteinLabel(proteinCoverage);
     final proteinSemantic = _proteinSemantic(proteinCoverage);
+    final showProteinGlyph = proteinCoverage.exactTotal != null ||
+        proteinCoverage.confirmedTotal != null;
     final semanticParts = [
       if (caloriesLabel != null) caloriesLabel,
       if (proteinSemantic != null) proteinSemantic,
@@ -379,9 +381,8 @@ class _SectionNutritionSummary extends StatelessWidget {
                 package: 'tio_core',
                 width: TioSize.dp20,
                 height: TioSize.dp20,
-                // Both glyphs must be tinted here. Without a filter the asset
-                // paints whatever colour it was authored with, which no theme
-                // and no analyzer can reach.
+                // Every rendered summary glyph is tinted from a governed
+                // semantic role; no authored asset color leaks into runtime.
                 colorFilter: ColorFilter.mode(
                   colors.nutrition,
                   BlendMode.srcIn,
@@ -393,17 +394,19 @@ class _SectionNutritionSummary extends StatelessWidget {
             if (caloriesLabel != null && proteinLabel != null)
               const SizedBox(width: TioSpacing.sm),
             if (proteinLabel != null) ...[
-              SvgPicture.asset(
-                'assets/svg_icon/ic_protine.svg',
-                package: 'tio_core',
-                width: TioSize.dp20,
-                height: TioSize.dp20,
-                colorFilter: ColorFilter.mode(
-                  colors.warning,
-                  BlendMode.srcIn,
+              if (showProteinGlyph) ...[
+                SvgPicture.asset(
+                  'assets/svg_icon/ic_protine.svg',
+                  package: 'tio_core',
+                  width: TioSize.dp20,
+                  height: TioSize.dp20,
+                  colorFilter: ColorFilter.mode(
+                    colors.warning,
+                    BlendMode.srcIn,
+                  ),
                 ),
-              ),
-              const SizedBox(width: TioSpacing.xs),
+                const SizedBox(width: TioSpacing.xs),
+              ],
               Text(proteinLabel, style: style),
             ],
           ],
@@ -420,7 +423,7 @@ class _SectionNutritionSummary extends StatelessWidget {
     if (coverage.isIncomplete && confirmed != null) {
       return '${_formatAmount(confirmed)}g+';
     }
-    if (coverage.missingEntryCount > 0) return '—';
+    if (coverage.missingEntryCount > 0) return 'Protein —';
     return null;
   }
 
