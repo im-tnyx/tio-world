@@ -240,6 +240,124 @@ void main() {
     expect(todayDecoration.semanticsLabel, contains('0 of 2200'));
   });
 
+  testWidgets('over-target calendar semantics keep the unclamped percentage',
+      (tester) async {
+    final categories = InMemoryMealCategoriesRepository();
+    final mealLogs = InMemoryMealLogRepository(
+      mealCategoriesRepository: categories,
+      clock: () => _now,
+    );
+    final targets = InMemoryNutritionTargetsRepository();
+    await targets.upsert(const NutritionTargetsData(caloriesKcal: 2000));
+    await mealLogs.createManual(
+      ManualMealLogCreate(
+        clientMutationId: '00000000-0000-4000-8000-000000000207',
+        mealCategoryId: 'meal_slot_1',
+        consumedAt: _now,
+        consumedLocalDate: _todayLocalDate,
+        consumedUtcOffsetMinutes: 0,
+        captureSource: MealLogCaptureSource.quickAdd,
+        manualNutritionSnapshot: NutritionSnapshot(
+          schemaVersion: 1,
+          nutrients: const {NutrientId.energy: 2500},
+        ),
+      ),
+    );
+    final dates = MealDiaryDateController(clock: () => _now);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          mealDiaryDateControllerProvider.overrideWith((ref) => dates),
+          mealDiaryMealLogRepositoryProvider.overrideWithValue(mealLogs),
+          mealDiaryNutritionTargetsRepositoryProvider.overrideWithValue(targets),
+        ],
+        child: MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.light),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: Scaffold(
+            body: MealDiaryPage(mealCategoriesRepository: categories),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final calendar = tester.widget<TioDateCalendar>(find.byType(TioDateCalendar));
+    final decoration = calendar.decorationBuilder!(_today);
+    expect(decoration, isNotNull);
+    expect(decoration!.progress, 1);
+    expect(decoration.semanticsLabel, contains('2500 of 2000'));
+    expect(decoration.semanticsLabel, contains('125 percent'));
+  });
+
+  testWidgets(
+      'selected summary remains available when repository has no range capability',
+      (tester) async {
+    final categories = InMemoryMealCategoriesRepository();
+    final delegate = InMemoryMealLogRepository(
+      mealCategoriesRepository: categories,
+      clock: () => _now,
+    );
+    final mealLogs = _SelectedDayOnlyMealLogRepository(delegate);
+    final targets = InMemoryNutritionTargetsRepository();
+    await targets.upsert(const NutritionTargetsData(caloriesKcal: 2000));
+    await mealLogs.createManual(
+      ManualMealLogCreate(
+        clientMutationId: '00000000-0000-4000-8000-000000000208',
+        mealCategoryId: 'meal_slot_1',
+        consumedAt: _now,
+        consumedLocalDate: _todayLocalDate,
+        consumedUtcOffsetMinutes: 0,
+        captureSource: MealLogCaptureSource.quickAdd,
+        manualNutritionSnapshot: NutritionSnapshot(
+          schemaVersion: 1,
+          nutrients: const {NutrientId.energy: 500},
+        ),
+      ),
+    );
+    final dates = MealDiaryDateController(clock: () => _now);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          mealDiaryDateControllerProvider.overrideWith((ref) => dates),
+          mealDiaryMealLogRepositoryProvider.overrideWithValue(mealLogs),
+          mealDiaryNutritionTargetsRepositoryProvider.overrideWithValue(targets),
+        ],
+        child: MaterialApp(
+          builder: (context, child) => TioTheme(
+            config: const TioThemeConfig(mode: TioThemeMode.light),
+            child: child ?? const SizedBox.shrink(),
+          ),
+          home: Scaffold(
+            body: MealDiaryPage(mealCategoriesRepository: categories),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('meal-diary-daily-nutrition-summary')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('meal-diary-daily-nutrition-error')),
+      findsNothing,
+    );
+    expect(
+      _textAtKey(tester, const ValueKey('daily-nutrition-eaten-calories')),
+      '500',
+    );
+    expect(
+      tester.widget<TioDateCalendar>(find.byType(TioDateCalendar)).decorationBuilder,
+      isNull,
+    );
+  });
+
   testWidgets('daily summary error offers retry and can recover in place',
       (tester) async {
     final categories = InMemoryMealCategoriesRepository();
@@ -324,6 +442,23 @@ void main() {
       isNull,
     );
   });
+}
+
+final class _SelectedDayOnlyMealLogRepository implements MealLogRepository {
+  _SelectedDayOnlyMealLogRepository(this.delegate);
+
+  final InMemoryMealLogRepository delegate;
+
+  @override
+  Future<MealLogEntry> createManual(ManualMealLogCreate input) =>
+      delegate.createManual(input);
+
+  @override
+  Future<List<MealLogEntry>> listByLocalDate(MealLogLocalDate localDate) =>
+      delegate.listByLocalDate(localDate);
+
+  @override
+  Future<MealLogEntry?> readById(String id) => delegate.readById(id);
 }
 
 final class _FailingTargetsRepository implements NutritionTargetsRepository {
