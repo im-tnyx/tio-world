@@ -11,8 +11,9 @@ import '../../meal_diary_nutrition_summary_providers.dart';
 /// The geometry intentionally mirrors the owner-approved reference: one
 /// equation row for Target − Eaten = Remaining, followed by one compact row of
 /// Carbs/Protein/Fat/Fiber progress cells. Workout is deliberately absent in
-/// N3A. Unknown nutrient truth remains visible as an em dash instead of being
-/// hidden or fabricated as zero.
+/// N3A. Unknown nutrient truth remains visible instead of being hidden or
+/// fabricated as zero; confirmed lower bounds use a `+` suffix and remain
+/// ineligible for exact progress.
 class MealDiaryDailyNutritionSummary extends StatelessWidget {
   const MealDiaryDailyNutritionSummary({
     required this.summary,
@@ -47,6 +48,14 @@ class MealDiaryDailyNutritionSummary extends StatelessWidget {
       (label: 'Protein', nutrient: NutrientId.protein),
       (label: 'Fat', nutrient: NutrientId.fat),
       (label: 'Fiber', nutrient: NutrientId.fiber),
+    ];
+    final incompleteNotes = <String>[
+      for (final item in nutrients)
+        if (summary.missingConsumedEntryCountFor(item.nutrient) > 0)
+          _missingNutrientText(
+            item.label,
+            summary.missingConsumedEntryCountFor(item.nutrient),
+          ),
     ];
 
     return TioCard(
@@ -103,6 +112,18 @@ class MealDiaryDailyNutritionSummary extends StatelessWidget {
               ],
             ],
           ),
+          if (incompleteNotes.isNotEmpty) ...[
+            const SizedBox(height: TioSpacing.sm),
+            Text(
+              incompleteNotes.join(' · '),
+              key: const ValueKey('daily-nutrition-incomplete-note'),
+              textAlign: TextAlign.center,
+              style: textTheme.labelSmall?.copyWith(
+                color: colors.textSecondary,
+                fontWeight: TioFontWeight.w500,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -247,11 +268,23 @@ class _NutrientProgressCell extends StatelessWidget {
     final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
     final consumed = summary.consumedAmountFor(nutrient);
+    final confirmedConsumed = summary.confirmedConsumedAmountFor(nutrient);
+    final missingCount = summary.missingConsumedEntryCountFor(nutrient);
+    final incomplete = summary.isConsumedIncompleteFor(nutrient);
     final target = summary.targetAmountFor(nutrient);
     final progress = summary.progressFor(nutrient);
-    final valueText = '${_gramsOrDash(consumed)} / ${_gramsOrDash(target)}';
-    final consumedSemantic =
-        consumed == null ? 'consumed unavailable' : '${_grams(consumed)} consumed';
+    final consumedText = _consumedGramsText(
+      exact: consumed,
+      confirmed: confirmedConsumed,
+      incomplete: incomplete,
+    );
+    final valueText = '$consumedText / ${_gramsOrDash(target)}';
+    final consumedSemantic = _consumedSemantic(
+      exact: consumed,
+      confirmed: confirmedConsumed,
+      missingCount: missingCount,
+      nutrientLabel: label,
+    );
     final targetSemantic =
         target == null ? 'target unavailable' : '${_grams(target)} target';
 
@@ -315,7 +348,37 @@ class _NutrientProgressCell extends StatelessWidget {
   static String _grams(num value) => '${_formatNumber(value)} g';
 
   static String _gramsOrDash(num? value) => value == null ? '—' : _grams(value);
+
+  static String _consumedGramsText({
+    required num? exact,
+    required num? confirmed,
+    required bool incomplete,
+  }) {
+    if (exact != null) return _grams(exact);
+    if (incomplete && confirmed != null) return '${_grams(confirmed)}+';
+    return '—';
+  }
+
+  static String _consumedSemantic({
+    required num? exact,
+    required num? confirmed,
+    required int missingCount,
+    required String nutrientLabel,
+  }) {
+    if (exact != null) return '${_grams(exact)} consumed';
+    if (missingCount == 0) return 'consumed unavailable';
+
+    final missingMeals =
+        '$missingCount ${missingCount == 1 ? 'meal' : 'meals'} missing ${nutrientLabel.toLowerCase()}';
+    if (confirmed == null) {
+      return 'consumed unavailable, $missingMeals, total incomplete';
+    }
+    return 'at least ${_grams(confirmed)} consumed, $missingMeals, total incomplete';
+  }
 }
+
+String _missingNutrientText(String label, int missingCount) =>
+    '$missingCount ${missingCount == 1 ? 'meal' : 'meals'} missing ${label.toLowerCase()}';
 
 String _formatNumber(num? value) {
   if (value == null) return '—';
