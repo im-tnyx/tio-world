@@ -1,5 +1,6 @@
 import 'package:tio_shared/shared.dart';
 
+import '../models/daily_nutrition_budget.dart';
 import '../models/daily_nutrition_summary.dart';
 import '../repositories/meal_log_range_read_repository.dart';
 import '../repositories/meal_log_repository.dart';
