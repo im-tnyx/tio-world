@@ -56,8 +56,13 @@ void main() {
     );
     expect(summary, findsOneWidget);
     expect(
-      find.descendant(of: summary, matching: find.text('—')),
+      find.descendant(of: summary, matching: find.text('Protein —')),
       findsOneWidget,
+    );
+    expect(
+      find.descendant(of: summary, matching: find.byType(SvgPicture)),
+      findsOneWidget,
+      reason: 'fully unavailable protein is labeled explicitly, not given a value glyph',
     );
     expect(find.descendant(of: summary, matching: find.text('0g+')), findsNothing);
   });
