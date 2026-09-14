@@ -28,6 +28,25 @@ void main() {
     ]);
   });
 
+  test('keyset paging does not shift later pages when earlier ids mutate',
+      () async {
+    final pages = _MutatingRangePages(['a', 'b', 'c', 'd', 'e']);
+    final gateway = PagedSupabaseMealLogTableGateway(
+      delegate: _UnusedMealLogGateway(),
+      rangePages: pages,
+      pageSize: 2,
+    );
+
+    final rows = await gateway.listRowsByLocalDateRange(
+      userId: 'user-1',
+      startLocalDate: '2026-09-01',
+      endLocalDate: '2026-09-30',
+    );
+
+    expect(rows.map((row) => row['id']), ['a', 'b', 'c', 'd', 'e']);
+    expect(pages.calls.map((call) => call.$4), [null, 'b', 'd']);
+  });
+
   test('exact full page reads one terminal empty keyset page', () async {
     final pages = _FakeRangePages({
       null: [_row('a'), _row('b')],
@@ -101,6 +120,39 @@ final class _FakeRangePages implements MealLogRangePageTableGateway {
   }) async {
     calls.add((userId, startLocalDate, endLocalDate, afterId, limit));
     return pages[afterId] ?? const <Map<String, dynamic>>[];
+  }
+}
+
+final class _MutatingRangePages implements MealLogRangePageTableGateway {
+  _MutatingRangePages(List<String> ids) : ids = [...ids]..sort();
+
+  final List<String> ids;
+  final List<(String, String, String, String?, int)> calls = [];
+  var _didMutate = false;
+
+  @override
+  Future<List<Map<String, dynamic>>> listRowsByLocalDateRangePage({
+    required String userId,
+    required String startLocalDate,
+    required String endLocalDate,
+    required String? afterId,
+    required int limit,
+  }) async {
+    calls.add((userId, startLocalDate, endLocalDate, afterId, limit));
+    final pageIds = ids
+        .where((id) => afterId == null || id.compareTo(afterId) > 0)
+        .take(limit)
+        .toList(growable: false);
+
+    if (!_didMutate) {
+      _didMutate = true;
+      ids
+        ..remove('a')
+        ..add('aa')
+        ..sort();
+    }
+
+    return [for (final id in pageIds) _row(id)];
   }
 }
 
