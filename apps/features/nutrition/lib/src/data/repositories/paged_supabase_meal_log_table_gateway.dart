@@ -2,13 +2,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'supabase_meal_log_repository.dart';
 
-/// One stable ordered page of the canonical MealLog local-date range query.
+/// One immutable-id-keyset page of the canonical MealLog local-date range.
 abstract interface class MealLogRangePageTableGateway {
   Future<List<Map<String, dynamic>>> listRowsByLocalDateRangePage({
     required String userId,
     required String startLocalDate,
     required String endLocalDate,
-    required int offset,
+    required String? afterId,
     required int limit,
   });
 }
@@ -31,26 +31,30 @@ final class SupabaseMealLogRangePageTableGateway
     required String userId,
     required String startLocalDate,
     required String endLocalDate,
-    required int offset,
+    required String? afterId,
     required int limit,
   }) async {
-    if (offset < 0) {
-      throw ArgumentError.value(offset, 'offset', 'must be non-negative');
+    if (afterId != null && afterId.isEmpty) {
+      throw ArgumentError.value(afterId, 'afterId', 'must be non-empty');
     }
     if (limit <= 0) {
       throw ArgumentError.value(limit, 'limit', 'must be positive');
     }
 
-    final rows = await _client
+    var query = _client
         .from('meal_log_entries')
         .select(_columns)
         .eq('user_id', userId)
         .gte('consumed_local_date', startLocalDate)
-        .lte('consumed_local_date', endLocalDate)
-        .order('consumed_local_date')
-        .order('consumed_at', ascending: false)
-        .order('id')
-        .range(offset, offset + limit - 1);
+        .lte('consumed_local_date', endLocalDate);
+    if (afterId != null) {
+      query = query.gt('id', afterId);
+    }
+
+    // Pagination uses the immutable unique row id rather than mutable Diary
+    // presentation fields. The repository sorts the fully decoded result after
+    // the complete read, so page order does not need to equal display order.
+    final rows = await query.order('id').limit(limit);
     return [
       for (final row in rows) Map<String, dynamic>.from(row),
     ];
@@ -58,10 +62,11 @@ final class SupabaseMealLogRangePageTableGateway
 }
 
 /// Production gateway that keeps established MealLog CRUD behavior while
-/// fully draining range reads used by calendar progress.
+/// fully draining range reads used by calendar and selected-day summary truth.
 ///
-/// Supabase/PostgREST applies a server row cap. Reading stable ordered pages
-/// avoids treating a truncated visible range as complete nutrition truth.
+/// Supabase/PostgREST applies a server row cap. Immutable-id keyset pages avoid
+/// the duplicate/skip boundary drift that numeric offsets can produce when the
+/// filtered range changes between independent page queries.
 final class PagedSupabaseMealLogTableGateway
     implements MealLogTableGateway, MealLogRangeTableGateway {
   PagedSupabaseMealLogTableGateway({
@@ -136,17 +141,32 @@ final class PagedSupabaseMealLogTableGateway
     required String endLocalDate,
   }) async {
     final rows = <Map<String, dynamic>>[];
-    for (var offset = 0;; offset += _pageSize) {
+    final seenIds = <String>{};
+    String? afterId;
+
+    while (true) {
       final page = await _rangePages.listRowsByLocalDateRangePage(
         userId: userId,
         startLocalDate: startLocalDate,
         endLocalDate: endLocalDate,
-        offset: offset,
+        afterId: afterId,
         limit: _pageSize,
       );
+
+      for (final row in page) {
+        final id = _requireRowId(row);
+        if (!seenIds.add(id)) {
+          throw StateError(
+            'MealLog range page source returned duplicate id "$id".',
+          );
+        }
+      }
       rows.addAll(page);
+
       if (page.length < _pageSize) break;
+      afterId = _requireRowId(page.last);
     }
+
     return List<Map<String, dynamic>>.unmodifiable(rows);
   }
 
@@ -155,5 +175,15 @@ final class PagedSupabaseMealLogTableGateway
       throw ArgumentError.value(value, 'pageSize', 'must be positive');
     }
     return value;
+  }
+
+  static String _requireRowId(Map<String, dynamic> row) {
+    final id = row['id'];
+    if (id is! String || id.isEmpty) {
+      throw const FormatException(
+        'MealLog range page row requires a non-empty string id.',
+      );
+    }
+    return id;
   }
 }
