@@ -300,7 +300,6 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
         : ref.watch(
             mealDiaryDailyNutritionSummaryProvider(dailySummaryRequest),
           );
-    final canOverlapDailySummary = dailySummary?.hasValue == true;
 
     final visibleRange = _clampedVisibleRange(dates);
     final rangeRequest = mealLogRepository == null ||
@@ -318,6 +317,9 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
         : ref.watch(
             mealDiaryNutritionSummaryRangeProvider(rangeRequest),
           );
+    final hasRangeError = rangeSummaries?.hasError == true;
+    final canOverlapDailySummary =
+        dailySummary is AsyncData<DailyNutritionSummary> && !hasRangeError;
 
     return Stack(
       fit: StackFit.expand,
@@ -325,7 +327,10 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
         _diaryBody(
           dates,
           historyRequest,
-          _dailySummarySurface(dailySummary),
+          _dailySummarySurface(
+            dailySummary,
+            forceError: hasRangeError,
+          ),
           _calendarDecorationBuilder(rangeSummaries?.valueOrNull),
           overlapDailySummary: canOverlapDailySummary,
         ),
@@ -350,7 +355,10 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
     );
   }
 
-  Widget _dailySummarySurface(AsyncValue<DailyNutritionSummary>? summary) {
+  Widget _dailySummarySurface(
+    AsyncValue<DailyNutritionSummary>? summary, {
+    required bool forceError,
+  }) {
     if (summary == null) return const SizedBox.shrink();
 
     return Padding(
@@ -360,15 +368,17 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
         TioSpacing.lg,
         TioSpacing.lg,
       ),
-      child: summary.when(
-        loading: () =>
-            const MealDiaryDailyNutritionSummaryStatus.loading(),
-        error: (_, __) =>
-            const MealDiaryDailyNutritionSummaryStatus.error(),
-        data: (data) => IgnorePointer(
-          child: MealDiaryDailyNutritionSummary(summary: data),
-        ),
-      ),
+      child: forceError
+          ? const MealDiaryDailyNutritionSummaryStatus.error()
+          : summary.when(
+              loading: () =>
+                  const MealDiaryDailyNutritionSummaryStatus.loading(),
+              error: (_, __) =>
+                  const MealDiaryDailyNutritionSummaryStatus.error(),
+              data: (data) => IgnorePointer(
+                child: MealDiaryDailyNutritionSummary(summary: data),
+              ),
+            ),
     );
   }
 
