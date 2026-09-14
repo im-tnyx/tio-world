@@ -36,7 +36,7 @@ Current bounded refinement:
 **Repository state:** connector/API session; no local worktree state is claimed.  
 **Pre-refinement HEAD:** `a445a97ee79d8878df3f4fa17eb86d83a484aa55`  
 **Pre-refinement validation:** Flutter CI #2541 / run `34807629996` green for Flutter analyze, Dart analyze, Flutter tests, and Dart tests; all five prior Codex findings R1–R5 resolved; unresolved threads 0; final review `5194084768` reported no new P1/P2.  
-**Refinement validation so far:** CI #2551 exposed and led to a missing `DailyNutritionBudget` model import repair. CI #2552 then passed Flutter analyze, Dart analyze, and Dart tests; Flutter tests remained red. Raw failing assertion was not reliably surfaced by the connector, but static test audit found the prior “unknown Protein is hidden” section-header expectation was now intentionally stale and the all-missing presentation was refined to explicit `Protein —` without a value glyph. A fresh final-head run is still required.  
+**Refinement validation:** source/test HEAD `31c74b72ecb7a09ea242d02cc73b122441fd69d3` passed Flutter CI #2555 / run `34809905692`: Flutter analyze, Dart analyze, Flutter tests, and Dart tests all green. Earlier #2551 exposed and led to the missing `DailyNutritionBudget` import repair; #2552 then isolated the remaining Flutter-test contract mismatch, which was reconciled to the owner-approved explicit incomplete-Protein presentation. This task-brief checkpoint is documentation-only and therefore creates a later branch HEAD; that post-doc exact HEAD must still receive fresh CI before the final PR review is claimed.  
 **Merge:** not authorized.
 
 ## Governance Read
@@ -123,9 +123,9 @@ Individual MealLog cards remain unchanged in this slice.
 - [x] Render section-header Protein as exact / `+` / explicit `Protein —` instead of hiding incomplete Protein.
 - [x] Add focused partial-known/all-missing widget/history regressions; existing suite continues to cover exact/empty-day behavior.
 - [x] Reconcile `docs/screens/meal-diary.md` for the incomplete-nutrient truth contract.
-- [ ] Fresh exact-head CI green.
-- [ ] PR body reconciled to final exact HEAD/CI evidence.
-- [ ] Fresh exact-head Codex-style review clean; resolve only evidence-backed findings.
+- [x] Source-bearing implementation HEAD CI green — #2555 / run `34809905692` on `31c74b72ecb7a09ea242d02cc73b122441fd69d3`.
+- [ ] Post-doc exact-head CI green and PR body reconciled to that exact HEAD/evidence.
+- [ ] Fresh post-doc exact-head Codex-style review clean; resolve only evidence-backed findings.
 
 ## Validation / Exit Gates
 
@@ -145,8 +145,8 @@ Required before merge readiness:
 
 ## Prior Review Findings
 
-R1–R5 from the earlier N3A review cycle are resolved and validated on historical HEAD `a445a97ee79d8878df3f4fa17eb86d83a484aa55`. This refinement must not regress target-refresh, summary/range retry, paged range reads, or calendar-handle interaction.
+R1–R5 from the earlier N3A review cycle are resolved and validated on historical HEAD `a445a97ee79d8878df3f4fa17eb86d83a484aa55`. Fresh thread audit after the refinement still reports 0 unresolved threads. This refinement must not regress target-refresh, summary/range retry, paged range reads, or calendar-handle interaction.
 
 ## Next Exact Action
 
-Pin the new exact HEAD and inspect its complete CI. If all four required gates are green, re-fetch review threads, perform fresh scope/delta review, reconcile the PR body, and submit a fresh exact-head Codex-style review. Keep the PR Draft and do not merge without separate explicit owner authorization.
+Pin the documentation-only checkpoint HEAD and require its fresh CI. If all four gates remain green, update the PR body with that exact HEAD/run, perform one final scope/thread audit, and submit a fresh exact-head Codex-style review. Keep the PR Draft and do not merge without separate explicit owner authorization.
