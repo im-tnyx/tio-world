@@ -22,8 +22,8 @@
 **Draft PR:** #267  
 **Tracker:** Linear TNYX-206 — In Progress  
 **Repository state:** connector/API session; no local worktree state is claimed.  
-**Pre-repair source/docs head:** `7dcfa76f026f0b643e2da93595b75e66549f196e`; this brief refresh creates the governance head that must precede source changes.  
-**Validation state:** Flutter CI #2536 on `7dcfa76f026f0b643e2da93595b75e66549f196e` has both analyzer jobs green and `Test Flutter packages` red (job `103771365512`). The connector has not exposed a reliable exact failing assertion, so no root cause is being invented; the repair slice will be validated on its new exact head.  
+**Current source/test evidence head:** `9e1fa25ea12f4568d33877905800a5df857550cc`; this brief reconciliation must precede the next test mutation.  
+**Validation state:** Flutter CI #2539 (`34806135879`) on `9e1fa25ea12f4568d33877905800a5df857550cc` has Flutter and Dart analyzer steps green and `Test Flutter packages` red at job `103858320678`. The exact failure is verified: `meal_diary_daily_nutrition_integration_test.dart:85` expects one `Protein` text widget but the full page legitimately contains two. The failing test is `selected day and calendar ring share canonical budget and MealLog truth`. This is a brittle unscoped test finder, not evidence of incorrect summary truth.  
 **Merge state:** Draft PR; merge is not authorized.
 
 ## Global UI / Design-System Guardrail
@@ -128,9 +128,10 @@ Calendar visible week/month resolution uses one bounded MealLog range read plus 
 - [x] Core ring semantic color separation (`progress` vs `primary`).
 - [x] Focused domain/data/widget/integration/Core geometry regressions.
 - [x] `docs/screens/meal-diary.md` reconciled with current behavior.
-- [ ] Repair selected-summary overlap decision for error-with-previous-value.
-- [ ] Add explicit retry for range-only summary read errors.
-- [ ] Add focused regressions for both repair cases.
+- [x] Repair selected-summary overlap decision for error-with-previous-value (R4).
+- [x] Add explicit retry for range-only summary read errors (R5).
+- [x] Add focused regressions for R4 and R5.
+- [ ] Repair the verified brittle integration assertion at `meal_diary_daily_nutrition_integration_test.dart:85` by scoping nutrient-label expectations to the Daily Nutrition Summary card.
 
 ## 6. Review / Validation History
 
@@ -144,20 +145,22 @@ Codex review on earlier heads reported three actionable findings; current code i
 | TNYX-206-R2 | P2 | Daily Nutrition error surface includes Retry, invalidating selected + range summary providers. |
 | TNYX-206-R3 | P2 | Production Supabase range gateway drains pages instead of trusting one capped response. |
 
-Fresh Codex review of `7dcfa76f026f0b643e2da93595b75e66549f196e` identified two additional P2 findings now confirmed by direct source inspection:
+Fresh Codex review of `7dcfa76f026f0b643e2da93595b75e66549f196e` identified two additional P2 findings. Both are implemented on `9e1fa25ea12f4568d33877905800a5df857550cc`, with focused regressions present; exact-head full-suite validation remains pending because CI is blocked by the unrelated brittle integration expectation described below.
 
-| ID | Severity | Repair plan |
+| ID | Severity | Resolution on current source/test head |
 |---|---|---|
-| TNYX-206-R4 | P2 | `dailySummary?.hasValue == true` can overlap an interactive error card when Riverpod preserves a previous value. Gate overlap on the actually rendered data state instead. |
-| TNYX-206-R5 | P2 | `rangeSummaries?.valueOrNull` hides a range-only `AsyncError` and offers no recovery while the selected summary remains healthy. Add a bounded range retry surface/action. |
+| TNYX-206-R4 | P2 | Overlap is gated on the actually rendered data state, so an `AsyncError` retaining previous value remains interactive and outside the calendar handle overlay. |
+| TNYX-206-R5 | P2 | A visible-range `AsyncError` exposes the bounded retry path instead of being silently hidden by `valueOrNull`. |
 
 ### Current CI repair slice
 
-- Evidence head: `7dcfa76f026f0b643e2da93595b75e66549f196e`.
-- Flutter CI #2536: analyzer jobs green; `Test Flutter packages` failed at job `103771365512`.
-- Exact failing test/assertion has not been reliably exposed by the connector, so the repair does not assume a cause from that red job.
-- Smallest source scope: `MealDiaryPage` state/rendering plus focused Meal Diary widget/page tests; no Core token/geometry change and no Supabase schema change.
-- Validation: run/observe targeted nutrition tests first where available, then exact-head Flutter analyzer/tests and the repo-required final CI; reconcile review threads only after the final head proves the fixes.
+- Evidence head: `9e1fa25ea12f4568d33877905800a5df857550cc`.
+- Flutter CI #2539 / run `34806135879`: Flutter and Dart analyzer steps green; `Test Flutter packages` failed at job `103858320678`.
+- Exact failure: `apps/features/nutrition/test/meal_diary/meal_diary_daily_nutrition_integration_test.dart:85`, test `selected day and calendar ring share canonical budget and MealLog truth`.
+- Exact assertion mismatch: `Expected: exactly one matching candidate`; `Actual: Found 2 widgets with text "Protein"`.
+- Root cause: the test uses a page-wide `find.text('Protein')` even though the page can legitimately render another `Protein` label outside the Daily Nutrition Summary. The assertion is intended to verify the four labels inside the summary card, so the smallest faithful repair is to scope those label finders to `meal-diary-daily-nutrition-summary` rather than alter production UI/content.
+- Source scope for this CI repair: test-only. No Core token/geometry, production behavior, Supabase schema, or nutrition-domain change is justified by this failure.
+- Validation plan: observe the exact new-head Flutter CI; require analyzer and Flutter test gates green before reconciling review threads. Then run the final exact-head scope/review/body reconciliation required by the repo workflow.
 
 ### Final validation still required
 
@@ -183,4 +186,4 @@ Still out of scope and untouched by intent: Supabase schema/RLS/migrations, Work
 
 ## 8. Next Exact Action
 
-Implement TNYX-206-R4 and R5 with focused regressions on the same draft PR branch. Then inspect exact-head CI, resolve only review threads proven fixed on that head, refresh PR evidence/HEAD metadata, and perform a fresh exact-head review. Keep TNYX-206 In Progress and TNYX-207 blocked until the PR is actually merge-ready. Do not merge on `go`/`next`; explicit owner merge authorization is still required.
+Apply the test-only CI repair by scoping the Carbs/Protein/Fat/Fiber label expectations in `meal_diary_daily_nutrition_integration_test.dart` to the `meal-diary-daily-nutrition-summary` subtree. Then inspect exact-head CI. Only after required CI is green: re-fetch and individually verify/resolve review threads, refresh PR body exact-HEAD/validation evidence, perform a fresh Codex-bot-style review on that exact head, and keep TNYX-206 In Progress / TNYX-207 blocked until merge readiness is proven. Do not merge on `go`/`next`; explicit owner merge authorization is still required.
