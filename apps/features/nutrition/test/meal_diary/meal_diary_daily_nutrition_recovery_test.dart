@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -185,6 +187,59 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('retained summary keeps compact geometry while refresh is loading',
+      (tester) async {
+    final categories = InMemoryMealCategoriesRepository();
+    final mealLogs = InMemoryMealLogRepository(
+      mealCategoriesRepository: categories,
+      clock: () => _now,
+    );
+    final targets = _BlockingTargetsRepository();
+    final dates = MealDiaryDateController(clock: () => _now);
+
+    await _pumpDiary(
+      tester,
+      dates: dates,
+      categories: categories,
+      mealLogs: mealLogs,
+      targets: targets,
+    );
+
+    final summary =
+        find.byKey(const ValueKey('meal-diary-daily-nutrition-summary'));
+    expect(summary, findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('meal-diary-summary-calendar-overlap')),
+      findsOneWidget,
+    );
+    final initialTop = tester.getTopLeft(summary).dy;
+
+    targets.blockNextRead();
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(MealDiaryPage)),
+    );
+    container.invalidate(mealDiaryDailyNutritionSummaryProvider);
+    await tester.pump();
+    await tester.pump();
+
+    expect(summary, findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('meal-diary-summary-calendar-overlap')),
+      findsOneWidget,
+    );
+    expect(tester.getTopLeft(summary).dy, closeTo(initialTop, 0.01));
+
+    targets.releaseBlockedRead();
+    await tester.pumpAndSettle();
+
+    expect(summary, findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('meal-diary-summary-calendar-overlap')),
+      findsOneWidget,
+    );
+    expect(tester.getTopLeft(summary).dy, closeTo(initialTop, 0.01));
+  });
 }
 
 Future<void> _pumpDiary(
@@ -256,6 +311,34 @@ final class _ToggleFailingTargetsRepository
   @override
   Future<NutritionTargetsData?> read() async {
     if (failReads) throw StateError('temporary target read failure');
+    return data;
+  }
+
+  @override
+  Future<void> upsert(NutritionTargetsData targets) async {
+    targets.validate();
+    data = targets;
+  }
+}
+
+final class _BlockingTargetsRepository implements NutritionTargetsRepository {
+  NutritionTargetsData data = const NutritionTargetsData(caloriesKcal: 2000);
+  Completer<void>? _gate;
+
+  void blockNextRead() {
+    _gate = Completer<void>();
+  }
+
+  void releaseBlockedRead() {
+    final gate = _gate;
+    _gate = null;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
+  @override
+  Future<NutritionTargetsData?> read() async {
+    final gate = _gate;
+    if (gate != null) await gate.future;
     return data;
   }
 
