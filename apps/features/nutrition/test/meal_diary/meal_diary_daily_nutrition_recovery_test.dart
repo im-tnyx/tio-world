@@ -70,6 +70,71 @@ void main() {
     expect(decoration!.progress, 0);
   });
 
+  testWidgets(
+      'previous-value range error clears stale calendar decorations until retry',
+      (tester) async {
+    final categories = InMemoryMealCategoriesRepository();
+    final delegate = InMemoryMealLogRepository(
+      mealCategoriesRepository: categories,
+      clock: () => _now,
+    );
+    final mealLogs = _RangeFailingMealLogRepository(delegate)
+      ..failRangeReads = false;
+    final targets = InMemoryNutritionTargetsRepository();
+    await targets.upsert(const NutritionTargetsData(caloriesKcal: 2000));
+    final dates = MealDiaryDateController(clock: () => _now);
+
+    await _pumpDiary(
+      tester,
+      dates: dates,
+      categories: categories,
+      mealLogs: mealLogs,
+      targets: targets,
+    );
+
+    var calendar = tester.widget<TioDateCalendar>(find.byType(TioDateCalendar));
+    expect(calendar.decorationBuilder, isNotNull);
+    expect(
+      calendar.decorationBuilder!(DateTime(2026, 9, 13))?.progress,
+      0,
+    );
+
+    mealLogs.failRangeReads = true;
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(MealDiaryPage)),
+    );
+    container.invalidate(mealDiaryNutritionSummaryRangeProvider);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('meal-diary-daily-nutrition-error')),
+      findsOneWidget,
+    );
+    calendar = tester.widget<TioDateCalendar>(find.byType(TioDateCalendar));
+    expect(
+      calendar.decorationBuilder,
+      isNull,
+      reason: 'stale previous-value range truth must not remain visible on error',
+    );
+
+    mealLogs.failRangeReads = false;
+    await tester.tap(
+      find.byKey(const ValueKey('meal-diary-daily-nutrition-retry')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('meal-diary-daily-nutrition-error')),
+      findsNothing,
+    );
+    calendar = tester.widget<TioDateCalendar>(find.byType(TioDateCalendar));
+    expect(calendar.decorationBuilder, isNotNull);
+    expect(
+      calendar.decorationBuilder!(DateTime(2026, 9, 13))?.progress,
+      0,
+    );
+  });
+
   testWidgets('previous-value summary error keeps calendar handle unobstructed',
       (tester) async {
     final categories = InMemoryMealCategoriesRepository();
