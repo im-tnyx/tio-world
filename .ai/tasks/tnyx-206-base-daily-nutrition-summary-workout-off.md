@@ -14,15 +14,15 @@ N3A remains workout-OFF:
 Target - Eaten = Remaining
 ```
 
-Current bounded repair scope:
+Current bounded repair scope is implemented:
 
 - preserve exact aggregation semantics and the approved incomplete-nutrient presentation;
 - when visible-range refresh is in `AsyncError`, do not pass Riverpod previous-value summaries into calendar decorations;
 - keep the retryable range-error surface already implemented;
 - document the public `TioDateCalendar` / `TioDateDecoration` ring ordering, semantic colors, and 30dp date-cell geometry in the canonical Core theme README;
-- ensure selected-day Daily Nutrition consumes the complete MealLog set when the repository exposes the existing paged range-read capability, using a same-day range (`startDate == endDate`) instead of a potentially server-truncated single-day query;
-- preserve compatibility for repositories that implement only `MealLogRepository` by falling back to the established `listByLocalDate` path;
-- add focused regression coverage for stale previous-value calendar decorations and selected-day range-capability preference;
+- selected-day Daily Nutrition consumes the complete MealLog set when the repository exposes the existing paged range-read capability, using a same-day range (`startDate == endDate`) instead of a potentially server-truncated single-day query;
+- repositories that implement only `MealLogRepository` retain the established `listByLocalDate` compatibility fallback;
+- focused regression coverage locks stale previous-value calendar suppression plus selected-day range-capability preference/fallback;
 - no Workout term, schema/RLS change, new persisted total, unrelated Diary redesign, or TNYX-207 work.
 
 ## Active Handoff
@@ -40,7 +40,10 @@ Current bounded repair scope:
 **R6/R7 validation:** exact-head Flutter CI #2561 / run `34854445983` green for Flutter analyze, Dart analyze, Flutter tests, and Dart tests.  
 **Pre-R9 HEAD:** `6369f090a74c34a04ce19439f687154450064bc7`  
 **Pre-R9 validation:** exact-head Flutter CI #2562 / run `34855634165` green for Flutter analyze, Dart analyze, Flutter tests, and Dart tests.  
-**Actual Codex review on pre-R9 HEAD:** reviewed `6369f090a7` and opened R9/P2 because selected-day resolution still used the potentially truncated single-day Supabase query while the calendar range path was paged.  
+**R9 source/test HEAD:** `a39541110275b93de094731774507a993bb42457`  
+**R9 validation:** exact-head Flutter CI #2565 / run `34866579339` green for Flutter analyze, Dart analyze, Flutter tests, and Dart tests.  
+**Actual Codex review that opened R9:** reviewed `6369f090a7` and identified selected-day single-page truncation risk. R9 is implemented and validated; R6/R7/R8/R9 threads should now be resolved with evidence after the final metadata checkpoint is green.  
+**Final metadata policy:** this reconciliation is metadata-only. Do not edit this task brief again solely to chase its resulting SHA; validate that final SHA externally and pin final CI/review evidence in the PR body.  
 **Merge:** not authorized.
 
 ## Governance Read
@@ -69,7 +72,7 @@ For each supported nutrient:
 
 `+` means “at least this much is confirmed”; it is presentation-only and must never drive exact Remaining/progress.
 
-Calendar and selected-day truth must be derived from complete reads when the production repository exposes paged range capability. A failed current visible-range read must not continue presenting a previous successful range as if it were current.
+Calendar and selected-day truth are derived from complete reads when the production repository exposes paged range capability. A failed current visible-range read must not continue presenting a previous successful range as if it were current.
 
 ## Verified Runtime Evidence
 
@@ -80,7 +83,9 @@ Calendar and selected-day truth must be derived from complete reads when the pro
 - `TioDateCalendar` uses a 30dp normal date cell in this PR.
 - R7 reconciles `apps/core/lib/src/theme/README.md` to those source contracts: 30dp cell, outer progress / inner selection with no decorative gap, `colors.progress` vs `colors.primary`, and explicit `null` unavailable vs `0` known-zero semantics.
 - Production app composition supplies `PagedSupabaseMealLogTableGateway`, whose `listRowsByLocalDateRange` drains stable ordered pages.
-- Before R9, `DailyNutritionSummaryResolver.resolve` still called `_mealLogRepository.listByLocalDate(localDate)` even when the same repository also implemented `MealLogRangeReadRepository`; that can diverge from the complete calendar range result when a single day exceeds the Supabase server row cap.
+- R9 updates `DailyNutritionSummaryResolver.resolve`: when `_mealLogRepository` implements `MealLogRangeReadRepository`, selected-day resolution calls `listByLocalDateRange(startDate: localDate, endDate: localDate)`; otherwise it falls back to `listByLocalDate(localDate)`.
+- Focused resolver tests verify both sides of that branch: a range-capable repository receives one range read and zero single-day reads; a plain `MealLogRepository` receives the established single-day read and still produces the expected summary.
+- The existing paged gateway tests plus the new resolver capability-preference test close the >server-cap path end-to-end at the abstraction boundaries without creating a second pagination implementation.
 
 ## Codex Review Findings
 
@@ -106,15 +111,15 @@ The canonical Core theme README records the current reusable contract:
 
 ### R8 / P1 — active task brief stale after R6/R7 implementation
 
-**Status:** reconciled before R9; thread resolution pending final exact-head reconciliation.
+**Status:** reconciled; thread resolution pending final exact-head reconciliation.
 
-The active handoff was updated after R6/R7 so it no longer instructs the next owner to redo already-implemented repairs and it records #2561 source/docs validation.
+The active handoff no longer instructs the next owner to redo already-implemented R6/R7 repairs and now also records the later R9 repair truth and validation.
 
 ### R9 / P2 — selected-day summary read can truncate above the Supabase row cap
 
-**Status:** repair authorized; implementation/test pending.
+**Status:** implemented and CI-validated; thread resolution pending final exact-head reconciliation.
 
-The production repository exposes `MealLogRangeReadRepository` through the paged gateway, but selected-day resolution still uses `listByLocalDate`. The repair will prefer `listByLocalDateRange(startDate: localDate, endDate: localDate)` whenever that capability exists, preserving the existing single-day API only as a compatibility fallback for repositories without range-read capability. This keeps selected-day card and calendar truth aligned without adding schema or persistence changes.
+The production repository exposes `MealLogRangeReadRepository` through the paged gateway. Selected-day resolution now prefers `listByLocalDateRange(startDate: localDate, endDate: localDate)` whenever that capability exists, so the Daily Summary consumes the same complete paged truth family as calendar progress. Repositories without range capability retain `listByLocalDate` as a compatibility fallback. No schema, RLS, or persisted aggregate changed.
 
 ## Earlier Findings / Validated Behavior
 
@@ -143,11 +148,12 @@ The incomplete-nutrient refinement also remains locked:
 - [x] R7: update canonical Core theme README with the current 30dp / outer-progress / inner-selection / semantic-color calendar contract.
 - [x] R6/R7 source/docs HEAD `67292be4...` passed Flutter/Dart analyze and tests in CI #2561 / run `34854445983`.
 - [x] Pre-R9 metadata HEAD `6369f090...` passed Flutter/Dart analyze and tests in CI #2562 / run `34855634165`.
-- [ ] R9: prefer same-day `MealLogRangeReadRepository` read in selected-day resolver when available; preserve fallback for non-range repositories.
-- [ ] Add focused resolver regression proving range capability is used for selected-day truth and single-day fallback remains compatible.
-- [ ] Validate exact post-R9 HEAD.
+- [x] R9: selected-day resolver prefers same-day `MealLogRangeReadRepository` reads when available and preserves fallback for non-range repositories.
+- [x] Focused resolver regressions prove range capability preference and single-day fallback compatibility.
+- [x] R9 source/test HEAD `a3954111...` passed Flutter/Dart analyze and tests in CI #2565 / run `34866579339`.
+- [ ] Validate this metadata-only final handoff SHA.
 - [ ] Resolve R6/R7/R8/R9 review threads with validation evidence.
-- [ ] Trigger/observe fresh actual Codex review on exact final HEAD.
+- [ ] Trigger/observe fresh actual Codex review on the exact final HEAD.
 - [ ] Reconcile PR body to exact final HEAD/evidence.
 
 ## Validation / Exit Gates
@@ -172,4 +178,4 @@ Required before merge readiness:
 
 ## Next Exact Action
 
-Implement R9 in the selected-day resolver with focused compatibility coverage, validate the resulting exact HEAD, then resolve R6/R7/R8/R9 with evidence, trigger/observe one fresh actual Codex review, and reconcile the PR body. Keep TNYX-206 In Progress and TNYX-207 blocked until merge/post-merge sync; do not merge without separate explicit owner authorization.
+Validate this metadata-only checkpoint on its exact resulting HEAD, resolve R6/R7/R8/R9 with the validated evidence, reconcile the PR body, then trigger/observe one fresh actual Codex review. Keep TNYX-206 In Progress and TNYX-207 blocked until merge/post-merge sync; do not merge without separate explicit owner authorization.
