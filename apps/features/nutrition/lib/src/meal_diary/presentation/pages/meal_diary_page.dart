@@ -331,7 +331,9 @@ class _MealDiaryPageState extends ConsumerState<MealDiaryPage>
             dailySummary,
             forceError: hasRangeError,
           ),
-          _calendarDecorationBuilder(rangeSummaries?.valueOrNull),
+          _calendarDecorationBuilder(
+            hasRangeError ? null : rangeSummaries?.valueOrNull,
+          ),
           overlapDailySummary: canOverlapDailySummary,
         ),
         // The expanded month grid can reach the bottom of a short viewport,
