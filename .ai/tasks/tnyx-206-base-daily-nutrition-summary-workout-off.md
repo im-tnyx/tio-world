@@ -6,9 +6,7 @@
 
 ## Owner Approval and Scope
 
-**Approval:** Approved. The original N3A slice, incomplete-nutrient UX refinement, and bounded review-repair work were owner-authorized with `go` / `GO`.
-
-N3A remains workout-OFF:
+**Approval:** Approved. The N3A slice, incomplete-nutrient refinement, and bounded review-repair work were owner-authorized with `go` / `GO`.
 
 ```text
 Target - Eaten = Remaining
@@ -29,14 +27,13 @@ Out of scope: Workout/N10 behavior, schema/RLS changes, persisted daily aggregat
 **Linear:** TNYX-206 — In Progress; blocks TNYX-207  
 **Repository state:** connector/API session; local `git status`/worktree state is unavailable and no local-clean claim is made.  
 **R15 source/test HEAD:** `c76d85569c1de26e10f6a677b12065df37236ab8`; CI #2578 / run `34948866735` all green.  
-**R15 review thread:** `PRRT_kwDOTOXwB86iaiJi`; resolution pending the exact metadata-head validation described below.  
-**Actual Codex:** most recent final rerun attempt was blocked by the code-review usage limit; fallback exact-head review remains required if the limit persists.  
-**Final metadata policy:** this handoff reconciliation is metadata-only. Validate the resulting exact SHA externally and pin final CI/review/thread evidence in the PR body; do not edit this brief again solely to chase its own resulting SHA.  
+**R15 metadata HEAD:** `36adcf5196476b18a36f7925ff2c4295fadf6df3`; CI #2579 / run `34949844224` all green.  
+**Actual Codex review:** `PRR_kwDOTOXwB88AAAABNmiG8Q`, reviewed `c76d85569c...`; it opened R16/R17/R18.  
 **Merge:** not authorized.
 
 ## Governance / Reconstruction Evidence
 
-Fresh-read before R15 implementation:
+Fresh-read during this repair sequence:
 
 - root `AGENTS.md`;
 - `.ai/workflow.md`;
@@ -46,11 +43,12 @@ Fresh-read before R15 implementation:
 - `apps/features/AGENTS.md`;
 - `apps/core/lib/src/theme/README.md`;
 - `docs/PUSH_TEMPLATE.md` and `.github/PULL_REQUEST_TEMPLATE.md`;
-- current PR #267 metadata/review threads;
+- current PR #267 metadata/review threads and actual Codex reviews;
 - Linear TNYX-206 status/relations;
-- current Meal Diary provider/page source and focused recovery/integration tests.
+- current Daily Nutrition widget/provider/recovery/summary tests;
+- existing Core `TioButton` contract (`ghost` variant).
 
-This remains the same approved TNYX-206 slice. R15 is a correctness/review fix, not a new product slice, visible redesign, or data-shape change. No Core/theme public contract changed.
+This remains the same approved TNYX-206 slice. R17/R18 are review/correctness fixes inside that scope. R17 preserves the existing Retry action intent while moving it to the already-governed shared button surface; no new Core contract is introduced. R18 changes accessibility truth only; visual progress remains clamped.
 
 ## Locked Truth Contract
 
@@ -58,52 +56,65 @@ This remains the same approved TNYX-206 slice. R15 is a correctness/review fix, 
 - Partial known nutrients may show a confirmed lower bound with `+`, but never exact progress.
 - Fully unavailable nutrients show `—`; missing facts never become fake zero.
 - A successful known-empty day is exact zero.
+- Visual progress bars/rings may clamp at 100%, but accessibility percentages must report the raw exact consumed/target ratio when that ratio is known.
 - Production selected-day/calendar truth uses complete paged reads when range capability exists; non-range repositories retain selected-day truth and omit range decorations.
-- Workout remains absent from this N3A slice.
+- Workout remains absent from N3A.
 
 ## Review Findings
 
-R1–R14 are implemented, CI-validated, and their GitHub threads are resolved. Durable behavior includes target-save coherence/retry, complete immutable-id keyset pagination, optional range capability, exact-safe incomplete nutrient truth, truthful over-target accessibility, stable retained-data explicit-refresh geometry, and error surfaces outside the calendar handle overlap band.
+R1–R14 are implemented, CI-validated, and resolved.
 
-### R15 / P2 — target-change dependency reload can overlap loading surface
+### R15 / P2 — target-change dependency reload overlap
 
-**Status:** Implemented and source/test validated; external thread resolution pending final metadata-head validation.  
-**Observed bad HEAD:** `1b518e88dc1736d9684ee09612df1be44200b21d`  
-**Fix HEAD:** `c76d85569c1de26e10f6a677b12065df37236ab8`  
-**GitHub thread:** `PRRT_kwDOTOXwB86iaiJi` / comment `4013030118`.
+**Status:** Resolved and validated.  
+**Fix HEAD:** `c76d85569c1de26e10f6a677b12065df37236ab8`.  
+**Thread:** `PRRT_kwDOTOXwB86iaiJi` / comment `4013030118`.
 
-Root cause: summary providers used `ref.watch(_nutritionTargetsChangesProvider(source))`, making a target-change stream event a dependency reload. Meal Diary overlap eligibility could retain `hasValue`, while default `AsyncValue.when` could render loading on that reload.
+Target changes are now explicit self-refresh signals (`ref.listen` + `ref.invalidateSelf()`), so retained data uses the refresh path instead of a dependency reload. The blocked-read target-change regression keeps resolved geometry stable and confirms the new target appears after release. CI #2578 and final metadata CI #2579 are all green; thread resolved with that evidence.
 
-Fix: target changes are now an explicit refresh signal. Both summary providers `ref.listen` to the existing target-change stream provider and call `ref.invalidateSelf()` only when a real change value arrives. This reuses Riverpod's retained-value refresh path already exercised by R14, keeps first-load loading/error behavior unchanged, and requires no page/Core geometry change.
+### R16 / P1 — R15 task brief stale on source checkpoint
 
-Focused regression: `_BlockingTargetsRepository` now exposes `NutritionTargetsChangeSource`; the recovery test blocks the target read, emits a target change, verifies the resolved summary remains rendered at the same top position with no loading card, then releases the read and verifies the new target value appears.
+**Status:** Superseded by `36adcf5196476b18a36f7925ff2c4295fadf6df3`; thread resolution pending.  
+**Thread:** `PRRT_kwDOTOXwB86icgCz` / comment `4013803718`.
 
-Rejected alternatives: changing calendar overlap geometry, making loading cards pointer-transparent, or adding a page-specific reload override would treat presentation symptoms instead of the target-change state transition.
+The current handoff records R15 implemented/validated and exact CI #2579. This finding was anchored to pre-reconciliation `c76d85569c...` and requires no source change.
+
+### R17 / P1 — Retry bypasses shared button contract
+
+**Status:** Open; accepted for bounded repair.  
+**Thread:** `PRRT_kwDOTOXwB86icgC_` / comment `4013803731`.
+
+Current error status uses a raw `TextButton` despite the feature-package reusable-first rule and existing `TioButton.ghost`. Repair: keep the same Retry label, key, invalidation callback, and error-card composition; replace only the local raw action with `TioButton.ghost`. Add focused coverage that the Retry action uses the ghost shared contract and still recovers the page.
+
+### R18 / P2 — macro semantics announce clamped percentage
+
+**Status:** Open; accepted for bounded repair.  
+**Thread:** `PRRT_kwDOTOXwB86icgDI` / comment `4013803742`.
+
+Current nutrient-cell semantics derive percentage from `summary.progressFor`, which is intentionally visual/clamped. Repair: when exact consumed and target are known and target is positive, derive the spoken percentage from raw `consumed / target`; keep `LinearProgressIndicator.value` on the existing clamped `progress`. Add an over-target macro semantics regression (260 g / 250 g → 104 percent).
 
 ## Validation Evidence
 
-Pre-R15 runtime HEAD `1b518e88dc1736d9684ee09612df1be44200b21d` passed CI #2574 / run `34873686621`.
+- Pre-R15 exact HEAD `1b518e88dc1736d9684ee09612df1be44200b21d`: CI #2574 / run `34873686621` green.
+- R15 source/test HEAD `c76d85569c1de26e10f6a677b12065df37236ab8`: CI #2578 / run `34948866735` green across Flutter analyze, Dart analyze, Flutter tests, Dart tests.
+- R15 metadata HEAD `36adcf5196476b18a36f7925ff2c4295fadf6df3`: CI #2579 / run `34949844224` green across the same four gates.
+- Actual Codex subsequently reviewed `c76d85569c...` and produced R16/R17/R18; therefore #2579 is historical validation, not validation of the forthcoming R17/R18 repair.
 
-R15 source/test HEAD `c76d85569c1de26e10f6a677b12065df37236ab8` passed CI #2578 / run `34948866735`:
-
-- Flutter analyze ✅
-- Dart analyze ✅
-- Flutter tests ✅
-- Dart tests ✅
-
-Incremental R15 delta from `1b518e88...` is bounded to this task brief, `meal_diary_nutrition_summary_providers.dart`, and `meal_diary_daily_nutrition_recovery_test.dart`; no schema, Core, route, or unrelated feature file changed.
-
-## Completion Checklist
+## Implementation Checklist
 
 - [x] Reconcile root/nested governance, Linear, PR, task brief, exact source/tests.
-- [x] Convert target-change dependency reload into explicit self-refresh.
-- [x] Add target-change + blocked-read retained-geometry regression.
-- [x] Inspect incremental delta for scope/visual boundary drift.
-- [x] R15 source/test exact-head CI green (#2578).
-- [ ] Validate this metadata-only resulting HEAD with exact-head CI.
-- [ ] Reply to and resolve R15 with validated evidence.
-- [ ] Fresh unresolved-thread audit = 0.
-- [ ] Fresh exact-head final review has no new blocking P1/P2; use fallback Codex-style review if actual Codex remains usage-limited.
+- [x] R15 self-refresh fix + blocked-read target-change regression.
+- [x] R15 source/test CI #2578 green.
+- [x] R15 metadata CI #2579 green.
+- [x] Reply to and resolve R15.
+- [ ] Resolve R16 as superseded by current handoff/CI evidence.
+- [ ] R17 replace raw Retry `TextButton` with `TioButton.ghost` without changing callback/key intent.
+- [ ] R17 focused shared-button/recovery coverage.
+- [ ] R18 derive spoken exact macro percentage from raw consumed/target while visual bar remains clamped.
+- [ ] R18 over-target semantics regression.
+- [ ] Run exact source/test CI for R17/R18.
+- [ ] Reconcile one final metadata checkpoint, validate exact final SHA, resolve findings, and audit 0 unresolved threads.
+- [ ] Fresh exact-head review has no new blocking P1/P2.
 - [ ] Reconcile PR body to final exact-head evidence.
 - [ ] Owner explicitly authorizes merge.
 
@@ -111,17 +122,17 @@ Incremental R15 delta from `1b518e88...` is bounded to this task brief, `meal_di
 
 Before merge readiness:
 
-- first-load loading and error/retry behavior remain correct;
-- target changes refresh both selected/range summaries without putting a loading/error surface into the calendar handle overlap band;
-- retained resolved summary geometry stays stable while refreshed target truth loads;
-- new target truth replaces retained data after refresh completes;
-- exact/partial nutrient semantics, range behavior, keyset pagination, and accessibility truth remain unchanged;
-- exact final-head CI green;
+- Retry remains functional and uses the governed shared button contract;
+- first-load/loading/error/retry behavior remains correct;
+- target changes retain stable resolved geometry while refreshed truth loads;
+- calendar and macro accessibility percentages report truthful over-target ratios while visuals remain clamped;
+- exact/partial nutrient semantics, range behavior, and keyset pagination remain unchanged;
+- exact final-head Flutter/Dart analyze/tests green;
 - 0 unresolved review threads;
-- fresh exact-head review has no new blocking P1/P2;
+- fresh exact-head review has no blocking P1/P2;
 - PR body matches final HEAD/evidence;
 - owner explicitly authorizes merge.
 
 ## Next Exact Action
 
-Validate this metadata-only final handoff SHA, resolve R15 with evidence, audit threads, run fresh exact-head review, and reconcile PR body. Keep TNYX-206 In Progress and TNYX-207 blocked until explicit merge + post-merge sync.
+Resolve R16 with current evidence, implement R17/R18 in the Daily Nutrition widget plus focused tests, validate exact source/test HEAD, then complete final handoff/review gates. Keep TNYX-206 In Progress and TNYX-207 blocked until explicit merge + post-merge sync.
