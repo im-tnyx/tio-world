@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
 import 'package:tio_feature_nutrition/nutrition.dart';
+import 'package:tio_shared/shared.dart';
 
 void main() {
   testWidgets('error status uses the governed ghost retry action',
@@ -33,5 +34,56 @@ void main() {
     await tester.tap(retryFinder);
     await tester.pump();
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('over-target macro semantics announce the raw exact percentage',
+      (tester) async {
+    final semanticsHandle = tester.ensureSemantics();
+    addTearDown(semanticsHandle.dispose);
+
+    final date = MealLogLocalDate(year: 2026, month: 9, day: 13);
+    const targets = NutritionTargetsData(
+      caloriesKcal: 2000,
+      carbohydrateGrams: 250,
+      proteinGrams: 150,
+      fatGrams: 70,
+      fiberGrams: 30,
+    );
+    final summary = DailyNutritionSummary(
+      localDate: date,
+      budget: DailyNutritionBudget(
+        localDate: date,
+        baseTarget: targets,
+        strategyAdjustedTarget: targets,
+      ),
+      consumedTotals: const {
+        NutrientId.energy: 2300,
+        NutrientId.carbohydrate: 260,
+        NutrientId.protein: 170,
+        NutrientId.fat: 80,
+        NutrientId.fiber: 35,
+      },
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => TioTheme(
+          config: const TioThemeConfig(mode: TioThemeMode.light),
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: Scaffold(body: MealDiaryDailyNutritionSummary(summary: summary)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final carbsSemantics =
+        find.bySemanticsLabel('Carbs, 260 g consumed, 250 g target');
+    expect(carbsSemantics, findsOneWidget);
+    expect(tester.getSemantics(carbsSemantics).value, '104 percent');
+
+    final progress = tester.widget<LinearProgressIndicator>(
+      find.byKey(const ValueKey('daily-nutrition-carbohydrate-progress')),
+    );
+    expect(progress.value, 1);
   });
 }
