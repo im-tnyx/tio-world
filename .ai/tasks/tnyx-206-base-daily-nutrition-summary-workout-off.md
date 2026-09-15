@@ -28,7 +28,7 @@ Out of scope: Workout/N10 behavior, schema/RLS changes, persisted daily aggregat
 **Repository state:** connector/API session; local `git status`/worktree state is unavailable and no local-clean claim is made.  
 **R15 source/test HEAD:** `c76d85569c1de26e10f6a677b12065df37236ab8`; CI #2578 / run `34948866735` all green.  
 **R15 metadata HEAD:** `36adcf5196476b18a36f7925ff2c4295fadf6df3`; CI #2579 / run `34949844224` all green.  
-**Actual Codex review:** `PRR_kwDOTOXwB88AAAABNmiG8Q`, reviewed `c76d85569c...`; it opened R16/R17/R18.  
+**R17/R18 first source/test candidate:** `efbb9b4a6bb10885a91c4e69f94b5f7a042867ed`; CI #2583 / run `34965550401` failed in Flutter tests only. Flutter analyze and Dart analyze passed; Dart tests were skipped after the Flutter-test failure.  
 **Merge:** not authorized.
 
 ## Governance / Reconstruction Evidence
@@ -62,58 +62,69 @@ This remains the same approved TNYX-206 slice. R17/R18 are review/correctness fi
 
 ## Review Findings
 
-R1–R14 are implemented, CI-validated, and resolved.
-
-### R15 / P2 — target-change dependency reload overlap
-
-**Status:** Resolved and validated.  
-**Fix HEAD:** `c76d85569c1de26e10f6a677b12065df37236ab8`.  
-**Thread:** `PRRT_kwDOTOXwB86iaiJi` / comment `4013030118`.
-
-Target changes are now explicit self-refresh signals (`ref.listen` + `ref.invalidateSelf()`), so retained data uses the refresh path instead of a dependency reload. The blocked-read target-change regression keeps resolved geometry stable and confirms the new target appears after release. CI #2578 and final metadata CI #2579 are all green; thread resolved with that evidence.
+R1–R15 are implemented, validated, and resolved.
 
 ### R16 / P1 — R15 task brief stale on source checkpoint
 
-**Status:** Superseded by `36adcf5196476b18a36f7925ff2c4295fadf6df3`; thread resolution pending.  
+**Status:** Resolved as superseded.  
 **Thread:** `PRRT_kwDOTOXwB86icgCz` / comment `4013803718`.
 
-The current handoff records R15 implemented/validated and exact CI #2579. This finding was anchored to pre-reconciliation `c76d85569c...` and requires no source change.
+The reconciled handoff already recorded R15 implementation and exact metadata-head CI #2579; the thread was anchored to the pre-reconciliation source checkpoint and required no runtime change.
 
 ### R17 / P1 — Retry bypasses shared button contract
 
-**Status:** Open; accepted for bounded repair.  
+**Status:** Implemented; validation not yet complete.  
 **Thread:** `PRRT_kwDOTOXwB86icgC_` / comment `4013803731`.
 
-Current error status uses a raw `TextButton` despite the feature-package reusable-first rule and existing `TioButton.ghost`. Repair: keep the same Retry label, key, invalidation callback, and error-card composition; replace only the local raw action with `TioButton.ghost`. Add focused coverage that the Retry action uses the ghost shared contract and still recovers the page.
+`MealDiaryDailyNutritionSummaryStatus.error` now keeps the same Retry key/label/invalidation callback but uses `TioButton.ghost` instead of raw `TextButton`. The focused ghost-contract test passed in CI #2583 before a later test failed.
 
 ### R18 / P2 — macro semantics announce clamped percentage
 
-**Status:** Open; accepted for bounded repair.  
+**Status:** Implemented; validation not yet complete.  
 **Thread:** `PRRT_kwDOTOXwB86icgDI` / comment `4013803742`.
 
-Current nutrient-cell semantics derive percentage from `summary.progressFor`, which is intentionally visual/clamped. Repair: when exact consumed and target are known and target is positive, derive the spoken percentage from raw `consumed / target`; keep `LinearProgressIndicator.value` on the existing clamped `progress`. Add an over-target macro semantics regression (260 g / 250 g → 104 percent).
+Nutrient-cell spoken percentage now derives from raw exact `consumed / target` when both are known and target is positive; `LinearProgressIndicator.value` continues using the existing clamped visual progress. Focused coverage uses 260 g / 250 g → 104 percent while the bar remains `1.0`.
+
+## CI #2583 Failure Evidence
+
+Exact candidate `efbb9b4a6bb10885a91c4e69f94b5f7a042867ed`:
+
+- Flutter analyze: passed;
+- Dart analyze: passed;
+- Flutter tests: failed;
+- Dart tests: skipped because the prior test step failed.
+
+The Actions log identifies the only new focused failure as:
+
+`meal_diary_daily_nutrition_status_test.dart: over-target macro semantics announce the raw exact percentage`
+
+The product assertion was not reported as mismatched. Flutter's test binding failed the test because a `SemanticsHandle` was still active at test end:
+
+`A SemanticsHandle was active at the end of the test. All SemanticsHandle instances must be disposed...`
+
+The test registered disposal with `addTearDown`, which occurs too late for this binding lifecycle check. The R17 ghost-action test immediately before it passed. This is a test-harness lifecycle failure, not evidence of a production R17/R18 behavior failure.
+
+**Selected correction:** test-only. Dispose the handle inside the test with `try/finally` so it is closed before test-end verification. Do not modify production source for this failure.
 
 ## Validation Evidence
 
-- Pre-R15 exact HEAD `1b518e88dc1736d9684ee09612df1be44200b21d`: CI #2574 / run `34873686621` green.
-- R15 source/test HEAD `c76d85569c1de26e10f6a677b12065df37236ab8`: CI #2578 / run `34948866735` green across Flutter analyze, Dart analyze, Flutter tests, Dart tests.
-- R15 metadata HEAD `36adcf5196476b18a36f7925ff2c4295fadf6df3`: CI #2579 / run `34949844224` green across the same four gates.
-- Actual Codex subsequently reviewed `c76d85569c...` and produced R16/R17/R18; therefore #2579 is historical validation, not validation of the forthcoming R17/R18 repair.
+- R15 source/test HEAD `c76d85569c1de26e10f6a677b12065df37236ab8`: CI #2578 all four gates green.
+- R15 metadata HEAD `36adcf5196476b18a36f7925ff2c4295fadf6df3`: CI #2579 all four gates green.
+- Actual Codex review `PRR_kwDOTOXwB88AAAABNmiG8Q` on `c76d85569c...` produced R16/R17/R18.
+- R17/R18 first candidate `efbb9b4a...`: analyzers green, Flutter tests red only because the new semantics test leaked its test-owned `SemanticsHandle`; Dart tests skipped.
 
 ## Implementation Checklist
 
 - [x] Reconcile root/nested governance, Linear, PR, task brief, exact source/tests.
-- [x] R15 self-refresh fix + blocked-read target-change regression.
-- [x] R15 source/test CI #2578 green.
-- [x] R15 metadata CI #2579 green.
-- [x] Reply to and resolve R15.
-- [ ] Resolve R16 as superseded by current handoff/CI evidence.
-- [ ] R17 replace raw Retry `TextButton` with `TioButton.ghost` without changing callback/key intent.
-- [ ] R17 focused shared-button/recovery coverage.
-- [ ] R18 derive spoken exact macro percentage from raw consumed/target while visual bar remains clamped.
-- [ ] R18 over-target semantics regression.
-- [ ] Run exact source/test CI for R17/R18.
-- [ ] Reconcile one final metadata checkpoint, validate exact final SHA, resolve findings, and audit 0 unresolved threads.
+- [x] R15 fix, regression, exact CI, and thread resolution.
+- [x] Resolve R16 as superseded by current handoff/CI evidence.
+- [x] R17 replace raw Retry `TextButton` with `TioButton.ghost` without changing callback/key intent.
+- [x] R17 focused shared-button coverage; passed in #2583.
+- [x] R18 derive spoken exact macro percentage from raw consumed/target while visual bar remains clamped.
+- [x] R18 over-target semantics regression added.
+- [ ] Correct the R18 test-owned `SemanticsHandle` lifecycle only.
+- [ ] Re-run exact source/test CI until Flutter analyze, Dart analyze, Flutter tests, and Dart tests are all green.
+- [ ] Reconcile one final metadata checkpoint, validate exact final SHA, resolve R17/R18, and audit 0 unresolved threads.
 - [ ] Fresh exact-head review has no new blocking P1/P2.
 - [ ] Reconcile PR body to final exact-head evidence.
 - [ ] Owner explicitly authorizes merge.
@@ -135,4 +146,4 @@ Before merge readiness:
 
 ## Next Exact Action
 
-Resolve R16 with current evidence, implement R17/R18 in the Daily Nutrition widget plus focused tests, validate exact source/test HEAD, then complete final handoff/review gates. Keep TNYX-206 In Progress and TNYX-207 blocked until explicit merge + post-merge sync.
+Make only the R18 test-lifecycle correction (`SemanticsHandle` disposed inside the test), rerun exact-head CI, then complete final handoff/review gates. Keep TNYX-206 In Progress and TNYX-207 blocked until explicit merge + post-merge sync.
