@@ -38,6 +38,8 @@ class MealDiaryDateController extends ChangeNotifier {
   late DateTime _observedToday;
   bool _isTodayVisible = true;
   late DateTime _visibleMonth;
+  DateTime? _visibleFirstDate;
+  DateTime? _visibleLastDate;
 
   /// Today in the device's own local date terms.
   ///
@@ -60,6 +62,14 @@ class MealDiaryDateController extends ChangeNotifier {
   /// keep August 18 selected while swiping through September and October, and
   /// what they need on screen is where they are looking, not what they picked.
   DateTime get visibleMonth => _visibleMonth;
+
+  /// Inclusive dates currently reported by the Core calendar viewport.
+  ///
+  /// These are nullable until the calendar reports its first laid-out page.
+  /// Nutrition uses them only to prefetch derived progress truth; they never
+  /// change the selected Diary date.
+  DateTime? get visibleFirstDate => _visibleFirstDate;
+  DateTime? get visibleLastDate => _visibleLastDate;
 
   /// Whether the active calendar page's primary week/month contains Today.
   bool get isTodayVisible => _isTodayVisible;
@@ -106,10 +116,15 @@ class MealDiaryDateController extends ChangeNotifier {
     final midpoint = DateTime(start.year, start.month, start.day + spanDays ~/ 2);
     final month = DateTime(midpoint.year, midpoint.month);
 
-    final changed = _isTodayVisible != isVisible || _visibleMonth != month;
+    final changed = _isTodayVisible != isVisible ||
+        _visibleMonth != month ||
+        _visibleFirstDate != start ||
+        _visibleLastDate != end;
     if (!changed) return;
     _isTodayVisible = isVisible;
     _visibleMonth = month;
+    _visibleFirstDate = start;
+    _visibleLastDate = end;
     notifyListeners();
   }
 

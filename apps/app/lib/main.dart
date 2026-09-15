@@ -139,6 +139,9 @@ Future<void> main() async {
         mealDiaryMealLogRepositoryProvider.overrideWith(
           (ref) => ref.watch(mealLogRepositoryProvider),
         ),
+        mealDiaryNutritionTargetsRepositoryProvider.overrideWith(
+          (ref) => ref.watch(nutritionTargetsRepositoryProvider),
+        ),
         mealDiaryDisplayPreferencesControllerProvider.overrideWith(
           (ref) => mealDiaryDisplayPreferencesController,
         ),

@@ -5,6 +5,7 @@ import 'package:tio_core/core.dart';
 import '../../domain/models/meal_diary_display_preferences.dart';
 import '../../meal_diary_display_preferences_providers.dart';
 import '../../meal_diary_history_providers.dart';
+import '../../meal_diary_section_nutrition_coverage.dart';
 import 'meal_diary_meal_card.dart';
 
 /// Selected-day MealLog history below the reusable date calendar.
@@ -183,8 +184,11 @@ class _Section extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
+    final proteinCoverage = mealDiarySectionProteinCoverage(section);
     final hasSummary = preferences.showMealSectionNutrition &&
-        (section.caloriesKcal != null || section.proteinGrams != null);
+        (section.caloriesKcal != null ||
+            proteinCoverage.exactTotal != null ||
+            proteinCoverage.missingEntryCount > 0);
 
     return Column(
       key: ValueKey('meal-diary-section-${section.categoryId}'),
@@ -192,86 +196,87 @@ class _Section extends StatelessWidget {
       children: [
         LayoutBuilder(
           builder: (context, headerConstraints) => Row(
-          children: [
-            // Title and rule share one tight flex region so a short title
-            // cannot leave slack that pushes the trailing summary off the
-            // content edge. The rule absorbs the middle; the summary stays
-            // intrinsic and flush right.
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) => Row(
-                  children: [
-                    // Reserves the same TioSpacing.sm the gap below actually
-                    // occupies, so a maximum-length category name shortens
-                    // the rule instead of overflowing the header. This must
-                    // stay a single reservation matching the single gap
-                    // widget — doubling it would reserve the same space
-                    // twice for one visible gap.
-                    ConstrainedBox(
-                      // Clamped: an extreme-width sibling (a large accessibility
-                      // text scale on a long calorie/protein summary) can leave
-                      // this LayoutBuilder less than TioSpacing.sm of width,
-                      // which would otherwise construct a negative maxWidth and
-                      // fail a BoxConstraints assertion.
-                      constraints: BoxConstraints(
-                        maxWidth: (constraints.maxWidth - TioSpacing.sm)
-                            .clamp(0.0, double.infinity),
-                      ),
-                      child: Text(
-                        section.categoryDisplayName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: textTheme.titleMedium?.copyWith(
-                          color: colors.textPrimary,
-                          fontWeight: TioFontWeight.w700,
+            children: [
+              // Title and rule share one tight flex region so a short title
+              // cannot leave slack that pushes the trailing summary off the
+              // content edge. The rule absorbs the middle; the summary stays
+              // intrinsic and flush right.
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) => Row(
+                    children: [
+                      // Reserves the same TioSpacing.sm the gap below actually
+                      // occupies, so a maximum-length category name shortens
+                      // the rule instead of overflowing the header. This must
+                      // stay a single reservation matching the single gap
+                      // widget — doubling it would reserve the same space
+                      // twice for one visible gap.
+                      ConstrainedBox(
+                        // Clamped: an extreme-width sibling (a large accessibility
+                        // text scale on a long calorie/protein summary) can leave
+                        // this LayoutBuilder less than TioSpacing.sm of width,
+                        // which would otherwise construct a negative maxWidth and
+                        // fail a BoxConstraints assertion.
+                        constraints: BoxConstraints(
+                          maxWidth: (constraints.maxWidth - TioSpacing.sm)
+                              .clamp(0.0, double.infinity),
+                        ),
+                        child: Text(
+                          section.categoryDisplayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.titleMedium?.copyWith(
+                            color: colors.textPrimary,
+                            fontWeight: TioFontWeight.w700,
+                          ),
                         ),
                       ),
-                    ),
-                    // The real, always-rendered gap the title needs before
-                    // the rule. Without it the rule can start flush against
-                    // the title's final glyph whenever the title is short
-                    // enough not to need the ellipsis cap above.
-                    const SizedBox(width: TioSpacing.sm),
-                    Expanded(
-                      child: Divider(
-                        height: TioStroke.width1,
-                        thickness: TioStroke.width1,
-                        color: colors.outlineStrong.withAlpha(TioAlpha.alpha20),
+                      // The real, always-rendered gap the title needs before
+                      // the rule. Without it the rule can start flush against
+                      // the title's final glyph whenever the title is short
+                      // enough not to need the ellipsis cap above.
+                      const SizedBox(width: TioSpacing.sm),
+                      Expanded(
+                        child: Divider(
+                          height: TioStroke.width1,
+                          thickness: TioStroke.width1,
+                          color:
+                              colors.outlineStrong.withAlpha(TioAlpha.alpha20),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            if (hasSummary) ...[
-              const SizedBox(width: TioSpacing.sm),
-              // Capped to the header's own total width (less the gap it
-              // already reserves) so a pathologically wide summary — a large
-              // accessibility text scale on long calorie/protein totals —
-              // cannot push the whole Row past its available width and
-              // overflow. A no-op at any normal size: the cap is generous
-              // (the header's full width), so FittedBox never needs to scale
-              // and the summary renders at its own natural size, flush right,
-              // exactly as before.
-              ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: (headerConstraints.maxWidth - TioSpacing.sm)
-                      .clamp(0.0, double.infinity),
-                ),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: AlignmentDirectional.centerEnd,
-                  child: _SectionNutritionSummary(
-                    key: ValueKey(
-                      'meal-diary-section-summary-${section.categoryId}',
-                    ),
-                    caloriesKcal: section.caloriesKcal,
-                    proteinGrams: section.proteinGrams,
+                    ],
                   ),
                 ),
               ),
+              if (hasSummary) ...[
+                const SizedBox(width: TioSpacing.sm),
+                // Capped to the header's own total width (less the gap it
+                // already reserves) so a pathologically wide summary — a large
+                // accessibility text scale on long calorie/protein totals —
+                // cannot push the whole Row past its available width and
+                // overflow. A no-op at any normal size: the cap is generous
+                // (the header's full width), so FittedBox never needs to scale
+                // and the summary renders at its own natural size, flush right,
+                // exactly as before.
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: (headerConstraints.maxWidth - TioSpacing.sm)
+                        .clamp(0.0, double.infinity),
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: _SectionNutritionSummary(
+                      key: ValueKey(
+                        'meal-diary-section-summary-${section.categoryId}',
+                      ),
+                      caloriesKcal: section.caloriesKcal,
+                      proteinCoverage: proteinCoverage,
+                    ),
+                  ),
+                ),
+              ],
             ],
-          ],
           ),
         ),
         const SizedBox(height: TioSpacing.sm),
@@ -340,12 +345,12 @@ class _MealEntryCard extends StatelessWidget {
 class _SectionNutritionSummary extends StatelessWidget {
   const _SectionNutritionSummary({
     required this.caloriesKcal,
-    required this.proteinGrams,
+    required this.proteinCoverage,
     super.key,
   });
 
   final num? caloriesKcal;
-  final num? proteinGrams;
+  final MealDiarySectionNutrientCoverage proteinCoverage;
 
   @override
   Widget build(BuildContext context) {
@@ -355,11 +360,13 @@ class _SectionNutritionSummary extends StatelessWidget {
         );
     final caloriesLabel =
         caloriesKcal == null ? null : '${_formatAmount(caloriesKcal!)} kcal';
-    final proteinLabel =
-        proteinGrams == null ? null : '${_formatAmount(proteinGrams!)}g';
+    final proteinLabel = _proteinLabel(proteinCoverage);
+    final proteinSemantic = _proteinSemantic(proteinCoverage);
+    final showProteinGlyph = proteinCoverage.exactTotal != null ||
+        proteinCoverage.confirmedTotal != null;
     final semanticParts = [
       if (caloriesLabel != null) caloriesLabel,
-      if (proteinLabel != null) '$proteinLabel protein',
+      if (proteinSemantic != null) proteinSemantic,
     ];
 
     return Semantics(
@@ -374,9 +381,8 @@ class _SectionNutritionSummary extends StatelessWidget {
                 package: 'tio_core',
                 width: TioSize.dp20,
                 height: TioSize.dp20,
-                // Both glyphs must be tinted here. Without a filter the asset
-                // paints whatever colour it was authored with, which no theme
-                // and no analyzer can reach.
+                // Every rendered summary glyph is tinted from a governed
+                // semantic role; no authored asset color leaks into runtime.
                 colorFilter: ColorFilter.mode(
                   colors.nutrition,
                   BlendMode.srcIn,
@@ -388,23 +394,53 @@ class _SectionNutritionSummary extends StatelessWidget {
             if (caloriesLabel != null && proteinLabel != null)
               const SizedBox(width: TioSpacing.sm),
             if (proteinLabel != null) ...[
-              SvgPicture.asset(
-                'assets/svg_icon/ic_protine.svg',
-                package: 'tio_core',
-                width: TioSize.dp20,
-                height: TioSize.dp20,
-                colorFilter: ColorFilter.mode(
-                  colors.warning,
-                  BlendMode.srcIn,
+              if (showProteinGlyph) ...[
+                SvgPicture.asset(
+                  'assets/svg_icon/ic_protine.svg',
+                  package: 'tio_core',
+                  width: TioSize.dp20,
+                  height: TioSize.dp20,
+                  colorFilter: ColorFilter.mode(
+                    colors.warning,
+                    BlendMode.srcIn,
+                  ),
                 ),
-              ),
-              const SizedBox(width: TioSpacing.xs),
+                const SizedBox(width: TioSpacing.xs),
+              ],
               Text(proteinLabel, style: style),
             ],
           ],
         ),
       ),
     );
+  }
+
+  static String? _proteinLabel(MealDiarySectionNutrientCoverage coverage) {
+    final exact = coverage.exactTotal;
+    if (exact != null) return '${_formatAmount(exact)}g';
+
+    final confirmed = coverage.confirmedTotal;
+    if (coverage.isIncomplete && confirmed != null) {
+      return '${_formatAmount(confirmed)}g+';
+    }
+    if (coverage.missingEntryCount > 0) return 'Protein —';
+    return null;
+  }
+
+  static String? _proteinSemantic(MealDiarySectionNutrientCoverage coverage) {
+    final exact = coverage.exactTotal;
+    if (exact != null) return '${_formatAmount(exact)} grams protein';
+
+    final missingCount = coverage.missingEntryCount;
+    if (missingCount == 0) return null;
+    final missingMeals =
+        '$missingCount ${missingCount == 1 ? 'meal' : 'meals'} missing protein';
+    final confirmed = coverage.confirmedTotal;
+    if (confirmed == null) {
+      return 'protein unavailable, $missingMeals, total incomplete';
+    }
+    return 'at least ${_formatAmount(confirmed)} grams protein, '
+        '$missingMeals, total incomplete';
   }
 }
 

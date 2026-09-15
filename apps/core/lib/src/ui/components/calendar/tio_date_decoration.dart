@@ -24,12 +24,18 @@ enum TioDateFill {
 /// subset and the remaining layers simply do not render:
 ///
 /// ```text
-/// outermost  selection ring   derived from selectedDate, never supplied here
-/// inside     progress ring    progress
+/// outermost  progress ring    progress
+/// inside     selection ring   derived from selectedDate, never supplied here
 /// centre     generic fill     fill
 /// text       date label       Today emphasis derived from localToday
 /// below      marker dots      markerCount
 /// ```
+///
+/// The progress and selection rings are concentric and touch at their edges;
+/// there is no decorative gap between them. Selection remains slightly smaller
+/// so progress stays the outer visual boundary when both are present. Core uses
+/// the theme's semantic `progress` color for the progress arc and `primary` for
+/// selection/fill, so the two simultaneous states remain visually distinct.
 @immutable
 class TioDateDecoration {
   const TioDateDecoration({

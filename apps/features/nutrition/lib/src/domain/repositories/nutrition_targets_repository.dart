@@ -12,3 +12,13 @@ abstract interface class NutritionTargetsRepository {
 
   Future<void> upsert(NutritionTargetsData targets);
 }
+
+/// Optional live change capability for consumers that remain mounted while
+/// canonical Nutrition Targets are edited elsewhere in the app.
+///
+/// Every successful canonical write emits a strictly increasing local revision.
+/// Consumers still re-read through [NutritionTargetsRepository]; the stream
+/// never carries a second copy of target state.
+abstract interface class NutritionTargetsChangeSource {
+  Stream<int> get changes;
+}

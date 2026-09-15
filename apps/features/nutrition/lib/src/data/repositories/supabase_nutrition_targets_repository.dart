@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/models/nutrition_targets_data.dart';
@@ -52,7 +54,7 @@ final class SupabaseNutritionTargetsTableGateway
 /// and reserved for a future editing slice; V1 Additional Nutrition is
 /// derived at display time and has no persistence at all.
 final class SupabaseNutritionTargetsRepository
-    implements NutritionTargetsRepository {
+    implements NutritionTargetsRepository, NutritionTargetsChangeSource {
   SupabaseNutritionTargetsRepository({
     required SupabaseClient client,
     NutritionTargetsTableGateway? gateway,
@@ -62,6 +64,11 @@ final class SupabaseNutritionTargetsRepository
 
   final NutritionTargetsTableGateway _gateway;
   final CurrentNutritionTargetsUserId _currentUserId;
+  var _revision = 0;
+  final StreamController<int> _changes = StreamController<int>.broadcast();
+
+  @override
+  Stream<int> get changes => _changes.stream;
 
   @override
   Future<NutritionTargetsData?> read() async {
@@ -133,6 +140,7 @@ final class SupabaseNutritionTargetsRepository
       // ON CONFLICT DO UPDATE, so a core-five write cannot disturb the
       // reserved additional_nutrient_goals value.
     });
+    _changes.add(++_revision);
   }
 
   String _requireUserId() {

@@ -14,6 +14,7 @@ final mealLogRepositoryProvider = Provider<MealLogRepository>((ref) {
     return SupabaseMealLogRepository(
       client: supabaseClient,
       mealCategoriesRepository: mealCategoriesRepository,
+      gateway: PagedSupabaseMealLogTableGateway.supabase(supabaseClient),
     );
   }
   return InMemoryMealLogRepository(

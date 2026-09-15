@@ -2,6 +2,7 @@ import 'package:tio_shared/shared.dart';
 
 import '../domain/repositories/manual_meal_log_update_repository.dart';
 import '../domain/repositories/meal_categories_repository.dart';
+import '../domain/repositories/meal_log_range_read_repository.dart';
 import '../domain/repositories/meal_log_repository.dart';
 
 /// Deterministic non-durable MealLog owner for tests and local composition.
@@ -9,10 +10,13 @@ import '../domain/repositories/meal_log_repository.dart';
 /// Production history must use the Supabase adapter. This repository exists so
 /// non-Supabase harnesses remain constructible without pretending the data is
 /// durable or synced. It mirrors manual-create idempotency, optimistic manual
-/// updates, and selected-day history ordering deterministically so local/test
-/// behavior does not hide persistence-contract bugs.
-final class InMemoryMealLogRepository
-    implements MealLogRepository, ManualMealLogUpdateRepository {
+/// updates, selected-day history ordering, and bounded local-date range reads
+/// deterministically so local/test behavior does not hide persistence-contract
+/// bugs.
+final class InMemoryMealLogRepository implements
+    MealLogRepository,
+    ManualMealLogUpdateRepository,
+    MealLogRangeReadRepository {
   InMemoryMealLogRepository({
     required MealCategoriesRepository mealCategoriesRepository,
     DateTime Function()? clock,
@@ -130,6 +134,29 @@ final class InMemoryMealLogRepository
     return List<MealLogEntry>.unmodifiable(entries);
   }
 
+  @override
+  Future<List<MealLogEntry>> listByLocalDateRange({
+    required MealLogLocalDate startDate,
+    required MealLogLocalDate endDate,
+  }) async {
+    final start = startDate.toIso8601String();
+    final end = endDate.toIso8601String();
+    if (start.compareTo(end) > 0) {
+      throw ArgumentError.value(
+        '$start..$end',
+        'localDateRange',
+        'startDate must not be after endDate',
+      );
+    }
+
+    final entries = _entries.values.where((entry) {
+      final date = entry.consumedLocalDate.toIso8601String();
+      return date.compareTo(start) >= 0 && date.compareTo(end) <= 0;
+    }).toList()
+      ..sort(_compareDiaryRangeOrder);
+    return List<MealLogEntry>.unmodifiable(entries);
+  }
+
   Future<void> _requireActiveMealCategory(String id) async {
     if (id.isEmpty || id.trim() != id) {
       throw ArgumentError.value(
@@ -153,6 +180,14 @@ final class InMemoryMealLogRepository
     final byConsumedAt = right.consumedAt.compareTo(left.consumedAt);
     if (byConsumedAt != 0) return byConsumedAt;
     return left.id.compareTo(right.id);
+  }
+
+  static int _compareDiaryRangeOrder(MealLogEntry left, MealLogEntry right) {
+    final byDate = left.consumedLocalDate
+        .toIso8601String()
+        .compareTo(right.consumedLocalDate.toIso8601String());
+    if (byDate != 0) return byDate;
+    return _compareDiaryOrder(left, right);
   }
 
   static bool _sameCreate(

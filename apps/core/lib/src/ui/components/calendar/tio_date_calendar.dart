@@ -162,7 +162,7 @@ const int _daysPerWeek = 7;
 /// byte-for-byte unchanged at normal text size; they only grow when the reader
 /// has asked for larger text, which is the case where fixed boxes clip glyphs.
 const double _weekdayHeaderHeight = TioSize.dp14;
-const double _dateCellSize = TioSize.dp28;
+const double _dateCellSize = TioSize.dp30;
 const double _markerRowHeight = TioSize.dp6;
 const double _markerDotSize = TioSize.dp4;
 const int _monthGridRows = 6;
@@ -930,8 +930,9 @@ class _WeekdayHeader extends StatelessWidget {
   ///
   /// The caller resolves this from `localToday` against the range on screen,
   /// never from the selection: tapping another date does not move the emphasis,
-  /// which keeps the outer ring the only signal for selection. Paging away from
-  /// Today clears it rather than moving it to whatever now sits in that column.
+  /// which keeps the selection ring the only signal for selection. Paging away
+  /// from Today clears it rather than moving it to whatever now sits in that
+  /// column.
   final int? todayColumn;
 
   /// Mirrors the numeral's own Today rules so the column and the date under it
@@ -1080,11 +1081,12 @@ Path _notchPath(double outerWidth, double innerWidth, double depth) {
 
 /// One date in either rendering.
 ///
-/// The layers are independent by construction: the numeral carries Today, a
-/// ring outside it carries selection, a ring inside carries progress, the
-/// centre carries an optional generic fill, and markers sit below. No layer can
-/// overwrite another, which is what lets Nutrition draw progress and Workout
-/// draw completion on the same calendar later without colliding.
+/// The layers are independent by construction: the numeral carries Today, the
+/// progress ring is the outer visual boundary, the smaller selection ring sits
+/// directly inside it with no decorative gap, the centre carries an optional
+/// generic fill, and markers sit below. The progress ring uses the theme's
+/// semantic progress color while selection/fill retain the primary selection
+/// color, so two concentric states remain visually distinct in every theme.
 class _DateCell extends StatelessWidget {
   const _DateCell({
     required super.key,
@@ -1134,7 +1136,8 @@ class _DateCell extends StatelessWidget {
         isSelected: isSelected && isEnabled,
         progress: resolved?.progress,
         fill: resolved?.fill,
-        accent: colors.primary,
+        selectionAccent: colors.primary,
+        progressAccent: colors.progress,
         track: colors.outlineStrong,
       ),
       child: SizedBox(
@@ -1242,14 +1245,16 @@ class _DateCirclePainter extends CustomPainter {
     required this.isSelected,
     required this.progress,
     required this.fill,
-    required this.accent,
+    required this.selectionAccent,
+    required this.progressAccent,
     required this.track,
   });
 
   final bool isSelected;
   final double? progress;
   final TioDateFill? fill;
-  final Color accent;
+  final Color selectionAccent;
+  final Color progressAccent;
   final Color track;
 
   @override
@@ -1259,13 +1264,18 @@ class _DateCirclePainter extends CustomPainter {
 
     const selectionStroke = TioStroke.width05;
     const progressStroke = TioStroke.width2;
-    const gap = TioSize.dp2;
 
-    final progressRadius =
-        outerRadius - selectionStroke - gap - (progressStroke / 2);
-    final fillRadius = progress == null
-        ? outerRadius - selectionStroke - gap
-        : progressRadius - (progressStroke / 2) - gap;
+    // Progress owns the outer date-cell boundary. Selection is deliberately
+    // smaller and touches the progress ring at its inner edge, so both read as
+    // one compact concentric control without a decorative gap.
+    final progressRadius = outerRadius - (progressStroke / 2);
+    final selectionRadius =
+        progressRadius - (progressStroke / 2) - (selectionStroke / 2);
+    final fillRadius = isSelected
+        ? selectionRadius - (selectionStroke / 2)
+        : progress == null
+            ? outerRadius
+            : progressRadius - (progressStroke / 2);
 
     if (fill != null && fillRadius > 0) {
       canvas.drawCircle(
@@ -1274,8 +1284,8 @@ class _DateCirclePainter extends CustomPainter {
         Paint()
           ..style = PaintingStyle.fill
           ..color = fill == TioDateFill.solid
-              ? accent
-              : accent.withValues(alpha: TioOpacity.opacity12),
+              ? selectionAccent
+              : selectionAccent.withValues(alpha: TioOpacity.opacity12),
       );
     }
 
@@ -1299,19 +1309,19 @@ class _DateCirclePainter extends CustomPainter {
             ..style = PaintingStyle.stroke
             ..strokeWidth = progressStroke
             ..strokeCap = StrokeCap.round
-            ..color = accent,
+            ..color = progressAccent,
         );
       }
     }
 
-    if (isSelected) {
+    if (isSelected && selectionRadius > 0) {
       canvas.drawCircle(
         centre,
-        outerRadius - (selectionStroke / 2),
+        selectionRadius,
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = selectionStroke
-          ..color = accent,
+          ..color = selectionAccent,
       );
     }
   }
@@ -1321,7 +1331,8 @@ class _DateCirclePainter extends CustomPainter {
     return oldDelegate.isSelected != isSelected ||
         oldDelegate.progress != progress ||
         oldDelegate.fill != fill ||
-        oldDelegate.accent != accent ||
+        oldDelegate.selectionAccent != selectionAccent ||
+        oldDelegate.progressAccent != progressAccent ||
         oldDelegate.track != track;
   }
 }

@@ -3,6 +3,7 @@ import 'package:tio_shared/shared.dart';
 
 import '../../domain/repositories/manual_meal_log_update_repository.dart';
 import '../../domain/repositories/meal_categories_repository.dart';
+import '../../domain/repositories/meal_log_range_read_repository.dart';
 import '../../domain/repositories/meal_log_repository.dart';
 
 typedef CurrentMealLogUserId = String? Function();
@@ -34,7 +35,20 @@ abstract interface class MealLogTableGateway {
   });
 }
 
-final class SupabaseMealLogTableGateway implements MealLogTableGateway {
+/// Optional gateway capability used only by calendar-range consumers.
+///
+/// Keeping this separate means existing injected gateways that exercise the
+/// established create/read/update contract do not need a synthetic range API.
+abstract interface class MealLogRangeTableGateway {
+  Future<List<Map<String, dynamic>>> listRowsByLocalDateRange({
+    required String userId,
+    required String startLocalDate,
+    required String endLocalDate,
+  });
+}
+
+final class SupabaseMealLogTableGateway
+    implements MealLogTableGateway, MealLogRangeTableGateway {
   const SupabaseMealLogTableGateway(this._client);
 
   static const _columns =
@@ -117,6 +131,26 @@ final class SupabaseMealLogTableGateway implements MealLogTableGateway {
       for (final row in rows) Map<String, dynamic>.from(row),
     ];
   }
+
+  @override
+  Future<List<Map<String, dynamic>>> listRowsByLocalDateRange({
+    required String userId,
+    required String startLocalDate,
+    required String endLocalDate,
+  }) async {
+    final rows = await _client
+        .from('meal_log_entries')
+        .select(_columns)
+        .eq('user_id', userId)
+        .gte('consumed_local_date', startLocalDate)
+        .lte('consumed_local_date', endLocalDate)
+        .order('consumed_local_date')
+        .order('consumed_at', ascending: false)
+        .order('id');
+    return [
+      for (final row in rows) Map<String, dynamic>.from(row),
+    ];
+  }
 }
 
 /// Supabase adapter for canonical manual MealLog persistence.
@@ -127,9 +161,13 @@ final class SupabaseMealLogTableGateway implements MealLogTableGateway {
 /// transport ambiguity is reconciled with the same client mutation identity.
 /// TNYX-197 adds owner-scoped selected-local-date history reads. TNYX-203 adds
 /// optimistic manual updates using the durable row revision without changing
-/// manual-mode identity or capture provenance.
-final class SupabaseMealLogRepository
-    implements MealLogRepository, ManualMealLogUpdateRepository {
+/// manual-mode identity or capture provenance. TNYX-206 adds an inclusive
+/// owner-scoped local-date range read for calendar progress without changing
+/// row/schema ownership.
+final class SupabaseMealLogRepository implements
+    MealLogRepository,
+    ManualMealLogUpdateRepository,
+    MealLogRangeReadRepository {
   SupabaseMealLogRepository({
     required SupabaseClient client,
     required MealCategoriesRepository mealCategoriesRepository,
@@ -147,9 +185,6 @@ final class SupabaseMealLogRepository
   Future<MealLogEntry> createManual(ManualMealLogCreate input) async {
     final userId = _requireUserId();
 
-    // Reconcile before validating current category activity. A previous attempt
-    // may already have committed and lost its response; that historical fact
-    // must remain returnable even if the category was archived afterwards.
     final existing = await _readMutationForCreate(
       userId: userId,
       input: input,
@@ -211,9 +246,6 @@ final class SupabaseMealLogRepository
       );
     }
 
-    // A previous call may have committed N+1 but lost both its response and
-    // immediate reconciliation read. Retrying the exact same operation must
-    // converge on that canonical result instead of becoming a false conflict.
     if (before.revision == input.expectedRevision + 1 &&
         _matchesUpdateInput(before, input)) {
       return before;
@@ -227,8 +259,6 @@ final class SupabaseMealLogRepository
       );
     }
 
-    // Retaining a historical/archived category is valid. Moving this entry to
-    // a different category requires the destination to be active now.
     if (input.mealCategoryId != before.mealCategoryId) {
       await _requireActiveMealCategory(input.mealCategoryId);
     }
@@ -303,6 +333,39 @@ final class SupabaseMealLogRepository
       for (final row in rows)
         _decodeManualRow(row, expectedUserId: userId),
     ]..sort(_compareDiaryOrder);
+    return List<MealLogEntry>.unmodifiable(entries);
+  }
+
+  @override
+  Future<List<MealLogEntry>> listByLocalDateRange({
+    required MealLogLocalDate startDate,
+    required MealLogLocalDate endDate,
+  }) async {
+    final start = startDate.toIso8601String();
+    final end = endDate.toIso8601String();
+    if (start.compareTo(end) > 0) {
+      throw ArgumentError.value(
+        '$start..$end',
+        'localDateRange',
+        'startDate must not be after endDate',
+      );
+    }
+    final gateway = _gateway;
+    if (gateway is! MealLogRangeTableGateway) {
+      throw StateError('MealLog range reads are unavailable for this gateway.');
+    }
+    final rangeGateway = gateway as MealLogRangeTableGateway;
+
+    final userId = _requireUserId();
+    final rows = await rangeGateway.listRowsByLocalDateRange(
+      userId: userId,
+      startLocalDate: start,
+      endLocalDate: end,
+    );
+    final entries = [
+      for (final row in rows)
+        _decodeManualRow(row, expectedUserId: userId),
+    ]..sort(_compareDiaryRangeOrder);
     return List<MealLogEntry>.unmodifiable(entries);
   }
 
@@ -429,9 +492,6 @@ final class SupabaseMealLogRepository
     final code = error.code;
     if (code == null || code.isEmpty) return true;
 
-    // Data/integrity/auth/request-shape failures are explicit rejections, not
-    // response-loss ambiguity. Uniqueness is handled separately because it is
-    // the expected concurrent/same-key idempotency signal.
     if (code.startsWith('22') ||
         (code.startsWith('23') && code != '23505') ||
         code.startsWith('28') ||
@@ -476,6 +536,14 @@ final class SupabaseMealLogRepository
     return left.id.compareTo(right.id);
   }
 
+  static int _compareDiaryRangeOrder(MealLogEntry left, MealLogEntry right) {
+    final byDate = left.consumedLocalDate
+        .toIso8601String()
+        .compareTo(right.consumedLocalDate.toIso8601String());
+    if (byDate != 0) return byDate;
+    return _compareDiaryOrder(left, right);
+  }
+
   static MealLogEntry _decodeCreateResult(
     Map<String, dynamic> row, {
     required String expectedUserId,
@@ -490,13 +558,6 @@ final class SupabaseMealLogRepository
     }
 
     final entry = _decodeManualRow(row, expectedUserId: expectedUserId);
-
-    // TNYX-196 requires one mutation key to identify one create payload. Once a
-    // row reaches revision 2+, the durable row no longer proves what every
-    // mutable original create fact was. Even if the current edited facts happen
-    // to match a later incoming create, treating that as proof could accept a
-    // reused key for a different logical operation. Without an approved immutable
-    // create fingerprint, every edited-row create reconciliation must fail closed.
     if (entry.revision != 1 || !_matchesCreateInput(entry, input)) {
       throw MealLogCreateMutationConflict(
         clientMutationId: input.clientMutationId,
