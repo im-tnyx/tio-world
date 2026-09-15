@@ -174,13 +174,13 @@ class MealDiaryDailyNutritionSummaryStatus extends ConsumerWidget {
             ),
           ),
           if (!isLoading)
-            TextButton(
+            TioButton.ghost(
               key: const ValueKey('meal-diary-daily-nutrition-retry'),
+              label: 'Retry',
               onPressed: () {
                 ref.invalidate(mealDiaryDailyNutritionSummaryProvider);
                 ref.invalidate(mealDiaryNutritionSummaryRangeProvider);
               },
-              child: const Text('Retry'),
             ),
         ],
       ),
@@ -273,6 +273,9 @@ class _NutrientProgressCell extends StatelessWidget {
     final incomplete = summary.isConsumedIncompleteFor(nutrient);
     final target = summary.targetAmountFor(nutrient);
     final progress = summary.progressFor(nutrient);
+    final semanticPercent = consumed == null || target == null || target <= 0
+        ? null
+        : ((consumed / target) * 100).round();
     final consumedText = _consumedGramsText(
       exact: consumed,
       confirmed: confirmedConsumed,
@@ -291,7 +294,7 @@ class _NutrientProgressCell extends StatelessWidget {
     return Semantics(
       container: true,
       label: '$label, $consumedSemantic, $targetSemantic',
-      value: progress == null ? null : '${(progress * 100).round()} percent',
+      value: semanticPercent == null ? null : '$semanticPercent percent',
       excludeSemantics: true,
       child: Column(
         mainAxisSize: MainAxisSize.min,
