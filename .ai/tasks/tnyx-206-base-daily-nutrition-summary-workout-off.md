@@ -25,17 +25,18 @@ Out of scope: Workout/N10 behavior, schema/RLS changes, persisted daily aggregat
 **Review owner:** ChatGPT after implementation  
 **Branch:** `tnyx/tnyx-206-n3a-base-daily-nutrition-summary-workout-off`  
 **Base:** `main@2866ded8a963b64a99e41b5007da4753a922c7cc`  
-**PR:** #267 — Ready for review, not merge-ready  
+**PR:** #267 — Ready for review; merge not authorized  
 **Linear:** TNYX-206 — In Progress; blocks TNYX-207  
 **Repository state:** connector/API session; local `git status`/worktree state is unavailable and no local-clean claim is made.  
-**Pre-R15 runtime HEAD:** `1b518e88dc1736d9684ee09612df1be44200b21d`; CI #2574 / run `34873686621` all green.  
-**Fallback review:** `5206810991` on `1b518e88...`; opened R15/P2.  
-**Actual Codex:** final rerun requested on `1b518e88...`, but code-review usage limit prevented execution.  
+**R15 source/test HEAD:** `c76d85569c1de26e10f6a677b12065df37236ab8`; CI #2578 / run `34948866735` all green.  
+**R15 review thread:** `PRRT_kwDOTOXwB86iaiJi`; resolution pending the exact metadata-head validation described below.  
+**Actual Codex:** most recent final rerun attempt was blocked by the code-review usage limit; fallback exact-head review remains required if the limit persists.  
+**Final metadata policy:** this handoff reconciliation is metadata-only. Validate the resulting exact SHA externally and pin final CI/review/thread evidence in the PR body; do not edit this brief again solely to chase its own resulting SHA.  
 **Merge:** not authorized.
 
 ## Governance / Reconstruction Evidence
 
-Fresh-read before R15 source mutation:
+Fresh-read before R15 implementation:
 
 - root `AGENTS.md`;
 - `.ai/workflow.md`;
@@ -44,78 +45,78 @@ Fresh-read before R15 source mutation:
 - `.ai/tasks/design-system-token-consolidation.md`;
 - `apps/features/AGENTS.md`;
 - `apps/core/lib/src/theme/README.md`;
+- `docs/PUSH_TEMPLATE.md` and `.github/PULL_REQUEST_TEMPLATE.md`;
 - current PR #267 metadata/review threads;
 - Linear TNYX-206 status/relations;
 - current Meal Diary provider/page source and focused recovery/integration tests.
 
-This is the same approved TNYX-206 slice. R15 is a review correctness fix, not a new product slice, visible redesign, or data-shape change. Preserve current rendered resolved/loading/error geometry; no visual contract is being redesigned.
+This remains the same approved TNYX-206 slice. R15 is a correctness/review fix, not a new product slice, visible redesign, or data-shape change. No Core/theme public contract changed.
 
 ## Locked Truth Contract
 
-For each supported nutrient:
-
-1. **Exact known** — every contributing entry has the nutrient; exact total may drive progress.
-2. **Partial known / incomplete** — exact total unavailable; a confirmed minimum may display with `+`; exact progress stays unavailable.
-3. **Fully unavailable** — display `—`; never fabricate `0g+`.
-4. **Known empty day** — successful empty MealLog read is exact known zero.
-
-`+` means “at least this much is confirmed”; it is presentation-only and never drives exact Remaining/progress.
-
-Production selected-day and calendar truth use complete paged range reads when range capability exists. Repositories without `MealLogRangeReadRepository` retain selected-day truth and omit range decorations.
+- Exact consumed truth drives exact progress/Remaining only when all contributing facts are known.
+- Partial known nutrients may show a confirmed lower bound with `+`, but never exact progress.
+- Fully unavailable nutrients show `—`; missing facts never become fake zero.
+- A successful known-empty day is exact zero.
+- Production selected-day/calendar truth uses complete paged reads when range capability exists; non-range repositories retain selected-day truth and omit range decorations.
+- Workout remains absent from this N3A slice.
 
 ## Review Findings
 
-R1–R14 are implemented, CI-validated, and their GitHub threads are resolved. Durable behavior includes target-save coherence/retry, complete immutable-id keyset pagination, optional range capability, exact-safe incomplete nutrient truth, truthful over-target accessibility, stable retained-data explicit refresh geometry, and error surfaces outside the calendar handle overlap band.
+R1–R14 are implemented, CI-validated, and their GitHub threads are resolved. Durable behavior includes target-save coherence/retry, complete immutable-id keyset pagination, optional range capability, exact-safe incomplete nutrient truth, truthful over-target accessibility, stable retained-data explicit-refresh geometry, and error surfaces outside the calendar handle overlap band.
 
 ### R15 / P2 — target-change dependency reload can overlap loading surface
 
-**Status:** Open; approved bounded repair in progress.  
-**Observed HEAD:** `1b518e88dc1736d9684ee09612df1be44200b21d`  
+**Status:** Implemented and source/test validated; external thread resolution pending final metadata-head validation.  
+**Observed bad HEAD:** `1b518e88dc1736d9684ee09612df1be44200b21d`  
+**Fix HEAD:** `c76d85569c1de26e10f6a677b12065df37236ab8`  
 **GitHub thread:** `PRRT_kwDOTOXwB86iaiJi` / comment `4013030118`.
 
-Current cause: summary providers use `ref.watch(_nutritionTargetsChangesProvider(source))`. A target-change stream event is therefore a provider dependency reload. `MealDiaryPage` overlap eligibility can retain `hasValue`, while default `AsyncValue.when` may render loading on reload, putting a loading `TioCard` into the overlap band.
+Root cause: summary providers used `ref.watch(_nutritionTargetsChangesProvider(source))`, making a target-change stream event a dependency reload. Meal Diary overlap eligibility could retain `hasValue`, while default `AsyncValue.when` could render loading on that reload.
 
-Chosen repair: make target changes an explicit refresh signal instead of a dependency reload. The summary providers will `ref.listen` to the existing target-change stream provider and call `ref.invalidateSelf()` when a real change value arrives. This reuses the already validated retained-data refresh behavior, keeps first-load loading/error behavior unchanged, and avoids changing Meal Diary/Core geometry. Add a focused target-change + blocked-read regression proving the resolved card and top position remain stable while the target refresh is blocked, then update to new target truth after release.
+Fix: target changes are now an explicit refresh signal. Both summary providers `ref.listen` to the existing target-change stream provider and call `ref.invalidateSelf()` only when a real change value arrives. This reuses Riverpod's retained-value refresh path already exercised by R14, keeps first-load loading/error behavior unchanged, and requires no page/Core geometry change.
 
-Rejected alternative: changing calendar overlap geometry or making loading cards pointer-transparent would alter presentation behavior instead of fixing the state-transition mismatch. A page-level `skipLoadingOnReload` override is also unnecessary once target changes are modeled as refreshes rather than reload dependencies.
+Focused regression: `_BlockingTargetsRepository` now exposes `NutritionTargetsChangeSource`; the recovery test blocks the target read, emits a target change, verifies the resolved summary remains rendered at the same top position with no loading card, then releases the read and verifies the new target value appears.
+
+Rejected alternatives: changing calendar overlap geometry, making loading cards pointer-transparent, or adding a page-specific reload override would treat presentation symptoms instead of the target-change state transition.
 
 ## Validation Evidence
 
-Historical source/test repair HEAD `7e55df9c9275c97eff37e2b803387b14f5009c1c` passed CI #2573 / run `34872675496`.
+Pre-R15 runtime HEAD `1b518e88dc1736d9684ee09612df1be44200b21d` passed CI #2574 / run `34873686621`.
 
-Pre-R15 runtime HEAD `1b518e88dc1736d9684ee09612df1be44200b21d` passed CI #2574 / run `34873686621`:
+R15 source/test HEAD `c76d85569c1de26e10f6a677b12065df37236ab8` passed CI #2578 / run `34948866735`:
 
 - Flutter analyze ✅
 - Dart analyze ✅
 - Flutter tests ✅
 - Dart tests ✅
 
-That validation predates R15 and cannot validate the upcoming provider/test change.
+Incremental R15 delta from `1b518e88...` is bounded to this task brief, `meal_diary_nutrition_summary_providers.dart`, and `meal_diary_daily_nutrition_recovery_test.dart`; no schema, Core, route, or unrelated feature file changed.
 
-## R15 Implementation Checklist
+## Completion Checklist
 
 - [x] Reconcile root/nested governance, Linear, PR, task brief, exact source/tests.
-- [x] Record R15 before source mutation and retain ChatGPT as the single Implementation owner.
-- [ ] Convert target-change dependency reload into explicit self-refresh without changing first-load/error UX.
-- [ ] Add focused target-change + blocked-read regression.
-- [ ] Inspect incremental diff for visual/scope regressions.
-- [ ] Run exact-head Flutter CI; require Flutter/Dart analyze + tests green.
-- [ ] Reply to and resolve R15 only after validated fix evidence.
+- [x] Convert target-change dependency reload into explicit self-refresh.
+- [x] Add target-change + blocked-read retained-geometry regression.
+- [x] Inspect incremental delta for scope/visual boundary drift.
+- [x] R15 source/test exact-head CI green (#2578).
+- [ ] Validate this metadata-only resulting HEAD with exact-head CI.
+- [ ] Reply to and resolve R15 with validated evidence.
 - [ ] Fresh unresolved-thread audit = 0.
-- [ ] Run fresh exact-head fallback Codex-style review; actual Codex may be retried only if usage allows.
+- [ ] Fresh exact-head final review has no new blocking P1/P2; use fallback Codex-style review if actual Codex remains usage-limited.
 - [ ] Reconcile PR body to final exact-head evidence.
-- [ ] Keep owner merge authorization as a separate explicit gate.
+- [ ] Owner explicitly authorizes merge.
 
 ## Exit Gates
 
 Before merge readiness:
 
 - first-load loading and error/retry behavior remain correct;
-- target-change refresh cannot put an interactive/loading card into the handle overlap band;
-- retained resolved summary geometry stays stable while the target read refreshes;
+- target changes refresh both selected/range summaries without putting a loading/error surface into the calendar handle overlap band;
+- retained resolved summary geometry stays stable while refreshed target truth loads;
 - new target truth replaces retained data after refresh completes;
 - exact/partial nutrient semantics, range behavior, keyset pagination, and accessibility truth remain unchanged;
-- exact-head CI green;
+- exact final-head CI green;
 - 0 unresolved review threads;
 - fresh exact-head review has no new blocking P1/P2;
 - PR body matches final HEAD/evidence;
@@ -123,4 +124,4 @@ Before merge readiness:
 
 ## Next Exact Action
 
-Implement the provider self-refresh subscription and focused target-change blocked-read regression, validate the exact resulting HEAD, resolve R15 with evidence, then run a fresh exact-head review. Keep TNYX-206 In Progress and TNYX-207 blocked until explicit merge + post-merge sync.
+Validate this metadata-only final handoff SHA, resolve R15 with evidence, audit threads, run fresh exact-head review, and reconcile PR body. Keep TNYX-206 In Progress and TNYX-207 blocked until explicit merge + post-merge sync.
