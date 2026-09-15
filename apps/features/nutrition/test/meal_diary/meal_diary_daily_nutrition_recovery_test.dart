@@ -240,6 +240,66 @@ void main() {
     );
     expect(tester.getTopLeft(summary).dy, closeTo(initialTop, 0.01));
   });
+
+  testWidgets(
+      'target change keeps retained summary geometry while refreshed truth loads',
+      (tester) async {
+    final categories = InMemoryMealCategoriesRepository();
+    final mealLogs = InMemoryMealLogRepository(
+      mealCategoriesRepository: categories,
+      clock: () => _now,
+    );
+    final targets = _BlockingTargetsRepository();
+    final dates = MealDiaryDateController(clock: () => _now);
+
+    await _pumpDiary(
+      tester,
+      dates: dates,
+      categories: categories,
+      mealLogs: mealLogs,
+      targets: targets,
+    );
+
+    final summary =
+        find.byKey(const ValueKey('meal-diary-daily-nutrition-summary'));
+    final targetValue =
+        find.byKey(const ValueKey('daily-nutrition-target-calories'));
+    expect(summary, findsOneWidget);
+    expect(tester.widget<Text>(targetValue).data, '2000');
+    expect(
+      find.byKey(const ValueKey('meal-diary-summary-calendar-overlap')),
+      findsOneWidget,
+    );
+    final initialTop = tester.getTopLeft(summary).dy;
+
+    targets.blockNextRead();
+    await targets.upsert(const NutritionTargetsData(caloriesKcal: 2200));
+    await tester.pump();
+    await tester.pump();
+
+    expect(summary, findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('meal-diary-daily-nutrition-loading')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('meal-diary-summary-calendar-overlap')),
+      findsOneWidget,
+    );
+    expect(tester.widget<Text>(targetValue).data, '2000');
+    expect(tester.getTopLeft(summary).dy, closeTo(initialTop, 0.01));
+
+    targets.releaseBlockedRead();
+    await tester.pumpAndSettle();
+
+    expect(summary, findsOneWidget);
+    expect(tester.widget<Text>(targetValue).data, '2200');
+    expect(
+      find.byKey(const ValueKey('meal-diary-summary-calendar-overlap')),
+      findsOneWidget,
+    );
+    expect(tester.getTopLeft(summary).dy, closeTo(initialTop, 0.01));
+  });
 }
 
 Future<void> _pumpDiary(
@@ -321,9 +381,15 @@ final class _ToggleFailingTargetsRepository
   }
 }
 
-final class _BlockingTargetsRepository implements NutritionTargetsRepository {
+final class _BlockingTargetsRepository
+    implements NutritionTargetsRepository, NutritionTargetsChangeSource {
   NutritionTargetsData data = const NutritionTargetsData(caloriesKcal: 2000);
+  final StreamController<int> _changes = StreamController<int>.broadcast();
   Completer<void>? _gate;
+  var _revision = 0;
+
+  @override
+  Stream<int> get changes => _changes.stream;
 
   void blockNextRead() {
     _gate = Completer<void>();
@@ -346,5 +412,6 @@ final class _BlockingTargetsRepository implements NutritionTargetsRepository {
   Future<void> upsert(NutritionTargetsData targets) async {
     targets.validate();
     data = targets;
+    _changes.add(++_revision);
   }
 }
