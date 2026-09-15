@@ -121,7 +121,7 @@ final class MealDiarySummaryRangeRequest {
 final mealDiaryDailyNutritionSummaryProvider = FutureProvider.autoDispose
     .family<DailyNutritionSummary, MealDiaryDailySummaryRequest>(
   (ref, request) {
-    _watchTargetChanges(ref, request.nutritionTargetsRepository);
+    _refreshOnTargetChanges(ref, request.nutritionTargetsRepository);
     return _resolver(request).resolve(request.localDate);
   },
 );
@@ -131,7 +131,7 @@ final mealDiaryNutritionSummaryRangeProvider = FutureProvider.autoDispose
         Map<MealLogLocalDate, DailyNutritionSummary>,
         MealDiarySummaryRangeRequest>(
   (ref, request) {
-    _watchTargetChanges(ref, request.nutritionTargetsRepository);
+    _refreshOnTargetChanges(ref, request.nutritionTargetsRepository);
     return _resolver(request).resolveRange(
       startDate: request.startDate,
       endDate: request.endDate,
@@ -139,13 +139,18 @@ final mealDiaryNutritionSummaryRangeProvider = FutureProvider.autoDispose
   },
 );
 
-void _watchTargetChanges(
+void _refreshOnTargetChanges(
   Ref ref,
   NutritionTargetsRepository repository,
 ) {
   if (repository is! NutritionTargetsChangeSource) return;
   final source = repository as NutritionTargetsChangeSource;
-  ref.watch(_nutritionTargetsChangesProvider(source));
+  ref.listen(
+    _nutritionTargetsChangesProvider(source),
+    (_, next) {
+      if (next.hasValue) ref.invalidateSelf();
+    },
+  );
 }
 
 DailyNutritionSummaryResolver _resolver(Object request) {
