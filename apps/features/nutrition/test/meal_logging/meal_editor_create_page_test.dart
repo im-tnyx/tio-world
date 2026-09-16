@@ -110,17 +110,32 @@ void main() {
     expect(find.text('Log your meal'), findsOneWidget);
     expect(find.byKey(const ValueKey('meal-log-footer-primary')), findsOneWidget);
   });
+
+  testWidgets('dark theme renders the same Meal Editor contract safely',
+      (tester) async {
+    await _pumpEditor(
+      tester,
+      draft: _completeDraft(),
+      mode: TioThemeMode.dark,
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Log your meal'), findsOneWidget);
+    expect(find.byKey(const ValueKey('meal-editor-nutrition-summary')), findsOneWidget);
+    expect(find.byKey(const ValueKey('meal-log-footer-primary')), findsOneWidget);
+  });
 }
 
 Future<void> _pumpEditor(
   WidgetTester tester, {
   required MealLoggingDraft draft,
   TextScaler textScaler = TextScaler.noScaling,
+  TioThemeMode mode = TioThemeMode.light,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
       builder: (context, child) => TioTheme(
-        config: const TioThemeConfig(mode: TioThemeMode.light),
+        config: TioThemeConfig(mode: mode),
         child: MediaQuery(
           data: MediaQuery.of(context).copyWith(textScaler: textScaler),
           child: child ?? const SizedBox.shrink(),
