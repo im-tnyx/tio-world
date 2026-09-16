@@ -1,6 +1,6 @@
 # TNYX-214 — MealLoggingDraft + detailed-item domain foundation
 
-**Status:** Ready
+**Status:** In progress
 **Primary owner:** `apps/shared/lib/src/nutrition`
 **Affected platforms:** shared Dart domain only
 
@@ -15,23 +15,23 @@
 ## Active Handoff
 
 **Planning owner:** ChatGPT
-**Implementation owner:** Not assigned
+**Implementation owner:** ChatGPT
 **Review owner:** Not assigned
-**Implementation ownership state:** Not started
+**Implementation ownership state:** Active
 **Ownership transition:** Not applicable
-**Repository state last verified:** GitHub remote `main` at `5d149ee37c97a36454bfcda17901ecacc8075989`; connector-only session cannot inspect local working-tree state.
+**Repository state last verified:** GitHub branch was 1 commit ahead / 0 behind `main` at `883e43389ae326a3c8f594aa5cc42a26717b0526`, with `main`/merge-base `5d149ee37c97a36454bfcda17901ecacc8075989`; connector-only session cannot inspect local working-tree state.
 **Branch:** `tnyx/tnyx-214-meal-logging-draft-foundation`
-**HEAD SHA:** task-brief commit pending at brief creation time
+**HEAD SHA:** `883e43389ae326a3c8f594aa5cc42a26717b0526` before this ownership checkpoint
 **Observed working-tree state:** Unavailable in connector-only session; do not infer local cleanliness.
 **Observed uncommitted/dirty files:** Unavailable in connector-only session.
-**PR / tracker:** Linear TNYX-214, parent TNYX-207; no PR yet.
-**Current implementation state:** Planning/readiness only. Runtime still has no canonical `MealLoggingDraft`/`MealLoggingDraftItem`.
+**PR / tracker:** Linear TNYX-214 is In Progress, parent TNYX-207; no PR yet.
+**Current implementation state:** Shared Nutrition patterns re-read. Quantity/serving is locked to a minimal provider-neutral optional `quantity` + optional nonblank `servingUnit`; provider serving IDs, confidence and normalization math remain deferred.
 **Relevant execution surface:** `apps/shared/lib/src/nutrition`, `apps/shared/test/nutrition`, shared exports.
-**Validation completed at SHA:** Read-only audit only; no implementation validation yet.
+**Validation completed at SHA:** Read-only/source exploration only; no implementation validation yet.
 **Validation remaining:** focused pure-Dart tests plus applicable shared/package analysis after implementation.
-**Current blocker:** None for the approved domain slice. Local repository reconstruction is required before any source edits by a local implementation owner.
+**Current blocker:** None for the approved domain slice.
 **Open review finding IDs:** None.
-**Next exact action:** Inspect current shared Nutrition value-object patterns and implement the smallest immutable provider-neutral draft contracts with focused tests; do not cross into UI/provider/Supabase scope.
+**Next exact action:** Implement immutable provider-neutral draft contracts and focused tests; do not cross into UI/provider/Supabase scope.
 
 ## Global UI / Design-System Guardrail
 
@@ -81,7 +81,7 @@ UI activation, processing UX, parser network contract, OpenAI/Gemini integration
 | Reuse `NutritionSnapshot` for known nutrition facts | Locked | Avoid parallel nutrient representation and preserve missing-vs-zero truth | Existing Nutrition domain |
 | Provider raw payloads stay outside draft domain | Locked | Keeps OpenAI/Gemini/provider schemas from becoming Tio truth | TNYX-207 / root architecture |
 | `MealLogCaptureSource.text` represents capture intent | Locked | Existing canonical identity already models text capture independently of provider | Existing shared domain |
-| Quantity/serving model | Implementation decision inside scope | Must be minimal, validated, provider-neutral, and sufficient for later editor review without prematurely freezing full provider serving catalogs | Implementation owner |
+| Quantity/serving model | Locked | Optional finite positive `quantity` plus optional nonblank `servingUnit` is enough for parser/editor handoff; each may be absent independently so partial parses remain editable, while provider serving IDs/catalog semantics stay deferred | ChatGPT implementation owner |
 
 ## 4. Architecture Design
 
@@ -108,6 +108,7 @@ future natural-language text
 - Reusing Quick Add/manual `MealLogEntry` as parser output: rejected because it would bypass the review-first detailed-draft boundary and fabricate coarse durable truth.
 - Storing raw OpenAI/Gemini JSON in the draft: rejected because provider schemas are not canonical Tio domain state.
 - Building full detailed persistence in this slice: rejected because TNYX-214 is intentionally the smallest prerequisite and current database shape is manual-only.
+- Freezing provider serving IDs or conversion rules now: rejected because TNYX-214 only needs an editable parser handoff and provider/catalog normalization has not been audited yet.
 
 ### Failure and Accessibility States
 
@@ -115,8 +116,8 @@ No UI/accessibility state is implemented here. Domain construction must reject i
 
 ## 5. Implementation Plan
 
-- [ ] Re-read nearby shared Nutrition source/tests immediately before source mutation.
-- [ ] Define minimal provider-neutral quantity/serving semantics without importing provider concepts.
+- [x] Re-read nearby shared Nutrition source/tests immediately before source mutation.
+- [x] Define minimal provider-neutral quantity/serving semantics without importing provider concepts.
 - [ ] Implement immutable `MealLoggingDraftItem`.
 - [ ] Implement immutable `MealLoggingDraft`.
 - [ ] Reuse `NutritionSnapshot` and `MealLogCaptureSource.text` where applicable.
@@ -130,7 +131,7 @@ No UI/accessibility state is implemented here. Domain construction must reject i
 ### Validation Run
 
 ```text
-Not run yet — implementation has not started.
+Not run yet — implementation source changes are next.
 ```
 
 ### Review Findings and Resolution
@@ -143,7 +144,7 @@ Not run yet — implementation has not started.
 
 ### Changed Files
 
-Task brief only at planning checkpoint. Implementation files not started.
+Task brief only at current checkpoint. Implementation files are next.
 
 ### Actual Behavior
 
