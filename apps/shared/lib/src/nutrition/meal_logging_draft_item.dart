@@ -9,14 +9,18 @@ import 'nutrition_snapshot.dart';
 ///
 /// [quantity] and [servingUnit] are independently optional so an incomplete
 /// parse can remain editable without fabricating a missing amount or unit.
-/// Nutrition is also optional; when present, [NutritionSnapshot] preserves the
-/// canonical distinction between an unknown nutrient and a known zero.
+/// [consumedNutritionSnapshot] is also optional; when present, it represents
+/// the consumed-total nutrition for this item's current quantity/serving, never
+/// a per-serving value. A consumer that changes the quantity or serving must
+/// replace/recompute the snapshot, or clear it when the corrected total is not
+/// known. Inside a known [NutritionSnapshot], unknown nutrients stay unknown
+/// while explicit zero remains known zero.
 final class MealLoggingDraftItem {
   MealLoggingDraftItem({
     required String displayName,
     num? quantity,
     String? servingUnit,
-    this.nutritionSnapshot,
+    this.consumedNutritionSnapshot,
   })  : displayName = _validateDisplayName(displayName),
         quantity = _validateQuantity(quantity),
         servingUnit = _normalizeServingUnit(servingUnit);
@@ -36,12 +40,17 @@ final class MealLoggingDraftItem {
   /// blank value is normalized to `null` so unknown never becomes fake data.
   final String? servingUnit;
 
-  /// Known canonical nutrition for this draft item, when available.
+  /// Consumed-total canonical nutrition for this item's current amount.
+  ///
+  /// This is never a per-serving snapshot. If [quantity] or [servingUnit] is
+  /// corrected, a newly constructed item must also replace/recompute this value
+  /// or set it to `null` unless the existing snapshot is still known to describe
+  /// the corrected consumed total.
   ///
   /// A null snapshot means nutrition has not been resolved for the item. Inside
   /// a non-null snapshot, an absent nutrient remains unknown while explicit
   /// zero remains known zero.
-  final NutritionSnapshot? nutritionSnapshot;
+  final NutritionSnapshot? consumedNutritionSnapshot;
 
   static String _validateDisplayName(String value) {
     if (value.trim().isEmpty) {
@@ -78,13 +87,13 @@ final class MealLoggingDraftItem {
           other.displayName == displayName &&
           other.quantity == quantity &&
           other.servingUnit == servingUnit &&
-          other.nutritionSnapshot == nutritionSnapshot;
+          other.consumedNutritionSnapshot == consumedNutritionSnapshot;
 
   @override
   int get hashCode => Object.hash(
         displayName,
         quantity,
         servingUnit,
-        nutritionSnapshot,
+        consumedNutritionSnapshot,
       );
 }

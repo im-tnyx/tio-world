@@ -15,13 +15,55 @@ void main() {
         displayName: 'Dahi',
         quantity: 150,
         servingUnit: 'g',
-        nutritionSnapshot: nutrition,
+        consumedNutritionSnapshot: nutrition,
       );
 
       expect(item.displayName, 'Dahi');
       expect(item.quantity, 150);
       expect(item.servingUnit, 'g');
-      expect(item.nutritionSnapshot, nutrition);
+      expect(item.consumedNutritionSnapshot, nutrition);
+    });
+
+    test('defines nutrition as the current consumed-total snapshot', () {
+      final twoRoti = MealLoggingDraftItem(
+        displayName: 'Roti',
+        quantity: 2,
+        servingUnit: 'piece',
+        consumedNutritionSnapshot: NutritionSnapshot(
+          schemaVersion: 1,
+          nutrients: const <NutrientId, num>{NutrientId.energy: 200},
+        ),
+      );
+      final oneRoti = MealLoggingDraftItem(
+        displayName: 'Roti',
+        quantity: 1,
+        servingUnit: 'piece',
+        consumedNutritionSnapshot: NutritionSnapshot(
+          schemaVersion: 1,
+          nutrients: const <NutrientId, num>{NutrientId.energy: 100},
+        ),
+      );
+      final unresolvedAfterAmountEdit = MealLoggingDraftItem(
+        displayName: 'Roti',
+        quantity: 1,
+        servingUnit: 'piece',
+      );
+
+      expect(
+        twoRoti.consumedNutritionSnapshot!.amountFor(NutrientId.energy),
+        200,
+        reason: 'the snapshot is the total for the current quantity of two',
+      );
+      expect(
+        oneRoti.consumedNutritionSnapshot!.amountFor(NutrientId.energy),
+        100,
+        reason: 'changing quantity requires a corrected consumed total',
+      );
+      expect(
+        unresolvedAfterAmountEdit.consumedNutritionSnapshot,
+        isNull,
+        reason: 'an amount edit may clear nutrition until a new total is known',
+      );
     });
 
     test('allows partial parse facts to remain unknown independently', () {
@@ -37,27 +79,27 @@ void main() {
 
       expect(quantityOnly.quantity, 2);
       expect(quantityOnly.servingUnit, isNull);
-      expect(quantityOnly.nutritionSnapshot, isNull);
+      expect(quantityOnly.consumedNutritionSnapshot, isNull);
 
       expect(unitOnly.quantity, isNull);
       expect(unitOnly.servingUnit, 'ml');
-      expect(unitOnly.nutritionSnapshot, isNull);
+      expect(unitOnly.consumedNutritionSnapshot, isNull);
 
       expect(nameOnly.quantity, isNull);
       expect(nameOnly.servingUnit, isNull);
-      expect(nameOnly.nutritionSnapshot, isNull);
+      expect(nameOnly.consumedNutritionSnapshot, isNull);
     });
 
     test('preserves unknown nutrient versus explicit zero', () {
       final item = MealLoggingDraftItem(
         displayName: 'Cucumber',
-        nutritionSnapshot: NutritionSnapshot(
+        consumedNutritionSnapshot: NutritionSnapshot(
           schemaVersion: 1,
           nutrients: const <NutrientId, num>{NutrientId.energy: 0},
         ),
       );
 
-      final nutrition = item.nutritionSnapshot!;
+      final nutrition = item.consumedNutritionSnapshot!;
       expect(nutrition.containsNutrient(NutrientId.energy), isTrue);
       expect(nutrition.amountFor(NutrientId.energy), 0);
       expect(nutrition.containsNutrient(NutrientId.protein), isFalse);
@@ -104,7 +146,7 @@ void main() {
         displayName: 'Dal',
         quantity: 1,
         servingUnit: 'bowl',
-        nutritionSnapshot: NutritionSnapshot(
+        consumedNutritionSnapshot: NutritionSnapshot(
           schemaVersion: 1,
           nutrients: const <NutrientId, num>{NutrientId.energy: 180},
         ),
@@ -113,7 +155,7 @@ void main() {
         displayName: 'Dal',
         quantity: 1,
         servingUnit: 'bowl',
-        nutritionSnapshot: NutritionSnapshot(
+        consumedNutritionSnapshot: NutritionSnapshot(
           schemaVersion: 1,
           nutrients: const <NutrientId, num>{NutrientId.energy: 180},
         ),
