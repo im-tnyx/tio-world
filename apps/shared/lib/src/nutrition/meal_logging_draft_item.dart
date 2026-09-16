@@ -1,6 +1,6 @@
 import 'nutrition_snapshot.dart';
 
-/// One editable item inside a [MealLoggingDraft].
+/// One editable item inside a meal logging draft.
 ///
 /// This is intentionally provider-neutral. A future parser or food provider
 /// may know catalog IDs, serving IDs, confidence scores, or raw source payloads,
