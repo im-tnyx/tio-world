@@ -46,7 +46,10 @@ void main() {
       (tester) async {
     await _pumpEditor(tester, draft: _completeDraft());
 
-    await tester.tap(find.byKey(const ValueKey('meal-editor-delete-1')));
+    final curdDelete = find.byKey(const ValueKey('meal-editor-delete-1'));
+    await tester.ensureVisible(curdDelete);
+    await tester.pumpAndSettle();
+    await tester.tap(curdDelete);
     await tester.pump();
 
     expect(find.text('Curd'), findsNothing);
