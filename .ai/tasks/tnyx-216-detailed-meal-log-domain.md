@@ -21,7 +21,7 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** Connector-only session; GitHub `main` = `363754242477f2b4b9e5d8ac5a2cc71e69c43f98` (merged PR #270). No `apps/shared/AGENTS.md` exists; root `AGENTS.md` applies. No overlapping N20A-7 branch/task existed before this branch.
 **Branch:** `tnyx/tnyx-216-n20a-7-detailed-meallog-domain-foundation`
-**HEAD SHA:** task-brief commit pending at file creation time
+**HEAD SHA:** task-brief reconciliation commit pending at this checkpoint
 **Observed working-tree state:** Connector-only session; local `git status` unavailable. GitHub branch/commit/diff evidence is used instead.
 **Observed uncommitted/dirty files:** Not observable through connector-only execution; repository writes are committed directly to this branch.
 **PR / tracker:** Linear TNYX-216, parent TNYX-113; related TNYX-207, TNYX-215, TNYX-188. PR not created yet.
@@ -74,11 +74,12 @@ Repository/Supabase persistence, schema, detailed create idempotency, parser/pro
 
 | Decision | Status | Rationale | Owner |
 |---|---|---|---|
-| Durable detailed item requires positive finite quantity, nonblank serving unit and a non-empty consumed `NutritionSnapshot` | Locked for this slice | Final actual-history snapshot must represent confirmed consumed facts; temporary unknowns remain valid only in `MealLoggingDraftItem`. | TNYX-113 + architecture |
+| Durable detailed item requires positive finite quantity, nonblank serving unit and a required consumed `NutritionSnapshot` | Locked for this slice | Final actual-history item must carry confirmed amount/unit plus canonical snapshot ownership; the snapshot may contain zero currently-known nutrients so unknown future nutrient identities remain forward-compatible instead of making old clients reject valid future rows. | TNYX-113 + TNYX-187 + architecture |
 | First durable item slice stores only provider-independent consumed facts | Locked | Provider provenance is explicitly item-level but can be added later without making provider data historical nutrition truth. | TNYX-188/TNYX-113 |
 | Detailed aggregate carries no manual nutrition snapshot | Locked | Prevents competing truth between meal-level manual values and item snapshots. | TNYX-113 |
 | Manual aggregate exposes an empty detailed-item list | Locked | Preserves one canonical aggregate without fabricating detailed items for Quick Add. | TNYX-113/TNYX-115 |
-| Detailed items must reference their parent MealLog identity | Locked | Prevents cross-aggregate child attachment at the domain boundary. | Architecture |
+| Detailed items must reference their parent MealLog identity and have unique item IDs within the aggregate | Locked | Prevents cross-aggregate attachment and ambiguous durable child identity before physical persistence is introduced. | Architecture |
+| `captureSource` remains orthogonal to `mode` | Locked | TNYX-188 defines capture intent separately from persistence mode; this shared aggregate must not infer or remap one from the other. | TNYX-188 |
 | No detailed meal-level total field is added | Locked | Detailed totals derive from durable item snapshots; a second authoritative total would duplicate truth. | TNYX-113 |
 
 ## 4. Architecture Design
@@ -101,6 +102,7 @@ future MealLoggingDraft
 
 - Persisting parsed items as `manualNutritionSnapshot` to reuse Quick Add.
 - Putting provider IDs/raw AI output into the first canonical item snapshot.
+- Rejecting an otherwise-valid `NutritionSnapshot` only because the current registry sees zero known nutrients; that would break the existing future-identity compatibility rule.
 - Adding a denormalized authoritative meal total beside item snapshots.
 - Widening Supabase before the shared durable contract is frozen.
 
