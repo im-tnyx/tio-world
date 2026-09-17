@@ -112,6 +112,7 @@ class _MealEditorCreatePageState extends State<MealEditorCreatePage> {
     final submitController = _submitController;
     final submitContext = _submitContext;
     final submitState = submitController?.state;
+    final draftLocked = submitState?.locksDraft ?? false;
     final canSubmit = submitController != null &&
         submitContext != null &&
         submitController.canSubmit(
@@ -119,99 +120,112 @@ class _MealEditorCreatePageState extends State<MealEditorCreatePage> {
           context: submitContext,
         );
 
-    return Scaffold(
-      key: const ValueKey('meal-editor-create-page'),
-      backgroundColor: colors.background,
-      appBar: AppBar(
+    return PopScope(
+      canPop: !draftLocked,
+      child: Scaffold(
+        key: const ValueKey('meal-editor-create-page'),
         backgroundColor: colors.background,
-        elevation: TioElevation.none,
-        scrolledUnderElevation: TioElevation.none,
-        leading: BackButton(
-          color: colors.textPrimary,
-          onPressed: widget.onBack,
-        ),
-        title: Text(
-          'Log your meal',
-          style: TextStyle(
+        appBar: AppBar(
+          backgroundColor: colors.background,
+          elevation: TioElevation.none,
+          scrolledUnderElevation: TioElevation.none,
+          leading: BackButton(
             color: colors.textPrimary,
-            fontWeight: TioFontWeight.w800,
-            fontSize: TioFontSize.size20,
+            onPressed: draftLocked ? null : widget.onBack,
+          ),
+          title: Text(
+            'Log your meal',
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontWeight: TioFontWeight.w800,
+              fontSize: TioFontSize.size20,
+            ),
           ),
         ),
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: ListenableBuilder(
-          listenable: _controller,
-          builder: (context, _) => ListView(
-            key: const ValueKey('meal-editor-create-body'),
-            padding: const EdgeInsets.fromLTRB(
-              TioSpacing.lg,
-              TioSpacing.md,
-              TioSpacing.lg,
-              TioSpacing.xl,
-            ),
-            children: [
-              TioInput.multiline(
-                key: const ValueKey('meal-editor-meal-name'),
-                controller: _mealNameController,
-                hint: 'Meal name',
-                minLines: 1,
-                maxLines: 2,
-                keyboardType: TextInputType.text,
-                textInputAction: TextInputAction.done,
-                onChanged: _controller.updateMealName,
+        body: SafeArea(
+          bottom: false,
+          child: ListenableBuilder(
+            listenable: _controller,
+            builder: (context, _) => ListView(
+              key: const ValueKey('meal-editor-create-body'),
+              padding: const EdgeInsets.fromLTRB(
+                TioSpacing.lg,
+                TioSpacing.md,
+                TioSpacing.lg,
+                TioSpacing.xl,
               ),
-              const SizedBox(height: TioSpacing.xl),
-              _NutritionSummary(summary: _controller.nutritionSummary),
-              const SizedBox(height: TioSpacing.xl),
-              _SectionHeader(itemCount: _controller.items.length),
-              const SizedBox(height: TioSpacing.md),
-              for (var index = 0; index < _controller.items.length; index++) ...[
-                _MealEditorItemCard(
-                  index: index,
-                  item: _controller.items[index],
-                  canIncrement: _controller.canIncrementQuantity(index),
-                  canDecrement: _controller.canDecrementQuantity(index),
-                  canDelete: _controller.canRemoveItem(index),
-                  onIncrement: () => _controller.incrementQuantity(index),
-                  onDecrement: () => _controller.decrementQuantity(index),
-                  onDelete: () => _controller.removeItem(index),
+              children: [
+                TioInput.multiline(
+                  key: const ValueKey('meal-editor-meal-name'),
+                  controller: _mealNameController,
+                  hint: 'Meal name',
+                  minLines: 1,
+                  maxLines: 2,
+                  enabled: !draftLocked,
+                  keyboardType: TextInputType.text,
+                  textInputAction: TextInputAction.done,
+                  onChanged: _controller.updateMealName,
                 ),
-                if (index != _controller.items.length - 1)
-                  const SizedBox(height: TioSpacing.md),
+                const SizedBox(height: TioSpacing.xl),
+                _NutritionSummary(summary: _controller.nutritionSummary),
+                const SizedBox(height: TioSpacing.xl),
+                _SectionHeader(itemCount: _controller.items.length),
+                const SizedBox(height: TioSpacing.md),
+                for (var index = 0;
+                    index < _controller.items.length;
+                    index++) ...[
+                  _MealEditorItemCard(
+                    index: index,
+                    item: _controller.items[index],
+                    canIncrement: !draftLocked &&
+                        _controller.canIncrementQuantity(index),
+                    canDecrement: !draftLocked &&
+                        _controller.canDecrementQuantity(index),
+                    canDelete:
+                        !draftLocked && _controller.canRemoveItem(index),
+                    onIncrement: () => _controller.incrementQuantity(index),
+                    onDecrement: () => _controller.decrementQuantity(index),
+                    onDelete: () => _controller.removeItem(index),
+                  ),
+                  if (index != _controller.items.length - 1)
+                    const SizedBox(height: TioSpacing.md),
+                ],
               ],
-            ],
+            ),
           ),
         ),
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: ColoredBox(
-          color: colors.background,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              TioSpacing.lg,
-              0,
-              TioSpacing.lg,
-              TioSpacing.md,
-            ),
-            child: MealLogActionFooter(
-              mealCategoryLabel: widget.mealCategoryLabel,
-              mealCategorySemanticLabel:
-                  'Meal type. ${widget.mealCategoryLabel}.',
-              onMealCategoryTap: widget.onMealCategoryTap,
-              dateTimeLabel: widget.dateTimeLabel,
-              dateTimeSemanticLabel: 'Date and time. ${widget.dateTimeLabel}.',
-              onDateTimeTap: widget.onDateTimeTap,
-              primaryLabel: 'Log Meal',
-              primarySemanticLabel: canSubmit
-                  ? 'Log Meal.'
-                  : 'Log Meal. Review the meal details before saving.',
-              note: submitState?.message,
-              primaryLoading: submitState?.isSubmitting ?? false,
-              primaryLoadingLabel: 'Logging meal',
-              onPrimaryPressed: canSubmit ? _submit : null,
+        bottomNavigationBar: SafeArea(
+          top: false,
+          child: ColoredBox(
+            color: colors.background,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                TioSpacing.lg,
+                0,
+                TioSpacing.lg,
+                TioSpacing.md,
+              ),
+              child: MealLogActionFooter(
+                mealCategoryLabel: widget.mealCategoryLabel,
+                mealCategorySemanticLabel:
+                    'Meal type. ${widget.mealCategoryLabel}.',
+                onMealCategoryTap:
+                    draftLocked ? null : widget.onMealCategoryTap,
+                dateTimeLabel: widget.dateTimeLabel,
+                dateTimeSemanticLabel:
+                    'Date and time. ${widget.dateTimeLabel}.',
+                onDateTimeTap: draftLocked ? null : widget.onDateTimeTap,
+                primaryLabel: 'Log Meal',
+                primarySemanticLabel: submitState?.isOutcomeUnknown == true
+                    ? 'Retry Log Meal. Save status is uncertain.'
+                    : canSubmit
+                        ? 'Log Meal.'
+                        : 'Log Meal. Review the meal details before saving.',
+                note: submitState?.message,
+                primaryLoading: submitState?.isSubmitting ?? false,
+                primaryLoadingLabel: 'Logging meal',
+                onPrimaryPressed: canSubmit ? _submit : null,
+              ),
             ),
           ),
         ),
