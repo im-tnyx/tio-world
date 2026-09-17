@@ -17,25 +17,25 @@
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** Independent review fallback after implementation
-**Implementation ownership state:** Active
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
-**Repository state last verified:** Remote `main` after PR #276 merge; connector-only execution cannot inspect a local working tree.
+**Repository state last verified:** Remote `main` remains `0359a35aad54dbbd29c1c9311b6677dfcebc6614`; connector-only execution cannot inspect a local working tree.
 **Branch:** `tnyx/tnyx-220-n5d-4-natural-language-meal-parse-contract-processing`
-**HEAD SHA:** `0359a35aad54dbbd29c1c9311b6677dfcebc6614` at branch creation
+**HEAD SHA:** `9a0a466dccbc03b9d9417288bfa596788df38fe0` implementation head validated by CI #2619; this handoff update creates one later task-metadata-only head.
 **Observed working-tree state:** Unavailable in connector-only session; no local-cleanliness claim is made.
 **Observed uncommitted/dirty files:** Unavailable in connector-only session; repository writes in this session are committed directly through GitHub.
-**PR / tracker:** Linear TNYX-220 child of TNYX-207; GitHub PR not created yet.
-**Current implementation state:** Readiness reconstructed; task brief created; source implementation not started.
+**PR / tracker:** Draft PR #277; Linear TNYX-220 In Progress; parent TNYX-207 remains the broader natural-language flow.
+**Current implementation state:** Repository/failure contract, controller/state, exports and focused tests are implemented. No production UI/network/backend/schema/persistence code changed.
 **Relevant execution surface:** Nutrition feature domain repository contracts and meal-logging controller/tests.
-**Validation completed at SHA:** None for this slice yet.
-**Validation remaining:** Focused Nutrition tests plus repository CI/analyze/test gate after source implementation.
+**Validation completed at SHA:** Flutter CI #2619 PASS at `9a0a466dccbc03b9d9417288bfa596788df38fe0`: workspace bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests all succeeded.
+**Validation remaining:** Exact-head CI for this task-handoff-only commit, then Ready-for-Review reconciliation.
 **Current blocker:** None.
-**Open review finding IDs:** None.
-**Next exact action:** Add the provider-neutral repository/failure contract, processing controller, exports and focused tests without touching production UI/network/backend.
+**Open review finding IDs:** None after implementation diff review.
+**Next exact action:** Wait for exact-head CI on the handoff-only head; if green, mark PR #277 Ready for Review and move TNYX-220 to In Review. Do not start provider/UI work in this slice.
 
 ## Global UI / Design-System Guardrail
 
-This slice intentionally makes no Flutter production UI change. `apps/features/AGENTS.md` was read and remains binding. If a visible change becomes necessary, stop and return to the UI approval/theme-governance gate before editing presentation.
+This slice makes no Flutter production UI change. `apps/features/AGENTS.md` was read and remains binding. Any later visible Add Food or Meal Editor change must return to the UI approval/theme-governance gate before editing presentation.
 
 ## 1. Discovery
 
@@ -45,10 +45,10 @@ Prepare the safe Tio-owned processing boundary behind future `What did you eat?`
 
 ### Success Criteria
 
-- nonblank text can enter one explicit processing operation;
+- nonblank text enters one explicit processing operation;
 - blank/whitespace input never invokes parsing;
 - duplicate submit while processing is suppressed;
-- recoverable failure preserves the normalized submitted text for retry;
+- recoverable failure preserves normalized submitted text for retry;
 - success exposes only canonical provider-neutral `MealLoggingDraft` with `MealLogCaptureSource.text`;
 - provider/internal errors cannot leak raw payloads into presentation state;
 - no visible UI/network/backend/schema/persistence scope is introduced.
@@ -56,11 +56,11 @@ Prepare the safe Tio-owned processing boundary behind future `What did you eat?`
 ### Scope
 
 - `MealTextParseRepository` contract owned by Nutrition;
-- small provider-neutral typed failure taxonomy;
+- provider-neutral typed failure taxonomy;
 - `MealTextParseController` + immutable state;
 - input trimming/blank guard and retry behavior;
 - capture-source contract validation;
-- focused controller/repository-contract tests;
+- focused controller tests;
 - Nutrition public exports and handoff records.
 
 ### Non-Goals
@@ -77,18 +77,11 @@ Prepare the safe Tio-owned processing boundary behind future `What did you eat?`
 ### Verified Evidence
 
 - Source/config inspected: root `AGENTS.md`; `.ai/workflow.md`; `.ai/FEATURE_DEVELOPMENT.md`; `.ai/tasks/README.md`; `apps/features/AGENTS.md`; TNYX-207/TNYX-58/TNYX-215/TNYX-219; GitHub #269; `add_food_sheet.dart`; `MealLoggingDraft` / `MealLoggingDraftItem`; `MealEditorCreateController`; `MealEditorDetailedCreateController`; current repository/controller patterns; `docs/ARCHITECTURE.md`; ADR-0007; Supabase server/access strategy; current `supabase/functions` tree; backend Linear planning TNYX-26/TNYX-27/TNYX-33.
-- Existing pattern to follow: feature-owned repository interfaces under `apps/features/nutrition/lib/src/domain/repositories`; stateful mutation controllers under `apps/features/nutrition/lib/src/meal_logging`; widgets render state and emit actions; canonical domain types come from `tio_shared`.
-- Tests or validation already present: `MealLoggingDraft` shared tests and multiple Nutrition controller tests establish immutable state/repository fakes and duplicate-submit patterns. No production meal-text parse contract/controller exists today.
-
-Fresh readiness facts:
-
-- `main` is `0359a35aad54dbbd29c1c9311b6677dfcebc6614` after merged PR #276.
-- Meal Editor create body and durable detailed `Log Meal` path now exist.
-- Add Food natural-language surface remains intentionally disabled/inert.
-- Current Meal Editor can correct known same-unit quantity and delete items, but cannot fill unknown quantity, switch serving unit, or repair missing nutrition.
-- Detailed save requires each item to have quantity, serving unit and nutrition snapshot. A later live adapter therefore must return a sufficiently complete normalized draft or map insufficient normalization to recoverable parse failure until broader ingredient correction exists.
-- `services/api` does not exist yet; current canonical architecture keeps it future/deferred. `supabase/functions` has only `google-login-admission` and no Nutrition parser function.
-- `docs/SUPABASE_STRATEGY.md` still contains historical `backend/` wording; root `AGENTS.md`, `docs/ARCHITECTURE.md` and ADR-0007 are the current canonical server-boundary truth.
+- Existing pattern followed: feature-owned repository interfaces under `apps/features/nutrition/lib/src/domain/repositories`; stateful controllers under `apps/features/nutrition/lib/src/meal_logging`; canonical draft types from `tio_shared`.
+- Current Add Food natural-language surface remains disabled/inert.
+- Current detailed save requires quantity + serving unit + nutrition snapshot for every item. The current Meal Editor cannot fully repair all missing parse facts, so a later live adapter must return a sufficiently complete draft or map insufficient normalization to recoverable failure until broader ingredient correction exists.
+- `services/api` is not implemented; `supabase/functions` currently has no Nutrition parser function.
+- Historical `backend/` wording in `docs/SUPABASE_STRATEGY.md` is stale against root `AGENTS.md`, `docs/ARCHITECTURE.md` and ADR-0007, which are the current canonical server-boundary truth.
 
 ## 3. Clarification
 
@@ -97,17 +90,17 @@ Fresh readiness facts:
 | Decision | Status | Rationale | Owner |
 |---|---|---|---|
 | Keep this slice provider-neutral | Locked | No provider is selected and provider credentials must remain server-side. | TNYX-207 + root architecture |
-| Controller trims outer whitespace before repository call | Locked | Prevent duplicate input semantics and keep the later UI submit path simple. | Implementation |
-| Blank input is a no-op, not a parse failure | Locked | Future UI already disables submission for blank input; impossible user action should not create an error state. | Implementation |
-| Use a small typed safe failure taxonomy | Locked | Allows future adapters to map unrecognized/incomplete/unavailable outcomes without exposing provider payloads. | Implementation |
-| Reject repository results whose capture source is not `text` | Locked | The contract is specifically natural-language capture; silently accepting another source would corrupt provenance. | Implementation |
-| Do not enforce item completeness in the generic repository contract | Locked | `MealLoggingDraft` intentionally permits partial facts; completeness for the first live adapter is a later adapter/handoff policy because current editor correction is incomplete. | Existing shared contract + audit |
+| Trim outer whitespace before repository call | Locked | Normalizes the logical text request without rewriting its internal content. | Implementation |
+| Blank input is a no-op, not a parse failure | Locked | Future UI disables blank submission; an impossible action should not create error state. | Implementation |
+| Use `unrecognized`, `incomplete`, `unavailable` safe failure reasons | Locked | Future adapters can map recoverable outcomes without leaking provider payloads. | Implementation |
+| Reject successful drafts whose capture source is not `text` | Locked | Natural-language provenance must remain correct. | Implementation |
+| Do not add generic item-completeness validation here | Locked | `MealLoggingDraft` deliberately permits partial facts; first live adapter/handoff policy owns the current editor-readiness restriction. | Existing domain contract + audit |
 
 ## 4. Architecture Design
 
 ### Chosen Approach
 
-Create a small feature-domain `MealTextParseRepository` returning canonical `MealLoggingDraft`, with a provider-neutral failure object. Add `MealTextParseController` that owns input normalization, processing state, duplicate suppression, failure sanitization, retry text and capture-source validation.
+`MealTextParseRepository` returns canonical `MealLoggingDraft` and exposes only a small Tio-owned failure reason. `MealTextParseController` owns input normalization, processing state, duplicate suppression, safe failure mapping, retry text and capture-source validation.
 
 ### Ownership and Data Flow
 
@@ -120,53 +113,69 @@ future Add Food UI
   -> future Meal Editor navigation/handoff
 ```
 
-This slice stops before the protected adapter and before presentation wiring.
-
 ### Alternative Rejected
 
-Calling Gemini/FatSecret/Edamam or a Supabase function directly from `AddFoodSheet` is rejected because it leaks provider/network assumptions into presentation, violates the existing feature boundary, and prematurely selects infrastructure before a tested Tio-owned contract exists.
+Direct provider/Supabase/network calls from `AddFoodSheet` were rejected because they would leak infrastructure into presentation and select a provider before a stable Tio-owned seam exists.
 
 ### Failure and Accessibility States
 
-No production accessibility surface changes here. State contract supports idle, processing, failed and succeeded. Failures expose only Tio-owned messages/reasons; the normalized submitted text remains available for retry. Unexpected repository errors are sanitized to the generic unavailable failure.
+No production accessibility surface changes. State supports idle, processing, failed and succeeded. Typed failures expose only stable Tio-owned messages/reasons; unexpected errors are sanitized to unavailable; failed state retains the normalized submitted text for retry.
 
 ## 5. Implementation Plan
 
-- [ ] Add provider-neutral parser repository + safe failure contract.
-- [ ] Add immutable processing state + controller with blank guard, duplicate suppression, retry and text-source validation.
-- [ ] Export the new contract/controller through Nutrition public barrels.
-- [ ] Add focused unit tests covering normalization, blank guard, loading/duplicate submit, recoverable failure/retry, unexpected error sanitization and invalid capture source.
-- [ ] Run proportional validation and review the exact diff against scope.
-- [ ] Reconcile Linear/PR/task handoff.
+- [x] Add provider-neutral parser repository + safe failure contract.
+- [x] Add immutable processing state + controller with blank guard, duplicate suppression, retry and text-source validation.
+- [x] Export the new contract/controller through Nutrition public barrels.
+- [x] Add focused tests for normalization, blank guard, loading/duplicate submit, recoverable failure/retry, safe messages, unexpected-error sanitization and invalid capture source.
+- [x] Audit exact implementation delta against the approved scope.
+- [ ] Final exact-head CI and Ready-for-Review reconciliation.
 
 ## 6. Quality Review
 
 ### Validation Run
 
 ```text
-Not run yet.
+Flutter CI #2619 @ 9a0a466dccbc03b9d9417288bfa596788df38fe0
+PASS — workspace bootstrap
+PASS — Flutter package analyze
+PASS — Dart package analyze
+PASS — Flutter package tests
+PASS — Dart package tests
 ```
+
+Implementation scope audit at the validated head: base `0359a35aad54dbbd29c1c9311b6677dfcebc6614`, `6 ahead / 0 behind`, 6 changed files, all within the TNYX-220 task/Nutrition boundary.
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| — | — | — | No review yet. | — | — |
+| — | — | — | No blocking finding found in the implementation diff review. | `9a0a466d` | CI #2619 green; scope audit clean. |
 
 ## 7. Final Handoff
 
 ### Changed Files
 
-Pending implementation.
+- `.ai/tasks/tnyx-220-natural-language-meal-parse-processing-foundation.md`
+- `apps/features/nutrition/lib/src/domain/repositories/meal_text_parse_repository.dart`
+- `apps/features/nutrition/lib/src/domain/repositories/repositories.dart`
+- `apps/features/nutrition/lib/src/meal_logging/meal_text_parse_controller.dart`
+- `apps/features/nutrition/lib/src/meal_logging/meal_logging.dart`
+- `apps/features/nutrition/test/meal_logging/meal_text_parse_controller_test.dart`
 
 ### Actual Behavior
 
-Pending implementation.
+- natural-language text is normalized with outer trim and blank input is ignored;
+- one processing operation runs at a time and duplicate in-flight submission is suppressed;
+- recoverable parser failures map to stable Tio-owned messages and retain retry text;
+- unexpected failures are sanitized and never expose raw provider details through controller state;
+- retry reuses the normalized failed text;
+- successful repository output must carry `MealLogCaptureSource.text` and is exposed as canonical `MealLoggingDraft`;
+- no history is persisted and no provider/network/backend/UI code is active.
 
 ### Known Limitations
 
-No live provider/network adapter or Add Food presentation wiring belongs to this slice. Current Meal Editor cannot fully repair all partial parser facts; the later live adapter must account for that readiness rule.
+No live parser adapter or Add Food presentation wiring exists yet. Provider choice remains deliberately open. The current Meal Editor cannot fully repair all partial parse facts, so the next live adapter slice must enforce the recorded completeness/readiness rule or first land the necessary correction capability as a separate approved slice.
 
 ### Final Status
 
-`PARTIAL`
+`REVIEW` — implementation-head validation passed; final handoff-only exact-head CI is the remaining gate before Ready for Review.
