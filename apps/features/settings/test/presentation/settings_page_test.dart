@@ -32,7 +32,6 @@ void main() {
         final profile = find.byKey(
           const ValueKey('settings-profile-settings-entry'),
         );
-        // Measured on the frozen pre-S0-A source at the same viewport/scaling.
         expect(tester.getSize(profile),
             Size(width - 32, width == 320 ? 298 : 106));
         expect(tester.takeException(), isNull);
@@ -50,10 +49,6 @@ void main() {
         expect(
           tester.getRect(
               find.byKey(const ValueKey('app-settings-app-mode-entry'))),
-          // Re-measured after App Preferences moved from a raw Material Card
-          // of ListTiles to TioGroupCard + TioSettingsNavigationRow. The group
-          // no longer carries Material's own card margin, so it starts at the
-          // page padding (24) instead of 28, and 4dp higher.
           Rect.fromLTRB(24, 80, width - 24, width == 320 ? 209 : 152),
         );
         expect(
@@ -166,7 +161,6 @@ void main() {
     expect(find.text('Weight, height, distance & volume'), findsOneWidget);
     expect(find.text('Hybrid'), findsOneWidget);
     expect(find.text('Dark'), findsOneWidget);
-    // The Calendar row reports the current value the way its siblings do.
     expect(find.text('Calendar'), findsOneWidget);
     expect(find.text('Week starts Sunday'), findsOneWidget);
     expect(find.byType(TioSettingsNavigationRow), findsNWidgets(4));
@@ -180,7 +174,7 @@ void main() {
     expect([modeTaps, themeTaps, unitsTaps], [1, 1, 1]);
   });
 
-  testWidgets('Settings logout requires confirmation and supports cancel',
+  testWidgets('Settings logout uses shared confirmation and supports cancel',
       (tester) async {
     var logoutCalls = 0;
     await tester.pumpWidget(MaterialApp(
@@ -194,17 +188,23 @@ void main() {
     await tester.scrollUntilVisible(logout, 200);
     await tester.tap(logout);
     await tester.pumpAndSettle();
-    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byType(TioConfirmationCard), findsOneWidget);
+    expect(
+      tester.widget<TioConfirmationCard>(find.byType(TioConfirmationCard)).intent,
+      TioConfirmationIntent.destructive,
+    );
     expect(logoutCalls, 0);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(logoutCalls, 0);
-    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byType(TioConfirmationCard), findsNothing);
+
     await tester.tap(logout);
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Log Out'));
+    await tester.tap(find.text('Log Out').last);
     await tester.pumpAndSettle();
     expect(logoutCalls, 1);
-    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byType(TioConfirmationCard), findsNothing);
   });
 }
