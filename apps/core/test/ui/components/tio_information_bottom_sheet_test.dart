@@ -41,7 +41,8 @@ void main() {
     expect(find.byType(TioInformationBottomSheet), findsNothing);
   });
 
-  testWidgets('confirmation sheet returns the selected result', (tester) async {
+  testWidgets('confirmation sheet defaults to standard and returns result',
+      (tester) async {
     bool? confirmed;
 
     await tester.pumpWidget(
@@ -69,9 +70,53 @@ void main() {
 
     await tester.tap(find.text('Open confirmation'));
     await tester.pumpAndSettle();
+
+    expect(find.byType(TioCard), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Continue'), findsOneWidget);
+    expect(find.widgetWithText(OutlinedButton, 'Stay'), findsOneWidget);
+
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
     expect(confirmed, isTrue);
+  });
+
+  testWidgets('destructive confirmation uses destructive shared button',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) =>
+            TioTheme(child: child ?? const SizedBox.shrink()),
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => showTioConfirmationBottomSheet(
+                context: context,
+                title: 'Log Out',
+                message: 'Are you sure?',
+                cancelLabel: 'Cancel',
+                confirmLabel: 'Log Out',
+                intent: TioConfirmationIntent.destructive,
+              ),
+              child: const Text('Open destructive confirmation'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open destructive confirmation'));
+    await tester.pumpAndSettle();
+
+    final filled = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Log Out'),
+    );
+    final colors = tester.element(find.byType(TioCard)).tioColors;
+    final background = filled.style?.backgroundColor?.resolve(<WidgetState>{});
+    final foreground = filled.style?.foregroundColor?.resolve(<WidgetState>{});
+
+    expect(background, colors.danger.withAlpha(TioAlpha.alpha35));
+    expect(foreground, colors.danger);
+    expect(find.widgetWithText(OutlinedButton, 'Cancel'), findsOneWidget);
   });
 }
