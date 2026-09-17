@@ -94,11 +94,11 @@ select pg_temp.assert_true(
 );
 
 select pg_temp.assert_true(
-  (select data_type = 'jsonb' and is_nullable = 'NO'
+  (select data_type = 'jsonb' and is_nullable = 'YES'
    from information_schema.columns
    where table_schema = 'public' and table_name = 'meal_log_entries'
      and column_name = 'manual_nutrition_snapshot'),
-  'manual snapshot must be non-null jsonb'
+  'manual snapshot column must remain jsonb and be nullable for detailed mode'
 );
 
 select pg_temp.assert_true(
@@ -343,7 +343,7 @@ select pg_temp.assert_true(
   'updated_at trigger must refresh timestamp'
 );
 
--- Manual-only and shape constraints.
+-- Manual compatibility and mode-coupled shape constraints.
 select pg_temp.assert_raises(
   $$insert into public.meal_log_entries (
       user_id, mode, meal_category_id, consumed_at, consumed_local_date,
@@ -354,7 +354,7 @@ select pg_temp.assert_raises(
       '{"schemaVersion":1,"nutrients":{}}'
     )$$,
   '23514',
-  'detailed mode must be blocked in V1'
+  'detailed mode must not carry a manual nutrition snapshot'
 );
 
 select pg_temp.assert_raises(
