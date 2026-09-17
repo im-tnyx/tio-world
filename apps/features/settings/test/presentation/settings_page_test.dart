@@ -206,7 +206,7 @@ void main() {
 
     await tester.tap(logout);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Log Out').last);
+    await tester.tap(find.widgetWithText(FilledButton, 'Log Out'));
     await tester.pumpAndSettle();
     expect(logoutCalls, 1);
     expect(
