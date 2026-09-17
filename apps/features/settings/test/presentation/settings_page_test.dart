@@ -189,21 +189,29 @@ void main() {
     await tester.tap(logout);
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsNothing);
-    expect(find.byType(TioCard), findsOneWidget);
-    expect(find.text('Log out of Tio?'), findsOneWidget);
-    expect(find.text('Cancel'), findsOneWidget);
     expect(find.text('Log Out'), findsNWidgets(2));
+    expect(
+      find.text('Are you sure you want to log out of your account?'),
+      findsOneWidget,
+    );
+    expect(find.text('Cancel'), findsOneWidget);
     expect(logoutCalls, 0);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(logoutCalls, 0);
-    expect(find.text('Log out of Tio?'), findsNothing);
+    expect(
+      find.text('Are you sure you want to log out of your account?'),
+      findsNothing,
+    );
 
     await tester.tap(logout);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Log Out').last);
     await tester.pumpAndSettle();
     expect(logoutCalls, 1);
-    expect(find.text('Log out of Tio?'), findsNothing);
+    expect(
+      find.text('Are you sure you want to log out of your account?'),
+      findsNothing,
+    );
   });
 }
