@@ -6,36 +6,44 @@
 
 ## Owner Approval and Scope Boundary
 
-**Trigger:** Supabase table/column shape change
-**Approval status:** Approved
-**Approval evidence:** Owner explicitly approved the exact V1 physical shape in chat on 2026-09-17 by saying `Go` after the approval-ready schema was presented.
-**Approved product/UI/data-shape boundaries:** Widen `public.meal_log_entries` for `manual | detailed`; make `manual_nutrition_snapshot` nullable with a mode-coupled invariant; add `public.meal_log_item_snapshots` with only `id`, `meal_log_entry_id`, `position`, `display_name`, nullable `brand_name`, `quantity`, `serving_unit`, and `nutrition_snapshot`.
-**Explicit non-changes:** No child timestamps, child `user_id`, provider/source IDs, raw provider payload, detailed meal-total column, repository create/read mapping, RPC/client write activation, Meal Editor final save, parser/API/AI/provider wiring, UI, membership/ads, or unrelated Supabase cleanup.
+**Trigger:** Supabase table/column shape change  
+**Approval status:** Approved  
+**Approval evidence:** Owner explicitly approved the exact V1 physical shape on 2026-09-17 and later authorized the final review/merge sequence with `go` while asking agents to follow root `AGENTS.md`.
+
+Approved shape:
+
+- widen `public.meal_log_entries.mode` to `manual | detailed`;
+- make `manual_nutrition_snapshot` nullable with a mode-coupled invariant;
+- add `public.meal_log_item_snapshots` with only `id`, `meal_log_entry_id`, `position`, `display_name`, nullable `brand_name`, `quantity`, `serving_unit`, and `nutrition_snapshot`;
+- keep detailed meal nutrition derived from durable item snapshots rather than adding a competing parent total;
+- keep direct authenticated child writes disabled until the later atomic repository/RPC boundary.
+
+Explicit non-changes: no provider/source IDs, raw provider payload, child timestamps or `user_id`, Meal Editor final save activation, parser/API/AI/provider wiring, UI change, membership/ads coupling, or unrelated Supabase cleanup.
 
 ## Active Handoff
 
-**Planning owner:** ChatGPT
-**Implementation owner:** ChatGPT
-**Review owner:** ChatGPT independent PR review
-**Implementation ownership state:** Complete
-**Repository state last verified:** Remote `main` = `7ecdd6c572083a869b095b5c138607eaa504a711`; branch was 5 commits ahead / 0 behind before this PR-handoff refresh. Connector-only session cannot claim local working-tree sync.
-**Branch:** `tnyx/tnyx-217-n20a-8-detailed-meallog-physical-persistence-foundation`
-**HEAD SHA:** `0e9b4827bf58c8b25ed4ea313620ae0fde60b83f` before this PR-handoff refresh commit.
-**Observed working-tree state:** Local filesystem unavailable through connector; no destructive local action attempted.
-**PR / tracker:** Linear TNYX-217 `In Review`; GitHub issue #272; GitHub PR #273 open and Ready for Review.
-**Current implementation state:** Physical schema, constraints, deferred aggregate integrity, RLS and grant hardening are applied live and recorded in repository migrations. Repository/UI/parser activation remains deferred.
-**Relevant execution surface:** `supabase/migrations/*`, `public.meal_log_entries`, `public.meal_log_item_snapshots`.
-**Validation completed:** Live structural checks, authenticated/non-owner RLS checks, rollback-only aggregate tests, security/performance advisors, migration history reconciliation, pre-PR ancestry/scope audit.
-**Validation remaining:** Final exact-head SQL review, PR review-thread audit and exact-head CI/workflow audit.
-**Current blocker:** None for review. Merge requires explicit owner authorization after review/CI.
-**Open review finding IDs:** None at handoff.
-**Next exact action:** Review PR #273 at its final exact head; fix any scoped finding; do not merge unless owner explicitly authorizes merge.
+**Planning owner:** ChatGPT  
+**Implementation owner:** ChatGPT  
+**Review owner:** ChatGPT independent fallback review because the requested Codex review hit its usage limit  
+**Implementation ownership state:** Complete; current repository edit is governance-only handoff reconciliation  
+**Branch:** `tnyx/tnyx-217-n20a-8-detailed-meallog-physical-persistence-foundation`  
+**Base:** `main` at `7ecdd6c572083a869b095b5c138607eaa504a711`  
+**Source/test review checkpoint:** `216a353a122ee3e0b446c0710dd3d046025d15f6` before this governance-only handoff commit  
+**Checkpoint compare:** 9 commits ahead / 0 behind; merge-base equals base SHA; exactly 6 changed files  
+**Observed working-tree state:** Connector-only session cannot inspect local `git status`; no destructive local action attempted  
+**PR / tracker:** Linear `TNYX-217` In Review; GitHub issue #272; GitHub PR #273 open and Ready for Review  
+**Current implementation state:** Physical schema, deferred aggregate integrity, RLS/grant hardening, SQL regression coverage, and Supabase CI wiring are implemented. Repository/UI/parser activation remains deferred.  
+**Validation completed at source/test checkpoint:** Supabase Database CI run #51 SUCCESS; complete API scope audit; 0 unresolved GitHub review threads; independent fallback source/test review found no new P1/P2 finding.  
+**Codex review status:** requested review did not execute because the Codex code-review usage limit was reached.  
+**Validation remaining after this governance-only commit:** verify the resulting exact HEAD is still 0 behind, confirm the expected 6-file scope plus this same task-brief update only, confirm required CI/check state, then merge only under the owner's explicit authorization.  
+**Current blocker:** none if exact-head gates remain green.  
+**Open review finding IDs:** none.
 
 ## 1. Discovery
 
 ### User Outcome
 
-Persist the merged canonical `MealLogEntry.detailed(...)` shape without weakening manual history or creating a competing detailed nutrition truth.
+Persist canonical `MealLogEntry.detailed(...)` history without weakening manual history, bypassing optimistic-revision semantics, or creating a second authoritative nutrition truth.
 
 ### Success Criteria
 
@@ -52,41 +60,9 @@ Persist the merged canonical `MealLogEntry.detailed(...)` shape without weakenin
 
 Detailed repository mapping/atomic create API, Meal Editor save activation, parser/provider work, detailed edit workflow, child provenance, unit catalog, UI changes, or unrelated security/performance cleanup.
 
-## 2. Codebase Exploration
+## 2. Verified Architecture
 
-### Verified Evidence
-
-Pre-change live state:
-
-```text
-public.meal_log_entries rows: 8
-mode distribution: manual = 8
-manual_nutrition_snapshot: NOT NULL
-mode constraint: manual only
-child detailed table: absent
-```
-
-Existing create identity `(user_id, client_mutation_id)`, `revision >= 1`, owner RLS, selected-day index and `private.is_valid_nutrition_snapshot_v1(jsonb)` were preserved.
-
-PostgreSQL `numeric` supports `NaN` and infinities. Live verification confirmed `quantity > 0` alone accepts `NaN`/`Infinity`, so V1 uses `quantity > 0 AND quantity < 'Infinity'::numeric`.
-
-## 3. Clarification
-
-| Decision | Status | Rationale |
-|---|---|---|
-| One canonical `meal_log_entries` parent | Approved | Manual/detailed are modes of one history aggregate. |
-| `mode IN ('manual','detailed')` | Approved | Matches canonical domain. |
-| Nullable mode-coupled `manual_nutrition_snapshot` | Approved | Detailed truth lives only in child snapshots. |
-| Normalized `meal_log_item_snapshots` table | Approved | Durable identity and deterministic order. |
-| No child `user_id` | Approved | Ownership derives from parent; avoids drift. |
-| Store-only `position integer` | Approved | Ordered list must round-trip deterministically. |
-| No child timestamps/provenance/meal total | Approved | Keep V1 canonical shape minimal. |
-| Deferred aggregate integrity | Implemented | Allows atomic parent+items transaction while rejecting invalid committed aggregates. |
-| Authenticated child table is SELECT-only | Implemented review hardening | Direct child writes would bypass parent `revision`/concurrency semantics before the atomic repository boundary exists. |
-
-## 4. Architecture Design
-
-Parent:
+Parent invariant:
 
 ```text
 meal_log_entries.mode: manual | detailed
@@ -94,7 +70,7 @@ manual   => manual_nutrition_snapshot IS NOT NULL
 detailed => manual_nutrition_snapshot IS NULL
 ```
 
-Child:
+Child shape:
 
 ```text
 public.meal_log_item_snapshots
@@ -116,7 +92,7 @@ Physical rules:
 - Positive finite quantity.
 - Canonical NutritionSnapshot validator.
 - Deferred constraint triggers enforce `manual => 0 children` and `detailed => >=1 child` at transaction end.
-- Trigger helpers are `SECURITY INVOKER`.
+- Trigger helpers are `SECURITY INVOKER` with an empty search path.
 
 Access:
 
@@ -126,25 +102,24 @@ authenticated => SELECT only + owner RLS
 service_role  => SELECT / INSERT / UPDATE / DELETE
 ```
 
-Authenticated INSERT/UPDATE/DELETE RLS policies remain defined but dormant behind table grants; the next atomic repository/RPC slice must explicitly choose its write boundary rather than inheriting direct item mutation accidentally.
+Authenticated INSERT/UPDATE/DELETE RLS policies remain defined but dormant behind table grants. The next atomic repository/RPC slice must explicitly establish its write boundary and parent `revision` semantics.
 
-## 5. Implementation Plan
+## 3. Implementation
 
 - [x] Exact table/column shape approved.
-- [x] Fresh live schema and migration-history audit.
 - [x] Apply `20260917083552_add_detailed_meal_log_persistence`.
-- [x] Apply review hardening `20260917083919_tighten_detailed_meal_log_item_grants`.
+- [x] Apply `20260917083919_tighten_detailed_meal_log_item_grants`.
 - [x] Verify columns, constraints, trigger deferrability, RLS, policies, grants and existing manual rows.
-- [x] Exercise rollback-only aggregate invariant tests.
-- [x] Run security/performance advisors and isolate task-relevant findings.
-- [x] Record migrations in repository.
-- [x] Open focused PR #273 and hand off to review.
+- [x] Add focused SQL regression matrix `tnyx_217_detailed_meal_log_persistence.test.sql`.
+- [x] Update legacy manual persistence matrix for the mode-coupled nullable parent column.
+- [x] Wire the TNYX-217 SQL matrix into `supabase-db-ci.yml`.
+- [x] Exercise rollback-only aggregate invariant and ownership tests.
+- [x] Run security/performance advisor checks and isolate task-relevant findings.
+- [x] Open PR #273 and perform exact source/test checkpoint review.
 
-## 6. Quality Review
+## 4. Quality Review
 
-### Validation Run
-
-Live `tio-world` verification after both migrations:
+Live/post-migration evidence recorded for this slice:
 
 ```text
 existing parent rows: 8
@@ -155,56 +130,75 @@ child RLS: enabled
 constraint triggers: DEFERRABLE INITIALLY DEFERRED
 ```
 
-Rollback-only behavioral tests passed:
+Behavioral checks recorded as passing:
 
 ```text
-atomic detailed parent + child: PASS
-existing manual create/update path at DB boundary: PASS
-non-owner child visibility: 0 rows
-empty detailed parent rejected: PASS
-manual parent + detailed child rejected: PASS
-Infinity quantity rejected: PASS
-last child deletion from live detailed parent rejected: PASS
-parent delete cascades child: PASS
+atomic detailed parent + child
+existing manual create/update DB boundary
+owner/non-owner child read isolation
+empty detailed parent rejection
+manual parent + detailed child rejection
+infinite quantity rejection
+last-child deletion rejection
+parent delete cascade
 ```
 
-Final child grants verified:
+Final grants verified:
 
 ```text
 authenticated: SELECT=true, INSERT=false, UPDATE=false, DELETE=false
-anon: SELECT=false
-service_role: SELECT/INSERT/UPDATE/DELETE=true
+anon: no child-table DML
+service_role: SELECT/INSERT/UPDATE/DELETE
 ```
 
-Security Advisor after DDL reported only pre-existing unrelated warnings: four authenticated-callable `SECURITY DEFINER` public functions and leaked-password protection disabled. No new TNYX-217 security finding.
+Source/test checkpoint review on `216a353a122ee3e0b446c0710dd3d046025d15f6`:
 
-Performance Advisor reported existing unrelated RLS init-plan/unused-index findings and did not flag the new child policies.
+- base/merge-base `7ecdd6c572083a869b095b5c138607eaa504a711`;
+- 9 ahead / 0 behind;
+- exactly 6 scoped files;
+- Supabase Database CI run #51 SUCCESS;
+- 0 unresolved review threads;
+- independent fallback review found no new P1/P2 finding;
+- requested Codex review did not execute because the code-review usage limit was reached.
 
-Local `git diff --check` cannot be claimed in this connector-only session. GitHub API ancestry/changed-file evidence is used instead, per `docs/PUSH_TEMPLATE.md`.
+Local `git diff --check` and local working-tree cleanliness cannot be truthfully claimed from this connector-only session. GitHub API ancestry, commit, changed-file and CI evidence are used under `docs/PUSH_TEMPLATE.md`.
 
-### Review Findings and Resolution
+### Review Findings
 
 | ID | Severity | Status | Finding | Resolution |
 |---|---|---|---|---|
 | T217-P1 | P1 | Resolved | Exact table/column shape required owner approval. | Owner approved exact V1 shape on 2026-09-17. |
-| T217-RF1 | P1 | Resolved | Full authenticated child DML would let direct clients mutate detailed history without parent `revision` semantics. | Added `20260917083919_tighten_detailed_meal_log_item_grants.sql`; authenticated is SELECT-only until atomic write boundary lands. |
+| T217-RF1 | P1 | Resolved | Full authenticated child DML could bypass parent `revision` semantics. | Grant-hardening migration leaves authenticated clients SELECT-only until the atomic write boundary lands. |
 
-## 7. Final Handoff
+No open P1/P2 finding remains at the source/test review checkpoint.
 
-### Changed Files
+## 5. Final Handoff
+
+### Changed Files at Source/Test Checkpoint
 
 1. `.ai/tasks/tnyx-217-detailed-meal-log-physical-persistence.md`
-2. `supabase/migrations/20260917083552_add_detailed_meal_log_persistence.sql`
-3. `supabase/migrations/20260917083919_tighten_detailed_meal_log_item_grants.sql`
+2. `.github/workflows/supabase-db-ci.yml`
+3. `supabase/migrations/20260917083552_add_detailed_meal_log_persistence.sql`
+4. `supabase/migrations/20260917083919_tighten_detailed_meal_log_item_grants.sql`
+5. `supabase/tests/database/tnyx_194_manual_meal_log_entries.test.sql`
+6. `supabase/tests/database/tnyx_217_detailed_meal_log_persistence.test.sql`
 
 ### Actual Behavior
 
-Supabase can now represent canonical detailed MealLog aggregates with ordered consumed item snapshots and DB-enforced committed-state integrity. Existing manual history remains valid. Direct authenticated child mutation is intentionally not activated.
+Supabase can represent canonical detailed MealLog aggregates with ordered consumed item snapshots and DB-enforced committed-state integrity. Existing manual history remains valid. Direct authenticated child mutation is intentionally not activated.
 
-### Known Limitations
+### Known Limitations / Next Bounded Slice
 
-Detailed repository read/create mapping, atomic write RPC/boundary, Meal Editor final save, detailed edits and TNYX-207 parser flow remain deferred to later bounded slices.
+After merge and `docs/POST_MERGE_SYNC.md` reconciliation, perform a fresh audit for:
+
+```text
+detailed MealLog repository
++ atomic create/read decoding
++ idempotency / parent revision boundary
+```
+
+Do not activate Meal Editor final save or `TNYX-207` parser flow in this slice.
 
 ### Final Status
 
-`REVIEW` — PR #273 is open; exact-head review/CI remains before any owner-authorized merge.
+`REVIEW` — implementation/source review is clean at the recorded checkpoint. This governance-only refresh must receive an exact-head gate check before the owner-authorized merge is executed.
