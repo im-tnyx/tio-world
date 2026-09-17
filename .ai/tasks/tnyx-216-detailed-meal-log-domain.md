@@ -17,21 +17,21 @@
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** ChatGPT
-**Implementation ownership state:** Handoff pending
+**Implementation ownership state:** Review handoff
 **Ownership transition:** Not applicable
-**Repository state last verified:** Connector-only session; GitHub `main` = `363754242477f2b4b9e5d8ac5a2cc71e69c43f98` and remains the merge base. Before this final task-brief-only reconciliation the branch was `8 ahead / 0 behind` with exactly six intended changed files.
+**Repository state last verified:** Connector-only session; GitHub `main` = `363754242477f2b4b9e5d8ac5a2cc71e69c43f98` and remains the merge base. Before this governance-only reconciliation the branch was `9 ahead / 0 behind` with exactly six intended changed files.
 **Branch:** `tnyx/tnyx-216-n20a-7-detailed-meallog-domain-foundation`
-**Latest validated predecessor HEAD SHA:** `8f3bc7572017c2883d57949c508202c859f3eb01`
+**Latest validated predecessor HEAD SHA:** `e13feacb42f2cc932c0be8ad844f1cb16f76aa41`
 **Observed working-tree state:** Connector-only session; local `git status` unavailable. GitHub branch/commit/diff evidence is used instead.
 **Observed uncommitted/dirty files:** Not observable through connector-only execution; repository writes are committed directly to this branch.
-**PR / tracker:** Draft GitHub PR #271; Linear TNYX-216, parent TNYX-113; related TNYX-207, TNYX-215, TNYX-188.
-**Current implementation state:** Bounded shared detailed MealLog domain contract implemented, independently reviewed, and validated. This commit changes handoff metadata only.
+**PR / tracker:** GitHub PR #271 is Ready for Review; Linear TNYX-216 is `In Review`; parent TNYX-113; related TNYX-207, TNYX-215, TNYX-188.
+**Current implementation state:** Bounded shared detailed MealLog domain contract implemented, independently reviewed, and validated. This commit only reconciles the active handoff after the Ready-for-Review transition; production source/tests are unchanged.
 **Relevant execution surface:** `apps/shared/lib/src/nutrition/meal_log_entry.dart`, `meal_log_item_snapshot.dart`, Nutrition shared export, focused shared tests.
-**Validation completed at SHA:** `8f3bc7572017c2883d57949c508202c859f3eb01` via Flutter CI #2601 / run `35179632899` — bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests all passed.
-**Validation remaining:** The resulting metadata-only head must also receive exact-head CI before Ready-for-Review transition; no source/test validation gap remains.
-**Current blocker:** None for TNYX-216. Detailed Supabase physical shape remains a separate owner-approval gate after merge.
-**Open review finding IDs:** None.
-**Next exact action:** Verify exact-head CI for this final handoff-only commit, refresh PR/thread/scope audit, then mark PR #271 Ready for Review and reconcile TNYX-216 to `In Review`.
+**Validation completed at SHA:** `e13feacb42f2cc932c0be8ad844f1cb16f76aa41` via Flutter CI #2602 / run `35187679989` — bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests all passed.
+**Validation remaining:** The resulting governance-only head must receive exact-head CI before any merge decision; no source/test validation gap remains.
+**Current blocker:** None for review. Detailed Supabase physical shape remains a separate owner-approval gate after merge.
+**Open review finding IDs:** None. T216-RF2 was corrected by this governance-only reconciliation.
+**Next exact action:** Verify exact-head CI and final scope/thread review on this governance-only head, then await separate owner merge authorization. Do not start the detailed Supabase persistence slice before merge + post-merge sync + fresh schema/readiness audit.
 
 ## Global UI / Design-System Guardrail
 
@@ -67,7 +67,7 @@ Repository/Supabase persistence, schema, detailed create idempotency, parser/pro
 - Source/config inspected: root `AGENTS.md`, `.ai/workflow.md`, `.ai/FEATURE_DEVELOPMENT.md`, task template, TNYX-113/TNYX-188/TNYX-189/TNYX-207/TNYX-215, current shared Nutrition contracts/tests, current manual MealLog repository, and live Supabase manual-only schema.
 - Existing pattern followed: `apps/shared` owns pure-Dart cross-feature contracts; `NutritionSnapshot` owns immutable canonical nutrient truth; `MealLogEntry.manual` already owns time/name/note/revision normalization; `MealLoggingDraftItem` intentionally permits incomplete pre-confirmation facts.
 - Live persistence remained unchanged: `public.meal_log_entries` is still manual-only and no detailed item table/function was created.
-- Tests/validation: existing shared MealLog tests plus new focused item/detailed aggregate tests; governed workspace CI passed at the source/test head and again at the metadata predecessor head.
+- Tests/validation: existing shared MealLog tests plus new focused item/detailed aggregate tests; governed workspace CI passed at the source/test head and through the Ready-for-Review predecessor head.
 
 ## 3. Clarification
 
@@ -120,12 +120,14 @@ No UI/accessibility behavior changes. Invalid durable construction fails synchro
 - [x] Run governed workspace analyze/test validation at source/test head.
 - [x] Perform source-head scope and architecture review; no P1/P2 findings remain.
 - [x] Validate the metadata predecessor head with exact-head CI #2601 and re-run final code/scope/thread review.
+- [x] Validate the Ready-for-Review predecessor head with exact-head CI #2602.
+- [x] Reconcile the active handoff after PR #271 moved Ready for Review and TNYX-216 moved `In Review`.
 
 ## 6. Quality Review
 
 ### Validation Run
 
-Flutter CI #2601 / run `35179632899` at SHA `8f3bc7572017c2883d57949c508202c859f3eb01`:
+Flutter CI #2602 / run `35187679989` at SHA `e13feacb42f2cc932c0be8ad844f1cb16f76aa41`:
 
 ```text
 Bootstrap workspace       PASS
@@ -135,7 +137,9 @@ Test Flutter packages     PASS
 Test Dart packages        PASS
 ```
 
-Flutter CI #2600 / run `35178984501` also passed at source/test SHA `becf4ce07af4e7d536363770701d6812e302da95` before the handoff-only metadata commit.
+Flutter CI #2601 / run `35179632899` also passed at SHA `8f3bc7572017c2883d57949c508202c859f3eb01`.
+
+Flutter CI #2600 / run `35178984501` also passed at source/test SHA `becf4ce07af4e7d536363770701d6812e302da95` before the handoff-only metadata commits.
 
 The auxiliary GitHub `Code scanning AI findings` dynamic automation failed inside its external `Processing Request` step and emitted no PR review, inline comments, or code finding. It is recorded as tooling evidence, not represented as a successful code scan. Repository Flutter/Dart validation and the independent exact-head code review remain the quality gates for this slice.
 
@@ -144,8 +148,9 @@ The auxiliary GitHub `Code scanning AI findings` dynamic automation failed insid
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
 | T216-RF1 | P3 | Resolved before source implementation | Initial task wording considered requiring at least one currently-known nutrient in an item snapshot. | task-planning checkpoint | Reconciled with `NutritionSnapshot` forward compatibility: the snapshot is required, but an empty current-registry view remains valid. Task brief and Linear acceptance were corrected before source changes. |
+| T216-RF2 | P3 | Resolved | After the external Ready-for-Review + Linear `In Review` transition, this task brief still described PR #271 as Draft, exact-head CI as pending, and the transition itself as the next action. | `e13feacb42f2cc932c0be8ad844f1cb16f76aa41` | Governance-only reconciliation updated the active handoff; production source/tests remain unchanged. |
 
-Final review at predecessor head `8f3bc7572017c2883d57949c508202c859f3eb01` found no open P1/P2 finding, no provider/API/persistence leakage, no Flutter dependency in `apps/shared`, no Supabase/UI scope widening, no unresolved review thread, and no competing detailed/manual nutrition truth.
+Final code review at `e13feacb42f2cc932c0be8ad844f1cb16f76aa41` found no open P1/P2 source finding, no provider/API/persistence leakage, no Flutter dependency in `apps/shared`, no Supabase/UI scope widening, no unresolved review thread, and no competing detailed/manual nutrition truth. The only final-review gap was T216-RF2 stale handoff metadata, corrected without touching production source/tests.
 
 ## 7. Final Handoff
 
@@ -170,4 +175,4 @@ Detailed repository/Supabase persistence, parent+item atomic create/idempotency,
 
 ### Final Status
 
-`REVIEW` — implementation is validated and review-clean; this final task-brief-only commit must be exact-head green before the PR is moved out of Draft.
+`REVIEW` — implementation is review-clean and validated through the Ready-for-Review predecessor head. The resulting governance-only head must be exact-head green and scope/thread-clean before a separate owner merge authorization can be acted on. Merge is not authorized by this handoff.
