@@ -7,7 +7,8 @@ import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
-  testWidgets('renders the approved create body and keeps footer disabled without save context',
+  testWidgets(
+      'renders the approved create body and keeps footer disabled without save context',
       (tester) async {
     await _pumpEditor(tester, draft: _completeDraft());
 
@@ -52,7 +53,8 @@ void main() {
     expect(created, same(repository.result));
   });
 
-  testWidgets('in-flight submit uses existing loading state and suppresses duplicate tap',
+  testWidgets(
+      'in-flight submit uses existing loading state and suppresses duplicate tap',
       (tester) async {
     final repository = _BlockingWidgetRepository();
     await _pumpEditor(
@@ -96,7 +98,77 @@ void main() {
     expect(find.text("Couldn't log meal. Try again."), findsNothing);
   });
 
-  testWidgets('incomplete draft remains disabled even when repository/context exist',
+  testWidgets(
+      'ambiguous save locks draft controls and keeps frozen retry available',
+      (tester) async {
+    final repository = _WidgetRepository(outcomeUnknownBeforeSuccess: 1);
+    MealLogEntry? created;
+    var categoryTaps = 0;
+    var dateTimeTaps = 0;
+    var backTaps = 0;
+
+    await _pumpEditor(
+      tester,
+      draft: _completeDraft(),
+      repository: repository,
+      onCreated: (entry) => created = entry,
+      onBack: () => backTaps++,
+      onMealCategoryTap: () => categoryTaps++,
+      onDateTimeTap: () => dateTimeTaps++,
+    );
+
+    final primary = find.byKey(const ValueKey('meal-log-footer-primary'));
+    await tester.tap(primary);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(MealEditorDetailedCreateController.outcomeUnknownMessage),
+      findsOneWidget,
+    );
+    expect(repository.inputs, hasLength(1));
+    expect(tester.widget<TioButton>(primary).onPressed, isNotNull);
+    expect(
+      tester
+          .widget<TioInput>(find.byKey(const ValueKey('meal-editor-meal-name')))
+          .enabled,
+      isFalse,
+    );
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byKey(const ValueKey('meal-editor-quantity-plus-0')),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<IconButton>(find.byKey(const ValueKey('meal-editor-delete-0')))
+          .onPressed,
+      isNull,
+    );
+    expect(tester.widget<BackButton>(find.byType(BackButton)).onPressed, isNull);
+
+    await tester.tap(find.byKey(const ValueKey('meal-log-footer-category')));
+    await tester.tap(find.byKey(const ValueKey('meal-log-footer-date-time')));
+    await tester.pump();
+    expect(categoryTaps, 0);
+    expect(dateTimeTaps, 0);
+    expect(backTaps, 0);
+
+    await tester.tap(primary);
+    await tester.pumpAndSettle();
+
+    expect(repository.inputs, hasLength(2));
+    expect(
+      repository.inputs[1].clientMutationId,
+      repository.inputs[0].clientMutationId,
+    );
+    expect(created, same(repository.result));
+  });
+
+  testWidgets(
+      'incomplete draft remains disabled even when repository/context exist',
       (tester) async {
     final draft = MealLoggingDraft(
       captureSource: MealLogCaptureSource.text,
@@ -188,7 +260,8 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('Log your meal'), findsOneWidget);
-    expect(find.byKey(const ValueKey('meal-editor-nutrition-summary')), findsOneWidget);
+    expect(find.byKey(const ValueKey('meal-editor-nutrition-summary')),
+        findsOneWidget);
     expect(find.byKey(const ValueKey('meal-log-footer-primary')), findsOneWidget);
   });
 }
@@ -200,6 +273,9 @@ Future<void> _pumpEditor(
   TioThemeMode mode = TioThemeMode.light,
   DetailedMealLogCreateRepository? repository,
   ValueChanged<MealLogEntry>? onCreated,
+  VoidCallback? onBack,
+  VoidCallback? onMealCategoryTap,
+  VoidCallback? onDateTimeTap,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -219,7 +295,9 @@ Future<void> _pumpEditor(
             repository == null ? null : DateTime(2026, 9, 16, 13, 15),
         detailedCreateRepository: repository,
         onCreated: onCreated,
-        onBack: () {},
+        onBack: onBack ?? () {},
+        onMealCategoryTap: onMealCategoryTap,
+        onDateTimeTap: onDateTimeTap,
       ),
     ),
   );
@@ -227,15 +305,25 @@ Future<void> _pumpEditor(
 }
 
 class _WidgetRepository implements DetailedMealLogCreateRepository {
-  _WidgetRepository({this.failuresBeforeSuccess = 0});
+  _WidgetRepository({
+    this.failuresBeforeSuccess = 0,
+    this.outcomeUnknownBeforeSuccess = 0,
+  });
 
   int failuresBeforeSuccess;
+  int outcomeUnknownBeforeSuccess;
   final inputs = <DetailedMealLogCreate>[];
   final result = _entry();
 
   @override
   Future<MealLogEntry> createDetailed(DetailedMealLogCreate input) async {
     inputs.add(input);
+    if (outcomeUnknownBeforeSuccess > 0) {
+      outcomeUnknownBeforeSuccess--;
+      throw MealLogCreateOutcomeUnknown(
+        clientMutationId: input.clientMutationId,
+      );
+    }
     if (failuresBeforeSuccess > 0) {
       failuresBeforeSuccess--;
       throw Exception('network');
