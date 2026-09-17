@@ -1,6 +1,6 @@
 # TNYX-220 — Natural-language meal parse contract + processing controller foundation
 
-**Status:** In progress
+**Status:** In review
 **Primary owner:** `apps/features/nutrition`
 **Affected platforms:** Flutter phone Nutrition feature contract/state only; no production UI change in this slice
 
@@ -8,7 +8,7 @@
 
 **Trigger:** None
 **Approval status:** Not required
-**Approval evidence:** TNYX-220 is a bounded internal implementation subtask required to complete the already owner-approved TNYX-207 natural-language meal flow. The owner explicitly said `go follow with root agent.md` after PR #276 merged. This slice introduces no new product-visible UI/UX and no Supabase table/column shape.
+**Approval evidence:** TNYX-220 is a bounded internal implementation subtask required to complete the already owner-approved TNYX-207 natural-language meal flow. The owner explicitly said `go follow with root agent.md` after PR #276 merged, and again authorized review/handoff reconciliation on 2026-09-17. This slice introduces no new product-visible UI/UX and no Supabase table/column shape.
 **Approved product/UI/data-shape boundaries:** Provider-neutral text-parse repository contract, processing controller/state, safe failure mapping, focused tests/exports/task handoff only.
 **Explicit non-changes:** No Add Food UI activation; no keyboard/mic/send behavior; no processing screen; no provider/SDK/network adapter; no Supabase Edge Function; no `services/api`; no secrets/config; no schema/RLS/RPC; no Meal Editor UI or persistence change; no voice/photo/search/saved/recent/barcode work.
 
@@ -21,17 +21,17 @@
 **Ownership transition:** Not applicable
 **Repository state last verified:** Remote `main` remains `0359a35aad54dbbd29c1c9311b6677dfcebc6614`; connector-only execution cannot inspect a local working tree.
 **Branch:** `tnyx/tnyx-220-n5d-4-natural-language-meal-parse-contract-processing`
-**HEAD SHA:** `9a0a466dccbc03b9d9417288bfa596788df38fe0` implementation head validated by CI #2619; this handoff update creates one later task-metadata-only head.
+**HEAD SHA before this governance-only reconciliation:** `1a2ec11f33902a6024e0f7d740a86606197f3f08`.
 **Observed working-tree state:** Unavailable in connector-only session; no local-cleanliness claim is made.
 **Observed uncommitted/dirty files:** Unavailable in connector-only session; repository writes in this session are committed directly through GitHub.
-**PR / tracker:** Draft PR #277; Linear TNYX-220 In Progress; parent TNYX-207 remains the broader natural-language flow.
+**PR / tracker:** PR #277 ready for review; Linear TNYX-220 In Review; parent TNYX-207 remains the broader natural-language flow.
 **Current implementation state:** Repository/failure contract, controller/state, exports and focused tests are implemented. No production UI/network/backend/schema/persistence code changed.
 **Relevant execution surface:** Nutrition feature domain repository contracts and meal-logging controller/tests.
-**Validation completed at SHA:** Flutter CI #2619 PASS at `9a0a466dccbc03b9d9417288bfa596788df38fe0`: workspace bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests all succeeded.
-**Validation remaining:** Exact-head CI for this task-handoff-only commit, then Ready-for-Review reconciliation.
+**Validation completed at SHA:** Flutter CI #2620 PASS at `1a2ec11f33902a6024e0f7d740a86606197f3f08`: workspace bootstrap, Flutter analyze, Dart analyze, Flutter tests and Dart tests all succeeded.
+**Validation remaining:** Exact-head CI for this governance-only task-brief reconciliation commit, then final review/merge authorization.
 **Current blocker:** None.
 **Open review finding IDs:** None after implementation diff review.
-**Next exact action:** Wait for exact-head CI on the handoff-only head; if green, mark PR #277 Ready for Review and move TNYX-220 to In Review. Do not start provider/UI work in this slice.
+**Next exact action:** Let exact-head CI validate this governance-only commit, then complete final review. Do not start provider/UI work in this slice. Merge still requires explicit owner authorization.
 
 ## Global UI / Design-System Guardrail
 
@@ -128,7 +128,7 @@ No production accessibility surface changes. State supports idle, processing, fa
 - [x] Export the new contract/controller through Nutrition public barrels.
 - [x] Add focused tests for normalization, blank guard, loading/duplicate submit, recoverable failure/retry, safe messages, unexpected-error sanitization and invalid capture source.
 - [x] Audit exact implementation delta against the approved scope.
-- [ ] Final exact-head CI and Ready-for-Review reconciliation.
+- [x] Exact implementation/handoff head CI passed and Ready-for-Review reconciliation completed.
 
 ## 6. Quality Review
 
@@ -141,15 +141,22 @@ PASS — Flutter package analyze
 PASS — Dart package analyze
 PASS — Flutter package tests
 PASS — Dart package tests
+
+Flutter CI #2620 @ 1a2ec11f33902a6024e0f7d740a86606197f3f08
+PASS — workspace bootstrap
+PASS — Flutter package analyze
+PASS — Dart package analyze
+PASS — Flutter package tests
+PASS — Dart package tests
 ```
 
-Implementation scope audit at the validated head: base `0359a35aad54dbbd29c1c9311b6677dfcebc6614`, `6 ahead / 0 behind`, 6 changed files, all within the TNYX-220 task/Nutrition boundary.
+Final pre-reconciliation scope audit: base `0359a35aad54dbbd29c1c9311b6677dfcebc6614`, `7 ahead / 0 behind`, 6 changed files, all within the TNYX-220 task/Nutrition boundary. Current governance-only commit changes only this task brief.
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| — | — | — | No blocking finding found in the implementation diff review. | `9a0a466d` | CI #2619 green; scope audit clean. |
+| — | — | — | No blocking P1/P2 finding found in the implementation diff review. | `1a2ec11f` | CI #2620 green; scope audit clean; 0 unresolved GitHub review threads. |
 
 ## 7. Final Handoff
 
@@ -178,4 +185,4 @@ No live parser adapter or Add Food presentation wiring exists yet. Provider choi
 
 ### Final Status
 
-`REVIEW` — implementation-head validation passed; final handoff-only exact-head CI is the remaining gate before Ready for Review.
+`IN REVIEW` — implementation validation is green and PR/tracker review state is reconciled. This governance-only handoff commit still needs exact-head CI before final merge authorization.
