@@ -70,7 +70,11 @@ jobs:
           done
           supabase migration repair --local --status applied --yes "${versions[@]}"
           supabase db lint --local --schema public,private --level error --fail-on none \
-            2>&1 | tee "$RUNNER_TEMP/supabase-db-lint-baseline.txt"
+            2>&1 | tee "$RUNNER_TEMP/supabase-db-lint-baseline-raw.txt"
+          sed -E \
+            '/^(Connecting to local database\.\.\.|Linting schema: .*|No schema errors found|A new version of Supabase CLI is available:.*|We recommend updating regularly.*|)$/d' \
+            "$RUNNER_TEMP/supabase-db-lint-baseline-raw.txt" \
+            > "$RUNNER_TEMP/supabase-db-lint-baseline.txt"
 
       - name: Reinitialize the disposable database
         shell: bash
@@ -166,7 +170,11 @@ jobs:
         shell: bash
         run: |
           supabase db lint --local --schema public,private --level error --fail-on none \
-            2>&1 | tee "$RUNNER_TEMP/supabase-db-lint-current.txt"
+            2>&1 | tee "$RUNNER_TEMP/supabase-db-lint-current-raw.txt"
+          sed -E \
+            '/^(Connecting to local database\.\.\.|Linting schema: .*|No schema errors found|A new version of Supabase CLI is available:.*|We recommend updating regularly.*|)$/d' \
+            "$RUNNER_TEMP/supabase-db-lint-current-raw.txt" \
+            > "$RUNNER_TEMP/supabase-db-lint-current.txt"
           diff --unified \
             "$RUNNER_TEMP/supabase-db-lint-baseline.txt" \
             "$RUNNER_TEMP/supabase-db-lint-current.txt"
