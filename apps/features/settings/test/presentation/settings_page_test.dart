@@ -189,22 +189,21 @@ void main() {
     await tester.tap(logout);
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsNothing);
-    expect(find.byType(TioConfirmationCard), findsOneWidget);
-    expect(
-      tester.widget<TioConfirmationCard>(find.byType(TioConfirmationCard)).intent,
-      TioConfirmationIntent.destructive,
-    );
+    expect(find.byType(TioCard), findsOneWidget);
+    expect(find.text('Log out of Tio?'), findsOneWidget);
+    expect(find.text('Cancel'), findsOneWidget);
+    expect(find.text('Log Out'), findsNWidgets(2));
     expect(logoutCalls, 0);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(logoutCalls, 0);
-    expect(find.byType(TioConfirmationCard), findsNothing);
+    expect(find.text('Log out of Tio?'), findsNothing);
 
     await tester.tap(logout);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Log Out').last);
     await tester.pumpAndSettle();
     expect(logoutCalls, 1);
-    expect(find.byType(TioConfirmationCard), findsNothing);
+    expect(find.text('Log out of Tio?'), findsNothing);
   });
 }
