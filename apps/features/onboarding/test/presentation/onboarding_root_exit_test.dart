@@ -23,13 +23,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Profile name'), findsOneWidget);
-    expect(find.byType(TioConfirmationCard), findsNothing);
+    expect(find.text('Log out of Tio?'), findsNothing);
     expect(exits, 0);
 
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(TioConfirmationCard), findsOneWidget);
     expect(find.text('Log out of Tio?'), findsOneWidget);
     expect(exits, 0);
   });
@@ -46,12 +45,12 @@ void main() {
 
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
-    expect(find.byType(TioConfirmationCard), findsOneWidget);
+    expect(find.text('Log out of Tio?'), findsOneWidget);
 
     await tester.tap(find.text('Stay'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(TioConfirmationCard), findsNothing);
+    expect(find.text('Log out of Tio?'), findsNothing);
     expect(find.text('Profile name'), findsOneWidget);
     expect(repository.saveCalls, 0);
     expect(exits, 0);
@@ -72,7 +71,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(exits, 1);
-    expect(find.byType(TioConfirmationCard), findsNothing);
+    expect(find.text('Log out of Tio?'), findsNothing);
   });
 
   testWidgets('confirmed logout awaits draft persistence before exit',
@@ -113,7 +112,6 @@ void main() {
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
-    expect(find.byType(TioConfirmationCard), findsOneWidget);
     expect(find.text('Log out of Tio?'), findsOneWidget);
     expect(exits, 0);
 
