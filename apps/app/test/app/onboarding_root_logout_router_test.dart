@@ -74,7 +74,9 @@ void main() {
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(TioConfirmationCard), findsOneWidget);
+    expect(find.byType(TioCard), findsOneWidget);
+    expect(find.text('Stay'), findsOneWidget);
+    expect(find.text('Log out'), findsOneWidget);
     expect(authRepository.signOutCalls, 0);
     expect(bootstrapController.refreshCalls, 0);
 
