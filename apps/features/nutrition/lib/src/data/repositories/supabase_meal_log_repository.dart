@@ -458,8 +458,8 @@ final class SupabaseMealLogRepository implements
       userId: userId,
       localDate: localDate.toIso8601String(),
     );
-    final entries = await _decodeRows(rows, expectedUserId: userId)
-      ..sort(_compareDiaryOrder);
+    final entries = await _decodeRows(rows, expectedUserId: userId);
+    entries.sort(_compareDiaryOrder);
     return List<MealLogEntry>.unmodifiable(entries);
   }
 
@@ -489,8 +489,8 @@ final class SupabaseMealLogRepository implements
       startLocalDate: start,
       endLocalDate: end,
     );
-    final entries = await _decodeRows(rows, expectedUserId: userId)
-      ..sort(_compareDiaryRangeOrder);
+    final entries = await _decodeRows(rows, expectedUserId: userId);
+    entries.sort(_compareDiaryRangeOrder);
     return List<MealLogEntry>.unmodifiable(entries);
   }
 
@@ -1107,11 +1107,11 @@ final class SupabaseMealLogRepository implements
 
   static MealLogMode _modeFromRow(Map<String, dynamic> row) {
     final rawMode = _requiredString(row, 'mode');
-    try {
-      return MealLogMode.fromStorageValue(rawMode);
-    } on Object {
+    final mode = MealLogMode.fromStorageValue(rawMode);
+    if (mode == null) {
       throw FormatException('Unsupported MealLog mode: $rawMode.');
     }
+    return mode;
   }
 
   static MealLogCaptureSource? _captureSourceFromRow(
