@@ -90,11 +90,11 @@ final class SupabaseMealLogTableGateway implements
 
   @override
   Future<String> createDetailed(Map<String, dynamic> params) async {
-    final result = await _client.rpc(
+    final result = await _client.rpc<String>(
       'create_detailed_meal_log',
       params: params,
     );
-    if (result is! String || result.trim().isEmpty) {
+    if (result.trim().isEmpty) {
       throw const FormatException(
         'Detailed MealLog create RPC must return a non-empty parent id.',
       );
@@ -343,7 +343,7 @@ final class SupabaseMealLogRepository implements
           clientMutationId: input.clientMutationId,
         );
       }
-      return _decodeDetailedCreateResult(
+      return await _decodeDetailedCreateResult(
         row,
         expectedUserId: userId,
         input: input,
