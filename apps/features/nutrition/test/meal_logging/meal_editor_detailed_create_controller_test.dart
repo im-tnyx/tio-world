@@ -96,9 +96,10 @@ void main() {
 
     expect(await controller.submit(draft: draft, context: context), isNull);
     expect(controller.state.status, MealEditorDetailedCreateStatus.outcomeUnknown);
+    expect(controller.state.locksDraft, isTrue);
     expect(
       controller.canSubmit(draft: draft, context: context),
-      isFalse,
+      isTrue,
     );
 
     final result = await controller.submit(draft: draft, context: context);
