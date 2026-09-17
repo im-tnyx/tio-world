@@ -273,7 +273,7 @@ void main() {
           ),
         ],
       );
-      final secondParent = 'a2180000-0000-4000-8000-000000000105';
+      const secondParent = 'a2180000-0000-4000-8000-000000000105';
       final items = _ItemGateway(rows: [
         _itemRow1(),
         _itemRow2(),
