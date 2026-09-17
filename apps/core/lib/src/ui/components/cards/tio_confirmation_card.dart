@@ -4,6 +4,8 @@ import '../../../theme/theme.dart';
 import '../buttons/buttons.dart';
 import 'tio_card.dart';
 
+enum TioConfirmationIntent { standard, destructive }
+
 /// Reusable themed confirmation surface for actions that need an explicit
 /// confirm/cancel choice.
 ///
@@ -19,6 +21,7 @@ class TioConfirmationCard extends StatelessWidget {
     required this.onCancel,
     super.key,
     this.icon,
+    this.intent = TioConfirmationIntent.standard,
   });
 
   final String title;
@@ -28,11 +31,25 @@ class TioConfirmationCard extends StatelessWidget {
   final VoidCallback? onConfirm;
   final VoidCallback? onCancel;
   final Widget? icon;
+  final TioConfirmationIntent intent;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.tioColors;
     final textTheme = Theme.of(context).textTheme;
+
+    final confirmButton = switch (intent) {
+      TioConfirmationIntent.standard => TioButton.primary(
+          label: confirmLabel,
+          onPressed: onConfirm,
+          expand: true,
+        ),
+      TioConfirmationIntent.destructive => TioButton.destructive(
+          label: confirmLabel,
+          onPressed: onConfirm,
+          expand: true,
+        ),
+    };
 
     return TioCard(
       variant: TioCardVariant.elevated,
@@ -77,13 +94,7 @@ class TioConfirmationCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: TioSpacing.md),
-              Expanded(
-                child: TioButton.primary(
-                  label: confirmLabel,
-                  onPressed: onConfirm,
-                  expand: true,
-                ),
-              ),
+              Expanded(child: confirmButton),
             ],
           ),
         ],
