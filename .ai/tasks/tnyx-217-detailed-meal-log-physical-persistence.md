@@ -1,6 +1,6 @@
 # TNYX-217 — Detailed MealLog Physical Persistence Foundation
 
-**Status:** In progress
+**Status:** In review
 **Primary owner:** Nutrition persistence / Supabase
 **Affected platforms:** Supabase/Postgres only; Flutter runtime unchanged in this slice
 
@@ -16,20 +16,20 @@
 
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
-**Review owner:** Pending focused PR review
-**Implementation ownership state:** Handoff pending
-**Repository state last verified:** Remote `main` = `7ecdd6c572083a869b095b5c138607eaa504a711`; branch is 4 commits ahead / 0 behind before this handoff refresh. Connector-only session cannot claim local working-tree sync.
+**Review owner:** ChatGPT independent PR review
+**Implementation ownership state:** Complete
+**Repository state last verified:** Remote `main` = `7ecdd6c572083a869b095b5c138607eaa504a711`; branch was 5 commits ahead / 0 behind before this PR-handoff refresh. Connector-only session cannot claim local working-tree sync.
 **Branch:** `tnyx/tnyx-217-n20a-8-detailed-meallog-physical-persistence-foundation`
-**HEAD SHA:** `6f03d3b22fbd8fa6b8c71c97d461133fcddc6be2` before this handoff refresh commit.
+**HEAD SHA:** `0e9b4827bf58c8b25ed4ea313620ae0fde60b83f` before this PR-handoff refresh commit.
 **Observed working-tree state:** Local filesystem unavailable through connector; no destructive local action attempted.
-**PR / tracker:** Linear TNYX-217; GitHub #272; PR pending.
+**PR / tracker:** Linear TNYX-217 `In Review`; GitHub issue #272; GitHub PR #273 open and Ready for Review.
 **Current implementation state:** Physical schema, constraints, deferred aggregate integrity, RLS and grant hardening are applied live and recorded in repository migrations. Repository/UI/parser activation remains deferred.
 **Relevant execution surface:** `supabase/migrations/*`, `public.meal_log_entries`, `public.meal_log_item_snapshots`.
-**Validation completed:** Live structural checks, authenticated/non-owner RLS checks, rollback-only aggregate tests, security/performance advisors, migration history reconciliation.
-**Validation remaining:** API-equivalent final branch audit after this handoff commit; PR checks/review.
-**Current blocker:** None for PR handoff.
-**Open review finding IDs:** None.
-**Next exact action:** Audit final branch delta, open focused PR, then review without merging unless owner explicitly authorizes merge.
+**Validation completed:** Live structural checks, authenticated/non-owner RLS checks, rollback-only aggregate tests, security/performance advisors, migration history reconciliation, pre-PR ancestry/scope audit.
+**Validation remaining:** Final exact-head SQL review, PR review-thread audit and exact-head CI/workflow audit.
+**Current blocker:** None for review. Merge requires explicit owner authorization after review/CI.
+**Open review finding IDs:** None at handoff.
+**Next exact action:** Review PR #273 at its final exact head; fix any scoped finding; do not merge unless owner explicitly authorizes merge.
 
 ## 1. Discovery
 
@@ -138,7 +138,7 @@ Authenticated INSERT/UPDATE/DELETE RLS policies remain defined but dormant behin
 - [x] Exercise rollback-only aggregate invariant tests.
 - [x] Run security/performance advisors and isolate task-relevant findings.
 - [x] Record migrations in repository.
-- [ ] Open focused PR and hand off to review.
+- [x] Open focused PR #273 and hand off to review.
 
 ## 6. Quality Review
 
@@ -207,4 +207,4 @@ Detailed repository read/create mapping, atomic write RPC/boundary, Meal Editor 
 
 ### Final Status
 
-`REVIEW` — implementation and live validation are complete; focused PR/reviewer handoff remains.
+`REVIEW` — PR #273 is open; exact-head review/CI remains before any owner-authorized merge.
