@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tio_shared/shared.dart';
 
+import '../../domain/repositories/detailed_meal_log_create_repository.dart';
 import '../../domain/repositories/manual_meal_log_update_repository.dart';
 import '../../domain/repositories/meal_categories_repository.dart';
 import '../../domain/repositories/meal_log_range_read_repository.dart';
@@ -8,7 +9,7 @@ import '../../domain/repositories/meal_log_repository.dart';
 
 typedef CurrentMealLogUserId = String? Function();
 
-/// Injectable table seam for focused mapping/error tests.
+/// Injectable parent-table seam for focused mapping/error tests.
 abstract interface class MealLogTableGateway {
   Future<Map<String, dynamic>> insertRow(Map<String, dynamic> payload);
 
@@ -47,8 +48,23 @@ abstract interface class MealLogRangeTableGateway {
   });
 }
 
-final class SupabaseMealLogTableGateway
-    implements MealLogTableGateway, MealLogRangeTableGateway {
+/// Atomic detailed-create RPC seam.
+abstract interface class DetailedMealLogCreateGateway {
+  Future<String> createDetailed(Map<String, dynamic> params);
+}
+
+/// Batch detailed-item read seam used to avoid per-parent N+1 requests.
+abstract interface class MealLogItemReadGateway {
+  Future<List<Map<String, dynamic>>> listItemRowsByEntryIds(
+    List<String> entryIds,
+  );
+}
+
+final class SupabaseMealLogTableGateway implements
+    MealLogTableGateway,
+    MealLogRangeTableGateway,
+    DetailedMealLogCreateGateway,
+    MealLogItemReadGateway {
   const SupabaseMealLogTableGateway(this._client);
 
   static const _columns =
@@ -56,6 +72,9 @@ final class SupabaseMealLogTableGateway
       'consumed_local_date, consumed_timezone_id, consumed_utc_offset_minutes, '
       'capture_source, manual_nutrition_snapshot, created_at, updated_at, '
       'client_mutation_id, revision';
+  static const _itemColumns =
+      'id, meal_log_entry_id, position, display_name, brand_name, quantity, '
+      'serving_unit, nutrition_snapshot';
 
   final SupabaseClient _client;
 
@@ -67,6 +86,20 @@ final class SupabaseMealLogTableGateway
         .select(_columns)
         .single();
     return Map<String, dynamic>.from(row);
+  }
+
+  @override
+  Future<String> createDetailed(Map<String, dynamic> params) async {
+    final result = await _client.rpc(
+      'create_detailed_meal_log',
+      params: params,
+    );
+    if (result is! String || result.trim().isEmpty) {
+      throw const FormatException(
+        'Detailed MealLog create RPC must return a non-empty parent id.',
+      );
+    }
+    return result;
   }
 
   @override
@@ -151,34 +184,55 @@ final class SupabaseMealLogTableGateway
       for (final row in rows) Map<String, dynamic>.from(row),
     ];
   }
+
+  @override
+  Future<List<Map<String, dynamic>>> listItemRowsByEntryIds(
+    List<String> entryIds,
+  ) async {
+    if (entryIds.isEmpty) return const <Map<String, dynamic>>[];
+    final rows = await _client
+        .from('meal_log_item_snapshots')
+        .select(_itemColumns)
+        .inFilter('meal_log_entry_id', entryIds)
+        .order('meal_log_entry_id')
+        .order('position');
+    return [
+      for (final row in rows) Map<String, dynamic>.from(row),
+    ];
+  }
 }
 
-/// Supabase adapter for canonical manual MealLog persistence.
+/// Supabase adapter for canonical manual and detailed MealLog persistence.
 ///
 /// Authenticated identity is derived from the current Supabase session and RLS
-/// remains the final database ownership authority. TNYX-196 adds stable create
-/// idempotency: the database unique invariant is the final duplicate guard, and
-/// transport ambiguity is reconciled with the same client mutation identity.
-/// TNYX-197 adds owner-scoped selected-local-date history reads. TNYX-203 adds
-/// optimistic manual updates using the durable row revision without changing
-/// manual-mode identity or capture provenance. TNYX-206 adds an inclusive
-/// owner-scoped local-date range read for calendar progress without changing
-/// row/schema ownership.
+/// remains the database read/ownership authority. Manual creates keep their
+/// existing direct-parent idempotency flow. Detailed creates use one atomic RPC
+/// because a valid detailed aggregate requires parent + ordered children to
+/// commit together while direct authenticated child writes stay disabled.
 final class SupabaseMealLogRepository implements
     MealLogRepository,
+    DetailedMealLogCreateRepository,
     ManualMealLogUpdateRepository,
     MealLogRangeReadRepository {
   SupabaseMealLogRepository({
     required SupabaseClient client,
     required MealCategoriesRepository mealCategoriesRepository,
     MealLogTableGateway? gateway,
+    DetailedMealLogCreateGateway? detailedCreateGateway,
+    MealLogItemReadGateway? itemReadGateway,
     CurrentMealLogUserId? currentUserId,
   })  : _mealCategoriesRepository = mealCategoriesRepository,
         _gateway = gateway ?? SupabaseMealLogTableGateway(client),
+        _detailedCreateGateway =
+            detailedCreateGateway ?? SupabaseMealLogTableGateway(client),
+        _itemReadGateway =
+            itemReadGateway ?? SupabaseMealLogTableGateway(client),
         _currentUserId = currentUserId ?? (() => client.auth.currentUser?.id);
 
   final MealCategoriesRepository _mealCategoriesRepository;
   final MealLogTableGateway _gateway;
+  final DetailedMealLogCreateGateway _detailedCreateGateway;
+  final MealLogItemReadGateway _itemReadGateway;
   final CurrentMealLogUserId _currentUserId;
 
   @override
@@ -230,6 +284,80 @@ final class SupabaseMealLogRepository implements
       expectedUserId: userId,
       input: input,
     );
+  }
+
+  @override
+  Future<MealLogEntry> createDetailed(DetailedMealLogCreate input) async {
+    final userId = _requireUserId();
+
+    final existing = await _readDetailedMutationForCreate(
+      userId: userId,
+      input: input,
+    );
+    if (existing != null) return existing;
+
+    await _requireActiveMealCategory(input.mealCategoryId);
+    final params = <String, dynamic>{
+      'p_client_mutation_id': input.clientMutationId,
+      'p_meal_category_id': input.mealCategoryId,
+      'p_meal_name': input.mealName,
+      'p_note': input.note,
+      'p_consumed_at': input.consumedAt.toUtc().toIso8601String(),
+      'p_consumed_local_date': input.consumedLocalDate.toIso8601String(),
+      'p_consumed_timezone_id': input.consumedTimezoneId,
+      'p_consumed_utc_offset_minutes': input.consumedUtcOffsetMinutes,
+      'p_capture_source': input.captureSource?.storageValue,
+      'p_items': [
+        for (final item in input.items)
+          <String, dynamic>{
+            'display_name': item.displayName,
+            'brand_name': item.brandName,
+            'quantity': item.quantity,
+            'serving_unit': item.servingUnit,
+            'nutrition_snapshot': item.nutritionSnapshot.toJson(),
+          },
+      ],
+    };
+
+    String id;
+    try {
+      id = await _detailedCreateGateway.createDetailed(params);
+    } on Object catch (error) {
+      if (_isDetailedMutationConflict(error)) {
+        throw MealLogCreateMutationConflict(
+          clientMutationId: input.clientMutationId,
+        );
+      }
+      if (!_isAmbiguousGatewayFailure(error)) rethrow;
+      return _reconcileDetailedAfterCreateFailure(
+        userId: userId,
+        input: input,
+        cause: error,
+      );
+    }
+
+    try {
+      final row = await _gateway.readRow(userId: userId, id: id);
+      if (row == null) {
+        throw MealLogCreateOutcomeUnknown(
+          clientMutationId: input.clientMutationId,
+        );
+      }
+      return _decodeDetailedCreateResult(
+        row,
+        expectedUserId: userId,
+        input: input,
+      );
+    } on MealLogCreateMutationConflict {
+      rethrow;
+    } on Object catch (error) {
+      if (error is MealLogCreateOutcomeUnknown) rethrow;
+      if (!_isAmbiguousGatewayFailure(error)) rethrow;
+      throw MealLogCreateOutcomeUnknown(
+        clientMutationId: input.clientMutationId,
+        cause: error,
+      );
+    }
   }
 
   @override
@@ -317,7 +445,8 @@ final class SupabaseMealLogRepository implements
     _requireNonBlank(id, 'id');
     final row = await _gateway.readRow(userId: userId, id: id);
     if (row == null) return null;
-    return _decodeManualRow(row, expectedUserId: userId);
+    final entries = await _decodeRows([row], expectedUserId: userId);
+    return entries.single;
   }
 
   @override
@@ -329,10 +458,8 @@ final class SupabaseMealLogRepository implements
       userId: userId,
       localDate: localDate.toIso8601String(),
     );
-    final entries = [
-      for (final row in rows)
-        _decodeManualRow(row, expectedUserId: userId),
-    ]..sort(_compareDiaryOrder);
+    final entries = await _decodeRows(rows, expectedUserId: userId)
+      ..sort(_compareDiaryOrder);
     return List<MealLogEntry>.unmodifiable(entries);
   }
 
@@ -362,10 +489,8 @@ final class SupabaseMealLogRepository implements
       startLocalDate: start,
       endLocalDate: end,
     );
-    final entries = [
-      for (final row in rows)
-        _decodeManualRow(row, expectedUserId: userId),
-    ]..sort(_compareDiaryRangeOrder);
+    final entries = await _decodeRows(rows, expectedUserId: userId)
+      ..sort(_compareDiaryRangeOrder);
     return List<MealLogEntry>.unmodifiable(entries);
   }
 
@@ -385,6 +510,31 @@ final class SupabaseMealLogRepository implements
         cause: error,
       );
     }
+  }
+
+  Future<MealLogEntry?> _readDetailedMutationForCreate({
+    required String userId,
+    required DetailedMealLogCreate input,
+  }) async {
+    Map<String, dynamic>? row;
+    try {
+      row = await _gateway.readRowByClientMutationId(
+        userId: userId,
+        clientMutationId: input.clientMutationId,
+      );
+    } on Object catch (error) {
+      if (!_isAmbiguousGatewayFailure(error)) rethrow;
+      throw MealLogCreateOutcomeUnknown(
+        clientMutationId: input.clientMutationId,
+        cause: error,
+      );
+    }
+    if (row == null) return null;
+    return _decodeDetailedCreateResult(
+      row,
+      expectedUserId: userId,
+      input: input,
+    );
   }
 
   Future<MealLogEntry> _reconcileAfterInsertFailure({
@@ -414,6 +564,37 @@ final class SupabaseMealLogRepository implements
     }
 
     return _decodeCreateResult(
+      row,
+      expectedUserId: userId,
+      input: input,
+    );
+  }
+
+  Future<MealLogEntry> _reconcileDetailedAfterCreateFailure({
+    required String userId,
+    required DetailedMealLogCreate input,
+    required Object cause,
+  }) async {
+    Map<String, dynamic>? row;
+    try {
+      row = await _gateway.readRowByClientMutationId(
+        userId: userId,
+        clientMutationId: input.clientMutationId,
+      );
+    } on Object catch (readError) {
+      if (!_isAmbiguousGatewayFailure(readError)) rethrow;
+      throw MealLogCreateOutcomeUnknown(
+        clientMutationId: input.clientMutationId,
+        cause: cause,
+      );
+    }
+    if (row == null) {
+      throw MealLogCreateOutcomeUnknown(
+        clientMutationId: input.clientMutationId,
+        cause: cause,
+      );
+    }
+    return _decodeDetailedCreateResult(
       row,
       expectedUserId: userId,
       input: input,
@@ -481,6 +662,12 @@ final class SupabaseMealLogRepository implements
     if (error is! PostgrestException) return true;
     if (error.code == '23505') return true;
     return _isAmbiguousPostgrestFailure(error);
+  }
+
+  static bool _isDetailedMutationConflict(Object error) {
+    return error is PostgrestException &&
+        error.code == 'P0001' &&
+        error.message == 'meal_log_create_mutation_conflict';
   }
 
   static bool _isAmbiguousGatewayFailure(Object error) {
@@ -556,9 +743,37 @@ final class SupabaseMealLogRepository implements
         'Invalid MealLog row: client_mutation_id does not match create operation.',
       );
     }
+    if (_modeFromRow(row) != MealLogMode.manual) {
+      throw MealLogCreateMutationConflict(
+        clientMutationId: input.clientMutationId,
+      );
+    }
 
     final entry = _decodeManualRow(row, expectedUserId: expectedUserId);
     if (entry.revision != 1 || !_matchesCreateInput(entry, input)) {
+      throw MealLogCreateMutationConflict(
+        clientMutationId: input.clientMutationId,
+      );
+    }
+    return entry;
+  }
+
+  Future<MealLogEntry> _decodeDetailedCreateResult(
+    Map<String, dynamic> row, {
+    required String expectedUserId,
+    required DetailedMealLogCreate input,
+  }) async {
+    _requireKeys(row);
+    final mutationId = _nullableString(row, 'client_mutation_id');
+    if (mutationId != input.clientMutationId ||
+        _modeFromRow(row) != MealLogMode.detailed) {
+      throw MealLogCreateMutationConflict(
+        clientMutationId: input.clientMutationId,
+      );
+    }
+    final entries = await _decodeRows([row], expectedUserId: expectedUserId);
+    final entry = entries.single;
+    if (entry.revision != 1 || !_matchesDetailedCreateInput(entry, input)) {
       throw MealLogCreateMutationConflict(
         clientMutationId: input.clientMutationId,
       );
@@ -590,11 +805,223 @@ final class SupabaseMealLogRepository implements
     return entry;
   }
 
+  Future<List<MealLogEntry>> _decodeRows(
+    List<Map<String, dynamic>> rows, {
+    required String expectedUserId,
+  }) async {
+    if (rows.isEmpty) return <MealLogEntry>[];
+
+    final detailedIds = <String>[];
+    for (final row in rows) {
+      _requireKeys(row);
+      _requireExpectedUser(row, expectedUserId);
+      if (_modeFromRow(row) == MealLogMode.detailed) {
+        detailedIds.add(_requiredString(row, 'id'));
+      }
+    }
+
+    final itemsByEntry = <String, List<_PositionedItem>>{};
+    if (detailedIds.isNotEmpty) {
+      final itemRows = await _itemReadGateway.listItemRowsByEntryIds(detailedIds);
+      final detailedIdSet = detailedIds.toSet();
+      for (final itemRow in itemRows) {
+        final parentId = _requiredString(itemRow, 'meal_log_entry_id');
+        if (!detailedIdSet.contains(parentId)) {
+          throw const FormatException(
+            'Invalid MealLog item row: parent was not requested.',
+          );
+        }
+        final position = _requiredInt(itemRow, 'position');
+        if (position < 0) {
+          throw const FormatException(
+            'Invalid MealLog item row: position must be nonnegative.',
+          );
+        }
+        final item = _decodeItemRow(itemRow, expectedParentId: parentId);
+        final list = itemsByEntry.putIfAbsent(
+          parentId,
+          () => <_PositionedItem>[],
+        );
+        if (list.any((candidate) => candidate.position == position)) {
+          throw FormatException(
+            'Invalid MealLog item rows: duplicate position $position for $parentId.',
+          );
+        }
+        list.add(_PositionedItem(position: position, item: item));
+      }
+      for (final list in itemsByEntry.values) {
+        list.sort((left, right) => left.position.compareTo(right.position));
+      }
+    }
+
+    return [
+      for (final row in rows)
+        _decodeRow(
+          row,
+          expectedUserId: expectedUserId,
+          detailedItems: [
+            for (final item in
+                itemsByEntry[_requiredString(row, 'id')] ??
+                    const <_PositionedItem>[])
+              item.item,
+          ],
+        ),
+    ];
+  }
+
+  static MealLogEntry _decodeRow(
+    Map<String, dynamic> row, {
+    required String expectedUserId,
+    required List<MealLogItemSnapshot> detailedItems,
+  }) {
+    _requireKeys(row);
+    final userId = _requireExpectedUser(row, expectedUserId);
+    final mode = _modeFromRow(row);
+    final captureSource = _captureSourceFromRow(row);
+    final timezoneId = _normalizeOptionalText(
+      _nullableString(row, 'consumed_timezone_id'),
+    );
+    final utcOffsetMinutes = _nullableInt(row, 'consumed_utc_offset_minutes');
+    if (timezoneId == null && utcOffsetMinutes == null) {
+      throw const FormatException(
+        'Invalid MealLog row: consumed timezone context is missing.',
+      );
+    }
+
+    final id = _requiredString(row, 'id');
+    final mealCategoryId = _requiredString(row, 'meal_category_id');
+    final mealName = _nullableString(row, 'meal_name');
+    final note = _nullableString(row, 'note');
+    final consumedAt = _requiredDateTime(row, 'consumed_at');
+    final consumedLocalDate = MealLogLocalDate.fromIso8601String(
+      _requiredString(row, 'consumed_local_date'),
+    );
+    final revision = _requiredInt(row, 'revision');
+    final createdAt = _requiredDateTime(row, 'created_at');
+    final updatedAt = _requiredDateTime(row, 'updated_at');
+
+    if (mode == MealLogMode.manual) {
+      if (detailedItems.isNotEmpty) {
+        throw const FormatException(
+          'Invalid manual MealLog row: detailed items must be empty.',
+        );
+      }
+      final snapshot = NutritionSnapshot.fromJson(
+        _jsonObject(
+          row['manual_nutrition_snapshot'],
+          fieldName: 'manual_nutrition_snapshot',
+        ),
+      );
+      return MealLogEntry.manual(
+        id: id,
+        userId: userId,
+        mealCategoryId: mealCategoryId,
+        mealName: mealName,
+        note: note,
+        consumedAt: consumedAt,
+        consumedLocalDate: consumedLocalDate,
+        consumedTimezoneId: timezoneId,
+        consumedUtcOffsetMinutes: utcOffsetMinutes,
+        captureSource: captureSource,
+        manualNutritionSnapshot: snapshot,
+        revision: revision,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      );
+    }
+
+    if (row['manual_nutrition_snapshot'] != null) {
+      throw const FormatException(
+        'Invalid detailed MealLog row: manual_nutrition_snapshot must be null.',
+      );
+    }
+    if (detailedItems.isEmpty) {
+      throw const FormatException(
+        'Invalid detailed MealLog row: at least one item snapshot is required.',
+      );
+    }
+    return MealLogEntry.detailed(
+      id: id,
+      userId: userId,
+      mealCategoryId: mealCategoryId,
+      mealName: mealName,
+      note: note,
+      consumedAt: consumedAt,
+      consumedLocalDate: consumedLocalDate,
+      consumedTimezoneId: timezoneId,
+      consumedUtcOffsetMinutes: utcOffsetMinutes,
+      captureSource: captureSource,
+      detailedItems: detailedItems,
+      revision: revision,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
+  }
+
+  static MealLogEntry _decodeManualRow(
+    Map<String, dynamic> row, {
+    required String expectedUserId,
+  }) {
+    return _decodeRow(
+      row,
+      expectedUserId: expectedUserId,
+      detailedItems: const <MealLogItemSnapshot>[],
+    );
+  }
+
+  static MealLogItemSnapshot _decodeItemRow(
+    Map<String, dynamic> row, {
+    required String expectedParentId,
+  }) {
+    const requiredKeys = <String>{
+      'id',
+      'meal_log_entry_id',
+      'position',
+      'display_name',
+      'brand_name',
+      'quantity',
+      'serving_unit',
+      'nutrition_snapshot',
+    };
+    for (final key in requiredKeys) {
+      if (!row.containsKey(key)) {
+        throw FormatException('Invalid MealLog item row: missing $key.');
+      }
+    }
+    final parentId = _requiredString(row, 'meal_log_entry_id');
+    if (parentId != expectedParentId) {
+      throw const FormatException(
+        'Invalid MealLog item row: parent identity mismatch.',
+      );
+    }
+    final quantity = row['quantity'];
+    if (quantity is! num || !quantity.isFinite || quantity <= 0) {
+      throw const FormatException(
+        'Invalid MealLog item row: quantity must be positive and finite.',
+      );
+    }
+    return MealLogItemSnapshot(
+      id: _requiredString(row, 'id'),
+      mealLogEntryId: parentId,
+      displayName: _requiredString(row, 'display_name'),
+      brandName: _nullableString(row, 'brand_name'),
+      quantity: quantity,
+      servingUnit: _requiredString(row, 'serving_unit'),
+      nutritionSnapshot: NutritionSnapshot.fromJson(
+        _jsonObject(
+          row['nutrition_snapshot'],
+          fieldName: 'nutrition_snapshot',
+        ),
+      ),
+    );
+  }
+
   static bool _matchesCreateInput(
     MealLogEntry entry,
     ManualMealLogCreate input,
   ) {
-    return entry.mealCategoryId == input.mealCategoryId &&
+    return entry.mode == MealLogMode.manual &&
+        entry.mealCategoryId == input.mealCategoryId &&
         entry.mealName == input.mealName &&
         entry.note == input.note &&
         entry.consumedAt == input.consumedAt.toUtc() &&
@@ -603,6 +1030,36 @@ final class SupabaseMealLogRepository implements
         entry.consumedUtcOffsetMinutes == input.consumedUtcOffsetMinutes &&
         entry.captureSource == input.captureSource &&
         entry.manualNutritionSnapshot == input.manualNutritionSnapshot;
+  }
+
+  static bool _matchesDetailedCreateInput(
+    MealLogEntry entry,
+    DetailedMealLogCreate input,
+  ) {
+    if (entry.mode != MealLogMode.detailed ||
+        entry.mealCategoryId != input.mealCategoryId ||
+        entry.mealName != input.mealName ||
+        entry.note != input.note ||
+        entry.consumedAt != input.consumedAt.toUtc() ||
+        entry.consumedLocalDate != input.consumedLocalDate ||
+        entry.consumedTimezoneId != input.consumedTimezoneId ||
+        entry.consumedUtcOffsetMinutes != input.consumedUtcOffsetMinutes ||
+        entry.captureSource != input.captureSource ||
+        entry.detailedItems.length != input.items.length) {
+      return false;
+    }
+    for (var index = 0; index < input.items.length; index++) {
+      final durable = entry.detailedItems[index];
+      final requested = input.items[index];
+      if (durable.displayName != requested.displayName ||
+          durable.brandName != requested.brandName ||
+          durable.quantity != requested.quantity ||
+          durable.servingUnit != requested.servingUnit ||
+          durable.nutritionSnapshot != requested.nutritionSnapshot) {
+        return false;
+      }
+    }
+    return true;
   }
 
   static bool _matchesUpdateInput(
@@ -635,67 +1092,40 @@ final class SupabaseMealLogRepository implements
             _nullableString(beforeRow, 'client_mutation_id');
   }
 
-  static MealLogEntry _decodeManualRow(
-    Map<String, dynamic> row, {
-    required String expectedUserId,
-  }) {
-    _requireKeys(row);
-
+  static String _requireExpectedUser(
+    Map<String, dynamic> row,
+    String expectedUserId,
+  ) {
     final userId = _requiredString(row, 'user_id');
     if (userId != expectedUserId) {
       throw const FormatException(
         'Invalid MealLog row: user_id does not match the authenticated owner.',
       );
     }
+    return userId;
+  }
 
+  static MealLogMode _modeFromRow(Map<String, dynamic> row) {
     final rawMode = _requiredString(row, 'mode');
-    final mode = MealLogMode.fromStorageValue(rawMode);
-    if (mode != MealLogMode.manual) {
+    try {
+      return MealLogMode.fromStorageValue(rawMode);
+    } on Object {
       throw FormatException('Unsupported MealLog mode: $rawMode.');
     }
+  }
 
-    MealLogCaptureSource? captureSource;
+  static MealLogCaptureSource? _captureSourceFromRow(
+    Map<String, dynamic> row,
+  ) {
     final rawCaptureSource = _nullableString(row, 'capture_source');
-    if (rawCaptureSource != null) {
-      captureSource = MealLogCaptureSource.fromStorageValue(rawCaptureSource);
-      if (captureSource == null) {
-        throw FormatException(
-          'Unsupported MealLog capture source: $rawCaptureSource.',
-        );
-      }
-    }
-
-    final timezoneId = _normalizeOptionalText(
-      _nullableString(row, 'consumed_timezone_id'),
-    );
-    final utcOffsetMinutes = _nullableInt(row, 'consumed_utc_offset_minutes');
-    if (timezoneId == null && utcOffsetMinutes == null) {
-      throw const FormatException(
-        'Invalid MealLog row: consumed timezone context is missing.',
+    if (rawCaptureSource == null) return null;
+    final captureSource = MealLogCaptureSource.fromStorageValue(rawCaptureSource);
+    if (captureSource == null) {
+      throw FormatException(
+        'Unsupported MealLog capture source: $rawCaptureSource.',
       );
     }
-
-    final snapshotJson = _jsonObject(row['manual_nutrition_snapshot']);
-    final snapshot = NutritionSnapshot.fromJson(snapshotJson);
-
-    return MealLogEntry.manual(
-      id: _requiredString(row, 'id'),
-      userId: userId,
-      mealCategoryId: _requiredString(row, 'meal_category_id'),
-      mealName: _nullableString(row, 'meal_name'),
-      note: _nullableString(row, 'note'),
-      consumedAt: _requiredDateTime(row, 'consumed_at'),
-      consumedLocalDate: MealLogLocalDate.fromIso8601String(
-        _requiredString(row, 'consumed_local_date'),
-      ),
-      consumedTimezoneId: timezoneId,
-      consumedUtcOffsetMinutes: utcOffsetMinutes,
-      captureSource: captureSource,
-      manualNutritionSnapshot: snapshot,
-      revision: _requiredInt(row, 'revision'),
-      createdAt: _requiredDateTime(row, 'created_at'),
-      updatedAt: _requiredDateTime(row, 'updated_at'),
-    );
+    return captureSource;
   }
 
   static const _requiredRowKeys = <String>{
@@ -781,10 +1211,13 @@ final class SupabaseMealLogRepository implements
     return parsed.toUtc();
   }
 
-  static Map<String, Object?> _jsonObject(Object? value) {
+  static Map<String, Object?> _jsonObject(
+    Object? value, {
+    required String fieldName,
+  }) {
     if (value is! Map<Object?, Object?>) {
-      throw const FormatException(
-        'Invalid MealLog row: manual_nutrition_snapshot must be an object.',
+      throw FormatException(
+        'Invalid MealLog row: $fieldName must be an object.',
       );
     }
 
@@ -792,8 +1225,8 @@ final class SupabaseMealLogRepository implements
     for (final entry in value.entries) {
       final key = entry.key;
       if (key is! String) {
-        throw const FormatException(
-          'Invalid MealLog row: snapshot keys must be strings.',
+        throw FormatException(
+          'Invalid MealLog row: $fieldName keys must be strings.',
         );
       }
       result[key] = entry.value;
@@ -812,4 +1245,11 @@ final class SupabaseMealLogRepository implements
     }
     return value;
   }
+}
+
+final class _PositionedItem {
+  const _PositionedItem({required this.position, required this.item});
+
+  final int position;
+  final MealLogItemSnapshot item;
 }
