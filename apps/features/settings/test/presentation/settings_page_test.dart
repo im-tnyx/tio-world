@@ -189,7 +189,13 @@ void main() {
     await tester.tap(logout);
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsNothing);
-    expect(find.text('Log Out'), findsNWidgets(2));
+    expect(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text('Log Out'),
+      ),
+      findsNWidgets(2),
+    );
     expect(
       find.text('Are you sure you want to log out of your account?'),
       findsOneWidget,

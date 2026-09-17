@@ -21,13 +21,13 @@
 **Ownership transition:** Not applicable
 **Repository base last verified:** `main` at `17383476fdb8844b592041e730a764bd132f602c`
 **Branch:** `tnyx/tnyx-222-settings-logout-shared-destructive-confirmation-intent`
-**HEAD SHA before this handoff sync:** `bfef787d5286086b207917eb41f46dae8137e174`
-**Observed working-tree state:** Connector-only session; local working tree unavailable. An isolated local clone attempt was blocked by container DNS/network access, so GitHub Actions remains validation source of truth.
+**HEAD SHA before this handoff sync:** `dfebe6e70322b955a7e2e823a95bff9c687b0b4f`
+**Observed working-tree state:** Local clone available this session (`G:\projects\Tio-World`). Working tree was clean before this fix; only the file listed under Implementation / Review Fixes below was changed.
 **PR / tracker:** GitHub PR #279 / GitHub #173 / Linear TNYX-222
-**Current implementation state:** Architecture correction, Settings migration, focused tests, and Core public documentation are implemented. Review-discovered brittle test targeting was tightened; exact-head CI is still required before leaving Draft.
-**Validation remaining:** Exact-head Flutter CI green, then final Codex-style review and PR/Linear close-out.
-**Current blocker:** Final exact-head CI result has not yet completed.
-**Open review finding IDs:** CI-1 only until exact-head CI is green.
+**Current implementation state:** Architecture correction, Settings migration, focused tests, and Core public documentation are implemented. Exact-head Flutter CI for `dfebe6e7` failed with a genuine test-assertion bug (see Validation History); root cause identified and fixed locally, validated with `flutter test`/`flutter analyze`, and committed. Awaiting fresh GitHub Actions run on the new commit before leaving Draft.
+**Validation remaining:** Push the fix commit, confirm exact-head Flutter CI green on GitHub Actions, then final Codex-style review and PR/Linear close-out.
+**Current blocker:** New exact-head CI run for the fix commit has not completed yet.
+**Open review finding IDs:** CI-1 only until the new exact-head CI is green.
 
 ## Global UI / Design-System Guardrail
 
@@ -126,7 +126,18 @@ Review repair commits after #2637:
 - aa18a0c7e5e08c2ce1e0c9c1f0f40ea0567852b5 — target Settings confirm button semantically.
 - bfef787d5286086b207917eb41f46dae8137e174 — align Core README with current public confirmation contract.
 
-Final exact-head CI after this task-brief sync is required before completion.
+Flutter CI run 35244080308 at dfebe6e70322b955a7e2e823a95bff9c687b0b4f (local audit, this session):
+- `melos exec` FAILED in package `tio_feature_settings`, exit code 1 (228 passed, 1 failed).
+- Failing test: `apps/features/settings/test/presentation/settings_page_test.dart` — "Settings logout uses shared confirmation and supports cancel", line 192.
+- Root cause: the assertion `expect(find.text('Log Out'), findsNWidgets(2))` counted every "Log Out" `Text` in the widget tree, not only the ones inside the confirmation bottom sheet. With the sheet open, three matches exist: the `SettingsPage` logout row title (still present in the tree behind the modal barrier), the sheet title, and the destructive confirm button — not two. This is a test-assertion gap introduced by this PR's own new test, not a production regression.
+- Fix: scoped the assertion to `find.descendant(of: find.byType(BottomSheet), matching: find.text('Log Out'))`, so it verifies exactly the sheet title + confirm button regardless of what is present behind the modal.
+- Local validation (`G:\projects\Tio-World`, Flutter SDK at `G:\dev\flutter-sdk`):
+  - `flutter test test/presentation/settings_page_test.dart --no-pub` from `apps/features/settings`: 7/7 passed.
+  - `flutter test --no-pub` (full package): 229/229 passed.
+  - `flutter analyze --no-pub`: No issues found.
+- Fix committed only to `apps/features/settings/test/presentation/settings_page_test.dart`; no production code changed.
+
+Final exact-head CI on GitHub Actions for the new commit is required before completion.
 ```
 
 ### Review Findings and Resolution
@@ -136,7 +147,7 @@ Final exact-head CI after this task-brief sync is required before completion.
 | DOC-1 | P1 | Resolved | Core README documented removed public `TioConfirmationCard` | README now documents `showTioConfirmationBottomSheet`, `TioConfirmationIntent`, internal `TioCard` + `TioButton` composition |
 | TEST-1 | P2 | Resolved | App consumer test pinned a global `TioCard` count instead of confirmation behavior | Removed card-count assertion; retained action/result assertions |
 | TEST-2 | P3 | Resolved | Settings confirm test depended on `find.text('Log Out').last` ordering | Targets destructive `FilledButton` directly |
-| CI-1 | P1 validation blocker | Open | Exact-head Flutter CI must pass before PR leaves Draft | Await final GitHub Actions result |
+| CI-1 | P1 validation blocker | Open | Exact-head Flutter CI must pass before PR leaves Draft | Root cause found and fixed locally (test-only, `settings_page_test.dart`); validated with local `flutter test`/`flutter analyze`. Awaiting fresh exact-head GitHub Actions run on the fix commit |
 
 ### Process Deviation
 
