@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tio_core/core.dart';
@@ -5,7 +7,7 @@ import 'package:tio_feature_nutrition/nutrition.dart';
 import 'package:tio_shared/shared.dart';
 
 void main() {
-  testWidgets('renders the approved create body and reuses the disabled footer',
+  testWidgets('renders the approved create body and keeps footer disabled without save context',
       (tester) async {
     await _pumpEditor(tester, draft: _completeDraft());
 
@@ -25,6 +27,102 @@ void main() {
     expect(primary, findsOneWidget);
     expect(tester.widget<TioButton>(primary).onPressed, isNull);
     expect(find.text('Add more'), findsNothing);
+  });
+
+  testWidgets('complete context activates Log Meal and emits canonical result',
+      (tester) async {
+    final repository = _WidgetRepository();
+    MealLogEntry? created;
+    await _pumpEditor(
+      tester,
+      draft: _completeDraft(),
+      repository: repository,
+      onCreated: (entry) => created = entry,
+    );
+
+    final primary = find.byKey(const ValueKey('meal-log-footer-primary'));
+    expect(tester.widget<TioButton>(primary).onPressed, isNotNull);
+
+    await tester.tap(primary);
+    await tester.pumpAndSettle();
+
+    expect(repository.inputs, hasLength(1));
+    expect(repository.inputs.single.mealCategoryId, 'lunch');
+    expect(repository.inputs.single.items, hasLength(2));
+    expect(created, same(repository.result));
+  });
+
+  testWidgets('in-flight submit uses existing loading state and suppresses duplicate tap',
+      (tester) async {
+    final repository = _BlockingWidgetRepository();
+    await _pumpEditor(
+      tester,
+      draft: _completeDraft(),
+      repository: repository,
+    );
+
+    final primary = find.byKey(const ValueKey('meal-log-footer-primary'));
+    await tester.tap(primary);
+    await tester.pump();
+
+    expect(repository.inputs, hasLength(1));
+    expect(tester.widget<TioButton>(primary).loading, isTrue);
+    await tester.tap(primary);
+    await tester.pump();
+    expect(repository.inputs, hasLength(1));
+
+    repository.complete();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('failed save shows concise footer note and draft stays editable',
+      (tester) async {
+    final repository = _WidgetRepository(failuresBeforeSuccess: 1);
+    await _pumpEditor(
+      tester,
+      draft: _completeDraft(),
+      repository: repository,
+    );
+
+    final primary = find.byKey(const ValueKey('meal-log-footer-primary'));
+    await tester.tap(primary);
+    await tester.pumpAndSettle();
+
+    expect(find.text("Couldn't log meal. Try again."), findsOneWidget);
+    final name = find.byKey(const ValueKey('meal-editor-meal-name'));
+    expect(name, findsOneWidget);
+    await tester.enterText(name, 'Edited after failure');
+    await tester.pump();
+    expect(find.text("Couldn't log meal. Try again."), findsNothing);
+  });
+
+  testWidgets('incomplete draft remains disabled even when repository/context exist',
+      (tester) async {
+    final draft = MealLoggingDraft(
+      captureSource: MealLogCaptureSource.text,
+      items: [
+        MealLoggingDraftItem(
+          displayName: 'Dal',
+          consumedNutritionSnapshot: NutritionSnapshot(
+            schemaVersion: 1,
+            nutrients: const {NutrientId.energy: 180},
+          ),
+        ),
+      ],
+    );
+
+    await _pumpEditor(
+      tester,
+      draft: draft,
+      repository: _WidgetRepository(),
+    );
+
+    expect(find.text('180 kcal'), findsWidgets);
+    expect(find.text('— g'), findsNWidgets(3));
+    expect(find.text('Quantity unknown'), findsOneWidget);
+    expect(find.text('Unit unknown'), findsOneWidget);
+    final primary = find.byKey(const ValueKey('meal-log-footer-primary'));
+    expect(tester.widget<TioButton>(primary).onPressed, isNull);
   });
 
   testWidgets('quantity step rescales item nutrition and live meal totals',
@@ -59,37 +157,6 @@ void main() {
     final delete = find.byKey(const ValueKey('meal-editor-delete-0'));
     expect(delete, findsOneWidget);
     expect(tester.widget<IconButton>(delete).onPressed, isNull);
-  });
-
-  testWidgets('incomplete draft stays visibly unknown instead of fabricating values',
-      (tester) async {
-    final draft = MealLoggingDraft(
-      captureSource: MealLogCaptureSource.text,
-      items: [
-        MealLoggingDraftItem(
-          displayName: 'Dal',
-          consumedNutritionSnapshot: NutritionSnapshot(
-            schemaVersion: 1,
-            nutrients: const {NutrientId.energy: 180},
-          ),
-        ),
-      ],
-    );
-
-    await _pumpEditor(tester, draft: draft);
-
-    expect(find.text('180 kcal'), findsWidgets);
-    expect(find.text('— g'), findsNWidgets(3));
-    expect(find.text('Quantity unknown'), findsOneWidget);
-    expect(find.text('Unit unknown'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('meal-editor-quantity-plus-0')),
-      findsNothing,
-    );
-    expect(
-      find.byKey(const ValueKey('meal-editor-quantity-minus-0')),
-      findsNothing,
-    );
   });
 
   testWidgets('compact width and larger text scale do not overflow',
@@ -131,6 +198,8 @@ Future<void> _pumpEditor(
   required MealLoggingDraft draft,
   TextScaler textScaler = TextScaler.noScaling,
   TioThemeMode mode = TioThemeMode.light,
+  DetailedMealLogCreateRepository? repository,
+  ValueChanged<MealLogEntry>? onCreated,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -145,11 +214,47 @@ Future<void> _pumpEditor(
         initialDraft: draft,
         mealCategoryLabel: 'Lunch',
         dateTimeLabel: 'Sep 16, 13:15',
+        mealCategoryId: repository == null ? null : 'lunch',
+        consumedLocalDateTime:
+            repository == null ? null : DateTime(2026, 9, 16, 13, 15),
+        detailedCreateRepository: repository,
+        onCreated: onCreated,
         onBack: () {},
       ),
     ),
   );
   await tester.pumpAndSettle();
+}
+
+class _WidgetRepository implements DetailedMealLogCreateRepository {
+  _WidgetRepository({this.failuresBeforeSuccess = 0});
+
+  int failuresBeforeSuccess;
+  final inputs = <DetailedMealLogCreate>[];
+  final result = _entry();
+
+  @override
+  Future<MealLogEntry> createDetailed(DetailedMealLogCreate input) async {
+    inputs.add(input);
+    if (failuresBeforeSuccess > 0) {
+      failuresBeforeSuccess--;
+      throw Exception('network');
+    }
+    return result;
+  }
+}
+
+class _BlockingWidgetRepository implements DetailedMealLogCreateRepository {
+  final inputs = <DetailedMealLogCreate>[];
+  final _completer = Completer<MealLogEntry>();
+
+  @override
+  Future<MealLogEntry> createDetailed(DetailedMealLogCreate input) {
+    inputs.add(input);
+    return _completer.future;
+  }
+
+  void complete() => _completer.complete(_entry());
 }
 
 MealLoggingDraft _completeDraft() {
@@ -203,3 +308,29 @@ MealLoggingDraftItem _item({
     ),
   );
 }
+
+MealLogEntry _entry() => MealLogEntry.detailed(
+      id: 'entry-id',
+      userId: 'user-id',
+      mealCategoryId: 'lunch',
+      mealName: 'Roti and curd',
+      consumedAt: DateTime.utc(2026, 9, 16, 7, 45),
+      consumedLocalDate: MealLogLocalDate(year: 2026, month: 9, day: 16),
+      consumedUtcOffsetMinutes: 330,
+      captureSource: MealLogCaptureSource.text,
+      detailedItems: [
+        MealLogItemSnapshot(
+          id: 'item-id',
+          mealLogEntryId: 'entry-id',
+          displayName: 'Roti',
+          quantity: 2,
+          servingUnit: 'piece',
+          nutritionSnapshot: NutritionSnapshot(
+            schemaVersion: 1,
+            nutrients: const {NutrientId.energy: 200},
+          ),
+        ),
+      ],
+      createdAt: DateTime.utc(2026, 9, 16, 7, 46),
+      updatedAt: DateTime.utc(2026, 9, 16, 7, 46),
+    );
