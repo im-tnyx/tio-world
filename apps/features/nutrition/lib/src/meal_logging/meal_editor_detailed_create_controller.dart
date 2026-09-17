@@ -3,6 +3,7 @@ import 'package:tio_shared/shared.dart';
 import 'package:uuid/uuid.dart';
 
 import '../domain/repositories/detailed_meal_log_create_repository.dart';
+import '../domain/repositories/meal_log_repository.dart';
 
 enum MealEditorDetailedCreateStatus {
   idle,
@@ -88,7 +89,11 @@ final class MealEditorDetailedCreateController extends ChangeNotifier {
   bool canSubmit({
     required MealLoggingDraft draft,
     required MealEditorDetailedCreateContext context,
-  }) => _validateDraft(draft, context) == null && !_state.locksDraft;
+  }) {
+    if (_state.isSubmitting) return false;
+    if (_state.isOutcomeUnknown) return _retryInput != null;
+    return _validateDraft(draft, context) == null;
+  }
 
   void draftChanged() {
     if (_state.status != MealEditorDetailedCreateStatus.failed) return;
