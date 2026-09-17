@@ -416,7 +416,15 @@ The danger colour also drives the pressed/focused/hovered state layer, at the sa
 
 Because the container is a translucent tint rather than an opaque danger surface, `danger` content reads against the surface beneath it and no `onDanger` foreground role is needed. This variant deliberately does not add one.
 
-Existing destructive confirmations have not all converged here: `TioConfirmationCard` still routes confirm through `TioButton.primary`. Bringing those onto this contract is separate #173 work.
+`TioConfirmationCard` exposes `TioConfirmationIntent.standard` and `TioConfirmationIntent.destructive`, with `standard` as the backwards-compatible default. The shared action mapping is:
+
+```text
+standard confirm    -> TioButton.primary
+destructive confirm -> TioButton.destructive
+cancel              -> TioButton.secondary
+```
+
+`showTioConfirmationBottomSheet` forwards the same intent. Existing callers that omit it therefore keep the standard confirm treatment; destructive consumers opt in explicitly. The confirmation surface itself remains the current `TioCardVariant.elevated` contract unless a separate approved surface-convergence slice changes it.
 
 The variant exposes no radius, height, fill, border-colour or label-size override. Reproducing a historical local button recipe through override parameters is how the drift this family exists to remove becomes representable again.
 
@@ -439,6 +447,10 @@ The trailing slot exists for a caller-owned contextual overflow or end action �
 Compact-width geometry stays the caller's responsibility. The centre slot is absolutely positioned across the whole bar, so a caller filling both slots must verify that its cluster does not collide with a centred label at small widths, under a large text scale, or with a long localized string. Core does not reserve that space or shrink the cluster; a caller that cannot fit both actions should not use both. The visible status icon remains fixed at the right edge whether the optional action is present or absent. When that action exists, the status drops only its redundant leading padding so the two visible icons are not artificially far apart; right padding remains unchanged.
 
 `TioConfirmationCard` is the generic themed confirm/cancel card composition. Product-specific copy, consequences, persistence, and navigation remain feature-owned. Present the card through the surface that fits the workflow, such as a modal sheet, rather than creating a product-action-specific dialog/token bag.
+
+`showTioConfirmationBottomSheet` is the reusable presenter for confirm/cancel decisions. It owns the modal shell, safe-area handling, and `TioConfirmationCard` composition. Features supply only the title, message, confirm/cancel labels, optional icon widget, and semantic confirmation intent. Do not rebuild a bespoke confirmation sheet when this presenter matches the intent.
+
+`showTioRemoveImageConfirmationBottomSheet` is the reusable image-removal confirmation. It owns the sheet shell, copy, close affordance and result semantics (`true` confirm, `false` cancel and close, `null` dismiss), while its Remove and Cancel actions are `TioButton.destructive` and `TioButton.secondary`. `TioRemoveImageSheetTokens` therefore holds shell, copy and icon geometry only; action height, radius, outline, padding and label typography belong to `TioButtonTokens`.
 
 ### Editable field capabilities
 
@@ -469,94 +481,10 @@ Two capabilities were added specifically to reproduce this variant's evidenced c
 
 Two details worth knowing before relying on them:
 
-- No `autovalidateMode` is exposed, so a `validator` runs only when an enclosing `Form` asks it to. Exposing the callback adds no validation timing of its own.
-- `errorText` still drives the component's error **styling** (border, cursor, label colour). A validator-only error renders its message but not those colours. The first consumer that needs both should carry that change.
+- `helperText`, `errorText` and multiline measurement behavior remain unchanged by this contract.
+- Feature-specific validation, persistence and semantic meaning stay outside Core.
 
-The generic `TioInput` contract (14dp radius, 52dp minimum height) and the specialised boxed-field family — `TioUsernameInputField` and `TioMobileNumberField` at 16dp — are both current and are deliberately **not** unified.
-
-### Neutral Settings grouping and rows
-
-`TioGroupCard` is the neutral, **non-selectable** grouping surface for canonical grouped Settings and Nutrition rows. It owns the `surfaceRaised` material, shared radius, clipping, and child ordering while callers compose their own rows and separators. It does not represent selected or unselected state; selection cards remain a separate component contract.
-
-### Anchored popups
-
-`TioAnchoredPopup` is the contract for a floating card that opens beside a control without disturbing it. The content lives in an `OverlayPortal`, so opening one changes nothing about the widget it wraps: a pinned action region keeps its position and its height while the card floats over the body above it. A caller that grows its own footer to hold options is not using this contract.
-
-The caller owns the open flag, the anchor `GlobalKey` and the content. Core owns placement — it prefers the side of the anchor with more room, keeps clear of the status bar, the keyboard and the home indicator, aligns to the anchor's leading edge and keeps itself on screen — and owns dismissal on an outside tap.
-
-Which edge it aligns to is Core's decision, not a caller's. A leading-aligned card has to be fitted against `maximumWidth` rather than the width its content will actually take, because that width is not known until the content lays out. For a control near the trailing edge that worst-case fit would drag the card far off the control it belongs to, so a card anchored there pins its **trailing** edge to the control's trailing edge and grows the other way instead — no width needed in advance, and the two stay visually attached. Everything else is unchanged, so a control with room to its trailing side still aligns leading exactly as before. A caller does not choose between the two and should not pad, offset, or shrink `maximumWidth` to steer it.
-
-Height and width are both intrinsic and capped. The card is anchored by the edge nearest the control, so it grows away from it without anyone having to know its size in advance, and `contentBuilder` is told how much height it may use so long content can scroll inside rather than being clipped. `maximumWidth` keeps a short list from stretching into a band across the screen.
-
-`TioPopupDismissBarrier` is the dismiss layer, and is exposed because two popups anchored to the same strip need it. Its optional `passThrough` rect is cut out of the barrier rather than made transparent, so nothing in the overlay is hit-testable there and the tap lands on the sibling control beneath — which is what makes moving from one card to the other cost one tap instead of two. It presents one dismiss action to assistive technology however many regions it paints, and a caller must only pass a rect through to a control that is actually enabled, or it hands the reader a dead area.
-
-`TioDateTimePickerPopup` is the existing anchored card for date and time. It carries the same optional `passThroughAnchorKey`, defaulting off.
-
-### Selection cards
-
-`TioSelectableCard` is that contract: the canonical card chosen from a set of options. Features supply the content, the current `selected` value, and the action; core owns the selected/unselected appearance and the interactive semantics.
-
-`TioCardTokens` remains the governed appearance contract. The component reads `selectedContainerAlpha`, `selectedBorderWidth`, `unselectedBorderWidth`, `unselectedOutlineAlpha`, `radius`, and `padding` from it, and exposes no override for any of them — a caller that can pass its own outline strength is a caller that can drift again.
-
-Selection is state, not a fill variant, which is why it is a separate component rather than a flag on `TioCard`.
-
-`onTap` is required. An option that cannot be chosen is `enabled: false` — which suppresses the tap, dims the card at `TioOpacity.opacity64`, and reports disabled to assistive technology — so there is one reusable way to be non-interactive rather than two. Padding is fixed at `TioCardTokens.padding`; a surface needing different inner spacing composes it into its own `child`.
-
-Features should not rebuild selection-card `BoxDecoration` locally. Product-specific selection rules, persistence, capability gating, navigation, and analytics remain feature-owned.
-
-Use the public Settings-row family when its demonstrated contract matches instead of recreating the same card/row geometry in a feature:
-
-- `TioSettingsNavigationRow` provides a tappable navigation row with a caller-supplied leading widget, title, supporting text, and optional chevron.
-- `TioSettingsLeadingIcon` provides the canonical themed leading-icon treatment for navigation rows.
-- `TioSettingsValueRow` provides a tappable label/value editor row. Its value remains caller-composed, it supports an optional annotation and `labelSingleLine` behavior, and callers may use either the built-in edit affordance or a custom trailing widget, never both.
-- `TioSettingsValueText` provides the standard right-aligned value presentation for `TioSettingsValueRow`.
-- `TioSettingsEditAffordance` provides the standard neutral edit affordance.
-- `TioSettingsReadOnlyRow` provides a non-interactive label/value detail row without tap or edit affordances.
-
-Features still own callbacks, navigation, values, keys, domain copy, and intentionally specialised value presentation. Keep a feature-local composition only when its hierarchy or behavior does not match these public contracts.
-
-`showTioRemoveImageConfirmationBottomSheet` is the reusable image-removal confirmation. It owns the sheet shell, copy, close affordance and result semantics (`true` confirm, `false` cancel and close, `null` dismiss), while its Remove and Cancel actions are `TioButton.destructive` and `TioButton.secondary`. `TioRemoveImageSheetTokens` therefore holds shell, copy and icon geometry only; action height, radius, outline, padding and label typography belong to `TioButtonTokens`.
-
-`showTioInformationBottomSheet` is the reusable presenter for standard explanatory/informational content. It owns the modal shell, safe-area handling, close action, icon slot, title/body layout, and governed primary dismiss button. Features supply only the title, message, action label, and optional icon. Do not rebuild a bespoke information sheet when this presenter matches the intent.
-
-`showTioEditorSheet` is the presenter for `TioEditorSheet`, the canonical editable modal. It owns the route-level flags the component depends on — scroll-controlled, no route drag, no Flutter drag handle — and forwards two optional booleans unchanged, both defaulting to Flutter's own `false`:
-
-- `useRootNavigator` — a caller inside a nested navigator, such as a `StatefulShellRoute` branch, passes `true` so the barrier covers the chrome outside that branch instead of leaving an app bar action or the bottom navigation live behind the sheet. Core does not choose this: only the caller knows which navigator its editor belongs above.
-- `useSafeArea` — matters more than the name suggests. Left `false`, the route applies `MediaQuery.removePadding(removeTop: true)`, so `TioEditorSheet`'s own `SafeArea` **cannot** bring the top inset back however it is configured, and an editor tall enough to reach the top of a short, split-screen or keyboard-raised viewport puts its handle and title under the status bar or a display cutout. Pass `true` for any editor that can grow that tall. Flutter wraps it as `SafeArea(bottom: false)`, so the component's inner `SafeArea` still owns the bottom and nothing is padded twice.
-
-`TioEditorSheet` keeps its actions pinned below the scroll view, separated by `TioEditorSheetTokens.actionGap`. `flushActions` removes that gap so the action region begins immediately below the body; it defaults to false, so no existing sheet moves. Pass true only when the action region draws its own boundary — a rule across the sheet, for instance — because a gap and a separator say the same thing twice and leave dead space above the line.
-
-`showTioConfirmationBottomSheet` is the reusable presenter for confirm/cancel decisions. It owns the modal shell, safe-area handling, and `TioConfirmationCard` composition. Features supply only the title, message, confirm/cancel labels, and optional icon widget. Do not rebuild a bespoke confirmation sheet when this presenter matches the intent.
-
-When a repeated pattern is missing, first ask whether the correct fix is an existing component, reusable variant, or direct governed primitives—not another token file.
-
-Raw Flutter primitives are valid inside reusable core implementations and rare justified one-off cases.
-
-## Compatibility APIs
-
-Temporary compatibility surfaces remain while live feature consumers migrate:
-
-```text
-context.radiusSmall / radiusMedium / radiusLarge
-TioTheme.colors(context)
-legacy TioSpacing names (extraSmall/small/medium/large/extraLarge)
-legacy TioRadius names (small/medium/large/extraLarge)
-TioMotionTokens compatibility facade
-```
-
-Do not add new usage. Remove compatibility APIs only after repository-wide zero-reference verification and focused validation.
-
-## Visual Safety
-
-Design-system cleanup is not permission to redesign UI.
-
-```text
-pixels before == pixels after
-```
-
-Preserve colors, typography appearance, component sizes, icon/image sizes, spacing, radius, shadows and motion unless the active task explicitly approves a visible change. Numeric similarity alone never authorizes a rendered-value change.
-
-## Tests and Validation
+## Validation
 
 For theme/token ownership changes, update the smallest relevant contract/widget tests and run applicable workspace validation:
 
@@ -566,26 +494,4 @@ melos analyze
 melos test
 ```
 
-Required GitHub CI is the final source of truth for source validation boundaries.
-
-## Directory Map
-
-```text
-theme/
-├── README.md
-├── context/
-│   └── runtime BuildContext theme accessors
-├── tokens/
-│   ├── primitive/    exact physical values
-│   ├── foundation/   spacing/radius/stroke and foundation roles
-│   ├── semantic/     theme-aware semantic colors
-│   ├── domain/       shared product-domain semantic roles
-│   ├── typography/   font physical registries + semantic typography
-│   ├── effects/      motion/elevation/shadow contracts and runtime schemes
-│   └── components/   admitted reusable component contracts only
-├── tio_theme_config.dart
-├── tio_theme.dart
-└── theme.dart
-```
-
-Keep this map and the rules above current whenever the theme system evolves.
+Use narrower package-level commands during iteration when appropriate, but complete the repository-required validation before handoff.
