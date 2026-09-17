@@ -12,6 +12,7 @@ Future<bool?> showTioConfirmationBottomSheet({
   required String cancelLabel,
   Key? cardKey,
   Widget? icon,
+  TioConfirmationIntent intent = TioConfirmationIntent.standard,
 }) {
   return showModalBottomSheet<bool>(
     context: context,
@@ -28,6 +29,7 @@ Future<bool?> showTioConfirmationBottomSheet({
           message: message,
           cancelLabel: cancelLabel,
           confirmLabel: confirmLabel,
+          intent: intent,
           onCancel: () => Navigator.of(sheetContext).pop(false),
           onConfirm: () => Navigator.of(sheetContext).pop(true),
         ),
