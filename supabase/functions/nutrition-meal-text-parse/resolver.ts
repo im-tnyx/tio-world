@@ -13,11 +13,16 @@ export async function resolveWithFallback(
   candidate: MealCandidate,
   primary: FoodNutritionResolver,
   secondary: FoodNutritionResolver | null,
+  signal?: AbortSignal,
 ): Promise<ResolverResult> {
-  const first = await primary.resolve(candidate);
+  if (signal?.aborted) return { kind: "unavailable" };
+
+  const first = await primary.resolve(candidate, signal);
+  if (signal?.aborted) return { kind: "unavailable" };
   if (first.kind === "resolved" || secondary === null) return first;
 
-  const second = await secondary.resolve(candidate);
+  const second = await secondary.resolve(candidate, signal);
+  if (signal?.aborted) return { kind: "unavailable" };
   if (second.kind === "resolved") return second;
 
   if (first.kind === "incomplete" || second.kind === "incomplete") {
