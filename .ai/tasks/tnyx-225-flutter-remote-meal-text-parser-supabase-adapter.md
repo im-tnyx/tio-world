@@ -1,6 +1,6 @@
 # TNYX-225 — N5D-7 Flutter Remote MealTextParseRepository Supabase Adapter
 
-**Status:** Review fixes implemented — exact-head CI/re-review pending
+**Status:** Validated — review findings resolved
 **Primary owner:** `apps/features/nutrition/lib/src/data/repositories`, `apps/app/lib/app/network_providers.dart`
 **Affected platforms:** Flutter phone app (`apps/app`), Nutrition feature package (`apps/features/nutrition`)
 
@@ -17,7 +17,7 @@
 **Planning owner:** Existing TNYX-225 plan retained
 **Implementation owner:** ChatGPT (owner-authorized review-fix pass)
 **Review owner:** Fresh reviewer pass after exact-head CI
-**Implementation ownership state:** Review fixes implemented
+**Implementation ownership state:** Complete
 **Ownership transition:** Owner explicitly instructed `@GitHub @Linear @Supabase sahi kare` after the fresh PR review; implementation ownership transferred only for the bounded G1/G2/G3 fix pass plus adjacent strict-schema hardening.
 **Repository state last verified:** `main` clean at `7f2dbed9107b0f7af8fd825db2d95045abc3675c` == `origin/main`, before branch creation
 **Branch:** `tnyx/tnyx-225-n5d-7-flutter-remote-mealtextparserepository-supabase`
@@ -27,11 +27,11 @@
 **PR / tracker:** Linear TNYX-225 (moved Backlog → In Progress); PR created as draft after push, referencing TNYX-225 and GitHub #269
 **Current implementation state:** G1/G2/G3 review fixes implemented; strict nested nutrition schema-version validation also tightened inside the approved decoder scope
 **Relevant execution surface:** `MealTextParseController` → `MealTextParseRepository` → `SupabaseMealTextParseRepository` → bounded `MealTextParseFunctionGateway` → `SupabaseClient.functions.invoke('nutrition-meal-text-parse', ...)`
-**Validation completed at SHA:** original implementation validation is recorded below; post-fix exact-head CI must be re-verified after push
-**Validation remaining:** Exact-head Flutter CI/re-review; live authenticated Supabase invocation remains blocked on a later explicit deployment gate because the function is NOT DEPLOYED
-**Current blocker:** Review findings must be re-verified and resolved on the new exact head before Ready for Review
-**Open review finding IDs:** TNYX-225-G1, TNYX-225-G2, TNYX-225-G3 — fixes included in this pass, thread resolution pending fresh verification
-**Next exact action:** Wait for exact-head Flutter CI, re-review the fixes, then resolve review threads only if the new head confirms them
+**Validation completed at SHA:** source head `aece04830b33e81560c717b14518668277c2681d` — Flutter CI #2647 PASS; all analyze/test steps passed
+**Validation remaining:** Live authenticated Supabase invocation remains blocked on a later explicit deployment gate because the function is NOT DEPLOYED
+**Current blocker:** None inside TNYX-225; PR intentionally remains Draft until owner authorizes the next review-state transition
+**Open review finding IDs:** None — G1/G2/G3 resolved after exact-head re-review; G4 proactive strict-schema hardening validated
+**Next exact action:** Owner may authorize Draft → Ready for Review; do not merge or deploy without separate explicit instruction
 
 ## Global UI / Design-System Guardrail
 
@@ -163,16 +163,16 @@ git rev-list --left-right --count origin/main...HEAD
 
 Note: the original local validation environment reported incidental `apps/features/nutrition/pubspec.lock` dependency-classification drift with no version/hash change; that lockfile was kept out of the task diff.
 
-Post-review-fix validation in this connector session cannot run the local Flutter toolchain. The new exact head must therefore rely on GitHub Flutter CI before review threads are resolved or the PR moves out of Draft.
+Post-review-fix source head `aece04830b33e81560c717b14518668277c2681d` was validated by GitHub Flutter CI #2647: Flutter analyze PASS, Dart analyze PASS, Flutter tests PASS, Dart tests PASS. The three review threads were then re-reviewed and resolved with no new findings.
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| TNYX-225-G1 | P2 | Fixed in source; re-review pending | Client function invocation lacked a bounded abort signal | `f99534f` | 50s client budget now drives `abortSignal`; abort/transport errors still collapse to `unavailable`; focused regression added |
-| TNYX-225-G2 | P2 | Fixed in source; re-review pending | Present non-string `mealName` was silently treated as absent | `f99534f` | Present malformed values now fail closed to `unavailable`; regression added |
-| TNYX-225-G3 | P3 | Fixed in task brief; re-review pending | Machine-specific absolute package-cache path was committed | `f99534f` | Replaced with portable locked-package source wording |
-| TNYX-225-G4 | P2 | Fixed proactively; re-review pending | Nested `NutritionSnapshot` accepted unsupported integer schema versions | fix pass | Decoder now requires nutrition snapshot schema version 1; regression added |
+| TNYX-225-G1 | P2 | Resolved | Client function invocation lacked a bounded abort signal | `f99534f` | 50s client budget now drives `abortSignal`; abort/transport errors still collapse to `unavailable`; focused regression added |
+| TNYX-225-G2 | P2 | Resolved | Present non-string `mealName` was silently treated as absent | `f99534f` | Present malformed values now fail closed to `unavailable`; regression added |
+| TNYX-225-G3 | P3 | Resolved | Machine-specific absolute package-cache path was committed | `f99534f` | Replaced with portable locked-package source wording |
+| TNYX-225-G4 | P2 | Resolved | Nested `NutritionSnapshot` accepted unsupported integer schema versions | fix pass | Decoder now requires nutrition snapshot schema version 1; regression added |
 
 ## 7. Final Handoff
 
@@ -196,4 +196,4 @@ Post-review-fix validation in this connector session cannot run the local Flutte
 
 ### Final Status
 
-`REVIEW FIXES APPLIED — EXACT-HEAD CI / RE-REVIEW PENDING`
+`PASS — SOURCE VALIDATED AT aece0483 / REVIEW THREADS RESOLVED`
