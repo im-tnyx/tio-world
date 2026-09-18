@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 
 import { createMealTextParseDependencies } from "./composition.ts";
 
-const authenticate = async () => true;
+const authenticate = async () => ({ kind: "authenticated" as const, countryCode: "IN" });
 
 function envFrom(values: Readonly<Record<string, string>>) {
   const read: string[] = [];
