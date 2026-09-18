@@ -5,6 +5,7 @@ import { isSafeFoodIdentityMatch } from "./matching.ts";
 
 import {
   FatSecretResolver,
+  fatSecretRegionForCountry,
   resolveFatSecretServing,
   selectFatSecretMatch,
 } from "./fatsecret_client.ts";
@@ -77,9 +78,85 @@ test("FatSecret transport/token failure is unavailable", async () => {
   });
 
   assert.deepEqual(
-    await resolver.resolve({ foodName: "dal", quantity: 1, unit: "katori" }),
+    await resolver.resolve(
+      { foodName: "dal", quantity: 1, unit: "katori" },
+      undefined,
+      { countryCode: "IN" },
+    ),
     { kind: "unavailable" },
   );
+});
+
+test("FatSecret country mapping accepts canonical uppercase shape only", () => {
+  assert.equal(fatSecretRegionForCountry("IN"), "IN");
+  assert.equal(fatSecretRegionForCountry("FR"), "FR");
+  assert.equal(fatSecretRegionForCountry("in"), null);
+  assert.equal(fatSecretRegionForCountry("USA"), null);
+  assert.equal(fatSecretRegionForCountry(undefined), null);
+});
+
+test("FatSecret missing country context is incomplete without provider calls", async () => {
+  let calls = 0;
+  const resolver = new FatSecretResolver({
+    clientId: "test-id",
+    clientSecret: "test-secret",
+    fetchFn: async () => {
+      calls += 1;
+      return new Response("unexpected", { status: 500 });
+    },
+  });
+
+  assert.deepEqual(
+    await resolver.resolve({ foodName: "dal", quantity: 1, unit: "katori" }),
+    { kind: "incomplete" },
+  );
+  assert.equal(calls, 0);
+});
+
+test("FatSecret sends saved country as explicit region on search and detail", async () => {
+  const requests: { url: string; body: string }[] = [];
+  const resolver = new FatSecretResolver({
+    clientId: "test-id",
+    clientSecret: "test-secret",
+    fetchFn: async (input, init) => {
+      const url = String(input);
+      const body = init?.body instanceof URLSearchParams ? init.body.toString() : "";
+      requests.push({ url, body });
+
+      if (url.includes("oauth.fatsecret.com")) {
+        return Response.json({ access_token: "token", expires_in: 3600 });
+      }
+      if (url.includes("server.api")) {
+        return Response.json({
+          foods: {
+            food: [{ food_id: "food-1", food_name: "Dal", food_type: "Generic" }],
+          },
+        });
+      }
+      return Response.json({
+        food: {
+          food_name: "Dal",
+          servings: {
+            serving: {
+              number_of_units: "1",
+              measurement_description: "katori",
+              calories: "120",
+            },
+          },
+        },
+      });
+    },
+  });
+
+  const result = await resolver.resolve(
+    { foodName: "dal", quantity: 1, unit: "katori" },
+    undefined,
+    { countryCode: "FR" },
+  );
+
+  assert.equal(result.kind, "resolved");
+  assert.match(requests[1].body, /(?:^|&)region=FR(?:&|$)/);
+  assert.match(requests[2].url, /[?&]region=FR(?:&|$)/);
 });
 
 test("Edamam compatible item measure is accepted", () => {
@@ -230,7 +307,11 @@ test("FatSecret resolver rejects materially expanded food identity", async () =>
   });
 
   assert.deepEqual(
-    await resolver.resolve({ foodName: "milk", quantity: 100, unit: "g" }),
+    await resolver.resolve(
+      { foodName: "milk", quantity: 100, unit: "g" },
+      undefined,
+      { countryCode: "IN" },
+    ),
     { kind: "incomplete" },
   );
   assert.equal(calls, 2, "unsafe search result must not fetch provider detail");
