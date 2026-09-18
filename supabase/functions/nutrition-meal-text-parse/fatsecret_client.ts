@@ -2,11 +2,13 @@ import {
   canonicalSnapshot,
   finiteNonNegativeNumber,
   finitePositiveNumber,
+  isSafeFoodIdentityMatch,
   matchScore,
   normalizeName,
   normalizeUnit,
   toMetricAmount,
 } from "./matching.ts";
+import { fetchWithTimeout } from "./async_control.ts";
 import type { CanonicalNutrientKey, ResponseItem } from "./contract.ts";
 import type {
   FoodNutritionResolver,
@@ -18,8 +20,7 @@ const TOKEN_URL = "https://oauth.fatsecret.com/connect/token";
 const SEARCH_URL = "https://platform.fatsecret.com/rest/server.api";
 const FOOD_URL = "https://platform.fatsecret.com/rest/food/v5";
 const DEFAULT_TIMEOUT_MS = 6000;
-const MIN_MATCH_SCORE = 86;
-const AMBIGUITY_GAP = 6;
+const MIN_MATCH_SCORE = 96;
 
 interface FatSecretOptions {
   readonly clientId: string;
@@ -78,16 +79,16 @@ export class FatSecretResolver implements FoodNutritionResolver {
     this.#fetch = options.fetchFn ?? fetch;
   }
 
-  async resolve(candidate: MealCandidate): Promise<ResolverResult> {
+  async resolve(candidate: MealCandidate, signal?: AbortSignal): Promise<ResolverResult> {
     if (!this.#clientId || !this.#clientSecret) return { kind: "unavailable" };
     if (candidate.quantity === null || candidate.unit === null) {
       return { kind: "incomplete" };
     }
 
-    const token = await this.#getToken();
+    const token = await this.#getToken(signal);
     if (token === null) return { kind: "unavailable" };
 
-    const search = await this.#search(candidate.foodName, token);
+    const search = await this.#search(candidate.foodName, token, signal);
     if (search.kind !== "ok") return search.result;
 
     const match = selectFatSecretMatch(candidate.foodName, search.foods);
@@ -95,20 +96,20 @@ export class FatSecretResolver implements FoodNutritionResolver {
       return { kind: "incomplete" };
     }
 
-    const detail = await this.#getFood(String(match.food_id), token);
+    const detail = await this.#getFood(String(match.food_id), token, signal);
     if (detail.kind !== "ok") return detail.result;
 
     const item = resolveFatSecretServing(candidate, detail.food);
     return item === null ? { kind: "incomplete" } : { kind: "resolved", item };
   }
 
-  async #getToken(): Promise<string | null> {
+  async #getToken(signal?: AbortSignal): Promise<string | null> {
     if (this.#token !== null && this.#token.expiresAtMs > Date.now()) {
       return this.#token.value;
     }
     if (this.#tokenPromise !== null) return this.#tokenPromise;
 
-    this.#tokenPromise = this.#requestToken();
+    this.#tokenPromise = this.#requestToken(signal);
     try {
       return await this.#tokenPromise;
     } finally {
@@ -116,7 +117,7 @@ export class FatSecretResolver implements FoodNutritionResolver {
     }
   }
 
-  async #requestToken(): Promise<string | null> {
+  async #requestToken(signal?: AbortSignal): Promise<string | null> {
     if (!this.#clientId || !this.#clientSecret) return null;
     const response = await this.#boundedFetch(TOKEN_URL, {
       method: "POST",
@@ -128,7 +129,7 @@ export class FatSecretResolver implements FoodNutritionResolver {
         grant_type: "client_credentials",
         scope: "basic",
       }),
-    });
+    }, signal);
     if (response === null || !response.ok) return null;
 
     try {
@@ -149,6 +150,7 @@ export class FatSecretResolver implements FoodNutritionResolver {
   async #search(
     query: string,
     token: string,
+    signal?: AbortSignal,
   ): Promise<
     | { readonly kind: "ok"; readonly foods: readonly FatSecretSearchFood[] }
     | { readonly kind: "fail"; readonly result: ResolverResult }
@@ -167,7 +169,7 @@ export class FatSecretResolver implements FoodNutritionResolver {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body,
-    });
+    }, signal);
     if (response === null || !response.ok) {
       return { kind: "fail", result: { kind: "unavailable" } };
     }
@@ -192,6 +194,7 @@ export class FatSecretResolver implements FoodNutritionResolver {
   async #getFood(
     foodId: string,
     token: string,
+    signal?: AbortSignal,
   ): Promise<
     | { readonly kind: "ok"; readonly food: Record<string, unknown> }
     | { readonly kind: "fail"; readonly result: ResolverResult }
@@ -202,7 +205,7 @@ export class FatSecretResolver implements FoodNutritionResolver {
 
     const response = await this.#boundedFetch(url, {
       headers: { Authorization: `Bearer ${token}` },
-    });
+    }, signal);
     if (response === null || !response.ok) {
       return { kind: "fail", result: { kind: "unavailable" } };
     }
@@ -222,16 +225,12 @@ export class FatSecretResolver implements FoodNutritionResolver {
     }
   }
 
-  async #boundedFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response | null> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.#timeoutMs);
-    try {
-      return await this.#fetch(input, { ...init, signal: controller.signal });
-    } catch {
-      return null;
-    } finally {
-      clearTimeout(timeout);
-    }
+  async #boundedFetch(
+    input: RequestInfo | URL,
+    init?: RequestInit,
+    signal?: AbortSignal,
+  ): Promise<Response | null> {
+    return fetchWithTimeout(this.#fetch, input, init, this.#timeoutMs, signal);
   }
 }
 
@@ -250,21 +249,26 @@ export function selectFatSecretMatch(
   foods: readonly FatSecretSearchFood[],
 ): FatSecretSearchFood | null {
   const ranked = foods
-    .filter((food) => typeof food.food_name === "string" && food.food_name.trim().length > 0)
+    .filter((food) =>
+      typeof food.food_name === "string" &&
+      food.food_name.trim().length > 0 &&
+      isSafeFoodIdentityMatch(query, food.food_name)
+    )
     .map((food) => {
-      const genericBonus = normalizeName(food.food_type ?? "") === "generic" ? 4 : 0;
+      const genericBonus = normalizeName(food.food_type ?? "") === "generic" ? 2 : 0;
       return { food, score: matchScore(query, food.food_name!) + genericBonus };
     })
+    .filter((entry) => entry.score >= MIN_MATCH_SCORE)
     .sort((a, b) => b.score - a.score);
 
   const top = ranked[0];
-  if (top === undefined || top.score < MIN_MATCH_SCORE) return null;
+  if (top === undefined) return null;
+
   const second = ranked[1];
   if (
     second !== undefined &&
-    second.score >= MIN_MATCH_SCORE &&
-    top.score - second.score < AMBIGUITY_GAP &&
-    normalizeName(top.food.food_name ?? "") !== normalizeName(second.food.food_name ?? "")
+    second.score === top.score &&
+    String(second.food.food_id ?? "") !== String(top.food.food_id ?? "")
   ) {
     return null;
   }
