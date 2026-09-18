@@ -2,15 +2,16 @@
 
 ## Status
 
-Implementation owner active. Bounded prerequisite slice for TNYX-229.
+Implementation owner active. Bounded prerequisite slice for TNYX-229. Repository implementation and controlled live schema parity are complete; exact-head post-reconciliation CI/review remains before PR Ready.
 
 ## Verified evidence
 
 - Base: `main@13da1de59ad4980dc36ce6a9fbc3c206d1463224`.
 - Linear TNYX-233 is In Progress and blocks TNYX-229.
 - GitHub #284 is the implementation mirror.
-- Live Supabase has no canonical country/region column on `public.users`, `public.user_profiles`, or `public.user_app_preferences`.
-- `public.user_profiles` is the existing canonical common personal/profile owner with authenticated own-row RLS.
+- Live Supabase now has nullable `public.user_profiles.country_code`; `public.users` and `public.user_app_preferences` remain without a competing country source.
+- Hosted migration ledger records `20260918184442_add_user_profile_country_code`; repository migration identity is reconciled to the same version.
+- `public.user_profiles` remains the canonical common personal/profile owner with authenticated own-row RLS.
 - Owner-approved contract: nullable uppercase ISO 3166-1 alpha-2 `country_code` on `public.user_profiles`; `NULL` means unknown/unset.
 
 ## In scope
@@ -20,6 +21,7 @@ Implementation owner active. Bounded prerequisite slice for TNYX-229.
 - Preserve existing user-profile RLS/grants.
 - Add focused database validation for valid, invalid, nullable, and own-row behavior.
 - Prepare the trusted authenticated read contract needed by protected nutrition routing, without deploying the parser.
+- Apply and verify the approved migration on the live `tio-world` Supabase project after separate owner authorization.
 
 ## Out of scope
 
@@ -38,13 +40,15 @@ Implementation owner active. Bounded prerequisite slice for TNYX-229.
 - Settings may later edit the canonical value but cannot duplicate ownership.
 - Nutrition consumes country read-only; provider localization remains server-side.
 - Unknown/unsupported country must not silently map to India or US.
+- Hosted migration identity and repository filename must stay 1:1; the Supabase MCP-generated hosted version `20260918184442` is therefore the canonical migration timestamp.
 
 ## Validation plan
 
 - Migration/source parity.
 - Database test for `NULL`, accepted uppercase ISO-like alpha-2 shape, rejected lowercase/invalid-length/non-alpha values, RLS ownership preservation.
 - `git diff --check` and complete branch changed-file audit before push/PR handoff.
-- No live production migration is applied as part of repository authoring unless separately authorized and reconciled.
+- Controlled live migration only after separate owner authorization, followed by schema, data-preservation, RLS/grant and advisor parity checks.
+- Keep `nutrition-meal-text-parse` undeployed in this slice.
 
 ## Implementation evidence
 
@@ -61,22 +65,37 @@ Implementation owner active. Bounded prerequisite slice for TNYX-229.
 ## Quality review
 
 - Branch remains based on `main@13da1de59ad4980dc36ce6a9fbc3c206d1463224`.
-- Live Supabase remains unchanged; `nutrition-meal-text-parse` is still not deployed.
+- Live Supabase migration is applied and parity-checked; `nutrition-meal-text-parse` is still not deployed.
+- Current Supabase docs confirm remote migration history and repository migration versions must remain synchronized for deterministic `db push` behavior.
 - Current Supabase docs confirm caller-scoped Edge Function clients apply RLS for authenticated user reads.
 - FatSecret current docs confirm omitting `region` defaults localization to US; explicit region is therefore required for this global contract.
 - The database constraint enforces canonical storage format, not a copied static ISO membership catalog. Unsupported/provider-unavailable codes fail safely at the provider boundary rather than being silently rewritten to another country.
-- Existing unrelated Supabase security-advisor warnings remain outside this slice; no new live advisor finding can exist until the migration is applied.
+- Existing unrelated Supabase security/performance advisor findings are unchanged after the live migration.
 
 ## Validation status
 
-- Static branch/scope audit: PASS; branch remains based on `main@13da1de59ad4980dc36ce6a9fbc3c206d1463224`, with only TNYX-233-owned files.
-- Supabase Database CI run #73: PASS on implementation head `f2f4e9643199a421712668ad1c365768cc08cd46`; full migration replay, migration ledger, TNYX-233 SQL matrix, existing SQL matrices, concurrency test, and lint-delta gate all passed.
-- Supabase Functions CI run #3: PASS on Deno 2.9.6 on the same implementation head.
+Repository validation before live application:
+- Current reviewed implementation head before migration-identity reconciliation: `1ceba8f32b3602d13e5ebdfd6359c05fa7bb72d8`.
+- Supabase Database CI run #74: PASS; full migration replay, migration ledger, TNYX-233 SQL matrix, existing SQL matrices, concurrency test, and lint-delta gate passed.
+- Supabase Functions CI run #4: PASS on Deno 2.9.6.
 - Parser entrypoint/all source/tests `deno check`: PASS.
 - Parser tests: PASS — 78 passed / 0 failed, including the unsupported-country no-US-rewrite regression.
-- GitHub Advanced Security dynamic AI scan is currently an infrastructure failure, not a code finding: it exits before review with `400 The requested model is not supported`.
-- Live migration/deployment: not authorized/performed in this stage.
+- GitHub Advanced Security dynamic AI scan remains an external scanner infrastructure failure, not a code finding: `400 The requested model is not supported`.
+
+Controlled live migration/parity:
+- Owner authorized the next controlled gate on 2026-09-19.
+- Exact reviewed SQL applied successfully to Supabase project `oykupyiitspujzpwwvuj`.
+- Hosted migration ledger version: `20260918184442_add_user_profile_country_code`.
+- Live column: `country_code text NULL` with the expected canonical comment.
+- Constraint `user_profiles_country_code_check`: present, validated, exact uppercase two-letter-or-NULL shape.
+- Existing `public.user_profiles` rows: 3 total; all 3 preserved with `country_code IS NULL`; no backfill/guessing occurred.
+- RLS remains enabled; the three existing authenticated own-row policies are unchanged.
+- Table grants are unchanged: authenticated remains INSERT/SELECT/UPDATE; service role baseline unchanged; anon gains nothing.
+- Security advisor baseline remains 5 existing authenticated `SECURITY DEFINER` warnings plus leaked-password protection disabled; no TNYX-233-specific finding was introduced.
+- Performance advisor baseline is unchanged; no TNYX-233-specific finding was introduced.
+- Live Edge Function inventory still contains only `google-login-admission`; `nutrition-meal-text-parse` remains NOT DEPLOYED.
+- Repository migration filename is reconciled to hosted version `20260918184442`; exact-head CI must pass after this identity-only reconciliation before Ready for Review.
 
 ## Handoff
 
-Repository implementation and executable CI validation are PASS in Draft PR #285. The remaining gate is controlled live Supabase migration/parity before TNYX-233 can clear TNYX-229. No parser deployment is authorized by this handoff.
+Live schema parity for TNYX-233 is PASS. The remaining gate is exact-head CI and final PR scope/review reconciliation after the migration timestamp rename. TNYX-229 remains blocked because the country-aware parser source is not yet merged to `main`, and no parser deployment is authorized by this handoff.
