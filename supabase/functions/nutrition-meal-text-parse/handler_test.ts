@@ -49,9 +49,16 @@ function request(body: unknown): Request {
   });
 }
 
+const authenticated = async () => ({
+  kind: "authenticated" as const,
+  countryCode: "IN",
+});
+
+const unauthenticated = async () => ({ kind: "unauthorized" as const });
+
 test("unauthenticated request is rejected with 401", async () => {
   const handler = createMealTextHandler({
-    authenticate: async () => false,
+    authenticate: unauthenticated,
     interpreter: recognized,
     primaryResolver: resolver("fatsecret", { kind: "resolved", item: factualItem }),
   });
@@ -63,7 +70,7 @@ test("unauthenticated request is rejected with 401", async () => {
 
 test("invalid JSON returns invalid_request", async () => {
   const handler = createMealTextHandler({
-    authenticate: async () => true,
+    authenticate: authenticated,
     interpreter: recognized,
     primaryResolver: resolver("fatsecret", { kind: "resolved", item: factualItem }),
   });
@@ -78,7 +85,7 @@ test("invalid JSON returns invalid_request", async () => {
 
 test("blank meal text returns invalid_request", async () => {
   const handler = createMealTextHandler({
-    authenticate: async () => true,
+    authenticate: authenticated,
     interpreter: recognized,
     primaryResolver: resolver("fatsecret", { kind: "resolved", item: factualItem }),
   });
@@ -90,7 +97,7 @@ test("blank meal text returns invalid_request", async () => {
 
 test("wrong schema version returns invalid_request", async () => {
   const handler = createMealTextHandler({
-    authenticate: async () => true,
+    authenticate: authenticated,
     interpreter: recognized,
     primaryResolver: resolver("fatsecret", { kind: "resolved", item: factualItem }),
   });
@@ -102,7 +109,7 @@ test("wrong schema version returns invalid_request", async () => {
 
 test("primary factual success returns provider-neutral Tio response", async () => {
   const handler = createMealTextHandler({
-    authenticate: async () => true,
+    authenticate: authenticated,
     interpreter: recognized,
     primaryResolver: resolver("fatsecret", { kind: "resolved", item: factualItem }),
   });
@@ -119,7 +126,7 @@ test("primary factual success returns provider-neutral Tio response", async () =
 
 test("Indian-style unresolved meal remains incomplete, never fabricated success", async () => {
   const handler = createMealTextHandler({
-    authenticate: async () => true,
+    authenticate: authenticated,
     interpreter: {
       async interpret() {
         return {
@@ -141,7 +148,7 @@ test("Indian-style unresolved meal remains incomplete, never fabricated success"
 
 test("both provider failures return unavailable", async () => {
   const handler = createMealTextHandler({
-    authenticate: async () => true,
+    authenticate: authenticated,
     interpreter: recognized,
     primaryResolver: resolver("fatsecret", { kind: "unavailable" }),
     secondaryResolver: resolver("edamam", { kind: "unavailable" }),
@@ -152,6 +159,54 @@ test("both provider failures return unavailable", async () => {
     schemaVersion: 1,
     outcome: "unavailable",
   });
+});
+
+test("missing canonical country returns incomplete without provider work", async () => {
+  let interpreted = false;
+  let resolved = false;
+  const handler = createMealTextHandler({
+    authenticate: async () => ({ kind: "authenticated", countryCode: null }),
+    interpreter: {
+      async interpret() {
+        interpreted = true;
+        return { kind: "unrecognized" };
+      },
+    },
+    primaryResolver: {
+      name: "fatsecret",
+      async resolve() {
+        resolved = true;
+        return { kind: "unavailable" };
+      },
+    },
+  });
+
+  const response = await handler(request({ schemaVersion: 1, mealText: "dal" }));
+  assert.deepEqual(await response.json(), {
+    schemaVersion: 1,
+    outcome: "incomplete",
+  });
+  assert.equal(interpreted, false);
+  assert.equal(resolved, false);
+});
+
+test("authenticated country is threaded to factual resolver context", async () => {
+  let seenCountry: string | undefined;
+  const handler = createMealTextHandler({
+    authenticate: async () => ({ kind: "authenticated", countryCode: "FR" }),
+    interpreter: recognized,
+    primaryResolver: {
+      name: "fatsecret",
+      async resolve(_candidate, _signal, context) {
+        seenCountry = context?.countryCode;
+        return { kind: "resolved", item: factualItem };
+      },
+    },
+  });
+
+  const response = await handler(request({ schemaVersion: 1, mealText: "1 katori dal" }));
+  assert.equal((await response.json() as { outcome: string }).outcome, "success");
+  assert.equal(seenCountry, "FR");
 });
 
 test("source contains no raw meal/provider logging", () => {
@@ -216,7 +271,7 @@ test("multi-item resolution uses bounded concurrency and preserves item order", 
   };
 
   const handler = createMealTextHandler({
-    authenticate: async () => true,
+    authenticate: authenticated,
     interpreter: multiItemInterpreter(["first", "second", "third", "fourth"]),
     primaryResolver: primary,
     requestDeadlineMs: 1_000,
@@ -244,7 +299,7 @@ test("overall deadline expiration maps to unavailable", async () => {
   };
 
   const handler = createMealTextHandler({
-    authenticate: async () => true,
+    authenticate: authenticated,
     interpreter: multiItemInterpreter(["slow"]),
     primaryResolver: primary,
     requestDeadlineMs: 20,
@@ -270,7 +325,7 @@ test("deadline never returns partial success after one item has resolved", async
   };
 
   const handler = createMealTextHandler({
-    authenticate: async () => true,
+    authenticate: authenticated,
     interpreter: multiItemInterpreter(["fast", "slow"]),
     primaryResolver: primary,
     requestDeadlineMs: 20,
@@ -304,7 +359,7 @@ test("deadline abort reaches provider work and cannot mix fallback nutrients", a
   };
 
   const handler = createMealTextHandler({
-    authenticate: async () => true,
+    authenticate: authenticated,
     interpreter: multiItemInterpreter(["fallback"]),
     primaryResolver: primary,
     secondaryResolver: secondary,
