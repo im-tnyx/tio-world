@@ -1,6 +1,6 @@
 # TNYX-222 — Settings logout shared destructive confirmation
 
-**Status:** Final review complete — Ready for Review
+**Status:** Validated — merged
 **Primary owner:** Implementation
 **Affected platforms:** Flutter phone app / Core UI
 
@@ -17,15 +17,16 @@
 **Planning owner:** ChatGPT
 **Implementation owner:** ChatGPT
 **Review owner:** Pending final review
-**Implementation ownership state:** Active through validation
+**Implementation ownership state:** Complete
 **Ownership transition:** Not applicable
 **Repository base last verified:** `main` at `17383476fdb8844b592041e730a764bd132f602c`
-**Branch:** `tnyx/tnyx-222-settings-logout-shared-destructive-confirmation-intent`
-**HEAD SHA:** `0966067798dbfc326423e963373332100b1716eb`
-**Observed working-tree state:** Local clone available this session (`G:\projects\Tio-World`). Working tree clean at this HEAD.
-**PR / tracker:** GitHub PR #279 (Ready for Review) / GitHub #173 / Linear TNYX-222 (In Review)
-**Current implementation state:** Architecture correction, Settings migration, focused tests, and Core public documentation are implemented. CI-1 and DOC-2 are both resolved. Flutter CI #2643 (run `35308007688`) completed SUCCESS on exact HEAD `09660677` — Analyze Flutter packages, Analyze Dart packages, Test Flutter packages, Test Dart packages all passed. Final Codex-style review at this exact HEAD found no blocking (P0/P1/P2) findings; 0 unresolved GitHub review threads; PR is `MERGEABLE`/`CLEAN`.
-**Validation remaining:** None for this slice. Merge requires explicit owner instruction.
+**Branch:** `tnyx/tnyx-222-settings-logout-shared-destructive-confirmation-intent` (not deleted; owner did not request branch deletion)
+**Final PR HEAD:** `3cd33b3c612b70dff4a429afc4ce631c720e15ec`
+**Merge commit:** `ecfab7530f48af08587a34048f722fd31f4119fe` — squash-merged into `main` 2026-09-18T05:06:02Z
+**Observed working-tree state:** Local clone available this session (`G:\projects\Tio-World`). Local `main` fast-forwarded to `ecfab753` post-merge; working tree clean.
+**PR / tracker:** GitHub PR #279 (Merged) / GitHub #173 (stays open — other consumers remain, see Non-Goals) / Linear TNYX-222 (Done)
+**Current implementation state:** Merged into `main`. All acceptance criteria verified against merged source: `TioConfirmationIntent.standard/destructive` exists with `standard` default; destructive confirm uses `TioButton.destructive`; cancel uses `TioButton.secondary`; presenter composes `TioCard` + `TioButton` directly; `TioConfirmationCard` fully removed (no file, no references repo-wide); Settings logout calls `showTioConfirmationBottomSheet(intent: destructive)` and invokes `onLogoutPressed` only on `true`; no auth/session/backend/Supabase files touched; confirmation surface unchanged (`TioCardVariant.elevated`); Core docs match runtime.
+**Validation remaining:** None for this slice.
 **Current blocker:** None.
 **Open review finding IDs:** None open.
 
@@ -109,6 +110,9 @@ Restoring a public `TioConfirmationCard`, retaining a local `AlertDialog`, or cr
 - [x] Refresh PR body with final validation evidence.
 - [x] Run final Codex-style review; no blocking findings at exact HEAD `09660677`; exact-head CI green.
 - [x] Move PR #279 to Ready for Review and Linear TNYX-222 to In Review.
+- [x] Merge PR #279 (squash) into `main` on explicit owner instruction.
+- [x] Sync local `main` per `docs/POST_MERGE_SYNC.md`.
+- [x] Verify acceptance criteria against merged `main` source and move Linear TNYX-222 to Done.
 
 ## 6. Quality Review
 
@@ -164,6 +168,14 @@ Final Codex-style re-check at exact HEAD `09660677` (this session):
 - PR #279: `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`.
 - Unresolved GitHub review threads: 0 (`reviewThreads` query returned an empty list).
 - No P0/P1/P2 findings remain open.
+
+Docs-only task-brief handoff commit `3cd33b3c` also validated: `git diff --check` clean; Flutter CI (run `35308686756`) SUCCESS on this exact HEAD — this is the HEAD that was merged.
+
+Merge (owner-approved, this session):
+- Pre-merge revalidation: PR #279 open/not Draft, HEAD exactly `3cd33b3c`, `MERGEABLE`/`CLEAN`, exact-head CI green (run `35308686756`), 0 unresolved review threads, 0 blocking reviews, Linear still `In Review`, diff unchanged since final review — all 8 checks passed.
+- Merged via `gh pr merge 279 --squash --match-head-commit 3cd33b3c...` (expected-head protection). Result: PR #279 `state=MERGED`, merge commit `ecfab7530f48af08587a34048f722fd31f4119fe`.
+- Verified `origin/main` moved `17383476..ecfab753` and local `main` fast-forwarded to match.
+- Post-merge acceptance-criteria re-check against merged `main` source (grep-verified): intent enum + `standard` default, `destructive`/`secondary` button mapping, `TioConfirmationCard` fully absent repo-wide, Settings logout wiring, empty diff for auth/backend paths — all satisfied.
 ```
 
 ### Review Findings and Resolution
@@ -188,8 +200,8 @@ Settings logout uses the shared confirmation presenter with destructive action s
 
 ### Known Limitations
 
-The reusable confirmation surface keeps its existing elevated-card background/shadow geometry; broader surface convergence remains out of scope. Connector-only work cannot report local working-tree state.
+The reusable confirmation surface keeps its existing elevated-card background/shadow geometry; broader surface convergence remains out of scope. GitHub #173 remains open — its own checklist still lists `surfaceRaised` convergence, onboarding/Body Goal/Nutrition Meal Category confirmation adoption verification, and any other destructive-confirmation convergence as separate future slices, each requiring its own fresh audit and owner approval. This task does not start any of them.
 
 ### Final Status
 
-`READY FOR REVIEW — exact HEAD 09660677, Flutter CI #2643 (run 35308007688) green, no blocking review findings, 0 unresolved review threads. PR #279 marked Ready for Review and Linear TNYX-222 moved to In Review. Merge still requires explicit owner instruction; do not merge, do not mark Linear Done, and do not close GitHub #173 from this slice.`
+`MERGED — PR #279 squash-merged into main as ecfab7530f48af08587a34048f722fd31f4119fe (final head 3cd33b3c). Exact-head Flutter CI (run 35308686756) was green before merge. Linear TNYX-222 is Done. GitHub #173 stays open (other consumers remain). No further action on this slice; the next #173 slice requires its own fresh audit and explicit owner approval.`
