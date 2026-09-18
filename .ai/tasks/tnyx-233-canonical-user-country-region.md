@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation owner active. Bounded prerequisite slice for TNYX-229. Repository implementation and controlled live schema parity are complete; exact-head post-reconciliation CI/review remains before PR Ready.
+Repository implementation and controlled live schema parity are complete. Executable source/test head is validated; governance handoff is ready for PR review.
 
 ## Verified evidence
 
@@ -94,8 +94,19 @@ Controlled live migration/parity:
 - Security advisor baseline remains 5 existing authenticated `SECURITY DEFINER` warnings plus leaked-password protection disabled; no TNYX-233-specific finding was introduced.
 - Performance advisor baseline is unchanged; no TNYX-233-specific finding was introduced.
 - Live Edge Function inventory still contains only `google-login-admission`; `nutrition-meal-text-parse` remains NOT DEPLOYED.
-- Repository migration filename is reconciled to hosted version `20260918184442`; exact-head CI must pass after this identity-only reconciliation before Ready for Review.
+- Repository migration filename is reconciled to hosted version `20260918184442`.
+
+## Final executable validation
+
+- Exact executable source/test HEAD: `393074f90cd51bf9786c3bbf358438300e402112`.
+- Supabase Functions CI run #6: PASS.
+- Supabase Database CI run #76: PASS.
+- Complete migration replay and migration ledger: PASS.
+- TNYX-233 country SQL matrix: PASS after aligning its ledger assertion to hosted/repository version `20260918184442`.
+- Existing SQL matrices, real two-session concurrency test, and lint-delta gate: PASS.
+- Branch scope at executable HEAD: 23 ahead / 0 behind `main`, 14 TNYX-233-owned changed files, 0 unresolved review threads, mergeable.
+- The prior Database CI #75 failure was test-harness-only: replay/ledger passed, but the TNYX-233 test still asserted the pre-hosted timestamp. No live schema correction was required.
 
 ## Handoff
 
-Live schema parity for TNYX-233 is PASS. The remaining gate is exact-head CI and final PR scope/review reconciliation after the migration timestamp rename. TNYX-229 remains blocked because the country-aware parser source is not yet merged to `main`, and no parser deployment is authorized by this handoff.
+TNYX-233 repository implementation, live schema parity, and executable validation are PASS. This task-brief reconciliation is governance-only and does not change executable source, migration SQL, or tests beyond the already validated `393074f9...` head. PR #285 may proceed to Ready for Review / Linear In Review. TNYX-229 remains blocked until TNYX-233 is merged/cleared into `main`; no parser deployment is authorized by this handoff.
