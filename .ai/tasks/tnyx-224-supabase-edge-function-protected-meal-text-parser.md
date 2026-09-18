@@ -2,170 +2,206 @@
 
 **Status:** In progress
 **Primary owner:** Nutrition (Supabase Edge Function boundary)
-**Affected platforms:** Supabase (`supabase/functions`); no Flutter or database-shape change
+**Affected platforms:** Supabase Edge Function only; no Flutter or database-shape change
 
 ## Owner Approval and Scope Boundary
 
-**Trigger:** New independently scoped product task/feature slice (server implementation)
+**Trigger:** Existing approved product/server slice; this is continuation and pre-PR cleanup, not a new slice.
 **Approval status:** Approved
-**Approval evidence:** Owner prompt of 2026-09-18 explicitly opens the TNYX-224 implementation gate using FatSecret Free/Basic for development; follow-up owner prompt authorizes Edamam as a second factual resolver/fallback. Linear TNYX-224 records both decisions.
-**Approved product/UI/data-shape boundaries:** One authenticated Nutrition-owned Supabase Edge Function; Gemini only for structured interpretation; FatSecret + Edamam for factual nutrition resolution; no provider-data persistence; no schema/RLS/RPC change; no Flutter/UI change; no `services/api`.
-**Explicit non-changes:** TNYX-225, TNYX-226, AddFoodSheet, Meal Editor UI, provider provenance columns, database migrations, broad TNYX-33 AI abstraction, proxy/static-egress infrastructure.
+**Approval evidence:** Owner decisions on 2026-09-18 opened TNYX-224 implementation using FatSecret Free/Basic for development and Edamam as factual fallback. Latest owner handoff explicitly keeps Gemini as the only interpreter for this bounded PR and defers OpenAI evaluation.
+**Approved boundaries:** Authenticated Nutrition-owned Supabase Edge Function; Gemini language interpretation only; FatSecret primary factual resolver; Edamam factual fallback; exactly one factual provider per successful item; provider-neutral Tio response; no persistence.
+**Explicit non-changes:** TNYX-225, TNYX-226, Flutter/UI, database tables/columns, migrations, RLS, RPC, `services/api`, OpenAI interpreter orchestration, proxy/static-egress infrastructure, live deployment.
 
 ## Active Handoff
 
-**Planning owner:** Prior audit + current fresh reconciliation
-**Implementation owner:** ChatGPT (current session)
-**Review owner:** Not applicable yet
-**Implementation ownership state:** Active
-**Ownership transition:** Interrupted prior implementation → current implementation owner
+**Planning owner:** Existing TNYX-224 plan
+**Implementation owner:** ChatGPT (current continuation)
+**Review owner:** Pending draft PR review
+**Implementation ownership state:** Complete for source/pre-PR implementation
+**Ownership transition:** Interrupted implementation → current implementation owner
 **Repository state last verified:** 2026-09-18
 **Branch:** `tnyx/tnyx-224-n5d-6-supabase-edge-function-protected-meal-text-parser`
 **Base main SHA:** `7c7df7b30256091301d93325c031440f6b44d526`
-**Observed working-tree state:** GitHub API branch audit: 1 commit ahead / 0 behind before takeover. User confirmed branch push. This API-based session cannot inspect the user's post-push local working tree directly.
-**Observed uncommitted/dirty files:** None observable remotely. Before takeover the pushed delta contained this task brief plus `supabase/functions/nutrition-meal-text-parse/contract.ts`.
-**PR / tracker:** No PR yet; Linear TNYX-224 = `In Progress`
-**Current implementation state:** Provider-neutral schema-v1 contract exists; bounded Edge Function implementation is continuing.
-**Relevant execution surface:** `supabase/functions/nutrition-meal-text-parse/*`, `supabase/config.toml`, this task brief
-**Validation completed at SHA:** None for current implementation tree yet
-**Validation remaining:** focused Deno/unit validation, branch scope audit, exact-head checks; live smoke only after deployment gates
-**Current blocker:** No code blocker. Live FatSecret validation remains gated by rotated exposed credential and account IP restriction. Edge Function secret names cannot be enumerated with the available Supabase connector, so runtime presence must be verified without exposing values before deployment.
-**Open review finding IDs:** TNYX-224-G2 (Deferred provenance); TNYX-224-G3 (live deployment gate)
-**Next exact action:** Implement authenticated handler, Gemini interpreter, FatSecret primary resolver, Edamam fallback, deterministic normalization/tests; validate; then create a focused draft PR. Do not merge.
+**Final implementation/test SHA:** `9e7b86069e49e5b45db9332ea65b06a547488d1c`
+**Observed repository state at implementation/test SHA:** 18 commits ahead / 0 behind `main`; expected TNYX-224 scope only.
+**Observed uncommitted/dirty files:** Not observable through GitHub API; user-local unrelated work was not touched.
+**PR / tracker:** No PR at this checkpoint; Linear TNYX-224 = `In Progress`; TNYX-225/TNYX-226 unchanged.
+**Current implementation state:** Source complete and focused tests committed. Known Gemini malformed-JSON typo and nutrition schema-version typo are fixed.
+**Relevant execution surface:** `.ai/tasks/tnyx-224-supabase-edge-function-protected-meal-text-parser.md`, `supabase/config.toml`, `supabase/functions/nutrition-meal-text-parse/*`
+**Validation completed at implementation/test SHA:** TypeScript PASS; focused tests 28/28 PASS; exact source/test blobs were matched to GitHub blob SHAs before validation.
+**Validation protocol note:** This handoff-only brief commit moves branch HEAD after the implementation/test SHA. Exact PR-head TypeScript/tests/scope/diff validation is rerun after this file is pushed and recorded in the draft PR and Linear comment rather than creating a self-referential SHA loop in this brief.
+**Current blocker:** None for source/PR readiness. Live provider validation remains intentionally not run.
+**Open review finding IDs:** TNYX-224-G2 (Deferred provenance); TNYX-224-G3 (production/live-provider gate)
+**Next exact action:** Push this reconciled brief, rerun exact-head validation, create draft PR, fresh-read PR, sync Linear. Do not merge.
 
 ## 1. Discovery
 
 ### User Outcome
 
-Provide the real protected server implementation behind the existing provider-neutral meal-text parser contract:
+Provide the protected parser source behind the existing provider-neutral Nutrition contract:
 
 ```text
-authenticated Flutter user
-→ Supabase Edge Function
-→ Gemini structured interpretation only
+authenticated Supabase user
+→ nutrition-meal-text-parse
+→ Gemini structured interpretation
 → FatSecret factual resolver
-→ Edamam factual fallback when needed
+→ Edamam factual fallback
 → exactly one factual provider per successful item
-→ Tio-owned normalized response
-→ later TNYX-225 remote repository adapter
+→ Tio-owned provider-neutral response
+→ later TNYX-225 Flutter adapter
 ```
 
 ### Success Criteria
 
-- Authenticated Supabase user is required.
-- Request remains `{ schemaVersion: 1, mealText }`; caller cannot select user/provider/model.
-- Gemini may extract food/quantity/unit intent but never supplies canonical nutrition.
-- Every successful item is backed by exactly one factual provider response.
-- FatSecret is the V1 primary resolver; Edamam is a bounded secondary fallback.
-- Returned nutrition uses existing Tio `NutritionSnapshot` schema version 1 and canonical nutrient IDs.
-- Unknown nutrients remain absent; no unknown-to-zero conversion.
-- Provider/network/runtime failures are sanitized.
+- Authenticated Supabase user required.
+- Request is only `{ schemaVersion: 1, mealText }`.
+- Gemini extracts meal/item/quantity/unit intent and never supplies canonical nutrition truth.
+- FatSecret is primary factual nutrition resolver.
+- Edamam is secondary factual fallback.
+- A successful item is sourced wholly from one factual provider; nutrients are never blended.
+- Missing/ambiguous facts return `incomplete`; provider/runtime failure returns sanitized `unavailable`.
+- Tio `NutritionSnapshot` schema version 1 and canonical nutrient IDs are preserved.
+- Unknown nutrients stay absent; no unknown-to-zero conversion.
 - No raw meal text/provider payload/provider IDs are persisted or logged.
 - No Flutter, database schema, RLS, RPC, migration, or `services/api` change.
 
 ### Non-Goals
 
-TNYX-225/TNYX-226, product-visible Add Food activation, voice/photo/search/barcode, provider provenance persistence, broad provider framework, caching tables, static-egress proxy, long-running jobs.
+OpenAI interpreter fallback, TNYX-225/TNYX-226, Add Food activation, voice/photo/search/barcode, provider provenance persistence, caching tables, static-egress proxy, production licensing solution, live deployment.
 
 ## 2. Codebase Exploration
 
 ### Verified Evidence
 
-- Root `AGENTS.md`, canonical architecture/Supabase/secrets docs, ADR-0007, `.ai` workflow/task rules, push/PR templates read fresh.
-- No applicable nested `AGENTS.md` exists under `supabase/` or `supabase/functions/`.
-- Live Supabase project `tio-world` (`oykupyiitspujzpwwvuj`) is `ACTIVE_HEALTHY` in `ap-south-1`.
-- Live Edge Function inventory still contains only `google-login-admission`; no nutrition parser is deployed.
-- Project supports both a legacy anon key and a current publishable key. Secret values are never recorded here.
-- Current Supabase docs (2026-09-18) recommend authenticated-user Edge Functions use platform JWT verification plus `@supabase/server` user auth context. This supersedes the older prompt example that treated `verify_jwt=false` as the likely default.
-- Existing `google-login-admission` supplies the repo pattern for `Deno.serve`, `Deno.env.get`, and sanitized errors.
-- Current Tio `NutritionSnapshot` contract uses schema version 1 in runtime/tests and stores only explicitly known nutrients.
-- Canonical current nutrient IDs: `energy`, `protein`, `carbohydrate`, `fat`, `fiber`, `saturated_fat`, `trans_fat`, `added_sugar`, `sodium`, `calcium`, `phosphorus`, `vitamin_d`.
-- Repository convention repeatedly names Gemini as the server-side AI provider direction; no OpenAI implementation/convention is present.
-- Current official provider docs rechecked: FatSecret OAuth2 client-credentials/basic flow and latest food detail API; Edamam Food Database v2 parser/nutrients; Gemini structured-output support and current stable Flash models.
+- Root `AGENTS.md`, `.ai` workflow/task rules, canonical architecture/Supabase docs, ADR-0007, `docs/PUSH_TEMPLATE.md`, and PR template were reconciled before continuation.
+- No nested `AGENTS.md` applies under `supabase/functions`.
+- Live Supabase project `tio-world` (`oykupyiitspujzpwwvuj`) is healthy in `ap-south-1`.
+- Live Edge Function inventory contains only `google-login-admission`; `nutrition-meal-text-parse` is not deployed.
+- Current Supabase docs: signed-in user calls keep `verify_jwt = true` and use `auth: "user"` in `@supabase/server`; `createSupabaseContext` is appropriate for custom sanitized 401 handling.
+- `@supabase/server@1.7.0` remains pinned; GitHub latest release on 2026-09-18 is `server-v1.7.0`, so no dependency change is required.
+- Provider secrets remain environment-only and are not printed, persisted, or committed.
+- OpenAI is explicitly deferred from this bounded PR.
 
 ## 3. Clarification
 
-| Decision | Status | Rationale | Owner |
-|---|---|---|---|
-| Implementation may proceed before Premier/India/storage rights | Made | Owner explicitly separated implementation gate from production/UI activation gate. | Owner |
-| LLM interpreter | Made: Gemini | Existing repo convention repeatedly names Gemini; keep adapter local, not TNYX-33. | Current implementation within approved scope |
-| Factual provider order | Made: FatSecret → Edamam | Owner explicitly authorized both; exactly one provider supplies each successful item's nutrition. | Owner |
-| Cross-provider nutrient blending | Forbidden | A successful item must have one factual source basis. | Owner |
-| Auth strategy | Made: platform `verify_jwt=true` + function-side `@supabase/server` user auth | Current Supabase docs support current signing keys and authenticated-user calls; no home-grown JWT. | Current docs + approved auth boundary |
-| Provider provenance persistence | Deferred | Not required for this slice; no domain/database fields added. | Owner |
-| Deployment | Not yet | Requires source validation, rotated exposed FatSecret secret, runtime secret presence, and safe provider connectivity. | Owner prompt |
+| Decision | Status | Rationale |
+|---|---|---|
+| Interpreter | Gemini only | Establish one measurable baseline; OpenAI requires a later approved benchmark/scope. |
+| Factual provider order | FatSecret → Edamam | Owner-approved factual resolver order. |
+| Cross-provider nutrient blending | Forbidden | One successful item must have exactly one factual source basis. |
+| Auth | `verify_jwt=true` + `@supabase/server` `auth: "user"` | Current Supabase authenticated-user guidance. |
+| Custom 401 | `createSupabaseContext` | Keeps sanitized Tio response while validating user auth. |
+| Database access | None | Parser requires no DB read/write or privileged client. |
+| Provider provenance persistence | Deferred | No schema/domain mutation in TNYX-224. |
+| Deployment | Not run | Pre-PR source work only; live credential/provider gates remain. |
 
 ## 4. Architecture Design
 
-### Chosen Approach
-
-Keep small internal adapters inside the function directory:
-
 ```text
 index.ts
-  → auth boundary
+  → Supabase user auth
   → GeminiMealInterpreter
-  → resolveCandidate(primary FatSecret, secondary Edamam)
-  → provider-neutral response
-
-Providers return one InternalResolvedFood each.
-Provider DTOs/IDs never cross contract.ts.
+  → resolveWithFallback(
+       FatSecretResolver,
+       EdamamResolver
+     )
+  → provider-neutral ParseResponse
 ```
 
-### Failure Semantics
-
-- `unrecognized`: no meaningful meal interpretation.
-- `incomplete`: meaning exists but a save-ready factual item cannot be safely resolved.
-- `unavailable`: both usable provider paths are unavailable or protected runtime failed.
-- invalid request: HTTP 400 sanitized error.
-- unauthenticated: HTTP 401, normally rejected by platform before handler.
+Provider DTOs, tokens, IDs, prompts, and raw responses remain internal. Resolver orchestration returns a whole item from one provider and cannot merge nutrients.
 
 ## 5. Implementation Plan
 
-- [x] Provider-neutral request/response contract foundation.
-- [ ] Reconcile contract with exact Tio nutrient schema.
-- [ ] Add internal candidate/resolved-food contracts and normalization helpers.
-- [ ] Add Gemini structured interpreter with bounded timeout and strict validation.
-- [ ] Add FatSecret OAuth2/search/detail resolver with deterministic match/serving rules.
-- [ ] Add Edamam parser/nutrients fallback with deterministic match/serving rules.
-- [ ] Add primary/secondary orchestration without nutrient blending.
-- [ ] Add authenticated HTTP handler and `supabase/config.toml` function config.
-- [ ] Add focused unit tests with provider HTTP test doubles.
-- [ ] Run validation and scope audit.
-- [ ] Create focused draft PR; do not merge.
+- [x] Provider-neutral request/response contract.
+- [x] Exact Tio nutrient schema v1 mapping.
+- [x] Internal candidate/resolver contracts and normalization helpers.
+- [x] Gemini structured interpreter with bounded timeout and strict parsing.
+- [x] Malformed Gemini JSON maps to `unavailable`.
+- [x] FatSecret OAuth2/search/detail resolver with deterministic matching/serving conversion.
+- [x] Edamam parser/nutrients factual fallback.
+- [x] Primary/secondary orchestration with no nutrient blending.
+- [x] Authenticated HTTP handler and `verify_jwt=true` function config.
+- [x] Focused tests committed.
+- [x] Source/test snapshot TypeScript validation.
+- [x] Source/test snapshot focused tests.
+- [ ] Exact final PR-head validation after this handoff-only brief commit.
+- [ ] Draft PR creation and post-PR verification.
+- [ ] Linear exact-head/PR comment sync.
 
 ## 6. Quality Review
 
 ### Validation Run
 
+Validated implementation/test SHA:
+
 ```text
-Not run yet for the current implementation tree.
+9e7b86069e49e5b45db9332ea65b06a547488d1c
 ```
+
+Results:
+
+```text
+TypeScript production type-check: PASS
+Focused tests: PASS
+Count: 28 passed / 0 failed
+Remote blob reconciliation: PASS
+@supabase/server pin: 1.7.0, current latest release verified
+```
+
+Focused coverage includes authenticated rejection, invalid request shapes, Gemini valid/malformed/failure/timeout behavior, FatSecret matching/ambiguity/missing serving/quantity scaling/failure, Edamam normalization/malformed/failure/success, primary short-circuit, fallback, both-incomplete, both-unavailable, Indian-style unresolved input, no cross-provider nutrient mixing, and no parser/provider logging.
 
 ### Review Findings and Resolution
 
-| ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
-|---|---|---|---|---|---|
-| TNYX-224-G1 | Blocker | Resolved | Provider selection was previously unresolved. | `7c7df7b3` | Owner approved FatSecret Free/Basic development and Edamam fallback; Linear records both decisions. |
-| TNYX-224-G2 | Deferred | Deferred | Durable provider provenance has no current domain/DB home. | `7c7df7b3` | Explicitly out of scope; no persistence field added. |
-| TNYX-224-G3 | High | Open | Live FatSecret call must not use the previously exposed secret and current account IP restrictions may block Edge Function egress. | live/provider state | Rotate secret before first deployed call; if IP restriction blocks, record live validation BLOCKED without adding proxy infrastructure. |
+| ID | Severity | Status | Finding | Evidence |
+|---|---|---|---|---|
+| TNYX-224-G1 | Blocker | Resolved | Provider selection/readiness was previously unresolved. | Owner-approved FatSecret + Edamam development path. |
+| TNYX-224-G4 | High | Resolved | Gemini malformed JSON returned invalid discriminator `unavaile`. | Fixed before tests; malformed JSON test passes. |
+| TNYX-224-G5 | High | Resolved | `NUTRITION_SCHMA_VERSION` typo broke canonical snapshot typing/runtime. | Corrected to `NUTRITION_SCHEMA_VERSION`; type-check and provider tests pass. |
+| TNYX-224-G2 | Deferred | Deferred | Durable provider provenance has no current DB/domain home. | Explicitly out of scope; no persistence field added. |
+| TNYX-224-G3 | High | Open | Live provider/deployment validation is gated by credential/runtime/provider restrictions. | No deployment/live call in this PR. |
 
 ## 7. Final Handoff
 
 ### Changed Files
 
-In progress; exact list will be refreshed after validation.
+```text
+.ai/tasks/tnyx-224-supabase-edge-function-protected-meal-text-parser.md
+supabase/config.toml
+supabase/functions/nutrition-meal-text-parse/contract.ts
+supabase/functions/nutrition-meal-text-parse/types.ts
+supabase/functions/nutrition-meal-text-parse/matching.ts
+supabase/functions/nutrition-meal-text-parse/resolver.ts
+supabase/functions/nutrition-meal-text-parse/gemini_client.ts
+supabase/functions/nutrition-meal-text-parse/fatsecret_client.ts
+supabase/functions/nutrition-meal-text-parse/edamam_client.ts
+supabase/functions/nutrition-meal-text-parse/handler.ts
+supabase/functions/nutrition-meal-text-parse/index.ts
+supabase/functions/nutrition-meal-text-parse/gemini_client_test.ts
+supabase/functions/nutrition-meal-text-parse/resolver_test.ts
+supabase/functions/nutrition-meal-text-parse/providers_test.ts
+supabase/functions/nutrition-meal-text-parse/handler_test.ts
+```
 
 ### Actual Behavior
 
-No product-visible behavior yet. TNYX-225 and TNYX-226 remain unchanged.
+Source is ready for review. The function is protected by Supabase user JWT validation and in-function `auth: "user"`, interprets language with Gemini only, resolves factual nutrition through FatSecret then Edamam, and returns provider-neutral Tio outcomes without DB persistence.
 
-### Known Limitations
+### Deployment / Live Validation
 
-- FatSecret Free/Basic is a development stepping stone; India/Premier remains a production gate.
-- Durable provider nutrient-storage permission remains a production activation gate.
-- Live provider validation is not allowed until the exposed FatSecret credential is rotated and runtime secret presence/connectivity is verified.
+```text
+Supabase deployment: NOT DEPLOYED
+Live provider validation: NOT RUN
+```
+
+### Known Production Gates
+
+- FatSecret Free/Basic remains a development limitation.
+- India/Premier/provider strategy remains a later production activation gate.
+- Durable/commercial nutrition-storage permission remains a production gate.
+- Previously exposed FatSecret credentials must not be used for first live validation; secrets must be rotated/verified server-side without pasting values.
+- TNYX-225 remains the later Flutter adapter slice.
+- TNYX-226 remains the later product-visible activation slice.
 
 ### Final Status
 
-`PARTIAL`
+`REVIEW`
