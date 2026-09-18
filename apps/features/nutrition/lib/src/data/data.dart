@@ -5,5 +5,6 @@ export 'in_memory_nutrition_targets_repository.dart';
 export 'repositories/paged_supabase_meal_log_table_gateway.dart';
 export 'repositories/supabase_meal_categories_repository.dart';
 export 'repositories/supabase_meal_log_repository.dart';
+export 'repositories/supabase_meal_text_parse_repository.dart';
 export 'repositories/supabase_nutrition_profile_repository.dart';
 export 'repositories/supabase_nutrition_targets_repository.dart';
