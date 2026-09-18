@@ -68,7 +68,7 @@ export function canonicalSnapshot(
   if (Object.keys(clean).length === 0) return null;
 
   return {
-    schemaVersion: NUTRITION_SCHMA_VERSION,
+    schemaVersion: NUTRITION_SCHEMA_VERSION,
     nutrients: clean,
   };
 }
