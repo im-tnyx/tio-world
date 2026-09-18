@@ -69,15 +69,14 @@ Implementation owner active. Bounded prerequisite slice for TNYX-229.
 
 ## Validation status
 
-- Static branch/scope audit: PASS before final validation updates; all changed files are task-owned and branch ancestry remains clean.
-- Supabase Database CI: PASS on the reviewed implementation head before the final unsupported-country regression test/task-brief update; full migration replay, migration ledger, TNYX-233 SQL matrix, existing SQL matrices, concurrency test, and lint-delta gate all passed.
-- Supabase Functions CI: PASS on Deno 2.9.6 before the final unsupported-country regression test/task-brief update.
+- Static branch/scope audit: PASS; branch remains based on `main@13da1de59ad4980dc36ce6a9fbc3c206d1463224`, with only TNYX-233-owned files.
+- Supabase Database CI run #73: PASS on implementation head `f2f4e9643199a421712668ad1c365768cc08cd46`; full migration replay, migration ledger, TNYX-233 SQL matrix, existing SQL matrices, concurrency test, and lint-delta gate all passed.
+- Supabase Functions CI run #3: PASS on Deno 2.9.6 on the same implementation head.
 - Parser entrypoint/all source/tests `deno check`: PASS.
-- Parser tests: PASS — 77 passed / 0 failed before the final added unsupported-country regression test.
-- Final-head CI is expected to rerun automatically after the last test/task-brief commits and must be rechecked before review handoff.
+- Parser tests: PASS — 78 passed / 0 failed, including the unsupported-country no-US-rewrite regression.
 - GitHub Advanced Security dynamic AI scan is currently an infrastructure failure, not a code finding: it exits before review with `400 The requested model is not supported`.
 - Live migration/deployment: not authorized/performed in this stage.
 
 ## Handoff
 
-Implementation remains in Draft PR #285 pending final-head CI reconciliation. TNYX-229 must remain blocked until this prerequisite is explicitly cleared.
+Repository implementation and executable CI validation are PASS in Draft PR #285. The remaining gate is controlled live Supabase migration/parity before TNYX-233 can clear TNYX-229. No parser deployment is authorized by this handoff.
