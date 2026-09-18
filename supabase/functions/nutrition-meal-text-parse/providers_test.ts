@@ -1,0 +1,184 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+
+import {
+  FatSecretResolver,
+  resolveFatSecretServing,
+  selectFatSecretMatch,
+} from "./fatsecret_client.ts";
+import {
+  buildEdamamItem,
+  EdamamResolver,
+  measureIsCompatible,
+} from "./edamam_client.ts";
+
+test("FatSecret selects a deterministic valid match", () => {
+  const result = selectFatSecretMatch("plain yogurt", [
+    { food_id: "1", food_name: "Plain Yogurt", food_type: "Generic" },
+    { food_id: "2", food_name: "Chocolate Cake", food_type: "Generic" },
+  ]);
+
+  assert.equal(result?.food_id, "1");
+});
+
+test("FatSecret ambiguous high-scoring match returns incomplete basis", () => {
+  const result = selectFatSecretMatch("dal", [
+    { food_id: "1", food_name: "Dal Curry" },
+    { food_id: "2", food_name: "Dal Soup" },
+  ]);
+
+  assert.equal(result, null);
+});
+
+test("FatSecret missing serving returns incomplete basis", () => {
+  assert.equal(
+    resolveFatSecretServing(
+      { foodName: "dahi", quantity: 150, unit: "g" },
+      { food_name: "Plain Yogurt" },
+    ),
+    null,
+  );
+});
+
+test("FatSecret scales factual nutrients for explicit metric quantity", () => {
+  const result = resolveFatSecretServing(
+    { foodName: "dahi", quantity: 200, unit: "g" },
+    {
+      food_name: "Plain Yogurt",
+      servings: {
+        serving: {
+          metric_serving_amount: "100",
+          metric_serving_unit: "g",
+          calories: "60",
+          protein: "4",
+        },
+      },
+    },
+  );
+
+  assert.deepEqual(result, {
+    displayName: "Plain Yogurt",
+    quantity: 200,
+    servingUnit: "g",
+    nutritionSnapshot: {
+      schemaVersion: 1,
+      nutrients: { energy: 120, protein: 8 },
+    },
+  });
+});
+
+test("FatSecret transport/token failure is unavailable", async () => {
+  const resolver = new FatSecretResolver({
+    clientId: "test-id",
+    clientSecret: "test-secret",
+    fetchFn: async () => new Response("no", { status: 503 }),
+  });
+
+  assert.deepEqual(
+    await resolver.resolve({ foodName: "dal", quantity: 1, unit: "katori" }),
+    { kind: "unavailable" },
+  );
+});
+
+test("Edamam compatible item measure is accepted", () => {
+  assert.equal(measureIsCompatible("piece", "whole"), true);
+  assert.equal(measureIsCompatible("g", "cup"), false);
+});
+
+test("Edamam normalizes factual nutrients only", () => {
+  const result = buildEdamamItem(
+    { foodName: "dahi", quantity: 150, unit: "g" },
+    "Plain Yogurt",
+    {
+      ENERC_KCAL: { quantity: 90, unit: "kcal" },
+      PROCNT: { quantity: 6, unit: "g" },
+    },
+  );
+
+  assert.deepEqual(result, {
+    displayName: "Plain Yogurt",
+    quantity: 150,
+    servingUnit: "g",
+    nutritionSnapshot: {
+      schemaVersion: 1,
+      nutrients: { energy: 90, protein: 6 },
+    },
+  });
+});
+
+test("Edamam malformed parser response returns incomplete", async () => {
+  const resolver = new EdamamResolver({
+    appId: "test-id",
+    appKey: "test-key",
+    fetchFn: async () =>
+      new Response(JSON.stringify({ parsed: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+  });
+
+  assert.deepEqual(
+    await resolver.resolve({ foodName: "dal", quantity: 1, unit: "katori" }),
+    { kind: "incomplete" },
+  );
+});
+
+test("Edamam network failure returns unavailable", async () => {
+  const resolver = new EdamamResolver({
+    appId: "test-id",
+    appKey: "test-key",
+    fetchFn: async () => {
+      throw new Error("network down");
+    },
+  });
+
+  assert.deepEqual(
+    await resolver.resolve({ foodName: "dal", quantity: 1, unit: "katori" }),
+    { kind: "unavailable" },
+  );
+});
+
+test("Edamam successful factual resolver returns normalized item", async () => {
+  let calls = 0;
+  const resolver = new EdamamResolver({
+    appId: "test-id",
+    appKey: "test-key",
+    fetchFn: async () => {
+      calls += 1;
+      if (calls === 1) {
+        return new Response(JSON.stringify({
+          parsed: [{
+            food: { foodId: "food-1", label: "Plain Yogurt" },
+            quantity: 150,
+            measure: { uri: "measure:g", label: "g" },
+          }],
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({
+        totalNutrients: {
+          ENERC_KCAL: { quantity: 90, unit: "kcal" },
+          PROCNT: { quantity: 6, unit: "g" },
+        },
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    },
+  });
+
+  const result = await resolver.resolve({
+    foodName: "plain yogurt",
+    quantity: 150,
+    unit: "g",
+  });
+
+  assert.equal(result.kind, "resolved");
+  if (result.kind !== "resolved") return;
+  assert.deepEqual(result.item.nutritionSnapshot.nutrients, {
+    energy: 90,
+    protein: 6,
+  });
+});
