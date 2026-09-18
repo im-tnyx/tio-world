@@ -161,3 +161,150 @@ test("source contains no raw meal/provider logging", () => {
     assert.equal(/console\.(log|info|debug|warn|error)\s*\(/.test(source), false, file);
   }
 });
+
+
+function multiItemInterpreter(names: readonly string[]): MealInterpreter {
+  return {
+    async interpret() {
+      return {
+        kind: "recognized",
+        mealName: "Meal",
+        items: names.map((foodName) => ({ foodName, quantity: 1, unit: "serving" })),
+      };
+    },
+  };
+}
+
+function factualItemFor(displayName: string) {
+  return {
+    displayName,
+    quantity: 1,
+    servingUnit: "serving",
+    nutritionSnapshot: {
+      schemaVersion: 1,
+      nutrients: { energy: 100 },
+    },
+  } as const;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+test("multi-item resolution uses bounded concurrency and preserves item order", async () => {
+  let active = 0;
+  let maxActive = 0;
+  const primary: FoodNutritionResolver = {
+    name: "fatsecret",
+    async resolve(candidate) {
+      active += 1;
+      maxActive = Math.max(maxActive, active);
+      await delay(candidate.foodName === "first" ? 30 : 5);
+      active -= 1;
+      return { kind: "resolved", item: factualItemFor(candidate.foodName) };
+    },
+  };
+
+  const handler = createMealTextHandler({
+    authenticate: async () => true,
+    interpreter: multiItemInterpreter(["first", "second", "third", "fourth"]),
+    primaryResolver: primary,
+    requestDeadlineMs: 1_000,
+    itemConcurrency: 2,
+  });
+
+  const response = await handler(request({ schemaVersion: 1, mealText: "multi" }));
+  const payload = await response.json() as { outcome: string; items?: { displayName: string }[] };
+  assert.equal(payload.outcome, "success");
+  assert.deepEqual(payload.items?.map((item) => item.displayName), [
+    "first",
+    "second",
+    "third",
+    "fourth",
+  ]);
+  assert.equal(maxActive, 2, "independent items should run concurrently but stay bounded");
+});
+
+test("overall deadline expiration maps to unavailable", async () => {
+  const primary: FoodNutritionResolver = {
+    name: "fatsecret",
+    async resolve() {
+      return await new Promise<ResolverResult>(() => {});
+    },
+  };
+
+  const handler = createMealTextHandler({
+    authenticate: async () => true,
+    interpreter: multiItemInterpreter(["slow"]),
+    primaryResolver: primary,
+    requestDeadlineMs: 20,
+    itemConcurrency: 2,
+  });
+
+  const response = await handler(request({ schemaVersion: 1, mealText: "slow" }));
+  assert.deepEqual(await response.json(), {
+    schemaVersion: 1,
+    outcome: "unavailable",
+  });
+});
+
+test("deadline never returns partial success after one item has resolved", async () => {
+  const primary: FoodNutritionResolver = {
+    name: "fatsecret",
+    async resolve(candidate) {
+      if (candidate.foodName === "fast") {
+        return { kind: "resolved", item: factualItemFor("fast") };
+      }
+      return await new Promise<ResolverResult>(() => {});
+    },
+  };
+
+  const handler = createMealTextHandler({
+    authenticate: async () => true,
+    interpreter: multiItemInterpreter(["fast", "slow"]),
+    primaryResolver: primary,
+    requestDeadlineMs: 20,
+    itemConcurrency: 2,
+  });
+
+  const response = await handler(request({ schemaVersion: 1, mealText: "fast and slow" }));
+  const payload = await response.json() as { outcome: string; items?: unknown };
+  assert.equal(payload.outcome, "unavailable");
+  assert.equal("items" in payload, false);
+});
+
+test("deadline abort reaches provider work and cannot mix fallback nutrients", async () => {
+  let secondaryAborted = false;
+  const primary: FoodNutritionResolver = {
+    name: "fatsecret",
+    async resolve() {
+      return { kind: "incomplete" };
+    },
+  };
+  const secondary: FoodNutritionResolver = {
+    name: "edamam",
+    async resolve(_candidate, signal) {
+      return await new Promise<ResolverResult>((resolve) => {
+        signal?.addEventListener("abort", () => {
+          secondaryAborted = true;
+          resolve({ kind: "unavailable" });
+        }, { once: true });
+      });
+    },
+  };
+
+  const handler = createMealTextHandler({
+    authenticate: async () => true,
+    interpreter: multiItemInterpreter(["fallback"]),
+    primaryResolver: primary,
+    secondaryResolver: secondary,
+    requestDeadlineMs: 20,
+    itemConcurrency: 2,
+  });
+
+  const response = await handler(request({ schemaVersion: 1, mealText: "fallback" }));
+  const payload = await response.json() as { outcome: string; items?: unknown };
+  assert.equal(payload.outcome, "unavailable");
+  assert.equal("items" in payload, false);
+  assert.equal(secondaryAborted, true);
+});
