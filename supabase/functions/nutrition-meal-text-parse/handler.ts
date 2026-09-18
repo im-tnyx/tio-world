@@ -78,7 +78,8 @@ export function createMealTextHandler(
       const validation = validateParseRequest(body);
       if (!validation.ok) return json({ error: "invalid_request" }, 400);
 
-      if (authentication.countryCode === null) {
+      const countryCode = authentication.countryCode;
+      if (countryCode === null) {
         return response(outcomeResponse("incomplete"));
       }
 
@@ -113,7 +114,7 @@ export function createMealTextHandler(
             dependencies.primaryResolver,
             dependencies.secondaryResolver ?? null,
             signal,
-            { countryCode: authentication.countryCode },
+            { countryCode },
           ),
         );
       } catch {
