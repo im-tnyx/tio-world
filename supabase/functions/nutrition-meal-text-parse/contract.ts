@@ -1,11 +1,27 @@
-// Tio-owned, provider-neutral request/response contract for the meal-text
-// parser. Nothing here may depend on FatSecret or Gemini shapes: those stay
-// internal to fatsecret_client.ts / gemini_client.ts.
+// Tio-owned, provider-neutral request/response contract for the meal-text parser.
+// Provider/model DTOs and identifiers must stay inside the Edge Function.
 
 export const SCHEMA_VERSION = 1;
+export const NUTRITION_SCHEMA_VERSION = 1;
 const MAX_MEAL_TEXT_LENGTH = 1000;
 const KNOWN_REQUEST_KEYS = new Set(["schemaVersion", "mealText"]);
 
+export const CANONICAL_NUTRIENT_KEYS = [
+  "energy",
+  "protein",
+  "carbohydrate",
+  "fat",
+  "fiber",
+  "saturated_fat",
+  "trans_fat",
+  "added_sugar",
+  "sodium",
+  "calcium",
+  "phosphorus",
+  "vitamin_d",
+] as const;
+
+export type CanonicalNutrientKey = (typeof CANONICAL_NUTRIENT_KEYS)[number];
 export type ParseOutcome = "success" | "unrecognized" | "incomplete" | "unavailable";
 
 export interface ParseRequest {
@@ -14,7 +30,7 @@ export interface ParseRequest {
 
 export interface NutritionSnapshotDto {
   readonly schemaVersion: number;
-  readonly nutrients: Readonly<Record<string, number>>;
+  readonly nutrients: Readonly<Partial<Record<CanonicalNutrientKey, number>>>;
 }
 
 export interface ResponseItem {
@@ -37,10 +53,9 @@ export type RequestValidation =
 
 /**
  * Rejects anything that is not exactly the documented shape: an object with
- * only `schemaVersion` and `mealText`, a matching schema version, and
- * non-blank trimmed text within a bounded length. This deliberately rejects
- * unknown fields (for example a caller-supplied `userId` or `provider`)
- * instead of silently ignoring them.
+ * only schemaVersion and mealText, a matching schema version, and bounded
+ * non-blank trimmed text. Caller-supplied identity/provider/model fields are
+ * deliberately rejected rather than ignored.
  */
 export function validateParseRequest(body: unknown): RequestValidation {
   if (body === null || typeof body !== "object" || Array.isArray(body)) {
@@ -66,7 +81,9 @@ export function validateParseRequest(body: unknown): RequestValidation {
   return { ok: true, request: { mealText } };
 }
 
-export function outcomeResponse(outcome: Exclude<ParseOutcome, "success">): ParseResponse {
+export function outcomeResponse(
+  outcome: Exclude<ParseOutcome, "success">,
+): ParseResponse {
   return { schemaVersion: SCHEMA_VERSION, outcome };
 }
 
