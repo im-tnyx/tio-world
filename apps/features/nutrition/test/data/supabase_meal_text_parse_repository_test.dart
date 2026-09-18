@@ -17,6 +17,22 @@ void main() {
         'schemaVersion': 1,
         'mealText': '2 roti with dal',
       });
+      expect(gateway.abortSignals.single, isNotNull);
+    });
+
+    test('client timeout aborts the gateway and maps to unavailable', () async {
+      final gateway = _AbortAwareGateway();
+      final repository = _repository(
+        gateway,
+        requestTimeout: const Duration(milliseconds: 1),
+      );
+
+      await expectLater(
+        repository.parseMealText('2 roti'),
+        _throwsReason(MealTextParseFailureReason.unavailable),
+      );
+
+      expect(gateway.abortSignalWasProvided, isTrue);
     });
   });
 
@@ -55,6 +71,17 @@ void main() {
 
       expect(draft.mealName, isNull);
       expect(draft.items, hasLength(1));
+    });
+
+    test('present non-string mealName maps to unavailable', () async {
+      final response = _successResponse()..['mealName'] = 123;
+      final gateway = _RecordingGateway(response: response);
+      final repository = _repository(gateway);
+
+      await expectLater(
+        repository.parseMealText('2 roti'),
+        _throwsReason(MealTextParseFailureReason.unavailable),
+      );
     });
 
     test('item ordering is preserved', () async {
@@ -305,6 +332,28 @@ void main() {
       );
     });
 
+    test('unsupported nutrition snapshot schemaVersion maps to unavailable',
+        () async {
+      final gateway = _RecordingGateway(
+        response: {
+          'schemaVersion': 1,
+          'outcome': 'success',
+          'items': [
+            _item()..['nutritionSnapshot'] = {
+                'schemaVersion': 2,
+                'nutrients': {'energy': 100},
+              },
+          ],
+        },
+      );
+      final repository = _repository(gateway);
+
+      await expectLater(
+        repository.parseMealText('roti'),
+        _throwsReason(MealTextParseFailureReason.unavailable),
+      );
+    });
+
     test('transport/network exception maps to unavailable', () async {
       final gateway = _ThrowingGateway(StateError('network unreachable'));
       final repository = _repository(gateway);
@@ -335,11 +384,13 @@ void main() {
 }
 
 SupabaseMealTextParseRepository _repository(
-  MealTextParseFunctionGateway gateway,
-) {
+  MealTextParseFunctionGateway gateway, {
+  Duration requestTimeout = const Duration(seconds: 50),
+}) {
   return SupabaseMealTextParseRepository(
     client: _UnusedSupabaseClient(),
     gateway: gateway,
+    requestTimeout: requestTimeout,
   );
 }
 
@@ -392,11 +443,17 @@ final class _RecordingGateway implements MealTextParseFunctionGateway {
   final Object? _response;
   final List<String> functionNames = [];
   final List<Object?> bodies = [];
+  final List<Future<void>?> abortSignals = [];
 
   @override
-  Future<Object?> invoke(String functionName, {required Object? body}) async {
+  Future<Object?> invoke(
+    String functionName, {
+    required Object? body,
+    Future<void>? abortSignal,
+  }) async {
     functionNames.add(functionName);
     bodies.add(body);
+    abortSignals.add(abortSignal);
     return _response;
   }
 }
@@ -407,8 +464,30 @@ final class _ThrowingGateway implements MealTextParseFunctionGateway {
   final Object _error;
 
   @override
-  Future<Object?> invoke(String functionName, {required Object? body}) async {
+  Future<Object?> invoke(
+    String functionName, {
+    required Object? body,
+    Future<void>? abortSignal,
+  }) async {
     throw _error;
+  }
+}
+
+final class _AbortAwareGateway implements MealTextParseFunctionGateway {
+  bool abortSignalWasProvided = false;
+
+  @override
+  Future<Object?> invoke(
+    String functionName, {
+    required Object? body,
+    Future<void>? abortSignal,
+  }) async {
+    abortSignalWasProvided = abortSignal != null;
+    if (abortSignal == null) {
+      throw StateError('expected a bounded abort signal');
+    }
+    await abortSignal;
+    throw StateError('simulated request abort');
   }
 }
 

@@ -1,6 +1,6 @@
 # TNYX-225 — N5D-7 Flutter Remote MealTextParseRepository Supabase Adapter
 
-**Status:** Validated
+**Status:** Review fixes implemented — exact-head CI/re-review pending
 **Primary owner:** `apps/features/nutrition/lib/src/data/repositories`, `apps/app/lib/app/network_providers.dart`
 **Affected platforms:** Flutter phone app (`apps/app`), Nutrition feature package (`apps/features/nutrition`)
 
@@ -14,24 +14,24 @@
 
 ## Active Handoff
 
-**Planning owner:** Claude (this session)
-**Implementation owner:** Claude (this session)
-**Review owner:** Not applicable — pending human/owner review of the draft PR
-**Implementation ownership state:** Complete
-**Ownership transition:** Not applicable
+**Planning owner:** Existing TNYX-225 plan retained
+**Implementation owner:** ChatGPT (owner-authorized review-fix pass)
+**Review owner:** Fresh reviewer pass after exact-head CI
+**Implementation ownership state:** Review fixes implemented
+**Ownership transition:** Owner explicitly instructed `@GitHub @Linear @Supabase sahi kare` after the fresh PR review; implementation ownership transferred only for the bounded G1/G2/G3 fix pass plus adjacent strict-schema hardening.
 **Repository state last verified:** `main` clean at `7f2dbed9107b0f7af8fd825db2d95045abc3675c` == `origin/main`, before branch creation
 **Branch:** `tnyx/tnyx-225-n5d-7-flutter-remote-mealtextparserepository-supabase`
 **HEAD SHA:** recorded at push time in the PR/handoff report
 **Observed working-tree state:** Clean at task start; only this task's files changed since
 **Observed uncommitted/dirty files:** None pre-existing; `flutter pub get` incidentally rewrote `apps/features/nutrition/pubspec.lock` dependency-classification metadata (transitive → direct, no version change) each run — reverted with `git checkout` after every validation pass so it never enters the diff
 **PR / tracker:** Linear TNYX-225 (moved Backlog → In Progress); PR created as draft after push, referencing TNYX-225 and GitHub #269
-**Current implementation state:** Implementation complete and validated
-**Relevant execution surface:** `MealTextParseController` → `MealTextParseRepository` → `SupabaseMealTextParseRepository` → `MealTextParseFunctionGateway` → `SupabaseClient.functions.invoke('nutrition-meal-text-parse', ...)`
-**Validation completed at SHA:** recorded in Final Handoff below
-**Validation remaining:** Live authenticated Supabase invocation (blocked on a later explicit deployment gate; function is currently NOT DEPLOYED)
-**Current blocker:** None
-**Open review finding IDs:** None
-**Next exact action:** Owner/reviewer review of the draft PR; do not merge without explicit instruction
+**Current implementation state:** G1/G2/G3 review fixes implemented; strict nested nutrition schema-version validation also tightened inside the approved decoder scope
+**Relevant execution surface:** `MealTextParseController` → `MealTextParseRepository` → `SupabaseMealTextParseRepository` → bounded `MealTextParseFunctionGateway` → `SupabaseClient.functions.invoke('nutrition-meal-text-parse', ...)`
+**Validation completed at SHA:** original implementation validation is recorded below; post-fix exact-head CI must be re-verified after push
+**Validation remaining:** Exact-head Flutter CI/re-review; live authenticated Supabase invocation remains blocked on a later explicit deployment gate because the function is NOT DEPLOYED
+**Current blocker:** Review findings must be re-verified and resolved on the new exact head before Ready for Review
+**Open review finding IDs:** TNYX-225-G1, TNYX-225-G2, TNYX-225-G3 — fixes included in this pass, thread resolution pending fresh verification
+**Next exact action:** Wait for exact-head Flutter CI, re-review the fixes, then resolve review threads only if the new head confirms them
 
 ## Global UI / Design-System Guardrail
 
@@ -46,8 +46,8 @@ Give the Nutrition feature a production-capable data adapter that turns normaliz
 ### Success Criteria
 
 - `SupabaseMealTextParseRepository` implements `MealTextParseRepository.parseMealText(String text)` exactly.
-- Calls `nutrition-meal-text-parse` via `SupabaseClient.functions.invoke` with the exact request contract (`schemaVersion: 1`, `mealText`).
-- Decodes the merged response contract strictly and defensively; every malformed/unexpected shape fails closed to `MealTextParseFailureReason.unavailable` rather than leaking a raw exception, transport detail, or provider payload.
+- Calls `nutrition-meal-text-parse` via `SupabaseClient.functions.invoke` with the exact request contract (`schemaVersion: 1`, `mealText`) and a bounded client-side abort signal.
+- Decodes the merged response contract strictly and defensively, including optional `mealName` typing and nested nutrition snapshot schema version; every malformed/unexpected shape fails closed to `MealTextParseFailureReason.unavailable` rather than leaking a raw exception, transport detail, or provider payload.
 - `unrecognized`/`incomplete`/`unavailable` server outcomes map to the matching typed `MealTextParseFailure` reason.
 - A successful decode produces a `MealLoggingDraft` with `captureSource: MealLogCaptureSource.text`.
 - `apps/app` composition provider selects the Supabase adapter when a Supabase client exists and resolves to `null` otherwise (no fake/in-memory fallback).
@@ -84,7 +84,7 @@ In scope:
   - `apps/features/nutrition/lib/src/meal_logging/meal_text_parse_controller.dart` — confirmed the controller already owns trim/blank-guard, duplicate-submission suppression, retry, and catch-all sanitization to `unavailable`; confirmed it rejects a "successful" draft whose `captureSource != MealLogCaptureSource.text`.
   - `apps/shared/lib/src/nutrition/meal_logging_draft.dart`, `meal_logging_draft_item.dart`, `meal_log_capture_source.dart`, `nutrition_snapshot.dart`, `nutrient_id.dart` — exact constructors/validation and the 12 canonical nutrient keys (`energy`, `protein`, `carbohydrate`, `fat`, `fiber`, `saturated_fat`, `trans_fat`, `added_sugar`, `sodium`, `calcium`, `phosphorus`, `vitamin_d`); confirmed unknown nutrient keys are silently ignored (not remapped) by `NutrientId.fromStorageValue`.
   - `supabase/functions/nutrition-meal-text-parse/contract.ts` and `handler.ts` (read-only, not modified) — confirmed the exact merged wire contract: top-level `{schemaVersion, outcome, mealName?, items?}`, item shape `{displayName, quantity, servingUnit, nutritionSnapshot}`, and that the Edge Function always responds HTTP 200 for all four outcomes (`success`/`unrecognized`/`incomplete`/`unavailable`); only `400`/`401`/`405` (invalid request / unauthorized / method not allowed) are non-2xx.
-  - `G:\dev\pub-cache\hosted\pub.dev\functions_client-2.7.1\lib\src\types.dart` — confirmed `FunctionException`/`FunctionsFetchException`/`FunctionsRelayException`/`FunctionsHttpException` shapes (status/details/reasonPhrase) that must never leak into the domain failure.
+  - locked `functions_client 2.7.1` package source/types — confirmed transport exception shapes and request-cancellation support that must remain sanitized at the repository boundary.
   - `apps/app/lib/app/network_providers.dart` — confirmed the established `Provider<T?>((ref) { supabaseClient != null ? Supabase... : null })` idiom already used by `userProfileRepositoryProvider`, `profileAccountRepositoryProvider`, `appOnboardingDraftRepositoryProvider` for capabilities with no safe offline fallback.
 - Existing pattern to follow: `apps/features/nutrition/lib/src/data/repositories/supabase_meal_categories_repository.dart` — constructor-injected `SupabaseClient` plus an optional injectable gateway seam defaulting to a concrete Supabase-backed gateway, enabling hand-written fakes in tests (no mocktail/mockito anywhere in this repo).
 - Tests or validation already present: `apps/features/nutrition/test/meal_logging/meal_text_parse_controller_test.dart` already covers the controller side against a hand-rolled `_RecordingRepository`; no prior Supabase-backed test existed for the parser repository before this task.
@@ -132,7 +132,7 @@ Not applicable (no UI). Data-layer failure states: `MealTextParseFailureReason.u
 
 - [x] Add `SupabaseMealTextParseRepository` + `MealTextParseFunctionGateway` + `SupabaseMealTextParseFunctionGateway`.
 - [x] Export from `apps/features/nutrition/lib/src/data/data.dart`.
-- [x] Add focused repository tests (19 cases covering request shape, success decoding, all three failure outcomes, and defensive decoding of malformed/transport failures).
+- [x] Add focused repository tests (22 cases after review fixes, including bounded abort, malformed present `mealName`, and unsupported nested snapshot schema version).
 - [x] Add `mealTextParseRepositoryProvider` to `apps/app/lib/app/network_providers.dart` (Supabase-or-null, no fallback).
 - [x] Extend `apps/app/test/app/network_providers_test.dart` with default/no-Supabase/Supabase-available coverage.
 - [x] Run focused + full validation for both touched packages.
@@ -140,6 +140,8 @@ Not applicable (no UI). Data-layer failure states: `MealTextParseFailureReason.u
 ## 6. Quality Review
 
 ### Validation Run
+
+Original implementation validation at `f99534fc4a4e3f9b7f844e0a4e7012ae60d05941`:
 
 ```text
 cd apps/features/nutrition
@@ -159,13 +161,18 @@ git diff --name-status origin/main...HEAD
 git rev-list --left-right --count origin/main...HEAD
 ```
 
-Note: `flutter pub get` incidentally rewrites `apps/features/nutrition/pubspec.lock` dependency-classification metadata (`shared_preferences`/`shared_preferences_platform_interface` transitive → direct; identical resolved versions/sha256, no dependency upgrade) on every run in this environment. It was reverted with `git checkout -- apps/features/nutrition/pubspec.lock` after every validation pass so it never enters the committed diff, per "Do not upgrade dependencies."
+Note: the original local validation environment reported incidental `apps/features/nutrition/pubspec.lock` dependency-classification drift with no version/hash change; that lockfile was kept out of the task diff.
+
+Post-review-fix validation in this connector session cannot run the local Flutter toolchain. The new exact head must therefore rely on GitHub Flutter CI before review threads are resolved or the PR moves out of Draft.
 
 ### Review Findings and Resolution
 
 | ID | Severity | Status | Finding | Observed at SHA | Evidence or follow-up |
 |---|---|---|---|---|---|
-| | | | None | | |
+| TNYX-225-G1 | P2 | Fixed in source; re-review pending | Client function invocation lacked a bounded abort signal | `f99534f` | 50s client budget now drives `abortSignal`; abort/transport errors still collapse to `unavailable`; focused regression added |
+| TNYX-225-G2 | P2 | Fixed in source; re-review pending | Present non-string `mealName` was silently treated as absent | `f99534f` | Present malformed values now fail closed to `unavailable`; regression added |
+| TNYX-225-G3 | P3 | Fixed in task brief; re-review pending | Machine-specific absolute package-cache path was committed | `f99534f` | Replaced with portable locked-package source wording |
+| TNYX-225-G4 | P2 | Fixed proactively; re-review pending | Nested `NutritionSnapshot` accepted unsupported integer schema versions | fix pass | Decoder now requires nutrition snapshot schema version 1; regression added |
 
 ## 7. Final Handoff
 
@@ -180,7 +187,7 @@ Note: `flutter pub get` incidentally rewrites `apps/features/nutrition/pubspec.l
 
 ### Actual Behavior
 
-`SupabaseMealTextParseRepository` calls the merged `nutrition-meal-text-parse` contract exactly as specified, decodes strictly, and never lets a raw transport/provider detail escape the `MealTextParseFailure` boundary. `apps/app` composition selects it only when a Supabase client is available and otherwise exposes `null` — there is no fake/in-memory production parser. No UI, schema, RLS, RPC, or Edge Function file was touched.
+`SupabaseMealTextParseRepository` calls the merged `nutrition-meal-text-parse` contract with a bounded 50s client abort budget, decodes strictly (including optional `mealName` typing and nested nutrition schema version), and never lets a raw transport/provider detail escape the `MealTextParseFailure` boundary. `apps/app` composition selects it only when a Supabase client is available and otherwise exposes `null` — there is no fake/in-memory production parser. No UI, schema, RLS, RPC, or Edge Function file was touched.
 
 ### Known Limitations
 
@@ -189,4 +196,4 @@ Note: `flutter pub get` incidentally rewrites `apps/features/nutrition/pubspec.l
 
 ### Final Status
 
-`PASS`
+`REVIEW FIXES APPLIED — EXACT-HEAD CI / RE-REVIEW PENDING`
