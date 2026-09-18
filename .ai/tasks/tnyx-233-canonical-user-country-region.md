@@ -54,8 +54,9 @@ Implementation owner active. Bounded prerequisite slice for TNYX-229.
 - Country context is threaded internally to factual resolvers and does not enter Flutter/domain response DTOs.
 - FatSecret search/detail calls now always receive explicit `region=<countryCode>`; the provider's implicit US default is therefore not used for authenticated requests with country context.
 - Provider-specific localization remains server-side. Edamam remains the existing secondary fallback and receives no country-specific client contract.
-- Focused handler/provider tests cover missing country, FR/IN country propagation, explicit FatSecret region, and no provider call when country is absent.
-- Supabase Database CI now includes the TNYX-233 SQL matrix.
+- Focused handler/provider tests cover missing country, FR/IN country propagation, explicit FatSecret region, no provider call when country is absent, and a valid-format unsupported region that is passed through without any silent US rewrite.
+- Supabase Database CI includes the TNYX-233 SQL matrix.
+- Supabase Functions CI type-checks the parser entrypoint/all source/tests and runs the parser test suite on Deno 2.9.6.
 
 ## Quality review
 
@@ -68,11 +69,15 @@ Implementation owner active. Bounded prerequisite slice for TNYX-229.
 
 ## Validation status
 
-- Static branch/scope audit: in progress.
-- SQL replay + TNYX-233 database matrix: pending GitHub Supabase Database CI.
-- Deno parser check/tests: pending executable Deno environment; current agent runtime does not provide Deno and no production deployment is used as a test substitute.
+- Static branch/scope audit: PASS before final validation updates; all changed files are task-owned and branch ancestry remains clean.
+- Supabase Database CI: PASS on the reviewed implementation head before the final unsupported-country regression test/task-brief update; full migration replay, migration ledger, TNYX-233 SQL matrix, existing SQL matrices, concurrency test, and lint-delta gate all passed.
+- Supabase Functions CI: PASS on Deno 2.9.6 before the final unsupported-country regression test/task-brief update.
+- Parser entrypoint/all source/tests `deno check`: PASS.
+- Parser tests: PASS — 77 passed / 0 failed before the final added unsupported-country regression test.
+- Final-head CI is expected to rerun automatically after the last test/task-brief commits and must be rechecked before review handoff.
+- GitHub Advanced Security dynamic AI scan is currently an infrastructure failure, not a code finding: it exits before review with `400 The requested model is not supported`.
 - Live migration/deployment: not authorized/performed in this stage.
 
 ## Handoff
 
-Implementation is ready for draft-PR validation, not final completion. TNYX-229 must remain blocked until repository validation passes and the prerequisite is explicitly cleared.
+Implementation remains in Draft PR #285 pending final-head CI reconciliation. TNYX-229 must remain blocked until this prerequisite is explicitly cleared.
