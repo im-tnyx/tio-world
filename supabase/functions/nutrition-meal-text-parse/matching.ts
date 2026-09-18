@@ -14,32 +14,68 @@ export function normalizeName(value: string): string {
     .replace(/\s+/g, " ");
 }
 
-export function tokenSimilarity(left: string, right: string): number {
-  const a = new Set(normalizeName(left).split(" ").filter(Boolean));
-  const b = new Set(normalizeName(right).split(" ").filter(Boolean));
-  if (a.size === 0 || b.size === 0) return 0;
+/**
+ * Conservative factual-food identity score.
+ *
+ * Provider labels are accepted only when they contain the same normalized food
+ * tokens as the interpreted candidate. Token order, punctuation, and a small
+ * set of deterministic singular/plural forms may differ. Extra semantic tokens
+ * are rejected instead of being treated as a stronger prefix/containment match.
+ */
+export function matchScore(query: string, providerName: string): number {
+  const queryNormalized = normalizeName(query);
+  const providerNormalized = normalizeName(providerName);
+  if (!queryNormalized || !providerNormalized) return 0;
+  if (queryNormalized === providerNormalized) return 100;
 
-  let intersection = 0;
-  for (const token of a) {
-    if (b.has(token)) intersection += 1;
-  }
-  const union = new Set([...a, ...b]).size;
-  return union === 0 ? 0 : intersection / union;
+  const queryTokens = canonicalFoodTokens(queryNormalized);
+  const providerTokens = canonicalFoodTokens(providerNormalized);
+  if (!sameTokenMultiset(queryTokens, providerTokens)) return 0;
+  return 96;
 }
 
-export function matchScore(query: string, providerName: string): number {
-  const q = normalizeName(query);
-  const p = normalizeName(providerName);
-  if (!q || !p) return 0;
-  if (q === p) return 100;
-  if (p.startsWith(`${q} `) || q.startsWith(`${p} `)) return 92;
+export function isSafeFoodIdentityMatch(
+  query: string,
+  providerName: string,
+): boolean {
+  return matchScore(query, providerName) > 0;
+}
 
-  const qTokens = q.split(" ").filter(Boolean);
-  const pTokens = p.split(" ").filter(Boolean);
-  if (qTokens.every((token) => pTokens.includes(token))) return 86;
-  if (pTokens.every((token) => qTokens.includes(token))) return 84;
+function canonicalFoodTokens(normalizedName: string): string[] {
+  return normalizedName
+    .split(" ")
+    .filter(Boolean)
+    .map(canonicalFoodToken)
+    .sort();
+}
 
-  return Math.round(tokenSimilarity(q, p) * 80);
+function canonicalFoodToken(token: string): string {
+  if (token.length > 4 && token.endsWith("ies")) {
+    return `${token.slice(0, -3)}y`;
+  }
+  if (token.length > 4 && token.endsWith("oes")) {
+    return token.slice(0, -2);
+  }
+  if (
+    token.length > 3 &&
+    token.endsWith("s") &&
+    !token.endsWith("ss") &&
+    !token.endsWith("us") &&
+    !token.endsWith("is") &&
+    !token.endsWith("ses") &&
+    !token.endsWith("xes") &&
+    !token.endsWith("zes") &&
+    !token.endsWith("ches") &&
+    !token.endsWith("shes")
+  ) {
+    return token.slice(0, -1);
+  }
+  return token;
+}
+
+function sameTokenMultiset(left: readonly string[], right: readonly string[]): boolean {
+  if (left.length !== right.length) return false;
+  return left.every((token, index) => token === right[index]);
 }
 
 export function finitePositiveNumber(value: unknown): number | null {
@@ -63,8 +99,6 @@ export function canonicalSnapshot(
     clean[key] = raw;
   }
 
-  // A successful factual item must contain at least one known nutrient. Missing
-  // nutrients stay absent; zero remains an explicit known zero.
   if (Object.keys(clean).length === 0) return null;
 
   return {
