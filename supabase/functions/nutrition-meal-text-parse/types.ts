@@ -20,9 +20,17 @@ export type ResolverResult =
   | { readonly kind: "incomplete" }
   | { readonly kind: "unavailable" };
 
+export interface NutritionResolverContext {
+  readonly countryCode: string;
+}
+
 export interface FoodNutritionResolver {
   readonly name: "fatsecret" | "edamam";
-  resolve(candidate: MealCandidate, signal?: AbortSignal): Promise<ResolverResult>;
+  resolve(
+    candidate: MealCandidate,
+    signal?: AbortSignal,
+    context?: NutritionResolverContext,
+  ): Promise<ResolverResult>;
 }
 
 export interface MealInterpreter {
