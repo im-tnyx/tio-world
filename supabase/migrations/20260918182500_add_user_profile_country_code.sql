@@ -9,4 +9,4 @@ alter table public.user_profiles
     );
 
 comment on column public.user_profiles.country_code is
-  'Canonical user-selected/saved ISO 3166-1 alpha-2 country code. NULL means unknown/unset; do not infer from phone, timezone, language, IP, or device location.';
+  'Canonical user-selected/saved country identifier in uppercase ISO 3166-1 alpha-2 format. NULL means unknown/unset; do not infer from phone, timezone, language, IP, or device location.';
