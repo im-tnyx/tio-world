@@ -15,9 +15,11 @@ import '../../../theme/theme.dart';
 /// surface, the label reads against the surface beneath it and no `onDanger`
 /// foreground role is needed.
 ///
-/// Existing destructive confirmations have not all converged here:
-/// `TioConfirmationCard` still routes confirm through [primary]. Those
-/// migrations are separate #173 slices.
+/// The shared confirmation presenter (`showTioConfirmationBottomSheet`)
+/// already routes its destructive confirm action through this variant; there
+/// is no separate public confirmation-card component to converge. Remaining
+/// #173 work is auditing other destructive confirmations onto the same
+/// presenter, not migrating this variant itself.
 enum TioButtonVariant { primary, secondary, ghost, destructive }
 
 class TioButton extends StatelessWidget {
