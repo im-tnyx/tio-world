@@ -3,6 +3,7 @@ import type {
   MealCandidate,
   MealInterpreter,
 } from "./types.ts";
+import { fetchWithTimeout } from "./async_control.ts";
 import { finitePositiveNumber } from "./matching.ts";
 
 const DEFAULT_MODEL = "gemini-3.8-flash";
@@ -58,53 +59,49 @@ export class GeminiMealInterpreter implements MealInterpreter {
     this.#fetch = options.fetchFn ?? fetch;
   }
 
-  async interpret(mealText: string): Promise<InterpretationResult> {
+  async interpret(
+    mealText: string,
+    signal?: AbortSignal,
+  ): Promise<InterpretationResult> {
     if (!this.#apiKey) return { kind: "unavailable" };
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.#timeoutMs);
-    try {
-      const response = await this.#fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(this.#model)}:generateContent`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-goog-api-key": this.#apiKey,
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                role: "user",
-                parts: [
-                  {
-                    text: buildPrompt(mealText),
-                  },
-                ],
-              },
-            ],
-            generationConfig: {
-              responseMimeType: "application/json",
-              responseSchema,
-            },
-          }),
-          signal: controller.signal,
+    const response = await fetchWithTimeout(
+      this.#fetch,
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(this.#model)}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": this.#apiKey,
         },
-      );
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: buildPrompt(mealText) }],
+            },
+          ],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema,
+          },
+        }),
+      },
+      this.#timeoutMs,
+      signal,
+    );
 
-      if (!response.ok) return { kind: "unavailable" };
+    if (response === null || !response.ok) return { kind: "unavailable" };
 
+    try {
       const envelope = (await response.json()) as GeminiEnvelope;
       const text = envelope.candidates?.[0]?.content?.parts?.[0]?.text;
       if (typeof text !== "string" || text.trim().length === 0) {
         return { kind: "unavailable" };
       }
-
       return parseGeminiInterpretation(text);
     } catch {
       return { kind: "unavailable" };
-    } finally {
-      clearTimeout(timeout);
     }
   }
 }
