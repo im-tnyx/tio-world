@@ -159,6 +159,36 @@ test("FatSecret sends saved country as explicit region on search and detail", as
   assert.match(requests[2].url, /[?&]region=FR(?:&|$)/);
 });
 
+test("FatSecret unsupported region is passed through and never rewritten to US", async () => {
+  const requests: { url: string; body: string }[] = [];
+  const resolver = new FatSecretResolver({
+    clientId: "test-id",
+    clientSecret: "test-secret",
+    fetchFn: async (input, init) => {
+      const url = String(input);
+      const body = init?.body instanceof URLSearchParams ? init.body.toString() : "";
+      requests.push({ url, body });
+
+      if (url.includes("oauth.fatsecret.com")) {
+        return Response.json({ access_token: "token", expires_in: 3600 });
+      }
+      return Response.json({ error: { code: 4, message: "unsupported region" } });
+    },
+  });
+
+  assert.deepEqual(
+    await resolver.resolve(
+      { foodName: "dal", quantity: 1, unit: "katori" },
+      undefined,
+      { countryCode: "ZZ" },
+    ),
+    { kind: "unavailable" },
+  );
+  assert.match(requests[1].body, /(?:^|&)region=ZZ(?:&|$)/);
+  assert.doesNotMatch(requests[1].body, /(?:^|&)region=US(?:&|$)/);
+  assert.equal(requests.length, 2, "provider error must stop before detail lookup");
+});
+
 test("Edamam compatible item measure is accepted", () => {
   assert.equal(measureIsCompatible("piece", "whole"), true);
   assert.equal(measureIsCompatible("g", "cup"), false);
