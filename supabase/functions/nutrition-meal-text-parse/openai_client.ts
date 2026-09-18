@@ -66,7 +66,9 @@ export class OpenAIMealInterpreter implements MealInterpreter {
         },
         body: JSON.stringify({
           model: this.#model,
-          // Meal text is sensitive health data; never retain it provider-side.
+          // Disable Responses application-state storage for meal text. Provider
+          // abuse-monitoring retention is governed separately by the OpenAI
+          // account/data-control configuration.
           store: false,
           instructions: MEAL_INTERPRETER_INSTRUCTIONS.join("\n"),
           input: mealTextInput(mealText),

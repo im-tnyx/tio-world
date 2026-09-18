@@ -30,7 +30,7 @@
 **Validation completed at SHA:** See §6
 **Validation remaining:** See §6
 **Current blocker:** None for source. Live deployment remains TNYX-229.
-**Open review finding IDs:** TNYX-230-R1, TNYX-230-R2 (see §6)
+**Open review finding IDs:** TNYX-230-R1, TNYX-230-R2, TNYX-230-R3 (see §6); PR #282 findings TNYX-230-G1/G2 resolved
 **Next exact action:** Draft PR review. Do not merge or deploy.
 
 ## 1. Discovery
@@ -44,7 +44,7 @@ The protected meal-text parser can use either Gemini or OpenAI as the language i
 - `MEAL_INTERPRETER_PRIMARY` selects the primary interpreter: missing/empty or `gemini` → Gemini primary + OpenAI fallback; `openai` → OpenAI primary + Gemini fallback; any other non-empty value → configuration error (sanitized `unavailable`, no provider called, no silent default).
 - `recognized` and `unrecognized` from the primary return immediately; fallback runs only after primary `unavailable` and only while the parent `AbortSignal` is active.
 - No parallel provider calls.
-- OpenAI uses the Responses API with strict Structured Outputs (JSON Schema) and `store: false`.
+- OpenAI uses the Responses API with strict Structured Outputs (JSON Schema) and `store: false` (disables Responses application-state storage only; not a zero-retention guarantee).
 - Both interpreters normalize to the same `InterpretationResult` via one shared parser, schema limits, and one shared instruction set.
 - AI interpreters never produce calories/macros/micronutrients/gram or serving conversions; factual nutrition stays FatSecret → Edamam.
 
@@ -62,13 +62,13 @@ See Explicit non-changes above.
 
 - Source/config inspected: `index.ts`, `types.ts`, `gemini_client.ts`, `gemini_client_test.ts`, `handler.ts`, `async_control.ts`, `resolver.ts`, `providers_test.ts`, `handler_test.ts`, `supabase/config.toml` (`[functions.nutrition-meal-text-parse] verify_jwt = true`).
 - Existing pattern to follow: `GeminiMealInterpreter` (direct `fetch` via `fetchWithTimeout`, 8s per-provider timeout, parent-signal propagation, strict JSON parse → `unavailable` on any malformed output); `resolveWithFallback` (primary/secondary short-circuit + abort checks).
-- Tests or validation already present: Deno `node:test` suites; baseline on base SHA: `deno check index.ts` PASS, `deno test --allow-read=<function dir>` 39 passed / 0 failed (Deno 2.9.7 under `G:\dev\tools\deno`, same tooling as TNYX-224 PR #280).
+- Tests or validation already present: Deno `node:test` suites; baseline on base SHA: `deno check index.ts` PASS, `deno test --allow-read=<function dir>` 39 passed / 0 failed (Deno 2.9.7, machine-local toolchain, same tooling as TNYX-224 PR #280).
 - Live state (read-only, prior TNYX-229 readiness pass): `nutrition-meal-text-parse` NOT DEPLOYED.
 
 ### OpenAI current-doc evidence (fetched 2026-09-18)
 
 - Structured Outputs guide (`developers.openai.com/api/docs/guides/structured-outputs`): Responses API uses `text.format = { type: "json_schema", name, schema, strict: true }`; strict mode requires `additionalProperties: false`, every property in `required`, nullable via type arrays; `maxItems` supported. Output is `output[].content[]` with `type: "output_text"` or `"refusal"`.
-- Data controls / conversation-state docs: Responses are stored by default (`store` defaults to true); `store: false` disables storage → set explicitly.
+- Data controls / conversation-state docs: Responses are stored by default (`store` defaults to true); `store: false` disables Responses application-state storage → set explicitly. It does **not** by itself mean zero provider-side retention: standard OpenAI abuse-monitoring logs may retain prompts/responses for up to 30 days unless the organization/project has approved Zero Data Retention or Modified Abuse Monitoring (separate account-level controls).
 - Models catalog (`developers.openai.com/api/docs/models`) lists `gpt-5.6-luna` as the cost-optimized model ($0.20 / $1.20 per MTok). Model page (`/api/docs/models/gpt-5.6-luna`): supports Structured Outputs and `v1/responses`; reasoning effort supports `none, low, medium (default), high, xhigh, max`.
 
 ## 3. Clarification
@@ -127,7 +127,7 @@ All provider failures, malformed output, refusals, timeouts, and misconfiguratio
 
 ### Validation Run
 
-Tooling: Deno 2.9.7 (`G:\dev\tools\deno\bin\deno.exe`, user-local, same as TNYX-224).
+Tooling: Deno 2.9.7 (machine-local toolchain, same as TNYX-224).
 
 ```text
 deno check supabase/functions/nutrition-meal-text-parse/index.ts          PASS
@@ -149,6 +149,9 @@ Exact final PR-head validation is recorded in the draft PR body (avoids a self-r
 |---|---|---|---|---|---|
 | TNYX-230-R1 | Medium | Open | `gpt-5.6-luna` default + `reasoning.effort: "none"` are not live-validated; wrong assumption would degrade to `unavailable` → Gemini fallback, never wrong nutrition. | branch | Validate during TNYX-229 live validation. |
 | TNYX-230-R2 | Low | Open | Worst-case interpreter latency is primary timeout + fallback timeout (8s + 8s), still within the 45s request deadline. | branch | Accepted. |
+| TNYX-230-R3 | Medium | Open | `store: false` is not zero retention; OpenAI abuse-monitoring logs may retain meal text up to 30 days absent approved ZDR / Modified Abuse Monitoring. | branch | TNYX-229 production privacy gate: confirm OpenAI account/project data-control status before live use. |
+| TNYX-230-G1 | P2 | Resolved | `openai_client.ts` comment claimed meal text is never retained provider-side. | 9b54488c | Comment now scoped to Responses application-state storage; `store: false` and request behavior unchanged; retention carried as R3 / TNYX-229 gate. |
+| TNYX-230-G2 | P3 | Resolved | Brief contained machine-specific absolute toolchain paths. | 9b54488c | Replaced with portable "machine-local toolchain" wording. |
 
 ## 7. Final Handoff
 
@@ -174,7 +177,7 @@ Source only. Function remains NOT DEPLOYED. TNYX-229 remains the deployment/live
 
 ### Known Limitations
 
-TNYX-230-R1/R2 above. FatSecret rotation, provider entitlement/India coverage, and durable nutrition-storage permission remain TNYX-229/production gates.
+TNYX-230-R1/R2/R3 above. OpenAI provider-side retention (ZDR / Modified Abuse Monitoring status), FatSecret rotation, provider entitlement/India coverage, and durable nutrition-storage permission remain TNYX-229/production gates.
 
 ### Final Status
 
