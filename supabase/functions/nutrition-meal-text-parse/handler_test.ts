@@ -155,7 +155,17 @@ test("both provider failures return unavailable", async () => {
 });
 
 test("source contains no raw meal/provider logging", () => {
-  const files = ["./handler.ts", "./gemini_client.ts", "./fatsecret_client.ts", "./edamam_client.ts"];
+  const files = [
+    "./handler.ts",
+    "./gemini_client.ts",
+    "./openai_client.ts",
+    "./interpretation_schema.ts",
+    "./interpreter_orchestrator.ts",
+    "./composition.ts",
+    "./index.ts",
+    "./fatsecret_client.ts",
+    "./edamam_client.ts",
+  ];
   for (const file of files) {
     const source = readFileSync(new URL(file, import.meta.url), "utf8");
     assert.equal(/console\.(log|info|debug|warn|error)\s*\(/.test(source), false, file);
