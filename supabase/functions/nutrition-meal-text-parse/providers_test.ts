@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+import { isSafeFoodIdentityMatch } from "./matching.ts";
+
 import {
   FatSecretResolver,
   resolveFatSecretServing,
@@ -181,4 +183,120 @@ test("Edamam successful factual resolver returns normalized item", async () => {
     energy: 90,
     protein: 6,
   });
+});
+
+
+test("factual identity accepts exact and safe reordered token matches", () => {
+  assert.equal(isSafeFoodIdentityMatch("plain yogurt", "plain yogurt"), true);
+  assert.equal(isSafeFoodIdentityMatch("plain yogurt", "yogurt plain"), true);
+  assert.equal(isSafeFoodIdentityMatch("tomato", "tomatoes"), true);
+});
+
+test("factual identity rejects extra semantic and composite-food tokens", () => {
+  assert.equal(isSafeFoodIdentityMatch("milk", "milk chocolate"), false);
+  assert.equal(isSafeFoodIdentityMatch("rice", "rice pudding"), false);
+  assert.equal(isSafeFoodIdentityMatch("rice", "rice cracker"), false);
+  assert.equal(isSafeFoodIdentityMatch("yogurt", "yogurt dressing"), false);
+});
+
+test("FatSecret rejects ambiguous duplicate safe identities", () => {
+  const result = selectFatSecretMatch("dal", [
+    { food_id: "1", food_name: "Dal", food_type: "Generic" },
+    { food_id: "2", food_name: "Dal", food_type: "Generic" },
+  ]);
+
+  assert.equal(result, null);
+});
+
+test("FatSecret resolver rejects materially expanded food identity", async () => {
+  let calls = 0;
+  const resolver = new FatSecretResolver({
+    clientId: "test-id",
+    clientSecret: "test-secret",
+    fetchFn: async () => {
+      calls += 1;
+      if (calls === 1) {
+        return new Response(JSON.stringify({
+          access_token: "token",
+          expires_in: 3600,
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify({
+        foods: {
+          food: [{ food_id: "food-1", food_name: "Milk Chocolate", food_type: "Generic" }],
+        },
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    },
+  });
+
+  assert.deepEqual(
+    await resolver.resolve({ foodName: "milk", quantity: 100, unit: "g" }),
+    { kind: "incomplete" },
+  );
+  assert.equal(calls, 2, "unsafe search result must not fetch provider detail");
+});
+
+test("Edamam rejects materially expanded food identity before nutrients call", async () => {
+  let calls = 0;
+  const resolver = new EdamamResolver({
+    appId: "test-id",
+    appKey: "test-key",
+    fetchFn: async () => {
+      calls += 1;
+      return new Response(JSON.stringify({
+        parsed: [{
+          food: { foodId: "food-1", label: "Rice Pudding" },
+          quantity: 1,
+          measure: { uri: "measure:serving", label: "serving" },
+        }],
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    },
+  });
+
+  assert.deepEqual(
+    await resolver.resolve({ foodName: "rice", quantity: 1, unit: "serving" }),
+    { kind: "incomplete" },
+  );
+  assert.equal(calls, 1, "unsafe identity must not request nutrient detail");
+});
+
+test("Edamam accepts safe reordered food identity", async () => {
+  let calls = 0;
+  const resolver = new EdamamResolver({
+    appId: "test-id",
+    appKey: "test-key",
+    fetchFn: async () => {
+      calls += 1;
+      if (calls === 1) {
+        return new Response(JSON.stringify({
+          parsed: [{
+            food: { foodId: "food-1", label: "Yogurt Plain" },
+            quantity: 150,
+            measure: { uri: "measure:g", label: "g" },
+          }],
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify({
+        totalNutrients: {
+          ENERC_KCAL: { quantity: 90, unit: "kcal" },
+        },
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    },
+  });
+
+  const result = await resolver.resolve({
+    foodName: "plain yogurt",
+    quantity: 150,
+    unit: "g",
+  });
+  assert.equal(result.kind, "resolved");
+  assert.equal(calls, 2);
+});
+
+test("FatSecret accepts safe reordered food identity", () => {
+  const result = selectFatSecretMatch("plain yogurt", [
+    { food_id: "1", food_name: "Yogurt Plain", food_type: "Generic" },
+  ]);
+
+  assert.equal(result?.food_id, "1");
 });
