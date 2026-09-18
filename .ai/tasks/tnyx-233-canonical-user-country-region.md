@@ -46,6 +46,33 @@ Implementation owner active. Bounded prerequisite slice for TNYX-229.
 - `git diff --check` and complete branch changed-file audit before push/PR handoff.
 - No live production migration is applied as part of repository authoring unless separately authorized and reconciled.
 
+## Implementation evidence
+
+- Added nullable `public.user_profiles.country_code` with uppercase two-letter format validation; existing rows stay `NULL`.
+- Protected parser now resolves request context with `createSupabaseContext(..., { auth: "user" })` and reads `user_profiles.country_code` through the caller-scoped `data.supabase` client, so existing RLS remains the authorization boundary.
+- Missing canonical country returns provider-neutral `incomplete` before AI/provider work.
+- Country context is threaded internally to factual resolvers and does not enter Flutter/domain response DTOs.
+- FatSecret search/detail calls now always receive explicit `region=<countryCode>`; the provider's implicit US default is therefore not used for authenticated requests with country context.
+- Provider-specific localization remains server-side. Edamam remains the existing secondary fallback and receives no country-specific client contract.
+- Focused handler/provider tests cover missing country, FR/IN country propagation, explicit FatSecret region, and no provider call when country is absent.
+- Supabase Database CI now includes the TNYX-233 SQL matrix.
+
+## Quality review
+
+- Branch remains based on `main@13da1de59ad4980dc36ce6a9fbc3c206d1463224`.
+- Live Supabase remains unchanged; `nutrition-meal-text-parse` is still not deployed.
+- Current Supabase docs confirm caller-scoped Edge Function clients apply RLS for authenticated user reads.
+- FatSecret current docs confirm omitting `region` defaults localization to US; explicit region is therefore required for this global contract.
+- The database constraint enforces canonical storage format, not a copied static ISO membership catalog. Unsupported/provider-unavailable codes fail safely at the provider boundary rather than being silently rewritten to another country.
+- Existing unrelated Supabase security-advisor warnings remain outside this slice; no new live advisor finding can exist until the migration is applied.
+
+## Validation status
+
+- Static branch/scope audit: in progress.
+- SQL replay + TNYX-233 database matrix: pending GitHub Supabase Database CI.
+- Deno parser check/tests: pending executable Deno environment; current agent runtime does not provide Deno and no production deployment is used as a test substitute.
+- Live migration/deployment: not authorized/performed in this stage.
+
 ## Handoff
 
-Implementation started. Task brief created before source/schema repository changes.
+Implementation is ready for draft-PR validation, not final completion. TNYX-229 must remain blocked until repository validation passes and the prerequisite is explicitly cleared.
